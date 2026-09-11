@@ -1,10 +1,10 @@
 ---
 name: Authoritative mobile text submission
-description: Visible-value authority for food-creator submission and live recognition on mobile keyboards.
+description: Visible-value authority and explicit classification boundaries for mobile food-creator inputs.
 ---
 
-For food-generation text fields, the mounted control's visible value is authoritative for both live recognition and final submission. Associate each recognition request and result with its exact source text, and never let a result control UI when its source differs from the current visible value.
+For food-generation text fields affected by predictive keyboards, the mounted control's visible value is authoritative. When classification controls later UI, prefer an explicit user action that captures the finished value over recognition that runs while the user is still typing.
 
-**Why:** Mobile predictive keyboards and autocorrect can update the visible control without the expected mirrored React state transition. Submission may receive the full DOM value while a state-driven recognition panel remains stuck on a partial word.
+**Why:** Mobile predictive keyboards and autocorrect can update the visible control without the expected mirrored React state transition. Event-driven live recognition can remain stuck on a partial word even when final submission receives the full value.
 
-**How to apply:** Preserve limits and programmatic updates, observe the actual control value through the smallest bounded DOM-aware bridge, and coordinate debounce, request identity, response acceptance, and rendering around normalized source text. At submission, capture once and carry that value through every stage.
+**How to apply:** Preserve limits and programmatic updates. On Continue or submission, capture the visible value once, associate classification with that source, reject mismatched responses, and carry the captured value through later stages. Do not add polling or keyboard-specific delays.

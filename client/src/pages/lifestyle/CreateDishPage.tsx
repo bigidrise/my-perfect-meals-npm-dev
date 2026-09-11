@@ -76,10 +76,9 @@ import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { captureAuthoritativeTextValue, commitTextInputValue } from "@/lib/authoritativeTextInput";
 import {
   canRenderCreateDishPreparation,
-  normalizeCreateDishRecognitionText,
-  resolveCreateDishRecognitionSource,
-  shouldApplyCreateDishRecognitionResult,
-} from "@/lib/createDishLiveRecognition";
+  getCreateDishClassificationOutcome,
+  shouldAcceptCreateDishClassification,
+} from "@/lib/createDishClassificationStep";
 import type {
   CreateDishIntent,
   ExpandIngredientResponse,
@@ -511,26 +510,10 @@ export default function CreateDishPage() {
   const [delegatedDimensions, setDelegatedDimensions] = useState<ExpansionDimension[]>([]);
   const [expansionBusy, setExpansionBusy] = useState(false);
   const [expansionFallback, setExpansionFallback] = useState(false);
-  const lastExpandedTextRef = useRef("");
   const expansionRequestRef = useRef(0);
   const [acceptedExpansionSource, setAcceptedExpansionSource] = useState<string | null>(null);
-
-  useEffect(() => {
-    const element = dishInputRef.current;
-    if (!element) return;
-    const mirrorVisibleValue = () => {
-      const visibleValue = element.value.slice(0, 300);
-      setDishInput((current) => current === visibleValue ? current : visibleValue);
-    };
-    element.addEventListener("input", mirrorVisibleValue);
-    element.addEventListener("change", mirrorVisibleValue);
-    element.addEventListener("compositionend", mirrorVisibleValue);
-    return () => {
-      element.removeEventListener("input", mirrorVisibleValue);
-      element.removeEventListener("change", mirrorVisibleValue);
-      element.removeEventListener("compositionend", mirrorVisibleValue);
-    };
-  }, []);
+  const [classificationComplete, setClassificationComplete] = useState(false);
+  const [classifiedDishInput, setClassifiedDishInput] = useState("");
 
   const expansionPolicy = () => {
     const mappedMethodId = COOK_METHOD_TO_EXPANSION_ID[cookMethod] ?? null;
@@ -593,75 +576,85 @@ export default function CreateDishPage() {
     }
   };
 
-  useEffect(() => {
-    const visibleValue = dishInputRef.current?.value ?? dishInput;
-    const { sourceText, shouldMirror } = resolveCreateDishRecognitionSource(
-      visibleValue,
-      dishInput,
-    );
-    if (shouldMirror) {
-      setDishInput(visibleValue);
+  const classifyDishInput = async (providedValue?: string) => {
+    const visibleValue = providedValue ??
+      await captureAuthoritativeTextValue(dishInputRef.current, dishInput, 300);
+    const sourceText = visibleValue.trim();
+    if (sourceText !== dishInput) updateDishInput(sourceText);
+    if (sourceText.length < 3) {
+      toast({
+        title: "Tell us what you want to make",
+        description: "Enter a food or dish, then tap Continue.",
+        variant: "destructive",
+      });
+      return;
     }
-    if (sourceText === lastExpandedTextRef.current) return;
     const requestId = ++expansionRequestRef.current;
-    lastExpandedTextRef.current = sourceText;
     setIngredientExpansion(null);
     setAcceptedExpansionSource(null);
+    setClassifiedDishInput("");
+    setClassificationComplete(false);
     setExpansionSelections({});
     setDelegatedDimensions([]);
     setExpansionFallback(false);
-    setExpansionBusy(false);
-    if (sourceText.length < 3) return;
     setExpansionBusy(true);
-    const timer = window.setTimeout(async () => {
-      const result = await requestIngredientExpansion(sourceText, {
-        delegatedDimensions: [],
-        selectedOptionIds: {
-          form: null,
-          method: null,
-          texture: null,
-          flavor: null,
-          cuisine: null,
-        },
-      });
-      if (requestId !== expansionRequestRef.current) return;
-      const currentVisibleValue = dishInputRef.current?.value ?? dishInput;
-      if (
-        !result ||
-        !shouldApplyCreateDishRecognitionResult({
-          requestSource: sourceText,
-          currentVisibleValue,
-          responseSubmittedText: result.ingredient.submittedText,
-        })
-      ) {
-        setExpansionBusy(false);
-        setIngredientExpansion(null);
-        setAcceptedExpansionSource(null);
-        const currentSource = normalizeCreateDishRecognitionText(currentVisibleValue);
-        if (currentSource !== sourceText) {
-          lastExpandedTextRef.current = "";
-          setDishInput(currentVisibleValue);
-        } else if (!result) {
-          setExpansionFallback(true);
-        }
-        return;
-      }
+    const result = await requestIngredientExpansion(sourceText, {
+      delegatedDimensions: [],
+      selectedOptionIds: {
+        form: null,
+        method: null,
+        texture: null,
+        flavor: null,
+        cuisine: null,
+      },
+    });
+    if (requestId !== expansionRequestRef.current) return;
+    const currentVisibleValue = dishInputRef.current?.value ?? sourceText;
+    if (!result) {
       setExpansionBusy(false);
-      setExpansionFallback(false);
-      setIngredientExpansion(result);
-      setAcceptedExpansionSource(sourceText);
-      const inferredTextureId = result.inferredSelectionIds?.texture ?? null;
-      const inferredTexture = result.options.textures.find(
-        (option) => option.id === inferredTextureId,
-      );
-      setExpansionSelections({
-        form: result.inferredSelectionIds?.form ?? null,
-        texture: isTextureCompatibleWithCookMethod(inferredTexture) ? inferredTextureId : null,
-        flavor: result.inferredSelectionIds?.flavor ?? null,
-      });
-    }, 420);
-    return () => window.clearTimeout(timer);
-  }, [dishInput]);
+      setExpansionFallback(true);
+      setClassifiedDishInput(sourceText);
+      setClassificationComplete(true);
+      return;
+    }
+    if (!shouldAcceptCreateDishClassification({
+      requestSource: sourceText,
+      currentVisibleValue,
+      responseSubmittedText: result.ingredient.submittedText,
+    })) {
+      setExpansionBusy(false);
+      return;
+    }
+    setExpansionBusy(false);
+    setExpansionFallback(false);
+    setIngredientExpansion(result);
+    setAcceptedExpansionSource(sourceText);
+    setClassifiedDishInput(sourceText);
+    const outcome = getCreateDishClassificationOutcome(result.ingredient.status);
+    setClassificationComplete(outcome === "ready");
+    const inferredTextureId = result.inferredSelectionIds?.texture ?? null;
+    const inferredTexture = result.options.textures.find(
+      (option) => option.id === inferredTextureId,
+    );
+    setExpansionSelections({
+      form: result.inferredSelectionIds?.form ?? null,
+      texture: isTextureCompatibleWithCookMethod(inferredTexture) ? inferredTextureId : null,
+      flavor: result.inferredSelectionIds?.flavor ?? null,
+    });
+  };
+
+  const editDishInput = () => {
+    expansionRequestRef.current += 1;
+    setClassificationComplete(false);
+    setClassifiedDishInput("");
+    setIngredientExpansion(null);
+    setAcceptedExpansionSource(null);
+    setExpansionFallback(false);
+    setExpansionBusy(false);
+    setExpansionSelections({});
+    setDelegatedDimensions([]);
+    window.requestAnimationFrame(() => dishInputRef.current?.focus());
+  };
 
   const toggleExpansionSelection = (dimension: ExpansionDimension, id: string) => {
     if (dimension === "texture") {
@@ -725,34 +718,34 @@ export default function CreateDishPage() {
     );
   };
 
-  const chooseClarification = (choiceId: string, label: string) => {
+  const chooseClarification = async (choiceId: string, label: string) => {
     const originalDish = dishInput.trim().toLowerCase();
     if (choiceId === "other") {
       updateDishInput("");
+      editDishInput();
       return;
     }
+    let clarifiedValue = label;
     if (choiceId === "surprise") {
       const firstConcreteChoice = ingredientExpansion?.ingredient.clarification?.choices.find(
         (choice: { id: string; label: string }) => choice.id !== "surprise" && choice.id !== "other",
       );
       if (firstConcreteChoice) {
-        updateDishInput(
-          originalDish === "steak"
-            ? `${firstConcreteChoice.label} steak`
-            : originalDish === "fish"
-              ? `${firstConcreteChoice.label} fish`
-              : firstConcreteChoice.label,
-        );
+        clarifiedValue = originalDish === "steak"
+          ? `${firstConcreteChoice.label} steak`
+          : originalDish === "fish"
+            ? `${firstConcreteChoice.label} fish`
+            : firstConcreteChoice.label;
       }
-      return;
-    }
-    updateDishInput(
-      originalDish === "steak"
+    } else {
+      clarifiedValue = originalDish === "steak"
         ? `${label} steak`
         : originalDish === "fish"
           ? `${label} fish`
-          : label,
-    );
+          : label;
+    }
+    updateDishInput(clarifiedValue);
+    await classifyDishInput(clarifiedValue);
   };
 
   const getAuthoritativeExpansion = async (submittedDishInput: string): Promise<CreateDishIntent | null> => {
@@ -1156,6 +1149,7 @@ export default function CreateDishPage() {
                       <textarea
                         ref={dishInputRef}
                         defaultValue=""
+                        readOnly={classificationComplete}
                         onChange={(e) => commitTextInputValue(e, setDishInput, 300)}
                         onInput={(e) => commitTextInputValue(e, setDishInput, 300)}
                         onCompositionEnd={(e) => commitTextInputValue(e, setDishInput, 300)}
@@ -1163,7 +1157,7 @@ export default function CreateDishPage() {
                         className="w-full px-3 py-2 pr-10 bg-black text-white placeholder:text-white/40 border border-orange-400/20 rounded-lg h-20 resize-none text-sm"
                         maxLength={300}
                       />
-                      {dishInput && (
+                      {dishInput && !classificationComplete && (
                         <TrashButton
                           onClick={() => updateDishInput("")}
                           size="sm"
@@ -1173,19 +1167,42 @@ export default function CreateDishPage() {
                         />
                       )}
                     </div>
-                    <VoiceInputButton
-                      value={dishInput}
-                      onChange={updateDishInput}
-                      mode="append"
-                      separator=" "
-                      maxLength={300}
-                      label="Add dish description by voice"
-                      className="mt-2"
-                    />
+                    {!classificationComplete && (
+                      <VoiceInputButton
+                        value={dishInput}
+                        onChange={updateDishInput}
+                        mode="append"
+                        separator=" "
+                        maxLength={300}
+                        label="Add dish description by voice"
+                        className="mt-2"
+                      />
+                    )}
                     <p className="text-xs text-white/50 mt-1 text-right">
                       {dishInput.length}/300
                     </p>
                   </div>
+
+                  {!classificationComplete && (
+                    <GlassButton
+                      type="button"
+                      onClick={() => classifyDishInput()}
+                      disabled={expansionBusy}
+                      className="w-full bg-lime-600 flex items-center justify-center"
+                    >
+                      {expansionBusy ? "Understanding your dish…" : "Continue"}
+                    </GlassButton>
+                  )}
+
+                  {classificationComplete && (
+                    <button
+                      type="button"
+                      onClick={editDishInput}
+                      className="text-xs font-medium text-orange-200 underline underline-offset-4"
+                    >
+                      Change food
+                    </button>
+                  )}
 
                   {expansionFallback && (
                     <p className="rounded-lg border border-orange-300/20 bg-orange-950/30 px-3 py-2 text-xs leading-relaxed text-orange-100/80">
@@ -1197,9 +1214,36 @@ export default function CreateDishPage() {
                     <div className="h-12 animate-pulse rounded-lg border border-white/10 bg-white/5" aria-label="Understanding your dish" />
                   )}
 
+                  {!classificationComplete && ingredientExpansion &&
+                    (ingredientExpansion.ingredient.status === "unsupported" ||
+                      ingredientExpansion.ingredient.status === "clarification_required") && (
+                    <div className="rounded-xl border border-orange-300/25 bg-orange-950/30 p-3">
+                      <p className="text-sm font-medium text-orange-50">
+                        We need a little more information. What food or dish did you mean?
+                      </p>
+                      {ingredientExpansion.ingredient.clarification?.choices.length ? (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {ingredientExpansion.ingredient.clarification.choices.map((choice) => (
+                            <PillButton
+                              type="button"
+                              key={choice.id}
+                              onClick={() => chooseClarification(choice.id, choice.label)}
+                              variant="amber"
+                              className="max-w-full normal-case tracking-normal text-[11px]"
+                            >
+                              <span className="break-words">{choice.label}</span>
+                            </PillButton>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+
+                  {classificationComplete && (
+                    <>
                   {ingredientExpansion && canRenderCreateDishPreparation({
                     resultSource: acceptedExpansionSource,
-                    currentVisibleValue: dishInputRef.current?.value ?? dishInput,
+                    classifiedValue: classifiedDishInput,
                     status: ingredientExpansion.ingredient.status,
                   }) && (
                     <div className="space-y-3 rounded-xl border border-orange-400/20 bg-black/25 p-3">
@@ -1504,6 +1548,8 @@ export default function CreateDishPage() {
                       {"Create My Dish"}
                     </GlassButton>
                   ) : null}
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </div>
