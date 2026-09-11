@@ -5,9 +5,9 @@ import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Activity, Pill, Trophy, Lock, Dumbbell, Utensils, LayoutGrid, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getAuthToken } from "@/lib/auth";
-import { apiUrl } from "@/lib/resolveApiBase";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { useToast } from "@/hooks/use-toast";
+import { persistMealBuilderSelection } from "@/lib/mealBuilderSelection";
 
 interface BuilderFeature {
   title: string;
@@ -23,6 +23,7 @@ export default function Builders() {
   const isDesktop = useIsDesktop();
   const { user, refreshUser } = useAuth();
   const { t } = useTranslation();
+  const { toast } = useToast();
 
   useEffect(() => {
     document.title = "Meal Builders | My Perfect Meals";
@@ -163,21 +164,16 @@ export default function Builders() {
     }
     if (isBuilderUnlocked(feature.builderId)) {
       if (feature.builderId !== userActiveBoard) {
-        const authToken = getAuthToken();
-        if (authToken) {
-          try {
-            await fetch(apiUrl("/api/user/meal-builder"), {
-              method: "PATCH",
-              headers: {
-                "Content-Type": "application/json",
-                "x-auth-token": authToken,
-              },
-              body: JSON.stringify({ selectedMealBuilder: feature.builderId }),
-            });
-            await refreshUser();
-          } catch (err) {
-            console.error("Failed to update builder:", err);
-          }
+        try {
+          await persistMealBuilderSelection(feature.builderId, refreshUser);
+        } catch (err) {
+          console.error("Failed to update builder:", err);
+          toast({
+            title: "Builder not changed",
+            description: err instanceof Error ? err.message : "Please try again.",
+            variant: "destructive",
+          });
+          return;
         }
       }
       setLocation(feature.route);

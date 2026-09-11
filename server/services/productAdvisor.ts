@@ -23,6 +23,9 @@ export interface BrandRecommendation {
   rank: 1 | 2 | 3;
   grade: "A" | "B" | "C";
   reason: string;
+  evidenceStatus?: "verified" | "unverified";
+  verificationMessage?: string;
+  wholeFoodNote?: string;
 }
 
 export interface AvoidRecommendation {
@@ -145,6 +148,46 @@ export interface BrandKnowledgeProvider {
 
 // ─── GPT-4o Brand Knowledge Provider ─────────────────────────────────────────
 
+export function applyFindProductEvidencePolicy(
+  parsed: CartRecommendationResult,
+  protocolContext: string,
+): CartRecommendationResult {
+  const purposeContext = recognizedPurposeContext(protocolContext);
+  const advice = (parsed.advice ?? []).map((item) => ({
+    ...item,
+    recommended: (item.recommended ?? []).map((recommendation) => {
+      const decision = evaluateWholeFoodCandidate(
+        {
+          name: recommendation.brand,
+          description: `${item.ingredient} ${recommendation.reason}`,
+          isPackagedProduct: true,
+        },
+        {
+          ...purposeContext,
+          recommendationSurface: "grocery_product_advisor",
+          // The requested category is the Find a Product search boundary.
+          // Whole-food policy may rank or warn within it, but category identity
+          // alone is not a safety prohibition.
+          practicalAlternativeAvailable: false,
+        },
+      );
+      return {
+        ...recommendation,
+        evidenceStatus: "unverified" as const,
+        verificationMessage:
+          "Product details are not verified. Scan the package to confirm ingredients, nutrition, allergens, and dietary fit.",
+        wholeFoodNote:
+          decision.classification === "substitute_when_practical"
+            ? "This is a less-preferred processed category. Compare choices within the category and use an appropriate portion."
+            : decision.classification === "uncertain"
+              ? "Processing and nutrition fit cannot be confirmed without the package label."
+              : undefined,
+      };
+    }),
+  })).filter((item) => item.recommended.length > 0);
+  return { ...parsed, advice };
+}
+
 const SHOPPING_ADVISOR_SYSTEM_PROMPT = appendWholeFoodStandardPrompt(`You are a Product Advisor for a personalized nutrition app. Your job is to recommend specific, real grocery brands for packaged ingredients based on a user's exact health profile.
 
 CORE RULES:
@@ -214,31 +257,18 @@ ${ingredients.map((i, n) => `${n + 1}. ${i}`).join("\n")}`;
     const raw = completion.choices[0]?.message?.content ?? "{}";
     const parsed = JSON.parse(raw);
 
-    const purposeContext = recognizedPurposeContext(protocolContext);
-    const advice = ((parsed.advice ?? []) as IngredientAdvice[]).map((item) => ({
-      ...item,
-      recommended: (item.recommended ?? []).flatMap((recommendation) => {
-        const decision = evaluateWholeFoodCandidate(
-          { name: recommendation.brand, description: `${item.ingredient} ${recommendation.reason}` },
-          { ...purposeContext, recommendationSurface: "grocery_product_advisor" },
-        );
-        if (decision.shouldBlock) return [];
-        return [{
-          ...recommendation,
-          reason: decision.classification === "uncertain"
-            ? `${recommendation.reason} Processing classification is uncertain without a verified ingredient label.`
-            : recommendation.reason,
-        }];
-      }),
-    })).filter((item) => item.recommended.length > 0);
-    if (((parsed.advice ?? []) as unknown[]).length > 0 && advice.length === 0) {
+    const result = applyFindProductEvidencePolicy(
+      {
+        advice: (parsed.advice ?? []) as IngredientAdvice[],
+        profileUsed: (parsed.profileUsed ?? []) as string[],
+        store,
+      },
+      protocolContext,
+    );
+    if (((parsed.advice ?? []) as unknown[]).length > 0 && result.advice.length === 0) {
       throw new WholeFoodRecommendationUnavailableError();
     }
-    return {
-      advice,
-      profileUsed: (parsed.profileUsed ?? []) as string[],
-      store,
-    };
+    return result;
   }
 
   async getSwapRecommendation(
