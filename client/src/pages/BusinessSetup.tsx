@@ -158,7 +158,27 @@ export default function BusinessSetup() {
       }
 
       if (pilotCreateMode || createData.paymentRequired === false) {
-        setLocation("/business-organizations");
+        if (!createData.organizationId || !createData.locationId) {
+          setErr("Your organization was created, but its workspace could not be opened.");
+          setSubmitting(false);
+          return;
+        }
+        const selectRes = await fetch("/api/business/workspace/select", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          credentials: "include",
+          body: JSON.stringify({
+            organizationId: createData.organizationId,
+            locationId: createData.locationId,
+          }),
+        });
+        const selectData = await selectRes.json().catch(() => ({}));
+        if (!selectRes.ok) {
+          setErr(selectData.error || "Your organization was created, but it could not be opened.");
+          setSubmitting(false);
+          return;
+        }
+        setLocation("/business-dashboard");
         return;
       }
 
