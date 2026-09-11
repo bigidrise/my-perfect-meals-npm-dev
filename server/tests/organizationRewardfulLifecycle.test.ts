@@ -175,4 +175,22 @@ describe("organization-owned Rewardful lifecycle", () => {
       "if (affiliateData) {\n        apiRequest(\"/api/affiliate/rewardful-status\")",
     );
   });
+
+  test("organization payout onboarding stays in Rewardful and preserves organization authorization", () => {
+    const dashboard = read("client/src/pages/AffiliateDashboard.tsx");
+    const businessDashboard = read("client/src/pages/BusinessDashboard.tsx");
+    const guidance = read("client/src/components/business/RewardfulPayoutGuidance.tsx");
+    const routes = read("server/routes/affiliateRoutes.ts");
+
+    expect(dashboard).toContain("<RewardfulPayoutGuidance");
+    expect(businessDashboard).toContain("<RewardfulPayoutGuidance");
+    expect(businessDashboard).toContain('fetch("/api/affiliate/dashboard-link"');
+    expect(guidance).toContain("Set Up / Manage Payouts in Rewardful");
+    expect(guidance).toContain("Connect Rewardful first");
+    expect(guidance).toContain("does not collect or store");
+    expect(guidance).not.toMatch(/routing number|account number|paypal_email|wise_email/i);
+    expect(routes).toContain("resolveActiveWorkspace(userId, sessionSelection(req))");
+    expect(routes).toContain("requireOrganizationPartnerManager(workspace)");
+    expect(routes).not.toContain("contractorRewardful");
+  });
 });
