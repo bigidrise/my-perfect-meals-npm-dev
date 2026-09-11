@@ -142,8 +142,15 @@ export function deriveBusinessCommercialState(
 }
 
 export function createBusinessOnboardingWindow(now = new Date()) {
+  return createBusinessPilotWindow(BUSINESS_ONBOARDING_PILOT_DAYS, now);
+}
+
+export function createBusinessPilotWindow(durationDays: number, now = new Date()) {
+  if (!Number.isInteger(durationDays) || durationDays < 1 || durationDays > 365) {
+    throw new Error("Business pilot duration must be between 1 and 365 days.");
+  }
   const endsAt = new Date(now);
-  endsAt.setUTCDate(endsAt.getUTCDate() + BUSINESS_ONBOARDING_PILOT_DAYS);
+  endsAt.setUTCDate(endsAt.getUTCDate() + durationDays);
   return { startedAt: now, endsAt };
 }
 

@@ -65,6 +65,58 @@ describe("Business pilot prerequisites", () => {
     expect(update?.commercialAccessEndsAt).toBe(endsAt);
   });
 
+  test("future activation writes one window once and retries reuse it", () => {
+    const authorizationService = readFileSync(
+      join(process.cwd(), "server/services/organizationalPilotAuthorizationService.ts"),
+      "utf8",
+    );
+    expect(authorizationService).toContain(
+      "SELECT pg_advisory_xact_lock(hashtext(${setup.authorizationId}))",
+    );
+    expect(authorizationService).toContain('if (pilot.status === "preparing")');
+    expect(authorizationService).toContain(
+      "window = createBusinessPilotWindow(authorization.durationDays)",
+    );
+    expect(authorizationService).toContain(
+      'eq(organizationalPilots.status, "preparing")',
+    );
+    expect(authorizationService).toContain('eventType: "pilot_started"');
+    expect(authorizationService).toContain('} else if (pilot.status === "active")');
+    expect(authorizationService).toContain(
+      "assertOrganizationalPilotMirror(authoritativeWindow, pilot)",
+    );
+  });
+
+  test("active organization pilot reads derive dates from Business commercial access", () => {
+    const accessSource = readFileSync(
+      join(process.cwd(), "server/services/pilotProgramAccess.ts"),
+      "utf8",
+    );
+    const setupSource = readFileSync(
+      join(process.cwd(), "server/services/organizationalPilotAuthorizationService.ts"),
+      "utf8",
+    );
+    const routesSource = readFileSync(
+      join(process.cwd(), "server/routes/businessRoutes.ts"),
+      "utf8",
+    );
+    expect(accessSource).toContain(
+      "programStartAt: businesses.commercialAccessStartedAt",
+    );
+    expect(accessSource).toContain(
+      "programEndAt: businesses.commercialAccessEndsAt",
+    );
+    expect(accessSource).toContain(
+      'eq(businesses.commercialAccessMode, "onboarding_pilot")',
+    );
+    expect(setupSource).toContain(
+      "pilotStartAt: businesses.commercialAccessStartedAt",
+    );
+    expect(routesSource).toContain(
+      "pilotEndAt: businesses.commercialAccessEndsAt",
+    );
+  });
+
   test("rejects paid, Stripe-backed, authorized, partial, and conflicting clocks", () => {
     const unsafe = [
       { ...legacyBusiness, commercialAccessMode: "paid" as const },
@@ -129,13 +181,14 @@ describe("Business pilot prerequisites", () => {
       join(process.cwd(), "server/config/pilotReviewConfig.ts"),
       "utf8",
     );
-    const kitchenSource = readFileSync(
-      join(process.cwd(), "client/src/pages/kitchen/SignatureKitchenHubPage.tsx"),
+    const businessRoutes = readFileSync(
+      join(process.cwd(), "server/routes/businessRoutes.ts"),
       "utf8",
     );
     expect(configSource).toContain("PILOT_REVIEW_BOOKING_URL");
     expect(configSource).not.toContain("J1E5Mx41F5es5RUg8");
-    expect(configSource).not.toContain("1TiPNAuMfStVFwKZ7");
-    expect(kitchenSource).toContain("1TiPNAuMfStVFwKZ7");
+    expect(configSource).not.toContain("SignatureKitchenHubPage");
+    expect(businessRoutes).not.toContain("SignatureKitchenHubPage");
+    expect(businessRoutes).not.toContain("CALENDLY_URL");
   });
 });
