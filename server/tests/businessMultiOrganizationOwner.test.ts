@@ -20,6 +20,7 @@ const setup = fs.readFileSync(
 );
 const hub = fs.readFileSync(path.join(root, "client/src/pages/OrganizationHub.tsx"), "utf8");
 const start = fs.readFileSync(path.join(root, "client/src/pages/BusinessStart.tsx"), "utf8");
+const dashboard = fs.readFileSync(path.join(root, "client/src/pages/BusinessDashboard.tsx"), "utf8");
 const businessCardState = fs.readFileSync(path.join(root, "client/src/lib/businessCardState.ts"), "utf8");
 const stripeCheckout = fs.readFileSync(path.join(root, "server/routes/stripeCheckout.ts"), "utf8");
 const pilotAuthorization = fs.readFileSync(
@@ -111,6 +112,19 @@ describe("multi-organization owner setup", () => {
     expect(setup).toContain("organizationId: createData.organizationId");
     expect(setup).toContain("locationId: createData.locationId");
     expect(setup).toContain('setLocation("/business-dashboard")');
+  });
+
+  test("every selected owner or admin can edit that organization's display name", () => {
+    const renameRoute = businessRoutes.slice(
+      businessRoutes.indexOf('router.patch("/name"'),
+      businessRoutes.indexOf('// ── POST /api/business/seats'),
+    );
+    expect(renameRoute).toContain('resolveDashboardBusiness(req, "admin_or_owner")');
+    expect(renameRoute).toContain(".update(businesses)");
+    expect(renameRoute).toContain(".update(organizations)");
+    expect(renameRoute).toContain("resolved.organizationId");
+    expect(dashboard).toContain('aria-label="Edit organization name"');
+    expect(dashboard).not.toContain("{!isAdminView && (");
   });
 
   test("an approved pilot user with zero organizations is routed to the Hub", () => {

@@ -2162,9 +2162,8 @@ async function acceptBusinessInvitation(req: any, res: any) {
 router.post("/invite/accept", requireAuth, acceptBusinessInvitation);
 router.post("/invite/:token/accept", requireAuth, acceptBusinessInvitation);
 
-// ── PATCH /api/business/name — owner renames the business
+// ── PATCH /api/business/name — selected organization owner/admin updates its display name
 router.patch("/name", requireAuth, requireProOrOrgAdmin, async (req, res) => {
-  const userId = (req as any).authUser?.id as string;
   const { name } = req.body as { name: string };
 
   if (!name || name.trim().length < 2) {
@@ -2176,12 +2175,24 @@ router.patch("/name", requireAuth, requireProOrOrgAdmin, async (req, res) => {
 
     if (!resolved) return res.status(403).json({ error: "No business account found." });
 
-    await db
-      .update(businesses)
-      .set({ name: name.trim(), updatedAt: new Date() })
-      .where(eq(businesses.id, resolved.business.id));
+    const normalizedName = name.trim();
+    await db.transaction(async (tx) => {
+      await tx
+        .update(businesses)
+        .set({ name: normalizedName, updatedAt: new Date() })
+        .where(eq(businesses.id, resolved.business.id));
+      await tx
+        .update(organizations)
+        .set({ name: normalizedName, updatedAt: new Date() })
+        .where(eq(organizations.id, resolved.organizationId));
+    });
 
-    return res.json({ success: true });
+    return res.json({
+      success: true,
+      businessId: resolved.business.id,
+      organizationId: resolved.organizationId,
+      name: normalizedName,
+    });
   } catch (err) {
     const workspaceError = sendDashboardWorkspaceError(res, err);
     if (workspaceError) return workspaceError;
