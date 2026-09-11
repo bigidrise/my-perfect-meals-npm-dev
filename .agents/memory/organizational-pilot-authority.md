@@ -11,8 +11,10 @@ One organizational pilot owns the shared start and end timestamps. Normal commer
 
 Pilot Champion authority is an exact-user organizational authorization, not a participant role that can be requested through an ordinary team invitation. Existing and new users claim through different entry paths, then converge on the same Business organization, pilot, and Champion authority. Champion administration and participant commercial entitlement remain independent permissions.
 
+Each complimentary organization requires its own founder/admin-issued, email-bound authorization. An authorization is single-use and becomes permanently bound to the business it creates; multiple organizations require multiple explicit authorizations, never a reusable pilot-user bypass.
+
 An active organizational-pilot membership may elevate commercial product entitlements only. It must not infer ProCare, clinical credentials, care relationships, or Business administration; owner/admin membership remains the separate management authority.
 
-**Why:** Clinics and gyms can support far more clients than professionals, and participant-level clocks, placeholder users, synthetic paid plans, or email-domain administration do not scale or preserve billing and administrative authority.
+**Why:** Clinics and gyms can support far more clients than professionals, and participant-level clocks, placeholder users, synthetic paid plans, email-domain administration, or unlimited free-organization flags do not scale or preserve billing and administrative authority.
 
-**How to apply:** Keep Stripe and paid Business flows unchanged. Store pending invitations without users, associate real accounts only on acceptance, require Champions to claim approved organizational authorizations, and leave role, ProCare, care-team, and client relationships as independent authorities.
+**How to apply:** Keep Stripe and paid Business flows unchanged. Founder/admin self-service may issue and revoke unused authorizations, but organization creation must lock and consume one exact authorization. Store pending invitations without users, associate real accounts only on acceptance, and leave role, ProCare, care-team, and client relationships as independent authorities.

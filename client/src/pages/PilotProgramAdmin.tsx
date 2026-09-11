@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,6 +17,16 @@ function parseParticipants(value: string) {
 
 export default function PilotProgramAdmin() {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  const [championEmail, setChampionEmail] = useState("");
+  const [authorizationOrganization, setAuthorizationOrganization] = useState("");
+  const [authorizationDuration, setAuthorizationDuration] = useState(30);
+  const [professionalCapacity, setProfessionalCapacity] = useState(4);
+  const [clientCapacity, setClientCapacity] = useState(100);
+  const [authorizations, setAuthorizations] = useState<any[]>([]);
+  const [authorizationError, setAuthorizationError] = useState("");
+  const [authorizing, setAuthorizing] = useState(false);
+  const [loadingAuthorizations, setLoadingAuthorizations] = useState(true);
   const [organizationName, setOrganizationName] = useState("");
   const [programName, setProgramName] = useState("");
   const [durationDays, setDurationDays] = useState(30);
@@ -26,9 +37,63 @@ export default function PilotProgramAdmin() {
   const [starting, setStarting] = useState(false);
   const participants = useMemo(() => parseParticipants(participantText), [participantText]);
 
-  if (!user?.isAdmin && user?.role !== "admin") {
+  const loadAuthorizations = async () => {
+    setLoadingAuthorizations(true);
+    try {
+      const response = await apiRequest("/api/business/pilot-authorizations");
+      setAuthorizations(response.authorizations || []);
+    } catch (reason: any) {
+      setAuthorizationError(reason.message || "Could not load organization pilots");
+    } finally {
+      setLoadingAuthorizations(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user?.isAdmin) void loadAuthorizations();
+  }, [user?.isAdmin]);
+
+  if (!user?.isAdmin) {
     return <div className="p-8 text-white">Administrator access is required.</div>;
   }
+
+  const authorizeOrganization = async () => {
+    setAuthorizing(true);
+    setAuthorizationError("");
+    try {
+      await apiRequest("/api/business/pilot-authorizations", {
+        method: "POST",
+        body: JSON.stringify({
+          championEmail,
+          organizationName: authorizationOrganization,
+          durationDays: authorizationDuration,
+          professionalCapacity,
+          clientCapacity,
+        }),
+      });
+      setChampionEmail("");
+      setAuthorizationOrganization("");
+      await loadAuthorizations();
+    } catch (reason: any) {
+      setAuthorizationError(reason.message || "Could not authorize organization pilot");
+    } finally {
+      setAuthorizing(false);
+    }
+  };
+
+  const revokeAuthorization = async (authorization: any) => {
+    if (!window.confirm(`Revoke the unused pilot authorization for ${authorization.organizationName}?`)) return;
+    setAuthorizationError("");
+    try {
+      await apiRequest(`/api/business/pilot-authorizations/${authorization.id}/revoke`, {
+        method: "POST",
+        body: JSON.stringify({ reason: "Revoked from Organization Pilots admin screen" }),
+      });
+      await loadAuthorizations();
+    } catch (reason: any) {
+      setAuthorizationError(reason.message || "Could not revoke organization pilot");
+    }
+  };
 
   const provision = async () => {
     setSaving(true);
@@ -66,9 +131,77 @@ export default function PilotProgramAdmin() {
   return (
     <div className="min-h-screen bg-neutral-950 px-5 py-10 text-white">
       <div className="mx-auto max-w-3xl">
+        <button type="button" onClick={() => setLocation("/admin")} className="mb-5 text-sm text-white/55 hover:text-white">
+          ← Admin Dashboard
+        </button>
         <p className="text-sm font-semibold uppercase tracking-wider text-violet-300">Pilot administration</p>
-        <h1 className="mt-2 text-3xl font-bold">Add pilot participants</h1>
-        <p className="mt-2 text-white/65">Provision accounts and secure activation links without starting the pilot clock.</p>
+        <h1 className="mt-2 text-3xl font-bold">Organization Pilots</h1>
+        <p className="mt-2 text-white/65">Authorize organizations first, then manage participants after the organization is set up.</p>
+
+        <section className="mt-7 rounded-2xl border border-amber-400/25 bg-amber-500/10 p-6">
+          <h2 className="text-xl font-bold">Authorize New Pilot</h2>
+          <p className="mt-1 text-sm text-white/60">One authorization creates one free organization. Issue separate authorizations for separate organizations.</p>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <Input type="email" placeholder="Contact email" value={championEmail} onChange={(e) => setChampionEmail(e.target.value)} />
+            <Input placeholder="Organization name" value={authorizationOrganization} onChange={(e) => setAuthorizationOrganization(e.target.value)} />
+            <label className="text-xs text-white/60">
+              Pilot length in days
+              <Input className="mt-1" type="number" min={1} max={365} value={authorizationDuration} onChange={(e) => setAuthorizationDuration(Number(e.target.value))} />
+            </label>
+            <label className="text-xs text-white/60">
+              Professional seats
+              <Input className="mt-1" type="number" min={1} max={1000} value={professionalCapacity} onChange={(e) => setProfessionalCapacity(Number(e.target.value))} />
+            </label>
+            <label className="text-xs text-white/60">
+              Client capacity
+              <Input className="mt-1" type="number" min={0} max={100000} value={clientCapacity} onChange={(e) => setClientCapacity(Number(e.target.value))} />
+            </label>
+          </div>
+          {authorizationError && <p className="mt-4 text-sm text-red-300">{authorizationError}</p>}
+          <Button
+            className="mt-5 bg-amber-500 text-black hover:bg-amber-400"
+            disabled={authorizing || !championEmail.trim() || !authorizationOrganization.trim()}
+            onClick={authorizeOrganization}
+          >
+            {authorizing ? "Authorizing…" : "Authorize Pilot"}
+          </Button>
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-6">
+          <h2 className="font-semibold">Organization authorizations</h2>
+          {loadingAuthorizations ? (
+            <p className="mt-3 text-sm text-white/50">Loading…</p>
+          ) : authorizations.length === 0 ? (
+            <p className="mt-3 text-sm text-white/50">No organization pilots have been authorized.</p>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {authorizations.map((authorization) => (
+                <div key={authorization.id} className="rounded-xl border border-white/10 bg-black/25 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-semibold">{authorization.organizationName}</p>
+                      <p className="mt-1 text-sm text-white/55">{authorization.championEmail}</p>
+                      <p className="mt-1 text-xs text-white/40">
+                        {authorization.durationDays} days · {authorization.professionalCapacity} professional seats · {authorization.clientCapacity} clients
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-white/10 px-2.5 py-1 text-xs font-semibold capitalize text-white/70">
+                      {authorization.status}
+                    </span>
+                  </div>
+                  {authorization.status === "approved" && !authorization.businessId && (
+                    <button type="button" onClick={() => revokeAuthorization(authorization)} className="mt-3 text-xs font-semibold text-red-300 hover:text-red-200">
+                      Revoke unused authorization
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <h2 className="mt-10 text-xl font-bold">Add pilot participants</h2>
+        <p className="mt-1 text-sm text-white/65">Provision accounts and secure activation links without starting the pilot clock.</p>
         <div className="mt-7 grid gap-4 rounded-2xl border border-white/10 bg-white/5 p-6">
           <Input placeholder="Organization, e.g. Premier Health" value={organizationName} onChange={(e) => setOrganizationName(e.target.value)} />
           <Input placeholder="Program name, e.g. Premier Health 30-Day Pilot" value={programName} onChange={(e) => setProgramName(e.target.value)} />

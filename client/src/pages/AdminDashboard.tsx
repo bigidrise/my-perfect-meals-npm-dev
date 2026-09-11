@@ -1172,6 +1172,22 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
+        <Card
+          className="bg-black/40 border border-amber-500/25 rounded-2xl cursor-pointer hover:border-amber-500/45 transition-colors"
+          onClick={() => setLocation("/admin/pilots")}
+        >
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-amber-500/20 flex-shrink-0">
+              <Users className="h-5 w-5 text-amber-300" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white">Organization Pilots</p>
+              <p className="text-xs text-white/40 mt-0.5">Authorize organization pilots by email and review their status</p>
+            </div>
+            <ArrowRight className="h-4 w-4 text-amber-300 flex-shrink-0" />
+          </CardContent>
+        </Card>
+
         {/* Certifications link */}
         <Card
           className="bg-black/40 border border-orange-500/20 rounded-2xl cursor-pointer hover:border-orange-500/40 transition-colors"

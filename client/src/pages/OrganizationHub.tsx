@@ -16,6 +16,7 @@ type WorkspaceOrganization = {
   role: string;
   locations: WorkspaceLocation[];
 };
+type PendingPilot = { authorizationId: string; organizationName: string; action: "setup" };
 
 function roleLabel(role: string) {
   return role.split("_").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
@@ -24,19 +25,32 @@ function roleLabel(role: string) {
 export default function OrganizationHub() {
   const [, setLocation] = useLocation();
   const [organizations, setOrganizations] = useState<WorkspaceOrganization[]>([]);
+  const [pendingPilots, setPendingPilots] = useState<PendingPilot[]>([]);
   const [loading, setLoading] = useState(true);
   const [openingKey, setOpeningKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
-    fetch("/api/business/workspace/options", { credentials: "include" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error("Could not load your organizations.");
-        return response.json();
+    Promise.all([
+      fetch("/api/business/workspace/options", { credentials: "include" }),
+      fetch("/api/business/workspaces", { credentials: "include" }),
+    ])
+      .then(async ([workspaceResponse, pilotResponse]) => {
+        if (!workspaceResponse.ok) throw new Error("Could not load your organizations.");
+        return {
+          workspaceData: await workspaceResponse.json(),
+          pilotData: pilotResponse.ok ? await pilotResponse.json() : { workspaces: [] },
+        };
       })
-      .then((data) => {
-        if (active) setOrganizations(Array.isArray(data?.organizations) ? data.organizations : []);
+      .then(({ workspaceData, pilotData }) => {
+        if (!active) return;
+        setOrganizations(Array.isArray(workspaceData?.organizations) ? workspaceData.organizations : []);
+        setPendingPilots(
+          Array.isArray(pilotData?.workspaces)
+            ? pilotData.workspaces.filter((item: any) => item.action === "setup")
+            : [],
+        );
       })
       .catch((requestError) => {
         if (active) setError(requestError instanceof Error ? requestError.message : "Could not load your organizations.");
@@ -114,7 +128,7 @@ export default function OrganizationHub() {
           <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">{error}</div>
         )}
 
-        {!loading && organizations.length === 0 && !error && (
+        {!loading && organizations.length === 0 && pendingPilots.length === 0 && !error && (
           <Card className="border-white/10 bg-white/5 text-white">
             <CardContent className="p-6 text-center">
               <Building2 className="mx-auto h-8 w-8 text-white/25" />
@@ -122,14 +136,33 @@ export default function OrganizationHub() {
               <p className="mt-1 text-sm text-white/50">Add an organization you are authorized to manage.</p>
               <button
                 type="button"
-                onClick={() => setLocation("/business/setup?pilotCreate=1")}
+                onClick={() => setLocation("/business/start")}
                 className="mt-5 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold hover:bg-blue-500"
               >
-                <span className="inline-flex items-center gap-2"><Plus className="h-4 w-4" /> Add Organization</span>
+                <span className="inline-flex items-center gap-2"><Plus className="h-4 w-4" /> Start Organization</span>
               </button>
             </CardContent>
           </Card>
         )}
+
+        {pendingPilots.map((pilot) => (
+          <Card key={pilot.authorizationId} className="border-amber-400/25 bg-amber-500/10 text-white">
+            <CardContent className="flex items-center justify-between gap-4 p-5">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-amber-200">Authorized 30-day organization pilot</p>
+                <h2 className="mt-1 font-bold">{pilot.organizationName}</h2>
+                <p className="mt-1 text-xs text-white/50">Unused · No payment required</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setLocation(`/business/setup?pilotCreate=1&pilotAuthorization=${encodeURIComponent(pilot.authorizationId)}`)}
+                className="rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-bold text-black hover:bg-amber-300"
+              >
+                Add Organization
+              </button>
+            </CardContent>
+          </Card>
+        ))}
 
         {organizations.map((organization) => (
           <Card key={organization.id} className="overflow-hidden border-white/10 bg-white/[0.05] text-white">
@@ -185,10 +218,11 @@ export default function OrganizationHub() {
             </CardContent>
           </Card>
         ))}
+
         {!loading && !error && organizations.length > 0 && (
           <button
             type="button"
-            onClick={() => setLocation("/business/setup?pilotCreate=1")}
+            onClick={() => setLocation("/business/start")}
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-blue-400/30 bg-blue-500/10 px-5 py-3 text-sm font-semibold text-blue-200 hover:bg-blue-500/20"
           >
             <Plus className="h-4 w-4" /> Add Organization
