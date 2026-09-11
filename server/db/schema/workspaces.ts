@@ -34,6 +34,10 @@ export const organizationMemberships = pgTable("organization_memberships", {
     .$type<"owner" | "admin" | "billing_admin" | "member">()
     .notNull()
     .default("member"),
+  relationshipType: text("relationship_type")
+    .$type<"internal_staff" | "external_contractor">()
+    .notNull()
+    .default("internal_staff"),
   status: text("status").$type<"active" | "revoked">().notNull().default("active"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -52,6 +56,10 @@ export const locationMemberships = pgTable("location_memberships", {
     .$type<"owner" | "admin" | "coach" | "trainer" | "physician" | "nurse" | "staff" | "member">()
     .notNull()
     .default("member"),
+  relationshipType: text("relationship_type")
+    .$type<"internal_staff" | "external_contractor">()
+    .notNull()
+    .default("internal_staff"),
   status: text("status").$type<"active" | "revoked">().notNull().default("active"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

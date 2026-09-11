@@ -25,6 +25,7 @@ export type WorkspaceOrganizationOption = {
   id: string;
   name: string;
   role: string;
+  relationshipType: string;
   locations: WorkspaceLocationOption[];
 };
 
@@ -32,6 +33,7 @@ export type ActiveWorkspaceContext = {
   organizationId: string;
   organizationName: string;
   organizationRole: string;
+  organizationRelationshipType: string;
   locationId: string;
   locationName: string;
   locationRole: string;
@@ -73,6 +75,7 @@ export function selectAuthorizedWorkspace(
       organizationId: exact.organization.id,
       organizationName: exact.organization.name,
       organizationRole: exact.organization.role,
+      organizationRelationshipType: exact.organization.relationshipType,
       locationId: exact.location.id,
       locationName: exact.location.name,
       locationRole: exact.location.role,
@@ -100,6 +103,7 @@ export function selectAuthorizedWorkspace(
     organizationId: organization.id,
     organizationName: organization.name,
     organizationRole: organization.role,
+    organizationRelationshipType: organization.relationshipType,
     locationId: location.id,
     locationName: location.name,
     locationRole: location.role,
@@ -115,6 +119,7 @@ export async function discoverAuthorizedWorkspaces(
       organizationId: organizations.id,
       organizationName: organizations.name,
       organizationRole: organizationMemberships.role,
+      organizationRelationshipType: organizationMemberships.relationshipType,
       locationId: organizationLocations.id,
       locationName: organizationLocations.name,
       locationRole: locationMemberships.role,
@@ -161,6 +166,7 @@ export async function discoverAuthorizedWorkspaces(
         id: row.organizationId,
         name: row.organizationName,
         role: row.organizationRole,
+        relationshipType: row.organizationRelationshipType,
         locations: [],
       };
       grouped.set(row.organizationId, organization);
@@ -316,7 +322,12 @@ export async function ensureCanonicalWorkspaceForBusiness(
     if (!locationId) throw new Error("Could not establish the default Location.");
 
     const members = await tx
-      .select({ userId: businessMembers.userId, role: businessMembers.role, status: businessMembers.status })
+      .select({
+        userId: businessMembers.userId,
+        role: businessMembers.role,
+        relationshipType: businessMembers.relationshipType,
+        status: businessMembers.status,
+      })
       .from(businessMembers)
       .innerJoin(users, eq(users.id, businessMembers.userId))
       .where(eq(businessMembers.businessId, business.id));
@@ -332,12 +343,18 @@ export async function ensureCanonicalWorkspaceForBusiness(
           organizationId,
           userId: member.userId,
           role: organizationRole,
+          relationshipType: member.relationshipType,
           status: accessStatus,
           updatedAt: new Date(),
         })
         .onConflictDoUpdate({
           target: [organizationMemberships.organizationId, organizationMemberships.userId],
-          set: { role: organizationRole, status: accessStatus, updatedAt: new Date() },
+          set: {
+            role: organizationRole,
+            relationshipType: member.relationshipType,
+            status: accessStatus,
+            updatedAt: new Date(),
+          },
         });
       await tx
         .insert(locationMemberships)
@@ -345,12 +362,18 @@ export async function ensureCanonicalWorkspaceForBusiness(
           locationId,
           userId: member.userId,
           role: member.role,
+          relationshipType: member.relationshipType,
           status: accessStatus,
           updatedAt: new Date(),
         })
         .onConflictDoUpdate({
           target: [locationMemberships.locationId, locationMemberships.userId],
-          set: { role: member.role, status: accessStatus, updatedAt: new Date() },
+          set: {
+            role: member.role,
+            relationshipType: member.relationshipType,
+            status: accessStatus,
+            updatedAt: new Date(),
+          },
         });
     }
 

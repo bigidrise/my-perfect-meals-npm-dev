@@ -2610,12 +2610,13 @@ router.post("/create-org", requireAuth, async (req, res) => {
           commercialAccessEndsAt: onboardingWindow.endsAt,
         }).returning();
 
-        // A contractor setting up a client organization is an administrator,
-        // not its legal owner/account holder.
+        // Generic self-service creation establishes an internal owner. External
+        // contractors must receive an explicit delegated administrator grant.
         await tx.insert(businessMembers).values({
           businessId: biz.id,
           userId,
           role: "owner",
+          relationshipType: "internal_staff",
           status: "active",
         });
 

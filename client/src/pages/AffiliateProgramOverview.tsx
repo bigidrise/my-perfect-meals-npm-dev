@@ -255,14 +255,6 @@ export default function AffiliateProgramOverview() {
         const a = data?.account ?? null;
         setAcct(a);
 
-        if (a) {
-          const certMet =
-            (a.requiredPhases === "phase_1_only" && !!a.phase1CompletedAt) ||
-            (a.requiredPhases === "both_phases" && !!a.phase2CompletedAt);
-          if (certMet && !a.activatedAt && !a.isActive) {
-            apiRequest("/api/affiliate/activate-retry", { method: "POST" }).catch(() => {});
-          }
-        }
       } catch {
         setAcct(null);
       } finally {
