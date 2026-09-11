@@ -23,10 +23,6 @@ export function organizationQuickStartDismissKey(userId: string) {
   return `mpm.dismiss.organizationQuickStart.v${ORGANIZATION_QUICK_START_VERSION}::${userId}`;
 }
 
-export function organizationQuickStartSessionKey(userId: string) {
-  return `mpm.session.organizationQuickStart.v${ORGANIZATION_QUICK_START_VERSION}::${userId}`;
-}
-
 export function organizationQuickStartJourneyKey(userId: string, organizationId: string) {
   return `mpm.session.organizationQuickStartJourney.v${ORGANIZATION_QUICK_START_JOURNEY_VERSION}::${userId}::${organizationId}`;
 }
@@ -86,17 +82,8 @@ export function clearOrganizationQuickStartJourney(
 export function shouldAutoOpenOrganizationQuickStart(
   userId: string,
   persistentStorage: QuickStartStorage,
-  currentSessionStorage: QuickStartStorage,
 ) {
-  return persistentStorage.getItem(organizationQuickStartDismissKey(userId)) !== "dismissed"
-    && currentSessionStorage.getItem(organizationQuickStartSessionKey(userId)) !== "shown";
-}
-
-export function markOrganizationQuickStartShown(
-  userId: string,
-  currentSessionStorage: QuickStartStorage,
-) {
-  currentSessionStorage.setItem(organizationQuickStartSessionKey(userId), "shown");
+  return persistentStorage.getItem(organizationQuickStartDismissKey(userId)) !== "dismissed";
 }
 
 export function disableOrganizationQuickStartAutoOpen(
@@ -113,18 +100,12 @@ export function useOrganizationQuickStart(userId?: string | null) {
     () => (userId ? organizationQuickStartDismissKey(userId) : null),
     [userId],
   );
-  const sessionKey = useMemo(
-    () => (userId ? organizationQuickStartSessionKey(userId) : null),
-    [userId],
-  );
-
   useEffect(() => {
-    if (!dismissKey || !sessionKey) return;
-    if (userId && shouldAutoOpenOrganizationQuickStart(userId, localStorage, sessionStorage)) {
-      markOrganizationQuickStartShown(userId, sessionStorage);
+    if (!dismissKey) return;
+    if (userId && shouldAutoOpenOrganizationQuickStart(userId, localStorage)) {
       setIsOpen(true);
     }
-  }, [dismissKey, sessionKey, userId]);
+  }, [dismissKey, userId]);
 
   const close = useCallback((disableFutureAutoOpen: boolean) => {
     if (disableFutureAutoOpen && userId) {

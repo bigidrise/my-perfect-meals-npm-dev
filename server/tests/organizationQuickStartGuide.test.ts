@@ -3,7 +3,6 @@ import path from "path";
 import {
   disableOrganizationQuickStartAutoOpen,
   clearOrganizationQuickStartJourney,
-  markOrganizationQuickStartShown,
   readOrganizationQuickStartJourney,
   shouldAutoOpenOrganizationQuickStart,
   startOrganizationQuickStartJourney,
@@ -28,21 +27,19 @@ describe("Organization Quick Start guide contract", () => {
     };
   }
 
-  test("first entry auto-opens once per session and remains isolated by authenticated user", () => {
+  test("every hub entry auto-opens until that user disables automatic opening", () => {
     const persistent = memoryStorage();
-    const session = memoryStorage();
-    expect(shouldAutoOpenOrganizationQuickStart("user-a", persistent, session)).toBe(true);
-    markOrganizationQuickStartShown("user-a", session);
-    expect(shouldAutoOpenOrganizationQuickStart("user-a", persistent, session)).toBe(false);
-    expect(shouldAutoOpenOrganizationQuickStart("user-b", persistent, session)).toBe(true);
+    expect(shouldAutoOpenOrganizationQuickStart("user-a", persistent)).toBe(true);
+    expect(shouldAutoOpenOrganizationQuickStart("user-a", persistent)).toBe(true);
+    expect(shouldAutoOpenOrganizationQuickStart("user-b", persistent)).toBe(true);
   });
 
   test("disabling future automatic opening affects only that user", () => {
     const persistent = memoryStorage();
     const nextSession = memoryStorage();
     disableOrganizationQuickStartAutoOpen("user-a", persistent);
-    expect(shouldAutoOpenOrganizationQuickStart("user-a", persistent, nextSession)).toBe(false);
-    expect(shouldAutoOpenOrganizationQuickStart("user-b", persistent, nextSession)).toBe(true);
+    expect(shouldAutoOpenOrganizationQuickStart("user-a", persistent)).toBe(false);
+    expect(shouldAutoOpenOrganizationQuickStart("user-b", persistent)).toBe(true);
     expect(hook).toContain("ORGANIZATION_QUICK_START_VERSION");
     expect(hook).toContain("organizationQuickStart.v${ORGANIZATION_QUICK_START_VERSION}::${userId}");
     expect(hub).toContain("useOrganizationQuickStart(user?.id)");
