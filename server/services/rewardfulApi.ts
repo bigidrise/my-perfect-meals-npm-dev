@@ -15,20 +15,27 @@ export interface RewardfulAffiliate {
   campaign: { id: string; name: string };
 }
 
-export async function createRewardfulAffiliate(params: {
+export class RewardfulAffiliateConflictError extends Error {
+  readonly code = "REWARDFUL_AFFILIATE_EMAIL_EXISTS";
+
+  constructor() {
+    super("Rewardful already has an affiliate using this email.");
+  }
+}
+
+async function postRewardfulAffiliate(params: {
   firstName: string;
   lastName: string;
   email: string;
   campaignId: string;
-}): Promise<RewardfulAffiliate> {
+}): Promise<Response> {
   const body = new URLSearchParams({
     first_name: params.firstName,
     last_name: params.lastName,
     email: params.email,
     campaign_id: params.campaignId,
   });
-
-  const res = await fetch(`${REWARDFUL_API_BASE}/affiliates`, {
+  return fetch(`${REWARDFUL_API_BASE}/affiliates`, {
     method: "POST",
     headers: {
       Authorization: basicAuth(),
@@ -36,6 +43,15 @@ export async function createRewardfulAffiliate(params: {
     },
     body: body.toString(),
   });
+}
+
+export async function createRewardfulAffiliate(params: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  campaignId: string;
+}): Promise<RewardfulAffiliate> {
+  const res = await postRewardfulAffiliate(params);
 
   if (res.status === 422) {
     // Email already exists — look up and return existing affiliate
@@ -50,6 +66,24 @@ export async function createRewardfulAffiliate(params: {
     throw new Error(`[Rewardful] createAffiliate ${res.status}: ${errBody}`);
   }
 
+  return res.json() as Promise<RewardfulAffiliate>;
+}
+
+/**
+ * Organization activation must never reconcile a duplicate by email because one
+ * operator may manage multiple independent organizations.
+ */
+export async function createOrganizationRewardfulAffiliate(params: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  campaignId: string;
+}): Promise<RewardfulAffiliate> {
+  const res = await postRewardfulAffiliate(params);
+  if (res.status === 422) throw new RewardfulAffiliateConflictError();
+  if (!res.ok) {
+    throw new Error(`[Rewardful] createOrganizationAffiliate ${res.status}`);
+  }
   return res.json() as Promise<RewardfulAffiliate>;
 }
 
