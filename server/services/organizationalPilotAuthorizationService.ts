@@ -337,8 +337,8 @@ export async function getClaimedChampionSetup(userId: string) {
     professionalCapacity: organizationalPilotAuthorizations.professionalCapacity,
     clientCapacity: organizationalPilotAuthorizations.clientCapacity,
     durationDays: organizationalPilotAuthorizations.durationDays,
-    pilotStartAt: organizationalPilots.pilotStartAt,
-    pilotEndAt: organizationalPilots.pilotEndAt,
+    pilotStartAt: businesses.commercialAccessStartedAt,
+    pilotEndAt: businesses.commercialAccessEndsAt,
   }).from(organizationalPilotAuthorizations)
     .innerJoin(businesses, eq(businesses.id, organizationalPilotAuthorizations.businessId))
     .innerJoin(organizationalPilots, eq(organizationalPilots.authorizationId, organizationalPilotAuthorizations.id))

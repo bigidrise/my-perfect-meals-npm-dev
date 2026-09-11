@@ -13,6 +13,7 @@ import {
   organizationalPilotParticipants,
   organizationalPilots,
 } from "../db/schema/pilotProgram";
+import { businesses } from "../db/schema/business";
 
 export type PilotPopulationType = "professional" | "client";
 
@@ -61,24 +62,30 @@ export async function getActivePilotFullAccess(userId: string, now: Date = new D
       participantRole: organizationalPilotParticipants.participantRole,
       populationType: organizationalPilotParticipants.populationType,
       programStatus: organizationalPilots.status,
-      programStartAt: organizationalPilots.pilotStartAt,
-      programEndAt: organizationalPilots.pilotEndAt,
-      expiresAt: organizationalPilots.pilotEndAt,
+      programStartAt: businesses.commercialAccessStartedAt,
+      programEndAt: businesses.commercialAccessEndsAt,
+      expiresAt: businesses.commercialAccessEndsAt,
     })
     .from(organizationalPilotParticipants)
     .innerJoin(
       organizationalPilots,
       eq(organizationalPilots.id, organizationalPilotParticipants.pilotId),
     )
+    .innerJoin(
+      businesses,
+      eq(businesses.id, organizationalPilots.businessId),
+    )
     .where(and(
       eq(organizationalPilotParticipants.userId, userId),
       eq(organizationalPilotParticipants.status, "active"),
       eq(organizationalPilotParticipants.participantRole, "champion"),
       eq(organizationalPilots.status, "active"),
-      lte(organizationalPilots.pilotStartAt, now),
-      gt(organizationalPilots.pilotEndAt, now),
+      eq(businesses.status, "active"),
+      eq(businesses.commercialAccessMode, "onboarding_pilot"),
+      lte(businesses.commercialAccessStartedAt, now),
+      gt(businesses.commercialAccessEndsAt, now),
     ))
-    .orderBy(desc(organizationalPilots.pilotEndAt))
+    .orderBy(desc(businesses.commercialAccessEndsAt))
     .limit(1);
 
   return row ?? null;

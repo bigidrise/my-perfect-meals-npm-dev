@@ -15,6 +15,11 @@ import {
 } from "./organizationalPilotAuthorizationService";
 import { createOrganizationalPilotInvitation } from "./organizationalPilotInvitationService";
 import { ensureCanonicalWorkspaceForBusiness } from "./organizationWorkspaceService";
+import {
+  assertOrganizationalPilotMirror,
+  planBusinessPilotWindowReconciliation,
+  resolveAuthoritativeBusinessPilotWindow,
+} from "./businessCommercialAccessService";
 
 export const PREMIER_PILOT_RECONCILIATION = {
   organizationName: "Premier Health",
@@ -109,12 +114,63 @@ export async function reconcilePremierPilot(approvedByUserId: string) {
     if (!lockedAuthorization?.businessId) {
       throw new PilotAuthorizationError("Premier authorization did not bind to a Business.", "PREMIER_BUSINESS_REQUIRED", 500);
     }
+    const [existingBusiness] = await tx.select().from(businesses)
+      .where(eq(businesses.id, lockedAuthorization.businessId)).limit(1);
+    if (!existingBusiness) {
+      throw new PilotAuthorizationError("Premier Business not found.", "PREMIER_BUSINESS_REQUIRED", 500);
+    }
+
+    let [pilot] = await tx.select().from(organizationalPilots)
+      .where(eq(organizationalPilots.authorizationId, lockedAuthorization.id)).limit(1);
+    if (!pilot) {
+      throw new PilotAuthorizationError("Premier pilot was not created by the Champion claim.", "PREMIER_PILOT_REQUIRED", 500);
+    }
+    if (
+      (pilot.pilotStartAt == null) !== (pilot.pilotEndAt == null) ||
+      (pilot.status !== "preparing" && pilot.status !== "active")
+    ) {
+      throw new PilotAuthorizationError(
+        "Premier pilot has a partial window or a terminal status; reconciliation stopped.",
+        "PREMIER_PILOT_CLOCK_CONFLICT",
+        409,
+      );
+    }
+
+    const preservedWindow = pilot.pilotStartAt && pilot.pilotEndAt
+      ? { startedAt: pilot.pilotStartAt, endsAt: pilot.pilotEndAt }
+      : {
+          startedAt: PREMIER_PILOT_RECONCILIATION.pilotStartAt,
+          endsAt: PREMIER_PILOT_RECONCILIATION.pilotEndAt,
+        };
+    if (
+      preservedWindow.startedAt.getTime() !== PREMIER_PILOT_RECONCILIATION.pilotStartAt.getTime() ||
+      preservedWindow.endsAt.getTime() !== PREMIER_PILOT_RECONCILIATION.pilotEndAt.getTime()
+    ) {
+      throw new PilotAuthorizationError(
+        "Premier pilot dates conflict with the approved original window; reconciliation stopped.",
+        "PREMIER_PILOT_CLOCK_CONFLICT",
+        409,
+      );
+    }
+
+    let commercialUpdate: ReturnType<typeof planBusinessPilotWindowReconciliation>;
+    try {
+      commercialUpdate = planBusinessPilotWindowReconciliation(existingBusiness, preservedWindow);
+    } catch (error) {
+      throw new PilotAuthorizationError(
+        error instanceof Error ? error.message : "Premier Business pilot clock conflict.",
+        "PREMIER_PILOT_CLOCK_CONFLICT",
+        409,
+      );
+    }
+
     const [business] = await tx.update(businesses).set({
       name: PREMIER_PILOT_RECONCILIATION.organizationName,
       seatLimit: PREMIER_PILOT_RECONCILIATION.professionalCapacity,
       clientCapacity: PREMIER_PILOT_RECONCILIATION.clientCapacity,
       plan: "organizational_pilot",
       status: "active",
+      ...(commercialUpdate ?? {}),
       updatedAt: new Date(),
     }).where(eq(businesses.id, lockedAuthorization.businessId)).returning();
     if (!business) throw new PilotAuthorizationError("Premier Business not found.", "PREMIER_BUSINESS_REQUIRED", 500);
@@ -132,11 +188,6 @@ export async function reconcilePremierPilot(approvedByUserId: string) {
       removedAt: null,
     }).where(eq(businessMembers.id, adminMembership.id));
 
-    let [pilot] = await tx.select().from(organizationalPilots)
-      .where(eq(organizationalPilots.authorizationId, lockedAuthorization.id)).limit(1);
-    if (!pilot) {
-      throw new PilotAuthorizationError("Premier pilot was not created by the Champion claim.", "PREMIER_PILOT_REQUIRED", 500);
-    }
     [pilot] = await tx.update(organizationalPilots).set({
       name: "Premier Health 30-Day Pilot",
       status: "active",
@@ -144,11 +195,20 @@ export async function reconcilePremierPilot(approvedByUserId: string) {
       clientCapacity: PREMIER_PILOT_RECONCILIATION.clientCapacity,
       durationDays: PREMIER_PILOT_RECONCILIATION.durationDays,
       championBusinessMemberId: adminMembership.id,
-      pilotStartAt: PREMIER_PILOT_RECONCILIATION.pilotStartAt,
-      pilotEndAt: PREMIER_PILOT_RECONCILIATION.pilotEndAt,
+      pilotStartAt: preservedWindow.startedAt,
+      pilotEndAt: preservedWindow.endsAt,
       startedByUserId: approvedByUserId,
       updatedAt: new Date(),
     }).where(eq(organizationalPilots.id, pilot.id)).returning();
+    const authoritativeWindow = resolveAuthoritativeBusinessPilotWindow(business);
+    if (!authoritativeWindow) {
+      throw new PilotAuthorizationError(
+        "Premier Business does not have an authoritative onboarding window.",
+        "PREMIER_PILOT_CLOCK_CONFLICT",
+        409,
+      );
+    }
+    assertOrganizationalPilotMirror(authoritativeWindow, pilot);
 
     const [participant] = await tx.select().from(organizationalPilotParticipants).where(and(
       eq(organizationalPilotParticipants.pilotId, pilot.id),
