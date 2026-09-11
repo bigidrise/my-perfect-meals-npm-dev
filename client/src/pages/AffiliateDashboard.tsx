@@ -13,6 +13,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { computePartnerLifecycle, LifecycleResult } from "@shared/partnerLifecycle";
+import RewardfulPayoutGuidance from "@/components/business/RewardfulPayoutGuidance";
 
 interface AffiliateAccount {
   affiliateTrack: string;
@@ -1163,16 +1164,24 @@ export default function AffiliateDashboard() {
             </p>
           </Card>
 
-          {/* Card 7 — Open Rewardful Portal */}
+          {/* Card 7 — Rewardful payout onboarding */}
           <Card delay={0.22}>
             <div className="flex items-center gap-3 mb-3">
               <div className="h-8 w-8 rounded-lg bg-orange-500/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
                 <ExternalLink className="h-4 w-4 text-orange-400" />
               </div>
-              <CardLabel>Affiliate Portal</CardLabel>
+              <CardLabel>Get Paid</CardLabel>
             </div>
 
-            {!account.hasLinkedRewardful ? (
+            <RewardfulPayoutGuidance
+              hasLinkedRewardful={account.hasLinkedRewardful}
+              canManage={account.canManage}
+              loading={portalLoading}
+              onOpenRewardful={openPortal}
+              onOpenPartnerRevenue={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            />
+
+            {false && (!account.hasLinkedRewardful ? (
               <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-4">
                 <p className="text-sm font-semibold text-white">Rewardful is not linked yet</p>
                 <p className="mt-1 text-xs leading-relaxed text-gray-300">
@@ -1289,7 +1298,7 @@ export default function AffiliateDashboard() {
                   My Perfect Meals signs you in automatically — no password or verification code required.
                 </p>
               </>
-            )}
+            ))}
           </Card>
 
           {/* Card 8 — Marketing Resources */}

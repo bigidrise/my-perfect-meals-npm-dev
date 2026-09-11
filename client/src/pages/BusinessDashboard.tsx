@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { FeatureUpgradeModal } from "@/components/modals/FeatureUpgradeModal";
 import OrganizationInvitationsAccess from "@/components/business/OrganizationInvitationsAccess";
+import RewardfulPayoutGuidance from "@/components/business/RewardfulPayoutGuidance";
 
 interface BusinessData {
   workspace: {
@@ -139,6 +140,12 @@ interface MembershipData {
   };
 }
 
+interface OrganizationAffiliateSummary {
+  hasLinkedRewardful: boolean;
+  canManage: boolean;
+  organizationId: string;
+}
+
 const DEFAULT_BUSINESS_NAME = "My Business Team";
 
 export default function BusinessDashboard() {
@@ -198,6 +205,8 @@ export default function BusinessDashboard() {
   const [activeWorkspace, setActiveWorkspace] = useState<ActiveWorkspace | null>(null);
   const [workspaceSelectionRequired, setWorkspaceSelectionRequired] = useState(false);
   const [switchingWorkspace, setSwitchingWorkspace] = useState(false);
+  const [affiliateSummary, setAffiliateSummary] = useState<OrganizationAffiliateSummary | null>(null);
+  const [openingRewardful, setOpeningRewardful] = useState(false);
   const [additionalClinicsOpen, setAdditionalClinicsOpen] = useState(false);
 
   // Setup screen state
@@ -371,6 +380,12 @@ export default function BusinessDashboard() {
       const activeJson = await activeRes.json();
       setActiveWorkspace(activeJson.workspace);
       setWorkspaceSelectionRequired(false);
+      const affiliateRes = await fetch("/api/affiliate/dashboard", {
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+        cache: "no-store",
+      });
+      setAffiliateSummary(affiliateRes.ok ? await affiliateRes.json() : null);
 
       // Try owner first
       const ownerRes = await fetch("/api/business/mine", {
@@ -936,6 +951,35 @@ export default function BusinessDashboard() {
   // isAdminView: true when the caller is an Organization Admin (not the Owner).
   // Admins see the full day-to-day management dashboard.
   const isAdminView = viewMode === "admin";
+  const openOrganizationRewardful = async () => {
+    const popup = window.open("about:blank", "_blank");
+    if (popup) {
+      popup.opener = null;
+      popup.document.title = "Opening Rewardful";
+      popup.document.body.innerHTML = '<p style="font-family:system-ui;padding:32px">Opening your organization’s Rewardful dashboard…</p>';
+    }
+    setOpeningRewardful(true);
+    try {
+      const response = await fetch("/api/affiliate/dashboard-link", {
+        headers: { ...getAuthHeaders() },
+        credentials: "include",
+        cache: "no-store",
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.url) throw new Error(data.error || "Rewardful is unavailable right now.");
+      if (popup) popup.location.href = data.url;
+      else window.location.href = data.url;
+    } catch (error) {
+      popup?.close();
+      toast({
+        title: "Rewardful portal unavailable",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setOpeningRewardful(false);
+    }
+  };
   const { business, members, invitations } = ownerData;
 
   if (ownerData.commercialAccess?.state === "commercial_required") {
@@ -1311,6 +1355,23 @@ export default function BusinessDashboard() {
           <p>This is where you manage your affiliate relationship with My Perfect Meals. You get a unique referral link — when someone signs up through it, you earn a commission tracked automatically.</p>
           <p className="mt-1.5">You can also create <span className="text-white/75 font-medium">promo codes</span> here. A promo code is a shareable shortcut that gives your clients a discount or trial extension. The outcome is the same as a direct Client Invitation, but promo codes can be handed out broadly (posted on a website, printed on a flyer) without entering each person's email one by one.</p>
         </InfoCallout>
+
+        <Card className="bg-white/5 border border-orange-500/20 text-white p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-orange-400" />
+            <div>
+              <p className="text-sm font-semibold text-white">Get Paid</p>
+              <p className="text-xs text-white/50">Finish setting up how this organization receives commissions.</p>
+            </div>
+          </div>
+          <RewardfulPayoutGuidance
+            hasLinkedRewardful={Boolean(affiliateSummary?.hasLinkedRewardful)}
+            canManage={Boolean(affiliateSummary?.canManage)}
+            loading={openingRewardful}
+            onOpenRewardful={openOrganizationRewardful}
+            onOpenPartnerRevenue={() => setLocation("/business-center/affiliate/dashboard")}
+          />
+        </Card>
 
         {/* Acquisition Source — shown only when recorded */}
         {ownerData?.signupSource && (
