@@ -9,8 +9,8 @@ An organization invitation may be marked pending only after the email provider a
 
 **How to apply:** Validate and normalize recipient addresses server-side. Check provider results on initial sends and resends, never report success on a null/failed result, and do not rotate or invalidate the usable token before a resend succeeds. Treat older pending records created before this rule as delivery-unknown.
 
-Invitation links must use the app environment that owns the invitation record and the fragment-token format consumed by the enrollment page.
+Patient invitation emails always open the public Production app and use the fragment-token format consumed by the enrollment page.
 
-**Why:** A path token is not read by the enrollment page, while a Development token sent to the Production app may not exist in the Production database.
+**Why:** Recipients must never be sent to a Replit Development domain, and a path token is not read by the enrollment page.
 
-**How to apply:** Production patient emails use `https://app.myperfectmeals.ai/business/join#token=...`; Development emails use the Development app origin with the same fragment format.
+**How to apply:** Patient emails use `https://app.myperfectmeals.ai/business/join#token=...` in every environment. Professional invitation behavior remains separate.
