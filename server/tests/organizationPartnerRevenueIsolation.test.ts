@@ -7,12 +7,19 @@ const partnerRoutes = fs.readFileSync(path.join(root, "server/routes/partnerRout
 const activation = fs.readFileSync(path.join(root, "server/services/affiliateActivation.ts"), "utf8");
 const dashboard = fs.readFileSync(path.join(root, "client/src/pages/AffiliateDashboard.tsx"), "utf8");
 const workspaceService = fs.readFileSync(path.join(root, "server/services/organizationWorkspaceService.ts"), "utf8");
+const partnerRevenueService = fs.readFileSync(path.join(root, "server/services/organizationPartnerRevenueService.ts"), "utf8");
 
 describe("organization-scoped Partner and Revenue Center", () => {
   test("dashboard requests resolve and query the selected organization", () => {
     expect(affiliateRoutes).toContain("resolveActiveWorkspace(userId, sessionSelection(req))");
-    expect(affiliateRoutes).toContain("affiliateAccountScope(userId, workspace.organizationId)");
-    expect(partnerRoutes).toContain("partnerRecordScope(userId, workspace.organizationId)");
+    expect(affiliateRoutes).toContain("affiliateAccountScope(workspace.organizationId)");
+    expect(partnerRoutes).toContain("partnerRecordScope(workspace.organizationId)");
+    const scopeHelpers = partnerRevenueService.slice(
+      partnerRevenueService.indexOf("export function affiliateAccountScope"),
+      partnerRevenueService.indexOf("export async function ensureOrganizationPartnerRevenueShell"),
+    );
+    expect(scopeHelpers).not.toContain("userAffiliateAccounts.userId");
+    expect(scopeHelpers).not.toContain("partnerRecords.userId");
   });
 
   test("organization reads do not inherit personal certifications or Rewardful identity by email", () => {

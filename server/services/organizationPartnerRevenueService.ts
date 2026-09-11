@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { userAffiliateAccounts } from "../db/schema/affiliateAccounts";
 import { partnerRecords } from "../db/schema/partnerRecords";
@@ -11,18 +11,12 @@ export const ORGANIZATION_PARTNER_TERMS = {
 
 type DatabaseExecutor = Pick<typeof db, "insert">;
 
-export function affiliateAccountScope(userId: string, organizationId: string) {
-  return and(
-    eq(userAffiliateAccounts.userId, userId),
-    eq(userAffiliateAccounts.organizationId, organizationId),
-  );
+export function affiliateAccountScope(organizationId: string) {
+  return eq(userAffiliateAccounts.organizationId, organizationId);
 }
 
-export function partnerRecordScope(userId: string, organizationId: string) {
-  return and(
-    eq(partnerRecords.userId, userId),
-    eq(partnerRecords.organizationId, organizationId),
-  );
+export function partnerRecordScope(organizationId: string) {
+  return eq(partnerRecords.organizationId, organizationId);
 }
 
 export async function ensureOrganizationPartnerRevenueShell(

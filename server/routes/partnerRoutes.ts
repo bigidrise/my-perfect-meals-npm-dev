@@ -85,7 +85,7 @@ router.get("/identity", requireAuth, async (req, res) => {
     const [record] = await db
       .select()
       .from(partnerRecords)
-      .where(partnerRecordScope(userId, workspace.organizationId))
+      .where(partnerRecordScope(workspace.organizationId))
       .limit(1);
     if (!record) return res.json({ partner: null, lifecycle: null });
 
