@@ -5,6 +5,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrganizationQuickStart } from "@/hooks/useOrganizationQuickStart";
 import { OrganizationQuickStartModal } from "@/components/business/OrganizationQuickStartModal";
+import {
+  clearOrganizationQuickStartJourney,
+  readOrganizationQuickStartJourney,
+} from "@/hooks/useOrganizationQuickStart";
 
 type WorkspaceLocation = {
   id: string;
@@ -33,6 +37,7 @@ export default function OrganizationHub() {
   const [loading, setLoading] = useState(true);
   const [openingKey, setOpeningKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [activeOrganizationId, setActiveOrganizationId] = useState<string | null>(null);
   const quickStart = useOrganizationQuickStart(user?.id);
 
   useEffect(() => {
@@ -40,17 +45,20 @@ export default function OrganizationHub() {
     Promise.all([
       fetch("/api/business/workspace/options", { credentials: "include" }),
       fetch("/api/business/workspaces", { credentials: "include" }),
+      fetch("/api/business/workspace/active", { credentials: "include", cache: "no-store" }),
     ])
-      .then(async ([workspaceResponse, pilotResponse]) => {
+      .then(async ([workspaceResponse, pilotResponse, activeResponse]) => {
         if (!workspaceResponse.ok) throw new Error("Could not load your organizations.");
         return {
           workspaceData: await workspaceResponse.json(),
           pilotData: pilotResponse.ok ? await pilotResponse.json() : { workspaces: [] },
+          activeData: activeResponse.ok ? await activeResponse.json() : null,
         };
       })
-      .then(({ workspaceData, pilotData }) => {
+      .then(({ workspaceData, pilotData, activeData }) => {
         if (!active) return;
         setOrganizations(Array.isArray(workspaceData?.organizations) ? workspaceData.organizations : []);
+        setActiveOrganizationId(activeData?.workspace?.organizationId ?? null);
         setPendingPilots(
           Array.isArray(pilotData?.workspaces)
             ? pilotData.workspaces.filter((item: any) => item.action === "setup")
@@ -65,6 +73,23 @@ export default function OrganizationHub() {
       });
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const params = new URLSearchParams(window.location.search);
+    const returningOrganizationId = params.get("organizationQuickStartReturn");
+    if (!returningOrganizationId) return;
+    const journey = readOrganizationQuickStartJourney(
+      sessionStorage,
+      user.id,
+      returningOrganizationId,
+    );
+    window.history.replaceState({}, "", "/business-organizations");
+    if (journey) {
+      setActiveOrganizationId(returningOrganizationId);
+      quickStart.open(journey.continuationStep);
+    }
+  }, [user?.id, quickStart.open]);
 
   async function openOrganization(organizationId: string, locationId: string) {
     const key = `${organizationId}:${locationId}`;
@@ -247,8 +272,15 @@ export default function OrganizationHub() {
       </main>
       <OrganizationQuickStartModal
         open={quickStart.isOpen}
-        hasOrganization={organizations.length > 0}
-        onClose={quickStart.close}
+        userId={user?.id ?? null}
+        organizationId={activeOrganizationId}
+        continuationStep={quickStart.continuationStep}
+        onClose={(disableFutureAutoOpen) => {
+          if (user?.id && activeOrganizationId) {
+            clearOrganizationQuickStartJourney(sessionStorage, user.id, activeOrganizationId);
+          }
+          quickStart.close(disableFutureAutoOpen);
+        }}
       />
     </div>
   );

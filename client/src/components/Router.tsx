@@ -18,6 +18,7 @@ const ABTestingDemo = lazy(() => import("@/pages/ABTestingDemo"));
 import { FEATURES } from "@/utils/features";
 import ComingSoon from "@/pages/ComingSoon";
 import StudioBottomNav from "@/components/pro/StudioBottomNav";
+import { OrganizationQuickStartReturn } from "@/components/business/OrganizationQuickStartReturn";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
 import { useToast } from "@/hooks/use-toast";
@@ -1360,6 +1361,7 @@ export default function Router() {
         <Route component={NotFound} />
       </Switch>
       </Suspense>
+      <OrganizationQuickStartReturn />
       {!isDesktopView && shouldShowBottomNav && !showClinicianNav && <BottomNav />}
       {!isDesktopView && showClinicianNav && <StudioBottomNav />}
     </>

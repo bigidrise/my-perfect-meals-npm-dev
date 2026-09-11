@@ -12,10 +12,13 @@ import {
 import { UniversalDialog } from "@/components/ui/universal-modal";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
+import { startOrganizationQuickStartJourney } from "@/hooks/useOrganizationQuickStart";
 
 type OrganizationQuickStartModalProps = {
   open: boolean;
-  hasOrganization: boolean;
+  userId: string | null;
+  organizationId: string | null;
+  continuationStep: number;
   onClose: (disableFutureAutoOpen: boolean) => void;
 };
 
@@ -77,15 +80,25 @@ const steps = [
 
 export function OrganizationQuickStartModal({
   open,
-  hasOrganization,
+  userId,
+  organizationId,
+  continuationStep,
   onClose,
 }: OrganizationQuickStartModalProps) {
   const [, navigate] = useLocation();
   const [disableFutureAutoOpen, setDisableFutureAutoOpen] = useState(false);
 
-  function goTo(route: string) {
-    onClose(disableFutureAutoOpen);
-    navigate(route);
+  function goTo(route: string, originStep: number) {
+    if (!userId || !organizationId) return;
+    startOrganizationQuickStartJourney(sessionStorage, {
+      userId,
+      organizationId,
+      originStep,
+      continuationStep: Math.min(originStep + 1, steps.length - 1),
+      destinationPath: route,
+    });
+    const separator = route.includes("?") ? "&" : "?";
+    navigate(`${route}${separator}organizationQuickStart=${encodeURIComponent(organizationId)}`);
   }
 
   return (
@@ -119,11 +132,17 @@ export function OrganizationQuickStartModal({
       <div className="space-y-3 pr-1">
         {steps.map((step, index) => {
           const Icon = step.icon;
-          const canNavigate = "route" in step && (!step.needsOrganization || hasOrganization);
+          const canNavigate = "route" in step && Boolean(userId && organizationId);
+          const isContinuation = index === continuationStep;
           return (
             <section
               key={step.title}
-              className="rounded-xl border border-white/10 bg-white/[0.04] p-4"
+              className={`rounded-xl border p-4 ${
+                isContinuation
+                  ? "border-blue-400/50 bg-blue-500/10"
+                  : "border-white/10 bg-white/[0.04]"
+              }`}
+              data-quick-start-step={index}
             >
               <div className="flex items-start gap-3">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-blue-400/30 bg-blue-500/15 text-blue-200">
@@ -131,18 +150,23 @@ export function OrganizationQuickStartModal({
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-semibold uppercase tracking-wide text-blue-300">
-                    Step {index + 1}
+                    Step {index + 1}{isContinuation ? " · Continue here" : ""}
                   </p>
                   <h3 className="mt-0.5 text-sm font-bold text-white">{step.title}</h3>
                   <p className="mt-1 text-xs leading-relaxed text-white/65">{step.description}</p>
                   {canNavigate && "route" in step && "action" in step && (
                     <button
                       type="button"
-                      onClick={() => goTo(step.route)}
+                      onClick={() => goTo(step.route, index)}
                       className="mt-3 text-xs font-semibold text-blue-300 underline-offset-4 hover:text-blue-200 hover:underline"
                     >
                       {step.action}
                     </button>
+                  )}
+                  {"route" in step && !canNavigate && (
+                    <p className="mt-3 text-xs text-amber-200">
+                      Open the organization you want to manage before using this step.
+                    </p>
                   )}
                 </div>
               </div>
