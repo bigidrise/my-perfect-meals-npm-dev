@@ -95,7 +95,10 @@ export async function applyBusinessSubscriptionTransition(input: {
         return { updated: false, reason: "IDENTITY_CONFLICT" };
       }
     } else if (
-      business.status !== "pending_billing"
+      (
+        business.status !== "pending_billing"
+        && business.commercialAccessMode !== "onboarding_pilot"
+      )
       || !input.checkoutReservationId
       || business.stripeCheckoutReservationId !== input.checkoutReservationId
     ) {
@@ -198,6 +201,13 @@ export async function applyBusinessSubscriptionTransition(input: {
           ? { stripeCheckoutSessionId: input.checkoutSessionId }
           : {}),
         status: input.status,
+        ...(input.status === "active"
+          ? {
+              commercialAccessMode: "paid" as const,
+              commercialAccessStartedAt: new Date(),
+              commercialAccessEndsAt: null,
+            }
+          : {}),
         // clinical_business_monthly is a flat organization product. Its Stripe
         // line-item quantity is always one and is never an authority for
         // professional capacity. Keep the legacy argument for non-flat

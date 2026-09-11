@@ -3,8 +3,8 @@
  *
  * First-time business signup flow. Shown immediately after a user creates a
  * business account (/auth?role=business). Collects the organization name,
- * creates the businesses row (POST /api/business/create-org), then redirects
- * to Stripe checkout for the flat Organization plan (POST /api/stripe/checkout/business).
+ * creates the organization and activates its organization-owned 30-day
+ * Business pilot. No payment is required on Day 1.
  *
  * This page is intentionally ungated — the user has not yet paid.
  */
@@ -23,11 +23,11 @@ export default function BusinessSetup() {
   const createNewMode = new URLSearchParams(search).get("createNew") === "1";
   const pilotAuthorizationId = new URLSearchParams(search).get("pilotAuthorization");
   const isPilotSetup = pilotMode || pilotCreateMode;
-  const [creationAccess, setCreationAccess] = useState<"loading" | "founder_complimentary" | "paid">(
-    createNewMode ? "loading" : "paid",
+  const [creationAccess, setCreationAccess] = useState<"loading" | "permanent_complimentary" | "onboarding_pilot">(
+    createNewMode ? "loading" : "onboarding_pilot",
   );
-  const isFounderComplimentary = createNewMode && creationAccess === "founder_complimentary";
-  const isComplimentarySetup = isPilotSetup || isFounderComplimentary;
+  const isPermanentComplimentary = creationAccess === "permanent_complimentary";
+  const isComplimentarySetup = true;
 
   const [orgName, setOrgName] = useState("");
   const [step, setStep] = useState<"form" | "redirecting">("form");
@@ -85,7 +85,7 @@ export default function BusinessSetup() {
           });
           const accessData = await accessRes.json();
           if (!accessRes.ok) throw new Error(accessData.error || "Could not determine organization access.");
-          setCreationAccess(accessData.mode === "founder_complimentary" ? "founder_complimentary" : "paid");
+           setCreationAccess(accessData.mode === "permanent_complimentary" ? "permanent_complimentary" : "onboarding_pilot");
           return;
         }
         const res = await fetch("/api/business/check-status", {
@@ -182,22 +182,8 @@ export default function BusinessSetup() {
         return;
       }
 
-      const checkoutRes = await fetch("/api/stripe/checkout/business", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        credentials: "include",
-        body: JSON.stringify({ businessId: createData.businessId }),
-      });
-      const checkoutData = await checkoutRes.json();
-      if (!checkoutRes.ok) {
-        setErr(checkoutData.error || "Could not start checkout. Please try again.");
-        setSubmitting(false);
-        return;
-      }
-
-      setStep("redirecting");
-      // Redirect to Stripe
-      window.location.href = checkoutData.url;
+       setErr("Your organization was created, but its workspace could not be opened.");
+       setSubmitting(false);
     } catch {
       setErr("Something went wrong. Please try again.");
       setSubmitting(false);
@@ -226,11 +212,11 @@ export default function BusinessSetup() {
           <h1 className="text-white text-2xl font-bold">Set Up Your Organization</h1>
           <p className="text-white/50 text-sm mt-2">
             {user?.email && <span className="text-white/70">{user.email} · </span>}
-            {isComplimentarySetup
-              ? isFounderComplimentary
-                ? "Name a new independent organization using your complimentary founder access."
-                : "Confirm your organization details and authorized pilot capacity."
-               : "Name your organization and activate your flat-rate Organization plan."}
+             {isPilotSetup
+               ? "Confirm your organization details and authorized pilot capacity."
+               : isPermanentComplimentary
+                 ? "Name your organization. Your account has Permanent Complimentary Business Access."
+                 : "Name your organization and start its 30-day Business pilot. No payment is required today."}
           </p>
         </div>
 
@@ -255,22 +241,20 @@ export default function BusinessSetup() {
           {/* Organization access or authorized pilot capacity */}
           <div>
             <label className="text-white/70 text-xs font-semibold uppercase tracking-wide block mb-2">
-              {isComplimentarySetup ? (isFounderComplimentary ? "Complimentary Organization Access" : "Pilot Access") : "Organization Plan"}
+               {isPilotSetup ? "Authorized Pilot Access" : "30-Day Business Pilot"}
             </label>
             {isComplimentarySetup ? (
               <div className="space-y-3">
                 <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
                   <p className="text-sm font-semibold text-emerald-200">
-                    {isFounderComplimentary ? "Complimentary Organization Access" : "30-Day Complimentary Organization Pilot"}
+                     {isPilotSetup ? "30-Day Authorized Organization Pilot" : "30-Day Business Pilot"}
                   </p>
                   <p className="mt-1 text-2xl font-bold text-emerald-300">$0 today</p>
                   <p className="mt-1 text-xs text-white/60">
-                    {isFounderComplimentary
-                      ? "No payment is required for this organization setup."
-                      : "No payment is required to activate your approved pilot. Your pilot begins when the organization is activated."}
+                     No payment is required today. The organization's pilot begins when setup completes.
                   </p>
                 </div>
-                {!isFounderComplimentary && (
+                {isPilotSetup && (
                   <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 p-4">
                       <p className="text-xs text-white/50">Professional seats</p>
@@ -290,16 +274,14 @@ export default function BusinessSetup() {
               </div>
             )}
             <p className="text-white/30 text-xs mt-2">
-              {isComplimentarySetup
-                ? isFounderComplimentary
-                  ? "This Development founder access creates a new independent organization without Stripe and does not consume a pilot authorization."
-                  : `These limits come from the approved authorization and cannot be increased here. After the pilot, you may choose to continue on the Organization plan, currently $44.99/month. You will not be charged automatically unless you complete paid enrollment.`
-                : "Invite and manage professional team members from your Organization Dashboard. Each invited professional receives a one-time 30-day introductory entitlement, then needs another valid entitlement to continue professional access."}
+               {isPilotSetup
+                 ? "These limits come from the approved authorization and cannot be increased here."
+                 : "After 30 days, continued active Business operation requires a valid commercial arrangement. Your organization and its data will be preserved."}
             </p>
           </div>
 
           {/* Price preview */}
-            {!isComplimentarySetup && creationAccess !== "loading" && (
+            {false && creationAccess !== "loading" && (
             <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex items-center justify-between">
               <div>
                 <p className="text-white/50 text-xs">Organization / Business Suite</p>
@@ -349,7 +331,7 @@ export default function BusinessSetup() {
               {submitting ? (
               <><Loader2 className="w-5 h-5 animate-spin" /> Creating organization…</>
             ) : (
-                <><Users className="w-5 h-5" /> {pilotMode ? "Open Business Suite" : isComplimentarySetup ? "Set Up Organization" : "Continue to Payment"} <ChevronRight className="w-4 h-4" /></>
+                <><Users className="w-5 h-5" /> {pilotMode ? "Open Business Suite" : "Create Organization"} <ChevronRight className="w-4 h-4" /></>
             )}
           </button>
 
@@ -358,9 +340,9 @@ export default function BusinessSetup() {
               ? "No payment is required for this authorized pilot. Claiming setup does not start the pilot clock."
                 : pilotCreateMode
                   ? "This organization uses your approved complimentary pilot access. No payment is required."
-                  : isFounderComplimentary
-                    ? "This organization uses your Development founder access. No payment is required and no pilot authorization is consumed."
-              : "Secure checkout via Stripe. Your flat Organization subscription is $44.99/month."}
+                  : isPermanentComplimentary
+                    ? "Your personal complimentary Business access does not change this organization's independent commercial lifecycle."
+                    : "No payment is required today. The organization receives one 30-day Business pilot."}
           </p>
         </form>
       </div>

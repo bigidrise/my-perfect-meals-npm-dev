@@ -132,7 +132,7 @@ export function businessCardPresentation(state: BusinessCardState): {
     case "none":
       return {
         title: "Start Your Organization",
-        description: "$44.99/month · Set up your Business Suite",
+        description: "Create an organization · 30-day Business pilot",
         destination: "/business/start",
       };
     case "error":
