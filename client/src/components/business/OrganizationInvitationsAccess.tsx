@@ -401,7 +401,10 @@ export default function OrganizationInvitationsAccess({
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto border border-orange-500/25 bg-gray-950 text-white">
+        <DialogContent
+          className="max-h-[90vh] max-w-5xl overflow-y-auto border border-orange-500/25 bg-gray-950 text-white"
+          style={{ paddingTop: "max(1.5rem, env(safe-area-inset-top, 0px))" }}
+        >
           <DialogHeader>
             <DialogTitle>Invitations &amp; Access — {businessName}</DialogTitle>
           </DialogHeader>
