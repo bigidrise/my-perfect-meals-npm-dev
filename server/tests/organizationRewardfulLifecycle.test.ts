@@ -161,4 +161,18 @@ describe("organization-owned Rewardful lifecycle", () => {
     expect(dashboard).toContain("escapeRewardfulMessage(message)");
     expect(dashboard).not.toContain('window.open("", "_blank", "noopener,noreferrer")');
   });
+
+  test("the Revenue Center tolerates stale lifecycle payloads and skips status checks when unlinked", () => {
+    const dashboard = read("client/src/pages/AffiliateDashboard.tsx");
+    expect(dashboard).toContain("organizationRewardfulLifecycle?:");
+    expect(dashboard).toContain(
+      "const organizationRewardfulLifecycle = account.organizationRewardfulLifecycle ??",
+    );
+    expect(dashboard).toContain(
+      "if ((affiliateData as AffiliateAccount | null)?.hasLinkedRewardful)",
+    );
+    expect(dashboard).not.toContain(
+      "if (affiliateData) {\n        apiRequest(\"/api/affiliate/rewardful-status\")",
+    );
+  });
 });
