@@ -1,4 +1,5 @@
 import {
+  captureAuthoritativeTextValue,
   commitTextInputValue,
   limitTextInputValue,
   readAuthoritativeTextValue,
@@ -36,6 +37,21 @@ describe("authoritative mobile text input", () => {
     );
 
     expect(setValue).toHaveBeenCalledWith("鶏肉");
+  });
+
+  test("submission waits for a predictive replacement committed during blur", async () => {
+    const textarea = {
+      value: "chi",
+      blur: () => {
+        queueMicrotask(() => {
+          textarea.value = "chicken";
+        });
+      },
+    } as HTMLTextAreaElement;
+
+    await expect(captureAuthoritativeTextValue(textarea, "chi", 300)).resolves.toBe(
+      "chicken",
+    );
   });
 
   test("repeated reads use the same current visible value", () => {

@@ -73,7 +73,7 @@ import { PillButton } from "@/components/ui/pill-button";
 import { IconPillOption } from "@/components/ui/icon-pill-option";
 import { getCreateDishServerErrorMessage } from "@/lib/createDishError";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
-import { commitTextInputValue, readAuthoritativeTextValue } from "@/lib/authoritativeTextInput";
+import { captureAuthoritativeTextValue, commitTextInputValue } from "@/lib/authoritativeTextInput";
 import type {
   CreateDishIntent,
   ExpandIngredientResponse,
@@ -798,7 +798,7 @@ export default function CreateDishPage() {
   }, [pendingGeneration, overrideToken, governanceOverrideToken, isGenerating]);
 
   const handleGenerateDish = async (skipPreflight = false, dietAdaptOverride = false, userDietOverride = false) => {
-    const submittedDishInput = readAuthoritativeTextValue(dishInputRef.current, dishInput, 300);
+    const submittedDishInput = await captureAuthoritativeTextValue(dishInputRef.current, dishInput, 300);
     if (submittedDishInput !== dishInput) setDishInput(submittedDishInput);
     const effectiveUserDietOverride = userDietOverride || continueAnywayRef.current;
     continueAnywayRef.current = false;
