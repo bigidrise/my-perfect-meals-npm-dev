@@ -151,4 +151,14 @@ describe("organization-owned Rewardful lifecycle", () => {
     expect(routes).toContain("contactEmail: email");
     expect(routes).toContain("contactEmail: verified.email");
   });
+
+  test("an unlinked Rewardful account cannot leave the user on a blank portal tab", () => {
+    const dashboard = read("client/src/pages/AffiliateDashboard.tsx");
+    expect(dashboard).toContain('window.open("about:blank", "_blank")');
+    expect(dashboard).toContain("Rewardful is not available yet");
+    expect(dashboard).toContain("!account.hasLinkedRewardful");
+    expect(dashboard).toContain("Rewardful is not linked yet");
+    expect(dashboard).toContain("escapeRewardfulMessage(message)");
+    expect(dashboard).not.toContain('window.open("", "_blank", "noopener,noreferrer")');
+  });
 });

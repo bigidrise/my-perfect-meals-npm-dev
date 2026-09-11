@@ -89,6 +89,42 @@ function formatDate(iso: string | null) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+function openRewardfulLoadingWindow() {
+  const win = window.open("about:blank", "_blank");
+  if (!win) return null;
+  win.opener = null;
+  win.document.title = "Opening Rewardful";
+  win.document.body.innerHTML = `
+    <main style="font-family:system-ui,sans-serif;max-width:520px;margin:72px auto;padding:24px;color:#18181b">
+      <h1 style="font-size:22px;margin-bottom:8px">Opening Rewardful…</h1>
+      <p style="color:#52525b">My Perfect Meals is preparing your secure portal link.</p>
+    </main>
+  `;
+  return win;
+}
+
+function escapeRewardfulMessage(message: string) {
+  return message.replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;",
+  })[character] ?? character);
+}
+
+function showRewardfulWindowError(win: Window | null, message: string) {
+  if (!win || win.closed) return;
+  win.document.title = "Rewardful is not available";
+  win.document.body.innerHTML = `
+    <main style="font-family:system-ui,sans-serif;max-width:520px;margin:72px auto;padding:24px;color:#18181b">
+      <h1 style="font-size:22px;margin-bottom:8px">Rewardful is not available yet</h1>
+      <p style="color:#52525b">${escapeRewardfulMessage(message)}</p>
+      <p style="margin-top:20px;color:#71717a">You can close this tab and return to My Perfect Meals.</p>
+    </main>
+  `;
+}
+
 export default function AffiliateDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -186,7 +222,7 @@ export default function AffiliateDashboard() {
     setPortalLoading(true);
     // Open the window synchronously inside the click handler so browsers
     // treat it as a user-initiated popup (not a programmatic one that gets blocked).
-    const win = window.open("", "_blank", "noopener,noreferrer");
+    const win = openRewardfulLoadingWindow();
     try {
       const data = await apiRequest("/api/affiliate/dashboard-link") as { url?: string };
       if (data.url && win) {
@@ -197,12 +233,13 @@ export default function AffiliateDashboard() {
             .catch(() => {});
         }, 3000);
       } else {
-        win?.close();
+        showRewardfulWindowError(win, "This organization does not have an active Rewardful portal link yet.");
         toast({ title: "Unavailable", description: "Could not generate portal link.", variant: "destructive" });
       }
-    } catch {
-      win?.close();
-      toast({ title: "Error", description: "Failed to open portal. Try again.", variant: "destructive" });
+    } catch (error: any) {
+      const description = error?.message ?? "Failed to open portal. Try again.";
+      showRewardfulWindowError(win, description);
+      toast({ title: "Rewardful portal unavailable", description, variant: "destructive" });
     } finally {
       setPortalLoading(false);
     }
@@ -261,7 +298,7 @@ export default function AffiliateDashboard() {
   ) => {
     if (organizationSetupLoading) return;
     setOrganizationSetupLoading(true);
-    const win = window.open("", "_blank", "noopener,noreferrer");
+    const win = openRewardfulLoadingWindow();
     try {
       const data = await apiRequest(path, {
         method: "POST",
@@ -272,7 +309,7 @@ export default function AffiliateDashboard() {
       if (data.portalUrl && win) {
         win.location.href = data.portalUrl;
       } else {
-        win?.close();
+        showRewardfulWindowError(win, "The organization account was linked, but Rewardful did not return a portal link yet.");
       }
       toast({
         title: path.endsWith("attach-existing") ? "Rewardful account attached" : "Partner & Revenue setup started",
@@ -281,7 +318,7 @@ export default function AffiliateDashboard() {
           : "The organization account is linked. You can open Rewardful from this page.",
       });
     } catch (error: any) {
-      win?.close();
+      showRewardfulWindowError(win, error?.message ?? "Review the organization information and try again.");
       toast({
         title: "Setup could not be completed",
         description: error?.message ?? "Review the organization information and try again.",
@@ -1124,7 +1161,14 @@ export default function AffiliateDashboard() {
               <CardLabel>Affiliate Portal</CardLabel>
             </div>
 
-            {rewardfulStatus?.signedIn ? (
+            {!account.hasLinkedRewardful ? (
+              <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-4">
+                <p className="text-sm font-semibold text-white">Rewardful is not linked yet</p>
+                <p className="mt-1 text-xs leading-relaxed text-gray-300">
+                  Complete the organization’s Partner & Revenue setup above, or attach its exact existing Rewardful affiliate ID. A portal button will appear after the account is linked.
+                </p>
+              </div>
+            ) : rewardfulStatus?.signedIn ? (
               /* ── COMPLETE STATE: they've already visited the portal ── */
               <>
                 <div className="flex items-center gap-2.5 p-3 rounded-xl bg-green-900/20 border border-green-500/20 mb-3">
