@@ -47,6 +47,7 @@ import {
   locationMemberships,
   organizationMemberships,
 } from "../db/schema/workspaces";
+import { organizations } from "../db/schema/organizations";
 import { organizationalPilotParticipants, organizationalPilots } from "../db/schema/pilotProgram";
 import {
   MAX_ORGANIZATION_INVITATION_BATCH,
