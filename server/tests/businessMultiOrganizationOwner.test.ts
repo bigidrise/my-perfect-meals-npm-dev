@@ -19,7 +19,9 @@ const setup = fs.readFileSync(
   "utf8",
 );
 const hub = fs.readFileSync(path.join(root, "client/src/pages/OrganizationHub.tsx"), "utf8");
+const start = fs.readFileSync(path.join(root, "client/src/pages/BusinessStart.tsx"), "utf8");
 const businessCardState = fs.readFileSync(path.join(root, "client/src/lib/businessCardState.ts"), "utf8");
+const stripeCheckout = fs.readFileSync(path.join(root, "server/routes/stripeCheckout.ts"), "utf8");
 const pilotAuthorization = fs.readFileSync(
   path.join(root, "server/services/organizationalPilotAuthorizationService.ts"),
   "utf8",
@@ -54,10 +56,10 @@ describe("multi-organization owner setup", () => {
     expect(pilotAuthorization).not.toContain("const [template]");
     expect(setup).toContain("authorizationId: pilotAuthorizationId");
     expect(setup).toContain("const isPilotSetup = pilotMode || pilotCreateMode");
-    expect(setup).toContain('{isPilotSetup ? "Pilot Access" : "Organization Plan"}');
+    expect(setup).toContain('{isComplimentarySetup ? (isFounderComplimentary ? "Complimentary Organization Access" : "Pilot Access") : "Organization Plan"}');
     expect(setup).toContain("30-Day Complimentary Organization Pilot");
     expect(setup).toContain("$0 today");
-    expect(setup).toContain('pilotCreateMode ? "Set Up Organization"');
+    expect(setup).toContain('isComplimentarySetup ? "Set Up Organization"');
   });
 
   test("founder administration creates, lists, and safely revokes organization grants", () => {
@@ -74,8 +76,36 @@ describe("multi-organization owner setup", () => {
     expect(hub).toContain("You don't have any organizations yet.");
     expect(hub).toContain("pendingPilots.map");
     expect(hub).toContain("pilotAuthorization=${encodeURIComponent(pilot.authorizationId)}");
-    expect(hub).toContain('onClick={() => setLocation("/business/start")}');
+    expect(hub).toContain('onClick={() => setLocation("/business/setup?createNew=1")}');
     expect(hub).toContain("<Plus className=\"h-4 w-4\" /> Add Organization");
+  });
+
+  test("explicit Add Organization intent cannot fall back to opening an existing dashboard", () => {
+    expect(hub).not.toContain('onClick={() => setLocation("/business/start")}');
+    expect(setup).toContain('get("createNew") === "1"');
+    expect(setup).toContain('creationIntent: createNewMode ? "create-new" : "initial-setup"');
+    expect(start).toContain('setLocation("/business-dashboard")');
+  });
+
+  test("Development founders share complimentary setup without consuming pilot grants", () => {
+    expect(businessRoutes).toContain('router.get("/organization-creation-access"');
+    expect(businessRoutes).toContain('process.env.NODE_ENV !== "production" && actor?.isAdmin === true');
+    expect(setup).toContain('"Complimentary Organization Access"');
+    expect(setup).toContain(">$0 today<");
+    expect(setup).toContain("no pilot authorization is consumed");
+    expect(setup).toContain("createData.paymentRequired === false");
+  });
+
+  test("explicit new organization creation is independent and idempotent", () => {
+    const route = businessRoutes.slice(
+      businessRoutes.indexOf('router.post("/create-org"'),
+      businessRoutes.indexOf('// ── POST /api/business/dev-seed'),
+    );
+    expect(route).toContain('req.body?.creationIntent === "create-new"');
+    expect(route).toContain("businesses.creationRequestId, creationRequestId");
+    expect(route).toContain("ownerUserId: userId");
+    expect(route).toContain("ensureCanonicalWorkspaceForBusiness(result.business.id)");
+    expect(route).toContain("paymentRequired: !founderComplimentary");
   });
 
   test("an approved pilot user with zero organizations is routed to the Hub", () => {
@@ -129,6 +159,8 @@ describe("multi-organization owner setup", () => {
     expect(createFetch).toBeGreaterThan(-1);
     expect(createSuccessGate).toBeGreaterThan(createFetch);
     expect(checkoutFetch).toBeGreaterThan(createSuccessGate);
+    expect(setup).toContain("businessId: createData.businessId");
+    expect(stripeCheckout).toContain("eq(bizTable.id, businessId)");
     expect(setup).toContain("This organization uses your approved complimentary pilot access. No payment is required.");
   });
 });

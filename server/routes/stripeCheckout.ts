@@ -341,6 +341,13 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
     });
   }
   const requestedSeats = 1;
+  const businessId = typeof req.body?.businessId === "string" ? req.body.businessId.trim() : "";
+  if (!businessId) {
+    return res.status(400).json({
+      code: "ORGANIZATION_REQUIRED",
+      error: "The organization being activated is required.",
+    });
+  }
 
   const trustedBusinessPlan = getTrustedCheckoutPlan("clinical_business_monthly");
   if (!trustedBusinessPlan) {
@@ -379,6 +386,7 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
         updatedAt: new Date(),
       })
       .where(and(
+        eq(bizTable.id, businessId),
         eq(bizTable.ownerUserId, userId),
         eq(bizTable.status, "pending_billing"),
         isNull(bizTable.stripeSubscriptionId),
@@ -393,7 +401,7 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
       const [existingBusiness] = await checkoutDb
         .select({ id: bizTable.id, status: bizTable.status })
         .from(bizTable)
-        .where(eq(bizTable.ownerUserId, userId))
+        .where(and(eq(bizTable.id, businessId), eq(bizTable.ownerUserId, userId)))
         .limit(1);
       return res.status(existingBusiness ? 409 : 403).json({
         code: existingBusiness ? "ORGANIZATION_CHECKOUT_UNAVAILABLE" : "ORGANIZATION_REQUIRED",
