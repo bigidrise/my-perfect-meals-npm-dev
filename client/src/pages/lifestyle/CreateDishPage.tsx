@@ -253,6 +253,11 @@ export default function CreateDishPage() {
   const { toast } = useToast();
   const [dishInput, setDishInput] = useState("");
   const dishInputRef = useRef<HTMLTextAreaElement>(null);
+  const updateDishInput = (value: string) => {
+    const limitedValue = value.slice(0, 300);
+    if (dishInputRef.current) dishInputRef.current.value = limitedValue;
+    setDishInput(limitedValue);
+  };
   const [servings, setServings] = useState<number>(2);
   const [cookMethod, setCookMethod] = useState<string>("");
   const [notes, setNotes] = useState("");
@@ -283,7 +288,7 @@ export default function CreateDishPage() {
     // Pre-fill dish input from ?idea= (set by coach "Make it now" buttons)
     const ideaParam = params.get("idea");
     if (ideaParam) {
-      setDishInput(ideaParam);
+      updateDishInput(ideaParam);
     }
 
     const slug = params.get("kitchen");
@@ -672,7 +677,7 @@ export default function CreateDishPage() {
   const chooseClarification = (choiceId: string, label: string) => {
     const originalDish = dishInput.trim().toLowerCase();
     if (choiceId === "other") {
-      setDishInput("");
+      updateDishInput("");
       return;
     }
     if (choiceId === "surprise") {
@@ -680,7 +685,7 @@ export default function CreateDishPage() {
         (choice: { id: string; label: string }) => choice.id !== "surprise" && choice.id !== "other",
       );
       if (firstConcreteChoice) {
-        setDishInput(
+        updateDishInput(
           originalDish === "steak"
             ? `${firstConcreteChoice.label} steak`
             : originalDish === "fish"
@@ -690,7 +695,7 @@ export default function CreateDishPage() {
       }
       return;
     }
-    setDishInput(
+    updateDishInput(
       originalDish === "steak"
         ? `${label} steak`
         : originalDish === "fish"
@@ -799,7 +804,7 @@ export default function CreateDishPage() {
 
   const handleGenerateDish = async (skipPreflight = false, dietAdaptOverride = false, userDietOverride = false) => {
     const submittedDishInput = await captureAuthoritativeTextValue(dishInputRef.current, dishInput, 300);
-    if (submittedDishInput !== dishInput) setDishInput(submittedDishInput);
+    if (submittedDishInput !== dishInput) updateDishInput(submittedDishInput);
     const effectiveUserDietOverride = userDietOverride || continueAnywayRef.current;
     continueAnywayRef.current = false;
     userDietOverride = effectiveUserDietOverride;
@@ -1099,7 +1104,7 @@ export default function CreateDishPage() {
                     <div className="relative">
                       <textarea
                         ref={dishInputRef}
-                        value={dishInput}
+                        defaultValue=""
                         onChange={(e) => commitTextInputValue(e, setDishInput, 300)}
                         onInput={(e) => commitTextInputValue(e, setDishInput, 300)}
                         onCompositionEnd={(e) => commitTextInputValue(e, setDishInput, 300)}
@@ -1109,7 +1114,7 @@ export default function CreateDishPage() {
                       />
                       {dishInput && (
                         <TrashButton
-                          onClick={() => setDishInput("")}
+                          onClick={() => updateDishInput("")}
                           size="sm"
                           ariaLabel="Clear dish input"
                           title="Clear dish input"
@@ -1119,7 +1124,7 @@ export default function CreateDishPage() {
                     </div>
                     <VoiceInputButton
                       value={dishInput}
-                      onChange={setDishInput}
+                      onChange={updateDishInput}
                       mode="append"
                       separator=" "
                       maxLength={300}
@@ -1350,7 +1355,7 @@ export default function CreateDishPage() {
                     onDecision={(decision) => {
                       if (decision === "order_something_else") {
                         clearStarchAlert();
-                        setDishInput("");
+                        updateDishInput("");
                         toast({
                           title: "Try a different ingredient",
                           description:
@@ -1372,7 +1377,7 @@ export default function CreateDishPage() {
                         clearDietAlert();
                         setGeneratedMeals([]);
                         setMealOptions([]);
-                        setDishInput("");
+                        updateDishInput("");
                       } else if (decision === "let_chef_adapt") {
                         setDietDecision("let_chef_adapt");
                         clearDietAlert();
@@ -1518,7 +1523,7 @@ export default function CreateDishPage() {
                 onClick={() => {
                   setMealOptions([]);
                   clearOptionsCache();
-                  setDishInput("");
+                  updateDishInput("");
                 }}
                 className="w-full text-sm text-white/50 hover:text-white/80 py-2 transition-colors"
               >
@@ -1553,7 +1558,7 @@ export default function CreateDishPage() {
                               clearDishCache();
                               setMealOptions([]);
                               clearOptionsCache();
-                              setDishInput("");
+                              updateDishInput("");
                               setSubstitutedStarchTerms([]);
                               clearStarchAlert();
                             }}
@@ -2034,7 +2039,7 @@ export default function CreateDishPage() {
                     onClick={() => {
                       setMealOptions([]);
                       clearOptionsCache();
-                      setDishInput("");
+                      updateDishInput("");
                     }}
                     className="w-full text-xs text-white/40 hover:text-white/70 py-2 transition-colors"
                   >
