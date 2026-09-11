@@ -74,6 +74,12 @@ import { IconPillOption } from "@/components/ui/icon-pill-option";
 import { getCreateDishServerErrorMessage } from "@/lib/createDishError";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { captureAuthoritativeTextValue, commitTextInputValue } from "@/lib/authoritativeTextInput";
+import {
+  canRenderCreateDishPreparation,
+  normalizeCreateDishRecognitionText,
+  resolveCreateDishRecognitionSource,
+  shouldApplyCreateDishRecognitionResult,
+} from "@/lib/createDishLiveRecognition";
 import type {
   CreateDishIntent,
   ExpandIngredientResponse,
@@ -507,6 +513,24 @@ export default function CreateDishPage() {
   const [expansionFallback, setExpansionFallback] = useState(false);
   const lastExpandedTextRef = useRef("");
   const expansionRequestRef = useRef(0);
+  const [acceptedExpansionSource, setAcceptedExpansionSource] = useState<string | null>(null);
+
+  useEffect(() => {
+    const element = dishInputRef.current;
+    if (!element) return;
+    const mirrorVisibleValue = () => {
+      const visibleValue = element.value.slice(0, 300);
+      setDishInput((current) => current === visibleValue ? current : visibleValue);
+    };
+    element.addEventListener("input", mirrorVisibleValue);
+    element.addEventListener("change", mirrorVisibleValue);
+    element.addEventListener("compositionend", mirrorVisibleValue);
+    return () => {
+      element.removeEventListener("input", mirrorVisibleValue);
+      element.removeEventListener("change", mirrorVisibleValue);
+      element.removeEventListener("compositionend", mirrorVisibleValue);
+    };
+  }, []);
 
   const expansionPolicy = () => {
     const mappedMethodId = COOK_METHOD_TO_EXPANSION_ID[cookMethod] ?? null;
@@ -570,18 +594,27 @@ export default function CreateDishPage() {
   };
 
   useEffect(() => {
-    const normalized = dishInput.trim().replace(/\s+/g, " ").toLowerCase();
-    if (normalized === lastExpandedTextRef.current) return;
+    const visibleValue = dishInputRef.current?.value ?? dishInput;
+    const { sourceText, shouldMirror } = resolveCreateDishRecognitionSource(
+      visibleValue,
+      dishInput,
+    );
+    if (shouldMirror) {
+      setDishInput(visibleValue);
+    }
+    if (sourceText === lastExpandedTextRef.current) return;
     const requestId = ++expansionRequestRef.current;
-    lastExpandedTextRef.current = normalized;
+    lastExpandedTextRef.current = sourceText;
     setIngredientExpansion(null);
+    setAcceptedExpansionSource(null);
     setExpansionSelections({});
     setDelegatedDimensions([]);
     setExpansionFallback(false);
-    if (normalized.length < 3) return;
+    setExpansionBusy(false);
+    if (sourceText.length < 3) return;
     setExpansionBusy(true);
     const timer = window.setTimeout(async () => {
-      const result = await requestIngredientExpansion(dishInput, {
+      const result = await requestIngredientExpansion(sourceText, {
         delegatedDimensions: [],
         selectedOptionIds: {
           form: null,
@@ -592,13 +625,31 @@ export default function CreateDishPage() {
         },
       });
       if (requestId !== expansionRequestRef.current) return;
-      setExpansionBusy(false);
-      if (!result) {
-        setExpansionFallback(true);
+      const currentVisibleValue = dishInputRef.current?.value ?? dishInput;
+      if (
+        !result ||
+        !shouldApplyCreateDishRecognitionResult({
+          requestSource: sourceText,
+          currentVisibleValue,
+          responseSubmittedText: result.ingredient.submittedText,
+        })
+      ) {
+        setExpansionBusy(false);
+        setIngredientExpansion(null);
+        setAcceptedExpansionSource(null);
+        const currentSource = normalizeCreateDishRecognitionText(currentVisibleValue);
+        if (currentSource !== sourceText) {
+          lastExpandedTextRef.current = "";
+          setDishInput(currentVisibleValue);
+        } else if (!result) {
+          setExpansionFallback(true);
+        }
         return;
       }
+      setExpansionBusy(false);
       setExpansionFallback(false);
       setIngredientExpansion(result);
+      setAcceptedExpansionSource(sourceText);
       const inferredTextureId = result.inferredSelectionIds?.texture ?? null;
       const inferredTexture = result.options.textures.find(
         (option) => option.id === inferredTextureId,
@@ -1146,7 +1197,11 @@ export default function CreateDishPage() {
                     <div className="h-12 animate-pulse rounded-lg border border-white/10 bg-white/5" aria-label="Understanding your dish" />
                   )}
 
-                  {ingredientExpansion && ingredientExpansion.ingredient.status !== "unsupported" && (
+                  {ingredientExpansion && canRenderCreateDishPreparation({
+                    resultSource: acceptedExpansionSource,
+                    currentVisibleValue: dishInputRef.current?.value ?? dishInput,
+                    status: ingredientExpansion.ingredient.status,
+                  }) && (
                     <div className="space-y-3 rounded-xl border border-orange-400/20 bg-black/25 p-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
