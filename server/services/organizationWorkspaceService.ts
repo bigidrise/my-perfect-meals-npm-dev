@@ -12,6 +12,7 @@ import {
   userWorkspaceSelections,
 } from "../db/schema/workspaces";
 import { users } from "@shared/schema";
+import { ensureOrganizationPartnerRevenueShell } from "./organizationPartnerRevenueService";
 
 export type WorkspaceLocationOption = {
   id: string;
@@ -352,6 +353,12 @@ export async function ensureCanonicalWorkspaceForBusiness(
           set: { role: member.role, status: accessStatus, updatedAt: new Date() },
         });
     }
+
+    await ensureOrganizationPartnerRevenueShell(tx, {
+      userId: business.ownerUserId,
+      organizationId,
+      organizationName: business.name,
+    });
 
     return { organizationId, locationId };
   });

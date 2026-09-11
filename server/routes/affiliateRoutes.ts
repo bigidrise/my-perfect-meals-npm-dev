@@ -6,11 +6,57 @@ import { requireProAccess } from "../middleware/requireProAccess";
 import { userAffiliateAccounts } from "../db/schema/affiliateAccounts";
 import { users } from "../../shared/schema";
 import { checkBusinessAffiliateEligibility } from "../services/affiliateEligibility";
-import { getRewardfulMagicLink, getRewardfulAffiliate, getRewardfulAffiliateStatus, getRewardfulAffiliateByEmail } from "../services/rewardfulApi";
+import { getRewardfulMagicLink, getRewardfulAffiliate, getRewardfulAffiliateStatus } from "../services/rewardfulApi";
 import { sendAffiliateReferralInvite } from "../services/emailService";
 import { requireEmailService, emailServiceAvailable } from "../middleware/requireEmailService";
+import { resolveActiveWorkspace } from "../services/organizationWorkspaceService";
+import {
+  affiliateAccountScope,
+  ensureOrganizationPartnerRevenueShell,
+} from "../services/organizationPartnerRevenueService";
 
 const router = Router();
+
+function sessionSelection(req: any) {
+  return req.session?.activeOrganizationId && req.session?.activeLocationId
+    ? {
+        organizationId: req.session.activeOrganizationId as string,
+        locationId: req.session.activeLocationId as string,
+      }
+    : null;
+}
+
+async function getOrganizationAffiliateAccount(req: any) {
+  const userId = (req as AuthenticatedRequest).authUser.id;
+  const workspace = await resolveActiveWorkspace(userId, sessionSelection(req));
+  await ensureOrganizationPartnerRevenueShell(db, {
+    userId,
+    organizationId: workspace.organizationId,
+    organizationName: workspace.organizationName,
+  });
+  const [account] = await db
+    .select()
+    .from(userAffiliateAccounts)
+    .where(affiliateAccountScope(userId, workspace.organizationId))
+    .limit(1);
+  return { userId, workspace, account };
+}
+
+function organizationAffiliateResponse(account: typeof userAffiliateAccounts.$inferSelect) {
+  return {
+    organizationId: account.organizationId,
+    affiliateTrack: account.affiliateTrack,
+    requiredPhases: account.requiredPhases,
+    phase1CompletedAt: account.phase1CompletedAt,
+    phase2CompletedAt: account.phase2CompletedAt,
+    rewardfulState: account.rewardfulState,
+    rewardfulReferralUrl: account.rewardfulReferralUrl,
+    rewardfulReferralToken: account.rewardfulReferralToken,
+    rewardfulCampaignId: account.rewardfulCampaignId,
+    activatedAt: account.activatedAt,
+    isActive: account.rewardfulState === "active",
+  };
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tier requirement: ALL participation endpoints (register, account reads,
@@ -41,7 +87,7 @@ router.get("/eligibility", requireAuth, async (req, res) => {
 // requireProAccess: Free/Essential users cannot enrol in the affiliate program.
 router.post("/register-track", requireAuth, requireProAccess, async (req, res) => {
   try {
-    const userId = (req as AuthenticatedRequest).authUser.id;
+    const { userId, workspace, account: existing } = await getOrganizationAffiliateAccount(req);
     const { track } = req.body as { track?: string };
 
     if (!track || !["social_affiliate", "business_affiliate"].includes(track)) {
@@ -56,12 +102,6 @@ router.post("/register-track", requireAuth, requireProAccess, async (req, res) =
       }
     }
 
-    const [existing] = await db
-      .select()
-      .from(userAffiliateAccounts)
-      .where(eq(userAffiliateAccounts.userId, userId))
-      .limit(1);
-
     if (existing) {
       // Allow upgrade from social → business, never downgrade
       if (existing.affiliateTrack === "social_affiliate" && track === "business_affiliate") {
@@ -73,7 +113,7 @@ router.post("/register-track", requireAuth, requireProAccess, async (req, res) =
               requiredPhases: "phase_1_and_2",
               updatedAt: new Date(),
             })
-            .where(eq(userAffiliateAccounts.userId, userId));
+            .where(affiliateAccountScope(userId, workspace.organizationId));
           return res.json({ ok: true, track: "business_affiliate", upgraded: true });
         }
         // Already activated as social — cannot change track silently
@@ -87,6 +127,7 @@ router.post("/register-track", requireAuth, requireProAccess, async (req, res) =
 
     await db.insert(userAffiliateAccounts).values({
       userId,
+      organizationId: workspace.organizationId,
       affiliateTrack: track,
       requiredPhases,
     });
@@ -102,83 +143,9 @@ router.post("/register-track", requireAuth, requireProAccess, async (req, res) =
 // requireProAccess: reading affiliate account data is part of programme participation.
 router.get("/account", requireAuth, requireProAccess, async (req, res) => {
   try {
-    const userId = (req as AuthenticatedRequest).authUser.id;
-    const [account] = await db
-      .select()
-      .from(userAffiliateAccounts)
-      .where(eq(userAffiliateAccounts.userId, userId))
-      .limit(1);
-
+    const { account } = await getOrganizationAffiliateAccount(req);
     if (!account) return res.json({ account: null });
-
-    // Resolve phase completion dates — prefer user_affiliate_accounts but fall back
-    // to user_certifications so the entry gate never gets stuck in a catch-22.
-    let phase1CompletedAt = account.phase1CompletedAt;
-    let phase2CompletedAt = account.phase2CompletedAt;
-
-    if (!phase1CompletedAt || !phase2CompletedAt) {
-      const { userCertifications } = await import("../db/schema/certifications");
-      const certs = await db
-        .select({ type: userCertifications.certificationType, completedAt: userCertifications.completedAt })
-        .from(userCertifications)
-        .where(eq(userCertifications.userId, String(userId)));
-
-      for (const cert of certs) {
-        if (!cert.completedAt) continue;
-        if (!phase1CompletedAt && cert.type === "affiliate_social") {
-          phase1CompletedAt = cert.completedAt;
-          // Back-fill the affiliate account so next call is fast
-          db.update(userAffiliateAccounts)
-            .set({ phase1CompletedAt: cert.completedAt, updatedAt: new Date() })
-            .where(eq(userAffiliateAccounts.userId, userId))
-            .catch(() => {});
-        }
-        if (!phase2CompletedAt && (cert.type === "platform" || cert.type === "platform_mastery" || cert.type === "affiliate_coaching")) {
-          phase2CompletedAt = cert.completedAt;
-          db.update(userAffiliateAccounts)
-            .set({ phase2CompletedAt: cert.completedAt, updatedAt: new Date() })
-            .where(eq(userAffiliateAccounts.userId, userId))
-            .catch(() => {});
-        }
-      }
-    }
-
-    // Auto-refresh referral URL from Rewardful if affiliate exists but URL is missing
-    let referralUrl = account.rewardfulReferralUrl;
-    let referralToken = account.rewardfulReferralToken;
-    if (account.rewardfulAffiliateId && !referralUrl) {
-      try {
-        const rewardfulAffiliate = await getRewardfulAffiliate(account.rewardfulAffiliateId);
-        const fetchedUrl = rewardfulAffiliate?.links?.[0]?.url ?? "";
-        const fetchedToken = rewardfulAffiliate?.links?.[0]?.token ?? "";
-        if (fetchedUrl) {
-          referralUrl = fetchedUrl;
-          referralToken = fetchedToken;
-          db.update(userAffiliateAccounts)
-            .set({ rewardfulReferralUrl: fetchedUrl, rewardfulReferralToken: fetchedToken, updatedAt: new Date() })
-            .where(eq(userAffiliateAccounts.userId, userId))
-            .catch(() => {});
-          console.log(`[Affiliate] Auto-synced referral URL for userId=${userId}`);
-        }
-      } catch (e) {
-        console.warn("[Affiliate] Auto-sync referral URL failed:", e);
-      }
-    }
-
-    return res.json({
-      account: {
-        affiliateTrack: account.affiliateTrack,
-        requiredPhases: account.requiredPhases,
-        phase1CompletedAt,
-        phase2CompletedAt,
-        rewardfulState: account.rewardfulState,
-        rewardfulReferralUrl: referralUrl,
-        rewardfulReferralToken: referralToken,
-        rewardfulCampaignId: account.rewardfulCampaignId,
-        activatedAt: account.activatedAt,
-        isActive: account.rewardfulState === "active",
-      },
-    });
+    return res.json({ account: organizationAffiliateResponse(account) });
   } catch (err) {
     console.error("[Affiliate] account error:", err);
     return res.status(500).json({ error: "Failed to fetch affiliate account" });
@@ -191,76 +158,9 @@ router.get("/account", requireAuth, requireProAccess, async (req, res) => {
 // requireProAccess: dashboard access is programme participation, not browsing.
 router.get("/dashboard", requireAuth, requireProAccess, async (req, res) => {
   try {
-    const userId = (req as AuthenticatedRequest).authUser.id;
-    const [account] = await db
-      .select()
-      .from(userAffiliateAccounts)
-      .where(eq(userAffiliateAccounts.userId, userId))
-      .limit(1);
-
+    const { account } = await getOrganizationAffiliateAccount(req);
     if (!account) return res.status(404).json({ error: "No affiliate account found" });
-
-    let phase1CompletedAt = account.phase1CompletedAt;
-    let phase2CompletedAt = account.phase2CompletedAt;
-
-    if (!phase1CompletedAt || !phase2CompletedAt) {
-      const { userCertifications } = await import("../db/schema/certifications");
-      const certs = await db
-        .select({ type: userCertifications.certificationType, completedAt: userCertifications.completedAt })
-        .from(userCertifications)
-        .where(eq(userCertifications.userId, String(userId)));
-
-      for (const cert of certs) {
-        if (!cert.completedAt) continue;
-        if (!phase1CompletedAt && cert.type === "affiliate_social") {
-          phase1CompletedAt = cert.completedAt;
-          db.update(userAffiliateAccounts)
-            .set({ phase1CompletedAt: cert.completedAt, updatedAt: new Date() })
-            .where(eq(userAffiliateAccounts.userId, userId))
-            .catch(() => {});
-        }
-        if (!phase2CompletedAt && (cert.type === "platform" || cert.type === "platform_mastery" || cert.type === "affiliate_coaching")) {
-          phase2CompletedAt = cert.completedAt;
-          db.update(userAffiliateAccounts)
-            .set({ phase2CompletedAt: cert.completedAt, updatedAt: new Date() })
-            .where(eq(userAffiliateAccounts.userId, userId))
-            .catch(() => {});
-        }
-      }
-    }
-
-    let referralUrl = account.rewardfulReferralUrl;
-    let referralToken = account.rewardfulReferralToken;
-    if (account.rewardfulAffiliateId && !referralUrl) {
-      try {
-        const rewardfulAffiliate = await getRewardfulAffiliate(account.rewardfulAffiliateId);
-        const fetchedUrl = rewardfulAffiliate?.links?.[0]?.url ?? "";
-        const fetchedToken = rewardfulAffiliate?.links?.[0]?.token ?? "";
-        if (fetchedUrl) {
-          referralUrl = fetchedUrl;
-          referralToken = fetchedToken;
-          db.update(userAffiliateAccounts)
-            .set({ rewardfulReferralUrl: fetchedUrl, rewardfulReferralToken: fetchedToken, updatedAt: new Date() })
-            .where(eq(userAffiliateAccounts.userId, userId))
-            .catch(() => {});
-        }
-      } catch (e) {
-        console.warn("[Affiliate] dashboard auto-sync referral URL failed:", e);
-      }
-    }
-
-    return res.json({
-      affiliateTrack: account.affiliateTrack,
-      requiredPhases: account.requiredPhases,
-      phase1CompletedAt,
-      phase2CompletedAt,
-      rewardfulState: account.rewardfulState,
-      rewardfulReferralUrl: referralUrl,
-      rewardfulReferralToken: referralToken,
-      rewardfulCampaignId: account.rewardfulCampaignId,
-      activatedAt: account.activatedAt,
-      isActive: account.rewardfulState === "active",
-    });
+    return res.json(organizationAffiliateResponse(account));
   } catch (err) {
     console.error("[Affiliate] dashboard error:", err);
     return res.status(500).json({ error: "Failed to fetch affiliate dashboard" });
@@ -271,46 +171,10 @@ router.get("/dashboard", requireAuth, requireProAccess, async (req, res) => {
 // requireProAccess: generating a Rewardful SSO link is programme participation.
 router.get("/dashboard-link", requireAuth, requireProAccess, async (req, res) => {
   try {
-    const userId = (req as AuthenticatedRequest).authUser.id;
-    let [account] = await db
-      .select()
-      .from(userAffiliateAccounts)
-      .where(eq(userAffiliateAccounts.userId, userId))
-      .limit(1);
+    const { account } = await getOrganizationAffiliateAccount(req);
 
     if (!account) {
       return res.status(404).json({ error: "No affiliate account found" });
-    }
-
-    // Auto-seed: if rewardfulAffiliateId is missing, look up by email from Rewardful
-    if (!account.rewardfulAffiliateId) {
-      const [userRow] = await db
-        .select({ email: users.email })
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
-
-      if (userRow?.email) {
-        const rewardfulAffiliate = await getRewardfulAffiliateByEmail(userRow.email);
-        if (rewardfulAffiliate?.id) {
-          const seedFields: Record<string, unknown> = {
-            rewardfulAffiliateId: rewardfulAffiliate.id,
-            updatedAt: new Date(),
-          };
-          if (rewardfulAffiliate.state) seedFields.rewardfulState = rewardfulAffiliate.state;
-          if (rewardfulAffiliate.links?.[0]?.url && !account.rewardfulReferralUrl) {
-            seedFields.rewardfulReferralUrl = rewardfulAffiliate.links[0].url;
-          }
-          if (rewardfulAffiliate.links?.[0]?.token && !account.rewardfulReferralToken) {
-            seedFields.rewardfulReferralToken = rewardfulAffiliate.links[0].token;
-          }
-          await db.update(userAffiliateAccounts)
-            .set(seedFields as any)
-            .where(eq(userAffiliateAccounts.userId, userId));
-          account = { ...account, rewardfulAffiliateId: rewardfulAffiliate.id, rewardfulState: (rewardfulAffiliate.state ?? account.rewardfulState) };
-          console.log(`[Affiliate] dashboard-link: auto-seeded rewardfulAffiliateId=${rewardfulAffiliate.id} for userId=${userId}`);
-        }
-      }
     }
 
     if (!account.rewardfulAffiliateId) {
@@ -347,12 +211,7 @@ router.get("/dashboard-link", requireAuth, requireProAccess, async (req, res) =>
 // requireProAccess: only active affiliates (Pro+) access their Rewardful account.
 router.get("/rewardful-status", requireAuth, requireProAccess, async (req, res) => {
   try {
-    const userId = (req as AuthenticatedRequest).authUser.id;
-    const [account] = await db
-      .select({ rewardfulAffiliateId: userAffiliateAccounts.rewardfulAffiliateId })
-      .from(userAffiliateAccounts)
-      .where(eq(userAffiliateAccounts.userId, userId))
-      .limit(1);
+    const { account } = await getOrganizationAffiliateAccount(req);
 
     if (!account?.rewardfulAffiliateId) {
       return res.status(404).json({ error: "No Rewardful affiliate account" });
@@ -376,12 +235,7 @@ router.get("/rewardful-status", requireAuth, requireProAccess, async (req, res) 
 // requireProAccess: syncing a referral link is programme participation.
 router.post("/sync-link", requireAuth, requireProAccess, async (req, res) => {
   try {
-    const userId = (req as AuthenticatedRequest).authUser.id;
-    const [account] = await db
-      .select()
-      .from(userAffiliateAccounts)
-      .where(eq(userAffiliateAccounts.userId, userId))
-      .limit(1);
+    const { workspace, account } = await getOrganizationAffiliateAccount(req);
 
     if (!account?.rewardfulAffiliateId) {
       return res.status(404).json({ error: "No Rewardful affiliate account found" });
@@ -397,9 +251,9 @@ router.post("/sync-link", requireAuth, requireProAccess, async (req, res) => {
 
     await db.update(userAffiliateAccounts)
       .set({ rewardfulReferralUrl: fetchedUrl, rewardfulReferralToken: fetchedToken, updatedAt: new Date() })
-      .where(eq(userAffiliateAccounts.userId, userId));
+      .where(eq(userAffiliateAccounts.id, account.id));
 
-    console.log(`[Affiliate] sync-link: updated referral URL for userId=${userId}`);
+    console.log(`[Affiliate] sync-link: updated referral URL for organizationId=${workspace.organizationId}`);
     return res.json({ ok: true, referralUrl: fetchedUrl, referralToken: fetchedToken });
   } catch (err) {
     console.error("[Affiliate] sync-link error:", err);
@@ -408,15 +262,15 @@ router.post("/sync-link", requireAuth, requireProAccess, async (req, res) => {
 });
 
 // ─── POST /api/affiliate/activate-retry ──────────────────────────────────────
-// Re-triggers Rewardful activation for users whose cert requirements are met
-// but whose Rewardful account was never created (e.g., campaign ID missing at time of cert).
-// requireProAccess: triggering activation is the final step of programme enrolment.
+// Organization activation is never inferred from personal Academy credentials.
 router.post("/activate-retry", requireAuth, requireProAccess, async (req, res) => {
   try {
-    const userId = (req as AuthenticatedRequest).authUser.id;
-    const { evaluateAffiliateActivation } = await import("../services/affiliateActivation");
-    await evaluateAffiliateActivation(userId);
-    return res.json({ ok: true });
+    const { workspace } = await getOrganizationAffiliateAccount(req);
+    return res.status(409).json({
+      error: "This organization has not activated its Partner account.",
+      code: "ORGANIZATION_PARTNER_NOT_ACTIVATED",
+      organizationId: workspace.organizationId,
+    });
   } catch (err) {
     console.error("[Affiliate] activate-retry error:", err);
     return res.status(500).json({ error: "Activation retry failed" });
@@ -427,7 +281,7 @@ router.post("/activate-retry", requireAuth, requireProAccess, async (req, res) =
 // requireProAccess: sending referral invitations is a revenue-generating action.
 router.post("/send-invite", requireAuth, requireProAccess, requireEmailService, async (req, res) => {
   try {
-    const userId = (req as AuthenticatedRequest).authUser.id;
+    const { userId, account } = await getOrganizationAffiliateAccount(req);
     const { name, email } = req.body as { name?: string; email?: string };
 
     if (!name?.trim() || !email?.trim()) {
@@ -441,12 +295,6 @@ router.post("/send-invite", requireAuth, requireProAccess, requireEmailService, 
     }
 
     // Verify sender is an active affiliate
-    const [account] = await db
-      .select()
-      .from(userAffiliateAccounts)
-      .where(eq(userAffiliateAccounts.userId, userId))
-      .limit(1);
-
     if (!account?.rewardfulReferralUrl || account.rewardfulState !== "active") {
       return res.status(403).json({ error: "Active affiliate account required to send invitations" });
     }
@@ -544,7 +392,7 @@ export async function handleRewardfulWebhook(req: any, res: any) {
         if (Object.keys(updatedFields).length > 1) {
           await db.update(userAffiliateAccounts)
             .set(updatedFields as any)
-            .where(eq(userAffiliateAccounts.userId, account.userId));
+            .where(eq(userAffiliateAccounts.id, account.id));
           console.log(`[Rewardful Webhook] affiliate.updated userId=${account.userId} state→${newState}`);
 
           // When Rewardful confirms active, send the MPM activation email with referral link
@@ -574,7 +422,7 @@ export async function handleRewardfulWebhook(req: any, res: any) {
                   if (sent) {
                     db.update(userAffiliateAccounts)
                       .set({ welcomeEmailSentAt: new Date(), updatedAt: new Date() })
-                      .where(eq(userAffiliateAccounts.userId, account.userId))
+                      .where(eq(userAffiliateAccounts.id, account.id))
                       .catch(() => {});
                   }
                 }).catch((e: unknown) => console.error("[Rewardful Webhook] Welcome email failed:", e));
@@ -588,7 +436,7 @@ export async function handleRewardfulWebhook(req: any, res: any) {
       case "affiliate.deleted":
         await db.update(userAffiliateAccounts)
           .set({ rewardfulState: "deleted", rewardfulAffiliateId: null, updatedAt: new Date() })
-          .where(eq(userAffiliateAccounts.userId, account.userId));
+          .where(eq(userAffiliateAccounts.id, account.id));
         console.log(`[Rewardful Webhook] affiliate.deleted userId=${account.userId}`);
         break;
 

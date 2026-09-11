@@ -1,8 +1,10 @@
-import { pgTable, serial, text, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, integer, timestamp, uuid, uniqueIndex } from "drizzle-orm/pg-core";
+import { organizations } from "./organizations";
 
 export const partnerRecords = pgTable("partner_records", {
   id: serial("id").primaryKey(),
-  userId: text("user_id").notNull().unique(),
+  userId: text("user_id").notNull(),
+  organizationId: uuid("organization_id").references(() => organizations.id, { onDelete: "cascade" }),
 
   partnerName: text("partner_name"),
   partnerTypes: text("partner_types").array().default([]),
@@ -41,7 +43,9 @@ export const partnerRecords = pgTable("partner_records", {
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => ({
+  organizationUnique: uniqueIndex("partner_records_organization_uq").on(table.organizationId),
+}));
 
 export type PartnerRecord = typeof partnerRecords.$inferSelect;
 export type InsertPartnerRecord = typeof partnerRecords.$inferInsert;

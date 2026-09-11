@@ -222,7 +222,7 @@ export default function AffiliateDashboard() {
     }
     setInviteSending(true);
     try {
-      await apiRequest("/api/affiliate/invite", {
+      await apiRequest("/api/affiliate/send-invite", {
         method: "POST",
         body: JSON.stringify({ name: inviteName.trim(), email: inviteEmail.trim() }),
         headers: { "Content-Type": "application/json" },
@@ -504,10 +504,7 @@ export default function AffiliateDashboard() {
                   ) : (
                     <>
                       <span className="px-2.5 py-1 rounded-full bg-orange-500/20 border border-orange-500/30 text-xs font-bold text-orange-400">
-                        ◌ Activation Pending
-                      </span>
-                      <span className="px-2.5 py-1 rounded-full bg-white/10 border border-white/10 text-xs text-gray-400">
-                        Certified — link generating
+                        ◌ Not Activated
                       </span>
                     </>
                   )}
@@ -617,28 +614,18 @@ export default function AffiliateDashboard() {
                 </AnimatePresence>
               </>
             ) : (
-              <div className="space-y-3">
-                <div className="rounded-xl bg-orange-500/20 border border-orange-500/30 p-4 text-center">
-                  <Clock className="h-5 w-5 text-orange-400 mx-auto mb-2" />
-                  <p className="text-xs font-semibold text-white mb-1">Your referral link is being generated</p>
-                  <p className="text-[11px] text-gray-300 leading-relaxed">
-                    Rewardful creates your personalized link after account setup. This usually takes a few minutes.
-                  </p>
-                </div>
-                <button
-                  onClick={syncLink}
-                  disabled={syncLoading}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 text-white font-semibold text-sm active:scale-[0.97] transition-all disabled:opacity-60"
-                >
-                  <RefreshCw className={`h-4 w-4 ${syncLoading ? "animate-spin" : ""}`} />
-                  {syncLoading ? "Checking..." : "Check for Link"}
-                </button>
+              <div className="rounded-xl bg-white/5 border border-white/10 p-4 text-center">
+                <Clock className="h-5 w-5 text-gray-400 mx-auto mb-2" />
+                <p className="text-xs font-semibold text-white mb-1">No referral account yet</p>
+                <p className="text-[11px] text-gray-300 leading-relaxed">
+                  This organization does not have a referral account yet.
+                </p>
               </div>
             )}
           </Card>
 
           {/* Card 3 — How to Use Your Link */}
-          <Card delay={0.10}>
+          {account.rewardfulReferralUrl && <Card delay={0.10}>
             <button
               className="w-full flex items-center gap-3 text-left"
               onClick={() => setShowHowTo((v) => !v)}
@@ -722,7 +709,7 @@ export default function AffiliateDashboard() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </Card>
+          </Card>}
 
           {/* Card 4 — Certifications */}
           <Card delay={0.13}>
@@ -733,22 +720,26 @@ export default function AffiliateDashboard() {
               <CardLabel>Certifications</CardLabel>
             </div>
             <div className="space-y-2.5">
-              <div className="flex items-center justify-between p-3 rounded-xl bg-green-900/30 border border-green-500/30">
+              <div className={`flex items-center justify-between p-3 rounded-xl border ${account.phase1CompletedAt ? "bg-green-900/30 border-green-500/30" : "bg-white/5 border-white/10"}`}>
                 <div>
-                  <p className="text-xs font-semibold text-white">Phase 1 — Business Success Cert</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">Completed {formatDate(account.phase1CompletedAt)}</p>
+                  <p className="text-xs font-semibold text-white">Partner Onboarding — Phase 1</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">
+                    {account.phase1CompletedAt ? `Completed ${formatDate(account.phase1CompletedAt)}` : "Not completed"}
+                  </p>
                 </div>
-                <span className="text-xs font-bold text-green-400 flex items-center gap-1">
-                  <Check className="h-3 w-3" /> Done
-                </span>
+                {account.phase1CompletedAt && (
+                  <span className="text-xs font-bold text-green-400 flex items-center gap-1">
+                    <Check className="h-3 w-3" /> Done
+                  </span>
+                )}
               </div>
 
               {account.affiliateTrack === "business_affiliate" && (
                 <div className={`flex items-center justify-between p-3 rounded-xl border ${account.phase2CompletedAt ? "bg-green-900/30 border-green-500/30" : "bg-white/5 border-white/10"}`}>
                   <div>
-                    <p className="text-xs font-semibold text-white">Phase 2 — ProCare Certification</p>
+                    <p className="text-xs font-semibold text-white">Partner Onboarding — Phase 2</p>
                     <p className="text-[10px] text-gray-400 mt-0.5">
-                      {account.phase2CompletedAt ? `Completed ${formatDate(account.phase2CompletedAt)}` : "Platform certification"}
+                      {account.phase2CompletedAt ? `Completed ${formatDate(account.phase2CompletedAt)}` : "Not completed"}
                     </p>
                   </div>
                   {account.phase2CompletedAt ? (
@@ -756,12 +747,7 @@ export default function AffiliateDashboard() {
                       <Check className="h-3 w-3" /> Done
                     </span>
                   ) : (
-                    <button
-                      onClick={() => setLocation("/learning")}
-                      className="text-xs font-bold text-orange-400 px-2.5 py-1 rounded-lg bg-orange-500/20 border border-orange-500/30 active:scale-[0.97] transition-transform"
-                    >
-                      Continue
-                    </button>
+                    <span className="text-xs font-semibold text-white/30">Not completed</span>
                   )}
                 </div>
               )}
