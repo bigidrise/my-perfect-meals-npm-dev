@@ -1,10 +1,11 @@
 import { useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { Copy, Download, FileSpreadsheet, Loader2, Mail, QrCode, RefreshCw, Send, Trash2, Upload, UserPlus, Users } from "lucide-react";
+import { CalendarDays, Copy, Download, FileSpreadsheet, Loader2, Mail, QrCode, RefreshCw, Send, Trash2, Upload, UserPlus, Users } from "lucide-react";
 import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { IconPillOption } from "@/components/ui/icon-pill-option";
 
 type Population = "client" | "professional";
 type EntryMode = "one" | "paste" | "csv";
@@ -401,12 +402,15 @@ export default function OrganizationInvitationsAccess({
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto border border-orange-500/25 bg-gray-950 text-white">
+        <DialogContent
+          className="max-h-[90vh] max-w-5xl overflow-y-auto border border-orange-500/25 bg-gray-950 text-white"
+          style={{ paddingTop: "max(1.5rem, env(safe-area-inset-top, 0px))" }}
+        >
           <DialogHeader>
             <DialogTitle>Invitations &amp; Access — {businessName}</DialogTitle>
           </DialogHeader>
 
-          <div className="grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
+          <div className="mt-3 grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
             <section className="space-y-4">
               <div className="grid grid-cols-2 gap-2 rounded-xl bg-white/5 p-1">
                 <button onClick={() => selectPopulation("client")} className={`rounded-lg px-3 py-2.5 text-sm font-semibold ${population === "client" ? "bg-orange-600" : "text-white/60"}`}>
@@ -455,16 +459,17 @@ export default function OrganizationInvitationsAccess({
 
               <div>
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/60">Complimentary access</p>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap items-end gap-x-3 gap-y-3">
                   {([7, 14, 30] as const).map((days) => (
-                    <button
+                    <IconPillOption
                       key={days}
+                      icon={<CalendarDays className="h-5 w-5" />}
+                      label={`${days} Days`}
                       type="button"
                       onClick={() => { setAccessDurationDays(days); setReview(null); }}
-                      className={`rounded-full px-3 py-1.5 text-sm font-semibold ${accessDurationDays === days ? "bg-orange-600 text-white" : "bg-white/10 text-white/70"}`}
-                    >
-                      {days} Days
-                    </button>
+                      active={accessDurationDays === days}
+                      variant="amber"
+                    />
                   ))}
                 </div>
                 <p className="mt-2 text-xs text-white/50">
@@ -472,12 +477,30 @@ export default function OrganizationInvitationsAccess({
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <button onClick={() => { setMode("one"); setReview(null); }} className={`rounded-full px-3 py-1.5 text-xs font-semibold ${mode === "one" ? "bg-white text-black" : "bg-white/10"}`}><UserPlus className="mr-1 inline h-3.5 w-3.5" />Invite One</button>
+              <div className="flex flex-wrap items-end gap-x-3 gap-y-3">
+                <IconPillOption
+                  icon={<UserPlus className="h-5 w-5" />}
+                  label="Invite One"
+                  active={mode === "one"}
+                  variant="amber"
+                  onClick={() => { setMode("one"); setReview(null); }}
+                />
                 {isDesktop ? (
                   <>
-                    <button onClick={() => { setMode("paste"); setReview(null); }} className={`rounded-full px-3 py-1.5 text-xs font-semibold ${mode === "paste" ? "bg-white text-black" : "bg-white/10"}`}><Mail className="mr-1 inline h-3.5 w-3.5" />Paste Emails</button>
-                    <button onClick={() => { setMode("csv"); setReview(null); }} className={`rounded-full px-3 py-1.5 text-xs font-semibold ${mode === "csv" ? "bg-white text-black" : "bg-white/10"}`}><FileSpreadsheet className="mr-1 inline h-3.5 w-3.5" />Upload CSV</button>
+                    <IconPillOption
+                      icon={<Mail className="h-5 w-5" />}
+                      label="Bulk"
+                      active={mode === "paste"}
+                      variant="amber"
+                      onClick={() => { setMode("paste"); setReview(null); }}
+                    />
+                    <IconPillOption
+                      icon={<FileSpreadsheet className="h-5 w-5" />}
+                      label="CSV"
+                      active={mode === "csv"}
+                      variant="amber"
+                      onClick={() => { setMode("csv"); setReview(null); }}
+                    />
                   </>
                 ) : (
                   <span className="rounded-full bg-blue-500/10 px-3 py-1.5 text-xs text-blue-200">Bulk invitations — desktop recommended</span>
