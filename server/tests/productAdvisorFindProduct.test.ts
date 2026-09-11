@@ -18,6 +18,7 @@ import {
   ClinicalContextUnavailableError,
   buildProtocolContextString,
   sanitizeUsualPicks,
+  applyFindProductEvidencePolicy,
   createProductAdvisorEngineForTest,
   type BrandKnowledgeProvider,
   type CartRecommendationResult,
@@ -183,5 +184,48 @@ describe("buildProtocolContextString", () => {
       baseCtx({ protocolContext: "", macroContext: "" }),
     );
     expect(s).toMatch(/No specific dietary or medical constraints/);
+  });
+});
+
+describe("Find a Product category preservation and evidence integrity", () => {
+  const recommendationFor = (ingredient: string): CartRecommendationResult => ({
+    advice: [{
+      ingredient,
+      category: "Snack",
+      recommended: [{
+        brand: `Example ${ingredient}`,
+        rank: 1,
+        grade: "A",
+        reason: "A simpler option within the requested category",
+      }],
+      avoid: [],
+    }],
+    profileUsed: ["Vegan Diet"],
+  });
+
+  it.each(["potato chips", "packaged cookies"])(
+    "keeps %s candidates instead of treating the category as prohibited",
+    (ingredient) => {
+      const out = applyFindProductEvidencePolicy(
+        recommendationFor(ingredient),
+        "Dietary requirements: vegan",
+      );
+      expect(out.advice).toHaveLength(1);
+      expect(out.advice[0].recommended).toHaveLength(1);
+      expect(out.advice[0].recommended[0]).toMatchObject({
+        evidenceStatus: "unverified",
+      });
+    },
+  );
+
+  it("does not represent a by-name recommendation as verified product evidence", () => {
+    const out = applyFindProductEvidencePolicy(
+      recommendationFor("potato chips"),
+      "Dietary requirements: vegan",
+    );
+    const result = out.advice[0].recommended[0];
+    expect(result.evidenceStatus).toBe("unverified");
+    expect(result.verificationMessage).toMatch(/Scan the package/i);
+    expect(result.wholeFoodNote).toMatch(/processed category/i);
   });
 });
