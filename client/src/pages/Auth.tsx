@@ -5,6 +5,7 @@ import { login, signUp, getProCareSignupData, getAuthHeaders } from "@/lib/auth"
 import type { User } from "@/lib/auth";
 import { Stethoscope } from "lucide-react";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
+import { decideSignInWorkspace, hasStudioWorkspaceAccess } from "@/lib/workspaceAvailability";
 import { hasActivePaidSubscription, isProOrAbove } from "@/lib/subscriptionCheck";
 import { MfaChallengeModal } from "@/components/MfaChallengeModal";
 import { MfaSetupSection } from "@/components/MfaSetupSection";
@@ -188,43 +189,20 @@ export default function Auth() {
     const onboardingDone = fullUser?.onboardingCompletedAt;
 
     const isBusinessUser = fullUser?.professionalRole === "business";
+    const workspaceDecision = decideSignInWorkspace(
+      fullUser,
+      organizationWorkspaceAvailable,
+    );
 
-    if (mode === "login" && organizationWorkspaceAvailable) {
-      // Canonical organization/location access is authoritative. A legacy
-      // billing/setup status must never send an existing workspace back through
-      // organization creation.
-      if (isBusinessUser) {
-        setLocation("/business-dashboard");
-      } else {
-        localStorage.removeItem("mpm_workspace_preference");
-        setShowWorkspaceChooser(true);
-      }
+    if (mode === "login" && workspaceDecision === "chooser") {
+      // Access determines which workspaces are offered; it never chooses one
+      // for the user. A fresh login with multiple workspace types always opens
+      // the chooser, regardless of business role or a saved organization.
+      localStorage.removeItem("mpm_workspace_preference");
+      setShowWorkspaceChooser(true);
     } else if (isBusinessUser && mode === "signup") {
       // New business signups go directly to org setup + seat purchase
       setLocation("/business/setup");
-    } else if (isBusinessUser && mode === "login") {
-      // Returning business logins: check payment status before routing.
-      // pending_billing → owner abandoned Stripe checkout, send them back to finish.
-      // active / any other status → straight to their dashboard.
-      try {
-        const statusRes = await fetch("/api/business/check-status", {
-          credentials: "include",
-          headers: getAuthHeaders(),
-        });
-        if (statusRes.ok) {
-          const { exists, status } = await statusRes.json();
-          if (!exists || status === "pending_billing") {
-            setLocation("/business/setup");
-          } else {
-            setLocation("/business-dashboard");
-          }
-        } else {
-          // Fallback: if the check fails, assume they're set up
-          setLocation("/business-dashboard");
-        }
-      } catch {
-        setLocation("/business-dashboard");
-      }
     } else if (isProfessional && mode === "login") {
       localStorage.removeItem("mpm_workspace_preference");
       setShowWorkspaceChooser(true);
@@ -355,6 +333,7 @@ export default function Auth() {
     const workspaceRoute = isPhysician ? "/care-team/physician" : "/care-team/trainer";
     return (
       <WorkspaceChooser
+        showStudio={hasStudioWorkspaceAccess(user)}
         onChoose={(choice: "personal" | "workspace") => {
           if (choice === "workspace") {
             localStorage.setItem("mpm_active_space", "workspace");

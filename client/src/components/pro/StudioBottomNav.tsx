@@ -21,6 +21,7 @@ export default function StudioBottomNav() {
     <>
       {showChooser && (
         <WorkspaceChooser
+          showStudio
           onChoose={(choice) => {
             setShowChooser(false);
             if (choice === "personal") {

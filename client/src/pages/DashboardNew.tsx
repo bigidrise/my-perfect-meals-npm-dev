@@ -1887,6 +1887,7 @@ export default function DashboardNew() {
 
       {showWorkspaceChooser && (
         <WorkspaceChooser
+          showStudio
           onChoose={(choice) => {
             setShowWorkspaceChooser(false);
             if (choice === "workspace") {
