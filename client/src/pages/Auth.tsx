@@ -5,6 +5,10 @@ import { login, signUp, getProCareSignupData, getAuthHeaders } from "@/lib/auth"
 import type { User } from "@/lib/auth";
 import { Stethoscope } from "lucide-react";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
+import {
+  fetchWorkspaceAvailability,
+  shouldShowWorkspaceChooser,
+} from "@/lib/workspaceAvailability";
 import { hasActivePaidSubscription, isProOrAbove } from "@/lib/subscriptionCheck";
 import { MfaChallengeModal } from "@/components/MfaChallengeModal";
 import { MfaSetupSection } from "@/components/MfaSetupSection";
@@ -96,20 +100,6 @@ export default function Auth() {
     }
   }
 
-  async function hasOrganizationWorkspace(): Promise<boolean> {
-    try {
-      const res = await fetch("/api/business/workspaces", {
-        headers: getAuthHeaders(),
-        credentials: "include",
-      });
-      if (!res.ok) return false;
-      const data = await res.json();
-      return Array.isArray(data.workspaces) && data.workspaces.length > 0;
-    } catch {
-      return false;
-    }
-  }
-
   async function proceedAfterLogin(
     u: User,
     options: { professionalSetupPending?: boolean } = {},
@@ -178,56 +168,29 @@ export default function Auth() {
       return;
     }
 
-    const isProfessionalFromLogin = u?.isProCare && (u?.professionalRole === "trainer" || u?.professionalRole === "physician");
     const fullUser = await refreshUser();
-    const isProfessionalFromRefresh = fullUser?.isProCare && (fullUser?.professionalRole === "trainer" || fullUser?.professionalRole === "physician");
-    const isProfessional = isProfessionalFromLogin || isProfessionalFromRefresh;
-    const organizationWorkspaceAvailable = mode === "login"
-      ? await hasOrganizationWorkspace()
-      : false;
     const onboardingDone = fullUser?.onboardingCompletedAt;
 
     const isBusinessUser = fullUser?.professionalRole === "business";
-
-    if (mode === "login" && organizationWorkspaceAvailable) {
-      // Canonical organization/location access is authoritative. A legacy
-      // billing/setup status must never send an existing workspace back through
-      // organization creation.
-      if (isBusinessUser) {
-        setLocation("/business-dashboard");
-      } else {
-        localStorage.removeItem("mpm_workspace_preference");
-        setShowWorkspaceChooser(true);
+    let availability = null;
+    if (mode === "login") {
+      try {
+        availability = await fetchWorkspaceAvailability();
+      } catch {
+        // Fail closed: Personal remains available, but no Organization or
+        // Studio choice is inferred when the authoritative response is absent.
       }
+    }
+
+    if (mode === "login" && availability && shouldShowWorkspaceChooser(availability)) {
+      // Access determines which workspaces are offered; it never chooses one
+      // for the user. A fresh login with multiple workspace types always opens
+      // the chooser, regardless of business role or a saved organization.
+      localStorage.removeItem("mpm_workspace_preference");
+      setShowWorkspaceChooser(true);
     } else if (isBusinessUser && mode === "signup") {
       // New business signups go directly to org setup + seat purchase
       setLocation("/business/setup");
-    } else if (isBusinessUser && mode === "login") {
-      // Returning business logins: check payment status before routing.
-      // pending_billing → owner abandoned Stripe checkout, send them back to finish.
-      // active / any other status → straight to their dashboard.
-      try {
-        const statusRes = await fetch("/api/business/check-status", {
-          credentials: "include",
-          headers: getAuthHeaders(),
-        });
-        if (statusRes.ok) {
-          const { exists, status } = await statusRes.json();
-          if (!exists || status === "pending_billing") {
-            setLocation("/business/setup");
-          } else {
-            setLocation("/business-dashboard");
-          }
-        } else {
-          // Fallback: if the check fails, assume they're set up
-          setLocation("/business-dashboard");
-        }
-      } catch {
-        setLocation("/business-dashboard");
-      }
-    } else if (isProfessional && mode === "login") {
-      localStorage.removeItem("mpm_workspace_preference");
-      setShowWorkspaceChooser(true);
     } else if (mode === "signup" && urlRole === "business") {
       // Fallback (should be caught above by isBusinessUser, but kept for safety)
       setLocation("/business/setup");
@@ -351,24 +314,9 @@ export default function Auth() {
   }
 
   if (showWorkspaceChooser) {
-    const isPhysician = user?.professionalRole === "physician";
-    const workspaceRoute = isPhysician ? "/care-team/physician" : "/care-team/trainer";
     return (
       <WorkspaceChooser
-        onChoose={(choice: "personal" | "workspace") => {
-          if (choice === "workspace") {
-            localStorage.setItem("mpm_active_space", "workspace");
-            setLocation(workspaceRoute);
-          } else {
-            localStorage.setItem("mpm_active_space", "personal");
-            const hasPersonalSetup = user?.onboardingCompletedAt;
-            if (!hasPersonalSetup) {
-              setLocation("/consumer-welcome");
-            } else {
-              setLocation("/");
-            }
-          }
-        }}
+        onSelected={() => setShowWorkspaceChooser(false)}
       />
     );
   }
