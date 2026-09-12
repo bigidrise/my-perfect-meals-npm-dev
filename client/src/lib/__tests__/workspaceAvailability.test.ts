@@ -5,9 +5,9 @@ import {
 
 describe("sign-in workspace availability", () => {
   const personal = { isProCare: false, professionalRole: null };
-  const organizationOnly = { isProCare: false, professionalRole: "business" };
+  const organizationOnly = { isProCare: true, professionalRole: "business" };
   const studioOnly = { isProCare: true, professionalRole: "trainer" };
-  const allThree = { isProCare: true, professionalRole: "business" };
+  const allThree = { isProCare: true, professionalRole: "trainer" };
 
   it("routes a personal-only user directly to Personal", () => {
     expect(decideSignInWorkspace(personal, false)).toBe("personal");
@@ -28,7 +28,8 @@ describe("sign-in workspace availability", () => {
     expect(decideSignInWorkspace(allThree, true)).toBe("chooser");
   });
 
-  it("does not use the business role alone to choose Organization", () => {
+  it("does not treat a Business account or consumer ProCare access as Studio", () => {
+    expect(hasStudioWorkspaceAccess(organizationOnly)).toBe(false);
     expect(decideSignInWorkspace(organizationOnly, false)).toBe("personal");
   });
 });

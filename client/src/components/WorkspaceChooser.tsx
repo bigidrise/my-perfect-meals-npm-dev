@@ -248,7 +248,7 @@ export function WorkspaceChooser({ onChoose, showStudio = false }: WorkspaceChoo
                   )}
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-white font-semibold text-base">{td("workspaces")}</h3>
+                  <h3 className="text-white font-semibold text-base">Studio</h3>
                   <p className="text-white/50 text-sm mt-0.5">
                     {checking ? t("checkingAccess") : t("manageClientsIn", { name: workspaceName })}
                   </p>
