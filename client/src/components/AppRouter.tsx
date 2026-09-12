@@ -164,12 +164,6 @@ export default function AppRouter({ children }: AppRouterProps) {
         return;
       }
 
-      // Business accounts always land in Business Center — browsing is free, actions require Pro
-      if (user?.professionalRole === "business") {
-        setLocation("/business-center");
-        return;
-      }
-
       const destination = getPersonalDestination();
       setLocation(destination);
       setTimeout(() => {
