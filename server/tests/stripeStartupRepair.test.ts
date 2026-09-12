@@ -1,6 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { awaitSingleBootMigration } from "../bootstrap/awaitSingleBootMigration";
+import {
+  runBoundedStartupMigration,
+  STARTUP_MIGRATION_LOCK_TIMEOUT_MS,
+  STARTUP_MIGRATION_STATEMENT_TIMEOUT_MS,
+} from "../bootstrap/runBoundedStartupMigration";
 import { assertStripeBillingSchema } from "../db/migrations/assertStripeBillingSchema";
 import {
   handleStripeMigrationFailure,
@@ -96,6 +101,113 @@ function fakeSchemaDb(options: { missingColumn?: string } = {}) {
 }
 
 describe("Production Stripe startup repair", () => {
+  function fakePool(options: { executeError?: Error } = {}) {
+    const queries: string[] = [];
+    const client = {
+      query: jest.fn(async (query: string) => {
+        queries.push(query);
+      }),
+      release: jest.fn(),
+    };
+    const pool = {
+      connect: jest.fn(async () => client),
+    };
+    const run = jest.fn(async () => {
+      if (options.executeError) throw options.executeError;
+    });
+    return { pool, client, queries, run };
+  }
+
+  test("startup DDL receives finite PostgreSQL timeouts and resets its connection", async () => {
+    const fixture = fakePool();
+    await runBoundedStartupMigration({
+      pool: fixture.pool as any,
+      migrationName: "test-readiness",
+      run: fixture.run,
+      logger: { info: jest.fn(), error: jest.fn() },
+    });
+
+    expect(fixture.queries).toEqual([
+      `SET lock_timeout = '${STARTUP_MIGRATION_LOCK_TIMEOUT_MS}ms'`,
+      `SET statement_timeout = '${STARTUP_MIGRATION_STATEMENT_TIMEOUT_MS}ms'`,
+      "RESET lock_timeout",
+      "RESET statement_timeout",
+    ]);
+    expect(fixture.run).toHaveBeenCalledTimes(1);
+    expect(fixture.client.release).toHaveBeenCalledTimes(1);
+  });
+
+  test.each([
+    ["lock timeout", "55P03", "lock_timeout"],
+    ["statement timeout", "57014", "statement_timeout"],
+  ])("%s fails closed with sanitized logging", async (_label, code, failureKind) => {
+    const databaseError = Object.assign(
+      new Error("sensitive SQL text must not be logged"),
+      { code },
+    );
+    const fixture = fakePool({ executeError: databaseError });
+    const logger = { info: jest.fn(), error: jest.fn() };
+
+    await expect(
+      runBoundedStartupMigration({
+        pool: fixture.pool as any,
+        migrationName: "test-readiness",
+        run: fixture.run,
+        logger,
+      }),
+    ).rejects.toBe(databaseError);
+
+    expect(fixture.run).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith(
+      "[startup-migration] failed",
+      expect.objectContaining({
+        migrationName: "test-readiness",
+        failureKind,
+        postgresCode: code,
+      }),
+    );
+    expect(JSON.stringify(logger.error.mock.calls)).not.toContain(
+      "sensitive SQL text",
+    );
+  });
+
+  test("ordinary migration failures remain fatal", async () => {
+    const databaseError = new Error("ordinary failure");
+    const fixture = fakePool({ executeError: databaseError });
+    await expect(
+      runBoundedStartupMigration({
+        pool: fixture.pool as any,
+        migrationName: "test-readiness",
+        run: fixture.run,
+        logger: { info: jest.fn(), error: jest.fn() },
+      }),
+    ).rejects.toBe(databaseError);
+  });
+
+  test("repeated idempotent startup runs use fresh bounded connections", async () => {
+    const first = fakePool();
+    const second = fakePool();
+    const logger = { info: jest.fn(), error: jest.fn() };
+
+    await runBoundedStartupMigration({
+      pool: first.pool as any,
+      migrationName: "test-readiness",
+      run: first.run,
+      logger,
+    });
+    await runBoundedStartupMigration({
+      pool: second.pool as any,
+      migrationName: "test-readiness",
+      run: second.run,
+      logger,
+    });
+
+    expect(first.run).toHaveBeenCalledTimes(1);
+    expect(second.run).toHaveBeenCalledTimes(1);
+    expect(first.client.release).toHaveBeenCalledTimes(1);
+    expect(second.client.release).toHaveBeenCalledTimes(1);
+  });
+
   test("a timeout waits for the original migration and starts no second migration", async () => {
     let migrationStarts = 0;
     let finishMigration!: () => void;
@@ -133,6 +245,10 @@ describe("Production Stripe startup repair", () => {
     expect(source).toContain(
       "await awaitSingleBootMigration(schemaMigPromise, 6000",
     );
+    expect(source).toContain("runBoundedStartupMigration({");
+    expect(source).toContain('migrationName: "production-readiness-schema"');
+    expect(source.indexOf("await awaitSingleBootMigration(schemaMigPromise, 6000"))
+      .toBeLessThan(source.indexOf("isInitialized = true"));
   });
 
   test("the exact nested P0001 is nonfatal only after Stripe schema guard passes", async () => {

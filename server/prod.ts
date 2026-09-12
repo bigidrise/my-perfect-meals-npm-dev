@@ -350,15 +350,21 @@ async function initializeApp() {
 
     console.log("📋 [INIT] Running safe column migrations...");
     try {
-      const { db: database } = await import("./db");
+      const { pool } = await import("./db");
       const { sql } = await import("drizzle-orm");
       const { awaitSingleBootMigration } = await import(
         "./bootstrap/awaitSingleBootMigration"
       );
+      const { runBoundedStartupMigration } = await import(
+        "./bootstrap/runBoundedStartupMigration"
+      );
 
       // Assign the IIFE to a named promise before racing so the background
       // grandfather task can await its natural completion independently.
-      schemaMigPromise = (async () => {
+      schemaMigPromise = runBoundedStartupMigration({
+        pool,
+        migrationName: "production-readiness-schema",
+        run: async (database) => {
           await database.execute(
             sql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS starchy_carbs numeric DEFAULT '0' NOT NULL`,
           );
@@ -729,13 +735,14 @@ async function initializeApp() {
            const { runEmailIdentityReviewMigration } = await import("./db/migrations/runEmailIdentityReviewMigration");
            await runEmailIdentityReviewMigration(database as any);
           const { runStudioVoiceStorageMigration } = await import("./db/migrations/runStudioVoiceStorageMigration");
-          await runStudioVoiceStorageMigration();
+           await runStudioVoiceStorageMigration(database);
            // Keep this last: its deliberate ownership-review exception must not
            // prevent the unrelated schema migrations above from completing.
            const { runStripeBillingMigration } = await import("./db/migrations/runStripeBillingMigration");
            await runStripeBillingMigration(database as any);
-          console.log("✅ [INIT] Trial grants schema ensured");
-      })();
+           console.log("✅ [INIT] Trial grants schema ensured");
+        },
+      });
 
       // The timeout is only a warning boundary. It never cancels the original
       // promise, so await that same promise rather than launching duplicate DDL.
