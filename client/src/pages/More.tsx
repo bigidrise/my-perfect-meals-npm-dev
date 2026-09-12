@@ -404,6 +404,7 @@ export default function MorePage() {
 
           {showWorkspaceChooser && (
             <WorkspaceChooser
+              showStudio
               onChoose={(choice: "personal" | "workspace") => {
                 setShowWorkspaceChooser(false);
                 if (choice === "workspace") {

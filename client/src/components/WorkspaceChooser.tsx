@@ -9,9 +9,10 @@ import { getAuthHeaders } from "@/lib/auth";
 
 interface WorkspaceChooserProps {
   onChoose: (choice: "personal" | "workspace") => void;
+  showStudio?: boolean;
 }
 
-export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
+export function WorkspaceChooser({ onChoose, showStudio = false }: WorkspaceChooserProps) {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [checking, setChecking] = useState(false);
@@ -145,6 +146,16 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
     }
   };
 
+  const handleOrganizationEntry = async () => {
+    if (organizationWorkspaces.length > 1) {
+      setLocation("/business-organizations");
+      return;
+    }
+    if (organizationWorkspaces[0]) {
+      await handleOrganizationChoice(organizationWorkspaces[0]);
+    }
+  };
+
   return (
     <AnimatePresence>
       <motion.div
@@ -185,10 +196,9 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
             </div>
           </button>
 
-          {organizationWorkspaces.map((workspace) => (
+          {organizationWorkspaces.length > 0 && (
             <button
-              key={workspace.authorizationId ?? workspace.locationId ?? workspace.businessId}
-              onClick={() => handleOrganizationChoice(workspace)}
+              onClick={handleOrganizationEntry}
               disabled={checking}
               className="w-full p-5 rounded-2xl bg-orange-500/10 border border-orange-400/30 backdrop-blur-lg active:scale-[0.98] transition-transform text-left disabled:opacity-60"
             >
@@ -198,18 +208,24 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-white font-semibold text-base">Business / Organization</h3>
-                  <p className="text-orange-200 text-sm mt-0.5">{workspace.organizationName}</p>
+                  <p className="text-orange-200 text-sm mt-0.5">
+                    {organizationWorkspaces.length > 1
+                      ? `${organizationWorkspaces.length} available workspaces`
+                      : organizationWorkspaces[0].organizationName}
+                  </p>
                   <p className="text-white/50 text-xs mt-1">
-                     {workspace.action === "setup"
+                     {organizationWorkspaces.length > 1
+                       ? "Choose an organization"
+                       : organizationWorkspaces[0].action === "setup"
                        ? "Set Up Organization"
-                       : workspace.locationName
-                         ? `Open ${workspace.locationName}`
+                        : organizationWorkspaces[0].locationName
+                          ? `Open ${organizationWorkspaces[0].locationName}`
                          : "Open Business Suite"}
                   </p>
                 </div>
               </div>
             </button>
-          ))}
+          )}
 
           {organizationError && (
             <p className="rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2 text-center text-sm text-red-200">
@@ -217,27 +233,29 @@ export function WorkspaceChooser({ onChoose }: WorkspaceChooserProps) {
             </p>
           )}
 
-          <button
-            onClick={() => handleChoice("workspace")}
-            disabled={checking}
-            className="w-full p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-lg active:scale-[0.98] transition-transform text-left disabled:opacity-60"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-2.5 rounded-xl bg-orange-500/20 border border-orange-500/20">
-                {checking ? (
-                  <Loader2 className="h-5 w-5 text-orange-400 animate-spin" />
-                ) : (
-                  <Briefcase className="h-5 w-5 text-orange-400" />
-                )}
+          {showStudio && (
+            <button
+              onClick={() => handleChoice("workspace")}
+              disabled={checking}
+              className="w-full p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-lg active:scale-[0.98] transition-transform text-left disabled:opacity-60"
+            >
+              <div className="flex items-start gap-4">
+                <div className="p-2.5 rounded-xl bg-orange-500/20 border border-orange-500/20">
+                  {checking ? (
+                    <Loader2 className="h-5 w-5 text-orange-400 animate-spin" />
+                  ) : (
+                    <Briefcase className="h-5 w-5 text-orange-400" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-white font-semibold text-base">{td("workspaces")}</h3>
+                  <p className="text-white/50 text-sm mt-0.5">
+                    {checking ? t("checkingAccess") : t("manageClientsIn", { name: workspaceName })}
+                  </p>
+                </div>
               </div>
-              <div className="flex-1">
-                <h3 className="text-white font-semibold text-base">{td("workspaces")}</h3>
-                <p className="text-white/50 text-sm mt-0.5">
-                  {checking ? t("checkingAccess") : t("manageClientsIn", { name: workspaceName })}
-                </p>
-              </div>
-            </div>
-          </button>
+            </button>
+          )}
 
           {false && <label className="flex items-center justify-center gap-2 cursor-pointer py-2 text-sm text-white/50 select-none">
             <input
