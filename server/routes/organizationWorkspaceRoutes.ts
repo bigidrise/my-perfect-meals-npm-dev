@@ -5,8 +5,19 @@ import {
   resolveActiveWorkspace,
   WorkspaceContextError,
 } from "../services/organizationWorkspaceService";
+import { getWorkspaceAvailability } from "../services/workspaceAvailabilityService";
 
 const router = Router();
+
+router.get("/availability", async (req, res) => {
+  try {
+    const availability = await getWorkspaceAvailability((req as any).authUser.id);
+    return res.json({ availability });
+  } catch (error) {
+    console.error("[workspace-availability] error:", error);
+    return res.status(500).json({ error: "Could not load workspace availability." });
+  }
+});
 
 function sessionSelection(req: any) {
   const organizationId = req.session?.activeOrganizationId;

@@ -21,21 +21,7 @@ export default function StudioBottomNav() {
     <>
       {showChooser && (
         <WorkspaceChooser
-          showStudio
-          onChoose={(choice) => {
-            setShowChooser(false);
-            if (choice === "personal") {
-              localStorage.setItem("mpm_active_space", "personal");
-              sessionStorage.removeItem("mpm.welcomeGateDone");
-              if (!user?.onboardingCompletedAt) {
-                setLocation("/consumer-welcome");
-              } else {
-                setLocation("/");
-              }
-            } else {
-              localStorage.setItem("mpm_active_space", "workspace");
-            }
-          }}
+          onSelected={() => setShowChooser(false)}
         />
       )}
       <nav

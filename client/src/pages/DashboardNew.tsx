@@ -1887,18 +1887,7 @@ export default function DashboardNew() {
 
       {showWorkspaceChooser && (
         <WorkspaceChooser
-          showStudio
-          onChoose={(choice) => {
-            setShowWorkspaceChooser(false);
-            if (choice === "workspace") {
-              localStorage.setItem("mpm_active_space", "workspace");
-              setLocation(
-                user?.professionalRole === "physician"
-                  ? "/pro/physician-clients"
-                  : "/pro/clients"
-              );
-            }
-          }}
+          onSelected={() => setShowWorkspaceChooser(false)}
         />
       )}
     </motion.div>

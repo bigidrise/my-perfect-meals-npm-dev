@@ -1,160 +1,103 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Home, Briefcase, Crown, Loader2, Building2 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
-import { apiRequest } from "@/lib/queryClient";
 import { useTranslation } from "react-i18next";
+import type {
+  WorkspaceAvailability,
+  WorkspaceOrganizationAvailability,
+} from "@shared/workspaceAvailability";
 import { getAuthHeaders } from "@/lib/auth";
+import {
+  fetchWorkspaceAvailability,
+  PERSONAL_ONLY_FALLBACK,
+} from "@/lib/workspaceAvailability";
 
 interface WorkspaceChooserProps {
-  onChoose: (choice: "personal" | "workspace") => void;
-  showStudio?: boolean;
+  onSelected?: () => void;
 }
 
-export function WorkspaceChooser({ onChoose, showStudio = false }: WorkspaceChooserProps) {
-  const { user } = useAuth();
+export function WorkspaceChooser({
+  onSelected,
+}: WorkspaceChooserProps) {
   const [, setLocation] = useLocation();
   const [checking, setChecking] = useState(false);
+  const [availability, setAvailability] = useState<WorkspaceAvailability | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { t } = useTranslation();
   const { t: td } = useTranslation("desktopNav");
-  const [organizationWorkspaces, setOrganizationWorkspaces] = useState<Array<{
-    authorizationId: string | null;
-    businessId: string | null;
-    organizationId?: string;
-    locationId?: string;
-    locationName?: string;
-    organizationName: string;
-    action: "setup" | "open";
-  }>>([]);
-  const [organizationError, setOrganizationError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/business/workspaces", {
-        headers: getAuthHeaders(),
-        credentials: "include",
-      }).then(async (response) => response.ok ? response.json() : { workspaces: [] }),
-      fetch("/api/business/workspace/options", {
-        headers: getAuthHeaders(),
-        credentials: "include",
-      }).then(async (response) => response.ok ? response.json() : { organizations: [] }),
-    ])
-      .then(([legacyBody, workspaceBody]) => {
-        const pending = (Array.isArray(legacyBody.workspaces) ? legacyBody.workspaces : [])
-          .filter((workspace: any) => workspace.action === "setup");
-        const canonical = (Array.isArray(workspaceBody.organizations) ? workspaceBody.organizations : [])
-          .flatMap((organization: any) =>
-            (Array.isArray(organization.locations) ? organization.locations : [])
-              .map((location: any) => ({
-                authorizationId: null,
-                businessId: null,
-                organizationId: organization.id,
-                organizationName: organization.name,
-                locationId: location.id,
-                locationName: location.name,
-                action: "open" as const,
-              })));
-        const legacyOpen = canonical.length === 0
-          ? (Array.isArray(legacyBody.workspaces) ? legacyBody.workspaces : [])
-              .filter((workspace: any) => workspace.action === "open")
-          : [];
-        setOrganizationWorkspaces([...pending, ...canonical, ...legacyOpen]);
+    fetchWorkspaceAvailability()
+      .then(setAvailability)
+      .catch(() => {
+        setAvailability(PERSONAL_ONLY_FALLBACK);
+        setError("Additional workspaces could not be loaded. Personal remains available.");
       })
-      .catch(() => setOrganizationWorkspaces([]));
+      .finally(() => setLoading(false));
   }, []);
 
-  const workspaceName = user?.professionalRole === "physician"
-    ? "Physicians Clinic"
-    : "Trainers Studio";
-
-  const handleChoice = async (choice: "personal" | "workspace") => {
-    if (choice !== "workspace") {
-      onChoose(choice);
-      return;
-    }
-
-    setChecking(true);
-    try {
-      const phase1Res = await apiRequest("/api/certifications/phase1-status");
-      const phase1Complete = (phase1Res as any)?.phase1Complete === true;
-      const proCareCertificationComplete =
-        (phase1Res as any)?.proCareCertificationComplete === true;
-
-      if (!phase1Complete) {
-        sessionStorage.setItem(
-          "mpm.launchpad.redirectMsg",
-          "Complete the My Perfect Meals Academy — Phase 1 before accessing the Studio."
-        );
-        setLocation("/pro-launchpad");
-        return;
-      }
-
-      if (user?.phase2GateEnabled && !proCareCertificationComplete) {
-        sessionStorage.setItem(
-          "mpm.launchpad.redirectMsg",
-          "Complete Phase 3 ProCare Certification to access the ProCare Studio."
-        );
-        setLocation("/certifications/procare_certification");
-        return;
-      }
-
-      onChoose("workspace");
-    } catch {
-      onChoose("workspace");
-    } finally {
-      setChecking(false);
-    }
+  const choosePersonal = () => {
+    if (!availability) return;
+    localStorage.setItem("mpm_active_space", "personal");
+    sessionStorage.removeItem("mpm.welcomeGateDone");
+    onSelected?.();
+    setLocation(availability.personal.destination);
   };
 
-  const handleOrganizationChoice = async (workspace: typeof organizationWorkspaces[number]) => {
+  const chooseStudio = () => {
+    if (!availability?.studio.available || !availability.studio.destination) return;
+    localStorage.setItem("mpm_active_space", "workspace");
+    onSelected?.();
+    setLocation(availability.studio.destination);
+  };
+
+  const selectSingleOrganization = async (
+    organization: WorkspaceOrganizationAvailability,
+  ) => {
+    const location = organization.locations[0];
+    if (!location) return;
     setChecking(true);
-    setOrganizationError(null);
+    setError(null);
     try {
-      if (workspace.action === "setup" && workspace.authorizationId) {
-        const response = await fetch("/api/business/pilot-authorizations/claim", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-          credentials: "include",
-          body: JSON.stringify({ authorizationId: workspace.authorizationId }),
-        });
-        const body = await response.json();
-        if (!response.ok) throw new Error(body.error || "Could not claim this organization.");
-        setLocation("/business/setup?pilot=1");
-        return;
+      const response = await fetch("/api/business/workspace/select", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({
+          organizationId: organization.id,
+          locationId: location.id,
+        }),
+      });
+      const body = await response.json();
+      if (!response.ok) {
+        throw new Error(body.error || "Could not open this Organization Location.");
       }
-      if (workspace.organizationId && workspace.locationId) {
-        const response = await fetch("/api/business/workspace/select", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-          credentials: "include",
-          body: JSON.stringify({
-            organizationId: workspace.organizationId,
-            locationId: workspace.locationId,
-          }),
-        });
-        const body = await response.json();
-        if (!response.ok) {
-          throw new Error(body.error || "Could not open this Organization Location.");
-        }
-      }
+      onSelected?.();
       setLocation("/business-dashboard");
-    } catch (error: any) {
-      setOrganizationError(error?.message || "Could not open this organization.");
+    } catch (selectionError: any) {
+      setError(selectionError?.message || "Could not open this organization.");
     } finally {
       setChecking(false);
     }
   };
 
-  const handleOrganizationEntry = async () => {
-    if (organizationWorkspaces.length > 1) {
+  const chooseOrganization = async () => {
+    if (!availability?.organization.available) return;
+    if (
+      availability.organization.destination === "/business-organizations" ||
+      availability.organization.organizations.length !== 1 ||
+      availability.organization.organizations[0].locations.length !== 1
+    ) {
+      onSelected?.();
       setLocation("/business-organizations");
       return;
     }
-    if (organizationWorkspaces[0]) {
-      await handleOrganizationChoice(organizationWorkspaces[0]);
-    }
+    await selectSingleOrganization(availability.organization.organizations[0]);
   };
+
+  const organizationCount = availability?.organization.organizations.length ?? 0;
 
   return (
     <AnimatePresence>
@@ -180,25 +123,27 @@ export function WorkspaceChooser({ onChoose, showStudio = false }: WorkspaceChoo
             <p className="text-white/60 text-sm">{t("whereToSubtitle")}</p>
           </div>
 
-          <button
-            onClick={() => handleChoice("personal")}
-            disabled={checking}
-            className="w-full p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-lg active:scale-[0.98] transition-transform text-left disabled:opacity-60"
-          >
-            <div className="flex items-start gap-4">
-              <div className="p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/20">
-                <Home className="h-5 w-5 text-emerald-400" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-white font-semibold text-base">{td("personalSpace")}</h3>
-                <p className="text-white/50 text-sm mt-0.5">{t("personalSpaceDesc")}</p>
-              </div>
-            </div>
-          </button>
-
-          {organizationWorkspaces.length > 0 && (
+          {availability && (
             <button
-              onClick={handleOrganizationEntry}
+              onClick={choosePersonal}
+              disabled={checking}
+              className="w-full p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-lg active:scale-[0.98] transition-transform text-left disabled:opacity-60"
+            >
+              <div className="flex items-start gap-4">
+                <div className="p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/20">
+                  <Home className="h-5 w-5 text-emerald-400" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-white font-semibold text-base">{td("personalSpace")}</h3>
+                  <p className="text-white/50 text-sm mt-0.5">{t("personalSpaceDesc")}</p>
+                </div>
+              </div>
+            </button>
+          )}
+
+          {availability?.organization.available && (
+            <button
+              onClick={chooseOrganization}
               disabled={checking}
               className="w-full p-5 rounded-2xl bg-orange-500/10 border border-orange-400/30 backdrop-blur-lg active:scale-[0.98] transition-transform text-left disabled:opacity-60"
             >
@@ -209,33 +154,23 @@ export function WorkspaceChooser({ onChoose, showStudio = false }: WorkspaceChoo
                 <div className="flex-1">
                   <h3 className="text-white font-semibold text-base">Business / Organization</h3>
                   <p className="text-orange-200 text-sm mt-0.5">
-                    {organizationWorkspaces.length > 1
-                      ? `${organizationWorkspaces.length} available workspaces`
-                      : organizationWorkspaces[0].organizationName}
+                    {organizationCount > 1
+                      ? `${organizationCount} available organizations`
+                      : availability.organization.organizations[0]?.name}
                   </p>
                   <p className="text-white/50 text-xs mt-1">
-                     {organizationWorkspaces.length > 1
-                       ? "Choose an organization"
-                       : organizationWorkspaces[0].action === "setup"
-                       ? "Set Up Organization"
-                        : organizationWorkspaces[0].locationName
-                          ? `Open ${organizationWorkspaces[0].locationName}`
-                         : "Open Business Suite"}
+                    {availability.organization.destination === "/business-organizations"
+                      ? "Choose an organization"
+                      : "Open Business Suite"}
                   </p>
                 </div>
               </div>
             </button>
           )}
 
-          {organizationError && (
-            <p className="rounded-xl border border-red-400/25 bg-red-500/10 px-3 py-2 text-center text-sm text-red-200">
-              {organizationError}
-            </p>
-          )}
-
-          {showStudio && (
+          {availability?.studio.available && (
             <button
-              onClick={() => handleChoice("workspace")}
+              onClick={chooseStudio}
               disabled={checking}
               className="w-full p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-lg active:scale-[0.98] transition-transform text-left disabled:opacity-60"
             >
@@ -250,20 +185,20 @@ export function WorkspaceChooser({ onChoose, showStudio = false }: WorkspaceChoo
                 <div className="flex-1">
                   <h3 className="text-white font-semibold text-base">Studio</h3>
                   <p className="text-white/50 text-sm mt-0.5">
-                    {checking ? t("checkingAccess") : t("manageClientsIn", { name: workspaceName })}
+                    {availability.studio.readiness === "ready"
+                      ? "Manage clients in your Studio"
+                      : "Continue Studio setup"}
                   </p>
                 </div>
               </div>
             </button>
           )}
 
-          {false && <label className="flex items-center justify-center gap-2 cursor-pointer py-2 text-sm text-white/50 select-none">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-white/30 bg-white/10 text-orange-500 focus:ring-orange-500/50"
-            />
-            Always start here
-          </label>}
+          {(loading || error) && (
+            <p className={`text-center text-sm ${error ? "text-amber-200" : "text-white/50"}`}>
+              {loading ? "Loading workspaces…" : error}
+            </p>
+          )}
         </motion.div>
       </motion.div>
     </AnimatePresence>

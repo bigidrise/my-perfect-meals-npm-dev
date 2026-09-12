@@ -1,35 +1,48 @@
-import {
-  decideSignInWorkspace,
-  hasStudioWorkspaceAccess,
-} from "@/lib/workspaceAvailability";
+import type { WorkspaceAvailability } from "@shared/workspaceAvailability";
+import { shouldShowWorkspaceChooser } from "@/lib/workspaceAvailability";
 
-describe("sign-in workspace availability", () => {
-  const personal = { isProCare: false, professionalRole: null };
-  const organizationOnly = { isProCare: true, professionalRole: "business" };
-  const studioOnly = { isProCare: true, professionalRole: "trainer" };
-  const allThree = { isProCare: true, professionalRole: "trainer" };
+function availability(
+  organization: boolean,
+  studio: boolean,
+): WorkspaceAvailability {
+  return {
+    personal: { available: true, destination: "/dashboard" },
+    organization: {
+      available: organization,
+      destination: organization ? "/business-dashboard" : null,
+      organizations: organization
+        ? [{
+            id: "org-1",
+            name: "Organization",
+            role: "member",
+            relationshipType: "staff",
+            locations: [{
+              id: "location-1",
+              name: "Main",
+              role: "member",
+              isDefault: true,
+            }],
+          }]
+        : [],
+    },
+    studio: {
+      available: studio,
+      destination: studio ? "/care-team/trainer" : null,
+      readiness: studio ? "ready" : null,
+    },
+  };
+}
 
-  it("routes a personal-only user directly to Personal", () => {
-    expect(decideSignInWorkspace(personal, false)).toBe("personal");
+describe("server-derived workspace availability", () => {
+  it("routes Personal-only accounts without a chooser", () => {
+    expect(shouldShowWorkspaceChooser(availability(false, false))).toBe(false);
   });
 
-  it("shows Personal and Organization without requiring Studio", () => {
-    expect(hasStudioWorkspaceAccess(organizationOnly)).toBe(false);
-    expect(decideSignInWorkspace(organizationOnly, true)).toBe("chooser");
-  });
-
-  it("shows the chooser for Personal and Studio without Organization", () => {
-    expect(hasStudioWorkspaceAccess(studioOnly)).toBe(true);
-    expect(decideSignInWorkspace(studioOnly, false)).toBe("chooser");
-  });
-
-  it("shows the chooser when Personal, Organization, and Studio are available", () => {
-    expect(hasStudioWorkspaceAccess(allThree)).toBe(true);
-    expect(decideSignInWorkspace(allThree, true)).toBe("chooser");
-  });
-
-  it("does not treat a Business account or consumer ProCare access as Studio", () => {
-    expect(hasStudioWorkspaceAccess(organizationOnly)).toBe(false);
-    expect(decideSignInWorkspace(organizationOnly, false)).toBe("personal");
+  it.each([
+    ["Personal + Organization", true, false],
+    ["Personal + Studio", false, true],
+    ["Personal + Organization + Studio", true, true],
+  ])("shows the chooser for %s", (_label, organization, studio) => {
+    expect(shouldShowWorkspaceChooser(availability(organization, studio))).toBe(true);
   });
 });
