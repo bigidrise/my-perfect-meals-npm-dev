@@ -79,6 +79,9 @@ interface BrandRecommendation {
   rank: 1 | 2 | 3;
   grade: "A" | "B" | "C";
   reason: string;
+  evidenceStatus?: "verified" | "unverified";
+  verificationMessage?: string;
+  wholeFoodNote?: string;
 }
 
 interface AvoidRecommendation {
@@ -611,8 +614,11 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
           ingredient,
           brand: brand.brand,
           rank: brand.rank,
-          grade: brand.grade,
+          grade: brand.evidenceStatus === "verified" ? brand.grade : undefined,
           reason: brand.reason,
+          evidenceStatus: brand.evidenceStatus ?? "unverified",
+          verificationMessage: brand.verificationMessage,
+          wholeFoodNote: brand.wholeFoodNote,
         },
       });
       setSavedProductKeys((prev) => new Set(Array.from(prev).concat(productKey)));
@@ -1068,16 +1074,32 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                                     <span style={{ color: "white", fontWeight: 600, fontSize: 14 }}>{brand.brand}</span>
                                     <span style={{
                                       padding: "1px 7px", borderRadius: 999, fontSize: 11, fontWeight: 700,
-                                      background: `${GRADE_COLOR[brand.grade] ?? "rgba(249,115,22,0.9)"}22`,
-                                      color: GRADE_COLOR[brand.grade] ?? "#fb923c",
-                                      border: `1px solid ${GRADE_COLOR[brand.grade] ?? "#fb923c"}44`,
+                                      background: brand.evidenceStatus === "unverified"
+                                        ? "rgba(251,146,60,0.14)"
+                                        : `${GRADE_COLOR[brand.grade] ?? "rgba(249,115,22,0.9)"}22`,
+                                      color: brand.evidenceStatus === "unverified"
+                                        ? "#fb923c"
+                                        : GRADE_COLOR[brand.grade] ?? "#fb923c",
+                                      border: brand.evidenceStatus === "unverified"
+                                        ? "1px solid rgba(251,146,60,0.35)"
+                                        : `1px solid ${GRADE_COLOR[brand.grade] ?? "#fb923c"}44`,
                                     }}>
-                                      {brand.grade}
+                                      {brand.evidenceStatus === "unverified" ? "Scan to verify" : brand.grade}
                                     </span>
                                   </div>
                                   <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 12, lineHeight: 1.4, marginBottom: 8 }}>
                                     {brand.reason}
                                   </div>
+                                  {brand.wholeFoodNote && (
+                                    <div style={{ color: "rgba(251,191,36,0.8)", fontSize: 11, lineHeight: 1.4, marginBottom: 6 }}>
+                                      {brand.wholeFoodNote}
+                                    </div>
+                                  )}
+                                  {brand.verificationMessage && (
+                                    <div style={{ color: "rgba(255,255,255,0.42)", fontSize: 11, lineHeight: 1.4, marginBottom: 8 }}>
+                                      {brand.verificationMessage}
+                                    </div>
+                                  )}
                                   <div style={{ display: "flex", gap: 6 }}>
                                     <PillButton
                                       active={isSaved}
@@ -2080,11 +2102,17 @@ export function SmartCartAdviceBody({
                       <span style={{ color: "white", fontWeight: 600, fontSize: 14 }}>{brand.brand}</span>
                       <span style={{
                         padding: "1px 7px", borderRadius: 999, fontSize: 11, fontWeight: 700,
-                        background: `${GRADE_COLOR[brand.grade] ?? "rgba(249,115,22,0.9)"}22`,
-                        color: GRADE_COLOR[brand.grade] ?? "#fb923c",
-                        border: `1px solid ${GRADE_COLOR[brand.grade] ?? "#fb923c"}44`,
+                        background: brand.evidenceStatus === "unverified"
+                          ? "rgba(251,146,60,0.14)"
+                          : `${GRADE_COLOR[brand.grade] ?? "rgba(249,115,22,0.9)"}22`,
+                        color: brand.evidenceStatus === "unverified"
+                          ? "#fb923c"
+                          : GRADE_COLOR[brand.grade] ?? "#fb923c",
+                        border: brand.evidenceStatus === "unverified"
+                          ? "1px solid rgba(251,146,60,0.35)"
+                          : `1px solid ${GRADE_COLOR[brand.grade] ?? "#fb923c"}44`,
                       }}>
-                        {brand.grade}
+                        {brand.evidenceStatus === "unverified" ? "Scan to verify" : brand.grade}
                       </span>
                       {isSaved && (
                         <span
@@ -2103,6 +2131,16 @@ export function SmartCartAdviceBody({
                     <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 12, lineHeight: 1.4 }}>
                       {brand.reason}
                     </div>
+                    {brand.wholeFoodNote && (
+                      <div style={{ color: "rgba(251,191,36,0.8)", fontSize: 11, lineHeight: 1.4, marginTop: 6 }}>
+                        {brand.wholeFoodNote}
+                      </div>
+                    )}
+                    {brand.verificationMessage && (
+                      <div style={{ color: "rgba(255,255,255,0.42)", fontSize: 11, lineHeight: 1.4, marginTop: 6 }}>
+                        {brand.verificationMessage}
+                      </div>
+                    )}
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0, alignSelf: "flex-start", marginTop: 2 }}>
                     {/* Pick — selects this brand for the current shopping trip */}
