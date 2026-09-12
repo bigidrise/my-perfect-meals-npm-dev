@@ -9,8 +9,7 @@ export function hasStudioWorkspaceAccess(
     user?.isProCare &&
     (
       user.professionalRole === "trainer" ||
-      user.professionalRole === "physician" ||
-      user.professionalRole === "business"
+      user.professionalRole === "physician"
     ),
   );
 }
