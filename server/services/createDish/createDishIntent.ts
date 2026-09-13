@@ -36,6 +36,7 @@ export async function revalidateCreateDishIntent(
   allergyTags: string[],
 ): Promise<CreateDishIntent> {
   const parsed = CreateDishIntentSchema.parse(raw);
+  const isComposedDish = !isBroadIngredientOnlyCreateDishIntent(parsed);
   const selectedOptionIds: Partial<Record<ExpansionDimension, string>> = {};
   for (const dimension of ["form", "texture", "flavor"] as const) {
     const selected = parsed.resolvedCombination[dimension];
@@ -65,16 +66,95 @@ export async function revalidateCreateDishIntent(
       category: expansion.ingredient.category,
     },
     resolvedCombination: {
-      form: expansion.resolvedCombination.form,
+      form:
+        isComposedDish &&
+        parsed.resolvedCombination.selectionSource.form === "system_selected"
+          ? null
+          : expansion.resolvedCombination.form,
       texture: expansion.resolvedCombination.texture,
       flavor: expansion.resolvedCombination.flavor,
       selectionSource: {
-        form: parsed.resolvedCombination.selectionSource.form,
+        form:
+          isComposedDish &&
+          parsed.resolvedCombination.selectionSource.form === "system_selected"
+            ? "not_applicable"
+            : parsed.resolvedCombination.selectionSource.form,
         texture: parsed.resolvedCombination.selectionSource.texture,
         flavor: parsed.resolvedCombination.selectionSource.flavor,
       },
     },
   });
+}
+
+export function relaxSystemSelectedCreateDishIntent(
+  intent: CreateDishIntent,
+): CreateDishIntent {
+  const resolved = intent.resolvedCombination;
+  const relax = <T>(
+    value: T | null,
+    source: "user_selected" | "system_selected" | "not_applicable",
+  ): T | null => source === "system_selected" ? null : value;
+  return CreateDishIntentSchema.parse({
+    ...intent,
+    resolvedCombination: {
+      form: relax(resolved.form, resolved.selectionSource.form),
+      texture: relax(resolved.texture, resolved.selectionSource.texture),
+      flavor: relax(resolved.flavor, resolved.selectionSource.flavor),
+      selectionSource: {
+        form: resolved.selectionSource.form === "system_selected"
+          ? "not_applicable"
+          : resolved.selectionSource.form,
+        texture: resolved.selectionSource.texture === "system_selected"
+          ? "not_applicable"
+          : resolved.selectionSource.texture,
+        flavor: resolved.selectionSource.flavor === "system_selected"
+          ? "not_applicable"
+          : resolved.selectionSource.flavor,
+      },
+    },
+  });
+}
+
+export function applyCreateDishIntentWithSoftFallback<T>(
+  meals: T[],
+  intent: CreateDishIntent,
+): {
+  initialEvidence: Array<{ meal: T; evidence: CreateDishIntentEvidence }>;
+  survivors: T[];
+  effectiveIntent: CreateDishIntent;
+  relaxedSystemSelections: boolean;
+} {
+  const initialEvidence = meals.map((meal) => ({
+    meal,
+    evidence: evaluateCreateDishIntentEvidence(meal, intent),
+  }));
+  const initialSurvivors = initialEvidence
+    .filter(({ evidence }) => evidence.passed)
+    .map(({ meal }) => meal);
+  if (initialSurvivors.length > 0) {
+    return {
+      initialEvidence,
+      survivors: initialSurvivors,
+      effectiveIntent: intent,
+      relaxedSystemSelections: false,
+    };
+  }
+
+  const relaxedIntent = relaxSystemSelectedCreateDishIntent(intent);
+  const relaxedSystemSelections =
+    JSON.stringify(relaxedIntent.resolvedCombination) !==
+    JSON.stringify(intent.resolvedCombination);
+  const relaxedSurvivors = relaxedSystemSelections
+    ? meals.filter((meal) =>
+        evaluateCreateDishIntentEvidence(meal, relaxedIntent).passed
+      )
+    : [];
+  return {
+    initialEvidence,
+    survivors: relaxedSurvivors,
+    effectiveIntent: relaxedSurvivors.length > 0 ? relaxedIntent : intent,
+    relaxedSystemSelections: relaxedSurvivors.length > 0,
+  };
 }
 
 export function buildCreateDishIntentPrompt(intent: CreateDishIntent): string {
@@ -85,26 +165,40 @@ export function buildCreateDishIntentPrompt(intent: CreateDishIntent): string {
     resolved.texture ? `Texture: ${resolved.texture.label}` : null,
     resolved.flavor ? `Flavor direction: ${resolved.flavor.label}` : null,
   ].filter(Boolean);
-  const fixedRequirements = [
+  const hardRequirements = [
     `Use ${intent.ingredient.canonicalName} as the primary ingredient.`,
-    resolved.form
+    resolved.form && resolved.selectionSource.form === "user_selected"
       ? `Every candidate MUST use ${resolved.form.label} or a governed equivalent preparation of that form/cut.`
       : null,
-    resolved.texture
+    resolved.texture && resolved.selectionSource.texture === "user_selected"
       ? `Every candidate MUST use preparation that produces a recognizable ${resolved.texture.label} texture.`
       : null,
-    resolved.flavor
+    resolved.flavor && resolved.selectionSource.flavor === "user_selected"
       ? `Every candidate MUST retain a recognizable ${resolved.flavor.label} flavor profile.`
       : null,
   ].filter(Boolean);
-  const hasFixedDimensions = Boolean(resolved.form || resolved.texture || resolved.flavor);
+  const softPreferences = [
+    resolved.form && resolved.selectionSource.form === "system_selected"
+      ? `Creative preference: use ${resolved.form.label} only if it naturally fits the requested dish.`
+      : null,
+    resolved.texture && resolved.selectionSource.texture === "system_selected"
+      ? `Creative preference: aim for ${resolved.texture.label} texture only if compatible with the requested dish.`
+      : null,
+    resolved.flavor && resolved.selectionSource.flavor === "system_selected"
+      ? `Creative preference: use a ${resolved.flavor.label} flavor direction only if compatible with the requested dish.`
+      : null,
+  ].filter(Boolean);
+  const hasHardDimensions = hardRequirements.length > 1;
   return `[CREATE A DISH — VALIDATED CULINARY INTENT]
 ${lines.join("\n")}
-${hasFixedDimensions ? `[CREATE A DISH — HARD CULINARY INTENT]
-${fixedRequirements.join("\n")}
-These are fixed current-request requirements, not preferences or optional inspiration.
+${hasHardDimensions ? `[CREATE A DISH — HARD CULINARY INTENT]
+${hardRequirements.join("\n")}
+The explicitly selected dimensions above are fixed current-request requirements.
 Do not vary any selected form/cut, texture, or flavor. Create variety only through unconstrained side pairings, vegetables, garnishes, plating, or other unselected dimensions.
-Explicit current culinary intent overrides general cuisine, broad-flavor, heat, and palate defaults when they conflict.` : "No expansion dimensions are fixed; preserve the existing flexible Create a Dish behavior."}
+Explicit current culinary intent overrides general cuisine, broad-flavor, heat, and palate defaults when they conflict.` : `Use ${intent.ingredient.canonicalName} as the primary ingredient; no preparation dimensions are fixed.`}
+${softPreferences.length > 0 ? `[CREATE A DISH — OPTIONAL CREATIVE GUIDANCE]
+${softPreferences.join("\n")}
+These system-selected ideas are optional. Never distort the requested dish or fail generation to preserve them.` : ""}
 Safety, allergies, dietary identity, clinical protocols, diabetes, GLP-1, and canonical nutrition requirements remain authoritative; adapt transparently if one requires a change.`;
 }
 
