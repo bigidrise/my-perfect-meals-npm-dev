@@ -21,6 +21,11 @@ import {
   getTechniqueById,
   type CookingMethodId,
 } from "../../../shared/catalog/techniques.catalog";
+import {
+  resolveOpenWorldFoodIntent,
+  semanticIntentToIngredientRecognition,
+  type SemanticFoodIntentProvider,
+} from "./openWorldFoodIntentResolver";
 
 export interface AiExpansionProvider {
   expand(input: {
@@ -37,6 +42,7 @@ export interface AiExpansionProvider {
 export interface IngredientExpansionContext {
   allergyTags?: string[];
   aiProvider?: AiExpansionProvider;
+  semanticProvider?: SemanticFoodIntentProvider;
 }
 
 const AMBIGUOUS: Record<
@@ -423,8 +429,38 @@ export async function expandCreateDishIngredient(
     throw new Error("CREATE_DISH_SCOPE_REQUIRED");
   }
 
-  const ingredient = recognize(request.ingredientInput);
+  let ingredient = recognize(request.ingredientInput);
+  let semanticIntent;
+  if (
+    ingredient.status === "unsupported" &&
+    request.useAiForGaps &&
+    context.semanticProvider
+  ) {
+    try {
+      semanticIntent = await resolveOpenWorldFoodIntent(
+        request.ingredientInput,
+        context.semanticProvider,
+      );
+      ingredient = semanticIntentToIngredientRecognition(
+        request.ingredientInput,
+        semanticIntent,
+      );
+    } catch {
+      // Invalid or unavailable semantic output fails closed to the existing
+      // unsupported result. It never becomes safety or catalog evidence.
+    }
+  }
   const warnings: ExpandIngredientResponse["warnings"] = [];
+  if (semanticIntent && ingredient.status === "recognized") {
+    return ExpandIngredientResponseSchema.parse({
+      ingredient,
+      semanticIntent,
+      options: { forms: [], methods: [], textures: [], flavors: [], cuisines: [] },
+      resolvedCombination: null,
+      inferredSelectionIds: {},
+      warnings,
+    });
+  }
   if (ingredient.status !== "recognized") {
     warnings.push({
       code:
@@ -438,6 +474,7 @@ export async function expandCreateDishIngredient(
     });
     return ExpandIngredientResponseSchema.parse({
       ingredient,
+      ...(semanticIntent ? { semanticIntent } : {}),
       options: { forms: [], methods: [], textures: [], flavors: [], cuisines: [] },
       resolvedCombination: null,
       inferredSelectionIds: {},
