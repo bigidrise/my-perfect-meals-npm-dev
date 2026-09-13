@@ -72,6 +72,12 @@ import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import { PillButton } from "@/components/ui/pill-button";
 import { IconPillOption } from "@/components/ui/icon-pill-option";
 import { getCreateDishServerErrorMessage } from "@/lib/createDishError";
+import {
+  getCreateDishAlternatives,
+  normalizeCreateDishOptions,
+  selectCreateDishById,
+  shouldApplyCreateDishResponse,
+} from "@/lib/createDishIdentity";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { captureAuthoritativeTextValue, commitTextInputValue } from "@/lib/authoritativeTextInput";
 import {
@@ -176,7 +182,8 @@ function clearDishCache() {
 // ---- Persist the three options so they survive navigation and selection ----
 // dishInput is intentionally NOT restored here — restoring it triggers the
 // starch-guard useEffect on mount (see GUARD comment above).
-const OPTIONS_KEY = "createDish.options.v1";
+const OPTIONS_KEY = "createDish.options.v2";
+const OPTIONS_KEY_LEGACY = "createDish.options.v1";
 
 function saveOptionsCache(options: any[]) {
   try {
@@ -198,6 +205,7 @@ function loadOptionsCache(): any[] {
 function clearOptionsCache() {
   try {
     localStorage.removeItem(OPTIONS_KEY);
+    localStorage.removeItem(OPTIONS_KEY_LEGACY);
   } catch {}
 }
 
@@ -279,7 +287,29 @@ export default function CreateDishPage() {
   // (MPM-2026-CreateDish-Overlay). The fix was deliberately architected this way.
   // ============================================================
   const [generatedInSession, setGeneratedInSession] = useState(false);
-  const [mealOptions, setMealOptions] = useState<any[]>([]);
+  const [mealOptions, setMealOptions] = useState<MealData[]>([]);
+  const [selectedDishId, setSelectedDishId] = useState<string | null>(null);
+  const { hydrateImages: hydrateOptionImages } = useMealImages(setMealOptions, {
+    mealType: "dinner",
+    concurrency: 1,
+  });
+  const selectedDish = selectCreateDishById(mealOptions, selectedDishId);
+  const visibleMeals = selectedDish ? [selectedDish] : generatedMeals;
+  const alternativeMeals = getCreateDishAlternatives(mealOptions, selectedDishId);
+  const updateVisibleMeal = (
+    mealId: string,
+    update: (meal: MealData) => MealData,
+  ) => {
+    if (selectedDishId) {
+      setMealOptions((options) =>
+        options.map((meal) => (meal.id === mealId ? update(meal) : meal)),
+      );
+      return;
+    }
+    setGeneratedMeals((meals) =>
+      meals.map((meal) => (meal.id === mealId ? update(meal) : meal)),
+    );
+  };
   const [isPlatingMeal, setIsPlatingMeal] = useState(false);
 
   // Kitchen context — set when navigating from a /kitchen/:slug page
@@ -378,6 +408,10 @@ export default function CreateDishPage() {
 
   const mealOptionsRef = useRef<HTMLDivElement | null>(null);
   const continueAnywayRef = useRef(false);
+  const generationRequestRef = useRef(0);
+  const generationAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => () => generationAbortRef.current?.abort(), []);
 
   useEffect(() => {
     if (mealOptions.length > 0 && mealOptionsRef.current) {
@@ -407,7 +441,16 @@ export default function CreateDishPage() {
     // Clear stale v1 cache that caused the overlay bug before this fix.
     try {
       localStorage.removeItem("createDish.cache.v1");
+      localStorage.removeItem(OPTIONS_KEY_LEGACY);
     } catch {}
+
+    const savedOptions = normalizeCreateDishOptions(
+      loadOptionsCache() as MealData[],
+      "restored",
+    );
+    if (savedOptions.length > 0) {
+      setMealOptions(savedOptions);
+    }
 
     const cached = loadDishCache();
     if (cached?.generatedMeal?.id) {
@@ -416,32 +459,36 @@ export default function CreateDishPage() {
       const mealWithImage = cached.generatedMeal.imageUrl
         ? cached.generatedMeal
         : { ...cached.generatedMeal, imageUrl: lookupHydratedImageUrl(cached.generatedMeal.id) ?? undefined };
-      setGeneratedMeals([mealWithImage]);
+      const restoredOption = savedOptions.find(
+        (option) => option.id === mealWithImage.id,
+      );
+      if (restoredOption) {
+        setSelectedDishId(restoredOption.id);
+      } else {
+        setGeneratedMeals([mealWithImage]);
+      }
       setServings(cached.servings || 2);
       // generatedInSession remains false — bar will not cold-mount
       // Only re-fetch if imageUrl is still missing after mini-cache lookup
       if (!mealWithImage.imageUrl) {
-        hydrateImages([mealWithImage]);
+        if (restoredOption) {
+          hydrateOptionImages([restoredOption]);
+        } else {
+          hydrateImages([mealWithImage]);
+        }
       }
-    }
-
-    // Restore the three pending options so they survive navigation and selection.
-    // dishInput is intentionally NOT restored here (starch-guard trigger risk).
-    const savedOptions = loadOptionsCache();
-    if (savedOptions.length > 0) {
-      setMealOptions(savedOptions);
     }
   }, []);
 
   useEffect(() => {
-    if (generatedMeals.length > 0 && generatedMeals[0]?.id) {
+    if (visibleMeals.length > 0 && visibleMeals[0]?.id) {
       saveDishCache({
-        generatedMeal: generatedMeals[0],
+        generatedMeal: visibleMeals[0],
         servings,
         generatedAtISO: new Date().toISOString(),
       });
     }
-  }, [generatedMeals, servings]);
+  }, [selectedDishId, mealOptions, generatedMeals, servings]);
 
   // Persist the options list whenever it changes (non-empty → save; empty → clear).
   useEffect(() => {
@@ -452,14 +499,16 @@ export default function CreateDishPage() {
     }
   }, [mealOptions]);
 
-  const handleSelectMeal = async (meal: any) => {
+  const handleSelectMeal = (mealId: string) => {
+    const meal = selectCreateDishById(mealOptions, mealId);
+    if (!meal) return;
     // Do NOT clear mealOptions here — the other choices should stay visible
     // until the user explicitly taps "Start over" or "Create New".
     addRecentMeal(meal.name);
     setIsPlatingMeal(true);
 
     // Show card immediately — image hydrates in parallel
-    setGeneratedMeals([meal]);
+    setSelectedDishId(meal.id);
     setGeneratedInSession(true);
     setIsPlatingMeal(false);
     saveDishCache({
@@ -467,7 +516,7 @@ export default function CreateDishPage() {
       servings,
       generatedAtISO: new Date().toISOString(),
     });
-    hydrateImages([meal]);
+    hydrateOptionImages([meal]);
   };
 
   const startProgressTicker = () => {
@@ -847,7 +896,12 @@ export default function CreateDishPage() {
   }, [pendingGeneration, overrideToken, governanceOverrideToken, isGenerating]);
 
   const handleGenerateDish = async (skipPreflight = false, dietAdaptOverride = false, userDietOverride = false) => {
+    const requestId = ++generationRequestRef.current;
+    generationAbortRef.current?.abort();
+    const abortController = new AbortController();
+    generationAbortRef.current = abortController;
     const submittedDishInput = await captureAuthoritativeTextValue(dishInputRef.current, dishInput, 300);
+    if (!shouldApplyCreateDishResponse(generationRequestRef.current, requestId)) return;
     if (submittedDishInput !== dishInput) updateDishInput(submittedDishInput);
     const effectiveUserDietOverride = userDietOverride || continueAnywayRef.current;
     continueAnywayRef.current = false;
@@ -868,6 +922,7 @@ export default function CreateDishPage() {
     // 🔐 Server-authoritative food-governance preflight.
     if (!skipPreflight && !hasActiveOverride) {
       const isSafe = await checkSafety(prompt, "create-dish");
+      if (!shouldApplyCreateDishResponse(generationRequestRef.current, requestId)) return;
       if (!isSafe) {
         // When the block carries an allergyConflict, show AllergyConflictModal
         // instead of SafetyGuardBanner so the user can choose their path.
@@ -901,6 +956,7 @@ export default function CreateDishPage() {
       // Expansion is advisory: a failed or unsupported expansion must never
       // interrupt the established generation path.
       const createDishIntent = await getAuthoritativeExpansion(submittedDishInput);
+      if (!shouldApplyCreateDishResponse(generationRequestRef.current, requestId)) return;
       const url = apiUrl("/api/meals/craving-creator");
       const response = await fetch(url, {
         method: "POST",
@@ -927,9 +983,11 @@ export default function CreateDishPage() {
           humanFoodCreator: "create_a_dish",
            ...(createDishIntent ? { createDishIntent } : {}),
         }),
+        signal: abortController.signal,
       });
 
       const data = await response.json();
+      if (!shouldApplyCreateDishResponse(generationRequestRef.current, requestId)) return;
 
       if (!response.ok) {
         // ── Typed allergen adaptation failure ──────────────────────────────────
@@ -987,11 +1045,20 @@ export default function CreateDishPage() {
           );
           clearDietAlert();
         }
-        setMealOptions(data.meals);
+        const options = normalizeCreateDishOptions(
+          data.meals as MealData[],
+          String(requestId),
+        );
+        setMealOptions(options);
+        setSelectedDishId(null);
+        setGeneratedMeals([]);
         return;
       }
 
-      const meal = data.meal || data;
+      const meal = normalizeCreateDishOptions<MealData>(
+        [data.meal || data],
+        String(requestId),
+      )[0];
 
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
       if (data.dietAdapted) {
@@ -1028,6 +1095,12 @@ export default function CreateDishPage() {
         description: `${meal.name} is ready for you.`,
       });
     } catch (error: any) {
+      if (
+        !shouldApplyCreateDishResponse(generationRequestRef.current, requestId) ||
+        error?.name === "AbortError"
+      ) {
+        return;
+      }
       stopProgressTicker();
       const errorMsg = error.message || "";
       if (errorMsg === "CREATE_DISH_CHOICES_INVALID") {
@@ -1051,8 +1124,11 @@ export default function CreateDishPage() {
         });
       }
     } finally {
-      setIsGenerating(false);
-      allergenSafeModeRef.current = false;
+      if (shouldApplyCreateDishResponse(generationRequestRef.current, requestId)) {
+        setIsGenerating(false);
+        allergenSafeModeRef.current = false;
+        generationAbortRef.current = null;
+      }
     }
   };
 
@@ -1086,7 +1162,7 @@ export default function CreateDishPage() {
         </MobileHeaderGuard>
 
         <div
-          className={`max-w-2xl mx-auto px-4 pt-28 ${generatedMeals.length > 0 ? "pb-32" : "pb-8"}`}
+          className={`max-w-2xl mx-auto px-4 pt-28 ${visibleMeals.length > 0 ? "pb-32" : "pb-8"}`}
         >
           {!isDesktop && (
             <button
@@ -1562,7 +1638,7 @@ export default function CreateDishPage() {
           )}
 
           {/* Initial picker — only shown before a meal has been selected */}
-          {!isPlatingMeal && mealOptions.length > 0 && generatedMeals.length === 0 && (
+          {!isPlatingMeal && mealOptions.length > 0 && selectedDishId === null && generatedMeals.length === 0 && (
             <div className="mt-8 space-y-4" ref={mealOptionsRef}>
               <div className="flex items-center gap-3 mb-2">
                 <Sparkles className="h-5 w-5 text-orange-400" />
@@ -1573,9 +1649,9 @@ export default function CreateDishPage() {
                   {mealOptions.length} options created for you
                 </span>
               </div>
-              {mealOptions.map((option, idx) => (
+              {mealOptions.map((option) => (
                 <Card
-                  key={idx}
+                  key={option.id}
                   className="bg-black/40 backdrop-blur-lg border border-orange-400/20 shadow-xl rounded-2xl"
                 >
                   <CardContent className="p-5">
@@ -1611,7 +1687,7 @@ export default function CreateDishPage() {
                         </div>
                       </div>
                       <button
-                        onClick={() => handleSelectMeal(option)}
+                        onClick={() => handleSelectMeal(option.id)}
                         className="shrink-0 bg-lime-600 active:scale-95 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all"
                       >
                         Pick This
@@ -1623,6 +1699,7 @@ export default function CreateDishPage() {
               <button
                 onClick={() => {
                   setMealOptions([]);
+                  setSelectedDishId(null);
                   clearOptionsCache();
                   updateDishInput("");
                 }}
@@ -1633,10 +1710,10 @@ export default function CreateDishPage() {
             </div>
           )}
 
-          {generatedMeals.length > 0 && (
+          {visibleMeals.length > 0 && (
             <div className="mt-8 space-y-6">
-              {generatedMeals.map((meal, index) => (
-                <div key={index}>
+              {visibleMeals.map((meal) => (
+                <div key={meal.id}>
                   <Card className="bg-black/40 backdrop-blur-lg border border-orange-400/20 shadow-xl rounded-2xl">
                     <CardContent className="p-6">
                       <div className="mb-4">
@@ -1655,6 +1732,7 @@ export default function CreateDishPage() {
                           <button
                             onClick={() => {
                               setGeneratedMeals([]);
+                              setSelectedDishId(null);
                               setGeneratedInSession(false);
                               clearDishCache();
                               setMealOptions([]);
@@ -2013,27 +2091,21 @@ export default function CreateDishPage() {
                               ingredients: meal.ingredients,
                             }}
                             onTranslate={(translated) => {
-                              setGeneratedMeals((prev) =>
-                                prev.map((m) =>
-                                  m.id === meal.id
-                                    ? {
-                                        ...m,
+                              updateVisibleMeal(meal.id, (currentMeal) => ({
+                                        ...currentMeal,
                                         name: translated.name,
                                         description:
                                           translated.description ||
-                                          m.description,
+                                          currentMeal.description,
                                         instructions:
                                           typeof translated.instructions ===
                                           "string"
                                             ? translated.instructions
-                                            : m.instructions,
+                                            : currentMeal.instructions,
                                         ingredients:
                                           (translated.ingredients as StructuredIngredient[]) ||
-                                          m.ingredients,
-                                      }
-                                    : m,
-                                ),
-                              );
+                                          currentMeal.ingredients,
+                                      }));
                             }}
                           />
                         </div>
@@ -2092,7 +2164,7 @@ export default function CreateDishPage() {
               ))}
 
               {/* Generated Alternatives — remaining unchosen options, shown below the selected meal */}
-              {!isPlatingMeal && mealOptions.filter((o) => o.name !== generatedMeals[0]?.name).length > 0 && (
+              {!isPlatingMeal && selectedDishId !== null && alternativeMeals.length > 0 && (
                 <div className="mt-2 space-y-3">
                   <div className="flex items-center gap-2 pt-4 border-t border-white/10">
                     <Sparkles className="h-4 w-4 text-orange-400/60" />
@@ -2100,11 +2172,10 @@ export default function CreateDishPage() {
                       Generated Alternatives
                     </h3>
                   </div>
-                  {mealOptions
-                    .filter((o) => o.name !== generatedMeals[0]?.name)
-                    .map((option, idx) => (
+                  {alternativeMeals
+                    .map((option) => (
                       <Card
-                        key={idx}
+                        key={option.id}
                         className="bg-black/25 backdrop-blur-lg border border-orange-400/10 shadow-md rounded-2xl"
                       >
                         <CardContent className="p-4">
@@ -2127,7 +2198,7 @@ export default function CreateDishPage() {
                               </div>
                             </div>
                             <button
-                              onClick={() => handleSelectMeal(option)}
+                              onClick={() => handleSelectMeal(option.id)}
                               className="shrink-0 bg-lime-700 active:scale-95 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-all"
                             >
                               Pick This
@@ -2139,6 +2210,7 @@ export default function CreateDishPage() {
                   <button
                     onClick={() => {
                       setMealOptions([]);
+                      setSelectedDishId(null);
                       clearOptionsCache();
                       updateDishInput("");
                     }}
@@ -2152,9 +2224,9 @@ export default function CreateDishPage() {
           )}
         </div>
 
-        {generatedMeals.length > 0 && generatedInSession && (
+        {visibleMeals.length > 0 && generatedInSession && (
           <ShoppingAggregateBar
-            ingredients={generatedMeals.flatMap((meal) =>
+            ingredients={visibleMeals.flatMap((meal) =>
               meal.ingredients.map((ing: StructuredIngredient) => ({
                 name: ing.name,
                 qty:
