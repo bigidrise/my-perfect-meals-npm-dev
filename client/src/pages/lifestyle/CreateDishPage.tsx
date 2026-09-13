@@ -611,9 +611,10 @@ export default function CreateDishPage() {
           ingredientInput: text.trim(),
           creator: "create_a_dish",
           surprisePolicy: policy,
-          // Phase 2 controls expose only catalog-backed IDs that generation can
-          // deterministically revalidate.
-          useAiForGaps: false,
+          // Catalog matches remain deterministic. Catalog misses must reach the
+          // bounded semantic resolver so ordinary open-world food requests do
+          // not become false clarification failures.
+          useAiForGaps: true,
         }),
       });
       if (!response.ok) throw new Error("expansion failed");
