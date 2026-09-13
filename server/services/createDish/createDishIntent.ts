@@ -24,6 +24,19 @@ function normalizeIngredientOnlyText(value: string): string {
     .trim();
 }
 
+const SEMANTIC_PREFERENCE_BLOCKED_CLAIMS =
+  /\b(ignore|instruction|system|prompt|must|calorie|carb|sodium|sugar|fat|protein|diabetes|glp-?1|medical|clinical|allergy|allergen|heart[- ]healthy|weight loss|low[- ](?:carb|sodium|sugar|fat)|vegan|vegetarian|pescatarian|pregnan|pediatric)\b/i;
+
+function isValidSemanticPreference(
+  preference: NonNullable<CreateDishIntent["resolvedCombination"]["form"]>,
+): boolean {
+  return (
+    preference.source === "semantic_preference" &&
+    preference.id.startsWith(`semantic-${preference.dimension}-`) &&
+    !SEMANTIC_PREFERENCE_BLOCKED_CLAIMS.test(preference.label)
+  );
+}
+
 export function isBroadIngredientOnlyCreateDishIntent(
   intent: CreateDishIntent,
 ): boolean {
@@ -36,6 +49,21 @@ export async function revalidateCreateDishIntent(
   allergyTags: string[],
 ): Promise<CreateDishIntent> {
   const parsed = CreateDishIntentSchema.parse(raw);
+  const selectedSemanticPreferences = [
+    parsed.resolvedCombination.form,
+    parsed.resolvedCombination.texture,
+    parsed.resolvedCombination.flavor,
+  ].filter(Boolean);
+  if (parsed.ingredient.canonicalId.startsWith("semantic-")) {
+    if (
+      selectedSemanticPreferences.every((preference) =>
+        isValidSemanticPreference(preference!)
+      )
+    ) {
+      return parsed;
+    }
+    throw new Error("INVALID_CREATE_DISH_INTENT");
+  }
   const isComposedDish = !isBroadIngredientOnlyCreateDishIntent(parsed);
   const selectedOptionIds: Partial<Record<ExpansionDimension, string>> = {};
   for (const dimension of ["form", "texture", "flavor"] as const) {

@@ -64,6 +64,62 @@ describe("open-world Create a Dish intent resolution", () => {
     expect(Object.values(result.options).flat()).toEqual([]);
   });
 
+  test("chili receives bounded semantic preparation preferences", async () => {
+    const semanticProvider = {
+      resolve: async () => semantic(),
+    };
+    const openWorldExpansionProvider = {
+      expand: async () => ({
+        forms: ["Classic Style", "Rustic"],
+        textures: ["Thick and Hearty", "Brothy"],
+        flavors: ["Smoky", "Bright and Tangy"],
+      }),
+    };
+    const first = await expandCreateDishIngredient(
+      ExpandIngredientRequestSchema.parse({
+        ingredientInput: "Chili",
+        creator: "create_a_dish",
+        useAiForGaps: true,
+      }),
+      { semanticProvider, openWorldExpansionProvider },
+    );
+
+    expect(first.ingredient.status).toBe("recognized");
+    expect(first.options.forms.length).toBeGreaterThan(0);
+    expect(first.options.textures.length).toBeGreaterThan(0);
+    expect(first.options.flavors.length).toBeGreaterThan(0);
+    expect(Object.values(first.options).flat()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source: "semantic_preference",
+          confidence: "medium",
+        }),
+      ]),
+    );
+    expect(Object.values(first.options).flat().every(
+      (item) => item.id.startsWith(`semantic-${item.dimension}-`),
+    )).toBe(true);
+
+    const selectedForm = first.options.forms[0];
+    const selected = await expandCreateDishIngredient(
+      ExpandIngredientRequestSchema.parse({
+        ingredientInput: "Chili",
+        creator: "create_a_dish",
+        useAiForGaps: true,
+        surprisePolicy: {
+          delegatedDimensions: [],
+          selectedOptionIds: { form: selectedForm.id },
+        },
+      }),
+      { semanticProvider, openWorldExpansionProvider },
+    );
+    expect(selected.resolvedCombination?.form).toMatchObject({
+      id: selectedForm.id,
+      source: "semantic_preference",
+    });
+    expect(selected.resolvedCombination?.selectionSource.form).toBe("user_selected");
+  });
+
   test("a cuisine-led request does not require a pre-named dish", async () => {
     const intent = await resolveOpenWorldFoodIntent(
       "Surprise me with a Mediterranean dinner",
