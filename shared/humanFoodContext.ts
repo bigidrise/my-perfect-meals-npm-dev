@@ -13,7 +13,8 @@ export type HumanFoodCreator =
   | "craving_creator"
   | "dessert_creator"
   | "beverage_creator"
-  | "sushi_creator";
+  | "sushi_creator"
+  | "my_perfect_beginning";
 
 export type HumanFoodResolutionStatus =
   | "resolved"

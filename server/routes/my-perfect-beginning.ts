@@ -19,6 +19,12 @@ import {
   type PediatricMealGenerationContext,
   type DevelopmentalStageKey,
 } from "../services/pediatric/pediatricResolver";
+import { buildCreatorHumanFoodPrompt } from "../services/humanFoodContext/adapters";
+import { validateHumanFoodCandidate } from "../services/humanFoodContext/finalValidation";
+import {
+  buildPediatricHumanFoodContext,
+  toPediatricHumanFoodCandidate,
+} from "../services/humanFoodContext/pediatricContextAdapter";
 
 const router = Router();
 
@@ -354,6 +360,7 @@ Return valid JSON only. No markdown. No extra text outside JSON.
 Required schema:
 {
   "recipeName": "string",
+  "cuisine": "string — the actual culinary framework used for this recipe",
   "ageStageSuitability": "string",
   "ingredients": [{ "name": "string", "quantity": "string", "unit": "string|omit", "prepNote": "string|omit", "substitutionNote": "string|omit" }],
   "instructions": ["string"],
@@ -494,6 +501,7 @@ Return valid JSON only. No markdown. No extra text outside JSON.
 Required schema:
 {
   "recipeName": "string",
+  "cuisine": "string — the actual culinary framework used for this recipe",
   "ageStageSuitability": "string",
   "ingredients": [{ "name": "string", "quantity": "string", "unit": "string|omit", "prepNote": "string|omit", "substitutionNote": "string|omit" }],
   "instructions": ["string"],
@@ -1129,12 +1137,25 @@ router.post("/create-dish", requireAuth, async (req, res) => {
       resolverCtx = null;
     }
 
+    const humanFoodContext = buildPediatricHumanFoodContext({
+      actorUserId: userId,
+      subjectId: isMultiChildMode
+        ? `children:${(rawChildProfileIds as string[]).slice(0, 10).join(",")}`
+        : childProfileId || `child-stage:${ageStage}`,
+      correlationId: (req as any).id,
+      resolverContext: resolverCtx,
+      allergies,
+      dietaryPattern: parentPrefsWithKitchen.dietaryPattern,
+      explicitCuisine: rawCulturalCuisine,
+    });
+
     const rawLang = (req as AuthenticatedRequest).authUser?.preferredLanguage || "auto";
     const langInstruction = getLanguageInstruction(rawLang);
     let systemPrompt = resolverCtx
       ? buildSystemPromptWithResolver(ageStage, resolverCtx)
       : buildSystemPrompt(ageStage, allergies, parentPrefsWithKitchen, conditionGuidanceBlocks, stageDRIBlock);
     if (langInstruction) systemPrompt = `${langInstruction}\n\n${systemPrompt}`;
+    systemPrompt = `${systemPrompt}\n\n${buildCreatorHumanFoodPrompt("my_perfect_beginning", humanFoodContext)}`;
 
     const userMessage = buildUserMessage(
       foodRequest,
@@ -1213,6 +1234,26 @@ router.post("/create-dish", requireAuth, async (req, res) => {
       }
     } else {
       finalRecipe.whyThisMealWasChosen = disclaimerSuffix;
+    }
+
+    const universalValidation = validateHumanFoodCandidate(
+      toPediatricHumanFoodCandidate(finalRecipe, humanFoodContext),
+      humanFoodContext,
+      {
+        requestedDish: foodRequest,
+        requestedCategory: "meal",
+      },
+    );
+    if (universalValidation.outcome !== "pass") {
+      console.warn("[MyPerfectBeginning] universal final validation rejected recipe", {
+        outcome: universalValidation.outcome,
+        findingCodes: universalValidation.findings.map((finding) => finding.code),
+        correlationId: (req as any).id,
+      });
+      return res.status(409).json({
+        error: "The generated recipe did not pass all required food checks. Please try again.",
+        code: "HUMAN_FOOD_FINAL_VALIDATION_FAILED",
+      });
     }
 
     // ── Resolver metadata (audit trail + parent-education layer) ─────────────
