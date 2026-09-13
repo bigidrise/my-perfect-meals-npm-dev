@@ -33,15 +33,15 @@ export async function resolveOpenWorldFoodIntent(
   const raw = await provider.resolve({ userText });
   const parsed = CreateDishSemanticIntentSchema.omit({ source: true }).parse(raw);
   const clarification =
-    (parsed.kind === "ambiguous" || parsed.confidence === "low")
+    (parsed.kind === "ambiguous" || parsed.confidence !== "high")
       ? parsed.clarification
       : null;
-  if ((parsed.kind === "ambiguous" || parsed.confidence === "low") && !clarification) {
+  if ((parsed.kind === "ambiguous" || parsed.confidence !== "high") && !clarification) {
     throw new Error("SEMANTIC_CLARIFICATION_REQUIRED");
   }
   if (
     !["ambiguous", "non_food"].includes(parsed.kind) &&
-    parsed.confidence !== "low" &&
+    parsed.confidence === "high" &&
     !parsed.canonicalName &&
     !(parsed.kind === "cuisine_led" && parsed.cuisine) &&
     !(parsed.kind === "ingredient_led" && parsed.explicitIngredients.length > 0)
@@ -66,18 +66,40 @@ export function semanticIntentToIngredientRecognition(
       canonicalId: null,
       canonicalName: null,
       category: null,
-      confidence: intent.confidence,
+      // Semantic confidence that text is non-food is not ingredient-recognition
+      // confidence. Unsupported ingredient results are always low confidence.
+      confidence: "low" as const,
     };
   }
-  if (intent.kind === "ambiguous" || intent.confidence === "low") {
+  if (intent.kind === "ambiguous" || intent.confidence !== "high") {
+    const clarification = intent.clarification;
+    if (
+      !clarification ||
+      typeof clarification.question !== "string" ||
+      !Array.isArray(clarification.choices)
+    ) {
+      throw new Error("SEMANTIC_CLARIFICATION_REQUIRED");
+    }
+    const choices: Array<{ id: string; label: string }> = [];
+    for (const choice of clarification.choices) {
+      if (typeof choice.id !== "string" || typeof choice.label !== "string") {
+        throw new Error("SEMANTIC_CLARIFICATION_REQUIRED");
+      }
+      choices.push({ id: choice.id, label: choice.label });
+    }
     return {
       submittedText,
       status: "clarification_required" as const,
       canonicalId: null,
       canonicalName: null,
       category: null,
-      confidence: "low" as const,
-      clarification: intent.clarification ?? undefined,
+      // Low confidence in an interpretation means we are moderately confident
+      // that a specific clarification is the correct next state.
+      confidence: "medium" as const,
+      clarification: {
+        question: clarification.question,
+        choices,
+      },
     };
   }
   const canonicalName =
