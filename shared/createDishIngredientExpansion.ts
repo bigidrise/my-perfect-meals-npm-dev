@@ -77,6 +77,30 @@ export const IngredientRecognitionSchema = z.object({
     .optional(),
 });
 
+export const CreateDishSemanticIntentSchema = z.object({
+  source: z.literal("semantic"),
+  kind: z.enum([
+    "prepared_dish",
+    "ingredient_led",
+    "open_world_ingredient",
+    "cuisine_led",
+    "ambiguous",
+    "non_food",
+  ]),
+  canonicalName: z.string().trim().min(1).max(100).nullable(),
+  displayName: z.string().trim().min(1).max(100).nullable(),
+  cuisine: z.string().trim().min(1).max(80).nullable(),
+  explicitIngredients: z.array(z.string().trim().min(1).max(80)).max(12),
+  confidence: z.enum(["high", "medium", "low"]),
+  clarification: z.object({
+    question: z.string().trim().min(1).max(180),
+    choices: z.array(z.object({
+      id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+      label: z.string().trim().min(1).max(80),
+    })).min(2).max(5),
+  }).nullable(),
+}).strict();
+
 export const SurprisePolicySchema = z.object({
   delegatedDimensions: z.array(ExpansionDimensionSchema).default([]),
   selectedOptionIds: z
@@ -111,6 +135,7 @@ export const ResolvedCombinationSchema = z.object({
 
 export const ExpandIngredientResponseSchema = z.object({
   ingredient: IngredientRecognitionSchema,
+  semanticIntent: CreateDishSemanticIntentSchema.optional(),
   options: z.object({
     forms: z.array(ExpansionOptionSchema),
     methods: z.array(ExpansionOptionSchema),
@@ -163,3 +188,4 @@ export type ExpandIngredientResponse = z.infer<
 >;
 export type ExpansionDimension = z.infer<typeof ExpansionDimensionSchema>;
 export type CreateDishIntent = z.infer<typeof CreateDishIntentSchema>;
+export type CreateDishSemanticIntent = z.infer<typeof CreateDishSemanticIntentSchema>;

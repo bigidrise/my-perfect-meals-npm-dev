@@ -92,3 +92,4 @@
 - [Shared validator consumer contracts](shared-validator-consumer-contracts.md) — shared validation changes must run contract suites for every protected feature that feeds them.
 - [Bounded startup migrations](bounded-startup-migrations.md) — readiness-critical DDL needs PostgreSQL lock and statement timeouts; application timers do not bound blocked queries.
 - [Meal generation progress UX](meal-generation-progress-ux.md) — long food requests use one context-aware explanatory status system, never fake backend stages.
+- [Open-world food intent](open-world-food-intent.md) — catalog misses use schema-bound semantic interpretation; downstream governance remains authoritative.

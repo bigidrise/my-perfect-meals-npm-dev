@@ -1317,7 +1317,15 @@ export default function CreateDishPage() {
 
                   {classificationComplete && (
                     <>
-                  {ingredientExpansion && canRenderCreateDishPreparation({
+                  {ingredientExpansion &&
+                    (
+                      ingredientExpansion.options.forms.length > 0 ||
+                      ingredientExpansion.options.methods.length > 0 ||
+                      ingredientExpansion.options.textures.length > 0 ||
+                      ingredientExpansion.options.flavors.length > 0 ||
+                      ingredientExpansion.options.cuisines.length > 0
+                    ) &&
+                    canRenderCreateDishPreparation({
                     resultSource: acceptedExpansionSource,
                     classifiedValue: classifiedDishInput,
                     status: ingredientExpansion.ingredient.status,
