@@ -94,3 +94,4 @@
 - [Meal generation progress UX](meal-generation-progress-ux.md) — long food requests use one context-aware explanatory status system, never fake backend stages.
 - [Open-world food intent](open-world-food-intent.md) — catalog misses use schema-bound semantic interpretation; downstream governance remains authoritative.
 - [Meal subject authority](meal-subject-authority.md) — the authenticated actor is not automatically the nutrition subject; resolve food context for the person being fed.
+- [Mobile page scroll ownership](mobile-page-scroll-ownership.md) — RootViewport alone owns vertical page scrolling; fixed controls must not block vertical gestures.
