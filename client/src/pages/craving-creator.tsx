@@ -74,7 +74,7 @@ import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import DietStyleBadge from "@/components/DietStyleBadge";
 import MealClassificationPill from "@/components/MealClassificationPill";
 import KosherProTip from "@/components/KosherProTip";
-import ThinkingDots from "@/components/ThinkingDots";
+import MealGenerationProgress from "@/components/MealGenerationProgress";
 import { SafetyGuardToggle } from "@/components/SafetyGuardToggle";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
 import { FlavorToggle } from "@/components/FlavorToggle";
@@ -1320,7 +1320,11 @@ export default function CravingCreator() {
 
                   {isGenerating ? (
                     <div className="max-w-md mx-auto mb-4 flex justify-center">
-                      <ThinkingDots label="Creating your craving…" />
+                      <MealGenerationProgress
+                        active={isGenerating}
+                        context="general"
+                        mode="options"
+                      />
                     </div>
                   ) : (
                     <GlassButton
@@ -1388,7 +1392,11 @@ export default function CravingCreator() {
           {/* 🎲 Variety Engine: Meal Options Panel */}
           {isPlatingMeal && (
             <div className="mt-8 flex justify-center py-10">
-              <ThinkingDots label="Chef is plating your meal…" />
+              <MealGenerationProgress
+                active={isPlatingMeal}
+                context="general"
+                mode="single"
+              />
             </div>
           )}
 

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { formatAmount } from "@/utils/formatAmount";
 import { useMealImages, lookupHydratedImageUrl } from "@/hooks/useMealImages";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
-import ThinkingDots from "@/components/ThinkingDots";
+import MealGenerationProgress from "@/components/MealGenerationProgress";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1610,7 +1610,11 @@ export default function CreateDishPage() {
 
                   {isGenerating && (
                     <div className="flex justify-center mt-2">
-                      <ThinkingDots label="Chef is crafting your dish…" />
+                      <MealGenerationProgress
+                        active={isGenerating}
+                        context="create-dish"
+                        mode="options"
+                      />
                     </div>
                   )}
 
@@ -1633,7 +1637,11 @@ export default function CreateDishPage() {
 
           {isPlatingMeal && (
             <div className="mt-8 flex justify-center py-10">
-              <ThinkingDots label="Chef is plating your dish…" />
+              <MealGenerationProgress
+                active={isPlatingMeal}
+                context="create-dish"
+                mode="single"
+              />
             </div>
           )}
 

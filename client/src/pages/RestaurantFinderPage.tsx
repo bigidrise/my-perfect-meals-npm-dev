@@ -17,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
-import ThinkingDots from "@/components/ThinkingDots";
+import MealGenerationProgress from "@/components/MealGenerationProgress";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 
@@ -313,8 +313,7 @@ export default function RestaurantFinderPage() {
 
           {isLoading && (
             <div className="text-center py-12">
-              <ThinkingDots />
-              <p className="text-sm text-white/50 mt-3">Scoring nearby restaurants for your diet</p>
+              <MealGenerationProgress context="restaurant" mode="search" />
             </div>
           )}
 

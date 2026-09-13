@@ -56,6 +56,9 @@ export default function ThinkingDots({
           0%, 80%, 100% { transform: translateY(0);   opacity: 0.55; }
           40%            { transform: translateY(-6px); opacity: 1;    }
         }
+        @media (prefers-reduced-motion: reduce) {
+          [style*="thinkingBounce"] { animation: none !important; }
+        }
       `}</style>
     </div>
   );

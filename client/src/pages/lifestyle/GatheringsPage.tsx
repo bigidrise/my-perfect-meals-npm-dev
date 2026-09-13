@@ -4,6 +4,7 @@ import { formatAmount } from "@/utils/formatAmount";
 import { useMealImages } from "@/hooks/useMealImages";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import ThinkingDots from "@/components/ThinkingDots";
+import MealGenerationProgress from "@/components/MealGenerationProgress";
 import { useLocation } from "wouter";
 import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
@@ -1245,18 +1246,17 @@ export default function UltimateExperiencesPage() {
 
                   {isGenerating && (
                     <div className="flex flex-col items-center gap-3 mt-2">
-                      <ThinkingDots
-                        label={
-                          situation === "outdoor" && outdoorExperienceType === "simple"
-                            ? `Generating your preparation guide for ${proteinSource || "your ingredient"}…`
-                            : situation === "outdoor" && outdoorExperienceType === "complete"
-                              ? "Chef is crafting your Great Outdoors complete meal…"
-                              : `Chef is crafting your ${totalCourses}-course experience…`
-                        }
-                      />
-                      <p className="text-xs text-white/40">
-                        This takes a moment — each course is crafted individually
-                      </p>
+                      {situation === "outdoor" && outdoorExperienceType === "simple" ? (
+                        <ThinkingDots
+                          label={`Generating your preparation guide for ${proteinSource || "your ingredient"}…`}
+                        />
+                      ) : (
+                        <MealGenerationProgress
+                          active={isGenerating}
+                          context="gathering"
+                          mode="options"
+                        />
+                      )}
                     </div>
                   )}
 

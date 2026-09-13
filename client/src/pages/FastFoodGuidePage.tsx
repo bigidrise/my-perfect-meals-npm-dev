@@ -19,7 +19,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useChefFlowImages, chefFlowMealId } from "@/hooks/useChefFlowImages";
 import { ChefFlowImage } from "@/components/ChefFlowImage";
 import { useAuth } from "@/contexts/AuthContext";
-import CometBar from "@/components/CometBar";
+import MealGenerationProgress from "@/components/MealGenerationProgress";
 import {
   normalizeDiet,
   filterMealsByDiet,
@@ -1028,21 +1028,8 @@ export default function FastFoodGuidePage() {
               exit={{ opacity: 0, y: -20 }}
             >
               <Card className="bg-zinc-900/80 border border-white/30 text-white">
-                <CardContent className="p-6 space-y-4">
-                  <div className="flex justify-center mb-4">
-                    <div className="bg-orange-500/20 p-4 rounded-full animate-pulse">
-                      <ChefHat className="h-10 w-10 text-orange-400" />
-                    </div>
-                  </div>
-                  <h3 className="text-xl font-semibold text-white text-center">
-                    “Finding your options…”
-                  </h3>
-                  <p className="text-white/70 text-center">
-                    Searching {restaurantInput} for {cravingInput} options
-                  </p>
-                  <div className="mt-6 flex justify-center">
-                    <CometBar label="Scanning the menu…" />
-                  </div>
+                <CardContent className="p-6">
+                  <MealGenerationProgress context="fast-food" mode="search" />
                 </CardContent>
               </Card>
             </motion.div>
