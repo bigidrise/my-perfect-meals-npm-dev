@@ -21,6 +21,11 @@ import {
   getTechniqueById,
   type CookingMethodId,
 } from "../../../shared/catalog/techniques.catalog";
+import {
+  resolveOpenWorldFoodIntent,
+  semanticIntentToIngredientRecognition,
+  type SemanticFoodIntentProvider,
+} from "./openWorldFoodIntentResolver";
 
 export interface AiExpansionProvider {
   expand(input: {
@@ -34,9 +39,21 @@ export interface AiExpansionProvider {
   }): Promise<unknown>;
 }
 
+export interface OpenWorldExpansionProvider {
+  expand(input: {
+    originalText: string;
+    canonicalName: string;
+    kind: string;
+    cuisine: string | null;
+    maximumOptionsPerDimension: number;
+  }): Promise<unknown>;
+}
+
 export interface IngredientExpansionContext {
   allergyTags?: string[];
   aiProvider?: AiExpansionProvider;
+  semanticProvider?: SemanticFoodIntentProvider;
+  openWorldExpansionProvider?: OpenWorldExpansionProvider;
 }
 
 const AMBIGUOUS: Record<
@@ -214,7 +231,10 @@ function option(
     label,
     dimension,
     source,
-    confidence: source === "validated_ai" ? "medium" : "high",
+    confidence:
+      source === "validated_ai" || source === "semantic_preference"
+        ? "medium"
+        : "high",
     ...extra,
   });
 }
@@ -289,6 +309,45 @@ function validateAiOptions(
     }
     return parsed;
   });
+}
+
+const OpenWorldPreferenceResponseSchema = z.object({
+  forms: z.array(z.string().trim().min(1).max(50)).min(1).max(4),
+  textures: z.array(z.string().trim().min(1).max(50)).min(1).max(4),
+  flavors: z.array(z.string().trim().min(1).max(50)).min(1).max(4),
+}).strict();
+
+function validateOpenWorldPreferenceOptions(
+  raw: unknown,
+  allergyTags: string[],
+): ExpansionOption[] {
+  const parsed = OpenWorldPreferenceResponseSchema.parse(raw);
+  const blockedClaims =
+    /\b(calorie|carb|sodium|sugar|fat|protein|diabetes|glp-?1|medical|clinical|allergy|allergen|heart[- ]healthy|weight loss|low[- ](?:carb|sodium|sugar|fat)|vegan|vegetarian|pescatarian|pregnan|pediatric)\b/i;
+  const blockedAllergies = allergyTags.map(normalize).filter(Boolean);
+  const seen = new Set<string>();
+  const containers: Array<[ExpansionDimension, string[]]> = [
+    ["form", parsed.forms],
+    ["texture", parsed.textures],
+    ["flavor", parsed.flavors],
+  ];
+  return containers.flatMap(([dimension, labels]) =>
+    labels.map((label, index) => {
+      if (blockedClaims.test(label)) {
+        throw new Error("Semantic preference contains a governed claim");
+      }
+      const normalizedLabel = normalize(label);
+      if (blockedAllergies.some((allergy) => normalizedLabel.includes(allergy))) {
+        throw new Error("Semantic preference contains an allergy term");
+      }
+      const base = normalizedLabel.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      const id = `semantic-${dimension}-${base || index + 1}`;
+      const key = `${dimension}:${id}`;
+      if (seen.has(key)) throw new Error("Duplicate semantic preference");
+      seen.add(key);
+      return option(dimension, id, label, "semantic_preference");
+    }),
+  );
 }
 
 function findOption(
@@ -423,8 +482,75 @@ export async function expandCreateDishIngredient(
     throw new Error("CREATE_DISH_SCOPE_REQUIRED");
   }
 
-  const ingredient = recognize(request.ingredientInput);
+  let ingredient = recognize(request.ingredientInput);
+  let semanticIntent;
+  if (
+    ingredient.status === "unsupported" &&
+    request.useAiForGaps &&
+    context.semanticProvider
+  ) {
+    try {
+      semanticIntent = await resolveOpenWorldFoodIntent(
+        request.ingredientInput,
+        context.semanticProvider,
+      );
+      ingredient = semanticIntentToIngredientRecognition(
+        request.ingredientInput,
+        semanticIntent,
+      );
+    } catch {
+      // Invalid or unavailable semantic output fails closed to the existing
+      // unsupported result. It never becomes safety or catalog evidence.
+    }
+  }
   const warnings: ExpandIngredientResponse["warnings"] = [];
+  if (semanticIntent && ingredient.status === "recognized") {
+    let allOptions: ExpansionOption[] = [];
+    if (context.openWorldExpansionProvider) {
+      try {
+        const rawOptions = await context.openWorldExpansionProvider.expand({
+          originalText: request.ingredientInput,
+          canonicalName: ingredient.canonicalName!,
+          kind: semanticIntent.kind,
+          cuisine: semanticIntent.cuisine,
+          maximumOptionsPerDimension: 4,
+        });
+        allOptions = validateOpenWorldPreferenceOptions(
+          rawOptions,
+          context.allergyTags ?? [],
+        );
+      } catch {
+        warnings.push({
+          code: "AI_VALIDATION_FAILED",
+          message: "Semantic preparation preferences were discarded.",
+        });
+      }
+    }
+    let resolvedCombination = null;
+    try {
+      resolvedCombination = resolveCombination(allOptions, request);
+    } catch (error) {
+      if (String(error).includes("UNKNOWN_OPTION_ID")) throw error;
+      warnings.push({
+        code: "NO_COMPATIBLE_COMBINATION",
+        message: "No coherent semantic preference combination could be resolved.",
+      });
+    }
+    return ExpandIngredientResponseSchema.parse({
+      ingredient,
+      semanticIntent,
+      options: {
+        forms: allOptions.filter((item) => item.dimension === "form"),
+        methods: [],
+        textures: allOptions.filter((item) => item.dimension === "texture"),
+        flavors: allOptions.filter((item) => item.dimension === "flavor"),
+        cuisines: [],
+      },
+      resolvedCombination,
+      inferredSelectionIds: inferSelectionIds(request.ingredientInput, allOptions),
+      warnings,
+    });
+  }
   if (ingredient.status !== "recognized") {
     warnings.push({
       code:
@@ -438,6 +564,7 @@ export async function expandCreateDishIngredient(
     });
     return ExpandIngredientResponseSchema.parse({
       ingredient,
+      ...(semanticIntent ? { semanticIntent } : {}),
       options: { forms: [], methods: [], textures: [], flavors: [], cuisines: [] },
       resolvedCombination: null,
       inferredSelectionIds: {},

@@ -4,13 +4,21 @@
  * Handles all possible scroll containers and edge cases
  */
 export function scrollToTop(behavior: ScrollBehavior = "instant") {
-  // Handle custom app scroller
-  const scrollerEl = document.getElementById("appScroll");
-  if (scrollerEl) {
-    scrollerEl.scrollTo({ top: 0, left: 0, behavior });
+  // RootViewport is the app's authoritative page scroller.
+  const rootViewport = document.getElementById("root-viewport");
+  if (rootViewport) {
+    rootViewport.scrollTo({ top: 0, left: 0, behavior });
+    return;
   }
 
-  // Always handle window scroll
+  // Legacy custom scroller fallback.
+  const legacyScroller = document.getElementById("appScroll");
+  if (legacyScroller) {
+    legacyScroller.scrollTo({ top: 0, left: 0, behavior });
+    return;
+  }
+
+  // Document scrolling is only a fallback for pages outside RootViewport.
   window.scrollTo({ top: 0, left: 0, behavior });
 
   // Handle document.documentElement
@@ -23,10 +31,6 @@ export function scrollToTop(behavior: ScrollBehavior = "instant") {
     document.body.scrollTop = 0;
   }
 
-  // Force repaint to ensure scroll position is applied
-  if (behavior === "instant") {
-    document.body.offsetHeight;
-  }
 }
 
 /**

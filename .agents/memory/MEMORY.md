@@ -91,3 +91,7 @@
 - [Authoritative mobile text submission](authoritative-mobile-text-submission.md) — food creators must process the visible field value, not potentially stale React state.
 - [Shared validator consumer contracts](shared-validator-consumer-contracts.md) — shared validation changes must run contract suites for every protected feature that feeds them.
 - [Bounded startup migrations](bounded-startup-migrations.md) — readiness-critical DDL needs PostgreSQL lock and statement timeouts; application timers do not bound blocked queries.
+- [Meal generation progress UX](meal-generation-progress-ux.md) — long food requests use one context-aware explanatory status system, never fake backend stages.
+- [Open-world food intent](open-world-food-intent.md) — catalog misses use schema-bound semantic interpretation; downstream governance remains authoritative.
+- [Meal subject authority](meal-subject-authority.md) — the authenticated actor is not automatically the nutrition subject; resolve food context for the person being fed.
+- [Mobile page scroll ownership](mobile-page-scroll-ownership.md) — RootViewport alone owns vertical page scrolling; fixed controls must not block vertical gestures.

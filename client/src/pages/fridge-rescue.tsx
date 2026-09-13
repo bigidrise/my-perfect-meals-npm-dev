@@ -11,6 +11,7 @@ import { PillButton } from "@/components/ui/pill-button";
 import { IconPillOption } from "@/components/ui/icon-pill-option";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import ThinkingDots from "@/components/ThinkingDots";
+import MealGenerationProgress from "@/components/MealGenerationProgress";
 import { motion } from "framer-motion";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -1093,7 +1094,15 @@ const FridgeRescuePage = () => {
 
                 {isLoading || safetyChecking ? (
                   <div className="flex justify-center">
-                    <ThinkingDots label={safetyChecking ? "Checking safety…" : "Rescuing your meal…"} />
+                    {safetyChecking ? (
+                      <ThinkingDots label="Checking safety…" />
+                    ) : (
+                      <MealGenerationProgress
+                        active={isLoading}
+                        context="fridge-rescue"
+                        mode="options"
+                      />
+                    )}
                   </div>
                 ) : (
                   <button

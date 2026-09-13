@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { apiJSON } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassButton } from "@/components/glass";
+import MealGenerationProgress from "@/components/MealGenerationProgress";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, Wine, Beer, Martini } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -317,20 +318,26 @@ export default function ChefPairings() {
                 <GlucoseGuardToggle disabled={isGenerating || safetyChecking} />
               </div>
 
-              {isGenerating || safetyChecking ? (
+              {isGenerating ? (
+                <div className="max-w-md mx-auto mb-4">
+                  <MealGenerationProgress
+                    active={isGenerating}
+                    context="pairing"
+                    mode="pairing"
+                  />
+                </div>
+              ) : safetyChecking ? (
                 <div className="max-w-md mx-auto mb-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-white/80">
-                      {safetyChecking
-                        ? "Checking Safety Profile"
-                        : "Finding Perfect Pairings"}
+                      Checking Safety Profile
                     </span>
                     <span className="text-sm text-white/80">
-                      {safetyChecking ? "..." : `${Math.round(progress)}%`}
+                      ...
                     </span>
                   </div>
                   <Progress
-                    value={safetyChecking ? 30 : progress}
+                    value={30}
                     className="h-3 bg-black/30 border border-white/20"
                   />
                 </div>

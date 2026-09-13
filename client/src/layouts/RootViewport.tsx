@@ -5,14 +5,15 @@ export function RootViewport({ children }: { children: React.ReactNode }) {
     <div
       id="root-viewport"
       style={{
-        position: "fixed",
+        position: "absolute",
         inset: 0,
-        height: "100dvh",
         width: "100%",
         overflowX: "clip",
         overflowY: "auto",
         WebkitOverflowScrolling: "touch",
-        overscrollBehavior: "none",
+        overscrollBehaviorX: "none",
+        overscrollBehaviorY: "contain",
+        touchAction: "pan-y",
         background: "black",
       }}
     >
