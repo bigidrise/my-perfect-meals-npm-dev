@@ -29,8 +29,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import ThinkingDots from "@/components/ThinkingDots";
-import { Progress } from "@/components/ui/progress";
+import MealGenerationProgress from "@/components/MealGenerationProgress";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
@@ -2212,9 +2211,11 @@ export default function MyPerfectBeginningCreateMealPage() {
             ))}
             {isGenerating && (
               <div className="py-4 text-center">
-                <p className="text-white/90 text-sm font-medium">
-                  Building your kid-friendly recipe <ThinkingDots />
-                </p>
+                <MealGenerationProgress
+                  active={isGenerating}
+                  context="pediatric"
+                  mode="single"
+                />
               </div>
             )}
             <button
@@ -2803,18 +2804,21 @@ export default function MyPerfectBeginningCreateMealPage() {
             {/* Progress / loading states */}
             {isGeneratingOptions && (
               <div className="py-2 text-center">
-                <p className="text-white/90 text-sm font-medium flex items-center justify-center gap-1">
-                  Finding the best options for {activeChild?.name ?? "your child"} <ThinkingDots />
-                </p>
+                <MealGenerationProgress
+                  active={isGeneratingOptions}
+                  context="pediatric"
+                  mode="options"
+                />
               </div>
             )}
 
             {isGenerating && (
-              <div className="space-y-2">
-                <Progress value={progress} className="h-1.5 bg-white/10" />
-                <p className="text-center text-xs text-white flex items-center justify-center gap-1">
-                  Building your kid-friendly recipe <ThinkingDots />
-                </p>
+              <div>
+                <MealGenerationProgress
+                  active={isGenerating}
+                  context="pediatric"
+                  mode="single"
+                />
               </div>
             )}
 
@@ -2994,8 +2998,11 @@ function SideRecipeSheet({
           <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
             {loading && (
               <div className="flex flex-col items-center gap-3 py-10">
-                <ThinkingDots />
-                <p className="text-sm text-white/60">Building a recipe for {side.name}…</p>
+                <MealGenerationProgress
+                  active={loading}
+                  context="pediatric"
+                  mode="single"
+                />
               </div>
             )}
 

@@ -7,6 +7,7 @@ import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassButton } from "@/components/glass";
 import CometBar from "@/components/CometBar";
+import MealGenerationProgress from "@/components/MealGenerationProgress";
 import { useToast } from "@/hooks/use-toast";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
@@ -350,9 +351,17 @@ export default function PairingsAI() {
                   <GlucoseGuardToggle disabled={isGenerating || safetyChecking} />
                 </div>
 
-                {isGenerating || safetyChecking ? (
+                {isGenerating ? (
                   <div className="max-w-md mx-auto mb-4 flex justify-center">
-                    <CometBar label={safetyChecking ? "Checking safety…" : "Scanning for pairings…"} />
+                    <MealGenerationProgress
+                      active={isGenerating}
+                      context="pairing"
+                      mode="pairing"
+                    />
+                  </div>
+                ) : safetyChecking ? (
+                  <div className="max-w-md mx-auto mb-4 flex justify-center">
+                    <CometBar label="Checking safety…" />
                   </div>
                 ) : (
                   <GlassButton

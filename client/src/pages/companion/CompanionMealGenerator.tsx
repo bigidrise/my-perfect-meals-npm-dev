@@ -12,7 +12,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
-import ThinkingDots from "@/components/ThinkingDots";
+import MealGenerationProgress from "@/components/MealGenerationProgress";
 import { DOG_MEAL_IMAGES, getDogMealImage } from "@/pages/CompanionNutritionHub";
 
 const FALLBACK_HERO = "https://static.vecteezy.com/system/resources/thumbnails/059/352/919/large/a-silhouette-of-a-dog-against-a-golden-sunset-in-a-grassy-field-photo.jpg";
@@ -294,7 +294,11 @@ export default function CompanionMealGenerator() {
         {/* Generate Button */}
         {generating ? (
           <div className="mb-6">
-            <ThinkingDots label={`Crafting ${selectedProfile?.name || `your ${species}`}'s meal…`} />
+            <MealGenerationProgress
+              active={generating}
+              context="companion"
+              mode="single"
+            />
           </div>
         ) : (
           <PillButton

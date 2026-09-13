@@ -5,6 +5,7 @@ import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import ThinkingDots from "@/components/ThinkingDots";
+import MealGenerationProgress from "@/components/MealGenerationProgress";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -976,7 +977,15 @@ export default function DessertCreator() {
 
               {isGenerating || safetyChecking ? (
                 <div className="max-w-md mx-auto mb-4 flex justify-center">
-                  <ThinkingDots label={safetyChecking ? "Checking safety…" : "Creating your dessert…"} />
+                  {safetyChecking ? (
+                    <ThinkingDots label="Checking safety…" />
+                  ) : (
+                    <MealGenerationProgress
+                      active={isGenerating}
+                      context="dessert"
+                      mode="single"
+                    />
+                  )}
                 </div>
               ) : (
                 <GlassButton

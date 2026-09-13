@@ -3,6 +3,7 @@ import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
+import MealGenerationProgress from "@/components/MealGenerationProgress";
 import ThinkingDots from "@/components/ThinkingDots";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
@@ -18,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
 import { Sparkles, ArrowLeft, Brain, Wine } from "lucide-react";
 import ProtocolVisibilityPanel from "@/components/ProtocolVisibilityPanel";
 import { useToast } from "@/hooks/use-toast";
@@ -837,9 +837,17 @@ export default function BeverageCreator() {
                 </p>
               </div>
 
-              {isGenerating || safetyChecking ? (
+              {isGenerating ? (
                 <div className="max-w-md mx-auto mb-4 flex justify-center">
-                  <ThinkingDots label={safetyChecking ? "Checking safety…" : "Creating your beverage…"} />
+                  <MealGenerationProgress
+                    active={isGenerating}
+                    context="beverage"
+                    mode="single"
+                  />
+                </div>
+              ) : safetyChecking ? (
+                <div className="max-w-md mx-auto mb-4 flex justify-center">
+                  <ThinkingDots label="Checking safety…" />
                 </div>
               ) : (
                 <GlassButton

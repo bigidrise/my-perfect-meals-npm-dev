@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Cookie } from "lucide-react";
 import BreathingOrb from "@/components/BreathingOrb";
+import MealGenerationProgress from "@/components/MealGenerationProgress";
 import { useSnackCreatorRequest, DietType, BeachBodyPhase, ExplicitOverride } from "@/hooks/useSnackCreatorRequest";
 import { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { useToast } from "@/hooks/use-toast";
@@ -331,7 +332,15 @@ export function SnackCreatorModal({
 
           {isProcessing && (
             <div className="flex justify-center">
-              <BreathingOrb label={checking ? t("snack.checkingSafety") : t("snack.preparing")} />
+              {checking ? (
+                <BreathingOrb label={t("snack.checkingSafety")} />
+              ) : (
+                <MealGenerationProgress
+                  active={generating}
+                  context="snack"
+                  mode="single"
+                />
+              )}
             </div>
           )}
 

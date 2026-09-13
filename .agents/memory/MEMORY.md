@@ -91,3 +91,4 @@
 - [Authoritative mobile text submission](authoritative-mobile-text-submission.md) — food creators must process the visible field value, not potentially stale React state.
 - [Shared validator consumer contracts](shared-validator-consumer-contracts.md) — shared validation changes must run contract suites for every protected feature that feeds them.
 - [Bounded startup migrations](bounded-startup-migrations.md) — readiness-critical DDL needs PostgreSQL lock and statement timeouts; application timers do not bound blocked queries.
+- [Meal generation progress UX](meal-generation-progress-ux.md) — long food requests use one context-aware explanatory status system, never fake backend stages.

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import BreathingOrb from "@/components/BreathingOrb";
+import MealGenerationProgress from "@/components/MealGenerationProgress";
 import { UniversalDialog } from "@/components/ui/universal-modal";
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -665,7 +666,15 @@ export function CreateWithChefModal({
 
               {isProcessing && (
                 <div className="flex justify-center">
-                  <BreathingOrb label={safetyChecking ? t("createWithChef.orbCheckingSafety") : finalizing ? t("createWithChef.orbFinishing") : t("createWithChef.orbPreparing")} />
+                  {safetyChecking ? (
+                    <BreathingOrb label={t("createWithChef.orbCheckingSafety")} />
+                  ) : (
+                    <MealGenerationProgress
+                      active={generating || finalizing}
+                      context="general"
+                      mode="single"
+                    />
+                  )}
                 </div>
               )}
 
