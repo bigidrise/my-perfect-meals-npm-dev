@@ -59,6 +59,18 @@ Avoid near-duplicates. Preserve the identity of the requested food.`,
           }
         : undefined,
     });
+    console.info("[CreateDishExpansion] response summary", {
+      status: response.ingredient.status,
+      authority: response.semanticIntent ? "semantic" : "catalog",
+      optionCounts: {
+        forms: response.options.forms.length,
+        methods: response.options.methods.length,
+        textures: response.options.textures.length,
+        flavors: response.options.flavors.length,
+        cuisines: response.options.cuisines.length,
+      },
+      warningCodes: response.warnings.map((warning) => warning.code),
+    });
     return res.json(response);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
