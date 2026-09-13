@@ -355,9 +355,11 @@ nav[class*="fixed"][class*="bottom-0"] {
   transform: translateZ(0); /* GPU layer */
   -webkit-transform: translateZ(0);
   will-change: transform;
-  /* Prevent any scroll behavior on the nav itself */
-  overscroll-behavior: none !important;
-  touch-action: none; /* Prevent touch scrolling on the nav */
+  /* Keep the nav fixed while allowing vertical swipes that begin over it
+     to continue through the authoritative RootViewport scroller. */
+  overscroll-behavior-x: none !important;
+  overscroll-behavior-y: contain !important;
+  touch-action: pan-y;
 }
 
 /* Hide scrollbars on all scroll containers */

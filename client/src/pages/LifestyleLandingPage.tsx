@@ -1,6 +1,7 @@
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { scrollToTop } from "@/utils/scrollToTop";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
@@ -69,7 +70,7 @@ export default function LifestyleLandingPage() {
 
   useEffect(() => {
     document.title = "Lifestyle | My Perfect Meals";
-    window.scrollTo({ top: 0, behavior: "instant" });
+    scrollToTop("instant");
   }, []);
 
   const lifestyleFeatures: AIFeature[] = [
@@ -179,7 +180,7 @@ export default function LifestyleLandingPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}
-      className="min-h-screen bg-gradient-to-br from-[#0f0f0f] via-[#1a1a1a] to-[#2b2b2b] pb-20 flex flex-col"
+      className="min-h-full bg-gradient-to-br from-[#0f0f0f] via-[#1a1a1a] to-[#2b2b2b] pb-20 flex flex-col"
     >
       {!isDesktop && (
         <div
