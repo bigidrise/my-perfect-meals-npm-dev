@@ -14,6 +14,7 @@ export const expansionSources = [
   "category_default",
   "ingredient_technique_mapping",
   "validated_ai",
+  "semantic_preference",
 ] as const;
 
 export const expansionConfidence = ["high", "medium", "review"] as const;
