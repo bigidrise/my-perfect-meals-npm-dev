@@ -24,6 +24,22 @@ describe("My Perfect Beginnings shared Human Food Context", () => {
     expect(context.safety.healthConditions).toEqual([]);
   });
 
+  test("cannot inherit parent nutrition settings because only child inputs enter the adapter", () => {
+    const context = buildPediatricHumanFoodContext({
+      actorUserId: "parent-with-vegan-plan-and-peanut-allergy",
+      subjectId: "child",
+      resolverContext: null,
+      allergies: [{ allergenId: "milk", severity: "confirmed_allergy" }],
+      dietaryPattern: "omnivore",
+      explicitCuisine: "Mexican",
+    });
+
+    expect(context.diet.effective).toEqual([]);
+    expect(context.safety.allergies).toEqual(["milk"]);
+    expect(context.safety.allergies).not.toContain("peanut");
+    expect(context.flavor.cuisine.value).toBe("Mexican");
+  });
+
   test("keeps explicit cuisine and child allergy authority", () => {
     const context = buildPediatricHumanFoodContext({
       actorUserId: "parent",
@@ -67,6 +83,7 @@ describe("My Perfect Beginnings shared Human Food Context", () => {
       instructions: ["Cook until soft and age appropriate."],
     }, context);
 
+    expect(candidate.evidence?.clinicalDirectivesCompliant).toBeUndefined();
     expect(validateHumanFoodCandidate(candidate, context, {
       requestedDish: "Mediterranean chicken and rice",
       requestedCategory: "meal",
