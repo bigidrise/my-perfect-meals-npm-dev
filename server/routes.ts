@@ -6766,13 +6766,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (validatedCreateDishIntent && scannedOptions.length > 0) {
         const {
+          applyCreateDishIntentWithSoftFallback,
           buildCreateDishIntentPrompt,
           evaluateCreateDishIntentEvidence,
         } = await import("./services/createDish/createDishIntent");
-        const initialEvidence = scannedOptions.map((meal: any) => ({
-          meal,
-          evidence: evaluateCreateDishIntentEvidence(meal, validatedCreateDishIntent!),
-        }));
+        const intentResolution = applyCreateDishIntentWithSoftFallback(
+          scannedOptions,
+          validatedCreateDishIntent,
+        );
+        const { initialEvidence } = intentResolution;
         const initialIntentSurvivors = initialEvidence
           .filter(({ evidence }) => evidence.passed)
           .map(({ meal }) => meal);
@@ -6784,8 +6786,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           repairAttempted: initialIntentSurvivors.length === 0,
         });
 
-        if (initialIntentSurvivors.length > 0) {
-          scannedOptions = initialIntentSurvivors;
+        if (intentResolution.survivors.length > 0) {
+          validatedCreateDishIntent = intentResolution.effectiveIntent;
+          scannedOptions = intentResolution.survivors;
+          if (intentResolution.relaxedSystemSelections) {
+            logCreateDishAcceptance({
+              stage: "intent_relaxed",
+              candidates: initialEvidence.length,
+              survivors: intentResolution.survivors.length,
+              relaxedSystemSelections: true,
+            });
+          }
         } else {
           const failedDimensions = Array.from(new Set(
             initialEvidence.flatMap(({ evidence }) => evidence.failedDimensions),

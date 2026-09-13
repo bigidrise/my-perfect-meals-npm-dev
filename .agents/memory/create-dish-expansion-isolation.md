@@ -11,11 +11,13 @@ description: Durable architecture boundary for ingredient expansion across creat
 
 Generation must revalidate every option ID and compatibility against current server data. Intent evidence is checked on the exact final recipe payload after bounded repair, creator transformation, formatting, and universal food validation; earlier candidates are not sufficient proof.
 
-**Rule:** Phase 2 structured intent carries only Form/Cut, Texture, and Flavor. Cooking Method and Cuisine remain authoritative through their existing controls. Active selections are hard generation constraints, and generic variety may vary only unselected dimensions.
+**Rule:** Phase 2 structured intent carries only Form/Cut, Texture, and Flavor. Cooking Method and Cuisine remain authoritative through their existing controls. Explicit user selections are hard generation constraints; system-selected Surprise Me dimensions are soft creative guidance.
 
 **Why:** Soft prompt wording plus generic method/flavor variation caused three otherwise-valid candidates to ignore selected intent and all fail the final evidence gate. Hidden Method/Cuisine fields also allowed stale client state to reactivate removed controls.
 
-**How to apply:** Reject extra structured-intent dimensions at the server boundary, sanitize client intent construction, place active culinary intent above profile defaults, and keep the final evidence gate strict.
+**How to apply:** Reject extra structured-intent dimensions at the server boundary, sanitize client intent construction, place explicit culinary intent above profile defaults, and keep its final evidence gate strict. If system-selected guidance eliminates every otherwise safe candidate, remove that optional guidance and continue; never weaken safety, allergy, dietary, clinical, or explicit user constraints.
+
+**Why:** Surprise Me selected an ingredient-level cut for a composed dish and promoted it to a hard requirement. Generation and repair both produced safe versions of the requested dish, but the optional cut rejected all of them and returned no meal.
 
 **Rule:** Existing Cooking Method constrains expansion textures in both interaction orders and again immediately before intent construction. Existing Cuisine may rank flavor suggestions but never reject, replace, or become hidden structured intent.
 
