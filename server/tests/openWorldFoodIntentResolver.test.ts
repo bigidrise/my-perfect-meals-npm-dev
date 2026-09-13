@@ -1,6 +1,7 @@
 import { ExpandIngredientRequestSchema } from "../../shared/createDishIngredientExpansion";
 import { expandCreateDishIngredient } from "../services/createDish/ingredientExpansionService";
 import {
+  CREATE_DISH_SEMANTIC_RESOLVER_SYSTEM_PROMPT,
   resolveOpenWorldFoodIntent,
   semanticIntentToIngredientRecognition,
 } from "../services/createDish/openWorldFoodIntentResolver";
@@ -17,6 +18,11 @@ const semantic = (overrides: Record<string, unknown> = {}) => ({
 });
 
 describe("open-world Create a Dish intent resolution", () => {
+  test("the authoritative prompt treats user text as data and excludes safety authority", () => {
+    expect(CREATE_DISH_SEMANTIC_RESOLVER_SYSTEM_PROMPT).toMatch(/untrusted data/i);
+    expect(CREATE_DISH_SEMANTIC_RESOLVER_SYSTEM_PROMPT).toMatch(/do not provide medical.*safety/i);
+  });
+
   test.each([
     ["Chili", "prepared_dish", "chili"],
     ["Make me chili", "prepared_dish", "chili"],
@@ -56,6 +62,50 @@ describe("open-world Create a Dish intent resolution", () => {
     expect(result.semanticIntent?.kind).toBe("prepared_dish");
     expect(result.resolvedCombination).toBeNull();
     expect(Object.values(result.options).flat()).toEqual([]);
+  });
+
+  test("a cuisine-led request does not require a pre-named dish", async () => {
+    const intent = await resolveOpenWorldFoodIntent(
+      "Surprise me with a Mediterranean dinner",
+      {
+        resolve: async () => semantic({
+          kind: "cuisine_led",
+          canonicalName: null,
+          displayName: "Mediterranean dinner",
+          cuisine: "Mediterranean",
+        }),
+      },
+    );
+    expect(semanticIntentToIngredientRecognition(
+      "Surprise me with a Mediterranean dinner",
+      intent,
+    )).toMatchObject({
+      status: "recognized",
+      canonicalName: "Mediterranean meal",
+      category: "cuisine-led",
+    });
+  });
+
+  test("an ingredient-led request does not require a pre-named dish", async () => {
+    const intent = await resolveOpenWorldFoodIntent(
+      "chili peppers with chicken",
+      {
+        resolve: async () => semantic({
+          kind: "ingredient_led",
+          canonicalName: null,
+          displayName: null,
+          explicitIngredients: ["chicken", "chili peppers"],
+        }),
+      },
+    );
+    expect(semanticIntentToIngredientRecognition(
+      "chili peppers with chicken",
+      intent,
+    )).toMatchObject({
+      status: "recognized",
+      canonicalName: "chicken with chili peppers",
+      category: "ingredient-led",
+    });
   });
 
   test("known catalog requests do not invoke semantic resolution", async () => {
