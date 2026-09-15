@@ -95,3 +95,4 @@
 - [Open-world food intent](open-world-food-intent.md) — catalog misses use schema-bound semantic interpretation; downstream governance remains authoritative.
 - [Meal subject authority](meal-subject-authority.md) — the authenticated actor is not automatically the nutrition subject; resolve food context for the person being fed.
 - [Mobile page scroll ownership](mobile-page-scroll-ownership.md) — RootViewport alone owns vertical page scrolling; fixed controls must not block vertical gestures.
+- [Fridge Rescue cuisine authority](fridge-rescue-cuisine-authority.md) — explicit cuisine applies to every result; targeted repairs must pass the full safety stack.
