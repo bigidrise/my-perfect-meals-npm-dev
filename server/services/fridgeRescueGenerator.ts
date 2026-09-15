@@ -317,6 +317,12 @@ This is for athlete meal planning - precision is critical for contest preparatio
   }
 
   const fridgeLangInstruction = getLanguageInstruction(request.preferredLanguage);
+  const ingredientControlRules = strictMode
+    ? `- Use ONLY the ingredients provided - do not add any others
+- If those ingredients cannot honestly support the requested cuisine, do not substitute an unrelated cuisine`
+    : `- Keep the supplied ingredients as the foundation of every meal
+- You MAY add reasonable complementary pantry ingredients such as safe seasonings, aromatics, herbs, sauces, and acids needed to make the requested cuisine authentic
+- Do not replace the supplied ingredients with an unrelated recipe`;
   const prompt = `${fridgeLangInstruction ? fridgeLangInstruction + "\n\n" : ""}You are a creative chef helping someone make meals with limited ingredients from their fridge.
 ${fridgeEnforcementBlock ? `\n${fridgeEnforcementBlock}\n` : ""}${fridgeBehavioralMemorySection ? `\n${fridgeBehavioralMemorySection}\n` : ""}${strictMode ? `\n${buildStrictModeBlock(fridgeItems.join(", "))}\n` : ""}
 TASK: Create 3 different, realistic meals using ONLY these ingredients: ${fridgeItems.join(', ')}
@@ -327,7 +333,7 @@ ${palateGuidance}
 ${getBaselineMacroPrompt({ builderType: "fridge_rescue", dietType: "fridge_rescue" })}
 
 RULES:
-- Use ONLY the ingredients provided - do not add any others
+${ingredientControlRules}
 - Create actual meal names (not just ingredient lists)
 - Each meal should be simple and cookable
 - Provide realistic cooking instructions
@@ -380,7 +386,8 @@ FORMAT: Return as JSON object:
   ]
 }
 
-Remember: Only use ingredients from this list: ${fridgeItems.join(', ')}`;
+Remember: The user's Fridge Rescue foundation is: ${fridgeItems.join(', ')}.
+${strictMode ? "Do not add any ingredient not listed." : "Complementary pantry additions are allowed, but the listed food must remain the foundation."}`;
 
   try {
     console.log("🤖 Making OpenAI API call with GPT-5...");

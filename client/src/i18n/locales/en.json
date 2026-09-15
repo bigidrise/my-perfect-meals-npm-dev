@@ -740,6 +740,8 @@
     "servingsLabel": "Number of Servings",
     "singleServing": "Single serving",
     "resultsHeading": "🍽️ Your Fridge Rescue Meals",
+    "resultsCount_one": "{{count}} Fridge Rescue Result",
+    "resultsCount_other": "{{count}} Fridge Rescue Results",
     "sessionFallback": "Saved in an older session — regenerate to get the image.",
     "safetyLabel": "Medical Safety",
     "ingredientsHeader": "Ingredients:",
