@@ -11,6 +11,7 @@ import { glp1Shots } from "./db/schema/glp1Shots";
 import { mealBoards, mealBoardItems } from "./db/schema/mealBoards";
 import { builderPlans } from "./db/schema/builderPlans";
 import { organizations } from "./db/schema/organizations";
+import { businessPilotAuthorizations } from "./db/schema/businessPilotAuthorization";
 import { studioVideoMedia, studioVideoMessages } from "./db/schema/studio";
 import {
   coachConversations,
@@ -91,6 +92,7 @@ export const db = drizzle(pool, {
     mealBoardItems, 
     builderPlans,
     organizations,
+    businessPilotAuthorizations,
     studioVideoMedia,
     studioVideoMessages,
     coachConversations,

@@ -66,6 +66,16 @@ interface RewardfulStatus {
   portalUrl: string;
 }
 
+interface BusinessOffer {
+  id: string;
+  name: string;
+  trialDays: number;
+  status: "active" | "revoked";
+  expiresAt: string | null;
+  maxRedemptions: number | null;
+  joinPath: string;
+}
+
 function Card({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   return (
     <motion.div
@@ -130,11 +140,7 @@ export default function AffiliateDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const handleBack = useCallback(() => {
-    if (window.history.length > 1) {
-      window.history.back();
-    } else {
-      setLocation("/business-center");
-    }
+    setLocation("/business-dashboard");
   }, [setLocation]);
   const isDesktop = useIsDesktop();
   const [copiedDesktopUrl, setCopiedDesktopUrl] = useState(false);
@@ -159,13 +165,17 @@ export default function AffiliateDashboard() {
   const [existingRewardfulEmail, setExistingRewardfulEmail] = useState("");
   const [existingConnectionMessage, setExistingConnectionMessage] = useState("");
   const [organizationSetupLoading, setOrganizationSetupLoading] = useState(false);
+  const [businessOffers, setBusinessOffers] = useState<BusinessOffer[]>([]);
+  const [copiedOfferId, setCopiedOfferId] = useState<string | null>(null);
+  const [qrOfferId, setQrOfferId] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "Partner & Revenue Center | My Perfect Meals";
     Promise.all([
       apiRequest("/api/affiliate/dashboard").catch(() => null),
       apiRequest("/api/partner/identity").catch(() => null),
-    ]).then(([affiliateData, partnerData]) => {
+      apiRequest("/api/business-offers/manage").catch(() => null),
+    ]).then(([affiliateData, partnerData, offerData]) => {
       if (affiliateData) setAccount(affiliateData as AffiliateAccount);
       if (partnerData && (partnerData as any).partner) {
         const rec = (partnerData as any).partner as PartnerRecord;
@@ -192,6 +202,9 @@ export default function AffiliateDashboard() {
           .then((s) => setRewardfulStatus(s as RewardfulStatus))
           .catch(() => {});
       }
+      if (offerData && Array.isArray((offerData as any).offers)) {
+        setBusinessOffers((offerData as any).offers as BusinessOffer[]);
+      }
     }).finally(() => setLoading(false));
   }, []);
 
@@ -202,6 +215,16 @@ export default function AffiliateDashboard() {
       setTimeout(() => setCopied(false), 2000);
     });
   }, [account]);
+
+  const absoluteOfferUrl = useCallback((offer: BusinessOffer) =>
+    new URL(offer.joinPath, window.location.origin).toString(), []);
+
+  const copyOfferLink = useCallback((offer: BusinessOffer) => {
+    navigator.clipboard.writeText(absoluteOfferUrl(offer)).then(() => {
+      setCopiedOfferId(offer.id);
+      setTimeout(() => setCopiedOfferId(null), 2000);
+    });
+  }, [absoluteOfferUrl]);
 
   const downloadQR = useCallback(() => {
     if (!account?.rewardfulReferralUrl) return;
@@ -453,15 +476,6 @@ export default function AffiliateDashboard() {
               <h1 className="text-base font-bold text-white">Partner & Revenue Center</h1>
               <p className="text-xs text-white/40 truncate">{partnerRecord?.partnerName ?? trackLabel}</p>
             </div>
-            {account.isActive && (
-              <button
-                onClick={() => setShowInvite(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600 text-white text-xs font-bold active:scale-[0.95] transition-transform"
-              >
-                <UserPlus className="h-3.5 w-3.5" />
-                Invite
-              </button>
-            )}
           </div>
         </div>
 
@@ -798,6 +812,66 @@ export default function AffiliateDashboard() {
                     {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     {copied ? "Copied!" : "Copy Link"}
                   </button>
+                </div>
+
+                <div className="mb-4 pt-4 border-t border-white/10">
+                  <p className="text-xs font-bold text-white mb-1">Business Offer Links</p>
+                  <p className="text-[11px] leading-relaxed text-gray-400 mb-3">
+                    Reusable links that grant server-authorized complimentary access while preserving this organization’s Rewardful attribution.
+                  </p>
+                  {businessOffers.length > 0 ? (
+                    <div className="space-y-2">
+                      {businessOffers.map((offer) => (
+                        <div key={offer.id} className="rounded-xl bg-white/5 border border-white/10 p-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-bold text-white">{offer.name}</p>
+                              <p className="text-[10px] text-gray-500">{offer.status === "active" ? "Reusable public offer" : "Revoked"}</p>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                disabled={offer.status !== "active"}
+                                onClick={() => copyOfferLink(offer)}
+                                className="flex items-center gap-1.5 rounded-lg bg-orange-600 px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {copiedOfferId === offer.id ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                                {copiedOfferId === offer.id ? "Copied" : "Copy Link"}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={offer.status !== "active"}
+                                onClick={() => setQrOfferId((current) => current === offer.id ? null : offer.id)}
+                                className="flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                <QrCode className="h-3.5 w-3.5" />
+                                {qrOfferId === offer.id ? "Hide QR" : "QR Code"}
+                              </button>
+                            </div>
+                          </div>
+                          {qrOfferId === offer.id && offer.status === "active" && (
+                            <div className="mt-3 border-t border-white/10 pt-3 flex flex-col items-center gap-2">
+                              <div className="rounded-xl bg-white p-2">
+                                <img
+                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=16&color=000000&bgcolor=ffffff&data=${encodeURIComponent(absoluteOfferUrl(offer))}`}
+                                  alt={`${offer.name} QR Code`}
+                                  className="h-40 w-40"
+                                  loading="lazy"
+                                />
+                              </div>
+                              <p className="text-center text-[10px] text-gray-400">
+                                Scans open this exact {offer.trialDays}-day Business Offer Link.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="rounded-xl bg-white/5 border border-white/10 p-3 text-xs text-gray-400">
+                      Business Offer Links become available when this organization’s Rewardful account is active.
+                    </p>
+                  )}
                 </div>
 
                 {/* Promo Code row — only when assigned */}

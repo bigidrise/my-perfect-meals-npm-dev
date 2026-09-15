@@ -10,6 +10,9 @@ import { getWorkspaceAvailability } from "../services/workspaceAvailabilityServi
 const router = Router();
 
 router.get("/availability", async (req, res) => {
+  res.setHeader("Cache-Control", "private, no-store, no-cache, must-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
   try {
     const availability = await getWorkspaceAvailability((req as any).authUser.id);
     return res.json({ availability });

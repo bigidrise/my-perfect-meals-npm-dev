@@ -585,6 +585,7 @@ const BusinessCenterSection = lazy(() => import("@/pages/BusinessCenterSection")
 const PartnerCenter = lazy(() => import("@/pages/PartnerCenter"));
 const PromotionsHub = lazy(() => import("@/pages/business/PromotionsHub"));
 const PromoRedemption = lazy(() => import("@/pages/PromoRedemption"));
+const BusinessOfferJoinPage = lazy(() => import("@/pages/BusinessOfferJoinPage"));
 const AdminCampaignManager = lazy(() => import("@/pages/admin/AdminCampaignManager"));
 const BugReportsDashboard = lazy(() => import("@/pages/admin/BugReportsDashboard"));
 const AcademyLandingPage = lazy(() => import("@/pages/AcademyLandingPage"));
@@ -895,7 +896,13 @@ export default function Router() {
 
   const shouldShowBottomNav =
     !hideBottomNavRoutes.includes(location) &&
-    !location.startsWith("/join/clinic");
+    !location.startsWith("/join/clinic") &&
+    !location.startsWith("/join/business-offer") &&
+    !location.startsWith("/business-center") &&
+    location !== "/business-dashboard" &&
+    location !== "/business/dashboard" &&
+    location !== "/business-organizations" &&
+    location !== "/org-success-center";
 
   const { user, loading } = useAuth();
 
@@ -1038,6 +1045,7 @@ export default function Router() {
         <Route path="/home" component={Home} />
         <Route path="/auth" component={Auth} />
         <Route path="/join/clinic" component={lazy(() => import("@/pages/ClinicPilotJoinPage"))} />
+        <Route path="/join/business-offer" component={BusinessOfferJoinPage} />
         <Route path="/forgot-password" component={ForgotPassword} />
         <Route path="/reset-password" component={ResetPassword} />
         <Route path="/pilot/activate" component={lazy(() => import("@/pages/PilotActivation"))} />

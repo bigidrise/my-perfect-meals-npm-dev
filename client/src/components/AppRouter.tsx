@@ -18,7 +18,7 @@ const PROFESSIONAL_ROUTE_PREFIXES = [
   "/pro/",
 ];
 
-const PUBLIC_ROUTES = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/pilot/activate", "/join/clinic", "/guest-builder", "/guest-suite", "/guest", "/pricing", "/privacy", "/privacy-policy", "/terms", "/terms-of-service", "/affiliates", "/founders", "/procare-welcome", "/trainer-welcome", "/physician-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation", "/consumer-welcome", "/more", "/delete-account", "/procare-info", "/family-info", "/personal-guidance-info", "/partners", "/business/start", "/business/setup", "/business/join", "/business-dashboard", "/business/dashboard", "/business-center", "/checkout/success", "/billing/success", "/org-success-center", "/m"];
+const PUBLIC_ROUTES = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/pilot/activate", "/join/clinic", "/join/business-offer", "/guest-builder", "/guest-suite", "/guest", "/pricing", "/privacy", "/privacy-policy", "/terms", "/terms-of-service", "/affiliates", "/founders", "/procare-welcome", "/trainer-welcome", "/physician-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation", "/consumer-welcome", "/more", "/delete-account", "/procare-info", "/family-info", "/personal-guidance-info", "/partners", "/business/start", "/business/setup", "/business/join", "/business-dashboard", "/business/dashboard", "/business-center", "/checkout/success", "/billing/success", "/org-success-center", "/m"];
 
 function isPublicAppRoute(path: string): boolean {
   const devRoutes = import.meta.env.DEV
@@ -34,6 +34,16 @@ function isPublicAppRoute(path: string): boolean {
 
 function isInProfessionalWorkspace(path: string): boolean {
   return PROFESSIONAL_ROUTE_PREFIXES.some(prefix => path.startsWith(prefix));
+}
+
+function isInBusinessWorkspace(path: string): boolean {
+  return (
+    path === "/business-dashboard" ||
+    path === "/business/dashboard" ||
+    path === "/business-organizations" ||
+    path === "/org-success-center" ||
+    path.startsWith("/business-center")
+  );
 }
 
 function hasMacroProfile(user: any): boolean {
@@ -200,7 +210,11 @@ export default function AppRouter({ children }: AppRouterProps) {
     );
   }
 
-  if (showWelcomeGate) {
+  if (
+    showWelcomeGate &&
+    !location.startsWith("/join/clinic") &&
+    !location.startsWith("/join/business-offer")
+  ) {
     return (
       <WelcomeGate
         onComplete={() => {
@@ -212,10 +226,16 @@ export default function AppRouter({ children }: AppRouterProps) {
     );
   }
 
+  if (location.startsWith("/join/clinic")) {
+    return <>{children}</>;
+  }
   if (
-    location.startsWith("/join/clinic") ||
+    location.startsWith("/join/business-offer") ||
     (import.meta.env.DEV && location.startsWith("/rewardful/connect/confirm"))
   ) {
+    return <>{children}</>;
+  }
+  if (isInBusinessWorkspace(location)) {
     return <>{children}</>;
   }
 

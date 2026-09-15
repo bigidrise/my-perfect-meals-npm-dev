@@ -124,6 +124,7 @@ import myPerfectBeginningRouter from "./routes/myPerfectBeginning";
 import myPerfectBeginningGenerationRouter from "./routes/my-perfect-beginning";
 import pregnancyCoachRouter from "./routes/pregnancyCoach";
 import clinicPilotRouter from "./routes/clinicPilotRoutes";
+import businessOfferRouter from "./routes/businessOfferRoutes";
 
 const app = express();
 
@@ -181,7 +182,7 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, x-user-id, x-device-id, x-auth-token, x-csrf-token, x-requested-with'
+    'Content-Type, Authorization, x-user-id, x-device-id, x-auth-token, x-csrf-token, x-requested-with, x-business-offer-token'
   );
 
   // Answer OPTIONS preflights immediately — nothing else should run for these.
@@ -345,6 +346,7 @@ app.use("/api", healthRouter);
 app.use("/api", keepaliveRouter);
 // Clinic patient pilot routes; migration is guarded by environment policy.
 app.use("/api/clinic-pilot", clinicPilotRouter);
+app.use("/api/business-offers", businessOfferRouter);
 
 // ── Release identity — public, no auth, reads manifest baked at build time ───
 // The acceptance gate and monitoring read this after every publish to confirm
@@ -1017,6 +1019,11 @@ setTimeout(async () => {
     const certBridgeCount = (certBridgeResult as any).rowCount ?? (certBridgeResult as any).count ?? '?';
     console.log(`✅ Cert-type bridge: ${certBridgeCount} "platform" → "platform_mastery" record(s) created`);
 
+    // Effective-access checks performed by the readiness backfill query this
+    // table, so it must exist before the backfill begins.
+    const { runBusinessOfferLinksMigration } = await import("./db/migrations/runBusinessOfferLinksMigration");
+    await runBusinessOfferLinksMigration(db);
+
     // Recover only verified professional accounts that predate automatic
     // Studio provisioning. The routine is idempotent and leaves unclear
     // historical provider roles untouched.
@@ -1677,6 +1684,16 @@ async function start() {
     const { runPilotProgramMigration } = await import("./db/migrations/runPilotProgramMigration");
     await runPilotProgramMigration(dbPilotProgram);
   });
+  await withBootRetry("Business Pilot authorization migration", async () => {
+    const { pool: poolBusinessPilot } = await import("./db");
+    const { runBusinessPilotAuthorizationMigration } = await import("./db/migrations/runBusinessPilotAuthorizationMigration");
+    const { runBoundedStartupMigration } = await import("./bootstrap/runBoundedStartupMigration");
+    await runBoundedStartupMigration({
+      pool: poolBusinessPilot,
+      migrationName: "business-pilot-authorization",
+      run: runBusinessPilotAuthorizationMigration,
+    });
+  });
   await withBootRetry("Organization workspace migration", async () => {
     const { db: dbWorkspace } = await import("./db");
     const { runOrganizationWorkspaceMigration } = await import("./db/migrations/runOrganizationWorkspaceMigration");
@@ -1691,6 +1708,16 @@ async function start() {
     const { db: dbPartnerRevenue } = await import("./db");
     const { runOrganizationPartnerRevenueMigration } = await import("./db/migrations/runOrganizationPartnerRevenueMigration");
     await runOrganizationPartnerRevenueMigration(dbPartnerRevenue);
+  });
+  await withBootRetry("BP1 organization attribution migration", async () => {
+    const { pool: poolBp1 } = await import("./db");
+    const { runBp1OrganizationAttributionMigration } = await import("./db/migrations/runBp1OrganizationAttributionMigration");
+    const { runBoundedStartupMigration } = await import("./bootstrap/runBoundedStartupMigration");
+    await runBoundedStartupMigration({
+      pool: poolBp1,
+      migrationName: "bp1-organization-attribution",
+      run: runBp1OrganizationAttributionMigration,
+    });
   });
   await withBootRetry("Stripe billing migration", async () => {
     const { db: dbStripeBilling } = await import("./db");

@@ -23,6 +23,8 @@ import {
   resolveEmailIdentityForUser,
 } from "../services/emailIdentityService";
 import { findUserByValidAuthToken } from "../services/authTokenService";
+import { resolveProviderStudioAttribution, validateBp1Attribution } from "../services/bp1OrganizationAttributionService";
+import { WorkspaceContextError } from "../services/organizationWorkspaceService";
 
 const router = Router();
 
@@ -133,7 +135,6 @@ router.patch("/:studioId", async (req, res) => {
     if (!studio) {
       return res.status(404).json({ error: "Studio not found" });
     }
-
     const [updated] = await db
       .update(studios)
       .set({
@@ -169,7 +170,6 @@ router.get("/:studioId/clients", async (req, res) => {
     if (!studio) {
       return res.status(404).json({ error: "Studio not found" });
     }
-
     const rows = await db
       .select({
         membershipId: studioMemberships.id,
@@ -331,6 +331,23 @@ router.post("/:studioId/invite", async (req, res) => {
     if (!studio) {
       return res.status(404).json({ error: "Studio not found" });
     }
+    const selectedWorkspace =
+      typeof req.session?.activeOrganizationId === "string"
+      && typeof req.session?.activeLocationId === "string"
+        ? {
+            organizationId: req.session.activeOrganizationId,
+            locationId: req.session.activeLocationId,
+          }
+        : null;
+    let attribution;
+    try {
+      attribution = await resolveProviderStudioAttribution(userId, studio, selectedWorkspace);
+    } catch (error) {
+      if (error instanceof WorkspaceContextError) {
+        return res.status(error.status).json({ error: error.message, code: error.code });
+      }
+      throw error;
+    }
 
     const inviteCode = `MP-${nanoid(4).toUpperCase()}-${nanoid(3).toUpperCase()}`;
     const urlToken = nanoid(32);
@@ -341,6 +358,10 @@ router.post("/:studioId/invite", async (req, res) => {
       .insert(studioInvites)
       .values({
         studioId,
+        organizationId: attribution.organizationId,
+        locationId: attribution.locationId,
+        sourceBusinessId: attribution.sourceBusinessId,
+        partnerRecordId: attribution.partnerRecordId,
         email: email.toLowerCase().trim(),
         inviteCode,
         urlToken,
@@ -450,7 +471,20 @@ router.post("/connect", async (req, res) => {
 
     let activation;
     try {
-      activation = await activateProCareClient(userId, studio.ownerUserId, "studio_invite");
+      if (invite.organizationId && invite.locationId) {
+        await validateBp1Attribution({
+          organizationId: invite.organizationId,
+          locationId: invite.locationId,
+          sourceBusinessId: invite.sourceBusinessId,
+          partnerRecordId: invite.partnerRecordId,
+        });
+      }
+      activation = await activateProCareClient(userId, studio.ownerUserId, "studio_invite", undefined, {
+        organizationId: invite.organizationId,
+        locationId: invite.locationId,
+        sourceBusinessId: invite.sourceBusinessId,
+        partnerRecordId: invite.partnerRecordId,
+      });
     } catch (err) {
       if (err instanceof ActivationError) {
         if (err.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL") {
@@ -459,6 +493,15 @@ router.post("/connect", async (req, res) => {
         if (err.code === "SELF_ACTIVATION") {
           return res.status(400).json({ error: "You cannot connect to your own studio." });
         }
+        if (err.code === "ATTRIBUTION_CONFLICT") {
+          return res.status(409).json({ error: err.message, code: err.code });
+        }
+        if (err.code === "INVALID_WORKSPACE_SELECTION") {
+          return res.status(409).json({ error: err.message, code: err.code });
+        }
+      }
+      if (err instanceof WorkspaceContextError) {
+        return res.status(err.status).json({ error: err.message, code: err.code });
       }
       throw err;
     }

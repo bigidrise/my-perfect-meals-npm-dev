@@ -9,6 +9,7 @@ export default defineConfig({
     // Drizzle schema discovery, so db:push must not create an unsafe variant.
     "./server/db/schema/bodyComposition.ts",
     "./server/db/schema/organizations.ts",
+    "./server/db/schema/businessPilotAuthorization.ts",
     "./server/db/schema/userBehaviorSummary.ts",
     "./server/db/schema/companionProfiles.ts",
     "./server/db/schema/clinicalLabs.ts",
