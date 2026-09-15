@@ -101,6 +101,25 @@ describe("Business Offer Links BP1 contracts", () => {
     expect(dashboard).toContain("Business Offer Links");
     expect(dashboard).toContain("Referral Link");
     expect(dashboard).toContain("Copy Link");
-    expect(dashboard).toContain("Open");
+    expect(dashboard).toContain("QR Code");
+    expect(dashboard).toContain("encodeURIComponent(absoluteOfferUrl(offer))");
+    expect(dashboard).not.toContain('window.open(absoluteOfferUrl(offer)');
+  });
+
+  test("keeps business destinations inside the business workspace shell", () => {
+    const appRouter = read("client/src/components/AppRouter.tsx");
+    const router = read("client/src/components/Router.tsx");
+    expect(appRouter).toContain("isInBusinessWorkspace(location)");
+    for (const route of [
+      'path.startsWith("/business-center")',
+      'path === "/business-dashboard"',
+      'path === "/business/dashboard"',
+      'path === "/business-organizations"',
+    ]) {
+      expect(appRouter).toContain(route);
+    }
+    expect(dashboard).toContain('setLocation("/business-dashboard")');
+    expect(dashboard).not.toContain("window.history.back()");
+    expect(router).toContain('!location.startsWith("/business-center")');
   });
 });

@@ -140,11 +140,7 @@ export default function AffiliateDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const handleBack = useCallback(() => {
-    if (window.history.length > 1) {
-      window.history.back();
-    } else {
-      setLocation("/business-center");
-    }
+    setLocation("/business-dashboard");
   }, [setLocation]);
   const isDesktop = useIsDesktop();
   const [copiedDesktopUrl, setCopiedDesktopUrl] = useState(false);
@@ -171,6 +167,7 @@ export default function AffiliateDashboard() {
   const [organizationSetupLoading, setOrganizationSetupLoading] = useState(false);
   const [businessOffers, setBusinessOffers] = useState<BusinessOffer[]>([]);
   const [copiedOfferId, setCopiedOfferId] = useState<string | null>(null);
+  const [qrOfferId, setQrOfferId] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "Partner & Revenue Center | My Perfect Meals";
@@ -853,14 +850,29 @@ export default function AffiliateDashboard() {
                               <button
                                 type="button"
                                 disabled={offer.status !== "active"}
-                                onClick={() => window.open(absoluteOfferUrl(offer), "_blank", "noopener,noreferrer")}
+                                onClick={() => setQrOfferId((current) => current === offer.id ? null : offer.id)}
                                 className="flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                               >
-                                <ExternalLink className="h-3.5 w-3.5" />
-                                Open
+                                <QrCode className="h-3.5 w-3.5" />
+                                {qrOfferId === offer.id ? "Hide QR" : "QR Code"}
                               </button>
                             </div>
                           </div>
+                          {qrOfferId === offer.id && offer.status === "active" && (
+                            <div className="mt-3 border-t border-white/10 pt-3 flex flex-col items-center gap-2">
+                              <div className="rounded-xl bg-white p-2">
+                                <img
+                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=16&color=000000&bgcolor=ffffff&data=${encodeURIComponent(absoluteOfferUrl(offer))}`}
+                                  alt={`${offer.name} QR Code`}
+                                  className="h-40 w-40"
+                                  loading="lazy"
+                                />
+                              </div>
+                              <p className="text-center text-[10px] text-gray-400">
+                                Scans open this exact {offer.trialDays}-day Business Offer Link.
+                              </p>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
