@@ -5,6 +5,8 @@ description: Durable authorization boundaries for mature accounts with existing 
 
 Existing active resource ownership is authoritative for discovery and access unless an explicit suspension, revocation, or deactivation rule applies. Provisioning eligibility must not be reused to hide a resource from its existing owner.
 
+Navigation controls grouped together visually must retain independent access predicates. Studio discovery follows active Studio ownership; related professional tools may keep narrower role requirements.
+
 Authoritative Academy lesson and module completion remains complete even when legacy parent summaries or current account classifications disagree. Navigation and readiness must use the canonical progression result.
 
 A valid browser cookie session cannot be displaced by a stale legacy browser token. Native bearer authentication remains a separate credential path.
