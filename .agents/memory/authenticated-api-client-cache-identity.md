@@ -7,4 +7,4 @@ Authenticated API requests must derive record ownership from the session or toke
 
 **Why:** Removing the local identity from a component dependency or React Query key can let sensitive data fetched for account A remain rendered or cached after a switch to account B, even when the server correctly rejects cross-account API access.
 
-**How to apply:** Keep the account ID out of request URLs and bodies unless it is an explicitly authorized delegated selector. Include it in local query keys, remount or reset account-scoped components on changes, cancel or reject stale async responses, and scope browser storage holding account-specific state.
+**How to apply:** Keep the account ID out of request URLs and bodies unless it is an explicitly authorized delegated selector. Include it in local query keys, remount or reset account-scoped components on changes, cancel or reject stale async responses, and scope browser storage holding account-specific state. Authorization/availability responses must use `private, no-store` and client fetches must bypass browser cache; a stale 304 can otherwise hide or expose the wrong account's UI.
