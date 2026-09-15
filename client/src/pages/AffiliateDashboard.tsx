@@ -476,15 +476,6 @@ export default function AffiliateDashboard() {
               <h1 className="text-base font-bold text-white">Partner & Revenue Center</h1>
               <p className="text-xs text-white/40 truncate">{partnerRecord?.partnerName ?? trackLabel}</p>
             </div>
-            {account.isActive && (
-              <button
-                onClick={() => setShowInvite(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600 text-white text-xs font-bold active:scale-[0.95] transition-transform"
-              >
-                <UserPlus className="h-3.5 w-3.5" />
-                Invite
-              </button>
-            )}
           </div>
         </div>
 
