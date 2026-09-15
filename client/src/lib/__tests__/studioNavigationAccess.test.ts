@@ -29,7 +29,8 @@ describe("Studio navigation access", () => {
       expect(access.studioVisible).toBe(true);
       expect(access.studioDestination).toBe("/pro/clients");
       expect(access.proPortalVisible).toBe(true);
-      expect(access.careTeamVisible).toBe(false);
+      expect(access.careTeamVisible).toBe(true);
+      expect(access.careTeamDestination).toBe("/care-team/trainer");
     },
   );
 
@@ -59,7 +60,7 @@ describe("Studio navigation access", () => {
     ["trainer", "/care-team/trainer", "/pro/clients"],
     ["physician", "/care-team/physician", "/pro/physician-clients"],
   ])(
-    "keeps Care Team role-gated for %s",
+    "selects the correct Care Team surface for %s",
     (role, careTeamDestination, portalDestination) => {
       const access = deriveStudioNavigationAccess(
         availability({ destination: portalDestination }),

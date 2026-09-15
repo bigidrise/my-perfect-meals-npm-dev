@@ -23,9 +23,7 @@ export function deriveStudioNavigationAccess(
     studioVisible &&
     availability?.studio.readiness === "ready" &&
     studioDestination?.startsWith("/pro/") === true;
-  const careTeamVisible =
-    proPortalVisible &&
-    (professionalRole === "physician" || professionalRole === "trainer");
+  const careTeamVisible = proPortalVisible;
 
   return {
     studioVisible,
