@@ -62,7 +62,7 @@ describe("workspace availability authority", () => {
 
     expect(result.studio).toEqual({
       available: true,
-      destination: "/care-team/trainer",
+      destination: "/pro/clients",
       readiness: "ready",
     });
   });
@@ -96,7 +96,7 @@ describe("workspace availability authority", () => {
 
     expect(result.studio).toEqual({
       available: true,
-      destination: "/care-team/physician",
+      destination: "/pro/physician-clients",
       readiness: "ready",
     });
   });

@@ -27,7 +27,7 @@ function availability(
     },
     studio: {
       available: studio,
-      destination: studio ? "/care-team/trainer" : null,
+      destination: studio ? "/pro/clients" : null,
       readiness: studio ? "ready" : null,
     },
   };

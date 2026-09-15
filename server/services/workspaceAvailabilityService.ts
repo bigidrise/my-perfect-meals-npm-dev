@@ -66,8 +66,8 @@ export function buildWorkspaceAvailability(input: {
         available: true,
         destination:
           input.professionalRole === "physician"
-            ? "/care-team/physician"
-            : "/care-team/trainer",
+            ? "/pro/physician-clients"
+            : "/pro/clients",
         readiness: "ready",
       };
     } else {
