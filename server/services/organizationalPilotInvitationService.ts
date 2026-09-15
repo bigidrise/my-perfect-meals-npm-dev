@@ -9,6 +9,7 @@ import {
   professionalTemporaryAccessEntitlements,
 } from "../db/schema/pilotProgram";
 import { users } from "@shared/schema";
+import { organizationLocations } from "../db/schema/workspaces";
 import {
   assertPilotCapacityAvailable,
   type PilotPopulationType,
@@ -16,6 +17,7 @@ import {
 import { normalizeEmailIdentity, resolveEmailIdentityForUser } from "./emailIdentityService";
 import { logAudit } from "../lib/auditLog";
 import { assertTemporaryAccessDuration, clinicTrialEnd } from "./clinicPilotEnrollmentService";
+import { resolveBp1Attribution, attributionColumns } from "./bp1OrganizationAttributionService";
 
 export type PilotInvitationRole =
   | "champion"
@@ -109,6 +111,16 @@ export async function createOrganizationalPilotInvitation(input: {
   const rawToken = newToken();
   const tokenHash = hashToken(rawToken);
   const expiresAt = input.expiresAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const attribution = await resolveBp1Attribution(input.invitedByUserId, {
+    organizationId: (await db.select({ organizationId: businesses.organizationId })
+      .from(businesses)
+      .where(eq(businesses.id, input.businessId))
+      .limit(1))[0]?.organizationId ?? "",
+    locationId: input.locationId,
+  });
+  if (attribution.sourceBusinessId && attribution.sourceBusinessId !== input.businessId) {
+    throw new PilotInvitationError("The selected workspace does not match this Business account.", "INVALID_WORKSPACE_SELECTION", 409);
+  }
 
   const result = await db.transaction(async (tx) => {
     await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${input.pilotId}))`);
@@ -159,6 +171,7 @@ export async function createOrganizationalPilotInvitation(input: {
       invitedByUserId: input.invitedByUserId,
       expiresAt,
       invitationType: input.populationType === "client" ? "client" : "team_member",
+      ...attributionColumns(attribution),
       trialDays: input.trialDays,
       programName: pilot.name,
       organizationalPilotId: input.pilotId,
@@ -328,6 +341,20 @@ export async function acceptOrganizationalPilotInvitation(rawToken: string, user
     }).from(businesses).where(eq(businesses.id, invite.businessId)).limit(1);
     if (!business || business.status !== "active") {
       throw new PilotInvitationError("The originating organization is no longer active.", "BUSINESS_INACTIVE", 410);
+    }
+    if (
+      (invite.organizationId && invite.organizationId !== business.organizationId)
+      || (invite.sourceBusinessId && invite.sourceBusinessId !== invite.businessId)
+    ) {
+      throw new PilotInvitationError("Invitation Organization attribution is inconsistent.", "INVITATION_ATTRIBUTION_MISMATCH", 409);
+    }
+    if (invite.organizationId && invite.locationId) {
+      const [location] = await tx.select({ id: organizationLocations.id }).from(organizationLocations).where(and(
+        eq(organizationLocations.id, invite.locationId),
+        eq(organizationLocations.organizationId, invite.organizationId),
+        eq(organizationLocations.status, "active"),
+      )).limit(1);
+      if (!location) throw new PilotInvitationError("Invitation Organization Location is inactive.", "INVITATION_ATTRIBUTION_MISMATCH", 409);
     }
 
     const acceptedAt = new Date();

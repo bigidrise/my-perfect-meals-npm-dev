@@ -115,6 +115,8 @@ export const businessInvitations = pgTable("business_invitations", {
   id: uuid("id").defaultRandom().primaryKey(),
   businessId: uuid("business_id").notNull(),
   locationId: uuid("location_id"),
+  organizationId: uuid("organization_id"),
+  sourceBusinessId: uuid("source_business_id"),
   email: text("email").notNull(),
   token: text("token").notNull().unique(),
   /** New pilot invitations use a digest in both token fields; raw legacy

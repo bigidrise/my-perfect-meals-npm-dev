@@ -19,6 +19,8 @@ import { checkLegalAcceptance } from "./legalCheck";
 import { evaluateConsumerProCareAccess } from "@shared/procareConsumerAccess";
 import { providerHasProCareStudioAccess } from "./procareProviderAccess";
 import { resolveEmailIdentityForUser } from "./emailIdentityService";
+import { validateBp1Attribution } from "./bp1OrganizationAttributionService";
+import { WorkspaceContextError } from "./organizationWorkspaceService";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface InviteResolution {
@@ -35,6 +37,10 @@ export interface InviteResolution {
   alreadyAccepted: boolean;
   inviteCode: string;
   urlToken: string;
+  organizationId: string | null;
+  locationId: string | null;
+  sourceBusinessId: string | null;
+  partnerRecordId: string | null;
 }
 
 export interface InviteMetadata {
@@ -62,6 +68,7 @@ export type AcceptError =
   | { code: "CLINICAL_REQUIRED" }
   | { code: "UNSUPPORTED_PROVIDER_ROLE" }
   | { code: "COACH_NOT_SUBSCRIBED" }
+  | { code: "ATTRIBUTION_INVALID"; message: string }
   | { code: "LEGAL_REQUIRED"; missing: string[]; flow: string }
   | { code: "ALREADY_HAS_PROFESSIONAL" }
   | { code: "SELF_ACTIVATION" }
@@ -128,6 +135,10 @@ export async function resolveInviteByToken(urlToken: string): Promise<InviteReso
       alreadyAccepted: careRow.accepted,
       inviteCode: careRow.inviteCode,
       urlToken,
+      organizationId: careRow.organizationId,
+      locationId: careRow.locationId,
+      sourceBusinessId: careRow.sourceBusinessId,
+      partnerRecordId: careRow.partnerRecordId,
     };
   }
 
@@ -162,6 +173,10 @@ export async function resolveInviteByToken(urlToken: string): Promise<InviteReso
       alreadyAccepted: !!studioRow.acceptedAt,
       inviteCode: studioRow.inviteCode,
       urlToken,
+      organizationId: studioRow.organizationId,
+      locationId: studioRow.locationId,
+      sourceBusinessId: studioRow.sourceBusinessId,
+      partnerRecordId: studioRow.partnerRecordId,
     };
   }
 
@@ -259,7 +274,27 @@ export async function acceptInviteByToken(
   // Activate the ProCare relationship
   let activation: Awaited<ReturnType<typeof activateProCareClient>>;
   try {
-    activation = await activateProCareClient(userId, r.proUserId, "studio_token_invite");
+    if (r.organizationId && r.locationId) {
+      try {
+        await validateBp1Attribution({
+          organizationId: r.organizationId,
+          locationId: r.locationId,
+          sourceBusinessId: r.sourceBusinessId,
+          partnerRecordId: r.partnerRecordId,
+        });
+      } catch (error) {
+        if (error instanceof WorkspaceContextError) {
+          return { ok: false, error: { code: "ATTRIBUTION_INVALID", message: error.message } };
+        }
+        throw error;
+      }
+    }
+    activation = await activateProCareClient(userId, r.proUserId, "studio_token_invite", undefined, {
+      organizationId: r.organizationId,
+      locationId: r.locationId,
+      sourceBusinessId: r.sourceBusinessId,
+      partnerRecordId: r.partnerRecordId,
+    });
   } catch (err) {
     if (err instanceof ActivationError) {
       if (err.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL") {
@@ -267,6 +302,9 @@ export async function acceptInviteByToken(
       }
       if (err.code === "SELF_ACTIVATION") {
         return { ok: false, error: { code: "SELF_ACTIVATION" } };
+      }
+      if (err.code === "ATTRIBUTION_CONFLICT") {
+        return { ok: false, error: { code: "ATTRIBUTION_INVALID", message: err.message } };
       }
     }
     return { ok: false, error: { code: "SERVER_ERROR", message: String(err) } };

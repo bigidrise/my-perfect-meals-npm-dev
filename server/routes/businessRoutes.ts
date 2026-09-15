@@ -42,6 +42,17 @@ import {
   revokeUnusedPilotAuthorization,
   updateClaimedChampionSetup,
 } from "../services/organizationalPilotAuthorizationService";
+import {
+  BusinessPilotAuthorizationError,
+  activateBusinessPilotOrganizationWindow,
+  attachClaimedBusinessPilotAuthorizationToOrganization,
+  createBusinessPilotAuthorization,
+  extendBusinessPilotAuthorization,
+  findClaimedBusinessPilotAuthorizationForUser,
+  listBusinessPilotAuthorizations,
+  revokeBusinessPilotAuthorization,
+} from "../services/businessPilotAuthorizationService";
+import { logAudit, getClientIp } from "../lib/auditLog";
 import organizationWorkspaceRouter from "./organizationWorkspaceRoutes";
 import {
   ensureCanonicalWorkspaceForBusiness,
@@ -49,7 +60,12 @@ import {
   WorkspaceContextError,
 } from "../services/organizationWorkspaceService";
 import {
+  resolveBp1Attribution,
+  attributionColumns,
+} from "../services/bp1OrganizationAttributionService";
+import {
   locationMemberships,
+  organizationLocations,
   organizationMemberships,
 } from "../db/schema/workspaces";
 import { organizations } from "../db/schema/organizations";
@@ -193,6 +209,113 @@ function handlePilotAuthorizationError(res: any, error: unknown) {
   }
   throw error;
 }
+
+function handleBusinessPilotAuthorizationError(res: any, error: unknown) {
+  if (error instanceof BusinessPilotAuthorizationError) {
+    return res.status(error.statusCode).json({ error: error.message, code: error.code });
+  }
+  throw error;
+}
+
+// BP1 canonical authorizations. These routes are intentionally separate from
+// the legacy Champion authorization surface above.
+router.post("/business-pilot-authorizations", requireAuth, requireAdmin, async (req, res) => {
+  const actorUserId = (req as any).authUser.id as string;
+  try {
+    const authorization = await createBusinessPilotAuthorization({
+      authorizedEmail: req.body?.authorizedEmail ?? req.body?.email,
+      createdByUserId: actorUserId,
+      startsAt: req.body?.startsAt,
+      expiresAt: req.body?.expiresAt,
+      durationPolicy: req.body?.durationPolicy,
+      durationDays: req.body?.durationDays,
+      notes: req.body?.notes ?? null,
+      internalMetadata: req.body?.internalMetadata ?? null,
+    });
+    logAudit({
+      actor: actorUserId,
+      action: "WRITE",
+      resourceType: "business_pilot_authorization",
+      table: "business_pilot_authorizations",
+      resourceId: authorization.id,
+      route: req.path,
+      ip: getClientIp(req as any),
+      meta: { lifecycle: "created", accessProvenance: "business_pilot" },
+    });
+    return res.status(201).json({ authorization });
+  } catch (error) {
+    try { return handleBusinessPilotAuthorizationError(res, error); } catch (unexpected) {
+      console.error("[business/business-pilot-authorizations/create] error:", unexpected);
+      return res.status(500).json({ error: "Could not create Business Pilot authorization." });
+    }
+  }
+});
+
+router.get("/business-pilot-authorizations", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const authorizations = await listBusinessPilotAuthorizations();
+    return res.json({ authorizations });
+  } catch (error) {
+    console.error("[business/business-pilot-authorizations/list] error:", error);
+    return res.status(500).json({ error: "Could not load Business Pilot authorizations." });
+  }
+});
+
+router.post("/business-pilot-authorizations/:authorizationId/extend", requireAuth, requireAdmin, async (req, res) => {
+  const actorUserId = (req as any).authUser.id as string;
+  try {
+    const authorization = await extendBusinessPilotAuthorization({
+      authorizationId: req.params.authorizationId,
+      actorUserId,
+      expiresAt: req.body?.expiresAt,
+      durationDays: req.body?.durationDays,
+      durationPolicy: req.body?.durationPolicy,
+    });
+    logAudit({
+      actor: actorUserId,
+      action: "WRITE",
+      resourceType: "business_pilot_authorization",
+      table: "business_pilot_authorizations",
+      resourceId: authorization.id,
+      route: req.path,
+      ip: getClientIp(req as any),
+      meta: { lifecycle: "extended", accessProvenance: "business_pilot" },
+    });
+    return res.json({ authorization });
+  } catch (error) {
+    try { return handleBusinessPilotAuthorizationError(res, error); } catch (unexpected) {
+      console.error("[business/business-pilot-authorizations/extend] error:", unexpected);
+      return res.status(500).json({ error: "Could not extend Business Pilot authorization." });
+    }
+  }
+});
+
+router.post("/business-pilot-authorizations/:authorizationId/revoke", requireAuth, requireAdmin, async (req, res) => {
+  const actorUserId = (req as any).authUser.id as string;
+  try {
+    const authorization = await revokeBusinessPilotAuthorization({
+      authorizationId: req.params.authorizationId,
+      actorUserId,
+      reason: req.body?.reason,
+    });
+    logAudit({
+      actor: actorUserId,
+      action: "WRITE",
+      resourceType: "business_pilot_authorization",
+      table: "business_pilot_authorizations",
+      resourceId: authorization.id,
+      route: req.path,
+      ip: getClientIp(req as any),
+      meta: { lifecycle: "revoked", accessProvenance: "business_pilot" },
+    });
+    return res.json({ authorization });
+  } catch (error) {
+    try { return handleBusinessPilotAuthorizationError(res, error); } catch (unexpected) {
+      console.error("[business/business-pilot-authorizations/revoke] error:", unexpected);
+      return res.status(500).json({ error: "Could not revoke Business Pilot authorization." });
+    }
+  }
+});
 
 router.post("/pilot-authorizations", requireAuth, requireAdmin, async (req, res) => {
   const userId = (req as any).authUser?.id as string;
@@ -1084,7 +1207,9 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, requireSelectedBusines
     invitationType = "team_member",
     trialDays,
     programName,
-    partnerRecordId,
+    // Legacy clients may still send this field. It is deliberately ignored:
+    // organization partner attribution is resolved from the active workspace.
+    partnerRecordId: _clientPartnerRecordId,
     recipientName,
     sendEmail: shouldSendEmail = true,
   } = req.body as {
@@ -1133,6 +1258,19 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, requireSelectedBusines
       return res.status(403).json({ error: "No business account found." });
     }
     const { business, locationId } = resolved;
+    const attribution = await resolveBp1Attribution(userId, {
+      organizationId: resolved.organizationId,
+      locationId,
+    });
+    if (
+      business.organizationId !== attribution.organizationId
+      || (attribution.sourceBusinessId && attribution.sourceBusinessId !== business.id)
+    ) {
+      return res.status(409).json({
+        error: "The selected workspace does not match this Business account.",
+        code: "INVALID_WORKSPACE_SELECTION",
+      });
+    }
     const invitationIdentity = await resolveEmailIdentityForEmail(normalizedEmail);
     if (invitationIdentity.candidates.length > 1) {
       return res.status(409).json({
@@ -1273,7 +1411,7 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, requireSelectedBusines
       invitationType: invitationType as any,
       trialDays: resolvedTrialDays,
       programName: isClient ? (programName?.trim() || null) : null,
-      partnerRecordId: partnerRecordId ?? null,
+      ...attributionColumns(attribution),
     }).returning({ id: businessInvitations.id });
 
     // Stamp policy snapshot for team member invites
@@ -1912,6 +2050,32 @@ async function acceptBusinessInvitation(req: any, res: any) {
         code: "COMMERCIAL_REQUIRED",
       });
     }
+    if (
+      (invite.organizationId && invite.organizationId !== business.organizationId)
+      || (invite.sourceBusinessId && invite.sourceBusinessId !== business.id)
+    ) {
+      return res.status(409).json({
+        error: "This invitation's Organization attribution is inconsistent with its Business account.",
+        code: "INVITATION_ATTRIBUTION_MISMATCH",
+      });
+    }
+    if (invite.organizationId && invite.locationId) {
+      const [location] = await db
+        .select({ organizationId: organizationLocations.organizationId })
+        .from(organizationLocations)
+        .where(and(
+          eq(organizationLocations.id, invite.locationId),
+          eq(organizationLocations.organizationId, invite.organizationId),
+          eq(organizationLocations.status, "active"),
+        ))
+        .limit(1);
+      if (!location) {
+        return res.status(409).json({
+          error: "This invitation's Organization Location is inactive or inconsistent.",
+          code: "INVITATION_ATTRIBUTION_MISMATCH",
+        });
+      }
+    }
 
     // ── Client invitation path — extend trial, no seat consumed ──────────────
     if (invite.invitationType === "client") {
@@ -1991,10 +2155,18 @@ async function acceptBusinessInvitation(req: any, res: any) {
               );
             }
           },
+          {
+            organizationId: invite.organizationId ?? business.organizationId ?? null,
+            locationId: invite.locationId,
+            sourceBusinessId: invite.sourceBusinessId ?? business.id,
+            partnerRecordId: invite.partnerRecordId ?? null,
+          },
         );
       } catch (error) {
         if (error instanceof ActivationError) {
-          const isRelationshipConflict = error.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL";
+          const isRelationshipConflict =
+            error.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL"
+            || error.code === "ATTRIBUTION_CONFLICT";
           return res.status(isRelationshipConflict ? 409 : 422).json({
             error: isRelationshipConflict
               ? "This client is already connected to another professional."
@@ -2558,6 +2730,26 @@ router.post("/access-grants/permanent-complimentary/revoke", requireAuth, requir
   }
 });
 
+async function associateClaimedBusinessPilotAfterWorkspace(input: {
+  userId: string;
+  businessId: string;
+  organizationId: string;
+}) {
+  const authorization = await findClaimedBusinessPilotAuthorizationForUser(input.userId);
+  if (!authorization) return null;
+  const attached = await attachClaimedBusinessPilotAuthorizationToOrganization({
+    authorizationId: authorization.id,
+    claimedUserId: input.userId,
+    organizationId: input.organizationId,
+  });
+  const business = await activateBusinessPilotOrganizationWindow({
+    authorizationId: attached.id,
+    businessId: input.businessId,
+    organizationId: input.organizationId,
+  });
+  return { authorization: attached, business };
+}
+
 // ── POST /api/business/create-org — Self-service org creation for new business accounts.
 // Creates a businesses + owner businessMembers row and starts exactly one
 // organization-owned 30-day onboarding pilot. Ordinary organizations are flat;
@@ -2630,14 +2822,21 @@ router.post("/create-org", requireAuth, async (req, res) => {
       });
 
       const workspace = await ensureCanonicalWorkspaceForBusiness(result.business.id);
+      const businessPilot = await associateClaimedBusinessPilotAfterWorkspace({
+        userId,
+        businessId: result.business.id,
+        organizationId: workspace.organizationId,
+      });
+      const effectiveBusiness = businessPilot?.business ?? result.business;
       return res.status(result.created ? 201 : 200).json({
         businessId: result.business.id,
         organizationId: workspace.organizationId,
         locationId: workspace.locationId,
         created: result.created,
         paymentRequired: false,
-        commercialState: deriveBusinessCommercialState(result.business),
-        commercialRequiredAt: result.business.commercialAccessEndsAt,
+        commercialState: deriveBusinessCommercialState(effectiveBusiness),
+        commercialRequiredAt: effectiveBusiness.commercialAccessEndsAt,
+        ...(businessPilot ? { businessPilotAuthorizationId: businessPilot.authorization.id } : {}),
       });
     }
 
@@ -2679,14 +2878,21 @@ router.post("/create-org", requireAuth, async (req, res) => {
         effective = activated;
       }
       const workspace = await ensureCanonicalWorkspaceForBusiness(existing.id);
+      const businessPilot = await associateClaimedBusinessPilotAfterWorkspace({
+        userId,
+        businessId: existing.id,
+        organizationId: workspace.organizationId,
+      });
+      const effectiveBusiness = businessPilot?.business ?? effective;
       return res.json({
         businessId: existing.id,
         organizationId: workspace.organizationId,
         locationId: workspace.locationId,
         created: false,
         paymentRequired: false,
-        commercialState: deriveBusinessCommercialState(effective),
-        commercialRequiredAt: effective.commercialAccessEndsAt,
+        commercialState: deriveBusinessCommercialState(effectiveBusiness),
+        commercialRequiredAt: effectiveBusiness.commercialAccessEndsAt,
+        ...(businessPilot ? { businessPilotAuthorizationId: businessPilot.authorization.id } : {}),
       });
     }
 
@@ -2726,14 +2932,25 @@ router.post("/create-org", requireAuth, async (req, res) => {
       if (isUniqueViolation) {
         const [race] = await db.select().from(businesses).where(eq(businesses.ownerUserId, userId)).limit(1);
         if (race) {
-          await ensureCanonicalWorkspaceForBusiness(race.id);
-          return res.json({ businessId: race.id, created: false });
+          const raceWorkspace = await ensureCanonicalWorkspaceForBusiness(race.id);
+          const businessPilot = await associateClaimedBusinessPilotAfterWorkspace({
+            userId,
+            businessId: race.id,
+            organizationId: raceWorkspace.organizationId,
+          });
+          return res.json({ businessId: race.id, created: false, ...(businessPilot ? { businessPilotAuthorizationId: businessPilot.authorization.id } : {}) });
         }
       }
       throw conflictErr;
     }
 
     const workspace = await ensureCanonicalWorkspaceForBusiness(newBiz!.id);
+    const businessPilot = await associateClaimedBusinessPilotAfterWorkspace({
+      userId,
+      businessId: newBiz!.id,
+      organizationId: workspace.organizationId,
+    });
+    const effectiveBusiness = businessPilot?.business ?? newBiz!;
     console.log(`✅ [business/create-org] org created | id=${newBiz!.id} | owner=${userId}`);
     return res.json({
       businessId: newBiz!.id,
@@ -2741,11 +2958,15 @@ router.post("/create-org", requireAuth, async (req, res) => {
       locationId: workspace.locationId,
       created: true,
       paymentRequired: false,
-      commercialState: deriveBusinessCommercialState(newBiz!),
-      commercialRequiredAt: newBiz!.commercialAccessEndsAt,
+      commercialState: deriveBusinessCommercialState(effectiveBusiness),
+      commercialRequiredAt: effectiveBusiness.commercialAccessEndsAt,
+      ...(businessPilot ? { businessPilotAuthorizationId: businessPilot.authorization.id } : {}),
     });
   } catch (err: any) {
     console.error("[business/create-org] error:", err);
+    if (err instanceof BusinessPilotAuthorizationError) {
+      return res.status(err.statusCode).json({ error: err.message, code: err.code });
+    }
     return res.status(500).json({ error: err?.message || "Could not create organization." });
   }
 });

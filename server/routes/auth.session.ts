@@ -20,6 +20,10 @@ import { findOrganizationalPilotInvitation } from "../services/organizationalPil
 import { enrollClinicPatientInTransaction, inspectClinicPilotEnrollmentLink } from "../services/clinicPilotEnrollmentService";
 import { inspectPilotAuthorizationToken } from "../services/organizationalPilotAuthorizationService";
 import {
+  claimBusinessPilotAuthorizationInTransaction,
+  findOpenBusinessPilotAuthorizationByEmail,
+} from "../services/businessPilotAuthorizationService";
+import {
   clearSessionCookie,
   destroySession,
   regenerateSession,
@@ -160,6 +164,7 @@ router.post("/api/auth/signup", async (req, res) => {
       return res.status(410).json({ error: "This organizational authorization is no longer available.", code: "AUTHORIZATION_NOT_AVAILABLE" });
     }
     const professionalSetupRequested = !!procare?.professionalCategory;
+    const businessPilotAuthorization = await findOpenBusinessPilotAuthorizationByEmail(email);
 
     // Tester accounts get immediate full access via planLookupKey. Normal
     // consumers get a 7-day signup trial unless their email has a pending
@@ -170,6 +175,7 @@ router.post("/api/auth/signup", async (req, res) => {
       && !professionalSetupRequested
       && !isValidPilotSignup
       && !isValidPilotAuthorizationSignup
+      && !businessPilotAuthorization
       && !isBusinessAccount;
     const trialNow = isNormalConsumer ? new Date() : null;
     const pendingPreRegistrationAccess = isNormalConsumer
@@ -256,6 +262,16 @@ router.post("/api/auth/signup", async (req, res) => {
         if (!claimed) {
           throw new Error("Pre-registration access was already activated");
         }
+      }
+
+      // BP1 claim is intentionally limited to the authorization binding. It
+      // does not create organizations, memberships, roles, Studio state, or
+      // alter billing/plan columns.
+      if (businessPilotAuthorization) {
+        await claimBusinessPilotAuthorizationInTransaction(tx, {
+          userId: createdUser.id,
+          email: createdUser.email,
+        });
       }
 
       return createdUser;
@@ -448,7 +464,6 @@ router.post("/api/auth/login", async (req, res) => {
     }
 
     const membership = inviteResult.membership || await lookupExistingMembership(user.id);
-
     res.json({
       id: user.id,
       email: user.email,
@@ -494,7 +509,6 @@ router.get("/api/auth/session", async (req: any, res) => {
     if (!user) {
       return res.status(401).json({ error: "Invalid auth token" });
     }
-    
     res.json({
       userId: user.id,
       id: user.id,

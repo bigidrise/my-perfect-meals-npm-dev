@@ -720,12 +720,16 @@ async function initializeApp() {
           await runPilotProcareMigration(database as any);
           const { runPilotProgramMigration } = await import("./db/migrations/runPilotProgramMigration");
           await runPilotProgramMigration(database as any);
+          const { runBusinessPilotAuthorizationMigration } = await import("./db/migrations/runBusinessPilotAuthorizationMigration");
+          await runBusinessPilotAuthorizationMigration(database as any);
           const { runOrganizationWorkspaceMigration } = await import("./db/migrations/runOrganizationWorkspaceMigration");
           await runOrganizationWorkspaceMigration(database as any);
           const { runBusinessCommercialAccessMigration } = await import("./db/migrations/runBusinessCommercialAccessMigration");
           await runBusinessCommercialAccessMigration(database as any);
            const { runOrganizationPartnerRevenueMigration } = await import("./db/migrations/runOrganizationPartnerRevenueMigration");
            await runOrganizationPartnerRevenueMigration(database as any);
+           const { runBp1OrganizationAttributionMigration } = await import("./db/migrations/runBp1OrganizationAttributionMigration");
+           await runBp1OrganizationAttributionMigration(database as any);
            const { runHydrationHubMigration } = await import("./db/migrations/runHydrationHubMigration");
            await runHydrationHubMigration(database as any);
            const { runProcareTrainingMigration } = await import("./db/migrations/runProcareTrainingMigration");
