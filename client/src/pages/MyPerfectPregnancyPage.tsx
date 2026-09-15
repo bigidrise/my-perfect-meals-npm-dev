@@ -292,7 +292,8 @@ export default function MyPerfectPregnancyPage() {
     setLoading(true);
 
     try {
-      // post() uses apiJSON() which calls getAuthHeaders() — sends x-auth-token from localStorage
+      // post() uses apiJSON(), which sends a native bearer only in Capacitor
+      // and otherwise relies on the browser session cookie.
       const data = await post<{
         reply: string;
         stage: string;

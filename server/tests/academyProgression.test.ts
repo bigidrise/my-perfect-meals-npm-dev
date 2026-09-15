@@ -65,6 +65,23 @@ describe("Academy progression", () => {
     expect(result.nextStep.kind).toBe("claim_specialist");
   });
 
+  it("uses completed lessons and modules even when parent rows are not started or waitlisted", () => {
+    const result = resolveAcademyProgression({
+      ...emptyInput,
+      completedPlatformLessonIds: PLATFORM_MASTERY_LESSON_IDS,
+      completedMarketingModuleIds: MARKETING_COACHING_MODULE_IDS,
+      // Parent certification statuses are intentionally represented by the
+      // legacy flags and remain incomplete; child rows are authoritative.
+      legacyPlatformComplete: false,
+      legacyMarketingComplete: false,
+    });
+
+    expect(result.phase1).toEqual({ complete: true, completed: 9, total: 9 });
+    expect(result.phase2).toEqual({ complete: true, completed: 6, total: 6 });
+    expect(result.specialist.eligible).toBe(true);
+    expect(result.nextStep.kind).toBe("claim_specialist");
+  });
+
   it("does not let optional ProCare block the core credential", () => {
     const result = resolveAcademyProgression({
       ...emptyInput,

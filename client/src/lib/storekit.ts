@@ -6,7 +6,7 @@ import {
 } from "@/lib/iosProducts";
 import type { LookupKey } from "@/data/planSkus";
 import { apiUrl } from "@/lib/resolveApiBase";
-import { setCachedUser } from "@/lib/auth";
+import { getAuthHeaders, setCachedUser } from "@/lib/auth";
 import { Subscriptions } from "@squareetlabs/capacitor-subscriptions";
 
 function getPlugin(): any | null {
@@ -299,8 +299,8 @@ async function verifyAndActivate(
 
   // x-auth-token is required — requireAuth is enforced on this endpoint.
   // On native iOS, cookie-based sessions are unreliable, so the header is essential.
-  const authToken = localStorage.getItem("mpm_auth_token") || "";
-  if (!authToken) {
+  const authHeaders = getAuthHeaders();
+  if (!authHeaders["x-auth-token"]) {
     throw new Error("No auth token — please sign in again before purchasing.");
   }
 
@@ -308,7 +308,7 @@ async function verifyAndActivate(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-auth-token": authToken,
+      ...authHeaders,
     },
     credentials: "include",
     body: JSON.stringify({

@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, Activity, Pill, Trophy, Lock, Dumbbell, Utensils } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getAuthToken } from "@/lib/auth";
+import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useTranslation } from "react-i18next";
@@ -112,21 +112,18 @@ export default function Planner() {
     }
     if (isBuilderUnlocked(feature.builderId)) {
       if (feature.builderId !== userActiveBoard) {
-        const authToken = getAuthToken();
-        if (authToken) {
-          try {
-            await fetch(apiUrl("/api/user/meal-builder"), {
-              method: "PATCH",
-              headers: {
-                "Content-Type": "application/json",
-                "x-auth-token": authToken,
-              },
-              body: JSON.stringify({ selectedMealBuilder: feature.builderId }),
-            });
-            await refreshUser();
-          } catch (err) {
-            console.error("Failed to update builder:", err);
-          }
+        try {
+          await fetch(apiUrl("/api/user/meal-builder"), {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              ...getAuthHeaders(),
+            },
+            body: JSON.stringify({ selectedMealBuilder: feature.builderId }),
+          });
+          await refreshUser();
+        } catch (err) {
+          console.error("Failed to update builder:", err);
         }
       }
       setLocation(feature.route);

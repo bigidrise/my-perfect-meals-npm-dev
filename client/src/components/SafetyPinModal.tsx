@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Shield, Eye, EyeOff, AlertTriangle } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
-import { getAuthToken } from "@/lib/auth";
+import { getAuthHeaders } from "@/lib/auth";
 
 interface SafetyPinModalProps {
   open: boolean;
@@ -38,18 +38,13 @@ export function SafetyPinModal({
     setError(null);
 
     try {
-      const authToken = getAuthToken();
-      if (!authToken) {
-        setError("Please log in to continue");
-        return;
-      }
-
       const response = await fetch(apiUrl("/api/safety-pin/verify-override"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-auth-token": authToken,
+          ...getAuthHeaders(),
         },
+        credentials: "include",
         body: JSON.stringify({
           pin,
           allergen,

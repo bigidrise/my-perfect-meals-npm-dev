@@ -396,6 +396,10 @@ export function clearAuthToken(): void {
 }
 
 export function getAuthHeaders(): Record<string, string> {
+  // Browser requests are authenticated by the httpOnly session cookie.  The
+  // local-storage token is a native-app credential only; sending it from a
+  // browser lets an expired token mask an otherwise valid cookie session.
+  if (!isNativePlatform()) return {};
   const token = getAuthToken();
   return token ? { "x-auth-token": token } : {};
 }
@@ -509,9 +513,12 @@ export async function signUp(
 
     const userData = await response.json();
     
-    // Store FRESH auth token from server response
-    if (userData.authToken) {
+    // Bearer credentials are for native builds only. Browser authentication is
+    // established by the session cookie returned by this request.
+    if (isNativePlatform() && userData.authToken) {
       setAuthToken(userData.authToken);
+    } else if (!isNativePlatform()) {
+      clearAuthToken();
     }
     
     const user: User = {
@@ -567,9 +574,12 @@ export async function login(
       return { mfaRequired: true };
     }
 
-    // Store auth token from server response
-    if (userData.authToken) {
+    // Bearer credentials are for native builds only. Browser authentication is
+    // established by the session cookie returned by this request.
+    if (isNativePlatform() && userData.authToken) {
       setAuthToken(userData.authToken);
+    } else if (!isNativePlatform()) {
+      clearAuthToken();
     }
 
     const user: User = {
@@ -634,8 +644,10 @@ export async function completeMfaChallenge(
 
   const userData = await response.json();
 
-  if (userData.authToken) {
+  if (isNativePlatform() && userData.authToken) {
     setAuthToken(userData.authToken);
+  } else if (!isNativePlatform()) {
+    clearAuthToken();
   }
 
   const user: User = {
@@ -663,14 +675,11 @@ export function logout(): void {
   // Fire-and-forget server-side token invalidation. The token is cleared from
   // localStorage immediately below regardless of whether the server call succeeds,
   // so logout is instant from the user's perspective.
-  const token = getAuthToken();
-  if (token) {
-    fetch(apiUrl("/api/auth/logout"), {
-      method: "POST",
-      credentials: "include",
-      headers: { "x-auth-token": token },
-    }).catch(() => {});
-  }
+  fetch(apiUrl("/api/auth/logout"), {
+    method: "POST",
+    credentials: "include",
+    headers: getAuthHeaders(),
+  }).catch(() => {});
 
   clearAuthToken();
   localStorage.removeItem("mpm_current_user");

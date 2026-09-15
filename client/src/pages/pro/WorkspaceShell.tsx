@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { ArrowLeft, Loader2, Activity, Target, UtensilsCrossed, CheckCircle2 } from "lucide-react";
-import { getAuthToken } from "@/lib/auth";
+import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
@@ -40,7 +40,6 @@ function formatCondition(condition: string): string {
 export default function WorkspaceShell() {
   const { clientId } = useParams<{ clientId: string }>();
   const [, navigate] = useLocation();
-  const token = getAuthToken();
   const { t } = useTranslation("workspace");
   const [client, setClient] = useState<WorkspaceClient | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,8 +54,7 @@ export default function WorkspaceShell() {
 
     async function fetchWorkspace() {
       try {
-        const headers: Record<string, string> = {};
-        if (token) headers["x-auth-token"] = token;
+        const headers: Record<string, string> = getAuthHeaders();
         const res = await fetch(apiUrl(`/api/pro/workspace/${clientId}`), {
           headers,
           credentials: "include",
@@ -92,7 +90,7 @@ export default function WorkspaceShell() {
     }
 
     fetchWorkspace();
-  }, [clientId, token]);
+  }, [clientId]);
 
   if (loading) {
     return (

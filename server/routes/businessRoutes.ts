@@ -1005,8 +1005,6 @@ router.get("/mine", requireAuth, requireProOrOrgAdmin, async (req, res) => {
       professionalCapacity: organizationalPilots.professionalCapacity,
       clientCapacity: organizationalPilots.clientCapacity,
       durationDays: organizationalPilots.durationDays,
-      pilotStartAt: businesses.commercialAccessStartedAt,
-      pilotEndAt: businesses.commercialAccessEndsAt,
     }).from(organizationalPilots)
       .where(eq(organizationalPilots.businessId, business.id))
       .limit(1);
@@ -1019,7 +1017,11 @@ router.get("/mine", requireAuth, requireProOrOrgAdmin, async (req, res) => {
         endsAt: business.commercialAccessEndsAt,
       },
       workspace: { organizationId, locationId, locationName },
-      pilot: pilot ?? null,
+      pilot: pilot ? {
+        ...pilot,
+        pilotStartAt: business.commercialAccessStartedAt,
+        pilotEndAt: business.commercialAccessEndsAt,
+      } : null,
       pilotReview: process.env.NODE_ENV === "production"
         ? null
         : getPilotReviewConfiguration(),

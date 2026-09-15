@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getAuthToken } from "@/lib/auth";
+import { getAuthHeaders } from "@/lib/auth";
 import { canPollProfessionalUnread } from "@/lib/proUnreadEligibility";
 
 let cachedCount = 0;
@@ -23,15 +23,9 @@ async function fetchUnread(identity: string) {
   if (identity !== pollingIdentity || terminalIdentity === identity) return;
 
   try {
-    const token = getAuthToken();
-    if (!token) {
-      terminalIdentity = identity;
-      stopPolling();
-      return;
-    }
-
     const res = await fetch("/api/pro/tablet/unread-summary", {
-      headers: { "x-auth-token": token },
+      headers: getAuthHeaders(),
+      credentials: "include",
     });
     if (identity !== pollingIdentity) return;
     if (res.status === 401 || res.status === 403) {

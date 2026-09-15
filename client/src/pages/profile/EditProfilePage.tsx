@@ -12,7 +12,7 @@ import { useGlycemicSettings } from "@/hooks/useGlycemicSettings";
 import { LOW_RANGE_OPTIONS, MID_RANGE_OPTIONS, HIGH_RANGE_OPTIONS } from "@/types/glycemic";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { apiRequest } from "@/lib/apiRequest";
-import { getAuthToken } from "@/lib/auth";
+import { getAuthHeaders } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { PillButton } from "@/components/ui/pill-button";
 import { useCopilot } from "@/components/copilot/CopilotContext";
@@ -405,12 +405,11 @@ export default function EditProfilePage() {
     }
     
     try {
-      const authToken = getAuthToken();
       const res = await fetch(apiUrl("/api/safety/verify-pin"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(authToken ? { "x-auth-token": authToken } : {}),
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ pin: pinInput }),
       });
@@ -519,12 +518,12 @@ export default function EditProfilePage() {
         ? [...medicalWithoutGlp1, "glp1"]
         : medicalWithoutGlp1;
 
-      const authToken = getAuthToken();
+      const authHeaders = getAuthHeaders();
       const res = await fetch(apiUrl("/api/users/profile"), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          ...(authToken ? { "x-auth-token": authToken } : {}),
+          ...authHeaders,
         },
         credentials: "include",
         body: JSON.stringify(payload),
@@ -550,7 +549,7 @@ export default function EditProfilePage() {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            ...(authToken ? { "x-auth-token": authToken } : {}),
+            ...authHeaders,
           },
           credentials: "include",
           body: JSON.stringify({ conditions: specialtyConditions }),
@@ -580,7 +579,7 @@ export default function EditProfilePage() {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            ...(authToken ? { "x-auth-token": authToken } : {}),
+            ...authHeaders,
           },
           credentials: "include",
           body: JSON.stringify({ thyroidType }),
@@ -593,7 +592,7 @@ export default function EditProfilePage() {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            ...(authToken ? { "x-auth-token": authToken } : {}),
+            ...authHeaders,
           },
           credentials: "include",
           body: JSON.stringify({ profile: alphaGalProfile }),
@@ -605,7 +604,7 @@ export default function EditProfilePage() {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          ...(authToken ? { "x-auth-token": authToken } : {}),
+          ...authHeaders,
         },
         credentials: "include",
         body: JSON.stringify({ medication: thyroidMedication.trim() || null }),
@@ -616,7 +615,7 @@ export default function EditProfilePage() {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          ...(authToken ? { "x-auth-token": authToken } : {}),
+          ...authHeaders,
         },
         credentials: "include",
         body: JSON.stringify({ measurementSystem: localMeasurementSystem, countryCode: localCountryCode }),

@@ -35,7 +35,7 @@ import {
   BookOpen,
   Utensils,
 } from "lucide-react";
-import { logout, getAuthToken } from "@/lib/auth";
+import { logout, getAuthHeaders } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import EmotionAIFooter from "@/components/EmotionAIFooter";
@@ -77,14 +77,11 @@ export default function Profile() {
 
     setIsUploadingPhoto(true);
     try {
-      const token = getAuthToken();
-      if (!token) throw new Error("Not authenticated");
-
       const presignedRes = await fetch(apiUrl("/api/uploads/request-url"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-auth-token": token,
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({
           name: file.name,
@@ -113,7 +110,7 @@ export default function Profile() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "x-auth-token": token,
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ profilePhotoUrl: objectPath }),
       });
@@ -146,16 +143,9 @@ export default function Profile() {
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
     try {
-      const token = getAuthToken();
-      if (!token) {
-        throw new Error("Not authenticated");
-      }
-
       const response = await fetch(apiUrl("/api/auth/delete-account"), {
         method: "DELETE",
-        headers: {
-          "x-auth-token": token,
-        },
+        headers: getAuthHeaders(),
       });
 
       if (!response.ok) {

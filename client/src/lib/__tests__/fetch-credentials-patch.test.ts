@@ -62,22 +62,46 @@ describe("patchFetchForCredentials", () => {
     );
   });
 
-  it("does not request a CSRF token for explicit bearer mutations", async () => {
+  it("does not allow an explicit bearer to bypass browser CSRF", async () => {
     delete (window as any).__fetchCredsPatched;
     originalFetch.mockClear();
     window.fetch = originalFetch as unknown as typeof fetch;
     mockIsNativePlatform.mockReturnValue(false);
+    originalFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ csrfToken: "browser-session-token" }),
+      })
+      .mockResolvedValueOnce({ ok: true });
     patchFetchForCredentials();
     await window.fetch("/api/user/profile", {
       method: "PATCH",
       headers: { "x-auth-token": "bearer" },
     });
-    expect(originalFetch).toHaveBeenCalledTimes(1);
+    expect(originalFetch).toHaveBeenCalledTimes(2);
   });
 
-  it("uses the stored bearer token for authenticated API mutations without CSRF bootstrap", async () => {
+  it("ignores a stale stored bearer in browser API mutations", async () => {
     mockIsNativePlatform.mockReturnValue(false);
     window.localStorage.setItem("mpm_auth_token", "stored-auth-token");
+    originalFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ csrfToken: "browser-session-token" }),
+      })
+      .mockResolvedValueOnce({ ok: true });
+    patchFetchForCredentials();
+
+    await window.fetch("/api/meals/craving-creator", { method: "POST" });
+
+    expect(originalFetch).toHaveBeenCalledTimes(2);
+    const requestInit = originalFetch.mock.calls[1][1] as RequestInit;
+    expect(new Headers(requestInit.headers).has("x-auth-token")).toBe(false);
+  });
+
+  it("uses the stored bearer for native API mutations", async () => {
+    mockIsNativePlatform.mockReturnValue(true);
+    window.localStorage.setItem("mpm_auth_token", "native-auth-token");
     patchFetchForCredentials();
 
     await window.fetch("/api/meals/craving-creator", { method: "POST" });
@@ -85,7 +109,7 @@ describe("patchFetchForCredentials", () => {
     expect(originalFetch).toHaveBeenCalledTimes(1);
     const requestInit = originalFetch.mock.calls[0][1] as RequestInit;
     expect(new Headers(requestInit.headers).get("x-auth-token")).toBe(
-      "stored-auth-token",
+      "native-auth-token",
     );
   });
 

@@ -1,6 +1,9 @@
 jest.mock("../resolveApiBase", () => ({
   apiUrl: (path: string) => path,
 }));
+jest.mock("@capacitor/core", () => ({
+  Capacitor: { isNativePlatform: () => true },
+}));
 
 import fs from "fs";
 import path from "path";

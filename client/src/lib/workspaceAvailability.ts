@@ -21,6 +21,7 @@ export const PERSONAL_ONLY_FALLBACK: WorkspaceAvailability = {
 export async function fetchWorkspaceAvailability(): Promise<WorkspaceAvailability> {
   const response = await fetch("/api/business/workspace/availability", {
     credentials: "include",
+    cache: "no-store",
     headers: getAuthHeaders(),
   });
   if (!response.ok) {

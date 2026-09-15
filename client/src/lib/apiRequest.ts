@@ -1,13 +1,15 @@
 import { getDeviceId } from "@/utils/deviceId";
-import { getAuthToken } from "@/lib/auth";
+import { getAuthHeaders, isNativePlatform } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 
 export async function apiRequest(path: string, init: RequestInit = {}) {
-  const authToken = getAuthToken();
   const deviceId = getDeviceId();
   
   const headers = new Headers(init.headers || {});
-  if (authToken && !headers.has("x-auth-token")) headers.set("x-auth-token", authToken);
+  if (!isNativePlatform()) headers.delete("x-auth-token");
+  for (const [name, value] of Object.entries(getAuthHeaders())) {
+    if (!headers.has(name)) headers.set(name, value);
+  }
   if (!headers.has("X-Device-Id")) headers.set("X-Device-Id", deviceId);
   if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json");
 

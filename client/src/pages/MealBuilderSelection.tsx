@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { PillButton } from "@/components/ui/pill-button";
-import { MealBuilderType, getAuthToken } from "@/lib/auth";
+import { MealBuilderType, getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { useTranslation } from "react-i18next";
@@ -118,15 +118,15 @@ export default function MealBuilderSelection() {
 
   useEffect(() => {
     const fetchSwitchStatus = async () => {
-      const authToken = getAuthToken();
-      if (!authToken) {
+      if (!user) {
         setLoadingStatus(false);
         return;
       }
 
       try {
         const response = await fetch(apiUrl("/api/user/builder-switch-status"), {
-          headers: { "x-auth-token": authToken },
+          headers: getAuthHeaders(),
+          credentials: "include",
         });
         if (response.ok) {
           const status = await response.json();
@@ -170,8 +170,7 @@ export default function MealBuilderSelection() {
       return;
     }
 
-    const authToken = getAuthToken();
-    if (!authToken) {
+    if (!user) {
       toast({
         title: "Please sign in",
         description: "You need to be signed in to continue.",
@@ -188,8 +187,9 @@ export default function MealBuilderSelection() {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          "x-auth-token": authToken,
+          ...getAuthHeaders(),
         },
+        credentials: "include",
         body: JSON.stringify({
           selectedMealBuilder: selected,
         }),

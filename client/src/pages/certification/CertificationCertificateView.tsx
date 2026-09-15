@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import VisualCertificate from "@/components/certification/VisualCertificate";
 import { AcademyBackButton } from "@/components/AcademyBackButton";
+import { getAuthHeaders } from "@/lib/auth";
 
 interface CertData {
   status: string;
@@ -41,9 +42,8 @@ export default function CertificationCertificateView() {
     setDownloading(true);
     try {
       // Must use raw fetch for blob — apiRequest only returns parsed JSON
-      const token = localStorage.getItem("mpm_auth_token");
       const res = await fetch(`/api/certifications/${certType}/certificate`, {
-        headers: token ? { "x-auth-token": token } : {},
+        headers: getAuthHeaders(),
       });
       if (!res.ok) return;
       const blob = await res.blob();

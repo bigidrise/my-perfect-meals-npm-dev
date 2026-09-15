@@ -25,11 +25,11 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { ProRole } from "@/lib/proData";
-import { ProfessionalIntroOverlay } from "@/components/pro/ProfessionalIntroOverlay";
 import { useAuth } from "@/contexts/AuthContext";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { PillButton } from "@/components/ui/pill-button";
 import { Wifi, WifiOff } from "lucide-react";
+import { fetchWorkspaceAvailability } from "@/lib/workspaceAvailability";
 
 type Permissions = {
   canViewMacros: boolean;
@@ -82,12 +82,24 @@ export default function CareTeamPage() {
 
   useEffect(() => {
     if (!user) return;
-    const isAdmin = user.role === "admin";
-    const isTrainer = user.professionalRole === "trainer";
-    if (!isAdmin && !isTrainer) {
-      setLocation("/more");
-    }
-  }, [user, setLocation]);
+    let active = true;
+    fetchWorkspaceAvailability()
+      .then((availability) => {
+        if (
+          active &&
+          (!availability.studio.available ||
+            availability.studio.readiness !== "ready")
+        ) {
+          setLocation("/more");
+        }
+      })
+      .catch(() => {
+        if (active) setLocation("/more");
+      });
+    return () => {
+      active = false;
+    };
+  }, [user?.id, setLocation]);
 
   const [members, setMembers] = useState<CareMember[]>([]);
   const [loading, setLoading] = useState(false);
@@ -224,8 +236,6 @@ export default function CareTeamPage() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
     >
-      <ProfessionalIntroOverlay type="trainer" onEnter={() => {}} />
-
       <MobileHeaderGuard>
       <div
         className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
