@@ -1155,7 +1155,7 @@ const FridgeRescuePage = () => {
             >
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-xl font-bold text-white">
-                  🍽️ {t("resultsTitle")}
+                  🍽️ {t("resultsCount", { count: meals.length })}
                 </h2>
                 <button
                   onClick={handleNewSearch}

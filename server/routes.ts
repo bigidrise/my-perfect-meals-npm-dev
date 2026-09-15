@@ -2379,7 +2379,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ].filter(Boolean).join('\n\n') || undefined;
 
       // Generate multiple meals with proper macros and amounts
-      const meals = await generateFridgeRescueMeals({ 
+      const generatedFridgeMeals = await generateFridgeRescueMeals({
         fridgeItems, 
         user: { healthConditions: userHealthConditions },
         servings,
@@ -2389,6 +2389,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         strictMode: strictMode === true,
         protocolEnvelope: fridgeProtocolEnvelope,
         builderBlock: combinedBuilderBlock,
+      });
+      const { enforceFridgeRescueCuisineCompliance } = await import(
+        "./services/fridgeRescueCuisineCompliance"
+      );
+      const meals = await enforceFridgeRescueCuisineCompliance({
+        meals: generatedFridgeMeals,
+        cuisine: fridgeProtocolEnvelope.cuisinePreference,
+        fridgeItems,
+        strictMode: strictMode === true,
       });
 
       // ── Post-generation protocol scan (ingredient + instruction level) ──────
