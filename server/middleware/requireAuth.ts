@@ -171,30 +171,10 @@ export async function requireAuth(
   const token = req.headers["x-auth-token"] as string;
   const sessionUser = (req as any).session?.userId;
 
-  if (token) {
-    // ── Token-based auth (mobile / native) ────────────────────────────────────
-    // Idle timeout is NOT applied here — mobile OS handles app lifecycle and
-    // the auth token has its own revocation path.
-    try {
-      const user = await findUserByValidAuthToken(token);
-
-      if (user) {
-        (req as any).bearerMfaVerified =
-          user.authTokenMfaVerifiedAt instanceof Date &&
-          user.authTokenCreatedAt instanceof Date &&
-          user.authTokenMfaVerifiedAt.getTime() >= user.authTokenCreatedAt.getTime();
-        (req as AuthenticatedRequest).authUser = await buildAuthUserWithEffectiveAccess(user);
-        (req as any).orgContext = await loadOrgContext(user.organizationId ?? null);
-        return next();
-      }
-
-      // Token present but not found in DB
-      console.warn(`[requireAuth] 401 invalid_or_expired_token — route: ${route}`);
-    } catch (error) {
-      console.error(`[requireAuth] 401 db_error (token lookup) — route: ${route}`, error);
-    }
-  } else if (sessionUser) {
-    // ── Session-based auth (browser) ──────────────────────────────────────────
+  // A valid browser session is authoritative. Older browser builds persisted
+  // bearer tokens, and those tokens may now be stale; looking at the bearer
+  // first would incorrectly reject an otherwise valid cookie session.
+  if (sessionUser) {
     try {
       const [user] = await db
         .select()
@@ -247,10 +227,38 @@ export async function requireAuth(
         return next();
       }
 
-      // Session userId present but user not found
+      // Do not fall through to a bearer token when a session identity is
+      // present but no longer exists. This avoids allowing a stale session
+      // cookie to change the credential precedence unexpectedly.
       console.warn(`[requireAuth] 401 session_user_not_found — route: ${route}, userId: ${sessionUser}`);
     } catch (error) {
       console.error(`[requireAuth] 401 db_error (session lookup) — route: ${route}`, error);
+    }
+    res.status(401).json({ error: "Authentication required", code: "AUTH_REQUIRED" });
+    return;
+  }
+
+  if (token) {
+    // ── Token-based auth (mobile / native) ────────────────────────────────────
+    // Idle timeout is NOT applied here — mobile OS handles app lifecycle and
+    // the auth token has its own revocation path.
+    try {
+      const user = await findUserByValidAuthToken(token);
+
+      if (user) {
+        (req as any).bearerMfaVerified =
+          user.authTokenMfaVerifiedAt instanceof Date &&
+          user.authTokenCreatedAt instanceof Date &&
+          user.authTokenMfaVerifiedAt.getTime() >= user.authTokenCreatedAt.getTime();
+        (req as AuthenticatedRequest).authUser = await buildAuthUserWithEffectiveAccess(user);
+        (req as any).orgContext = await loadOrgContext(user.organizationId ?? null);
+        return next();
+      }
+
+      // Token present but not found in DB
+      console.warn(`[requireAuth] 401 invalid_or_expired_token — route: ${route}`);
+    } catch (error) {
+      console.error(`[requireAuth] 401 db_error (token lookup) — route: ${route}`, error);
     }
   } else {
     // No token and no session

@@ -8,7 +8,7 @@ import {
   useCallback,
 } from "react";
 
-import { User, getCurrentUser, getAuthHeaders, getAuthToken, clearAuthToken, setCachedUser } from "@/lib/auth";
+import { User, getCurrentUser, getAuthHeaders, clearAuthToken, setCachedUser } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import i18n, { resolveI18nLang } from "@/i18n";
 import { isGuestMode, getGuestSession } from "@/lib/guestMode";
@@ -58,12 +58,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const profileRefreshSingleFlight = useRef(createSingleFlight<User | null>());
 
   const fetchFreshUser = useCallback(async (): Promise<User | null> => {
-    const token = getAuthToken();
-    if (!token) {
-      console.log("⚠️ [AuthContext] No token - skipping refresh");
-      return null;
-    }
-
     try {
       console.log("📡 [AuthContext] Refreshing user...");
       const response = await fetch(apiUrl(`/api/user/profile`), {
@@ -281,8 +275,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const SUPPORTED = ["es","fr","de","it","pt","zh","ja","ko","ar","hi","ru","vi","tl"];
     const deviceLang = (navigator.language || "en").split("-")[0].toLowerCase();
     if (!SUPPORTED.includes(deviceLang)) return; // English or unsupported → keep "auto"
-    const token = getAuthToken();
-    if (!token) return;
     fetch(apiUrl("/api/user/preferences"), {
       method: "PATCH",
       headers: { "Content-Type": "application/json", ...getAuthHeaders() },
@@ -302,9 +294,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const handleVisibilityResumed = async () => {
       if (Date.now() - lastProbeTime < PROBE_INTERVAL_MS) return;
-      const token = getAuthToken();
-      if (!token) return;
-
       lastProbeTime = Date.now();
       try {
         const res = await fetch(apiUrl("/api/auth/session"), {
@@ -336,8 +325,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // user is returned to the login page.
   useEffect(() => {
     const handlePollingAuthRejected = () => {
-      const token = getAuthToken();
-      if (!token) return; // Already signed out
       console.warn("⚠️ [AuthContext] mpm:polling-auth-rejected — token invalidated, signing out");
       setUser(null);
       localStorage.removeItem("mpm_current_user");
@@ -355,11 +342,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const initializeAuth = async () => {
       const currentUser = getCurrentUser();
-      const token = getAuthToken();
       const appleReviewFullAccess =
         localStorage.getItem("appleReviewFullAccess") === "true";
 
-      if (token && currentUser && !currentUser.id.startsWith("guest-")) {
+      // Browser sessions are carried by the httpOnly cookie, so the cached
+      // routing user (not a local bearer token) determines whether to probe.
+      if (currentUser && !currentUser.id.startsWith("guest-")) {
         setUser(currentUser);
         try {
           const freshUser = await refreshUser();

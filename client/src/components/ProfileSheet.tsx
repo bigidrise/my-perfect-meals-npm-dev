@@ -45,7 +45,7 @@ import {
   Globe,
   GraduationCap,
 } from "lucide-react";
-import { logout, getAuthToken } from "@/lib/auth";
+import { logout, getAuthHeaders } from "@/lib/auth";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFontSize } from "@/contexts/FontSizeContext";
 import { useNarrationSpeed, type NarrationSpeed } from "@/contexts/NarrationSpeedContext";
@@ -108,13 +108,10 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
 
     setIsUploadingPhoto(true);
     try {
-      const token = getAuthToken();
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
+        ...getAuthHeaders(),
       };
-      if (token) {
-        headers["x-auth-token"] = token;
-      }
 
       const presignedRes = await fetch(apiUrl("/api/uploads/request-url"), {
         method: "POST",
@@ -147,10 +144,8 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
 
       const updateHeaders: Record<string, string> = {
         "Content-Type": "application/json",
+        ...getAuthHeaders(),
       };
-      if (token) {
-        updateHeaders["x-auth-token"] = token;
-      }
 
       const updateRes = await fetch(apiUrl("/api/users/profile-photo"), {
         method: "PUT",

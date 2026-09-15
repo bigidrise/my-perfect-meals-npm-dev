@@ -113,7 +113,10 @@ describe("Business pilot prerequisites", () => {
       "pilotStartAt: businesses.commercialAccessStartedAt",
     );
     expect(routesSource).toContain(
-      "pilotEndAt: businesses.commercialAccessEndsAt",
+      "pilotStartAt: business.commercialAccessStartedAt",
+    );
+    expect(routesSource).toContain(
+      "pilotEndAt: business.commercialAccessEndsAt",
     );
   });
 

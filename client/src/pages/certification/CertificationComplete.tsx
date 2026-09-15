@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { AcademyBackButton } from "@/components/AcademyBackButton";
+import { getAuthHeaders } from "@/lib/auth";
 
 interface AffiliateAccount {
   isActive: boolean;
@@ -133,9 +134,8 @@ export default function CertificationComplete() {
     if (downloading) return;
     setDownloading(true);
     try {
-      const token = localStorage.getItem("mpm_auth_token");
        const res = await fetch(`/api/certifications/${displayCertType}/certificate`, {
-        headers: token ? { "x-auth-token": token } : {},
+         headers: getAuthHeaders(),
       });
       if (!res.ok) return;
       const blob = await res.blob();

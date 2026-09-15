@@ -19,7 +19,7 @@ import { PillButton } from "@/components/ui/pill-button";
 import HeightInput from "@/components/inputs/HeightInput";
 import { getDeviceId } from "@/utils/deviceId";
 import { useAuth } from "@/contexts/AuthContext";
-import { getAuthToken, getAuthHeaders, setCachedUser } from "@/lib/auth";
+import { getAuthHeaders, setCachedUser } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import DisclaimerModal from "@/components/DisclaimerModal";
 
@@ -322,7 +322,6 @@ export default function OnboardingStandalone() {
     if (currentStep >= TOTAL_STEPS) {
       // Get auth token once for all save operations
       const deviceId = getDeviceId();
-      const authToken = getAuthToken();
       
       // Save onboarding data to server - includes userId for syncing to Edit Profile
       try {
@@ -330,9 +329,7 @@ export default function OnboardingStandalone() {
           "Content-Type": "application/json",
           "X-Device-Id": deviceId
         };
-        if (authToken) {
-          headers["x-auth-token"] = authToken;
-        }
+        Object.assign(headers, getAuthHeaders());
         
         await fetch("/api/onboarding/step/standalone-profile", {
           method: "PUT",
@@ -382,14 +379,11 @@ export default function OnboardingStandalone() {
       }
       
       // Save Safety PIN if provided (separate try-catch so profile failure doesn't block PIN)
-        if (safetyPin.length === 4 && safetyPin === confirmPin && authToken) {
+        if (safetyPin.length === 4 && safetyPin === confirmPin) {
           try {
             const pinResponse = await fetch(apiUrl("/api/safety-pin/set"), {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "x-auth-token": authToken,
-              },
+              headers: { "Content-Type": "application/json", ...getAuthHeaders() },
               body: JSON.stringify({ pin: safetyPin }),
             });
             if (pinResponse.ok) {
@@ -401,20 +395,15 @@ export default function OnboardingStandalone() {
         }
         
         // Save builder to user profile via API
-        if (authToken) {
-          try {
-            await fetch(apiUrl("/api/user/select-meal-builder"), {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "x-auth-token": authToken,
-              },
-              body: JSON.stringify({ selectedMealBuilder: selectedBuilder }),
-            });
-            console.log("✅ Builder selection saved:", selectedBuilder);
-          } catch (builderError) {
-            console.error("Failed to save builder selection:", builderError);
-          }
+        try {
+          await fetch(apiUrl("/api/user/select-meal-builder"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            body: JSON.stringify({ selectedMealBuilder: selectedBuilder }),
+          });
+          console.log("✅ Builder selection saved:", selectedBuilder);
+        } catch (builderError) {
+          console.error("Failed to save builder selection:", builderError);
         }
         
         // Update local user state immediately with onboardingCompletedAt

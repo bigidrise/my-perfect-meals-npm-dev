@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { X, Users, ShieldCheck, ShieldAlert, HelpCircle, Building2, User, Loader2 } from "lucide-react";
-import { getAuthToken } from "@/lib/auth";
+import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 
 interface MemberClientData {
@@ -51,9 +51,8 @@ export default function MemberClientAccountingModal({ memberId, onClose }: Props
       setLoading(true);
       setError(null);
       try {
-        const token = getAuthToken();
         const res = await fetch(apiUrl(`/api/business/members/${memberId}/clients`), {
-          headers: token ? { "x-auth-token": token } : {},
+          headers: getAuthHeaders(),
           credentials: "include",
         });
         if (!res.ok) {

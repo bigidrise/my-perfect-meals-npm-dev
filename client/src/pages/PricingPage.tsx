@@ -1420,7 +1420,7 @@ export default function PricingPage() {
                     apiUrl("/api/stripe/subscription-status"),
                     {
                       headers: {
-                        "x-auth-token": localStorage.getItem("mpm_auth_token") || "",
+                        ...getAuthHeaders(),
                       },
                     },
                   );
