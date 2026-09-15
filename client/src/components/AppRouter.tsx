@@ -36,6 +36,16 @@ function isInProfessionalWorkspace(path: string): boolean {
   return PROFESSIONAL_ROUTE_PREFIXES.some(prefix => path.startsWith(prefix));
 }
 
+function isInBusinessWorkspace(path: string): boolean {
+  return (
+    path === "/business-dashboard" ||
+    path === "/business/dashboard" ||
+    path === "/business-organizations" ||
+    path === "/org-success-center" ||
+    path.startsWith("/business-center")
+  );
+}
+
 function hasMacroProfile(user: any): boolean {
   if (user?.age && user?.height && user?.weight) return true;
   try {
@@ -223,6 +233,9 @@ export default function AppRouter({ children }: AppRouterProps) {
     location.startsWith("/join/business-offer") ||
     (import.meta.env.DEV && location.startsWith("/rewardful/connect/confirm"))
   ) {
+    return <>{children}</>;
+  }
+  if (isInBusinessWorkspace(location)) {
     return <>{children}</>;
   }
 

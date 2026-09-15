@@ -897,7 +897,12 @@ export default function Router() {
   const shouldShowBottomNav =
     !hideBottomNavRoutes.includes(location) &&
     !location.startsWith("/join/clinic") &&
-    !location.startsWith("/join/business-offer");
+    !location.startsWith("/join/business-offer") &&
+    !location.startsWith("/business-center") &&
+    location !== "/business-dashboard" &&
+    location !== "/business/dashboard" &&
+    location !== "/business-organizations" &&
+    location !== "/org-success-center";
 
   const { user, loading } = useAuth();
 
