@@ -45,6 +45,12 @@ export default function Auth() {
       ? sessionStorage.getItem("mpm.clinicPilotToken")
       : null;
   }, [search]);
+  const businessOfferToken = useMemo(() => {
+    const params = new URLSearchParams(search);
+    return params.get("businessOffer") === "1"
+      ? sessionStorage.getItem("mpm.businessOfferToken")
+      : null;
+  }, [search]);
   // returnTo is set by /join/studio (and similar pages) when redirecting an
   // unauthenticated user to login. Only same-origin paths are honoured.
   const urlReturnTo = useMemo(() => {
@@ -57,7 +63,7 @@ export default function Auth() {
     return p.get("source") || p.get("ref") || null;
   }, [search]);
   const [mode, setMode] = useState<"signup" | "login">(
-    isProCare || urlRole || urlInvite || pilotAuthorizationToken || clinicPilotToken ? "signup" : urlMode === "signup" ? "signup" : "login"
+    isProCare || urlRole || urlInvite || pilotAuthorizationToken || clinicPilotToken || businessOfferToken ? "signup" : urlMode === "signup" ? "signup" : "login"
   );
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
@@ -119,6 +125,22 @@ export default function Auth() {
         return;
       }
       sessionStorage.removeItem("mpm.clinicPilotToken");
+      setLocation(u.onboardingCompletedAt ? "/dashboard" : "/onboarding");
+      return;
+    }
+    if (businessOfferToken) {
+      const result = await fetch("/api/business-offers/redeem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
+        body: JSON.stringify({ token: businessOfferToken }),
+      });
+      if (!result.ok) {
+        const data = await result.json().catch(() => ({}));
+        setErr(data.error || "Could not redeem this Business Offer.");
+        return;
+      }
+      sessionStorage.removeItem("mpm.businessOfferToken");
       setLocation(u.onboardingCompletedAt ? "/dashboard" : "/onboarding");
       return;
     }
@@ -243,6 +265,7 @@ export default function Auth() {
           urlInvite,
           pilotAuthorizationToken,
           clinicPilotToken,
+          businessOfferToken,
         );
         await proceedAfterLogin(u, { professionalSetupPending });
         return;

@@ -124,6 +124,7 @@ import myPerfectBeginningRouter from "./routes/myPerfectBeginning";
 import myPerfectBeginningGenerationRouter from "./routes/my-perfect-beginning";
 import pregnancyCoachRouter from "./routes/pregnancyCoach";
 import clinicPilotRouter from "./routes/clinicPilotRoutes";
+import businessOfferRouter from "./routes/businessOfferRoutes";
 
 const app = express();
 
@@ -181,7 +182,7 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, x-user-id, x-device-id, x-auth-token, x-csrf-token, x-requested-with'
+    'Content-Type, Authorization, x-user-id, x-device-id, x-auth-token, x-csrf-token, x-requested-with, x-business-offer-token'
   );
 
   // Answer OPTIONS preflights immediately — nothing else should run for these.
@@ -345,6 +346,7 @@ app.use("/api", healthRouter);
 app.use("/api", keepaliveRouter);
 // Clinic patient pilot routes; migration is guarded by environment policy.
 app.use("/api/clinic-pilot", clinicPilotRouter);
+app.use("/api/business-offers", businessOfferRouter);
 
 // ── Release identity — public, no auth, reads manifest baked at build time ───
 // The acceptance gate and monitoring read this after every publish to confirm
@@ -1016,6 +1018,11 @@ setTimeout(async () => {
     `);
     const certBridgeCount = (certBridgeResult as any).rowCount ?? (certBridgeResult as any).count ?? '?';
     console.log(`✅ Cert-type bridge: ${certBridgeCount} "platform" → "platform_mastery" record(s) created`);
+
+    // Effective-access checks performed by the readiness backfill query this
+    // table, so it must exist before the backfill begins.
+    const { runBusinessOfferLinksMigration } = await import("./db/migrations/runBusinessOfferLinksMigration");
+    await runBusinessOfferLinksMigration(db);
 
     // Recover only verified professional accounts that predate automatic
     // Studio provisioning. The routine is idempotent and leaves unclear
