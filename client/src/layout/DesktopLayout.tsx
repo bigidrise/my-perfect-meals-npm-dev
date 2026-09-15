@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useState } from "react";
+import { ReactNode, useCallback, useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import DesktopHeader from "./DesktopHeader";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +20,12 @@ import {
 } from "lucide-react";
 import { useProUnreadCount } from "@/hooks/useProUnreadCount";
 import { useTranslation } from "react-i18next";
+import type { WorkspaceAvailability } from "@shared/workspaceAvailability";
+import {
+  fetchWorkspaceAvailability,
+  PERSONAL_ONLY_FALLBACK,
+} from "@/lib/workspaceAvailability";
+import { deriveStudioNavigationAccess } from "@/lib/studioNavigationAccess";
 
 interface Props {
   children: ReactNode;
@@ -52,9 +58,28 @@ export default function DesktopLayout({ children }: Props) {
   const { t } = useTranslation("desktopNav");
   const { t: tn } = useTranslation("nav");
 
-  const isProfessional =
-    user?.professionalRole === "physician" ||
-    user?.professionalRole === "trainer";
+  const [availability, setAvailability] =
+    useState<WorkspaceAvailability | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    setAvailability(null);
+    fetchWorkspaceAvailability()
+      .then((nextAvailability) => {
+        if (active) setAvailability(nextAvailability);
+      })
+      .catch(() => {
+        if (active) setAvailability(PERSONAL_ONLY_FALLBACK);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user?.id]);
+
+  const studioNavigation = deriveStudioNavigationAccess(
+    availability,
+    user?.professionalRole,
+  );
 
   const proUnreadCount = useProUnreadCount();
 
@@ -65,7 +90,7 @@ export default function DesktopLayout({ children }: Props) {
     getInitialWorkspaceMode(location),
   );
 
-  const currentMode: WorkspaceMode = !isProfessional
+  const currentMode: WorkspaceMode = !studioNavigation.studioVisible
     ? "personal"
     : isOnProRoute
       ? "studio"
@@ -124,12 +149,9 @@ export default function DesktopLayout({ children }: Props) {
   };
 
   const handleStudioSpace = () => {
+    if (!studioNavigation.studioDestination) return;
     setWorkspaceMode("studio");
-    setLocation(
-      user?.professionalRole === "physician"
-        ? "/care-team/physician"
-        : "/care-team/trainer",
-    );
+    setLocation(studioNavigation.studioDestination);
   };
 
   return (
@@ -158,7 +180,9 @@ export default function DesktopLayout({ children }: Props) {
             </div>
           </div>
 
-          {isProfessional && (
+          {(studioNavigation.studioVisible ||
+            studioNavigation.careTeamVisible ||
+            studioNavigation.proPortalVisible) && (
             <div className="px-5 pb-3">
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-white/30">
@@ -211,7 +235,9 @@ export default function DesktopLayout({ children }: Props) {
             })}
           </nav>
 
-          {isProfessional && (
+          {(studioNavigation.studioVisible ||
+            studioNavigation.careTeamVisible ||
+            studioNavigation.proPortalVisible) && (
             <div className="px-3 pb-4 border-t border-white/10 pt-3 space-y-1">
               <div className="px-3 pb-1">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-white/30">
@@ -231,93 +257,102 @@ export default function DesktopLayout({ children }: Props) {
                 {t("personalSpace")}
               </button>
 
-              <button
-                onClick={handleStudioSpace}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                  isStudioActive
-                    ? "bg-blue-500/15 text-blue-400 font-medium"
-                    : "text-white/60 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                <Briefcase className="w-4 h-4 shrink-0" />
-                {t("studioWorkspace")}
-              </button>
+              {studioNavigation.studioVisible && (
+                <button
+                  onClick={handleStudioSpace}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                    isStudioActive
+                      ? "bg-blue-500/15 text-blue-400 font-medium"
+                      : "text-white/60 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Briefcase className="w-4 h-4 shrink-0" />
+                  {t("studioWorkspace")}
+                </button>
+              )}
 
-              <div className="px-3 pt-2 pb-1">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-white/30">
-                  {t("studioTools")}
-                </span>
-              </div>
+              {(studioNavigation.careTeamVisible ||
+                studioNavigation.proPortalVisible) && (
+                <div className="px-3 pt-2 pb-1">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-white/30">
+                    {t("studioTools")}
+                  </span>
+                </div>
+              )}
 
               {isPersonalActive ? (
                 <>
-                  <div
-                    aria-disabled="true"
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/25 cursor-not-allowed"
-                  >
-                    <Users className="w-4 h-4 shrink-0" />
-                    {t("careTeam")}
-                  </div>
+                  {studioNavigation.careTeamVisible && (
+                    <div
+                      aria-disabled="true"
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/25 cursor-not-allowed"
+                    >
+                      <Users className="w-4 h-4 shrink-0" />
+                      {t("careTeam")}
+                    </div>
+                  )}
 
-                  <div
-                    aria-disabled="true"
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/25 cursor-not-allowed"
-                  >
-                    <FolderOpen className="w-4 h-4 shrink-0" />
-                    {t("proPortal")}
-                    {proUnreadCount > 0 && (
-                      <span className="ml-auto flex h-2.5 w-2.5 shrink-0">
-                        <span className="animate-ping absolute inline-flex h-2.5 w-2.5 rounded-full bg-orange-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500" />
-                      </span>
-                    )}
-                  </div>
+                  {studioNavigation.proPortalVisible && (
+                    <div
+                      aria-disabled="true"
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/25 cursor-not-allowed"
+                    >
+                      <FolderOpen className="w-4 h-4 shrink-0" />
+                      {t("proPortal")}
+                      {proUnreadCount > 0 && (
+                        <span className="ml-auto flex h-2.5 w-2.5 shrink-0">
+                          <span className="animate-ping absolute inline-flex h-2.5 w-2.5 rounded-full bg-orange-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500" />
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </>
               ) : (
                 <>
-                  <button
-                    onClick={() => {
-                      localStorage.setItem("mpm_active_space", "workspace");
-                      setLocation(
-                        user?.professionalRole === "physician"
-                          ? "/care-team/physician"
-                          : "/care-team/trainer",
-                      );
-                    }}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                      location.startsWith("/care-team")
-                        ? "bg-orange-500/15 text-orange-400 font-medium"
-                        : "text-white/60 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    <Users className="w-4 h-4 shrink-0" />
-                    {t("careTeam")}
-                  </button>
+                  {studioNavigation.careTeamVisible && (
+                    <button
+                      onClick={() => {
+                        localStorage.setItem("mpm_active_space", "workspace");
+                        if (studioNavigation.careTeamDestination) {
+                          setLocation(studioNavigation.careTeamDestination);
+                        }
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                        location.startsWith("/care-team")
+                          ? "bg-orange-500/15 text-orange-400 font-medium"
+                          : "text-white/60 hover:text-white hover:bg-white/5"
+                      }`}
+                    >
+                      <Users className="w-4 h-4 shrink-0" />
+                      {t("careTeam")}
+                    </button>
+                  )}
 
-                  <button
-                    onClick={() => {
-                      localStorage.setItem("mpm_active_space", "workspace");
-                      setLocation(
-                        user?.professionalRole === "physician"
-                          ? "/pro/physician-clients"
-                          : "/pro/clients",
-                      );
-                    }}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                      location.startsWith("/pro/")
-                        ? "bg-orange-500/15 text-orange-400 font-medium"
-                        : "text-white/60 hover:text-white hover:bg-white/5"
-                    }`}
-                  >
-                    <FolderOpen className="w-4 h-4 shrink-0" />
-                    {t("proPortal")}
-                    {proUnreadCount > 0 && (
-                      <span className="ml-auto flex h-2.5 w-2.5 shrink-0 relative">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500" />
-                      </span>
-                    )}
-                  </button>
+                  {studioNavigation.proPortalVisible && (
+                    <button
+                      onClick={() => {
+                        localStorage.setItem("mpm_active_space", "workspace");
+                        if (studioNavigation.proPortalDestination) {
+                          setLocation(studioNavigation.proPortalDestination);
+                        }
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                        location.startsWith("/pro/")
+                          ? "bg-orange-500/15 text-orange-400 font-medium"
+                          : "text-white/60 hover:text-white hover:bg-white/5"
+                      }`}
+                    >
+                      <FolderOpen className="w-4 h-4 shrink-0" />
+                      {t("proPortal")}
+                      {proUnreadCount > 0 && (
+                        <span className="ml-auto flex h-2.5 w-2.5 shrink-0 relative">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500" />
+                        </span>
+                      )}
+                    </button>
+                  )}
                 </>
               )}
             </div>
