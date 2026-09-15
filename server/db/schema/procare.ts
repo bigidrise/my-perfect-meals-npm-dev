@@ -12,6 +12,10 @@ export const proAccounts = pgTable("pro_accounts", {
 export const clientLinks = pgTable("client_links", {
   id: uuid("id").defaultRandom().primaryKey(),
   orgId: uuid("org_id"),
+  organizationId: uuid("organization_id"),
+  locationId: uuid("location_id"),
+  sourceBusinessId: uuid("source_business_id"),
+  partnerRecordId: text("partner_record_id"),
   clientUserId: text("client_user_id").notNull(),
   proUserId: text("pro_user_id").notNull(),
   active: boolean("active").notNull().default(true),

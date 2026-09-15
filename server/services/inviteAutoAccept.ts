@@ -117,7 +117,12 @@ export async function autoAcceptPendingInvites(
 
       let activation;
       try {
-        activation = await activateProCareClient(userId, trainerUserId, "care_team_invite");
+        activation = await activateProCareClient(userId, trainerUserId, "care_team_invite", undefined, invite.organizationId ? {
+            organizationId: invite.organizationId,
+            locationId: invite.locationId,
+            sourceBusinessId: invite.sourceBusinessId,
+            partnerRecordId: invite.partnerRecordId,
+          } : null);
       } catch (err) {
         if (err instanceof ActivationError) {
           console.error(`❌ [InviteAutoAccept] Activation failed (${err.code}): ${err.message}`);
@@ -135,7 +140,17 @@ export async function autoAcceptPendingInvites(
 
       await db
         .update(careTeamMember)
-        .set({ proUserId: userId, status: "active", updatedAt: new Date() })
+        .set({
+          proUserId: userId,
+          status: "active",
+          updatedAt: new Date(),
+          ...(invite.organizationId ? {
+            organizationId: invite.organizationId,
+            locationId: invite.locationId,
+            sourceBusinessId: invite.sourceBusinessId,
+            partnerRecordId: invite.partnerRecordId,
+          } : {}),
+        })
         .where(
           and(
             eq(careTeamMember.userId, trainerUserId),
@@ -209,7 +224,12 @@ export async function autoAcceptPendingInvites(
 
       let activation;
       try {
-        activation = await activateProCareClient(userId, studio.ownerUserId, "studio_invite");
+        activation = await activateProCareClient(userId, studio.ownerUserId, "studio_invite", undefined, {
+          organizationId: invite.organizationId,
+          locationId: invite.locationId,
+          sourceBusinessId: invite.sourceBusinessId,
+          partnerRecordId: invite.partnerRecordId,
+        });
       } catch (err) {
         if (err instanceof ActivationError) {
           console.error(`❌ [InviteAutoAccept] Activation failed (${err.code}): ${err.message}`);
@@ -236,6 +256,12 @@ export async function autoAcceptPendingInvites(
             role: "patient",
             status: "active",
             permissions: { canViewMacros: true, canAddMeals: false, canEditPlan: true },
+            ...(invite.organizationId ? {
+              organizationId: invite.organizationId,
+              locationId: invite.locationId,
+              sourceBusinessId: invite.sourceBusinessId,
+              partnerRecordId: invite.partnerRecordId,
+            } : {}),
           })
           .onConflictDoNothing();
       }

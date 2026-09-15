@@ -36,6 +36,13 @@ export interface DeactivationResult {
   source: string;
 }
 
+export interface ProCareAttribution {
+  organizationId: string | null;
+  locationId: string | null;
+  sourceBusinessId: string | null;
+  partnerRecordId: string | null;
+}
+
 /**
  * Fully activates a client under a ProCare professional in one atomic transaction.
  *
@@ -82,6 +89,7 @@ export async function activateProCareClient(
       restored: boolean;
     },
   ) => Promise<void>,
+  attribution?: ProCareAttribution | null,
 ): Promise<ActivationResult> {
   if (clientUserId === proUserId) {
     throw new ActivationError("SELF_ACTIVATION", "Cannot activate a user as their own ProCare client");
@@ -128,9 +136,34 @@ export async function activateProCareClient(
     let restored = false;
 
     if (sameStudioMembership) {
+      if (
+        attribution?.organizationId
+        && sameStudioMembership.organizationId
+        && (
+          sameStudioMembership.organizationId !== attribution.organizationId
+          || (sameStudioMembership.locationId && sameStudioMembership.locationId !== attribution.locationId)
+          || (sameStudioMembership.sourceBusinessId && sameStudioMembership.sourceBusinessId !== attribution.sourceBusinessId)
+          || (sameStudioMembership.partnerRecordId && sameStudioMembership.partnerRecordId !== attribution.partnerRecordId)
+        )
+      ) {
+        throw new ActivationError("ATTRIBUTION_CONFLICT", "This client already has a relationship in a different Organization.");
+      }
       if (sameStudioMembership.status === "active" && !sameStudioMembership.isArchived) {
         alreadyActive = true;
-        membership = sameStudioMembership;
+        if (attribution) {
+          const [stamped] = await tx.update(studioMemberships)
+            .set({
+              organizationId: attribution.organizationId,
+              locationId: attribution.locationId,
+              sourceBusinessId: attribution.sourceBusinessId,
+              partnerRecordId: attribution.partnerRecordId,
+            })
+            .where(eq(studioMemberships.id, sameStudioMembership.id))
+            .returning();
+          membership = stamped;
+        } else {
+          membership = sameStudioMembership;
+        }
       } else {
         // Reconnect to same provider — restore the existing record.
         // Fix B: resync assignedBuilder from users.activeBoard so the
@@ -151,6 +184,12 @@ export async function activateProCareClient(
             ...(currentUser?.activeBoard
               ? { assignedBuilder: currentUser.activeBoard as any }
               : {}),
+            ...(attribution?.organizationId ? {
+              organizationId: attribution.organizationId,
+              locationId: attribution.locationId,
+              sourceBusinessId: attribution.sourceBusinessId,
+              partnerRecordId: attribution.partnerRecordId,
+            } : {}),
           })
           .where(eq(studioMemberships.id, sameStudioMembership.id))
           .returning();
@@ -160,7 +199,16 @@ export async function activateProCareClient(
         // Reactivate the careTeamMember row that was revoked at disconnect time
         await tx
           .update(careTeamMember)
-          .set({ status: "active", updatedAt: new Date() })
+          .set({
+            status: "active",
+            updatedAt: new Date(),
+            ...(attribution?.organizationId ? {
+              organizationId: attribution.organizationId,
+              locationId: attribution.locationId,
+              sourceBusinessId: attribution.sourceBusinessId,
+              partnerRecordId: attribution.partnerRecordId,
+            } : {}),
+          })
           .where(
             and(
               eq(careTeamMember.userId, clientUserId),
@@ -176,6 +224,17 @@ export async function activateProCareClient(
     } else if (otherStudioMembership) {
       // Switching provider — unique constraint allows only ONE row per client.
       // Update the existing row to point to the new studio rather than archive+insert.
+      if (
+        attribution?.organizationId
+        && (
+          otherStudioMembership.organizationId !== attribution.organizationId
+          || (otherStudioMembership.locationId && otherStudioMembership.locationId !== attribution.locationId)
+          || (otherStudioMembership.sourceBusinessId && otherStudioMembership.sourceBusinessId !== attribution.sourceBusinessId)
+          || (otherStudioMembership.partnerRecordId && otherStudioMembership.partnerRecordId !== attribution.partnerRecordId)
+        )
+      ) {
+        throw new ActivationError("ATTRIBUTION_CONFLICT", "This client relationship cannot be overwritten across Organizations.");
+      }
       const [updated] = await tx
         .update(studioMemberships)
         .set({
@@ -185,6 +244,12 @@ export async function activateProCareClient(
           workspace,
           joinedAt: new Date(),
           updatedAt: new Date(),
+          ...(attribution?.organizationId ? {
+            organizationId: attribution.organizationId,
+            locationId: attribution.locationId,
+            sourceBusinessId: attribution.sourceBusinessId,
+            partnerRecordId: attribution.partnerRecordId,
+          } : {}),
         })
         .where(eq(studioMemberships.id, otherStudioMembership.id))
         .returning();
@@ -194,7 +259,19 @@ export async function activateProCareClient(
       // Brand new relationship
       const [inserted] = await tx
         .insert(studioMemberships)
-        .values({ studioId: studio.id, clientUserId, status: "active", workspace, joinedAt: new Date() })
+        .values({
+          studioId: studio.id,
+          clientUserId,
+          status: "active",
+          workspace,
+          joinedAt: new Date(),
+          ...(attribution?.organizationId ? {
+            organizationId: attribution.organizationId,
+            locationId: attribution.locationId,
+            sourceBusinessId: attribution.sourceBusinessId,
+            partnerRecordId: attribution.partnerRecordId,
+          } : {}),
+        })
         .returning();
       membership = inserted;
     }
@@ -213,6 +290,18 @@ export async function activateProCareClient(
         `Client ${clientUserId} already has an active link to a different professional`
       );
     }
+    if (
+      existingActiveLink
+      && attribution?.organizationId
+      && (
+        existingActiveLink.organizationId !== attribution.organizationId
+        || (existingActiveLink.locationId && existingActiveLink.locationId !== attribution.locationId)
+        || (existingActiveLink.sourceBusinessId && existingActiveLink.sourceBusinessId !== attribution.sourceBusinessId)
+        || (existingActiveLink.partnerRecordId && existingActiveLink.partnerRecordId !== attribution.partnerRecordId)
+      )
+    ) {
+      throw new ActivationError("ATTRIBUTION_CONFLICT", "This client relationship cannot be overwritten across Organizations.");
+    }
 
     let clientLink;
     if (!existingActiveLink) {
@@ -225,7 +314,15 @@ export async function activateProCareClient(
       if (inactiveLink) {
         const [reactivated] = await tx
           .update(clientLinks)
-          .set({ active: true })
+          .set({
+            active: true,
+            ...(attribution?.organizationId ? {
+              organizationId: attribution.organizationId,
+              locationId: attribution.locationId,
+              sourceBusinessId: attribution.sourceBusinessId,
+              partnerRecordId: attribution.partnerRecordId,
+            } : {}),
+          })
           .where(eq(clientLinks.id, inactiveLink.id))
           .returning();
         clientLink = reactivated;
@@ -233,12 +330,35 @@ export async function activateProCareClient(
       } else {
         const [inserted] = await tx
           .insert(clientLinks)
-          .values({ clientUserId, proUserId, active: true })
+          .values({
+            clientUserId,
+            proUserId,
+            active: true,
+            ...(attribution?.organizationId ? {
+              organizationId: attribution.organizationId,
+              locationId: attribution.locationId,
+              sourceBusinessId: attribution.sourceBusinessId,
+              partnerRecordId: attribution.partnerRecordId,
+            } : {}),
+          })
           .returning();
         clientLink = inserted;
       }
     } else {
-      clientLink = existingActiveLink;
+      if (existingActiveLink && attribution?.organizationId) {
+        const [stamped] = await tx.update(clientLinks)
+          .set({
+            organizationId: attribution.organizationId,
+            locationId: attribution.locationId,
+            sourceBusinessId: attribution.sourceBusinessId,
+            partnerRecordId: attribution.partnerRecordId,
+          })
+          .where(eq(clientLinks.id, existingActiveLink.id))
+          .returning();
+        clientLink = stamped;
+      } else {
+        clientLink = existingActiveLink;
+      }
     }
 
     if (finalizeInTransaction) {

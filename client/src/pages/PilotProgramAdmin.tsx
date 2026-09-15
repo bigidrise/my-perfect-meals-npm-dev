@@ -24,6 +24,13 @@ export default function PilotProgramAdmin() {
   const [professionalCapacity, setProfessionalCapacity] = useState(4);
   const [clientCapacity, setClientCapacity] = useState(100);
   const [authorizations, setAuthorizations] = useState<any[]>([]);
+  const [businessPilotEmail, setBusinessPilotEmail] = useState("");
+  const [businessPilotPolicy, setBusinessPilotPolicy] = useState<"fixed" | "custom" | "indefinite">("fixed");
+  const [businessPilotDays, setBusinessPilotDays] = useState(30);
+  const [businessPilotNotes, setBusinessPilotNotes] = useState("");
+  const [businessPilotAuthorizations, setBusinessPilotAuthorizations] = useState<any[]>([]);
+  const [businessPilotError, setBusinessPilotError] = useState("");
+  const [savingBusinessPilot, setSavingBusinessPilot] = useState(false);
   const [authorizationError, setAuthorizationError] = useState("");
   const [authorizing, setAuthorizing] = useState(false);
   const [loadingAuthorizations, setLoadingAuthorizations] = useState(true);
@@ -40,8 +47,12 @@ export default function PilotProgramAdmin() {
   const loadAuthorizations = async () => {
     setLoadingAuthorizations(true);
     try {
-      const response = await apiRequest("/api/business/pilot-authorizations");
-      setAuthorizations(response.authorizations || []);
+      const [organizationResponse, businessResponse] = await Promise.all([
+        apiRequest("/api/business/pilot-authorizations"),
+        apiRequest("/api/business/business-pilot-authorizations"),
+      ]);
+      setAuthorizations(organizationResponse.authorizations || []);
+      setBusinessPilotAuthorizations(businessResponse.authorizations || []);
     } catch (reason: any) {
       setAuthorizationError(reason.message || "Could not load organization pilots");
     } finally {
@@ -95,6 +106,67 @@ export default function PilotProgramAdmin() {
     }
   };
 
+  const createBusinessPilotAuthorization = async () => {
+    setSavingBusinessPilot(true);
+    setBusinessPilotError("");
+    try {
+      await apiRequest("/api/business/business-pilot-authorizations", {
+        method: "POST",
+        body: JSON.stringify({
+          authorizedEmail: businessPilotEmail,
+          durationPolicy: businessPilotPolicy,
+          ...(businessPilotPolicy !== "indefinite" && { durationDays: businessPilotPolicy === "fixed" ? 30 : businessPilotDays }),
+          notes: businessPilotNotes || null,
+        }),
+      });
+      setBusinessPilotEmail("");
+      setBusinessPilotPolicy("fixed");
+      setBusinessPilotDays(30);
+      setBusinessPilotNotes("");
+      await loadAuthorizations();
+    } catch (reason: any) {
+      setBusinessPilotError(reason.message || "Could not create Business Pilot authorization");
+    } finally {
+      setSavingBusinessPilot(false);
+    }
+  };
+
+  const extendBusinessPilotAuthorization = async (authorization: any) => {
+    const entered = window.prompt("Additional pilot days (enter 0 to make indefinite):", "30");
+    if (entered == null) return;
+    const days = Number(entered);
+    if (!Number.isInteger(days) || days < 0) {
+      setBusinessPilotError("Extension must be a whole number of days, or 0 for indefinite.");
+      return;
+    }
+    setBusinessPilotError("");
+    try {
+      await apiRequest(`/api/business/business-pilot-authorizations/${authorization.id}/extend`, {
+        method: "POST",
+        body: JSON.stringify(days === 0
+          ? { durationPolicy: "indefinite" }
+          : { durationPolicy: "custom", durationDays: days }),
+      });
+      await loadAuthorizations();
+    } catch (reason: any) {
+      setBusinessPilotError(reason.message || "Could not extend Business Pilot authorization");
+    }
+  };
+
+  const revokeBusinessPilotAuthorization = async (authorization: any) => {
+    if (!window.confirm(`Revoke the Business Pilot authorization for ${authorization.authorizedEmail}?`)) return;
+    setBusinessPilotError("");
+    try {
+      await apiRequest(`/api/business/business-pilot-authorizations/${authorization.id}/revoke`, {
+        method: "POST",
+        body: JSON.stringify({ reason: "Revoked from Pilot administration" }),
+      });
+      await loadAuthorizations();
+    } catch (reason: any) {
+      setBusinessPilotError(reason.message || "Could not revoke Business Pilot authorization");
+    }
+  };
+
   const provision = async () => {
     setSaving(true);
     setError("");
@@ -137,6 +209,79 @@ export default function PilotProgramAdmin() {
         <p className="text-sm font-semibold uppercase tracking-wider text-violet-300">Pilot administration</p>
         <h1 className="mt-2 text-3xl font-bold">Organization Pilots</h1>
         <p className="mt-2 text-white/65">Authorize organizations first, then manage participants after the organization is set up.</p>
+
+        <section className="mt-7 rounded-2xl border border-violet-400/25 bg-violet-500/10 p-6">
+          <h2 className="text-xl font-bold">Business Pilot authorization</h2>
+          <p className="mt-1 text-sm text-white/60">
+            Preapprove a coordinator's signup. Claiming the authorization grants no role or paid tier; the pilot clock belongs to the organization and starts during explicit organization setup.
+          </p>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <Input type="email" placeholder="Authorized signup email" value={businessPilotEmail} onChange={(e) => setBusinessPilotEmail(e.target.value)} />
+            <select
+              className="h-10 rounded-md border border-white/15 bg-neutral-900 px-3 text-sm text-white"
+              value={businessPilotPolicy}
+              onChange={(e) => setBusinessPilotPolicy(e.target.value as "fixed" | "custom" | "indefinite")}
+            >
+              <option value="fixed">30 days</option>
+              <option value="custom">Custom duration</option>
+              <option value="indefinite">Indefinite</option>
+            </select>
+            {businessPilotPolicy === "custom" && (
+              <label className="text-xs text-white/60">
+                Pilot length in days
+                <Input className="mt-1" type="number" min={1} max={3650} value={businessPilotDays} onChange={(e) => setBusinessPilotDays(Number(e.target.value))} />
+              </label>
+            )}
+            <Input placeholder="Internal notes (optional)" value={businessPilotNotes} onChange={(e) => setBusinessPilotNotes(e.target.value)} />
+          </div>
+          {businessPilotError && <p className="mt-4 text-sm text-red-300">{businessPilotError}</p>}
+          <Button
+            className="mt-5 bg-violet-600 hover:bg-violet-500"
+            disabled={savingBusinessPilot || !businessPilotEmail.trim() || (businessPilotPolicy === "custom" && businessPilotDays < 1)}
+            onClick={createBusinessPilotAuthorization}
+          >
+            {savingBusinessPilot ? "Authorizing…" : "Authorize Business Pilot"}
+          </Button>
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-6">
+          <h2 className="font-semibold">Business Pilot authorizations</h2>
+          {loadingAuthorizations ? (
+            <p className="mt-3 text-sm text-white/50">Loading…</p>
+          ) : businessPilotAuthorizations.length === 0 ? (
+            <p className="mt-3 text-sm text-white/50">No Business Pilot signup authorizations.</p>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {businessPilotAuthorizations.map((authorization) => (
+                <div key={authorization.id} className="rounded-xl border border-white/10 bg-black/25 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-semibold">{authorization.authorizedEmail}</p>
+                      <p className="mt-1 text-xs text-white/45">
+                        {authorization.durationPolicy === "indefinite" ? "Indefinite" : `${authorization.durationDays} days`}
+                        {authorization.organizationId ? ` · organization ${authorization.organizationId}` : " · awaiting organization setup"}
+                      </p>
+                      {authorization.claimedAt && <p className="mt-1 text-xs text-white/45">Claimed {new Date(authorization.claimedAt).toLocaleDateString()}</p>}
+                    </div>
+                    <span className="rounded-full border border-white/10 px-2.5 py-1 text-xs font-semibold capitalize text-white/70">
+                      {authorization.status}
+                    </span>
+                  </div>
+                  {(authorization.status === "pending" || authorization.status === "active") && (
+                    <div className="mt-3 flex gap-4">
+                      <button type="button" onClick={() => extendBusinessPilotAuthorization(authorization)} className="text-xs font-semibold text-violet-300 hover:text-violet-200">
+                        Extend
+                      </button>
+                      <button type="button" onClick={() => revokeBusinessPilotAuthorization(authorization)} className="text-xs font-semibold text-red-300 hover:text-red-200">
+                        Revoke
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
 
         <section className="mt-7 rounded-2xl border border-amber-400/25 bg-amber-500/10 p-6">
           <h2 className="text-xl font-bold">Authorize New Pilot</h2>

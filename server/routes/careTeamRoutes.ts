@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db } from "../db";
 import { careTeamMember, careInvite, careAccessCode } from "../db/schema/careTeam";
+import { studios } from "../db/schema/studio";
 import { users } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -18,6 +19,8 @@ import {
   normalizeEmailIdentity,
   resolveEmailIdentityForUser,
 } from "../services/emailIdentityService";
+import { resolveProviderStudioAttribution, validateBp1Attribution } from "../services/bp1OrganizationAttributionService";
+import { WorkspaceContextError } from "../services/organizationWorkspaceService";
 
 const router = Router();
 
@@ -80,6 +83,7 @@ router.post("/invite", requireAuth, requireEmailService, requireMfa, async (req,
     // A provider invite must always have a canonical Studio ready before the
     // invitation is persisted. This prevents an account from signing up into
     // an orphaned provider relationship when a legacy provider has no Studio.
+    let providerAttribution: Awaited<ReturnType<typeof resolveProviderStudioAttribution>> | null = null;
     if (callerIsPro) {
       const provisioned = await ensureProviderStudioReady(userId);
       if (!provisioned.ok) {
@@ -90,6 +94,29 @@ router.post("/invite", requireAuth, requireEmailService, requireMfa, async (req,
           missing: provisioned.missing,
           setupRequired: true,
         });
+      }
+      const [providerStudio] = await db.select().from(studios)
+        .where(eq(studios.ownerUserId, userId)).limit(1);
+      if (!providerStudio) return res.status(403).json({ error: "Provider Studio could not be resolved." });
+      const selectedWorkspace =
+        typeof req.session?.activeOrganizationId === "string"
+        && typeof req.session?.activeLocationId === "string"
+          ? {
+              organizationId: req.session.activeOrganizationId,
+              locationId: req.session.activeLocationId,
+            }
+          : null;
+      try {
+        providerAttribution = await resolveProviderStudioAttribution(userId, providerStudio, selectedWorkspace);
+      } catch (error) {
+        const workspaceError = error as any;
+        if (workspaceError?.code && workspaceError?.status) {
+          return res.status(workspaceError.status).json({
+            error: workspaceError.message,
+            code: workspaceError.code,
+          });
+        }
+        throw error;
       }
     }
 
@@ -126,6 +153,12 @@ router.post("/invite", requireAuth, requireEmailService, requireMfa, async (req,
       inviteCode,
       urlToken,
       expiresAt,
+      ...(providerAttribution ? {
+        organizationId: providerAttribution.organizationId,
+        locationId: providerAttribution.locationId,
+        sourceBusinessId: providerAttribution.sourceBusinessId,
+        partnerRecordId: providerAttribution.partnerRecordId,
+      } : {}),
     });
 
     await sendCareTeamInvite({
@@ -266,7 +299,20 @@ router.post("/connect", requireAuth, async (req, res) => {
 
       let activation;
       try {
-        activation = await activateProCareClient(patientId, resolvedProId, "care_team_connect_code");
+        if (invite.organizationId && invite.locationId) {
+          await validateBp1Attribution({
+            organizationId: invite.organizationId,
+            locationId: invite.locationId,
+            sourceBusinessId: invite.sourceBusinessId,
+            partnerRecordId: invite.partnerRecordId,
+          });
+        }
+        activation = await activateProCareClient(patientId, resolvedProId, "care_team_connect_code", undefined, {
+          organizationId: invite.organizationId,
+          locationId: invite.locationId,
+          sourceBusinessId: invite.sourceBusinessId,
+          partnerRecordId: invite.partnerRecordId,
+        });
       } catch (err) {
         if (err instanceof ActivationError) {
           if (err.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL") {
@@ -275,6 +321,9 @@ router.post("/connect", requireAuth, async (req, res) => {
           if (err.code === "SELF_ACTIVATION") {
             return res.status(400).json({ error: "You cannot connect to your own provider code." });
           }
+        }
+        if (err instanceof WorkspaceContextError) {
+          return res.status(err.status).json({ error: err.message, code: err.code });
         }
         throw err;
       }
@@ -304,6 +353,12 @@ router.post("/connect", requireAuth, async (req, res) => {
               role: existingMember.role,
               status: "active",
               permissions: existingMember.permissions,
+            ...(invite.organizationId ? {
+              organizationId: invite.organizationId,
+              locationId: invite.locationId,
+              sourceBusinessId: invite.sourceBusinessId,
+              partnerRecordId: invite.partnerRecordId,
+            } : {}),
             })
             .returning();
           finalMember = newMember;
@@ -327,6 +382,12 @@ router.post("/connect", requireAuth, async (req, res) => {
             role: invite.role,
             status: "active",
             permissions: invite.permissions,
+            ...(invite.organizationId ? {
+              organizationId: invite.organizationId,
+              locationId: invite.locationId,
+              sourceBusinessId: invite.sourceBusinessId,
+              partnerRecordId: invite.partnerRecordId,
+            } : {}),
           })
           .returning();
         finalMember = newMember;

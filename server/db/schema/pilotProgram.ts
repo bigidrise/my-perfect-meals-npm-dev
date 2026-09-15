@@ -12,6 +12,11 @@ import {
 } from "drizzle-orm/pg-core";
 import { users } from "@shared/schema";
 import { businessInvitations, businessMembers, businesses } from "./business";
+export { businessPilotAuthorizations } from "./businessPilotAuthorization";
+export type {
+  BusinessPilotAuthorization,
+  NewBusinessPilotAuthorization,
+} from "./businessPilotAuthorization";
 
 export const organizationalPilotAuthorizations = pgTable("organizational_pilot_authorizations", {
   id: uuid("id").primaryKey().defaultRandom(),

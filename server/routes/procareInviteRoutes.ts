@@ -100,6 +100,8 @@ router.post("/token/:token/accept", requireAuth, async (req, res) => {
           error: "COACH_NOT_SUBSCRIBED",
           message: "Your trainer does not have an active ProCare subscription.",
         });
+      case "ATTRIBUTION_INVALID":
+        return res.status(409).json({ error: err.message, code: err.code });
       case "LEGAL_REQUIRED":
         return res.status(409).json({
           error: "LEGAL_REACCEPT_REQUIRED",

@@ -1677,6 +1677,16 @@ async function start() {
     const { runPilotProgramMigration } = await import("./db/migrations/runPilotProgramMigration");
     await runPilotProgramMigration(dbPilotProgram);
   });
+  await withBootRetry("Business Pilot authorization migration", async () => {
+    const { pool: poolBusinessPilot } = await import("./db");
+    const { runBusinessPilotAuthorizationMigration } = await import("./db/migrations/runBusinessPilotAuthorizationMigration");
+    const { runBoundedStartupMigration } = await import("./bootstrap/runBoundedStartupMigration");
+    await runBoundedStartupMigration({
+      pool: poolBusinessPilot,
+      migrationName: "business-pilot-authorization",
+      run: runBusinessPilotAuthorizationMigration,
+    });
+  });
   await withBootRetry("Organization workspace migration", async () => {
     const { db: dbWorkspace } = await import("./db");
     const { runOrganizationWorkspaceMigration } = await import("./db/migrations/runOrganizationWorkspaceMigration");
@@ -1691,6 +1701,16 @@ async function start() {
     const { db: dbPartnerRevenue } = await import("./db");
     const { runOrganizationPartnerRevenueMigration } = await import("./db/migrations/runOrganizationPartnerRevenueMigration");
     await runOrganizationPartnerRevenueMigration(dbPartnerRevenue);
+  });
+  await withBootRetry("BP1 organization attribution migration", async () => {
+    const { pool: poolBp1 } = await import("./db");
+    const { runBp1OrganizationAttributionMigration } = await import("./db/migrations/runBp1OrganizationAttributionMigration");
+    const { runBoundedStartupMigration } = await import("./bootstrap/runBoundedStartupMigration");
+    await runBoundedStartupMigration({
+      pool: poolBp1,
+      migrationName: "bp1-organization-attribution",
+      run: runBp1OrganizationAttributionMigration,
+    });
   });
   await withBootRetry("Stripe billing migration", async () => {
     const { db: dbStripeBilling } = await import("./db");
