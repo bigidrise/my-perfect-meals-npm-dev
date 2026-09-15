@@ -147,7 +147,16 @@ export default function AcademyLandingPage() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const isDesktop = useIsDesktop();
-  const isProfessional = !!(user?.professionalRole || user?.isProCare);
+  // Keep the fallback navigation predicate aligned with the server's
+  // canonical progression resolver. Generic/legacy professional roles (and
+  // internal accounts without a provider role) do not have the optional
+  // ProCare-training requirement.
+  const proCareTrainingEligible = [
+    "trainer",
+    "physician",
+    "dietitian",
+    "nurse_practitioner",
+  ].includes(user?.professionalRole ?? "");
 
   const [progress, setProgress] = useState<CertProgress>({
     personalDone: false,
@@ -254,7 +263,7 @@ export default function AcademyLandingPage() {
     (progress.phase1Done && progress.marketingStatus === "completed");
   const allCertificationsComplete =
     academyProgression?.summary.allCertificationsComplete ??
-    (coreComplete && (!isProfessional || progress.proCareDone));
+    (coreComplete && (!proCareTrainingEligible || progress.proCareDone));
   const badge = coreComplete ? certBadge(progress.phase1Score) : null;
 
   const marketingDone =

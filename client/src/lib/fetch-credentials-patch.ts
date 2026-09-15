@@ -149,7 +149,16 @@ export function patchFetchForCredentials() {
       })();
       if (isApiRequest) {
         headers.set("x-requested-with", "XMLHttpRequest");
-        if (!isPreAuthenticationPath(url) && !hasHeader(headers, "x-auth-token")) {
+        // A browser session is authoritative. Strip tokens left by older
+        // builds or legacy callers so an expired bearer cannot override it.
+        if (!Capacitor.isNativePlatform()) {
+          headers.delete("x-auth-token");
+        }
+        if (
+          Capacitor.isNativePlatform() &&
+          !isPreAuthenticationPath(url) &&
+          !hasHeader(headers, "x-auth-token")
+        ) {
           const storedAuthToken = window.localStorage.getItem(
             AUTH_TOKEN_STORAGE_KEY,
           );

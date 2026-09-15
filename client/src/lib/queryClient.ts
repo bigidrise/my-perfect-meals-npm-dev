@@ -2,6 +2,7 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { apiUrl } from "./resolveApiBase";
 import { pushFailedRequest } from "./diagnosticsBuffer";
 import { inferProfessionalLegalAction } from "./professionalLegalRecovery";
+import { getAuthHeaders, isNativePlatform } from "./auth";
 
 async function throwIfResNotOk(res: Response, meta?: { method?: string; startedAt?: number }) {
   if (!res.ok) {
@@ -90,17 +91,14 @@ export async function apiRequest<T = any>(
 ): Promise<T> {
   const { method = "GET", body, headers = {} } = options || {};
   
-  const authToken = localStorage.getItem("mpm_auth_token");
-  
   const fullUrl = apiUrl(url);
   
   const fetchHeaders: Record<string, string> = {
     "Content-Type": "application/json",
     ...headers,
   };
-  if (authToken) {
-    fetchHeaders["x-auth-token"] = authToken;
-  }
+  if (!isNativePlatform()) delete fetchHeaders["x-auth-token"];
+  Object.assign(fetchHeaders, getAuthHeaders());
 
   const startedAt = Date.now();
   const res = await fetch(fullUrl, {
@@ -130,10 +128,7 @@ export const getQueryFn: <T>(options: {
     const fullUrl = apiUrl(relativeUrl);
     
     const headers: Record<string, string> = {};
-    const token = localStorage.getItem("mpm_auth_token");
-    if (token) {
-      headers["x-auth-token"] = token;
-    }
+    Object.assign(headers, getAuthHeaders());
 
     const res = await fetch(fullUrl, {
       credentials: "include",

@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, Sparkles, LogIn, X, ArrowLeft, UserPlus, Ste
 import { bustImageCache } from "@/utils/imageCache";
 import { startGuestSession, endGuestSession } from "@/lib/guestMode";
 import { motion, AnimatePresence } from "framer-motion";
-import { getAuthToken } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 
 const SHOW_CAROUSEL = false;
 
@@ -65,8 +65,7 @@ export default function Welcome() {
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   useEffect(() => {
-    const token = getAuthToken();
-    if (token) {
+    if (getCurrentUser()) {
       setLocation("/dashboard");
     }
   }, [setLocation]);

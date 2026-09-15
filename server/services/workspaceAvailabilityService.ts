@@ -5,13 +5,9 @@ import type {
   WorkspaceReadinessStatus,
 } from "@shared/workspaceAvailability";
 import { db } from "../db";
+import { studios } from "../db/schema/studio";
 import { discoverAuthorizedWorkspaces } from "./organizationWorkspaceService";
-import { providerHasProCareStudioAccess } from "./procareProviderAccess";
-import {
-  getProviderStudioReadiness,
-  isStudioProviderRole,
-  type ProviderStudioReadinessCode,
-} from "./procareStudioReadiness";
+import type { ProviderStudioReadinessCode } from "./procareStudioReadiness";
 
 function mapStudioReadiness(
   code: ProviderStudioReadinessCode | undefined,
@@ -45,17 +41,26 @@ export function buildWorkspaceAvailability(input: {
   professionalRole: string | null;
   organizations: WorkspaceAvailability["organization"]["organizations"];
   studioEntitled: boolean;
+  existingStudioStatus?: string | null;
   readinessCode?: ProviderStudioReadinessCode;
   studioReady?: boolean;
 }): WorkspaceAvailability {
   const organizationAvailable = input.organizations.length > 0;
+  // If an existing Studio row is present, its lifecycle status is
+  // authoritative. This prevents a suspended/deactivated Studio from being
+  // resurfaced by provider eligibility.
+  const studioEntitled =
+    input.existingStudioStatus !== null &&
+    input.existingStudioStatus !== undefined
+      ? input.existingStudioStatus === "active"
+      : input.studioEntitled;
   let studio: WorkspaceAvailability["studio"] = {
     available: false,
     destination: null,
     readiness: null,
   };
 
-  if (input.studioEntitled) {
+  if (studioEntitled) {
     if (input.studioReady) {
       studio = {
         available: true,
@@ -97,49 +102,43 @@ export function buildWorkspaceAvailability(input: {
 export async function getWorkspaceAvailability(
   userId: string,
 ): Promise<WorkspaceAvailability> {
-  const [user, organizations] = await Promise.all([
+  const [user, organizations, ownedStudio] = await Promise.all([
     db
       .select({
         id: users.id,
         onboardingCompletedAt: users.onboardingCompletedAt,
         professionalRole: users.professionalRole,
-        planLookupKey: users.planLookupKey,
-        personalPlanLookupKey: users.personalPlanLookupKey,
-        isFounder: users.isFounder,
-        isSandbox: users.isSandbox,
-        isTester: users.isTester,
-        trialEndsAt: users.trialEndsAt,
       })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1)
       .then((rows) => rows[0]),
     discoverAuthorizedWorkspaces(userId),
+    db
+      .select({ status: studios.status })
+      .from(studios)
+      .where(eq(studios.ownerUserId, userId))
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
   ]);
 
   if (!user) {
     throw new Error("Authenticated user was not found.");
   }
 
-  let studioEntitled = false;
-  let studioReady = false;
-  let readinessCode: ProviderStudioReadinessCode | undefined;
-
-  if (isStudioProviderRole(user.professionalRole)) {
-    studioEntitled = await providerHasProCareStudioAccess(user);
-    if (studioEntitled) {
-      const readiness = await getProviderStudioReadiness(userId);
-      studioReady = readiness.ok;
-      readinessCode = readiness.code;
-    }
-  }
+  // An existing active Studio is the authority for its owner's workspace.
+  // New-Studio provider eligibility is intentionally not a visibility
+  // predicate; it is enforced only by the creation/provisioning flow.
+  const hasActiveOwnedStudio = ownedStudio?.status === "active";
+  let studioEntitled = hasActiveOwnedStudio;
+  let studioReady = hasActiveOwnedStudio;
 
   return buildWorkspaceAvailability({
     onboardingCompletedAt: user.onboardingCompletedAt,
     professionalRole: user.professionalRole,
     organizations,
     studioEntitled,
+    existingStudioStatus: ownedStudio?.status ?? null,
     studioReady,
-    readinessCode,
   });
 }

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Shield, Eye, EyeOff, Check, X } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
-import { getAuthToken } from "@/lib/auth";
+import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 
 type Mode = "view" | "set" | "change" | "remove";
@@ -30,14 +30,9 @@ export function SafetyPinSettings() {
 
   const checkPinStatus = async () => {
     try {
-      const authToken = getAuthToken();
-      if (!authToken) {
-        setAuthFailed(true);
-        return;
-      }
-
       const response = await fetch(apiUrl("/api/safety-pin/status"), {
-        headers: { "x-auth-token": authToken },
+        headers: getAuthHeaders(),
+        credentials: "include",
       });
       
       if (response.ok) {
@@ -69,13 +64,13 @@ export function SafetyPinSettings() {
     setLoading(true);
     
     try {
-      const authToken = getAuthToken();
       const response = await fetch(apiUrl("/api/safety-pin/set"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-auth-token": authToken || "",
+          ...getAuthHeaders(),
         },
+        credentials: "include",
         body: JSON.stringify({ pin: newPin }),
       });
       
@@ -112,13 +107,13 @@ export function SafetyPinSettings() {
     setLoading(true);
     
     try {
-      const authToken = getAuthToken();
       const response = await fetch(apiUrl("/api/safety-pin/change"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-auth-token": authToken || "",
+          ...getAuthHeaders(),
         },
+        credentials: "include",
         body: JSON.stringify({ currentPin, newPin }),
       });
       
@@ -143,13 +138,13 @@ export function SafetyPinSettings() {
     setLoading(true);
     
     try {
-      const authToken = getAuthToken();
       const response = await fetch(apiUrl("/api/safety-pin/remove"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-auth-token": authToken || "",
+          ...getAuthHeaders(),
         },
+        credentials: "include",
         body: JSON.stringify({ pin: currentPin }),
       });
       

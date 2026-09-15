@@ -182,6 +182,25 @@ else
   pass "No bare /api requireAuth mount pattern found"
 fi
 
+# Established-account access is a release invariant. Provisioning eligibility,
+# subscription refactors, and credential changes must not hide resources an
+# authenticated owner already has or invalidate a valid browser cookie session.
+ACCESS_CONTRACT_LOG=$(mktemp /tmp/mpm-access-contract-XXXXXX.log)
+if npx jest --runInBand --forceExit \
+  server/tests/authCredentialPrecedence.test.ts \
+  server/tests/businessMinePilotRoute.test.ts \
+  server/tests/workspaceAvailabilityService.test.ts \
+  server/tests/academyProgression.test.ts \
+  >"$ACCESS_CONTRACT_LOG" 2>&1; then
+  pass "Established account access contracts: auth, organization, Studio, and Academy"
+else
+  fail "Established account access contracts failed"
+  echo ""
+  echo -e "${RED}  Access contract output (first 80 lines):${NC}"
+  head -80 "$ACCESS_CONTRACT_LOG" | sed 's/^/    /'
+fi
+rm -f "$ACCESS_CONTRACT_LOG"
+
 # ──────────────────────────────────────────────────
 header "Step 4 of 6: Translation Quality"
 echo "  Running i18n value quality scan..."

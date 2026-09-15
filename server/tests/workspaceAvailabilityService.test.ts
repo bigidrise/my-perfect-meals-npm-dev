@@ -48,6 +48,43 @@ describe("workspace availability authority", () => {
     });
   });
 
+  it("shows an existing active Studio owner regardless of new-provider eligibility", () => {
+    const result = buildWorkspaceAvailability({
+      onboardingCompletedAt: new Date(),
+      // Legacy internal owner account: neither field is a new-Studio
+      // eligibility requirement when an active owned Studio already exists.
+      professionalRole: "general_nutrition",
+      organizations: [],
+      studioEntitled: false,
+      existingStudioStatus: "active",
+      studioReady: true,
+    });
+
+    expect(result.studio).toEqual({
+      available: true,
+      destination: "/care-team/trainer",
+      readiness: "ready",
+    });
+  });
+
+  it("does not resurface a suspended or deactivated owned Studio", () => {
+    const result = buildWorkspaceAvailability({
+      onboardingCompletedAt: new Date(),
+      professionalRole: "general_nutrition",
+      organizations: [],
+      // Even a stale eligibility value cannot override the Studio lifecycle.
+      studioEntitled: true,
+      existingStudioStatus: "suspended",
+      studioReady: true,
+    });
+
+    expect(result.studio).toEqual({
+      available: false,
+      destination: null,
+      readiness: null,
+    });
+  });
+
   it("routes ready physicians to their Studio", () => {
     const result = buildWorkspaceAvailability({
       onboardingCompletedAt: new Date(),

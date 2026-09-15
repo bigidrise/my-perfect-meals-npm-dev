@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiUrl } from "@/lib/resolveApiBase";
-import { getAuthToken } from "@/lib/auth";
+import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Calendar, 
@@ -178,10 +178,8 @@ export default function ExtendedOnboarding() {
     setSaving(true);
 
     try {
-      const authToken = getAuthToken();
-      
       // Guest mode: skip server save, just navigate
-      if (!authToken) {
+      if (!user) {
         // Store builder selection in localStorage for guest users
         localStorage.setItem("guestSelectedBuilder", selectedBuilder);
         setLocation("/macro-counter");
@@ -194,8 +192,9 @@ export default function ExtendedOnboarding() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-auth-token": authToken,
+            ...getAuthHeaders(),
           },
+          credentials: "include",
           body: JSON.stringify({
             selectedMealBuilder: selectedBuilder,
           }),
@@ -241,9 +240,7 @@ export default function ExtendedOnboarding() {
     setSaving(true);
     
     try {
-      const authToken = getAuthToken();
-      
-      if (!authToken) {
+      if (!user) {
         // Guest mode: skip PIN setup
         setLocation("/macro-counter");
         return;
@@ -253,8 +250,9 @@ export default function ExtendedOnboarding() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-auth-token": authToken,
+          ...getAuthHeaders(),
         },
+        credentials: "include",
         body: JSON.stringify({ pin: safetyPin }),
       });
       

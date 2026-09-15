@@ -6,6 +6,7 @@ import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
 import { apiRequest } from "@/lib/queryClient";
 import type { AcademyProgression } from "@shared/academyProgression";
 import { AcademyBackButton } from "@/components/AcademyBackButton";
+import { getAuthHeaders } from "@/lib/auth";
 
 interface CertData {
   certificateNumber: string | null;
@@ -62,9 +63,8 @@ export default function PlatformMasteryComplete() {
     setDownloading(true);
     setDownloadError(null);
     try {
-      const token = localStorage.getItem("mpm_auth_token");
       const res = await fetch("/api/academy/platform-mastery/certificate/pdf", {
-        headers: token ? { "x-auth-token": token } : {},
+        headers: getAuthHeaders(),
         credentials: "include",
       });
       if (!res.ok) throw new Error("Not available");
