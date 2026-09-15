@@ -17,6 +17,8 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { and, eq, isNull, or } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
+import { getBusinessOfferCheckoutAttribution } from "../services/businessOfferLinkService";
+import { validateRewardfulReferralForAffiliate } from "../services/rewardfulApi";
 
 const router = Router();
 
@@ -175,11 +177,28 @@ router.post("/checkout", requireAuth, async (req, res) => {
         : null) ||
       "http://localhost:5000";
 
-    const rewardfulReferralId =
+    const browserRewardfulReferralId =
       typeof body.rewardfulReferralId === "string" &&
       body.rewardfulReferralId.trim().length > 0
         ? body.rewardfulReferralId.trim()
         : undefined;
+
+    const businessOfferAttribution = await getBusinessOfferCheckoutAttribution(userId);
+    if (businessOfferAttribution) {
+      const validated = browserRewardfulReferralId
+        ? await validateRewardfulReferralForAffiliate(
+            browserRewardfulReferralId,
+            businessOfferAttribution.affiliateId,
+          )
+        : false;
+      if (!validated) {
+        return res.status(409).json({
+          code: "REWARDFUL_ATTRIBUTION_REQUIRED",
+          error: "Referral attribution is still being established. Reopen the organization’s Business Offer Link and try checkout again.",
+        });
+      }
+    }
+    const rewardfulReferralId = browserRewardfulReferralId;
 
     if (rewardfulReferralId) {
       console.log(
@@ -229,12 +248,24 @@ router.post("/checkout", requireAuth, async (req, res) => {
         sku: trustedPlan.planLookupKey,
         context: body.context ?? "unknown",
         ...(stripePromoCodeId && { promoCodeId: stripePromoCodeId }),
+        ...(businessOfferAttribution && {
+          businessOfferId: businessOfferAttribution.offerId,
+          attributionOrganizationId: businessOfferAttribution.organizationId,
+          rewardfulAffiliateId: businessOfferAttribution.affiliateId,
+          rewardfulReferralToken: businessOfferAttribution.referralToken,
+        }),
       },
       subscription_data: {
         metadata: {
           userId,
           sku: trustedPlan.planLookupKey,
           context: body.context ?? "unknown",
+          ...(businessOfferAttribution && {
+            businessOfferId: businessOfferAttribution.offerId,
+            attributionOrganizationId: businessOfferAttribution.organizationId,
+            rewardfulAffiliateId: businessOfferAttribution.affiliateId,
+            rewardfulReferralToken: businessOfferAttribution.referralToken,
+          }),
         },
       },
     }, {

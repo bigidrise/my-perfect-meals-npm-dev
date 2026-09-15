@@ -728,6 +728,8 @@ async function initializeApp() {
           await runBusinessCommercialAccessMigration(database as any);
            const { runOrganizationPartnerRevenueMigration } = await import("./db/migrations/runOrganizationPartnerRevenueMigration");
            await runOrganizationPartnerRevenueMigration(database as any);
+           const { runBusinessOfferLinksMigration } = await import("./db/migrations/runBusinessOfferLinksMigration");
+           await runBusinessOfferLinksMigration(database as any);
            const { runBp1OrganizationAttributionMigration } = await import("./db/migrations/runBp1OrganizationAttributionMigration");
            await runBp1OrganizationAttributionMigration(database as any);
            const { runHydrationHubMigration } = await import("./db/migrations/runHydrationHubMigration");
@@ -1109,6 +1111,8 @@ async function initializeApp() {
     app.use("/api/business", requireAuth, requireMfa, businessRouter);
     const clinicPilotRouter = (await import("./routes/clinicPilotRoutes")).default;
     app.use("/api/clinic-pilot", clinicPilotRouter);
+    const businessOfferRouter = (await import("./routes/businessOfferRoutes")).default;
+    app.use("/api/business-offers", businessOfferRouter);
 
     // partner — partner identity records (promo codes, commission terms, timeline)
     const partnerRouter = (await import("./routes/partnerRoutes")).default;

@@ -105,6 +105,23 @@ export async function getRewardfulAffiliate(affiliateId: string): Promise<Reward
   return res.json() as Promise<RewardfulAffiliate>;
 }
 
+export async function validateRewardfulReferralForAffiliate(
+  referralId: string,
+  affiliateId: string,
+): Promise<boolean> {
+  if (!referralId || !affiliateId || !process.env.REWARDFUL_API_SECRET) return false;
+  const params = new URLSearchParams({
+    affiliate_id: affiliateId,
+    limit: "100",
+  });
+  const res = await fetch(`${REWARDFUL_API_BASE}/referrals?${params.toString()}`, {
+    headers: { Authorization: basicAuth() },
+  });
+  if (!res.ok) return false;
+  const payload = await res.json() as { data?: Array<{ id?: string }> };
+  return Boolean(payload.data?.some((referral) => referral.id === referralId));
+}
+
 export async function getRewardfulMagicLink(affiliateId: string): Promise<string | null> {
   const res = await fetch(`${REWARDFUL_API_BASE}/affiliates/${affiliateId}/sso`, {
     headers: { Authorization: basicAuth() },

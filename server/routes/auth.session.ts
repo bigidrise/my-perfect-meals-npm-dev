@@ -18,6 +18,7 @@ import {
 } from "../services/preRegistrationAccess";
 import { findOrganizationalPilotInvitation } from "../services/organizationalPilotInvitationService";
 import { enrollClinicPatientInTransaction, inspectClinicPilotEnrollmentLink } from "../services/clinicPilotEnrollmentService";
+import { inspectBusinessOffer, redeemBusinessOffer } from "../services/businessOfferLinkService";
 import { inspectPilotAuthorizationToken } from "../services/organizationalPilotAuthorizationService";
 import {
   claimBusinessPilotAuthorizationInTransaction,
@@ -131,6 +132,11 @@ router.post("/api/auth/signup", async (req, res) => {
     if (clinicPilotToken && (!clinicPilotLink || !clinicPilotLink.available)) {
       return res.status(410).json({ error: "Clinic enrollment link is unavailable.", code: "CLINIC_LINK_UNAVAILABLE" });
     }
+    const businessOfferToken = typeof req.body.businessOfferToken === "string" ? req.body.businessOfferToken : null;
+    const businessOffer = businessOfferToken ? await inspectBusinessOffer(businessOfferToken) : null;
+    if (businessOfferToken && (!businessOffer || !businessOffer.available)) {
+      return res.status(410).json({ error: "Business Offer is unavailable.", code: "BUSINESS_OFFER_UNAVAILABLE" });
+    }
     const pilotInvite = inviteToken
       ? await findOrganizationalPilotInvitation(inviteToken)
       : null;
@@ -243,6 +249,9 @@ router.post("/api/auth/signup", async (req, res) => {
       const [createdUser] = await tx.insert(users).values(userValues).returning();
       if (clinicPilotToken) {
         await enrollClinicPatientInTransaction(tx, clinicPilotToken, createdUser.id);
+      }
+      if (businessOfferToken) {
+        await redeemBusinessOffer(businessOfferToken, createdUser.id, tx);
       }
 
       if (pendingPreRegistrationAccess) {
