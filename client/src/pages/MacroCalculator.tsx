@@ -892,6 +892,8 @@ export default function MacroCounter() {
 
   // Guided Mode State
   const hasExistingSettings = savedSettings !== null && !isFromOnboarding;
+  const hasSavedMacroConfiguration =
+    hasExistingSettings || hasExistingMacroTargets;
 
   const resolveInitialStep = (): GuidedStep => {
     if (hasExistingSettings) return "done";
@@ -1063,12 +1065,12 @@ export default function MacroCounter() {
   }, []);
 
   const requestMacroRecalculation = useCallback(() => {
-    if (hasExistingMacroTargets) {
+    if (hasSavedMacroConfiguration) {
       setRecalculationConfirmation("first");
       return;
     }
     resetGuidedFlow();
-  }, [hasExistingMacroTargets, resetGuidedFlow]);
+  }, [hasSavedMacroConfiguration, resetGuidedFlow]);
 
   const confirmMacroRecalculation = useCallback(() => {
     setRecalculationConfirmation(null);
@@ -4465,7 +4467,7 @@ export default function MacroCounter() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="bg-white/10 text-white border-white/20 hover:bg-white/20">
-              Cancel
+              No, Keep My Settings
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={(event) => {
@@ -4474,7 +4476,7 @@ export default function MacroCounter() {
               }}
               className="bg-lime-600 text-white hover:bg-lime-500"
             >
-              Continue
+              Yes, Continue
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -4497,13 +4499,13 @@ export default function MacroCounter() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="bg-white/10 text-white border-white/20 hover:bg-white/20">
-              Keep Current Targets
+              No, Keep My Settings
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmMacroRecalculation}
               className="bg-orange-600 text-white hover:bg-orange-500"
             >
-              Recalculate
+              Yes, Recalculate
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
