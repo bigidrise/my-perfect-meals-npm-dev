@@ -21,12 +21,17 @@ describe("macro recalculation safety contract", () => {
     "utf8",
   );
 
-  it("requires two meaningful confirmations when saved targets exist", () => {
+  it("requires two explicit yes-or-no confirmations when any saved macro configuration exists", () => {
     expect(calculator).toContain("Recalculate Your Macros?");
     expect(calculator).toContain("Replace Your Current Macro Targets?");
-    expect(calculator).toContain("Keep Current Targets");
+    expect(calculator).toContain("No, Keep My Settings");
+    expect(calculator).toContain("Yes, Continue");
+    expect(calculator).toContain("Yes, Recalculate");
     expect(calculator).toContain("requestMacroRecalculation");
-    expect(calculator).toContain("if (hasExistingMacroTargets)");
+    expect(calculator).toContain(
+      "hasExistingSettings || hasExistingMacroTargets",
+    );
+    expect(calculator).toContain("if (hasSavedMacroConfiguration)");
   });
 
   it("does not persist merely computed targets", () => {
@@ -49,7 +54,7 @@ describe("macro recalculation safety contract", () => {
   it("lets first-time users enter recalculation without confirmations", () => {
     expect(calculator).toContain("resetGuidedFlow();");
     expect(calculator).toMatch(
-      /if \(hasExistingMacroTargets\)[\s\S]*?return;[\s\S]*?resetGuidedFlow\(\);/,
+      /if \(hasSavedMacroConfiguration\)[\s\S]*?return;[\s\S]*?resetGuidedFlow\(\);/,
     );
   });
 });
