@@ -46,6 +46,14 @@ A safe-area requirement for `InspirationCaptureModal` was implemented by also ad
 
 **Why:** These patterns have visible effects only on real portrait-mobile viewports, not in desktop browser preview. The agent cannot visually verify them — only Playwright with mobile viewport sizes can.
 
+## Tall portaled dialogs
+
+A confirmed tall dialog using the standard fixed header, internally scrollable body, and fixed footer may need local outer-frame bounds based on the dynamic viewport and both safe-area insets. Keep that treatment opt-in to the affected dialog rather than changing the shared modal primitive.
+
+**Why:** Root-level portals do not inherit page-shell safe-area variables, and changing shared centering or height defaults affects many unrelated modal workflows. Native WebView content insets can also make the same dialog look correct while mobile Safari overlaps the status area.
+
+**How to apply:** Preserve the existing flex and overflow structure. Bound and center only the affected mobile-browser dialog within `100dvh` minus top and bottom environment insets, retain the established desktop geometry, and avoid applying browser compensation to a native shell that already supplies automatic content insets.
+
 ## How to suppress the built-in X and add a Trash2 instead
 
 ```tsx
