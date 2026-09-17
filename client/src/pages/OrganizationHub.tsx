@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { Building2, ChevronLeft, ChevronRight, CircleHelp, Loader2, MapPin, Plus, ShieldCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,6 +31,7 @@ function roleLabel(role: string) {
 }
 
 export default function OrganizationHub() {
+  const isDesktop = useIsDesktop();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [organizations, setOrganizations] = useState<WorkspaceOrganization[]>([]);
@@ -115,33 +117,35 @@ export default function OrganizationHub() {
 
   return (
     <div className="min-h-screen bg-black text-white pb-24">
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-black/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-4">
-          <button
-            type="button"
-            onClick={() => setLocation("/more")}
-            className="rounded-lg p-2 text-white/60 transition-colors hover:bg-white/10 hover:text-white"
-            aria-label="Back to More"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-bold">Organization Hub</h1>
-            <p className="text-xs text-white/50">Choose the organization you want to manage</p>
+      {!isDesktop && (
+        <header className="sticky top-0 z-20 border-b border-white/10 bg-black/90 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-4">
+            <button
+              type="button"
+              onClick={() => setLocation("/more")}
+              className="rounded-lg p-2 text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+              aria-label="Back to More"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg font-bold">Organization Hub</h1>
+              <p className="text-xs text-white/50">Choose the organization you want to manage</p>
+            </div>
+            <button
+              type="button"
+              onClick={quickStart.open}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-blue-400/25 bg-blue-500/10 px-3 py-2 text-xs font-semibold text-blue-200 hover:bg-blue-500/20"
+              aria-label="Open Organization Quick Start"
+              data-testid="organization-quick-start-open"
+            >
+              <CircleHelp className="h-4 w-4" />
+              <span className="hidden sm:inline">Organization Quick Start</span>
+              <span className="sm:hidden">Quick Start</span>
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={quickStart.open}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-blue-400/25 bg-blue-500/10 px-3 py-2 text-xs font-semibold text-blue-200 hover:bg-blue-500/20"
-            aria-label="Open Organization Quick Start"
-            data-testid="organization-quick-start-open"
-          >
-            <CircleHelp className="h-4 w-4" />
-            <span className="hidden sm:inline">Organization Quick Start</span>
-            <span className="sm:hidden">Quick Start</span>
-          </button>
-        </div>
-      </header>
+        </header>
+      )}
 
       <main className="mx-auto max-w-3xl space-y-4 px-4 py-6">
         <div className="rounded-2xl border border-blue-500/25 bg-gradient-to-br from-blue-950/45 via-white/[0.04] to-black p-5">

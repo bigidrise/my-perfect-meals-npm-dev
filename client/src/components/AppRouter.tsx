@@ -7,6 +7,8 @@ import { isGuestMode, isGuestAllowedRoute } from "@/lib/guestMode";
 import { hasActivePaidSubscription, isProOrAbove } from "@/lib/subscriptionCheck";
 import { isExactPublicMarketingRoute } from "@/lib/publicRoutePolicy";
 import AppLayout from "@/layout/AppLayout";
+import BusinessWorkspaceLayout from "@/layout/BusinessWorkspaceLayout";
+import { isInAuthenticatedBusinessWorkspace } from "@/lib/businessWorkspaceRouting";
 
 interface AppRouterProps {
   children: React.ReactNode;
@@ -34,16 +36,6 @@ function isPublicAppRoute(path: string): boolean {
 
 function isInProfessionalWorkspace(path: string): boolean {
   return PROFESSIONAL_ROUTE_PREFIXES.some(prefix => path.startsWith(prefix));
-}
-
-function isInBusinessWorkspace(path: string): boolean {
-  return (
-    path === "/business-dashboard" ||
-    path === "/business/dashboard" ||
-    path === "/business-organizations" ||
-    path === "/org-success-center" ||
-    path.startsWith("/business-center")
-  );
 }
 
 function hasMacroProfile(user: any): boolean {
@@ -235,8 +227,12 @@ export default function AppRouter({ children }: AppRouterProps) {
   ) {
     return <>{children}</>;
   }
-  if (isInBusinessWorkspace(location)) {
-    return <>{children}</>;
+  if (isInAuthenticatedBusinessWorkspace(location)) {
+    return (
+      <BusinessWorkspaceLayout>
+        {children}
+      </BusinessWorkspaceLayout>
+    );
   }
 
   return (

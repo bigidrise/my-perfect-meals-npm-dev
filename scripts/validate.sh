@@ -192,6 +192,7 @@ if npx jest --runInBand --forceExit \
   server/tests/workspaceAvailabilityService.test.ts \
   server/tests/academyProgression.test.ts \
   client/src/lib/__tests__/studioNavigationAccess.test.ts \
+  client/src/lib/__tests__/businessWorkspaceRouting.test.ts \
   >"$ACCESS_CONTRACT_LOG" 2>&1; then
   pass "Established account access contracts: auth, organization, Studio, and Academy"
 else
