@@ -61,7 +61,15 @@ describe("authenticated Business workspace routing", () => {
     );
     expect(mobileLayout).toContain('data-testid="business-mobile-navigation"');
     expect(mobileLayout).toContain('aria-label="Business workspace navigation"');
-    expect(mobileLayout).toContain("var(--safe-top)");
+    expect(mobileLayout).toContain(
+      '"--business-safe-top": "env(safe-area-inset-top, 0px)"',
+    );
+    expect(mobileLayout).toContain(
+      'paddingTop: "var(--business-safe-top)"',
+    );
+    expect(mobileLayout).toContain(
+      'paddingTop: "calc(var(--business-safe-top) + 3.5rem)"',
+    );
     expect(mobileLayout).toContain("var(--safe-bottom)");
     expect(mobileLayout).toContain('paddingBottom: "calc(var(--safe-bottom) + 4.75rem)"');
     expect(mobileLayout).not.toMatch(/overflow-y-(auto|scroll)/);
