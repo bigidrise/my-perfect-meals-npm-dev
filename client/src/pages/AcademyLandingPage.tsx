@@ -26,7 +26,7 @@ import {
   PlayCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
+import { BC_GRADIENT } from "@/components/BusinessCenterShell";
 import { AcademyBackButton } from "@/components/AcademyBackButton";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useAuth } from "@/contexts/AuthContext";
@@ -322,24 +322,13 @@ export default function AcademyLandingPage() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
-      {/* Header — mobile only; desktop uses DesktopLayout shell header */}
-      {!isDesktop && (
-        <div
-          className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
-          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-        >
-          <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
-            <AcademyBackButton onClick={() => setLocation("/business-center/partners")} label="Partner Programs" />
-            <h1 className="text-lg font-bold text-white">MPM Academy</h1>
-          </div>
-        </div>
-      )}
-
       <div
         className="px-4 max-w-2xl mx-auto space-y-5"
-        style={{ paddingTop: isDesktop ? "1rem" : "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
+        style={{ paddingTop: "1rem" }}
       >
-        <AcademyBackButton onClick={() => setLocation("/business-center/partners")} label="Partner Programs" />
+        {isDesktop && (
+          <AcademyBackButton onClick={() => setLocation("/business-center/partners")} label="Partner Programs" />
+        )}
 
         {/* Hero */}
         <motion.div
