@@ -96,7 +96,7 @@ export default function BusinessMobileLayout({
             aria-label="Exit to Personal Space"
           >
             <LogOut className="h-4 w-4" />
-            Personal
+            Personal Space
           </Link>
         </div>
       </header>
