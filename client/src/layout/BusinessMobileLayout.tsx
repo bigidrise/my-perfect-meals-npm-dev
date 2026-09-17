@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import {
   Building2,
@@ -73,10 +73,13 @@ export default function BusinessMobileLayout({
     <div
       className="business-mobile-shell min-h-screen bg-neutral-950 text-white"
       data-testid="business-mobile-layout"
+      style={{
+        "--business-safe-top": "env(safe-area-inset-top, 0px)",
+      } as CSSProperties}
     >
       <header
         className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/90 backdrop-blur-xl"
-        style={{ paddingTop: "var(--safe-top)" }}
+        style={{ paddingTop: "var(--business-safe-top)" }}
       >
         <div className="flex h-14 items-center gap-3 px-4">
           <Link
@@ -104,7 +107,7 @@ export default function BusinessMobileLayout({
       <main
         className="min-h-screen"
         style={{
-          paddingTop: "calc(var(--safe-top) + 3.5rem)",
+          paddingTop: "calc(var(--business-safe-top) + 3.5rem)",
           paddingBottom: "calc(var(--safe-bottom) + 4.75rem)",
         }}
         data-testid="business-mobile-content"
