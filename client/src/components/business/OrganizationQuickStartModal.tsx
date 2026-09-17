@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { Capacitor } from "@capacitor/core";
 import {
   BookOpen,
   Building2,
@@ -21,6 +22,9 @@ type OrganizationQuickStartModalProps = {
   continuationStep: number;
   onClose: (disableFutureAutoOpen: boolean) => void;
 };
+
+const MOBILE_SAFARI_DIALOG_GEOMETRY =
+  "top-[calc(env(safe-area-inset-top,0px)+(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px))/2)] max-h-[calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-2rem)] lg:top-[50%] lg:max-h-[90vh]";
 
 const steps = [
   {
@@ -87,6 +91,7 @@ export function OrganizationQuickStartModal({
 }: OrganizationQuickStartModalProps) {
   const [, navigate] = useLocation();
   const [disableFutureAutoOpen, setDisableFutureAutoOpen] = useState(false);
+  const isNative = Capacitor.isNativePlatform();
 
   function goTo(route: string, originStep: number) {
     if (!userId || !organizationId) return;
@@ -109,7 +114,9 @@ export function OrganizationQuickStartModal({
       }}
       title="Organization Quick Start"
       description="Seven practical steps for setting up and using an organization."
-      className="border-blue-400/20 bg-zinc-950 text-white sm:max-w-xl"
+      className={`border-blue-400/20 bg-zinc-950 text-white lg:max-w-xl ${
+        isNative ? "" : MOBILE_SAFARI_DIALOG_GEOMETRY
+      }`}
       footer={
         <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <PillButton
