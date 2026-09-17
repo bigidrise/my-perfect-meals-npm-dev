@@ -98,3 +98,4 @@
 - [Fridge Rescue cuisine authority](fridge-rescue-cuisine-authority.md) — explicit cuisine applies to every result; targeted repairs must pass the full safety stack.
 - [Established access invariants](established-access-invariants.md) — ownership, completion, and valid sessions must survive eligibility and workspace refactors.
 - [Business Offer link boundary](business-offer-link-boundary.md) — reusable org offers own bounded access; Rewardful owns referral credit.
+- [Business workspace shell](business-workspace-shell.md) — authenticated business routes need dedicated desktop chrome, not bare pages or consumer navigation.

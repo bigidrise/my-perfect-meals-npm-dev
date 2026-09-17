@@ -670,28 +670,8 @@ export default function OrganizationSuccessCenter() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-950/30 to-black/80 pb-28" style={{ paddingBottom: "max(7rem, calc(env(safe-area-inset-bottom) + 6rem))" }}>
-      {/* Header */}
-      {/* Header — mobile only; desktop uses DesktopLayout shell header */}
-      {!isDesktop && (
-        <div className="fixed top-0 left-0 right-0 z-10 bg-black/80 backdrop-blur-md border-b border-white/10" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
-          <div className="px-4 py-3 flex items-center gap-3">
-            <button
-              onClick={() => setLocation("/business-dashboard")}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Organization Dashboard
-            </button>
-            <div>
-              <h1 className="text-white font-bold text-base leading-tight">Organization Success Center</h1>
-              <p className="text-white/60 text-xs">Your complete guide to running your organization</p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Hero */}
-      <div className="px-4 pb-4" style={{ paddingTop: isDesktop ? "1rem" : "calc(env(safe-area-inset-top, 0px) + 4.5rem)" }}>
+      <div className="px-4 pb-4" style={{ paddingTop: "1rem" }}>
         {isDesktop && (
           <button
             onClick={() => setLocation("/business-dashboard")}

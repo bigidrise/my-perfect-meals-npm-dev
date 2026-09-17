@@ -892,6 +892,8 @@ export default function Router() {
     "/my-perfect-beginning/parents-corner",
     "/lifestyle/my-perfect-beginning/parents-corner",
     "/business/start",
+    "/business/setup",
+    "/business/join",
   ];
 
   const shouldShowBottomNav =
