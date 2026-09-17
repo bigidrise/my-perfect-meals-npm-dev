@@ -44,6 +44,16 @@ describe("authenticated Business workspace routing", () => {
     expect(workspaceLayout).not.toContain("return <>{children}</>");
   });
 
+  it("gives the desktop Organization Hub an explicit page title", () => {
+    const desktopHeader = fs.readFileSync(
+      path.join(root, "client/src/layout/DesktopHeader.tsx"),
+      "utf8",
+    );
+    expect(desktopHeader).toContain(
+      'if (loc === "/business-organizations") return "Organizational Hub";',
+    );
+  });
+
   it("gives the mobile shell Business navigation, safe areas, and content clearance without owning scroll", () => {
     const mobileLayout = fs.readFileSync(
       path.join(root, "client/src/layout/BusinessMobileLayout.tsx"),
