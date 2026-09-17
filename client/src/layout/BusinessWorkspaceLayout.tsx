@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import BusinessDesktopLayout from "./BusinessDesktopLayout";
+import BusinessMobileLayout from "./BusinessMobileLayout";
 
 function supportsDesktopLayout(): boolean {
   const host = window.location.hostname;
@@ -22,7 +23,7 @@ export default function BusinessWorkspaceLayout({
   const isDesktop = useIsDesktop();
 
   if (!isDesktop || !supportsDesktopLayout()) {
-    return <>{children}</>;
+    return <BusinessMobileLayout>{children}</BusinessMobileLayout>;
   }
 
   return <BusinessDesktopLayout>{children}</BusinessDesktopLayout>;

@@ -1,14 +1,10 @@
-import { useLocation, useRoute } from "wouter";
-import { ArrowLeft, Clock } from "lucide-react";
+import { useRoute } from "wouter";
+import { Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { BC_HEADER } from "@/components/BusinessCenterShell";
-import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 export default function BusinessCenterSection() {
-  const isDesktop = useIsDesktop();
   const { t } = useTranslation();
-  const [, setLocation] = useLocation();
   const [matchAffiliate] = useRoute("/business-center/affiliate");
   const [matchAcademy] = useRoute("/business-center/academy");
   const [matchIndustry] = useRoute("/business-center/industry");
@@ -35,32 +31,11 @@ export default function BusinessCenterSection() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
-      {/* Header */}
-      {!isDesktop && (
-        <div
-          className={`fixed top-0 left-0 right-0 z-50 ${BC_HEADER}`}
-          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-        >
-          <div className="px-4 py-3 flex items-center gap-3 max-w-2xl mx-auto">
-            <button
-              onClick={() => setLocation("/business-center")}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-medium active:scale-[0.95] transition-transform"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              {t("businessCenterSection.backBtn")}
-            </button>
-            <h1 className="text-lg font-bold text-white truncate">{title}</h1>
-          </div>
-        </div>
-      )}
-
       {/* Content */}
       <div
         className="px-4 max-w-2xl mx-auto flex flex-col items-center justify-center"
         style={{
-          paddingTop: isDesktop
-            ? "2rem"
-            : "calc(env(safe-area-inset-top, 0px) + 7rem)",
+          paddingTop: "2rem",
           minHeight: "70vh",
         }}
       >
