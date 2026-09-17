@@ -67,4 +67,14 @@ describe("authenticated Business workspace routing", () => {
     expect(router).toContain('"/business/join"');
     expect(router).toContain('!location.startsWith("/join/business-offer")');
   });
+
+  it("keeps the Business Dashboard responsive-mode dependency defined", () => {
+    const dashboard = fs.readFileSync(
+      path.join(root, "client/src/pages/BusinessDashboard.tsx"),
+      "utf8",
+    );
+    expect(dashboard).toContain('import { useIsDesktop } from "@/hooks/useIsDesktop"');
+    expect(dashboard).toContain("const isDesktop = useIsDesktop();");
+    expect(dashboard).toContain("isDesktop={isDesktop}");
+  });
 });

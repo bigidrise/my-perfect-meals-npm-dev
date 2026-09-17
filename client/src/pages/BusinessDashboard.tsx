@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
@@ -197,6 +198,7 @@ export default function BusinessDashboard() {
   // and sets viewMode to "owner" | "member" | "none". Do not add any
   // membership-dependent JSX above or outside that guard.
   const [viewMode, setViewMode] = useState<"owner" | "admin" | "member" | "none" | null>(null);
+  const isDesktop = useIsDesktop();
   const [loading, setLoading] = useState(true);
   const [polling, setPolling] = useState(fromCheckout);
   const [workspaceOptions, setWorkspaceOptions] = useState<WorkspaceOption[]>([]);
