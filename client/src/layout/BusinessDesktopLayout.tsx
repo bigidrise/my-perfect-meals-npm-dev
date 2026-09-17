@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import DesktopHeader from "./DesktopHeader";
 
-const BUSINESS_NAV = [
+export const BUSINESS_NAV = [
   {
     path: "/business-center",
     label: "Business Suite",
