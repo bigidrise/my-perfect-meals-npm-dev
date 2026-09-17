@@ -1,5 +1,5 @@
 {
-  "version": "1789442472900",
+  "version": "1789658774754",
   "commit": "efc7ca1c",
   "releasedAt": "2026-08-15T22:41:31.430Z",
   "notes": [
@@ -8,8 +8,8 @@
     "Shopping-list additions now prevent duplicate saved-grocery entries."
   ],
   "releaseId": "2026-09-03-1",
-  "gitSha": "92409f4c",
-  "buildTimestamp": "2026-09-15T03:21:13.021Z",
+  "gitSha": "727e78fd",
+  "buildTimestamp": "2026-09-17T15:26:14.763Z",
   "environment": "production",
   "storageBucketId": "replit-objstore-3ccef2ce-f691-43ed-bb6e-fd72e925a491"
 }
