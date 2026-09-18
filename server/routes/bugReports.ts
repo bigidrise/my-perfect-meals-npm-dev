@@ -15,11 +15,15 @@
 
 import express from "express";
 import { db } from "../db";
-import { bugReports } from "../../shared/schema";
+import { bugReports, bugReportAcknowledgements, users } from "../../shared/schema";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
 import { requireAdmin } from "../middleware/requireAdmin";
 import { sendBugReportEmail } from "../services/bugReportEmail";
 import { eq } from "drizzle-orm";
+import {
+  shortBugReportId,
+  wakeBugReportAcknowledgementWorker,
+} from "../services/bugReportAcknowledgement";
 
 const router = express.Router();
 
@@ -118,32 +122,62 @@ router.post("/", requireAuth, async (req, res) => {
 
     const sanitized = includeDiagnostics ? sanitizeDiagnostics(diagnostics) : null;
 
-    const [report] = await db
-      .insert(bugReports)
-      .values({
-        userId,
-        userEmail,
-        userName,
-        description:        description.trim().slice(0, 2000),
-        intent:             typeof intent === "string" ? intent.trim().slice(0, 1000) || null : null,
-        includeDiagnostics: !!includeDiagnostics,
-        diagnostics:        sanitized,
-        route:              typeof route === "string" ? route.slice(0, 500) : null,
-        buildVersion:       typeof buildVersion === "string" ? buildVersion.slice(0, 50) : null,
-        environment:        typeof environment === "string" ? environment.slice(0, 50) : null,
-        userAgent:          typeof userAgent === "string" ? userAgent.slice(0, 500) : null,
-        status:             "new",
-      })
-      .returning();
+    const report = await db.transaction(async (tx) => {
+      const [account] = await tx
+        .select({ firstName: users.firstName })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      const firstName = account?.firstName?.trim() || null;
 
-    // Send developer-actionable email — failure must not fail the request
-    try {
-      await sendBugReportEmail(report);
-    } catch (emailErr: any) {
-      console.error(`[bugReports] DB insert OK (${report.id}) but email notification failed:`, emailErr.message);
-    }
+      const [storedReport] = await tx
+        .insert(bugReports)
+        .values({
+          userId,
+          userEmail,
+          userName,
+          description:        description.trim().slice(0, 2000),
+          intent:             typeof intent === "string" ? intent.trim().slice(0, 1000) || null : null,
+          includeDiagnostics: !!includeDiagnostics,
+          diagnostics:        sanitized,
+          route:              typeof route === "string" ? route.slice(0, 500) : null,
+          buildVersion:       typeof buildVersion === "string" ? buildVersion.slice(0, 50) : null,
+          environment:        typeof environment === "string" ? environment.slice(0, 50) : null,
+          userAgent:          typeof userAgent === "string" ? userAgent.slice(0, 500) : null,
+          status:             "new",
+        })
+        .returning();
 
-    res.status(201).json({ id: report.id, status: "received" });
+      if (userEmail) {
+        await tx
+          .insert(bugReportAcknowledgements)
+          .values({
+            bugReportId: storedReport.id,
+            recipientEmail: userEmail,
+            firstName,
+            shortReportId: shortBugReportId(storedReport.id),
+          })
+          .onConflictDoNothing({
+            target: bugReportAcknowledgements.bugReportId,
+          });
+      }
+      return storedReport;
+    });
+
+    res.status(201).json({
+      id: report.id,
+      shortId: shortBugReportId(report.id),
+      status: "received",
+    });
+    wakeBugReportAcknowledgementWorker();
+    setImmediate(() => {
+      void sendBugReportEmail(report).catch((emailErr: any) => {
+        console.error(
+          `[bugReports] DB insert OK (${report.id}) but email notification failed:`,
+          emailErr.message,
+        );
+      });
+    });
   } catch (err: any) {
     console.error("[bugReports] POST error:", err);
     res.status(500).json({ error: "Failed to save bug report" });

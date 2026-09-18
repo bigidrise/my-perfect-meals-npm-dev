@@ -30,6 +30,8 @@ const mockDb = {
   selectRows: [] as Record<string, unknown>[],
   /** Rows returned by the PATCH handler's .returning() call */
   updateRows: [] as Record<string, unknown>[],
+  firstName: "Tester" as string | null,
+  transactionInsertValues: [] as Record<string, unknown>[],
 };
 
 // ── jest.mock — factories must come before imports in ts-jest ESM ─────────────
@@ -56,6 +58,42 @@ jest.mock("../middleware/requireAdmin", () => ({
 
 jest.mock("../db", () => ({
   db: {
+    transaction: async (callback: (tx: any) => Promise<any>) => callback({
+      select: () => ({
+        from: () => ({
+          where: () => ({
+            limit: () => Promise.resolve([{ firstName: mockDb.firstName }]),
+          }),
+        }),
+      }),
+      insert: () => ({
+        values: (values: Record<string, unknown>) => {
+          mockDb.transactionInsertValues.push(values);
+          return {
+          returning: () =>
+            Promise.resolve([
+              {
+                id:                 "mock-report-id",
+                userId:             "u1",
+                userEmail:          "u@example.com",
+                userName:           "Tester",
+                description:        "desc",
+                intent:             null,
+                route:              null,
+                buildVersion:       null,
+                environment:        null,
+                userAgent:          null,
+                includeDiagnostics: false,
+                diagnostics:        null,
+                status:             "new",
+                createdAt:          new Date().toISOString(),
+              },
+            ]),
+          onConflictDoNothing: () => Promise.resolve(),
+          };
+        },
+      }),
+    }),
     select: () => ({
       from: () => ({
         orderBy: () => Promise.resolve([...mockDb.selectRows]),
@@ -98,6 +136,11 @@ jest.mock("../services/bugReportEmail", () => ({
   sendBugReportEmail: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock("../services/bugReportAcknowledgement", () => ({
+  shortBugReportId: (id: string) => id.slice(0, 8).toUpperCase(),
+  wakeBugReportAcknowledgementWorker: jest.fn(),
+}));
+
 // ── Imports (after mock declarations) ────────────────────────────────────────
 
 import request from "supertest";
@@ -125,6 +168,8 @@ beforeEach(() => {
   mockAuth.isAdmin = false;
   mockDb.selectRows  = [];
   mockDb.updateRows  = [];
+  mockDb.firstName = "Tester";
+  mockDb.transactionInsertValues = [];
 });
 
 // ─── (A) Admin gate ───────────────────────────────────────────────────────────
@@ -170,6 +215,54 @@ describe("Admin gate", () => {
       .send({ status: "reviewing" });
     expect(res.status).toBe(403);
     expect(res.body.code).toBe("ADMIN_REQUIRED");
+  });
+});
+
+describe("POST — acknowledgement queue identity", () => {
+  beforeEach(() => {
+    mockAuth.user = {
+      id: "user-1",
+      email: "authoritative@example.com",
+      username: "Verified User",
+    };
+  });
+
+  it("queues the acknowledgement for the authenticated account, not request-body email", async () => {
+    const res = await request(app)
+      .post("/api/bug-reports")
+      .send({
+        description: "The button did not respond.",
+        email: "attacker@example.com",
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({
+      id: "mock-report-id",
+      shortId: "MOCK-REP",
+      status: "received",
+    });
+    expect(mockDb.transactionInsertValues).toHaveLength(2);
+    expect(mockDb.transactionInsertValues[1]).toMatchObject({
+      recipientEmail: "authoritative@example.com",
+      firstName: "Tester",
+      shortReportId: "MOCK-REP",
+    });
+    expect(JSON.stringify(mockDb.transactionInsertValues[1])).not.toContain(
+      "attacker@example.com",
+    );
+  });
+
+  it("stores a null first name for the neutral greeting fallback", async () => {
+    mockDb.firstName = null;
+    const res = await request(app)
+      .post("/api/bug-reports")
+      .send({ description: "A report without a profile first name." });
+
+    expect(res.status).toBe(201);
+    expect(mockDb.transactionInsertValues[1]).toMatchObject({
+      recipientEmail: "authoritative@example.com",
+      firstName: null,
+    });
   });
 });
 

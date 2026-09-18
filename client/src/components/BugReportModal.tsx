@@ -38,6 +38,7 @@ export function BugReportModal({ open, onClose }: Props) {
   const [includeDiagnostics, setIncludeDiagnostics] = useState(true);
   const [phase,              setPhase]              = useState<Phase>("form");
   const [serverError,        setServerError]        = useState<string | null>(null);
+  const [shortReportId,      setShortReportId]      = useState<string | null>(null);
 
   function handleClose() {
     if (phase === "submitting") return; // block dismiss while in flight
@@ -46,6 +47,7 @@ export function BugReportModal({ open, onClose }: Props) {
     setIncludeDiagnostics(true);
     setPhase("form");
     setServerError(null);
+    setShortReportId(null);
     onClose();
   }
 
@@ -81,10 +83,13 @@ export function BugReportModal({ open, onClose }: Props) {
     };
 
     try {
-      await apiRequest("/api/bug-reports", {
+      const result = await apiRequest<{ id: string; shortId?: string }>("/api/bug-reports", {
         method: "POST",
         body:   JSON.stringify(payload),
       });
+      const displayId = result.shortId || result.id?.slice(0, 8).toUpperCase();
+      if (!displayId) throw new Error("Bug report response did not include an ID");
+      setShortReportId(displayId);
       setPhase("success");
     } catch (err: any) {
       console.error("[BugReportModal] submission failed:", err);
@@ -135,9 +140,18 @@ export function BugReportModal({ open, onClose }: Props) {
           {phase === "success" && (
             <div className="flex flex-col items-center gap-3 py-6 text-center">
               <CheckCircle2 className="w-10 h-10 text-green-400" />
-              <p className="text-sm font-medium text-white">
-                Report sent. Thank you — this helps us find the problem faster.
-              </p>
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-white">Report received</p>
+                <p className="text-sm font-medium text-amber-300">
+                  Report ID: #{shortReportId}
+                </p>
+                <p className="text-sm text-white/80">
+                  Thank you — this helps us improve My Perfect Meals.
+                </p>
+                <p className="text-xs text-white/60">
+                  We'll email a confirmation to your account email.
+                </p>
+              </div>
               <button
                 onClick={handleClose}
                 className="mt-2 px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-semibold transition-colors"

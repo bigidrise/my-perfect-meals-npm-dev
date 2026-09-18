@@ -99,3 +99,4 @@
 - [Established access invariants](established-access-invariants.md) — ownership, completion, and valid sessions must survive eligibility and workspace refactors.
 - [Business Offer link boundary](business-offer-link-boundary.md) — reusable org offers own bounded access; Rewardful owns referral credit.
 - [Business workspace shell](business-workspace-shell.md) — authenticated business routes need dedicated desktop chrome, not bare pages or consumer navigation.
+- [Transactional support acknowledgements](transactional-support-acknowledgements.md) — accept reports first; send one privacy-limited acknowledgement through a durable outbox.

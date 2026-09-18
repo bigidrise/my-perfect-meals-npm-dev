@@ -2103,5 +2103,10 @@ export type UserSavedGroceryItem = typeof userSavedGroceryItems.$inferSelect;
 export type NewUserSavedGroceryItem = typeof userSavedGroceryItems.$inferInsert;
 
 export { userDocumentAcceptance } from "../server/db/schema/legal";
-export { bugReports, bugReportStatusEnum } from "../server/db/schema/bugReports";
-export type { BugReport, NewBugReport } from "../server/db/schema/bugReports";
+export { bugReports, bugReportStatusEnum, bugReportAcknowledgements } from "../server/db/schema/bugReports";
+export type {
+  BugReport,
+  NewBugReport,
+  BugReportAcknowledgement,
+  NewBugReportAcknowledgement,
+} from "../server/db/schema/bugReports";
