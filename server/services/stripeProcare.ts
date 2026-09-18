@@ -19,6 +19,120 @@ function getStripe(): Stripe {
 
 export { stripe };
 
+const BLOCKING_SUBSCRIPTION_STATUSES = new Set<Stripe.Subscription.Status>([
+  "active",
+  "trialing",
+]);
+
+export class ProcareCheckoutConflictError extends Error {
+  constructor(
+    readonly code:
+      | "PROCARE_SUBSCRIPTION_ALREADY_ACTIVE"
+      | "PROCARE_BILLING_IDENTITY_REVIEW_REQUIRED"
+      | "PROCARE_CHECKOUT_ALREADY_COMPLETED",
+    message: string,
+  ) {
+    super(message);
+    this.name = "ProcareCheckoutConflictError";
+  }
+}
+
+function belongsToProcareRelationship(
+  subscription: Stripe.Subscription,
+  clientUserId: string,
+  proUserId: string,
+): boolean {
+  return subscription.metadata?.clientUserId === clientUserId
+    && subscription.metadata?.proUserId === proUserId;
+}
+
+export async function findBlockingProcareSubscription(input: {
+  stripeClient?: Stripe;
+  customerId: string;
+  clientUserId: string;
+  proUserId: string;
+  storedSubscriptionIds?: string[];
+}): Promise<Stripe.Subscription | null> {
+  const stripeClient = input.stripeClient ?? getStripe();
+  const candidates = new Map<string, Stripe.Subscription>();
+
+  for (const subscriptionId of new Set(input.storedSubscriptionIds ?? [])) {
+    try {
+      const subscription = await stripeClient.subscriptions.retrieve(subscriptionId);
+      candidates.set(subscription.id, subscription);
+    } catch {
+      throw new ProcareCheckoutConflictError(
+        "PROCARE_BILLING_IDENTITY_REVIEW_REQUIRED",
+        "A stored ProCare subscription could not be verified safely.",
+      );
+    }
+  }
+
+  const listed = await stripeClient.subscriptions.list({
+    customer: input.customerId,
+    status: "all",
+    limit: 100,
+  });
+  for (const subscription of listed.data) {
+    candidates.set(subscription.id, subscription);
+  }
+
+  for (const subscription of candidates.values()) {
+    const stored = input.storedSubscriptionIds?.includes(subscription.id) ?? false;
+    if (
+      BLOCKING_SUBSCRIPTION_STATUSES.has(subscription.status)
+      && (stored || belongsToProcareRelationship(
+        subscription,
+        input.clientUserId,
+        input.proUserId,
+      ))
+    ) {
+      return subscription;
+    }
+  }
+  return null;
+}
+
+export async function retrieveProcareCheckoutSession(
+  sessionId: string,
+  stripeClient: Stripe = getStripe(),
+): Promise<Stripe.Checkout.Session> {
+  return stripeClient.checkout.sessions.retrieve(sessionId);
+}
+
+export function classifyProcareCheckoutSession(input: {
+  session: Stripe.Checkout.Session;
+  customerId: string;
+  clientUserId: string;
+  proUserId: string;
+  clientLinkId: string;
+  checkoutReservationId: string;
+}): "reuse" | "rotate" {
+  const { session } = input;
+  const sessionCustomerId = typeof session.customer === "string"
+    ? session.customer
+    : session.customer?.id;
+  if (
+    sessionCustomerId !== input.customerId
+    || session.metadata?.userId !== input.clientUserId
+    || session.metadata?.clientUserId !== input.clientUserId
+    || session.metadata?.proUserId !== input.proUserId
+    || session.metadata?.clientLinkId !== input.clientLinkId
+    || session.metadata?.checkoutReservationId !== input.checkoutReservationId
+  ) {
+    throw new ProcareCheckoutConflictError(
+      "PROCARE_BILLING_IDENTITY_REVIEW_REQUIRED",
+      "The stored ProCare checkout belongs to a different billing identity.",
+    );
+  }
+  if (session.status === "open" && session.url) return "reuse";
+  if (session.status === "expired" || session.status === "complete") return "rotate";
+  throw new ProcareCheckoutConflictError(
+    "PROCARE_CHECKOUT_ALREADY_COMPLETED",
+    "A prior ProCare checkout requires review before another purchase.",
+  );
+}
+
 /**
  * Create or retrieve a Stripe Connect account for a pro user
  * Using Express account to enable automatic transfers
@@ -63,34 +177,59 @@ export async function isAccountActive(accountId: string): Promise<boolean> {
  * Create a checkout session for client subscription ($29.99/month)
  */
 export async function createCheckoutSession({
-  clientEmail,
+  stripeClient = getStripe(),
+  customerId,
   clientUserId,
   proUserId,
+  clientLinkId,
+  checkoutReservationId,
   successUrl,
   cancelUrl,
   priceId,
 }: {
-  clientEmail?: string;
+  stripeClient?: Stripe;
+  customerId: string;
   clientUserId: string;
   proUserId: string;
+  clientLinkId: string;
+  checkoutReservationId: string;
   successUrl: string;
   cancelUrl: string;
   priceId: string;
-}): Promise<string> {
-  const session = await getStripe().checkout.sessions.create({
+}): Promise<{ id: string; url: string }> {
+  const session = await stripeClient.checkout.sessions.create({
     mode: "subscription",
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: successUrl,
     cancel_url: cancelUrl,
-    customer_email: clientEmail,
-    customer_creation: "if_required",
-    metadata: { clientUserId, proUserId },
-    subscription_data: {
-      metadata: { clientUserId, proUserId },
+    customer: customerId,
+    metadata: {
+      userId: clientUserId,
+      clientUserId,
+      proUserId,
+      clientLinkId,
+      checkoutReservationId,
+      subscriptionType: "procare_client",
     },
+    subscription_data: {
+      metadata: {
+        userId: clientUserId,
+        clientUserId,
+        proUserId,
+        clientLinkId,
+        checkoutReservationId,
+        subscriptionType: "procare_client",
+      },
+    },
+  }, {
+    idempotencyKey:
+      `mpm-procare-checkout:${clientUserId}:${proUserId}:${checkoutReservationId}`,
   });
   
-  return session.url || "";
+  if (!session.url) {
+    throw new Error("Stripe session created but no checkout URL returned");
+  }
+  return { id: session.id, url: session.url };
 }
 
 /**

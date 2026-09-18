@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, integer, boolean, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const proAccounts = pgTable("pro_accounts", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -21,11 +21,16 @@ export const clientLinks = pgTable("client_links", {
   active: boolean("active").notNull().default(true),
   mealBoardControl: text("meal_board_control").notNull().default("client"),
   boardControlUpdatedAt: timestamp("board_control_updated_at", { withTimezone: true }),
+  stripeCheckoutReservationId: text("stripe_checkout_reservation_id"),
+  stripeCheckoutSessionId: text("stripe_checkout_session_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   // NOTE: (clientUserId, proUserId) uniqueness is enforced via DB index
   // idx_client_links_unique_pair — added by boot migration.
   // Do NOT add an `updatedAt` column here; there is none in the database.
-});
+}, (t) => ({
+  stripeCheckoutSessionIdUnique: uniqueIndex("client_links_stripe_checkout_session_id_uniq")
+    .on(t.stripeCheckoutSessionId),
+}));
 
 export const subscriptions = pgTable("subscriptions", {
   id: uuid("id").defaultRandom().primaryKey(),

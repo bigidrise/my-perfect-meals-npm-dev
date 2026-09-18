@@ -67,6 +67,10 @@ const allStripeColumns = [
     "stripe_last_event_rank",
     "stripe_last_event_id",
   ].map((column) => ["businesses", column]),
+  ...[
+    "stripe_checkout_reservation_id",
+    "stripe_checkout_session_id",
+  ].map((column) => ["client_links", column]),
 ].map(([table_name, column_name]) => ({ table_name, column_name }));
 
 const allStripeIndexes = [
@@ -78,6 +82,7 @@ const allStripeIndexes = [
   "businesses_stripe_customer_id_uniq",
   "businesses_stripe_subscription_id_uniq",
   "businesses_stripe_checkout_session_id_uniq",
+  "client_links_stripe_checkout_session_id_uniq",
 ].map((indexname) => ({ indexname }));
 
 function fakeSchemaDb(options: { missingColumn?: string } = {}) {

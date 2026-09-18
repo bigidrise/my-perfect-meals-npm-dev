@@ -32,6 +32,8 @@ const REQUIRED_COLUMNS: ReadonlyArray<readonly [string, string]> = [
   ["businesses", "stripe_last_event_created_at"],
   ["businesses", "stripe_last_event_rank"],
   ["businesses", "stripe_last_event_id"],
+  ["client_links", "stripe_checkout_reservation_id"],
+  ["client_links", "stripe_checkout_session_id"],
 ];
 
 const REQUIRED_INDEXES = [
@@ -43,6 +45,7 @@ const REQUIRED_INDEXES = [
   "businesses_stripe_customer_id_uniq",
   "businesses_stripe_subscription_id_uniq",
   "businesses_stripe_checkout_session_id_uniq",
+  "client_links_stripe_checkout_session_id_uniq",
 ] as const;
 
 function resultRows(result: unknown): Array<Record<string, unknown>> {
@@ -90,6 +93,11 @@ export async function assertStripeBillingSchema(
           'stripe_last_event_rank',
           'stripe_last_event_id'
         ))
+        OR
+        (table_name = 'client_links' AND column_name IN (
+          'stripe_checkout_reservation_id',
+          'stripe_checkout_session_id'
+        ))
       )
   `);
 
@@ -113,6 +121,7 @@ export async function assertStripeBillingSchema(
         'businesses_stripe_customer_id_uniq',
         'businesses_stripe_subscription_id_uniq',
         'businesses_stripe_checkout_session_id_uniq'
+        ,'client_links_stripe_checkout_session_id_uniq'
       )
   `);
   const presentIndexes = new Set(

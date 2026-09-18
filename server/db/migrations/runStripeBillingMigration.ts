@@ -72,6 +72,19 @@ export async function runStripeBillingMigration(database: {
       WHERE stripe_subscription_id IS NOT NULL
     ON CONFLICT (identity_type, identity_value) DO NOTHING
   `);
+  // Readiness-critical structural DDL must precede the ownership review below.
+  // A pre-existing identity conflict intentionally stops data reconciliation,
+  // but must not prevent the fail-closed checkout schema from becoming usable.
+  await database.execute(sql`
+    ALTER TABLE client_links
+      ADD COLUMN IF NOT EXISTS stripe_checkout_reservation_id varchar(255),
+      ADD COLUMN IF NOT EXISTS stripe_checkout_session_id varchar(255)
+  `);
+  await database.execute(sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS client_links_stripe_checkout_session_id_uniq
+      ON client_links(stripe_checkout_session_id)
+      WHERE stripe_checkout_session_id IS NOT NULL
+  `);
   await database.execute(sql`
     DO $$
     BEGIN
