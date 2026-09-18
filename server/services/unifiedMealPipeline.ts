@@ -1840,6 +1840,7 @@ HIERARCHY (follow in this EXACT order):
 
 3. DISH FAMILY LOCK (non-negotiable)
    The user asked for: "${cravingInput}"
+   Treat that request as the food to satisfy, not as inspiration for a different balanced meal.
    Core dish to stay within: "${dishFamily}"
    ALL 3 options must be variations of "${dishFamily}"${hasHardCreateDishIntent ? " while preserving every fixed Create a Dish form/cut, texture, and flavor requirement" : " — different preparations, textures, flavors, or proteins"}.
    Example: "soup" → Chicken Noodle Soup, Lentil Tomato Soup, Creamy Broccoli Soup.
@@ -1855,6 +1856,12 @@ HIERARCHY (follow in this EXACT order):
      ? "- Never vary away from a selected form/cut, texture, or flavor."
      : "- Use genuinely distinct preparations rather than minor wording changes."}
    NO minor wording changes — make each option genuinely distinct.
+
+5. CUSTOMARY INDIVIDUAL SERVING
+   Each option represents one reasonable, customary individual serving of the requested food or dish.
+   Preserve real-world recipe ratios and serving forms. Do not make the food artificially small merely because it is a craving.
+   Do not add unrelated sides or convert a substantial craving into a generic balanced meal unless those components were explicitly requested.
+   Existing allergy, dietary, clinical, GLP-1, remaining-nutrition, and starch requirements remain authoritative.
 
 ${excludeClause}
 
@@ -1873,7 +1880,16 @@ OUTPUT FORMAT — ONLY valid JSON, no markdown:
       "starchyCarbs": 30,
       "fibrousCarbs": 5,
       "fat": 15,
-      "cookingTime": "20 minutes"
+      "cookingTime": "20 minutes",
+      "evidence": {
+        "cuisine": "The cuisine this finished recipe actually expresses, or null",
+        "cuisineIntensity": "subtle, balanced, authentic, or null",
+        "heat": "mild, medium, hot, or null",
+        "seasoningIntensity": "light, balanced, strong, or null",
+        "broadFlavor": "The dominant finished flavor, or null",
+        "flavorStyle": "The finished flavor style, or null",
+        "dishIdentityPreserved": true
+      }
     },
     {},
     {}
@@ -1922,12 +1938,16 @@ PRIORITY 1 — CULINARY ACCURACY (non-negotiable):
   - Flour/butter/sugar: follow standard baking/cooking proportions for the dish
   - Serving size must be realistic (a dinner roll is a roll, not a macro-portioned block)
   - Scale by RECIPE LOGIC, not nutrition math
+  - One option represents one reasonable, customary individual serving of the requested food or dish
+  - Do not make the food artificially small merely because it is a craving
+  - Do not add unrelated sides or convert the request into a generic balanced meal unless those components were explicitly requested
 
 PRIORITY 2 — ALLERGEN SAFETY & DIET (non-negotiable):
   ${dietLine}
   ${dietBlock ? dietBlock : ''}
 PRIORITY 3 — DISH VARIETY:
   The user requested: "${cravingInput}"
+  Treat that request as the food to satisfy, not as inspiration for a different dish.
   Core dish family: "${dishFamily}"
   ${hasHardCreateDishIntent
     ? "Generate 3 distinct variations while preserving every fixed Create a Dish form/cut, texture, and flavor requirement. Vary only unconstrained side pairings, vegetables, garnishes, plating, or other unselected dimensions."

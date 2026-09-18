@@ -159,10 +159,11 @@ import stripeWebhookRouter from "./routes/stripeWebhook"; // Added import for st
 import businessRouter from "./routes/businessRoutes";
 import iosVerifyRouter from "./routes/iosVerify";
 import lockedDaysRouter from "./routes/lockedDays";
-import usersProfileRouter from "./routes/usersProfile";
 import availabilityRouter from "./routes/availabilityRoutes";
 import userPreferencesRouter from "./routes/userPreferences";
 import { loadStudioMembership } from "./middleware/studioAccess";
+import { isOnboardingAllergyBootstrapAuthorized } from "./services/profileAuthorization";
+import { scaleIngredientQuantity } from "./services/servingScaling";
 
 function normalizeFitnessGoal(value?: string | null): string | null {
   switch (value) {
@@ -1513,10 +1514,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const generationRequest = {
-        // Stage 2D callers share one context-aware implementation so the same
-        // prompt, execution state, retry loop, substitutions, and fallback rules
-        // apply to Recipe Maker, general meals, snacks, and premades.
-        type: stage2dHumanFoodTypes.has(type) ? "create-with-chef" : type,
+        // Stage 2D callers share context resolution, but Snack Creator keeps its
+        // specialized generator. The other legacy types use Create with Chef.
+        type:
+          type === "snack-creator"
+            ? "snack-creator"
+            : stage2dHumanFoodTypes.has(type)
+              ? "create-with-chef"
+              : type,
         mealType,
         input: effectiveInput,
         userId: effectiveUserId,
@@ -4577,6 +4582,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cuisineIntensity,
         performanceOverlay,
         performanceControlMode,
+        fontSizePreference,
+        narrationSpeedPreference,
         timezone,
         timezoneChangeConfirmed,
       } = req.body;
@@ -4653,6 +4660,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (cuisineIntensity !== undefined) updateData.cuisineIntensity = cuisineIntensity;
       if (performanceOverlay !== undefined) updateData.performanceOverlay = performanceOverlay;
       if (performanceControlMode !== undefined) updateData.performanceControlMode = performanceControlMode;
+      if (fontSizePreference !== undefined) {
+        if (!["standard", "large", "xl"].includes(fontSizePreference)) {
+          return res.status(400).json({
+            error: "Invalid font size preference",
+            code: "INVALID_FONT_SIZE_PREFERENCE",
+          });
+        }
+        updateData.fontSizePreference = fontSizePreference;
+      }
+      if (narrationSpeedPreference !== undefined) {
+        if (!["0.75", "1.0", "1.25", "1.5"].includes(narrationSpeedPreference)) {
+          return res.status(400).json({
+            error: "Invalid narration speed preference",
+            code: "INVALID_NARRATION_SPEED_PREFERENCE",
+          });
+        }
+        updateData.narrationSpeedPreference = narrationSpeedPreference;
+      }
       if (timezone !== undefined) {
         if (!isValidIanaTimezone(timezone)) {
           return res.status(400).json({
@@ -4671,7 +4696,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (allergies !== undefined) {
-        const [currentUser] = await db.select({ allergies: users.allergies, safetyPinHash: users.safetyPinHash })
+        const [currentUser] = await db.select({
+          allergies: users.allergies,
+          safetyPinHash: users.safetyPinHash,
+          onboardingCompletedAt: users.onboardingCompletedAt,
+        })
           .from(users)
           .where(eq(users.id, userId))
           .limit(1);
@@ -4679,8 +4708,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const currentAllergies = (currentUser?.allergies || []).sort().join(",");
         const newAllergies = (Array.isArray(allergies) ? allergies : []).sort().join(",");
         
-        const fromOnboarding = req.body.fromOnboarding === true;
-        if (currentAllergies !== newAllergies && currentUser?.safetyPinHash && !fromOnboarding) {
+        const authorizedOnboardingBootstrap =
+          isOnboardingAllergyBootstrapAuthorized(
+            req.body.fromOnboarding,
+            currentUser?.onboardingCompletedAt,
+          );
+        if (currentAllergies !== newAllergies && currentUser?.safetyPinHash && !authorizedOnboardingBootstrap) {
           const allergyEditToken = req.body.allergyEditToken;
           if (!allergyEditToken) {
             return res.status(403).json({ 
@@ -5668,7 +5701,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let reservedAdvisoryOverrideToken: string | null = null;
     let advisoryOverrideFulfilled = false;
     try {
-      const { targetMealType, cravingInput: rawCravingInput, dietaryRestrictions, dietOverride, userId: bodyUserId, servings = 1, safetyMode, overrideToken, governanceOverrideToken, governanceDecision, strictMode, generationMode, dietAdaptOverride, userDietOverride, cultureOverride, kitchenSlug, skipImages, createDishIntent: rawCreateDishIntent } = req.body;
+      const { targetMealType, cravingInput: rawCravingInput, dietaryRestrictions, dietOverride, servings = 1, safetyMode, overrideToken, governanceOverrideToken, governanceDecision, strictMode, generationMode, dietAdaptOverride, userDietOverride, cultureOverride, kitchenSlug, skipImages, createDishIntent: rawCreateDishIntent } = req.body;
+      const normalizedTargetMealType =
+        targetMealType === "snacks"
+          ? "snack"
+          : ["breakfast", "lunch", "dinner", "snack"].includes(targetMealType)
+            ? targetMealType
+            : "lunch";
+      const normalizedGenerationMode: "meal" | "recipe" | "auto" =
+        generationMode === "recipe" || generationMode === "meal"
+          ? generationMode
+          : "auto";
 
       // Adaptation block is built AFTER user is fetched (so we know their actual diet).
       // Start with the raw input — the safety check at line 3441 runs on clean input.
@@ -5690,9 +5733,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Used exclusively for GLP-1 resolve to prevent IDOR (body userId can name
       // any account; resolving GLP-1/PHI for it would expose sensitive health data).
       const serverAuthUserId: string | undefined = userId;
-      // Final fallback: body-provided userId (legacy / admin callers only)
-      if (!userId && bodyUserId) userId = bodyUserId;
-
       const requestedCreator = req.body.humanFoodCreator;
       const humanFoodCreator: import("@shared/humanFoodContext").HumanFoodCreator =
         requestedCreator === "create_a_dish"
@@ -5935,7 +5975,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const startTime = Date.now();
       console.log("🔥 CRAVING ROUTE HIT", startTime);
-      console.log("🎯 Craving creator request:", { targetMealType, servings: validatedServings, correlationId: (req as any).id });
+      console.log("🎯 Craving creator request:", { targetMealType: normalizedTargetMealType, servings: validatedServings, correlationId: (req as any).id });
 
       // Get user data for medical personalization
       let user = null;
@@ -5991,10 +6031,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const glp1Ctx = await resolveGLP1GlobalContext(
             serverAuthUserId!,
             new Date().toISOString().split("T")[0],
-            (targetMealType === "breakfast" || targetMealType === "lunch" ||
-             targetMealType === "dinner" || targetMealType === "snack")
-              ? targetMealType as "breakfast" | "lunch" | "dinner" | "snack"
-              : "lunch",
+            normalizedTargetMealType,
           );
           if (glp1Ctx.isActive) {
             if (!glp1Ctx.resolvedTargets) {
@@ -6154,12 +6191,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const mealOptions = await generateCravingMealOptions(
         cravingInput || "something delicious",
-        targetMealType || "lunch",
+        normalizedTargetMealType,
         userId,
         bodyDietRestrictions,
         excludeMeals,
         strictMode === true,
-        (generationMode === 'recipe' ? 'recipe' : 'meal'),
+        normalizedGenerationMode,
         (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) ? cultureOverride.trim() : undefined,
         _cravingGlp1Targets,
         _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
@@ -6255,12 +6292,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ` [CLINICAL CARB CONSTRAINT — the user's current blood glucose state requires each serving to contain ${_bglCarbCeiling}g of total carbohydrates or less. Keep this the SAME dish the user asked for (do not replace it with a different food); reformulate its ingredients and portions so total carbs per serving are at or below ${_bglCarbCeiling}g while preserving the dish's identity, flavor profile, and all other dietary constraints. ${buildRejectedCandidatePrompt(humanFoodExecutionState)}]`;
             const _bglRetryOptions = await generateCravingMealOptions(
               `${cravingInput}${_bglRetryClause}`,
-              targetMealType || "lunch",
+              normalizedTargetMealType,
               userId,
               bodyDietRestrictions,
               excludeMeals,
               strictMode === true,
-              (generationMode === 'recipe' ? 'recipe' : 'meal'),
+              normalizedGenerationMode,
               (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) ? cultureOverride.trim() : undefined,
               _cravingGlp1Targets,
               _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
@@ -6389,7 +6426,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : protocolEnvelope.dietaryIdentity;
         const fallbackMeal = await generateSingleCompliantFallback(
           cravingInput || "something delicious",
-          targetMealType || "lunch",
+          normalizedTargetMealType,
           _fallbackDietIdentity,
           {
             overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
@@ -6493,12 +6530,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const retryInput = `${cravingInput}${retryExclusionClause}`;
               const retryOptions = await generateCravingMealOptions(
                 retryInput,
-                targetMealType || "lunch",
+                normalizedTargetMealType,
                 userId,
                 bodyDietRestrictions,
                 excludeMeals,
                 strictMode === true,
-                (generationMode === 'recipe' ? 'recipe' : 'meal'),
+                normalizedGenerationMode,
                 (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) ? cultureOverride.trim() : undefined,
                 _cravingGlp1Targets,
                 _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
@@ -6606,14 +6643,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // filtering, creator transformation, and this validator again.
       const { validateHumanFoodCandidate } = await import("./services/humanFoodContext/finalValidation");
       const { validateMealForDiet: validateFinalMealForDiet } = await import("./services/guardrails/index");
-      const candidateComplianceEvidence = (meal: any) => {
+      const perServingNumber = (value: unknown, servingDivisor: number) => {
+        const numeric = Number(value);
+        return Number.isFinite(numeric) ? numeric / servingDivisor : value;
+      };
+      const candidateComplianceEvidence = (meal: any, servingDivisor = 1) => {
         const protocolProof = scanGeneratedOutput(meal, _filterEnvelope, {
           generatorName: "craving_creator_final_evidence",
           skipAdaptableConflicts: _effectiveSkipAdaptableConflicts,
           overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
           exemptDishNameTerms: _adaptExemptTerms,
         });
-        const carbs = meal.nutrition?.carbs ?? meal.carbs;
+        const carbs = perServingNumber(
+          meal.nutrition?.carbs ?? meal.carbs,
+          servingDivisor,
+        );
         const glucoseState = protocolEnvelope.diabeticGlucoseState;
         const carbCeiling = glucoseState === "high-risk" ? 15
           : glucoseState === "elevated" ? 25
@@ -6632,12 +6676,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ingredients: meal.ingredients ?? [],
               instructions: meal.instructions,
               macros: {
-                calories: meal.nutrition?.calories ?? meal.calories,
-                protein: meal.nutrition?.protein ?? meal.protein,
+                calories: perServingNumber(
+                  meal.nutrition?.calories ?? meal.calories,
+                  servingDivisor,
+                ),
+                protein: perServingNumber(
+                  meal.nutrition?.protein ?? meal.protein,
+                  servingDivisor,
+                ),
                 carbs,
-                fat: meal.nutrition?.fat ?? meal.fat,
+                fat: perServingNumber(
+                  meal.nutrition?.fat ?? meal.fat,
+                  servingDivisor,
+                ),
               },
-            } as any, "glp1", undefined, targetMealType === "snack", _cravingGlp1Targets).isValid
+            } as any, "glp1", undefined, normalizedTargetMealType === "snack", _cravingGlp1Targets).isValid
           : undefined;
         return {
           protocolCompliant: protocolProof.passed,
@@ -6645,17 +6698,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           glp1Compliant,
         };
       };
-      const toFinalValidationCandidate = (meal: any) => {
-        const complianceEvidence = candidateComplianceEvidence(meal);
+      const toFinalValidationCandidate = (meal: any, servingDivisor = 1) => {
+        const complianceEvidence = candidateComplianceEvidence(
+          meal,
+          servingDivisor,
+        );
         return ({
         ...meal,
-        category: meal.category ?? meal.mealType ?? targetMealType ?? "meal",
+        category: meal.category ?? meal.mealType ?? normalizedTargetMealType,
         nutrition: {
-          calories: meal.nutrition?.calories ?? meal.calories,
-          protein: meal.nutrition?.protein ?? meal.protein,
-          carbs: meal.nutrition?.carbs ?? meal.carbs,
-          fat: meal.nutrition?.fat ?? meal.fat,
-          starchyCarbs: meal.nutrition?.starchyCarbs ?? meal.starchyCarbs,
+          calories: perServingNumber(meal.nutrition?.calories ?? meal.calories, servingDivisor),
+          protein: perServingNumber(meal.nutrition?.protein ?? meal.protein, servingDivisor),
+          carbs: perServingNumber(meal.nutrition?.carbs ?? meal.carbs, servingDivisor),
+          fat: perServingNumber(meal.nutrition?.fat ?? meal.fat, servingDivisor),
+          starchyCarbs: perServingNumber(
+            meal.nutrition?.starchyCarbs ?? meal.starchyCarbs,
+            servingDivisor,
+          ),
         },
         evidence: {
           ...(meal.evidence ?? {}),
@@ -6673,12 +6732,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         });
       };
-      const runFinalValidation = (meal: any) => validateHumanFoodCandidate(
-        toFinalValidationCandidate(meal),
+      const runFinalValidation = (meal: any, servingDivisor = 1) => validateHumanFoodCandidate(
+        toFinalValidationCandidate(meal, servingDivisor),
         humanFoodContext,
         {
           requestedDish: enforceRequestedDishIdentity ? rawCravingInput || "" : "",
-          requestedCategory: targetMealType || "lunch",
+          requestedCategory: normalizedTargetMealType,
           dishDirective: _dishDirective,
           executionState: humanFoodExecutionState,
         },
@@ -6695,12 +6754,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const repairClause = repairInstructions.join(" ");
           const repairOptions = await generateCravingMealOptions(
             `${cravingInput}\n\n[UNIVERSAL FINAL-VALIDATION REPAIR — ONE ATTEMPT ONLY]\n${repairClause}`,
-            targetMealType || "lunch",
+            normalizedTargetMealType,
             userId,
             bodyDietRestrictions,
             excludeMeals,
             strictMode === true,
-            (generationMode === "recipe" ? "recipe" : "meal"),
+            normalizedGenerationMode,
             (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim())
               ? cultureOverride.trim()
               : undefined,
@@ -6816,12 +6875,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               `The prior otherwise-valid candidates failed these fixed culinary dimensions: ${failedDimensions.join(", ")}.\n` +
               `${buildCreateDishIntentPrompt(validatedCreateDishIntent)}\n` +
               `Repair only those fixed dimensions. Do not change the user's selections or any safety, nutrition, clinical, allergy, avoidance, Cooking Method, or Cuisine requirement.`,
-              targetMealType || "lunch",
+              normalizedTargetMealType,
               userId,
               bodyDietRestrictions,
               excludeMeals,
               true,
-              (generationMode === "recipe" ? "recipe" : "meal"),
+              normalizedGenerationMode,
               (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim())
                 ? cultureOverride.trim()
                 : undefined,
@@ -6896,6 +6955,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
           medicalBadges: meal.medicalBadges || [],
           imageUrl: meal.imageUrl,
+          evidence: meal.evidence,
           servingSize: validatedServings > 1 ? `${validatedServings} servings` : "1 serving",
           complianceSection,
           dietClassification,
@@ -6913,8 +6973,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           formatted.nutrition.fat *= validatedServings;
           if (Array.isArray(formatted.ingredients)) {
             formatted.ingredients = formatted.ingredients.map((ing: any) => {
-              if (ing.quantity && !isNaN(parseFloat(ing.quantity))) {
-                return { ...ing, quantity: String(parseFloat(ing.quantity) * validatedServings) };
+              if (ing.quantity !== undefined) {
+                return {
+                  ...ing,
+                  quantity: scaleIngredientQuantity(
+                    ing.quantity,
+                    validatedServings,
+                  ),
+                };
               }
               return ing;
             });
@@ -6927,7 +6993,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Revalidate that exact final payload before any image work or response.
       const postFormatResults = formattedOptions.map((meal: any) => ({
         meal,
-        result: runFinalValidation(meal),
+        result: runFinalValidation(meal, validatedServings),
       }));
       const postFormatFailure = postFormatResults.find(
         ({ result }) => result.outcome !== "pass",
@@ -6981,7 +7047,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const imagedOptions = skipImages === true ? formattedOptions : await (async () => {
         try {
           const { generateMealImageUnified, normalizeMealTypeToSourceType } = await import('./services/mealImageGenerator');
-          const sourceType = normalizeMealTypeToSourceType(targetMealType || 'meal');
+          const sourceType = normalizeMealTypeToSourceType(normalizedTargetMealType);
           return await Promise.all(
             formattedOptions.map(async (meal: any) => {
               if (meal.imageUrl) return meal; // already cached — skip generation
@@ -7055,7 +7121,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           type: dietAdapted ? "REQUEST_ADAPTED" : "REQUEST_FULFILLED",
           governingReasonCode: dietAdapted ? "DIETARY_IDENTITY_ADAPTATION" : null,
           explanation: dietAdapted ? dietNotice : null,
-          requestedDishPreserved: true,
+          requestedDishPreserved:
+            enforceRequestedDishIdentity &&
+            imagedOptions.length > 0 &&
+            imagedOptions.every((meal: any) =>
+              _identityResults.some(
+                ({ mealName, result }) =>
+                  mealName === meal.name && result.passed,
+              ) &&
+              meal?.evidence?.dishIdentityPreserved === true &&
+              runFinalValidation(meal, validatedServings).findings.every(
+                (finding: any) => finding.code !== "dish_identity_lost",
+              ),
+            ),
           ingredientsOrPreparationAdapted: dietAdapted,
           alternativesAvailable: false,
         },
@@ -10115,7 +10193,6 @@ Provide a single exceptional meal recommendation in JSON format with the followi
 
   app.use("/api/founders", foundersRoutes);
   app.use("/api/physician-reports", requireAuth, requireMfa, requirePremiumAccess, physicianReportsRoutes);
-  app.use("/api/users", usersProfileRouter);
   app.use("/api/professionals", availabilityRouter);
   app.use("/api", availabilityRouter);
   app.use("/api", userPreferencesRouter);
