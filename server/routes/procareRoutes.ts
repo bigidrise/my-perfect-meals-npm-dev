@@ -3,18 +3,27 @@ import express from "express";
 import { db } from "../db";
 import { proAccounts, clientLinks, subscriptions, payouts } from "../db/schema/procare";
 import { users, userGlycemicSettings, glp1Shots } from "@shared/schema";
-import { eq, and, gte, desc, sql } from "drizzle-orm";
+import { eq, and, gte, desc, sql, isNull, or } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 import { requirePhase1Cert } from "../middleware/requirePhase1Cert";
 import { requirePhase2Training } from "../middleware/requirePhase2Training";
 import { diabetesProfile, glucoseLogs } from "../../shared/diabetes-schema";
 import {
+  stripe,
   createConnectAccount,
   createAccountLink,
   isAccountActive,
   createCheckoutSession,
+  findBlockingProcareSubscription,
+  retrieveProcareCheckoutSession,
+  classifyProcareCheckoutSession,
+  ProcareCheckoutConflictError,
   transferToPro,
   constructWebhookEvent,
 } from "../services/stripeProcare";
+import { resolveCanonicalCheckoutCustomer } from "../services/stripeCheckoutGuard";
+import { claimStripeIdentityOwnership } from "../services/stripeIdentityOwnershipService";
+import { assertStripeBillingOwnership } from "../services/stripeRuntimePolicy";
 import { endLink, getActiveLink } from "../services/clientLinkService";
 import { studios } from "../db/schema/studio";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
@@ -189,14 +198,40 @@ router.post("/onboard", async (req, res) => {
  * Stripe account. No client data is exposed to a professional actor.
  * Phase 2 gate is not applicable here.
  */
-router.post("/checkout/session", async (req, res) => {
+router.post("/checkout/session", requireAuth, async (req, res) => {
   try {
     const clientUserId = getUserId(req);
-    const { successUrl, cancelUrl, email } = req.body;
+    const { successUrl, cancelUrl } = req.body;
+
+    assertStripeBillingOwnership(process.env.STRIPE_SECRET_KEY ?? "");
+    if (!stripe) {
+      return res.status(503).json({ error: "Payment system not configured" });
+    }
+
+    const [billingUser] = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        stripeCustomerId: users.stripeCustomerId,
+      })
+      .from(users)
+      .where(eq(users.id, clientUserId))
+      .limit(1);
+    if (!billingUser) {
+      return res.status(401).json({ error: "Authenticated billing account was not found." });
+    }
 
     // Find the client's active pro link
     const [link] = await db
-      .select()
+      .select({
+        id: clientLinks.id,
+        clientUserId: clientLinks.clientUserId,
+        proUserId: clientLinks.proUserId,
+        stripeCheckoutReservationId: clientLinks.stripeCheckoutReservationId,
+        stripeCheckoutSessionId: clientLinks.stripeCheckoutSessionId,
+      })
       .from(clientLinks)
       .where(
         and(
@@ -219,6 +254,130 @@ router.post("/checkout/session", async (req, res) => {
       return res.status(400).json({ error: "Pro account not active" });
     }
 
+    const customer = await resolveCanonicalCheckoutCustomer({
+      stripe: stripe!,
+      user: billingUser,
+      persistCustomerId: async (customerId) => {
+        await db.transaction(async (tx) => {
+          await claimStripeIdentityOwnership(tx, {
+            ownerUserId: billingUser.id,
+            stripeCustomerId: customerId,
+          });
+          const [persisted] = await tx
+            .update(users)
+            .set({ stripeCustomerId: customerId })
+            .where(and(
+              eq(users.id, billingUser.id),
+              or(isNull(users.stripeCustomerId), eq(users.stripeCustomerId, customerId)),
+            ))
+            .returning({ id: users.id });
+          if (!persisted) {
+            throw new ProcareCheckoutConflictError(
+              "PROCARE_BILLING_IDENTITY_REVIEW_REQUIRED",
+              "The application account has a conflicting Stripe customer.",
+            );
+          }
+        });
+      },
+    });
+
+    const storedSubscriptions = await db
+      .select({ id: subscriptions.stripeSubscriptionId })
+      .from(subscriptions)
+      .where(and(
+        eq(subscriptions.clientUserId, clientUserId),
+        eq(subscriptions.proUserId, link.proUserId),
+      ));
+    const blocking = await findBlockingProcareSubscription({
+      customerId: customer.id,
+      clientUserId,
+      proUserId: link.proUserId,
+      storedSubscriptionIds: storedSubscriptions.map((item) => item.id),
+    });
+    if (blocking) {
+      return res.status(409).json({
+        code: "PROCARE_SUBSCRIPTION_ALREADY_ACTIVE",
+        error: "This ProCare relationship already has an active subscription.",
+      });
+    }
+
+    let activeReservationId = link.stripeCheckoutReservationId;
+    if (link.stripeCheckoutSessionId) {
+      if (!link.stripeCheckoutReservationId) {
+        throw new ProcareCheckoutConflictError(
+          "PROCARE_BILLING_IDENTITY_REVIEW_REQUIRED",
+          "The stored ProCare checkout has no durable reservation.",
+        );
+      }
+      const existingSession = await retrieveProcareCheckoutSession(
+        link.stripeCheckoutSessionId,
+      );
+      const action = classifyProcareCheckoutSession({
+        session: existingSession,
+        customerId: customer.id,
+        clientUserId,
+        proUserId: link.proUserId,
+        clientLinkId: link.id,
+        checkoutReservationId: link.stripeCheckoutReservationId,
+      });
+      if (action === "reuse") {
+        return res.json({ url: existingSession.url });
+      }
+
+      const replacementReservationId = randomUUID();
+      const [rotated] = await db
+        .update(clientLinks)
+        .set({
+          stripeCheckoutReservationId: replacementReservationId,
+          stripeCheckoutSessionId: null,
+        })
+        .where(and(
+          eq(clientLinks.id, link.id),
+          eq(clientLinks.clientUserId, clientUserId),
+          eq(clientLinks.proUserId, link.proUserId),
+          eq(clientLinks.active, true),
+          eq(clientLinks.stripeCheckoutReservationId, link.stripeCheckoutReservationId),
+          eq(clientLinks.stripeCheckoutSessionId, link.stripeCheckoutSessionId),
+        ))
+        .returning({ reservationId: clientLinks.stripeCheckoutReservationId });
+      if (!rotated?.reservationId) {
+        throw new ProcareCheckoutConflictError(
+          "PROCARE_BILLING_IDENTITY_REVIEW_REQUIRED",
+          "The ProCare checkout changed while a replacement was being prepared.",
+        );
+      }
+      activeReservationId = rotated.reservationId;
+    }
+
+    const proposedReservationId = randomUUID();
+    const [reservedLink] = await db
+      .update(clientLinks)
+      .set({
+        stripeCheckoutReservationId: sql`
+          COALESCE(
+            ${clientLinks.stripeCheckoutReservationId},
+            ${activeReservationId ?? proposedReservationId}
+          )
+        `,
+      })
+      .where(and(
+        eq(clientLinks.id, link.id),
+        eq(clientLinks.clientUserId, clientUserId),
+        eq(clientLinks.proUserId, link.proUserId),
+        eq(clientLinks.active, true),
+        isNull(clientLinks.stripeCheckoutSessionId),
+      ))
+      .returning({
+        id: clientLinks.id,
+        reservationId: clientLinks.stripeCheckoutReservationId,
+      });
+    if (!reservedLink?.reservationId) {
+      throw new ProcareCheckoutConflictError(
+        "PROCARE_BILLING_IDENTITY_REVIEW_REQUIRED",
+        "The ProCare checkout reservation changed unexpectedly.",
+      );
+    }
+
     // Create Stripe checkout session
     const appUrl = process.env.APP_URL 
       || (process.env.RAILWAY_STATIC_URL ? `https://${process.env.RAILWAY_STATIC_URL}` : null)
@@ -227,18 +386,39 @@ router.post("/checkout/session", async (req, res) => {
     // Use test price or configured price
     const priceId = process.env.STRIPE_PRICE_ID || "price_test_2999";
 
-    const checkoutUrl = await createCheckoutSession({
-      clientEmail: email,
+    const checkoutSession = await createCheckoutSession({
+      customerId: customer.id,
       clientUserId,
       proUserId: link.proUserId,
+      clientLinkId: link.id,
+      checkoutReservationId: reservedLink.reservationId,
       successUrl: successUrl || `${appUrl}/billing/success`,
       cancelUrl: cancelUrl || `${appUrl}/billing/cancel`,
       priceId,
     });
 
-    res.json({ url: checkoutUrl });
+    const [bound] = await db
+      .update(clientLinks)
+      .set({ stripeCheckoutSessionId: checkoutSession.id })
+      .where(and(
+        eq(clientLinks.id, link.id),
+        eq(clientLinks.stripeCheckoutReservationId, reservedLink.reservationId),
+        isNull(clientLinks.stripeCheckoutSessionId),
+      ))
+      .returning({ id: clientLinks.id });
+    if (!bound) {
+      throw new ProcareCheckoutConflictError(
+        "PROCARE_BILLING_IDENTITY_REVIEW_REQUIRED",
+        "The ProCare checkout reservation changed before it could be bound.",
+      );
+    }
+
+    res.json({ url: checkoutSession.url });
   } catch (error) {
     console.error("❌ Error creating checkout session:", error);
+    if (error instanceof ProcareCheckoutConflictError) {
+      return res.status(409).json({ code: error.code, error: error.message });
+    }
     res.status(500).json({ error: "Failed to create checkout session" });
   }
 });
@@ -267,9 +447,69 @@ router.post("/webhook", express.raw({ type: "application/json" }), async (req, r
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as any;
-        const { clientUserId, proUserId } = session.metadata;
+        const {
+          userId,
+          clientUserId,
+          proUserId,
+          clientLinkId,
+          checkoutReservationId,
+        } = session.metadata ?? {};
         const customerId = session.customer as string;
         const subscriptionId = session.subscription as string;
+
+        if (
+          !clientUserId
+          || userId !== clientUserId
+          || !proUserId
+          || !clientLinkId
+          || !checkoutReservationId
+          || !customerId
+          || !subscriptionId
+        ) {
+          throw new Error("ProCare checkout is missing immutable billing identity");
+        }
+
+        const [billingIdentity] = await db
+          .select({
+            userId: users.id,
+            stripeCustomerId: users.stripeCustomerId,
+            linkId: clientLinks.id,
+            reservationId: clientLinks.stripeCheckoutReservationId,
+            sessionId: clientLinks.stripeCheckoutSessionId,
+          })
+          .from(clientLinks)
+          .innerJoin(users, eq(users.id, clientLinks.clientUserId))
+          .where(and(
+            eq(clientLinks.id, clientLinkId),
+            eq(clientLinks.clientUserId, clientUserId),
+            eq(clientLinks.proUserId, proUserId),
+            eq(clientLinks.active, true),
+          ))
+          .limit(1);
+        if (
+          !billingIdentity
+          || billingIdentity.userId !== clientUserId
+          || billingIdentity.stripeCustomerId !== customerId
+          || billingIdentity.reservationId !== checkoutReservationId
+          || billingIdentity.sessionId !== session.id
+        ) {
+          throw new Error("ProCare checkout does not match its durable billing reservation");
+        }
+
+        const stripeSubscription = await stripe!.subscriptions.retrieve(subscriptionId);
+        const subscriptionCustomerId = typeof stripeSubscription.customer === "string"
+          ? stripeSubscription.customer
+          : stripeSubscription.customer.id;
+        if (
+          subscriptionCustomerId !== customerId
+          || stripeSubscription.metadata?.userId !== clientUserId
+          || stripeSubscription.metadata?.clientUserId !== clientUserId
+          || stripeSubscription.metadata?.proUserId !== proUserId
+          || stripeSubscription.metadata?.clientLinkId !== clientLinkId
+          || stripeSubscription.metadata?.checkoutReservationId !== checkoutReservationId
+        ) {
+          throw new Error("ProCare subscription identity does not match the completed checkout");
+        }
 
         // Save subscription
         await db.insert(subscriptions).values({
