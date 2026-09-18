@@ -1712,6 +1712,8 @@ async function initializeApp() {
         try {
           const { runBugReportsMigration } = await import("./db/migrations/runBugReportsMigration");
           await runBugReportsMigration();
+          const { startBugReportAcknowledgementWorker } = await import("./services/bugReportAcknowledgement");
+          startBugReportAcknowledgementWorker();
         } catch (err: any) {
           console.error("❌ [prod] Bug Reports migration failed:", err.message);
         }
