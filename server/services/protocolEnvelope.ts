@@ -873,6 +873,7 @@ export async function loadUserProtocolEnvelope(
         dietaryRestrictions: users.dietaryRestrictions,
         allergies: users.allergies,
         healthConditions: users.healthConditions,
+        medicalConditions: (users as any).medicalConditions,
         dislikedFoods: users.dislikedFoods,
         avoidedFoods: users.avoidedFoods,
         likedFoods: users.likedFoods,

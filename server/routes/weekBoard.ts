@@ -807,7 +807,7 @@ export default function weekBoardRoutes(app: Express) {
   });
 
   // POST add a single meal to a specific day/slot (structured clone, no AI)
-  app.post("/api/weekly-board/add-meal", async (req: Request, res: Response) => {
+  app.post("/api/weekly-board/add-meal", requireAuth, async (req: Request, res: Response) => {
     try {
       const { dateISO, slot, meal } = req.body;
 

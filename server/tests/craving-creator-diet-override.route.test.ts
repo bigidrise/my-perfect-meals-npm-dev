@@ -672,7 +672,7 @@ describe("E. Emergency fallback — _fallbackDietIdentity must use keto, not veg
     const callBlock = ROUTES_SRC.slice(callSiteStart, callSiteStart + 500);
 
     const arg1Pos = callBlock.indexOf("cravingInput");          // arg 1
-    const arg2Pos = callBlock.indexOf("targetMealType");         // arg 2
+    const arg2Pos = callBlock.indexOf("normalizedTargetMealType"); // arg 2
     const arg3Pos = callBlock.indexOf("_fallbackDietIdentity");  // arg 3
     // arg 4+ is the options object — the overriddenAllergens key appears inside it
     const optionsPos = callBlock.indexOf("overriddenAllergens");
