@@ -111,7 +111,7 @@ export default function FoodsIEnjoy() {
           <div><p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-300">Food profile</p><p className="mt-1 text-xs text-white/45">A better starting point for every meal</p></div>
         </div>
         <h1 className="text-xl font-bold leading-tight tracking-tight text-white">Tell us what you actually enjoy eating.</h1>
-        <p className="mt-3 max-w-2xl text-lg leading-relaxed text-white/70">There is no perfect answer here. Choose the foods, dishes, and flavors that feel like you — the everyday ones and the just-for-fun ones.</p>
+        <p className="mt-3 max-w-2xl text-base leading-relaxed text-white/70">There is no perfect answer here. Choose the foods, dishes, and flavors that feel like you — the everyday ones and the just-for-fun ones.</p>
       </header>
       {isHousehold && <section className="mt-8 max-w-md rounded-2xl border border-white/15 bg-black/45 p-4 shadow-2xl backdrop-blur-xl">
         <label htmlFor="food-profile" className="flex items-center gap-2 text-sm font-semibold text-white"><Users className="h-4 w-4 text-orange-300" /> Whose foods are we saving?</label>
