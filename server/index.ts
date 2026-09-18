@@ -110,6 +110,7 @@ import stripeCheckoutRouter from "./routes/stripeCheckout";
 import coachingRouter from "./routes/coaching";
 import productCodesRouter from "./routes/product-codes";
 import stripeWebhookRouter from "./routes/stripeWebhook";
+import { markStripeBillingReady } from "./services/stripeBillingReadiness";
 import builderPlansRouter from "./routes/builderPlans";
 
 import iosVerifyRouter from "./routes/iosVerify";
@@ -1724,6 +1725,12 @@ async function start() {
     const { runStripeBillingMigration } = await import("./db/migrations/runStripeBillingMigration");
     await runStripeBillingMigration(dbStripeBilling);
   });
+  {
+    const { db: dbStripeReadiness } = await import("./db");
+    const { assertStripeBillingSchema } = await import("./db/migrations/assertStripeBillingSchema");
+    await assertStripeBillingSchema(dbStripeReadiness as any);
+    markStripeBillingReady();
+  }
   await withBootRetry("Hydration Hub migration", async () => {
     const { db: dbHydrationHub } = await import("./db");
     const { runHydrationHubMigration } = await import("./db/migrations/runHydrationHubMigration");

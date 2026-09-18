@@ -22,6 +22,7 @@ import { planFromSubscription } from "../services/stripePlanCatalog";
 import { assertStripeBillingOwnership } from "../services/stripeRuntimePolicy";
 import { verifyStripeWebhookEvent } from "../services/stripeWebhookSignature";
 import { applyBusinessSubscriptionTransition } from "../services/businessSubscriptionService";
+import { isStripeBillingReady } from "../services/stripeBillingReadiness";
 
 const router = Router();
 
@@ -154,16 +155,26 @@ router.post("/", async (req, res) => {
     return res.status(503).send("Stripe billing runtime is not authorized");
   }
 
+  if (!isStripeBillingReady()) {
+    return res.status(503).send("Stripe billing ledger is still initializing");
+  }
+
   const identity = eventObjectIdentity(event);
-  const claim = await claimBillingEvent({
-    eventId: event.id,
-    eventType: event.type,
-    eventCreatedAt: new Date(event.created * 1000),
-    customerId: identity.customerId,
-    subscriptionId: identity.subscriptionId,
-    userId: identity.userId,
-    source: "webhook",
-  });
+  let claim: Awaited<ReturnType<typeof claimBillingEvent>>;
+  try {
+    claim = await claimBillingEvent({
+      eventId: event.id,
+      eventType: event.type,
+      eventCreatedAt: new Date(event.created * 1000),
+      customerId: identity.customerId,
+      subscriptionId: identity.subscriptionId,
+      userId: identity.userId,
+      source: "webhook",
+    });
+  } catch (error) {
+    console.error("[webhook] Unable to durably claim Stripe event", error);
+    return res.status(503).send("Stripe billing event store unavailable");
+  }
   if (claim === "duplicate") {
     return res.json({ received: true, duplicate: true });
   }
@@ -686,9 +697,15 @@ router.post("/", async (req, res) => {
     );
     return res.json({ received: true });
   } catch (err: any) {
-    await failBillingEvent(event.id, err);
+    try {
+      await failBillingEvent(event.id, err);
+    } catch (ledgerError) {
+      console.error("[webhook] Unable to record failed Stripe event", ledgerError);
+    }
     console.error("❌ [webhook] Handler error:", err);
-    return res.status(500).send("Webhook handler error");
+    if (!res.headersSent) {
+      return res.status(500).send("Webhook handler error");
+    }
   }
 });
 

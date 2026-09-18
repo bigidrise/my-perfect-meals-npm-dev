@@ -1,19 +1,6 @@
 import { and, eq, lt, or, sql } from "drizzle-orm";
 import { db } from "../db";
 import { stripeBillingEvents } from "../db/schema/stripeBilling";
-import { runStripeBillingMigration } from "../db/migrations/runStripeBillingMigration";
-
-let schemaReady: Promise<void> | null = null;
-
-export function ensureStripeBillingSchema(): Promise<void> {
-  if (!schemaReady) {
-    schemaReady = runStripeBillingMigration(db).catch((error) => {
-      schemaReady = null;
-      throw error;
-    });
-  }
-  return schemaReady;
-}
 
 export interface BillingEventClaim {
   eventId: string;
@@ -28,7 +15,6 @@ export interface BillingEventClaim {
 export async function claimBillingEvent(
   event: BillingEventClaim,
 ): Promise<"claimed" | "duplicate"> {
-  await ensureStripeBillingSchema();
   const [inserted] = await db
     .insert(stripeBillingEvents)
     .values({
