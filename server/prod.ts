@@ -22,6 +22,9 @@ import {
 import { registerMarketingPageRoutes } from "./marketingPages";
 import { registerMarketingSsrRoutes } from "./marketingSsr";
 import legalPagesRouter from "./routes/legal-pages";
+import {
+  markStripeBillingReady,
+} from "./services/stripeBillingReadiness";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,6 +55,41 @@ const app = express();
 // Without this, express-session will not emit the Secure MFA-pending session
 // cookie because the proxied request appears to be plain HTTP.
 app.set("trust proxy", 1);
+
+// Stripe must be able to reach the signed raw-body endpoint while the rest of
+// production initialization is still running. Start loading the canonical
+// router without blocking app.listen(), and keep this registration ahead of
+// every JSON/body parser.
+let stripeWebhookRouterLoadError: unknown = null;
+const stripeWebhookRouterPromise = import("./routes/stripeWebhook")
+  .then((module) => module.default)
+  .catch((error) => {
+    stripeWebhookRouterLoadError = error;
+    console.error("[webhook] Failed to load canonical Stripe router", error);
+    return null;
+  });
+app.use(
+  "/api/stripe/webhook",
+  express.raw({ type: "application/json" }),
+  async (req, res, next) => {
+    try {
+      const stripeWebhookRouter = await stripeWebhookRouterPromise;
+      if (!stripeWebhookRouter) {
+        console.error(
+          "[webhook] Canonical Stripe router unavailable during startup",
+          stripeWebhookRouterLoadError,
+        );
+        return res.status(503).send("Stripe webhook temporarily unavailable");
+      }
+      return stripeWebhookRouter(req, res, next);
+    } catch (error) {
+      console.error("[webhook] Canonical Stripe router unavailable during startup", error);
+      if (!res.headersSent) {
+        res.status(503).send("Stripe webhook temporarily unavailable");
+      }
+    }
+  },
+);
 
 const clientDistForSsr = path.resolve(__dirname, "../client/dist");
 let isInitialized = false;
@@ -773,6 +811,16 @@ async function initializeApp() {
       );
     }
 
+    {
+      const { db: dbStripeReadiness } = await import("./db");
+      const { assertStripeBillingSchema } = await import(
+        "./db/migrations/assertStripeBillingSchema"
+      );
+      await assertStripeBillingSchema(dbStripeReadiness as any);
+      markStripeBillingReady();
+      console.log("✅ [INIT] Stripe webhook billing ledger ready");
+    }
+
     // ── Post-migration guards: verify critical columns are actually present ─
     // These run outside the migration try/catch so a timed-out or failed
     // migration that left columns absent causes a loud initialization failure
@@ -860,12 +908,6 @@ async function initializeApp() {
     // Request ID + logging run after CORS so preflights don't create noise
     app.use(requestId);
     app.use(logger);
-
-    // CRITICAL: Stripe webhook MUST be registered before express.json() so the
-    // raw Buffer body is preserved for signature verification. express.json()
-    // would parse it into an object, making constructEvent() throw a 400.
-    const stripeWebhookRouter = (await import("./routes/stripeWebhook")).default;
-    app.use("/api/stripe/webhook", express.raw({ type: "application/json" }), stripeWebhookRouter);
 
     app.use(express.json({ limit: "10mb" }));
     app.use(express.urlencoded({ extended: false }));
