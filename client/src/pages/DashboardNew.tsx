@@ -990,7 +990,7 @@ export default function DashboardNew() {
           </div>
         </motion.div>
 
-        <NutritionPersonalizationSummaryCard />
+         <NutritionPersonalizationSummaryCard />
 
         <TodaysPrescriptionCard />
 
@@ -1563,7 +1563,7 @@ export default function DashboardNew() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15, duration: 0.5 }}
-          className="mb-4"
+            className="mb-4"
         >
           <ComplianceCard userId={user?.id} />
         </motion.div>
@@ -1572,45 +1572,20 @@ export default function DashboardNew() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25, duration: 0.5 }}
-          className="mb-4"
+           className="mb-4"
         >
-          <MedicalSourcesInfo
-            trigger={
-              <div className="relative">
-                <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(59,130,246,0.5), rgba(59,130,246,0.25), rgba(0,0,0,0))" }} />
-                <Card
-                  className="relative cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(59,130,246,0.45)] active:scale-95 bg-gradient-to-r from-black via-blue-950/30 to-black backdrop-blur-lg border border-blue-500/30 hover:border-blue-400/60 rounded-xl group"
-                  style={{ backgroundColor: "transparent" }}
-                  data-testid="card-medical-safety"
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-700/20 border border-blue-500/30">
-                        <Activity className="h-6 w-6 text-blue-400" />
-                      </div>
-                      <div className="flex-1">
-                        <CardTitle className="text-white text-base">
-                          {t("sourcesTitle")}
-                        </CardTitle>
-                        <CardDescription className="text-white/70 text-xs mt-1">
-                          {t("sourcesOrgs")}
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                </Card>
-              </div>
-            }
-          />
+           <Card onClick={() => setLocation("/foods-i-enjoy")} className="relative cursor-pointer overflow-hidden rounded-xl border border-rose-300/30 bg-gradient-to-r from-black via-rose-950/30 to-black backdrop-blur-lg transition-all hover:border-rose-300/60" data-testid="card-foods-i-enjoy">
+             <CardContent className="p-5"><div className="flex items-center gap-4"><div className="rounded-xl border border-rose-300/30 bg-rose-400/15 p-3"><Heart className="h-6 w-6 text-rose-300" /></div><div className="min-w-0 flex-1"><h2 className="text-base font-semibold text-white">{t("foodsEnjoyTitle")}</h2><p className="mt-1 text-sm text-white/65">{t("foodsEnjoyDescription")}</p></div></div></CardContent>
+           </Card>
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.5 }}
-          className="mb-4"
+            className="mb-4"
         >
-          <div className="relative">
+           <div className="relative">
             <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(16,185,129,0.5), rgba(16,185,129,0.25), rgba(0,0,0,0))" }} />
             <Card
               className="relative cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(16,185,129,0.45)] active:scale-95 bg-gradient-to-r from-black via-emerald-950/30 to-black backdrop-blur-lg border border-emerald-500/30 hover:border-emerald-500/60 rounded-xl group"
@@ -1809,6 +1784,29 @@ export default function DashboardNew() {
         </div>
 
         <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.5 }}
+          className="mb-4"
+        >
+          <MedicalSourcesInfo
+            trigger={
+              <Card
+                className="cursor-pointer rounded-xl border border-blue-500/30 bg-gradient-to-r from-black via-blue-950/30 to-black backdrop-blur-lg transition-all hover:border-blue-400/60"
+                data-testid="card-medical-safety"
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-lg border border-blue-500/30 bg-blue-500/15 p-3"><Activity className="h-6 w-6 text-blue-400" /></div>
+                    <div><CardTitle className="text-base text-white">{t("sourcesTitle")}</CardTitle><CardDescription className="mt-1 text-xs text-white/70">{t("sourcesOrgs")}</CardDescription></div>
+                  </div>
+                </CardHeader>
+              </Card>
+            }
+          />
+        </motion.div>
+
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6, duration: 0.5 }}
@@ -1831,6 +1829,7 @@ export default function DashboardNew() {
             </CardContent>
           </Card>
         </motion.div>
+
       </div>
 
       <MacroScanModal

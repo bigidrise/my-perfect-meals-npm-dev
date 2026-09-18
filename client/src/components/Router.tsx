@@ -361,6 +361,7 @@ import GLP1MealsTracking from "@/pages/GLP1MealsTracking";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import DashboardNew from "@/pages/DashboardNew";
+import FoodsIEnjoy from "@/pages/FoodsIEnjoy";
 import Learn from "@/pages/Learn";
 import PrivacySecurity from "@/pages/privacy";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
@@ -1097,6 +1098,7 @@ export default function Router() {
         <Route path="/onboarding" component={SafeOnboarding} />
         <Route path="/onboarding-v2" component={SafeOnboardingV2} />
         <Route path="/dashboard" component={SafeDashboard} />
+        <Route path="/foods-i-enjoy" component={FoodsIEnjoy} />
         <Route path="/tutorials" component={TutorialHub} />
         <Route path="/learn" component={Learn} />
         <Route path="/get-inspiration" component={GetInspiration} />

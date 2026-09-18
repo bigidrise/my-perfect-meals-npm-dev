@@ -1,4 +1,5 @@
 import type { DailyNutritionState } from "./dailyNutritionPrescription";
+import type { FoodEnjoymentItem } from "./foodsIEnjoy";
 
 export const HUMAN_FOOD_CONTEXT_VERSION = "human-food-context.v1" as const;
 
@@ -94,6 +95,11 @@ export interface HumanFoodBehaviorContext {
   profileVersion: string | null;
 }
 
+export interface HumanFoodEnjoymentContext {
+  explicit: FoodEnjoymentItem[];
+  legacyLikes: string[];
+}
+
 export interface DiabetesFoodPreferenceContext {
   state: "LOW" | "IN_RANGE" | "HIGH" | "STALE" | "NONE";
   preferenceBand: "LOW" | "IN_RANGE" | "HIGH" | null;
@@ -129,6 +135,7 @@ export interface HumanFoodContext {
   authorization: HumanFoodAuthorization;
   nutrition: DailyNutritionState | null;
   behavior: HumanFoodBehaviorContext | null;
+  foodsIEnjoy: HumanFoodEnjoymentContext;
   diabetesFoodPreferences: DiabetesFoodPreferenceContext | null;
   gaps: string[];
   notices: string[];

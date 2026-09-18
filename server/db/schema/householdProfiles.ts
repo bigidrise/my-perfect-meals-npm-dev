@@ -6,6 +6,7 @@ import {
   integer,
   boolean,
   timestamp,
+  jsonb,
   index,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
@@ -61,6 +62,7 @@ export const householdProfiles = pgTable(
     likedFoods: text("liked_foods")
       .array()
       .default(sql`ARRAY[]::text[]`),
+    foodsIEnjoy: jsonb("foods_i_enjoy").$type<import("../../../shared/foodsIEnjoy").FoodsIEnjoyDocument>(),
     preferredSweeteners: text("preferred_sweeteners")
       .array()
       .default(sql`ARRAY[]::text[]`),
