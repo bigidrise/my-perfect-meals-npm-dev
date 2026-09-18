@@ -1,11 +1,12 @@
 import { createHmac, randomUUID } from "crypto";
-import { eq } from "drizzle-orm";
-import { users } from "@shared/schema";
+import { and, eq, sql } from "drizzle-orm";
+import { users, householdProfiles } from "@shared/schema";
 import {
   HUMAN_FOOD_CONTEXT_VERSION,
   type HumanFoodContext,
   type HumanFoodCreator,
 } from "../../../shared/humanFoodContext";
+import { foodsIEnjoyDocumentSchema } from "../../../shared/foodsIEnjoy";
 import { resolveUserGlucoseState } from "../glucoseStateResolver";
 import {
   classifyGlycemicProduce,
@@ -128,13 +129,15 @@ export async function resolveHumanFoodContext(
     throw Object.assign(new Error("Authenticated food context is required"), { status: 401 });
   }
 
-  const [profile] = await db
+  const [userProfile] = await db
     .select({
       id: users.id,
       dietaryRestrictions: users.dietaryRestrictions,
       allergies: users.allergies,
       avoidedFoods: users.avoidedFoods,
       dislikedFoods: users.dislikedFoods,
+      likedFoods: users.likedFoods,
+      foodsIEnjoy: users.foodsIEnjoy,
       healthConditions: users.healthConditions,
       palateSpiceTolerance: users.palateSpiceTolerance,
       palateSeasoningIntensity: users.palateSeasoningIntensity,
@@ -144,20 +147,79 @@ export async function resolveHumanFoodContext(
       flavorPreference: users.flavorPreference,
       heatPreference: users.heatPreference,
       timezone: users.timezone,
+      activeHouseholdProfileId: users.activeHouseholdProfileId,
     })
     .from(users)
     .where(eq(users.id, input.subjectUserId))
     .limit(1);
 
+  let profile: any = userProfile ?? null;
+  if (profile?.activeHouseholdProfileId && input.actorUserId === input.subjectUserId) {
+    const [activeProfile] = await db.select({
+      dietaryRestrictions: householdProfiles.dietaryRestrictions,
+      allergies: householdProfiles.allergies,
+      avoidedFoods: householdProfiles.avoidedFoods,
+      dislikedFoods: householdProfiles.dislikedFoods,
+      likedFoods: householdProfiles.likedFoods,
+      foodsIEnjoy: householdProfiles.foodsIEnjoy,
+      healthConditions: householdProfiles.healthConditions,
+      palateSpiceTolerance: householdProfiles.palateSpiceTolerance,
+      palateSeasoningIntensity: householdProfiles.palateSeasoningIntensity,
+      palateFlavorStyle: householdProfiles.palateFlavorStyle,
+      cuisinePreference: householdProfiles.cuisinePreference,
+      cuisineIntensity: householdProfiles.cuisineIntensity,
+    }).from(householdProfiles).where(and(
+      eq(householdProfiles.id, profile.activeHouseholdProfileId),
+      eq(householdProfiles.ownerUserId, input.actorUserId),
+    )).limit(1);
+    if (activeProfile) {
+      // Keep the owner's timezone and nutrition identity; food-generation
+      // preferences belong to the active person being fed.
+      profile = { ...profile, ...activeProfile, timezone: userProfile?.timezone };
+    }
+  }
+  if (!profile) {
+    const [householdProfile] = await db
+      .select({
+        id: householdProfiles.id,
+        dietaryRestrictions: householdProfiles.dietaryRestrictions,
+        allergies: householdProfiles.allergies,
+        avoidedFoods: householdProfiles.avoidedFoods,
+        dislikedFoods: householdProfiles.dislikedFoods,
+        likedFoods: householdProfiles.likedFoods,
+        foodsIEnjoy: householdProfiles.foodsIEnjoy,
+        healthConditions: householdProfiles.healthConditions,
+        palateSpiceTolerance: householdProfiles.palateSpiceTolerance,
+        palateSeasoningIntensity: householdProfiles.palateSeasoningIntensity,
+        palateFlavorStyle: householdProfiles.palateFlavorStyle,
+        cuisinePreference: householdProfiles.cuisinePreference,
+        cuisineIntensity: householdProfiles.cuisineIntensity,
+        flavorPreference: sql<string | null>`NULL`,
+        heatPreference: sql<string | null>`NULL`,
+        timezone: sql<string | null>`'UTC'`,
+      })
+      .from(householdProfiles)
+      .where(and(eq(householdProfiles.id, input.subjectUserId), eq(householdProfiles.ownerUserId, input.actorUserId)))
+      .limit(1);
+    profile = householdProfile ? { ...householdProfile, activeHouseholdProfileId: null } : null;
+  }
   if (!profile) {
     throw Object.assign(new Error("Food context subject was not found"), { status: 404 });
   }
+  // Household profile IDs are food subjects, not rows in users. Keep
+  // user-scoped nutrition/glucose/history lookups on the authenticated owner.
+  const nutritionUserId = userProfile ? input.subjectUserId : input.actorUserId;
 
   const gaps: string[] = [];
   const notices: string[] = [];
   let nutrition: HumanFoodContext["nutrition"] = null;
   let behavior: HumanFoodContext["behavior"] = null;
   let diabetesFoodPreferences: HumanFoodContext["diabetesFoodPreferences"] = null;
+  const foodsDocument = foodsIEnjoyDocumentSchema.safeParse(profile.foodsIEnjoy);
+  const foodsIEnjoy: HumanFoodContext["foodsIEnjoy"] = {
+    explicit: foodsDocument.success ? foodsDocument.data.items.filter((item: { revokedAt: string | null }) => !item.revokedAt) : [],
+    legacyLikes: profile.likedFoods ?? [],
+  };
   let status: HumanFoodContext["status"] = "resolved";
 
   try {
@@ -165,7 +227,7 @@ export async function resolveHumanFoodContext(
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) {
       throw new Error("dateISO must be a YYYY-MM-DD user-local calendar date");
     }
-    nutrition = await resolveDailyNutritionState(input.subjectUserId, dateISO, input.excludeItemId);
+    nutrition = await resolveDailyNutritionState(nutritionUserId, dateISO, input.excludeItemId);
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
       console.warn("[HumanFoodContext:diagnostic] daily nutrition resolution failed", {
@@ -181,7 +243,7 @@ export async function resolveHumanFoodContext(
   }
 
   try {
-    const profileMemory = await derivePreferenceProfile(input.subjectUserId);
+    const profileMemory = await derivePreferenceProfile(nutritionUserId);
     if (profileMemory) {
       behavior = {
         preferredCuisines: profileMemory.patterns.prefersCuisines ?? [],
@@ -216,7 +278,7 @@ export async function resolveHumanFoodContext(
     .some((value) => normalizeRulePart(value).includes("diabet"));
   if (diabetesActive) {
     try {
-      const glucose = await resolveUserGlucoseState(input.subjectUserId);
+      const glucose = await resolveUserGlucoseState(nutritionUserId);
       const produce = glucose.activePreferences
         .map(classifyGlycemicProduce)
         .filter((item): item is NonNullable<typeof item> => item !== null);
@@ -297,6 +359,7 @@ export async function resolveHumanFoodContext(
     authorization,
     nutrition,
     behavior,
+    foodsIEnjoy,
     diabetesFoodPreferences,
     gaps: [...new Set(gaps)],
     notices,

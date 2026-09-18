@@ -13,6 +13,7 @@ export function buildHumanFoodPromptBlock(context: HumanFoodContext): string {
     : null;
   const consumedStarch = nutrition?.starch?.consumed;
   const glucosePreferences = context.diabetesFoodPreferences;
+  const enjoyment = context.foodsIEnjoy ?? { explicit: [], legacyLikes: [] };
   const lines = [
     "HUMAN FOOD CONTEXT v1 — preserve through every retry, correction, and fallback:",
     `- Effective diet: ${context.diet.effective.join(", ") || "no optional diet preference available"}`,
@@ -35,6 +36,13 @@ export function buildHumanFoodPromptBlock(context: HumanFoodContext): string {
     context.safety.dislikedFoods.length
       ? `- Disliked foods: ${context.safety.dislikedFoods.join(", ")}`
       : null,
+    enjoyment.explicit.length
+      ? `- Foods this person explicitly enjoys (soft guidance only; never override current intent, safety, medical, dietary, or avoidance rules): ${enjoyment.explicit.map((item) => item.displayLabel).join(", ")}`
+      : null,
+    enjoyment.legacyLikes.length
+      ? `- Legacy profile likes (compatibility context only; not newly confirmed Foods I Enjoy): ${enjoyment.legacyLikes.join(", ")}`
+      : null,
+    "- Explicit current food intent, when provided by the request, outranks these soft enjoyment hints; never redirect a current request to an unrelated favorite.",
     glucosePreferences
       ? `- Canonical glucose state: ${glucosePreferences.state}` +
         `${glucosePreferences.valueMgdl == null ? "" : ` at ${glucosePreferences.valueMgdl} mg/dL`}` +

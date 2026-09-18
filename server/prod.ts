@@ -1264,6 +1264,8 @@ async function initializeApp() {
     try {
       const { db: dbPreflight } = await import("./db");
       const { sql: sqlPreflight } = await import("drizzle-orm");
+      const { runFoodsIEnjoyMigration } = await import("./db/migrations/runFoodsIEnjoyMigration");
+      await runFoodsIEnjoyMigration(dbPreflight);
       // safety_override_audit_logs.correlation_id
       await dbPreflight.execute(sqlPreflight`ALTER TABLE safety_override_audit_logs ADD COLUMN IF NOT EXISTS correlation_id uuid`);
       // users — ProCare, Performance, i18n, clinical context

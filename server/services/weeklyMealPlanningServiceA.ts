@@ -173,7 +173,8 @@ function buildPoolForType(all: any[], type: "breakfast"|"lunch"|"dinner"|"snack"
   const base = all.filter(t => normalizeType(t) === type);
 
   // Tier 1: strict (full fitsBaseSafety)
-  let pool = base.filter(t => fitsBaseSafety(t, params));
+  let pool = base.filter(t => fitsBaseSafety(t, params))
+    .sort((a, b) => scoreTemplateForUser(b, params) - scoreTemplateForUser(a, params));
   if (pool.length >= 3) return pool; // Only use strict if we have good variety
 
   // Tier 2: relax carb % + cook time + ingredients for this type, but keep hard safety  
@@ -189,7 +190,7 @@ function buildPoolForType(all: any[], type: "breakfast"|"lunch"|"dinner"|"snack"
   });
   if (pool.length) {
     console.warn(`[A] Relaxed rules for ${type} to avoid empty pool`);
-    return pool;
+    return pool.sort((a, b) => scoreTemplateForUser(b, params) - scoreTemplateForUser(a, params));
   }
 
   // Tier 3: last resort — any template of this type that passes hard safety
@@ -200,7 +201,7 @@ function buildPoolForType(all: any[], type: "breakfast"|"lunch"|"dinner"|"snack"
   });
   if (pool.length) {
     console.warn(`[A] Using hard-safety-only for ${type}`);
-    return pool;
+    return pool.sort((a, b) => scoreTemplateForUser(b, params) - scoreTemplateForUser(a, params));
   }
 
   return []; // truly nothing available

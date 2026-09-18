@@ -164,6 +164,7 @@ import userPreferencesRouter from "./routes/userPreferences";
 import { loadStudioMembership } from "./middleware/studioAccess";
 import { isOnboardingAllergyBootstrapAuthorized } from "./services/profileAuthorization";
 import { scaleIngredientQuantity } from "./services/servingScaling";
+import foodsIEnjoyRouter, { householdFoodsIEnjoyRouter } from "./routes/foodsIEnjoy";
 
 function normalizeFitnessGoal(value?: string | null): string | null {
   switch (value) {
@@ -330,6 +331,10 @@ function hasUnmeasured(ings: Array<{ name: string; amount: string }>): boolean {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   console.log("🔧 registerRoutes called - starting route registration");
+  const { runFoodsIEnjoyMigration } = await import("./db/migrations/runFoodsIEnjoyMigration");
+  await runFoodsIEnjoyMigration(db);
+  app.use("/api/foods-i-enjoy", foodsIEnjoyRouter);
+  app.use("/api/household", householdFoodsIEnjoyRouter);
   // Health endpoint for network testing
   app.get("/api/health", (_req, res) => {
     res.json({
