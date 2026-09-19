@@ -15,7 +15,8 @@ export type HumanFoodCreator =
   | "dessert_creator"
   | "beverage_creator"
   | "sushi_creator"
-  | "my_perfect_beginning";
+  | "my_perfect_beginning"
+  | "my_perfect_menu";
 
 export type HumanFoodResolutionStatus =
   | "resolved"

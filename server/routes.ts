@@ -165,6 +165,7 @@ import { loadStudioMembership } from "./middleware/studioAccess";
 import { isOnboardingAllergyBootstrapAuthorized } from "./services/profileAuthorization";
 import { scaleIngredientQuantity } from "./services/servingScaling";
 import foodsIEnjoyRouter, { householdFoodsIEnjoyRouter } from "./routes/foodsIEnjoy";
+import myPerfectMenuRouter from "./routes/myPerfectMenu";
 
 function normalizeFitnessGoal(value?: string | null): string | null {
   switch (value) {
@@ -335,6 +336,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await runFoodsIEnjoyMigration(db);
   app.use("/api/foods-i-enjoy", foodsIEnjoyRouter);
   app.use("/api/household", householdFoodsIEnjoyRouter);
+  app.use("/api/my-perfect-menu", myPerfectMenuRouter);
   // Health endpoint for network testing
   app.get("/api/health", (_req, res) => {
     res.json({
@@ -1142,6 +1144,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const effectiveInput = userDietOverride === true && input && typeof input === 'string'
         ? `${input} [USER DIET SOFT OVERRIDE: The user has explicitly chosen to include this food despite their dietary preference. You MUST include the specifically requested ingredient exactly as requested. If it is a starchy food (potato, rice, bread, pasta), serve it as a controlled side portion (no more than ½ cup or 4 oz) — not the main base of the meal. Adjust all surrounding ingredients to maintain as much dietary alignment as possible. Do NOT add any additional high-carb or conflicting foods beyond what the user explicitly requested.]`
         : input;
+      const requestedDateISO =
+        typeof (starchContext as any)?.dateISO === "string" &&
+        /^\d{4}-\d{2}-\d{2}$/.test((starchContext as any).dateISO)
+          ? (starchContext as any).dateISO
+          : undefined;
       // Note: Carb cycle hard constraints are injected via the UserProtocolEnvelope
       // (loadUserProtocolEnvelope → carbCycleContext → enforceBeforeGenerate) — no
       // direct input-string mutation needed here.
@@ -1225,6 +1232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           subjectUserId: effectiveUserId,
           creator: "recipe_maker",
           correlationId: (req as any).id,
+          dateISO: requestedDateISO,
           dietOverride: resolveRequestDietOverride(dietOverride, dietType),
           cuisine: typeof req.body.cultureOverride === "string" ? req.body.cultureOverride : null,
           cuisineIntensity: typeof req.body.cuisineIntensity === "string" ? req.body.cuisineIntensity : null,
@@ -1404,7 +1412,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const budgetUserId = delegatedClientId ?? authUserId;
         // Prefer the date embedded in the starchContext (builder's active day);
         // fall back to today in UTC when it is absent.
-        const budgetDateISO: string = (starchContext as any)?.dateISO
+        const budgetDateISO: string = requestedDateISO
           ?? new Date().toISOString().split("T")[0];
 
         try {
@@ -1484,7 +1492,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
           const glp1Ctx = await resolveGLP1GlobalContext(
             effectiveUserId,
-            new Date().toISOString().split("T")[0],
+            requestedDateISO ?? new Date().toISOString().split("T")[0],
             (mealType === 'breakfast' || mealType === 'lunch' || mealType === 'dinner' || mealType === 'snack')
               ? mealType
               : 'lunch',
