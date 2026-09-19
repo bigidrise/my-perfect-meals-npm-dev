@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useLocation, useRoute } from "wouter";
+import { useLocation, useRoute, useSearch } from "wouter";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { MealCard } from "@/components/MealCard";
 import type { Meal } from "@/types/meal";
@@ -97,6 +97,11 @@ export default function WeeklyMealBoard() {
   const { t } = useTranslation();
   usePageTitle(t("generalNutritionBuilder.pageTitle"));
   const [, setLocation] = useLocation();
+  const search = useSearch();
+  const householdProfileId = useMemo(
+    () => new URLSearchParams(search).get("householdProfileId") || undefined,
+    [search],
+  );
   const { toast } = useToast();
   const isDesktop = useIsDesktop();
   const { user } = useAuth();
@@ -131,7 +136,7 @@ export default function WeeklyMealBoard() {
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
   const [weekStartISO, setWeekStartISO] = React.useState<string>(getWeekStartISOInTZ("America/Chicago"));
-  const { board: hookBoard, loading: hookLoading, error, save: saveToHook, source, refresh: refreshBoard, primeCache } = useWeeklyBoard(clientId, weekStartISO, proClientId, BUILDER_NS.GENERAL_NUTRITION);
+  const { board: hookBoard, loading: hookLoading, error, save: saveToHook, source, refresh: refreshBoard, primeCache } = useWeeklyBoard(clientId, weekStartISO, proClientId, BUILDER_NS.GENERAL_NUTRITION, householdProfileId);
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
@@ -867,7 +872,7 @@ export default function WeeklyMealBoard() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24"
     >
-      <BuilderHeader title="General Nutrition Builder" onOpenTour={quickTour.openTour} clientId={isProCareMode ? clientId : null} protocols={getBuilderProtocolBadges(user)} />
+      <BuilderHeader title="General Meal Builder" onOpenTour={quickTour.openTour} clientId={isProCareMode ? clientId : null} protocols={getBuilderProtocolBadges(user)} />
 
       {/* Main Content */}
       <div

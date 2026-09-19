@@ -308,6 +308,19 @@ export default function DiabeticHub() {
             </div>
             <ChevronRight className="w-5 h-5 text-lime-400 flex-shrink-0" />
           </button>
+          <button
+            onClick={() => setLocation("/foods-i-enjoy?builder=diabetic")}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-white"
+          >
+            <div className="flex items-center gap-3 text-left">
+              <ChefHat className="w-5 h-5 text-lime-400" />
+              <div>
+                <p className="font-bold text-sm">My Perfect Menu</p>
+                <p className="text-white/60 text-xs mt-0.5">Create ideas for your Diabetes Builder</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-white/40 flex-shrink-0" />
+          </button>
 
           {/* ── Training Nutrition Schedule ── */}
           <button

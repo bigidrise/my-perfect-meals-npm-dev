@@ -32,6 +32,8 @@ export const myPerfectMenuContextStampSchema = z.object({
   generatedAt: z.string().datetime(),
   subjectId: z.string().min(1),
   category: myPerfectMenuCategorySchema,
+  builderKey: z.string().optional(),
+  builderNamespace: z.string().optional(),
 });
 export type MyPerfectMenuContextStamp = z.infer<typeof myPerfectMenuContextStampSchema>;
 

@@ -12,7 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useLocation, useRoute } from "wouter";
+import { useLocation, useRoute, useSearch } from "wouter";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { MealCard } from "@/components/MealCard";
 import type { Meal } from "@/types/meal";
@@ -155,6 +155,11 @@ export default function DiabeticMenuBuilder() {
   usePageTitle(t("diabeticBuilder.pageTitle"));
   const quickTour = useQuickTour("diabetic-menu-builder");
   const [, setLocation] = useLocation();
+  const search = useSearch();
+  const householdProfileId = useMemo(
+    () => new URLSearchParams(search).get("householdProfileId") || undefined,
+    [search],
+  );
 
   // ProCare route detection for Client Dashboard button
   const [, proParams] = useRoute("/pro/clients/:id/diabetic-builder");
@@ -243,7 +248,7 @@ export default function DiabeticMenuBuilder() {
     source,
     refresh: refreshBoard,
     primeCache,
-  } = useWeeklyBoard("1", weekStartISO, proClientId, BUILDER_NS.DIABETIC);
+  } = useWeeklyBoard("1", weekStartISO, proClientId, BUILDER_NS.DIABETIC, householdProfileId);
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
