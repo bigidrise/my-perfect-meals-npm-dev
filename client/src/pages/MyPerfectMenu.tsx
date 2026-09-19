@@ -157,6 +157,7 @@ export default function MyPerfectMenu() {
   const [performanceDate, setPerformanceDate] = useState(() => getTodayISOSafe("America/Chicago"));
   const [performanceSlot, setPerformanceSlot] = useState<MealPlanDestination["slot"] | null>(null);
   const [performanceSetupOpen, setPerformanceSetupOpen] = useState(false);
+  const [builderRefreshEpoch, setBuilderRefreshEpoch] = useState(0);
   const handledReturnRef = useRef(false);
   const subjectRef = useRef(subjectUserId ?? user?.id ?? null);
   const subjectEpochRef = useRef(0);
@@ -165,6 +166,12 @@ export default function MyPerfectMenu() {
   const { generateSnack, cancel: cancelSnack } = useSnackCreatorRequest(user?.id, subjectUserId);
   const logGlucose = useLogGlucose();
   const concepts = ideaType ? conceptSets[ideaType] ?? [] : [];
+
+  useEffect(() => {
+    const refreshBuilder = () => setBuilderRefreshEpoch((current) => current + 1);
+    window.addEventListener("mpm:builderUpdated", refreshBuilder);
+    return () => window.removeEventListener("mpm:builderUpdated", refreshBuilder);
+  }, []);
 
   useEffect(() => {
     subjectEpochRef.current += 1;
@@ -220,7 +227,7 @@ export default function MyPerfectMenu() {
       }
     })();
     return () => { cancelled = true; };
-  }, [subjectUserId, user?.id, requestedBuilderKey, cancelMeal, cancelSnack]);
+  }, [subjectUserId, user?.id, requestedBuilderKey, cancelMeal, cancelSnack, builderRefreshEpoch]);
 
   const requestIdeas = async (nextType: IdeaType, destination = performanceDestination) => {
     const requestedSubject = subjectUserId ?? user?.id ?? null;
