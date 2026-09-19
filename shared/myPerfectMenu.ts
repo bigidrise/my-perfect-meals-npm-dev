@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { foodIdentitySchema } from "./foodIdentity";
 
 export const myPerfectMenuCategorySchema = z.enum(["breakfast", "lunch", "dinner", "snack"]);
 export type MyPerfectMenuCategory = z.infer<typeof myPerfectMenuCategorySchema>;
@@ -15,6 +16,7 @@ export const myPerfectMenuConceptSchema = z.object({
   dietaryEvidence: z.array(z.string().trim().min(1).max(100)).max(8),
   preparationMethod: z.string().trim().min(2).max(80),
   signature: z.string().trim().min(5).max(180),
+  foodIdentity: foodIdentitySchema.optional(),
 });
 export type MyPerfectMenuConcept = z.infer<typeof myPerfectMenuConceptSchema>;
 

@@ -102,3 +102,4 @@
 - [Transactional support acknowledgements](transactional-support-acknowledgements.md) — accept reports first; send one privacy-limited acknowledgement through a durable outbox.
 - [Foods I Enjoy boundary](foods-i-enjoy-boundary.md) — explicit subject-owned enjoyment stays separate from legacy likes, inference, and safety governance.
 - [Future food date context](future-food-date-context.md) — destination dates must reach every nutrition and clinical resolver, not only meal-budget logic.
+- [Snack occasion semantics](snack-occasion-semantics.md) — snack is an eating occasion; dessert is one valid family, and personalization must not default to shrinking it.
