@@ -7,6 +7,10 @@ import { getAuthHeaders } from "@/lib/auth";
 import { getActiveBuilderNs } from "@/lib/activeBuilderNs";
 import { formatDateDisplay, getTodayISOSafe, getWeekStartFromDate } from "@/utils/midnight";
 import { getRolling14Days } from "@/utils/dateRange";
+import {
+  MY_PERFECT_MENU_BUILDERS,
+  type MyPerfectMenuBuilderKey,
+} from "@shared/builderNamespaces";
 
 const TZ = "America/Chicago";
 
@@ -42,6 +46,8 @@ interface MealPlanDestinationPickerProps {
   busy?: boolean;
   busyLabel?: string;
   busyContent?: ReactNode;
+  builderKey?: MyPerfectMenuBuilderKey;
+  householdProfileId?: string;
   onSelect: (destination: MealPlanDestination) => void | Promise<void>;
 }
 
@@ -52,6 +58,8 @@ export function MealPlanDestinationPicker({
   busy = false,
   busyLabel = "Creating your meal…",
   busyContent,
+  builderKey,
+  householdProfileId,
   onSelect,
 }: MealPlanDestinationPickerProps) {
   const todayISO = getTodayISOSafe(TZ);
@@ -64,27 +72,37 @@ export function MealPlanDestinationPicker({
   const [boardError, setBoardError] = useState<string | null>(null);
   const cache = useRef<Record<string, Record<string, any> | null>>({});
   const requestSequence = useRef(0);
+  const authoritativeNamespace = builderKey
+    ? MY_PERFECT_MENU_BUILDERS[builderKey].namespace
+    : undefined;
 
   const fetchWeek = useCallback(async (dateISO: string) => {
     const weekStart = getWeekStartFromDate(dateISO, TZ);
-    if (cache.current[weekStart] !== undefined) {
-      setBoardDays(cache.current[weekStart]);
+    const scopeKey = `${weekStart}:${householdProfileId || "owner"}:${authoritativeNamespace || "legacy"}`;
+    if (cache.current[scopeKey] !== undefined) {
+      setBoardDays(cache.current[scopeKey]);
       return;
     }
     const sequence = ++requestSequence.current;
     setBoardLoading(true);
     setBoardError(null);
     try {
-      const builderType = getActiveBuilderNs();
-      const bt = builderType ? `&bt=${encodeURIComponent(builderType)}` : "";
+      const params = new URLSearchParams({ week: weekStart });
+      if (builderKey) {
+        params.set("mpmBuilderKey", builderKey);
+        if (householdProfileId) params.set("householdProfileId", householdProfileId);
+      } else {
+        const builderType = getActiveBuilderNs();
+        if (builderType) params.set("bt", builderType);
+      }
       const response = await fetch(
-        apiUrl(`/api/weekly-board?week=${encodeURIComponent(weekStart)}${bt}`),
+        apiUrl(`/api/weekly-board?${params.toString()}`),
         { credentials: "include", headers: getAuthHeaders() },
       );
       if (!response.ok) throw new Error("We couldn't check your current meal plan.");
       const payload = await response.json();
       const days = payload?.week?.days ?? null;
-      cache.current[weekStart] = days;
+      cache.current[scopeKey] = days;
       if (sequence === requestSequence.current) setBoardDays(days);
     } catch (error) {
       if (sequence === requestSequence.current) {
@@ -94,7 +112,7 @@ export function MealPlanDestinationPicker({
     } finally {
       if (sequence === requestSequence.current) setBoardLoading(false);
     }
-  }, []);
+  }, [authoritativeNamespace, builderKey, householdProfileId]);
 
   useEffect(() => {
     if (!open) return;
@@ -118,7 +136,11 @@ export function MealPlanDestinationPicker({
       setConfirming(true);
       return;
     }
-    onSelect({ dateISO: selectedDate, slot, builderType: getActiveBuilderNs() || "" });
+    onSelect({
+      dateISO: selectedDate,
+      slot,
+      builderType: authoritativeNamespace || getActiveBuilderNs() || "",
+    });
   };
 
   return (
@@ -147,7 +169,7 @@ export function MealPlanDestinationPicker({
               onClick={() => selectedSlot && onSelect({
                 dateISO: selectedDate,
                 slot: selectedSlot,
-                builderType: getActiveBuilderNs() || "",
+                builderType: authoritativeNamespace || getActiveBuilderNs() || "",
               })}
             >
               {busy ? busyLabel : "Replace and Create"}

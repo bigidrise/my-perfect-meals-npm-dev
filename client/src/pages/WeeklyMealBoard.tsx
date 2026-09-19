@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PillButton } from "@/components/ui/pill-button";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
-import { useLocation, useRoute } from "wouter";
+import { useLocation, useRoute, useSearch } from "wouter";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { MealCard } from "@/components/MealCard";
 import type { Meal } from "@/types/meal";
@@ -195,6 +195,7 @@ const WEEKLY_TOUR_STEPS: TourStep[] = [
 export default function WeeklyMealBoard() {
   usePageTitle("Weekly Meal Builder");
   const [, setLocation] = useLocation();
+  const search = useSearch();
   const { toast } = useToast();
   const { t } = useTranslation("weeklyBoard");
   const isDesktop = useIsDesktop();
@@ -205,6 +206,10 @@ export default function WeeklyMealBoard() {
 
   const [, proParams] = useRoute("/pro/clients/:id/weekly-builder");
   const proClientId = proParams?.id;
+  const householdProfileId = useMemo(
+    () => new URLSearchParams(search).get("householdProfileId") || undefined,
+    [search],
+  );
 
   const effectiveUserId = proClientId || user?.id;
 
@@ -227,7 +232,7 @@ export default function WeeklyMealBoard() {
     source,
     refresh: refreshBoard,
     primeCache,
-  } = useWeeklyBoard("1", weekStartISO, proClientId);
+  } = useWeeklyBoard("1", weekStartISO, proClientId, undefined, householdProfileId);
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);

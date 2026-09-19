@@ -13,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useLocation, useRoute } from "wouter";
+import { useLocation, useRoute, useSearch } from "wouter";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { MealCard } from "@/components/MealCard";
 import type { Meal } from "@/types/meal";
@@ -140,6 +140,11 @@ export default function GLP1MealBuilder() {
     { icon: "+", title: t("metabolicBuilder.tour9Title"), description: t("metabolicBuilder.tour9Desc") },
   ], [t]);
   const [, setLocation] = useLocation();
+  const search = useSearch();
+  const householdProfileId = useMemo(
+    () => new URLSearchParams(search).get("householdProfileId") || undefined,
+    [search],
+  );
   
   // ProCare route detection for Client Dashboard button
   const [, proParams] = useRoute("/pro/clients/:id/glp1-builder");
@@ -219,7 +224,7 @@ export default function GLP1MealBuilder() {
     source,
     refresh: refreshBoard,
     primeCache,
-  } = useWeeklyBoard("1", weekStartISO, proClientId, BUILDER_NS.GLP1);
+  } = useWeeklyBoard("1", weekStartISO, proClientId, BUILDER_NS.GLP1, householdProfileId);
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);

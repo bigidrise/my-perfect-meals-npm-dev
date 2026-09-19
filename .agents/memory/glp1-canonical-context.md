@@ -52,6 +52,13 @@ Previously the resolver (`resolveGLP1MealTargets`) existed with 57 unit tests bu
 ## GLP-1 + Performance composition rule
 When Performance is also active, the training-day prescription controls macro targets. GLP-1 volume/tolerance constraints (small portions, low fat, easy digestion, protein priority) remain FULLY ACTIVE on top. Do NOT relax GLP-1 rules based on Performance context. The `compositionNote` string is returned for injection into prompts.
 
+## My Perfect Menu preflight boundary
+Shot history is maintenance data and must never gate meal generation. Current appetite and meal-relevant tolerance use the canonical Hub check-in and resolver, may run inline before generation, and must preserve Hub-only fields when updating.
+
+**Why:** Shot dose/date/location do not currently alter meal generation, while appetite, GI tolerance, eating/fluid ability, hydration risk, and governed escalation do. Sending users to the Hub for routine shot maintenance discarded menu continuity.
+
+**How to apply:** Keep shot reminders non-blocking. Save inline tolerance through the canonical Hub path, fail closed until the current record loads, re-resolve context, resume the selected category, and refresh ideas only when the food-context fingerprint changes.
+
 ## Do NOT hard-code volume reduction percentages
 Any phase-specific reduction rules belong in `resolveGLP1MealTargets` registry (rule-based resolver). Do not scatter percentage numbers through feature code.
 

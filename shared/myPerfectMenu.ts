@@ -9,6 +9,17 @@ import {
 export { myPerfectMenuCategorySchema };
 export type { MyPerfectMenuCategory };
 
+export const myPerfectMenuMealSlotSchema = z.enum([
+  "breakfast",
+  "lunch",
+  "dinner",
+  "meal4",
+  "meal5",
+  "meal6",
+  "snacks",
+]);
+export type MyPerfectMenuMealSlot = z.infer<typeof myPerfectMenuMealSlotSchema>;
+
 export const myPerfectMenuConceptSchema = z.object({
   id: z.string().min(8).max(100),
   ideaType: myPerfectMenuCategorySchema,
@@ -26,6 +37,19 @@ export const myPerfectMenuConceptSchema = z.object({
 });
 export type MyPerfectMenuConcept = z.infer<typeof myPerfectMenuConceptSchema>;
 
+export const myPerfectMenuContextStampSchema = z.object({
+  version: z.literal(1),
+  digest: z.string().regex(/^[A-Za-z0-9_-]+$/),
+  generatedAt: z.string().datetime(),
+  subjectId: z.string().min(1),
+  category: myPerfectMenuCategorySchema,
+  builderKey: z.string().optional(),
+  builderNamespace: z.string().optional(),
+  destinationDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  mealSlot: myPerfectMenuMealSlotSchema.optional(),
+});
+export type MyPerfectMenuContextStamp = z.infer<typeof myPerfectMenuContextStampSchema>;
+
 export const myPerfectMenuPreferencesSchema = z.object({
   version: z.literal(1),
   categories: z.object({
@@ -36,6 +60,12 @@ export const myPerfectMenuPreferencesSchema = z.object({
   }),
   recentSignatures: z.array(z.string().trim().min(5).max(180)).max(24).default([]),
   recentCulinaryFingerprints: z.array(culinaryFingerprintSchema).max(96).default([]),
+  contextStamps: z.object({
+    breakfast: myPerfectMenuContextStampSchema.optional(),
+    lunch: myPerfectMenuContextStampSchema.optional(),
+    dinner: myPerfectMenuContextStampSchema.optional(),
+    snack: myPerfectMenuContextStampSchema.optional(),
+  }).default({}),
   updatedAt: z.string().datetime(),
 });
 export type MyPerfectMenuPreferences = z.infer<typeof myPerfectMenuPreferencesSchema>;
@@ -46,6 +76,7 @@ export function emptyMyPerfectMenuPreferences(): MyPerfectMenuPreferences {
     categories: {},
     recentSignatures: [],
     recentCulinaryFingerprints: [],
+    contextStamps: {},
     updatedAt: new Date(0).toISOString(),
   };
 }

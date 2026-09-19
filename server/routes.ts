@@ -1111,7 +1111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let humanFoodRequestScope: import("./services/humanFoodContext/requestScope").HumanFoodRequestScope | undefined;
     
     try {
-      const { 
+      let {
         type = 'craving',
         mealType = 'lunch',
         input,
@@ -1140,14 +1140,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         actionRequest: _actionRequest,
         authorizationAction: _authorizationAction,
         householdProfileId,
+        mpmAuthorityToken,
+        mpmConceptId,
+        mpmGeneration,
       } = req.body;
 
       // When user chose "Continue Anyway" on the diet guard, inject a soft coaching override
       // so the AI includes the requested ingredient while keeping everything else diet-aligned
-      const effectiveInput = userDietOverride === true && input && typeof input === 'string'
+      let effectiveInput = userDietOverride === true && input && typeof input === 'string'
         ? `${input} [USER DIET SOFT OVERRIDE: The user has explicitly chosen to include this food despite their dietary preference. You MUST include the specifically requested ingredient exactly as requested. If it is a starchy food (potato, rice, bread, pasta), serve it as a controlled side portion (no more than ½ cup or 4 oz) — not the main base of the meal. Adjust all surrounding ingredients to maintain as much dietary alignment as possible. Do NOT add any additional high-carb or conflicting foods beyond what the user explicitly requested.]`
         : input;
-      const requestedDateISO =
+      let effectiveGenerationContext = generationContext;
+      let requestedDateISO =
         typeof (starchContext as any)?.dateISO === "string" &&
         /^\d{4}-\d{2}-\d{2}$/.test((starchContext as any).dateISO)
           ? (starchContext as any).dateISO
@@ -1233,6 +1237,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(403).json({ success: false, error: "That household food profile is not active." });
         }
         householdSubjectId = profile.id;
+      }
+      let verifiedPerformanceAuthority: import("./services/myPerfectMenu/performanceAuthorityToken").PerformanceAuthorityTokenPayload | null = null;
+      if (mpmGeneration === true || mpmAuthorityToken !== undefined || mpmConceptId !== undefined) {
+        if (mpmGeneration !== true || typeof mpmConceptId !== "string" || typeof mpmAuthorityToken !== "string") {
+          return res.status(400).json({ success: false, error: "Performance menu authority is incomplete." });
+        }
+        const { verifyPerformanceAuthorityToken } = await import("./services/myPerfectMenu/performanceAuthorityToken");
+        verifiedPerformanceAuthority = verifyPerformanceAuthorityToken(mpmAuthorityToken, {
+          actorUserId: authUserId,
+          subjectUserId: householdSubjectId ?? effectiveUserId,
+          conceptId: mpmConceptId,
+        });
+        if (!verifiedPerformanceAuthority) {
+          return res.status(409).json({ success: false, error: "Performance menu authority expired or invalid.", code: "PERFORMANCE_AUTHORITY_INVALID" });
+        }
+        requestedDateISO = verifiedPerformanceAuthority.destinationDate;
+        // MPM Performance generation is entirely token-derived. Ignore caller
+        // text and slot so a stale or forged request cannot change the concept
+        // or the date-specific Performance context.
+        input = [
+          verifiedPerformanceAuthority.concept.title,
+          verifiedPerformanceAuthority.concept.description,
+          verifiedPerformanceAuthority.concept.signature
+            ? `Signature: ${verifiedPerformanceAuthority.concept.signature}`
+            : "",
+          verifiedPerformanceAuthority.concept.primaryIngredients?.length
+            ? `Ingredients: ${verifiedPerformanceAuthority.concept.primaryIngredients.join(", ")}`
+            : "",
+        ].filter(Boolean).join(". ");
+        effectiveInput = input;
+        effectiveGenerationContext = [
+          "My Perfect Menu Performance selection. Preserve the signed dish and cuisine identity.",
+          `Signed concept: ${verifiedPerformanceAuthority.concept.title}`,
+          `Destination: ${verifiedPerformanceAuthority.destinationDate} · ${verifiedPerformanceAuthority.mealSlot}`,
+        ].join("\n");
+        mealType = verifiedPerformanceAuthority.mealSlot === "snacks"
+          ? "snack"
+          : verifiedPerformanceAuthority.mealSlot;
+        dietType = "performance";
+        builderMode = "hybrid";
       }
       let humanFoodContext: import("@shared/humanFoodContext").HumanFoodContext | null = null;
       let humanFoodExecutionState: import("./services/humanFoodContext/requestExecutionState").HumanFoodRequestExecutionState | undefined;
@@ -1525,6 +1569,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // effectiveDietType starts as the client-supplied value; may be overridden
       // to 'glp1' when the server detects the user is on GLP-1 medication.
       let effectiveDietType: typeof dietType = dietType;
+      if (verifiedPerformanceAuthority) {
+        effectiveDietType = "performance";
+        builderMode = "hybrid";
+      }
       if (!householdSubjectId && effectiveUserId) {
         try {
           const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
@@ -1562,6 +1610,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (err) {
           console.warn("[GLP-1] Could not resolve canonical context — falling back:", err);
         }
+      }
+      if (verifiedPerformanceAuthority) {
+        const authority = verifiedPerformanceAuthority.authority;
+        effectiveRemainingMacros = {
+          calories: authority.nutrition.remaining.calories,
+          protein: authority.nutrition.remaining.protein,
+          carbs: authority.nutrition.remaining.carbs,
+          fat: authority.nutrition.remaining.fat,
+        };
+        effectiveStarchContext = {
+          strategy: "flex",
+          dateISO: authority.dateISO,
+          starchMealsAllowed: authority.nutrition.remaining.starchMealsRemaining,
+          starchyCarbsRemaining: authority.nutrition.remaining.starchyCarbs,
+          gramsPerRemainingStarchMeal: authority.nutrition.starch.gramsPerRemainingMeal ?? undefined,
+          distributionStrategy: authority.nutrition.starch.distributionStrategy as any,
+          isZeroStarchDay: authority.nutrition.starch.isZeroStarchDay,
+        };
+        // The signed server authority, not the request body, governs the session.
+        performanceSessionContext = {
+          sessionType: authority.sessionType || "off",
+          sessionLabel: authority.sessionLabel || authority.sessionType || "Rest day",
+          reasoning: `Server-resolved Performance prescription for ${authority.dateISO} and ${authority.slot}.`,
+          starchyCarbs_g: authority.nutrition.targets.starchyCarbs,
+          fibrousCarbs_g: authority.nutrition.targets.fibrousCarbs,
+        };
       }
 
       let householdProtocolEnvelope: import("./services/protocolEnvelope").UserProtocolEnvelope | undefined;
@@ -1604,7 +1678,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         safetyAlreadyChecked: true,
         explicitOverride: explicitOverride || null,
         performanceSessionContext: performanceSessionContext || undefined,
-        generationContext: typeof req.body.generationContext === 'string' ? req.body.generationContext : undefined,
+        generationContext: typeof effectiveGenerationContext === 'string' ? effectiveGenerationContext : undefined,
         glp1Targets: serverGlp1Targets,
         // Server-authoritative clinical context from the budget resolver —
         // activates the clinical adaptation retry path in the generator for

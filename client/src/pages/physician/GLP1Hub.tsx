@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
 import {
@@ -18,6 +18,7 @@ import {
   Activity,
   Pill,
   Dumbbell,
+  Sparkles,
 } from "lucide-react";
 import { useGLP1Profile, useSaveGLP1Profile } from "@/hooks/useGLP1";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +37,11 @@ import { isClinicalOrAbove } from "@/lib/subscriptionCheck";
 export default function GLP1Hub() {
   const { t } = useTranslation();
   const [, setLocation] = useLocation();
+  const search = useSearch();
+  const returnTo = useMemo(() => {
+    const candidate = new URLSearchParams(search).get("returnTo");
+    return candidate?.startsWith("/foods-i-enjoy?") ? candidate : null;
+  }, [search]);
   const [noteOpen, setNoteOpen] = useState(false);
   const [shotTrackerOpen, setShotTrackerOpen] = useState(false);
   const { user } = useAuth();
@@ -136,11 +142,20 @@ export default function GLP1Hub() {
       limitCarbonation,
       limitAlcohol,
     };
-    saveMutation.mutate(sanitizedGuardrails);
-    toast({
-      title: t("glp1Hub.toastSavedTitle"),
-      description: t("glp1Hub.toastSavedDesc"),
-    });
+    try {
+      await saveMutation.mutate(sanitizedGuardrails);
+      toast({
+        title: t("glp1Hub.toastSavedTitle"),
+        description: t("glp1Hub.toastSavedDesc"),
+      });
+      if (returnTo) setLocation(returnTo);
+    } catch {
+      toast({
+        title: "Could not save GLP-1 settings",
+        description: "Your settings were not confirmed by the server. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -193,6 +208,19 @@ export default function GLP1Hub() {
             <p className="text-white/80 text-xs mt-0.5">{t("glp1Hub.launchBuilderSub")}</p>
           </div>
           <ChevronRight className="w-5 h-5 text-lime-400 flex-shrink-0" />
+        </button>
+        <button
+          onClick={() => setLocation("/foods-i-enjoy?builder=glp1")}
+          className="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-white"
+        >
+          <div className="flex items-center gap-3 text-left">
+            <Sparkles className="w-5 h-5 text-lime-400" />
+            <div>
+              <p className="font-bold text-sm">My Perfect Menu</p>
+              <p className="text-white/60 text-xs mt-0.5">Create ideas for your GLP-1 Builder</p>
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5 text-white/40 flex-shrink-0" />
         </button>
 
         {/* ── Training Nutrition Schedule ── */}
@@ -475,7 +503,11 @@ export default function GLP1Hub() {
             disabled={saveMutation.isPending}
             className="bg-lime-600 text-md font-bold text-white w-full rounded-xl mt-4"
           >
-            {saveMutation.isPending ? t("glp1Hub.saving") : t("glp1Hub.saveGuardrails")}
+            {saveMutation.isPending
+              ? t("glp1Hub.saving")
+              : returnTo
+                ? "Save and return to My Perfect Menu"
+                : t("glp1Hub.saveGuardrails")}
           </Button>
         </section>
 

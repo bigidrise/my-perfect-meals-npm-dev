@@ -57,6 +57,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { 
   getWeekStartISOInTZ, 
+  getWeekStartFromDate,
   getTodayISOSafe, 
   weekDatesInTZ, 
   nextWeekISO, 
@@ -191,8 +192,14 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
 
   // 🎯 BULLETPROOF BOARD LOADING
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
+  const destinationQuery = new URLSearchParams(window.location.search).get("destinationDate");
+  const initialDestinationDate = destinationQuery && /^\d{4}-\d{2}-\d{2}$/.test(destinationQuery)
+    ? destinationQuery
+    : null;
   const [weekStartISO, setWeekStartISO] =
-    React.useState<string>(getWeekStartISOInTZ("America/Chicago"));
+    React.useState<string>(initialDestinationDate
+      ? getWeekStartFromDate(initialDestinationDate, "America/Chicago")
+      : getWeekStartISOInTZ("America/Chicago"));
   const {
     board: hookBoard,
     loading: hookLoading,
@@ -298,7 +305,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
 
   // Day/Week planning state (moved up for starchContext dependency)
   const [planningMode, setPlanningMode] = React.useState<"day" | "week">("day");
-  const [activeDayISO, setActiveDayISO] = React.useState<string>("");
+  const [activeDayISO, setActiveDayISO] = React.useState<string>(initialDestinationDate ?? "");
 
   // Consumed starch totals for the active day — fed into the prescription hook
   // DailyNutritionState — the single server authority for macro targets, consumed, and remaining.

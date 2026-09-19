@@ -71,6 +71,7 @@ import { useTranslation } from "react-i18next";
 import InspirationCaptureModal from "@/components/InspirationCaptureModal";
 import MacroScanModal from "@/components/MacroScanModal";
 import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
+import { useMyPerfectMenuBuilder } from "@/hooks/useMyPerfectMenuBuilder";
 import { TodaysPrescriptionCard } from "@/components/dashboard/TodaysPrescriptionCard";
 import { WhatsNewCard } from "@/components/WhatsNewCard";
 import { TrialStatusCard } from "@/components/TrialStatusCard";
@@ -92,6 +93,7 @@ const todayMacros = { protein: 50, carbs: 150, fat: 70 };
 export default function DashboardNew() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const { data: effectiveMenuBuilder } = useMyPerfectMenuBuilder();
   const { toast } = useToast();
   const { t } = useTranslation("dashboard");
   const { requestUpgrade } = useUpgradeModal();
@@ -1576,7 +1578,17 @@ export default function DashboardNew() {
            className="mb-4"
         >
              <Card onClick={() => setLocation("/foods-i-enjoy")} className="group relative cursor-pointer overflow-hidden rounded-xl border border-violet-400/40 bg-gradient-to-r from-black via-violet-800/65 to-black backdrop-blur-lg transition-all hover:border-violet-300/70 hover:shadow-[0_0_28px_rgba(139,92,246,0.22)]" style={{ backgroundColor: "transparent" }} data-testid="card-foods-i-enjoy">
-               <div className="absolute right-3 top-3 rounded-full border border-amber-300/35 bg-amber-400/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-200">New</div>
+                <div
+                  aria-label="New"
+                  className="pointer-events-none absolute left-1/2 top-3 z-10 -translate-x-1/2 -rotate-6 rounded-sm border-2 border-red-600 bg-white px-3 py-1 text-sm font-black uppercase tracking-[0.16em] text-red-600 shadow-[3px_3px_0_rgba(220,38,38,0.9)]"
+                >
+                  New
+                </div>
+                {effectiveMenuBuilder?.builder.displayName && (
+                  <div className="absolute right-3 top-3 rounded-full border border-violet-300/35 bg-violet-400/15 px-2.5 py-1 text-[10px] font-black tracking-wide text-violet-100">
+                    Using your {effectiveMenuBuilder.builder.displayName}
+                  </div>
+                )}
                <CardContent className="p-5 pr-16">
                  <div className="flex items-center gap-4">
                    <div className="rounded-xl border border-violet-300/40 bg-violet-400/20 p-3"><Heart className="h-6 w-6 text-violet-200" /></div>

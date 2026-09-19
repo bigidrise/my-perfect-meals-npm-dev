@@ -12,6 +12,7 @@
  */
 
 import type { UserProtocolEnvelope } from "../protocolEnvelope";
+import { resolveMyPerfectMenuBuilder } from "../myPerfectMenu/builderResolver";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OUTPUT DTO
@@ -189,16 +190,6 @@ const DIET_LABEL_MAP: Record<string, string> = {
   mediterranean: "Mediterranean",
   "high-protein": "High Protein",
   "plant-based": "Plant-Based",
-};
-
-const BUILDER_LABEL_MAP: Record<string, string> = {
-  weekly:                  "Weekly Meal Planner",
-  diabetic:                "Diabetic Builder",
-  glp1:                    "GLP-1 Builder",
-  anti_inflammatory:       "Anti-Inflammatory Builder",
-  beach_body:              "Performance Nutrition Builder",
-  general_nutrition:       "General Nutrition Builder",
-  performance_competition: "Competition Builder",
 };
 
 const CUISINE_LABEL_MAP: Record<string, string> = {
@@ -697,8 +688,11 @@ export function buildNutritionSummary(
       ? { medicalConditions: healthItems, therapeuticInputs: therapeuticInputsForDrivers, liveMetrics: liveMetricsForDrivers }
       : null;
 
-  const builderSlug = envelope.selectedMealBuilder || extras.selectedMealBuilder || extras.activeBoard || null;
-  const mealBuilderLabel = builderSlug ? (BUILDER_LABEL_MAP[builderSlug] ?? null) : null;
+  const effectiveBuilder = resolveMyPerfectMenuBuilder({}, {
+    activeBoard: extras.activeBoard ?? undefined,
+    selectedMealBuilder: extras.selectedMealBuilder ?? envelope.selectedMealBuilder ?? undefined,
+  });
+  const mealBuilderLabel = effectiveBuilder.displayName;
 
   return {
     activeInputs: {

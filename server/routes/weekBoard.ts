@@ -12,6 +12,11 @@ import { enforceCarbs } from '../utils/carbClassifier';
 import { rerollCanonicalWeeklyMeal, regenerateCanonicalWeeklyDay, WeeklyMealGenerationError } from '../services/canonicalWeeklyMealPlanning';
 import { requireAuth } from "../middleware/requireAuth";
 import { getAuthUserId } from "../utils/getAuthUserId";
+import { householdProfiles, users } from "@shared/schema";
+import {
+  isMyPerfectMenuBuilderKey,
+  MY_PERFECT_MENU_BUILDERS,
+} from "@shared/builderNamespaces";
 
 // Type definition for WeekBoard
 type WeekBoard = {
@@ -20,6 +25,145 @@ type WeekBoard = {
   lists: { breakfast: any[]; lunch: any[]; dinner: any[]; snacks: any[] };
   meta: { createdAt: string; lastUpdatedAt: string };
 };
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export class InaccessibleHouseholdProfileError extends Error {}
+
+/**
+ * Household boards are still owned by the authenticated user in week_boards;
+ * the profile is represented only by a server-derived builderType namespace.
+ */
+export function deriveBoardScope(
+  actorUserId: string,
+  requestedId: unknown,
+  actorActiveHouseholdProfileId?: string | null,
+  profileOwnerUserId?: string | null,
+  builderNamespace?: string,
+) {
+  const profileId = typeof requestedId === "string" && requestedId.trim() ? requestedId.trim() : undefined;
+  if (!profileId) {
+    const ownerNamespace = builderNamespace ?? "";
+    return { builderType: ownerNamespace, boardNamespace: ownerNamespace || "user", subjectId: actorUserId };
+  }
+  if (!UUID_RE.test(profileId)) throw new InaccessibleHouseholdProfileError();
+  if (actorActiveHouseholdProfileId !== profileId || profileOwnerUserId !== actorUserId) {
+    throw new InaccessibleHouseholdProfileError();
+  }
+  const householdNamespace = builderNamespace
+    ? `household:${profileId}:${builderNamespace}`
+    : `household:${profileId}`;
+  return { builderType: householdNamespace, boardNamespace: householdNamespace, subjectId: profileId };
+}
+
+function namespaceForMpmBuilderKey(value: string): string | undefined {
+  const normalized = value.trim();
+  return isMyPerfectMenuBuilderKey(normalized)
+    ? MY_PERFECT_MENU_BUILDERS[normalized].namespace
+    : undefined;
+}
+
+function legacyBoardNamespace(value: string): string | undefined {
+  const normalized = value.trim();
+  return Object.values(MY_PERFECT_MENU_BUILDERS).some(
+    (builder) => builder.namespace === normalized,
+  ) ? normalized : undefined;
+}
+
+class InvalidBoardScopeError extends Error {}
+
+/**
+ * Resolve the subject and builder dimensions together. Household MPM boards
+ * use a deliberately small allowlist; arbitrary client namespaces must never
+ * become household repository keys.
+ */
+function requestedScopeValues(req: Request) {
+  const householdProfileId = requestValue(req, "householdProfileId");
+  const mpmBuilderKey = requestValue(req, "mpmBuilderKey");
+  const bt = requestValue(req, "bt");
+  const ns = requestValue(req, "ns");
+  if (bt && ns && bt !== ns) throw new InvalidBoardScopeError("Conflicting bt and ns");
+  const legacyBuilder = bt ?? ns;
+  if (mpmBuilderKey && legacyBuilder && mpmBuilderKey !== legacyBuilder &&
+      namespaceForMpmBuilderKey(mpmBuilderKey) !== legacyBoardNamespace(legacyBuilder)) {
+    throw new InvalidBoardScopeError("Conflicting mpmBuilderKey and bt/ns");
+  }
+  if (householdProfileId && legacyBuilder && !mpmBuilderKey) {
+    throw new InvalidBoardScopeError("householdProfileId cannot be combined with bt/ns");
+  }
+  if (householdProfileId) {
+    // No builder key is the pre-MPM household contract; retain its original
+    // household:<profile> repository key. MPM callers opt into a canonical
+    // builder explicitly (or send General).
+    if (!mpmBuilderKey && !legacyBuilder) {
+      return { householdProfileId, builderNamespace: undefined };
+    }
+    const canonical = namespaceForMpmBuilderKey(mpmBuilderKey ?? "");
+    if (!canonical) throw new InvalidBoardScopeError("Invalid mpmBuilderKey");
+    return { householdProfileId, builderNamespace: canonical };
+  }
+  if (mpmBuilderKey) {
+    const canonical = namespaceForMpmBuilderKey(mpmBuilderKey);
+    if (!canonical) throw new InvalidBoardScopeError("Invalid mpmBuilderKey");
+    return { householdProfileId, builderNamespace: canonical };
+  }
+  return { householdProfileId, builderNamespace: legacyBuilder ?? "" };
+}
+
+async function resolveBoardScope(req: Request, actorUserId: string, requestedId?: unknown, builderNamespace?: string) {
+  const profileId = typeof requestedId === "string" && requestedId.trim() ? requestedId.trim() : undefined;
+  if (!profileId) {
+    const builderType = builderNamespace ?? "";
+    return { builderType, boardNamespace: builderType || "user", subjectId: actorUserId };
+  }
+  const [actor] = await db.select({ activeHouseholdProfileId: users.activeHouseholdProfileId })
+    .from(users).where(eq(users.id, actorUserId)).limit(1);
+  if (!actor) throw new InaccessibleHouseholdProfileError();
+  const [profile] = await db.select({ id: householdProfiles.id })
+    .from(householdProfiles)
+    .where(and(eq(householdProfiles.id, profileId), eq(householdProfiles.ownerUserId, actorUserId)))
+    .limit(1);
+  return deriveBoardScope(actorUserId, profileId, actor.activeHouseholdProfileId, profile?.id, builderNamespace);
+}
+
+function requestValue(req: Request, key: string): string | undefined {
+  const query = req.query[key];
+  const body = (req.body as any)?.[key];
+  const q = typeof query === "string" && query ? query : undefined;
+  const b = typeof body === "string" && body ? body : undefined;
+  if (q && b && q !== b) throw new Error(`Mismatched ${key}`);
+  return b ?? q;
+}
+
+export function sanitizeDietClassification(value: any): any | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const out: any = {};
+  if (value.kosherCategory === "meat" || value.kosherCategory === "dairy" || value.kosherCategory === "pareve") {
+    out.kosherCategory = value.kosherCategory;
+  }
+  for (const key of ["halalFlags", "veganFlags"]) {
+    const flags = value[key];
+    if (!flags || typeof flags !== "object" || Array.isArray(flags)) continue;
+    if (key === "halalFlags" && typeof flags.alcoholFree === "boolean" && typeof flags.porkFree === "boolean") {
+      out.halalFlags = { alcoholFree: flags.alcoholFree, porkFree: flags.porkFree };
+    }
+    if (key === "veganFlags" && typeof flags.plantBased === "boolean") {
+      out.veganFlags = { plantBased: flags.plantBased };
+    }
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
+export function resolveRequestedBoardNamespace(
+  householdProfileId: string | undefined,
+  requestedBuilder: string,
+  householdNamespace: string,
+): string {
+  if (householdProfileId && requestedBuilder) {
+    throw new Error("householdProfileId cannot be combined with bt/ns");
+  }
+  return householdProfileId ? householdNamespace : requestedBuilder;
+}
 
 function hasUnsafeGeneratedMeal(payload: any): boolean {
   const visit = (value: any): boolean => {
@@ -90,6 +234,7 @@ function normalizeMeal(meal: any, idx: number = 0) {
   m.cookingTime = m?.cookingTime ? String(m.cookingTime) : undefined;
   m.difficulty = m?.difficulty ? String(m.difficulty) : undefined;
   m.medicalBadges = Array.isArray(m?.medicalBadges) ? m.medicalBadges : undefined;
+  m.dietClassification = sanitizeDietClassification(m?.dietClassification);
 
   return m;
 }
@@ -141,6 +286,7 @@ function normalizeBoard(raw: any): any {
       cookingTime: m?.cookingTime ? String(m.cookingTime) : undefined,
       difficulty: m?.difficulty ? String(m.difficulty) : undefined,
       medicalBadges: Array.isArray(m?.medicalBadges) ? m.medicalBadges : undefined,
+      dietClassification: sanitizeDietClassification(m?.dietClassification),
 
       // Diabetic Meal Memory — BGL context stamped at meal birth, must survive round-trip
       diabeticMemory: (m?.diabeticMemory && typeof m.diabeticMemory === 'object') ? m.diabeticMemory : undefined,
@@ -563,10 +709,12 @@ export default function weekBoardRoutes(app: Express) {
   app.get("/api/weekly-board", async (req: Request, res: Response) => {
     const weekParam = req.query.week as string | undefined;
     const weekStartISO = weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
-    const builderType = (req.query.bt as string | undefined) || (req.query.ns as string | undefined) || '';
     
     try {
       const userId = await resolveUserId(req);
+      const requested = requestedScopeValues(req);
+      const scope = await resolveBoardScope(req, userId, requested.householdProfileId, requested.builderNamespace);
+      const builderType = scope.builderType;
       let board = await getWeekBoard(userId, weekStartISO, builderType);
       let source = "db";
       
@@ -579,12 +727,16 @@ export default function weekBoardRoutes(app: Express) {
       return res.json({ 
         weekStartISO, 
         week: normalizeBoard(board),
-        source 
+        source,
+        boardNamespace: scope.boardNamespace,
+        subjectId: scope.subjectId,
       });
     } catch (error) {
       if (error instanceof AuthenticationRequiredError) {
         return res.status(401).json({ error: 'Authentication required' });
       }
+      if (error instanceof InaccessibleHouseholdProfileError) return res.status(404).json({ error: "Weekly board not found" });
+      if (error instanceof Error && (error.message.startsWith("Mismatched ") || error instanceof InvalidBoardScopeError)) return res.status(400).json({ error: error.message });
       throw error;
     }
   });
@@ -600,10 +752,12 @@ export default function weekBoardRoutes(app: Express) {
   app.put("/api/weekly-board", requireAuth, async (req: Request, res: Response) => {
     const weekParam = req.query.week as string | undefined;
     const weekStartISO = weekParam && isValidISODate(weekParam) ? weekParam : getWeekStartISO();
-    const builderType = (req.query.bt as string | undefined) || (req.query.ns as string | undefined) || '';
     
     try {
       const userId = getAuthUserId(req);
+      const requested = requestedScopeValues(req);
+      const scope = await resolveBoardScope(req, userId, requested.householdProfileId, requested.builderNamespace);
+      const builderType = scope.builderType;
       if (hasUnsafeGeneratedMeal(req.body?.week ?? req.body)) {
         return res.status(422).json({ error: "GENERATED_MEAL_VALIDATION_REQUIRED" });
       }
@@ -654,6 +808,8 @@ export default function weekBoardRoutes(app: Express) {
         weekStartISO, 
         week: normalizeBoard(saved),
         source: "db",
+        boardNamespace: scope.boardNamespace,
+        subjectId: scope.subjectId,
         imagesProcessed,
         imagesPending
       });
@@ -661,6 +817,8 @@ export default function weekBoardRoutes(app: Express) {
       if (error instanceof AuthenticationRequiredError) {
         return res.status(401).json({ error: 'Authentication required' });
       }
+      if (error instanceof InaccessibleHouseholdProfileError) return res.status(404).json({ error: "Weekly board not found" });
+      if (error instanceof Error && (error.message.startsWith("Mismatched ") || error instanceof InvalidBoardScopeError)) return res.status(400).json({ error: error.message });
       throw error;
     }
   });
@@ -811,8 +969,9 @@ export default function weekBoardRoutes(app: Express) {
     try {
       const { dateISO, slot, meal } = req.body;
 
-      // Resolve builder type — same normalization as GET /api/weekly-board and PUT /api/weekly-board
-      const builderType: string = (req.body.bt as string) || (req.query.bt as string) || '';
+      // Resolve the same server-derived namespace as GET/PUT. Household IDs
+      // never become repository keys directly and cannot be mixed with bt/ns.
+      const requested = requestedScopeValues(req);
 
       // Validate inputs
       if (!dateISO || !isValidISODate(dateISO)) {
@@ -831,6 +990,8 @@ export default function weekBoardRoutes(app: Express) {
       // Determine the week this date belongs to
       const mondayISO = toMondayISO(dateISO);
       const userId = await resolveUserId(req);
+      const scope = await resolveBoardScope(req, userId, requested.householdProfileId, requested.builderNamespace);
+      const builderType = scope.builderType;
 
       // Get or create the week board — scoped to the correct builder namespace
       let board = await getWeekBoard(userId, mondayISO, builderType);
@@ -889,6 +1050,7 @@ export default function weekBoardRoutes(app: Express) {
         medicalBadges: meal.medicalBadges || [],
         ingredients: meal.ingredients || [],
         instructions: meal.instructions || [],
+        dietClassification: sanitizeDietClassification(meal.dietClassification),
       };
 
       // Derive starchyCarbs/fibrousCarbs from ingredients when the meal arrives
@@ -938,12 +1100,16 @@ export default function weekBoardRoutes(app: Express) {
         weekStartISO: mondayISO,
         dateISO,
         slot,
+        boardNamespace: scope.boardNamespace,
+        subjectId: scope.subjectId,
         updatedDay: board.days[dateISO],
       });
     } catch (error) {
       if (error instanceof AuthenticationRequiredError) {
         return res.status(401).json({ error: 'Authentication required' });
       }
+      if (error instanceof InaccessibleHouseholdProfileError) return res.status(404).json({ error: "Weekly board not found" });
+      if (error instanceof Error && (error.message.startsWith("Mismatched ") || error instanceof InvalidBoardScopeError)) return res.status(400).json({ error: error.message });
       console.error("❌ Error adding meal to board:", error);
       return res.status(500).json({ error: "Failed to add meal to board" });
     }

@@ -24,3 +24,88 @@ export const BUILDER_NS = {
 } as const;
 
 export type BuilderNamespace = typeof BUILDER_NS[keyof typeof BUILDER_NS];
+
+/** The builders which are allowed to author My Perfect Menu concepts. */
+export const MY_PERFECT_MENU_BUILDERS = {
+  general_nutrition: {
+    key: "general_nutrition",
+    namespace: BUILDER_NS.GENERAL_NUTRITION,
+    route: "/general-nutrition-builder/build",
+    dietType: undefined,
+    builderMode: "lifestyle",
+  },
+  diabetic: {
+    key: "diabetic",
+    namespace: BUILDER_NS.DIABETIC,
+    route: "/diabetic-menu-builder",
+    dietType: "diabetic",
+    builderMode: "targeted",
+  },
+  glp1: {
+    key: "glp1",
+    namespace: BUILDER_NS.GLP1,
+    route: "/glp1-meal-builder",
+    dietType: "glp1",
+    builderMode: "targeted",
+  },
+  anti_inflammatory: {
+    key: "anti_inflammatory",
+    namespace: BUILDER_NS.ANTI_INFLAMMATORY,
+    route: "/anti-inflammatory-menu-builder",
+    dietType: "anti-inflammatory",
+    builderMode: "targeted",
+  },
+  performance_competition: {
+    key: "performance_competition",
+    namespace: BUILDER_NS.PERFORMANCE_COMPETITION,
+    route: "/performance-competition-builder",
+    dietType: "performance",
+    builderMode: "hybrid",
+  },
+} as const;
+
+export type MyPerfectMenuBuilderKey = keyof typeof MY_PERFECT_MENU_BUILDERS;
+export type MyPerfectMenuBuilderContext = {
+  key: MyPerfectMenuBuilderKey;
+  namespace: string;
+  route: string;
+  displayName: string;
+  dietType?: "diabetic" | "glp1" | "anti-inflammatory" | "performance";
+  builderMode: "lifestyle" | "targeted" | "hybrid";
+  generationMode: "builder";
+  source: "explicit" | "assigned" | "default";
+};
+
+export function isMyPerfectMenuBuilderKey(value: unknown): value is MyPerfectMenuBuilderKey {
+  return typeof value === "string" && Object.prototype.hasOwnProperty.call(MY_PERFECT_MENU_BUILDERS, value);
+}
+
+export function builderContextFor(key: MyPerfectMenuBuilderKey, source: MyPerfectMenuBuilderContext["source"]): MyPerfectMenuBuilderContext {
+  const entry = MY_PERFECT_MENU_BUILDERS[key];
+  return { ...entry, displayName: builderDisplayName(key) ?? key, generationMode: "builder", source };
+}
+
+export function myPerfectMenuBuilderKeyForNamespace(
+  namespace: string | undefined,
+): MyPerfectMenuBuilderKey | undefined {
+  return MY_PERFECT_MENU_BUILDER_KEYS.find(
+    (key) => MY_PERFECT_MENU_BUILDERS[key].namespace === namespace,
+  );
+}
+
+export const MY_PERFECT_MENU_BUILDER_KEYS = Object.keys(MY_PERFECT_MENU_BUILDERS) as MyPerfectMenuBuilderKey[];
+
+/** Customer-facing names for server-resolved Builder identities. */
+export const BUILDER_DISPLAY_NAMES: Record<string, string> = {
+  weekly: "Weekly Meal Planner",
+  general_nutrition: "General Nutrition Builder",
+  diabetic: "Diabetic Builder",
+  glp1: "GLP-1 Builder",
+  anti_inflammatory: "Anti-Inflammatory Builder",
+  beach_body: "Performance Nutrition Builder",
+  performance_competition: "Performance Nutrition Builder",
+};
+
+export function builderDisplayName(key: string | null | undefined): string | null {
+  return key ? BUILDER_DISPLAY_NAMES[key] ?? null : null;
+}
