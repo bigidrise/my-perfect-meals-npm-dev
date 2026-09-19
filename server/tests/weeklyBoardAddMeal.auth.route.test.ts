@@ -15,7 +15,7 @@ jest.mock("../middleware/requireAuth", () => ({
 }));
 
 jest.mock("../data/weekBoardsRepo", () => ({
-  resolveUserId: jest.fn(async (req: any) => req.authUser.id),
+  resolveUserId: jest.fn(async () => auth.user!.id),
   getWeekBoard: jest.fn(async (userId: string, week: string, builder: string) =>
     boards.get(`${userId}:${week}:${builder}`) ?? null
   ),
@@ -61,6 +61,13 @@ const payload = {
   },
 };
 
+const builderMatrix = [
+  ["general_nutrition", "generalNutrition"],
+  ["diabetic", "diabetic"],
+  ["glp1", "glp1"],
+  ["anti_inflammatory", "antiInflammatory"],
+] as const;
+
 beforeEach(() => {
   auth.user = null;
   boards.clear();
@@ -101,4 +108,49 @@ describe("weekly board add-meal authorization", () => {
     expect(ownerABoard.days["2026-02-18"].dinner).toHaveLength(1);
     expect(ownerBBoard.days["2026-02-18"].dinner).toHaveLength(1);
   });
+
+  it.each(builderMatrix)(
+    "reads canonical Builder key %s from board namespace %s",
+    async (builderKey, namespace) => {
+      auth.user = { id: "owner-a" };
+      const res = await request(await buildApp())
+        .get("/api/weekly-board")
+        .query({ week: "2026-02-16", mpmBuilderKey: builderKey });
+
+      expect(res.status).toBe(200);
+      expect(res.body.boardNamespace).toBe(namespace);
+      expect([...boards.keys()]).toContain(`owner-a:2026-02-16:${namespace}`);
+    },
+  );
+
+  it.each(builderMatrix)(
+    "persists canonical Builder key %s into board namespace %s",
+    async (builderKey, namespace) => {
+      auth.user = { id: "owner-a" };
+      const res = await request(await buildApp())
+        .post("/api/weekly-board/add-meal")
+        .send({ ...payload, mpmBuilderKey: builderKey });
+
+      expect(res.status).toBe(200);
+      expect(res.body.boardNamespace).toBe(namespace);
+      expect([...boards.keys()]).toContain(`owner-a:2026-02-16:${namespace}`);
+    },
+  );
+
+  it.each(["unknown_builder", "generalNutrition", "antiInflammatory"])(
+    "rejects unsupported or storage-namespace mpmBuilderKey %s",
+    async (mpmBuilderKey) => {
+      auth.user = { id: "owner-a" };
+      const read = await request(await buildApp())
+        .get("/api/weekly-board")
+        .query({ week: "2026-02-16", mpmBuilderKey });
+      const write = await request(await buildApp())
+        .post("/api/weekly-board/add-meal")
+        .send({ ...payload, mpmBuilderKey });
+
+      expect(read.status).toBe(400);
+      expect(write.status).toBe(400);
+      expect(boards.size).toBe(0);
+    },
+  );
 });

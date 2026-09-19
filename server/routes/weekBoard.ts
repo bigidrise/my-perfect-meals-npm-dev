@@ -13,6 +13,10 @@ import { rerollCanonicalWeeklyMeal, regenerateCanonicalWeeklyDay, WeeklyMealGene
 import { requireAuth } from "../middleware/requireAuth";
 import { getAuthUserId } from "../utils/getAuthUserId";
 import { householdProfiles, users } from "@shared/schema";
+import {
+  isMyPerfectMenuBuilderKey,
+  MY_PERFECT_MENU_BUILDERS,
+} from "@shared/builderNamespaces";
 
 // Type definition for WeekBoard
 type WeekBoard = {
@@ -52,12 +56,18 @@ export function deriveBoardScope(
   return { builderType: householdNamespace, boardNamespace: householdNamespace, subjectId: profileId };
 }
 
-const MPM_BUILDER_NAMESPACES = new Set(["generalNutrition", "diabetic", "glp1", "antiInflammatory"]);
-
-function canonicalMpmBuilder(value: string): string | undefined {
+function namespaceForMpmBuilderKey(value: string): string | undefined {
   const normalized = value.trim();
-  if (normalized.toLowerCase() === "general") return "generalNutrition";
-  return MPM_BUILDER_NAMESPACES.has(normalized) ? normalized : undefined;
+  return isMyPerfectMenuBuilderKey(normalized)
+    ? MY_PERFECT_MENU_BUILDERS[normalized].namespace
+    : undefined;
+}
+
+function legacyBoardNamespace(value: string): string | undefined {
+  const normalized = value.trim();
+  return Object.values(MY_PERFECT_MENU_BUILDERS).some(
+    (builder) => builder.namespace === normalized,
+  ) ? normalized : undefined;
 }
 
 class InvalidBoardScopeError extends Error {}
@@ -75,7 +85,7 @@ function requestedScopeValues(req: Request) {
   if (bt && ns && bt !== ns) throw new InvalidBoardScopeError("Conflicting bt and ns");
   const legacyBuilder = bt ?? ns;
   if (mpmBuilderKey && legacyBuilder && mpmBuilderKey !== legacyBuilder &&
-      canonicalMpmBuilder(mpmBuilderKey) !== canonicalMpmBuilder(legacyBuilder)) {
+      namespaceForMpmBuilderKey(mpmBuilderKey) !== legacyBoardNamespace(legacyBuilder)) {
     throw new InvalidBoardScopeError("Conflicting mpmBuilderKey and bt/ns");
   }
   if (householdProfileId && legacyBuilder && !mpmBuilderKey) {
@@ -88,12 +98,12 @@ function requestedScopeValues(req: Request) {
     if (!mpmBuilderKey && !legacyBuilder) {
       return { householdProfileId, builderNamespace: undefined };
     }
-    const canonical = canonicalMpmBuilder(mpmBuilderKey ?? legacyBuilder ?? "General");
+    const canonical = namespaceForMpmBuilderKey(mpmBuilderKey ?? "");
     if (!canonical) throw new InvalidBoardScopeError("Invalid mpmBuilderKey");
     return { householdProfileId, builderNamespace: canonical };
   }
   if (mpmBuilderKey) {
-    const canonical = canonicalMpmBuilder(mpmBuilderKey);
+    const canonical = namespaceForMpmBuilderKey(mpmBuilderKey);
     if (!canonical) throw new InvalidBoardScopeError("Invalid mpmBuilderKey");
     return { householdProfileId, builderNamespace: canonical };
   }
