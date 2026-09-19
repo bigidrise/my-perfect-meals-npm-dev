@@ -205,7 +205,10 @@ router.delete("/concepts", requireAuth, async (req, res) => {
     delete categories[parsed.data.ideaType];
     return { ...current, categories, updatedAt: new Date().toISOString() };
   });
-  return res.json({ categories: updated.categories });
+  return res.json({
+    categories: updated.categories,
+    subject: { id: target.id, label: target.label },
+  });
 });
 
 router.post("/concepts", requireAuth, async (req, res) => {
