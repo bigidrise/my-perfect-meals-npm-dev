@@ -20,8 +20,11 @@
  */
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { BUILD_VERSION } from "@/buildVersion";
-import { isManifestVersionNewer } from "@/lib/releaseVersion";
+import { BUILD_RELEASE_ID, BUILD_VERSION } from "@/buildVersion";
+import {
+  isDifferentCustomerRelease,
+  parseCustomerReleaseManifest,
+} from "@/lib/releaseVersion";
 
 const CHECK_INTERVAL_MS = 5 * 60 * 1000;
 
@@ -52,8 +55,6 @@ const UpdateContext = createContext<UpdateState>({
 });
 
 export function UpdateProvider({ children }: { children: ReactNode }) {
-  // `version` is still fetched to detect that a new deployment exists at all.
-  const [latestVersion, setLatestVersion] = useState<string | null>(null);
   // `releaseId` is what the banner and dismiss key are keyed off.
   const [latestReleaseId, setLatestReleaseId] = useState<string>("");
   const [releaseNotes, setReleaseNotes] = useState<string[]>([]);
@@ -62,24 +63,47 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     const check = async () => {
       try {
         const res = await fetch("/release-manifest.json?ts=" + Date.now(), { cache: "no-store" });
-        if (!res.ok) return;
+        if (!res.ok) {
+          if (import.meta.env.DEV) {
+            console.warn(`[UpdateContext] Release manifest request failed with status ${res.status}.`);
+          }
+          return;
+        }
         const data = await res.json();
-        if (data.version) setLatestVersion(data.version);
-        if (data.releaseId) setLatestReleaseId(data.releaseId);
-        if (Array.isArray(data.notes)) setReleaseNotes(data.notes);
-      } catch {}
+        const release = parseCustomerReleaseManifest(data);
+        if (!release) {
+          if (import.meta.env.DEV) {
+            console.warn("[UpdateContext] Release manifest is missing a valid customer release record.");
+          }
+          return;
+        }
+        setLatestReleaseId(release.releaseId);
+        setReleaseNotes(release.notes);
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.warn(
+            "[UpdateContext] Unable to check the release manifest.",
+            error instanceof Error ? error.message : "Unknown error",
+          );
+        }
+      }
     };
 
     check();
     const interval = setInterval(check, CHECK_INTERVAL_MS);
-    return () => clearInterval(interval);
+    const checkOnForeground = () => {
+      if (document.visibilityState === "visible") void check();
+    };
+    document.addEventListener("visibilitychange", checkOnForeground);
+    window.addEventListener("focus", check);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", checkOnForeground);
+      window.removeEventListener("focus", check);
+    };
   }, []);
 
-  // Only a demonstrably newer timestamp version is an update. Older, equal,
-  // missing, or malformed manifests fail closed and never trigger a reload loop.
-  const hasUpdate =
-    latestReleaseId.length > 0 &&
-    isManifestVersionNewer(BUILD_VERSION, latestVersion);
+  const hasUpdate = isDifferentCustomerRelease(BUILD_RELEASE_ID, latestReleaseId);
 
   return (
     <UpdateContext.Provider

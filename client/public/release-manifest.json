@@ -1,15 +1,14 @@
 {
-  "version": "1789658774754",
-  "commit": "efc7ca1c",
-  "releasedAt": "2026-08-15T22:41:31.430Z",
-  "notes": [
-    "Authorized physicians can now review permitted patient-entered blood-glucose history from the Client Folder.",
-    "Saved Groceries now provides a faster way to find and add commonly purchased products to the shopping list.",
-    "Shopping-list additions now prevent duplicate saved-grocery entries."
-  ],
-  "releaseId": "2026-09-03-1",
-  "gitSha": "727e78fd",
-  "buildTimestamp": "2026-09-17T15:26:14.763Z",
+  "version": "1789795725797",
+  "gitSha": "96afbb934",
+  "buildTimestamp": "2026-09-19T05:28:45.838Z",
   "environment": "production",
-  "storageBucketId": "replit-objstore-3ccef2ce-f691-43ed-bb6e-fd72e925a491"
+  "storageBucketId": "replit-objstore-2a68d585-4c50-4c2e-a7ff-a9973358bc5b",
+  "releaseId": "2026-09-19-1",
+  "releasedAt": "2026-09-19T05:27:45.639Z",
+  "notes": [
+    "New: My Perfect Menu — Get three personalized ideas for breakfast, lunch, dinner, or a snack.",
+    "More variety — Try 3 More explores a broader range of personalized meal ideas.",
+    "Easier meal planning — Choose an idea, pick when you want it, and My Perfect Meals creates it and adds it to your plan."
+  ]
 }

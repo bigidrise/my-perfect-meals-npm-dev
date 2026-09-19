@@ -79,14 +79,16 @@ if (prevId.startsWith(today + "-")) {
 }
 
 const releaseId = `${today}-${suffix}`;
+const releasedAt = new Date().toISOString();
 
 // ── Write ──────────────────────────────────────────────────────────────────
-const updated = { ...existing, releaseId, notes };
+const updated = { ...existing, releaseId, releasedAt, notes };
 fs.writeFileSync(manifestPath, JSON.stringify(updated, null, 2) + "\n");
 
 console.log("");
 console.log("✅  cut-release: new customer release created.");
 console.log("    Release ID  :", releaseId);
+console.log("    Released at :", releasedAt);
 console.log("    Notes       :", notes.length, "item(s)");
 notes.forEach((n, i) => console.log(`      ${i + 1}. ${n}`));
 console.log("");

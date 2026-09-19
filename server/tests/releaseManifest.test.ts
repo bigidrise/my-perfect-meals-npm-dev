@@ -8,10 +8,15 @@
  *   - An empty notes array never produces a banner (logic gate)
  */
 
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import { readFileSync, writeFileSync, mkdirSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
+import {
+  isDifferentCustomerRelease,
+  parseCustomerReleaseManifest,
+  releaseDismissKey,
+} from "../../client/src/lib/releaseVersion";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -55,7 +60,12 @@ function runCutRelease(manifestPath: string, notes: string[]): void {
   }
 
   const releaseId = `${today}-${suffix}`;
-  const updated = { ...existing, releaseId, notes: notes.map((n) => n.trim()).filter(Boolean) };
+  const updated = {
+    ...existing,
+    releaseId,
+    releasedAt: new Date().toISOString(),
+    notes: notes.map((n) => n.trim()).filter(Boolean),
+  };
   writeFileSync(manifestPath, JSON.stringify(updated, null, 2) + "\n");
 }
 
@@ -119,10 +129,16 @@ describe("cut-release.js logic", () => {
 
     runCutRelease(path, ["New grocery coach feature", "Diet override fix"]);
 
-    const result = read() as { releaseId: string; notes: string[]; version: string };
+    const result = read() as {
+      releaseId: string;
+      releasedAt: string;
+      notes: string[];
+      version: string;
+    };
     expect(result.notes).toHaveLength(2);
     expect(result.notes[0]).toBe("New grocery coach feature");
     expect(result.releaseId).toMatch(/^\d{4}-\d{2}-\d{2}-\d+$/);
+    expect(Number.isNaN(Date.parse(result.releasedAt))).toBe(false);
     // version is preserved
     expect(result.version).toBe("999");
   });
@@ -177,6 +193,98 @@ describe("dismiss-key stability", () => {
     const key1 = `mpm_update_dismissed_2026-08-17-1`;
     const key2 = `mpm_update_dismissed_2026-08-17-2`;
     expect(key1).not.toBe(key2);
+  });
+});
+
+describe("customer release comparison", () => {
+  test("same release ID plus a newer technical build is not a new announcement", () => {
+    expect(isDifferentCustomerRelease("2026-09-19-1", "2026-09-19-1")).toBe(false);
+  });
+
+  test("different release ID is a new announcement", () => {
+    expect(isDifferentCustomerRelease("2026-09-03-1", "2026-09-19-1")).toBe(true);
+  });
+
+  test("old dismissal cannot suppress a new release", () => {
+    expect(releaseDismissKey("2026-09-03-1")).not.toBe(releaseDismissKey("2026-09-19-1"));
+  });
+
+  test("malformed customer release records fail closed", () => {
+    expect(parseCustomerReleaseManifest(null)).toBeNull();
+    expect(parseCustomerReleaseManifest({
+      releaseId: "2026-09-19-1",
+      releasedAt: "not-a-date",
+      notes: ["A valid-looking note"],
+    })).toBeNull();
+    expect(parseCustomerReleaseManifest({
+      releaseId: "2026-09-19-1",
+      releasedAt: new Date().toISOString(),
+      notes: [],
+    })).toBeNull();
+  });
+});
+
+describe("production manifest parity gate", () => {
+  const coherent = {
+    version: "123",
+    gitSha: "abc123",
+    buildTimestamp: "2026-09-19T12:00:00.000Z",
+    environment: "production",
+    releaseId: "2026-09-19-1",
+    releasedAt: "2026-09-19T11:00:00.000Z",
+    notes: ["New: My Perfect Menu"],
+  };
+
+  function verify(publicManifest: object, distManifest: object): void {
+    const publicFile = tmpManifest(publicManifest).path;
+    const distFile = tmpManifest(distManifest).path;
+    execFileSync("node", ["scripts/verify-release-manifest.js"], {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        RELEASE_PUBLIC_MANIFEST_PATH: publicFile,
+        RELEASE_DIST_MANIFEST_PATH: distFile,
+      },
+      stdio: "pipe",
+    });
+  }
+
+  test("accepts matching public and production release metadata", () => {
+    expect(() => verify(coherent, coherent)).not.toThrow();
+  });
+
+  test("rejects a stale production customer release", () => {
+    expect(() => verify(coherent, {
+      ...coherent,
+      releaseId: "2026-09-03-1",
+      releasedAt: "2026-09-03T11:00:00.000Z",
+      notes: ["Old release"],
+    })).toThrow();
+  });
+
+  test("rejects stale production build identity", () => {
+    expect(() => verify(coherent, { ...coherent, version: "122" })).toThrow();
+  });
+});
+
+describe("foreground detection and authoritative banner", () => {
+  const contextSource = readFileSync(
+    join(process.cwd(), "client/src/contexts/UpdateContext.tsx"),
+    "utf8",
+  );
+
+  test("rechecks when the app returns to the foreground", () => {
+    expect(contextSource).toContain('document.addEventListener("visibilitychange", checkOnForeground)');
+    expect(contextSource).toContain('window.addEventListener("focus", check)');
+  });
+
+  test("the obsolete environment-variable banner is removed", () => {
+    expect(() =>
+      readFileSync(
+        join(process.cwd(), "client/src/components/system/UpdateBanner.tsx"),
+        "utf8",
+      ),
+    ).toThrow();
   });
 });
 

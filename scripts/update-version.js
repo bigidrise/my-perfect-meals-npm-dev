@@ -49,11 +49,40 @@ try {
   // No manifest yet — start from scratch; cut-release.js will add releaseId + notes.
 }
 
-// Merge: version + release identity fields change; releaseId/notes are owned by cut-release.js.
-const updated = { ...existing, version, gitSha, buildTimestamp, environment, storageBucketId };
+const releaseId = typeof existing.releaseId === "string" ? existing.releaseId.trim() : "";
+const releasedAt = typeof existing.releasedAt === "string" ? existing.releasedAt : "";
+const notes = Array.isArray(existing.notes)
+  ? existing.notes.filter((note) => typeof note === "string" && note.trim()).map((note) => note.trim())
+  : [];
+const hasAnyReleaseMetadata = Boolean(releaseId || releasedAt || notes.length);
+const hasValidReleaseMetadata =
+  Boolean(releaseId && releasedAt && !Number.isNaN(Date.parse(releasedAt)) && notes.length);
+if (hasAnyReleaseMetadata && !hasValidReleaseMetadata) {
+  throw new Error(
+    "release-manifest.json contains a partial customer release. Run cut-release.js with valid notes.",
+  );
+}
+
+// Normalize the manifest so obsolete aliases cannot conflict with the current build/release record.
+const updated = {
+  version,
+  gitSha,
+  buildTimestamp,
+  environment,
+  storageBucketId,
+  ...(hasValidReleaseMetadata ? { releaseId, releasedAt, notes } : {}),
+};
 
 fs.writeFileSync(manifestPath, JSON.stringify(updated, null, 2) + "\n");
-fs.writeFileSync(buildVersionPath, `export const BUILD_VERSION = "${version}";\n`);
+fs.writeFileSync(
+  buildVersionPath,
+  [
+    `export const BUILD_VERSION = ${JSON.stringify(version)};`,
+    `export const BUILD_RELEASE_ID = ${JSON.stringify(releaseId)};`,
+    `export const BUILD_RELEASED_AT = ${JSON.stringify(releasedAt)};`,
+    "",
+  ].join("\n"),
+);
 
 console.log("✅ Build version set to:", version);
 console.log("   Git SHA         :", gitSha);
