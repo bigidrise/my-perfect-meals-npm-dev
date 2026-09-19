@@ -66,6 +66,7 @@ describe("My Perfect Menu context stamps", () => {
     ["cuisine", { cuisine: "Mexican" }],
     ["diabetes state", { diabetes: { ...base.diabetes, state: "HIGH" } }],
     ["protocol", { protocol: { ...base.protocol, conditionKeys: ["renal"] } }],
+    ["GLP-1 tolerance", { glp1: { active: true, escalation: false, adaptationState: "nausea:mild" } }],
   ])("changes digest when authoritative %s changes", (_label, change) => {
     const changed = buildMyPerfectMenuContextStamp({ ...base, ...change } as MyPerfectMenuAuthorityMaterial, "lunch", fixed);
     expect(changed.digest).not.toBe(buildMyPerfectMenuContextStamp(base, "lunch", fixed).digest);

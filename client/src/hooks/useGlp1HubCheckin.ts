@@ -23,6 +23,9 @@ export interface TodayCheckinData {
   symptomTrend: string;
   appetiteLevel: string;
   notifyCareTeam: string;
+  symptomsAfterDose: string;
+  medicationName: string | null;
+  medicationClass: string | null;
 }
 
 export interface HubCheckinState {
@@ -41,6 +44,7 @@ export interface HubCheckinState {
   }) | null;
   isLoading: boolean;
   isSubmitting: boolean;
+  hasLoaded: boolean;
   error: string | null;
   lastUpdated: Date | null;
 }
@@ -68,6 +72,9 @@ function mapCheckin(raw: Record<string, unknown> | null): TodayCheckinData | nul
     symptomTrend: (raw.symptom_trend ?? raw.symptomTrend ?? "na") as string,
     appetiteLevel: (raw.appetite_level ?? raw.appetiteLevel ?? "normal") as string,
     notifyCareTeam: (raw.notify_care_team ?? raw.notifyCareTeam ?? "none") as string,
+    symptomsAfterDose: (raw.symptoms_after_dose ?? raw.symptomsAfterDose ?? "unsure") as string,
+    medicationName: (raw.medication_name ?? raw.medicationName ?? null) as string | null,
+    medicationClass: (raw.medication_class ?? raw.medicationClass ?? null) as string | null,
   };
 }
 
@@ -77,6 +84,7 @@ export function useGlp1HubCheckin() {
     tolerance: null,
     isLoading: true,
     isSubmitting: false,
+    hasLoaded: false,
     error: null,
     lastUpdated: null,
   });
@@ -92,12 +100,14 @@ export function useGlp1HubCheckin() {
         tolerance: data.tolerance ?? null,
         isLoading: false,
         isSubmitting: false,
+        hasLoaded: true,
         lastUpdated: checkin ? new Date(checkin.submittedAt) : null,
       }));
     } catch (err) {
       setState(s => ({
         ...s,
         isLoading: false,
+        hasLoaded: false,
         error: "Failed to load today's check-in",
       }));
     }
@@ -131,6 +141,7 @@ export function useGlp1HubCheckin() {
     tolerance: state.tolerance,
     isLoading: state.isLoading,
     isSubmitting: state.isSubmitting,
+    hasLoaded: state.hasLoaded,
     error: state.error,
     lastUpdated: state.lastUpdated,
     submit,

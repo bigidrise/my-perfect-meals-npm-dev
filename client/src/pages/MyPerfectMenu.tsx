@@ -27,6 +27,8 @@ import { CopilotBrain } from "@/components/copilot/CopilotBrain";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { useLogGlucose, type GlucoseContext } from "@/hooks/useDiabetes";
 import { usePageTitle } from "@/contexts/PageTitleContext";
+import GLP1MealPreflight from "@/components/glp1/GLP1MealPreflight";
+import { glp1HubReturnTarget, shouldRequireGlp1MealPreflight } from "@/lib/glp1MenuFlow";
 import type { MyPerfectMenuBuilderContext } from "@shared/builderNamespaces";
 
 type IdeaType = "breakfast" | "lunch" | "dinner" | "snack";
@@ -114,6 +116,14 @@ export default function MyPerfectMenu() {
     () => new URLSearchParams(search).get("builder") || undefined,
     [search],
   );
+  const returnedIdeaType = useMemo(() => {
+    const value = new URLSearchParams(search).get("category");
+    return IDEA_TYPES.some((item) => item.value === value) ? value as IdeaType : null;
+  }, [search]);
+  const returnedSettingsChanged = useMemo(
+    () => new URLSearchParams(search).get("glp1SettingsChanged") === "1",
+    [search],
+  );
   const [ideaType, setIdeaType] = useState<IdeaType | null>(null);
   const [conceptSets, setConceptSets] = useState<ConceptSets>({});
   const [selectedConcept, setSelectedConcept] = useState<MenuConcept | null>(null);
@@ -127,8 +137,12 @@ export default function MyPerfectMenu() {
   const [glucoseValue, setGlucoseValue] = useState("");
   const [glucoseContext, setGlucoseContext] = useState<GlucoseContext>("PRE_MEAL");
   const [error, setError] = useState<string | null>(null);
+  const [glp1CheckinOpen, setGlp1CheckinOpen] = useState(false);
+  const [glp1ReturnNotice, setGlp1ReturnNotice] = useState<string | null>(null);
+  const handledReturnRef = useRef(false);
   const subjectRef = useRef(subjectUserId ?? user?.id ?? null);
   const subjectEpochRef = useRef(0);
+  const glp1PreflightEpochRef = useRef(-1);
   const { generateMeal, cancel: cancelMeal } = useCreateWithChefRequest(user?.id, undefined, subjectUserId);
   const { generateSnack, cancel: cancelSnack } = useSnackCreatorRequest(user?.id, subjectUserId);
   const logGlucose = useLogGlucose();
@@ -136,6 +150,7 @@ export default function MyPerfectMenu() {
 
   useEffect(() => {
     subjectEpochRef.current += 1;
+    glp1PreflightEpochRef.current = -1;
     subjectRef.current = subjectUserId ?? user?.id ?? null;
     cancelMeal();
     cancelSnack();
@@ -208,7 +223,10 @@ export default function MyPerfectMenu() {
     }
   };
 
-  const loadContextStatus = async (): Promise<MenuContextStatus> => {
+  const loadContextStatus = async (
+    expectedEpoch = subjectEpochRef.current,
+    expectedSubject = subjectUserId ?? user?.id ?? null,
+  ): Promise<MenuContextStatus | null> => {
     const params = new URLSearchParams();
     if (subjectUserId) params.set("subjectUserId", subjectUserId);
     if (requestedBuilderKey) params.set("requestedBuilderKey", requestedBuilderKey);
@@ -219,20 +237,48 @@ export default function MyPerfectMenu() {
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw responseError(response, payload, "We couldn't check the current food context.");
+    if (
+      subjectEpochRef.current !== expectedEpoch ||
+      subjectRef.current !== expectedSubject ||
+      (payload.subject?.id && payload.subject.id !== expectedSubject)
+    ) return null;
     setContextStatus(payload);
     if (payload.builder) setBuilderContext(payload.builder);
     return payload;
   };
 
+  const hasGlp1CheckinToday = async () => {
+    const response = await fetch(apiUrl("/api/glp1/hub-checkin/today"), {
+      credentials: "include",
+      headers: getAuthHeaders(),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw responseError(response, payload, "We couldn't check today's GLP-1 status.");
+    return Boolean(payload.checkin);
+  };
+
   const prepareIdeaRequest = async (nextType: IdeaType) => {
+    const requestedEpoch = subjectEpochRef.current;
+    const requestedSubject = subjectUserId ?? user?.id ?? null;
     setIdeaType(nextType);
     setError(null);
     setLoadingContext(true);
     try {
-      const status = await loadContextStatus();
+      const status = await loadContextStatus(requestedEpoch, requestedSubject);
+      if (!status) return;
       if (status.glp1.shouldEscalate) {
         setPendingIdeaType(nextType);
         setError("Your current GLP-1 guidance needs attention before creating meal ideas. Review it in the GLP-1 Hub.");
+        return;
+      }
+      const hasToday = status.glp1.active && !subjectUserId
+        ? await hasGlp1CheckinToday()
+        : false;
+      if (subjectEpochRef.current !== requestedEpoch || subjectRef.current !== requestedSubject) return;
+      if (shouldRequireGlp1MealPreflight(status.glp1, hasToday, Boolean(subjectUserId))) {
+        glp1PreflightEpochRef.current = requestedEpoch;
+        setPendingIdeaType(nextType);
+        setGlp1CheckinOpen(true);
         return;
       }
       if (status.diabetes.applicable && status.diabetes.needsRefresh) {
@@ -247,6 +293,36 @@ export default function MyPerfectMenu() {
       setLoadingContext(false);
     }
   };
+
+  const continueAfterGlp1Checkin = async () => {
+    const expectedEpoch = glp1PreflightEpochRef.current;
+    const expectedSubject = subjectRef.current;
+    if (expectedEpoch < 0 || subjectEpochRef.current !== expectedEpoch) return;
+    const status = await loadContextStatus(expectedEpoch, expectedSubject);
+    if (!status) return;
+    if (status.glp1.shouldEscalate) {
+      setError("Your current GLP-1 guidance needs attention before creating meal ideas. Review the safety guidance in the GLP-1 Hub.");
+      return;
+    }
+    const nextType = pendingIdeaType;
+    setPendingIdeaType(null);
+    if (nextType) await requestIdeas(nextType);
+  };
+
+  const openGlp1Settings = () => {
+    const category = ideaType ?? pendingIdeaType;
+    setLocation(`/glp1-hub?returnTo=${encodeURIComponent(glp1HubReturnTarget(category))}`);
+  };
+
+  useEffect(() => {
+    if (!returnedIdeaType || handledReturnRef.current || !builderContext) return;
+    handledReturnRef.current = true;
+    setIdeaType(returnedIdeaType);
+    if (returnedSettingsChanged) {
+      setGlp1ReturnNotice(`Your GLP-1 settings changed, so we refreshed these ${returnedIdeaType} ideas.`);
+      void prepareIdeaRequest(returnedIdeaType);
+    }
+  }, [returnedIdeaType, returnedSettingsChanged, builderContext]);
 
   const openCategory = (nextType: IdeaType) => {
     setIdeaType(nextType);
@@ -666,13 +742,27 @@ export default function MyPerfectMenu() {
               </div>
             )}
 
-            {!loadingContext && contextStatus?.glp1.active && !contextStatus.glp1.shouldEscalate && (
-              <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-violet-300/20 bg-violet-950/20 px-4 py-3">
-                <p className="text-sm font-semibold text-violet-100">GLP-1 settings are being applied</p>
-                <button type="button" onClick={() => setLocation("/glp1-hub?returnTo=%2Ffoods-i-enjoy%3Fbuilder%3Dglp1")} className="text-sm font-bold text-violet-200">
-                  Review / Update
-                </button>
-              </div>
+            {!loadingContext && (contextStatus?.glp1.active || builderContext?.key === "glp1") && !subjectUserId && (
+              <>
+                {glp1ReturnNotice && (
+                  <div className="mt-4 rounded-2xl border border-emerald-300/20 bg-emerald-950/20 px-4 py-3 text-sm font-semibold text-emerald-100">
+                    {glp1ReturnNotice}
+                  </div>
+                )}
+                <GLP1MealPreflight
+                  open={glp1CheckinOpen}
+                  onOpenChange={(open) => {
+                    setGlp1CheckinOpen(open);
+                    if (open && ideaType) {
+                      glp1PreflightEpochRef.current = subjectEpochRef.current;
+                      setPendingIdeaType(ideaType);
+                    }
+                    if (!open) setPendingIdeaType(null);
+                  }}
+                  onSaved={continueAfterGlp1Checkin}
+                  onOpenSettings={openGlp1Settings}
+                />
+              </>
             )}
 
             {!loadingContext && !pendingIdeaType && loadingIdeas && concepts.length === 0 ? (

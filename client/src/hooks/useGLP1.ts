@@ -71,15 +71,17 @@ export function useSaveGLP1Profile(updateGuardrails?: (g: GLP1Guardrails) => voi
 
   const mutate = useCallback(async (guardrails: GLP1Guardrails) => {
     setIsPending(true);
-    saveLocalProfile(guardrails);
-    if (updateGuardrails) {
-      updateGuardrails(guardrails);
-    }
     try {
       await put("/api/glp1/profile", { guardrails });
-    } catch {
+      saveLocalProfile(guardrails);
+      if (updateGuardrails) {
+        updateGuardrails(guardrails);
+      }
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsPending(false);
     }
-    setIsPending(false);
   }, [updateGuardrails]);
 
   return {
