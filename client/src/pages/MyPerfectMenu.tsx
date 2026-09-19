@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import {
+  Activity,
   Apple,
   ArrowLeft,
   Coffee,
@@ -24,6 +25,7 @@ import {
 import MealGenerationProgress from "@/components/MealGenerationProgress";
 import { CopilotBrain } from "@/components/copilot/CopilotBrain";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { useLogGlucose, type GlucoseContext } from "@/hooks/useDiabetes";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 
 type IdeaType = "breakfast" | "lunch" | "dinner" | "snack";
@@ -39,6 +41,22 @@ interface MenuConcept {
 }
 
 type ConceptSets = Partial<Record<IdeaType, MenuConcept[]>>;
+type MenuContextStatus = {
+  subject: { id: string; label?: string | null };
+  diabetes: {
+    applicable: boolean;
+    state: "LOW" | "IN_RANGE" | "HIGH" | "STALE" | "NONE";
+    needsRefresh: boolean;
+    ageMinutes: number | null;
+    criticalLow: boolean;
+    criticalHigh: boolean;
+  };
+  glp1: {
+    active: boolean;
+    shouldEscalate: boolean;
+    hasCurrentAdaptations: boolean;
+  };
+};
 
 function responseError(response: Response, payload: any, fallback: string): Error {
   if (handleDefinitiveAuthFailure(response, payload)) {
@@ -78,6 +96,7 @@ function completedMealPayload(meal: any) {
     cookingTime: meal.cookingTime,
     difficulty: meal.difficulty,
     medicalBadges: meal.medicalBadges || [],
+    dietClassification: meal.dietClassification,
     builderType: meal.builderType,
   };
 }
@@ -93,12 +112,18 @@ export default function MyPerfectMenu() {
   const [selectedConcept, setSelectedConcept] = useState<MenuConcept | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [loadingIdeas, setLoadingIdeas] = useState(false);
+  const [loadingContext, setLoadingContext] = useState(false);
   const [savingMeal, setSavingMeal] = useState(false);
+  const [pendingIdeaType, setPendingIdeaType] = useState<IdeaType | null>(null);
+  const [contextStatus, setContextStatus] = useState<MenuContextStatus | null>(null);
+  const [glucoseValue, setGlucoseValue] = useState("");
+  const [glucoseContext, setGlucoseContext] = useState<GlucoseContext>("PRE_MEAL");
   const [error, setError] = useState<string | null>(null);
   const subjectRef = useRef(subjectUserId ?? user?.id ?? null);
   const subjectEpochRef = useRef(0);
   const { generateMeal, cancel: cancelMeal } = useCreateWithChefRequest(user?.id, undefined, subjectUserId);
   const { generateSnack, cancel: cancelSnack } = useSnackCreatorRequest(user?.id, subjectUserId);
+  const logGlucose = useLogGlucose();
   const concepts = ideaType ? conceptSets[ideaType] ?? [] : [];
 
   useEffect(() => {
@@ -109,6 +134,9 @@ export default function MyPerfectMenu() {
     setConceptSets({});
     setIdeaType(null);
     setLoadingIdeas(false);
+    setLoadingContext(false);
+    setPendingIdeaType(null);
+    setContextStatus(null);
     setSelectedConcept(null);
     setPickerOpen(false);
     let cancelled = false;
@@ -166,10 +194,70 @@ export default function MyPerfectMenu() {
     }
   };
 
+  const loadContextStatus = async (): Promise<MenuContextStatus> => {
+    const query = subjectUserId ? `?subjectUserId=${encodeURIComponent(subjectUserId)}` : "";
+    const response = await fetch(apiUrl(`/api/my-perfect-menu/context-status${query}`), {
+      credentials: "include",
+      headers: getAuthHeaders(),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw responseError(response, payload, "We couldn't check the current food context.");
+    setContextStatus(payload);
+    return payload;
+  };
+
+  const prepareIdeaRequest = async (nextType: IdeaType) => {
+    setIdeaType(nextType);
+    setError(null);
+    setLoadingContext(true);
+    try {
+      const status = await loadContextStatus();
+      if (status.glp1.shouldEscalate) {
+        setPendingIdeaType(nextType);
+        setError("Your current GLP-1 guidance needs attention before creating meal ideas. Review it in the GLP-1 Hub.");
+        return;
+      }
+      if (status.diabetes.applicable && status.diabetes.needsRefresh) {
+        setPendingIdeaType(nextType);
+        return;
+      }
+      setPendingIdeaType(null);
+      await requestIdeas(nextType);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "We couldn't check the current food context.");
+    } finally {
+      setLoadingContext(false);
+    }
+  };
+
   const openCategory = (nextType: IdeaType) => {
     setIdeaType(nextType);
     setError(null);
-    if (!conceptSets[nextType]?.length) requestIdeas(nextType);
+    if (!conceptSets[nextType]?.length) void prepareIdeaRequest(nextType);
+  };
+
+  const saveGlucoseAndContinue = async () => {
+    if (!pendingIdeaType || subjectUserId) return;
+    const valueMgdl = Number(glucoseValue);
+    if (!Number.isFinite(valueMgdl)) {
+      setError("Enter your current blood glucose reading.");
+      return;
+    }
+    setError(null);
+    try {
+      await logGlucose.mutateAsync({
+        userId: user?.id,
+        valueMgdl,
+        context: glucoseContext,
+      });
+      setGlucoseValue("");
+      const nextType = pendingIdeaType;
+      setPendingIdeaType(null);
+      await loadContextStatus();
+      await requestIdeas(nextType);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "We couldn't save your blood glucose reading.");
+    }
   };
 
   const clearCategory = async () => {
@@ -198,6 +286,7 @@ export default function MyPerfectMenu() {
         return next;
       });
       setIdeaType(null);
+      setPendingIdeaType(null);
     } catch (cause) {
       if (subjectEpochRef.current !== requestedEpoch || subjectRef.current !== requestedSubject) return;
       setError(cause instanceof Error ? cause.message : "We couldn't clear these ideas.");
@@ -218,7 +307,8 @@ export default function MyPerfectMenu() {
       body: JSON.stringify({
         dateISO: destination.dateISO,
         slot: destination.slot,
-        bt: destination.builderType,
+        bt: subjectUserId ? undefined : destination.builderType,
+        householdProfileId: subjectUserId,
         meal: completedMealPayload(meal),
       }),
     });
@@ -230,6 +320,7 @@ export default function MyPerfectMenu() {
         dateISO: result.dateISO,
         slot: result.slot,
         updatedDay: result.updatedDay,
+        boardNamespace: result.boardNamespace,
       },
     }));
   };
@@ -259,6 +350,33 @@ export default function MyPerfectMenu() {
     setError(null);
     const requestedSubject = subjectRef.current;
     try {
+      const validationResponse = await fetch(apiUrl("/api/my-perfect-menu/validate-selection"), {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify({
+          ideaType: selectedConcept.ideaType,
+          conceptId: selectedConcept.id,
+          subjectUserId,
+        }),
+      });
+      const validationPayload = await validationResponse.json().catch(() => ({}));
+      if (!validationResponse.ok) {
+        if (validationResponse.status === 409 && validationPayload?.code === "MY_PERFECT_MENU_CONTEXT_STALE") {
+          setConceptSets((current) => {
+            const next = { ...current };
+            delete next[selectedConcept.ideaType];
+            return next;
+          });
+          setSelectedConcept(null);
+          setIdeaType(null);
+        }
+        throw responseError(
+          validationResponse,
+          validationPayload,
+          "Your food context changed. Refresh your choices before creating this meal.",
+        );
+      }
       const conceptIntent = [
         "My Perfect Menu selected concept. Preserve this dish and cuisine identity.",
         `Title: ${selectedConcept.title}`,
@@ -312,7 +430,9 @@ export default function MyPerfectMenu() {
           description: `${finalMeal.name || finalMeal.title} was added to your plan.`,
         },
       }));
-      setLocation("/weekly-meal-board");
+      setLocation(subjectUserId
+        ? `/weekly-meal-board?householdProfileId=${encodeURIComponent(subjectUserId)}`
+        : "/weekly-meal-board");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "We couldn't finish this meal.");
       setPickerOpen(false);
@@ -326,6 +446,7 @@ export default function MyPerfectMenu() {
     if (ideaType) {
       setIdeaType(null);
       setError(null);
+      setPendingIdeaType(null);
       return;
     }
     setLocation("/dashboard");
@@ -428,18 +549,111 @@ export default function MyPerfectMenu() {
                {!loadingIdeas && (
                  <div className="flex gap-2">
                    <button type="button" onClick={clearCategory} className="min-h-10 rounded-xl border border-red-300/20 bg-red-950/25 px-4 text-sm font-semibold text-red-100/75">Clear</button>
-                   <button type="button" onClick={() => requestIdeas(ideaType)} className="min-h-10 rounded-xl border border-white/15 bg-white/5 px-4 text-sm font-semibold text-white/70">Try 3 More</button>
+                   <button type="button" onClick={() => void prepareIdeaRequest(ideaType)} className="min-h-10 rounded-xl border border-white/15 bg-white/5 px-4 text-sm font-semibold text-white/70">Try 3 More</button>
                  </div>
                )}
             </div>
 
-            {loadingIdeas && concepts.length === 0 ? (
+            {loadingContext && (
+              <div className="mt-6 flex min-h-32 flex-col items-center justify-center rounded-3xl border border-violet-300/20 bg-black/45">
+                <Loader2 className="h-7 w-7 animate-spin text-violet-300" />
+                <p className="mt-3 text-sm font-semibold">Checking your current food context…</p>
+              </div>
+            )}
+
+            {!loadingContext && pendingIdeaType && contextStatus?.diabetes.applicable && contextStatus.diabetes.needsRefresh && !subjectUserId && (
+              <div className="mt-6 rounded-3xl border border-sky-300/25 bg-sky-950/25 p-5">
+                <div className="flex items-start gap-3">
+                  <Activity className="mt-0.5 h-5 w-5 shrink-0 text-sky-300" />
+                  <div>
+                    <h3 className="font-black text-white">Update Blood Glucose</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-white/65">
+                      Your latest reading is {contextStatus.diabetes.state === "STALE" ? "older than the current freshness window" : "not available"}.
+                      You can update it here using the same history as the Diabetes Hub, or continue with the information currently available.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+                  <label className="text-xs font-bold text-white/70">
+                    Blood glucose (mg/dL)
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min="20"
+                      max="600"
+                      value={glucoseValue}
+                      onChange={(event) => setGlucoseValue(event.target.value)}
+                      className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-black/45 px-3 text-base text-white outline-none focus:border-sky-300/60"
+                    />
+                  </label>
+                  <label className="text-xs font-bold text-white/70">
+                    Reading context
+                    <select
+                      value={glucoseContext}
+                      onChange={(event) => setGlucoseContext(event.target.value as GlucoseContext)}
+                      className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-black/45 px-3 text-sm text-white outline-none focus:border-sky-300/60"
+                    >
+                      <option value="FASTED">Fasted</option>
+                      <option value="PRE_MEAL">Before meal</option>
+                      <option value="POST_MEAL_1H">1 hour after meal</option>
+                      <option value="POST_MEAL_2H">2 hours after meal</option>
+                      <option value="RANDOM">Other time</option>
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => void saveGlucoseAndContinue()}
+                    disabled={logGlucose.isPending}
+                    className="min-h-11 self-end rounded-xl bg-sky-500 px-4 text-sm font-black text-white disabled:opacity-60"
+                  >
+                    {logGlucose.isPending ? "Saving…" : "Save & Continue"}
+                  </button>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextType = pendingIdeaType;
+                      setPendingIdeaType(null);
+                      void requestIdeas(nextType);
+                    }}
+                    className="min-h-10 rounded-xl border border-white/15 bg-white/5 px-4 text-sm font-semibold text-white/75"
+                  >
+                    Continue with available information
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLocation("/diabetic-hub?returnTo=%2Ffoods-i-enjoy")}
+                    className="min-h-10 rounded-xl px-3 text-sm font-semibold text-sky-200"
+                  >
+                    Open Diabetes Hub
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!loadingContext && contextStatus?.diabetes.applicable && !contextStatus.diabetes.needsRefresh && (
+              <div className="mt-4 rounded-2xl border border-emerald-300/20 bg-emerald-950/20 px-4 py-3 text-sm font-semibold text-emerald-100">
+                Using your current diabetes settings
+              </div>
+            )}
+
+            {!loadingContext && contextStatus?.glp1.active && !contextStatus.glp1.shouldEscalate && (
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-violet-300/20 bg-violet-950/20 px-4 py-3">
+                <p className="text-sm font-semibold text-violet-100">GLP-1 settings are being applied</p>
+                <button type="button" onClick={() => setLocation("/glp1-hub?returnTo=%2Ffoods-i-enjoy")} className="text-sm font-bold text-violet-200">
+                  Review / Update
+                </button>
+              </div>
+            )}
+
+            {!loadingContext && !pendingIdeaType && loadingIdeas && concepts.length === 0 ? (
               <div className="mt-6 flex min-h-56 flex-col items-center justify-center rounded-3xl border border-violet-300/20 bg-black/45">
                 <Loader2 className="h-8 w-8 animate-spin text-violet-300" />
                 <p className="mt-4 font-semibold">Creating three ideas for you…</p>
                 <p className="mt-1 text-sm text-white/45">Using your food preferences and current nutrition context.</p>
               </div>
-            ) : (
+            ) : !loadingContext && !pendingIdeaType ? (
               <div className="mt-5 grid gap-4">
                 {concepts.map((concept, index) => (
                   <article key={concept.id} className="overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-r from-black via-violet-950/35 to-black shadow-2xl">
@@ -456,7 +670,7 @@ export default function MyPerfectMenu() {
                   </article>
                 ))}
               </div>
-            )}
+            ) : null}
             {loadingIdeas && concepts.length > 0 && (
               <div className="mt-4 flex items-center justify-center gap-2 text-sm font-semibold text-violet-200">
                 <Loader2 className="h-4 w-4 animate-spin" /> Creating three new ideas while these stay available…
