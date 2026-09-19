@@ -872,7 +872,7 @@ export default function WeeklyMealBoard() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24"
     >
-      <BuilderHeader title="General Meal Builder" onOpenTour={quickTour.openTour} clientId={isProCareMode ? clientId : null} protocols={getBuilderProtocolBadges(user)} />
+      <BuilderHeader title="General Nutrition Builder" onOpenTour={quickTour.openTour} clientId={isProCareMode ? clientId : null} protocols={getBuilderProtocolBadges(user)} />
 
       {/* Main Content */}
       <div

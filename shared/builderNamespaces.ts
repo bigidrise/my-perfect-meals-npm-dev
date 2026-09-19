@@ -55,6 +55,13 @@ export const MY_PERFECT_MENU_BUILDERS = {
     dietType: "anti-inflammatory",
     builderMode: "targeted",
   },
+  performance_competition: {
+    key: "performance_competition",
+    namespace: BUILDER_NS.PERFORMANCE_COMPETITION,
+    route: "/performance-competition-builder",
+    dietType: "performance",
+    builderMode: "hybrid",
+  },
 } as const;
 
 export type MyPerfectMenuBuilderKey = keyof typeof MY_PERFECT_MENU_BUILDERS;
@@ -62,8 +69,9 @@ export type MyPerfectMenuBuilderContext = {
   key: MyPerfectMenuBuilderKey;
   namespace: string;
   route: string;
-  dietType?: "diabetic" | "glp1" | "anti-inflammatory";
-  builderMode: "lifestyle" | "targeted";
+  displayName: string;
+  dietType?: "diabetic" | "glp1" | "anti-inflammatory" | "performance";
+  builderMode: "lifestyle" | "targeted" | "hybrid";
   generationMode: "builder";
   source: "explicit" | "assigned" | "default";
 };
@@ -74,7 +82,7 @@ export function isMyPerfectMenuBuilderKey(value: unknown): value is MyPerfectMen
 
 export function builderContextFor(key: MyPerfectMenuBuilderKey, source: MyPerfectMenuBuilderContext["source"]): MyPerfectMenuBuilderContext {
   const entry = MY_PERFECT_MENU_BUILDERS[key];
-  return { ...entry, generationMode: "builder", source };
+  return { ...entry, displayName: builderDisplayName(key) ?? key, generationMode: "builder", source };
 }
 
 export function myPerfectMenuBuilderKeyForNamespace(
@@ -86,3 +94,18 @@ export function myPerfectMenuBuilderKeyForNamespace(
 }
 
 export const MY_PERFECT_MENU_BUILDER_KEYS = Object.keys(MY_PERFECT_MENU_BUILDERS) as MyPerfectMenuBuilderKey[];
+
+/** Customer-facing names for server-resolved Builder identities. */
+export const BUILDER_DISPLAY_NAMES: Record<string, string> = {
+  weekly: "Weekly Meal Planner",
+  general_nutrition: "General Nutrition Builder",
+  diabetic: "Diabetic Builder",
+  glp1: "GLP-1 Builder",
+  anti_inflammatory: "Anti-Inflammatory Builder",
+  beach_body: "Performance Nutrition Builder",
+  performance_competition: "Performance Nutrition Builder",
+};
+
+export function builderDisplayName(key: string | null | undefined): string | null {
+  return key ? BUILDER_DISPLAY_NAMES[key] ?? null : null;
+}

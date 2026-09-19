@@ -66,6 +66,7 @@ const builderMatrix = [
   ["diabetic", "diabetic"],
   ["glp1", "glp1"],
   ["anti_inflammatory", "antiInflammatory"],
+  ["performance_competition", "performanceCompetition"],
 ] as const;
 
 beforeEach(() => {

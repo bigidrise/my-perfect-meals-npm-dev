@@ -9,6 +9,17 @@ import {
 export { myPerfectMenuCategorySchema };
 export type { MyPerfectMenuCategory };
 
+export const myPerfectMenuMealSlotSchema = z.enum([
+  "breakfast",
+  "lunch",
+  "dinner",
+  "meal4",
+  "meal5",
+  "meal6",
+  "snacks",
+]);
+export type MyPerfectMenuMealSlot = z.infer<typeof myPerfectMenuMealSlotSchema>;
+
 export const myPerfectMenuConceptSchema = z.object({
   id: z.string().min(8).max(100),
   ideaType: myPerfectMenuCategorySchema,
@@ -34,6 +45,8 @@ export const myPerfectMenuContextStampSchema = z.object({
   category: myPerfectMenuCategorySchema,
   builderKey: z.string().optional(),
   builderNamespace: z.string().optional(),
+  destinationDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  mealSlot: myPerfectMenuMealSlotSchema.optional(),
 });
 export type MyPerfectMenuContextStamp = z.infer<typeof myPerfectMenuContextStampSchema>;
 

@@ -12,6 +12,8 @@ import { useQueryClient } from "@tanstack/react-query";
 
 export interface PerformanceNutritionSetupFormProps {
   onSave?: () => void;
+  onCancel?: () => void;
+  embedded?: boolean;
 }
 
 type ProtocolTrack = "athletic" | "competition";
@@ -187,7 +189,11 @@ const DEFAULT_WEEKLY_SCHEDULE: Record<string, APNSessionType> = {
 const ATHLETIC_TOTAL = 10;
 const COMP_TOTAL = 4;
 
-export default function PerformanceNutritionSetupForm({ onSave }: PerformanceNutritionSetupFormProps) {
+export default function PerformanceNutritionSetupForm({
+  onSave,
+  onCancel,
+  embedded = false,
+}: PerformanceNutritionSetupFormProps) {
   const { t } = useTranslation();
   const { user, refreshUser } = useAuth();
   const queryClient = useQueryClient();
@@ -339,7 +345,7 @@ export default function PerformanceNutritionSetupForm({ onSave }: PerformanceNut
   const isLastStep  = step === totalSteps - 1;
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className={`flex flex-col flex-1 ${embedded ? "min-h-0" : ""}`}>
 
       {/* Progress bar */}
       <div className="h-1 bg-white/10 flex-shrink-0">
@@ -904,6 +910,15 @@ export default function PerformanceNutritionSetupForm({ onSave }: PerformanceNut
         className="sticky bottom-0 bg-black/80 backdrop-blur-md border-t border-white/10 px-5 pt-3 flex gap-3 flex-shrink-0"
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1.25rem)" }}
       >
+        {onCancel && step === 0 && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-3 rounded-xl border border-white/15 text-white/70 text-sm font-semibold"
+          >
+            Cancel
+          </button>
+        )}
         {step > 0 && (
           <button
             onClick={() => setStep(s => s - 1)}

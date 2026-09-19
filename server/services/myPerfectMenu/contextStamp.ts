@@ -1,5 +1,5 @@
 import { createHmac } from "node:crypto";
-import type { MyPerfectMenuCategory, MyPerfectMenuContextStamp } from "@shared/myPerfectMenu";
+import type { MyPerfectMenuCategory, MyPerfectMenuContextStamp, MyPerfectMenuMealSlot } from "@shared/myPerfectMenu";
 import type { MyPerfectMenuBuilderContext } from "@shared/builderNamespaces";
 
 export interface MyPerfectMenuAuthorityMaterial {
@@ -20,6 +20,15 @@ export interface MyPerfectMenuAuthorityMaterial {
   glp1: { active: boolean; escalation: boolean; adaptationState: string };
   targetPresence: Record<string, boolean>;
   builder: Pick<MyPerfectMenuBuilderContext, "key" | "namespace">;
+  performance?: {
+    dateISO: string;
+    slot: MyPerfectMenuMealSlot;
+    sessionType: string | null;
+    track: string | null;
+    competition?: unknown;
+    demand: unknown;
+    nutrition: unknown;
+  };
 }
 
 function normalize(value: unknown): unknown {
@@ -47,6 +56,9 @@ export function buildMyPerfectMenuContextStamp(
   return {
     version: 1, digest, generatedAt: generatedAt.toISOString(), subjectId: material.subject.id, category,
     builderKey: material.builder.key, builderNamespace: material.builder.namespace,
+    ...(material.performance
+      ? { destinationDate: material.performance.dateISO, mealSlot: material.performance.slot }
+      : {}),
   };
 }
 

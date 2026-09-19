@@ -103,7 +103,7 @@ interface UseCreateWithChefRequestResult {
   generating: boolean;
   progress: number;
   error: string | null;
-  generateMeal: (description: string, mealType: "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6", dietType?: DietType, dietPhase?: BeachBodyPhase, starchContext?: StarchContext, safetyOptions?: SafetyOptions, strictMode?: boolean, explicitOverride?: ExplicitOverride, userDietOverride?: boolean, diversityContext?: DiversityContext, remainingMacros?: RemainingMacros, builderMode?: BuilderMode, performanceSessionContext?: PerformanceSessionContext, generationContext?: string, dietOverride?: string | null, servings?: number) => Promise<Meal | null>;
+  generateMeal: (description: string, mealType: "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6" | "snack", dietType?: DietType, dietPhase?: BeachBodyPhase, starchContext?: StarchContext, safetyOptions?: SafetyOptions, strictMode?: boolean, explicitOverride?: ExplicitOverride, userDietOverride?: boolean, diversityContext?: DiversityContext, remainingMacros?: RemainingMacros, builderMode?: BuilderMode, performanceSessionContext?: PerformanceSessionContext, generationContext?: string, dietOverride?: string | null, servings?: number, mpmAuthorityToken?: string, mpmConceptId?: string, mpmGeneration?: boolean) => Promise<Meal | null>;
   cancel: () => void;
 }
 
@@ -144,7 +144,7 @@ export function useCreateWithChefRequest(userId?: string, proClientId?: string, 
 
   const generateMeal = async (
     description: string,
-    mealType: "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6",
+    mealType: "breakfast" | "lunch" | "dinner" | "meal4" | "meal5" | "meal6" | "snack",
     dietType?: DietType,
     dietPhase?: BeachBodyPhase,
     starchContext?: StarchContext,
@@ -159,6 +159,9 @@ export function useCreateWithChefRequest(userId?: string, proClientId?: string, 
     generationContext?: string,
     dietOverride?: string | null,
     servings?: number,
+    mpmAuthorityToken?: string,
+    mpmConceptId?: string,
+    mpmGeneration?: boolean,
   ): Promise<Meal | null> => {
     setGenerating(true);
     setError(null);
@@ -194,6 +197,9 @@ export function useCreateWithChefRequest(userId?: string, proClientId?: string, 
           generationContext: generationContext || null,
           dietOverride: dietOverride || null,
           servings: servings || 1,
+          mpmAuthorityToken: mpmAuthorityToken || undefined,
+          mpmConceptId: mpmConceptId || undefined,
+          mpmGeneration: mpmGeneration === true,
           proClientId: proClientId || undefined,
           householdProfileId: householdProfileId || undefined,
         }),

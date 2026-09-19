@@ -29,6 +29,12 @@ describe("My Perfect Menu builder authority", () => {
       dietType: "anti-inflammatory",
       builderMode: "targeted",
     });
+    expect(MY_PERFECT_MENU_BUILDERS.performance_competition).toMatchObject({
+      route: "/performance-competition-builder",
+      namespace: "performanceCompetition",
+      dietType: "performance",
+      builderMode: "hybrid",
+    });
   });
 
   test("uses assignment unless an authorized explicit override is supplied", () => {
@@ -57,5 +63,24 @@ describe("My Perfect Menu builder authority", () => {
   test("unassigned accounts safely default to general nutrition", () => {
     const result = resolveMyPerfectMenuBuilder({}, {});
     expect(result).toEqual(builderContextFor("general_nutrition", "default"));
+  });
+
+  test("authorizes the assigned Performance builder through the existing policy", () => {
+    const result = resolveMyPerfectMenuBuilder({}, { activeBoard: "performance_competition" });
+    expect(result.key).toBe("performance_competition");
+    expect(result.namespace).toBe("performanceCompetition");
+    expect(result.route).toBe("/performance-competition-builder");
+    expect(result.displayName).toBe("Performance Nutrition Builder");
+  });
+
+  test("normalizes legacy beach_body assignments to Performance authority", () => {
+    const result = resolveMyPerfectMenuBuilder({}, { activeBoard: "beach_body" });
+    expect(result.key).toBe("performance_competition");
+    expect(result.namespace).toBe("performanceCompetition");
+  });
+
+  test("exposes one canonical display name on every effective context", () => {
+    expect(resolveMyPerfectMenuBuilder({}, {}).displayName).toBe("General Nutrition Builder");
+    expect(resolveMyPerfectMenuBuilder({}, { activeBoard: "diabetic" }).displayName).toBe("Diabetic Builder");
   });
 });
