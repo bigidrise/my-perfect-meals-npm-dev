@@ -55,11 +55,11 @@ interface UseSnackCreatorRequestResult {
   generating: boolean;
   progress: number;
   error: string | null;
-  generateSnack: (description: string, dietType?: DietType, dietPhase?: BeachBodyPhase, overrideToken?: string, forceStarch?: boolean, strictMode?: boolean, explicitOverride?: ExplicitOverride, userDietOverride?: boolean, dateISO?: string) => Promise<Snack | null>;
+  generateSnack: (description: string, dietType?: DietType, dietPhase?: BeachBodyPhase, overrideToken?: string, forceStarch?: boolean, strictMode?: boolean, explicitOverride?: ExplicitOverride, userDietOverride?: boolean, dateISO?: string, generationContext?: string) => Promise<Snack | null>;
   cancel: () => void;
 }
 
-export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestResult {
+export function useSnackCreatorRequest(userId?: string, householdProfileId?: string): UseSnackCreatorRequestResult {
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -101,6 +101,7 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
     explicitOverride?: ExplicitOverride,
     userDietOverride?: boolean,
     dateISO?: string,
+    generationContext?: string,
   ): Promise<Snack | null> => {
     setGenerating(true);
     setError(null);
@@ -128,6 +129,8 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
           explicitOverride: explicitOverride || null,
           userDietOverride: userDietOverride === true,
           starchContext: dateISO ? { dateISO } : undefined,
+          generationContext: generationContext || null,
+          householdProfileId: householdProfileId || undefined,
         }),
         signal: abortControllerRef.current.signal,
       });
