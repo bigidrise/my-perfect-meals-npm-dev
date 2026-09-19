@@ -17,6 +17,7 @@ const CREATOR_DIRECTIVES: Record<HumanFoodCreator, string> = {
   beverage_creator: "Preserve beverage identity and pass all beverage-specific medical rules.",
   sushi_creator: "Preserve sushi style and food-safety requirements; do not return a generic bowl.",
   my_perfect_beginning: "Preserve the requested food while applying every child-specific age, texture, allergy, feeding, and pediatric protocol requirement.",
+  my_perfect_menu: "Create distinct lightweight menu concepts that respect every protection; preferences guide ranking but never authorize conflicts.",
 };
 
 export function buildCreatorHumanFoodPrompt(

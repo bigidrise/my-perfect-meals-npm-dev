@@ -101,3 +101,4 @@
 - [Business workspace shell](business-workspace-shell.md) — authenticated business routes need dedicated desktop chrome, not bare pages or consumer navigation.
 - [Transactional support acknowledgements](transactional-support-acknowledgements.md) — accept reports first; send one privacy-limited acknowledgement through a durable outbox.
 - [Foods I Enjoy boundary](foods-i-enjoy-boundary.md) — explicit subject-owned enjoyment stays separate from legacy likes, inference, and safety governance.
+- [Future food date context](future-food-date-context.md) — destination dates must reach every nutrition and clinical resolver, not only meal-budget logic.

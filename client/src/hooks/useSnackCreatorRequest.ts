@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { getAuthHeaders } from "@/lib/auth";
 import type { DietClassification } from "@/types/meal";
 
 export type DietType = 
@@ -54,7 +55,7 @@ interface UseSnackCreatorRequestResult {
   generating: boolean;
   progress: number;
   error: string | null;
-  generateSnack: (description: string, dietType?: DietType, dietPhase?: BeachBodyPhase, overrideToken?: string, forceStarch?: boolean, strictMode?: boolean, explicitOverride?: ExplicitOverride, userDietOverride?: boolean) => Promise<Snack | null>;
+  generateSnack: (description: string, dietType?: DietType, dietPhase?: BeachBodyPhase, overrideToken?: string, forceStarch?: boolean, strictMode?: boolean, explicitOverride?: ExplicitOverride, userDietOverride?: boolean, dateISO?: string) => Promise<Snack | null>;
   cancel: () => void;
 }
 
@@ -98,7 +99,8 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
     forceStarch?: boolean,
     strictMode?: boolean,
     explicitOverride?: ExplicitOverride,
-    userDietOverride?: boolean
+    userDietOverride?: boolean,
+    dateISO?: string,
   ): Promise<Snack | null> => {
     setGenerating(true);
     setError(null);
@@ -109,7 +111,8 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
     try {
       const response = await fetch(apiUrl("/api/meals/generate"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
         body: JSON.stringify({
           type: "snack-creator",
           mealType: "snack",
@@ -124,6 +127,7 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
           strictMode: strictMode === true,
           explicitOverride: explicitOverride || null,
           userDietOverride: userDietOverride === true,
+          starchContext: dateISO ? { dateISO } : undefined,
         }),
         signal: abortControllerRef.current.signal,
       });
