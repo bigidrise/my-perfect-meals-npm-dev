@@ -29,6 +29,16 @@ import { useLogGlucose, type GlucoseContext } from "@/hooks/useDiabetes";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import GLP1MealPreflight from "@/components/glp1/GLP1MealPreflight";
 import { glp1HubReturnTarget, shouldRequireGlp1MealPreflight } from "@/lib/glp1MenuFlow";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { MyPerfectMenuBuilderContext } from "@shared/builderNamespaces";
 
 type IdeaType = "breakfast" | "lunch" | "dinner" | "snack";
@@ -139,6 +149,7 @@ export default function MyPerfectMenu() {
   const [error, setError] = useState<string | null>(null);
   const [glp1CheckinOpen, setGlp1CheckinOpen] = useState(false);
   const [glp1ReturnNotice, setGlp1ReturnNotice] = useState<string | null>(null);
+  const [tryMoreOpen, setTryMoreOpen] = useState(false);
   const handledReturnRef = useRef(false);
   const subjectRef = useRef(subjectUserId ?? user?.id ?? null);
   const subjectEpochRef = useRef(0);
@@ -163,6 +174,7 @@ export default function MyPerfectMenu() {
     setBuilderContext(null);
     setSelectedConcept(null);
     setPickerOpen(false);
+    setTryMoreOpen(false);
     let cancelled = false;
     const params = new URLSearchParams();
     if (subjectUserId) params.set("subjectUserId", subjectUserId);
@@ -391,6 +403,12 @@ export default function MyPerfectMenu() {
     setSelectedConcept(concept);
     setPickerOpen(true);
     setError(null);
+  };
+
+  const confirmTryMore = () => {
+    if (!ideaType) return;
+    setTryMoreOpen(false);
+    void prepareIdeaRequest(ideaType);
   };
 
   const addCompletedMeal = async (
@@ -653,10 +671,19 @@ export default function MyPerfectMenu() {
                {!loadingIdeas && (
                  <div className="flex gap-2">
                    <button type="button" onClick={clearCategory} className="min-h-10 rounded-xl border border-red-300/20 bg-red-950/25 px-4 text-sm font-semibold text-red-100/75">Clear</button>
-                   <button type="button" onClick={() => void prepareIdeaRequest(ideaType)} className="min-h-10 rounded-xl border border-white/15 bg-white/5 px-4 text-sm font-semibold text-white/70">Try 3 More</button>
+                    <button type="button" onClick={() => setTryMoreOpen(true)} className="min-h-10 rounded-xl border border-white/15 bg-white/5 px-4 text-sm font-semibold text-white/70">Try 3 More</button>
                  </div>
                )}
             </div>
+
+            {!loadingContext && concepts.length > 0 && (
+              <div className="mt-4 rounded-2xl border border-violet-300/20 bg-violet-950/20 p-4">
+                <p className="text-sm font-bold text-violet-100">Want to explore more than one?</p>
+                <p className="mt-1 text-sm leading-relaxed text-white/60">
+                  Choose an idea to create the full meal. If you like the finished meal, save it to Favorites before replacing or deleting it from your plan. You can return here to try another of these ideas.
+                </p>
+              </div>
+            )}
 
             {loadingContext && (
               <div className="mt-6 flex min-h-32 flex-col items-center justify-center rounded-3xl border border-violet-300/20 bg-black/45">
@@ -791,7 +818,7 @@ export default function MyPerfectMenu() {
             ) : null}
             {loadingIdeas && concepts.length > 0 && (
               <div className="mt-4 flex items-center justify-center gap-2 text-sm font-semibold text-violet-200">
-                <Loader2 className="h-4 w-4 animate-spin" /> Creating three new ideas while these stay available…
+                <Loader2 className="h-4 w-4 animate-spin" /> Creating three new ideas to replace these choices…
               </div>
             )}
           </section>
@@ -823,6 +850,21 @@ export default function MyPerfectMenu() {
           onSelect={generateForDestination}
         />
       )}
+
+      <AlertDialog open={tryMoreOpen} onOpenChange={setTryMoreOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Try 3 new ideas?</AlertDialogTitle>
+            <AlertDialogDescription>
+              These three ideas will be replaced with three new personalized choices. If you already created a meal you want to keep, save the finished meal to Favorites first.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep These Ideas</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmTryMore}>Replace with 3 New Ideas</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }
