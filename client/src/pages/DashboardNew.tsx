@@ -1574,7 +1574,7 @@ export default function DashboardNew() {
           transition={{ delay: 0.25, duration: 0.5 }}
            className="mb-4"
         >
-           <Card onClick={() => setLocation("/foods-i-enjoy")} className="relative cursor-pointer overflow-hidden rounded-xl border border-violet-400/40 bg-gradient-to-r from-black via-violet-800/65 to-black backdrop-blur-lg transition-all hover:border-violet-300/70" data-testid="card-foods-i-enjoy">
+           <Card onClick={() => setLocation("/foods-i-enjoy")} className="relative cursor-pointer overflow-hidden rounded-xl border border-violet-400/40 bg-gradient-to-r from-black via-violet-800/65 to-black backdrop-blur-lg transition-all hover:border-violet-300/70" style={{ backgroundColor: "transparent" }} data-testid="card-foods-i-enjoy">
              <CardContent className="p-5"><div className="flex items-center gap-4"><div className="rounded-xl border border-violet-300/40 bg-violet-400/20 p-3"><Heart className="h-6 w-6 text-violet-200" /></div><div className="min-w-0 flex-1"><h2 className="text-base font-semibold text-white">{t("foodsEnjoyTitle")}</h2><p className="mt-1 text-sm text-white/65">{t("foodsEnjoyDescription")}</p></div></div></CardContent>
            </Card>
         </motion.div>
@@ -1793,6 +1793,7 @@ export default function DashboardNew() {
             trigger={
               <Card
                 className="cursor-pointer rounded-xl border border-blue-400/40 bg-gradient-to-r from-black via-blue-800/70 to-black backdrop-blur-lg transition-all hover:border-blue-300/70"
+                style={{ backgroundColor: "transparent" }}
                 data-testid="card-medical-safety"
               >
                 <CardHeader className="pb-3">
