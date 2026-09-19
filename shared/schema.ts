@@ -326,6 +326,7 @@ export const users = pgTable("users", {
   allergies: text("allergies").array().default(sql`ARRAY[]::text[]`),
   dislikedFoods: text("disliked_foods").array().default(sql`ARRAY[]::text[]`),
   likedFoods: text("liked_foods").array().default(sql`ARRAY[]::text[]`),
+  foodsIEnjoy: jsonb("foods_i_enjoy").$type<import("./foodsIEnjoy").FoodsIEnjoyDocument>(),
   avoidedFoods: text("avoided_foods").array().default(sql`ARRAY[]::text[]`),
   preferredSweeteners: text("preferred_sweeteners").array().default(sql`ARRAY[]::text[]`),
   avoidSweeteners: text("avoid_sweeteners").array().default(sql`ARRAY[]::text[]`),
@@ -2103,5 +2104,10 @@ export type UserSavedGroceryItem = typeof userSavedGroceryItems.$inferSelect;
 export type NewUserSavedGroceryItem = typeof userSavedGroceryItems.$inferInsert;
 
 export { userDocumentAcceptance } from "../server/db/schema/legal";
-export { bugReports, bugReportStatusEnum } from "../server/db/schema/bugReports";
-export type { BugReport, NewBugReport } from "../server/db/schema/bugReports";
+export { bugReports, bugReportStatusEnum, bugReportAcknowledgements } from "../server/db/schema/bugReports";
+export type {
+  BugReport,
+  NewBugReport,
+  BugReportAcknowledgement,
+  NewBugReportAcknowledgement,
+} from "../server/db/schema/bugReports";

@@ -620,7 +620,6 @@ export default function CravingCreator() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          targetMealType: "snacks",
           cravingInput: submittedCravingInput,
           dietaryRestrictions: dietOverrideEnabled && dietOverrideValue
             ? dietOverrideValue

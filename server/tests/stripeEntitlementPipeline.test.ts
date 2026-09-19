@@ -313,16 +313,34 @@ describe("trusted Stripe entitlement pipeline", () => {
     const dev = source("server/index.ts");
     const prod = source("server/prod.ts");
     const webhook = source("server/routes/stripeWebhook.ts");
+    const events = source("server/services/stripeBillingEventService.ts");
+    const readiness = source("server/services/stripeBillingReadiness.ts");
+    const productionListener = prod.indexOf("const server = app.listen");
 
-    for (const boot of [dev, prod]) {
-      expect(boot.indexOf('app.use("/api/stripe/webhook", express.raw'))
-        .toBeLessThan(boot.indexOf("app.use(express.json"));
-    }
+    expect(dev.indexOf('app.use("/api/stripe/webhook", express.raw'))
+      .toBeLessThan(dev.indexOf("app.use(express.json"));
+    expect(prod.indexOf('"/api/stripe/webhook"'))
+      .toBeLessThan(productionListener);
+    expect(prod.indexOf('express.raw({ type: "application/json" })'))
+      .toBeLessThan(productionListener);
+    expect(prod.indexOf('"/api/stripe/webhook"'))
+      .toBeLessThan(prod.indexOf("app.use(express.json"));
+    expect(prod.match(/"\/api\/stripe\/webhook"/g)).toHaveLength(1);
+    expect(prod).toContain("stripeWebhookRouterLoadError = error");
     expect(webhook).toContain("verifyStripeWebhookEvent");
     expect(source("server/services/stripeWebhookSignature.ts"))
       .toContain("stripe.webhooks.constructEvent");
     expect(webhook).not.toContain("requireAuth");
     expect(webhook).toContain("claimBillingEvent");
+    expect(webhook.indexOf("verifyStripeWebhookEvent"))
+      .toBeLessThan(webhook.indexOf("isStripeBillingReady()"));
+    expect(webhook).toContain("Unable to durably claim Stripe event");
+    expect(webhook).toContain("Unable to record failed Stripe event");
+    expect(events).not.toContain("runStripeBillingMigration");
+    expect(events).not.toContain("ensureStripeBillingSchema");
+    expect(readiness).toContain("markStripeBillingReady");
+    expect(dev).toContain("markStripeBillingReady()");
+    expect(prod).toContain("markStripeBillingReady()");
   });
 
   it("runs the billing migration in development and production boot paths", () => {

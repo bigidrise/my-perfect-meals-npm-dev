@@ -306,16 +306,17 @@ export default function SnackPickerDrawer({
       
       console.log(`🎨 Generating snack with ingredients:`, ingredientsList);
       
-      // Use the canonical unified endpoint as a premade snack request.
+      // Use the specialized Snack Creator branch of the canonical endpoint.
       const response = await fetch(apiUrl('/api/meals/generate'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: 'premade',
+          type: 'snack-creator',
           mealType: 'snack',
-          input: ingredientsList,
-          userId: '1',
-          count: 1
+          input: ingredientsList.join(', '),
+          count: 1,
+          dietType: dietType === 'normal' ? null : dietType,
+          safetyMode: 'STRICT',
         }),
         signal: abortControllerRef.current.signal
       });
@@ -326,7 +327,7 @@ export default function SnackPickerDrawer({
       
       const data = await response.json();
       
-      // Unified pipeline returns { success, meals, source } - use meals[0] like Fridge Rescue
+      // Unified pipeline returns { success, meals, source }.
       if (!data.success || !data.meals?.[0]) {
         throw new Error(data.error || 'No snack found in response');
       }

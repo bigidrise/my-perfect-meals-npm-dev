@@ -16,3 +16,15 @@ Consumer checkout must resolve one canonical Stripe customer before creating a s
 **Why:** A live account completed four paid Checkout Sessions because consumer checkout neither reused a customer nor checked Stripe for an existing active subscription, while failed webhook signatures left local entitlement stale.
 
 **How to apply:** Before Checkout creation, persist the canonical customer through the ownership registry, check stored and Stripe-authoritative active/trialing subscriptions, self-heal verified stale state, and use server-side customer and Checkout idempotency keys.
+
+Every subscription checkout path needs a durable server reservation scoped to the exact billing subject. ProCare reservations belong to the exact client-professional relationship; reuse or rotation requires matching customer, user, relationship, session, and reservation metadata.
+
+**Why:** Client-only pending state and Stripe idempotency windows do not serialize concurrent tabs or protect legacy subscriptions on older customer records.
+
+**How to apply:** Check all retained subscription IDs against Stripe, atomically reserve before Checkout creation, derive session idempotency from that reservation, and rotate terminal sessions only after authoritative active/trialing checks.
+
+The signed raw-body webhook should be mounted before general application readiness, but it must return a retryable non-2xx response until controlled startup has asserted the billing ledger schema. Webhook requests must never run schema DDL.
+
+**Why:** Long boot migrations can prevent Stripe delivery from reaching the canonical handler, while request-time DDL creates lock and latency risk. Early routing without an explicit ledger gate can instead expose missing-schema failures.
+
+**How to apply:** Verify signatures before the readiness response, mark billing readiness only after controlled migration and schema assertion, and ensure every persistence rejection completes with a retryable response under the deployed Express version.

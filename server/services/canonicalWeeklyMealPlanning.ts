@@ -84,6 +84,7 @@ function candidateFrom(meal: any, context?: any) {
       preparationEvidence: "structured_generation" as const,
       nutritionEvidence: "structured_generation" as const,
       cuisine: meal.cuisine,
+      dietaryIdentityCompliant: undefined,
     },
   };
   const conditions = (context?.safety?.healthConditions ?? []).map((v: any) => String(v).toLowerCase());
@@ -96,6 +97,51 @@ function candidateFrom(meal: any, context?: any) {
     instructions: meal.steps ?? meal.instructions,
     macros: candidate.nutrition,
   };
+  const effectiveDiets = (context?.diet?.effective ?? [])
+    .map((diet: unknown) => String(diet).trim())
+    .filter(Boolean);
+  if (effectiveDiets.length > 0) {
+    try {
+      const validatorDietByIdentity: Record<string, string> = {
+        balanced: "general-nutrition",
+        "general-nutrition": "general-nutrition",
+        vegan: "vegan",
+        vegetarian: "vegetarian",
+        pescatarian: "pescatarian",
+        carnivore: "carnivore",
+        diabetic: "diabetic",
+        glp1: "glp1",
+        "anti-inflammatory": "anti-inflammatory",
+        "liver-support": "liver-support",
+        "kidney-disease": "kidney-disease",
+        "heart-failure": "heart-failure",
+        "liver-disease": "liver-disease",
+        beachbody: "beachbody",
+        performance: "performance",
+      };
+      const validatorDiets = effectiveDiets.map(
+        (diet: string) =>
+          validatorDietByIdentity[
+            diet.toLowerCase().replace(/[_\s]+/g, "-")
+          ],
+      );
+      candidate.evidence.dietaryIdentityCompliant = validatorDiets.some(
+        (diet: string | undefined) => !diet,
+      )
+        ? undefined
+        : validatorDiets.every((diet: string) =>
+          validateMealForDiet(
+            guardrailMeal,
+            diet as any,
+            undefined,
+            meal.type === "snack",
+          ).isValid,
+        );
+    } catch {
+      // Unknown/failed validation remains uncertain and therefore fail-closed.
+      candidate.evidence.dietaryIdentityCompliant = undefined;
+    }
+  }
   try {
     if (conditions.some((v: string) => v.includes("diabet"))) {
       candidate.evidence.diabetesCompliant = validateMealForDiet(guardrailMeal, "diabetic", undefined, meal.type === "snack").isValid;
@@ -140,6 +186,7 @@ async function generateCanonicalDay(input: {
     ),
     diet: context.diet.effective[0] ?? "balanced",
     medicalFlags: context.safety.healthConditions, userAllergens: context.safety.allergies,
+    preferredFoods: context.foodsIEnjoy?.explicit.map((item) => item.displayLabel) ?? [],
   } as any);
   const meals = source.plan?.[0]?.days?.[input.dayIndex]?.meals;
   if (!Array.isArray(meals) || !meals.length) throw new WeeklyMealGenerationError("CANDIDATE_DAY_INCOMPLETE", `No meals generated for ${input.dateISO}.`);
@@ -192,6 +239,7 @@ export async function generateCanonicalWeeklyMealPlan(input: CanonicalWeeklyGene
     diet: contexts[0].diet.effective[0] ?? "balanced",
     medicalFlags: contexts[0].safety.healthConditions,
     userAllergens: contexts[0].safety.allergies,
+    preferredFoods: contexts[0].foodsIEnjoy?.explicit.map((item) => item.displayLabel) ?? [],
   } as any);
   const sourceWeeks = Array.isArray(source.plan) ? source.plan : (source.plan as any)?.weeks;
   if (!Array.isArray(sourceWeeks) || sourceWeeks.length !== weeks) {
@@ -307,6 +355,7 @@ export async function rerollCanonicalWeeklyMeal(input: CanonicalMealRerollInput)
       targets: input.targets ?? { calories: 2000, protein: 140 },
       diet: context.diet.effective[0] ?? "balanced",
       medicalFlags: context.safety.healthConditions, userAllergens: context.safety.allergies,
+      preferredFoods: context.foodsIEnjoy?.explicit.map((item) => item.displayLabel) ?? [],
     } as any);
     const candidate = source.plan?.[0]?.days?.[input.dayIndex]?.meals?.[input.mealIndex];
     if (!candidate) throw new WeeklyMealGenerationError("REROLL_CANDIDATE_MISSING", "No replacement candidate was generated.");

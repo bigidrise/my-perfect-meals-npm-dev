@@ -22,6 +22,9 @@ import {
 import { registerMarketingPageRoutes } from "./marketingPages";
 import { registerMarketingSsrRoutes } from "./marketingSsr";
 import legalPagesRouter from "./routes/legal-pages";
+import {
+  markStripeBillingReady,
+} from "./services/stripeBillingReadiness";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -53,9 +56,48 @@ const app = express();
 // cookie because the proxied request appears to be plain HTTP.
 app.set("trust proxy", 1);
 
+// Stripe must be able to reach the signed raw-body endpoint while the rest of
+// production initialization is still running. Start loading the canonical
+// router without blocking app.listen(), and keep this registration ahead of
+// every JSON/body parser.
+let stripeWebhookRouterLoadError: unknown = null;
+const stripeWebhookRouterPromise = import("./routes/stripeWebhook")
+  .then((module) => module.default)
+  .catch((error) => {
+    stripeWebhookRouterLoadError = error;
+    console.error("[webhook] Failed to load canonical Stripe router", error);
+    return null;
+  });
+app.use(
+  "/api/stripe/webhook",
+  express.raw({ type: "application/json" }),
+  async (req, res, next) => {
+    try {
+      const stripeWebhookRouter = await stripeWebhookRouterPromise;
+      if (!stripeWebhookRouter) {
+        console.error(
+          "[webhook] Canonical Stripe router unavailable during startup",
+          stripeWebhookRouterLoadError,
+        );
+        return res.status(503).send("Stripe webhook temporarily unavailable");
+      }
+      return stripeWebhookRouter(req, res, next);
+    } catch (error) {
+      console.error("[webhook] Canonical Stripe router unavailable during startup", error);
+      if (!res.headersSent) {
+        res.status(503).send("Stripe webhook temporarily unavailable");
+      }
+    }
+  },
+);
+
 const clientDistForSsr = path.resolve(__dirname, "../client/dist");
 let isInitialized = false;
 let initError: Error | null = null;
+let settleInitialization!: () => void;
+const initializationSettled = new Promise<void>((resolve) => {
+  settleInitialization = resolve;
+});
 
 app.get("/healthz", (_req, res) => {
   if (initError) return res.status(503).send("initialization failed");
@@ -185,6 +227,34 @@ app.get("/api/health/full", async (_req, res) => {
   result.timestamp = new Date().toISOString();
   res.status(httpStatus).json(result);
 });
+
+// Production starts listening before the asynchronous route graph is ready so
+// platform health probes can observe startup. Hold real API requests during
+// that window instead of letting Express produce a false 404. Early endpoints
+// registered above (health, release identity, and Stripe webhook) remain
+// available without passing through this gate.
+app.use("/api", async (_req, res, next) => {
+  if (!isInitialized && !initError) {
+    await Promise.race([
+      initializationSettled,
+      new Promise<void>((resolve) => setTimeout(resolve, 30_000)),
+    ]);
+  }
+
+  if (isInitialized) {
+    next();
+    return;
+  }
+
+  res.setHeader("Retry-After", "2");
+  res.status(503).json({
+    error: initError
+      ? "Application initialization failed"
+      : "Application is still starting. Please try again.",
+    code: initError ? "SERVICE_INITIALIZATION_FAILED" : "SERVICE_STARTING",
+  });
+});
+
 const port = Number(process.env.PORT || 5000);
 const server = app.listen(port, "0.0.0.0", () => {
   console.log(`✅ [BOOT] Server listening on 0.0.0.0:${port}`);
@@ -196,6 +266,7 @@ const server = app.listen(port, "0.0.0.0", () => {
   initializeApp().catch((err) => {
     console.error("❌ [INIT] Background initialization failed:", err);
     initError = err;
+    settleInitialization();
   });
 });
 
@@ -773,6 +844,16 @@ async function initializeApp() {
       );
     }
 
+    {
+      const { db: dbStripeReadiness } = await import("./db");
+      const { assertStripeBillingSchema } = await import(
+        "./db/migrations/assertStripeBillingSchema"
+      );
+      await assertStripeBillingSchema(dbStripeReadiness as any);
+      markStripeBillingReady();
+      console.log("✅ [INIT] Stripe webhook billing ledger ready");
+    }
+
     // ── Post-migration guards: verify critical columns are actually present ─
     // These run outside the migration try/catch so a timed-out or failed
     // migration that left columns absent causes a loud initialization failure
@@ -860,12 +941,6 @@ async function initializeApp() {
     // Request ID + logging run after CORS so preflights don't create noise
     app.use(requestId);
     app.use(logger);
-
-    // CRITICAL: Stripe webhook MUST be registered before express.json() so the
-    // raw Buffer body is preserved for signature verification. express.json()
-    // would parse it into an object, making constructEvent() throw a 400.
-    const stripeWebhookRouter = (await import("./routes/stripeWebhook")).default;
-    app.use("/api/stripe/webhook", express.raw({ type: "application/json" }), stripeWebhookRouter);
 
     app.use(express.json({ limit: "10mb" }));
     app.use(express.urlencoded({ extended: false }));
@@ -1222,6 +1297,8 @@ async function initializeApp() {
     try {
       const { db: dbPreflight } = await import("./db");
       const { sql: sqlPreflight } = await import("drizzle-orm");
+      const { runFoodsIEnjoyMigration } = await import("./db/migrations/runFoodsIEnjoyMigration");
+      await runFoodsIEnjoyMigration(dbPreflight);
       // safety_override_audit_logs.correlation_id
       await dbPreflight.execute(sqlPreflight`ALTER TABLE safety_override_audit_logs ADD COLUMN IF NOT EXISTS correlation_id uuid`);
       // users — ProCare, Performance, i18n, clinical context
@@ -1296,6 +1373,7 @@ async function initializeApp() {
 
     // Mark as fully initialized
     isInitialized = true;
+    settleInitialization();
     console.log(
       `🎉 [INIT] Full initialization complete in ${Date.now() - startTime}ms`,
     );
@@ -1670,6 +1748,8 @@ async function initializeApp() {
         try {
           const { runBugReportsMigration } = await import("./db/migrations/runBugReportsMigration");
           await runBugReportsMigration();
+          const { startBugReportAcknowledgementWorker } = await import("./services/bugReportAcknowledgement");
+          startBugReportAcknowledgementWorker();
         } catch (err: any) {
           console.error("❌ [prod] Bug Reports migration failed:", err.message);
         }

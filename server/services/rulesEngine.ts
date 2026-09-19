@@ -17,6 +17,8 @@ export type PlanParams = {
   userAllergens?: string[];
   vegOptOut?: boolean; // "no vegetables" toggle
   dislikes?: string[]; // disliked foods
+  /** Explicit Foods I Enjoy labels; soft ranking only after safety filters. */
+  preferredFoods?: string[];
 };
 
 export type HardRules = {
@@ -122,7 +124,24 @@ export function scoreTemplateForUser(t: Template, params: PlanParams) {
   score += Math.max(0, 8 - t.ingredients.length) * 0.1;
   const totalCook = (t.prepTime ?? 0) + (t.cookTime ?? 0);
   score += Math.max(0, 45 - totalCook) * 0.02;
+  if (params.preferredFoods?.length) {
+    const haystack = [
+      t.name,
+      t.cuisine ?? "",
+      ...t.ingredients.map((ingredient) => ingredient.name),
+    ].join(" ").toLowerCase();
+    for (const preference of params.preferredFoods) {
+      const normalized = preference.trim().toLowerCase();
+      if (normalized && haystack.includes(normalized)) score += 4;
+    }
+  }
   return score;
+}
+
+export function scoreSafeTemplates<T extends Template>(templates: T[], params: PlanParams): T[] {
+  return templates
+    .filter((template) => fitsBaseSafety(template, params))
+    .sort((a, b) => scoreTemplateForUser(b, params) - scoreTemplateForUser(a, params));
 }
 
 export function enforceWeeklyCaps(week: Template[][], rules=defaultRules) {

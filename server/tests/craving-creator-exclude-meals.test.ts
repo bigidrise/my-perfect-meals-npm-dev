@@ -304,6 +304,23 @@ describe("generateCravingMealOptions — ANTI-REPETITION clause in prompt", () =
     expect(capturedCalls.length).toBeGreaterThan(0);
     expect(capturedCalls[0].prompt).not.toMatch(/ANTI-REPETITION/i);
   });
+
+  it("communicates a customary individual serving without imposing a craving calorie limit", async () => {
+    await generateCravingMealOptions(
+      "cheeseburger",
+      "snack",
+      "test-user-exclude-001",
+      [],
+      [],
+      false,
+      "auto",
+    );
+
+    expect(capturedCalls.length).toBeGreaterThan(0);
+    expect(capturedCalls[0].prompt).toMatch(/reasonable, customary individual serving/i);
+    expect(capturedCalls[0].prompt).toMatch(/not as inspiration for a different/i);
+    expect(capturedCalls[0].prompt).not.toMatch(/100.?300 calories|maximum.*calorie limit/i);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
