@@ -9,9 +9,16 @@ import {
   myPerfectMenuCategorySchema,
   myPerfectMenuConceptSchema,
   myPerfectMenuPreferencesSchema,
+  type MyPerfectMenuCategory,
   type MyPerfectMenuConcept,
   type MyPerfectMenuPreferences,
 } from "@shared/myPerfectMenu";
+import {
+  buildCulinaryFingerprint,
+  culinaryIdentitySchema,
+  hasMeaningfulCulinaryRepetition,
+  selectCulinarilyBroadConcepts,
+} from "@shared/culinaryIdentity";
 import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
 import { createHumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
 import { buildCreatorHumanFoodPrompt } from "../services/humanFoodContext/adapters";
@@ -43,8 +50,11 @@ const generationRequestSchema = subjectSchema.extend({
 const clearRequestSchema = subjectSchema.extend({
   ideaType: categorySchema,
 });
+const generatedConceptSchema = myPerfectMenuConceptSchema
+  .omit({ id: true, ideaType: true })
+  .extend({ culinaryIdentity: culinaryIdentitySchema });
 const generatedResponseSchema = z.object({
-  concepts: z.array(myPerfectMenuConceptSchema.omit({ id: true, ideaType: true })).min(3).max(8),
+  concepts: z.array(generatedConceptSchema).min(3).max(8),
 });
 
 type SubjectTarget =
@@ -270,18 +280,37 @@ router.post("/concepts", requireAuth, async (req, res) => {
       ...(stored.categories[parsed.data.ideaType] ?? []).map((concept) => normalize(concept.signature)),
     ]);
     const requiredCuisine = context.flavor.cuisine.available ? context.flavor.cuisine.value : null;
-    const accepted: MyPerfectMenuConcept[] = [];
+    const occasion = parsed.data.ideaType as MyPerfectMenuCategory;
+    const candidatePool: MyPerfectMenuConcept[] = [];
     const rejectedReasons: string[] = [];
+    let accepted: MyPerfectMenuConcept[] = [];
+    const recentCulinaryHistory = stored.recentCulinaryFingerprints.filter(
+      (item) => item.occasion === occasion,
+    );
+    const recentPatternSummary = recentCulinaryHistory
+      .slice(0, 48)
+      .map((item) => [
+        item.dishForm,
+        item.preparationStyle,
+        item.majorStarchBase || item.primaryProteinBase || "none",
+        item.flavorFamily,
+        item.texture || "unspecified",
+        item.temperature || "unspecified",
+      ].join("|"));
 
-    for (let attempt = 0; attempt < 3 && accepted.length < 3; attempt += 1) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
       const generated = generatedResponseSchema.parse(await chatJson({
         temperature: attempt === 0 ? 0.55 : 0.7,
         system: [
           "You create lightweight, fully personalized menu concepts for My Perfect Meals.",
-          "Return JSON only with: {\"concepts\":[{\"title\":\"\",\"description\":\"\",\"primaryIngredients\":[\"\"],\"primaryProtein\":null,\"produceItems\":[],\"cuisine\":\"\",\"dietaryEvidence\":[],\"preparationMethod\":\"\",\"signature\":\"\",\"foodIdentity\":{\"foodRole\":\"dessert|general_snack\",\"polarity\":\"sweet|savory|neutral\",\"formatFamily\":\"cookie|brownie|cake|cupcake|cheesecake|pudding_custard|frozen_dessert|bar|muffin|pie|no_bake_dessert|pastry|confection|general_sweet|general_snack\",\"preparationStyle\":\"baked|frozen|chilled|no_bake|prepared|raw\",\"texture\":\"creamy|crunchy|chewy|soft|crisp|smooth|mixed\"}}]}",
+          "Return JSON only with: {\"concepts\":[{\"title\":\"\",\"description\":\"\",\"primaryIngredients\":[\"\"],\"primaryProtein\":null,\"produceItems\":[],\"cuisine\":\"\",\"dietaryEvidence\":[],\"preparationMethod\":\"\",\"signature\":\"\",\"culinaryIdentity\":{\"dishForm\":\"\",\"preparationStyle\":\"\",\"texture\":\"\",\"temperature\":\"hot|warm|room_temperature|chilled|frozen\",\"primaryProteinBase\":null,\"majorStarchBase\":null,\"flavorFamily\":\"\",\"cuisineEvidence\":\"\",\"definingComponents\":[\"\"]},\"foodIdentity\":{\"foodRole\":\"dessert|general_snack\",\"polarity\":\"sweet|savory|neutral\",\"formatFamily\":\"cookie|brownie|cake|cupcake|cheesecake|pudding_custard|frozen_dessert|bar|muffin|pie|no_bake_dessert|pastry|confection|general_sweet|general_snack\",\"preparationStyle\":\"baked|frozen|chilled|no_bake|prepared|raw\",\"texture\":\"creamy|crunchy|chewy|soft|crisp|smooth|mixed\"}}]}",
           "Return 3 to 6 candidates. They are concepts, not recipes: no quantities, instructions, nutrition numbers, medical claims, or images.",
           "primaryIngredients must name every meaningful food needed to validate the concept.",
           "signature must be a compact normalized dish-format + protein + method identity.",
+          "Include culinaryIdentity for every candidate. It describes the food and supports recommendation breadth; it is not a health or nutrition rule.",
+          "Treat changing only the protein, adjective, or cuisine label on an otherwise identical bowl, salad, wrap, plate, or other structure as substantial similarity.",
+          "Explore meaningfully different dish forms, bases, preparations, flavors, textures, and temperatures when they fit the person. Do not use quotas or force every dimension to differ.",
+          "Do not default to generic healthy-food templates such as bowls, salads, grilled protein with vegetables, yogurt, oatmeal, or wraps.",
           "Every candidate must obey the supplied authoritative context and protocol guidance.",
           requiredCuisine
             ? `Cuisine requirement: every candidate must be recognizably ${requiredCuisine}; adapt that cuisine to higher-priority requirements rather than changing cuisines.`
@@ -299,28 +328,40 @@ router.post("/concepts", requireAuth, async (req, res) => {
           glp1Block,
           `Create ${parsed.data.ideaType} concepts for ${target.label ?? "the person being fed"}.`,
           `Previously shown signatures to avoid immediately: ${[...priorSignatures].join(", ") || "none"}.`,
+          `Recent culinary patterns to move beyond when appropriate: ${recentPatternSummary.join(", ") || "none"}.`,
           rejectedReasons.length ? `Repair these prior validation failures: ${rejectedReasons.slice(-12).join(", ")}.` : "",
+          candidatePool.length
+            ? "Earlier candidates were too structurally repetitive. Broaden the culinary structures while preserving the person's context and cuisine."
+            : "",
           "Vary dish format, primary protein, preparation method, flavor profile, and—when relevant—food identity dimensions without overriding the person's preferences.",
         ].filter(Boolean).join("\n\n"),
       }));
 
       for (const candidate of generated.concepts) {
         const signature = normalize(candidate.signature);
-        const protein = normalize(candidate.primaryProtein);
-        if (priorSignatures.has(signature) || accepted.some((item) => normalize(item.signature) === signature)) continue;
-        if (protein && accepted.some((item) => normalize(item.primaryProtein) === protein)) continue;
+        if (
+          priorSignatures.has(signature) ||
+          candidatePool.some((item) => normalize(item.signature) === signature)
+        ) continue;
         const violations = conceptViolations(candidate, context, envelope, requiredCuisine);
         if (violations.length) {
           rejectedReasons.push(...violations);
           continue;
         }
-        accepted.push({
+        candidatePool.push({
           ...candidate,
           id: randomUUID(),
           ideaType: parsed.data.ideaType,
         });
-        if (accepted.length === 3) break;
       }
+
+      accepted = selectCulinarilyBroadConcepts(
+        candidatePool,
+        occasion,
+        recentCulinaryHistory,
+        3,
+      );
+      if (accepted.length === 3 && !hasMeaningfulCulinaryRepetition(accepted, occasion)) break;
     }
 
     if (accepted.length !== 3) {
@@ -338,6 +379,10 @@ router.post("/concepts", requireAuth, async (req, res) => {
         ...concepts.map((concept) => concept.signature),
         ...current.recentSignatures,
       ].slice(0, 24),
+      recentCulinaryFingerprints: [
+        ...concepts.map((concept) => buildCulinaryFingerprint(concept, occasion)),
+        ...current.recentCulinaryFingerprints,
+      ].slice(0, 96),
       updatedAt: new Date().toISOString(),
     }));
     await scope.completeAuthorization();

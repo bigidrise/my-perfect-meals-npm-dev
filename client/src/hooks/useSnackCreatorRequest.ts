@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { handleDefinitiveAuthFailure, SESSION_EXPIRED_MESSAGE } from "@/lib/authRequired";
 import { getAuthHeaders } from "@/lib/auth";
 import type { DietClassification } from "@/types/meal";
 
@@ -138,6 +139,9 @@ export function useSnackCreatorRequest(userId?: string, householdProfileId?: str
       const data = await response.json();
       
       if (!response.ok || !data.success) {
+        if (handleDefinitiveAuthFailure(response, data)) {
+          throw new Error(SESSION_EXPIRED_MESSAGE);
+        }
         // Check if this is a safety/allergy block with detailed message
         if (data.safetyBlocked && data.error) {
           throw new Error(data.error);

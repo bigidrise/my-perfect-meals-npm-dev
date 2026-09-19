@@ -103,3 +103,4 @@
 - [Foods I Enjoy boundary](foods-i-enjoy-boundary.md) — explicit subject-owned enjoyment stays separate from legacy likes, inference, and safety governance.
 - [Future food date context](future-food-date-context.md) — destination dates must reach every nutrition and clinical resolver, not only meal-budget logic.
 - [Snack occasion semantics](snack-occasion-semantics.md) — snack is an eating occasion; dessert is one valid family, and personalization must not default to shrinking it.
+- [My Perfect Menu culinary breadth](my-perfect-menu-culinary-breadth.md) — use shared culinary identity and soft subject-scoped history, never quotas or protein-swap novelty.

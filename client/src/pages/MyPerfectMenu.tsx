@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { handleDefinitiveAuthFailure, SESSION_EXPIRED_MESSAGE } from "@/lib/authRequired";
 import { useAuth } from "@/contexts/AuthContext";
 import { useHousehold } from "@/contexts/HouseholdContext";
 import { useCreateWithChefRequest } from "@/hooks/useCreateWithChefRequest";
@@ -37,6 +38,13 @@ interface MenuConcept {
 }
 
 type ConceptSets = Partial<Record<IdeaType, MenuConcept[]>>;
+
+function responseError(response: Response, payload: any, fallback: string): Error {
+  if (handleDefinitiveAuthFailure(response, payload)) {
+    return new Error(SESSION_EXPIRED_MESSAGE);
+  }
+  return new Error(payload?.error || fallback);
+}
 
 const IDEA_TYPES: Array<{
   value: IdeaType;
@@ -109,8 +117,9 @@ export default function MyPerfectMenu() {
       headers: getAuthHeaders(),
     })
       .then(async (response) => {
-        if (!response.ok) throw new Error("We couldn't restore your menu ideas.");
-        return response.json();
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw responseError(response, payload, "We couldn't restore your menu ideas.");
+        return payload;
       })
       .then((payload) => {
         if (!cancelled) {
@@ -139,7 +148,7 @@ export default function MyPerfectMenu() {
         body: JSON.stringify({ ideaType: nextType, subjectUserId }),
       });
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error || "We couldn't create your ideas.");
+       if (!response.ok) throw responseError(response, payload, "We couldn't create your ideas.");
       if (
         subjectEpochRef.current !== requestedEpoch ||
         subjectRef.current !== requestedSubject ||
@@ -176,7 +185,7 @@ export default function MyPerfectMenu() {
         body: JSON.stringify({ ideaType: requestedType, subjectUserId }),
       });
       const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error || "We couldn't clear these ideas.");
+       if (!response.ok) throw responseError(response, payload, "We couldn't clear these ideas.");
       if (
         subjectEpochRef.current !== requestedEpoch ||
         subjectRef.current !== requestedSubject ||
@@ -213,7 +222,7 @@ export default function MyPerfectMenu() {
       }),
     });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(result.error || "The meal couldn't be added to your plan.");
+    if (!response.ok) throw responseError(response, result, "The meal couldn't be added to your plan.");
     window.dispatchEvent(new CustomEvent("mpm:board-slot-added", {
       detail: {
         weekStartISO: result.weekStartISO,
@@ -232,8 +241,11 @@ export default function MyPerfectMenu() {
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({ meal, mealType }),
       });
-      if (!response.ok) return meal;
-      const payload = await response.json();
+       const payload = await response.json().catch(() => ({}));
+       if (!response.ok) {
+         if (handleDefinitiveAuthFailure(response, payload)) throw new Error(SESSION_EXPIRED_MESSAGE);
+         return meal;
+       }
       return payload.meal || meal;
     } catch {
       return meal;
@@ -339,6 +351,29 @@ export default function MyPerfectMenu() {
           </p>
           {activeProfile && <p className="mt-3 text-sm font-semibold text-violet-200">Choosing for {activeProfile.displayName}</p>}
         </header>
+
+        <details className="group mt-4 rounded-2xl border border-white/15 bg-black/45 px-5 py-4 shadow-xl backdrop-blur-xl">
+          <summary className="flex min-h-8 cursor-pointer list-none items-center justify-between gap-3 text-sm font-bold text-violet-100 [&::-webkit-details-marker]:hidden">
+            <span>How It Works</span>
+            <span className="text-lg leading-none text-violet-300 transition-transform group-open:rotate-45" aria-hidden="true">+</span>
+          </summary>
+          <div className="mt-4 grid gap-3 border-t border-white/10 pt-4 sm:grid-cols-2">
+            {[
+              ["1. Pick an idea type", "Choose Breakfast, Lunch, Dinner, or Snack."],
+              ["2. Pick what sounds good", "Choose from 3 personalized ideas. Don’t see one you want? Try 3 More."],
+              ["3. Choose when you want it", "Pick a date and Meal 1–6 or Snack."],
+              ["4. We’ll create it for you", "My Perfect Meals creates the completed meal and adds it to your meal plan."],
+            ].map(([title, description]) => (
+              <div key={title} className="rounded-xl bg-white/[0.04] p-3">
+                <p className="text-sm font-bold text-white">{title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-white/55">{description}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-xs leading-relaxed text-white/50">
+            Breakfast, Lunch, and Dinner describe the kind of food you’re looking for. Meal 1–6 is simply where you want it placed in your plan.
+          </p>
+        </details>
 
         {!ideaType ? (
           <section className="mt-8">

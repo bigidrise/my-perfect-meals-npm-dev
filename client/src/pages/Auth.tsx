@@ -58,6 +58,7 @@ export default function Auth() {
     return p && p.startsWith("/") && !p.startsWith("//") ? p : null;
   }, [search]);
   const isIdleTimeout = useMemo(() => new URLSearchParams(search).get("reason") === "idle_timeout", [search]);
+  const isSessionExpired = useMemo(() => new URLSearchParams(search).get("reason") === "session_expired", [search]);
   const signupSource = useMemo(() => {
     const p = new URLSearchParams(search);
     return p.get("source") || p.get("ref") || null;
@@ -351,13 +352,15 @@ export default function Auth() {
         <span className="absolute inset-0 -z-0 pointer-events-none rounded-2xl
                          bg-gradient-to-br from-white/10 via-transparent to-transparent" />
 
-        {isIdleTimeout && (
+        {(isIdleTimeout || isSessionExpired) && (
           <div className="relative z-10 mb-4 flex items-start gap-2 rounded-xl bg-orange-600/15 border border-orange-500/30 px-3 py-2.5">
             <svg className="mt-0.5 h-4 w-4 shrink-0 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <p className="text-xs text-orange-200">
-              You were signed out after a period of inactivity. Please sign in again to continue.
+              {isSessionExpired
+                ? "Your session has expired. Please sign in again to continue."
+                : "You were signed out after a period of inactivity. Please sign in again to continue."}
             </p>
           </div>
         )}

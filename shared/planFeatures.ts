@@ -21,7 +21,8 @@ export type Entitlement =
   | "getaway"
   | "grocery_coach"
   | "hydration_center"
-  | "performance_nutrition";
+  | "performance_nutrition"
+  | "my_perfect_menu";
 
 export interface PlanDefinition {
   tier: PlanTier;
@@ -50,6 +51,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
     displayFeatures: [
       "Everything in Free",
       "Create a Dish — AI meal generator built around your full nutritional profile",
+      "My Perfect Menu — not sure what you want? Pick from 3 personalized ideas, then we'll create your choice and add it to your meal plan.",
       "Recipe Maker — Import any recipe from a photo, text, or image description and instantly rebuild it around your dietary needs, nutrition goals, and active protocols.",
       "Smart Scan — Analyze ingredients, detect safety concerns, explain food quality, and recommend healthier alternatives based on your nutrition profile.",
       "Master Shopping List & Grocery Organization",
@@ -72,6 +74,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "hormones_women",
       "hormones_men",
       "fridge_rescue",
+      "my_perfect_menu",
     ],
   },
   premium: {
@@ -113,6 +116,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "grocery_coach",
       "hydration_center",
       "getaway",
+      "my_perfect_menu",
     ],
   },
   ultimate: {
@@ -148,6 +152,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "grocery_coach",
       "hydration_center",
       "performance_nutrition",
+      "my_perfect_menu",
     ],
   },
 };
@@ -155,6 +160,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
 export const IOS_DISPLAY_FEATURES: Record<string, string[]> = {
   basic: [
     "Create a Dish (AI meal generator)",
+    "My Perfect Menu — pick from 3 personalized ideas and turn your choice into a completed meal",
     "Recipe Maker — Import any recipe from a photo, text, or image description and instantly rebuild it around your dietary needs, nutrition goals, and active protocols.",
     "Smart Scan — Analyze ingredients, detect safety concerns, explain food quality, and recommend healthier alternatives based on your nutrition profile.",
     "Copilot Voice Guidance",

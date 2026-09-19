@@ -338,7 +338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await runMyPerfectMenuMigration(db);
   app.use("/api/foods-i-enjoy", foodsIEnjoyRouter);
   app.use("/api/household", householdFoodsIEnjoyRouter);
-  app.use("/api/my-perfect-menu", myPerfectMenuRouter);
+  app.use("/api/my-perfect-menu", requireAuth, requireEssentialAccess, myPerfectMenuRouter);
   // Health endpoint for network testing
   app.get("/api/health", (_req, res) => {
     res.json({
