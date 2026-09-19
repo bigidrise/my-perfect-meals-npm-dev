@@ -1,5 +1,6 @@
 import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { queryClient } from "@/lib/queryClient";
 
 export async function persistMealBuilderSelection(
   selectedMealBuilder: string,
@@ -22,5 +23,6 @@ export async function persistMealBuilderSelection(
     throw new Error("The server did not confirm the requested meal builder.");
   }
   await refreshUser();
+  await queryClient.invalidateQueries({ queryKey: ["my-perfect-menu-effective-builder"] });
   window.dispatchEvent(new CustomEvent("mpm:builderUpdated"));
 }

@@ -6,7 +6,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { getActiveBuilderNs } from "@/lib/activeBuilderNs";
 import { formatDateDisplay, getTodayISOSafe, getWeekStartFromDate } from "@/utils/midnight";
-import { getRolling14Days } from "@/utils/dateRange";
+import { getRolling14Days, getRolling7Days } from "@/utils/dateRange";
 import {
   MY_PERFECT_MENU_BUILDERS,
   type MyPerfectMenuBuilderKey,
@@ -64,6 +64,7 @@ export function MealPlanDestinationPicker({
 }: MealPlanDestinationPickerProps) {
   const todayISO = getTodayISOSafe(TZ);
   const dates = getRolling14Days(todayISO);
+  const mobileDates = getRolling7Days(todayISO);
   const [selectedDate, setSelectedDate] = useState(todayISO);
   const [selectedSlot, setSelectedSlot] = useState<MealPlanSlot | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -186,7 +187,29 @@ export function MealPlanDestinationPicker({
             </DrawerHeader>
             <div className="px-4 pb-2 pt-4">
               <p className="mb-2 text-xs uppercase tracking-widest text-white/40">Day</p>
-              <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+              <div className="grid grid-cols-4 gap-2 sm:hidden">
+                {mobileDates.map((dateISO) => {
+                  const active = selectedDate === dateISO;
+                  const isToday = dateISO === todayISO;
+                  return (
+                    <button
+                      type="button"
+                      key={dateISO}
+                      disabled={busy}
+                      onClick={() => { setSelectedDate(dateISO); setSelectedSlot(null); }}
+                      className={`flex min-h-16 min-w-0 flex-col items-center justify-center rounded-xl border px-1 transition-all ${
+                        active ? "border-violet-500 bg-violet-600 text-white" : "border-white/15 bg-white/5 text-white/80"
+                      }`}
+                    >
+                      <span className={`whitespace-nowrap text-[11px] font-semibold uppercase leading-none ${active ? "text-white" : "text-white/60"}`}>
+                        {isToday ? "Today" : formatDateDisplay(dateISO, { weekday: "short" }, TZ)}
+                      </span>
+                      <span className="mt-1 text-lg font-bold leading-none">{formatDateDisplay(dateISO, { day: "numeric" }, TZ)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="no-scrollbar hidden gap-2 overflow-x-auto pb-1 sm:flex">
                 {dates.map((dateISO) => {
                   const active = selectedDate === dateISO;
                   const isToday = dateISO === todayISO;
