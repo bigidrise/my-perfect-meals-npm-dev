@@ -25,6 +25,7 @@ import {
 import { findUserByValidAuthToken } from "../services/authTokenService";
 import { resolveProviderStudioAttribution, validateBp1Attribution } from "../services/bp1OrganizationAttributionService";
 import { WorkspaceContextError } from "../services/organizationWorkspaceService";
+import { createProCareInvitationExpiry } from "../lib/procareInvitationExpiry";
 
 const router = Router();
 
@@ -351,8 +352,7 @@ router.post("/:studioId/invite", async (req, res) => {
 
     const inviteCode = `MP-${nanoid(4).toUpperCase()}-${nanoid(3).toUpperCase()}`;
     const urlToken = nanoid(32);
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    const expiresAt = createProCareInvitationExpiry();
 
     const [invite] = await db
       .insert(studioInvites)
