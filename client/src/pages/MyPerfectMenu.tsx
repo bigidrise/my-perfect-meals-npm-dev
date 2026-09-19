@@ -23,6 +23,7 @@ import {
 } from "@/components/MealPlanDestinationPicker";
 import MealGenerationProgress from "@/components/MealGenerationProgress";
 import { CopilotBrain } from "@/components/copilot/CopilotBrain";
+import { usePageTitle } from "@/contexts/PageTitleContext";
 
 type IdeaType = "breakfast" | "lunch" | "dinner" | "snack";
 
@@ -74,6 +75,7 @@ function completedMealPayload(meal: any) {
 }
 
 export default function MyPerfectMenu() {
+  usePageTitle("My Perfect Menu");
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { activeProfile } = useHousehold();
