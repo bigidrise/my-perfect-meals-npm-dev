@@ -146,6 +146,8 @@ export async function resolveHumanFoodContext(
       cuisineIntensity: users.cuisineIntensity,
       flavorPreference: users.flavorPreference,
       heatPreference: users.heatPreference,
+      preferredSweeteners: users.preferredSweeteners,
+      avoidSweeteners: users.avoidSweeteners,
       timezone: users.timezone,
       activeHouseholdProfileId: users.activeHouseholdProfileId,
     })
@@ -168,6 +170,8 @@ export async function resolveHumanFoodContext(
       palateFlavorStyle: householdProfiles.palateFlavorStyle,
       cuisinePreference: householdProfiles.cuisinePreference,
       cuisineIntensity: householdProfiles.cuisineIntensity,
+      preferredSweeteners: householdProfiles.preferredSweeteners,
+      avoidSweeteners: sql<string[]>`ARRAY[]::text[]`,
     }).from(householdProfiles).where(and(
       eq(householdProfiles.id, profile.activeHouseholdProfileId),
       eq(householdProfiles.ownerUserId, input.actorUserId),
@@ -194,6 +198,8 @@ export async function resolveHumanFoodContext(
         palateFlavorStyle: householdProfiles.palateFlavorStyle,
         cuisinePreference: householdProfiles.cuisinePreference,
         cuisineIntensity: householdProfiles.cuisineIntensity,
+        preferredSweeteners: householdProfiles.preferredSweeteners,
+        avoidSweeteners: sql<string[]>`ARRAY[]::text[]`,
         flavorPreference: sql<string | null>`NULL`,
         heatPreference: sql<string | null>`NULL`,
         timezone: sql<string | null>`'UTC'`,
@@ -206,9 +212,8 @@ export async function resolveHumanFoodContext(
   if (!profile) {
     throw Object.assign(new Error("Food context subject was not found"), { status: 404 });
   }
-  // Household profile IDs are food subjects, not rows in users. Keep
-  // user-scoped nutrition/glucose/history lookups on the authenticated owner.
-  const nutritionUserId = userProfile ? input.subjectUserId : input.actorUserId;
+  const isExplicitHouseholdSubject = !userProfile;
+  const nutritionUserId = input.subjectUserId;
 
   const gaps: string[] = [];
   const notices: string[] = [];
@@ -222,7 +227,7 @@ export async function resolveHumanFoodContext(
   };
   let status: HumanFoodContext["status"] = "resolved";
 
-  try {
+  if (!isExplicitHouseholdSubject) try {
     const dateISO = input.dateISO ?? localDate(profile.timezone);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) {
       throw new Error("dateISO must be a YYYY-MM-DD user-local calendar date");
@@ -242,7 +247,7 @@ export async function resolveHumanFoodContext(
     notices.push("Daily nutrition context could not be resolved safely.");
   }
 
-  try {
+  if (!isExplicitHouseholdSubject) try {
     const profileMemory = await derivePreferenceProfile(nutritionUserId);
     if (profileMemory) {
       behavior = {
@@ -276,7 +281,7 @@ export async function resolveHumanFoodContext(
   const effectiveDiet = requestDiet ? [requestDiet] : storedDiet;
   const diabetesActive = [...(profile.healthConditions ?? []), ...effectiveDiet]
     .some((value) => normalizeRulePart(value).includes("diabet"));
-  if (diabetesActive) {
+  if (diabetesActive && !isExplicitHouseholdSubject) {
     try {
       const glucose = await resolveUserGlucoseState(nutritionUserId);
       const produce = glucose.activePreferences
@@ -360,6 +365,10 @@ export async function resolveHumanFoodContext(
     nutrition,
     behavior,
     foodsIEnjoy,
+    sweeteners: {
+      preferred: profile.preferredSweeteners ?? [],
+      avoided: profile.avoidSweeteners ?? [],
+    },
     diabetesFoodPreferences,
     gaps: [...new Set(gaps)],
     notices,

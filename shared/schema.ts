@@ -327,6 +327,7 @@ export const users = pgTable("users", {
   dislikedFoods: text("disliked_foods").array().default(sql`ARRAY[]::text[]`),
   likedFoods: text("liked_foods").array().default(sql`ARRAY[]::text[]`),
   foodsIEnjoy: jsonb("foods_i_enjoy").$type<import("./foodsIEnjoy").FoodsIEnjoyDocument>(),
+  myPerfectMenuPreferences: jsonb("my_perfect_menu_preferences").$type<import("./myPerfectMenu").MyPerfectMenuPreferences>(),
   avoidedFoods: text("avoided_foods").array().default(sql`ARRAY[]::text[]`),
   preferredSweeteners: text("preferred_sweeteners").array().default(sql`ARRAY[]::text[]`),
   avoidSweeteners: text("avoid_sweeteners").array().default(sql`ARRAY[]::text[]`),

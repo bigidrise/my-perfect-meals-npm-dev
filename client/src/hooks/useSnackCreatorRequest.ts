@@ -1,5 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { handleDefinitiveAuthFailure, SESSION_EXPIRED_MESSAGE } from "@/lib/authRequired";
+import { getAuthHeaders } from "@/lib/auth";
 import type { DietClassification } from "@/types/meal";
 
 export type DietType = 
@@ -54,11 +56,11 @@ interface UseSnackCreatorRequestResult {
   generating: boolean;
   progress: number;
   error: string | null;
-  generateSnack: (description: string, dietType?: DietType, dietPhase?: BeachBodyPhase, overrideToken?: string, forceStarch?: boolean, strictMode?: boolean, explicitOverride?: ExplicitOverride, userDietOverride?: boolean) => Promise<Snack | null>;
+  generateSnack: (description: string, dietType?: DietType, dietPhase?: BeachBodyPhase, overrideToken?: string, forceStarch?: boolean, strictMode?: boolean, explicitOverride?: ExplicitOverride, userDietOverride?: boolean, dateISO?: string, generationContext?: string) => Promise<Snack | null>;
   cancel: () => void;
 }
 
-export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestResult {
+export function useSnackCreatorRequest(userId?: string, householdProfileId?: string): UseSnackCreatorRequestResult {
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -98,7 +100,9 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
     forceStarch?: boolean,
     strictMode?: boolean,
     explicitOverride?: ExplicitOverride,
-    userDietOverride?: boolean
+    userDietOverride?: boolean,
+    dateISO?: string,
+    generationContext?: string,
   ): Promise<Snack | null> => {
     setGenerating(true);
     setError(null);
@@ -109,7 +113,8 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
     try {
       const response = await fetch(apiUrl("/api/meals/generate"), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        credentials: "include",
         body: JSON.stringify({
           type: "snack-creator",
           mealType: "snack",
@@ -124,6 +129,9 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
           strictMode: strictMode === true,
           explicitOverride: explicitOverride || null,
           userDietOverride: userDietOverride === true,
+          starchContext: dateISO ? { dateISO } : undefined,
+          generationContext: generationContext || null,
+          householdProfileId: householdProfileId || undefined,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -131,6 +139,9 @@ export function useSnackCreatorRequest(userId?: string): UseSnackCreatorRequestR
       const data = await response.json();
       
       if (!response.ok || !data.success) {
+        if (handleDefinitiveAuthFailure(response, data)) {
+          throw new Error(SESSION_EXPIRED_MESSAGE);
+        }
         // Check if this is a safety/allergy block with detailed message
         if (data.safetyBlocked && data.error) {
           throw new Error(data.error);

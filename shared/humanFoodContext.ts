@@ -15,7 +15,8 @@ export type HumanFoodCreator =
   | "dessert_creator"
   | "beverage_creator"
   | "sushi_creator"
-  | "my_perfect_beginning";
+  | "my_perfect_beginning"
+  | "my_perfect_menu";
 
 export type HumanFoodResolutionStatus =
   | "resolved"
@@ -100,6 +101,11 @@ export interface HumanFoodEnjoymentContext {
   legacyLikes: string[];
 }
 
+export interface HumanFoodSweetenerContext {
+  preferred: string[];
+  avoided: string[];
+}
+
 export interface DiabetesFoodPreferenceContext {
   state: "LOW" | "IN_RANGE" | "HIGH" | "STALE" | "NONE";
   preferenceBand: "LOW" | "IN_RANGE" | "HIGH" | null;
@@ -136,6 +142,7 @@ export interface HumanFoodContext {
   nutrition: DailyNutritionState | null;
   behavior: HumanFoodBehaviorContext | null;
   foodsIEnjoy: HumanFoodEnjoymentContext;
+  sweeteners: HumanFoodSweetenerContext;
   diabetesFoodPreferences: DiabetesFoodPreferenceContext | null;
   gaps: string[];
   notices: string[];

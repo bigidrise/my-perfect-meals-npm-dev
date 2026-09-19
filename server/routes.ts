@@ -39,7 +39,7 @@ import { requirePhase2Training } from "./middleware/requirePhase2Training";
 import { requireProCareAccess } from "./middleware/requireProCareAccess";
 import { requireMonetizationAccess } from "./middleware/requireMonetizationAccess";
 import { requireMacroProfile } from "./middleware/requireMacroProfile";
-import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, mealPlans, shoppingListItems, savedMeals as savedMealsTable, creators } from "@shared/schema";
+import { insertUserSchema, insertMealPlanSchema, insertMealLogSchema, insertMealReminderSchema, insertUserGlycemicSettingsSchema, aiMealPlanArchive, barcodes, mealLogsEnhanced, mealLog, userMealPrefs, insertUserMealPrefsSchema, meals, users, householdProfiles, mealPlans, shoppingListItems, savedMeals as savedMealsTable, creators } from "@shared/schema";
 import { getTierForLookupKey, getEntitlementsForTier, canAccessProCareStudio, TRIAL_UNLOCKS_TIER } from "@shared/planFeatures";
 import { studioMemberships, studios } from "./db/schema/studio";
 import { mealImageCache } from "./db/schema/mealImageCache";
@@ -165,6 +165,7 @@ import { loadStudioMembership } from "./middleware/studioAccess";
 import { isOnboardingAllergyBootstrapAuthorized } from "./services/profileAuthorization";
 import { scaleIngredientQuantity } from "./services/servingScaling";
 import foodsIEnjoyRouter, { householdFoodsIEnjoyRouter } from "./routes/foodsIEnjoy";
+import myPerfectMenuRouter from "./routes/myPerfectMenu";
 
 function normalizeFitnessGoal(value?: string | null): string | null {
   switch (value) {
@@ -333,8 +334,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   console.log("🔧 registerRoutes called - starting route registration");
   const { runFoodsIEnjoyMigration } = await import("./db/migrations/runFoodsIEnjoyMigration");
   await runFoodsIEnjoyMigration(db);
+  const { runMyPerfectMenuMigration } = await import("./db/migrations/runMyPerfectMenuMigration");
+  await runMyPerfectMenuMigration(db);
   app.use("/api/foods-i-enjoy", foodsIEnjoyRouter);
   app.use("/api/household", householdFoodsIEnjoyRouter);
+  app.use("/api/my-perfect-menu", requireAuth, requireEssentialAccess, myPerfectMenuRouter);
   // Health endpoint for network testing
   app.get("/api/health", (_req, res) => {
     res.json({
@@ -1135,6 +1139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         governanceOverrideToken,
         actionRequest: _actionRequest,
         authorizationAction: _authorizationAction,
+        householdProfileId,
       } = req.body;
 
       // When user chose "Continue Anyway" on the diet guard, inject a soft coaching override
@@ -1142,6 +1147,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const effectiveInput = userDietOverride === true && input && typeof input === 'string'
         ? `${input} [USER DIET SOFT OVERRIDE: The user has explicitly chosen to include this food despite their dietary preference. You MUST include the specifically requested ingredient exactly as requested. If it is a starchy food (potato, rice, bread, pasta), serve it as a controlled side portion (no more than ½ cup or 4 oz) — not the main base of the meal. Adjust all surrounding ingredients to maintain as much dietary alignment as possible. Do NOT add any additional high-carb or conflicting foods beyond what the user explicitly requested.]`
         : input;
+      const requestedDateISO =
+        typeof (starchContext as any)?.dateISO === "string" &&
+        /^\d{4}-\d{2}-\d{2}$/.test((starchContext as any).dateISO)
+          ? (starchContext as any).dateISO
+          : undefined;
       // Note: Carb cycle hard constraints are injected via the UserProtocolEnvelope
       // (loadUserProtocolEnvelope → carbCycleContext → enforceBeforeGenerate) — no
       // direct input-string mutation needed here.
@@ -1201,6 +1211,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // caller that submits another user's ID receives a meal generated for the
       // caller's own identity, preventing IDOR on PHI-adjacent health data.
       const effectiveUserId: string = delegatedClientId ?? authUserId;
+      let householdSubjectId: string | null = null;
+      if (typeof householdProfileId === "string" && householdProfileId) {
+        if (delegatedClientId) {
+          return res.status(400).json({ success: false, error: "Choose either a client or a household profile, not both." });
+        }
+        const [owner] = await db
+          .select({ activeHouseholdProfileId: users.activeHouseholdProfileId })
+          .from(users)
+          .where(eq(users.id, authUserId))
+          .limit(1);
+        const [profile] = await db
+          .select({ id: householdProfiles.id })
+          .from(householdProfiles)
+          .where(and(
+            eq(householdProfiles.id, householdProfileId),
+            eq(householdProfiles.ownerUserId, authUserId),
+          ))
+          .limit(1);
+        if (!owner || owner.activeHouseholdProfileId !== householdProfileId || !profile) {
+          return res.status(403).json({ success: false, error: "That household food profile is not active." });
+        }
+        householdSubjectId = profile.id;
+      }
       let humanFoodContext: import("@shared/humanFoodContext").HumanFoodContext | null = null;
       let humanFoodExecutionState: import("./services/humanFoodContext/requestExecutionState").HumanFoodRequestExecutionState | undefined;
       const stage2dHumanFoodTypes = new Set(["create-with-chef", "snack-creator", "premade", "craving"]);
@@ -1222,9 +1255,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             : null;
         humanFoodRequestScope = createHumanFoodRequestScope({
           actorUserId: authUserId,
-          subjectUserId: effectiveUserId,
+          subjectUserId: householdSubjectId ?? effectiveUserId,
           creator: "recipe_maker",
           correlationId: (req as any).id,
+          dateISO: requestedDateISO,
           dietOverride: resolveRequestDietOverride(dietOverride, dietType),
           cuisine: typeof req.body.cultureOverride === "string" ? req.body.cultureOverride : null,
           cuisineIntensity: typeof req.body.cuisineIntensity === "string" ? req.body.cuisineIntensity : null,
@@ -1233,6 +1267,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           advisoryOverrideToken: canonicalAdvisoryToken,
         });
         humanFoodContext = await humanFoodRequestScope.resolve();
+        if (householdSubjectId) {
+          // Account-only daily state, glucose logs, and learned behavior belong
+          // to the owner account. They must never leak into an explicit household
+          // subject. Profile-owned safety, diet, cuisine, palate, and enjoyment
+          // remain available through the canonical context.
+          humanFoodContext = Object.freeze({
+            ...humanFoodContext,
+            nutrition: null,
+            diabetesFoodPreferences: null,
+            behavior: null,
+          });
+        }
         humanFoodExecutionState = humanFoodRequestScope.executionState;
         if (humanFoodContext.status === "review_required" || humanFoodContext.status === "blocked") {
           return res.status(409).json({
@@ -1257,7 +1303,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // triggers no allergy conflict is not consumed and must NOT suppress
       // post-generation scanning.
       let _unifiedOverriddenAllergens: string[] = [];
-      if (effectiveUserId && input) {
+      if (!householdSubjectId && effectiveUserId && input) {
         const inputText = Array.isArray(input) ? input.join(' ') : input;
         const enforcement = await runEnforcement({
           userId: effectiveUserId,
@@ -1327,7 +1373,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Auto-enrich nutritionStrategy from user profile if not explicitly provided
       // Skip entirely when strictMode is on — no veg targets should be injected
       let nutritionStrategy = bodyNutritionStrategy ?? null;
-      if (!strictMode && !nutritionStrategy && effectiveUserId && type === 'create-with-chef') {
+      if (!householdSubjectId && !strictMode && !nutritionStrategy && effectiveUserId && type === 'create-with-chef') {
         try {
           const { db } = await import("./db");
           const { users } = await import("../shared/schema");
@@ -1398,13 +1444,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // post-gen clinical ceiling gate below.
       let budgetGenerationContext: string = "standard";
 
-      if (true) {
+      if (!householdSubjectId) {
         // delegatedClientId is set above when a physician has authorized access to a
         // client. When set, budget resolves against the client's DailyNutritionState.
         const budgetUserId = delegatedClientId ?? authUserId;
         // Prefer the date embedded in the starchContext (builder's active day);
         // fall back to today in UTC when it is absent.
-        const budgetDateISO: string = (starchContext as any)?.dateISO
+        const budgetDateISO: string = requestedDateISO
           ?? new Date().toISOString().split("T")[0];
 
         try {
@@ -1479,12 +1525,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // effectiveDietType starts as the client-supplied value; may be overridden
       // to 'glp1' when the server detects the user is on GLP-1 medication.
       let effectiveDietType: typeof dietType = dietType;
-      if (effectiveUserId) {
+      if (!householdSubjectId && effectiveUserId) {
         try {
           const { resolveGLP1GlobalContext } = await import("./services/glp1/resolveGLP1GlobalContext");
           const glp1Ctx = await resolveGLP1GlobalContext(
             effectiveUserId,
-            new Date().toISOString().split("T")[0],
+            requestedDateISO ?? new Date().toISOString().split("T")[0],
             (mealType === 'breakfast' || mealType === 'lunch' || mealType === 'dinner' || mealType === 'snack')
               ? mealType
               : 'lunch',
@@ -1518,6 +1564,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      let householdProtocolEnvelope: import("./services/protocolEnvelope").UserProtocolEnvelope | undefined;
+      if (householdSubjectId) {
+        const { loadUserProtocolEnvelope } = await import("./services/protocolEnvelope");
+        householdProtocolEnvelope = await loadUserProtocolEnvelope(authUserId, householdSubjectId) ?? undefined;
+        if (!householdProtocolEnvelope) {
+          return res.status(409).json({
+            success: false,
+            error: "The active household food profile could not be resolved safely.",
+            source: "household_context_error",
+          });
+        }
+      }
+
       const generationRequest = {
         // Stage 2D callers share context resolution, but Snack Creator keeps its
         // specialized generator. The other legacy types use Create with Chef.
@@ -1529,7 +1588,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               : type,
         mealType,
         input: effectiveInput,
-        userId: effectiveUserId,
+        userId: householdSubjectId ? undefined : effectiveUserId,
+        protocolEnvelope: householdProtocolEnvelope,
         macroTargets,
         count,
         dietType: effectiveDietType,
@@ -1559,12 +1619,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // dietType but not dietOverride) automatically benefits from override semantics.
         // Allergies, medical, and procedural rules come from the protocol envelope unchanged.
         dietaryRestrictionsOverride: (() => {
-          const src =
-            (dietOverride && typeof dietOverride === 'string' && dietOverride.trim())
+          const householdDiet = householdSubjectId
+            ? humanFoodContext?.diet.effective.find((value) => typeof value === "string" && value.trim())
+            : null;
+          const validDietOverride =
+            typeof dietOverride === "string" && dietOverride.trim()
               ? dietOverride.trim()
-              : (effectiveDietType && typeof effectiveDietType === 'string')
-                ? effectiveDietType
-                : null;
+              : null;
+          const validEffectiveDietType =
+            typeof effectiveDietType === "string" && effectiveDietType.trim()
+              ? effectiveDietType
+              : null;
+          const src = householdDiet ?? validDietOverride ?? validEffectiveDietType;
           if (src) {
             console.log(`🔀 [CHEF] dietaryRestrictionsOverride: ["${src}"] (source: ${dietOverride ? 'dietOverride' : 'dietType'})`);
             return [src];
@@ -1579,6 +1645,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         overriddenAllergens: _unifiedOverriddenAllergens.length ? _unifiedOverriddenAllergens : undefined,
       };
       const result = await generateMealUnified(generationRequest);
+
+      if (result.success && humanFoodContext) {
+        const { validateHumanFoodResult } = await import("./services/humanFoodContext/validateHumanFoodResult");
+        const candidate = result.meal ?? result.meals?.[0];
+        const canonicalValidation = validateHumanFoodResult(candidate, humanFoodContext);
+        if (!canonicalValidation.valid) {
+          console.warn("[UnifiedGeneration] Canonical person-fed validation rejected result", {
+            householdSubjectId,
+            violations: canonicalValidation.violations,
+          });
+          return res.status(422).json({
+            success: false,
+            error: "We couldn't create a meal that fits the active food profile. Please try again.",
+            source: "human_food_validation",
+          });
+        }
+      }
 
       const durationMs = Date.now() - startTime;
       recordGeneration('/api/meals/generate', result.source as any, durationMs);
@@ -1712,7 +1795,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { validateMealForDiet } = await import("./services/guardrails/index");
         const { validateClinicalMacros } = await import("./services/clinicalMacroGate");
         const { getRequestedDishExemptTerms } = await import("./services/allergyGuardrails");
-        const finalProtocolEnvelope =
+        const finalProtocolEnvelope = householdProtocolEnvelope ??
           (await loadUserProtocolEnvelope(effectiveUserId).catch(() => null)) ?? buildGuestEnvelope();
         const requestedDish =
           typeof effectiveInput === "string" && effectiveInput.trim().length <= 120
@@ -1882,9 +1965,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // NOTE: pipeline returns BOTH result.meal and result.meals[0] — patch both so all
       // consumers (hook reads meals[0], other readers use meal) get the classification.
       if (result.success && (result.meal || result.meals?.length)) {
-        const envelope = effectiveUserId
+        const envelope = householdProtocolEnvelope ?? (effectiveUserId
           ? (await loadUserProtocolEnvelope(effectiveUserId).catch(() => null)) ?? buildGuestEnvelope()
-          : buildGuestEnvelope();
+          : buildGuestEnvelope());
         if (result.meal) {
           const { complianceSection, dietClassification } = buildMealComplianceBundle(result.meal, envelope);
           result.meal = { ...result.meal, complianceSection, dietClassification } as any;
@@ -1900,7 +1983,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // ── Part 5 — Final Consistency Check ─────────────────────────────────
       // Sanitize meal name(s) to match the user's detected diet before sending.
       // Catches any concept-word mismatches the AI might have slipped through.
-      if (result.success) {
+      if (result.success && !householdSubjectId) {
         try {
           const [unifiedUserRow] = await db
             .select({ dietaryRestrictions: users.dietaryRestrictions })
@@ -1935,7 +2018,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // ── Protocol Stamp — attach appliedProtocol so clients can verify protocol was applied ──
-      if (result.success) {
+      if (result.success && !householdSubjectId) {
         try {
           const [stampRow] = await db
             .select({

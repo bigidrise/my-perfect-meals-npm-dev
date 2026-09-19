@@ -1571,6 +1571,39 @@ const SECTION_HEALTH_SAFETY: LibraryTopic[] = [
 
 const SECTION_SPECIALIZED: LibraryTopic[] = [
   {
+    id: "my-perfect-menu",
+    title: "My Perfect Menu",
+    subtitle: "Need help building your meal plan?",
+    icon: Sparkles,
+    content: {
+      sections: [
+        {
+          heading: "What It Is",
+          text: "Not sure what you want to eat? My Perfect Menu gives you three personalized breakfast, lunch, dinner, or snack ideas. Choose one, decide where you want it in your plan, and My Perfect Meals creates the meal for you.",
+        },
+        {
+          heading: "How to Use It",
+          list: [
+            "Choose Breakfast Ideas, Lunch Ideas, Dinner Ideas, or Snack Ideas.",
+            "Review the three personalized concepts.",
+            "Tap Try 3 More if you want a different set.",
+            "Tap Choose This when one sounds good.",
+            "Select a date and Meal 1–6 or Snack destination.",
+            "My Perfect Meals creates the completed meal and adds it to your plan.",
+          ],
+        },
+        {
+          heading: "How It Helps",
+          text: "My Perfect Menu helps you decide what sounds good before My Perfect Meals creates the completed meal. Your choices are personalized around the person you are planning for.",
+        },
+        {
+          heading: "My Perfect Menu or a Meal Builder?",
+          text: "Know what you want? Use the Meal Builders. Not sure what you want? My Perfect Menu helps you choose, then My Perfect Meals creates it and adds it to your plan.",
+        },
+      ],
+    },
+  },
+  {
     id: "my-perfect-pregnancy",
     title: "My Perfect Pregnancy — How the System Adapts",
     subtitle: "Trimester-aware · Food safety enforcement · Symptom-responsive",

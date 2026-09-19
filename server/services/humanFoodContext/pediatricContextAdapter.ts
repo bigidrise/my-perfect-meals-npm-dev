@@ -115,6 +115,7 @@ export function buildPediatricHumanFoodContext(
     nutrition: null,
     behavior: null,
     foodsIEnjoy: { explicit: [], legacyLikes: [] },
+    sweeteners: { preferred: [], avoided: [] },
     diabetesFoodPreferences: null,
     gaps: [],
     notices: [],

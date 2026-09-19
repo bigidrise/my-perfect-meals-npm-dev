@@ -30,6 +30,7 @@ function finiteNumber(value: unknown): number | null {
 export function validateHumanFoodResult(
   result: unknown,
   context: HumanFoodContext,
+  options: { requireNutrition?: boolean } = {},
 ): HumanFoodValidationResult {
   const violations: string[] = [];
   const text = ingredientText(result);
@@ -82,9 +83,10 @@ export function validateHumanFoodResult(
   const carbs = finiteNumber(nutrition.carbs ?? nutrition.carbs_g);
   const fat = finiteNumber(nutrition.fat ?? nutrition.fat_g);
   const starchyCarbs = finiteNumber(nutrition.starchyCarbs ?? nutrition.starchy_carbs);
-  if (context.nutrition && calories == null) violations.push("verified_calories_missing");
-  if (context.nutrition && carbs == null) violations.push("verified_carbs_missing");
-  if (context.nutrition && fat == null) violations.push("verified_fat_missing");
+  const requireNutrition = options.requireNutrition !== false;
+  if (requireNutrition && context.nutrition && calories == null) violations.push("verified_calories_missing");
+  if (requireNutrition && context.nutrition && carbs == null) violations.push("verified_carbs_missing");
+  if (requireNutrition && context.nutrition && fat == null) violations.push("verified_fat_missing");
   if (remaining && calories != null && calories > remaining.calories) {
     violations.push("projected_calorie_budget_exceeded");
   }
@@ -94,7 +96,7 @@ export function validateHumanFoodResult(
   if (remaining && fat != null && fat > remaining.fat) {
     violations.push("projected_fat_budget_exceeded");
   }
-  if (context.nutrition?.activeConstraints.consumedStarchExhausted) {
+  if (requireNutrition && context.nutrition?.activeConstraints.consumedStarchExhausted) {
     if (starchyCarbs == null) {
       violations.push("verified_starchy_carbs_missing");
     } else if (starchyCarbs > 0) {

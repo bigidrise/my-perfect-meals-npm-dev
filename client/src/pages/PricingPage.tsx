@@ -668,6 +668,15 @@ export default function PricingPage() {
         className="max-w-6xl mx-auto px-4 text-white space-y-8"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
+        <div className="rounded-2xl border border-orange-300/20 bg-black/30 px-5 py-4 text-center shadow-lg backdrop-blur-lg">
+          <p className="font-semibold text-white">
+            Know what you want? Build it. Not sure what you want? Pick from My Perfect Menu.
+          </p>
+          <p className="mt-1 text-sm text-white/65">
+            Both personalized meal-creation paths are included with Essential and above.
+          </p>
+        </div>
+
         {/* Free Tier Card */}
         <div className="mb-2">
           <Card className="relative bg-black/30 backdrop-blur-lg text-white shadow-xl border border-white/15">

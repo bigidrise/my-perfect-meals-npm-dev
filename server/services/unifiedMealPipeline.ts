@@ -13,7 +13,7 @@
 
 import { isRecipeSensitiveDish } from './dishEngineRouter';
 import { getMeasurementPromptBlock, MeasurementSystem } from '../../shared/units';
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, filterMealsByProtocol, buildGuestEnvelope, deriveProcedureRules } from './protocolEnvelope';
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, filterMealsByProtocol, buildGuestEnvelope, deriveProcedureRules, type UserProtocolEnvelope } from './protocolEnvelope';
 import { buildVegetableStrategyPrompt, NutritionStrategyContext, buildStrictModeBlock } from './promptBuilder';
 import { getDeterministicFallback, findMatchingTemplates, templateToMeal } from './templateMatcher';
 import { STARCHY_KEYWORDS } from '../../shared/starchKeywords';
@@ -81,6 +81,8 @@ import { normalizeMealName, culturalNameTransform } from './mealNameNormalizer';
 import { estimateCaloriesFromIngredients, checkIngredientSanity } from './calorieEstimator';
 import { isClinicalAdaptationActive } from './clinicalMacroGate';
 import { resolveVarietyClassificationInput } from './createDish/varietyClassificationInput';
+import { classifyFoodIdentity, protectedFoodIdentityLabel } from '../../shared/foodIdentity';
+import { validateDishIdentity } from './dishAdaptation/dishIdentityValidator';
 
 export class GLP1ComplianceRetryExhaustedError extends Error {
   readonly status = 422;
@@ -282,6 +284,7 @@ export interface MealGenerationRequest {
   input: string | string[]; // craving text, meal description, or ingredient list
 
   userId?: string;
+  protocolEnvelope?: UserProtocolEnvelope;
 
   macroTargets?: {
     protein_g?: number;
@@ -3408,6 +3411,7 @@ export async function generateFromDescriptionUnified(
    *  Excluded from the allergy prompt block and from post-gen re-blocking. */
   overriddenAllergens?: string[],
   humanFoodExecutionState?: import("./humanFoodContext/requestExecutionState").HumanFoodRequestExecutionState,
+  protocolEnvelope?: UserProtocolEnvelope,
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
   const requestedServings = Math.max(1, Math.min(10, Math.round(servings ?? 1)));
@@ -3498,9 +3502,9 @@ export async function generateFromDescriptionUnified(
     }
     
     // ── Load protocol envelope (drives all dietary enforcement) ───────────────
-    const chefEnvelope = userId
+    const chefEnvelope = protocolEnvelope ?? (userId
       ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
-      : buildGuestEnvelope();
+      : buildGuestEnvelope());
 
     // Temporary diet override replaces the profile diet for this generation.
     // Hard restrictions (allergies, medical, procedural rules) always come from chefEnvelope unchanged.
@@ -4484,9 +4488,9 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
 
     // ── Post-scan the deterministic fallback (full envelope + PIN override) ──
     // The resilience path must never bypass safety enforcement.
-    const _chefFallbackEnvelope = userId
+    const _chefFallbackEnvelope = protocolEnvelope ?? (userId
       ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
-      : buildGuestEnvelope();
+      : buildGuestEnvelope());
     const _chefFallbackScan = scanGeneratedOutput(fallbackMeal, _chefFallbackEnvelope, {
       generatorName: 'create_with_chef_fallback',
       overriddenAllergens: overriddenAllergens?.length ? overriddenAllergens : undefined,
@@ -4523,9 +4527,14 @@ export async function generateSnackFromCravingUnified(
   glp1Targets?: ResolvedGLP1Targets,
   preferredLanguage?: string,
   /** Allergens authorized by a valid Safety PIN override for this request only. */
-  overriddenAllergens?: string[]
+  overriddenAllergens?: string[],
+  protocolEnvelope?: UserProtocolEnvelope,
+  generationContext?: string,
 ): Promise<MealGenerationResponse> {
-  console.log(`🍪 Snack Creator: Generating healthy snack from craving: "${cravingDescription}"${dietType ? ` (diet: ${dietType})` : ''}`);
+  const requestedIdentityText = [cravingDescription, generationContext].filter(Boolean).join("\n");
+  const requestedFoodIdentity = classifyFoodIdentity(requestedIdentityText);
+  const protectedIdentity = protectedFoodIdentityLabel(requestedIdentityText);
+  console.log(`🍪 Snack Creator: Generating snack for eating occasion: "${cravingDescription}"${dietType ? ` (diet: ${dietType})` : ''}`);
   
   try {
     await ensureHubsRegistered();
@@ -4554,9 +4563,9 @@ export async function generateSnackFromCravingUnified(
     }
     
     // ── Load protocol envelope (drives all dietary enforcement) ───────────────
-    const snackEnvelope = userId
+    const snackEnvelope = protocolEnvelope ?? (userId
       ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
-      : buildGuestEnvelope();
+      : buildGuestEnvelope());
 
     // PIN allergen override — exclude only the exactly-matching authorized
     // allergen(s) from the PROMPT envelope (exact canonical-key matching via
@@ -4586,28 +4595,26 @@ export async function generateSnackFromCravingUnified(
     const OpenAI = (await import('openai')).default;
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     
-    let basePrompt = `You are a nutrition-focused chef specializing in healthy snack alternatives.
+    let basePrompt = `You create personalized food for a snack eating occasion.
 
-TASK: Transform this craving into a HEALTHY snack: "${cravingDescription}"
+TASK: Create the requested snack: "${cravingDescription}"
 
-TRANSFORMATION RULES:
-- If they want something crunchy/salty → suggest nuts, seeds, veggie chips, roasted chickpeas
-- If they want something sweet → suggest fruit, dark chocolate, or a diet-compatible parfait
-- If they want something chocolatey → suggest protein-rich chocolate alternatives
-- If they want something creamy or frozen → preserve the requested food identity and use diet-compatible yogurt, cream, milk, or avocado-based ingredients
-- If they want something fruity → suggest fresh fruit combos, smoothie bites, frozen treats
-- Preserve the requested food identity. If the user asks for ice cream, cookie, cheesecake, or another named food, transform incompatible ingredients instead of changing it into a generic snack
+SNACK PRODUCT DEFINITION:
+- A snack is an eating occasion, not a narrow food category.
+- Valid snacks may be savory, sweet, dessert-style, baked, chilled or frozen, fruit-based, dairy or dairy-alternative, grain-based, protein-oriented, or another recognizable snack food.
+- Dessert is a legitimate snack family. Do not treat a requested dessert as a problem to escape.
+- Preserve the requested food identity. A cookie remains a cookie, a brownie remains a brownie, cheesecake remains cheesecake, pudding remains pudding, and ice cream remains a recognizable frozen dessert.
+- Adapt ingredients, ratios, preparation, sweetener choice, composition, or serving amount only when the supplied person-specific context requires it. Serving amount is one possible variable, not the default solution.
+- Do not equate healthier with smaller. Do not invent a universal ounce, gram, calorie, protein, or fiber rule, and do not make a normal food token-sized merely to label it appropriate.
 - Every ingredient, description, and instruction must comply with the active dietary protocol; do not describe or instruct the use of an ingredient that was replaced
-- Keep calories reasonable (100-300 for snacks)
-- Prioritize protein and fiber over empty carbs
-- Make it genuinely delicious - this should satisfy the craving healthily
+- Make the result recognizable, satisfying, and appropriate to the person-fed context.
 
 REQUIREMENTS:
-- Create a satisfying snack that addresses their craving
+- Create a satisfying individual eating occasion that addresses the request
 - Include realistic ingredients with precise quantities
 - Provide clear preparation instructions (even if simple)
 - Include accurate nutritional estimates with SEPARATE carb types
-- Make it quick and easy to prepare (under 10 minutes)
+- Keep preparation practical for the requested food; do not force a complex dessert under an arbitrary time limit
 
 CARBOHYDRATE BREAKDOWN (CRITICAL):
 - starchyCarbs: Carbs from rice, pasta, bread, potatoes, grains, beans, corn, oats, crackers
@@ -4637,7 +4644,7 @@ FORMAT: Return as JSON object:
     {"name": "almonds", "quantity": "1", "unit": "oz"}
   ],
   "instructions": "Clear step-by-step preparation instructions as a single paragraph with numbered steps. Even simple snacks need instructions.",
-  "calories": number (realistic 100-300),
+  "calories": number (realistic for the food and supplied person-specific context),
   "protein": number (grams),
   "starchyCarbs": number (grams from starches: crackers, oats, bread, granola),
   "fibrousCarbs": number (grams from vegetables, fruits, berries),
@@ -4646,7 +4653,11 @@ FORMAT: Return as JSON object:
   "difficulty": "Easy"
 }
 
-Create the healthy snack transformation for: "${cravingDescription}"`;
+REQUESTED FOOD IDENTITY: ${JSON.stringify(requestedFoodIdentity)}
+${protectedIdentity ? `PROTECTED RECOGNIZABLE IDENTITY: ${protectedIdentity}. Failure to preserve it must be repaired or returned as an explicit failure, never replaced with an unrelated snack.` : ""}
+${generationContext ? `AUTHORITATIVE REQUEST AND HUMAN FOOD CONTEXT:\n${generationContext}` : ""}
+
+Create the personalized snack for: "${cravingDescription}"`;
 
     // Apply diet-specific guardrails to the prompt
     const guardrailResult = applyGuardrails(basePrompt, dietType || null, 'snack',
@@ -4897,6 +4908,22 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
         };
       }
 
+      if (protectedIdentity) {
+        const identityCheck = validateDishIdentity(protectedIdentity, tempSnack);
+        if (!identityCheck.passed) {
+          const identityFailure = identityCheck.failures.join("; ");
+          if (snackAttemptCount < SNACK_MAX_REGENERATION_ATTEMPTS) {
+            snackLastFixHint = `FOOD IDENTITY VIOLATION: preserve recognizable ${protectedIdentity} identity. ${identityFailure}`;
+            continue;
+          }
+          return {
+            success: false,
+            source: "error",
+            error: `We couldn't safely preserve the requested ${protectedIdentity} identity. Please try again.`,
+          };
+        }
+      }
+
       // ── Oncology snack quality gate ───────────────────────────────────────
       // Applies when user is on the Cancer Support protocol.
       // Threshold: 70+ (lighter than the 85+ meal standard).
@@ -4990,6 +5017,14 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
     
   } catch (error: any) {
     console.error('❌ Snack Creator generation failed:', error);
+
+    if (protectedIdentity) {
+      return {
+        success: false,
+        source: "error",
+        error: `We couldn't safely create the requested ${protectedIdentity} without changing it into a different food. Please try again.`,
+      };
+    }
     
     // Fallback to deterministic template for snacks
     const fallback = glp1Targets
@@ -5037,9 +5072,9 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
 
     // ── Post-scan the deterministic fallback (full envelope + PIN override) ──
     // The resilience path must never bypass safety enforcement.
-    const _snackFallbackEnvelope = userId
+    const _snackFallbackEnvelope = protocolEnvelope ?? (userId
       ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
-      : buildGuestEnvelope();
+      : buildGuestEnvelope());
     const _snackFallbackScan = scanGeneratedOutput(fallbackSnack, _snackFallbackEnvelope, {
       generatorName: 'snack_creator_fallback',
       overriddenAllergens: overriddenAllergens?.length ? overriddenAllergens : undefined,
@@ -5142,6 +5177,7 @@ export async function generateMealUnified(
         request.clinicalGenerationContext,
         request.overriddenAllergens,
         request.humanFoodExecutionState,
+        request.protocolEnvelope,
       );
       break;
 
@@ -5149,7 +5185,7 @@ export async function generateMealUnified(
       const snackCraving = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      result = await generateSnackFromCravingUnified(snackCraving, request.userId, request.dietType, request.strictMode === true, request.explicitOverride, request.glp1Targets, request.preferredLanguage, request.overriddenAllergens);
+      result = await generateSnackFromCravingUnified(snackCraving, request.userId, request.dietType, request.strictMode === true, request.explicitOverride, request.glp1Targets, request.preferredLanguage, request.overriddenAllergens, request.protocolEnvelope, request.generationContext);
       break;
 
     case 'fridge-rescue':

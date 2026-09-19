@@ -7,4 +7,4 @@ description: Governs whose nutrition context applies when one person creates foo
 
 **Why:** Parent, caregiver, and professional workflows can otherwise leak the actor's personal restrictions or specialty settings into a child or client's meal.
 
-**How to apply:** Carry explicit actor and subject identities through generation. Use subject-authoritative profiles and resolvers, while accepting actor-entered information only when it explicitly describes the subject's current meal request. Never fabricate compliance evidence for dimensions the server cannot independently validate.
+**How to apply:** Carry explicit actor and subject identities through generation. Use subject-authoritative profiles and resolvers, while accepting actor-entered information only when it explicitly describes the subject's current meal request. If a household subject lacks account-only clinical or history data, mark it unavailable; never substitute the owner's data. Never fabricate compliance evidence for dimensions the server cannot independently validate.

@@ -29,6 +29,7 @@ import {
   Send,
   Loader2,
   Globe,
+  ChevronRight,
   ChevronDown,
   ChevronUp,
   Trash2,
@@ -1574,8 +1575,19 @@ export default function DashboardNew() {
           transition={{ delay: 0.25, duration: 0.5 }}
            className="mb-4"
         >
-           <Card onClick={() => setLocation("/foods-i-enjoy")} className="relative cursor-pointer overflow-hidden rounded-xl border border-rose-300/30 bg-gradient-to-r from-black via-rose-950/30 to-black backdrop-blur-lg transition-all hover:border-rose-300/60" data-testid="card-foods-i-enjoy">
-             <CardContent className="p-5"><div className="flex items-center gap-4"><div className="rounded-xl border border-rose-300/30 bg-rose-400/15 p-3"><Heart className="h-6 w-6 text-rose-300" /></div><div className="min-w-0 flex-1"><h2 className="text-base font-semibold text-white">{t("foodsEnjoyTitle")}</h2><p className="mt-1 text-sm text-white/65">{t("foodsEnjoyDescription")}</p></div></div></CardContent>
+             <Card onClick={() => setLocation("/foods-i-enjoy")} className="group relative cursor-pointer overflow-hidden rounded-xl border border-violet-400/40 bg-gradient-to-r from-black via-violet-800/65 to-black backdrop-blur-lg transition-all hover:border-violet-300/70 hover:shadow-[0_0_28px_rgba(139,92,246,0.22)]" style={{ backgroundColor: "transparent" }} data-testid="card-foods-i-enjoy">
+               <div className="absolute right-3 top-3 rounded-full border border-amber-300/35 bg-amber-400/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-200">New</div>
+               <CardContent className="p-5 pr-16">
+                 <div className="flex items-center gap-4">
+                   <div className="rounded-xl border border-violet-300/40 bg-violet-400/20 p-3"><Heart className="h-6 w-6 text-violet-200" /></div>
+                   <div className="min-w-0 flex-1">
+                     <h2 className="text-base font-semibold text-white">My Perfect Menu</h2>
+                     <p className="mt-1 text-sm font-semibold text-violet-100">Need help building your meal plan?</p>
+                     <p className="mt-1 text-xs leading-relaxed text-white/55">Not sure what you want to eat? Get 3 personalized ideas for breakfast, lunch, dinner, or a snack. Choose what sounds good, and we’ll help you turn it into a meal and add it to your plan.</p>
+                     <span className="mt-3 inline-flex text-xs font-bold text-violet-200 transition-transform group-hover:translate-x-0.5">See My Menu <ChevronRight className="ml-1 h-3.5 w-3.5" /></span>
+                   </div>
+                 </div>
+               </CardContent>
            </Card>
         </motion.div>
 
@@ -1792,12 +1804,13 @@ export default function DashboardNew() {
           <MedicalSourcesInfo
             trigger={
               <Card
-                className="cursor-pointer rounded-xl border border-blue-500/30 bg-gradient-to-r from-black via-blue-950/30 to-black backdrop-blur-lg transition-all hover:border-blue-400/60"
+                className="cursor-pointer rounded-xl border border-blue-400/40 bg-gradient-to-r from-black via-blue-800/70 to-black backdrop-blur-lg transition-all hover:border-blue-300/70"
+                style={{ backgroundColor: "transparent" }}
                 data-testid="card-medical-safety"
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-center gap-3">
-                    <div className="rounded-lg border border-blue-500/30 bg-blue-500/15 p-3"><Activity className="h-6 w-6 text-blue-400" /></div>
+                    <div className="rounded-lg border border-blue-300/40 bg-blue-500/20 p-3"><Activity className="h-6 w-6 text-blue-200" /></div>
                     <div><CardTitle className="text-base text-white">{t("sourcesTitle")}</CardTitle><CardDescription className="mt-1 text-xs text-white/70">{t("sourcesOrgs")}</CardDescription></div>
                   </div>
                 </CardHeader>

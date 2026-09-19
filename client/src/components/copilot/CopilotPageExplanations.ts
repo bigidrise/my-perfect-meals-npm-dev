@@ -29,6 +29,16 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     autoClose: true,
   },
 
+  "/foods-i-enjoy": {
+    pageId: "my-perfect-menu",
+    title: "Need help with My Perfect Menu?",
+    description:
+      "I can explain how My Perfect Menu helps you choose what to eat, get 3 more ideas, or turn an idea into a completed meal on your plan.",
+    spokenText:
+      "My Perfect Menu helps you build your meal plan when you are not sure what you want to eat. Choose Breakfast, Lunch, Dinner, or Snack and you will get three personalized ideas. If none sound good, tap Try 3 More for another set. When you find one you want, tap Choose This, select a date and Meal 1 through 6 or Snack destination, and My Perfect Meals will create the completed meal and add it to your plan. Breakfast, Lunch, and Dinner describe the kind of food idea, while Meal 1 through 6 describes where it goes in your plan, so you can place a breakfast idea in Meal 4 if that is where you want it. Know what you want? Use the Meal Builders. Not sure what you want? My Perfect Menu helps you choose.",
+    autoClose: true,
+  },
+
   "/my-biometrics": {
     pageId: "my-biometrics",
     title: "My Biometrics",

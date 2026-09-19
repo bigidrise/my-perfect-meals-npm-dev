@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { handleDefinitiveAuthFailure, SESSION_EXPIRED_MESSAGE } from "@/lib/authRequired";
 import { getAuthHeaders } from "@/lib/auth";
 import type { DiversityContext } from "@/lib/diversityContext";
 
@@ -106,7 +107,7 @@ interface UseCreateWithChefRequestResult {
   cancel: () => void;
 }
 
-export function useCreateWithChefRequest(userId?: string, proClientId?: string): UseCreateWithChefRequestResult {
+export function useCreateWithChefRequest(userId?: string, proClientId?: string, householdProfileId?: string): UseCreateWithChefRequestResult {
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -194,6 +195,7 @@ export function useCreateWithChefRequest(userId?: string, proClientId?: string):
           dietOverride: dietOverride || null,
           servings: servings || 1,
           proClientId: proClientId || undefined,
+          householdProfileId: householdProfileId || undefined,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -201,6 +203,9 @@ export function useCreateWithChefRequest(userId?: string, proClientId?: string):
       const data = await response.json();
       
       if (!response.ok || !data.success) {
+        if (handleDefinitiveAuthFailure(response, data)) {
+          throw new Error(SESSION_EXPIRED_MESSAGE);
+        }
         if (data.safetyBlocked && data.error) {
           throw new Error(data.error);
         }
