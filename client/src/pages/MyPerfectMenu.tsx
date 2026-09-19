@@ -23,6 +23,7 @@ import {
 } from "@/components/MealPlanDestinationPicker";
 import MealGenerationProgress from "@/components/MealGenerationProgress";
 import { CopilotBrain } from "@/components/copilot/CopilotBrain";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 
 type IdeaType = "breakfast" | "lunch" | "dinner" | "snack";
@@ -321,6 +322,14 @@ export default function MyPerfectMenu() {
   };
 
   const activeType = IDEA_TYPES.find((item) => item.value === ideaType);
+  const handleBack = () => {
+    if (ideaType) {
+      setIdeaType(null);
+      setError(null);
+      return;
+    }
+    setLocation("/dashboard");
+  };
 
   return (
     <main className="min-h-100dvh overflow-y-auto bg-gradient-to-br from-black via-violet-950/80 to-black pb-safe-nav text-white">
@@ -329,13 +338,32 @@ export default function MyPerfectMenu() {
         persona="default"
         tags={["personalized-menu", "three-choices", ideaType ?? "choose-category"]}
       />
+      <MobileHeaderGuard>
+        <div
+          className="fixed inset-x-0 top-0 z-50 border-b border-violet-300/20 bg-black/80 backdrop-blur-xl"
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        >
+          <div className="flex min-h-14 items-center gap-3 px-4">
+            <button
+              type="button"
+              onClick={handleBack}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white/80"
+              aria-label={ideaType ? "Back to menu categories" : "Back to dashboard"}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <Sparkles className="h-5 w-5 text-violet-300" />
+            <p className="text-base font-black tracking-tight">My Perfect Menu</p>
+          </div>
+        </div>
+      </MobileHeaderGuard>
       <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute -left-28 top-20 h-80 w-80 rounded-full bg-violet-500/15 blur-3xl" />
         <div className="absolute -right-28 top-[35rem] h-96 w-96 rounded-full bg-fuchsia-500/10 blur-3xl" />
       </div>
-      <div className="relative mx-auto max-w-5xl px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)] sm:px-8 sm:pt-10">
+      <div className="relative mx-auto max-w-5xl px-4 pb-28 pt-[calc(env(safe-area-inset-top,0px)+5rem)] sm:px-8 lg:pt-10">
         <div className="flex items-center gap-3">
-          <button type="button" onClick={() => ideaType ? (setIdeaType(null), setError(null)) : setLocation("/dashboard")} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/15 bg-black/45 px-4 text-sm font-semibold text-white/75">
+          <button type="button" onClick={handleBack} className="hidden min-h-11 items-center gap-2 rounded-xl border border-white/15 bg-black/45 px-4 text-sm font-semibold text-white/75 lg:inline-flex">
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
         </div>
