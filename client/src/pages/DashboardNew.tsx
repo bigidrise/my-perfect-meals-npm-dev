@@ -1580,16 +1580,16 @@ export default function DashboardNew() {
              <Card onClick={() => setLocation("/foods-i-enjoy")} className="group relative cursor-pointer overflow-hidden rounded-xl border border-violet-400/40 bg-gradient-to-r from-black via-violet-800/65 to-black backdrop-blur-lg transition-all hover:border-violet-300/70 hover:shadow-[0_0_28px_rgba(139,92,246,0.22)]" style={{ backgroundColor: "transparent" }} data-testid="card-foods-i-enjoy">
                 <div
                   aria-label="New"
-                  className="pointer-events-none absolute left-1/2 top-3 z-10 -translate-x-1/2 -rotate-6 rounded-sm border-2 border-red-600 bg-white px-3 py-1 text-sm font-black uppercase tracking-[0.16em] text-red-600 shadow-[3px_3px_0_rgba(220,38,38,0.9)]"
+                  className="pointer-events-none absolute right-3 top-3 z-10 -rotate-6 rounded-sm border-2 border-red-600 bg-white px-3 py-1 text-sm font-black uppercase tracking-[0.16em] text-red-600 shadow-[3px_3px_0_rgba(220,38,38,0.9)]"
                 >
                   New
                 </div>
                 {effectiveMenuBuilder?.builder.displayName && (
-                  <div className="absolute right-3 top-3 rounded-full border border-violet-300/35 bg-violet-400/15 px-2.5 py-1 text-[10px] font-black tracking-wide text-violet-100">
+                  <div className="absolute bottom-3 right-3 max-w-[58%] rounded-full border border-violet-300/35 bg-violet-400/15 px-2.5 py-1 text-right text-[10px] font-black leading-tight tracking-wide text-violet-100 sm:max-w-none">
                     Using your {effectiveMenuBuilder.builder.displayName}
                   </div>
                 )}
-               <CardContent className="p-5 pr-16">
+               <CardContent className="p-5 pb-16 pr-20 sm:pb-14">
                  <div className="flex items-center gap-4">
                    <div className="rounded-xl border border-violet-300/40 bg-violet-400/20 p-3"><Heart className="h-6 w-6 text-violet-200" /></div>
                    <div className="min-w-0 flex-1">
