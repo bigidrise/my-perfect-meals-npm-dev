@@ -84,11 +84,13 @@ export default function MyPerfectMenu() {
   const [savingMeal, setSavingMeal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const subjectRef = useRef(subjectUserId ?? user?.id ?? null);
+  const subjectEpochRef = useRef(0);
   const { generateMeal, cancel: cancelMeal } = useCreateWithChefRequest(user?.id, undefined, subjectUserId);
   const { generateSnack, cancel: cancelSnack } = useSnackCreatorRequest(user?.id, subjectUserId);
   const concepts = ideaType ? conceptSets[ideaType] ?? [] : [];
 
   useEffect(() => {
+    subjectEpochRef.current += 1;
     subjectRef.current = subjectUserId ?? user?.id ?? null;
     cancelMeal();
     cancelSnack();
@@ -122,6 +124,7 @@ export default function MyPerfectMenu() {
 
   const requestIdeas = async (nextType: IdeaType) => {
     const requestedSubject = subjectUserId ?? user?.id ?? null;
+    const requestedEpoch = subjectEpochRef.current;
     setIdeaType(nextType);
     setError(null);
     setLoadingIdeas(true);
@@ -134,12 +137,19 @@ export default function MyPerfectMenu() {
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "We couldn't create your ideas.");
-      if (subjectRef.current !== requestedSubject || (payload.subject?.id && payload.subject.id !== requestedSubject)) return;
+      if (
+        subjectEpochRef.current !== requestedEpoch ||
+        subjectRef.current !== requestedSubject ||
+        (payload.subject?.id && payload.subject.id !== requestedSubject)
+      ) return;
       setConceptSets((current) => ({ ...current, [nextType]: payload.concepts || [] }));
     } catch (cause) {
+      if (subjectEpochRef.current !== requestedEpoch || subjectRef.current !== requestedSubject) return;
       setError(cause instanceof Error ? cause.message : "We couldn't create your ideas.");
     } finally {
-      setLoadingIdeas(false);
+      if (subjectEpochRef.current === requestedEpoch && subjectRef.current === requestedSubject) {
+        setLoadingIdeas(false);
+      }
     }
   };
 
@@ -151,23 +161,32 @@ export default function MyPerfectMenu() {
 
   const clearCategory = async () => {
     if (!ideaType || loadingIdeas) return;
+    const requestedType = ideaType;
+    const requestedSubject = subjectUserId ?? user?.id ?? null;
+    const requestedEpoch = subjectEpochRef.current;
     setError(null);
     try {
       const response = await fetch(apiUrl("/api/my-perfect-menu/concepts"), {
         method: "DELETE",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ ideaType, subjectUserId }),
+        body: JSON.stringify({ ideaType: requestedType, subjectUserId }),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "We couldn't clear these ideas.");
+      if (
+        subjectEpochRef.current !== requestedEpoch ||
+        subjectRef.current !== requestedSubject ||
+        (payload.subject?.id && payload.subject.id !== requestedSubject)
+      ) return;
       setConceptSets((current) => {
         const next = { ...current };
-        delete next[ideaType];
+        delete next[requestedType];
         return next;
       });
       setIdeaType(null);
     } catch (cause) {
+      if (subjectEpochRef.current !== requestedEpoch || subjectRef.current !== requestedSubject) return;
       setError(cause instanceof Error ? cause.message : "We couldn't clear these ideas.");
     }
   };

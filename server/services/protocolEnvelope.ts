@@ -952,6 +952,10 @@ export async function loadUserProtocolEnvelope(
           (user as any).avoidedFoods = hProfile.avoidedFoods ?? [];
           (user as any).likedFoods = hProfile.likedFoods ?? [];
           (user as any).preferredSweeteners = hProfile.preferredSweeteners ?? [];
+          (user as any).palateSpiceTolerance = hProfile.palateSpiceTolerance ?? null;
+          (user as any).palateSeasoningIntensity = hProfile.palateSeasoningIntensity ?? null;
+          (user as any).palateFlavorStyle = hProfile.palateFlavorStyle ?? null;
+          (user as any).fitnessGoal = hProfile.fitnessGoal ?? null;
           (user as any).cuisinePreference = hProfile.cuisinePreference ?? null;
           (user as any).cuisineIntensity = hProfile.cuisineIntensity ?? null;
           (user as any).specialtyCondition = hProfile.specialtyCondition ?? null;
@@ -982,6 +986,12 @@ export async function loadUserProtocolEnvelope(
             (user as any).dailyFatTarget = hProfile.dailyFatTarget ?? null;
             (user as any).dailyStarchyCarbsTarget = null;
             (user as any).dailyFibrousCarbsTarget = null;
+            (user as any).avoidSweeteners = [];
+            (user as any).sweetenerPreferences = [];
+            (user as any).goalType = null;
+            (user as any).goalTarget = null;
+            (user as any).flavorPreference = null;
+            (user as any).heatPreference = null;
           }
         }
       } catch (hErr) {
