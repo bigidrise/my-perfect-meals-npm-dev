@@ -13,7 +13,7 @@
 
 import { isRecipeSensitiveDish } from './dishEngineRouter';
 import { getMeasurementPromptBlock, MeasurementSystem } from '../../shared/units';
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, filterMealsByProtocol, buildGuestEnvelope, deriveProcedureRules } from './protocolEnvelope';
+import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, filterMealsByProtocol, buildGuestEnvelope, deriveProcedureRules, type UserProtocolEnvelope } from './protocolEnvelope';
 import { buildVegetableStrategyPrompt, NutritionStrategyContext, buildStrictModeBlock } from './promptBuilder';
 import { getDeterministicFallback, findMatchingTemplates, templateToMeal } from './templateMatcher';
 import { STARCHY_KEYWORDS } from '../../shared/starchKeywords';
@@ -282,6 +282,7 @@ export interface MealGenerationRequest {
   input: string | string[]; // craving text, meal description, or ingredient list
 
   userId?: string;
+  protocolEnvelope?: UserProtocolEnvelope;
 
   macroTargets?: {
     protein_g?: number;
@@ -3408,6 +3409,7 @@ export async function generateFromDescriptionUnified(
    *  Excluded from the allergy prompt block and from post-gen re-blocking. */
   overriddenAllergens?: string[],
   humanFoodExecutionState?: import("./humanFoodContext/requestExecutionState").HumanFoodRequestExecutionState,
+  protocolEnvelope?: UserProtocolEnvelope,
 ): Promise<MealGenerationResponse> {
   const validMealType = normalizeMealType(mealType);
   const requestedServings = Math.max(1, Math.min(10, Math.round(servings ?? 1)));
@@ -3498,9 +3500,9 @@ export async function generateFromDescriptionUnified(
     }
     
     // ── Load protocol envelope (drives all dietary enforcement) ───────────────
-    const chefEnvelope = userId
+    const chefEnvelope = protocolEnvelope ?? (userId
       ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
-      : buildGuestEnvelope();
+      : buildGuestEnvelope());
 
     // Temporary diet override replaces the profile diet for this generation.
     // Hard restrictions (allergies, medical, procedural rules) always come from chefEnvelope unchanged.
@@ -4484,9 +4486,9 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
 
     // ── Post-scan the deterministic fallback (full envelope + PIN override) ──
     // The resilience path must never bypass safety enforcement.
-    const _chefFallbackEnvelope = userId
+    const _chefFallbackEnvelope = protocolEnvelope ?? (userId
       ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
-      : buildGuestEnvelope();
+      : buildGuestEnvelope());
     const _chefFallbackScan = scanGeneratedOutput(fallbackMeal, _chefFallbackEnvelope, {
       generatorName: 'create_with_chef_fallback',
       overriddenAllergens: overriddenAllergens?.length ? overriddenAllergens : undefined,
@@ -4523,7 +4525,8 @@ export async function generateSnackFromCravingUnified(
   glp1Targets?: ResolvedGLP1Targets,
   preferredLanguage?: string,
   /** Allergens authorized by a valid Safety PIN override for this request only. */
-  overriddenAllergens?: string[]
+  overriddenAllergens?: string[],
+  protocolEnvelope?: UserProtocolEnvelope,
 ): Promise<MealGenerationResponse> {
   console.log(`🍪 Snack Creator: Generating healthy snack from craving: "${cravingDescription}"${dietType ? ` (diet: ${dietType})` : ''}`);
   
@@ -4554,9 +4557,9 @@ export async function generateSnackFromCravingUnified(
     }
     
     // ── Load protocol envelope (drives all dietary enforcement) ───────────────
-    const snackEnvelope = userId
+    const snackEnvelope = protocolEnvelope ?? (userId
       ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
-      : buildGuestEnvelope();
+      : buildGuestEnvelope());
 
     // PIN allergen override — exclude only the exactly-matching authorized
     // allergen(s) from the PROMPT envelope (exact canonical-key matching via
@@ -5037,9 +5040,9 @@ Create the healthy snack transformation for: "${cravingDescription}"`;
 
     // ── Post-scan the deterministic fallback (full envelope + PIN override) ──
     // The resilience path must never bypass safety enforcement.
-    const _snackFallbackEnvelope = userId
+    const _snackFallbackEnvelope = protocolEnvelope ?? (userId
       ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
-      : buildGuestEnvelope();
+      : buildGuestEnvelope());
     const _snackFallbackScan = scanGeneratedOutput(fallbackSnack, _snackFallbackEnvelope, {
       generatorName: 'snack_creator_fallback',
       overriddenAllergens: overriddenAllergens?.length ? overriddenAllergens : undefined,
@@ -5142,6 +5145,7 @@ export async function generateMealUnified(
         request.clinicalGenerationContext,
         request.overriddenAllergens,
         request.humanFoodExecutionState,
+        request.protocolEnvelope,
       );
       break;
 
@@ -5149,7 +5153,7 @@ export async function generateMealUnified(
       const snackCraving = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      result = await generateSnackFromCravingUnified(snackCraving, request.userId, request.dietType, request.strictMode === true, request.explicitOverride, request.glp1Targets, request.preferredLanguage, request.overriddenAllergens);
+      result = await generateSnackFromCravingUnified(snackCraving, request.userId, request.dietType, request.strictMode === true, request.explicitOverride, request.glp1Targets, request.preferredLanguage, request.overriddenAllergens, request.protocolEnvelope);
       break;
 
     case 'fridge-rescue':

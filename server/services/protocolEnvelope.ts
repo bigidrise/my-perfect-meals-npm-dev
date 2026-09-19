@@ -864,7 +864,8 @@ function classifyHealthConditions(conditions: string[]): {
  * Returns null if the user is not found.
  */
 export async function loadUserProtocolEnvelope(
-  userId: string
+  userId: string,
+  householdProfileId?: string,
 ): Promise<UserProtocolEnvelope | null> {
   try {
     const [user] = await db
@@ -929,15 +930,19 @@ export async function loadUserProtocolEnvelope(
     // When the owner has switched to a household member's profile, overlay that
     // profile's preference fields onto the envelope. Medical supervision fields
     // (oncologySupportContext, thyroidMedication) always remain from the owner.
-    if ((user as any).activeHouseholdProfileId) {
+    if (householdProfileId || (user as any).activeHouseholdProfileId) {
       try {
         const { householdProfiles } = await import("@shared/schema");
         const [hProfile] = await db
           .select()
           .from(householdProfiles)
-          .where(eq(householdProfiles.id, (user as any).activeHouseholdProfileId))
+          .where(eq(householdProfiles.id, householdProfileId ?? (user as any).activeHouseholdProfileId))
           .limit(1);
 
+        if (householdProfileId && (!hProfile || hProfile.ownerUserId !== userId)) {
+          console.warn(`[ProtocolEnvelope] Explicit household profile is not owned by user ${userId}`);
+          return null;
+        }
         if (hProfile && hProfile.ownerUserId === userId) {
           console.log(`[ProtocolEnvelope] Applying household profile "${hProfile.displayName}" for user ${userId}`);
           (user as any).dietaryRestrictions = hProfile.dietaryRestrictions ?? [];
@@ -954,8 +959,36 @@ export async function loadUserProtocolEnvelope(
           // medicalConditions glp1 check uses household profile's conditions
           (user as any)._householdMedicalConditions = hProfile.medicalConditions ?? [];
           (user as any)._householdProfileName = hProfile.displayName;
+          if (householdProfileId) {
+            // An explicit household subject must never inherit account-owner
+            // clinical state. Household rows currently own only the bounded
+            // fields below; unsupported account-only overlays remain unavailable.
+            (user as any).oncologySupportContext = null;
+            (user as any).selectedMealBuilder = null;
+            (user as any).thyroidMedication = null;
+            (user as any).thyroidType = null;
+            (user as any).performanceOverlay = null;
+            (user as any).performanceControlMode = null;
+            (user as any).carbCycleState = null;
+            (user as any).performanceContext = null;
+            (user as any).weeklyTrainingSchedule = null;
+            (user as any).performanceProtocolConfig = null;
+            (user as any).therapeuticSupportContext = null;
+            (user as any).alphaGalProfile = null;
+            (user as any).pregnancySupportContext = null;
+            (user as any).dailyCalorieTarget = hProfile.dailyCalorieTarget ?? null;
+            (user as any).dailyProteinTarget = hProfile.dailyProteinTarget ?? null;
+            (user as any).dailyCarbsTarget = hProfile.dailyCarbsTarget ?? null;
+            (user as any).dailyFatTarget = hProfile.dailyFatTarget ?? null;
+            (user as any).dailyStarchyCarbsTarget = null;
+            (user as any).dailyFibrousCarbsTarget = null;
+          }
         }
       } catch (hErr) {
+        if (householdProfileId) {
+          console.error("[ProtocolEnvelope] Explicit household profile resolution failed:", hErr);
+          return null;
+        }
         console.warn("[ProtocolEnvelope] Could not load household profile, falling back to owner:", hErr);
       }
     }
@@ -1016,7 +1049,7 @@ export async function loadUserProtocolEnvelope(
       user.selectedMealBuilder === "diabetic";
     let diabeticGuidance: string | null = null;
     let diabeticGlucoseState: GlucoseState | null = null;
-    if (hasDiabetes) {
+    if (hasDiabetes && !householdProfileId) {
       try {
         const diabCtx = await getDiabeticContext(userId);
         diabeticGuidance = getGlucoseBasedMealGuidance(diabCtx);
@@ -1307,7 +1340,7 @@ export async function loadUserProtocolEnvelope(
     }
 
     const conditionGuidanceBlocks = await buildUniversalConditionGuidance({
-      userId,
+      userId: householdProfileId ?? userId,
       healthConditions: mergedHealthConditions,
       oncologySupportContext,
       thyroidSupportContext: thyroidSupport
@@ -1346,7 +1379,7 @@ export async function loadUserProtocolEnvelope(
     // every generator automatically receives today's tolerance state without
     // any per-generator wiring.
     let glp1DailyTolerance: DailyMedicationTolerance | null = null;
-    if (medicalConditionsGlp1.length > 0) {
+    if (medicalConditionsGlp1.length > 0 && !householdProfileId) {
       try {
         glp1DailyTolerance = await resolveDailyMedicationTolerance({
           userId: String(userId),
@@ -1371,7 +1404,7 @@ export async function loadUserProtocolEnvelope(
     let providerInterventions: UserProtocolEnvelope["providerInterventions"] = [];
     let interventionPatientSummary: string[] = [];
 
-    try {
+    if (!householdProfileId) try {
       const activeInterventions = await db
         .select({
           conditionKey:   providerClinicalInterventions.conditionKey,
