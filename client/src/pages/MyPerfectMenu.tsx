@@ -6,7 +6,6 @@ import {
   Coffee,
   Cookie,
   Loader2,
-  Settings2,
   Sparkles,
   Soup,
   UtensilsCrossed,
@@ -323,12 +322,9 @@ export default function MyPerfectMenu() {
         <div className="absolute -right-28 top-[35rem] h-96 w-96 rounded-full bg-fuchsia-500/10 blur-3xl" />
       </div>
       <div className="relative mx-auto max-w-5xl px-4 pb-28 pt-[calc(env(safe-area-inset-top)+1.5rem)] sm:px-8 sm:pt-10">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
           <button type="button" onClick={() => ideaType ? (setIdeaType(null), setError(null)) : setLocation("/dashboard")} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/15 bg-black/45 px-4 text-sm font-semibold text-white/75">
             <ArrowLeft className="h-4 w-4" /> Back
-          </button>
-          <button type="button" onClick={() => setLocation("/foods-i-enjoy/preferences")} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-violet-300/25 bg-violet-400/10 px-4 text-sm font-semibold text-violet-100">
-            <Settings2 className="h-4 w-4" /> Foods I Enjoy
           </button>
         </div>
 
