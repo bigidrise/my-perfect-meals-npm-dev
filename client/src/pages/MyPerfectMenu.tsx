@@ -21,6 +21,7 @@ import {
   MealPlanDestinationPicker,
   type MealPlanDestination,
 } from "@/components/MealPlanDestinationPicker";
+import MealGenerationProgress from "@/components/MealGenerationProgress";
 
 type IdeaType = "breakfast" | "lunch" | "dinner" | "snack";
 
@@ -410,7 +411,14 @@ export default function MyPerfectMenu() {
           onOpenChange={setPickerOpen}
           title={selectedConcept.title}
           busy={savingMeal}
-          busyLabel="Creating…"
+          busyContent={
+            <MealGenerationProgress
+              active={savingMeal}
+              context="general"
+              mode="single"
+              intervalMs={4000}
+            />
+          }
           onSelect={generateForDestination}
         />
       )}

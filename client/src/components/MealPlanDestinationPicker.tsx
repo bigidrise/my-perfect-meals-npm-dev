@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
@@ -41,6 +41,7 @@ interface MealPlanDestinationPickerProps {
   title: string;
   busy?: boolean;
   busyLabel?: string;
+  busyContent?: ReactNode;
   onSelect: (destination: MealPlanDestination) => void | Promise<void>;
 }
 
@@ -50,6 +51,7 @@ export function MealPlanDestinationPicker({
   title,
   busy = false,
   busyLabel = "Creating your meal…",
+  busyContent,
   onSelect,
 }: MealPlanDestinationPickerProps) {
   const todayISO = getTodayISOSafe(TZ);
@@ -122,7 +124,15 @@ export function MealPlanDestinationPicker({
   return (
     <Drawer open={open} onOpenChange={(next) => !busy && onOpenChange(next)}>
       <DrawerContent className="border-t border-white/20 bg-black/95">
-        {confirming ? (
+        {busy && busyContent ? (
+          <div className="px-5 pb-10 pt-6">
+            <DrawerHeader className="pb-2 text-center">
+              <DrawerTitle className="text-lg text-white">Preparing Your Meal</DrawerTitle>
+              <p className="mt-1 truncate px-4 text-sm text-white/60">{title}</p>
+            </DrawerHeader>
+            {busyContent}
+          </div>
+        ) : confirming ? (
           <div className="p-6 pb-10">
             <button type="button" onClick={() => setConfirming(false)} className="mb-5 flex items-center gap-1 text-sm text-white/50">
               <ChevronLeft className="h-4 w-4" /> Back
