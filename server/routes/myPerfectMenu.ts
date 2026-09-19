@@ -180,6 +180,20 @@ async function currentStamp(
     : (await db.select({ value: householdProfiles.foodsIEnjoy }).from(householdProfiles).where(eq(householdProfiles.id, target.id)).limit(1))[0]?.value;
   const parsedFoods = foodsIEnjoyDocumentSchema.safeParse(foods);
   const diabetesApplicable = Boolean(envelope?.hasDiabetes);
+  const glp1Tolerance = envelope?.glp1DailyTolerance;
+  const glp1AdaptationState = glp1Tolerance
+    ? JSON.stringify({
+        appetiteLevel: glp1Tolerance.appetiteLevel,
+        nauseaLevel: glp1Tolerance.nauseaLevel,
+        hasVomiting: glp1Tolerance.hasVomiting,
+        hydrationRisk: glp1Tolerance.hydrationRisk,
+        hasReflux: glp1Tolerance.hasReflux,
+        hasDiarrhea: glp1Tolerance.hasDiarrhea,
+        hasConstipation: glp1Tolerance.hasConstipation,
+        shouldEscalate: glp1Tolerance.shouldEscalate,
+        nutritionAdaptations: glp1Tolerance.nutritionAdaptations,
+      })
+    : "none";
   const material: MyPerfectMenuAuthorityMaterial = {
     subject: { kind: target.kind, id: target.id },
     effectiveDiet: context?.diet?.effective ?? envelope?.dietaryIdentity ?? [],
@@ -203,8 +217,8 @@ async function currentStamp(
     },
     glp1: {
       active: Boolean(glp1?.isActive || envelope?.medicalHardLimits?.some((x: string) => /glp.?1/i.test(x))),
-      escalation: Boolean(envelope?.glp1DailyTolerance?.shouldEscalate),
-      adaptationState: envelope?.glp1DailyTolerance?.appetiteLevel ?? "none",
+      escalation: Boolean(glp1Tolerance?.shouldEscalate),
+      adaptationState: glp1AdaptationState,
     },
     targetPresence: {
       protocol: Boolean(envelope),

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
 import {
@@ -37,6 +37,11 @@ import { isClinicalOrAbove } from "@/lib/subscriptionCheck";
 export default function GLP1Hub() {
   const { t } = useTranslation();
   const [, setLocation] = useLocation();
+  const search = useSearch();
+  const returnTo = useMemo(() => {
+    const candidate = new URLSearchParams(search).get("returnTo");
+    return candidate?.startsWith("/foods-i-enjoy?") ? candidate : null;
+  }, [search]);
   const [noteOpen, setNoteOpen] = useState(false);
   const [shotTrackerOpen, setShotTrackerOpen] = useState(false);
   const { user } = useAuth();
@@ -137,11 +142,20 @@ export default function GLP1Hub() {
       limitCarbonation,
       limitAlcohol,
     };
-    saveMutation.mutate(sanitizedGuardrails);
-    toast({
-      title: t("glp1Hub.toastSavedTitle"),
-      description: t("glp1Hub.toastSavedDesc"),
-    });
+    try {
+      await saveMutation.mutate(sanitizedGuardrails);
+      toast({
+        title: t("glp1Hub.toastSavedTitle"),
+        description: t("glp1Hub.toastSavedDesc"),
+      });
+      if (returnTo) setLocation(returnTo);
+    } catch {
+      toast({
+        title: "Could not save GLP-1 settings",
+        description: "Your settings were not confirmed by the server. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -489,7 +503,11 @@ export default function GLP1Hub() {
             disabled={saveMutation.isPending}
             className="bg-lime-600 text-md font-bold text-white w-full rounded-xl mt-4"
           >
-            {saveMutation.isPending ? t("glp1Hub.saving") : t("glp1Hub.saveGuardrails")}
+            {saveMutation.isPending
+              ? t("glp1Hub.saving")
+              : returnTo
+                ? "Save and return to My Perfect Menu"
+                : t("glp1Hub.saveGuardrails")}
           </Button>
         </section>
 
