@@ -7,7 +7,6 @@ import { householdProfiles, users } from "@shared/schema";
 import {
   emptyMyPerfectMenuPreferences,
   myPerfectMenuCategorySchema,
-  myPerfectMenuConceptSchema,
   myPerfectMenuPreferencesSchema,
   type MyPerfectMenuCategory,
   type MyPerfectMenuConcept,
@@ -15,7 +14,6 @@ import {
 } from "@shared/myPerfectMenu";
 import {
   buildCulinaryFingerprint,
-  culinaryIdentitySchema,
   hasMeaningfulCulinaryRepetition,
   selectCulinarilyBroadConcepts,
   type CulinaryConceptInput,
@@ -29,6 +27,7 @@ import {
   type DietaryMode,
 } from "../services/guardrails/validators/dietaryRestrictionValidator";
 import {
+  enforceBeforeGenerate,
   loadUserProtocolEnvelope,
   scanGeneratedOutput,
   type UserProtocolEnvelope,
@@ -38,7 +37,12 @@ import {
   resolveGLP1GlobalContext,
 } from "../services/glp1/resolveGLP1GlobalContext";
 import { chatJson } from "../utils/openaiSafe";
-import { normalizeGeneratedMenuResponse } from "../services/myPerfectMenu/normalizeGeneratedConcepts";
+import { buildDietPromptBlock } from "../services/allergyGuardrails";
+import {
+  cuisineLabelsCompatible,
+  parseGeneratedMenuCandidates,
+  rejectionCategoryCounts,
+} from "../services/myPerfectMenu/generationContract";
 
 const router = Router();
 const categorySchema = myPerfectMenuCategorySchema;
@@ -52,13 +56,6 @@ const generationRequestSchema = subjectSchema.extend({
 const clearRequestSchema = subjectSchema.extend({
   ideaType: categorySchema,
 });
-const generatedConceptSchema = myPerfectMenuConceptSchema
-  .omit({ id: true, ideaType: true })
-  .extend({ culinaryIdentity: culinaryIdentitySchema });
-const generatedResponseSchema = z.object({
-  concepts: z.array(generatedConceptSchema).min(1).max(8),
-});
-
 type SubjectTarget =
   | { kind: "user"; id: string; label: string | null }
   | { kind: "household"; id: string; label: string };
@@ -185,7 +182,7 @@ function conceptViolations(
     const validation = validateDietaryRestriction(conceptMeal(concept), diet);
     if (!validation.isValid) violations.push(...(validation.blockedIngredients ?? []).map((item) => `dietary:${item}`));
   }
-  if (requiredCuisine && normalize(concept.cuisine) !== normalize(requiredCuisine)) {
+  if (requiredCuisine && !cuisineLabelsCompatible(concept.cuisine, requiredCuisine)) {
     violations.push(`cuisine_mismatch:${concept.cuisine}`);
   }
   if (envelope) {
@@ -271,6 +268,9 @@ router.post("/concepts", requireAuth, async (req, res) => {
         code: "PROTOCOL_CONTEXT_UNRESOLVED",
       });
     }
+    const protocolBlock = enforceBeforeGenerate(envelope, {
+      generatorName: "my-perfect-menu-concepts",
+    }).combined;
     let glp1Block = "";
     if (target.kind === "user") {
       const glp1 = await resolveGLP1GlobalContext(actorUserId, new Date().toISOString().slice(0, 10), parsed.data.ideaType);
@@ -283,6 +283,7 @@ router.post("/concepts", requireAuth, async (req, res) => {
       ...(stored.categories[parsed.data.ideaType] ?? []).map((concept) => normalize(concept.signature)),
     ]);
     const requiredCuisine = context.flavor.cuisine.available ? context.flavor.cuisine.value : null;
+    const dietBlock = buildDietPromptBlock(context.diet.effective);
     const occasion = parsed.data.ideaType as MyPerfectMenuCategory;
     const candidatePool: GovernedMenuConcept[] = [];
     const rejectedReasons: string[] = [];
@@ -328,29 +329,25 @@ router.post("/concepts", requireAuth, async (req, res) => {
         ].join("\n"),
         user: [
           buildCreatorHumanFoodPrompt("my_perfect_menu", context, scope.executionState),
+          dietBlock,
+          protocolBlock,
           glp1Block,
           `Create ${parsed.data.ideaType} concepts for ${target.label ?? "the person being fed"}.`,
           `Previously shown signatures to avoid immediately: ${[...priorSignatures].join(", ") || "none"}.`,
           `Recent culinary patterns to move beyond when appropriate: ${recentPatternSummary.join(", ") || "none"}.`,
-          rejectedReasons.length ? `Repair these prior validation failures: ${rejectedReasons.slice(-12).join(", ")}.` : "",
+          rejectedReasons.length
+            ? `Repair only the missing ${Math.max(0, 3 - candidatePool.length)} position(s). Prior rejection categories: ${Object.keys(rejectionCategoryCounts(rejectedReasons)).join(", ")}. Keep every authoritative constraint above.`
+            : "",
           candidatePool.length
-            ? "Earlier candidates were too structurally repetitive. Broaden the culinary structures while preserving the person's context and cuisine."
+            ? `${candidatePool.length} governed candidate(s) are already retained. Generate replacements for missing positions only; broaden compliant culinary structures without changing the person's context or cuisine.`
             : "",
           "Vary dish format, primary protein, preparation method, flavor profile, and—when relevant—food identity dimensions without overriding the person's preferences.",
         ].filter(Boolean).join("\n\n"),
       });
-      const generatedResult = generatedResponseSchema.safeParse(
-        normalizeGeneratedMenuResponse(generatedRaw, parsed.data.ideaType),
-      );
-      if (!generatedResult.success) {
-        rejectedReasons.push(
-          ...generatedResult.error.issues.map((issue) => `response_contract:${issue.path.join(".")}:${issue.code}`),
-        );
-        continue;
-      }
-      const generated = generatedResult.data;
+      const generated = parseGeneratedMenuCandidates(generatedRaw, parsed.data.ideaType);
+      rejectedReasons.push(...generated.rejectionCodes);
 
-      for (const candidate of generated.concepts) {
+      for (const candidate of generated.candidates) {
         const signature = normalize(candidate.signature);
         if (
           priorSignatures.has(signature) ||
@@ -378,9 +375,17 @@ router.post("/concepts", requireAuth, async (req, res) => {
     }
 
     if (accepted.length !== 3) {
+      const rejectionCounts = rejectionCategoryCounts(rejectedReasons);
+      console.warn("[my-perfect-menu] governed concept repair exhausted", {
+        ideaType: parsed.data.ideaType,
+        subjectKind: target.kind,
+        acceptedCount: accepted.length,
+        missingCount: 3 - accepted.length,
+        rejectionCounts,
+      });
       return res.status(422).json({
-        error: "We couldn't create three appropriate choices without changing your food context. Please try again.",
-        code: "CONCEPT_GOVERNANCE_FAILED",
+        error: "We couldn't find three choices that fit all of your current food needs. Your settings were kept unchanged. Please try again.",
+        code: "CONCEPT_REPAIR_EXHAUSTED",
       });
     }
 

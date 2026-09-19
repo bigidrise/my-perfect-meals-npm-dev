@@ -1,5 +1,10 @@
 import { normalizeGeneratedMenuResponse } from "../services/myPerfectMenu/normalizeGeneratedConcepts";
 import { foodIdentitySchema } from "../../shared/foodIdentity";
+import {
+  cuisineLabelsCompatible,
+  parseGeneratedMenuCandidates,
+  rejectionCategoryCounts,
+} from "../services/myPerfectMenu/generationContract";
 
 describe("My Perfect Menu generated response normalization", () => {
   it("removes irrelevant snack identity metadata from breakfast concepts", () => {
@@ -40,5 +45,64 @@ describe("My Perfect Menu generated response normalization", () => {
       polarity: "savory",
       formatFamily: "general_snack",
     }));
+  });
+
+  it("retains valid siblings when one generated concept has malformed metadata", () => {
+    const base = {
+      title: "Butter-Seared Salmon",
+      description: "Salmon seared in butter and finished with salt.",
+      primaryIngredients: ["salmon", "butter", "salt"],
+      primaryProtein: "salmon",
+      produceItems: [],
+      cuisine: "American",
+      dietaryEvidence: ["animal foods only"],
+      preparationMethod: "pan seared",
+      signature: "salmon|pan-seared|butter",
+      culinaryIdentity: {
+        dishForm: "fish fillet",
+        preparationStyle: "pan seared",
+        temperature: "hot",
+        primaryProteinBase: "salmon",
+        majorStarchBase: null,
+        flavorFamily: "butter salt",
+        cuisineEvidence: "American",
+        definingComponents: ["salmon", "butter"],
+      },
+    };
+    const parsed = parseGeneratedMenuCandidates({
+      concepts: [
+        base,
+        { ...base, title: "", signature: "broken|candidate" },
+        { ...base, title: "Soft-Scrambled Eggs", signature: "eggs|soft-scrambled|butter" },
+      ],
+    }, "breakfast");
+
+    expect(parsed.candidates.map((candidate) => candidate.title)).toEqual([
+      "Butter-Seared Salmon",
+      "Soft-Scrambled Eggs",
+    ]);
+    expect(parsed.rejectionCodes).toEqual(expect.arrayContaining([
+      expect.stringContaining("schema_metadata_failure:concept_1"),
+    ]));
+  });
+
+  it("accepts syntactic cuisine-label variants without weakening cuisine identity", () => {
+    expect(cuisineLabelsCompatible("Italian-inspired cuisine", "Italian")).toBe(true);
+    expect(cuisineLabelsCompatible("Traditional Japanese cooking", "Japanese cuisine")).toBe(true);
+    expect(cuisineLabelsCompatible("Mexican", "Italian")).toBe(false);
+  });
+
+  it("reduces retry diagnostics to privacy-limited categories", () => {
+    expect(rejectionCategoryCounts([
+      "dietary:mustard",
+      "forbidden_ingredient:pork",
+      "protocol:DIETARY_IDENTITY",
+      "schema_metadata_failure:concept_2:title",
+    ])).toEqual({
+      dietary_violation: 1,
+      allergen_or_avoidance_violation: 1,
+      protocol_rejection: 1,
+      schema_metadata_failure: 1,
+    });
   });
 });
