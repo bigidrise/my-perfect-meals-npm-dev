@@ -22,6 +22,7 @@ import {
   type MealPlanDestination,
 } from "@/components/MealPlanDestinationPicker";
 import MealGenerationProgress from "@/components/MealGenerationProgress";
+import { CopilotBrain } from "@/components/copilot/CopilotBrain";
 
 type IdeaType = "breakfast" | "lunch" | "dinner" | "snack";
 
@@ -310,6 +311,11 @@ export default function MyPerfectMenu() {
 
   return (
     <main className="min-h-100dvh overflow-y-auto bg-gradient-to-br from-black via-violet-950/80 to-black pb-safe-nav text-white">
+      <CopilotBrain
+        screenId="MY_PERFECT_MENU"
+        persona="default"
+        tags={["personalized-menu", "three-choices", ideaType ?? "choose-category"]}
+      />
       <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute -left-28 top-20 h-80 w-80 rounded-full bg-violet-500/15 blur-3xl" />
         <div className="absolute -right-28 top-[35rem] h-96 w-96 rounded-full bg-fuchsia-500/10 blur-3xl" />
@@ -331,7 +337,7 @@ export default function MyPerfectMenu() {
           </div>
           <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">My Perfect Menu</h1>
           <p className="mt-3 max-w-2xl text-base leading-relaxed text-white/65">
-            Tell us what kind of food sounds good. We’ll give you three simple choices that fit your preferences and current plan.
+            Not sure what to eat? Pick a meal and we’ll give you 3 personalized ideas.
           </p>
           {activeProfile && <p className="mt-3 text-sm font-semibold text-violet-200">Choosing for {activeProfile.displayName}</p>}
         </header>

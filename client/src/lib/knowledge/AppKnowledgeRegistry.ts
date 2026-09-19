@@ -19,6 +19,26 @@ export interface FeatureKnowledge {
 }
 
 export const AppKnowledge: Record<string, FeatureKnowledge> = {
+  "my-perfect-menu": {
+    id: "my-perfect-menu",
+    title: "My Perfect Menu",
+    description:
+      "Not sure what to eat? Get three personalized breakfast, lunch, dinner, or snack ideas and choose the one that sounds good.",
+    howTo: [
+      "Choose Breakfast Ideas, Lunch Ideas, Dinner Ideas, or Snack Ideas.",
+      "Review the three personalized concepts built around the person being fed.",
+      "Tap Try 3 More when you want a different set without losing the current choices before the new set is ready.",
+      "Tap Choose This on the idea you like.",
+      "Pick a date and Meal 1–6 or Snack destination.",
+      "My Perfect Meals creates the completed meal with the existing Chef or Snack system and adds it to your plan.",
+    ],
+    tips: [
+      "Use My Perfect Menu when you are not sure what you want; use Create With Chef when you already have a specific idea.",
+      "Foods I Enjoy helps future choices better match your tastes.",
+      "Recommendations may adapt around relevant profile information while preserving higher-priority food safety and dietary rules.",
+    ],
+    relatedCommands: [],
+  },
   hydration: {
     id: "hydration",
     title: HYDRATION_HUB_TITLE,

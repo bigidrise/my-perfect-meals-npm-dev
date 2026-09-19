@@ -8,6 +8,19 @@ export interface FeatureMapping {
 }
 
 export const KEYWORD_FEATURE_MAP: FeatureMapping[] = [
+  {
+    path: "/foods-i-enjoy",
+    walkthroughId: "my-perfect-menu",
+    keywords: [
+      "my perfect menu",
+      "perfect menu",
+      "not sure what to eat",
+      "give me three choices",
+      "three meal ideas",
+      "help me choose a meal",
+    ],
+  },
+
   // Fridge Rescue
   {
     path: "/fridge-rescue",

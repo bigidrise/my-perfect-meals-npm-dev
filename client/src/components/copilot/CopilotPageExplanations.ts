@@ -29,6 +29,16 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
     autoClose: true,
   },
 
+  "/foods-i-enjoy": {
+    pageId: "my-perfect-menu",
+    title: "Need help with My Perfect Menu?",
+    description:
+      "I can explain how your menu is personalized, why a meal was suggested, how to get 3 more choices, or how to add something you like to your meal plan.",
+    spokenText:
+      "My Perfect Menu is for the moments when you are not sure what you want to eat. Choose Breakfast Ideas, Lunch Ideas, Dinner Ideas, or Snack Ideas, and My Perfect Meals will give you three personalized choices built around the person being fed. Tap Try 3 More whenever you want a different set. When something sounds good, tap Choose This, select a date and Meal 1 through 6 or Snack destination, and the existing Chef or Snack system will create the completed meal and add it to your plan. Foods I Enjoy can help future recommendations better match your tastes.",
+    autoClose: true,
+  },
+
   "/my-biometrics": {
     pageId: "my-biometrics",
     title: "My Biometrics",
