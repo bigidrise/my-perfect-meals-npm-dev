@@ -733,6 +733,7 @@ const GuardedProAntiInflammatoryBuilder = () => <ProCareStudioGuard component={S
 const GuardedProWeeklyBuilder = () => <ProCareStudioGuard component={SafeWeeklyMealBoard} />;
 const GuardedProBeachBodyBuilder = () => <ProCareStudioGuard component={BeachBodyMealBoard} />;
 const GuardedWeeklyMealBoard = () => <BuilderAccessGuard builderKey="weekly" component={SafeWeeklyMealBoard} />;
+const GuardedMyPerfectMenu = () => <PaywallGuard component={MyPerfectMenu} />;
 const GuardedShoppingList = () => <PaywallGuard component={SafeShoppingList} />;
 const GuardedBeachBodyBuilder = () => <BuilderAccessGuard builderKey="beach_body" component={BeachBodyMealBoard} />;
 const GuardedAntiInflammatoryBuilder = () => <BuilderAccessGuard builderKey="anti_inflammatory" component={SafeAntiInflammatoryMenuBuilder} />;
@@ -1099,7 +1100,7 @@ export default function Router() {
         <Route path="/onboarding" component={SafeOnboarding} />
         <Route path="/onboarding-v2" component={SafeOnboardingV2} />
         <Route path="/dashboard" component={SafeDashboard} />
-        <Route path="/foods-i-enjoy" component={MyPerfectMenu} />
+        <Route path="/foods-i-enjoy" component={GuardedMyPerfectMenu} />
         <Route path="/foods-i-enjoy/preferences" component={FoodsIEnjoy} />
         <Route path="/tutorials" component={TutorialHub} />
         <Route path="/learn" component={Learn} />

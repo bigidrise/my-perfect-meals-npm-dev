@@ -324,7 +324,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // full page reload).  Sign out immediately so the stale polling stops and the
   // user is returned to the login page.
   useEffect(() => {
-    const handlePollingAuthRejected = () => {
+    const handlePollingAuthRejected = (event: Event) => {
       console.warn("⚠️ [AuthContext] mpm:polling-auth-rejected — token invalidated, signing out");
       setUser(null);
       localStorage.removeItem("mpm_current_user");
@@ -333,7 +333,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       clearAuthToken();
       clearUserContext();
       clearNutritionCache();
-      window.location.href = "/login";
+      const reason =
+        event instanceof CustomEvent && event.detail?.reason === "session_expired"
+          ? "session_expired"
+          : null;
+      window.location.href = reason ? `/login?reason=${reason}` : "/login";
     };
     window.addEventListener("mpm:polling-auth-rejected", handlePollingAuthRejected);
     return () => window.removeEventListener("mpm:polling-auth-rejected", handlePollingAuthRejected);
