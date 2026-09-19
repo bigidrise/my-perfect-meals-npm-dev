@@ -1574,8 +1574,19 @@ export default function DashboardNew() {
           transition={{ delay: 0.25, duration: 0.5 }}
            className="mb-4"
         >
-             <Card onClick={() => setLocation("/foods-i-enjoy")} className="relative cursor-pointer overflow-hidden rounded-xl border border-violet-400/40 bg-gradient-to-r from-black via-violet-800/65 to-black backdrop-blur-lg transition-all hover:border-violet-300/70" style={{ backgroundColor: "transparent" }} data-testid="card-foods-i-enjoy">
-              <CardContent className="p-5"><div className="flex items-center gap-4"><div className="rounded-xl border border-violet-300/40 bg-violet-400/20 p-3"><Heart className="h-6 w-6 text-violet-200" /></div><div className="min-w-0 flex-1"><h2 className="text-base font-semibold text-white">My Perfect Menu</h2><p className="mt-1 text-sm text-white/65">Three personalized ideas, then add your choice directly to your plan.</p></div></div></CardContent>
+             <Card onClick={() => setLocation("/foods-i-enjoy")} className="group relative cursor-pointer overflow-hidden rounded-xl border border-violet-400/40 bg-gradient-to-r from-black via-violet-800/65 to-black backdrop-blur-lg transition-all hover:border-violet-300/70 hover:shadow-[0_0_28px_rgba(139,92,246,0.22)]" style={{ backgroundColor: "transparent" }} data-testid="card-foods-i-enjoy">
+               <div className="absolute right-3 top-3 rounded-full border border-amber-300/35 bg-amber-400/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-200">New</div>
+               <CardContent className="p-5 pr-16">
+                 <div className="flex items-center gap-4">
+                   <div className="rounded-xl border border-violet-300/40 bg-violet-400/20 p-3"><Heart className="h-6 w-6 text-violet-200" /></div>
+                   <div className="min-w-0 flex-1">
+                     <h2 className="text-base font-semibold text-white">My Perfect Menu</h2>
+                     <p className="mt-1 text-sm font-semibold text-violet-100">Not sure what to eat? Let us narrow it down.</p>
+                     <p className="mt-1 text-xs leading-relaxed text-white/55">Get 3 personalized breakfast, lunch, dinner, or snack ideas built around what My Perfect Meals knows about you.</p>
+                     <span className="mt-3 inline-flex text-xs font-bold text-violet-200 transition-transform group-hover:translate-x-0.5">See My Menu <ChevronRight className="ml-1 h-3.5 w-3.5" /></span>
+                   </div>
+                 </div>
+               </CardContent>
            </Card>
         </motion.div>
 

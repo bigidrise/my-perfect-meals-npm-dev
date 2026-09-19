@@ -34,6 +34,8 @@ The identity validator rejects a dish that keeps its name but arrives in a diffe
 
 **How to apply:** generators emit structured evidence from the finished recipe, normalizers preserve it, and final validators compare it with authoritative request context. Missing explicit-request evidence requires review; mismatches are repairable. Recognized plant compounds prevent deterministic substring false positives, but actual animal ingredients remain blocked.
 
+**Confirmed product expectation:** when a choice surface hands a selected concept into full generation, the completed meal may adapt ingredients for governance but must remain recognizably different from other choices and preserve the selected cuisine. Users notice and value both properties.
+
 ## Pre-generation food intent
 **Rule:** raw dish requests describe food identity, not verified ingredients; compound concepts must be interpreted before dietary token matching.
 

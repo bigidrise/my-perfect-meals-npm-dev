@@ -1571,6 +1571,39 @@ const SECTION_HEALTH_SAFETY: LibraryTopic[] = [
 
 const SECTION_SPECIALIZED: LibraryTopic[] = [
   {
+    id: "my-perfect-menu",
+    title: "My Perfect Menu",
+    subtitle: "Not sure what to eat? Choose from three personalized ideas.",
+    icon: Sparkles,
+    content: {
+      sections: [
+        {
+          heading: "What It Is",
+          text: "My Perfect Menu is the choice-oriented way to use My Perfect Meals. It is for the moment when you do not have a specific dish in mind and want the app to narrow the decision down to three personalized options.",
+        },
+        {
+          heading: "How to Use It",
+          list: [
+            "Choose Breakfast Ideas, Lunch Ideas, Dinner Ideas, or Snack Ideas.",
+            "Review the three personalized concepts.",
+            "Tap Try 3 More if you want a different set.",
+            "Tap Choose This when one sounds good.",
+            "Select a date and Meal 1–6 or Snack destination.",
+            "My Perfect Meals creates the completed meal and adds it to your plan.",
+          ],
+        },
+        {
+          heading: "How It Is Personalized",
+          text: "The choices use the established person-fed context in My Perfect Meals, including relevant dietary needs, preferences, cuisine, Foods I Enjoy, and active safety rules. My Perfect Menu does not replace those systems; it gives you a simpler way to benefit from them.",
+        },
+        {
+          heading: "My Perfect Menu or Create With Chef?",
+          text: "Use My Perfect Menu when you are not sure what you want and would like three choices. Use Create With Chef or a Meal Builder when you already know what you want and need help creating it. Both are valid ways to start.",
+        },
+      ],
+    },
+  },
+  {
     id: "my-perfect-pregnancy",
     title: "My Perfect Pregnancy — How the System Adapts",
     subtitle: "Trimester-aware · Food safety enforcement · Symptom-responsive",

@@ -16,6 +16,27 @@ export const buildBaseSuggestions = (
 
   const suggestions: CopilotSuggestion[] = [];
 
+  if (screenId === "MY_PERFECT_MENU") {
+    return [
+      {
+        id: "menu-how-it-works",
+        label: "How does My Perfect Menu work?",
+        description: "Learn how your three choices are personalized and turned into a completed meal.",
+        badge: "My Perfect Menu",
+        emphasis: "high",
+        action: makeAction({ type: "navigate", to: "/learn?topic=my-perfect-menu" }),
+      },
+      {
+        id: "menu-food-preferences",
+        label: "Improve my menu choices",
+        description: "Update Foods I Enjoy so future suggestions better match your tastes.",
+        badge: "Personalize",
+        emphasis: "medium",
+        action: makeAction({ type: "navigate", to: "/foods-i-enjoy/preferences" }),
+      },
+    ];
+  }
+
   // GLOBAL DEFAULTS
   suggestions.push(
     {
