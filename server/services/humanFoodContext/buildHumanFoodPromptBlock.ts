@@ -42,6 +42,12 @@ export function buildHumanFoodPromptBlock(context: HumanFoodContext): string {
     enjoyment.legacyLikes.length
       ? `- Legacy profile likes (compatibility context only; not newly confirmed Foods I Enjoy): ${enjoyment.legacyLikes.join(", ")}`
       : null,
+    context.sweeteners.preferred.length
+      ? `- Preferred sweeteners (soft ingredient guidance): ${context.sweeteners.preferred.join(", ")}`
+      : null,
+    context.sweeteners.avoided.length
+      ? `- Avoided sweeteners: ${context.sweeteners.avoided.join(", ")}`
+      : null,
     "- Explicit current food intent, when provided by the request, outranks these soft enjoyment hints; never redirect a current request to an unrelated favorite.",
     glucosePreferences
       ? `- Canonical glucose state: ${glucosePreferences.state}` +

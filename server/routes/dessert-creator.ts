@@ -26,6 +26,7 @@ import type { DishAdaptationDirective } from "../services/dishAdaptation/types";
 import { getAuthUserId } from "../utils/getAuthUserId";
 import type { HumanFoodFinalValidationResult } from "../../shared/humanFoodValidation";
 import type { HumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
+import { DESSERT_CATEGORY_LABELS } from "@shared/foodIdentity";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -51,20 +52,7 @@ const SERVING_MULTIPLIERS: Record<string, { count: number; label: string; tiers?
   "extra-large-wedding": { count: 200, label: "Large Event (200+ guests)", tiers: 4 },
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  pie: "Pie",
-  cake: "Cake",
-  cookies: "Cookies",
-  brownies: "Brownies",
-  cheesecake: "Cheesecake",
-  smoothie: "Smoothie",
-  frozen: "Frozen Dessert",
-  pudding: "Pudding / Custard",
-  nobake: "No-Bake Dessert",
-  bars: "Bars",
-  muffins: "Muffins",
-  cupcakes: "Cupcakes",
-};
+const CATEGORY_LABELS = DESSERT_CATEGORY_LABELS;
 
 const FLAVOR_LABELS: Record<string, string> = {
   apple: "Apple",

@@ -278,7 +278,7 @@ router.post("/concepts", requireAuth, async (req, res) => {
         temperature: attempt === 0 ? 0.55 : 0.7,
         system: [
           "You create lightweight, fully personalized menu concepts for My Perfect Meals.",
-          "Return JSON only with: {\"concepts\":[{\"title\":\"\",\"description\":\"\",\"primaryIngredients\":[\"\"],\"primaryProtein\":null,\"produceItems\":[],\"cuisine\":\"\",\"dietaryEvidence\":[],\"preparationMethod\":\"\",\"signature\":\"\"}]}",
+          "Return JSON only with: {\"concepts\":[{\"title\":\"\",\"description\":\"\",\"primaryIngredients\":[\"\"],\"primaryProtein\":null,\"produceItems\":[],\"cuisine\":\"\",\"dietaryEvidence\":[],\"preparationMethod\":\"\",\"signature\":\"\",\"foodIdentity\":{\"foodRole\":\"dessert|general_snack\",\"polarity\":\"sweet|savory|neutral\",\"formatFamily\":\"cookie|brownie|cake|cupcake|cheesecake|pudding_custard|frozen_dessert|bar|muffin|pie|no_bake_dessert|pastry|confection|general_sweet|general_snack\",\"preparationStyle\":\"baked|frozen|chilled|no_bake|prepared|raw\",\"texture\":\"creamy|crunchy|chewy|soft|crisp|smooth|mixed\"}}]}",
           "Return 3 to 6 candidates. They are concepts, not recipes: no quantities, instructions, nutrition numbers, medical claims, or images.",
           "primaryIngredients must name every meaningful food needed to validate the concept.",
           "signature must be a compact normalized dish-format + protein + method identity.",
@@ -287,6 +287,12 @@ router.post("/concepts", requireAuth, async (req, res) => {
             ? `Cuisine requirement: every candidate must be recognizably ${requiredCuisine}; adapt that cuisine to higher-priority requirements rather than changing cuisines.`
             : "Use the resolved cuisine guidance when available.",
           "Foods I Enjoy and learned preferences improve ranking but never override protections.",
+          parsed.data.ideaType === "snack"
+            ? "SNACK DEFINITION: snack is an eating occasion, not a narrow food category. Dessert is a normal possible snack family alongside savory, fruit-based, baked, chilled/frozen, dairy or dairy-alternative, grain-based, and protein-oriented foods. Rank styles from this person's context and recent variety. Do not force a dessert or any sweet/savory quota."
+            : "",
+          parsed.data.ideaType === "snack"
+            ? "For snack candidates, include foodIdentity. Use it for personalization and diversity only, never as a safety or nutrition rule. Do not define appropriateness by a universal calorie range, protein target, fiber target, or artificially tiny portion."
+            : "",
         ].join("\n"),
         user: [
           buildCreatorHumanFoodPrompt("my_perfect_menu", context, scope.executionState),
@@ -294,7 +300,7 @@ router.post("/concepts", requireAuth, async (req, res) => {
           `Create ${parsed.data.ideaType} concepts for ${target.label ?? "the person being fed"}.`,
           `Previously shown signatures to avoid immediately: ${[...priorSignatures].join(", ") || "none"}.`,
           rejectedReasons.length ? `Repair these prior validation failures: ${rejectedReasons.slice(-12).join(", ")}.` : "",
-          "Vary dish format, primary protein, preparation method, and flavor profile.",
+          "Vary dish format, primary protein, preparation method, flavor profile, and—when relevant—food identity dimensions without overriding the person's preferences.",
         ].filter(Boolean).join("\n\n"),
       }));
 

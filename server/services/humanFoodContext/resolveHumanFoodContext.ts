@@ -146,6 +146,8 @@ export async function resolveHumanFoodContext(
       cuisineIntensity: users.cuisineIntensity,
       flavorPreference: users.flavorPreference,
       heatPreference: users.heatPreference,
+      preferredSweeteners: users.preferredSweeteners,
+      avoidSweeteners: users.avoidSweeteners,
       timezone: users.timezone,
       activeHouseholdProfileId: users.activeHouseholdProfileId,
     })
@@ -168,6 +170,8 @@ export async function resolveHumanFoodContext(
       palateFlavorStyle: householdProfiles.palateFlavorStyle,
       cuisinePreference: householdProfiles.cuisinePreference,
       cuisineIntensity: householdProfiles.cuisineIntensity,
+      preferredSweeteners: householdProfiles.preferredSweeteners,
+      avoidSweeteners: sql<string[]>`ARRAY[]::text[]`,
     }).from(householdProfiles).where(and(
       eq(householdProfiles.id, profile.activeHouseholdProfileId),
       eq(householdProfiles.ownerUserId, input.actorUserId),
@@ -194,6 +198,8 @@ export async function resolveHumanFoodContext(
         palateFlavorStyle: householdProfiles.palateFlavorStyle,
         cuisinePreference: householdProfiles.cuisinePreference,
         cuisineIntensity: householdProfiles.cuisineIntensity,
+        preferredSweeteners: householdProfiles.preferredSweeteners,
+        avoidSweeteners: sql<string[]>`ARRAY[]::text[]`,
         flavorPreference: sql<string | null>`NULL`,
         heatPreference: sql<string | null>`NULL`,
         timezone: sql<string | null>`'UTC'`,
@@ -359,6 +365,10 @@ export async function resolveHumanFoodContext(
     nutrition,
     behavior,
     foodsIEnjoy,
+    sweeteners: {
+      preferred: profile.preferredSweeteners ?? [],
+      avoided: profile.avoidSweeteners ?? [],
+    },
     diabetesFoodPreferences,
     gaps: [...new Set(gaps)],
     notices,
