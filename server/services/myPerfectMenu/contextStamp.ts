@@ -1,5 +1,6 @@
 import { createHmac } from "node:crypto";
 import type { MyPerfectMenuCategory, MyPerfectMenuContextStamp } from "@shared/myPerfectMenu";
+import type { MyPerfectMenuBuilderContext } from "@shared/builderNamespaces";
 
 export interface MyPerfectMenuAuthorityMaterial {
   subject: { kind: "user" | "household"; id: string };
@@ -18,6 +19,7 @@ export interface MyPerfectMenuAuthorityMaterial {
   protocol: { classification: string[]; active: boolean; conditionKeys: string[] };
   glp1: { active: boolean; escalation: boolean; adaptationState: string };
   targetPresence: Record<string, boolean>;
+  builder: Pick<MyPerfectMenuBuilderContext, "key" | "namespace">;
 }
 
 function normalize(value: unknown): unknown {
@@ -42,7 +44,10 @@ export function buildMyPerfectMenuContextStamp(
   const digest = createHmac("sha256", secret)
     .update(JSON.stringify(authority))
     .digest("base64url");
-  return { version: 1, digest, generatedAt: generatedAt.toISOString(), subjectId: material.subject.id, category };
+  return {
+    version: 1, digest, generatedAt: generatedAt.toISOString(), subjectId: material.subject.id, category,
+    builderKey: material.builder.key, builderNamespace: material.builder.namespace,
+  };
 }
 
 export function isMyPerfectMenuContextStampFresh(

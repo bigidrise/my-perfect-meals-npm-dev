@@ -3,6 +3,7 @@ import { WeekBoardResponseSchema, createEmptyWeekStructure, getMondayISO, type W
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { safeBoardCacheWrite } from "@/lib/boardStorage";
+import { myPerfectMenuBuilderKeyForNamespace } from "@shared/builderNamespaces";
 
 const CACHE_NS = "mpm.weeklyBoard";
 const FETCH_TIMEOUT_MS = 8000;
@@ -27,8 +28,13 @@ function cacheKey(userId: string, weekStartISO: string, namespace?: string): str
 function buildWeekUrl(weekStartISO: string, namespace?: string, householdProfileId?: string): string {
   const base = `/api/weekly-board?week=${encodeURIComponent(weekStartISO)}`;
   const params = new URLSearchParams();
-  if (namespace) params.set("bt", namespace);
-  if (householdProfileId) params.set("householdProfileId", householdProfileId);
+  if (householdProfileId) {
+    params.set("householdProfileId", householdProfileId);
+    const builderKey = myPerfectMenuBuilderKeyForNamespace(namespace);
+    if (builderKey) params.set("mpmBuilderKey", builderKey);
+  } else if (namespace) {
+    params.set("bt", namespace);
+  }
   const query = params.toString();
   return query ? `${base}&${query}` : base;
 }
@@ -83,7 +89,9 @@ function loadWeeklyBoard({
   namespace?: string;
   householdProfileId?: string;
 }): Promise<void> {
-  const cacheNamespace = householdProfileId ? `household:${householdProfileId}` : namespace;
+  const cacheNamespace = householdProfileId
+    ? `household:${householdProfileId}:${namespace || "legacy"}`
+    : namespace;
   const key = cacheKey(proClientId || userId, weekStartISO, cacheNamespace);
   const empty = createEmptyWeekStructure(weekStartISO);
 
@@ -206,7 +214,9 @@ async function saveWeeklyBoard({
   const validated = WeekBoardResponseSchema.parse(json);
 
   if (!proClientId) {
-    const cacheNamespace = householdProfileId ? `household:${householdProfileId}` : namespace;
+    const cacheNamespace = householdProfileId
+      ? `household:${householdProfileId}:${namespace || "legacy"}`
+      : namespace;
     const key = cacheKey(userId, weekStartISO, cacheNamespace);
     safeBoardCacheWrite(key, JSON.stringify(validated));
   }
@@ -322,7 +332,9 @@ export function useWeeklyBoard(
     const handleBoardSlotAdded = (e: Event) => {
       const { weekStartISO: eventWeek, dateISO, slot, updatedDay, boardNamespace } = (e as CustomEvent).detail || {};
       if (!dateISO || !slot || !updatedDay) return;
-      const expectedBoardNamespace = householdProfileId ? `household:${householdProfileId}` : (namespace || "user");
+      const expectedBoardNamespace = householdProfileId
+        ? `household:${householdProfileId}${namespace ? `:${namespace}` : ""}`
+        : (namespace || "user");
       if ((boardNamespace || "") !== expectedBoardNamespace) return;
       // Only patch if this hook is tracking the same week
       if (eventWeek && eventWeek !== monday) return;
@@ -335,7 +347,9 @@ export function useWeeklyBoard(
         };
         const patched = { ...prevWeek, days: updatedDays };
         // Sync localStorage
-        const cacheNamespace = householdProfileId ? `household:${householdProfileId}` : namespace;
+        const cacheNamespace = householdProfileId
+          ? `household:${householdProfileId}:${namespace || "legacy"}`
+          : namespace;
         const key = cacheNamespace
           ? `${CACHE_NS}:${cacheNamespace}:${proClientId || userId}:${monday}`
           : `${CACHE_NS}:${proClientId || userId}:${monday}`;
@@ -411,7 +425,9 @@ export function useWeeklyBoard(
 
   const primeCache = useCallback((targetWeekISO: string, data: WeekBoardResponse): void => {
     if (proClientId) return;
-    const cacheNamespace = householdProfileId ? `household:${householdProfileId}` : namespace;
+    const cacheNamespace = householdProfileId
+      ? `household:${householdProfileId}:${namespace || "legacy"}`
+      : namespace;
     const key = cacheKey(userId, targetWeekISO, cacheNamespace);
     safeBoardCacheWrite(key, JSON.stringify(data));
   }, [userId, proClientId, namespace, householdProfileId]);

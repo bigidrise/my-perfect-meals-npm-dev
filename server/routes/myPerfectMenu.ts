@@ -50,12 +50,21 @@ import {
   parseGeneratedMenuCandidates,
   rejectionCategoryCounts,
 } from "../services/myPerfectMenu/generationContract";
+import {
+  resolveMyPerfectMenuBuilderForActor,
+  MyPerfectMenuBuilderError,
+} from "../services/myPerfectMenu/builderResolver";
+import type { MyPerfectMenuBuilderContext } from "@shared/builderNamespaces";
 
 const router = Router();
 const categorySchema = myPerfectMenuCategorySchema;
 
 const subjectSchema = z.object({
   subjectUserId: z.string().uuid().optional(),
+  requestedBuilderKey: z.string().optional(),
+  requestedNamespace: z.string().optional(),
+  builderKey: z.string().optional(),
+  builderNamespace: z.string().optional(),
 });
 const generationRequestSchema = subjectSchema.extend({
   ideaType: categorySchema,
@@ -161,6 +170,7 @@ async function currentStamp(
   context: any,
   envelope: UserProtocolEnvelope | null,
   glp1: any = null,
+  builder: MyPerfectMenuBuilderContext,
 ) {
   const diabetes = target.kind === "user"
     ? await resolveUserGlucoseState(target.id)
@@ -202,6 +212,7 @@ async function currentStamp(
       glp1: Boolean(glp1?.isActive),
       foodsIEnjoy: parsedFoods.success && parsedFoods.data.items.some((item) => !item.revokedAt),
     },
+    builder: { key: builder.key, namespace: builder.namespace },
   };
   return buildMyPerfectMenuContextStamp(material, category);
 }
@@ -257,6 +268,13 @@ router.get("/concepts", requireAuth, async (req, res) => {
   const parsed = subjectSchema.safeParse(req.query);
   if (!parsed.success) return res.status(400).json({ error: "Invalid food profile." });
   const actorUserId = String((req as AuthenticatedRequest).authUser.id);
+  let builder: MyPerfectMenuBuilderContext;
+  try {
+    builder = await resolveMyPerfectMenuBuilderForActor(actorUserId, parsed.data);
+  } catch (error) {
+    if (error instanceof MyPerfectMenuBuilderError) return res.status(error.code === "INVALID_BUILDER" ? 400 : 403).json({ error: error.message, code: error.code });
+    throw error;
+  }
   const target = await resolveSubject(actorUserId, parsed.data.subjectUserId);
   if (!target) return res.status(404).json({ error: "Food profile not found." });
   const preferences = await readPreferences(target);
@@ -276,18 +294,25 @@ router.get("/concepts", requireAuth, async (req, res) => {
   const staleCategories: MyPerfectMenuCategory[] = [];
   for (const category of ["breakfast", "lunch", "dinner", "snack"] as MyPerfectMenuCategory[]) {
     if (!preferences.categories[category]) continue;
-    const stamp = await currentStamp(actorUserId, target, category, context, envelope, glp1);
+    const stamp = await currentStamp(actorUserId, target, category, context, envelope, glp1, builder);
     if (isMyPerfectMenuContextStampFresh(preferences.contextStamps[category], stamp)) {
       categories[category] = preferences.categories[category];
     } else staleCategories.push(category);
   }
-  return res.json({ categories, staleCategories, subject: { id: target.id, label: target.label } });
+  return res.json({ categories, staleCategories, subject: { id: target.id, label: target.label }, builder });
 });
 
 router.get("/context-status", requireAuth, async (req, res) => {
   const parsed = subjectSchema.safeParse(req.query);
   if (!parsed.success) return res.status(400).json({ error: "Invalid food profile." });
   const actorUserId = String((req as AuthenticatedRequest).authUser.id);
+  let builder: MyPerfectMenuBuilderContext;
+  try {
+    builder = await resolveMyPerfectMenuBuilderForActor(actorUserId, parsed.data);
+  } catch (error) {
+    if (error instanceof MyPerfectMenuBuilderError) return res.status(error.code === "INVALID_BUILDER" ? 400 : 403).json({ error: error.message, code: error.code });
+    throw error;
+  }
   const target = await resolveSubject(actorUserId, parsed.data.subjectUserId);
   if (!target) return res.status(404).json({ error: "Food profile not found." });
   const glucose = target.kind === "user" ? await resolveUserGlucoseState(target.id) : null;
@@ -303,7 +328,7 @@ router.get("/context-status", requireAuth, async (req, res) => {
   const envelope = target.kind === "user"
     ? await loadUserProtocolEnvelope(actorUserId)
     : await loadUserProtocolEnvelope(actorUserId, target.id);
-  const stamp = await currentStamp(actorUserId, target, "lunch", context, envelope, glp1);
+  const stamp = await currentStamp(actorUserId, target, "lunch", context, envelope, glp1, builder);
   return res.json({
     subject: { id: target.id, kind: target.kind, label: target.label },
     diabetes: target.kind === "user" ? {
@@ -316,6 +341,7 @@ router.get("/context-status", requireAuth, async (req, res) => {
     } : { applicable: false, state: "NONE", needsRefresh: false, ageMinutes: null, criticalLow: false, criticalHigh: false },
     glp1: { active: Boolean(glp1.isActive), shouldEscalate: Boolean(envelope?.glp1DailyTolerance?.shouldEscalate), hasCurrentAdaptations: Boolean(envelope?.glp1DailyTolerance) },
     contextFingerprint: stamp.digest,
+    builder,
   });
 });
 
@@ -323,6 +349,13 @@ router.delete("/concepts", requireAuth, async (req, res) => {
   const parsed = clearRequestSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Choose a category to clear." });
   const actorUserId = String((req as AuthenticatedRequest).authUser.id);
+  let builder: MyPerfectMenuBuilderContext;
+  try {
+    builder = await resolveMyPerfectMenuBuilderForActor(actorUserId, parsed.data);
+  } catch (error) {
+    if (error instanceof MyPerfectMenuBuilderError) return res.status(error.code === "INVALID_BUILDER" ? 400 : 403).json({ error: error.message, code: error.code });
+    throw error;
+  }
   const target = await resolveSubject(actorUserId, parsed.data.subjectUserId);
   if (!target) return res.status(404).json({ error: "Food profile not found." });
   const updated = await mutatePreferences(actorUserId, target, (current) => {
@@ -335,6 +368,7 @@ router.delete("/concepts", requireAuth, async (req, res) => {
   return res.json({
     categories: updated.categories,
     subject: { id: target.id, label: target.label },
+    builder,
   });
 });
 
@@ -345,6 +379,13 @@ router.post("/validate-selection", requireAuth, async (req, res) => {
   }).safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Choose a valid menu concept." });
   const actorUserId = String((req as AuthenticatedRequest).authUser.id);
+  let builder: MyPerfectMenuBuilderContext;
+  try {
+    builder = await resolveMyPerfectMenuBuilderForActor(actorUserId, parsed.data);
+  } catch (error) {
+    if (error instanceof MyPerfectMenuBuilderError) return res.status(error.code === "INVALID_BUILDER" ? 400 : 403).json({ error: error.message, code: error.code });
+    throw error;
+  }
   const target = await resolveSubject(actorUserId, parsed.data.subjectUserId);
   if (!target) return res.status(404).json({ error: "Food profile not found." });
   const preferences = await readPreferences(target);
@@ -362,11 +403,11 @@ router.post("/validate-selection", requireAuth, async (req, res) => {
   const glp1 = target.kind === "user"
     ? await resolveGLP1GlobalContext(actorUserId, new Date().toISOString().slice(0, 10), parsed.data.ideaType)
     : null;
-  const stamp = await currentStamp(actorUserId, target, parsed.data.ideaType, context, envelope, glp1);
+  const stamp = await currentStamp(actorUserId, target, parsed.data.ideaType, context, envelope, glp1, builder);
   if (!isMyPerfectMenuContextStampFresh(preferences.contextStamps[parsed.data.ideaType], stamp)) {
     return res.status(409).json({ error: "These menu ideas are based on an older food context. Please refresh them.", code: "MY_PERFECT_MENU_CONTEXT_STALE" });
   }
-  return res.json({ valid: true, concept });
+  return res.json({ valid: true, concept, builder });
 });
 
 router.post("/concepts", requireAuth, async (req, res) => {
@@ -376,6 +417,13 @@ router.post("/concepts", requireAuth, async (req, res) => {
   }
 
   const actorUserId = String((req as AuthenticatedRequest).authUser.id);
+  let builder: MyPerfectMenuBuilderContext;
+  try {
+    builder = await resolveMyPerfectMenuBuilderForActor(actorUserId, parsed.data);
+  } catch (error) {
+    if (error instanceof MyPerfectMenuBuilderError) return res.status(error.code === "INVALID_BUILDER" ? 400 : 403).json({ error: error.message, code: error.code });
+    throw error;
+  }
   const target = await resolveSubject(actorUserId, parsed.data.subjectUserId);
   if (!target) return res.status(404).json({ error: "Food profile not found." });
 
@@ -545,7 +593,7 @@ router.post("/concepts", requireAuth, async (req, res) => {
     }
 
     const concepts = accepted.slice(0, 3);
-    const stamp = await currentStamp(actorUserId, target, parsed.data.ideaType, context, envelope, target.kind === "user" ? await resolveGLP1GlobalContext(actorUserId, new Date().toISOString().slice(0, 10), parsed.data.ideaType) : null);
+    const stamp = await currentStamp(actorUserId, target, parsed.data.ideaType, context, envelope, target.kind === "user" ? await resolveGLP1GlobalContext(actorUserId, new Date().toISOString().slice(0, 10), parsed.data.ideaType) : null, builder);
     await mutatePreferences(actorUserId, target, (current) => ({
       version: 1,
       categories: { ...current.categories, [parsed.data.ideaType]: concepts },
@@ -561,7 +609,7 @@ router.post("/concepts", requireAuth, async (req, res) => {
       updatedAt: new Date().toISOString(),
     }));
     await scope.completeAuthorization();
-    return res.json({ concepts, subject: { id: target.id, label: target.label } });
+    return res.json({ concepts, subject: { id: target.id, label: target.label }, builder });
   } catch (error) {
     await scope.releaseAuthorization().catch(() => {});
     console.error("[my-perfect-menu] concept generation failed", error);

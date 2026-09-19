@@ -35,19 +35,77 @@ export function deriveBoardScope(
   requestedId: unknown,
   actorActiveHouseholdProfileId?: string | null,
   profileOwnerUserId?: string | null,
+  builderNamespace?: string,
 ) {
   const profileId = typeof requestedId === "string" && requestedId.trim() ? requestedId.trim() : undefined;
-  if (!profileId) return { builderType: "", boardNamespace: "user", subjectId: actorUserId };
+  if (!profileId) {
+    const ownerNamespace = builderNamespace ?? "";
+    return { builderType: ownerNamespace, boardNamespace: ownerNamespace || "user", subjectId: actorUserId };
+  }
   if (!UUID_RE.test(profileId)) throw new InaccessibleHouseholdProfileError();
   if (actorActiveHouseholdProfileId !== profileId || profileOwnerUserId !== actorUserId) {
     throw new InaccessibleHouseholdProfileError();
   }
-  return { builderType: `household:${profileId}`, boardNamespace: `household:${profileId}`, subjectId: profileId };
+  const householdNamespace = builderNamespace
+    ? `household:${profileId}:${builderNamespace}`
+    : `household:${profileId}`;
+  return { builderType: householdNamespace, boardNamespace: householdNamespace, subjectId: profileId };
 }
 
-async function resolveBoardScope(req: Request, actorUserId: string, requestedId?: unknown) {
+const MPM_BUILDER_NAMESPACES = new Set(["generalNutrition", "diabetic", "glp1", "antiInflammatory"]);
+
+function canonicalMpmBuilder(value: string): string | undefined {
+  const normalized = value.trim();
+  if (normalized.toLowerCase() === "general") return "generalNutrition";
+  return MPM_BUILDER_NAMESPACES.has(normalized) ? normalized : undefined;
+}
+
+class InvalidBoardScopeError extends Error {}
+
+/**
+ * Resolve the subject and builder dimensions together. Household MPM boards
+ * use a deliberately small allowlist; arbitrary client namespaces must never
+ * become household repository keys.
+ */
+function requestedScopeValues(req: Request) {
+  const householdProfileId = requestValue(req, "householdProfileId");
+  const mpmBuilderKey = requestValue(req, "mpmBuilderKey");
+  const bt = requestValue(req, "bt");
+  const ns = requestValue(req, "ns");
+  if (bt && ns && bt !== ns) throw new InvalidBoardScopeError("Conflicting bt and ns");
+  const legacyBuilder = bt ?? ns;
+  if (mpmBuilderKey && legacyBuilder && mpmBuilderKey !== legacyBuilder &&
+      canonicalMpmBuilder(mpmBuilderKey) !== canonicalMpmBuilder(legacyBuilder)) {
+    throw new InvalidBoardScopeError("Conflicting mpmBuilderKey and bt/ns");
+  }
+  if (householdProfileId && legacyBuilder && !mpmBuilderKey) {
+    throw new InvalidBoardScopeError("householdProfileId cannot be combined with bt/ns");
+  }
+  if (householdProfileId) {
+    // No builder key is the pre-MPM household contract; retain its original
+    // household:<profile> repository key. MPM callers opt into a canonical
+    // builder explicitly (or send General).
+    if (!mpmBuilderKey && !legacyBuilder) {
+      return { householdProfileId, builderNamespace: undefined };
+    }
+    const canonical = canonicalMpmBuilder(mpmBuilderKey ?? legacyBuilder ?? "General");
+    if (!canonical) throw new InvalidBoardScopeError("Invalid mpmBuilderKey");
+    return { householdProfileId, builderNamespace: canonical };
+  }
+  if (mpmBuilderKey) {
+    const canonical = canonicalMpmBuilder(mpmBuilderKey);
+    if (!canonical) throw new InvalidBoardScopeError("Invalid mpmBuilderKey");
+    return { householdProfileId, builderNamespace: canonical };
+  }
+  return { householdProfileId, builderNamespace: legacyBuilder ?? "" };
+}
+
+async function resolveBoardScope(req: Request, actorUserId: string, requestedId?: unknown, builderNamespace?: string) {
   const profileId = typeof requestedId === "string" && requestedId.trim() ? requestedId.trim() : undefined;
-  if (!profileId) return deriveBoardScope(actorUserId, undefined);
+  if (!profileId) {
+    const builderType = builderNamespace ?? "";
+    return { builderType, boardNamespace: builderType || "user", subjectId: actorUserId };
+  }
   const [actor] = await db.select({ activeHouseholdProfileId: users.activeHouseholdProfileId })
     .from(users).where(eq(users.id, actorUserId)).limit(1);
   if (!actor) throw new InaccessibleHouseholdProfileError();
@@ -55,7 +113,7 @@ async function resolveBoardScope(req: Request, actorUserId: string, requestedId?
     .from(householdProfiles)
     .where(and(eq(householdProfiles.id, profileId), eq(householdProfiles.ownerUserId, actorUserId)))
     .limit(1);
-  return deriveBoardScope(actorUserId, profileId, actor.activeHouseholdProfileId, profile?.id);
+  return deriveBoardScope(actorUserId, profileId, actor.activeHouseholdProfileId, profile?.id, builderNamespace);
 }
 
 function requestValue(req: Request, key: string): string | undefined {
@@ -644,11 +702,9 @@ export default function weekBoardRoutes(app: Express) {
     
     try {
       const userId = await resolveUserId(req);
-      const householdProfileId = requestValue(req, "householdProfileId");
-      const requestedBuilder = (req.query.bt as string | undefined) || (req.query.ns as string | undefined) || '';
-      if (householdProfileId && requestedBuilder) return res.status(400).json({ error: "householdProfileId cannot be combined with bt/ns" });
-      const scope = await resolveBoardScope(req, userId, householdProfileId);
-      const builderType = resolveRequestedBoardNamespace(householdProfileId, requestedBuilder, scope.builderType);
+      const requested = requestedScopeValues(req);
+      const scope = await resolveBoardScope(req, userId, requested.householdProfileId, requested.builderNamespace);
+      const builderType = scope.builderType;
       let board = await getWeekBoard(userId, weekStartISO, builderType);
       let source = "db";
       
@@ -670,7 +726,7 @@ export default function weekBoardRoutes(app: Express) {
         return res.status(401).json({ error: 'Authentication required' });
       }
       if (error instanceof InaccessibleHouseholdProfileError) return res.status(404).json({ error: "Weekly board not found" });
-      if (error instanceof Error && error.message.startsWith("Mismatched ")) return res.status(400).json({ error: error.message });
+      if (error instanceof Error && (error.message.startsWith("Mismatched ") || error instanceof InvalidBoardScopeError)) return res.status(400).json({ error: error.message });
       throw error;
     }
   });
@@ -689,11 +745,9 @@ export default function weekBoardRoutes(app: Express) {
     
     try {
       const userId = getAuthUserId(req);
-      const householdProfileId = requestValue(req, "householdProfileId");
-      const requestedBuilder = (req.query.bt as string | undefined) || (req.query.ns as string | undefined) || '';
-      if (householdProfileId && requestedBuilder) return res.status(400).json({ error: "householdProfileId cannot be combined with bt/ns" });
-      const scope = await resolveBoardScope(req, userId, householdProfileId);
-      const builderType = resolveRequestedBoardNamespace(householdProfileId, requestedBuilder, scope.builderType);
+      const requested = requestedScopeValues(req);
+      const scope = await resolveBoardScope(req, userId, requested.householdProfileId, requested.builderNamespace);
+      const builderType = scope.builderType;
       if (hasUnsafeGeneratedMeal(req.body?.week ?? req.body)) {
         return res.status(422).json({ error: "GENERATED_MEAL_VALIDATION_REQUIRED" });
       }
@@ -754,7 +808,7 @@ export default function weekBoardRoutes(app: Express) {
         return res.status(401).json({ error: 'Authentication required' });
       }
       if (error instanceof InaccessibleHouseholdProfileError) return res.status(404).json({ error: "Weekly board not found" });
-      if (error instanceof Error && error.message.startsWith("Mismatched ")) return res.status(400).json({ error: error.message });
+      if (error instanceof Error && (error.message.startsWith("Mismatched ") || error instanceof InvalidBoardScopeError)) return res.status(400).json({ error: error.message });
       throw error;
     }
   });
@@ -907,12 +961,7 @@ export default function weekBoardRoutes(app: Express) {
 
       // Resolve the same server-derived namespace as GET/PUT. Household IDs
       // never become repository keys directly and cannot be mixed with bt/ns.
-      const householdProfileId = requestValue(req, "householdProfileId");
-      const requestedBuilder = (req.body.bt as string) || (req.query.bt as string) ||
-        (req.body.ns as string) || (req.query.ns as string) || '';
-      if (householdProfileId && requestedBuilder) {
-        return res.status(400).json({ error: "householdProfileId cannot be combined with bt/ns" });
-      }
+      const requested = requestedScopeValues(req);
 
       // Validate inputs
       if (!dateISO || !isValidISODate(dateISO)) {
@@ -931,8 +980,8 @@ export default function weekBoardRoutes(app: Express) {
       // Determine the week this date belongs to
       const mondayISO = toMondayISO(dateISO);
       const userId = await resolveUserId(req);
-      const scope = await resolveBoardScope(req, userId, householdProfileId);
-      const builderType = resolveRequestedBoardNamespace(householdProfileId, requestedBuilder, scope.builderType);
+      const scope = await resolveBoardScope(req, userId, requested.householdProfileId, requested.builderNamespace);
+      const builderType = scope.builderType;
 
       // Get or create the week board — scoped to the correct builder namespace
       let board = await getWeekBoard(userId, mondayISO, builderType);
@@ -1050,7 +1099,7 @@ export default function weekBoardRoutes(app: Express) {
         return res.status(401).json({ error: 'Authentication required' });
       }
       if (error instanceof InaccessibleHouseholdProfileError) return res.status(404).json({ error: "Weekly board not found" });
-      if (error instanceof Error && error.message.startsWith("Mismatched ")) return res.status(400).json({ error: error.message });
+      if (error instanceof Error && (error.message.startsWith("Mismatched ") || error instanceof InvalidBoardScopeError)) return res.status(400).json({ error: error.message });
       console.error("❌ Error adding meal to board:", error);
       return res.status(500).json({ error: "Failed to add meal to board" });
     }

@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { useLocation } from "wouter";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useSearch } from "wouter";
 import {
   Activity,
   Apple,
@@ -27,6 +27,7 @@ import { CopilotBrain } from "@/components/copilot/CopilotBrain";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { useLogGlucose, type GlucoseContext } from "@/hooks/useDiabetes";
 import { usePageTitle } from "@/contexts/PageTitleContext";
+import type { MyPerfectMenuBuilderContext } from "@shared/builderNamespaces";
 
 type IdeaType = "breakfast" | "lunch" | "dinner" | "snack";
 
@@ -43,6 +44,7 @@ interface MenuConcept {
 type ConceptSets = Partial<Record<IdeaType, MenuConcept[]>>;
 type MenuContextStatus = {
   subject: { id: string; label?: string | null };
+  builder: MyPerfectMenuBuilderContext;
   diabetes: {
     applicable: boolean;
     state: "LOW" | "IN_RANGE" | "HIGH" | "STALE" | "NONE";
@@ -104,9 +106,14 @@ function completedMealPayload(meal: any) {
 export default function MyPerfectMenu() {
   usePageTitle("My Perfect Menu");
   const [, setLocation] = useLocation();
+  const search = useSearch();
   const { user } = useAuth();
   const { activeProfile } = useHousehold();
   const subjectUserId = activeProfile?.id;
+  const requestedBuilderKey = useMemo(
+    () => new URLSearchParams(search).get("builder") || undefined,
+    [search],
+  );
   const [ideaType, setIdeaType] = useState<IdeaType | null>(null);
   const [conceptSets, setConceptSets] = useState<ConceptSets>({});
   const [selectedConcept, setSelectedConcept] = useState<MenuConcept | null>(null);
@@ -116,6 +123,7 @@ export default function MyPerfectMenu() {
   const [savingMeal, setSavingMeal] = useState(false);
   const [pendingIdeaType, setPendingIdeaType] = useState<IdeaType | null>(null);
   const [contextStatus, setContextStatus] = useState<MenuContextStatus | null>(null);
+  const [builderContext, setBuilderContext] = useState<MyPerfectMenuBuilderContext | null>(null);
   const [glucoseValue, setGlucoseValue] = useState("");
   const [glucoseContext, setGlucoseContext] = useState<GlucoseContext>("PRE_MEAL");
   const [error, setError] = useState<string | null>(null);
@@ -137,10 +145,14 @@ export default function MyPerfectMenu() {
     setLoadingContext(false);
     setPendingIdeaType(null);
     setContextStatus(null);
+    setBuilderContext(null);
     setSelectedConcept(null);
     setPickerOpen(false);
     let cancelled = false;
-    const query = subjectUserId ? `?subjectUserId=${encodeURIComponent(subjectUserId)}` : "";
+    const params = new URLSearchParams();
+    if (subjectUserId) params.set("subjectUserId", subjectUserId);
+    if (requestedBuilderKey) params.set("requestedBuilderKey", requestedBuilderKey);
+    const query = params.toString() ? `?${params.toString()}` : "";
     fetch(apiUrl(`/api/my-perfect-menu/concepts${query}`), {
       credentials: "include",
       headers: getAuthHeaders(),
@@ -155,13 +167,14 @@ export default function MyPerfectMenu() {
           const expectedSubject = subjectUserId ?? user?.id;
           if (payload.subject?.id && payload.subject.id !== expectedSubject) return;
           setConceptSets(payload.categories ?? {});
+          if (payload.builder) setBuilderContext(payload.builder);
         }
       })
       .catch((cause) => {
         if (!cancelled) setError(cause instanceof Error ? cause.message : "We couldn't restore your menu ideas.");
       });
     return () => { cancelled = true; };
-  }, [subjectUserId, user?.id, cancelMeal, cancelSnack]);
+  }, [subjectUserId, user?.id, requestedBuilderKey, cancelMeal, cancelSnack]);
 
   const requestIdeas = async (nextType: IdeaType) => {
     const requestedSubject = subjectUserId ?? user?.id ?? null;
@@ -174,7 +187,7 @@ export default function MyPerfectMenu() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ ideaType: nextType, subjectUserId }),
+        body: JSON.stringify({ ideaType: nextType, subjectUserId, requestedBuilderKey }),
       });
       const payload = await response.json().catch(() => ({}));
        if (!response.ok) throw responseError(response, payload, "We couldn't create your ideas.");
@@ -184,6 +197,7 @@ export default function MyPerfectMenu() {
         (payload.subject?.id && payload.subject.id !== requestedSubject)
       ) return;
       setConceptSets((current) => ({ ...current, [nextType]: payload.concepts || [] }));
+      if (payload.builder) setBuilderContext(payload.builder);
     } catch (cause) {
       if (subjectEpochRef.current !== requestedEpoch || subjectRef.current !== requestedSubject) return;
       setError(cause instanceof Error ? cause.message : "We couldn't create your ideas.");
@@ -195,7 +209,10 @@ export default function MyPerfectMenu() {
   };
 
   const loadContextStatus = async (): Promise<MenuContextStatus> => {
-    const query = subjectUserId ? `?subjectUserId=${encodeURIComponent(subjectUserId)}` : "";
+    const params = new URLSearchParams();
+    if (subjectUserId) params.set("subjectUserId", subjectUserId);
+    if (requestedBuilderKey) params.set("requestedBuilderKey", requestedBuilderKey);
+    const query = params.toString() ? `?${params.toString()}` : "";
     const response = await fetch(apiUrl(`/api/my-perfect-menu/context-status${query}`), {
       credentials: "include",
       headers: getAuthHeaders(),
@@ -203,6 +220,7 @@ export default function MyPerfectMenu() {
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) throw responseError(response, payload, "We couldn't check the current food context.");
     setContextStatus(payload);
+    if (payload.builder) setBuilderContext(payload.builder);
     return payload;
   };
 
@@ -271,7 +289,7 @@ export default function MyPerfectMenu() {
         method: "DELETE",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ ideaType: requestedType, subjectUserId }),
+        body: JSON.stringify({ ideaType: requestedType, subjectUserId, requestedBuilderKey }),
       });
       const payload = await response.json().catch(() => ({}));
        if (!response.ok) throw responseError(response, payload, "We couldn't clear these ideas.");
@@ -299,7 +317,11 @@ export default function MyPerfectMenu() {
     setError(null);
   };
 
-  const addCompletedMeal = async (destination: MealPlanDestination, meal: any) => {
+  const addCompletedMeal = async (
+    destination: MealPlanDestination,
+    meal: any,
+    resolvedBuilder: MyPerfectMenuBuilderContext,
+  ) => {
     const response = await fetch(apiUrl("/api/weekly-board/add-meal"), {
       method: "POST",
       credentials: "include",
@@ -307,7 +329,7 @@ export default function MyPerfectMenu() {
       body: JSON.stringify({
         dateISO: destination.dateISO,
         slot: destination.slot,
-        bt: subjectUserId ? undefined : destination.builderType,
+        mpmBuilderKey: resolvedBuilder.key,
         householdProfileId: subjectUserId,
         meal: completedMealPayload(meal),
       }),
@@ -358,6 +380,7 @@ export default function MyPerfectMenu() {
           ideaType: selectedConcept.ideaType,
           conceptId: selectedConcept.id,
           subjectUserId,
+          requestedBuilderKey,
         }),
       });
       const validationPayload = await validationResponse.json().catch(() => ({}));
@@ -377,8 +400,12 @@ export default function MyPerfectMenu() {
           "Your food context changed. Refresh your choices before creating this meal.",
         );
       }
+      const resolvedBuilder = validationPayload.builder as MyPerfectMenuBuilderContext | undefined;
+      if (!resolvedBuilder) throw new Error("We couldn't resolve the assigned Meal Builder. Please try again.");
+      setBuilderContext(resolvedBuilder);
       const conceptIntent = [
         "My Perfect Menu selected concept. Preserve this dish and cuisine identity.",
+        `Resolved builder: ${resolvedBuilder.key}. Use its established generation contract.`,
         `Title: ${selectedConcept.title}`,
         `Description: ${selectedConcept.description}`,
         selectedConcept.cuisine ? `Required cuisine: ${selectedConcept.cuisine}` : "",
@@ -390,7 +417,7 @@ export default function MyPerfectMenu() {
       const meal = destination.slot === "snacks"
         ? await generateSnack(
             `${selectedConcept.title}. ${selectedConcept.description}`,
-            "general-nutrition",
+            resolvedBuilder.dietType,
             undefined,
             undefined,
             undefined,
@@ -403,7 +430,7 @@ export default function MyPerfectMenu() {
         : await generateMeal(
             `${selectedConcept.title}. ${selectedConcept.description}`,
             destination.slot,
-            "general-nutrition",
+            resolvedBuilder.dietType,
             undefined,
             { dateISO: destination.dateISO } as any,
             undefined,
@@ -412,7 +439,7 @@ export default function MyPerfectMenu() {
             false,
             undefined,
             undefined,
-            "lifestyle",
+            resolvedBuilder.builderMode,
             undefined,
             conceptIntent,
             undefined,
@@ -422,7 +449,7 @@ export default function MyPerfectMenu() {
       if (subjectRef.current !== requestedSubject) throw new Error("The active food profile changed. Please choose the meal again.");
       const finalMeal = await finalizeMeal(meal, destination.slot === "snacks" ? "snack" : destination.slot);
       if (subjectRef.current !== requestedSubject) throw new Error("The active food profile changed. Please choose the meal again.");
-      await addCompletedMeal(destination, finalMeal);
+      await addCompletedMeal(destination, finalMeal, resolvedBuilder);
       setPickerOpen(false);
       window.dispatchEvent(new CustomEvent("show-toast", {
         detail: {
@@ -430,9 +457,10 @@ export default function MyPerfectMenu() {
           description: `${finalMeal.name || finalMeal.title} was added to your plan.`,
         },
       }));
-      setLocation(subjectUserId
-        ? `/weekly-meal-board?householdProfileId=${encodeURIComponent(subjectUserId)}`
-        : "/weekly-meal-board");
+      const routeParams = new URLSearchParams();
+      if (subjectUserId) routeParams.set("householdProfileId", subjectUserId);
+      const routeQuery = routeParams.toString();
+      setLocation(`${resolvedBuilder.route}${routeQuery ? `?${routeQuery}` : ""}`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "We couldn't finish this meal.");
       setPickerOpen(false);
@@ -623,7 +651,7 @@ export default function MyPerfectMenu() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setLocation("/diabetic-hub?returnTo=%2Ffoods-i-enjoy")}
+                    onClick={() => setLocation("/diabetic-hub?returnTo=%2Ffoods-i-enjoy%3Fbuilder%3Ddiabetic")}
                     className="min-h-10 rounded-xl px-3 text-sm font-semibold text-sky-200"
                   >
                     Open Diabetes Hub
@@ -641,7 +669,7 @@ export default function MyPerfectMenu() {
             {!loadingContext && contextStatus?.glp1.active && !contextStatus.glp1.shouldEscalate && (
               <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-violet-300/20 bg-violet-950/20 px-4 py-3">
                 <p className="text-sm font-semibold text-violet-100">GLP-1 settings are being applied</p>
-                <button type="button" onClick={() => setLocation("/glp1-hub?returnTo=%2Ffoods-i-enjoy")} className="text-sm font-bold text-violet-200">
+                <button type="button" onClick={() => setLocation("/glp1-hub?returnTo=%2Ffoods-i-enjoy%3Fbuilder%3Dglp1")} className="text-sm font-bold text-violet-200">
                   Review / Update
                 </button>
               </div>
@@ -692,6 +720,8 @@ export default function MyPerfectMenu() {
           onOpenChange={setPickerOpen}
           title={selectedConcept.title}
           busy={savingMeal}
+          builderKey={builderContext?.key}
+          householdProfileId={subjectUserId}
           busyContent={
             <MealGenerationProgress
               active={savingMeal}

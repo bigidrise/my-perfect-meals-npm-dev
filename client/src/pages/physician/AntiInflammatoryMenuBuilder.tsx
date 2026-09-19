@@ -12,7 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useLocation, useRoute } from "wouter";
+import { useLocation, useRoute, useSearch } from "wouter";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { MealCard } from "@/components/MealCard";
 import type { Meal } from "@/types/meal";
@@ -135,6 +135,11 @@ import { isClinicalOrAbove } from "@/lib/subscriptionCheck";
 export default function AntiInflammatoryMenuBuilder() {
   const quickTour = useQuickTour("anti-inflammatory-menu-builder");
   const [, setLocation] = useLocation();
+  const search = useSearch();
+  const householdProfileId = useMemo(
+    () => new URLSearchParams(search).get("householdProfileId") || undefined,
+    [search],
+  );
   
   // ProCare route detection — primary route + legacy routes kept for redirect
   const [, proParamsAntiInflam] = useRoute("/pro/clients/:id/anti-inflammatory-builder");
@@ -388,7 +393,7 @@ export default function AntiInflammatoryMenuBuilder() {
     source,
     refresh: refreshBoard,
     primeCache,
-  } = useWeeklyBoard("2", weekStartISO, proClientId, namespace);
+  } = useWeeklyBoard("2", weekStartISO, proClientId, namespace, householdProfileId);
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);

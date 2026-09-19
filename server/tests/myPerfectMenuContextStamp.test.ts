@@ -10,6 +10,7 @@ import {
 
 const base: MyPerfectMenuAuthorityMaterial = {
   subject: { kind: "user", id: "user-1" },
+  builder: { key: "general_nutrition", namespace: "generalNutrition" },
   effectiveDiet: ["balanced"],
   allergies: ["peanuts"],
   avoidances: ["mushrooms"],
@@ -76,7 +77,15 @@ describe("My Perfect Menu context stamps", () => {
     expect(serialized).not.toContain("120");
     expect(serialized).not.toContain("IN_RANGE");
     expect(serialized).not.toContain("peanuts");
-    expect(Object.keys(stamp)).toEqual(["version", "digest", "generatedAt", "subjectId", "category"]);
+    expect(Object.keys(stamp)).toEqual([
+      "version",
+      "digest",
+      "generatedAt",
+      "subjectId",
+      "category",
+      "builderKey",
+      "builderNamespace",
+    ]);
   });
 
   it("represents missing GLP-1 check-in without gating and approved escalation as coarse state", () => {

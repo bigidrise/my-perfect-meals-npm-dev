@@ -105,5 +105,6 @@
 - [Snack occasion semantics](snack-occasion-semantics.md) — snack is an eating occasion; dessert is one valid family, and personalization must not default to shrinking it.
 - [My Perfect Menu culinary breadth](my-perfect-menu-culinary-breadth.md) — use shared culinary identity and soft subject-scoped history, never quotas or protein-swap novelty.
 - [My Perfect Menu context authority](my-perfect-menu-context-authority.md) — revalidate opaque per-category authority before selection; household boards use server-derived namespaces.
+- [My Perfect Menu builder authority](my-perfect-menu-builder-authority.md) — one server-resolved builder governs generation, board scope, cache events, and destination.
 - [Restrictive-diet generation contract](restrictive-diet-generation-contract.md) — generation and validation must share the same dietary universe; diversity stays inside it.
 - [Customer release identity](customer-release-identity.md) — build metadata stays separate; one explicit release ID owns notes, timestamp, comparison, and dismissal.
