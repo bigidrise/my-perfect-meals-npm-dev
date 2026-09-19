@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { PROCARE_INVITATION_VALIDITY_DAYS } from "../lib/procareInvitationExpiry";
 
 const EMAIL_FROM = 'My Perfect Meals <noreply@mail.myperfectmeals.com>';
 
@@ -520,7 +521,7 @@ export async function sendCareTeamInvite({
             </div>
 
             <p style="color: #6b7280; font-size: 14px; line-height: 1.6;">
-              This invitation was sent to <strong>${to}</strong>. Please use that email address when you sign in or create your account. It expires in 7 days.
+              This invitation was sent to <strong>${to}</strong>. Please use that email address when you sign in or create your account. It expires in ${PROCARE_INVITATION_VALIDITY_DAYS} days.
             </p>
 
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
