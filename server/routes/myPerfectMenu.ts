@@ -7,9 +7,11 @@ import { householdProfiles, users } from "@shared/schema";
 import {
   emptyMyPerfectMenuPreferences,
   myPerfectMenuCategorySchema,
+  myPerfectMenuMealSlotSchema,
   myPerfectMenuPreferencesSchema,
   type MyPerfectMenuCategory,
   type MyPerfectMenuConcept,
+  type MyPerfectMenuMealSlot,
   type MyPerfectMenuPreferences,
 } from "@shared/myPerfectMenu";
 import {
@@ -54,7 +56,9 @@ import {
   resolveMyPerfectMenuBuilderForActor,
   MyPerfectMenuBuilderError,
 } from "../services/myPerfectMenu/builderResolver";
-import type { MyPerfectMenuBuilderContext } from "@shared/builderNamespaces";
+import { builderContextFor, type MyPerfectMenuBuilderContext } from "@shared/builderNamespaces";
+import { resolveMyPerfectMenuPerformanceContext } from "../services/myPerfectMenu/performanceContext";
+import { issuePerformanceAuthorityToken } from "../services/myPerfectMenu/performanceAuthorityToken";
 
 const router = Router();
 const categorySchema = myPerfectMenuCategorySchema;
@@ -65,6 +69,8 @@ const subjectSchema = z.object({
   requestedNamespace: z.string().optional(),
   builderKey: z.string().optional(),
   builderNamespace: z.string().optional(),
+  destinationDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  mealSlot: myPerfectMenuMealSlotSchema.optional(),
 });
 const generationRequestSchema = subjectSchema.extend({
   ideaType: categorySchema,
@@ -79,6 +85,17 @@ type GovernedMenuConcept = MyPerfectMenuConcept & CulinaryConceptInput;
 
 function normalize(value: string | null | undefined): string {
   return String(value ?? "").toLowerCase().replace(/[_-]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function requirePerformanceDestination(
+  builder: MyPerfectMenuBuilderContext,
+  value: { destinationDate?: string; mealSlot?: MyPerfectMenuMealSlot },
+): string | null {
+  if (builder.key !== "performance_competition") return null;
+  if (!value.destinationDate || !value.mealSlot) {
+    return "Performance menu ideas require the intended date and meal slot.";
+  }
+  return null;
 }
 
 async function resolveSubject(actorUserId: string, requestedSubjectId?: string): Promise<SubjectTarget | null> {
@@ -110,6 +127,50 @@ async function resolveSubject(actorUserId: string, requestedSubjectId?: string):
     .limit(1);
   return profile ? { kind: "household", id: profile.id, label: profile.displayName } : null;
 }
+
+/**
+ * Household profiles do not currently own independent clinical or Performance
+ * Builder assignments. Never leak the actor's specialized authority into a
+ * person-fed Menu context; use the truthful general authority instead.
+ */
+export function effectiveBuilderForTarget(
+  builder: MyPerfectMenuBuilderContext,
+  target: SubjectTarget,
+): MyPerfectMenuBuilderContext {
+  return target.kind === "household"
+    ? builderContextFor("general_nutrition", "default")
+    : builder;
+}
+
+router.get("/effective-builder", requireAuth, async (req, res) => {
+  const parsed = subjectSchema.pick({
+    subjectUserId: true,
+    requestedBuilderKey: true,
+    requestedNamespace: true,
+    builderKey: true,
+    builderNamespace: true,
+  }).safeParse(req.query);
+  if (!parsed.success) return res.status(400).json({ error: "Invalid food profile." });
+  const actorUserId = String((req as AuthenticatedRequest).authUser.id);
+  const target = await resolveSubject(actorUserId, parsed.data.subjectUserId);
+  if (!target) return res.status(404).json({ error: "Food profile not found." });
+  try {
+    const assigned = await resolveMyPerfectMenuBuilderForActor(actorUserId, parsed.data);
+    const builder = effectiveBuilderForTarget(assigned, target);
+    return res.json({
+      subject: { id: target.id, kind: target.kind, label: target.label },
+      builder,
+    });
+  } catch (error) {
+    if (error instanceof MyPerfectMenuBuilderError) {
+      return res.status(error.code === "INVALID_BUILDER" ? 400 : 403).json({
+        error: error.message,
+        code: error.code,
+      });
+    }
+    throw error;
+  }
+});
 
 async function readPreferences(target: SubjectTarget): Promise<MyPerfectMenuPreferences> {
   const rows = target.kind === "user"
@@ -171,7 +232,18 @@ async function currentStamp(
   envelope: UserProtocolEnvelope | null,
   glp1: any = null,
   builder: MyPerfectMenuBuilderContext,
+  destinationDate?: string,
+  mealSlot?: MyPerfectMenuMealSlot,
 ) {
+  const performance = builder.key === "performance_competition"
+    ? target.kind === "user"
+      ? await resolveMyPerfectMenuPerformanceContext(
+        target.id,
+        destinationDate ?? new Date().toISOString().slice(0, 10),
+        mealSlot ?? (category === "snack" ? "snacks" : category),
+      )
+      : null
+    : null;
   const diabetes = target.kind === "user"
     ? await resolveUserGlucoseState(target.id)
     : { state: "NONE", activePreferences: [], preferencesConfigured: false };
@@ -227,6 +299,15 @@ async function currentStamp(
       foodsIEnjoy: parsedFoods.success && parsedFoods.data.items.some((item) => !item.revokedAt),
     },
     builder: { key: builder.key, namespace: builder.namespace },
+    performance: performance ? {
+      dateISO: performance.dateISO,
+      slot: performance.slot,
+      sessionType: performance.sessionType,
+      track: performance.performanceTrack,
+      competition: performance.competition,
+      demand: performance.demand,
+      nutrition: performance.nutrition,
+    } : undefined,
   };
   return buildMyPerfectMenuContextStamp(material, category);
 }
@@ -291,6 +372,9 @@ router.get("/concepts", requireAuth, async (req, res) => {
   }
   const target = await resolveSubject(actorUserId, parsed.data.subjectUserId);
   if (!target) return res.status(404).json({ error: "Food profile not found." });
+  builder = effectiveBuilderForTarget(builder, target);
+  const destinationError = requirePerformanceDestination(builder, parsed.data);
+  if (destinationError) return res.status(400).json({ error: destinationError, code: "PERFORMANCE_DESTINATION_REQUIRED" });
   const preferences = await readPreferences(target);
   const scope = createHumanFoodRequestScope({
     actorUserId, subjectUserId: target.id, creator: "my_perfect_menu",
@@ -308,7 +392,7 @@ router.get("/concepts", requireAuth, async (req, res) => {
   const staleCategories: MyPerfectMenuCategory[] = [];
   for (const category of ["breakfast", "lunch", "dinner", "snack"] as MyPerfectMenuCategory[]) {
     if (!preferences.categories[category]) continue;
-    const stamp = await currentStamp(actorUserId, target, category, context, envelope, glp1, builder);
+    const stamp = await currentStamp(actorUserId, target, category, context, envelope, glp1, builder, parsed.data.destinationDate, parsed.data.mealSlot ?? (category === "snack" ? "snacks" : category));
     if (isMyPerfectMenuContextStampFresh(preferences.contextStamps[category], stamp)) {
       categories[category] = preferences.categories[category];
     } else staleCategories.push(category);
@@ -329,6 +413,9 @@ router.get("/context-status", requireAuth, async (req, res) => {
   }
   const target = await resolveSubject(actorUserId, parsed.data.subjectUserId);
   if (!target) return res.status(404).json({ error: "Food profile not found." });
+  builder = effectiveBuilderForTarget(builder, target);
+  const destinationError = requirePerformanceDestination(builder, parsed.data);
+  if (destinationError) return res.status(400).json({ error: destinationError, code: "PERFORMANCE_DESTINATION_REQUIRED" });
   const glucose = target.kind === "user" ? await resolveUserGlucoseState(target.id) : null;
   const glp1 = target.kind === "user"
     ? await resolveGLP1GlobalContext(target.id, new Date().toISOString().slice(0, 10), "lunch")
@@ -342,7 +429,7 @@ router.get("/context-status", requireAuth, async (req, res) => {
   const envelope = target.kind === "user"
     ? await loadUserProtocolEnvelope(actorUserId)
     : await loadUserProtocolEnvelope(actorUserId, target.id);
-  const stamp = await currentStamp(actorUserId, target, "lunch", context, envelope, glp1, builder);
+  const stamp = await currentStamp(actorUserId, target, "lunch", context, envelope, glp1, builder, parsed.data.destinationDate, parsed.data.mealSlot ?? "lunch");
   return res.json({
     subject: { id: target.id, kind: target.kind, label: target.label },
     diabetes: target.kind === "user" ? {
@@ -372,6 +459,7 @@ router.delete("/concepts", requireAuth, async (req, res) => {
   }
   const target = await resolveSubject(actorUserId, parsed.data.subjectUserId);
   if (!target) return res.status(404).json({ error: "Food profile not found." });
+  builder = effectiveBuilderForTarget(builder, target);
   const updated = await mutatePreferences(actorUserId, target, (current) => {
     const categories = { ...current.categories };
     delete categories[parsed.data.ideaType];
@@ -402,6 +490,9 @@ router.post("/validate-selection", requireAuth, async (req, res) => {
   }
   const target = await resolveSubject(actorUserId, parsed.data.subjectUserId);
   if (!target) return res.status(404).json({ error: "Food profile not found." });
+  builder = effectiveBuilderForTarget(builder, target);
+  const destinationError = requirePerformanceDestination(builder, parsed.data);
+  if (destinationError) return res.status(400).json({ error: destinationError, code: "PERFORMANCE_DESTINATION_REQUIRED" });
   const preferences = await readPreferences(target);
   const concept = (preferences.categories[parsed.data.ideaType] ?? []).find((item) => item.id === parsed.data.conceptId);
   if (!concept) return res.status(404).json({ error: "Menu concept not found." });
@@ -417,11 +508,33 @@ router.post("/validate-selection", requireAuth, async (req, res) => {
   const glp1 = target.kind === "user"
     ? await resolveGLP1GlobalContext(actorUserId, new Date().toISOString().slice(0, 10), parsed.data.ideaType)
     : null;
-  const stamp = await currentStamp(actorUserId, target, parsed.data.ideaType, context, envelope, glp1, builder);
+  const stamp = await currentStamp(actorUserId, target, parsed.data.ideaType, context, envelope, glp1, builder, parsed.data.destinationDate, parsed.data.mealSlot);
   if (!isMyPerfectMenuContextStampFresh(preferences.contextStamps[parsed.data.ideaType], stamp)) {
     return res.status(409).json({ error: "These menu ideas are based on an older food context. Please refresh them.", code: "MY_PERFECT_MENU_CONTEXT_STALE" });
   }
-  return res.json({ valid: true, concept, builder });
+  const performance = builder.key === "performance_competition"
+    ? await resolveMyPerfectMenuPerformanceContext(target.id, parsed.data.destinationDate!, parsed.data.mealSlot!)
+    : null;
+  const performanceAuthorityToken = performance
+    ? issuePerformanceAuthorityToken({
+        actorUserId,
+        subjectUserId: target.id,
+        conceptId: concept.id,
+        destinationDate: parsed.data.destinationDate!,
+        mealSlot: parsed.data.mealSlot!,
+        builderKey: "performance_competition",
+        concept: {
+          id: concept.id,
+          ideaType: concept.ideaType,
+          title: concept.title,
+          description: concept.description,
+          signature: concept.signature,
+          primaryIngredients: concept.primaryIngredients,
+        },
+        authority: performance,
+      })
+    : null;
+  return res.json({ valid: true, concept, builder, performance, performanceAuthorityToken });
 });
 
 router.post("/concepts", requireAuth, async (req, res) => {
@@ -440,6 +553,9 @@ router.post("/concepts", requireAuth, async (req, res) => {
   }
   const target = await resolveSubject(actorUserId, parsed.data.subjectUserId);
   if (!target) return res.status(404).json({ error: "Food profile not found." });
+  builder = effectiveBuilderForTarget(builder, target);
+  const destinationError = requirePerformanceDestination(builder, parsed.data);
+  if (destinationError) return res.status(400).json({ error: destinationError, code: "PERFORMANCE_DESTINATION_REQUIRED" });
 
   const scope = createHumanFoodRequestScope({
     actorUserId,
@@ -481,6 +597,17 @@ router.post("/concepts", requireAuth, async (req, res) => {
     const protocolBlock = enforceBeforeGenerate(envelope, {
       generatorName: "my-perfect-menu-concepts",
     }).combined;
+    const performance = builder.key === "performance_competition"
+      ? target.kind === "user"
+        ? await resolveMyPerfectMenuPerformanceContext(target.id, parsed.data.destinationDate!, parsed.data.mealSlot!)
+        : null
+      : null;
+    if (builder.key === "performance_competition" && !performance) {
+      return res.status(409).json({
+        error: "Performance setup is not available for this person yet.",
+        code: "PERFORMANCE_CONTEXT_UNRESOLVED",
+      });
+    }
     let glp1Block = "";
     if (target.kind === "user") {
       const glp1 = await resolveGLP1GlobalContext(actorUserId, new Date().toISOString().slice(0, 10), parsed.data.ideaType);
@@ -549,6 +676,9 @@ router.post("/concepts", requireAuth, async (req, res) => {
           dietBlock,
           protocolBlock,
           glp1Block,
+          performance
+            ? `PERFORMANCE AUTHORITY (server-resolved): date=${performance.dateISO}; meal slot=${performance.slot}; session=${performance.sessionType ?? "unscheduled"}; track=${performance.performanceTrack ?? "athletic"}; demand=${JSON.stringify(performance.demand)}; nutrition=${JSON.stringify(performance.nutrition)}. Honor this authority. Zero starch means no starchy foods, not zero total carbohydrates.`
+            : "",
           `Create ${parsed.data.ideaType} concepts for ${target.label ?? "the person being fed"}.`,
           `Previously shown signatures to avoid immediately: ${[...priorSignatures].join(", ") || "none"}.`,
           `Recent culinary patterns to move beyond when appropriate: ${recentPatternSummary.join(", ") || "none"}.`,
@@ -607,7 +737,7 @@ router.post("/concepts", requireAuth, async (req, res) => {
     }
 
     const concepts = accepted.slice(0, 3);
-    const stamp = await currentStamp(actorUserId, target, parsed.data.ideaType, context, envelope, target.kind === "user" ? await resolveGLP1GlobalContext(actorUserId, new Date().toISOString().slice(0, 10), parsed.data.ideaType) : null, builder);
+    const stamp = await currentStamp(actorUserId, target, parsed.data.ideaType, context, envelope, target.kind === "user" ? await resolveGLP1GlobalContext(actorUserId, parsed.data.destinationDate ?? new Date().toISOString().slice(0, 10), parsed.data.ideaType) : null, builder, parsed.data.destinationDate, parsed.data.mealSlot);
     await mutatePreferences(actorUserId, target, (current) => ({
       version: 1,
       categories: { ...current.categories, [parsed.data.ideaType]: concepts },

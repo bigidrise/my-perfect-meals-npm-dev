@@ -57,6 +57,9 @@ export function resolveMyPerfectMenuBuilder(
   }
 
   const assigned = account.activeBoard ?? account.selectedMealBuilder;
+  // Legacy Performance assignments used beach_body; normalize that stored
+  // assignment to the canonical Performance Competition Builder authority.
+  if (assigned === "beach_body") return builderContextFor("performance_competition", "assigned");
   if (isMyPerfectMenuBuilderKey(assigned)) return builderContextFor(assigned, "assigned");
   return builderContextFor("general_nutrition", "default");
 }

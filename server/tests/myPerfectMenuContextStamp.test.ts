@@ -101,4 +101,33 @@ describe("My Perfect Menu context stamps", () => {
     expect(missing.digest).toBeTruthy();
     expect(approvedEscalation.digest).not.toBe(missing.digest);
   });
+
+  it("binds Performance concepts to the exact destination date and slot", () => {
+    const performanceBase = {
+      ...base,
+      builder: { key: "performance_competition", namespace: "performanceCompetition" },
+      performance: {
+        dateISO: "2026-01-05",
+        slot: "dinner" as const,
+        sessionType: "heavy",
+        track: "athletic",
+        demand: { fuelDemand: "glycogen" },
+        nutrition: { remaining: { calories: 1200, starchyCarbs: 80, starchMealsRemaining: 1 } },
+      },
+    };
+    const monday = buildMyPerfectMenuContextStamp(performanceBase, "dinner", fixed);
+    const tuesday = buildMyPerfectMenuContextStamp({
+      ...performanceBase,
+      performance: { ...performanceBase.performance, dateISO: "2026-01-06" },
+    }, "dinner", fixed);
+    const breakfast = buildMyPerfectMenuContextStamp({
+      ...performanceBase,
+      performance: { ...performanceBase.performance, slot: "breakfast" },
+    }, "dinner", fixed);
+    expect(monday.destinationDate).toBe("2026-01-05");
+    expect(monday.mealSlot).toBe("dinner");
+    expect(monday.digest).not.toBe(tuesday.digest);
+    expect(monday.digest).not.toBe(breakfast.digest);
+    expect(isMyPerfectMenuContextStampFresh(monday, tuesday)).toBe(false);
+  });
 });

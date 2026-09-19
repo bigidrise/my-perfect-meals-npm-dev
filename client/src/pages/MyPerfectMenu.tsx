@@ -40,6 +40,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { MyPerfectMenuBuilderContext } from "@shared/builderNamespaces";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import PerformanceNutritionSetupForm from "@/components/performance/PerformanceNutritionSetupForm";
+import { getTodayISOSafe } from "@/utils/midnight";
 
 type IdeaType = "breakfast" | "lunch" | "dinner" | "snack";
 
@@ -150,6 +153,10 @@ export default function MyPerfectMenu() {
   const [glp1CheckinOpen, setGlp1CheckinOpen] = useState(false);
   const [glp1ReturnNotice, setGlp1ReturnNotice] = useState<string | null>(null);
   const [tryMoreOpen, setTryMoreOpen] = useState(false);
+  const [performanceDestination, setPerformanceDestination] = useState<MealPlanDestination | null>(null);
+  const [performanceDate, setPerformanceDate] = useState(() => getTodayISOSafe("America/Chicago"));
+  const [performanceSlot, setPerformanceSlot] = useState<MealPlanDestination["slot"] | null>(null);
+  const [performanceSetupOpen, setPerformanceSetupOpen] = useState(false);
   const handledReturnRef = useRef(false);
   const subjectRef = useRef(subjectUserId ?? user?.id ?? null);
   const subjectEpochRef = useRef(0);
@@ -173,6 +180,10 @@ export default function MyPerfectMenu() {
     setContextStatus(null);
     setBuilderContext(null);
     setSelectedConcept(null);
+    setPerformanceDestination(null);
+    setPerformanceDate(getTodayISOSafe("America/Chicago"));
+    setPerformanceSlot(null);
+    setPerformanceSetupOpen(false);
     setPickerOpen(false);
     setTryMoreOpen(false);
     let cancelled = false;
@@ -180,30 +191,38 @@ export default function MyPerfectMenu() {
     if (subjectUserId) params.set("subjectUserId", subjectUserId);
     if (requestedBuilderKey) params.set("requestedBuilderKey", requestedBuilderKey);
     const query = params.toString() ? `?${params.toString()}` : "";
-    fetch(apiUrl(`/api/my-perfect-menu/concepts${query}`), {
-      credentials: "include",
-      headers: getAuthHeaders(),
-    })
-      .then(async (response) => {
+    void (async () => {
+      try {
+        const builderResponse = await fetch(apiUrl(`/api/my-perfect-menu/effective-builder${query}`), {
+          credentials: "include",
+          headers: getAuthHeaders(),
+        });
+        const builderPayload = await builderResponse.json().catch(() => ({}));
+        if (!builderResponse.ok) throw responseError(builderResponse, builderPayload, "We couldn't resolve your Menu Builder.");
+        if (cancelled) return;
+        const effectiveBuilder = builderPayload.builder as MyPerfectMenuBuilderContext;
+        setBuilderContext(effectiveBuilder);
+        if (effectiveBuilder.key === "performance_competition") return;
+
+        const response = await fetch(apiUrl(`/api/my-perfect-menu/concepts${query}`), {
+          credentials: "include",
+          headers: getAuthHeaders(),
+        });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw responseError(response, payload, "We couldn't restore your menu ideas.");
-        return payload;
-      })
-      .then((payload) => {
-        if (!cancelled) {
-          const expectedSubject = subjectUserId ?? user?.id;
-          if (payload.subject?.id && payload.subject.id !== expectedSubject) return;
-          setConceptSets(payload.categories ?? {});
-          if (payload.builder) setBuilderContext(payload.builder);
-        }
-      })
-      .catch((cause) => {
+        if (cancelled) return;
+        const expectedSubject = subjectUserId ?? user?.id;
+        if (payload.subject?.id && payload.subject.id !== expectedSubject) return;
+        setConceptSets(payload.categories ?? {});
+        if (payload.builder) setBuilderContext(payload.builder);
+      } catch (cause) {
         if (!cancelled) setError(cause instanceof Error ? cause.message : "We couldn't restore your menu ideas.");
-      });
+      }
+    })();
     return () => { cancelled = true; };
   }, [subjectUserId, user?.id, requestedBuilderKey, cancelMeal, cancelSnack]);
 
-  const requestIdeas = async (nextType: IdeaType) => {
+  const requestIdeas = async (nextType: IdeaType, destination = performanceDestination) => {
     const requestedSubject = subjectUserId ?? user?.id ?? null;
     const requestedEpoch = subjectEpochRef.current;
     setIdeaType(nextType);
@@ -214,7 +233,14 @@ export default function MyPerfectMenu() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ ideaType: nextType, subjectUserId, requestedBuilderKey }),
+        body: JSON.stringify({
+          ideaType: nextType,
+          subjectUserId,
+          requestedBuilderKey,
+          ...(builderContext?.key === "performance_competition" && destination
+            ? { destinationDate: destination.dateISO, mealSlot: destination.slot }
+            : {}),
+        }),
       });
       const payload = await response.json().catch(() => ({}));
        if (!response.ok) throw responseError(response, payload, "We couldn't create your ideas.");
@@ -238,10 +264,15 @@ export default function MyPerfectMenu() {
   const loadContextStatus = async (
     expectedEpoch = subjectEpochRef.current,
     expectedSubject = subjectUserId ?? user?.id ?? null,
+    destination = performanceDestination,
   ): Promise<MenuContextStatus | null> => {
     const params = new URLSearchParams();
     if (subjectUserId) params.set("subjectUserId", subjectUserId);
     if (requestedBuilderKey) params.set("requestedBuilderKey", requestedBuilderKey);
+    if (builderContext?.key === "performance_competition" && destination) {
+      params.set("destinationDate", destination.dateISO);
+      params.set("mealSlot", destination.slot);
+    }
     const query = params.toString() ? `?${params.toString()}` : "";
     const response = await fetch(apiUrl(`/api/my-perfect-menu/context-status${query}`), {
       credentials: "include",
@@ -269,14 +300,18 @@ export default function MyPerfectMenu() {
     return Boolean(payload.checkin);
   };
 
-  const prepareIdeaRequest = async (nextType: IdeaType) => {
+  const prepareIdeaRequest = async (nextType: IdeaType, destination = performanceDestination) => {
     const requestedEpoch = subjectEpochRef.current;
     const requestedSubject = subjectUserId ?? user?.id ?? null;
     setIdeaType(nextType);
     setError(null);
     setLoadingContext(true);
     try {
-      const status = await loadContextStatus(requestedEpoch, requestedSubject);
+      if (builderContext?.key === "performance_competition" && !destination) {
+        setPendingIdeaType(nextType);
+        return;
+      }
+      const status = await loadContextStatus(requestedEpoch, requestedSubject, destination);
       if (!status) return;
       if (status.glp1.shouldEscalate) {
         setPendingIdeaType(nextType);
@@ -298,7 +333,7 @@ export default function MyPerfectMenu() {
         return;
       }
       setPendingIdeaType(null);
-      await requestIdeas(nextType);
+      await requestIdeas(nextType, destination);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "We couldn't check the current food context.");
     } finally {
@@ -339,7 +374,23 @@ export default function MyPerfectMenu() {
   const openCategory = (nextType: IdeaType) => {
     setIdeaType(nextType);
     setError(null);
+    if (builderContext?.key === "performance_competition" && !performanceDestination) {
+      setPendingIdeaType(nextType);
+      return;
+    }
     if (!conceptSets[nextType]?.length) void prepareIdeaRequest(nextType);
+  };
+
+  const startPerformanceIdeas = async () => {
+    if (!ideaType || !performanceDate || !performanceSlot || !builderContext) return;
+    const destination: MealPlanDestination = {
+      dateISO: performanceDate,
+      slot: performanceSlot,
+      builderType: builderContext.namespace,
+    };
+    setPerformanceDestination(destination);
+    setPendingIdeaType(null);
+    await prepareIdeaRequest(ideaType, destination);
   };
 
   const saveGlucoseAndContinue = async () => {
@@ -401,6 +452,10 @@ export default function MyPerfectMenu() {
 
   const chooseConcept = (concept: MenuConcept) => {
     setSelectedConcept(concept);
+    if (builderContext?.key === "performance_competition" && performanceDestination) {
+      void generateForDestination(performanceDestination, concept);
+      return;
+    }
     setPickerOpen(true);
     setError(null);
   };
@@ -460,8 +515,9 @@ export default function MyPerfectMenu() {
     }
   };
 
-  const generateForDestination = async (destination: MealPlanDestination) => {
-    if (!selectedConcept || savingMeal) return;
+  const generateForDestination = async (destination: MealPlanDestination, selectedConceptOverride?: MenuConcept) => {
+    const conceptToGenerate = selectedConceptOverride ?? selectedConcept;
+    if (!conceptToGenerate || savingMeal) return;
     setSavingMeal(true);
     setError(null);
     const requestedSubject = subjectRef.current;
@@ -471,10 +527,12 @@ export default function MyPerfectMenu() {
         credentials: "include",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({
-          ideaType: selectedConcept.ideaType,
-          conceptId: selectedConcept.id,
+          ideaType: conceptToGenerate.ideaType,
+          conceptId: conceptToGenerate.id,
           subjectUserId,
           requestedBuilderKey,
+          destinationDate: destination.dateISO,
+          mealSlot: destination.slot,
         }),
       });
       const validationPayload = await validationResponse.json().catch(() => ({}));
@@ -482,7 +540,7 @@ export default function MyPerfectMenu() {
         if (validationResponse.status === 409 && validationPayload?.code === "MY_PERFECT_MENU_CONTEXT_STALE") {
           setConceptSets((current) => {
             const next = { ...current };
-            delete next[selectedConcept.ideaType];
+            delete next[conceptToGenerate.ideaType];
             return next;
           });
           setSelectedConcept(null);
@@ -496,21 +554,42 @@ export default function MyPerfectMenu() {
       }
       const resolvedBuilder = validationPayload.builder as MyPerfectMenuBuilderContext | undefined;
       if (!resolvedBuilder) throw new Error("We couldn't resolve the assigned Meal Builder. Please try again.");
+      const performance = validationPayload.performance as any;
+      const performanceAuthorityToken = validationPayload.performanceAuthorityToken as string | null;
       setBuilderContext(resolvedBuilder);
       const conceptIntent = [
         "My Perfect Menu selected concept. Preserve this dish and cuisine identity.",
         `Resolved builder: ${resolvedBuilder.key}. Use its established generation contract.`,
-        `Title: ${selectedConcept.title}`,
-        `Description: ${selectedConcept.description}`,
-        selectedConcept.cuisine ? `Required cuisine: ${selectedConcept.cuisine}` : "",
-        selectedConcept.primaryIngredients?.length
-          ? `Concept ingredients: ${selectedConcept.primaryIngredients.join(", ")}`
+        `Title: ${conceptToGenerate.title}`,
+        `Description: ${conceptToGenerate.description}`,
+        conceptToGenerate.cuisine ? `Required cuisine: ${conceptToGenerate.cuisine}` : "",
+        conceptToGenerate.primaryIngredients?.length
+          ? `Concept ingredients: ${conceptToGenerate.primaryIngredients.join(", ")}`
           : "",
-        selectedConcept.signature ? `Concept signature: ${selectedConcept.signature}` : "",
+        conceptToGenerate.signature ? `Concept signature: ${conceptToGenerate.signature}` : "",
+        performance
+          ? `Performance authority: ${performance.dateISO} ${performance.slot}; ${performance.sessionLabel || performance.sessionType || "scheduled session"}; remaining ${performance.nutrition.remaining.calories} kcal, ${performance.nutrition.remaining.protein}g protein, ${performance.nutrition.remaining.carbs}g carbs, ${performance.nutrition.remaining.fat}g fat, ${performance.nutrition.remaining.starchyCarbs}g starchy carbs.`
+          : "",
       ].filter(Boolean).join("\n");
-      const meal = destination.slot === "snacks"
+      const performanceStarchContext = performance ? {
+        strategy: "flex" as const,
+        starchMealsAllowed: performance.nutrition.remaining.starchMealsRemaining,
+        starchyCarbsRemaining: performance.nutrition.remaining.starchyCarbs,
+        gramsPerRemainingStarchMeal: performance.nutrition.starch.gramsPerRemainingMeal ?? undefined,
+        distributionStrategy: performance.nutrition.starch.distributionStrategy,
+        isZeroStarchDay: performance.nutrition.starch.isZeroStarchDay,
+        dateISO: performance.dateISO,
+      } : undefined;
+      const performanceSessionContext = performance ? {
+        sessionType: performance.sessionType || "off",
+        sessionLabel: performance.sessionLabel || performance.sessionType || "Rest day",
+        reasoning: `Server-resolved Performance prescription for ${performance.dateISO} and ${performance.slot}.`,
+        starchyCarbs_g: performance.nutrition.targets.starchyCarbs,
+        fibrousCarbs_g: performance.nutrition.targets.fibrousCarbs,
+      } : undefined;
+      const meal = destination.slot === "snacks" && !performance
         ? await generateSnack(
-            `${selectedConcept.title}. ${selectedConcept.description}`,
+            `${conceptToGenerate.title}. ${conceptToGenerate.description}`,
             resolvedBuilder.dietType,
             undefined,
             undefined,
@@ -522,22 +601,25 @@ export default function MyPerfectMenu() {
             conceptIntent,
           )
         : await generateMeal(
-            `${selectedConcept.title}. ${selectedConcept.description}`,
-            destination.slot,
+            `${conceptToGenerate.title}. ${conceptToGenerate.description}`,
+            destination.slot === "snacks" ? "snack" : destination.slot,
             resolvedBuilder.dietType,
             undefined,
-            { dateISO: destination.dateISO } as any,
+            performanceStarchContext ?? ({ dateISO: destination.dateISO } as any),
             undefined,
             true,
             undefined,
             false,
             undefined,
-            undefined,
+            performance?.nutrition.remaining,
             resolvedBuilder.builderMode,
-            undefined,
+            performanceSessionContext,
             conceptIntent,
             undefined,
             1,
+            performanceAuthorityToken ?? undefined,
+            resolvedBuilder.key === "performance_competition" ? conceptToGenerate.id : undefined,
+            resolvedBuilder.key === "performance_competition",
           );
       if (!meal) throw new Error("We couldn't finish this meal. Please choose it again.");
       if (subjectRef.current !== requestedSubject) throw new Error("The active food profile changed. Please choose the meal again.");
@@ -553,6 +635,10 @@ export default function MyPerfectMenu() {
       }));
       const routeParams = new URLSearchParams();
       if (subjectUserId) routeParams.set("householdProfileId", subjectUserId);
+      if (resolvedBuilder.key === "performance_competition") {
+        routeParams.set("destinationDate", destination.dateISO);
+        routeParams.set("destinationSlot", destination.slot);
+      }
       const routeQuery = routeParams.toString();
       setLocation(`${resolvedBuilder.route}${routeQuery ? `?${routeQuery}` : ""}`);
     } catch (cause) {
@@ -620,7 +706,17 @@ export default function MyPerfectMenu() {
           <p className="mt-3 max-w-2xl text-base leading-relaxed text-white/65">
             Not sure what to eat? Pick a meal and we’ll give you 3 personalized ideas.
           </p>
+          {builderContext?.displayName && (
+            <div className="mt-4 inline-flex items-center rounded-full border border-violet-300/25 bg-violet-400/10 px-3 py-1.5 text-xs font-bold text-violet-100">
+              Using your {builderContext.displayName}
+            </div>
+          )}
           {activeProfile && <p className="mt-3 text-sm font-semibold text-violet-200">Choosing for {activeProfile.displayName}</p>}
+          {builderContext?.key === "performance_competition" && (
+            <button type="button" onClick={() => setPerformanceSetupOpen(true)} className="mt-3 block text-xs font-semibold text-orange-200 underline-offset-2 hover:underline">
+              Edit Performance setup
+            </button>
+          )}
         </header>
 
         <details className="group mt-4 rounded-2xl border border-white/15 bg-black/45 px-5 py-4 shadow-xl backdrop-blur-xl">
@@ -649,7 +745,11 @@ export default function MyPerfectMenu() {
         {!ideaType ? (
           <section className="mt-8">
             <h2 className="text-xl font-bold">What sounds good?</h2>
-            <p className="mt-1 text-sm text-white/50">Choose a food style now. Pick the actual meal slot afterward.</p>
+             <p className="mt-1 text-sm text-white/50">
+               {builderContext?.key === "performance_competition"
+                 ? "Choose the day and intended meal slot first so your Performance prescription guides the ideas."
+                 : "Choose a food style now. Pick the actual meal slot afterward."}
+             </p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {IDEA_TYPES.map(({ value, title, description, icon: Icon, color }) => (
                 <button key={value} type="button" onClick={() => openCategory(value)} className={`group rounded-2xl border border-white/15 bg-gradient-to-br ${color} p-5 text-left shadow-xl backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-violet-300/45`}>
@@ -667,9 +767,28 @@ export default function MyPerfectMenu() {
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-300">Three choices</p>
                 <h2 className="mt-1 text-2xl font-black">{activeType?.title}</h2>
+                 {builderContext?.key === "performance_competition" && performanceDestination && (
+                   <p className="mt-2 text-xs font-semibold text-orange-200">
+                     For {performanceDestination.dateISO} · {performanceDestination.slot}
+                   </p>
+                 )}
               </div>
                {!loadingIdeas && (
                  <div className="flex gap-2">
+                    {builderContext?.key === "performance_competition" && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConceptSets((current) => ({ ...current, [ideaType!]: [] }));
+                          setPerformanceDestination(null);
+                          setPendingIdeaType(ideaType);
+                          setSelectedConcept(null);
+                        }}
+                        className="min-h-10 rounded-xl border border-orange-300/20 bg-orange-950/25 px-4 text-sm font-semibold text-orange-100/80"
+                      >
+                        Change date or slot
+                      </button>
+                    )}
                    <button type="button" onClick={clearCategory} className="min-h-10 rounded-xl border border-red-300/20 bg-red-950/25 px-4 text-sm font-semibold text-red-100/75">Clear</button>
                     <button type="button" onClick={() => setTryMoreOpen(true)} className="min-h-10 rounded-xl border border-white/15 bg-white/5 px-4 text-sm font-semibold text-white/70">Try 3 More</button>
                  </div>
@@ -684,6 +803,44 @@ export default function MyPerfectMenu() {
                 </p>
               </div>
             )}
+
+             {builderContext?.key === "performance_competition" && pendingIdeaType && !performanceDestination && (
+               <div className="mt-5 rounded-3xl border border-orange-300/25 bg-orange-950/25 p-5">
+                 <h3 className="font-black text-white">When are you planning this meal?</h3>
+                 <p className="mt-1 text-sm text-white/60">Your Performance Builder can change fuel and starch guidance by day and meal slot.</p>
+                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                   <label className="text-xs font-bold text-white/70">
+                     Date
+                     <input
+                       type="date"
+                        value={performanceDate}
+                        onChange={(event) => setPerformanceDate(event.target.value)}
+                       className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-black/45 px-3 text-sm text-white"
+                     />
+                   </label>
+                   <label className="text-xs font-bold text-white/70">
+                     Intended meal slot
+                     <select
+                        value={performanceSlot ?? ""}
+                        onChange={(event) => setPerformanceSlot(event.target.value as MealPlanDestination["slot"])}
+                       className="mt-1 min-h-11 w-full rounded-xl border border-white/15 bg-black/45 px-3 text-sm text-white"
+                     >
+                       <option value="" disabled>Select a slot</option>
+                       <option value="breakfast">Meal 1</option>
+                       <option value="lunch">Meal 2</option>
+                       <option value="dinner">Meal 3</option>
+                       <option value="meal4">Meal 4</option>
+                       <option value="meal5">Meal 5</option>
+                       <option value="meal6">Meal 6</option>
+                       <option value="snacks">Snack</option>
+                     </select>
+                   </label>
+                 </div>
+                  <button type="button" disabled={!performanceDate || !performanceSlot} onClick={() => void startPerformanceIdeas()} className="mt-4 min-h-11 rounded-xl bg-orange-600 px-4 text-sm font-black text-white disabled:opacity-40">
+                   Use this Performance prescription
+                 </button>
+               </div>
+             )}
 
             {loadingContext && (
               <div className="mt-6 flex min-h-32 flex-col items-center justify-center rounded-3xl border border-violet-300/20 bg-black/45">
@@ -865,6 +1022,33 @@ export default function MyPerfectMenu() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={performanceSetupOpen} onOpenChange={setPerformanceSetupOpen}>
+        <DialogContent className="max-h-[90vh] overflow-hidden border-orange-300/20 bg-black/95 p-0 text-white sm:max-w-2xl">
+          <DialogHeader className="border-b border-white/10 px-5 py-4">
+            <DialogTitle className="text-white">Performance setup</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[calc(90vh-5rem)] overflow-y-auto">
+            <PerformanceNutritionSetupForm
+              embedded
+              onCancel={() => setPerformanceSetupOpen(false)}
+              onSave={async () => {
+                setPerformanceSetupOpen(false);
+                const params = subjectUserId ? `?subjectUserId=${encodeURIComponent(subjectUserId)}` : "";
+                const response = await fetch(apiUrl(`/api/my-perfect-menu/effective-builder${params}`), {
+                  credentials: "include",
+                  headers: getAuthHeaders(),
+                });
+                if (response.ok) {
+                  const payload = await response.json();
+                  if (payload.builder) setBuilderContext(payload.builder);
+                }
+                window.dispatchEvent(new CustomEvent("mpm:builderUpdated"));
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
