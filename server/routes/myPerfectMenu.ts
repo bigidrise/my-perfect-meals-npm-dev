@@ -18,6 +18,7 @@ import {
   culinaryIdentitySchema,
   hasMeaningfulCulinaryRepetition,
   selectCulinarilyBroadConcepts,
+  type CulinaryConceptInput,
 } from "@shared/culinaryIdentity";
 import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
 import { createHumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
@@ -60,6 +61,7 @@ const generatedResponseSchema = z.object({
 type SubjectTarget =
   | { kind: "user"; id: string; label: string | null }
   | { kind: "household"; id: string; label: string };
+type GovernedMenuConcept = MyPerfectMenuConcept & CulinaryConceptInput;
 
 function normalize(value: string | null | undefined): string {
   return String(value ?? "").toLowerCase().replace(/[_-]/g, " ").replace(/\s+/g, " ").trim();
@@ -281,9 +283,9 @@ router.post("/concepts", requireAuth, async (req, res) => {
     ]);
     const requiredCuisine = context.flavor.cuisine.available ? context.flavor.cuisine.value : null;
     const occasion = parsed.data.ideaType as MyPerfectMenuCategory;
-    const candidatePool: MyPerfectMenuConcept[] = [];
+    const candidatePool: GovernedMenuConcept[] = [];
     const rejectedReasons: string[] = [];
-    let accepted: MyPerfectMenuConcept[] = [];
+    let accepted: GovernedMenuConcept[] = [];
     const recentCulinaryHistory = stored.recentCulinaryFingerprints.filter(
       (item) => item.occasion === occasion,
     );
@@ -352,7 +354,7 @@ router.post("/concepts", requireAuth, async (req, res) => {
           ...candidate,
           id: randomUUID(),
           ideaType: parsed.data.ideaType,
-        });
+        } as GovernedMenuConcept);
       }
 
       accepted = selectCulinarilyBroadConcepts(
