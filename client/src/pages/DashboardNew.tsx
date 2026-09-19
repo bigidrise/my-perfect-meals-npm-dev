@@ -29,6 +29,7 @@ import {
   Send,
   Loader2,
   Globe,
+  ChevronRight,
   ChevronDown,
   ChevronUp,
   Trash2,
