@@ -24,9 +24,13 @@ function cacheKey(userId: string, weekStartISO: string, namespace?: string): str
     : `${CACHE_NS}:${userId}:${weekStartISO}`;
 }
 
-function buildWeekUrl(weekStartISO: string, namespace?: string): string {
+function buildWeekUrl(weekStartISO: string, namespace?: string, householdProfileId?: string): string {
   const base = `/api/weekly-board?week=${encodeURIComponent(weekStartISO)}`;
-  return namespace ? `${base}&bt=${encodeURIComponent(namespace)}` : base;
+  const params = new URLSearchParams();
+  if (namespace) params.set("bt", namespace);
+  if (householdProfileId) params.set("householdProfileId", householdProfileId);
+  const query = params.toString();
+  return query ? `${base}&${query}` : base;
 }
 
 async function fetchWithTimeout(
@@ -70,14 +74,17 @@ function loadWeeklyBoard({
   onData,
   proClientId,
   namespace,
+  householdProfileId,
 }: {
   userId: string;
   weekStartISO: string;
   onData: (data: WeekBoardResponse) => void;
   proClientId?: string;
   namespace?: string;
+  householdProfileId?: string;
 }): Promise<void> {
-  const key = cacheKey(proClientId || userId, weekStartISO, namespace);
+  const cacheNamespace = householdProfileId ? `household:${householdProfileId}` : namespace;
+  const key = cacheKey(proClientId || userId, weekStartISO, cacheNamespace);
   const empty = createEmptyWeekStructure(weekStartISO);
 
   if (!proClientId) {
@@ -98,7 +105,7 @@ function loadWeeklyBoard({
 
     return (async () => {
       try {
-        const url = apiUrl(buildWeekUrl(weekStartISO, namespace));
+        const url = apiUrl(buildWeekUrl(weekStartISO, namespace, householdProfileId));
         const res = await fetchWithRetry(url, { 
           credentials: "include",
           headers: { ...getAuthHeaders(), ...getAppleReviewHeaders(userId) },
@@ -164,6 +171,7 @@ async function saveWeeklyBoard({
   opId,
   proClientId,
   namespace,
+  householdProfileId,
 }: {
   userId: string;
   weekStartISO: string;
@@ -171,11 +179,12 @@ async function saveWeeklyBoard({
   opId?: string;
   proClientId?: string;
   namespace?: string;
+  householdProfileId?: string;
 }): Promise<WeekBoardResponse> {
   const btPart = namespace ? `&bt=${encodeURIComponent(namespace)}` : '';
   const url = proClientId
     ? apiUrl(`/api/pro/weekly-board/${proClientId}?week=${encodeURIComponent(weekStartISO)}${btPart}`)
-    : apiUrl(buildWeekUrl(weekStartISO, namespace));
+    : apiUrl(buildWeekUrl(weekStartISO, namespace, householdProfileId));
   const payload = { week: board, opId };
 
   const res = await fetchWithRetry(url, {
@@ -197,14 +206,21 @@ async function saveWeeklyBoard({
   const validated = WeekBoardResponseSchema.parse(json);
 
   if (!proClientId) {
-    const key = cacheKey(userId, weekStartISO, namespace);
+    const cacheNamespace = householdProfileId ? `household:${householdProfileId}` : namespace;
+    const key = cacheKey(userId, weekStartISO, cacheNamespace);
     safeBoardCacheWrite(key, JSON.stringify(validated));
   }
 
   return validated;
 }
 
-export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proClientId?: string, namespace?: string) {
+export function useWeeklyBoard(
+  userId: string = "1",
+  weekStartISO?: string,
+  proClientId?: string,
+  namespace?: string,
+  householdProfileId?: string,
+) {
   const monday = weekStartISO ?? (() => {
     const now = new Date();
     const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
@@ -237,7 +253,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
       }
     };
 
-    loadWeeklyBoard({ userId, weekStartISO: monday, onData: handleData, proClientId, namespace })
+    loadWeeklyBoard({ userId, weekStartISO: monday, onData: handleData, proClientId, namespace, householdProfileId })
       .catch((e) => {
         if (mounted) {
           setError(e as Error);
@@ -252,7 +268,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
     return () => {
       mounted = false;
     };
-  }, [userId, monday, proClientId, namespace]);
+  }, [userId, monday, proClientId, namespace, householdProfileId]);
 
   useEffect(() => {
     let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -270,6 +286,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
           },
           proClientId,
           namespace,
+          householdProfileId,
         }).catch(() => {});
       }, 45_000);
     };
@@ -297,13 +314,16 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
         },
         proClientId,
         namespace,
+        householdProfileId,
       }).catch(() => {});
     };
 
     // Instant board patch when a meal is added via "Add to Plan"
     const handleBoardSlotAdded = (e: Event) => {
-      const { weekStartISO: eventWeek, dateISO, slot, updatedDay } = (e as CustomEvent).detail || {};
+      const { weekStartISO: eventWeek, dateISO, slot, updatedDay, boardNamespace } = (e as CustomEvent).detail || {};
       if (!dateISO || !slot || !updatedDay) return;
+      const expectedBoardNamespace = householdProfileId ? `household:${householdProfileId}` : (namespace || "user");
+      if ((boardNamespace || "") !== expectedBoardNamespace) return;
       // Only patch if this hook is tracking the same week
       if (eventWeek && eventWeek !== monday) return;
       setData(prev => {
@@ -315,8 +335,9 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
         };
         const patched = { ...prevWeek, days: updatedDays };
         // Sync localStorage
-        const key = namespace
-          ? `${CACHE_NS}:${namespace}:${proClientId || userId}:${monday}`
+        const cacheNamespace = householdProfileId ? `household:${householdProfileId}` : namespace;
+        const key = cacheNamespace
+          ? `${CACHE_NS}:${cacheNamespace}:${proClientId || userId}:${monday}`
           : `${CACHE_NS}:${proClientId || userId}:${monday}`;
         safeBoardCacheWrite(key, JSON.stringify({ ...prev, week: patched }));
         return { ...prev, week: patched };
@@ -337,7 +358,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
       window.removeEventListener("mpm:visibility-resumed", handleMpmResume);
       window.removeEventListener("mpm:board-slot-added", handleBoardSlotAdded);
     };
-  }, [userId, monday, proClientId, namespace]);
+  }, [userId, monday, proClientId, namespace, householdProfileId]);
 
   const save = useCallback(
     async (board: WeekBoard, opId?: string): Promise<void> => {
@@ -351,6 +372,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
           opId,
           proClientId,
           namespace,
+          householdProfileId,
         });
         setData(result);
         setError(null);
@@ -362,7 +384,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
         saveCooldownRef.current = Date.now() + 1_500;
       }
     },
-    [userId, monday, proClientId, namespace]
+    [userId, monday, proClientId, namespace, householdProfileId]
   );
 
   const refresh = useCallback(async (): Promise<void> => {
@@ -377,6 +399,7 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
         },
         proClientId,
         namespace,
+        householdProfileId,
       });
     } catch (e) {
       setError(e as Error);
@@ -384,13 +407,14 @@ export function useWeeklyBoard(userId: string = "1", weekStartISO?: string, proC
     } finally {
       setLoading(false);
     }
-  }, [userId, monday, proClientId, namespace]);
+  }, [userId, monday, proClientId, namespace, householdProfileId]);
 
   const primeCache = useCallback((targetWeekISO: string, data: WeekBoardResponse): void => {
     if (proClientId) return;
-    const key = cacheKey(userId, targetWeekISO, namespace);
+    const cacheNamespace = householdProfileId ? `household:${householdProfileId}` : namespace;
+    const key = cacheKey(userId, targetWeekISO, cacheNamespace);
     safeBoardCacheWrite(key, JSON.stringify(data));
-  }, [userId, proClientId, namespace]);
+  }, [userId, proClientId, namespace, householdProfileId]);
 
   return {
     board: data?.week ?? null,

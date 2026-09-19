@@ -13,6 +13,13 @@ import {
   type MyPerfectMenuPreferences,
 } from "@shared/myPerfectMenu";
 import {
+  buildMyPerfectMenuContextStamp,
+  isMyPerfectMenuContextStampFresh,
+  type MyPerfectMenuAuthorityMaterial,
+} from "../services/myPerfectMenu/contextStamp";
+import { resolveUserGlucoseState } from "../services/glucoseStateResolver";
+import { foodsIEnjoyDocumentSchema } from "@shared/foodsIEnjoy";
+import {
   buildCulinaryFingerprint,
   hasMeaningfulCulinaryRepetition,
   selectCulinarilyBroadConcepts,
@@ -147,6 +154,58 @@ async function mutatePreferences(
   });
 }
 
+async function currentStamp(
+  actorUserId: string,
+  target: SubjectTarget,
+  category: MyPerfectMenuCategory,
+  context: any,
+  envelope: UserProtocolEnvelope | null,
+  glp1: any = null,
+) {
+  const diabetes = target.kind === "user"
+    ? await resolveUserGlucoseState(target.id)
+    : { state: "NONE", activePreferences: [], preferencesConfigured: false };
+  const foods = target.kind === "user"
+    ? (await db.select({ value: users.foodsIEnjoy }).from(users).where(eq(users.id, target.id)).limit(1))[0]?.value
+    : (await db.select({ value: householdProfiles.foodsIEnjoy }).from(householdProfiles).where(eq(householdProfiles.id, target.id)).limit(1))[0]?.value;
+  const parsedFoods = foodsIEnjoyDocumentSchema.safeParse(foods);
+  const diabetesApplicable = Boolean(envelope?.hasDiabetes);
+  const material: MyPerfectMenuAuthorityMaterial = {
+    subject: { kind: target.kind, id: target.id },
+    effectiveDiet: context?.diet?.effective ?? envelope?.dietaryIdentity ?? [],
+    allergies: context?.allergies?.items ?? envelope?.allergies ?? [],
+    avoidances: context?.avoidances?.items ?? envelope?.avoidances ?? [],
+    dislikes: context?.preferences?.items ?? envelope?.preferences ?? [],
+    cuisine: context?.flavor?.cuisine?.value ?? envelope?.cuisinePreference ?? null,
+    foodsIEnjoy: parsedFoods.success
+      ? parsedFoods.data.items.filter((item) => !item.revokedAt).map((item) => item.conceptId ?? item.displayLabel)
+      : [],
+    diabetes: {
+      applicable: diabetesApplicable,
+      state: diabetesApplicable ? diabetes.state : "NONE",
+      activePreferences: diabetesApplicable ? diabetes.activePreferences : [],
+      producePreferences: diabetesApplicable ? (context?.diabetesFoodPreferences?.produce ?? []) : [],
+    },
+    protocol: {
+      classification: envelope?.dietaryIdentity ?? [],
+      active: Boolean(envelope),
+      conditionKeys: envelope?.medicalHardLimits ?? [],
+    },
+    glp1: {
+      active: Boolean(glp1?.isActive || envelope?.medicalHardLimits?.some((x: string) => /glp.?1/i.test(x))),
+      escalation: Boolean(envelope?.glp1DailyTolerance?.shouldEscalate),
+      adaptationState: envelope?.glp1DailyTolerance?.appetiteLevel ?? "none",
+    },
+    targetPresence: {
+      protocol: Boolean(envelope),
+      diabetes: Boolean(envelope?.hasDiabetes),
+      glp1: Boolean(glp1?.isActive),
+      foodsIEnjoy: parsedFoods.success && parsedFoods.data.items.some((item) => !item.revokedAt),
+    },
+  };
+  return buildMyPerfectMenuContextStamp(material, category);
+}
+
 function dietaryMode(effectiveDiet: string[]): DietaryMode | null {
   for (const diet of effectiveDiet.map(normalize)) {
     if (diet === "vegan" || diet === "vegetarian" || diet === "pescatarian" || diet === "carnivore") {
@@ -201,7 +260,63 @@ router.get("/concepts", requireAuth, async (req, res) => {
   const target = await resolveSubject(actorUserId, parsed.data.subjectUserId);
   if (!target) return res.status(404).json({ error: "Food profile not found." });
   const preferences = await readPreferences(target);
-  return res.json({ categories: preferences.categories, subject: { id: target.id, label: target.label } });
+  const scope = createHumanFoodRequestScope({
+    actorUserId, subjectUserId: target.id, creator: "my_perfect_menu",
+    actionRequest: "read menu concepts", authorizationAction: "my_perfect_menu",
+  });
+  let context: any = await scope.resolve();
+  if (target.kind === "household") context = { ...context, nutrition: null, diabetesFoodPreferences: null, behavior: null };
+  const envelope = target.kind === "user"
+    ? await loadUserProtocolEnvelope(actorUserId)
+    : await loadUserProtocolEnvelope(actorUserId, target.id);
+  const glp1 = target.kind === "user"
+    ? await resolveGLP1GlobalContext(actorUserId, new Date().toISOString().slice(0, 10), "lunch")
+    : null;
+  const categories: Partial<Record<MyPerfectMenuCategory, MyPerfectMenuConcept[]>> = {};
+  const staleCategories: MyPerfectMenuCategory[] = [];
+  for (const category of ["breakfast", "lunch", "dinner", "snack"] as MyPerfectMenuCategory[]) {
+    if (!preferences.categories[category]) continue;
+    const stamp = await currentStamp(actorUserId, target, category, context, envelope, glp1);
+    if (isMyPerfectMenuContextStampFresh(preferences.contextStamps[category], stamp)) {
+      categories[category] = preferences.categories[category];
+    } else staleCategories.push(category);
+  }
+  return res.json({ categories, staleCategories, subject: { id: target.id, label: target.label } });
+});
+
+router.get("/context-status", requireAuth, async (req, res) => {
+  const parsed = subjectSchema.safeParse(req.query);
+  if (!parsed.success) return res.status(400).json({ error: "Invalid food profile." });
+  const actorUserId = String((req as AuthenticatedRequest).authUser.id);
+  const target = await resolveSubject(actorUserId, parsed.data.subjectUserId);
+  if (!target) return res.status(404).json({ error: "Food profile not found." });
+  const glucose = target.kind === "user" ? await resolveUserGlucoseState(target.id) : null;
+  const glp1 = target.kind === "user"
+    ? await resolveGLP1GlobalContext(target.id, new Date().toISOString().slice(0, 10), "lunch")
+    : { isActive: false };
+  const scope = createHumanFoodRequestScope({
+    actorUserId, subjectUserId: target.id, creator: "my_perfect_menu",
+    actionRequest: "read context status", authorizationAction: "my_perfect_menu",
+  });
+  let context: any = await scope.resolve();
+  if (target.kind === "household") context = { ...context, nutrition: null, diabetesFoodPreferences: null, behavior: null };
+  const envelope = target.kind === "user"
+    ? await loadUserProtocolEnvelope(actorUserId)
+    : await loadUserProtocolEnvelope(actorUserId, target.id);
+  const stamp = await currentStamp(actorUserId, target, "lunch", context, envelope, glp1);
+  return res.json({
+    subject: { id: target.id, kind: target.kind, label: target.label },
+    diabetes: target.kind === "user" ? {
+      applicable: Boolean(envelope?.hasDiabetes),
+      state: glucose?.state ?? "NONE",
+      needsRefresh: glucose?.state === "STALE" || glucose?.state === "NONE",
+      ageMinutes: glucose?.ageMinutes ?? null,
+      criticalLow: Boolean(glucose?.criticalLow),
+      criticalHigh: Boolean(glucose?.criticalHigh),
+    } : { applicable: false, state: "NONE", needsRefresh: false, ageMinutes: null, criticalLow: false, criticalHigh: false },
+    glp1: { active: Boolean(glp1.isActive), shouldEscalate: Boolean(envelope?.glp1DailyTolerance?.shouldEscalate), hasCurrentAdaptations: Boolean(envelope?.glp1DailyTolerance) },
+    contextFingerprint: stamp.digest,
+  });
 });
 
 router.delete("/concepts", requireAuth, async (req, res) => {
@@ -213,12 +328,45 @@ router.delete("/concepts", requireAuth, async (req, res) => {
   const updated = await mutatePreferences(actorUserId, target, (current) => {
     const categories = { ...current.categories };
     delete categories[parsed.data.ideaType];
-    return { ...current, categories, updatedAt: new Date().toISOString() };
+    const contextStamps = { ...current.contextStamps };
+    delete contextStamps[parsed.data.ideaType];
+    return { ...current, categories, contextStamps, updatedAt: new Date().toISOString() };
   });
   return res.json({
     categories: updated.categories,
     subject: { id: target.id, label: target.label },
   });
+});
+
+router.post("/validate-selection", requireAuth, async (req, res) => {
+  const parsed = subjectSchema.extend({
+    ideaType: categorySchema,
+    conceptId: z.string().min(1).max(100),
+  }).safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Choose a valid menu concept." });
+  const actorUserId = String((req as AuthenticatedRequest).authUser.id);
+  const target = await resolveSubject(actorUserId, parsed.data.subjectUserId);
+  if (!target) return res.status(404).json({ error: "Food profile not found." });
+  const preferences = await readPreferences(target);
+  const concept = (preferences.categories[parsed.data.ideaType] ?? []).find((item) => item.id === parsed.data.conceptId);
+  if (!concept) return res.status(404).json({ error: "Menu concept not found." });
+  const scope = createHumanFoodRequestScope({
+    actorUserId, subjectUserId: target.id, creator: "my_perfect_menu",
+    actionRequest: "validate menu selection", authorizationAction: "my_perfect_menu",
+  });
+  let context: any = await scope.resolve();
+  if (target.kind === "household") context = { ...context, nutrition: null, diabetesFoodPreferences: null, behavior: null };
+  const envelope = target.kind === "user"
+    ? await loadUserProtocolEnvelope(actorUserId)
+    : await loadUserProtocolEnvelope(actorUserId, target.id);
+  const glp1 = target.kind === "user"
+    ? await resolveGLP1GlobalContext(actorUserId, new Date().toISOString().slice(0, 10), parsed.data.ideaType)
+    : null;
+  const stamp = await currentStamp(actorUserId, target, parsed.data.ideaType, context, envelope, glp1);
+  if (!isMyPerfectMenuContextStampFresh(preferences.contextStamps[parsed.data.ideaType], stamp)) {
+    return res.status(409).json({ error: "These menu ideas are based on an older food context. Please refresh them.", code: "MY_PERFECT_MENU_CONTEXT_STALE" });
+  }
+  return res.json({ valid: true, concept });
 });
 
 router.post("/concepts", requireAuth, async (req, res) => {
@@ -275,6 +423,13 @@ router.post("/concepts", requireAuth, async (req, res) => {
     if (target.kind === "user") {
       const glp1 = await resolveGLP1GlobalContext(actorUserId, new Date().toISOString().slice(0, 10), parsed.data.ideaType);
       glp1Block = buildGLP1RecommendationBlock(glp1);
+    }
+    if (target.kind === "user" && envelope.glp1DailyTolerance?.shouldEscalate) {
+      return res.status(409).json({
+        error: "Your current GLP-1 symptoms need a safety check-in before generating menu ideas.",
+        code: "GLP1_SAFETY_ESCALATION",
+        guidance: "Please complete today's check-in or contact your care team if symptoms are severe.",
+      });
     }
 
     const stored = await readPreferences(target);
@@ -390,6 +545,7 @@ router.post("/concepts", requireAuth, async (req, res) => {
     }
 
     const concepts = accepted.slice(0, 3);
+    const stamp = await currentStamp(actorUserId, target, parsed.data.ideaType, context, envelope, target.kind === "user" ? await resolveGLP1GlobalContext(actorUserId, new Date().toISOString().slice(0, 10), parsed.data.ideaType) : null);
     await mutatePreferences(actorUserId, target, (current) => ({
       version: 1,
       categories: { ...current.categories, [parsed.data.ideaType]: concepts },
@@ -401,6 +557,7 @@ router.post("/concepts", requireAuth, async (req, res) => {
         ...concepts.map((concept) => buildCulinaryFingerprint(concept, occasion)),
         ...current.recentCulinaryFingerprints,
       ].slice(0, 96),
+      contextStamps: { ...current.contextStamps, [parsed.data.ideaType]: stamp },
       updatedAt: new Date().toISOString(),
     }));
     await scope.completeAuthorization();
