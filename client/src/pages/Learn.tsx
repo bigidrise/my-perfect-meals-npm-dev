@@ -1573,13 +1573,13 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
   {
     id: "my-perfect-menu",
     title: "My Perfect Menu",
-    subtitle: "Not sure what to eat? Choose from three personalized ideas.",
+    subtitle: "Need help building your meal plan?",
     icon: Sparkles,
     content: {
       sections: [
         {
           heading: "What It Is",
-          text: "My Perfect Menu is the choice-oriented way to use My Perfect Meals. It is for the moment when you do not have a specific dish in mind and want the app to narrow the decision down to three personalized options.",
+          text: "Not sure what you want to eat? My Perfect Menu gives you three personalized breakfast, lunch, dinner, or snack ideas. Choose one, decide where you want it in your plan, and My Perfect Meals creates the meal for you.",
         },
         {
           heading: "How to Use It",
@@ -1593,12 +1593,12 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
           ],
         },
         {
-          heading: "How It Is Personalized",
-          text: "The choices use the established person-fed context in My Perfect Meals, including relevant dietary needs, preferences, cuisine, Foods I Enjoy, and active safety rules. My Perfect Menu does not replace those systems; it gives you a simpler way to benefit from them.",
+          heading: "How It Helps",
+          text: "My Perfect Menu helps you decide what sounds good before My Perfect Meals creates the completed meal. Your choices are personalized around the person you are planning for.",
         },
         {
-          heading: "My Perfect Menu or Create With Chef?",
-          text: "Use My Perfect Menu when you are not sure what you want and would like three choices. Use Create With Chef or a Meal Builder when you already know what you want and need help creating it. Both are valid ways to start.",
+          heading: "My Perfect Menu or a Meal Builder?",
+          text: "Know what you want? Use the Meal Builders. Not sure what you want? My Perfect Menu helps you choose, then My Perfect Meals creates it and adds it to your plan.",
         },
       ],
     },

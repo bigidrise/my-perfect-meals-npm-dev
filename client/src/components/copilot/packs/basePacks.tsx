@@ -21,7 +21,7 @@ export const buildBaseSuggestions = (
       {
         id: "menu-how-it-works",
         label: "How does My Perfect Menu work?",
-        description: "Learn how your three choices are personalized and turned into a completed meal.",
+        description: "Learn how My Perfect Menu helps you choose, then creates the meal and adds it to your plan.",
         badge: "My Perfect Menu",
         emphasis: "high",
         action: makeAction({ type: "navigate", to: "/learn?topic=my-perfect-menu" }),

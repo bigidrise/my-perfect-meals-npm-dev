@@ -23,17 +23,18 @@ export const AppKnowledge: Record<string, FeatureKnowledge> = {
     id: "my-perfect-menu",
     title: "My Perfect Menu",
     description:
-      "Not sure what to eat? Get three personalized breakfast, lunch, dinner, or snack ideas and choose the one that sounds good.",
+      "My Perfect Menu helps you build your meal plan when you are not sure what you want to eat. Choose from three personalized breakfast, lunch, dinner, or snack ideas, then let My Perfect Meals create your choice and add it to your plan.",
     howTo: [
       "Choose Breakfast Ideas, Lunch Ideas, Dinner Ideas, or Snack Ideas.",
-      "Review the three personalized concepts built around the person being fed.",
+      "Review the three personalized ideas built around the person you are planning for.",
       "Tap Try 3 More when you want a different set without losing the current choices before the new set is ready.",
       "Tap Choose This on the idea you like.",
       "Pick a date and Meal 1–6 or Snack destination.",
-      "My Perfect Meals creates the completed meal with the existing Chef or Snack system and adds it to your plan.",
+      "My Perfect Meals creates the completed meal and adds it to your plan.",
     ],
     tips: [
-      "Use My Perfect Menu when you are not sure what you want; use Create With Chef when you already have a specific idea.",
+      "Know what you want? Use the Meal Builders. Not sure what you want? My Perfect Menu helps you choose.",
+      "Breakfast, Lunch, Dinner, and Snack describe the kind of idea. Meal 1–6 or Snack describes where it goes in your plan, so a breakfast idea can be placed in Meal 4.",
       "Foods I Enjoy helps future choices better match your tastes.",
       "Recommendations may adapt around relevant profile information while preserving higher-priority food safety and dietary rules.",
     ],

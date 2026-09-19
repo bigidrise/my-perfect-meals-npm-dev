@@ -1582,8 +1582,8 @@ export default function DashboardNew() {
                    <div className="rounded-xl border border-violet-300/40 bg-violet-400/20 p-3"><Heart className="h-6 w-6 text-violet-200" /></div>
                    <div className="min-w-0 flex-1">
                      <h2 className="text-base font-semibold text-white">My Perfect Menu</h2>
-                     <p className="mt-1 text-sm font-semibold text-violet-100">Not sure what to eat? Let us narrow it down.</p>
-                     <p className="mt-1 text-xs leading-relaxed text-white/55">Get 3 personalized breakfast, lunch, dinner, or snack ideas built around what My Perfect Meals knows about you.</p>
+                     <p className="mt-1 text-sm font-semibold text-violet-100">Need help building your meal plan?</p>
+                     <p className="mt-1 text-xs leading-relaxed text-white/55">Not sure what you want to eat? Get 3 personalized ideas for breakfast, lunch, dinner, or a snack. Choose what sounds good, and we’ll help you turn it into a meal and add it to your plan.</p>
                      <span className="mt-3 inline-flex text-xs font-bold text-violet-200 transition-transform group-hover:translate-x-0.5">See My Menu <ChevronRight className="ml-1 h-3.5 w-3.5" /></span>
                    </div>
                  </div>
