@@ -94,6 +94,10 @@ app.use(
 const clientDistForSsr = path.resolve(__dirname, "../client/dist");
 let isInitialized = false;
 let initError: Error | null = null;
+let settleInitialization!: () => void;
+const initializationSettled = new Promise<void>((resolve) => {
+  settleInitialization = resolve;
+});
 
 app.get("/healthz", (_req, res) => {
   if (initError) return res.status(503).send("initialization failed");
@@ -223,6 +227,34 @@ app.get("/api/health/full", async (_req, res) => {
   result.timestamp = new Date().toISOString();
   res.status(httpStatus).json(result);
 });
+
+// Production starts listening before the asynchronous route graph is ready so
+// platform health probes can observe startup. Hold real API requests during
+// that window instead of letting Express produce a false 404. Early endpoints
+// registered above (health, release identity, and Stripe webhook) remain
+// available without passing through this gate.
+app.use("/api", async (_req, res, next) => {
+  if (!isInitialized && !initError) {
+    await Promise.race([
+      initializationSettled,
+      new Promise<void>((resolve) => setTimeout(resolve, 30_000)),
+    ]);
+  }
+
+  if (isInitialized) {
+    next();
+    return;
+  }
+
+  res.setHeader("Retry-After", "2");
+  res.status(503).json({
+    error: initError
+      ? "Application initialization failed"
+      : "Application is still starting. Please try again.",
+    code: initError ? "SERVICE_INITIALIZATION_FAILED" : "SERVICE_STARTING",
+  });
+});
+
 const port = Number(process.env.PORT || 5000);
 const server = app.listen(port, "0.0.0.0", () => {
   console.log(`✅ [BOOT] Server listening on 0.0.0.0:${port}`);
@@ -234,6 +266,7 @@ const server = app.listen(port, "0.0.0.0", () => {
   initializeApp().catch((err) => {
     console.error("❌ [INIT] Background initialization failed:", err);
     initError = err;
+    settleInitialization();
   });
 });
 
@@ -1340,6 +1373,7 @@ async function initializeApp() {
 
     // Mark as fully initialized
     isInitialized = true;
+    settleInitialization();
     console.log(
       `🎉 [INIT] Full initialization complete in ${Date.now() - startTime}ms`,
     );

@@ -1,20 +1,15 @@
 ---
-name: prod.ts route parity gap
-description: Routes mounted in routes.ts (dev) are not automatically in prod.ts — must be added explicitly or they 404 in production only.
+name: Production route readiness and parity
+description: Production routes must be present after initialization, while cold-start requests must not fall through as false 404s.
 ---
 
 ## The rule
 
-Any route file added to `server/routes.ts` must also be explicitly mounted in `server/prod.ts`. The two files are independent — prod never calls `registerRoutes()` until late in startup, and some routes mounted early in dev via `registerRoutes` are never reached in prod if `prod.ts` doesn't mount them first.
+Production calls the shared route registrar late in asynchronous startup, while also mounting selected routes explicitly beforehand. Routes that must work before the shared graph is ready need a matching explicit Production mount. All other API requests must wait for initialization or receive a retryable service response, never fall through as 404.
 
-**Why:** `server/prod.ts` has its own route registration sequence that mounts critical routes *before* calling `registerRoutes()`. Routes that need to be available without the full registerRoutes chain must appear explicitly in prod.ts.
+**Why:** Production starts listening before asynchronous route registration completes so health probes can observe startup. A user request in that window once received a misleading 404 even though the release contained the route.
 
-**How to apply:** After adding any new route file, grep prod.ts for the route path. If missing, add an explicit mount after the check-in-schedules block (line ~456), matching this pattern:
-
-```ts
-const { myRouter } = await import("./routes/myRouteFile");
-app.use("/api/my-path", myRouter);
-```
+**How to apply:** Keep early health, release, and signed-callback routes available during startup. Gate other API traffic until the full route graph is ready. For routes intentionally required earlier, add a Production mount with the exact same authorization chain as the shared mount.
 
 ## Known gaps caught so far
 
