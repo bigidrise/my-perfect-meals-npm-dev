@@ -155,6 +155,7 @@ export default function DesktopHeader() {
 
   function getPageTitle(loc: string): string {
     if (loc === "/hydration") return "My Perfect Hydration Center";
+    if (loc === "/foods-i-enjoy") return "My Perfect Menu";
     if (loc === "/business-organizations") return "Organizational Hub";
     if (ROUTE_KEY_MAP[loc]) return t(ROUTE_KEY_MAP[loc]);
     for (const [route, key] of Object.entries(ROUTE_KEY_MAP)) {
