@@ -38,6 +38,7 @@ import {
   resolveGLP1GlobalContext,
 } from "../services/glp1/resolveGLP1GlobalContext";
 import { chatJson } from "../utils/openaiSafe";
+import { normalizeGeneratedMenuResponse } from "../services/myPerfectMenu/normalizeGeneratedConcepts";
 
 const router = Router();
 const categorySchema = myPerfectMenuCategorySchema;
@@ -55,7 +56,7 @@ const generatedConceptSchema = myPerfectMenuConceptSchema
   .omit({ id: true, ideaType: true })
   .extend({ culinaryIdentity: culinaryIdentitySchema });
 const generatedResponseSchema = z.object({
-  concepts: z.array(generatedConceptSchema).min(3).max(8),
+  concepts: z.array(generatedConceptSchema).min(1).max(8),
 });
 
 type SubjectTarget =
@@ -301,7 +302,7 @@ router.post("/concepts", requireAuth, async (req, res) => {
       ].join("|"));
 
     for (let attempt = 0; attempt < 3; attempt += 1) {
-      const generated = generatedResponseSchema.parse(await chatJson({
+      const generatedRaw = await chatJson({
         temperature: attempt === 0 ? 0.55 : 0.7,
         system: [
           "You create lightweight, fully personalized menu concepts for My Perfect Meals.",
@@ -337,7 +338,17 @@ router.post("/concepts", requireAuth, async (req, res) => {
             : "",
           "Vary dish format, primary protein, preparation method, flavor profile, and—when relevant—food identity dimensions without overriding the person's preferences.",
         ].filter(Boolean).join("\n\n"),
-      }));
+      });
+      const generatedResult = generatedResponseSchema.safeParse(
+        normalizeGeneratedMenuResponse(generatedRaw, parsed.data.ideaType),
+      );
+      if (!generatedResult.success) {
+        rejectedReasons.push(
+          ...generatedResult.error.issues.map((issue) => `response_contract:${issue.path.join(".")}:${issue.code}`),
+        );
+        continue;
+      }
+      const generated = generatedResult.data;
 
       for (const candidate of generated.concepts) {
         const signature = normalize(candidate.signature);
