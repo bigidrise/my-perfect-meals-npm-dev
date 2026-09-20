@@ -1,8 +1,12 @@
 import { sql } from "drizzle-orm";
 
-export async function runStripeBillingMigration(database: {
+type StripeMigrationDatabase = {
   execute: (query: any) => Promise<any>;
-}): Promise<void> {
+};
+
+export async function runStripeBillingSchemaMigration(
+  database: StripeMigrationDatabase,
+): Promise<void> {
   await database.execute(sql`
     ALTER TABLE users
       ADD COLUMN IF NOT EXISTS stripe_last_event_created_at timestamptz,
@@ -45,37 +49,6 @@ export async function runStripeBillingMigration(database: {
       ON stripe_identity_owners(owner_user_id, business_id)
   `);
   await database.execute(sql`
-    INSERT INTO stripe_identity_owners(identity_type, identity_value, owner_user_id, business_id)
-    SELECT 'customer', stripe_customer_id, owner_user_id, id::text
-      FROM businesses
-      WHERE stripe_customer_id IS NOT NULL
-    ON CONFLICT (identity_type, identity_value) DO NOTHING
-  `);
-  await database.execute(sql`
-    INSERT INTO stripe_identity_owners(identity_type, identity_value, owner_user_id, business_id)
-    SELECT 'subscription', stripe_subscription_id, owner_user_id, id::text
-      FROM businesses
-      WHERE stripe_subscription_id IS NOT NULL
-    ON CONFLICT (identity_type, identity_value) DO NOTHING
-  `);
-  await database.execute(sql`
-    INSERT INTO stripe_identity_owners(identity_type, identity_value, owner_user_id)
-    SELECT 'customer', stripe_customer_id, id
-      FROM users
-      WHERE stripe_customer_id IS NOT NULL
-    ON CONFLICT (identity_type, identity_value) DO NOTHING
-  `);
-  await database.execute(sql`
-    INSERT INTO stripe_identity_owners(identity_type, identity_value, owner_user_id)
-    SELECT 'subscription', stripe_subscription_id, id
-      FROM users
-      WHERE stripe_subscription_id IS NOT NULL
-    ON CONFLICT (identity_type, identity_value) DO NOTHING
-  `);
-  // Readiness-critical structural DDL must precede the ownership review below.
-  // A pre-existing identity conflict intentionally stops data reconciliation,
-  // but must not prevent the fail-closed checkout schema from becoming usable.
-  await database.execute(sql`
     ALTER TABLE client_links
       ADD COLUMN IF NOT EXISTS stripe_checkout_reservation_id varchar(255),
       ADD COLUMN IF NOT EXISTS stripe_checkout_session_id varchar(255)
@@ -84,36 +57,6 @@ export async function runStripeBillingMigration(database: {
     CREATE UNIQUE INDEX IF NOT EXISTS client_links_stripe_checkout_session_id_uniq
       ON client_links(stripe_checkout_session_id)
       WHERE stripe_checkout_session_id IS NOT NULL
-  `);
-  await database.execute(sql`
-    DO $$
-    BEGIN
-      IF EXISTS (
-        SELECT 1
-        FROM users u
-        JOIN stripe_identity_owners sio
-          ON (
-            (sio.identity_type = 'customer' AND sio.identity_value = u.stripe_customer_id)
-            OR
-            (sio.identity_type = 'subscription' AND sio.identity_value = u.stripe_subscription_id)
-          )
-        WHERE sio.owner_user_id <> u.id
-          OR sio.business_id IS NOT NULL
-      ) OR EXISTS (
-        SELECT 1
-        FROM businesses b
-        JOIN stripe_identity_owners sio
-          ON (
-            (sio.identity_type = 'customer' AND sio.identity_value = b.stripe_customer_id)
-            OR
-            (sio.identity_type = 'subscription' AND sio.identity_value = b.stripe_subscription_id)
-          )
-        WHERE sio.owner_user_id <> b.owner_user_id
-          OR sio.business_id IS DISTINCT FROM b.id::text
-      ) THEN
-        RAISE EXCEPTION 'Conflicting Stripe identity ownership requires manual review';
-      END IF;
-    END $$;
   `);
   await database.execute(sql`
     ALTER TABLE businesses
@@ -157,4 +100,74 @@ export async function runStripeBillingMigration(database: {
       ON businesses(stripe_checkout_session_id)
       WHERE stripe_checkout_session_id IS NOT NULL
   `);
+}
+
+export async function runStripeOwnershipReconciliation(
+  database: StripeMigrationDatabase,
+): Promise<void> {
+  await database.execute(sql`
+    INSERT INTO stripe_identity_owners(identity_type, identity_value, owner_user_id, business_id)
+    SELECT 'customer', stripe_customer_id, owner_user_id, id::text
+      FROM businesses
+      WHERE stripe_customer_id IS NOT NULL
+    ON CONFLICT (identity_type, identity_value) DO NOTHING
+  `);
+  await database.execute(sql`
+    INSERT INTO stripe_identity_owners(identity_type, identity_value, owner_user_id, business_id)
+    SELECT 'subscription', stripe_subscription_id, owner_user_id, id::text
+      FROM businesses
+      WHERE stripe_subscription_id IS NOT NULL
+    ON CONFLICT (identity_type, identity_value) DO NOTHING
+  `);
+  await database.execute(sql`
+    INSERT INTO stripe_identity_owners(identity_type, identity_value, owner_user_id)
+    SELECT 'customer', stripe_customer_id, id
+      FROM users
+      WHERE stripe_customer_id IS NOT NULL
+    ON CONFLICT (identity_type, identity_value) DO NOTHING
+  `);
+  await database.execute(sql`
+    INSERT INTO stripe_identity_owners(identity_type, identity_value, owner_user_id)
+    SELECT 'subscription', stripe_subscription_id, id
+      FROM users
+      WHERE stripe_subscription_id IS NOT NULL
+    ON CONFLICT (identity_type, identity_value) DO NOTHING
+  `);
+  await database.execute(sql`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM users u
+        JOIN stripe_identity_owners sio
+          ON (
+            (sio.identity_type = 'customer' AND sio.identity_value = u.stripe_customer_id)
+            OR
+            (sio.identity_type = 'subscription' AND sio.identity_value = u.stripe_subscription_id)
+          )
+        WHERE sio.owner_user_id <> u.id
+          OR sio.business_id IS NOT NULL
+      ) OR EXISTS (
+        SELECT 1
+        FROM businesses b
+        JOIN stripe_identity_owners sio
+          ON (
+            (sio.identity_type = 'customer' AND sio.identity_value = b.stripe_customer_id)
+            OR
+            (sio.identity_type = 'subscription' AND sio.identity_value = b.stripe_subscription_id)
+          )
+        WHERE sio.owner_user_id <> b.owner_user_id
+          OR sio.business_id IS DISTINCT FROM b.id::text
+      ) THEN
+        RAISE EXCEPTION 'Conflicting Stripe identity ownership requires manual review';
+      END IF;
+    END $$;
+  `);
+}
+
+export async function runStripeBillingMigration(
+  database: StripeMigrationDatabase,
+): Promise<void> {
+  await runStripeBillingSchemaMigration(database);
+  await runStripeOwnershipReconciliation(database);
 }
