@@ -54,12 +54,57 @@ describe("production startup API readiness gate", () => {
       "Required U3 authentication security schema is missing; refusing production readiness",
     );
     const ready = source.indexOf("isInitialized = true");
+    const savedGroceryMigration = source.indexOf(
+      "await runSavedGroceryShoppingIdentityMigration(database)",
+    );
+    const savedGroceryGuard = source.indexOf(
+      "await assertSavedGroceryShoppingIdentitySchema(dbSavedGroceryGuard as any)",
+    );
+    const preferenceGuard = source.indexOf(
+      "await assertFoodPreferenceSchema(dbColGuardEarly as any)",
+    );
 
     expect(optIn).toBeGreaterThan(-1);
     expect(criticalGuard).toBeGreaterThan(optIn);
     expect(authGuard).toBeGreaterThan(optIn);
     expect(criticalGuard).toBeLessThan(ready);
     expect(authGuard).toBeLessThan(ready);
+    expect(savedGroceryMigration).toBeGreaterThan(optIn);
+    expect(savedGroceryMigration).toBeLessThan(
+      source.indexOf("Ordinary startup: recurring release migrations skipped"),
+    );
+    expect(savedGroceryGuard).toBeGreaterThan(savedGroceryMigration);
+    expect(savedGroceryGuard).toBeLessThan(ready);
+    expect(preferenceGuard).toBeGreaterThan(savedGroceryGuard);
+    expect(preferenceGuard).toBeLessThan(ready);
+  });
+
+  it("keeps the legacy critical ALTER block inside deferred release maintenance", () => {
+    const deferredGate = source.indexOf(
+      'if (process.env.RUN_DEFERRED_RELEASE_MAINTENANCE === "true")',
+    );
+    const legacyAlterBlock = source.indexOf(
+      'await withBootRetry("Critical column pre-flight migrations"',
+    );
+    const runtimeWorkers = source.indexOf(
+      "// Runtime workers remain available on ordinary startup; they do not own DDL.",
+    );
+
+    expect(deferredGate).toBeGreaterThan(-1);
+    expect(legacyAlterBlock).toBeGreaterThan(deferredGate);
+    expect(legacyAlterBlock).toBeLessThan(runtimeWorkers);
+  });
+
+  it("does not allow route registration or the session store to create schema", () => {
+    const routesSource = fs.readFileSync(
+      path.resolve(process.cwd(), "server/routes.ts"),
+      "utf8",
+    );
+
+    expect(routesSource).not.toContain("runFoodsIEnjoyMigration");
+    expect(routesSource).not.toContain("runMyPerfectMenuMigration");
+    expect(source).toContain("createTableIfMissing: false");
+    expect(source).not.toContain("runClinicPilotDevelopmentMigration");
   });
 
   it("does not make deferred maintenance part of readiness", () => {
