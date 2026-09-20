@@ -8,6 +8,10 @@ import {
 } from "../bootstrap/runBoundedStartupMigration";
 import { assertStripeBillingSchema } from "../db/migrations/assertStripeBillingSchema";
 import {
+  runStripeBillingSchemaMigration,
+  runStripeOwnershipReconciliation,
+} from "../db/migrations/runStripeBillingMigration";
+import {
   handleStripeMigrationFailure,
   STRIPE_OWNERSHIP_REVIEW_MESSAGE,
 } from "../services/stripeMigrationReview";
@@ -237,16 +241,23 @@ describe("Production Stripe startup repair", () => {
     expect(completed).toBe(true);
   });
 
-  test("prod startup contains one Stripe migration invocation and no sync duplicate", () => {
+  test("ordinary startup guards Stripe schema without recurring migration writes", () => {
     const source = fs.readFileSync(
       path.resolve(process.cwd(), "server/prod.ts"),
       "utf8",
     );
-    expect(
-      source.match(/runStripeBillingMigration\(database as any\)/g),
-    ).toHaveLength(1);
-    expect(source).not.toContain("runStripeBillingMigration(dbSyncMig");
-    expect(source).not.toContain("const { db: dbSyncMig }");
+    expect(source).toContain(
+      'process.env.RUN_PRODUCTION_RELEASE_MIGRATIONS === "true"',
+    );
+    expect(source).toContain("runStripeBillingSchemaMigration(database as any)");
+    expect(source).toContain("runStripeOwnershipReconciliation(database as any)");
+    expect(source).toContain(
+      "Ordinary startup: recurring release migrations skipped; validating required schema",
+    );
+    expect(source.indexOf("if (runReleaseMigrations)"))
+      .toBeLessThan(source.indexOf("runStripeBillingSchemaMigration(database as any)"));
+    expect(source.indexOf("assertStripeBillingSchema(dbStripeReadiness as any)"))
+      .toBeLessThan(source.indexOf("markStripeBillingReady()"));
     expect(source).toContain(
       "await awaitSingleBootMigration(schemaMigPromise, 6000",
     );
@@ -319,5 +330,34 @@ describe("Production Stripe startup repair", () => {
         /\b(INSERT|UPDATE|DELETE|ALTER|CREATE|DROP|TRUNCATE)\b/i,
       );
     }
+  });
+
+  test("structural Stripe migration contains no ownership backfill or review", async () => {
+    const statements: string[] = [];
+    await runStripeBillingSchemaMigration({
+      execute: async (query: any) => {
+        statements.push(queryText(query));
+      },
+    });
+
+    expect(statements.length).toBeGreaterThan(0);
+    expect(statements.join("\n")).not.toMatch(
+      /INSERT INTO stripe_identity_owners|Conflicting Stripe identity ownership/i,
+    );
+  });
+
+  test("ownership reconciliation contains no structural DDL", async () => {
+    const statements: string[] = [];
+    await runStripeOwnershipReconciliation({
+      execute: async (query: any) => {
+        statements.push(queryText(query));
+      },
+    });
+
+    expect(statements.join("\n")).toContain("INSERT INTO stripe_identity_owners");
+    expect(statements.join("\n")).toContain(
+      "Conflicting Stripe identity ownership requires manual review",
+    );
+    expect(statements.join("\n")).not.toMatch(/\b(ALTER|CREATE|DROP)\b/i);
   });
 });
