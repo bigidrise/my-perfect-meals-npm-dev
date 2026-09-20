@@ -26,6 +26,11 @@
 
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
+import {
+  loadOwnedActiveChildProfile,
+  loadOwnedActiveChildProfiles,
+  type AuthoritativeChildProfile,
+} from "./authoritativeChildAccess";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES — PediatricMealGenerationContext and supporting interfaces
@@ -1106,7 +1111,7 @@ const ALLERGEN_HIDDEN_SOURCES: Record<string, string[]> = {
 // CHILD PROFILE DB READER
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface ChildProfileRow {
+type ChildProfileRow = AuthoritativeChildProfile & {
   id: string;
   user_id: string;
   name: string;
@@ -1127,32 +1132,15 @@ interface ChildProfileRow {
   weight_kg: number | null;
   /** Biological sex — "male" | "female" | "other" | null */
   sex: string | null;
-}
-
-async function fetchChildProfile(childProfileId: string): Promise<ChildProfileRow | null> {
-  try {
-    const result = await db.execute(sql`
-      SELECT id, user_id, name, age_stage, date_of_birth,
-             allergies, dietary_preferences, medical_conditions,
-             feeding_concerns, sensory_issues, dislikes, cultural_preferences,
-             growth_context, height_cm, weight_kg, sex
-      FROM child_profiles
-      WHERE id = ${childProfileId} AND is_archived = false
-      LIMIT 1
-    `);
-    const rows = (result as any).rows ?? (Array.isArray(result) ? result : []);
-    return rows[0] ?? null;
-  } catch (err: any) {
-    if (err?.code === "42P01") return null; // table not yet created
-    throw err;
-  }
-}
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RESOLVER INPUT TYPE
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface PediatricResolverInput {
+  /** Required whenever a stored child profile ID is supplied. */
+  actorUserId?: string;
   /** Single child profile ID. Null = General mode (no saved profile). */
   childProfileId: string | null;
   /**
@@ -1895,7 +1883,11 @@ export async function resolvePediatricContextFromInput(
   // ── Single child ────────────────────────────────────────────────────────────
   let profile: ChildProfileRow | null = null;
   if (input.childProfileId) {
-    profile = await fetchChildProfile(input.childProfileId);
+    if (!input.actorUserId) {
+      throw new Error("Authenticated actor is required for stored child resolution");
+    }
+    profile = await loadOwnedActiveChildProfile(input.actorUserId, input.childProfileId) as ChildProfileRow | null;
+    if (!profile) throw new Error("Child profile not found");
   }
 
   const stageKey: DevelopmentalStageKey = profile?.age_stage ?? input.stageOverride ?? "toddler";
@@ -2104,13 +2096,14 @@ async function resolveFamily(
   resolvedAt: string,
 ): Promise<PediatricMealGenerationContext> {
   const ids = input.childProfileIds ?? [];
-  const profiles = await Promise.all(ids.map(id => fetchChildProfile(id)));
-  const validProfiles = profiles.filter(Boolean) as ChildProfileRow[];
-
-  if (validProfiles.length === 0) {
-    // Fall back to general mode if no profiles found
-    return resolvePediatricContextFromInput({ ...input, childProfileId: null, childProfileIds: undefined });
+  if (!input.actorUserId) {
+    throw new Error("Authenticated actor is required for stored child resolution");
   }
+  const profiles = await loadOwnedActiveChildProfiles(input.actorUserId, ids);
+  if (!profiles || profiles.length !== [...new Set(ids)].length) {
+    throw new Error("One or more child profiles were not found");
+  }
+  const validProfiles = profiles as ChildProfileRow[];
 
   const perChildContexts = validProfiles.map(profile => {
     const feedingAbility = extractFeedingAbility(profile.feeding_concerns);

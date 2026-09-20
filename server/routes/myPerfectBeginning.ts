@@ -28,8 +28,14 @@ import type { DevelopmentalStage } from "../services/pediatric/pediatricStageCon
 import { processMealImageForSave } from "../services/imageLifecycle";
 import {
   applyCompletePlateSideGuardrail,
+  scanGeneratedOutput,
   type AllergenEntry,
 } from "../services/pediatric/pediatricGuardrails";
+import { loadOwnedActiveChildProfile } from "../services/pediatric/authoritativeChildAccess";
+import {
+  signPediatricSubject,
+  verifyPediatricSubject,
+} from "../services/pediatric/subjectAttribution";
 
 const router = Router();
 
@@ -304,23 +310,7 @@ function getTodaysTip(stage: string): string {
  * matching row, it returns false and the caller must return 403.
  */
 async function assertChildOwnership(userId: string, childProfileId: string): Promise<boolean> {
-  try {
-    const rows = await db.execute(sql`
-      SELECT 1 FROM child_profiles
-      WHERE id = ${childProfileId} AND user_id = ${userId}
-      LIMIT 1
-    `);
-    const row = (rows as any).rows?.[0] ?? (Array.isArray(rows) ? rows[0] : null);
-    return !!row;
-  } catch (err: any) {
-    // 42P01 = undefined_table — child_profiles hasn't been created yet
-    if (err?.code === "42P01") {
-      // Fall back to UUID format check as a minimal guard
-      return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(childProfileId);
-    }
-    // Any other unexpected DB error — fail closed
-    throw err;
-  }
+  return !!(await loadOwnedActiveChildProfile(userId, childProfileId));
 }
 
 async function getConversation(userId: string, childProfileId: string): Promise<any[]> {
@@ -703,29 +693,18 @@ router.post("/parents-corner", requireAuth, async (req, res) => {
     // The AI then operates on server-verified, DB-sourced pediatric context only —
     // never on raw client-supplied data for safety-critical fields.
     const childProfileId: string | null = childContext?.id ?? null;
-    let resolvedContext: Record<string, any> = childContext;
+    const generalMode = req.body?.mode === "general";
+    let resolvedContext: Record<string, any> = {};
     let childProfileInput: ChildProfileInput | null = null;
 
     if (childProfileId) {
-      const owned = await assertChildOwnership(userId, childProfileId);
-      if (!owned) {
-        return res.status(403).json({ error: "Forbidden: child profile does not belong to this user." });
-      }
-
       try {
-        const profileResult = await db.execute(sql`
-          SELECT id, name, date_of_birth, age_stage, sex,
-                 allergy_details, dietary_preferences, medical_conditions,
-                 feeding_concerns, sensory_issues, dislikes,
-                 birth_history, feeding_ability, growth_context,
-                 school_safe_required, medication_affects_appetite
-          FROM child_profiles
-          WHERE id = ${childProfileId} AND user_id = ${userId}
-          LIMIT 1
-        `);
-        const row = (profileResult as any).rows?.[0] ?? (Array.isArray(profileResult) ? profileResult[0] : null);
+        const row = await loadOwnedActiveChildProfile(userId, childProfileId);
+        if (!row) {
+          return res.status(404).json({ error: "Child profile not found." });
+        }
 
-        if (row) {
+        {
           const birthHistory = typeof row.birth_history === "object" && row.birth_history ? row.birth_history : {};
           const feedingAbility = typeof row.feeding_ability === "object" && row.feeding_ability ? row.feeding_ability : {};
           const growthContext = typeof row.growth_context === "object" && row.growth_context ? row.growth_context : {};
@@ -744,7 +723,7 @@ router.post("/parents-corner", requireAuth, async (req, res) => {
             nickname: row.name,
             developmentalStage: row.age_stage,
             currentAgeMonths: calcAgeMonths(row.date_of_birth),
-            sex: row.sex,
+            sex: row.sex ?? undefined,
             prematureBirth: !!birthHistory.prematureBirth,
             gestationalAgeAtBirthWeeks: birthHistory.gestationalAgeAtBirthWeeks ?? null,
             feedingAbility,
@@ -787,7 +766,7 @@ router.post("/parents-corner", requireAuth, async (req, res) => {
               hasFeedingTube: !!feedingAbility.hasFeedingTube,
               historyOfChokingOrGagging: !!feedingAbility.historyOfChokingOrGagging,
             },
-            sex: row.sex,
+            sex: row.sex ?? undefined,
             allergyDetails: allergyDetails
               .filter((e: any) =>
                 ["confirmed_allergy", "clinician_elimination"].includes(e?.severity)
@@ -805,10 +784,21 @@ router.post("/parents-corner", requireAuth, async (req, res) => {
           console.log(`[ParentsCorner] Server-loaded profile: ${row.name} (${row.age_stage})`);
         }
       } catch (profileErr: any) {
-        // If child_profiles table is unavailable or query fails, fall back to client context
-        // so a graceful degradation is preferred over a hard failure.
-        console.warn("[ParentsCorner] Child profile lookup fell back to client context:", profileErr.message);
+        console.warn("[ParentsCorner] Authoritative child profile lookup failed");
+        return res.status(503).json({
+          error: "Child profile is temporarily unavailable. Please try again.",
+        });
       }
+    } else if (generalMode) {
+      const stage = typeof childContext?.developmentalStage === "string"
+        ? childContext.developmentalStage
+        : "toddler";
+      resolvedContext = {
+        nickname: "your child",
+        developmentalStage: STAGE_LABELS[stage] ? stage : "toddler",
+      };
+    } else {
+      return res.status(400).json({ error: "childProfileId is required." });
     }
 
     // ── Run pediatric protocol registry ──────────────────────────────────────
@@ -935,26 +925,42 @@ router.post("/parents-corner", requireAuth, async (req, res) => {
 
 router.post('/meal-options', requireAuth, async (req, res) => {
   try {
-    const { ageStage, foodRequest, childName, childProfileId, allergies } = req.body;
-    if (!ageStage || !foodRequest) {
-      return res.status(400).json({ error: 'ageStage and foodRequest are required' });
+    const userId = (req as AuthenticatedRequest).authUser!.id;
+    const { foodRequest, childProfileId } = req.body;
+    if (!foodRequest || typeof childProfileId !== "string") {
+      return res.status(400).json({ error: 'childProfileId and foodRequest are required' });
     }
+    const child = await loadOwnedActiveChildProfile(userId, childProfileId);
+    if (!child) return res.status(404).json({ error: "Child profile not found." });
 
     const openai = getOpenAI();
-    const nickname = childName ? String(childName) : 'your child';
-    const allergenList = Array.isArray(allergies) && allergies.length > 0
-      ? allergies
+    const nickname = child.name || 'your child';
+    const allergySource = Array.isArray(child.allergy_details) && child.allergy_details.length > 0
+      ? child.allergy_details
+      : child.allergies;
+    const allergenList = Array.isArray(allergySource) && allergySource.length > 0
+      ? allergySource
           .map((a: any) => a.customAllergenName || a.allergenId || '')
           .filter(Boolean)
           .join(', ')
       : 'none reported';
+    const dietaryPreferences = Array.isArray(child.dietary_preferences)
+      ? child.dietary_preferences.join(", ")
+      : "";
+    const dislikes = Array.isArray(child.dislikes) ? child.dislikes.join(", ") : "";
+    const sensory = Array.isArray(child.sensory_issues) ? child.sensory_issues.join(", ") : "";
+    const feeding = Array.isArray(child.feeding_concerns) ? child.feeding_concerns.join(", ") : "";
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         {
           role: 'system',
-          content: `You are a pediatric nutrition assistant. Generate exactly 3 child-appropriate, safe, and appealing meal variations for ${nickname} (developmental stage: ${stageLabel(ageStage)}). Allergens to avoid: ${allergenList}.
+          content: `You are a pediatric nutrition assistant. Generate exactly 3 child-appropriate, safe, and appealing meal variations for ${nickname} (developmental stage: ${stageLabel(child.age_stage)}). Allergens to avoid: ${allergenList}.
+Dietary preferences: ${dietaryPreferences || "none reported"}.
+Disliked foods: ${dislikes || "none reported"}.
+Sensory considerations: ${sensory || "none reported"}.
+Feeding considerations: ${feeding || "none reported"}.
 
 Return ONLY a JSON object with no extra text:
 {
@@ -993,7 +999,7 @@ Names should be short and specific (e.g. "Hidden-Veggie Turkey Cheeseburger", "M
       }
     } catch { /* fallback: frontend handles empty options by generating directly */ }
 
-    res.json({ options });
+    res.json({ options, subject: { childProfileId: child.id, name: child.name } });
   } catch (err: any) {
     console.error('[MPB/meal-options] Error:', err.message);
     res.status(500).json({ error: 'Could not generate options. Please try again.' });
@@ -1006,9 +1012,40 @@ router.post('/generated-meals', requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser!.id;
     const { childProfileId, recipeData, imageUrl, selectedOptionName } = req.body;
-    if (!recipeData) {
-      return res.status(400).json({ error: 'recipeData is required' });
+    if (!recipeData || typeof childProfileId !== "string") {
+      return res.status(400).json({ error: 'childProfileId and recipeData are required' });
     }
+    const child = await loadOwnedActiveChildProfile(userId, childProfileId);
+    if (!child) return res.status(404).json({ error: "Child profile not found." });
+    const attribution = recipeData?._subjectAttribution;
+    if (
+      attribution?.childProfileId !== child.id ||
+      !verifyPediatricSubject(userId, child.id, attribution?.token)
+    ) {
+      return res.status(409).json({
+        error: "Meal subject could not be verified. Please generate the meal again.",
+      });
+    }
+
+    const rawDetails: any[] = Array.isArray(child.allergy_details) ? child.allergy_details : [];
+    let allergenEntries: AllergenEntry[] = rawDetails
+      .filter((a: any) => a && typeof a.allergenId === "string" && typeof a.severity === "string")
+      .map((a: any) => ({
+        allergenId: a.allergenId,
+        customAllergenName: a.customAllergenName,
+        severity: a.severity,
+      }));
+    if (allergenEntries.length === 0) {
+      allergenEntries = (Array.isArray(child.allergies) ? child.allergies : [])
+        .filter((value: any) => typeof value === "string" && value.trim())
+        .map((value: string) => ({
+          allergenId: "other",
+          customAllergenName: value.trim(),
+          severity: "confirmed_allergy",
+        }));
+    }
+    const postScan = scanGeneratedOutput(recipeData, child.age_stage as DevelopmentalStage, allergenEntries);
+    let safeRecipeData = postScan.patchedRecipe ?? recipeData;
 
     // ── Allergen guardrail scan on completePlate.sides ────────────────────
     // Loads the authoritative child profile from the DB (never trusts client-
@@ -1020,103 +1057,14 @@ router.post('/generated-meals', requireAuth, async (req, res) => {
     //
     // Fail-safe: if childProfileId is supplied but the profile row cannot be
     // loaded, strip completePlate.sides rather than persisting unverified sides.
-    let safeRecipeData = recipeData;
     if (
-      typeof recipeData === 'object' &&
-      Array.isArray(recipeData?.completePlate?.sides) &&
-      recipeData.completePlate.sides.length > 0 &&
-      childProfileId
+      typeof safeRecipeData === 'object' &&
+      Array.isArray(safeRecipeData?.completePlate?.sides) &&
+      safeRecipeData.completePlate.sides.length > 0
     ) {
-      let profileLoaded = false;
-      try {
-        const profileResult = await db.execute(sql`
-          SELECT age_stage, allergy_details, allergies
-          FROM child_profiles
-          WHERE id = ${childProfileId} AND user_id = ${userId}
-          LIMIT 1
-        `);
-        const profile = (profileResult as any).rows?.[0] ??
-          (Array.isArray(profileResult) ? (profileResult as any[])[0] : null);
-
-        if (profile) {
-          profileLoaded = true;
-
-          // Build AllergenEntry[] — prefer structured allergy_details
-          let allergenEntries: AllergenEntry[] = [];
-
-          const rawDetails: any[] = Array.isArray(profile.allergy_details)
-            ? profile.allergy_details : [];
-          // allergy_details items may arrive as serialized JSON strings from pg
-          const parsedDetails = rawDetails.map((item: any) => {
-            if (typeof item === 'string') {
-              try { return JSON.parse(item); } catch { return null; }
-            }
-            return item;
-          }).filter(Boolean);
-
-          const structuredEntries: AllergenEntry[] = parsedDetails
-            .filter((a: any) =>
-              a &&
-              typeof a.allergenId === 'string' && a.allergenId.trim() &&
-              typeof a.severity === 'string' && a.severity.trim()
-            )
-            .map((a: any): AllergenEntry => ({
-              allergenId: a.allergenId,
-              customAllergenName: typeof a.customAllergenName === 'string'
-                ? a.customAllergenName : undefined,
-              severity: a.severity,
-            }));
-
-          if (structuredEntries.length > 0) {
-            allergenEntries = structuredEntries;
-          } else {
-            // Fallback: legacy string array e.g. ["Milk", "Tree Nuts"]
-            const DISPLAY_TO_ALLERGEN_ID: Record<string, string> = {
-              milk: 'milk', dairy: 'milk',
-              egg: 'egg', eggs: 'egg',
-              wheat: 'wheat', gluten: 'wheat',
-              soy: 'soy', soya: 'soy',
-              peanut: 'peanut', peanuts: 'peanut',
-              'tree nuts': 'tree_nuts', 'tree nut': 'tree_nuts',
-              sesame: 'sesame', fish: 'fish', shellfish: 'shellfish',
-            };
-            const rawStrings: any[] = Array.isArray(profile.allergies)
-              ? profile.allergies : [];
-            allergenEntries = rawStrings
-              .filter((s: any) => typeof s === 'string' && s.trim())
-              .map((s: string): AllergenEntry | null => {
-                const key = s.trim().toLowerCase();
-                const allergenId = DISPLAY_TO_ALLERGEN_ID[key];
-                if (!allergenId) {
-                  return { allergenId: 'other', customAllergenName: s.trim(), severity: 'confirmed_allergy' };
-                }
-                return { allergenId, severity: 'confirmed_allergy' };
-              })
-              .filter((e): e is AllergenEntry => e !== null);
-          }
-
-          if (allergenEntries.length > 0) {
-            const cloned = JSON.parse(JSON.stringify(recipeData));
-            applyCompletePlateSideGuardrail(cloned, allergenEntries);
-            safeRecipeData = cloned;
-          }
-        }
-      } catch (profileErr: any) {
-        console.warn('[MPB/generated-meals] Profile lookup failed:', profileErr.message);
-        // profileLoaded stays false — fail-safe applies below
-      }
-
-      if (!profileLoaded) {
-        // Cannot verify allergen safety — strip sides rather than persist unscanned content
-        const stripped = JSON.parse(JSON.stringify(recipeData));
-        if (stripped.completePlate) {
-          stripped.completePlate.sides = [];
-          stripped.completePlate.plateNote =
-            '[Sides removed — child allergen profile could not be verified at save time.]';
-        }
-        safeRecipeData = stripped;
-        console.warn('[MPB/generated-meals] completePlate.sides stripped — profile not found:', childProfileId);
-      }
+      const cloned = JSON.parse(JSON.stringify(safeRecipeData));
+      applyCompletePlateSideGuardrail(cloned, allergenEntries);
+      safeRecipeData = cloned;
     }
 
     // Attempt to persist ephemeral images (base64 / DALL-E temp URLs) to permanent
@@ -1143,7 +1091,7 @@ router.post('/generated-meals', requireAuth, async (req, res) => {
       INSERT INTO mpb_generated_meals (user_id, child_profile_id, recipe_data, image_url, selected_option_name)
       VALUES (
         ${userId},
-        ${childProfileId ?? null},
+        ${child.id},
         ${JSON.stringify(safeRecipeData)},
         ${safeImageUrl ?? null},
         ${selectedOptionName ?? null}
@@ -1166,14 +1114,14 @@ router.get('/generated-meals', requireAuth, async (req, res) => {
 
     const result = childProfileId
       ? await db.execute(sql`
-          SELECT id, recipe_data, image_url, selected_option_name, created_at
+          SELECT id, child_profile_id, recipe_data, image_url, selected_option_name, created_at
           FROM mpb_generated_meals
           WHERE user_id = ${userId} AND child_profile_id = ${childProfileId}
           ORDER BY created_at DESC
           LIMIT 1
         `)
       : await db.execute(sql`
-          SELECT id, recipe_data, image_url, selected_option_name, created_at
+          SELECT id, child_profile_id, recipe_data, image_url, selected_option_name, created_at
           FROM mpb_generated_meals
           WHERE user_id = ${userId}
           ORDER BY created_at DESC
@@ -1189,6 +1137,12 @@ router.get('/generated-meals', requireAuth, async (req, res) => {
     // value is safe for legacy rows.
     const recipeData = row.recipe_data;
     if (recipeData && typeof recipeData === 'object') {
+      if (row.child_profile_id) {
+        recipeData._subjectAttribution = {
+          childProfileId: row.child_profile_id,
+          token: signPediatricSubject(userId, row.child_profile_id),
+        };
+      }
       if (!recipeData.completePlate || !Array.isArray(recipeData.completePlate.sides)) {
         recipeData.completePlate = { sides: [], plateNote: '' };
       } else {
@@ -1209,6 +1163,9 @@ router.get('/generated-meals', requireAuth, async (req, res) => {
         imageUrl: row.image_url ?? null,
         selectedOptionName: row.selected_option_name ?? null,
         createdAt: row.created_at,
+        subject: row.child_profile_id
+          ? { childProfileId: row.child_profile_id }
+          : null,
       },
     });
   } catch (err: any) {
