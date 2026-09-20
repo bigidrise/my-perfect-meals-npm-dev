@@ -1585,7 +1585,7 @@ export default function DashboardNew() {
                   New
                 </div>
                 {effectiveMenuBuilder?.builder.displayName && (
-                  <div className="absolute bottom-3 right-3 max-w-[58%] rounded-full border border-violet-300/35 bg-violet-400/15 px-2.5 py-1 text-right text-[10px] font-black leading-tight tracking-wide text-violet-100 sm:max-w-none">
+                  <div className="absolute bottom-3 right-3 max-w-[58%] rounded-full border border-emerald-300 bg-emerald-600 px-2.5 py-1 text-right text-[10px] font-extrabold leading-tight tracking-wide text-white shadow-md shadow-emerald-500/25 sm:max-w-none sm:px-3.5 sm:py-1.5 sm:text-xs">
                     Using your {effectiveMenuBuilder.builder.displayName}
                   </div>
                 )}
