@@ -714,7 +714,7 @@ export default function MyPerfectMenu() {
             Not sure what to eat? Pick a meal and we’ll give you 3 personalized ideas.
           </p>
           {builderContext?.displayName && (
-            <div className="mt-4 inline-flex items-center rounded-full border border-violet-300/25 bg-violet-400/10 px-3 py-1.5 text-xs font-bold text-violet-100">
+            <div className="mt-4 inline-flex items-center rounded-full border border-emerald-300 bg-emerald-600 px-4 py-2 text-sm font-extrabold text-white shadow-lg shadow-emerald-500/30">
               Using your {builderContext.displayName}
             </div>
           )}
