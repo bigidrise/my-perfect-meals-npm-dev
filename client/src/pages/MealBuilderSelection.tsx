@@ -210,6 +210,7 @@ export default function MealBuilderSelection() {
 
       setConfirmedBuilder(selected);
       await refreshUser();
+      await queryClient.invalidateQueries({ queryKey: ["my-perfect-menu-effective-builder"] });
       window.dispatchEvent(new CustomEvent("mpm:builderUpdated"));
       queryClient.invalidateQueries({ queryKey: ["nutrition-summary"] });
 
