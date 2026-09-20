@@ -7,4 +7,4 @@ Ordinary Production startup must be read-only with respect to release schema and
 
 **Why:** Repeating DDL and reconciliation on every Reserved VM boot increased startup time and made ownership-review conflicts part of ordinary readiness. JavaScript timers also do not cancel PostgreSQL work.
 
-**How to apply:** Ordinary startup performs authoritative read-only schema assertions and fails closed. Explicit release work runs once through the bounded wrapper, stays idempotent, and propagates failures so readiness remains false. Keep legacy deferred maintenance behind a separate explicit opt-in. Do not change normal query timeouts globally.
+**How to apply:** Ordinary startup performs authoritative read-only schema assertions and fails closed. Audit indirect mutation owners too: route-registration helpers, session-store auto-create options, and environment-conditional development migrations. Explicit release work runs once through the bounded wrapper, stays idempotent, and propagates failures so readiness remains false. Keep legacy deferred maintenance behind a separate explicit opt-in. Do not change normal query timeouts globally.

@@ -818,6 +818,19 @@ async function initializeApp() {
            await runEmailIdentityReviewMigration(database as any);
           const { runStudioVoiceStorageMigration } = await import("./db/migrations/runStudioVoiceStorageMigration");
            await runStudioVoiceStorageMigration(database);
+           const { runSavedGroceryShoppingIdentityMigration } = await import("./db/migrations/runSavedGroceryShoppingIdentityMigration");
+           await runSavedGroceryShoppingIdentityMigration(database);
+           await database.execute(sql`
+             CREATE TABLE IF NOT EXISTS "session" (
+               "sid" varchar NOT NULL COLLATE "default",
+               "sess" json NOT NULL,
+               "expire" timestamp(6) NOT NULL,
+               CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+             )
+           `);
+           await database.execute(sql`
+             CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire")
+           `);
            // Keep this last: its deliberate ownership-review exception must not
            // prevent the unrelated schema migrations above from completing.
            const {
@@ -995,9 +1008,14 @@ async function initializeApp() {
       throttle_table: string | null;
       mfa_token_column: boolean;
       security_version_column: boolean;
+      session_table: string | null;
+      session_columns: boolean;
+      session_primary_key: boolean;
+      session_expire_index: boolean;
     }>(`
       SELECT
         to_regclass('public.auth_attempt_throttles')::text AS throttle_table,
+        to_regclass('public.session')::text AS session_table,
         EXISTS (
           SELECT 1 FROM information_schema.columns
           WHERE table_schema = 'public' AND table_name = 'users'
@@ -1007,13 +1025,35 @@ async function initializeApp() {
           SELECT 1 FROM information_schema.columns
           WHERE table_schema = 'public' AND table_name = 'users'
             AND column_name = 'auth_security_version'
-        ) AS security_version_column
+        ) AS security_version_column,
+        (
+          SELECT count(*) = 3 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'session'
+            AND column_name IN ('sid', 'sess', 'expire')
+        ) AS session_columns,
+        EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'public.session'::regclass
+            AND contype = 'p'
+            AND pg_get_constraintdef(oid) ILIKE 'PRIMARY KEY (sid)'
+        ) AS session_primary_key,
+        EXISTS (
+          SELECT 1 FROM pg_indexes
+          WHERE schemaname = 'public' AND tablename = 'session'
+            AND indexname = 'IDX_session_expire'
+            AND indexdef NOT ILIKE 'CREATE UNIQUE INDEX%'
+            AND indexdef ILIKE '%USING btree (expire)'
+        ) AS session_expire_index
     `);
     const schemaRow = securitySchema.rows[0];
     if (
       !schemaRow?.throttle_table ||
       schemaRow.mfa_token_column !== true ||
-      schemaRow.security_version_column !== true
+      schemaRow.security_version_column !== true ||
+      !schemaRow.session_table ||
+      schemaRow.session_columns !== true ||
+      schemaRow.session_primary_key !== true ||
+      schemaRow.session_expire_index !== true
     ) {
       throw new Error(
         "Required U3 authentication security schema is missing; refusing production readiness",
@@ -1022,7 +1062,7 @@ async function initializeApp() {
     sessionConfig.store = new PgSession({
       pool: sessionPool,
       tableName: "session",
-      createTableIfMissing: true,
+      createTableIfMissing: false,
       pruneSessionInterval: 60 * 15,
     });
     console.log("✅ [INIT] PostgreSQL session store configured");
@@ -1059,13 +1099,14 @@ async function initializeApp() {
     );
 
     // Saved Grocery shopping identity is required by route selects/inserts.
-    // Complete it before production API routers become available.
+    // Ordinary startup verifies it read-only; explicit release mode owns repairs
+    // and the legacy exact-name backfill.
     {
-      const { runSavedGroceryShoppingIdentityMigration } = await import(
-        "./db/migrations/runSavedGroceryShoppingIdentityMigration"
+      const { assertSavedGroceryShoppingIdentitySchema } = await import(
+        "./db/migrations/assertSavedGroceryShoppingIdentitySchema"
       );
-      await runSavedGroceryShoppingIdentityMigration();
-      console.log("✅ [prod] Saved Grocery shopping identity migration complete");
+      const { db: dbSavedGroceryGuard } = await import("./db");
+      await assertSavedGroceryShoppingIdentitySchema(dbSavedGroceryGuard as any);
     }
 
     app.use("/api/meals", mealsRouter);
@@ -1347,8 +1388,10 @@ async function initializeApp() {
     {
       const { db: dbColGuardEarly } = await import("./db");
       const { assertColumnsExist, CRITICAL_COLUMNS } = await import("./bootstrap/assertColumnsExist");
+      const { assertFoodPreferenceSchema } = await import("./db/migrations/assertFoodPreferenceSchema");
       try {
         await assertColumnsExist(dbColGuardEarly, CRITICAL_COLUMNS);
+        await assertFoodPreferenceSchema(dbColGuardEarly as any);
         console.log("✅ [INIT] Column guard passed — all critical columns present before route mount");
       } catch (guardErr: any) {
         console.error("🚨 [INIT] Critical column(s) missing — halting process to prevent data loss:", guardErr.message);
@@ -1359,8 +1402,6 @@ async function initializeApp() {
     // Register main routes
     console.log("📋 [INIT] Registering main routes...");
     const { registerRoutes } = await import("./routes");
-    const { runClinicPilotDevelopmentMigration } = await import("./db/migrations/runClinicPilotDevelopmentMigration");
-    await runClinicPilotDevelopmentMigration(); // no-op in production
     await registerRoutes(app);
     console.log(
       `✅ [INIT] Main routes registered in ${Date.now() - startTime}ms`,
@@ -2091,13 +2132,11 @@ async function initializeApp() {
         }
       }
 
-      // ── Inline migrations for columns that the guard will assert ────────────
-      // schemaMigPromise above is raced against a 6-second timeout and may
-      // still be running in the background when we reach this point. Running
-      // the five critical ALTERs here (fully awaited, with retries) guarantees
-      // they are committed before assertColumnsExist fires, even when
-      // schemaMigPromise is slow or has not yet reached these statements.
-      // All statements are idempotent (IF NOT EXISTS).
+      // ── Deferred release repairs for columns asserted above ─────────────────
+      // This entire callback is reachable only when
+      // RUN_DEFERRED_RELEASE_MAINTENANCE=true. Ordinary startup never executes
+      // these idempotent ALTER statements and relies on the pre-readiness,
+      // read-only guards instead.
       await withBootRetry("Critical column pre-flight migrations", async () => {
         const { db: dbPre } = await import("./db");
         const { sql: sqlPre } = await import("drizzle-orm");

@@ -1820,6 +1820,13 @@ async function start() {
   }
 
   // 🎯 CRITICAL: API routes FIRST to prevent Vite middleware interference
+  const { db: dbRouteMigrations } = await import("./db");
+  const { runFoodsIEnjoyMigration } = await import("./db/migrations/runFoodsIEnjoyMigration");
+  await runFoodsIEnjoyMigration(dbRouteMigrations);
+  const { runMyPerfectMenuMigration } = await import("./db/migrations/runMyPerfectMenuMigration");
+  await runMyPerfectMenuMigration(dbRouteMigrations);
+  const { runClinicPilotDevelopmentMigration } = await import("./db/migrations/runClinicPilotDevelopmentMigration");
+  await runClinicPilotDevelopmentMigration();
   await registerRoutes(app);
 
   // API guard: any /api/* that slipped past routers -> JSON 404 (prevents SPA override)
