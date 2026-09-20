@@ -957,10 +957,10 @@ export default function MyPerfectMenu() {
             )}
 
             {!loadingContext && !pendingIdeaType && loadingIdeas && concepts.length === 0 ? (
-              <div className="mt-6 flex min-h-56 flex-col items-center justify-center rounded-3xl border border-violet-300/20 bg-black/45">
+              <div className="mt-6 flex min-h-56 flex-col items-center justify-center rounded-3xl border border-violet-300/20 bg-black/45 px-6 text-center">
                 <Loader2 className="h-8 w-8 animate-spin text-violet-300" />
                 <p className="mt-4 font-semibold">Creating three ideas for you…</p>
-                <p className="mt-1 text-sm text-white/45">Using your food preferences and current nutrition context.</p>
+                <p className="mt-1 max-w-xs text-sm leading-relaxed text-white/45">Using your food preferences and current nutrition context.</p>
               </div>
             ) : !loadingContext && !pendingIdeaType ? (
               <div className="mt-5 grid gap-4">
