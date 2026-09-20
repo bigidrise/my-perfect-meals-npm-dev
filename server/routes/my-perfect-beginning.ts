@@ -20,6 +20,10 @@ import {
   type DevelopmentalStageKey,
 } from "../services/pediatric/pediatricResolver";
 import { signPediatricSubject } from "../services/pediatric/subjectAttribution";
+import {
+  loadOwnedActiveChildProfile,
+  loadOwnedActiveChildProfiles,
+} from "../services/pediatric/authoritativeChildAccess";
 import { buildCreatorHumanFoodPrompt } from "../services/humanFoodContext/adapters";
 import { validateHumanFoodCandidate } from "../services/humanFoodContext/finalValidation";
 import {
@@ -852,9 +856,7 @@ async function fetchChildProfileInput(
 
     return profileInput;
   } catch (err: any) {
-    if (err?.code === "42P01") return null;
-    console.error("[MyPerfectBeginning/create-dish] child profile lookup error:", err.message);
-    return null;
+    throw err;
   }
 }
 
@@ -993,7 +995,25 @@ router.post("/create-dish", requireAuth, async (req, res) => {
 
     if (isMultiChildMode) {
       const childIds = (rawChildProfileIds as string[]).slice(0, 10);
-      const loadedProfiles = await Promise.all(childIds.map((id) => fetchChildProfileFull(userId, id)));
+      let authorizedProfiles;
+      try {
+        authorizedProfiles = await loadOwnedActiveChildProfiles(userId, childIds);
+      } catch {
+        return res.status(503).json({
+          error: "Child profiles are temporarily unavailable. Please try again.",
+        });
+      }
+      if (!authorizedProfiles) {
+        return res.status(404).json({ error: "One or more child profiles were not found." });
+      }
+      let loadedProfiles;
+      try {
+        loadedProfiles = await Promise.all(childIds.map((id) => fetchChildProfileFull(userId, id)));
+      } catch {
+        return res.status(503).json({
+          error: "Child profiles are temporarily unavailable. Please try again.",
+        });
+      }
       if (loadedProfiles.some((profile) => profile === null)) {
         return res.status(404).json({ error: "One or more child profiles were not found." });
       }
@@ -1003,7 +1023,27 @@ router.post("/create-dish", requireAuth, async (req, res) => {
 
     const multiChildNames: string[] = mergedProfile?.childNames ?? [];
     const multiChildStageLabels: string[] = mergedProfile?.stageLabels ?? [];
-    const childProfileInput = isMultiChildMode ? null : await fetchChildProfileInput(userId, childProfileId);
+    let childProfileInput: ChildProfileInput | null = null;
+    if (!isMultiChildMode && typeof childProfileId === "string") {
+      let authorizedChild;
+      try {
+        authorizedChild = await loadOwnedActiveChildProfile(userId, childProfileId);
+      } catch {
+        return res.status(503).json({
+          error: "Child profile is temporarily unavailable. Please try again.",
+        });
+      }
+      if (!authorizedChild) {
+        return res.status(404).json({ error: "Child profile not found." });
+      }
+      try {
+        childProfileInput = await fetchChildProfileInput(userId, childProfileId);
+      } catch {
+        return res.status(503).json({
+          error: "Child profile is temporarily unavailable. Please try again.",
+        });
+      }
+    }
     if (!isMultiChildMode && typeof childProfileId === "string" && !childProfileInput) {
       return res.status(404).json({ error: "Child profile not found." });
     }
@@ -1108,13 +1148,6 @@ router.post("/create-dish", requireAuth, async (req, res) => {
     const conflictLog: ProtocolConflict[] = guidanceOutput.conflictLog;
     const activeProtocolIds       = guidanceOutput.activeProtocolIds;
     const activeProtocolEvidence  = guidanceOutput.activeProtocolEvidence;
-
-    if (activeProtocolIds.length > 0) {
-      console.log(
-        `[MyPerfectBeginning/create-dish] Active protocols for user=${userId} ${isMultiChildMode ? `children=[${multiChildNames.join(",")}]` : `child=${childProfileId ?? "no-profile"}`}:`,
-        activeProtocolIds.join(", ")
-      );
-    }
 
     // ── Extract free-text pref fields (user-controlled, kept out of system prompt) ──
     const rawPrefs = req.body.parentPrefs && typeof req.body.parentPrefs === "object"
@@ -1581,9 +1614,7 @@ async function fetchChildProfileFull(
 
     return profileInput;
   } catch (err: any) {
-    if (err?.code === "42P01") return null;
-    console.error("[MyPerfectBeginning] child profile full lookup error:", err.message);
-    return null;
+    throw err;
   }
 }
 
