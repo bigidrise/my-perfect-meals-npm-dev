@@ -30,4 +30,124 @@ describe("production startup API readiness gate", () => {
       source.lastIndexOf("settleInitialization();"),
     );
   });
+
+  it("keeps root and healthz unavailable until genuine readiness", () => {
+    expect(source).toContain('app.get("/healthz", (_req, res) => {');
+    expect(source).toContain('res.status(503).send("initialization failed")');
+    expect(source).toContain('res.status(503).send("starting")');
+    expect(source).toContain('res.status(200).send("ok")');
+    expect(source).toContain('app.get("/", (_req, res, next) => {');
+    expect(source).toContain('res.status(503).send("server starting")');
+    expect(source.indexOf("isInitialized = true")).toBeLessThan(
+      source.indexOf('console.log(`✅ [INIT] Server fully ready at:'),
+    );
+  });
+
+  it("keeps release mutations opt-in and required guards before readiness", () => {
+    const optIn = source.indexOf(
+      'process.env.RUN_PRODUCTION_RELEASE_MIGRATIONS === "true"',
+    );
+    const criticalGuard = source.indexOf(
+      "await assertColumnsExist(dbColGuardEarly, CRITICAL_COLUMNS)",
+    );
+    const authGuard = source.indexOf(
+      "Required U3 authentication security schema is missing; refusing production readiness",
+    );
+    const ready = source.indexOf("isInitialized = true");
+    const savedGroceryMigration = source.indexOf(
+      "await runSavedGroceryShoppingIdentityMigration(database)",
+    );
+    const savedGroceryGuard = source.indexOf(
+      "await assertSavedGroceryShoppingIdentitySchema(dbSavedGroceryGuard as any)",
+    );
+    const preferenceGuard = source.indexOf(
+      "await assertFoodPreferenceSchema(dbColGuardEarly as any)",
+    );
+
+    expect(optIn).toBeGreaterThan(-1);
+    expect(criticalGuard).toBeGreaterThan(optIn);
+    expect(authGuard).toBeGreaterThan(optIn);
+    expect(criticalGuard).toBeLessThan(ready);
+    expect(authGuard).toBeLessThan(ready);
+    expect(savedGroceryMigration).toBeGreaterThan(optIn);
+    expect(savedGroceryMigration).toBeLessThan(
+      source.indexOf("Ordinary startup: recurring release migrations skipped"),
+    );
+    expect(savedGroceryGuard).toBeGreaterThan(savedGroceryMigration);
+    expect(savedGroceryGuard).toBeLessThan(ready);
+    expect(preferenceGuard).toBeGreaterThan(savedGroceryGuard);
+    expect(preferenceGuard).toBeLessThan(ready);
+  });
+
+  it("keeps the legacy critical ALTER block inside deferred release maintenance", () => {
+    const deferredGate = source.indexOf(
+      'if (process.env.RUN_DEFERRED_RELEASE_MAINTENANCE === "true")',
+    );
+    const legacyAlterBlock = source.indexOf(
+      'await withBootRetry("Critical column pre-flight migrations"',
+    );
+    const runtimeWorkers = source.indexOf(
+      "// Runtime workers remain available on ordinary startup; they do not own DDL.",
+    );
+
+    expect(deferredGate).toBeGreaterThan(-1);
+    expect(legacyAlterBlock).toBeGreaterThan(deferredGate);
+    expect(legacyAlterBlock).toBeLessThan(runtimeWorkers);
+  });
+
+  it("does not allow route registration or the session store to create schema", () => {
+    const routesSource = fs.readFileSync(
+      path.resolve(process.cwd(), "server/routes.ts"),
+      "utf8",
+    );
+
+    expect(routesSource).not.toContain("runFoodsIEnjoyMigration");
+    expect(routesSource).not.toContain("runMyPerfectMenuMigration");
+    expect(source).toContain("createTableIfMissing: false");
+    expect(source).not.toContain("runClinicPilotDevelopmentMigration");
+  });
+
+  it("does not make deferred maintenance part of readiness", () => {
+    const ready = source.indexOf("isInitialized = true");
+    const backgroundServices = source.indexOf(
+      "// Background services - AFTER full initialization (non-blocking)",
+    );
+
+    expect(backgroundServices).toBeGreaterThan(ready);
+    expect(source).toContain(
+      "// Explicit release work: schema mutations, indexes, backfills, and seeds.",
+    );
+    expect(source.indexOf(
+      'if (process.env.RUN_DEFERRED_RELEASE_MAINTENANCE === "true")',
+      ready,
+    ))
+      .toBeLessThan(
+        source.indexOf(
+          "// Explicit release work: schema mutations, indexes, backfills, and seeds.",
+        ),
+      );
+  });
+
+  it("instruments the Node preload before the OpenAI shim", () => {
+    const packageJson = JSON.parse(
+      fs.readFileSync(path.resolve(process.cwd(), "package.json"), "utf8"),
+    );
+    const deploymentConfig = fs.readFileSync(
+      path.resolve(process.cwd(), ".replit"),
+      "utf8",
+    );
+    const preload = fs.readFileSync(
+      path.resolve(process.cwd(), "scripts/startup-timing.mjs"),
+      "utf8",
+    );
+
+    expect(packageJson.scripts.start).toContain(
+      "--import=./scripts/startup-timing.mjs --import=openai/shims/node",
+    );
+    expect(deploymentConfig).toContain(
+      "--import=./scripts/startup-timing.mjs --import=openai/shims/node",
+    );
+    expect(preload).toContain("[BOOT_TIMING] node-preload");
+    expect(source).toContain("[BOOT_TIMING] application-entry");
+  });
 });

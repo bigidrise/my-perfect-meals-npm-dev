@@ -332,10 +332,6 @@ function hasUnmeasured(ings: Array<{ name: string; amount: string }>): boolean {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   console.log("🔧 registerRoutes called - starting route registration");
-  const { runFoodsIEnjoyMigration } = await import("./db/migrations/runFoodsIEnjoyMigration");
-  await runFoodsIEnjoyMigration(db);
-  const { runMyPerfectMenuMigration } = await import("./db/migrations/runMyPerfectMenuMigration");
-  await runMyPerfectMenuMigration(db);
   app.use("/api/foods-i-enjoy", foodsIEnjoyRouter);
   app.use("/api/household", householdFoodsIEnjoyRouter);
   app.use("/api/my-perfect-menu", requireAuth, requireEssentialAccess, myPerfectMenuRouter);

@@ -30,6 +30,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 console.log("🚀 [BOOT] Production server starting...");
+console.log(
+  `⏱️ [BOOT_TIMING] application-entry uptimeMs=${Math.round(process.uptime() * 1000)}`,
+);
 console.log(`🕐 [BOOT] Start time: ${new Date().toISOString()}`);
 console.log(`📍 [BOOT] PORT env: ${process.env.PORT || "5000 (default)"}`);
 console.log(`📍 [BOOT] NODE_ENV: ${process.env.NODE_ENV || "not set"}`);
@@ -410,17 +413,19 @@ async function initializeApp() {
       );
     }
 
-    // Safe column migrations — wrapped in a hard 6 s timeout so a locked table
-    // never stalls the full boot sequence. Columns were added in earlier deploys;
-    // this is a no-op on a live DB and can safely be skipped if slow.
+    // Mutating release migrations are opt-in. Ordinary process startup performs
+    // the fail-closed read-only guards below instead of repeating DDL/backfills.
     //
     // schemaMigPromise is declared outside the try/catch so the background
     // grandfather migration task can await it — ensuring data migrations never
     // run before the required columns exist, even when boot times out first.
     let schemaMigPromise: Promise<void> = Promise.resolve();
 
-    console.log("📋 [INIT] Running safe column migrations...");
-    try {
+    const runReleaseMigrations =
+      process.env.RUN_PRODUCTION_RELEASE_MIGRATIONS === "true";
+    if (runReleaseMigrations) {
+      console.log("📋 [INIT] Running explicitly enabled release migrations...");
+      try {
       const { pool } = await import("./db");
       const { sql } = await import("drizzle-orm");
       const { awaitSingleBootMigration } = await import(
@@ -813,10 +818,27 @@ async function initializeApp() {
            await runEmailIdentityReviewMigration(database as any);
           const { runStudioVoiceStorageMigration } = await import("./db/migrations/runStudioVoiceStorageMigration");
            await runStudioVoiceStorageMigration(database);
+           const { runSavedGroceryShoppingIdentityMigration } = await import("./db/migrations/runSavedGroceryShoppingIdentityMigration");
+           await runSavedGroceryShoppingIdentityMigration(database);
+           await database.execute(sql`
+             CREATE TABLE IF NOT EXISTS "session" (
+               "sid" varchar NOT NULL COLLATE "default",
+               "sess" json NOT NULL,
+               "expire" timestamp(6) NOT NULL,
+               CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+             )
+           `);
+           await database.execute(sql`
+             CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire")
+           `);
            // Keep this last: its deliberate ownership-review exception must not
            // prevent the unrelated schema migrations above from completing.
-           const { runStripeBillingMigration } = await import("./db/migrations/runStripeBillingMigration");
-           await runStripeBillingMigration(database as any);
+           const {
+             runStripeBillingSchemaMigration,
+             runStripeOwnershipReconciliation,
+           } = await import("./db/migrations/runStripeBillingMigration");
+            await runStripeBillingSchemaMigration(database as any);
+            await runStripeOwnershipReconciliation(database as any);
            console.log("✅ [INIT] Trial grants schema ensured");
         },
       });
@@ -829,18 +851,23 @@ async function initializeApp() {
           (migErr as Error)?.message ?? String(migErr),
         );
       });
-      console.log("✅ [INIT] Column migrations complete");
-    } catch (migErr) {
-      const { handleStripeMigrationFailure } = await import(
-        "./services/stripeMigrationReview"
-      );
-      const { db: dbStripeGuard } = await import("./db");
-      const { assertStripeBillingSchema } = await import(
-        "./db/migrations/assertStripeBillingSchema"
-      );
-      await handleStripeMigrationFailure(
-        migErr,
-        () => assertStripeBillingSchema(dbStripeGuard as any),
+        console.log("✅ [INIT] Release migrations complete");
+      } catch (migErr) {
+        const { handleStripeMigrationFailure } = await import(
+          "./services/stripeMigrationReview"
+        );
+        const { db: dbStripeGuard } = await import("./db");
+        const { assertStripeBillingSchema } = await import(
+          "./db/migrations/assertStripeBillingSchema"
+        );
+        await handleStripeMigrationFailure(
+          migErr,
+          () => assertStripeBillingSchema(dbStripeGuard as any),
+        );
+      }
+    } else {
+      console.log(
+        "✅ [INIT] Ordinary startup: recurring release migrations skipped; validating required schema",
       );
     }
 
@@ -862,10 +889,14 @@ async function initializeApp() {
       const { assertTrialSourceColumn } = await import("./db/migrations/assertTrialSourceColumn");
       const { assertProcareTrainingCompletedColumn } = await import("./db/migrations/assertProcareTrainingCompletedColumn");
       const { assertPerformanceModeEnabledColumn } = await import("./db/migrations/assertPerformanceModeEnabledColumn");
+      const { assertOrganizationWorkspaceSchema } = await import("./db/migrations/assertOrganizationWorkspaceSchema");
+      const { assertNutritionStateSchema } = await import("./db/migrations/assertNutritionStateSchema");
       const { db: dbGuards } = await import("./db");
       await assertTrialSourceColumn(dbGuards as any);
       await assertProcareTrainingCompletedColumn(dbGuards as any);
       await assertPerformanceModeEnabledColumn(dbGuards as any);
+      await assertOrganizationWorkspaceSchema(dbGuards as any);
+      await assertNutritionStateSchema(dbGuards as any);
     }
 
     // Run data migrations (grandfather + cert-bridge) in the background.
@@ -873,14 +904,16 @@ async function initializeApp() {
     // we attempt the UPDATE/INSERT, even when boot timed out early.
     // On a live prod DB, columns already exist so schema errors are treated as
     // non-blocking (the .catch(() => {}) swallows them before proceeding).
-    setImmediate(() => {
-      schemaMigPromise
-        .catch(() => {}) // schema error already logged above; columns exist on live DB
-        .then(() => runGrandfatherMigrations())
-        .catch((err: Error) => {
-          console.warn("⚠️ [INIT] Background grandfather migration failed:", err?.message);
-        });
-    });
+    if (runReleaseMigrations) {
+      setImmediate(() => {
+        schemaMigPromise
+          .catch(() => {}) // schema error already logged above; columns exist on live DB
+          .then(() => runGrandfatherMigrations())
+          .catch((err: Error) => {
+            console.warn("⚠️ [INIT] Background grandfather migration failed:", err?.message);
+          });
+      });
+    }
 
     // Import middleware
     console.log("📋 [INIT] Loading middleware...");
@@ -975,9 +1008,14 @@ async function initializeApp() {
       throttle_table: string | null;
       mfa_token_column: boolean;
       security_version_column: boolean;
+      session_table: string | null;
+      session_columns: boolean;
+      session_primary_key: boolean;
+      session_expire_index: boolean;
     }>(`
       SELECT
         to_regclass('public.auth_attempt_throttles')::text AS throttle_table,
+        to_regclass('public.session')::text AS session_table,
         EXISTS (
           SELECT 1 FROM information_schema.columns
           WHERE table_schema = 'public' AND table_name = 'users'
@@ -987,13 +1025,35 @@ async function initializeApp() {
           SELECT 1 FROM information_schema.columns
           WHERE table_schema = 'public' AND table_name = 'users'
             AND column_name = 'auth_security_version'
-        ) AS security_version_column
+        ) AS security_version_column,
+        (
+          SELECT count(*) = 3 FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'session'
+            AND column_name IN ('sid', 'sess', 'expire')
+        ) AS session_columns,
+        EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'public.session'::regclass
+            AND contype = 'p'
+            AND pg_get_constraintdef(oid) ILIKE 'PRIMARY KEY (sid)'
+        ) AS session_primary_key,
+        EXISTS (
+          SELECT 1 FROM pg_indexes
+          WHERE schemaname = 'public' AND tablename = 'session'
+            AND indexname = 'IDX_session_expire'
+            AND indexdef NOT ILIKE 'CREATE UNIQUE INDEX%'
+            AND indexdef ILIKE '%USING btree (expire)'
+        ) AS session_expire_index
     `);
     const schemaRow = securitySchema.rows[0];
     if (
       !schemaRow?.throttle_table ||
       schemaRow.mfa_token_column !== true ||
-      schemaRow.security_version_column !== true
+      schemaRow.security_version_column !== true ||
+      !schemaRow.session_table ||
+      schemaRow.session_columns !== true ||
+      schemaRow.session_primary_key !== true ||
+      schemaRow.session_expire_index !== true
     ) {
       throw new Error(
         "Required U3 authentication security schema is missing; refusing production readiness",
@@ -1002,7 +1062,7 @@ async function initializeApp() {
     sessionConfig.store = new PgSession({
       pool: sessionPool,
       tableName: "session",
-      createTableIfMissing: true,
+      createTableIfMissing: false,
       pruneSessionInterval: 60 * 15,
     });
     console.log("✅ [INIT] PostgreSQL session store configured");
@@ -1039,13 +1099,14 @@ async function initializeApp() {
     );
 
     // Saved Grocery shopping identity is required by route selects/inserts.
-    // Complete it before production API routers become available.
+    // Ordinary startup verifies it read-only; explicit release mode owns repairs
+    // and the legacy exact-name backfill.
     {
-      const { runSavedGroceryShoppingIdentityMigration } = await import(
-        "./db/migrations/runSavedGroceryShoppingIdentityMigration"
+      const { assertSavedGroceryShoppingIdentitySchema } = await import(
+        "./db/migrations/assertSavedGroceryShoppingIdentitySchema"
       );
-      await runSavedGroceryShoppingIdentityMigration();
-      console.log("✅ [prod] Saved Grocery shopping identity migration complete");
+      const { db: dbSavedGroceryGuard } = await import("./db");
+      await assertSavedGroceryShoppingIdentitySchema(dbSavedGroceryGuard as any);
     }
 
     app.use("/api/meals", mealsRouter);
@@ -1289,41 +1350,35 @@ async function initializeApp() {
     }
 
     // ── CRITICAL_COLUMNS pre-route preflight — all entries awaited before routes mount ──
-    // Every column in CRITICAL_COLUMNS is migrated here (idempotent ADD COLUMN IF NOT
-    // EXISTS) so the assertColumnsExist guard that follows cannot call process.exit(1)
-    // due to a column that was only migrated in the deferred 4-second callback.
-    // IMPORTANT: when adding a new entry to CRITICAL_COLUMNS in
-    // server/bootstrap/assertColumnsExist.ts, add its migration here too.
-    try {
-      const { db: dbPreflight } = await import("./db");
-      const { sql: sqlPreflight } = await import("drizzle-orm");
-      const { runFoodsIEnjoyMigration } = await import("./db/migrations/runFoodsIEnjoyMigration");
-      await runFoodsIEnjoyMigration(dbPreflight);
-      const { runMyPerfectMenuMigration } = await import("./db/migrations/runMyPerfectMenuMigration");
-      await runMyPerfectMenuMigration(dbPreflight);
-      // safety_override_audit_logs.correlation_id
-      await dbPreflight.execute(sqlPreflight`ALTER TABLE safety_override_audit_logs ADD COLUMN IF NOT EXISTS correlation_id uuid`);
-      // users — ProCare, Performance, i18n, clinical context
-      await dbPreflight.execute(sqlPreflight`ALTER TABLE users ADD COLUMN IF NOT EXISTS procare_training_completed boolean NOT NULL DEFAULT false`);
-      await dbPreflight.execute(sqlPreflight`ALTER TABLE users ADD COLUMN IF NOT EXISTS performance_mode_enabled boolean NOT NULL DEFAULT false`);
-      await dbPreflight.execute(sqlPreflight`ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language text DEFAULT 'auto'`);
-      await dbPreflight.execute(sqlPreflight`ALTER TABLE users ADD COLUMN IF NOT EXISTS clinical_context_response text`);
-      // saved_meals — diabetic builder
-      await dbPreflight.execute(sqlPreflight`ALTER TABLE saved_meals ADD COLUMN IF NOT EXISTS saved_from_diabetic_builder boolean NOT NULL DEFAULT false`);
-      // clinical_labs — Phase 5 hormone/thyroid panel
-      await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS reverse_t3 NUMERIC(6,2)`);
-      await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS estradiol NUMERIC(7,2)`);
-      await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS progesterone NUMERIC(6,3)`);
-      await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS shbg NUMERIC(6,1)`);
-      await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS lh NUMERIC(7,2)`);
-      await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS fsh NUMERIC(7,2)`);
-      await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS dhea_s NUMERIC(7,2)`);
-      console.log("✅ [INIT] CRITICAL_COLUMNS pre-route preflight migrations complete");
-    } catch (preflightErr: any) {
-      // Log but do not exit — the guard below will catch any genuinely absent column
-      // and terminate the process. A migration error here is likely transient (lock
-      // timeout, connection hiccup); the idempotent deferred block will retry.
-      console.error("❌ [INIT] CRITICAL_COLUMNS pre-route preflight migration failed:", preflightErr.message);
+    // Release mode may repair known compatibility columns before validation.
+    // Ordinary startup never mutates schema here; the guard below fails closed.
+    if (runReleaseMigrations) {
+      try {
+        const { db: dbPreflight } = await import("./db");
+        const { sql: sqlPreflight } = await import("drizzle-orm");
+        const { runFoodsIEnjoyMigration } = await import("./db/migrations/runFoodsIEnjoyMigration");
+        await runFoodsIEnjoyMigration(dbPreflight);
+        const { runMyPerfectMenuMigration } = await import("./db/migrations/runMyPerfectMenuMigration");
+        await runMyPerfectMenuMigration(dbPreflight);
+        await dbPreflight.execute(sqlPreflight`ALTER TABLE safety_override_audit_logs ADD COLUMN IF NOT EXISTS correlation_id uuid`);
+        await dbPreflight.execute(sqlPreflight`ALTER TABLE users ADD COLUMN IF NOT EXISTS procare_training_completed boolean NOT NULL DEFAULT false`);
+        await dbPreflight.execute(sqlPreflight`ALTER TABLE users ADD COLUMN IF NOT EXISTS performance_mode_enabled boolean NOT NULL DEFAULT false`);
+        await dbPreflight.execute(sqlPreflight`ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language text DEFAULT 'auto'`);
+        await dbPreflight.execute(sqlPreflight`ALTER TABLE users ADD COLUMN IF NOT EXISTS clinical_context_response text`);
+        await dbPreflight.execute(sqlPreflight`ALTER TABLE saved_meals ADD COLUMN IF NOT EXISTS saved_from_diabetic_builder boolean NOT NULL DEFAULT false`);
+        await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS reverse_t3 NUMERIC(6,2)`);
+        await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS estradiol NUMERIC(7,2)`);
+        await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS progesterone NUMERIC(6,3)`);
+        await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS shbg NUMERIC(6,1)`);
+        await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS lh NUMERIC(7,2)`);
+        await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS fsh NUMERIC(7,2)`);
+        await dbPreflight.execute(sqlPreflight`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS dhea_s NUMERIC(7,2)`);
+        console.log("✅ [INIT] CRITICAL_COLUMNS release repairs complete");
+      } catch (preflightErr: any) {
+        // The read-only guard below remains authoritative and fatal if a required
+        // column is still absent.
+        console.error("❌ [INIT] CRITICAL_COLUMNS release repair failed:", preflightErr.message);
+      }
     }
 
     // ── Column guard — awaited before routes mount ───────────────────────────
@@ -1333,8 +1388,10 @@ async function initializeApp() {
     {
       const { db: dbColGuardEarly } = await import("./db");
       const { assertColumnsExist, CRITICAL_COLUMNS } = await import("./bootstrap/assertColumnsExist");
+      const { assertFoodPreferenceSchema } = await import("./db/migrations/assertFoodPreferenceSchema");
       try {
         await assertColumnsExist(dbColGuardEarly, CRITICAL_COLUMNS);
+        await assertFoodPreferenceSchema(dbColGuardEarly as any);
         console.log("✅ [INIT] Column guard passed — all critical columns present before route mount");
       } catch (guardErr: any) {
         console.error("🚨 [INIT] Critical column(s) missing — halting process to prevent data loss:", guardErr.message);
@@ -1345,8 +1402,6 @@ async function initializeApp() {
     // Register main routes
     console.log("📋 [INIT] Registering main routes...");
     const { registerRoutes } = await import("./routes");
-    const { runClinicPilotDevelopmentMigration } = await import("./db/migrations/runClinicPilotDevelopmentMigration");
-    await runClinicPilotDevelopmentMigration(); // no-op in production
     await registerRoutes(app);
     console.log(
       `✅ [INIT] Main routes registered in ${Date.now() - startTime}ms`,
@@ -1404,8 +1459,10 @@ async function initializeApp() {
     const initStudioVideoPurge = async (): Promise<void> => {
       if (studioVideoPurgeInitialized) return;
       try {
-        const { runStudioVideoMessagesMigration } = await import("./db/migrations/runStudioVideoMessagesMigration");
-        await runStudioVideoMessagesMigration();
+        if (runReleaseMigrations) {
+          const { runStudioVideoMessagesMigration } = await import("./db/migrations/runStudioVideoMessagesMigration");
+          await runStudioVideoMessagesMigration();
+        }
         const { startStudioVideoPurgeWorker } = await import("./services/voiceJobWorker");
         startStudioVideoPurgeWorker();
         studioVideoPurgeInitialized = true;
@@ -1428,18 +1485,19 @@ async function initializeApp() {
       }
     }, 7000);
 
-    // ProCare invite token migration — adds url_token to care_invite + studio_invites
-    setTimeout(async () => {
-      try {
-        const { runProCareInviteTokenMigration } = await import("./db/migrations/runProCareInviteTokenMigration");
-        await runProCareInviteTokenMigration();
-      } catch (err: any) {
-        console.error("❌ [prod] ProCare invite token migration failed:", err.message);
-      }
-    }, 3300);
+    if (process.env.RUN_DEFERRED_RELEASE_MAINTENANCE === "true") {
+      // ProCare invite token migration — adds url_token to care_invite + studio_invites
+      setTimeout(async () => {
+        try {
+          const { runProCareInviteTokenMigration } = await import("./db/migrations/runProCareInviteTokenMigration");
+          await runProCareInviteTokenMigration();
+        } catch (err: any) {
+          console.error("❌ [prod] ProCare invite token migration failed:", err.message);
+        }
+      }, 3300);
 
-    // Business tables boot migration — idempotent
-    setTimeout(async () => {
+      // Explicit release work: schema mutations, indexes, backfills, and seeds.
+      setTimeout(async () => {
       try {
         const { db } = await import("./db");
         const { sql } = await import("drizzle-orm");
@@ -1707,8 +1765,6 @@ async function initializeApp() {
         try {
           const { runMediaAssetsMigration } = await import("./db/migrations/runMediaAssetsMigration");
           await runMediaAssetsMigration();
-          const { resumePendingMealImageRecoveries } = await import("./services/mealImageRecovery");
-          await resumePendingMealImageRecoveries();
         } catch (err: any) {
           console.error("❌ [prod] Media Assets boot migration failed:", err.message);
         }
@@ -1750,8 +1806,6 @@ async function initializeApp() {
         try {
           const { runBugReportsMigration } = await import("./db/migrations/runBugReportsMigration");
           await runBugReportsMigration();
-          const { startBugReportAcknowledgementWorker } = await import("./services/bugReportAcknowledgement");
-          startBugReportAcknowledgementWorker();
         } catch (err: any) {
           console.error("❌ [prod] Bug Reports migration failed:", err.message);
         }
@@ -2078,13 +2132,11 @@ async function initializeApp() {
         }
       }
 
-      // ── Inline migrations for columns that the guard will assert ────────────
-      // schemaMigPromise above is raced against a 6-second timeout and may
-      // still be running in the background when we reach this point. Running
-      // the five critical ALTERs here (fully awaited, with retries) guarantees
-      // they are committed before assertColumnsExist fires, even when
-      // schemaMigPromise is slow or has not yet reached these statements.
-      // All statements are idempotent (IF NOT EXISTS).
+      // ── Deferred release repairs for columns asserted above ─────────────────
+      // This entire callback is reachable only when
+      // RUN_DEFERRED_RELEASE_MAINTENANCE=true. Ordinary startup never executes
+      // these idempotent ALTER statements and relies on the pre-readiness,
+      // read-only guards instead.
       await withBootRetry("Critical column pre-flight migrations", async () => {
         const { db: dbPre } = await import("./db");
         const { sql: sqlPre } = await import("drizzle-orm");
@@ -2156,17 +2208,37 @@ async function initializeApp() {
         }
       }, 12500);
 
-      // ── Coach Follow-up Cron (every 10 min) ──────────────────────────────────
-      setTimeout(async () => {
-        try {
-          const { initCoachFollowupCron } = await import("./cron/coachFollowupCron");
-          initCoachFollowupCron();
-        } catch (err: any) {
-          console.error("❌ [prod] Coach followup cron init failed:", err.message);
-        }
-      }, 13000);
+      }, 4000);
+    }
 
-    }, 4000);
+    // Runtime workers remain available on ordinary startup; they do not own DDL.
+    setTimeout(async () => {
+      try {
+        const { resumePendingMealImageRecoveries } = await import("./services/mealImageRecovery");
+        await resumePendingMealImageRecoveries();
+      } catch (err: any) {
+        console.error("❌ [prod] Pending meal image recovery resume failed:", err.message);
+      }
+    }, 8000);
+
+    setTimeout(async () => {
+      try {
+        const { startBugReportAcknowledgementWorker } = await import("./services/bugReportAcknowledgement");
+        startBugReportAcknowledgementWorker();
+      } catch (err: any) {
+        console.error("❌ [prod] Bug report acknowledgement worker failed to start:", err.message);
+      }
+    }, 9000);
+
+    // ── Coach Follow-up Cron (every 10 min) ──────────────────────────────────
+    setTimeout(async () => {
+      try {
+        const { initCoachFollowupCron } = await import("./cron/coachFollowupCron");
+        initCoachFollowupCron();
+      } catch (err: any) {
+        console.error("❌ [prod] Coach followup cron init failed:", err.message);
+      }
+    }, 13000);
   } catch (error) {
     console.error("❌ [INIT] Initialization failed:", error);
     initError = error instanceof Error ? error : new Error(String(error));
