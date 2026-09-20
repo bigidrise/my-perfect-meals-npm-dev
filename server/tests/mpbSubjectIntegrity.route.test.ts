@@ -3,6 +3,7 @@ const mockAiCreate = jest.fn();
 const mockDbExecute = jest.fn();
 const mockProcessMealImageForSave = jest.fn();
 const mockLoadOwnedActiveChildProfile = jest.fn();
+const mockLoadOwnedActiveChildProfiles = jest.fn();
 
 jest.mock("../middleware/requireAuth", () => ({
   requireAuth: (req: any, res: any, next: any) => {
@@ -29,6 +30,7 @@ jest.mock("../services/imageLifecycle", () => ({
 
 jest.mock("../services/pediatric/authoritativeChildAccess", () => ({
   loadOwnedActiveChildProfile: mockLoadOwnedActiveChildProfile,
+  loadOwnedActiveChildProfiles: mockLoadOwnedActiveChildProfiles,
 }));
 
 import express from "express";
@@ -173,7 +175,7 @@ describe("My Perfect Beginnings subject integrity routes", () => {
   });
 
   it("rejects an inaccessible stored child before create-dish generation", async () => {
-    mockDbExecute.mockResolvedValueOnce({ rows: [] });
+    mockLoadOwnedActiveChildProfile.mockResolvedValueOnce(null);
     const response = await request(buildApp())
       .post("/api/my-perfect-beginning/create-dish")
       .send({
@@ -186,8 +188,22 @@ describe("My Perfect Beginnings subject integrity routes", () => {
     expect(mockAiCreate).not.toHaveBeenCalled();
   });
 
+  it("returns a service error when create-dish cannot establish authoritative child access", async () => {
+    mockLoadOwnedActiveChildProfile.mockRejectedValueOnce(new Error("database unavailable"));
+    const response = await request(buildApp())
+      .post("/api/my-perfect-beginning/create-dish")
+      .send({
+        childProfileId: childA.id,
+        ageStage: "preschool",
+        allergies: [],
+        foodRequest: "pasta",
+      });
+    expect(response.status).toBe(503);
+    expect(mockAiCreate).not.toHaveBeenCalled();
+  });
+
   it("rejects the complete multi-child create-dish request when no requested child can be authorized", async () => {
-    mockDbExecute.mockResolvedValue({ rows: [] });
+    mockLoadOwnedActiveChildProfiles.mockResolvedValueOnce(null);
     const response = await request(buildApp())
       .post("/api/my-perfect-beginning/create-dish")
       .send({
@@ -244,6 +260,7 @@ describe("My Perfect Beginnings subject integrity routes", () => {
   });
 
   it("refreshes verified subject attribution when restoring a saved meal", async () => {
+    mockLoadOwnedActiveChildProfile.mockResolvedValueOnce(childA);
     mockDbExecute.mockResolvedValueOnce({
       rows: [{
         id: "saved-meal",
@@ -262,5 +279,41 @@ describe("My Perfect Beginnings subject integrity routes", () => {
     expect(
       response.body.meal.recipeData._subjectAttribution.token,
     ).toBe(signPediatricSubject("parent-a", childA.id));
+  });
+
+  it("does not restore or mint attribution after child access is revoked", async () => {
+    mockDbExecute.mockResolvedValueOnce({
+      rows: [{
+        id: "saved-meal",
+        child_profile_id: childA.id,
+        recipe_data: { recipeName: "Stored Meal" },
+        image_url: null,
+        selected_option_name: null,
+        created_at: new Date("2026-09-20T12:00:00Z"),
+      }],
+    });
+    mockLoadOwnedActiveChildProfile.mockResolvedValueOnce(null);
+    const response = await request(buildApp())
+      .get(`/api/my-perfect-beginning/generated-meals?childProfileId=${childA.id}`);
+    expect(response.status).toBe(404);
+    expect(response.body.meal).toBeUndefined();
+  });
+
+  it("rechecks current child access for the latest-meal restore branch", async () => {
+    mockDbExecute.mockResolvedValueOnce({
+      rows: [{
+        id: "saved-meal",
+        child_profile_id: childA.id,
+        recipe_data: { recipeName: "Stored Meal" },
+        image_url: null,
+        selected_option_name: null,
+        created_at: new Date("2026-09-20T12:00:00Z"),
+      }],
+    });
+    mockLoadOwnedActiveChildProfile.mockResolvedValueOnce(null);
+    const response = await request(buildApp())
+      .get("/api/my-perfect-beginning/generated-meals");
+    expect(response.status).toBe(404);
+    expect(response.body.meal).toBeUndefined();
   });
 });

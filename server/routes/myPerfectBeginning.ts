@@ -781,7 +781,6 @@ router.post("/parents-corner", requireAuth, async (req, res) => {
             schoolSafeRequired: !!row.school_safe_required,
           };
 
-          console.log(`[ParentsCorner] Server-loaded profile: ${row.name} (${row.age_stage})`);
         }
       } catch (profileErr: any) {
         console.warn("[ParentsCorner] Authoritative child profile lookup failed");
@@ -812,9 +811,6 @@ router.post("/parents-corner", requireAuth, async (req, res) => {
 
         // Hard block: a condition requires clinical intervention before conversation
         if (guidanceOutput.hardBlocked) {
-          console.warn(
-            `[ParentsCorner] Hard block for condition: ${guidanceOutput.hardBlockConditionId}`
-          );
           return res.json({
             reply: guidanceOutput.hardBlockMessage ??
               "For this child's specific medical situation, I recommend speaking directly with your child's pediatrician or a registered pediatric dietitian before we discuss meal recommendations. They'll be able to give you guidance that's tailored to your child's care plan.",
@@ -823,12 +819,6 @@ router.post("/parents-corner", requireAuth, async (req, res) => {
               "How do I find a pediatric dietitian?",
             ],
           });
-        }
-
-        if (guidanceOutput.activeProtocolIds.length > 0) {
-          console.log(
-            `[ParentsCorner] Active protocols: ${guidanceOutput.activeProtocolIds.join(", ")}`
-          );
         }
       } catch (guidanceErr: any) {
         // Non-fatal — if the registry fails, proceed with profile-only context
@@ -1130,6 +1120,13 @@ router.get('/generated-meals', requireAuth, async (req, res) => {
 
     const row = result.rows[0] as any;
     if (!row) return res.json({ meal: null });
+    if (!row.child_profile_id) {
+      return res.status(404).json({ error: "Saved meal subject is unavailable." });
+    }
+    const child = await loadOwnedActiveChildProfile(userId, row.child_profile_id);
+    if (!child) {
+      return res.status(404).json({ error: "Saved meal subject is unavailable." });
+    }
 
     // Normalise completePlate so older saves (which predate the field) don't
     // produce undefined/null on the client — the CompleteThePlateSection
@@ -1137,12 +1134,10 @@ router.get('/generated-meals', requireAuth, async (req, res) => {
     // value is safe for legacy rows.
     const recipeData = row.recipe_data;
     if (recipeData && typeof recipeData === 'object') {
-      if (row.child_profile_id) {
-        recipeData._subjectAttribution = {
-          childProfileId: row.child_profile_id,
-          token: signPediatricSubject(userId, row.child_profile_id),
-        };
-      }
+      recipeData._subjectAttribution = {
+        childProfileId: child.id,
+        token: signPediatricSubject(userId, child.id),
+      };
       if (!recipeData.completePlate || !Array.isArray(recipeData.completePlate.sides)) {
         recipeData.completePlate = { sides: [], plateNote: '' };
       } else {
@@ -1163,9 +1158,7 @@ router.get('/generated-meals', requireAuth, async (req, res) => {
         imageUrl: row.image_url ?? null,
         selectedOptionName: row.selected_option_name ?? null,
         createdAt: row.created_at,
-        subject: row.child_profile_id
-          ? { childProfileId: row.child_profile_id }
-          : null,
+        subject: { childProfileId: child.id },
       },
     });
   } catch (err: any) {
