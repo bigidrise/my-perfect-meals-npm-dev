@@ -45,6 +45,18 @@ describe("NutritionPrioritiesSelector", () => {
     expect(definition.limitations).toContain("Fermented does not automatically mean probiotic.");
   });
 
+  it("reserves a footer area so descriptions cannot overlap Learn More", () => {
+    const html = renderToStaticMarkup(
+      <NutritionPrioritiesSelector
+        selectedPriorityIds={[]}
+        onChange={() => {}}
+      />,
+    );
+
+    expect(html).toContain("pb-11");
+    expect(html).toContain("bottom-3");
+  });
+
   it("renders only explicitly approved pediatric projections with child-safe summaries", () => {
     const html = renderToStaticMarkup(
       <NutritionPrioritiesSelector
