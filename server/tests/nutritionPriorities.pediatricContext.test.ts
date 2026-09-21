@@ -1,4 +1,5 @@
 import { buildPediatricHumanFoodContext } from "../services/humanFoodContext/pediatricContextAdapter";
+import { FOOD_INCLUSION_PRIORITY_REGISTRY } from "../../shared/nutritionPriorities";
 
 const base = {
   actorUserId: "parent-a",
@@ -45,5 +46,26 @@ describe("Pediatric Nutrition Priorities context isolation", () => {
       foodInclusionPriorities: null,
     });
     expect(child.nutritionPriorities?.selectedPriorityIds).toEqual([]);
+  });
+
+  it("removes a stored concept if its pediatric projection is no longer approved", () => {
+    const definition = FOOD_INCLUSION_PRIORITY_REGISTRY.fermented_foods;
+    const previousStatus = definition.pediatricProjection.status;
+    definition.pediatricProjection.status = "deferred";
+    try {
+      const child = buildPediatricHumanFoodContext({
+        ...base,
+        subjectId: "child-a",
+        foodInclusionPriorities: {
+          schemaVersion: 1,
+          registryVersion: "nutrition-priorities.v1",
+          selectedPriorityIds: ["fermented_foods"],
+          updatedAt: "2026-09-21T00:00:00.000Z",
+        },
+      });
+      expect(child.nutritionPriorities?.selectedPriorityIds).toEqual([]);
+    } finally {
+      definition.pediatricProjection.status = previousStatus;
+    }
   });
 });

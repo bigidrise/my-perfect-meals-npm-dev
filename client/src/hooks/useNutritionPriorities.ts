@@ -5,8 +5,11 @@ import {
 } from "@shared/nutritionPriorities";
 import {
   invalidateNutritionPriorityPersonalization,
+  invalidateChildNutritionPriorities,
   loadAdultNutritionPriorities,
+  loadChildNutritionPriorities,
   replaceAdultNutritionPriorities,
+  replaceChildNutritionPriorities,
   type NutritionPrioritiesResponse,
 } from "@/lib/nutritionPrioritiesClient";
 
@@ -75,6 +78,125 @@ export function useAdultNutritionPriorities(userId?: string | null) {
     save,
     isDirty,
     isLoading: query.isLoading,
+    isSaving,
+    error: query.error instanceof Error ? query.error : null,
+    retry: query.refetch,
+  };
+}
+
+export const childNutritionPrioritiesQueryKey = (
+  actorUserId?: string | null,
+  childProfileId?: string | null,
+) => [
+  "nutrition-priorities",
+  "child",
+  actorUserId ?? "anonymous",
+  childProfileId ?? "new",
+] as const;
+
+export type ChildNutritionPrioritiesDraftState = {
+  identity: string | null;
+  selectedPriorityIds: FoodInclusionPriorityId[];
+  isDirty: boolean;
+};
+
+export function scopeChildNutritionPrioritiesDraft(
+  state: ChildNutritionPrioritiesDraftState,
+  identity: string | null,
+): ChildNutritionPrioritiesDraftState {
+  return state.identity === identity
+    ? state
+    : { identity, selectedPriorityIds: [], isDirty: false };
+}
+
+export function useChildNutritionPriorities(
+  actorUserId?: string | null,
+  childProfileId?: string | null,
+) {
+  const queryClient = useQueryClient();
+  const [isSaving, setIsSaving] = useState(false);
+  const identity = actorUserId
+    ? `${actorUserId}:${childProfileId ?? "new"}`
+    : null;
+  const [draftState, setDraftState] = useState<ChildNutritionPrioritiesDraftState>({
+    identity,
+    selectedPriorityIds: [],
+    isDirty: false,
+  });
+  const currentDraft = scopeChildNutritionPrioritiesDraft(draftState, identity);
+
+  const query = useQuery<NutritionPrioritiesResponse>({
+    queryKey: childNutritionPrioritiesQueryKey(actorUserId, childProfileId),
+    queryFn: () => loadChildNutritionPriorities(childProfileId!),
+    enabled: Boolean(actorUserId && childProfileId),
+    staleTime: 30_000,
+  });
+
+  useEffect(() => {
+    if (!identity || !childProfileId || !query.data) return;
+    setDraftState((previous) => {
+      const scoped = scopeChildNutritionPrioritiesDraft(previous, identity);
+      return scoped.isDirty
+        ? scoped
+        : {
+            identity,
+            selectedPriorityIds: query.data!.document.selectedPriorityIds,
+            isDirty: false,
+          };
+    });
+  }, [childProfileId, identity, query.data]);
+
+  useEffect(() => {
+    setDraftState((previous) => scopeChildNutritionPrioritiesDraft(previous, identity));
+  }, [identity]);
+
+  const updateSelection = useCallback((next: FoodInclusionPriorityId[]) => {
+    setDraftState({
+      identity,
+      selectedPriorityIds: next,
+      isDirty: true,
+    });
+  }, [identity]);
+
+  const save = useCallback(async (options?: {
+    force?: boolean;
+    childProfileId?: string;
+  }) => {
+    if (!actorUserId) throw new Error("Your account is not available yet.");
+    const targetChildId = options?.childProfileId ?? childProfileId;
+    if (!targetChildId) throw new Error("Create the child profile before saving Nutrition Priorities.");
+    if (!options?.force && !currentDraft.isDirty) return query.data?.document ?? null;
+
+    const targetIdentity = `${actorUserId}:${targetChildId}`;
+    setDraftState({ ...currentDraft, identity: targetIdentity });
+    setIsSaving(true);
+    try {
+      const response = await replaceChildNutritionPriorities(
+        targetChildId,
+        currentDraft.selectedPriorityIds,
+      );
+      queryClient.setQueryData(
+        childNutritionPrioritiesQueryKey(actorUserId, targetChildId),
+        response,
+      );
+      setDraftState({
+        identity: targetIdentity,
+        selectedPriorityIds: response.document.selectedPriorityIds,
+        isDirty: false,
+      });
+      await invalidateChildNutritionPriorities(queryClient, actorUserId, targetChildId);
+      return response.document;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [actorUserId, childProfileId, currentDraft, query.data?.document, queryClient]);
+
+  return {
+    selectedPriorityIds: currentDraft.selectedPriorityIds,
+    setSelectedPriorityIds: updateSelection,
+    save,
+    isDirty: currentDraft.isDirty,
+    isLoading: Boolean(childProfileId) && query.isLoading,
     isSaving,
     error: query.error instanceof Error ? query.error : null,
     retry: query.refetch,

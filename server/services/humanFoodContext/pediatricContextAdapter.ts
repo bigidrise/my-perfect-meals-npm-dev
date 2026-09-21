@@ -7,7 +7,7 @@ import type { HumanFoodCandidate } from "../../../shared/humanFoodValidation";
 import type { PediatricMealGenerationContext } from "../pediatric/pediatricResolver";
 import { freezeHumanFoodContext } from "./resolveHumanFoodContext";
 import {
-  normalizeFoodInclusionPrioritiesDocument,
+  normalizePediatricFoodInclusionPrioritiesDocument,
   type FoodInclusionPrioritiesDocument,
 } from "../../../shared/nutritionPriorities";
 
@@ -121,7 +121,7 @@ export function buildPediatricHumanFoodContext(
     behavior: null,
     foodsIEnjoy: { explicit: [], legacyLikes: [] },
     nutritionPriorities: (() => {
-      const document = normalizeFoodInclusionPrioritiesDocument(
+      const document = normalizePediatricFoodInclusionPrioritiesDocument(
         input.foodInclusionPriorities,
       );
       return {

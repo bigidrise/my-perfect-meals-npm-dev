@@ -1,7 +1,9 @@
 import { buildNutritionPriorityPromptProjection } from "../services/nutritionPriorityPromptProjection";
+import { FOOD_INCLUSION_PRIORITY_REGISTRY } from "../../shared/nutritionPriorities";
 
-function context(selectedPriorityIds: string[]) {
+function context(selectedPriorityIds: string[], creator = "create_a_dish") {
   return {
+    creator,
     nutritionPriorities: {
       selectedPriorityIds,
       registryVersion: "nutrition-priorities.v1",
@@ -24,5 +26,23 @@ describe("Nutrition Priorities prompt projection", () => {
 
   it("does not project anything for an empty selection", () => {
     expect(buildNutritionPriorityPromptProjection(context([]))).toBeNull();
+  });
+
+  it("does not project a deferred pediatric concept into My Perfect Beginnings", () => {
+    const definition = FOOD_INCLUSION_PRIORITY_REGISTRY.fermented_foods;
+    const previousStatus = definition.pediatricProjection.status;
+    definition.pediatricProjection.status = "deferred";
+    try {
+      expect(
+        buildNutritionPriorityPromptProjection(
+          context(["fermented_foods"], "my_perfect_beginning"),
+        ),
+      ).toBeNull();
+      expect(buildNutritionPriorityPromptProjection(context(["fermented_foods"]))).toContain(
+        "Fermented Foods",
+      );
+    } finally {
+      definition.pediatricProjection.status = previousStatus;
+    }
   });
 });

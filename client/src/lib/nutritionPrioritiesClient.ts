@@ -28,6 +28,31 @@ export async function replaceAdultNutritionPriorities(
   });
 }
 
+export async function loadChildNutritionPriorities(
+  childProfileId: string,
+): Promise<NutritionPrioritiesResponse> {
+  return apiRequest<NutritionPrioritiesResponse>(
+    `/api/nutrition-priorities/child/${encodeURIComponent(childProfileId)}`,
+  );
+}
+
+export async function replaceChildNutritionPriorities(
+  childProfileId: string,
+  selectedPriorityIds: FoodInclusionPriorityId[],
+): Promise<NutritionPrioritiesResponse> {
+  return apiRequest<NutritionPrioritiesResponse>(
+    `/api/nutrition-priorities/child/${encodeURIComponent(childProfileId)}`,
+    {
+      method: "PUT",
+      body: JSON.stringify({
+        schemaVersion: FOOD_INCLUSION_PRIORITIES_SCHEMA_VERSION,
+        registryVersion: NUTRITION_PRIORITIES_REGISTRY_VERSION,
+        selectedPriorityIds,
+      }),
+    },
+  );
+}
+
 export async function invalidateNutritionPriorityPersonalization(
   queryClient: Pick<QueryClient, "invalidateQueries">,
   userId: string,
@@ -41,4 +66,14 @@ export async function invalidateNutritionPriorityPersonalization(
     }),
     queryClient.invalidateQueries({ queryKey: ["nutrition-summary"] }),
   ]);
+}
+
+export async function invalidateChildNutritionPriorities(
+  queryClient: Pick<QueryClient, "invalidateQueries">,
+  actorUserId: string,
+  childProfileId: string,
+): Promise<void> {
+  await queryClient.invalidateQueries({
+    queryKey: ["nutrition-priorities", "child", actorUserId, childProfileId],
+  });
 }

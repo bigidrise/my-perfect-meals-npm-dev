@@ -44,4 +44,26 @@ describe("NutritionPrioritiesSelector", () => {
     expect(definition.whatMpmDoes).toBeTruthy();
     expect(definition.limitations).toContain("Fermented does not automatically mean probiotic.");
   });
+
+  it("renders only explicitly approved pediatric projections with child-safe summaries", () => {
+    const html = renderToStaticMarkup(
+      <NutritionPrioritiesSelector
+        selectedPriorityIds={[]}
+        onChange={() => {}}
+        audience="pediatric"
+        accent="emerald"
+      />,
+    );
+
+    const approved = ACTIVE_NUTRITION_PRIORITY_DEFINITIONS.filter(
+      (definition) => definition.pediatricProjection.status === "approved",
+    );
+    const readableHtml = html.replaceAll("&#x27;", "'");
+    expect(approved).toHaveLength(8);
+    for (const definition of approved) {
+      expect(readableHtml).toContain(definition.label);
+      expect(readableHtml).toContain(definition.pediatricProjection.shortSummary);
+      expect(readableHtml).not.toContain(definition.shortSummary);
+    }
+  });
 });
