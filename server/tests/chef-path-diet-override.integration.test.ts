@@ -382,6 +382,27 @@ describe("B. Integration — generateFromDescriptionUnified: vegan profile + ket
     expect(userMsg.content).toMatch(/2\s*serving/i);
   });
 
+  it("delivers arbitrary canonical HFC guidance to the final Create With Chef prompt", async () => {
+    const hfcBlock = [
+      "HUMAN FOOD CONTEXT v1",
+      "OPTIONAL FOOD INCLUSION PRIORITIES:",
+      "- Fiber-Rich Foods: use when natural; omission is valid.",
+    ].join("\n");
+
+    await generateFromDescriptionUnified(
+      "Strawberry Cake", "dinner", "test-user-vegan-001",
+      undefined, undefined, undefined,
+      false, true, undefined, undefined, undefined,
+      undefined, undefined, undefined, hfcBlock,
+      undefined, undefined,
+      ["keto"], 2,
+    );
+
+    const prompt = capturedCalls[0]?.messages.map((message: any) => message.content).join("\n");
+    expect(prompt).toContain("=== AUTHORITATIVE REQUEST AND HUMAN FOOD CONTEXT ===");
+    expect(prompt).toContain(hfcBlock);
+  });
+
   it("prompt does NOT carry [vegan, keto] merged diet — only keto override governs", async () => {
     // If the old union-merge bug reappeared, the prompt would contain something like:
     //   "DIET: [vegan, keto]" or "vegan AND keto" or show both diets together.
