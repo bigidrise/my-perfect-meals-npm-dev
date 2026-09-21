@@ -69,8 +69,9 @@ export default function BusinessDesktopLayout({
         </div>
 
         <nav className="flex-1 space-y-1 px-3 py-4">
-          {BUSINESS_NAV.map(({ path, label, icon: Icon, exact }) => {
-            const active = exact
+          {BUSINESS_NAV.map((item) => {
+            const { path, label, icon: Icon } = item;
+            const active = ("exact" in item && item.exact)
               ? location === path
               : location === path || location.startsWith(`${path}/`);
             return (

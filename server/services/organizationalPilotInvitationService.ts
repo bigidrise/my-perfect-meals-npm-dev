@@ -162,7 +162,6 @@ export async function createOrganizationalPilotInvitation(input: {
 
     const [invite] = await tx.insert(businessInvitations).values({
       businessId: input.businessId,
-      locationId: input.locationId,
       email: normalizedEmail,
       token: tokenHash,
       tokenHash,

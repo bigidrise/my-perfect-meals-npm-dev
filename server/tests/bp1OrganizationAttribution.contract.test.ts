@@ -141,6 +141,17 @@ describe("BP1 organization attribution contract", () => {
     expect(pilotInvitations).toContain("resolveBp1Attribution(input.invitedByUserId");
     expect(pilotInvitations).toContain("...attributionColumns(attribution)");
     expect(pilotInvitations).not.toContain("input.partnerRecordId");
+
+    const standardInvitationInsert = businessRoutes.slice(
+      businessRoutes.indexOf("db.insert(businessInvitations).values({"),
+      businessRoutes.indexOf("}).returning({ id: businessInvitations.id })"),
+    );
+    const pilotInvitationInsert = pilotInvitations.slice(
+      pilotInvitations.indexOf("tx.insert(businessInvitations).values({"),
+      pilotInvitations.indexOf("}).returning({ id: businessInvitations.id })"),
+    );
+    expect(standardInvitationInsert).not.toContain("\n      locationId,");
+    expect(pilotInvitationInsert).not.toContain("locationId: input.locationId");
   });
 
   test("acceptance propagates immutable attribution to all relationship records", () => {

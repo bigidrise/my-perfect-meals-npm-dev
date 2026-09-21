@@ -48,6 +48,8 @@ describe("Organization Quick Start guide contract", () => {
   test("automatic opening can be disabled while manual reopening remains visible", () => {
     expect(hook).toContain("disableOrganizationQuickStartAutoOpen(userId, localStorage)");
     expect(hub).toContain('data-testid="organization-quick-start-open"');
+    expect(hub).toContain("onClick={() => quickStart.open()}");
+    expect(hub).not.toContain("onClick={quickStart.open}");
     expect(modal).toContain('data-testid="organization-quick-start-disable-auto"');
     expect(modal).toContain("Don't open automatically again");
   });

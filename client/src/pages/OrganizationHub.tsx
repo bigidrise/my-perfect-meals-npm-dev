@@ -119,7 +119,7 @@ export default function OrganizationHub() {
         <div className="flex justify-end">
           <button
             type="button"
-            onClick={quickStart.open}
+            onClick={() => quickStart.open()}
             className="inline-flex items-center gap-1.5 rounded-xl border border-blue-400/25 bg-blue-500/10 px-3 py-2 text-xs font-semibold text-blue-200 hover:bg-blue-500/20"
             aria-label="Open Organization Quick Start"
             data-testid="organization-quick-start-open"

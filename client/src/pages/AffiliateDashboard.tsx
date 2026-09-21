@@ -1304,7 +1304,7 @@ export default function AffiliateDashboard() {
               onOpenPartnerRevenue={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             />
 
-            {false && (!account.hasLinkedRewardful ? (
+            {false && (!account?.hasLinkedRewardful ? (
               <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-4">
                 <p className="text-sm font-semibold text-white">Rewardful is not linked yet</p>
                 <p className="mt-1 text-xs leading-relaxed text-gray-300">
