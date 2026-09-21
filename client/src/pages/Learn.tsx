@@ -40,6 +40,7 @@ import {
   RotateCcw,
   ChevronRight,
   Baby,
+  Sprout,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
@@ -50,6 +51,7 @@ import {
   HYDRATION_HUB_DESCRIPTION,
   HYDRATION_HUB_TITLE,
 } from "@/lib/hydrationHubContent";
+import { buildNutritionPriorityLibraryTopics } from "@/lib/nutritionPriorityLibrary";
 
 interface LibraryTopic {
   id: string;
@@ -63,6 +65,7 @@ interface LibraryTopic {
       list?: string[];
     }>;
   };
+  citations?: Array<{ title: string; url: string }>;
 }
 
 interface LibrarySection {
@@ -3066,6 +3069,12 @@ const SECTION_PERFORMANCE_MODES: LibraryTopic[] = [
 
 const LIBRARY_SECTIONS: LibrarySection[] = [
   {
+    id: "nutrition-priorities",
+    label: "NUTRITION PRIORITIES",
+    description: "Food-first personalization education",
+    topics: buildNutritionPriorityLibraryTopics(Sprout),
+  },
+  {
     id: "start-here",
     label: "START HERE",
     description: "Guided entry",
@@ -3318,6 +3327,25 @@ function LibraryItem({
                   </div>
                 ))}
               </div>
+              {topic.citations && topic.citations.length > 0 && (
+                <div className="mt-5 border-t border-white/10 pt-4">
+                  <h4 className="text-sm font-semibold text-white">Sources</h4>
+                  <ul className="mt-2 space-y-2">
+                    {topic.citations.map((citation) => (
+                      <li key={citation.url}>
+                        <a
+                          href={citation.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs text-orange-300 underline underline-offset-2 hover:text-orange-200"
+                        >
+                          {citation.title}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

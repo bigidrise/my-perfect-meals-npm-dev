@@ -15,6 +15,27 @@ export const foodInclusionPriorityIdSchema = z.enum([
 ]);
 export type FoodInclusionPriorityId = z.infer<typeof foodInclusionPriorityIdSchema>;
 
+export const NUTRITION_PRIORITY_EDUCATION_POLICY = {
+  definition:
+    "Nutrition Priorities are foods or nutrition characteristics a person would like My Perfect Meals to consider more often when they safely and appropriately fit.",
+  behavior:
+    "A Nutrition Priority tells My Perfect Meals to consider appropriate food opportunities when they fit. It is not a requirement, prescription, dose, or guarantee that an ingredient will appear in every meal.",
+  medicalBoundary:
+    "Nutrition Priorities personalize food choices. They do not create a medical protocol, diagnosis, deficiency, treatment recommendation, or nutrient target.",
+  unsupportedClaim:
+    "The approved Nutrition Priorities information does not establish that claim.",
+  deferredConcepts: [
+    "Prebiotic-Rich Foods",
+    "Potassium-Rich Foods",
+    "Ginger",
+    "Turmeric",
+  ],
+  deferredExplanation:
+    "This is not currently offered as a selectable Nutrition Priority. That does not mean the food is medically prohibited; it may still be used as an ordinary culinary ingredient when appropriate.",
+  pediatricAuthorizationRequired:
+    "Child-specific Nutrition Priority education is available in Parent's Corner after an authorized child profile is selected.",
+} as const;
+
 export interface PediatricNutritionPriorityProjection {
   status: "approved" | "deferred";
   shortSummary: string;

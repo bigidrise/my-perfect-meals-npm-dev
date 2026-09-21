@@ -33,6 +33,11 @@ import {
 } from "../services/pediatric/pediatricGuardrails";
 import { loadOwnedActiveChildProfile } from "../services/pediatric/authoritativeChildAccess";
 import {
+  answerNutritionPriorityEducationQuestion,
+  containsNutritionPriorityReference,
+  renderNutritionPriorityEducationBlock,
+} from "../../shared/nutritionPriorityEducation";
+import {
   signPediatricSubject,
   verifyPediatricSubject,
 } from "../services/pediatric/subjectAttribution";
@@ -69,7 +74,8 @@ import { getComplianceBehaviorSignal, renderBehaviorSignalBlock } from "../servi
 
 function buildSystemPrompt(
   childContext: Record<string, any>,
-  guidanceOutput?: PediatricGuidanceOutput | null
+  guidanceOutput?: PediatricGuidanceOutput | null,
+  nutritionPriorityEducationBlock = "",
 ): string {
   const nickname = childContext.nickname || "your child";
   const stage = childContext.developmentalStage || "toddler";
@@ -189,6 +195,8 @@ You sound like the most reassuring pediatric dietitian a parent has ever spoken 
 
 ━━━ CHILD PROFILE ━━━
 ${childProfile}
+
+${nutritionPriorityEducationBlock}
 
 ━━━ YOUR REASONING CHAIN ━━━
 Before responding, reason through these steps in order (internally — do not expose this chain to the parent):
@@ -800,6 +808,29 @@ router.post("/parents-corner", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "childProfileId is required." });
     }
 
+    if (childProfileId) {
+      const hasNutritionPriorityContext = (conversationHistory as any[])
+        .slice(-8)
+        .some(
+          (turn) =>
+            typeof turn?.content === "string" &&
+            containsNutritionPriorityReference(turn.content),
+        );
+      const priorityAnswer = answerNutritionPriorityEducationQuestion(
+        message,
+        "pediatric",
+        { hasNutritionPriorityContext },
+      );
+      if (priorityAnswer) {
+        return res.json({
+          reply: priorityAnswer.description,
+          suggestedFollowUps: [],
+          suggestedMealActions: [],
+          sources: priorityAnswer.tips?.filter((tip) => tip.startsWith("Sources:")) ?? [],
+        });
+      }
+    }
+
     // ── Run pediatric protocol registry ──────────────────────────────────────
     // buildPediatricGuidanceBlocks is synchronous and uses only registry data.
     // Connects the existing pediatric infrastructure (DRI baselines, condition
@@ -843,7 +874,14 @@ router.post("/parents-corner", requireAuth, async (req, res) => {
 
     const rawLang = (req as AuthenticatedRequest).authUser?.preferredLanguage || "auto";
     const langInstruction = getLanguageInstruction(rawLang);
-    let systemPrompt = buildSystemPrompt(resolvedContext, guidanceOutput) + behaviorSignalAppend;
+    const nutritionPriorityEducationBlock = childProfileId
+      ? renderNutritionPriorityEducationBlock("pediatric")
+      : "";
+    let systemPrompt = buildSystemPrompt(
+      resolvedContext,
+      guidanceOutput,
+      nutritionPriorityEducationBlock,
+    ) + behaviorSignalAppend;
     if (langInstruction) systemPrompt = `${langInstruction}\n\n${systemPrompt}`;
 
     // Build messages array with conversation history
