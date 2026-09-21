@@ -23,6 +23,8 @@ import { isGuestMode } from "@/lib/guestMode";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { useTranslation } from "react-i18next";
 import { isDiabetesFoodPreferenceEligible } from "@shared/diabetesEligibility";
+import { NutritionPrioritiesSelector } from "@/components/NutritionPrioritiesSelector";
+import { useAdultNutritionPriorities } from "@/hooks/useNutritionPriorities";
 
 type StepId = 1 | 2 | 3 | 4 | 5;
 
@@ -184,6 +186,7 @@ export default function EditProfilePage() {
   const { t } = useTranslation("editProfile");
   const { isOpen, open, setLastResponse } = useCopilot();
   const queryClient = useQueryClient();
+  const nutritionPriorities = useAdultNutritionPriorities(user?.id);
 
   const [step, setStep] = useState<StepId>(1);
   const [saving, setSaving] = useState(false);
@@ -463,6 +466,9 @@ export default function EditProfilePage() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      if (nutritionPriorities.isDirty) {
+        await nutritionPriorities.save();
+      }
       const dietaryArray =
         dietaryStyle === "none"
           ? []
@@ -955,6 +961,31 @@ export default function EditProfilePage() {
                     />
                   </div>
                 )}
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-black/30 p-4">
+                <div className="mb-4 space-y-1">
+                  <p className="text-white font-semibold text-sm">Nutrition Priorities</p>
+                  <p className="text-white/75 text-xs font-medium">
+                    Tell us what you'd like My Perfect Meals to consider more often.
+                  </p>
+                  <p className="text-white/55 text-xs leading-relaxed">
+                    Choose foods, ingredients, or nutrition characteristics you'd like us to work into your meals when they fit.
+                    We'll still consider your dietary needs, allergies, health context, preferences, and what you're asking for right now.
+                  </p>
+                  <p className="text-white/40 text-[11px]">
+                    Select any number, or none. These are optional food-inclusion preferences, not medical treatment or nutrition targets.
+                  </p>
+                </div>
+                <NutritionPrioritiesSelector
+                  selectedPriorityIds={nutritionPriorities.selectedPriorityIds}
+                  onChange={nutritionPriorities.setSelectedPriorityIds}
+                  disabled={saving || nutritionPriorities.isSaving}
+                  isLoading={nutritionPriorities.isLoading}
+                  error={nutritionPriorities.error}
+                  onRetry={() => { void nutritionPriorities.retry(); }}
+                  compact
+                />
               </div>
 
               <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-3">

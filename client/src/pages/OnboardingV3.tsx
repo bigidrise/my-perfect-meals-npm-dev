@@ -13,10 +13,14 @@ import { PillButton } from "@/components/ui/pill-button";
 import { captureException } from "@/lib/sentry";
 import { useTranslation } from "react-i18next";
 import { computeTrialDays } from "@shared/trialDays";
+import { NutritionPrioritiesSelector } from "@/components/NutritionPrioritiesSelector";
+import { useAdultNutritionPriorities } from "@/hooks/useNutritionPriorities";
 
 const RESUME_STEP_KEY = "mpm.onboarding.resumeStep";
+const RESUME_FLOW_VERSION_KEY = "mpm.onboarding.flowVersion";
+const RESUME_FLOW_VERSION = "nutrition-priorities-v1";
 
-const TOTAL_STEPS = 10;
+const TOTAL_STEPS = 11;
 
 const CUISINE_OPTIONS = [
   "American", "Mexican", "Italian", "Indian", "Chinese",
@@ -186,6 +190,7 @@ export default function OnboardingV3() {
   const [customDietInput, setCustomDietInput] = useState("");
   const [countryCode, setCountryCode] = useState<string>("US");
   const [measurementSystem, setMeasurementSystem] = useState<"imperial" | "metric">("imperial");
+  const nutritionPriorities = useAdultNutritionPriorities(user?.id);
 
   const progress = (step / TOTAL_STEPS) * 100;
 
@@ -204,6 +209,7 @@ export default function OnboardingV3() {
   useEffect(() => {
     if (!restoredRef.current) return;
     localStorage.setItem(RESUME_STEP_KEY, String(step));
+    localStorage.setItem(RESUME_FLOW_VERSION_KEY, RESUME_FLOW_VERSION);
   }, [step]);
 
   // On mount: restore step position and pre-populate fields from already-saved profile
@@ -214,7 +220,9 @@ export default function OnboardingV3() {
     const savedStep = localStorage.getItem(RESUME_STEP_KEY);
     if (savedStep) {
       const n = parseInt(savedStep, 10);
-      if (n >= 1 && n <= TOTAL_STEPS) setStep(n);
+      const isPreviousFlow = localStorage.getItem(RESUME_FLOW_VERSION_KEY) !== RESUME_FLOW_VERSION;
+      const restoredStep = isPreviousFlow && n >= 6 ? n + 1 : n;
+      if (restoredStep >= 1 && restoredStep <= TOTAL_STEPS) setStep(restoredStep);
     }
 
     if (user.firstName) setFirstName(user.firstName);
@@ -421,6 +429,9 @@ export default function OnboardingV3() {
           break;
         }
         case 6:
+          await nutritionPriorities.save({ force: true });
+          break;
+        case 7:
           if (!goalType) {
             toast({ title: "Please select your main goal", variant: "destructive" });
             setSaving(false);
@@ -433,7 +444,7 @@ export default function OnboardingV3() {
             goalStartDate: new Date().toISOString(),
           }, "goals");
           break;
-        case 7:
+        case 8:
           if (!flavorPreference) {
             toast({ title: "Please pick a flavor style", variant: "destructive" });
             setSaving(false);
@@ -445,13 +456,13 @@ export default function OnboardingV3() {
             sweetenerPreferences
           }, "flavor");
           break;
-        case 8:
+        case 9:
           await saveProfile({
             cuisinePreference: cuisinePreference || null,
             cuisineIntensity: cuisinePreference ? cuisineIntensity : null,
           }, "cuisine");
           break;
-        case 9:
+        case 10:
           // Non-blocking — saves measurement preference; failure does not block step advance
           fetch(apiUrl("/api/user/preferences"), {
             method: "PATCH",
@@ -530,6 +541,7 @@ export default function OnboardingV3() {
       try { completionData = await completeRes.json(); } catch { /* ignore */ }
 
       localStorage.removeItem(RESUME_STEP_KEY);
+      localStorage.removeItem(RESUME_FLOW_VERSION_KEY);
       await refreshUser();
 
       // Show trial welcome modal if the server confirmed a trial was stamped
@@ -1040,6 +1052,35 @@ export default function OnboardingV3() {
       case 6:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="text-center space-y-2 max-w-2xl mx-auto">
+              <h1 className="text-2xl font-bold text-white">Nutrition Priorities</h1>
+              <p className="text-white/80 text-sm font-medium">
+                Tell us what you'd like My Perfect Meals to consider more often.
+              </p>
+              <p className="text-white/55 text-sm leading-relaxed">
+                Choose foods, ingredients, or nutrition characteristics you'd like us to work into your meals when they fit.
+                We'll still consider your dietary needs, allergies, health context, preferences, and what you're asking for right now.
+              </p>
+              <p className="text-white/45 text-xs">
+                Select any number, or none. A selection means: consider this when it safely, naturally, and culinarily makes sense.
+              </p>
+            </div>
+            <div className="max-w-2xl mx-auto">
+              <NutritionPrioritiesSelector
+                selectedPriorityIds={nutritionPriorities.selectedPriorityIds}
+                onChange={nutritionPriorities.setSelectedPriorityIds}
+                disabled={saving || nutritionPriorities.isSaving}
+                isLoading={nutritionPriorities.isLoading}
+                error={nutritionPriorities.error}
+                onRetry={() => { void nutritionPriorities.retry(); }}
+              />
+            </div>
+          </div>
+        );
+
+      case 7:
+        return (
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">
               <h1 className="text-2xl font-bold text-white">{t("goal")}</h1>
               <p className="text-white/60 text-sm">{t("goalSub")}</p>
@@ -1093,7 +1134,7 @@ export default function OnboardingV3() {
           </div>
         );
 
-      case 7:
+      case 8:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">
@@ -1152,7 +1193,7 @@ export default function OnboardingV3() {
           </div>
         );
 
-      case 8:
+      case 9:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">
@@ -1233,7 +1274,7 @@ export default function OnboardingV3() {
           </div>
         );
 
-      case 9:
+      case 10:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">
@@ -1296,7 +1337,7 @@ export default function OnboardingV3() {
           </div>
         );
 
-      case 10:
+      case 11:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="text-center space-y-2">
@@ -1453,6 +1494,7 @@ export default function OnboardingV3() {
               onClick={handleNext}
               disabled={
               saving ||
+              (step === 6 && (nutritionPriorities.isLoading || Boolean(nutritionPriorities.error))) ||
               (step === 4 && oncologyIntroAnswer === "yes" && !oncologySupportIntentChoice) ||
               (step === 5 && !dietaryStyle) ||
               (step === 5 && dietaryStyle === "custom" && !customDietInput.trim())
