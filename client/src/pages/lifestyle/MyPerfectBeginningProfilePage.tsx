@@ -13,6 +13,7 @@ import { PillButton, type PillButtonVariant } from "@/components/ui/pill-button"
 import { NutritionPrioritiesSelector } from "@/components/NutritionPrioritiesSelector";
 import { useChildNutritionPriorities } from "@/hooks/useNutritionPriorities";
 import { useAuth } from "@/contexts/AuthContext";
+import { resolveRememberedProfileId } from "@/lib/myPerfectBeginningChildSelection";
 
 // ── Multi-select pill group (toggle on/off) ───────────────────────────────────
 function MultiPillSelect({
@@ -357,9 +358,17 @@ export default function MyPerfectBeginningProfilePage() {
     (async () => {
       try {
         const data = await apiRequest(apiUrl("/api/my-perfect-beginning/children"));
-        const child = (data.children ?? []).find((c: any) => c.id === activeId);
+        const authorizedChildren = data.children ?? [];
+        const authorizedId = resolveRememberedProfileId(
+          activeId,
+          authorizedChildren.map((candidate: any) => candidate.id),
+          "GENERAL",
+        );
+        const child = authorizedChildren.find((candidate: any) => candidate.id === authorizedId);
         if (!child) {
-          setLoadAccessError("This child profile is no longer available. Return to My Perfect Beginnings and choose an active child.");
+          try { localStorage.removeItem(LS_ACTIVE_CHILD_KEY); } catch {}
+          setProfile({ ...EMPTY_PROFILE });
+          setIsNew(true);
           setLoading(false);
           return;
         }

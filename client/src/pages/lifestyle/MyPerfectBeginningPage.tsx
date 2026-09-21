@@ -10,6 +10,7 @@ import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { apiRequest } from "@/lib/apiRequest";
+import { reconcileRememberedChildSelection } from "@/lib/myPerfectBeginningChildSelection";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -151,13 +152,20 @@ export default function MyPerfectBeginningPage() {
       setChildren(list);
 
       const savedId = (() => { try { return localStorage.getItem(LS_ACTIVE_CHILD_KEY); } catch { return null; } })();
-      if (savedId === GENERAL_SENTINEL) {
-        setActiveId(GENERAL_SENTINEL);
-      } else if (savedId && list.find(c => c.id === savedId)) {
-        setActiveId(savedId);
-      } else if (list.length > 0) {
-        setActiveId(list[0].id);
-        try { localStorage.setItem(LS_ACTIVE_CHILD_KEY, list[0].id); } catch {}
+      const selection = reconcileRememberedChildSelection(
+        savedId,
+        list.map((child) => child.id),
+        GENERAL_SENTINEL,
+      );
+      setActiveId(selection.activeChildId ?? "");
+      try {
+        if (selection.activeChildId) {
+          localStorage.setItem(LS_ACTIVE_CHILD_KEY, selection.activeChildId);
+        } else if (selection.shouldClearRememberedId) {
+          localStorage.removeItem(LS_ACTIVE_CHILD_KEY);
+        }
+      } catch {
+        // Browser storage is only a selection convenience.
       }
     } catch (err) {
       console.error("[MPB hub] Failed to load children:", err);
@@ -429,6 +437,8 @@ export default function MyPerfectBeginningPage() {
                     {/* Add Child Profile */}
                     <button
                       onClick={() => {
+                        setActiveId("");
+                        try { localStorage.removeItem(LS_ACTIVE_CHILD_KEY); } catch {}
                         setSwitcherOpen(false);
                         setLocation("/lifestyle/my-perfect-beginning/profile");
                       }}
