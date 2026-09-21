@@ -227,6 +227,26 @@ jest.mock("../services/protocolEnvelope", () => ({
   scanGeneratedOutput: (...args: any[]) => scanGeneratedOutputMock(...args),
 }));
 
+// This suite verifies Grocery Coach's protocol scan, GLP-1 validation, and
+// conversation behavior. Canonical HFC resolution has its own contract suites;
+// keep this boundary neutral so database-fixture changes do not prevent these
+// route behaviors from executing.
+jest.mock("../services/humanFoodContext/requestScope", () => ({
+  createHumanFoodRequestScope: jest.fn(() => ({
+    resolve: jest.fn().mockResolvedValue({ status: "resolved" }),
+    completeAuthorization: jest.fn().mockResolvedValue(undefined),
+    releaseAuthorization: jest.fn().mockResolvedValue(undefined),
+  })),
+}));
+
+jest.mock("../services/humanFoodContext/buildHumanFoodPromptBlock", () => ({
+  buildHumanFoodPromptBlock: jest.fn(() => "HUMAN FOOD CONTEXT v1\nNo optional priorities selected."),
+}));
+
+jest.mock("../services/humanFoodContext/validateHumanFoodResult", () => ({
+  validateHumanFoodResult: jest.fn(() => ({ valid: true, violations: [] })),
+}));
+
 // ── Mock: resolveGLP1GlobalContext ─────────────────────────────────────────────
 let mockGlp1Context: any = { isActive: false, resolvedTargets: null };
 
