@@ -125,7 +125,7 @@ try {
   result = spawnSync(
     tscPath,
     ["--pretty", "false", "--incremental", "false", "--project", "tsconfig.json"],
-    { encoding: "utf8" },
+    { encoding: "utf8", maxBuffer: 50 * 1024 * 1024 },
   );
 } catch (error) {
   operationError = error;

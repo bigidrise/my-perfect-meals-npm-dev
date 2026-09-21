@@ -20,6 +20,7 @@
 - [GLP-1 canonical context](glp1-canonical-context.md) — server-resolved global context is the only GLP-1 activation source.
 - [GLP-1 daily tolerance boot](glp1-daily-tolerance-boot.md) — feature-table alters must first create the table for fresh environments.
 - [Professional context architecture](professional-context-architecture.md) — preserve the separation between personal and professional product worlds.
+- [Professional client-switch isolation](professional-client-switch-isolation.md) — route changes must hide stale client state and reject late responses from the prior client.
 - [Performance nutrition](performance-nutrition.md) — the MacroCalculator remains the always-live baseline beneath session modifiers.
 - [Shared resolver ownership](nutrition-resolver-ownership.md) — workflow pages resolve once and pass data into shared components.
 - [Production media delivery](production-image-differential-diagnosis.md) — diagnose image records on their exact saved-object path.

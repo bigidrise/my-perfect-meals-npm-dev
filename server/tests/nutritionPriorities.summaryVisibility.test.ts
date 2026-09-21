@@ -1,4 +1,5 @@
 import { buildNutritionSummary } from "../services/nutritionSummary/buildNutritionSummary";
+import { filterNutritionSummaryForProvider } from "../services/procareClientDataPolicy";
 
 const envelope = {
   medicalHardLimits: [],
@@ -48,5 +49,21 @@ describe("Nutrition Priorities summary visibility", () => {
         },
       }).foodInclusionPriorityIds,
     ).toEqual([]);
+  });
+
+  it("keeps physician IDs read-only while structurally omitting them from coaching DTOs", () => {
+    const summary = buildNutritionSummary(envelope, {
+      foodInclusionPriorities: {
+        schemaVersion: 1,
+        registryVersion: "nutrition-priorities.v1",
+        selectedPriorityIds: ["fermented_foods", "plant_variety"],
+        updatedAt: "2026-09-21T00:00:00.000Z",
+      },
+    });
+
+    expect(filterNutritionSummaryForProvider(summary, "physician").foodInclusionPriorityIds)
+      .toEqual(["fermented_foods", "plant_variety"]);
+    expect(filterNutritionSummaryForProvider(summary, "trainer"))
+      .not.toHaveProperty("foodInclusionPriorityIds");
   });
 });

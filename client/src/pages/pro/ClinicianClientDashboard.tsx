@@ -48,6 +48,7 @@ import ClinicalProtocolCard from "@/components/protocol/ClinicalProtocolCard";
 import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
 import ClinicalInterventionPanel from "@/components/pro/ClinicalInterventionPanel";
 import { ProHydrationControls } from "@/components/pro/ProHydrationControls";
+import { resolveVerifiedProClientUserId } from "@/lib/proClientIdentity";
 
 
 export default function ClinicianClientDashboard() {
@@ -136,7 +137,7 @@ export default function ClinicianClientDashboard() {
   const [nutritionSummaryLoading, setNutritionSummaryLoading] = useState(false);
 
   // Must be defined BEFORE any useEffect that references it in deps or body.
-  const resolvedClientUserId = client?.clientUserId || client?.userId || clientId;
+  const resolvedClientUserId = resolveVerifiedProClientUserId(client, clientId);
 
   useEffect(() => {
     setMacros(proStore.getTargets(clientId));
