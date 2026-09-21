@@ -110,7 +110,7 @@ export function NutritionPrioritiesSelector({
                 aria-pressed={selected}
                 disabled={disabled}
                 onClick={() => onChange(toggleNutritionPrioritySelection(selectedPriorityIds, definition.id))}
-                className={`w-full text-left rounded-2xl p-4 pr-12 focus-visible:outline-none focus-visible:ring-2 disabled:opacity-60 ${accentStyles.focus} ${
+                className={`w-full text-left rounded-2xl p-4 pb-11 pr-12 focus-visible:outline-none focus-visible:ring-2 disabled:opacity-60 ${accentStyles.focus} ${
                   compact ? "min-h-[104px]" : "min-h-[124px]"
                 }`}
               >
