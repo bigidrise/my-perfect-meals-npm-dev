@@ -119,7 +119,11 @@ try {
 
   writeFileSync(
     generatedBuildVersionPath,
-    'export const BUILD_VERSION = "dev";\n',
+    [
+      'export const BUILD_VERSION = "dev";',
+      'export const BUILD_RELEASE_ID = "dev";',
+      "",
+    ].join("\n"),
   );
 
   result = spawnSync(

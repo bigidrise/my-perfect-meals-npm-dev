@@ -660,9 +660,12 @@ export default function ClinicianClientDashboard() {
           />
         )}
 
-        <ProClientComplianceSnapshot clientId={resolvedClientUserId} />
-
-        <ProHydrationControls clientUserId={resolvedClientUserId} mode="clinical" />
+        {resolvedClientUserId && (
+          <>
+            <ProClientComplianceSnapshot clientId={resolvedClientUserId} />
+            <ProHydrationControls clientUserId={resolvedClientUserId} mode="clinical" />
+          </>
+        )}
 
         {/* ── CLINICAL INTERVENTION PANEL ──────────────────────────────────── */}
         {client && (
@@ -1064,7 +1067,7 @@ export default function ClinicianClientDashboard() {
                 // Workspace identity guard — real UUID required.
                 // Never navigate with a proStore record ID; that would load the pro's own data.
                 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-                if (!UUID_RE.test(resolvedClientUserId)) {
+                if (!resolvedClientUserId || !UUID_RE.test(resolvedClientUserId)) {
                   toast({
                     title: "Client not connected",
                     description: "This client hasn't linked their account yet. Ask them to enter your access code in the app.",
