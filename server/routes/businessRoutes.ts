@@ -1401,7 +1401,6 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, requireSelectedBusines
 
     const [createdInvitation] = await db.insert(businessInvitations).values({
       businessId: business.id,
-      locationId,
       email: normalizedEmail,
       token,
       role: isClient ? "staff" : (role as any),

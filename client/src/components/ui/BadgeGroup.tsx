@@ -3,6 +3,13 @@ import BadgeRow from "./BadgeRow";
 import BadgeIcon from "./BadgeIcon";
 import { findBadgeDefinition, getBadgeDescription } from "./BadgeRegistry";
 
+const BADGE_ROW_VARIANT = {
+  critical: "alert",
+  important: "warning",
+  info: "info",
+  default: "neutral",
+} as const;
+
 interface BadgeItem {
   label: string;
   desc?: string;
@@ -60,7 +67,7 @@ export default function BadgeGroup({
           <BadgeRow
             label={badge.label}
             desc={badge.desc}
-            type={badge.type}
+            type={BADGE_ROW_VARIANT[badge.type]}
             showDot={!showIcons}
             className="flex-1"
           />
