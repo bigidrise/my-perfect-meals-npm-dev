@@ -441,6 +441,10 @@ async function initializeApp() {
         pool,
         migrationName: "production-readiness-schema",
         run: async (database) => {
+          const { runNutritionPrioritiesMigration } = await import(
+            "./db/migrations/runNutritionPrioritiesMigration"
+          );
+          await runNutritionPrioritiesMigration(database as any);
           await database.execute(
             sql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS starchy_carbs numeric DEFAULT '0' NOT NULL`,
           );

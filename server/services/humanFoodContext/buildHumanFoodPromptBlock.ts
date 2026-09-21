@@ -1,4 +1,5 @@
 import type { HumanFoodContext } from "../../../shared/humanFoodContext";
+import { buildNutritionPriorityPromptProjection } from "../nutritionPriorityPromptProjection";
 
 function line(label: string, value: string | null | undefined): string | null {
   return value ? `- ${label}: ${value}` : null;
@@ -14,6 +15,8 @@ export function buildHumanFoodPromptBlock(context: HumanFoodContext): string {
   const consumedStarch = nutrition?.starch?.consumed;
   const glucosePreferences = context.diabetesFoodPreferences;
   const enjoyment = context.foodsIEnjoy ?? { explicit: [], legacyLikes: [] };
+  const sweeteners = context.sweeteners ?? { preferred: [], avoided: [] };
+  const priorityProjection = buildNutritionPriorityPromptProjection(context);
   const lines = [
     "HUMAN FOOD CONTEXT v1 — preserve through every retry, correction, and fallback:",
     `- Effective diet: ${context.diet.effective.join(", ") || "no optional diet preference available"}`,
@@ -42,11 +45,12 @@ export function buildHumanFoodPromptBlock(context: HumanFoodContext): string {
     enjoyment.legacyLikes.length
       ? `- Legacy profile likes (compatibility context only; not newly confirmed Foods I Enjoy): ${enjoyment.legacyLikes.join(", ")}`
       : null,
-    context.sweeteners.preferred.length
-      ? `- Preferred sweeteners (soft ingredient guidance): ${context.sweeteners.preferred.join(", ")}`
+    priorityProjection,
+    sweeteners.preferred.length
+      ? `- Preferred sweeteners (soft ingredient guidance): ${sweeteners.preferred.join(", ")}`
       : null,
-    context.sweeteners.avoided.length
-      ? `- Avoided sweeteners: ${context.sweeteners.avoided.join(", ")}`
+    sweeteners.avoided.length
+      ? `- Avoided sweeteners: ${sweeteners.avoided.join(", ")}`
       : null,
     "- Explicit current food intent, when provided by the request, outranks these soft enjoyment hints; never redirect a current request to an unrelated favorite.",
     glucosePreferences

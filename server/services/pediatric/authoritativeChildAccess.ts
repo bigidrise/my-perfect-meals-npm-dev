@@ -23,6 +23,7 @@ export type AuthoritativeChildProfile = {
   weight_kg: number | null;
   school_safe_required: boolean | null;
   medication_affects_appetite: boolean | null;
+  food_inclusion_priorities: any;
   is_archived: boolean;
 };
 
@@ -36,7 +37,7 @@ export async function loadOwnedActiveChildProfile(
            feeding_concerns, feeding_ability, sensory_issues, dislikes,
            cultural_preferences, birth_history, growth_context,
            height_cm, weight_kg, school_safe_required,
-           medication_affects_appetite, is_archived
+           medication_affects_appetite, food_inclusion_priorities, is_archived
     FROM child_profiles
     WHERE id = ${childProfileId}
       AND user_id = ${actorUserId}
