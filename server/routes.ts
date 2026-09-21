@@ -1331,7 +1331,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         const contextBlock = buildCreatorHumanFoodPrompt("recipe_maker", humanFoodContext);
-        req.body.generationContext = [generationContext, contextBlock].filter(Boolean).join("\n\n");
+        // `generationContext` was destructured before HFC resolution. Updating only
+        // req.body here left the local value stale, so the unified generator never
+        // received the canonical block. Keep the local value authoritative because
+        // it is what generationRequest passes to Create With Chef and Snack Creator.
+        effectiveGenerationContext = [effectiveGenerationContext, contextBlock]
+          .filter(Boolean)
+          .join("\n\n");
+        req.body.generationContext = effectiveGenerationContext;
       }
 
       // 🚨 ENFORCEMENT GATEWAY: Pre-generation — Tier 1 (allergy) + Tier 2 (religious)

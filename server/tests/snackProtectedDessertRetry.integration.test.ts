@@ -171,4 +171,30 @@ describe("My Perfect Menu protected dessert retry boundary", () => {
     expect(mockCreate).toHaveBeenCalledTimes(2);
     expect(mockScanGeneratedOutput).toHaveBeenCalledTimes(2);
   });
+
+  it("does not let a soft saved dessert redefine an unrelated explicit snack request", async () => {
+    const contextWithSavedBrownie = [
+      "HUMAN FOOD CONTEXT v1",
+      "Soft Foods I Enjoy hints: brownie",
+      "OPTIONAL FOOD INCLUSION PRIORITIES:",
+      "- Fiber-Rich Foods: use when natural; omission is valid.",
+    ].join("\n");
+    queueResponses(
+      snackResponse("Cinnamon Apple Slices", "Crisp apple slices with cinnamon."),
+    );
+
+    const result = await generateMealUnified({
+      type: "snack-creator",
+      mealType: "snack",
+      input: "Cinnamon apple slices",
+      protocolEnvelope: SAFE_ENVELOPE,
+      generationContext: contextWithSavedBrownie,
+      safetyAlreadyChecked: true,
+    });
+
+    expect(result.success).toBe(true);
+    const prompt = capturedMessages[0].map((message) => message.content).join("\n");
+    expect(prompt).toContain(contextWithSavedBrownie);
+    expect(prompt).not.toContain("PROTECTED RECOGNIZABLE IDENTITY: brownie");
+  });
 });

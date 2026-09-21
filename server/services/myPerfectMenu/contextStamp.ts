@@ -10,6 +10,7 @@ export interface MyPerfectMenuAuthorityMaterial {
   dislikes: string[];
   cuisine: string | null;
   foodsIEnjoy: string[];
+  nutritionPriorities: string[];
   diabetes: {
     applicable: boolean;
     state: string;

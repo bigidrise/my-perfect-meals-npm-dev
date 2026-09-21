@@ -17,6 +17,7 @@ const base: MyPerfectMenuAuthorityMaterial = {
   dislikes: ["very spicy"],
   cuisine: "Japanese",
   foodsIEnjoy: ["dish.sushi"],
+  nutritionPriorities: ["fiber_rich_foods"],
   diabetes: {
     applicable: true,
     state: "IN_RANGE",
@@ -64,6 +65,7 @@ describe("My Perfect Menu context stamps", () => {
     ["allergy", { allergies: ["shellfish"] }],
     ["avoidance", { avoidances: ["cilantro"] }],
     ["cuisine", { cuisine: "Mexican" }],
+    ["Nutrition Priorities", { nutritionPriorities: ["omega_3_food_sources"] }],
     ["diabetes state", { diabetes: { ...base.diabetes, state: "HIGH" } }],
     ["protocol", { protocol: { ...base.protocol, conditionKeys: ["renal"] } }],
     ["GLP-1 tolerance", { glp1: { active: true, escalation: false, adaptationState: "nausea:mild" } }],
