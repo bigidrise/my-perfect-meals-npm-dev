@@ -57,6 +57,21 @@ export const CRITICAL_COLUMNS: ColumnDescriptor[] = [
     column: "clinical_context_response",
     hint: "Clinical context screening gate — missing column bypasses medication/hormone screening",
   },
+  {
+    table: "users",
+    column: "food_inclusion_priorities",
+    hint: "Nutrition Priorities — adult HFC resolution requires this authoritative subject column",
+  },
+  {
+    table: "household_profiles",
+    column: "food_inclusion_priorities",
+    hint: "Nutrition Priorities — household HFC resolution requires this authoritative subject column",
+  },
+  {
+    table: "child_profiles",
+    column: "food_inclusion_priorities",
+    hint: "Nutrition Priorities — pediatric HFC resolution requires this authoritative subject column",
+  },
   // ── Clinical Labs Phase 5 columns ──────────────────────────────────────────
   // These columns were added in the Phase 5 migration. If absent the labs
   // GET handler silently returns null for hormone/thyroid panels, breaking

@@ -992,6 +992,7 @@ router.post("/create-dish", requireAuth, async (req, res) => {
       (rawChildProfileIds as unknown[]).every(id => typeof id === "string" && UUID_RE.test(id as string));
 
     let mergedProfile: MergedChildProfile | null = null;
+    let childFoodInclusionPriorities: any = null;
 
     if (isMultiChildMode) {
       const childIds = (rawChildProfileIds as string[]).slice(0, 10);
@@ -1036,6 +1037,7 @@ router.post("/create-dish", requireAuth, async (req, res) => {
       if (!authorizedChild) {
         return res.status(404).json({ error: "Child profile not found." });
       }
+      childFoodInclusionPriorities = authorizedChild.food_inclusion_priorities;
       try {
         childProfileInput = await fetchChildProfileInput(userId, childProfileId);
       } catch {
@@ -1214,6 +1216,7 @@ router.post("/create-dish", requireAuth, async (req, res) => {
       allergies,
       dietaryPattern: parentPrefsWithKitchen.dietaryPattern,
       explicitCuisine: rawCulturalCuisine,
+      foodInclusionPriorities: isMultiChildMode ? null : childFoodInclusionPriorities,
     });
 
     const rawLang = (req as AuthenticatedRequest).authUser?.preferredLanguage || "auto";

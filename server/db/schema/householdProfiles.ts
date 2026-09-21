@@ -63,6 +63,7 @@ export const householdProfiles = pgTable(
       .array()
       .default(sql`ARRAY[]::text[]`),
     foodsIEnjoy: jsonb("foods_i_enjoy").$type<import("../../../shared/foodsIEnjoy").FoodsIEnjoyDocument>(),
+    foodInclusionPriorities: jsonb("food_inclusion_priorities").$type<import("../../../shared/nutritionPriorities").FoodInclusionPrioritiesDocument>(),
     myPerfectMenuPreferences: jsonb("my_perfect_menu_preferences").$type<import("../../../shared/myPerfectMenu").MyPerfectMenuPreferences>(),
     preferredSweeteners: text("preferred_sweeteners")
       .array()

@@ -165,6 +165,7 @@ import { loadStudioMembership } from "./middleware/studioAccess";
 import { isOnboardingAllergyBootstrapAuthorized } from "./services/profileAuthorization";
 import { scaleIngredientQuantity } from "./services/servingScaling";
 import foodsIEnjoyRouter, { householdFoodsIEnjoyRouter } from "./routes/foodsIEnjoy";
+import nutritionPrioritiesRouter from "./routes/nutritionPriorities";
 import myPerfectMenuRouter from "./routes/myPerfectMenu";
 
 function normalizeFitnessGoal(value?: string | null): string | null {
@@ -333,6 +334,7 @@ function hasUnmeasured(ings: Array<{ name: string; amount: string }>): boolean {
 export async function registerRoutes(app: Express): Promise<Server> {
   console.log("🔧 registerRoutes called - starting route registration");
   app.use("/api/foods-i-enjoy", foodsIEnjoyRouter);
+  app.use("/api/nutrition-priorities", nutritionPrioritiesRouter);
   app.use("/api/household", householdFoodsIEnjoyRouter);
   app.use("/api/my-perfect-menu", requireAuth, requireEssentialAccess, myPerfectMenuRouter);
   // Health endpoint for network testing

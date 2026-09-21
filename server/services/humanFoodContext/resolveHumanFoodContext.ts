@@ -1,11 +1,15 @@
 import { createHmac, randomUUID } from "crypto";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { users, householdProfiles } from "@shared/schema";
+import { MPM_PUBLIC_ORG_ID } from "@shared/constants";
 import {
   HUMAN_FOOD_CONTEXT_VERSION,
   type HumanFoodContext,
   type HumanFoodCreator,
 } from "../../../shared/humanFoodContext";
+import {
+  normalizeFoodInclusionPrioritiesDocument,
+} from "../../../shared/nutritionPriorities";
 import { foodsIEnjoyDocumentSchema } from "../../../shared/foodsIEnjoy";
 import { resolveUserGlucoseState } from "../glucoseStateResolver";
 import {
@@ -122,12 +126,84 @@ export function freezeHumanFoodContext<T>(value: T): T {
   return value;
 }
 
+export async function assertHumanFoodSubjectAccess(
+  actorUserId: string,
+  subjectUserId: string,
+): Promise<void> {
+  if (actorUserId === subjectUserId) return;
+
+  try {
+    const [ownedHouseholdSubject] = await db
+      .select({ id: householdProfiles.id })
+      .from(householdProfiles)
+      .where(and(
+        eq(householdProfiles.id, subjectUserId),
+        eq(householdProfiles.ownerUserId, actorUserId),
+      ))
+      .limit(1);
+    if (ownedHouseholdSubject) return;
+  } catch {
+    throw Object.assign(
+      new Error("Food context subject authorization is temporarily unavailable"),
+      { status: 503 },
+    );
+  }
+
+  try {
+    const organizationRows = await db
+      .select({
+        id: users.id,
+        organizationId: users.organizationId,
+      })
+      .from(users)
+      .where(inArray(users.id, [actorUserId, subjectUserId]))
+      .limit(2);
+    const actor = organizationRows.find((row) => row.id === actorUserId);
+    const subject = organizationRows.find((row) => row.id === subjectUserId);
+    if (!actor || !subject) {
+      throw Object.assign(new Error("Food context subject was not found"), { status: 404 });
+    }
+    const actorOrganizationId = actor.organizationId ?? MPM_PUBLIC_ORG_ID;
+    const subjectOrganizationId = subject.organizationId ?? MPM_PUBLIC_ORG_ID;
+    if (actorOrganizationId !== subjectOrganizationId) {
+      throw Object.assign(new Error("Food context subject was not found"), { status: 404 });
+    }
+  } catch (error) {
+    if ((error as { status?: number })?.status === 404) throw error;
+    throw Object.assign(
+      new Error("Food context subject authorization is temporarily unavailable"),
+      { status: 503 },
+    );
+  }
+
+  try {
+    const { verifyPhysicianClientAccess } = await import("../procareAccessService");
+    const authorized = await verifyPhysicianClientAccess(actorUserId, subjectUserId);
+    if (authorized) return;
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      (error as Error & { code?: string }).code === "ORG_ISOLATION_VIOLATION"
+    ) {
+      throw Object.assign(new Error("Food context subject was not found"), { status: 404 });
+    }
+    throw Object.assign(
+      new Error("Food context subject authorization is temporarily unavailable"),
+      { status: 503 },
+    );
+  }
+
+  // Keep unauthorized adult and nonexistent subject responses indistinguishable.
+  throw Object.assign(new Error("Food context subject was not found"), { status: 404 });
+}
+
 export async function resolveHumanFoodContext(
   input: ResolveHumanFoodContextInput,
 ): Promise<HumanFoodContext> {
   if (!input.actorUserId || !input.subjectUserId) {
     throw Object.assign(new Error("Authenticated food context is required"), { status: 401 });
   }
+  await assertHumanFoodSubjectAccess(input.actorUserId, input.subjectUserId);
 
   const [userProfile] = await db
     .select({
@@ -138,6 +214,7 @@ export async function resolveHumanFoodContext(
       dislikedFoods: users.dislikedFoods,
       likedFoods: users.likedFoods,
       foodsIEnjoy: users.foodsIEnjoy,
+      foodInclusionPriorities: users.foodInclusionPriorities,
       healthConditions: users.healthConditions,
       palateSpiceTolerance: users.palateSpiceTolerance,
       palateSeasoningIntensity: users.palateSeasoningIntensity,
@@ -164,6 +241,7 @@ export async function resolveHumanFoodContext(
       dislikedFoods: householdProfiles.dislikedFoods,
       likedFoods: householdProfiles.likedFoods,
       foodsIEnjoy: householdProfiles.foodsIEnjoy,
+      foodInclusionPriorities: householdProfiles.foodInclusionPriorities,
       healthConditions: householdProfiles.healthConditions,
       palateSpiceTolerance: householdProfiles.palateSpiceTolerance,
       palateSeasoningIntensity: householdProfiles.palateSeasoningIntensity,
@@ -192,6 +270,7 @@ export async function resolveHumanFoodContext(
         dislikedFoods: householdProfiles.dislikedFoods,
         likedFoods: householdProfiles.likedFoods,
         foodsIEnjoy: householdProfiles.foodsIEnjoy,
+        foodInclusionPriorities: householdProfiles.foodInclusionPriorities,
         healthConditions: householdProfiles.healthConditions,
         palateSpiceTolerance: householdProfiles.palateSpiceTolerance,
         palateSeasoningIntensity: householdProfiles.palateSeasoningIntensity,
@@ -225,6 +304,9 @@ export async function resolveHumanFoodContext(
     explicit: foodsDocument.success ? foodsDocument.data.items.filter((item: { revokedAt: string | null }) => !item.revokedAt) : [],
     legacyLikes: profile.likedFoods ?? [],
   };
+  const priorityDocument = normalizeFoodInclusionPrioritiesDocument(
+    profile.foodInclusionPriorities,
+  );
   let status: HumanFoodContext["status"] = "resolved";
 
   if (!isExplicitHouseholdSubject) try {
@@ -365,6 +447,10 @@ export async function resolveHumanFoodContext(
     nutrition,
     behavior,
     foodsIEnjoy,
+    nutritionPriorities: {
+      selectedPriorityIds: priorityDocument.selectedPriorityIds,
+      registryVersion: priorityDocument.registryVersion,
+    },
     sweeteners: {
       preferred: profile.preferredSweeteners ?? [],
       avoided: profile.avoidSweeteners ?? [],
