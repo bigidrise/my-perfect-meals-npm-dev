@@ -250,16 +250,32 @@ export default function TrainerClientDashboard() {
   }, [fetchBodyComp]);
 
   useEffect(() => {
-    if (!resolvedClientUserId) return;
+    const controller = new AbortController();
+    setNutritionSummary(null);
+    if (!resolvedClientUserId) {
+      setNutritionSummaryLoading(false);
+      return () => controller.abort();
+    }
     setNutritionSummaryLoading(true);
     fetch(apiUrl(`/api/pro/clients/${resolvedClientUserId}/nutrition-summary`), {
       headers: { ...getAuthHeaders() },
       credentials: "include",
+      signal: controller.signal,
     })
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => { if (data) setNutritionSummary(data); })
-      .catch(() => {})
-      .finally(() => setNutritionSummaryLoading(false));
+      .then((r) => {
+        if (!r.ok) throw new Error(`${r.status}`);
+        return r.json();
+      })
+      .then((data) => {
+        if (!controller.signal.aborted) setNutritionSummary(data);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setNutritionSummary(null);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setNutritionSummaryLoading(false);
+      });
+    return () => controller.abort();
   }, [resolvedClientUserId]);
 
   useEffect(() => {
@@ -716,6 +732,7 @@ export default function TrainerClientDashboard() {
           summary={nutritionSummary}
           isLoading={nutritionSummaryLoading}
           defaultExpanded={false}
+          source="provided"
         />
 
         <ProClientComplianceSnapshot clientId={resolvedClientUserId} />
