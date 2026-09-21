@@ -13,6 +13,10 @@
 
 import type { UserProtocolEnvelope } from "../protocolEnvelope";
 import { resolveMyPerfectMenuBuilder } from "../myPerfectMenu/builderResolver";
+import {
+  normalizeFoodInclusionPrioritiesDocument,
+  type FoodInclusionPriorityId,
+} from "../../../shared/nutritionPriorities";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OUTPUT DTO
@@ -50,6 +54,7 @@ export interface NutritionPersonalizationSummary {
     liveMetrics: Array<{ label: string; value: string }>;
   } | null;
   nutritionPriorities: string[];
+  foodInclusionPriorityIds?: FoodInclusionPriorityId[];
   compositeExplanation: string;
   conflictPolicy: string;
   hasAnyActiveProtocol: boolean;
@@ -112,6 +117,7 @@ export interface UserExtrasForSummary {
     gelatinRestriction: "yes" | "no" | "unsure";
     profileComplete: boolean;
   } | null;
+  foodInclusionPriorities?: unknown;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -693,6 +699,9 @@ export function buildNutritionSummary(
     selectedMealBuilder: extras.selectedMealBuilder ?? envelope.selectedMealBuilder ?? undefined,
   });
   const mealBuilderLabel = effectiveBuilder.displayName;
+  const foodInclusionPriorityIds = normalizeFoodInclusionPrioritiesDocument(
+    extras.foodInclusionPriorities,
+  ).selectedPriorityIds;
 
   return {
     activeInputs: {
@@ -709,6 +718,7 @@ export function buildNutritionSummary(
     mealBuilderLabel,
     nutritionDrivers,
     nutritionPriorities: allPriorities.slice(0, 8),
+    foodInclusionPriorityIds,
     compositeExplanation,
     conflictPolicy: CONFLICT_POLICY,
     hasAnyActiveProtocol,

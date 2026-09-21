@@ -51,6 +51,7 @@ router.get("/", requireAuth, async (req, res) => {
         activeBoard:            users.activeBoard,
         carbCycleState:         (users as any).carbCycleState,
         alphaGalProfile:        (users as any).alphaGalProfile,
+        foodInclusionPriorities: users.foodInclusionPriorities,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -81,6 +82,7 @@ router.get("/", requireAuth, async (req, res) => {
       activeBoard:            userRow?.activeBoard ?? null,
       carbCycleState:         userRow?.carbCycleState ?? null,
       alphaGalProfile:        (userRow?.alphaGalProfile as any) ?? null,
+      foodInclusionPriorities: userRow?.foodInclusionPriorities ?? null,
     };
 
     const summary = buildNutritionSummary(envelope, extras);

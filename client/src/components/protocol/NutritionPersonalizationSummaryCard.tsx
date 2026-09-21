@@ -16,11 +16,19 @@ import { useNutritionSummary } from "@/hooks/useNutritionSummary";
 import type { NutritionPersonalizationSummary, NutritionSummaryHealthItem } from "@/types/nutritionSummary";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
+import {
+  CLINICAL_NUTRITION_PRIORITY_SUMMARY_COPY,
+  CUSTOMER_NUTRITION_PRIORITY_SUMMARY_COPY,
+  resolveActiveNutritionPriorityLabels,
+} from "@/lib/nutritionPriorityDisplay";
+import { resolveNutritionSummaryCardData } from "@/lib/nutritionSummaryDisplay";
 
 interface Props {
   summary?: NutritionPersonalizationSummary;
   isLoading?: boolean;
   defaultExpanded?: boolean;
+  audience?: "customer" | "clinical";
+  source?: "self" | "provided";
 }
 
 // ── Per-protocol color map (keyed by condition slug) ─────────────────────────
@@ -81,10 +89,16 @@ const PROTOCOL_COLORS: Record<string, ProtocolColor> = {
 
 const DEFAULT_COLOR: ProtocolColor = { bg: "bg-orange-500/10", border: "border-orange-500/25", text: "text-orange-400" };
 
-export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLoading: isLoadingProp, defaultExpanded = false }: Props = {}) {
+export function NutritionPersonalizationSummaryCard({
+  summary: summaryProp,
+  isLoading: isLoadingProp,
+  defaultExpanded = false,
+  audience = "customer",
+  source = "self",
+}: Props = {}) {
   const hook = useNutritionSummary();
-  const data = summaryProp ?? hook.data;
-  const isLoading = isLoadingProp ?? hook.isLoading;
+  const data = resolveNutritionSummaryCardData(source, summaryProp, hook.data);
+  const isLoading = isLoadingProp ?? (source === "self" ? hook.isLoading : false);
   const [expanded, setExpanded] = useState(defaultExpanded);
   const { t } = useTranslation("nutritionPlan");
   const [, navigate] = useLocation();
@@ -112,6 +126,9 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
   const hasLiveMetrics       = (nutritionDrivers?.liveMetrics?.length ?? 0) > 0;
   const hasDietaryIdentity   = (data.dietaryIdentity?.length ?? 0) > 0;
   const hasMealBuilder       = !!data.mealBuilderLabel;
+  const foodInclusionPriorityLabels = resolveActiveNutritionPriorityLabels(
+    data.foodInclusionPriorityIds,
+  );
   const latestProfessionalUpdate = data.professionalUpdates?.[0] ?? null;
   const updateSeen = latestProfessionalUpdate
     ? acknowledgedUpdateId === latestProfessionalUpdate.id ||
@@ -402,6 +419,25 @@ export function NutritionPersonalizationSummaryCard({ summary: summaryProp, isLo
                   </span>
                 ))}
               </div>
+            </div>
+          )}
+
+          {foodInclusionPriorityLabels.length > 0 && (
+            <div
+              className="rounded-xl border border-orange-500/25 bg-orange-500/10 px-3 py-2.5"
+              data-testid="nutrition-priorities-summary"
+            >
+              <p className="text-[11px] font-black uppercase tracking-widest text-orange-400">
+                Nutrition Priorities
+              </p>
+              <p className="mt-1.5 text-[11px] font-semibold leading-relaxed text-orange-200">
+                {foodInclusionPriorityLabels.join(" · ")}
+              </p>
+              <p className="mt-1 text-[10px] leading-relaxed text-white/55">
+                {audience === "clinical"
+                  ? CLINICAL_NUTRITION_PRIORITY_SUMMARY_COPY
+                  : CUSTOMER_NUTRITION_PRIORITY_SUMMARY_COPY}
+              </p>
             </div>
           )}
 

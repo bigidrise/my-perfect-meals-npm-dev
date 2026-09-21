@@ -1416,7 +1416,8 @@ router.get("/clients/:clientId/nutrition-summary", requireAuth, requireProAccess
         performance_context         AS "performanceContext",
         weekly_training_schedule    AS "weeklyTrainingSchedule",
         selected_meal_builder       AS "selectedMealBuilder",
-        active_board                AS "activeBoard"
+        active_board                AS "activeBoard",
+        food_inclusion_priorities   AS "foodInclusionPriorities"
       FROM users
       WHERE id = ${clientId}
       LIMIT 1
@@ -1445,6 +1446,7 @@ router.get("/clients/:clientId/nutrition-summary", requireAuth, requireProAccess
       latestGlucose:            latestGlucoseLog?.value           ?? null,
       selectedMealBuilder:      userRow?.selectedMealBuilder      ?? null,
       activeBoard:              userRow?.activeBoard              ?? null,
+      foodInclusionPriorities:  userRow?.foodInclusionPriorities  ?? null,
     };
 
     const summary = filterNutritionSummaryForProvider(

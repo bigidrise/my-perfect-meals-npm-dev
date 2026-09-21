@@ -65,6 +65,7 @@ describe("coach client-data filtering", () => {
       liveMetrics: [{ label: "Glucose", value: "140 mg/dL" }],
     },
     nutritionPriorities: ["Manage blood glucose"],
+    foodInclusionPriorityIds: ["fiber_rich_foods", "omega_3_food_sources"],
     compositeExplanation: "Clinical explanation",
     conflictPolicy: "Safety first",
     hasAnyActiveProtocol: true,
@@ -81,6 +82,7 @@ describe("coach client-data filtering", () => {
     expect(filtered.activeInputs.pregnancy).toBeNull();
     expect(filtered.nutritionDrivers).toBeNull();
     expect(filtered.nutritionPriorities).toEqual([]);
+    expect(filtered).not.toHaveProperty("foodInclusionPriorityIds");
     expect(filtered.professionalUpdates).toBeUndefined();
     expect(filtered.activeInputs.macros).toEqual(summary.activeInputs.macros);
     expect(filtered.activeInputs.performance).toEqual(summary.activeInputs.performance);
@@ -88,5 +90,7 @@ describe("coach client-data filtering", () => {
 
   it("preserves the authorized Clinical summary for physicians", () => {
     expect(filterNutritionSummaryForProvider(summary, "physician")).toBe(summary);
+    expect(filterNutritionSummaryForProvider(summary, "physician").foodInclusionPriorityIds)
+      .toEqual(["fiber_rich_foods", "omega_3_food_sources"]);
   });
 });

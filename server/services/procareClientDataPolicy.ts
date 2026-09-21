@@ -6,8 +6,9 @@ export function filterNutritionSummaryForProvider(
 ): NutritionPersonalizationSummary {
   if (professionalRole === "physician") return summary;
 
+  const { foodInclusionPriorityIds: _withheldFoodInclusionPriorities, ...coachingSummary } = summary;
   return {
-    ...summary,
+    ...coachingSummary,
     activeInputs: {
       ...summary.activeInputs,
       health: [],

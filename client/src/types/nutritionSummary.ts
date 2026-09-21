@@ -1,3 +1,5 @@
+import type { FoodInclusionPriorityId } from "@shared/nutritionPriorities";
+
 export interface NutritionSummaryHealthItem {
   key: string;
   label: string;
@@ -30,6 +32,7 @@ export interface NutritionPersonalizationSummary {
     liveMetrics: Array<{ label: string; value: string }>;
   } | null;
   nutritionPriorities: string[];
+  foodInclusionPriorityIds?: FoodInclusionPriorityId[];
   compositeExplanation: string;
   conflictPolicy: string;
   hasAnyActiveProtocol: boolean;
