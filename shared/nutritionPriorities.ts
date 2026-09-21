@@ -15,6 +15,14 @@ export const foodInclusionPriorityIdSchema = z.enum([
 ]);
 export type FoodInclusionPriorityId = z.infer<typeof foodInclusionPriorityIdSchema>;
 
+export interface PediatricNutritionPriorityProjection {
+  status: "approved" | "deferred";
+  shortSummary: string;
+  whyChooseIt: string;
+  whatMpmDoes: string;
+  limitations: string[];
+}
+
 export interface FoodInclusionPriorityDefinition {
   id: FoodInclusionPriorityId;
   label: string;
@@ -26,6 +34,7 @@ export interface FoodInclusionPriorityDefinition {
   foodExamples: string[];
   limitations: string[];
   parentFacingPediatricExplanation: string;
+  pediatricProjection: PediatricNutritionPriorityProjection;
   promptSafeCulinaryGuidance: string;
   citations: Array<{ title: string; url: string }>;
   evidenceStatus: "established_food_guidance" | "supported_food_pattern" | "emerging";
@@ -48,6 +57,13 @@ export const FOOD_INCLUSION_PRIORITY_REGISTRY: Record<
     foodExamples: ["beans", "lentils", "whole grains", "vegetables", "fruit", "nuts", "seeds"],
     limitations: ["Increase gradually when tolerance matters.", "Do not present as detoxification, treatment, or guaranteed weight loss."],
     parentFacingPediatricExplanation: "MPM may include age-appropriate fiber foods when tolerated; pediatric safety and feeding needs remain authoritative.",
+    pediatricProjection: {
+      status: "approved",
+      shortSummary: "Consider age-appropriate fiber-rich foods when they fit and are tolerated.",
+      whyChooseIt: "To make a range of naturally fiber-containing foods easier to include in ordinary meals.",
+      whatMpmDoes: "May include age-appropriate fiber foods when they safely fit the meal and the child's feeding needs.",
+      limitations: ["Selection does not require fiber-rich food in every meal.", "Increase gradually when tolerance matters.", "Age, allergies, texture, feeding ability, and clinical context remain authoritative."],
+    },
     promptSafeCulinaryGuidance: "When natural for the dish, prefer or add a tolerated fiber-rich whole food; omission is valid.",
     citations: [
       { title: "Dietary Guidelines for Americans 2020–2025", url: "https://www.dietaryguidelines.gov/sites/default/files/2020-12/Dietary_Guidelines_for_Americans_2020-2025.pdf" },
@@ -65,6 +81,13 @@ export const FOOD_INCLUSION_PRIORITY_REGISTRY: Record<
     foodExamples: ["vegetables", "fruit", "legumes", "whole grains", "nuts", "seeds", "herbs"],
     limitations: ["No fixed weekly plant count.", "Must respect sensory needs, culture, affordability, and the current request."],
     parentFacingPediatricExplanation: "MPM may offer familiar, age-appropriate plant variety without pressuring a child to eat or overriding feeding needs.",
+    pediatricProjection: {
+      status: "approved",
+      shortSummary: "Consider a wider range of age-appropriate plant foods over time.",
+      whyChooseIt: "To offer different flavors, textures, and ordinary food choices without setting a count or quota.",
+      whatMpmDoes: "May rotate suitable plant foods in familiar forms without pressuring the child or forcing unrelated ingredients into a meal.",
+      limitations: ["No fixed plant count or frequency.", "Selection does not mean the child will eat or accept a food.", "Sensory needs, culture, affordability, allergies, and the current request remain authoritative."],
+    },
     promptSafeCulinaryGuidance: "Use a suitable range of plant foods over time; never add unrelated ingredients merely to increase variety.",
     citations: [{ title: "Dietary Guidelines for Americans 2020–2025", url: "https://www.dietaryguidelines.gov/sites/default/files/2020-12/Dietary_Guidelines_for_Americans_2020-2025.pdf" }],
     evidenceStatus: "supported_food_pattern", lastReviewedOn: reviewedOn, status: "active",
@@ -79,6 +102,13 @@ export const FOOD_INCLUSION_PRIORITY_REGISTRY: Record<
     foodExamples: ["yogurt with live cultures", "kefir", "kimchi", "sauerkraut", "miso", "tempeh"],
     limitations: ["Fermented does not automatically mean probiotic.", "Do not promise microbiome or therapeutic benefits.", "Consider sodium, alcohol, allergy, and tolerance."],
     parentFacingPediatricExplanation: "MPM may use child-appropriate fermented foods, but does not treat every fermented product as a proven probiotic.",
+    pediatricProjection: {
+      status: "approved",
+      shortSummary: "Consider child-appropriate fermented foods when they fit the meal.",
+      whyChooseIt: "For culinary variety, familiar traditions, and different flavors when the specific food is appropriate.",
+      whatMpmDoes: "May suggest a specific child-appropriate fermented food when it fits the cuisine and safety context.",
+      limitations: ["Fermented does not automatically mean probiotic.", "No microbiome, treatment, or guaranteed health claims.", "Sodium, alcohol, allergy, age, preparation, and tolerance remain authoritative."],
+    },
     promptSafeCulinaryGuidance: "Use a product-specific fermented food only when safe and natural for the dish; never claim a probiotic benefit.",
     citations: [{ title: "NIH ODS Probiotics Consumer Fact Sheet", url: "https://ods.od.nih.gov/factsheets/Probiotics-Consumer/" }],
     evidenceStatus: "emerging", lastReviewedOn: reviewedOn, status: "active",
@@ -93,6 +123,13 @@ export const FOOD_INCLUSION_PRIORITY_REGISTRY: Record<
     foodExamples: ["salmon", "sardines", "trout", "chia seeds", "flaxseed", "walnuts"],
     limitations: ["ALA is not equivalent to EPA/DHA.", "Respect fish allergy, pregnancy guidance, and mercury advisories.", "No supplement substitution."],
     parentFacingPediatricExplanation: "MPM may suggest age-appropriate lower-mercury seafood or plant sources while respecting allergies and pediatric fish guidance.",
+    pediatricProjection: {
+      status: "approved",
+      shortSummary: "Consider age-appropriate foods that provide omega-3 fats.",
+      whyChooseIt: "To make suitable seafood or plant omega-3 food sources easier to include through ordinary meals.",
+      whatMpmDoes: "May use an age-appropriate lower-mercury seafood source or a suitable plant source. If fish does not fit, MPM can omit it or consider a compatible plant food without claiming equivalence.",
+      limitations: ["ALA plant sources are not equivalent to EPA/DHA seafood sources.", "Fish allergy, dietary identity, age, preparation safety, and pediatric seafood guidance remain authoritative.", "No supplement recommendations."],
+    },
     promptSafeCulinaryGuidance: "When compatible, feature a lower-mercury seafood source or suitable plant ALA source; do not imply equivalence or supplement dosing.",
     citations: [{ title: "NIH ODS Omega-3 Fatty Acids", url: "https://ods.od.nih.gov/factsheets/Omega3FattyAcids-HealthProfessional/" }],
     evidenceStatus: "established_food_guidance", lastReviewedOn: reviewedOn, status: "active",
@@ -107,6 +144,13 @@ export const FOOD_INCLUSION_PRIORITY_REGISTRY: Record<
     foodExamples: ["beans", "lentils", "tofu", "eggs", "seafood", "poultry", "yogurt", "nuts"],
     limitations: ["Never changes protein or macro targets.", "Medical and clinician-set restrictions remain superior."],
     parentFacingPediatricExplanation: "MPM may feature an age-appropriate protein food within the child's existing pediatric context; it does not create a protein target.",
+    pediatricProjection: {
+      status: "approved",
+      shortSummary: "Consider suitable protein-containing foods within the child's existing nutrition context.",
+      whyChooseIt: "To make an appropriate protein food more intentional within an ordinary meal.",
+      whatMpmDoes: "May feature an age-appropriate protein food that fits the child's established dietary, feeding, and clinical context.",
+      limitations: ["Never creates or changes a protein, calorie, or macro target.", "Selection does not require a protein-rich food in every meal.", "Allergies, feeding ability, dietary identity, and clinician-set restrictions remain authoritative."],
+    },
     promptSafeCulinaryGuidance: "Feature a compatible protein food within existing authoritative targets; never increase or replace a protein or macro target.",
     citations: [{ title: "Dietary Guidelines: Protein Foods", url: "https://www.dietaryguidelines.gov/food-sources-protein-foods" }],
     evidenceStatus: "established_food_guidance", lastReviewedOn: reviewedOn, status: "active",
@@ -121,6 +165,13 @@ export const FOOD_INCLUSION_PRIORITY_REGISTRY: Record<
     foodExamples: ["meat", "seafood", "lentils", "beans", "tofu", "fortified cereal", "leafy greens"],
     limitations: ["Cannot diagnose or treat iron deficiency.", "No supplement advice.", "Clinical conditions remain authoritative."],
     parentFacingPediatricExplanation: "MPM may include age-appropriate iron-containing foods but cannot diagnose anemia or replace pediatric care.",
+    pediatricProjection: {
+      status: "approved",
+      shortSummary: "Consider age-appropriate foods that naturally contain iron.",
+      whyChooseIt: "To make ordinary iron-containing foods easier to include when they fit.",
+      whatMpmDoes: "May include a suitable iron-containing food and an appropriate food pairing without changing the child's nutrition targets.",
+      limitations: ["Cannot diagnose or treat iron deficiency or anemia.", "No supplement recommendations.", "Age, allergies, feeding safety, dietary identity, and clinical care remain authoritative."],
+    },
     promptSafeCulinaryGuidance: "When natural for the meal, include a suitable iron-containing food and optionally pair plant sources with vitamin-C-rich food.",
     citations: [{ title: "NIH ODS Iron", url: "https://ods.od.nih.gov/factsheets/Iron-HealthProfessional/" }],
     evidenceStatus: "established_food_guidance", lastReviewedOn: reviewedOn, status: "active",
@@ -135,6 +186,13 @@ export const FOOD_INCLUSION_PRIORITY_REGISTRY: Record<
     foodExamples: ["milk", "yogurt", "fortified plant beverages", "calcium-set tofu", "sardines", "kale"],
     limitations: ["Fortification and absorption vary.", "No supplement or osteoporosis-prevention claims.", "Respect allergy and clinical context."],
     parentFacingPediatricExplanation: "MPM may use age-appropriate calcium-containing foods while respecting milk allergy, tolerance, and the child's care context.",
+    pediatricProjection: {
+      status: "approved",
+      shortSummary: "Consider suitable age-appropriate foods that contain calcium.",
+      whyChooseIt: "To make calcium-containing foods easier to include through ordinary meals and snacks.",
+      whatMpmDoes: "May use an appropriate dairy or nondairy calcium-containing food while respecting the child's established context.",
+      limitations: ["Fortification and absorption vary by food and product.", "No supplement, treatment, growth, or bone-health guarantees.", "Milk allergy, tolerance, dietary identity, feeding safety, and clinical context remain authoritative."],
+    },
     promptSafeCulinaryGuidance: "When suitable, include an allergy-compatible calcium-containing food; verify fortified products rather than assuming equivalence.",
     citations: [{ title: "NIH ODS Calcium", url: "https://ods.od.nih.gov/factsheets/Calcium-HealthProfessional/" }],
     evidenceStatus: "established_food_guidance", lastReviewedOn: reviewedOn, status: "active",
@@ -149,6 +207,13 @@ export const FOOD_INCLUSION_PRIORITY_REGISTRY: Record<
     foodExamples: ["pumpkin seeds", "almonds", "beans", "whole grains", "leafy greens", "avocado"],
     limitations: ["No supplement, sleep, cramp, or treatment claims.", "Clinical and renal context remain superior."],
     parentFacingPediatricExplanation: "MPM may include age-appropriate magnesium-containing foods while respecting allergy, texture, and feeding safety.",
+    pediatricProjection: {
+      status: "approved",
+      shortSummary: "Consider age-appropriate foods that naturally contain magnesium.",
+      whyChooseIt: "To make suitable magnesium-containing whole foods easier to include when they fit.",
+      whatMpmDoes: "May include an appropriate magnesium-containing food while respecting the child's established dietary and feeding context.",
+      limitations: ["No supplement, sleep, cramp, treatment, or growth claims.", "Selection does not create a magnesium target.", "Allergy, texture, feeding safety, and clinical or renal context remain authoritative."],
+    },
     promptSafeCulinaryGuidance: "When natural and safe, include a suitable magnesium-containing whole food; do not imply supplement-equivalent effects.",
     citations: [{ title: "NIH ODS Magnesium", url: "https://ods.od.nih.gov/factsheets/Magnesium-HealthProfessional/" }],
     evidenceStatus: "established_food_guidance", lastReviewedOn: reviewedOn, status: "active",
@@ -160,6 +225,19 @@ export const foodInclusionPrioritiesWriteSchema = z.object({
   registryVersion: z.literal(NUTRITION_PRIORITIES_REGISTRY_VERSION),
   selectedPriorityIds: z.array(foodInclusionPriorityIdSchema).max(8),
 }).strict();
+
+export const pediatricFoodInclusionPrioritiesWriteSchema =
+  foodInclusionPrioritiesWriteSchema.superRefine((value, context) => {
+    for (const id of value.selectedPriorityIds) {
+      if (FOOD_INCLUSION_PRIORITY_REGISTRY[id].pediatricProjection.status !== "approved") {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["selectedPriorityIds"],
+          message: `${id} is not approved for pediatric use`,
+        });
+      }
+    }
+  });
 
 export const foodInclusionPrioritiesDocumentSchema = foodInclusionPrioritiesWriteSchema.extend({
   updatedAt: z.string().datetime().nullable(),
@@ -181,6 +259,18 @@ export function normalizeFoodInclusionPrioritiesDocument(value: unknown): FoodIn
   return {
     ...parsed.data,
     selectedPriorityIds: [...new Set(parsed.data.selectedPriorityIds)],
+  };
+}
+
+export function normalizePediatricFoodInclusionPrioritiesDocument(
+  value: unknown,
+): FoodInclusionPrioritiesDocument {
+  const document = normalizeFoodInclusionPrioritiesDocument(value);
+  return {
+    ...document,
+    selectedPriorityIds: document.selectedPriorityIds.filter(
+      (id) => FOOD_INCLUSION_PRIORITY_REGISTRY[id].pediatricProjection.status === "approved",
+    ),
   };
 }
 

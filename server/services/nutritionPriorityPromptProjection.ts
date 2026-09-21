@@ -6,7 +6,13 @@ export function buildNutritionPriorityPromptProjection(
 ): string | null {
   const selected = (context.nutritionPriorities?.selectedPriorityIds ?? [])
     .map((id) => FOOD_INCLUSION_PRIORITY_REGISTRY[id])
-    .filter((definition) => definition?.status === "active");
+    .filter((definition) =>
+      definition?.status === "active" &&
+      (
+        context.creator !== "my_perfect_beginning" ||
+        definition.pediatricProjection.status === "approved"
+      ),
+    );
   if (selected.length === 0) return null;
 
   const guidance = selected.map(

@@ -8,6 +8,8 @@ import {
   createFoodInclusionPrioritiesDocument,
   emptyFoodInclusionPrioritiesDocument,
   foodInclusionPrioritiesWriteSchema,
+  pediatricFoodInclusionPrioritiesWriteSchema,
+  normalizePediatricFoodInclusionPrioritiesDocument,
   normalizeFoodInclusionPrioritiesDocument,
 } from "../../shared/nutritionPriorities";
 import { loadOwnedActiveChildProfile } from "../services/pediatric/authoritativeChildAccess";
@@ -30,6 +32,19 @@ function parseWrite(body: unknown) {
     delete (candidate as Record<string, unknown>).updatedAt;
   }
   return foodInclusionPrioritiesWriteSchema.safeParse(candidate);
+}
+
+function parsePediatricWrite(body: unknown) {
+  const candidate = body && typeof body === "object"
+    ? { ...(body as Record<string, unknown>) }
+    : body;
+  if (candidate && typeof candidate === "object") {
+    delete (candidate as Record<string, unknown>).userId;
+    delete (candidate as Record<string, unknown>).actorUserId;
+    delete (candidate as Record<string, unknown>).subjectUserId;
+    delete (candidate as Record<string, unknown>).updatedAt;
+  }
+  return pediatricFoodInclusionPrioritiesWriteSchema.safeParse(candidate);
 }
 
 router.get("/", requireAuth, async (req, res) => {
@@ -115,7 +130,7 @@ router.get("/child/:childProfileId", requireAuth, async (req, res) => {
     const child = await loadOwnedActiveChildProfile(userId, childId.data);
     if (!child) return res.status(404).json({ error: "Subject not found" });
     return res.json({
-      document: normalizeFoodInclusionPrioritiesDocument(child.food_inclusion_priorities),
+      document: normalizePediatricFoodInclusionPrioritiesDocument(child.food_inclusion_priorities),
     });
   } catch {
     return res.status(503).json({ error: "Nutrition Priorities are temporarily unavailable." });
@@ -128,7 +143,7 @@ router.put("/child/:childProfileId", requireAuth, async (req, res) => {
     const childId = uuidSchema.safeParse(req.params.childProfileId);
     if (!userId) return res.status(401).json({ error: "Authentication required" });
     if (!childId.success) return res.status(400).json({ error: "Invalid subject ID" });
-    const parsed = parseWrite(req.body);
+    const parsed = parsePediatricWrite(req.body);
     if (!parsed.success) return res.status(400).json({ error: "Invalid Nutrition Priorities document", details: parsed.error.issues });
     const child = await loadOwnedActiveChildProfile(userId, childId.data);
     if (!child) return res.status(404).json({ error: "Subject not found" });

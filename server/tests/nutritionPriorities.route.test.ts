@@ -5,6 +5,7 @@ const state = {
   childDocument: null as any,
   householdOwned: true,
   childOwned: true,
+  childDocuments: {} as Record<string, any>,
 };
 
 jest.mock("../middleware/requireAuth", () => ({
@@ -18,7 +19,7 @@ jest.mock("../middleware/requireAuth", () => ({
 jest.mock("../services/pediatric/authoritativeChildAccess", () => ({
   loadOwnedActiveChildProfile: jest.fn(async (_userId: string, childId: string) =>
     state.childOwned
-      ? { id: childId, food_inclusion_priorities: state.childDocument }
+      ? { id: childId, food_inclusion_priorities: state.childDocuments[childId] ?? state.childDocument }
       : null,
   ),
 }));
@@ -62,6 +63,7 @@ jest.mock("../db", () => ({
 import express from "express";
 import request from "supertest";
 import router from "../routes/nutritionPriorities";
+import { FOOD_INCLUSION_PRIORITY_REGISTRY } from "../../shared/nutritionPriorities";
 
 const profileId = "11111111-1111-4111-8111-111111111111";
 const childA = "22222222-2222-4222-8222-222222222222";
@@ -85,6 +87,7 @@ beforeEach(() => {
   state.childDocument = null;
   state.householdOwned = true;
   state.childOwned = true;
+  state.childDocuments = {};
 });
 
 describe("Nutrition Priorities subject-owned API", () => {
@@ -118,6 +121,45 @@ describe("Nutrition Priorities subject-owned API", () => {
     };
     expect((await request(app()).get(`/api/nutrition-priorities/child/${childA}`)).body.document.selectedPriorityIds).toEqual(["iron_rich_foods"]);
     expect((await request(app()).put(`/api/nutrition-priorities/child/${childA}`).send(write(["potassium_rich_foods"]))).status).toBe(400);
+  });
+
+  it("loads Child A and Child B from separate authoritative records", async () => {
+    auth.user = { id: "owner-a" };
+    const childB = "33333333-3333-4333-8333-333333333333";
+    state.childDocuments[childA] = {
+      ...write(["iron_rich_foods"]),
+      updatedAt: "2026-09-21T00:00:00.000Z",
+    };
+    state.childDocuments[childB] = {
+      ...write(["calcium_rich_foods"]),
+      updatedAt: "2026-09-21T00:00:00.000Z",
+    };
+
+    expect((await request(app()).get(`/api/nutrition-priorities/child/${childA}`)).body.document.selectedPriorityIds)
+      .toEqual(["iron_rich_foods"]);
+    expect((await request(app()).get(`/api/nutrition-priorities/child/${childB}`)).body.document.selectedPriorityIds)
+      .toEqual(["calcium_rich_foods"]);
+  });
+
+  it("rejects and filters concepts that are not pediatric-approved", async () => {
+    auth.user = { id: "owner-a" };
+    const definition = FOOD_INCLUSION_PRIORITY_REGISTRY.fermented_foods;
+    const previousStatus = definition.pediatricProjection.status;
+    definition.pediatricProjection.status = "deferred";
+    state.childDocument = {
+      ...write(["fermented_foods"]),
+      updatedAt: "2026-09-21T00:00:00.000Z",
+    };
+    try {
+      const loaded = await request(app()).get(`/api/nutrition-priorities/child/${childA}`);
+      expect(loaded.status).toBe(200);
+      expect(loaded.body.document.selectedPriorityIds).toEqual([]);
+      expect(
+        (await request(app()).put(`/api/nutrition-priorities/child/${childA}`).send(write(["fermented_foods"]))).status,
+      ).toBe(400);
+    } finally {
+      definition.pediatricProjection.status = previousStatus;
+    }
   });
 
   it("accepts an empty selection and ignores spoofed identity fields", async () => {

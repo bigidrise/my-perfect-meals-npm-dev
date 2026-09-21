@@ -24,6 +24,11 @@ describe("Food Inclusion Priorities registry", () => {
       expect(entry.limitations.length).toBeGreaterThan(0);
       expect(entry.citations.length).toBeGreaterThan(0);
       expect(entry.parentFacingPediatricExplanation).toBeTruthy();
+      expect(entry.pediatricProjection.status).toBe("approved");
+      expect(entry.pediatricProjection.shortSummary).toBeTruthy();
+      expect(entry.pediatricProjection.whyChooseIt).toBeTruthy();
+      expect(entry.pediatricProjection.whatMpmDoes).toBeTruthy();
+      expect(entry.pediatricProjection.limitations.length).toBeGreaterThan(0);
       expect(entry.promptSafeCulinaryGuidance).toBeTruthy();
     }
   });
