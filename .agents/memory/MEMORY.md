@@ -112,3 +112,4 @@
 - [Customer release identity](customer-release-identity.md) — build metadata stays separate; one explicit release ID owns notes, timestamp, comparison, and dismissal.
 - [Nutrition Priorities authority](nutrition-priorities-authority.md) — subject-owned optional food inclusion guidance enters HFC identity; release DDL stays explicitly gated.
 - [Culinary preference authority](culinary-preference-authority.md) — profile palate values guide generation; only explicit request sources may reject or repair a dish.
+- [Generated meal serving contract](generated-meal-serving-contract.md) — response nutrition is total-recipe; validators must normalize with the same requested serving count.
