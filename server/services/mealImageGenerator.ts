@@ -16,6 +16,7 @@ import { eq } from 'drizzle-orm';
 import { getStaticSnackImage, isLikelySnack } from '../../shared/staticSnackMappings';
 import { ingestImageToPermanentStorage } from './imageLifecycle';
 import { normalizeMealName } from './mealNameNormalizer';
+import { validateMealImageAuthority } from "./mealImageAuthority";
 import {
   validateImageAgainstRecipe,
   buildRetryExclusionAddendum,
@@ -918,6 +919,21 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
     } else if (!isCacheRowServable(memHit, currentSignature)) {
       console.warn(`[IMG-LIFECYCLE:${traceId}] MEM-CACHE EVICT (unvalidated or signature mismatch) | status=${memHit.validationStatus} | meal="${mealName}"`);
       memCache.delete(cacheKey);
+    } else if (isPermanentUrl(memHit.url)) {
+      const authority = await validateMealImageAuthority(memHit.url);
+      if (authority.status !== "available") {
+        console.warn(`[IMG-LIFECYCLE:${traceId}] MEM-CACHE EVICT (storage ${authority.status}) | meal="${mealName}"`);
+        memCache.delete(cacheKey);
+      } else {
+        console.log(`[IMG-LIFECYCLE:${traceId}] MEM-CACHE HIT | urlType=permanent | meal="${mealName}" | +${Date.now()-_t0}ms`);
+        return {
+          url: authority.canonicalUrl,
+          prompt: "(memory cache)",
+          templateRef: request.templateRef,
+          hash: cacheKey,
+          createdAt: new Date().toISOString(),
+        };
+      }
     } else {
       const urlType = memHit.url.startsWith('data:') ? 'base64-ephemeral' : isPermanentUrl(memHit.url) ? 'permanent' : 'unknown';
       console.log(`[IMG-LIFECYCLE:${traceId}] MEM-CACHE HIT | urlType=${urlType} | meal="${mealName}" | +${Date.now()-_t0}ms`);
@@ -954,15 +970,23 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
           await db.delete(mealImageCache).where(eq(mealImageCache.cacheKey, cacheKey));
         } catch {}
       } else if (isPermanentUrl(dbRow.imageUrl)) {
-        console.log(`[IMG-LIFECYCLE:${traceId}] DB-CACHE HIT (permanent, validated) | meal="${mealName}" | +${Date.now()-_t0}ms`);
-        memCache.set(cacheKey, { url: dbRow.imageUrl, validationStatus: dbRow.validationStatus, recipeSignature: dbRow.recipeSignature });
-        return {
-          url: dbRow.imageUrl,
-          prompt: dbRow.promptUsed || "(db cache)",
-          templateRef: request.templateRef,
-          hash: cacheKey,
-          createdAt: new Date().toISOString(),
-        };
+        const authority = await validateMealImageAuthority(dbRow.imageUrl);
+        if (authority.status !== "available") {
+          console.warn(`[IMG-LIFECYCLE:${traceId}] DB-CACHE EVICT (storage ${authority.status}) | meal="${mealName}"`);
+          try {
+            await db.delete(mealImageCache).where(eq(mealImageCache.cacheKey, cacheKey));
+          } catch {}
+        } else {
+          console.log(`[IMG-LIFECYCLE:${traceId}] DB-CACHE HIT (permanent, validated) | meal="${mealName}" | +${Date.now()-_t0}ms`);
+          memCache.set(cacheKey, { url: authority.canonicalUrl, validationStatus: dbRow.validationStatus, recipeSignature: dbRow.recipeSignature });
+          return {
+            url: authority.canonicalUrl,
+            prompt: dbRow.promptUsed || "(db cache)",
+            templateRef: request.templateRef,
+            hash: cacheKey,
+            createdAt: new Date().toISOString(),
+          };
+        }
       } else {
         console.warn(`[IMG-LIFECYCLE:${traceId}] DB-CACHE EVICT (stale temp URL) | meal="${mealName}"`);
         try {

@@ -65,6 +65,8 @@ function toBoardMeal(src: AddMealParams["sourceMeal"]): BoardMeal {
     starchyCarbs: Number(base?.starchyCarbs ?? base?.nutrition?.starchyCarbs ?? 0),
     fibrousCarbs: Number(base?.fibrousCarbs ?? base?.nutrition?.fibrousCarbs ?? 0),
     badges: base.badges,
+    imageUrl: base.imageUrl ?? undefined,
+    mediaAssetId: base.mediaAssetId ?? undefined,
   } as BoardMeal;
 }
 

@@ -25,6 +25,14 @@ jest.mock("@replit/object-storage", () => ({ Client: class { } }));
 jest.mock("sharp", () => jest.fn());
 jest.mock("../db", () => ({ db: {} }));
 jest.mock("../db/schema/mediaAssets", () => ({ mediaAssets: {} }));
+jest.mock("../services/mealImageAuthority", () => ({
+  validateMealImageAuthority: jest.fn(async (url: string) => ({
+    status: "available",
+    canonicalUrl: url,
+    bucketId: "test-bucket",
+    objectName: "meal-images/test.jpg",
+  })),
+}));
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { isFirstPartyImageUrl, findMealsWithTempImages } from "../services/imageLifecycle";

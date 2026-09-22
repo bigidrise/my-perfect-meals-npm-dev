@@ -530,12 +530,13 @@ router.post("/finalize", requireAuth, imageRateLimit, async (req: any, res) => {
     return res.json({
       meal: result.meal,
       imageUrl: result.imageUrl,
+      mediaAssetId: result.mediaAssetId,
       permanent: result.permanent,
     });
   } catch (err: any) {
     console.error("[/api/meals/finalize]", err.message);
     // Always return a usable payload — caller never has to handle a 500.
-    return res.json({ meal: { ...meal, imageUrl: null }, imageUrl: null, permanent: false });
+    return res.json({ meal: { ...meal, imageUrl: null, mediaAssetId: null }, imageUrl: null, mediaAssetId: null, permanent: false });
   }
 });
 

@@ -26,6 +26,12 @@ jest.mock("../data/weekBoardsRepo", () => ({
 }));
 
 jest.mock("../services/imageLifecycle", () => ({ processMealImageForSave: jest.fn() }));
+jest.mock("../services/mealImageAuthority", () => ({
+  validateMealImageAuthority: jest.fn(async (url: string) => ({
+    status: "available",
+    canonicalUrl: url,
+  })),
+}));
 jest.mock("../services/activityLog", () => ({ logActivityFireAndForget: jest.fn() }));
 jest.mock("../services/pushNotify", () => ({ pushToCoachOfClient: jest.fn() }));
 jest.mock("../services/canonicalWeeklyMealPlanning", () => ({
@@ -56,6 +62,8 @@ const payload = {
   meal: {
     id: "meal-source",
     name: "Test Dinner",
+    imageUrl: "/public-objects/replit-objstore-test/meal-images/test-dinner.jpg",
+    mediaAssetId: "11111111-1111-4111-8111-111111111111",
     nutrition: { calories: 500, protein: 30, carbs: 40, fat: 20 },
     ingredients: [],
   },
@@ -94,6 +102,8 @@ describe("weekly board add-meal authorization", () => {
     expect([...boards.keys()].every((key) => key.startsWith("owner-a:"))).toBe(true);
     expect([...boards.keys()].some((key) => key.startsWith("owner-b:"))).toBe(false);
     expect(res.body.meal.name).toBe("Test Dinner");
+    expect(res.body.meal.imageUrl).toBe(payload.meal.imageUrl);
+    expect(res.body.meal.mediaAssetId).toBe(payload.meal.mediaAssetId);
   });
 
   it("keeps board namespaces isolated between authenticated users", async () => {

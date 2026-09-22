@@ -29,6 +29,7 @@
  */
 
 import { generateMealImageUnified } from './mealImageGenerator';
+import { processMealImageForSave } from "./imageLifecycle";
 
 // Re-export the ImageSourceType if the generator exports it — otherwise define inline.
 type ImageSourceType = 'meal' | 'snack' | 'beverage' | 'dessert';
@@ -52,8 +53,9 @@ export interface FinalizeMealImageInput {
 }
 
 export interface FinalizeMealImageResult {
-  meal: MealForFinalization & { imageUrl: string | null };
+  meal: MealForFinalization & { imageUrl: string | null; mediaAssetId: string | null };
   imageUrl: string | null;
+  mediaAssetId: string | null;
   /**
    * true when imageUrl is a confirmed permanent MPM-controlled URL.
    * false when generation failed (imageUrl === null) or the generator returned
@@ -116,9 +118,24 @@ export async function finalizeMealImage(
     console.warn('[MealFinalizer] Image generation failed for "%s":', meal.name, err);
   }
 
+  if (!imageUrl) {
+    return {
+      meal: { ...meal, imageUrl: null, mediaAssetId: null },
+      imageUrl: null,
+      mediaAssetId: null,
+      permanent: false,
+    };
+  }
+
+  const persisted = await processMealImageForSave(imageUrl, meal.name);
   return {
-    meal: { ...meal, imageUrl },
-    imageUrl,
-    permanent: isPermanent(imageUrl),
+    meal: {
+      ...meal,
+      imageUrl: persisted.imageUrl,
+      mediaAssetId: persisted.mediaAssetId,
+    },
+    imageUrl: persisted.imageUrl,
+    mediaAssetId: persisted.mediaAssetId,
+    permanent: isPermanent(persisted.imageUrl),
   };
 }

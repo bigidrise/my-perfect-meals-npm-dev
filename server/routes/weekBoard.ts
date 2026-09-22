@@ -7,12 +7,15 @@ import { logActivityFireAndForget } from '../services/activityLog';
 import { pushToCoachOfClient } from '../services/pushNotify';
 import { db } from '../db';
 import { clientLinks } from '../db/schema/procare';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, or, sql } from 'drizzle-orm';
 import { enforceCarbs } from '../utils/carbClassifier';
 import { rerollCanonicalWeeklyMeal, regenerateCanonicalWeeklyDay, WeeklyMealGenerationError } from '../services/canonicalWeeklyMealPlanning';
 import { requireAuth } from "../middleware/requireAuth";
 import { getAuthUserId } from "../utils/getAuthUserId";
-import { householdProfiles, users } from "@shared/schema";
+import { householdProfiles, users, weekBoards } from "@shared/schema";
+import { mediaAssets } from "../db/schema/mediaAssets";
+import { validateMealImageAuthority } from "../services/mealImageAuthority";
+import { z } from "zod";
 import {
   isMyPerfectMenuBuilderKey,
   MY_PERFECT_MENU_BUILDERS,
@@ -231,6 +234,7 @@ function normalizeMeal(meal: any, idx: number = 0) {
   // AI Meal Creator fields
   m.description = m?.description ? String(m.description) : undefined;
   m.imageUrl = m?.imageUrl ? String(m.imageUrl) : undefined;
+  m.mediaAssetId = UUID_RE.test(String(m?.mediaAssetId ?? "")) ? String(m.mediaAssetId) : undefined;
   m.cookingTime = m?.cookingTime ? String(m.cookingTime) : undefined;
   m.difficulty = m?.difficulty ? String(m.difficulty) : undefined;
   m.medicalBadges = Array.isArray(m?.medicalBadges) ? m.medicalBadges : undefined;
@@ -283,6 +287,7 @@ function normalizeBoard(raw: any): any {
       // AI Meal Creator fields
       description: m?.description ? String(m.description) : undefined,
       imageUrl: m?.imageUrl ? String(m.imageUrl) : undefined,
+      mediaAssetId: UUID_RE.test(String(m?.mediaAssetId ?? "")) ? String(m.mediaAssetId) : undefined,
       cookingTime: m?.cookingTime ? String(m.cookingTime) : undefined,
       difficulty: m?.difficulty ? String(m.difficulty) : undefined,
       medicalBadges: Array.isArray(m?.medicalBadges) ? m.medicalBadges : undefined,
@@ -475,6 +480,27 @@ async function processAllMealImagesForSave(board: any): Promise<{ board: any; im
         return { ...meal, imageUrl: null };
       }
 
+      if (UUID_RE.test(String(meal.mediaAssetId ?? ""))) {
+        const [asset] = await db.select({
+          id: mediaAssets.id,
+          status: mediaAssets.status,
+          thumbnailUrl: mediaAssets.thumbnailUrl,
+          displayUrl: mediaAssets.displayUrl,
+        }).from(mediaAssets).where(eq(mediaAssets.id, meal.mediaAssetId)).limit(1);
+        if (asset?.status === "ready" &&
+            (asset.thumbnailUrl === sanitisedMealImageUrl || asset.displayUrl === sanitisedMealImageUrl)) {
+          const authority = await validateMealImageAuthority(sanitisedMealImageUrl);
+          if (authority.status === "available") {
+            return {
+              ...meal,
+              imageUrl: authority.canonicalUrl,
+              mediaAssetId: asset.id,
+              imagePending: undefined,
+            };
+          }
+        }
+      }
+
       const result = await processMealImageForSave(sanitisedMealImageUrl, meal.title || meal.name || 'Meal');
       
       if (result.ingestionAttempted) {
@@ -487,6 +513,7 @@ async function processAllMealImagesForSave(board: any): Promise<{ board: any; im
       return {
         ...meal,
         imageUrl: result.imageUrl,
+        mediaAssetId: result.mediaAssetId,
         imagePending: result.imagePending || undefined,
       };
     }));
@@ -566,6 +593,117 @@ async function processAllMealImagesForSave(board: any): Promise<{ board: any; im
 }
 
 export default function weekBoardRoutes(app: Express) {
+  app.post("/api/weekly-board/image-recovery", requireAuth, async (req: Request, res: Response) => {
+    const parsed = z.object({
+      weekStartISO: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      dateISO: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      slot: z.enum(["breakfast", "lunch", "dinner", "meal4", "meal5", "meal6", "snack", "snacks"]),
+      mealId: z.string().min(1).max(200),
+      imageUrl: z.string().min(1).max(2_048),
+      mediaAssetId: z.string().uuid().nullish(),
+    }).safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: "Invalid Board image recovery target" });
+
+    const actorUserId = getAuthUserId(req);
+    const slot = parsed.data.slot === "snack" ? "snacks" : parsed.data.slot;
+    const rows = await db.select().from(weekBoards).where(and(
+      eq(weekBoards.userId, actorUserId),
+      eq(weekBoards.weekStartISO, parsed.data.weekStartISO),
+    ));
+
+    const matches = rows.flatMap((row) => {
+      const meals = (row.boardJSON as any)?.days?.[parsed.data.dateISO]?.[slot];
+      if (!Array.isArray(meals)) return [];
+      const index = meals.findIndex((meal: any) => String(meal?.id) === parsed.data.mealId);
+      return index >= 0 ? [{ row, meals, index, meal: meals[index] }] : [];
+    });
+    if (matches.length !== 1) return res.status(404).json({ error: "Board meal image was not found" });
+
+    const target = matches[0];
+    if (target.meal.imageUrl !== parsed.data.imageUrl) {
+      return res.status(409).json({ error: "Board meal image changed before recovery" });
+    }
+    if (target.meal.mediaAssetId && parsed.data.mediaAssetId &&
+        target.meal.mediaAssetId !== parsed.data.mediaAssetId) {
+      return res.status(409).json({ error: "Board meal media asset changed before recovery" });
+    }
+
+    let mediaAssetId = target.meal.mediaAssetId as string | undefined;
+    if (!mediaAssetId) {
+      const candidates = await db.select({ id: mediaAssets.id }).from(mediaAssets)
+        .where(or(
+          eq(mediaAssets.thumbnailUrl, parsed.data.imageUrl),
+          eq(mediaAssets.displayUrl, parsed.data.imageUrl),
+        ))
+        .limit(2);
+      if (candidates.length === 1) mediaAssetId = candidates[0].id;
+    }
+
+    const authority = await validateMealImageAuthority(parsed.data.imageUrl);
+    if (authority.status === "unavailable") {
+      console.log(JSON.stringify({ event: "board_image_recovery", outcome: "retry", mealId: parsed.data.mealId }));
+      return res.json({ status: "retry", imageUrl: parsed.data.imageUrl });
+    }
+    if (authority.status === "available") {
+      return res.json({ status: "retry", imageUrl: authority.canonicalUrl });
+    }
+
+    const { finalizeMealImage } = await import("../services/mealFinalizer");
+    const result = await finalizeMealImage({
+      meal: {
+        ...target.meal,
+        name: target.meal.name || target.meal.title || "Meal",
+      },
+      sourceType: slot === "snacks" ? "snack" : "meal",
+    });
+    if (!result.imageUrl || !result.mediaAssetId) {
+      console.log(JSON.stringify({ event: "board_image_recovery", outcome: "failed", mealId: parsed.data.mealId }));
+      return res.json({ status: "unavailable" });
+    }
+
+    const nextBoard = structuredClone(target.row.boardJSON as any);
+    const nextMeals = nextBoard.days[parsed.data.dateISO][slot];
+    const nextIndex = nextMeals.findIndex((meal: any) => String(meal?.id) === parsed.data.mealId);
+    if (nextIndex < 0 ||
+        nextMeals[nextIndex]?.imageUrl !== parsed.data.imageUrl ||
+        (target.meal.mediaAssetId && nextMeals[nextIndex]?.mediaAssetId !== target.meal.mediaAssetId)) {
+      return res.status(409).json({ error: "Board meal changed while recovery was running" });
+    }
+    nextMeals[nextIndex] = {
+      ...nextMeals[nextIndex],
+      imageUrl: result.imageUrl,
+      mediaAssetId: result.mediaAssetId,
+      imagePending: undefined,
+    };
+    nextBoard.meta = { ...nextBoard.meta, lastUpdatedAt: new Date().toISOString() };
+
+    const updated = await db.update(weekBoards).set({
+      boardJSON: nextBoard,
+      updatedAt: new Date(),
+    }).where(and(
+      eq(weekBoards.userId, target.row.userId),
+      eq(weekBoards.weekStartISO, target.row.weekStartISO),
+      eq(weekBoards.builderType, target.row.builderType),
+      sql`${weekBoards.boardJSON} = ${JSON.stringify(target.row.boardJSON)}::jsonb`,
+    )).returning({ userId: weekBoards.userId });
+    if (updated.length !== 1) {
+      return res.status(409).json({ error: "Board changed while image recovery was running" });
+    }
+
+    console.log(JSON.stringify({
+      event: "board_image_recovery",
+      outcome: "recovered",
+      mealId: parsed.data.mealId,
+      mediaAssetId: result.mediaAssetId,
+      legacyRelationshipAttached: !target.meal.mediaAssetId && Boolean(mediaAssetId),
+    }));
+    return res.json({
+      status: "recovered",
+      imageUrl: result.imageUrl,
+      mediaAssetId: result.mediaAssetId,
+    });
+  });
+
   app.get("/api/week-board", (req: Request, res: Response) => {
     if (!store.board) {
       const today = new Date().toISOString().slice(0,10);
@@ -1044,6 +1182,7 @@ export default function weekBoardRoutes(app: Express) {
         },
         // Preserve extended fields
         imageUrl: meal.imageUrl,
+        mediaAssetId: UUID_RE.test(String(meal.mediaAssetId ?? "")) ? meal.mediaAssetId : undefined,
         description: meal.description,
         cookingTime: meal.cookingTime,
         difficulty: meal.difficulty,
