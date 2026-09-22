@@ -1,6 +1,7 @@
 import { useProClient } from "@/contexts/ProClientContext";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { User2, LogOut, ChevronLeft } from "lucide-react";
+import { sanitizeMyPerfectMenuReturnTarget } from "@/lib/myPerfectMenuReturn";
 
 export interface ProtocolBadge {
   label: string;
@@ -19,6 +20,12 @@ interface BuilderHeaderProps {
 export function BuilderHeader({ title, onOpenTour, clientId, protocols, backTo, backLabel }: BuilderHeaderProps) {
   const { client, isProCareMode } = useProClient();
   const [, setLocation] = useLocation();
+  const search = useSearch();
+  const myPerfectMenuReturn = sanitizeMyPerfectMenuReturnTarget(
+    new URLSearchParams(search).get("returnTo"),
+  );
+  const effectiveBackTo = myPerfectMenuReturn ?? backTo;
+  const effectiveBackLabel = myPerfectMenuReturn ? "My Perfect Menu" : backLabel;
 
   const isInStudioClientContext = isProCareMode && !!client && !!clientId;
 
@@ -29,14 +36,14 @@ export function BuilderHeader({ title, onOpenTour, clientId, protocols, backTo, 
     >
       <div className="px-4 py-3 flex flex-col gap-2">
         <div className="flex items-center gap-2 flex-nowrap overflow-hidden">
-          {backTo && !isInStudioClientContext && (
+          {effectiveBackTo && !isInStudioClientContext && (
             <button
-              onClick={() => setLocation(backTo)}
+              onClick={() => setLocation(effectiveBackTo)}
               className="flex items-center gap-1 text-white/80 active:text-white transition-colors flex-shrink-0 -ml-1 pr-1"
-              aria-label={`Back to ${backLabel ?? "Hub"}`}
+              aria-label={`Back to ${effectiveBackLabel ?? "Hub"}`}
             >
               <ChevronLeft className="w-5 h-5" />
-              <span className="text-sm font-medium">{backLabel ?? "Hub"}</span>
+              <span className="text-sm font-medium">{effectiveBackLabel ?? "Hub"}</span>
             </button>
           )}
           <h1 className="text-lg font-bold text-white flex-1 min-w-0 break-words leading-tight">
