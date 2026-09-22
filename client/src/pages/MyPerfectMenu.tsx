@@ -102,6 +102,7 @@ function completedMealPayload(meal: any) {
     title: meal.name || meal.title,
     description: meal.description,
     imageUrl: meal.imageUrl,
+    mediaAssetId: meal.mediaAssetId,
     ingredients: meal.ingredients,
     instructions: meal.instructions,
     calories: meal.calories || meal.nutrition?.calories,

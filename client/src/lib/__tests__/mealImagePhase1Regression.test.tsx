@@ -146,6 +146,67 @@ describe("MealImageSlot — permanent URL recovery", () => {
     mockPost.mockReset();
   });
 
+  it("uses the persisted Board identity and replaces a recovered URL", async () => {
+    const brokenUrl = "/public-objects/test-bucket/meal-images/board-broken.jpg";
+    const restoredUrl = "/public-objects/test-bucket/meal-images/board-restored.jpg";
+    mockPost.mockResolvedValueOnce({ status: "recovered", imageUrl: restoredUrl } as any);
+    const boardTarget = {
+      weekStartISO: "2026-09-21",
+      dateISO: "2026-09-22",
+      slot: "dinner",
+      mealId: "meal-board-1",
+      builderType: "generalNutrition",
+    };
+    const { container } = render(
+      <MealImageSlot
+        imageUrl={brokenUrl}
+        mealName="Board Dinner"
+        ingredients={["salmon"]}
+        mediaAssetId="11111111-1111-4111-8111-111111111111"
+        boardTarget={boardTarget}
+      />,
+    );
+
+    fireEvent.error(container.querySelector("img")!);
+
+    await waitFor(() => {
+      expect(mockPost).toHaveBeenCalledWith(
+        "/api/weekly-board/image-recovery",
+        expect.objectContaining({
+          ...boardTarget,
+          imageUrl: brokenUrl,
+          mediaAssetId: "11111111-1111-4111-8111-111111111111",
+        }),
+      );
+      expect(container.querySelector("img")).toHaveAttribute("src", restoredUrl);
+    });
+  });
+
+  it("remembers a terminal Board recovery failure across remounts", async () => {
+    const brokenUrl = "/public-objects/test-bucket/meal-images/terminal-board.jpg";
+    const boardTarget = {
+      weekStartISO: "2026-09-21",
+      dateISO: "2026-09-22",
+      slot: "lunch",
+      mealId: "meal-board-terminal",
+    };
+    mockPost.mockResolvedValueOnce({ status: "unavailable" } as any);
+    const first = render(
+      <MealImageSlot imageUrl={brokenUrl} mealName="Board Lunch" boardTarget={boardTarget} />,
+    );
+    fireEvent.error(first.container.querySelector("img")!);
+    await waitFor(() => expect(first.container.textContent).toContain("Image unavailable"));
+    expect(mockPost).toHaveBeenCalledTimes(1);
+    first.unmount();
+
+    const second = render(
+      <MealImageSlot imageUrl={brokenUrl} mealName="Board Lunch" boardTarget={boardTarget} />,
+    );
+    fireEvent.error(second.container.querySelector("img")!);
+    await waitFor(() => expect(second.container.textContent).toContain("Image unavailable"));
+    expect(mockPost).toHaveBeenCalledTimes(1);
+  });
+
   it("reports a broken permanent URL and loads one regenerated replacement", async () => {
     const brokenUrl = "/public-objects/test-bucket/meal-images/broken-display.jpg";
     const restoredUrl = "/public-objects/test-bucket/meal-images/restored-display.jpg";
