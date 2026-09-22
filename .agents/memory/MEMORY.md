@@ -111,3 +111,4 @@
 - [Restrictive-diet generation contract](restrictive-diet-generation-contract.md) — generation and validation must share the same dietary universe; diversity stays inside it.
 - [Customer release identity](customer-release-identity.md) — build metadata stays separate; one explicit release ID owns notes, timestamp, comparison, and dismissal.
 - [Nutrition Priorities authority](nutrition-priorities-authority.md) — subject-owned optional food inclusion guidance enters HFC identity; release DDL stays explicitly gated.
+- [Non-actionable heat preferences](non-actionable-heat-preferences.md) — “unsure” is retained profile state but never an enforceable recipe heat target.

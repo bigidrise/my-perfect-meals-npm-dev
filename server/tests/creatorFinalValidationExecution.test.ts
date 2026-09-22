@@ -2,6 +2,7 @@ import { HUMAN_FOOD_CONTEXT_VERSION, type HumanFoodContext } from "../../shared/
 import type { HumanFoodCandidate } from "../../shared/humanFoodValidation";
 import { enforceFinalCreatorCandidates } from "../services/humanFoodContext/enforceFinalCreatorCandidates";
 import { validateHumanFoodCandidate } from "../services/humanFoodContext/finalValidation";
+import { resolveFlavorCompatibility } from "../services/humanFoodContext/flavorCompatibility";
 import { createHumanFoodRequestExecutionState } from "../services/humanFoodContext/requestExecutionState";
 
 const unavailable = { value: null, source: "unavailable" as const, available: false };
@@ -95,10 +96,13 @@ describe("Stage 2C creator final-validation execution", () => {
   ])("keeps Mediterranean request authority through validation and repair with %s", async (_label, selectedPriorityIds) => {
     const foodContext = context({
       creator: "create_a_dish",
-      flavor: {
-        ...context().flavor,
-        cuisine: { value: "Mediterranean", source: "request", available: true },
-      },
+      flavor: resolveFlavorCompatibility(
+        {
+          cuisinePreference: "American",
+          heatPreference: "unsure",
+        },
+        { cuisine: "Mediterranean" },
+      ),
       nutritionPriorities: {
         schemaVersion: 1,
         registryVersion: "nutrition-priorities.v1",
@@ -114,6 +118,7 @@ describe("Stage 2C creator final-validation execution", () => {
         evidence: {
           ...candidate("", []).evidence,
           cuisine: "Mediterranean",
+          heat: "mild",
         },
       },
     );
@@ -124,14 +129,25 @@ describe("Stage 2C creator final-validation execution", () => {
         evidence: {
           ...candidate("", []).evidence,
           cuisine: "American",
+          heat: "medium",
         },
       },
     );
 
+    expect(foodContext.flavor.heat).toEqual({
+      value: null,
+      source: "unavailable",
+      available: false,
+    });
     expect(validate(mediterranean).outcome).toBe("pass");
-    expect(validate(american).findings).toEqual(expect.arrayContaining([
+    const americanValidation = validate(american);
+    expect(americanValidation.findings).toEqual(expect.arrayContaining([
       expect.objectContaining({ code: "cuisine_mismatch", outcome: "repairable" }),
     ]));
+    expect(americanValidation.findings).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "heat_mismatch" }),
+    ]));
+    expect(americanValidation.repairInstructions.join(" ")).not.toContain("unsure");
 
     const result = await enforceFinalCreatorCandidates({
       candidates: [american],
@@ -145,6 +161,61 @@ describe("Stage 2C creator final-validation execution", () => {
     expect(result.accepted).toEqual([mediterranean]);
     expect(result.validations.every(({ result: item }) =>
       item.authoritativeContextFingerprint === "one-authoritative-context")).toBe(true);
+  });
+
+  it.each([
+    ["spicy Mediterranean pasta", "hot"],
+    ["mild Mediterranean pasta", "mild"],
+  ])("keeps explicit request heat authoritative for %s", (requestedDish, requestedHeat) => {
+    const foodContext = context({
+      creator: "create_a_dish",
+      flavor: resolveFlavorCompatibility(
+        { heatPreference: "unsure" },
+        { cuisine: "Mediterranean", heat: requestedHeat },
+      ),
+    });
+    expect(foodContext.flavor.heat).toEqual({
+      value: requestedHeat,
+      source: "request",
+      available: true,
+    });
+
+    const matching = validateHumanFoodCandidate(candidate(
+      "Mediterranean Pasta",
+      ["pasta", "tomato", "olive oil"],
+      {
+        evidence: {
+          ...candidate("", []).evidence,
+          cuisine: "Mediterranean",
+          heat: requestedHeat,
+        },
+      },
+    ), foodContext, { requestedDish, requestedCategory: "dinner" });
+    expect(matching.findings).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "heat_mismatch" }),
+    ]));
+
+    const mismatch = validateHumanFoodCandidate(candidate(
+      "Mediterranean Pasta",
+      ["pasta", "tomato", "olive oil"],
+      {
+        evidence: {
+          ...candidate("", []).evidence,
+          cuisine: "Mediterranean",
+          heat: requestedHeat === "hot" ? "mild" : "hot",
+        },
+      },
+    ), foodContext, {
+      requestedDish,
+      requestedCategory: "dinner",
+      executionState: createHumanFoodRequestExecutionState(),
+    });
+    expect(mismatch.findings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "heat_mismatch", outcome: "repairable" }),
+    ]));
+    expect(mismatch.repairInstructions.join(" ")).toContain(
+      `Keep heat aligned to "${requestedHeat}"`,
+    );
   });
 
   it("never repairs or leaks a blocked allergy candidate", async () => {

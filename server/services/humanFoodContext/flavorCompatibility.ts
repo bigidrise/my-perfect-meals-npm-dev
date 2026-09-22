@@ -26,6 +26,18 @@ function clean(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+const NON_ACTIONABLE_HEAT_PREFERENCES = new Set([
+  "unsure",
+  "unknown",
+]);
+
+function actionableHeat(value: unknown): string | null {
+  const cleaned = clean(value);
+  return cleaned && !NON_ACTIONABLE_HEAT_PREFERENCES.has(cleaned.toLowerCase())
+    ? cleaned
+    : null;
+}
+
 function preference(
   current: unknown,
   legacy: unknown,
@@ -42,6 +54,21 @@ function preference(
   return { value: null, source: "unavailable", available: false };
 }
 
+function heatPreference(profile: ProfileFlavorFields): ResolvedFoodPreference {
+  const current = clean(profile.heatPreference);
+  if (current) {
+    const actionable = actionableHeat(current);
+    return actionable
+      ? { value: actionable, source: "current_profile", available: true }
+      : { value: null, source: "unavailable", available: false };
+  }
+
+  const legacy = actionableHeat(profile.palateSpiceTolerance);
+  return legacy && legacy.toLowerCase() !== "mild"
+    ? { value: legacy, source: "legacy_profile", available: true }
+    : { value: null, source: "unavailable", available: false };
+}
+
 function requestFirst(request: unknown, fallback: ResolvedFoodPreference): ResolvedFoodPreference {
   const value = clean(request);
   return value
@@ -53,10 +80,7 @@ export function resolveFlavorCompatibility(
   profile: ProfileFlavorFields,
   request: RequestFlavorFields = {},
 ): HumanFoodFlavorContext {
-  const heat = requestFirst(
-    request.heat,
-    preference(profile.heatPreference, profile.palateSpiceTolerance, "mild"),
-  );
+  const heat = requestFirst(actionableHeat(request.heat), heatPreference(profile));
   const seasoningIntensity = requestFirst(
     request.seasoningIntensity,
     // "balanced" is a database default, so it is not treated as explicit legacy intent.
