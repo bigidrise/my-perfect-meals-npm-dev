@@ -11,6 +11,8 @@ import {
   mealHonorsCreateDishIntent,
   relaxSystemSelectedCreateDishIntent,
   revalidateCreateDishIntent,
+  resolveCreateDishCuisineAuthority,
+  resolveValidatedCreateDishCuisine,
 } from "../services/createDish/createDishIntent";
 import { expandCreateDishIngredient } from "../services/createDish/ingredientExpansionService";
 import { resolveVarietyClassificationInput } from "../services/createDish/varietyClassificationInput";
@@ -92,6 +94,81 @@ async function intentFor(
 }
 
 describe("Create a Dish generation intent", () => {
+  test("preserves explicit Mediterranean cuisine while canonicalizing pasta identity", async () => {
+    const raw = CreateDishIntentSchema.parse({
+      creator: "create_a_dish",
+      originalText: "Mediterranean pasta",
+      cuisine: "Mediterranean",
+      ingredient: {
+        canonicalId: "semantic-mediterranean-pasta",
+        canonicalName: "Mediterranean pasta",
+        category: "prepared-dish",
+      },
+      resolvedCombination: {
+        form: null,
+        texture: null,
+        flavor: null,
+        selectionSource: {
+          form: "not_applicable",
+          texture: "not_applicable",
+          flavor: "not_applicable",
+        },
+      },
+    });
+
+    expect(resolveValidatedCreateDishCuisine(raw)).toBe("Mediterranean");
+    const validated = await revalidateCreateDishIntent(raw, []);
+    expect(validated).toMatchObject({
+      cuisine: "Mediterranean",
+      ingredient: {
+        canonicalId: "semantic-pasta",
+        canonicalName: "pasta",
+      },
+    });
+    expect(buildCreateDishIntentPrompt(validated)).toContain(
+      "Requested cuisine: Mediterranean",
+    );
+    expect(buildCreateDishIntentPrompt(validated)).toContain(
+      "Primary ingredient: pasta",
+    );
+    expect(buildCreateDishIntentPrompt(validated)).not.toContain(
+      "Primary ingredient: Mediterranean pasta",
+    );
+  });
+
+  test("rejects arbitrary client cuisine and gives manual selection deterministic precedence", () => {
+    const raw = CreateDishIntentSchema.parse({
+      creator: "create_a_dish",
+      originalText: "Mediterranean pasta",
+      cuisine: "Mediterranean",
+      ingredient: {
+        canonicalId: "semantic-pasta",
+        canonicalName: "pasta",
+        category: "prepared-dish",
+      },
+      resolvedCombination: {
+        form: null,
+        texture: null,
+        flavor: null,
+        selectionSource: {
+          form: "not_applicable",
+          texture: "not_applicable",
+          flavor: "not_applicable",
+        },
+      },
+    });
+
+    expect(resolveCreateDishCuisineAuthority(null, raw)).toBe("Mediterranean");
+    expect(resolveCreateDishCuisineAuthority("Italian", raw)).toBe("Italian");
+    expect(() => resolveCreateDishCuisineAuthority(null, {
+      ...raw,
+      cuisine: "Japanese",
+    })).toThrow("INVALID_CREATE_DISH_CUISINE");
+    expect(resolveCreateDishCuisineAuthority(null, {
+      ...raw,
+      cuisine: null,
+    })).toBeNull();
+  });
   test("revalidates semantic preferences as creative intent, not catalog evidence", async () => {
     const semanticIntent = CreateDishIntentSchema.parse({
       creator: "create_a_dish",

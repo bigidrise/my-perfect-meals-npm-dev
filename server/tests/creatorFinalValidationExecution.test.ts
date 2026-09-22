@@ -89,6 +89,64 @@ describe("Stage 2C creator final-validation execution", () => {
       item.authoritativeContextFingerprint === "one-authoritative-context")).toBe(true);
   });
 
+  it.each([
+    ["Nutrition Priorities ON", ["omega_3_food_sources"]],
+    ["Nutrition Priorities OFF", []],
+  ])("keeps Mediterranean request authority through validation and repair with %s", async (_label, selectedPriorityIds) => {
+    const foodContext = context({
+      creator: "create_a_dish",
+      flavor: {
+        ...context().flavor,
+        cuisine: { value: "Mediterranean", source: "request", available: true },
+      },
+      nutritionPriorities: {
+        schemaVersion: 1,
+        registryVersion: "nutrition-priorities.v1",
+        selectedPriorityIds: selectedPriorityIds as any,
+        updatedAt: "2026-09-22T00:00:00.000Z",
+      },
+    });
+    const validate = validator(foodContext, "pasta");
+    const mediterranean = candidate(
+      "Mediterranean Tomato Pasta",
+      ["pasta", "tomato", "olive oil", "basil"],
+      {
+        evidence: {
+          ...candidate("", []).evidence,
+          cuisine: "Mediterranean",
+        },
+      },
+    );
+    const american = candidate(
+      "American Cream Sauce Pasta",
+      ["pasta", "cream", "cheddar"],
+      {
+        evidence: {
+          ...candidate("", []).evidence,
+          cuisine: "American",
+        },
+      },
+    );
+
+    expect(validate(mediterranean).outcome).toBe("pass");
+    expect(validate(american).findings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "cuisine_mismatch", outcome: "repairable" }),
+    ]));
+
+    const result = await enforceFinalCreatorCandidates({
+      candidates: [american],
+      validate,
+      repair: async (instructions) => {
+        expect(instructions.join(" ")).toContain('Keep cuisine aligned to "Mediterranean"');
+        return [mediterranean];
+      },
+    });
+    expect(result.repairAttempted).toBe(true);
+    expect(result.accepted).toEqual([mediterranean]);
+    expect(result.validations.every(({ result: item }) =>
+      item.authoritativeContextFingerprint === "one-authoritative-context")).toBe(true);
+  });
+
   it("never repairs or leaks a blocked allergy candidate", async () => {
     const repair = jest.fn(async () => []);
     const result = await enforceFinalCreatorCandidates({
