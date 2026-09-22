@@ -108,6 +108,7 @@
 - [My Perfect Menu context authority](my-perfect-menu-context-authority.md) — revalidate opaque per-category authority before selection; household boards use server-derived namespaces.
 - [My Perfect Menu builder authority](my-perfect-menu-builder-authority.md) — one server-resolved builder governs generation, board scope, cache events, and destination.
 - [My Perfect Menu stable choices](my-perfect-menu-stable-choices.md) — keep one stable set of three; Builders create meals and Favorites preserves them.
+- [My Perfect Menu restoration payloads](my-perfect-menu-restoration-payloads.md) — remount APIs must return full authoritative JSON and never treat transport failure as an empty set.
 - [Restrictive-diet generation contract](restrictive-diet-generation-contract.md) — generation and validation must share the same dietary universe; diversity stays inside it.
 - [Customer release identity](customer-release-identity.md) — build metadata stays separate; one explicit release ID owns notes, timestamp, comparison, and dismissal.
 - [Nutrition Priorities authority](nutrition-priorities-authority.md) — subject-owned optional food inclusion guidance enters HFC identity; release DDL stays explicitly gated.

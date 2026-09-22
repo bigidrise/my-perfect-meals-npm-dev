@@ -41,6 +41,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { MyPerfectMenuBuilderContext } from "@shared/builderNamespaces";
 import { buildMyPerfectMenuReturnTarget } from "@/lib/myPerfectMenuReturn";
+import {
+  shouldGenerateMissingMyPerfectMenuCategory,
+  type MyPerfectMenuRestorationStatus,
+} from "@/lib/myPerfectMenuRestoration";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PerformanceNutritionSetupForm from "@/components/performance/PerformanceNutritionSetupForm";
 import { getTodayISOSafe } from "@/utils/midnight";
@@ -183,6 +187,7 @@ export default function MyPerfectMenu() {
   const [performanceSlot, setPerformanceSlot] = useState<MealPlanDestination["slot"] | null>(null);
   const [performanceSetupOpen, setPerformanceSetupOpen] = useState(false);
   const [builderRefreshEpoch, setBuilderRefreshEpoch] = useState(0);
+  const [restorationStatus, setRestorationStatus] = useState<MyPerfectMenuRestorationStatus>("loading");
   const handledReturnRef = useRef(false);
   const subjectRef = useRef(subjectUserId ?? user?.id ?? null);
   const subjectEpochRef = useRef(0);
@@ -233,6 +238,7 @@ export default function MyPerfectMenu() {
     setPickerOpen(false);
     setTryMoreOpen(false);
     setError(null);
+    setRestorationStatus("loading");
     let cancelled = false;
     const params = new URLSearchParams();
     if (subjectUserId) params.set("subjectUserId", subjectUserId);
@@ -265,9 +271,13 @@ export default function MyPerfectMenu() {
         const expectedSubject = subjectUserId ?? user?.id;
         if (payload.subject?.id && payload.subject.id !== expectedSubject) return;
         setConceptSets(payload.categories ?? {});
+        setRestorationStatus("succeeded");
         if (payload.builder) setBuilderContext(payload.builder);
       } catch (cause) {
-        if (!cancelled) setError(cause instanceof Error ? cause.message : "We couldn't restore your menu ideas.");
+        if (!cancelled) {
+          setRestorationStatus("failed");
+          setError(cause instanceof Error ? cause.message : "We couldn't restore your menu ideas.");
+        }
       }
     })();
     return () => { cancelled = true; };
@@ -433,12 +443,21 @@ export default function MyPerfectMenu() {
 
   const openCategory = (nextType: IdeaType) => {
     setIdeaType(nextType);
+    if (restorationStatus === "failed") {
+      setError("We couldn't restore your saved menu ideas. Please reload before creating new ones.");
+      return;
+    }
     setError(null);
     if (builderContext?.key === "performance_competition" && !performanceDestination) {
       setPendingIdeaType(nextType);
       return;
     }
-    if (!conceptSets[nextType]?.length) void prepareIdeaRequest(nextType);
+    if (shouldGenerateMissingMyPerfectMenuCategory(
+      restorationStatus,
+      conceptSets[nextType]?.length ?? 0,
+    )) {
+      void prepareIdeaRequest(nextType);
+    }
   };
 
   const startPerformanceIdeas = async () => {
