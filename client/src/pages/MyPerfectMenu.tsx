@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   Coffee,
   Cookie,
-  Loader2,
   Sparkles,
   Soup,
   UtensilsCrossed,
@@ -48,6 +47,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PerformanceNutritionSetupForm from "@/components/performance/PerformanceNutritionSetupForm";
 import { getTodayISOSafe } from "@/utils/midnight";
+import { BouncingDots } from "@/components/ui/bouncing-dots";
 
 type IdeaType = "breakfast" | "lunch" | "dinner" | "snack";
 
@@ -166,7 +166,7 @@ export default function MyPerfectMenu() {
       builderType: "performanceCompetition",
     };
   }, [search]);
-  const [ideaType, setIdeaType] = useState<IdeaType | null>(null);
+  const [ideaType, setIdeaType] = useState<IdeaType | null>(() => returnedIdeaType);
   const [conceptSets, setConceptSets] = useState<ConceptSets>({});
   const [selectedConcept, setSelectedConcept] = useState<MenuConcept | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -864,7 +864,7 @@ export default function MyPerfectMenu() {
                    </p>
                  )}
               </div>
-               {!loadingIdeas && (
+               {!loadingIdeas && restorationStatus === "succeeded" && (
                  <div className="flex gap-2">
                     {builderContext?.key === "performance_competition" && (
                       <button
@@ -933,9 +933,16 @@ export default function MyPerfectMenu() {
                </div>
              )}
 
-            {loadingContext && (
-              <div className="mt-6 flex min-h-32 flex-col items-center justify-center rounded-3xl border border-violet-300/20 bg-black/45">
-                <Loader2 className="h-7 w-7 animate-spin text-violet-300" />
+             {restorationStatus === "loading" && (
+               <div role="status" aria-live="polite" className="mt-6 flex min-h-32 flex-col items-center justify-center rounded-3xl border border-violet-300/20 bg-black/45">
+                 <BouncingDots />
+                 <p className="mt-3 text-sm font-semibold">Restoring your {activeType?.title ?? "Menu Ideas"}…</p>
+               </div>
+             )}
+
+             {restorationStatus !== "loading" && loadingContext && (
+               <div role="status" aria-live="polite" className="mt-6 flex min-h-32 flex-col items-center justify-center rounded-3xl border border-violet-300/20 bg-black/45">
+                 <BouncingDots />
                 <p className="mt-3 text-sm font-semibold">Checking your current food context…</p>
               </div>
             )}
@@ -1040,13 +1047,13 @@ export default function MyPerfectMenu() {
               </>
             )}
 
-            {!loadingContext && !pendingIdeaType && loadingIdeas && concepts.length === 0 ? (
-              <div className="mt-6 flex min-h-56 flex-col items-center justify-center rounded-3xl border border-violet-300/20 bg-black/45 px-6 text-center">
-                <Loader2 className="h-8 w-8 animate-spin text-violet-300" />
-                <p className="mt-4 font-semibold">Creating three ideas for you…</p>
+             {restorationStatus !== "loading" && !loadingContext && !pendingIdeaType && loadingIdeas && concepts.length === 0 ? (
+               <div role="status" aria-live="polite" className="mt-6 flex min-h-56 flex-col items-center justify-center rounded-3xl border border-violet-300/20 bg-black/45 px-6 text-center">
+                 <BouncingDots />
+                 <p className="mt-4 font-semibold">Creating your {activeType?.title ?? "Menu Ideas"}…</p>
                 <p className="mt-1 max-w-xs text-sm leading-relaxed text-white/45">Using your food preferences and current nutrition context.</p>
               </div>
-            ) : !loadingContext && !pendingIdeaType ? (
+             ) : restorationStatus !== "loading" && !loadingContext && !pendingIdeaType ? (
               <div className="mt-5 grid gap-4">
                 {concepts.map((concept, index) => (
                   <article key={concept.id} className="overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-r from-black via-violet-950/35 to-black shadow-2xl">
@@ -1065,8 +1072,8 @@ export default function MyPerfectMenu() {
               </div>
             ) : null}
             {loadingIdeas && concepts.length > 0 && (
-              <div className="mt-4 flex items-center justify-center gap-2 text-sm font-semibold text-violet-200">
-                <Loader2 className="h-4 w-4 animate-spin" /> Creating three new ideas to replace these choices…
+               <div role="status" aria-live="polite" className="mt-4 flex items-center justify-center gap-3 text-sm font-semibold text-violet-200">
+                 <BouncingDots dotClassName="h-2 w-2" /> Creating 3 new {activeType?.title ?? "Menu Ideas"}…
               </div>
             )}
           </section>

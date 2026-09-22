@@ -52,7 +52,7 @@ describe("My Perfect Menu shared culinary breadth", () => {
       const selectedAcrossCycles: ReturnType<typeof concept>[] = [];
       const forms = occasionForms[occasion];
 
-      for (let cycle = 0; cycle < 7; cycle += 1) {
+      for (let cycle = 0; cycle < 10; cycle += 1) {
         const repetitiveBowls = [0, 1, 2].map((offset) =>
           concept(occasion, "bowl", cycle * 10 + offset, {
             title: `${["Rustic", "Bright", "Garden"][offset]} ${occasion} bowl ${cycle}`,
@@ -86,9 +86,9 @@ describe("My Perfect Menu shared culinary breadth", () => {
         ].slice(0, 96);
       }
 
-      expect(selectedAcrossCycles).toHaveLength(21);
-      expect(new Set(selectedAcrossCycles.map((item) => item.culinaryIdentity.dishForm)).size).toBeGreaterThanOrEqual(7);
-      expect(selectedAcrossCycles.filter((item) => item.culinaryIdentity.dishForm === "bowl").length).toBeLessThan(7);
+      expect(selectedAcrossCycles).toHaveLength(30);
+      expect(new Set(selectedAcrossCycles.map((item) => item.culinaryIdentity.dishForm)).size).toBeGreaterThanOrEqual(9);
+      expect(selectedAcrossCycles.filter((item) => item.culinaryIdentity.dishForm === "bowl").length).toBeLessThan(10);
     },
   );
 

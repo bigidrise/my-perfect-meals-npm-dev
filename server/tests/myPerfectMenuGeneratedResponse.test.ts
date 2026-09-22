@@ -86,6 +86,51 @@ describe("My Perfect Menu generated response normalization", () => {
     ]));
   });
 
+  it("repairs safely reconstructable metadata without changing the dish", () => {
+    const parsed = parseGeneratedMenuCandidates({
+      concepts: [{
+        title: "Skillet Eggs with Tomatoes",
+        description: "Eggs cooked with tomatoes, spinach, and herbs.",
+        primaryIngredients: ["eggs", "tomatoes", "spinach", "herbs"],
+        primaryProtein: "eggs",
+        produceItems: ["tomatoes", "spinach"],
+        cuisine: "Mediterranean",
+        preparationMethod: "skillet cooked",
+      }],
+    }, "breakfast");
+
+    expect(parsed.rejectionCodes).toEqual([]);
+    expect(parsed.metadataRepairCount).toBe(1);
+    expect(parsed.candidates[0]).toEqual(expect.objectContaining({
+      title: "Skillet Eggs with Tomatoes",
+      primaryIngredients: ["eggs", "tomatoes", "spinach", "herbs"],
+      dietaryEvidence: [],
+      signature: expect.stringContaining("Skillet Eggs with Tomatoes"),
+      culinaryIdentity: expect.objectContaining({
+        preparationStyle: "skillet cooked",
+        primaryProteinBase: "eggs",
+        cuisineEvidence: "Mediterranean",
+      }),
+    }));
+  });
+
+  it("does not rescue a candidate whose actual food description is incomplete", () => {
+    const parsed = parseGeneratedMenuCandidates({
+      concepts: [{
+        title: "Mystery Breakfast",
+        description: "A breakfast idea.",
+        primaryIngredients: ["eggs"],
+        cuisine: "American",
+        preparationMethod: "cooked",
+      }],
+    }, "breakfast");
+
+    expect(parsed.candidates).toEqual([]);
+    expect(parsed.rejectionCodes).toEqual(expect.arrayContaining([
+      expect.stringContaining("schema_metadata_failure"),
+    ]));
+  });
+
   it("accepts syntactic cuisine-label variants without weakening cuisine identity", () => {
     expect(cuisineLabelsCompatible("Italian-inspired cuisine", "Italian")).toBe(true);
     expect(cuisineLabelsCompatible("Traditional Japanese cooking", "Japanese cuisine")).toBe(true);
