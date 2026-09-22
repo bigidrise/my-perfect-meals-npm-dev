@@ -1027,7 +1027,7 @@ Respond with ONLY valid JSON in this exact format:
        "evidence": {
          "cuisine": "The cuisine this finished recipe actually expresses, or null",
          "cuisineIntensity": "subtle, balanced, authentic, or null",
-         "heat": "mild, medium, hot, or null",
+         "heat": "none, mild, medium, hot, very-hot, or null",
          "seasoningIntensity": "light, balanced, strong, or null",
          "broadFlavor": "The dominant finished flavor, or null",
          "flavorStyle": "The finished flavor style, or null",
@@ -1887,7 +1887,7 @@ OUTPUT FORMAT — ONLY valid JSON, no markdown:
       "evidence": {
         "cuisine": "The cuisine this finished recipe actually expresses, or null",
         "cuisineIntensity": "subtle, balanced, authentic, or null",
-        "heat": "mild, medium, hot, or null",
+        "heat": "none, mild, medium, hot, very-hot, or null",
         "seasoningIntensity": "light, balanced, strong, or null",
         "broadFlavor": "The dominant finished flavor, or null",
         "flavorStyle": "The finished flavor style, or null",
@@ -1980,7 +1980,7 @@ OUTPUT FORMAT — ONLY valid JSON, no markdown:
        "evidence": {
          "cuisine": "The cuisine this finished recipe actually expresses, or null",
          "cuisineIntensity": "subtle, balanced, authentic, or null",
-         "heat": "mild, medium, hot, or null",
+         "heat": "none, mild, medium, hot, very-hot, or null",
          "seasoningIntensity": "light, balanced, strong, or null",
          "broadFlavor": "The dominant finished flavor, or null",
          "flavorStyle": "The finished flavor style, or null",

@@ -1,4 +1,5 @@
 import { resolveFlavorCompatibility } from "../services/humanFoodContext/flavorCompatibility";
+import { normalizeGeneratedFoodIdentityEvidence } from "../services/generatedFoodIdentityEvidence";
 
 describe("Human Food Context heat authority", () => {
   it.each(["unsure", "UNSURE", "unknown"])(
@@ -60,4 +61,41 @@ describe("Human Food Context heat authority", () => {
       });
     },
   );
+
+  it.each(["unsure", "UNKNOWN"])(
+    "normalizes non-actionable broad flavor sentinel %s to unavailable",
+    (flavorPreference) => {
+      expect(resolveFlavorCompatibility({ flavorPreference }).broadFlavor).toEqual({
+        value: null,
+        source: "unavailable",
+        available: false,
+      });
+    },
+  );
+
+  it("keeps actionable saved broad flavor as profile guidance", () => {
+    expect(resolveFlavorCompatibility({
+      flavorPreference: "comfort",
+    }).broadFlavor).toEqual({
+      value: "comfort",
+      source: "current_profile",
+      available: true,
+    });
+  });
+
+  it("keeps explicit broad flavor as request authority", () => {
+    expect(resolveFlavorCompatibility(
+      { flavorPreference: "comfort" },
+      { broadFlavor: "savory" },
+    ).broadFlavor).toEqual({
+      value: "savory",
+      source: "request",
+      available: true,
+    });
+  });
+
+  it("keeps known no-heat evidence distinct from missing heat evidence", () => {
+    expect(normalizeGeneratedFoodIdentityEvidence({ heat: "none" })?.heat).toBe("none");
+    expect(normalizeGeneratedFoodIdentityEvidence({ heat: null })?.heat).toBeUndefined();
+  });
 });

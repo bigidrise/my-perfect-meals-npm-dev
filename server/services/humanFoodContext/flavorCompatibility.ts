@@ -31,12 +31,26 @@ const NON_ACTIONABLE_HEAT_PREFERENCES = new Set([
   "unknown",
 ]);
 
-function actionableHeat(value: unknown): string | null {
+const NON_ACTIONABLE_BROAD_FLAVOR_PREFERENCES = new Set([
+  "unsure",
+  "unknown",
+]);
+
+function actionablePreference(
+  value: unknown,
+  nonActionableValues: ReadonlySet<string>,
+): string | null {
   const cleaned = clean(value);
-  return cleaned && !NON_ACTIONABLE_HEAT_PREFERENCES.has(cleaned.toLowerCase())
+  return cleaned && !nonActionableValues.has(cleaned.toLowerCase())
     ? cleaned
     : null;
 }
+
+const actionableHeat = (value: unknown) =>
+  actionablePreference(value, NON_ACTIONABLE_HEAT_PREFERENCES);
+
+const actionableBroadFlavor = (value: unknown) =>
+  actionablePreference(value, NON_ACTIONABLE_BROAD_FLAVOR_PREFERENCES);
 
 function preference(
   current: unknown,
@@ -69,6 +83,16 @@ function heatPreference(profile: ProfileFlavorFields): ResolvedFoodPreference {
     : { value: null, source: "unavailable", available: false };
 }
 
+function broadFlavorPreference(profile: ProfileFlavorFields): ResolvedFoodPreference {
+  const current = clean(profile.flavorPreference);
+  if (!current) return { value: null, source: "unavailable", available: false };
+
+  const actionable = actionableBroadFlavor(current);
+  return actionable
+    ? { value: actionable, source: "current_profile", available: true }
+    : { value: null, source: "unavailable", available: false };
+}
+
 function requestFirst(request: unknown, fallback: ResolvedFoodPreference): ResolvedFoodPreference {
   const value = clean(request);
   return value
@@ -87,8 +111,8 @@ export function resolveFlavorCompatibility(
     preference(null, profile.palateSeasoningIntensity, "balanced"),
   );
   const broadFlavor = requestFirst(
-    request.broadFlavor,
-    preference(profile.flavorPreference, null),
+    actionableBroadFlavor(request.broadFlavor),
+    broadFlavorPreference(profile),
   );
   const flavorStyle = requestFirst(
     request.flavorStyle,

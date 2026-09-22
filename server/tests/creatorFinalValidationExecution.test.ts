@@ -3,6 +3,7 @@ import type { HumanFoodCandidate } from "../../shared/humanFoodValidation";
 import { enforceFinalCreatorCandidates } from "../services/humanFoodContext/enforceFinalCreatorCandidates";
 import { validateHumanFoodCandidate } from "../services/humanFoodContext/finalValidation";
 import { resolveFlavorCompatibility } from "../services/humanFoodContext/flavorCompatibility";
+import { buildHumanFoodPromptBlock } from "../services/humanFoodContext/buildHumanFoodPromptBlock";
 import { createHumanFoodRequestExecutionState } from "../services/humanFoodContext/requestExecutionState";
 
 const unavailable = { value: null, source: "unavailable" as const, available: false };
@@ -26,6 +27,7 @@ function context(overrides: Partial<HumanFoodContext> = {}): HumanFoodContext {
     safety: { allergies: [], avoidedFoods: [], dislikedFoods: [], healthConditions: [] },
     nutrition: null,
     behavior: null,
+    authorization: { status: "not_required", waivers: [] },
     gaps: [],
     notices: [],
     blockedReasons: [],
@@ -99,7 +101,11 @@ describe("Stage 2C creator final-validation execution", () => {
       flavor: resolveFlavorCompatibility(
         {
           cuisinePreference: "American",
-          heatPreference: "unsure",
+          heatPreference: "none",
+          palateSpiceTolerance: "mild",
+          palateSeasoningIntensity: "balanced",
+          palateFlavorStyle: "classic",
+          flavorPreference: "unsure",
         },
         { cuisine: "Mediterranean" },
       ),
@@ -119,6 +125,9 @@ describe("Stage 2C creator final-validation execution", () => {
           ...candidate("", []).evidence,
           cuisine: "Mediterranean",
           heat: "mild",
+          seasoningIntensity: "strong",
+          broadFlavor: "savory",
+          flavorStyle: "bright",
         },
       },
     );
@@ -130,15 +139,21 @@ describe("Stage 2C creator final-validation execution", () => {
           ...candidate("", []).evidence,
           cuisine: "American",
           heat: "medium",
+          seasoningIntensity: "strong",
+          broadFlavor: "savory",
+          flavorStyle: "bright",
         },
       },
     );
 
     expect(foodContext.flavor.heat).toEqual({
-      value: null,
-      source: "unavailable",
-      available: false,
+      value: "none",
+      source: "current_profile",
+      available: true,
     });
+    expect(foodContext.flavor.broadFlavor.available).toBe(false);
+    expect(buildHumanFoodPromptBlock(foodContext)).toContain("- Heat: none");
+    expect(buildHumanFoodPromptBlock(foodContext)).not.toContain("- Broad flavor: unsure");
     expect(validate(mediterranean).outcome).toBe("pass");
     const americanValidation = validate(american);
     expect(americanValidation.findings).toEqual(expect.arrayContaining([
@@ -146,6 +161,9 @@ describe("Stage 2C creator final-validation execution", () => {
     ]));
     expect(americanValidation.findings).not.toEqual(expect.arrayContaining([
       expect.objectContaining({ code: "heat_mismatch" }),
+    ]));
+    expect(americanValidation.findings).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "broad_flavor_mismatch" }),
     ]));
     expect(americanValidation.repairInstructions.join(" ")).not.toContain("unsure");
 
@@ -164,6 +182,7 @@ describe("Stage 2C creator final-validation execution", () => {
   });
 
   it.each([
+    ["Mediterranean pasta with no heat", "none"],
     ["spicy Mediterranean pasta", "hot"],
     ["mild Mediterranean pasta", "mild"],
   ])("keeps explicit request heat authoritative for %s", (requestedDish, requestedHeat) => {
@@ -216,6 +235,94 @@ describe("Stage 2C creator final-validation execution", () => {
     expect(mismatch.repairInstructions.join(" ")).toContain(
       `Keep heat aligned to "${requestedHeat}"`,
     );
+  });
+
+  it.each([
+    ["none", "medium"],
+    ["mild", "hot"],
+    ["hot", "mild"],
+  ])("uses saved heat %s as guidance without rejecting candidate heat %s", (savedHeat, candidateHeat) => {
+    const foodContext = context({
+      creator: "create_a_dish",
+      flavor: resolveFlavorCompatibility({ heatPreference: savedHeat }),
+    });
+    expect(buildHumanFoodPromptBlock(foodContext)).toContain(`- Heat: ${savedHeat}`);
+
+    const result = validateHumanFoodCandidate(candidate(
+      "Mediterranean Pasta",
+      ["pasta", "tomato", "olive oil"],
+      {
+        evidence: {
+          ...candidate("", []).evidence,
+          heat: candidateHeat,
+        },
+      },
+    ), foodContext, {
+      requestedDish: "Mediterranean pasta",
+      requestedCategory: "dinner",
+      executionState: createHumanFoodRequestExecutionState(),
+    });
+    expect(result.findings).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "heat_mismatch" }),
+    ]));
+    expect(result.repairInstructions.join(" ")).not.toContain("Keep heat aligned");
+  });
+
+  it("keeps profile palate fields soft while explicit broad flavor remains enforceable", () => {
+    const profileContext = context({
+      creator: "create_a_dish",
+      flavor: resolveFlavorCompatibility({
+        heatPreference: "mild",
+        flavorPreference: "comfort",
+        palateSeasoningIntensity: "bold",
+        palateFlavorStyle: "bright",
+      }),
+    });
+    const differingCandidate = candidate(
+      "Mediterranean Pasta",
+      ["pasta", "tomato", "olive oil"],
+      {
+        evidence: {
+          ...candidate("", []).evidence,
+          heat: "hot",
+          broadFlavor: "savory",
+          seasoningIntensity: "light",
+          flavorStyle: "classic",
+        },
+      },
+    );
+    const profileResult = validateHumanFoodCandidate(
+      differingCandidate,
+      profileContext,
+      { requestedDish: "Mediterranean pasta", requestedCategory: "dinner" },
+    );
+    expect(profileResult.outcome).toBe("pass");
+
+    const requestContext = context({
+      creator: "create_a_dish",
+      flavor: resolveFlavorCompatibility(
+        {},
+        {
+          broadFlavor: "comfort",
+          seasoningIntensity: "bold",
+          flavorStyle: "bright",
+        },
+      ),
+    });
+    const requestResult = validateHumanFoodCandidate(
+      differingCandidate,
+      requestContext,
+      {
+        requestedDish: "Mediterranean pasta",
+        requestedCategory: "dinner",
+        executionState: createHumanFoodRequestExecutionState(),
+      },
+    );
+    expect(requestResult.findings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "broad_flavor_mismatch", outcome: "repairable" }),
+      expect.objectContaining({ code: "seasoning_intensity_mismatch", outcome: "repairable" }),
+      expect.objectContaining({ code: "flavor_style_mismatch", outcome: "repairable" }),
+    ]));
   });
 
   it("never repairs or leaks a blocked allergy candidate", async () => {
