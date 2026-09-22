@@ -40,6 +40,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { MyPerfectMenuBuilderContext } from "@shared/builderNamespaces";
+import { buildMyPerfectMenuReturnTarget } from "@/lib/myPerfectMenuReturn";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PerformanceNutritionSetupForm from "@/components/performance/PerformanceNutritionSetupForm";
 import { getTodayISOSafe } from "@/utils/midnight";
@@ -124,12 +125,23 @@ export default function MyPerfectMenu() {
   const [, setLocation] = useLocation();
   const search = useSearch();
   const { user } = useAuth();
-  const { activeProfile } = useHousehold();
+  const {
+    activeProfile,
+    activeProfileId,
+    profiles,
+    loading: householdLoading,
+    setActive: setActiveHouseholdProfile,
+  } = useHousehold();
+  const requestedHouseholdProfileId = useMemo(
+    () => new URLSearchParams(search).get("householdProfileId") || undefined,
+    [search],
+  );
   const subjectUserId = activeProfile?.id;
   const requestedBuilderKey = useMemo(
     () => new URLSearchParams(search).get("builder") || undefined,
     [search],
   );
+  const requestedBuilderForSubject = subjectUserId ? undefined : requestedBuilderKey;
   const returnedIdeaType = useMemo(() => {
     const value = new URLSearchParams(search).get("category");
     return IDEA_TYPES.some((item) => item.value === value) ? value as IdeaType : null;
@@ -138,6 +150,18 @@ export default function MyPerfectMenu() {
     () => new URLSearchParams(search).get("glp1SettingsChanged") === "1",
     [search],
   );
+  const returnedDestination = useMemo(() => {
+    const params = new URLSearchParams(search);
+    const dateISO = params.get("destinationDate");
+    const slot = params.get("destinationSlot");
+    if (!dateISO || !/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) return null;
+    if (!["breakfast", "lunch", "dinner", "meal4", "meal5", "meal6", "snacks"].includes(slot ?? "")) return null;
+    return {
+      dateISO,
+      slot: slot as MealPlanDestination["slot"],
+      builderType: "performanceCompetition",
+    };
+  }, [search]);
   const [ideaType, setIdeaType] = useState<IdeaType | null>(null);
   const [conceptSets, setConceptSets] = useState<ConceptSets>({});
   const [selectedConcept, setSelectedConcept] = useState<MenuConcept | null>(null);
@@ -169,12 +193,26 @@ export default function MyPerfectMenu() {
   const concepts = ideaType ? conceptSets[ideaType] ?? [] : [];
 
   useEffect(() => {
+    if (!requestedHouseholdProfileId || householdLoading || activeProfileId === requestedHouseholdProfileId) return;
+    if (profiles.some((profile) => profile.id === requestedHouseholdProfileId)) {
+      void setActiveHouseholdProfile(requestedHouseholdProfileId);
+    }
+  }, [
+    requestedHouseholdProfileId,
+    householdLoading,
+    activeProfileId,
+    profiles,
+    setActiveHouseholdProfile,
+  ]);
+
+  useEffect(() => {
     const refreshBuilder = () => setBuilderRefreshEpoch((current) => current + 1);
     window.addEventListener("mpm:builderUpdated", refreshBuilder);
     return () => window.removeEventListener("mpm:builderUpdated", refreshBuilder);
   }, []);
 
   useEffect(() => {
+    if (requestedHouseholdProfileId && subjectUserId !== requestedHouseholdProfileId) return;
     subjectEpochRef.current += 1;
     glp1PreflightEpochRef.current = -1;
     subjectRef.current = subjectUserId ?? user?.id ?? null;
@@ -188,16 +226,21 @@ export default function MyPerfectMenu() {
     setContextStatus(null);
     setBuilderContext(null);
     setSelectedConcept(null);
-    setPerformanceDestination(null);
-    setPerformanceDate(getTodayISOSafe("America/Chicago"));
-    setPerformanceSlot(null);
+    setPerformanceDestination(returnedDestination);
+    setPerformanceDate(returnedDestination?.dateISO ?? getTodayISOSafe("America/Chicago"));
+    setPerformanceSlot(returnedDestination?.slot ?? null);
     setPerformanceSetupOpen(false);
     setPickerOpen(false);
     setTryMoreOpen(false);
+    setError(null);
     let cancelled = false;
     const params = new URLSearchParams();
     if (subjectUserId) params.set("subjectUserId", subjectUserId);
-    if (requestedBuilderKey) params.set("requestedBuilderKey", requestedBuilderKey);
+    if (requestedBuilderForSubject) params.set("requestedBuilderKey", requestedBuilderForSubject);
+    if (returnedDestination) {
+      params.set("destinationDate", returnedDestination.dateISO);
+      params.set("mealSlot", returnedDestination.slot);
+    }
     const query = params.toString() ? `?${params.toString()}` : "";
     void (async () => {
       try {
@@ -210,7 +253,7 @@ export default function MyPerfectMenu() {
         if (cancelled) return;
         const effectiveBuilder = builderPayload.builder as MyPerfectMenuBuilderContext;
         setBuilderContext(effectiveBuilder);
-        if (effectiveBuilder.key === "performance_competition") return;
+        if (effectiveBuilder.key === "performance_competition" && !returnedDestination) return;
 
         const response = await fetch(apiUrl(`/api/my-perfect-menu/concepts${query}`), {
           credentials: "include",
@@ -228,7 +271,16 @@ export default function MyPerfectMenu() {
       }
     })();
     return () => { cancelled = true; };
-  }, [subjectUserId, user?.id, requestedBuilderKey, cancelMeal, cancelSnack, builderRefreshEpoch]);
+  }, [
+    subjectUserId,
+    user?.id,
+    requestedHouseholdProfileId,
+    requestedBuilderForSubject,
+    returnedDestination,
+    cancelMeal,
+    cancelSnack,
+    builderRefreshEpoch,
+  ]);
 
   const requestIdeas = async (nextType: IdeaType, destination = performanceDestination) => {
     const requestedSubject = subjectUserId ?? user?.id ?? null;
@@ -244,7 +296,7 @@ export default function MyPerfectMenu() {
         body: JSON.stringify({
           ideaType: nextType,
           subjectUserId,
-          requestedBuilderKey,
+          requestedBuilderKey: requestedBuilderForSubject,
           ...(builderContext?.key === "performance_competition" && destination
             ? { destinationDate: destination.dateISO, mealSlot: destination.slot }
             : {}),
@@ -276,7 +328,7 @@ export default function MyPerfectMenu() {
   ): Promise<MenuContextStatus | null> => {
     const params = new URLSearchParams();
     if (subjectUserId) params.set("subjectUserId", subjectUserId);
-    if (requestedBuilderKey) params.set("requestedBuilderKey", requestedBuilderKey);
+    if (requestedBuilderForSubject) params.set("requestedBuilderKey", requestedBuilderForSubject);
     if (builderContext?.key === "performance_competition" && destination) {
       params.set("destinationDate", destination.dateISO);
       params.set("mealSlot", destination.slot);
@@ -436,7 +488,11 @@ export default function MyPerfectMenu() {
         method: "DELETE",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ ideaType: requestedType, subjectUserId, requestedBuilderKey }),
+        body: JSON.stringify({
+          ideaType: requestedType,
+          subjectUserId,
+          requestedBuilderKey: requestedBuilderForSubject,
+        }),
       });
       const payload = await response.json().catch(() => ({}));
        if (!response.ok) throw responseError(response, payload, "We couldn't clear these ideas.");
@@ -538,7 +594,7 @@ export default function MyPerfectMenu() {
           ideaType: conceptToGenerate.ideaType,
           conceptId: conceptToGenerate.id,
           subjectUserId,
-          requestedBuilderKey,
+          requestedBuilderKey: requestedBuilderForSubject,
           destinationDate: destination.dateISO,
           mealSlot: destination.slot,
         }),
@@ -647,6 +703,14 @@ export default function MyPerfectMenu() {
         routeParams.set("destinationDate", destination.dateISO);
         routeParams.set("destinationSlot", destination.slot);
       }
+      routeParams.set("returnTo", buildMyPerfectMenuReturnTarget({
+        builderKey: resolvedBuilder.key,
+        category: conceptToGenerate.ideaType,
+        householdProfileId: subjectUserId,
+        destinationDate: resolvedBuilder.key === "performance_competition" ? destination.dateISO : undefined,
+        destinationSlot: resolvedBuilder.key === "performance_competition" ? destination.slot : undefined,
+        selectedConceptId: conceptToGenerate.id,
+      }));
       const routeQuery = routeParams.toString();
       setLocation(`${resolvedBuilder.route}${routeQuery ? `?${routeQuery}` : ""}`);
     } catch (cause) {
