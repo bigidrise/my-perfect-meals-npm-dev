@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { Router } from "express";
+import { Router, type NextFunction, type Request, type Response } from "express";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db";
@@ -62,6 +62,26 @@ import { issuePerformanceAuthorityToken } from "../services/myPerfectMenu/perfor
 
 const router = Router();
 const categorySchema = myPerfectMenuCategorySchema;
+
+/**
+ * Restoration requests repopulate empty in-memory page state and therefore
+ * require a complete JSON body on every remount. Remove conditional validators
+ * narrowly for these routes so Express cannot convert the response to a
+ * bodyless 304, including for clients with an older cached representation.
+ */
+export function requireFullMyPerfectMenuRestorationPayload(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
+  delete req.headers["if-none-match"];
+  delete req.headers["if-modified-since"];
+  res.setHeader("Cache-Control", "private, no-store, no-cache, max-age=0, must-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  res.setHeader("Surrogate-Control", "no-store");
+  next();
+}
 
 const subjectSchema = z.object({
   subjectUserId: z.string().uuid().optional(),
@@ -142,7 +162,7 @@ export function effectiveBuilderForTarget(
     : builder;
 }
 
-router.get("/effective-builder", requireAuth, async (req, res) => {
+router.get("/effective-builder", requireAuth, requireFullMyPerfectMenuRestorationPayload, async (req, res) => {
   const parsed = subjectSchema.pick({
     subjectUserId: true,
     requestedBuilderKey: true,
@@ -360,7 +380,7 @@ function conceptViolations(
   return violations;
 }
 
-router.get("/concepts", requireAuth, async (req, res) => {
+router.get("/concepts", requireAuth, requireFullMyPerfectMenuRestorationPayload, async (req, res) => {
   const parsed = subjectSchema.safeParse(req.query);
   if (!parsed.success) return res.status(400).json({ error: "Invalid food profile." });
   const actorUserId = String((req as AuthenticatedRequest).authUser.id);
