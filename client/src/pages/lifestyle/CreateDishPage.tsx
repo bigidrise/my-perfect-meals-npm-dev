@@ -124,6 +124,7 @@ interface MealData {
   };
   instructions: string;
   cookingInstructions?: string[];
+  cookingTime?: string;
   reasoning: string;
   servingSize: string;
   medicalBadges: Array<{
@@ -840,9 +841,22 @@ export default function CreateDishPage() {
         variant: "warning",
       });
     }
+    const formSelectionSource = combination.selectionSource.form;
+    const flavorSelectionSource = combination.selectionSource.flavor;
+    if (!formSelectionSource || !resolvedTextureSource || !flavorSelectionSource) {
+      throw new Error("CREATE_DISH_CHOICES_INVALID");
+    }
     return {
       creator: "create_a_dish",
       originalText: submittedDishInput.trim(),
+      cuisine:
+        result.semanticIntent?.cuisine ??
+        (
+          combination.cuisine &&
+          combination.selectionSource.cuisine === "user_selected"
+            ? combination.cuisine.label
+            : null
+        ),
       ingredient: {
         canonicalId: ingredient.canonicalId,
         canonicalName: ingredient.canonicalName,
@@ -853,9 +867,9 @@ export default function CreateDishPage() {
         texture: resolvedTexture,
         flavor: combination.flavor,
         selectionSource: {
-          form: combination.selectionSource.form,
+          form: formSelectionSource,
           texture: resolvedTextureSource,
-          flavor: combination.selectionSource.flavor,
+          flavor: flavorSelectionSource,
         },
       },
     };

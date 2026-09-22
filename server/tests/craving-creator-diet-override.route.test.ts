@@ -242,6 +242,29 @@ describe("A. Structural — routes.ts /api/meals/craving-creator diet override",
     expect(block).not.toContain("dietaryRestrictions");
   });
 
+  it("uses one serving-aware final validator and treats images as metadata-only", () => {
+    const block = ROUTES_SRC.slice(
+      ROUTES_SRC.indexOf('app.post("/api/meals/craving-creator"'),
+      ROUTES_SRC.indexOf("// NEW: Onboarding-enforced meal generation routes"),
+    );
+    expect(block).toContain("runFinalValidation(meal, validatedServings)");
+    expect(block).toContain('nutritionRepresentation: "total_recipe"');
+    expect(block).toContain('foodSemanticMutation: "none"');
+    expect(block).not.toContain("validateCreatorHumanFoodResult(");
+    expect(block).not.toContain("invalidHumanFoodResult");
+  });
+
+  it("retains independently valid post-format candidates instead of rejecting the batch", () => {
+    const block = ROUTES_SRC.slice(
+      ROUTES_SRC.indexOf("const postFormatResults"),
+      ROUTES_SRC.indexOf("if (validatedCreateDishIntent)"),
+    );
+    expect(block).toContain("postFormatFailures");
+    expect(block).toContain('.filter(({ result }) => result.outcome === "pass")');
+    expect(block).toContain("if (formattedOptions.length === 0)");
+    expect(block).not.toContain("if (postFormatFailure)");
+  });
+
   it("generateCravingMealOptions is called with bodyDietRestrictions (the resolved diet)", () => {
     // bodyDietRestrictions is built from _resolvedPrimaryDiet so the override reaches the LLM.
     expect(ROUTES_SRC).toContain("bodyDietRestrictions");

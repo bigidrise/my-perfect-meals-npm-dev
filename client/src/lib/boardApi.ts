@@ -16,6 +16,8 @@ export type ExtendedMeal = Meal & {
   brand?: string;                     // optional brand (e.g., Quest)
   servingDesc?: string;               // "1 bar (40g)", "1 medium (182g)"
   includeInShoppingList?: boolean;    // default false for quick snacks
+  imageUrl?: string | null;
+  mediaAssetId?: string | null;
 };
 
 export type WeekLists = {

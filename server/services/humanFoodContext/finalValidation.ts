@@ -148,10 +148,11 @@ function preferenceMismatch(
   label: string,
 ): void {
   if (!expected.available || !expected.value) return;
+  // Profile culinary values personalize generation but are not requirements
+  // for this individual dish. Only explicit current-request authority may
+  // reject a candidate or produce a bounded-repair instruction.
+  if (expected.source !== "request") return;
   if (!actual) {
-    // Stored/profile flavor signals are preferences, not safety constraints.
-    // Only an explicit request must fail closed when structured evidence is absent.
-    if (expected.source !== "request") return;
     add(findings, {
       dimension,
       outcome: "review_required",

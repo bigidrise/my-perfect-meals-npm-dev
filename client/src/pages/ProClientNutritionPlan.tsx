@@ -26,25 +26,35 @@ export default function ProClientNutritionPlan() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!clientId) return;
+    const controller = new AbortController();
+    setSummary(null);
+    if (!clientId) {
+      setIsLoading(false);
+      return () => controller.abort();
+    }
     setIsLoading(true);
     setError(null);
     fetch(apiUrl(`/api/pro/clients/${clientId}/nutrition-summary`), {
       headers: getAuthHeaders(),
       credentials: "include",
+      signal: controller.signal,
     })
       .then(res => {
         if (!res.ok) throw new Error(`${res.status}`);
         return res.json();
       })
       .then(data => {
+        if (controller.signal.aborted) return;
         setSummary(data);
         setIsLoading(false);
       })
       .catch(err => {
+        if (controller.signal.aborted) return;
+        setSummary(null);
         setError(err.message === "403" ? "You don't have access to this client's plan." : "Failed to load nutrition plan.");
         setIsLoading(false);
       });
+    return () => controller.abort();
   }, [clientId]);
 
   return (
@@ -92,6 +102,8 @@ export default function ProClientNutritionPlan() {
             summary={summary ?? undefined}
             isLoading={isLoading}
             defaultExpanded
+            audience="clinical"
+            source="provided"
           />
         )}
 

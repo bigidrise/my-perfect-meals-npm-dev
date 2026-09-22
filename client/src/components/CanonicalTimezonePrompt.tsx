@@ -25,7 +25,9 @@ export function CanonicalTimezonePrompt() {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [choosingAnother, setChoosingAnother] = useState(false);
-  const [selectedTimezone, setSelectedTimezone] = useState(SUPPORTED_TIMEZONES[0].timezone);
+  const [selectedTimezone, setSelectedTimezone] = useState<string>(
+    SUPPORTED_TIMEZONES[0].timezone,
+  );
 
   const canonicalTimezone = user?.timezone || null;
   const mismatchKey =

@@ -17,6 +17,11 @@ import {
   type FeatureDefinition,
   type SubOption,
 } from "./CanonicalAliasRegistry";
+import {
+  answerNutritionPriorityCopilotQuestion,
+  isNutritionPriorityEducationQuestion,
+} from "@/lib/nutritionPriorityCopilot";
+import { NUTRITION_PRIORITY_EDUCATION_POLICY } from "@shared/nutritionPriorities";
 
 // Walkthrough system has been quarantined - these are now no-ops
 const startWalkthrough = async (
@@ -91,6 +96,7 @@ let lastActiveFeature: ActiveFeature = null;
 
 // Track active hub for sub-option navigation
 let currentHub: FeatureDefinition | null = null;
+let hasNutritionPriorityEducationContext = false;
 
 export function setNavigationHandler(fn: NavigationHandler) {
   navigationCallback = fn;
@@ -986,6 +992,39 @@ async function handleVoiceQuery(transcript: string) {
   console.log(`🎤 Processing voice query: "${transcript}"`);
 
   const lower = transcript.toLowerCase();
+  const isChildRoute =
+    window.location.pathname.startsWith("/my-perfect-beginning") ||
+    window.location.pathname.startsWith("/lifestyle/my-perfect-beginning");
+  const educationContext = {
+    hasNutritionPriorityContext: hasNutritionPriorityEducationContext,
+  };
+  if (
+    isChildRoute &&
+    isNutritionPriorityEducationQuestion(transcript, educationContext)
+  ) {
+    const description =
+      NUTRITION_PRIORITY_EDUCATION_POLICY.pediatricAuthorizationRequired;
+    responseCallback?.({
+      title: "Child Nutrition Priorities",
+      description,
+      spokenText: description,
+      type: "knowledge",
+    });
+    hasNutritionPriorityEducationContext = true;
+    return;
+  }
+  const nutritionPriorityEducation =
+    answerNutritionPriorityCopilotQuestion(
+      transcript,
+      "adult",
+      educationContext,
+    );
+  if (nutritionPriorityEducation) {
+    responseCallback?.(nutritionPriorityEducation);
+    hasNutritionPriorityEducationContext = true;
+    return;
+  }
+  hasNutritionPriorityEducationContext = false;
 
   // ===================================
   // PHASE B: HUB-FIRST ROUTING SYSTEM (PRIORITY)

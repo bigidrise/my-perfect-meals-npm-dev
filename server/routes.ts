@@ -165,6 +165,7 @@ import { loadStudioMembership } from "./middleware/studioAccess";
 import { isOnboardingAllergyBootstrapAuthorized } from "./services/profileAuthorization";
 import { scaleIngredientQuantity } from "./services/servingScaling";
 import foodsIEnjoyRouter, { householdFoodsIEnjoyRouter } from "./routes/foodsIEnjoy";
+import nutritionPrioritiesRouter from "./routes/nutritionPriorities";
 import myPerfectMenuRouter from "./routes/myPerfectMenu";
 
 function normalizeFitnessGoal(value?: string | null): string | null {
@@ -333,6 +334,7 @@ function hasUnmeasured(ings: Array<{ name: string; amount: string }>): boolean {
 export async function registerRoutes(app: Express): Promise<Server> {
   console.log("🔧 registerRoutes called - starting route registration");
   app.use("/api/foods-i-enjoy", foodsIEnjoyRouter);
+  app.use("/api/nutrition-priorities", nutritionPrioritiesRouter);
   app.use("/api/household", householdFoodsIEnjoyRouter);
   app.use("/api/my-perfect-menu", requireAuth, requireEssentialAccess, myPerfectMenuRouter);
   // Health endpoint for network testing
@@ -1329,7 +1331,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         const contextBlock = buildCreatorHumanFoodPrompt("recipe_maker", humanFoodContext);
-        req.body.generationContext = [generationContext, contextBlock].filter(Boolean).join("\n\n");
+        // `generationContext` was destructured before HFC resolution. Updating only
+        // req.body here left the local value stale, so the unified generator never
+        // received the canonical block. Keep the local value authoritative because
+        // it is what generationRequest passes to Create With Chef and Snack Creator.
+        effectiveGenerationContext = [effectiveGenerationContext, contextBlock]
+          .filter(Boolean)
+          .join("\n\n");
+        req.body.generationContext = effectiveGenerationContext;
       }
 
       // 🚨 ENFORCEMENT GATEWAY: Pre-generation — Tier 1 (allergy) + Tier 2 (religious)
@@ -5925,7 +5934,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ? dietaryRestrictions
               : null;
       const { createHumanFoodRequestScope } = await import("./services/humanFoodContext/requestScope");
-      const { buildCreatorHumanFoodPrompt, validateCreatorHumanFoodResult } = await import("./services/humanFoodContext/adapters");
+      const { buildCreatorHumanFoodPrompt } = await import("./services/humanFoodContext/adapters");
       const {
         recordRejectedHumanFoodCandidate,
         buildRejectedCandidatePrompt,
@@ -5994,13 +6003,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      let effectiveRequestCuisine: string | null =
+        typeof cultureOverride === "string" && cultureOverride.trim()
+          ? cultureOverride.trim()
+          : null;
+      if (humanFoodCreator === "create_a_dish" && rawCreateDishIntent != null) {
+        try {
+          const { resolveCreateDishCuisineAuthority } = await import(
+            "./services/createDish/createDishIntent"
+          );
+          effectiveRequestCuisine = resolveCreateDishCuisineAuthority(
+            cultureOverride,
+            rawCreateDishIntent,
+          );
+        } catch {
+          // Full Create a Dish intent validation below returns the typed request error.
+        }
+      }
       const humanFoodRequestScope = createHumanFoodRequestScope({
         actorUserId: serverAuthUserId,
         subjectUserId: serverAuthUserId,
         creator: humanFoodCreator,
         correlationId: (req as any).id,
         dietOverride: requestDietOverride,
-        cuisine: typeof cultureOverride === "string" ? cultureOverride : null,
+        cuisine: effectiveRequestCuisine,
         cuisineIntensity: typeof req.body.cuisineIntensity === "string" ? req.body.cuisineIntensity : null,
       });
       let humanFoodContext = await humanFoodRequestScope.resolve();
@@ -6275,6 +6301,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             rawCreateDishIntent,
             protocolEnvelope.allergies ?? [],
           );
+          if (
+            effectiveRequestCuisine &&
+            validatedCreateDishIntent.cuisine !== effectiveRequestCuisine
+          ) {
+            validatedCreateDishIntent = {
+              ...validatedCreateDishIntent,
+              cuisine: effectiveRequestCuisine,
+            };
+          }
           enforceRequestedDishIdentity = !isBroadIngredientOnlyCreateDishIntent(
             validatedCreateDishIntent,
           );
@@ -6355,7 +6390,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         excludeMeals,
         strictMode === true,
         normalizedGenerationMode,
-        (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) ? cultureOverride.trim() : undefined,
+        effectiveRequestCuisine ?? undefined,
         _cravingGlp1Targets,
         _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
         _dishDirective,
@@ -6456,7 +6491,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               excludeMeals,
               strictMode === true,
               normalizedGenerationMode,
-              (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) ? cultureOverride.trim() : undefined,
+              effectiveRequestCuisine ?? undefined,
               _cravingGlp1Targets,
               _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
               _dishDirective,
@@ -6694,7 +6729,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 excludeMeals,
                 strictMode === true,
                 normalizedGenerationMode,
-                (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) ? cultureOverride.trim() : undefined,
+                effectiveRequestCuisine ?? undefined,
                 _cravingGlp1Targets,
                 _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
                 _dishDirective,
@@ -6801,10 +6836,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // filtering, creator transformation, and this validator again.
       const { validateHumanFoodCandidate } = await import("./services/humanFoodContext/finalValidation");
       const { validateMealForDiet: validateFinalMealForDiet } = await import("./services/guardrails/index");
-      const perServingNumber = (value: unknown, servingDivisor: number) => {
-        const numeric = Number(value);
-        return Number.isFinite(numeric) ? numeric / servingDivisor : value;
-      };
+      const {
+        perServingNumber,
+        toPerServingNutrition,
+      } = await import("./services/humanFoodContext/servingNutrition");
       const candidateComplianceEvidence = (meal: any, servingDivisor = 1) => {
         const protocolProof = scanGeneratedOutput(meal, _filterEnvelope, {
           generatorName: "craving_creator_final_evidence",
@@ -6864,16 +6899,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return ({
         ...meal,
         category: meal.category ?? meal.mealType ?? normalizedTargetMealType,
-        nutrition: {
-          calories: perServingNumber(meal.nutrition?.calories ?? meal.calories, servingDivisor),
-          protein: perServingNumber(meal.nutrition?.protein ?? meal.protein, servingDivisor),
-          carbs: perServingNumber(meal.nutrition?.carbs ?? meal.carbs, servingDivisor),
-          fat: perServingNumber(meal.nutrition?.fat ?? meal.fat, servingDivisor),
-          starchyCarbs: perServingNumber(
-            meal.nutrition?.starchyCarbs ?? meal.starchyCarbs,
-            servingDivisor,
-          ),
-        },
+        nutrition: toPerServingNutrition(meal, servingDivisor),
         evidence: {
           ...(meal.evidence ?? {}),
           sourceType: "generated_recipe",
@@ -6918,9 +6944,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             excludeMeals,
             strictMode === true,
             normalizedGenerationMode,
-            (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim())
-              ? cultureOverride.trim()
-              : undefined,
+            effectiveRequestCuisine ?? undefined,
             _cravingGlp1Targets,
             _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
             _dishDirective,
@@ -7039,9 +7063,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               excludeMeals,
               true,
               normalizedGenerationMode,
-              (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim())
-                ? cultureOverride.trim()
-                : undefined,
+              effectiveRequestCuisine ?? undefined,
               _cravingGlp1Targets,
               _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
               _dishDirective,
@@ -7094,7 +7116,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Format and optionally scale each option
+      // Format and optionally scale each option. The response nutrition object
+      // represents total recipe nutrition for validatedServings; canonical
+      // person-specific validation converts it back to per-serving nutrition.
       let formattedOptions = scannedOptions.map(meal => {
         const { complianceSection, dietClassification } = buildMealComplianceBundle(
           meal, protocolEnvelope, { isChefAdapted: dietAdapted }
@@ -7153,10 +7177,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         meal,
         result: runFinalValidation(meal, validatedServings),
       }));
-      const postFormatFailure = postFormatResults.find(
+      const postFormatFailures = postFormatResults.filter(
         ({ result }) => result.outcome !== "pass",
       );
-      if (postFormatFailure) {
+      for (const [failureIndex, failure] of postFormatFailures.entries()) {
+        logCreateDishAcceptance({
+          stage: "post_format_validation_failed",
+          candidateId: failure.meal.id ?? `candidate-${failureIndex + 1}`,
+          servingCount: validatedServings,
+          nutritionRepresentation: "total_recipe",
+          reasonCodes: failure.result.findings.map((finding) => finding.code),
+        });
+      }
+      formattedOptions = postFormatResults
+        .filter(({ result }) => result.outcome === "pass")
+        .map(({ meal }) => meal);
+      if (formattedOptions.length === 0) {
+        const postFormatFailure =
+          postFormatFailures.find(({ result }) => result.outcome === "blocked")
+          ?? postFormatFailures.find(({ result }) => result.outcome === "review_required")
+          ?? postFormatFailures.find(({ result }) => result.outcome === "repairable")
+          ?? postFormatFailures[0];
         const outcome = postFormatFailure.result.outcome;
         const { buildCreateDishValidationOutcome } = await import(
           "./services/humanFoodContext/createDishOutcome"
@@ -7237,6 +7278,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 if (validatedCreateDishIntent) {
                   logCreateDishAcceptance({
                     stage: "image_final",
+                    candidateId: meal.id ?? `candidate-${formattedOptions.indexOf(meal) + 1}`,
+                    servingCount: validatedServings,
+                    nutritionRepresentation: "total_recipe",
+                    foodSemanticMutation: "none",
                     generated: Boolean(imageUrl),
                     fallback: imageUrl?.startsWith("/images/fallback/") ?? false,
                   });
@@ -7247,16 +7292,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           );
         } catch { return formattedOptions; } // pipeline failure non-fatal
       })();
-      const invalidHumanFoodResult = imagedOptions.find((meal: any) =>
-        !validateCreatorHumanFoodResult(humanFoodCreator, meal, humanFoodContext).valid
-      );
-      if (invalidHumanFoodResult) {
-        return res.status(422).json({
-          success: false,
-          code: "HUMAN_FOOD_CONTEXT_VALIDATION_FAILED",
-          message: "The generated food did not pass final food-context validation.",
-        });
-      }
+      // Image processing only adds image metadata. Food semantics were already
+      // checked by canonical final validation with the requested serving count,
+      // so a second independent food validator here would reinterpret totals.
       // ─────────────────────────────────────────────────────────────────────────────────────
 
       console.log("✅ CRAVING ROUTE COMPLETE", Date.now(), `(${Date.now() - startTime}ms)`);

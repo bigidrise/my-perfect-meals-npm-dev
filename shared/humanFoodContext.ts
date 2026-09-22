@@ -1,5 +1,6 @@
 import type { DailyNutritionState } from "./dailyNutritionPrescription";
 import type { FoodEnjoymentItem } from "./foodsIEnjoy";
+import type { FoodInclusionPriorityId } from "./nutritionPriorities";
 
 export const HUMAN_FOOD_CONTEXT_VERSION = "human-food-context.v1" as const;
 
@@ -106,6 +107,11 @@ export interface HumanFoodSweetenerContext {
   avoided: string[];
 }
 
+export interface HumanFoodNutritionPrioritiesContext {
+  selectedPriorityIds: FoodInclusionPriorityId[];
+  registryVersion: "nutrition-priorities.v1";
+}
+
 export interface DiabetesFoodPreferenceContext {
   state: "LOW" | "IN_RANGE" | "HIGH" | "STALE" | "NONE";
   preferenceBand: "LOW" | "IN_RANGE" | "HIGH" | null;
@@ -142,6 +148,7 @@ export interface HumanFoodContext {
   nutrition: DailyNutritionState | null;
   behavior: HumanFoodBehaviorContext | null;
   foodsIEnjoy: HumanFoodEnjoymentContext;
+  nutritionPriorities?: HumanFoodNutritionPrioritiesContext;
   sweeteners: HumanFoodSweetenerContext;
   diabetesFoodPreferences: DiabetesFoodPreferenceContext | null;
   gaps: string[];

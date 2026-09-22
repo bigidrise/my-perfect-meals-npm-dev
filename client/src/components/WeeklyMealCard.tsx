@@ -165,6 +165,14 @@ export default function WeeklyMealCard({
           imageUrl={imageUrl}
           mealName={title}
           ingredients={meal?.ingredients}
+          mediaAssetId={meal?.mediaAssetId}
+          boardTarget={weekStartISO ? {
+            weekStartISO,
+            dateISO,
+            slot,
+            mealId: meal?.id,
+            builderType,
+          } : undefined}
           height="h-48"
           className="!mb-0 !rounded-none"
         />

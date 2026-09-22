@@ -19,6 +19,11 @@ import {
   type PediatricMealGenerationContext,
   type DevelopmentalStageKey,
 } from "../services/pediatric/pediatricResolver";
+import { signPediatricSubject } from "../services/pediatric/subjectAttribution";
+import {
+  loadOwnedActiveChildProfile,
+  loadOwnedActiveChildProfiles,
+} from "../services/pediatric/authoritativeChildAccess";
 import { buildCreatorHumanFoodPrompt } from "../services/humanFoodContext/adapters";
 import { validateHumanFoodCandidate } from "../services/humanFoodContext/finalValidation";
 import {
@@ -703,6 +708,7 @@ async function fetchChildProfileInput(
     const rows = await db.execute(sql`
       SELECT
         id,
+        name,
         age_stage,
         medical_conditions,
         sensory_issues,
@@ -840,15 +846,17 @@ async function fetchChildProfileInput(
       kitchenSkill:        typeof row.kitchen_skill === "string" ? row.kitchen_skill : undefined,
       culturalPreferences: typeof row.cultural_preferences === "string" && row.cultural_preferences
                            ? row.cultural_preferences : undefined,
+      _childName:           typeof row.name === "string" ? row.name : undefined,
       // Expose the resolver-ready budget level so /create-dish can pass it directly
       _resolverBudgetLevel: resolverBudgetLevel,
-    } as ChildProfileInput & { _resolverBudgetLevel: "budget_conscious" | "moderate" | "flexible" };
+    } as ChildProfileInput & {
+      _resolverBudgetLevel: "budget_conscious" | "moderate" | "flexible";
+      _childName?: string;
+    };
 
     return profileInput;
   } catch (err: any) {
-    if (err?.code === "42P01") return null;
-    console.error("[MyPerfectBeginning/create-dish] child profile lookup error:", err.message);
-    return null;
+    throw err;
   }
 }
 
@@ -899,6 +907,7 @@ router.post("/resolve-context", requireAuth, async (req, res) => {
     };
 
     const context = await resolvePediatricContextFromInput({
+      actorUserId: (req as AuthenticatedRequest).authUser!.id,
       childProfileId: typeof childProfileId === "string" ? childProfileId : null,
       childProfileIds: Array.isArray(childProfileIds) ? childProfileIds : undefined,
       stageOverride,
@@ -983,18 +992,63 @@ router.post("/create-dish", requireAuth, async (req, res) => {
       (rawChildProfileIds as unknown[]).every(id => typeof id === "string" && UUID_RE.test(id as string));
 
     let mergedProfile: MergedChildProfile | null = null;
+    let childFoodInclusionPriorities: any = null;
 
     if (isMultiChildMode) {
       const childIds = (rawChildProfileIds as string[]).slice(0, 10);
-      const profiles = (
-        await Promise.all(childIds.map((id) => fetchChildProfileFull(userId, id)))
-      ).filter((p): p is ChildProfileFull => p !== null);
-      mergedProfile = profiles.length > 0 ? mergeChildProfiles(profiles) : null;
+      let authorizedProfiles;
+      try {
+        authorizedProfiles = await loadOwnedActiveChildProfiles(userId, childIds);
+      } catch {
+        return res.status(503).json({
+          error: "Child profiles are temporarily unavailable. Please try again.",
+        });
+      }
+      if (!authorizedProfiles) {
+        return res.status(404).json({ error: "One or more child profiles were not found." });
+      }
+      let loadedProfiles;
+      try {
+        loadedProfiles = await Promise.all(childIds.map((id) => fetchChildProfileFull(userId, id)));
+      } catch {
+        return res.status(503).json({
+          error: "Child profiles are temporarily unavailable. Please try again.",
+        });
+      }
+      if (loadedProfiles.some((profile) => profile === null)) {
+        return res.status(404).json({ error: "One or more child profiles were not found." });
+      }
+      const profiles = loadedProfiles as ChildProfileFull[];
+      mergedProfile = mergeChildProfiles(profiles);
     }
 
     const multiChildNames: string[] = mergedProfile?.childNames ?? [];
     const multiChildStageLabels: string[] = mergedProfile?.stageLabels ?? [];
-    const childProfileInput = isMultiChildMode ? null : await fetchChildProfileInput(userId, childProfileId);
+    let childProfileInput: ChildProfileInput | null = null;
+    if (!isMultiChildMode && typeof childProfileId === "string") {
+      let authorizedChild;
+      try {
+        authorizedChild = await loadOwnedActiveChildProfile(userId, childProfileId);
+      } catch {
+        return res.status(503).json({
+          error: "Child profile is temporarily unavailable. Please try again.",
+        });
+      }
+      if (!authorizedChild) {
+        return res.status(404).json({ error: "Child profile not found." });
+      }
+      childFoodInclusionPriorities = authorizedChild.food_inclusion_priorities;
+      try {
+        childProfileInput = await fetchChildProfileInput(userId, childProfileId);
+      } catch {
+        return res.status(503).json({
+          error: "Child profile is temporarily unavailable. Please try again.",
+        });
+      }
+    }
+    if (!isMultiChildMode && typeof childProfileId === "string" && !childProfileInput) {
+      return res.status(404).json({ error: "Child profile not found." });
+    }
 
     // ── Validate request ─────────────────────────────────────────────────────
     const validation = validateRequest(req.body);
@@ -1002,7 +1056,22 @@ router.post("/create-dish", requireAuth, async (req, res) => {
       return res.status(400).json({ error: validation.error });
     }
 
-    const { ageStage, allergies, foodRequest, parentPrefs, childName } = validation as Required<typeof validation>;
+    const validated = validation as Required<typeof validation>;
+    const ageStage = isMultiChildMode
+      ? mergedProfile!.primaryStage
+      : childProfileInput?.developmentalStage ?? validated.ageStage;
+    const allergies = isMultiChildMode
+      ? mergedProfile!.mergedAllergies
+      : childProfileInput?.allergyDetails?.map((entry: any) => ({
+          allergenId: entry.allergenId,
+          customAllergenName: entry.customAllergenName,
+          severity: entry.severity,
+          emergencyMedication: !!entry.epiPen || !!entry.emergencyMedication,
+        })) ?? validated.allergies;
+    const { foodRequest, parentPrefs } = validated;
+    const childName = isMultiChildMode
+      ? undefined
+      : (childProfileInput as any)?._childName ?? validated.childName;
 
     // ── Gate: Early Infant ───────────────────────────────────────────────────
     if (ageStage === "early_infant") {
@@ -1082,13 +1151,6 @@ router.post("/create-dish", requireAuth, async (req, res) => {
     const activeProtocolIds       = guidanceOutput.activeProtocolIds;
     const activeProtocolEvidence  = guidanceOutput.activeProtocolEvidence;
 
-    if (activeProtocolIds.length > 0) {
-      console.log(
-        `[MyPerfectBeginning/create-dish] Active protocols for user=${userId} ${isMultiChildMode ? `children=[${multiChildNames.join(",")}]` : `child=${childProfileId ?? "no-profile"}`}:`,
-        activeProtocolIds.join(", ")
-      );
-    }
-
     // ── Extract free-text pref fields (user-controlled, kept out of system prompt) ──
     const rawPrefs = req.body.parentPrefs && typeof req.body.parentPrefs === "object"
       ? req.body.parentPrefs
@@ -1125,6 +1187,7 @@ router.post("/create-dish", requireAuth, async (req, res) => {
     // guidance-block prompt when the resolver throws (e.g. unknown child ID).
     try {
       resolverCtx = await resolvePediatricContextFromInput({
+        actorUserId: userId,
         childProfileId: typeof childProfileId === "string" && UUID_RE.test(childProfileId) ? childProfileId : null,
         childProfileIds: isMultiChildMode ? (rawChildProfileIds as string[]).slice(0, 10) : undefined,
         stageOverride: ageStage as any,
@@ -1133,7 +1196,13 @@ router.post("/create-dish", requireAuth, async (req, res) => {
         servings: typeof req.body.servings === "number" ? req.body.servings : 1,
       });
     } catch (resolverErr: any) {
-      console.warn("[create-dish] resolver failed, falling back to legacy prompt:", resolverErr?.message);
+      if (childProfileId || isMultiChildMode) {
+        console.warn("[create-dish] authoritative pediatric resolver failed");
+        return res.status(503).json({
+          error: "Child profile is temporarily unavailable. Please try again.",
+        });
+      }
+      console.warn("[create-dish] general-mode resolver failed:", resolverErr?.message);
       resolverCtx = null;
     }
 
@@ -1147,6 +1216,7 @@ router.post("/create-dish", requireAuth, async (req, res) => {
       allergies,
       dietaryPattern: parentPrefsWithKitchen.dietaryPattern,
       explicitCuisine: rawCulturalCuisine,
+      foodInclusionPriorities: isMultiChildMode ? null : childFoodInclusionPriorities,
     });
 
     const rawLang = (req as AuthenticatedRequest).authUser?.preferredLanguage || "auto";
@@ -1363,8 +1433,18 @@ router.post("/create-dish", requireAuth, async (req, res) => {
     }
     // ─────────────────────────────────────────────────────────────────────────
 
+    const attributedRecipe = childProfileId && childProfileInput
+      ? {
+          ...finalRecipe,
+          _subjectAttribution: {
+            childProfileId,
+            token: signPediatricSubject(userId, childProfileId),
+          },
+        }
+      : finalRecipe;
+
     return res.json({
-      recipe: finalRecipe,
+      recipe: attributedRecipe,
       imageUrl: recipeImageUrl,
       blocked: false,
       mealConfidence: educationLayer.mealConfidence,
@@ -1537,9 +1617,7 @@ async function fetchChildProfileFull(
 
     return profileInput;
   } catch (err: any) {
-    if (err?.code === "42P01") return null;
-    console.error("[MyPerfectBeginning] child profile full lookup error:", err.message);
-    return null;
+    throw err;
   }
 }
 

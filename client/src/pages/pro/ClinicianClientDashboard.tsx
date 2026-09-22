@@ -48,6 +48,7 @@ import ClinicalProtocolCard from "@/components/protocol/ClinicalProtocolCard";
 import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
 import ClinicalInterventionPanel from "@/components/pro/ClinicalInterventionPanel";
 import { ProHydrationControls } from "@/components/pro/ProHydrationControls";
+import { resolveVerifiedProClientUserId } from "@/lib/proClientIdentity";
 
 
 export default function ClinicianClientDashboard() {
@@ -136,7 +137,7 @@ export default function ClinicianClientDashboard() {
   const [nutritionSummaryLoading, setNutritionSummaryLoading] = useState(false);
 
   // Must be defined BEFORE any useEffect that references it in deps or body.
-  const resolvedClientUserId = client?.clientUserId || client?.userId || clientId;
+  const resolvedClientUserId = resolveVerifiedProClientUserId(client, clientId);
 
   useEffect(() => {
     setMacros(proStore.getTargets(clientId));
@@ -152,16 +153,32 @@ export default function ClinicianClientDashboard() {
   }, [clientId]);
 
   useEffect(() => {
-    if (!resolvedClientUserId) return;
+    const controller = new AbortController();
+    setNutritionSummary(null);
+    if (!resolvedClientUserId) {
+      setNutritionSummaryLoading(false);
+      return () => controller.abort();
+    }
     setNutritionSummaryLoading(true);
     fetch(apiUrl(`/api/pro/clients/${resolvedClientUserId}/nutrition-summary`), {
       headers: { ...getAuthHeaders() },
       credentials: "include",
+      signal: controller.signal,
     })
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => { if (data) setNutritionSummary(data); })
-      .catch(() => {})
-      .finally(() => setNutritionSummaryLoading(false));
+      .then((r) => {
+        if (!r.ok) throw new Error(`${r.status}`);
+        return r.json();
+      })
+      .then((data) => {
+        if (!controller.signal.aborted) setNutritionSummary(data);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setNutritionSummary(null);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setNutritionSummaryLoading(false);
+      });
+    return () => controller.abort();
   }, [resolvedClientUserId]);
 
   // Step 3: Prefill macro targets from the canonical API on first visit.
@@ -638,12 +655,17 @@ export default function ClinicianClientDashboard() {
             summary={nutritionSummary}
             isLoading={nutritionSummaryLoading}
             defaultExpanded={false}
+            audience="clinical"
+            source="provided"
           />
         )}
 
-        <ProClientComplianceSnapshot clientId={resolvedClientUserId} />
-
-        <ProHydrationControls clientUserId={resolvedClientUserId} mode="clinical" />
+        {resolvedClientUserId && (
+          <>
+            <ProClientComplianceSnapshot clientId={resolvedClientUserId} />
+            <ProHydrationControls clientUserId={resolvedClientUserId} mode="clinical" />
+          </>
+        )}
 
         {/* ── CLINICAL INTERVENTION PANEL ──────────────────────────────────── */}
         {client && (
@@ -1045,7 +1067,7 @@ export default function ClinicianClientDashboard() {
                 // Workspace identity guard — real UUID required.
                 // Never navigate with a proStore record ID; that would load the pro's own data.
                 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-                if (!UUID_RE.test(resolvedClientUserId)) {
+                if (!resolvedClientUserId || !UUID_RE.test(resolvedClientUserId)) {
                   toast({
                     title: "Client not connected",
                     description: "This client hasn't linked their account yet. Ask them to enter your access code in the app.",

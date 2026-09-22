@@ -122,8 +122,9 @@ export default function BusinessMobileLayout({
         data-testid="business-mobile-navigation"
       >
         <div className="grid h-16 grid-cols-5">
-          {MOBILE_BUSINESS_NAV.map(({ path, label, icon: Icon, exact }) => {
-            const active = exact
+          {MOBILE_BUSINESS_NAV.map((item) => {
+            const { path, label, icon: Icon } = item;
+            const active = ("exact" in item && item.exact)
               ? location === path
               : location === path || location.startsWith(`${path}/`);
             return (

@@ -16,6 +16,7 @@ import sharp from "sharp";
 import { Client as ReplitStorageClient } from "@replit/object-storage";
 import { db } from "../db";
 import { mediaAssets } from "../db/schema/mediaAssets";
+import { validateMealImageAuthority } from "./mealImageAuthority";
 import crypto from "crypto";
 import {
   assertActiveMealImageWriteBucket,
@@ -125,15 +126,69 @@ export async function processImageForMeal(
   // ── Case 2: Already a first-party permanent URL ─────────────────────────────
   // Wrap in a media_assets record as-is (status: ready).
   // These don't get re-uploaded; no resizing at this stage.
+  if (source.startsWith("/public-objects/")) {
+    const authority = await validateMealImageAuthority(source);
+    if (authority.status !== "available") {
+      const processingError =
+        authority.status === "unavailable"
+          ? "storage_authority_unavailable"
+          : `invalid_storage_authority:${authority.reason}`;
+      const [record] = await db.insert(mediaAssets).values({
+        status: "failed",
+        validationStatus: "failed",
+        sourceType: "object-storage",
+        processingError,
+        retryCount: 0,
+      }).returning();
+      logMedia("media_failed", {
+        status: "failed",
+        reason: processingError,
+        mealName,
+      });
+      return {
+        id: record.id,
+        status: "failed",
+        validationStatus: "failed",
+        thumbnailUrl: null,
+        displayUrl: null,
+        originalObjectKey: null,
+      };
+    }
+    const canonicalUrl = authority.canonicalUrl;
+    const [record] = await db.insert(mediaAssets).values({
+      status: "ready",
+      validationStatus: "unvalidated",
+      thumbnailObjectKey: authority.objectName,
+      thumbnailUrl: canonicalUrl,
+      displayObjectKey: authority.objectName,
+      displayUrl: canonicalUrl,
+      originalObjectKey: authority.objectName,
+      sourceType: "object-storage",
+    }).returning();
+    logMedia("media_processed", {
+      status: "ready",
+      reason: "verified_permanent",
+      mealName,
+      mediaAssetId: record.id,
+    });
+    return {
+      id: record.id,
+      status: "ready",
+      validationStatus: record.validationStatus as MediaAsset["validationStatus"],
+      thumbnailUrl: canonicalUrl,
+      displayUrl: canonicalUrl,
+      originalObjectKey: authority.objectName,
+    };
+  }
+
   if (FIRST_PARTY_PREFIXES.some(p => source.startsWith(p))) {
     const [record] = await db.insert(mediaAssets).values({
       status: "ready",
       validationStatus: "unvalidated",
       thumbnailUrl: source,
       displayUrl: source,
-      sourceType: source.startsWith("/public-objects/") ? "object-storage" : "s3",
+      sourceType: source.startsWith("https://") ? "s3" : "legacy",
     }).returning();
-    logMedia("media_processed", { status: "ready", reason: "already_permanent", mealName, url: source.slice(0, 60) });
     return { id: record.id, status: "ready", validationStatus: record.validationStatus as MediaAsset["validationStatus"], thumbnailUrl: source, displayUrl: source, originalObjectKey: null };
   }
 

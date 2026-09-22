@@ -276,6 +276,7 @@ async function currentStamp(
     foodsIEnjoy: parsedFoods.success
       ? parsedFoods.data.items.filter((item) => !item.revokedAt).map((item) => item.conceptId ?? item.displayLabel)
       : [],
+    nutritionPriorities: context?.nutritionPriorities?.selectedPriorityIds ?? [],
     diabetes: {
       applicable: diabetesApplicable,
       state: diabetesApplicable ? diabetes.state : "NONE",

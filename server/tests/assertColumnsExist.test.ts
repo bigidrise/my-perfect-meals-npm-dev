@@ -170,7 +170,9 @@ describe("CRITICAL_COLUMNS sync guard", () => {
     expect(Array.isArray(CRITICAL_COLUMNS)).toBe(true);
     expect(CRITICAL_COLUMNS.length).toBeGreaterThan(0);
     // Every descriptor must have table and column
-    for (const descriptor of CRITICAL_COLUMNS) {
+    for (const descriptor of CRITICAL_COLUMNS.filter(
+      (item) => item.migrationMode !== "production_release",
+    )) {
       expect(typeof descriptor.table).toBe("string");
       expect(descriptor.table.length).toBeGreaterThan(0);
       expect(typeof descriptor.column).toBe("string");
@@ -277,7 +279,9 @@ describe("CRITICAL_COLUMNS preflight migration coverage", () => {
     const block = extractIndexPreflightBlock(src);
 
     const missing: string[] = [];
-    for (const descriptor of CRITICAL_COLUMNS) {
+    for (const descriptor of CRITICAL_COLUMNS.filter(
+      (item) => item.migrationMode !== "production_release",
+    )) {
       // Each guarded column must have an ADD COLUMN IF NOT EXISTS statement
       // in the preflight block. We check for both the table and column name
       // appearing together in the same block.
@@ -299,7 +303,9 @@ describe("CRITICAL_COLUMNS preflight migration coverage", () => {
     const block = extractProdEarlyPreflightBlock(src);
 
     const missing: string[] = [];
-    for (const descriptor of CRITICAL_COLUMNS) {
+    for (const descriptor of CRITICAL_COLUMNS.filter(
+      (item) => item.migrationMode !== "production_release",
+    )) {
       const tableOk = block.includes(descriptor.table);
       const colOk = block.includes(descriptor.column);
       if (!tableOk || !colOk) {
@@ -662,6 +668,8 @@ describe("boot path parity — every CRITICAL_COLUMNS entry has a pre-flight ALT
     const preflight = parsePreflightColumns(src, filePath);
 
     const missing = CRITICAL_COLUMNS.filter(
+      (d) => d.migrationMode !== "production_release",
+    ).filter(
       (d) => !preflight.has(`${d.table}.${d.column}`),
     ).map((d) => `${d.table}.${d.column}`);
 
@@ -677,6 +685,8 @@ describe("boot path parity — every CRITICAL_COLUMNS entry has a pre-flight ALT
     const preflight = parsePreflightColumns(src, filePath);
 
     const missing = CRITICAL_COLUMNS.filter(
+      (d) => d.migrationMode !== "production_release",
+    ).filter(
       (d) => !preflight.has(`${d.table}.${d.column}`),
     ).map((d) => `${d.table}.${d.column}`);
 

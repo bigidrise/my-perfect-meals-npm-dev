@@ -133,6 +133,13 @@ router.post("/guide", async (req, res) => {
       });
     }
     const humanFoodPrompt = buildHumanFoodPromptBlock(humanFoodContext);
+    const nutritionPriorityEvidenceBoundary = [
+      "RESTAURANT NUTRITION PRIORITY EVIDENCE BOUNDARY:",
+      "Nutrition Priorities remain optional food-selection guidance, not proof that a menu item has a nutrient or ingredient characteristic.",
+      "Do not claim or imply that an item satisfies a Nutrition Priority unless the menu provider supplies explicit, structured evidence for that characteristic.",
+      "Never infer hidden ingredients or nutrient characteristics from an item name, description, cuisine, or AI-generated estimate.",
+      "When that evidence is unavailable, omit priority-specific ranking and claims.",
+    ].join("\n");
 
     console.log("🍽️ [Guide] Restaurant guide request received");
     
@@ -274,6 +281,7 @@ router.post("/guide", async (req, res) => {
         fallbackContext?.combinedBlock,
         fallbackGlp1Block,
         humanFoodPrompt,
+        nutritionPriorityEvidenceBoundary,
       ].filter(Boolean).join("\n\n") || undefined;
       const fallbackActionEnvelope = fallbackContext?.envelope && acknowledgedDietIdentity
         ? { ...fallbackContext.envelope, dietaryIdentity: effectiveDiet }
@@ -406,6 +414,7 @@ router.post("/guide", async (req, res) => {
       guideContext.combinedBlock,
       guideGlp1Block,
       humanFoodPrompt,
+      nutritionPriorityEvidenceBoundary,
     ].filter(Boolean).join("\n\n") || guideContext.combinedBlock;
     const guideActionEnvelope = acknowledgedDietIdentity
       ? { ...guideContext.envelope, dietaryIdentity: effectiveDiet }

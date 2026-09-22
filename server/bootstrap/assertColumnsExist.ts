@@ -57,6 +57,24 @@ export const CRITICAL_COLUMNS: ColumnDescriptor[] = [
     column: "clinical_context_response",
     hint: "Clinical context screening gate — missing column bypasses medication/hormone screening",
   },
+  {
+    table: "users",
+    column: "food_inclusion_priorities",
+    migrationMode: "production_release",
+    hint: "Nutrition Priorities — adult HFC resolution requires this authoritative subject column",
+  },
+  {
+    table: "household_profiles",
+    column: "food_inclusion_priorities",
+    migrationMode: "production_release",
+    hint: "Nutrition Priorities — household HFC resolution requires this authoritative subject column",
+  },
+  {
+    table: "child_profiles",
+    column: "food_inclusion_priorities",
+    migrationMode: "production_release",
+    hint: "Nutrition Priorities — pediatric HFC resolution requires this authoritative subject column",
+  },
   // ── Clinical Labs Phase 5 columns ──────────────────────────────────────────
   // These columns were added in the Phase 5 migration. If absent the labs
   // GET handler silently returns null for hormone/thyroid panels, breaking
@@ -104,6 +122,9 @@ export interface ColumnDescriptor {
   table: string;
   /** Column name (e.g. "procare_training_completed") */
   column: string;
+  /** Production DDL ownership. Release-managed columns are guarded at every
+   * startup but created only by the explicit Production release-migration path. */
+  migrationMode?: "startup" | "production_release";
   /**
    * Optional human-readable note explaining what breaks when the column is
    * absent. Included in the thrown error message.

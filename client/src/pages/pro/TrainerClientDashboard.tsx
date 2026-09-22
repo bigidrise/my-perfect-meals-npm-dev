@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { useLocation, useRoute } from "wouter";
@@ -45,6 +45,10 @@ import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResol
 import AddToCalendarButtons from "@/components/AddToCalendarButtons";
 import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
 import { ProHydrationControls } from "@/components/pro/ProHydrationControls";
+import {
+  isCurrentVerifiedProClientRequest,
+  resolveVerifiedProClientUserId,
+} from "@/lib/proClientIdentity";
 
 
 const SECTION_EXPLAINERS: Record<string, TourStep[]> = {
@@ -118,7 +122,9 @@ export default function TrainerClientDashboard() {
   const [explainerStep, setExplainerStep] = useState<TourStep[] | null>(null);
 
   const [client, setClient] = useState(() => proStore.getClient(clientId));
-  const resolvedClientUserId = client?.clientUserId || client?.userId || clientId;
+  const resolvedClientUserId = resolveVerifiedProClientUserId(client, clientId);
+  const activeClientUserIdRef = useRef<string | null>(resolvedClientUserId);
+  activeClientUserIdRef.current = resolvedClientUserId;
   const [macros, setMacros] = useState<Targets>(() => proStore.getTargets(clientId));
   const [isDirty, setIsDirty] = useState(false);
   const updateMacros = (next: Targets) => { setMacros(next); setIsDirty(true); };
@@ -133,7 +139,7 @@ export default function TrainerClientDashboard() {
   const [upcomingCheckIns, setUpcomingCheckIns] = useState<CheckInSchedule[]>([]);
 
   const fetchUpcomingCheckIns = useCallback(() => {
-    const uid = client?.clientUserId || client?.userId;
+    const uid = resolvedClientUserId;
     if (!uid) {
       setUpcomingCheckIns([]);
       return;
@@ -147,10 +153,15 @@ export default function TrainerClientDashboard() {
         return r.json();
       })
       .then((data) => {
+        if (!isCurrentVerifiedProClientRequest(activeClientUserIdRef.current, uid)) return;
         setUpcomingCheckIns(data?.schedules ?? []);
       })
-      .catch(() => { setUpcomingCheckIns([]); });
-  }, [client]);
+      .catch(() => {
+        if (isCurrentVerifiedProClientRequest(activeClientUserIdRef.current, uid)) {
+          setUpcomingCheckIns([]);
+        }
+      });
+  }, [resolvedClientUserId]);
 
   useEffect(() => {
     fetchUpcomingCheckIns();
@@ -202,13 +213,27 @@ export default function TrainerClientDashboard() {
     return PROFESSIONAL_BUILDER_MAP[assignedBuilder as ProfessionalBuilderKey].label;
   }, [assignedBuilder, macros.flags]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setMacros(proStore.getTargets(clientId));
     setCtx(proStore.getContext(clientId));
+    setIsDirty(false);
+    setUpcomingCheckIns([]);
+    setBodyComp(null);
+    setBodyCompSource(null);
+    setClientGoal(null);
+    setLabs(null);
+    setRecommendedProtocol(null);
+    setRecommendedDirectiveKey(null);
+    setLabDerivedConditions([]);
+    setScConditions([]);
+    setNutritionSummary(null);
+    setNutritionSummaryLoading(false);
     const c = proStore.getClient(clientId);
+    setClient(c);
     if (c) {
-      setClient(c);
       setAssignedBuilder(c.assignedBuilder);
+    } else {
+      setAssignedBuilder(undefined);
     }
   }, [clientId]);
 
@@ -219,6 +244,14 @@ export default function TrainerClientDashboard() {
     if (proStore.hasTargets(clientId)) return;
     apiRequest(`/api/users/${resolvedClientUserId}/macro-targets`)
       .then((data) => {
+        if (
+          !isCurrentVerifiedProClientRequest(
+            activeClientUserIdRef.current,
+            resolvedClientUserId,
+          )
+        ) {
+          return;
+        }
         if (!data || !data.hasTargets) return;
         setMacros((prev) => ({
           ...prev,
@@ -232,44 +265,85 @@ export default function TrainerClientDashboard() {
   }, [resolvedClientUserId, clientId]);
 
   const fetchBodyComp = useCallback(() => {
-    const c = proStore.getClient(clientId);
-    const uid = c?.clientUserId || c?.userId;
-    if (!uid) return;
+    const uid = resolvedClientUserId;
+    if (!uid) {
+      setBodyComp(null);
+      setBodyCompSource(null);
+      return;
+    }
+    setBodyComp(null);
+    setBodyCompSource(null);
     apiRequest(`/api/users/${uid}/body-composition/latest`)
       .then((data) => {
+        if (!isCurrentVerifiedProClientRequest(activeClientUserIdRef.current, uid)) return;
         if (data?.entry) {
           setBodyComp(data.entry);
           setBodyCompSource(data.source);
         }
       })
       .catch(() => {});
-  }, [clientId]);
+  }, [resolvedClientUserId]);
 
   useEffect(() => {
     fetchBodyComp();
   }, [fetchBodyComp]);
 
   useEffect(() => {
-    if (!resolvedClientUserId) return;
+    const controller = new AbortController();
+    setNutritionSummary(null);
+    if (!resolvedClientUserId) {
+      setNutritionSummaryLoading(false);
+      return () => controller.abort();
+    }
     setNutritionSummaryLoading(true);
     fetch(apiUrl(`/api/pro/clients/${resolvedClientUserId}/nutrition-summary`), {
       headers: { ...getAuthHeaders() },
       credentials: "include",
+      signal: controller.signal,
     })
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => { if (data) setNutritionSummary(data); })
-      .catch(() => {})
-      .finally(() => setNutritionSummaryLoading(false));
+      .then((r) => {
+        if (!r.ok) throw new Error(`${r.status}`);
+        return r.json();
+      })
+      .then((data) => {
+        if (
+          !controller.signal.aborted &&
+          isCurrentVerifiedProClientRequest(activeClientUserIdRef.current, resolvedClientUserId)
+        ) {
+          setNutritionSummary(data);
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setNutritionSummary(null);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setNutritionSummaryLoading(false);
+      });
+    return () => controller.abort();
   }, [resolvedClientUserId]);
 
   useEffect(() => {
     const uid = resolvedClientUserId;
+    setClientGoal(null);
+    setLabs(null);
+    setRecommendedProtocol(null);
+    setRecommendedDirectiveKey(null);
+    setLabDerivedConditions([]);
+    setScConditions([]);
     if (!uid) return;
     apiRequest(`/api/users/${uid}/goal`)
-      .then((data) => { if (data) setClientGoal(data); })
+      .then((data) => {
+        if (
+          data &&
+          isCurrentVerifiedProClientRequest(activeClientUserIdRef.current, uid)
+        ) {
+          setClientGoal(data);
+        }
+      })
       .catch(() => {});
     apiRequest(`/api/biometrics/labs/${uid}`)
       .then((data) => {
+        if (!isCurrentVerifiedProClientRequest(activeClientUserIdRef.current, uid)) return;
         if (data?.labs) {
           setLabs({ a1c: data.labs.a1c ?? null, ldl: data.labs.ldl ?? null });
         }
@@ -297,16 +371,18 @@ export default function TrainerClientDashboard() {
         setScConditions(scArr);
       })
       .catch(() => {});
-  }, [clientId, resolvedClientUserId]);
+  }, [resolvedClientUserId]);
 
   useEffect(() => {
     const handleResume = () => {
       const c = proStore.getClient(clientId);
+      setClient(c);
       if (c) {
-        setClient(c);
         setAssignedBuilder(c.assignedBuilder);
         setMacros(proStore.getTargets(clientId));
         setCtx(proStore.getContext(clientId));
+      } else {
+        setAssignedBuilder(undefined);
       }
       fetchBodyComp();
     };
@@ -413,9 +489,7 @@ export default function TrainerClientDashboard() {
       return;
     }
 
-    // resolvedClientUserId falls back to clientId when the client hasn't linked;
-    // in that case it equals clientId which is a local ID, not a real DB user ID.
-    const linkedUserId = resolvedClientUserId !== clientId ? resolvedClientUserId : undefined;
+    const linkedUserId = resolvedClientUserId ?? undefined;
     if (!linkedUserId) {
       toast({
         title: "Client not linked",
@@ -553,7 +627,7 @@ export default function TrainerClientDashboard() {
             </p>
             <PillButton onClick={quickTour.openTour} className="shrink-0">How to Use</PillButton>
           </div>
-          {clientGoal?.goalType && (
+          {resolvedClientUserId && clientGoal?.goalType && (
             <div className="mt-3 flex items-center gap-3 rounded-xl bg-orange-500/10 border border-orange-500/30 px-4 py-3">
               <span className="text-2xl">
                 {clientGoal.goalType === "lose" ? "🔥" : clientGoal.goalType === "gain" ? "💪" : "⚖️"}
@@ -572,7 +646,7 @@ export default function TrainerClientDashboard() {
           )}
         </div>
 
-        {(activeProtocolLabel || recommendedProtocol || labs) && (
+        {resolvedClientUserId && (activeProtocolLabel || recommendedProtocol || labs) && (
           <Card className="bg-white/5 border border-teal-500/20">
             <CardHeader className="pb-2">
               <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
@@ -669,7 +743,7 @@ export default function TrainerClientDashboard() {
           </Card>
         )}
 
-        {recommendedDirectiveKey && recommendedProtocol && (
+        {resolvedClientUserId && recommendedDirectiveKey && recommendedProtocol && (
           <Card className={`border ${
             (macros.flags as Record<string, boolean> | undefined)?.[recommendedDirectiveKey]
               ? "bg-teal-900/20 border-teal-500/40"
@@ -712,17 +786,24 @@ export default function TrainerClientDashboard() {
           </Card>
         )}
 
-        <NutritionPersonalizationSummaryCard
-          summary={nutritionSummary}
-          isLoading={nutritionSummaryLoading}
-          defaultExpanded={false}
-        />
+        {resolvedClientUserId && (
+          <NutritionPersonalizationSummaryCard
+            summary={nutritionSummary}
+            isLoading={nutritionSummaryLoading}
+            defaultExpanded={false}
+            source="provided"
+          />
+        )}
 
-        <ProClientComplianceSnapshot clientId={resolvedClientUserId} />
+        {resolvedClientUserId && (
+          <ProClientComplianceSnapshot clientId={resolvedClientUserId} />
+        )}
 
-        <ProHydrationControls clientUserId={resolvedClientUserId} mode="trainer" />
+        {resolvedClientUserId && (
+          <ProHydrationControls clientUserId={resolvedClientUserId} mode="trainer" />
+        )}
 
-        {bodyComp && (
+        {resolvedClientUserId && bodyComp && (
           <Card className="bg-white/5 border border-white/20">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2 text-lg font-semibold">
@@ -756,7 +837,9 @@ export default function TrainerClientDashboard() {
           </Card>
         )}
 
-        <WeeklyWeightTrendCard clientId={resolvedClientUserId} />
+        {resolvedClientUserId && (
+          <WeeklyWeightTrendCard clientId={resolvedClientUserId} />
+        )}
 
         <Card className="bg-white/5 border border-white/20">
           <CardHeader>
@@ -1028,7 +1111,7 @@ export default function TrainerClientDashboard() {
                 const isActive = assignedBuilder === key;
                 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
                 const handleMedicalBuilderOpen = isActive ? () => {
-                  if (!UUID_RE.test(resolvedClientUserId)) {
+                  if (!resolvedClientUserId || !UUID_RE.test(resolvedClientUserId)) {
                     toast({
                       title: "Client not connected",
                       description: "This client hasn't linked their account yet. Ask them to enter your access code in the app.",
@@ -1096,7 +1179,7 @@ export default function TrainerClientDashboard() {
                 // Workspace identity guard — real UUID required.
                 // Never navigate with a proStore record ID; that would load the pro's own data.
                 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-                if (!UUID_RE.test(resolvedClientUserId)) {
+                if (!resolvedClientUserId || !UUID_RE.test(resolvedClientUserId)) {
                   toast({
                     title: "Client not connected",
                     description: "This client hasn't linked their account yet. Ask them to enter your access code in the app.",
@@ -1228,7 +1311,7 @@ export default function TrainerClientDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {upcomingCheckIns.length > 0 && (
+            {resolvedClientUserId && upcomingCheckIns.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs text-lime-400 font-semibold uppercase tracking-wide">Upcoming Check-Ins</p>
                 {upcomingCheckIns.map((ci) => (

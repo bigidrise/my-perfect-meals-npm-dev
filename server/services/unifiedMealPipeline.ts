@@ -1027,7 +1027,7 @@ Respond with ONLY valid JSON in this exact format:
        "evidence": {
          "cuisine": "The cuisine this finished recipe actually expresses, or null",
          "cuisineIntensity": "subtle, balanced, authentic, or null",
-         "heat": "mild, medium, hot, or null",
+         "heat": "none, mild, medium, hot, very-hot, or null",
          "seasoningIntensity": "light, balanced, strong, or null",
          "broadFlavor": "The dominant finished flavor, or null",
          "flavorStyle": "The finished flavor style, or null",
@@ -1887,7 +1887,7 @@ OUTPUT FORMAT — ONLY valid JSON, no markdown:
       "evidence": {
         "cuisine": "The cuisine this finished recipe actually expresses, or null",
         "cuisineIntensity": "subtle, balanced, authentic, or null",
-        "heat": "mild, medium, hot, or null",
+        "heat": "none, mild, medium, hot, very-hot, or null",
         "seasoningIntensity": "light, balanced, strong, or null",
         "broadFlavor": "The dominant finished flavor, or null",
         "flavorStyle": "The finished flavor style, or null",
@@ -1980,7 +1980,7 @@ OUTPUT FORMAT — ONLY valid JSON, no markdown:
        "evidence": {
          "cuisine": "The cuisine this finished recipe actually expresses, or null",
          "cuisineIntensity": "subtle, balanced, authentic, or null",
-         "heat": "mild, medium, hot, or null",
+         "heat": "none, mild, medium, hot, very-hot, or null",
          "seasoningIntensity": "light, balanced, strong, or null",
          "broadFlavor": "The dominant finished flavor, or null",
          "flavorStyle": "The finished flavor style, or null",
@@ -3717,9 +3717,16 @@ Create the recipe for: "${description}"`;
       console.log(`✅ [ExplicitOverride] Injected override for "${explicitOverride.item}"`);
     }
 
+    // Canonical HFC and other request-scoped generation context must reach the
+    // actual model prompt. Keep it below explicit request/override instructions
+    // and above specialized Performance authority.
+    if (generationContext) {
+      prompt += `\n\n=== AUTHORITATIVE REQUEST AND HUMAN FOOD CONTEXT ===\n${generationContext}`;
+    }
+
     // PERFORMANCE SESSION COACHING INJECTION
-    // Appended last so it takes final precedence — the session type shapes ingredient
-    // selection, portion size, and carb composition across every generated meal.
+    // Appended after HFC so the session type keeps final authority over ingredient
+    // selection, portion size, and carb composition.
     if (performanceSessionContext) {
       const psc = performanceSessionContext;
       const carbLine = (psc.starchyCarbs_g != null && psc.fibrousCarbs_g != null)
@@ -3749,10 +3756,13 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
     // Appended after performanceSessionContext so both can coexist; generationContext
     // is a lighter-weight signal used when a full performanceSessionContext isn't available.
     if (generationContext && !performanceSessionContext) {
-      if (generationContext === 'performance_training_day') {
+      const generationSignals = new Set(
+        generationContext.split(/\r?\n/).map(value => value.trim()).filter(Boolean),
+      );
+      if (generationSignals.has('performance_training_day')) {
         prompt = prompt + `\n\n=== TRAINING DAY MEAL CONTEXT ===\nThis meal is being generated for an active training day. Prioritise complex carbohydrates for glycogen support (oats, sweet potato, rice, whole grains), lean high-quality protein for muscle repair, and moderate healthy fat. Avoid heavy, sluggish, or high-fat meals that would impair performance or recovery.`;
         console.log(`🏃 [GenerationContext] Injected training-day fuelling guidance`);
-      } else if (generationContext === 'rest_day') {
+      } else if (generationSignals.has('rest_day')) {
         prompt = prompt + `\n\n=== REST DAY MEAL CONTEXT ===\nThis meal is being generated for a rest/recovery day. Reduce starchy carbohydrates relative to training days. Prioritise anti-inflammatory ingredients (omega-3 rich fish, leafy greens, colourful vegetables, turmeric, ginger), high protein for muscle repair, and healthy fats. Keep total carbs moderate.`;
         console.log(`🧘 [GenerationContext] Injected rest-day recovery guidance`);
       }
@@ -4531,7 +4541,10 @@ export async function generateSnackFromCravingUnified(
   protocolEnvelope?: UserProtocolEnvelope,
   generationContext?: string,
 ): Promise<MealGenerationResponse> {
-  const requestedIdentityText = [cravingDescription, generationContext].filter(Boolean).join("\n");
+  // Only the explicit request defines protected food identity. Canonical HFC may
+  // adapt ingredients, but soft profile context must never turn an unrelated
+  // request into a liked dessert or another saved food.
+  const requestedIdentityText = cravingDescription;
   const requestedFoodIdentity = classifyFoodIdentity(requestedIdentityText);
   const protectedIdentity = protectedFoodIdentityLabel(requestedIdentityText);
   console.log(`🍪 Snack Creator: Generating snack for eating occasion: "${cravingDescription}"${dietType ? ` (diet: ${dietType})` : ''}`);

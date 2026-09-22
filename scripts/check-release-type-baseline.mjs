@@ -119,13 +119,17 @@ try {
 
   writeFileSync(
     generatedBuildVersionPath,
-    'export const BUILD_VERSION = "dev";\n',
+    [
+      'export const BUILD_VERSION = "dev";',
+      'export const BUILD_RELEASE_ID = "dev";',
+      "",
+    ].join("\n"),
   );
 
   result = spawnSync(
     tscPath,
     ["--pretty", "false", "--incremental", "false", "--project", "tsconfig.json"],
-    { encoding: "utf8" },
+    { encoding: "utf8", maxBuffer: 50 * 1024 * 1024 },
   );
 } catch (error) {
   operationError = error;

@@ -100,12 +100,21 @@ interface MealImageSlotProps {
   /** Present for saved meals, so recovery can replace the persisted asset. */
   savedMealId?: string;
   mediaAssetId?: string | null;
+  boardTarget?: {
+    weekStartISO: string;
+    dateISO: string;
+    slot: string;
+    mealId: string;
+    builderType?: string;
+  };
   isLoading?: boolean;
   height?: string;
   /** @deprecated No longer used. Kept for interface compat only — ignored. */
   fallbackSrc?: string;
   className?: string;
 }
+
+const terminalBoardRecoveryFailures = new Set<string>();
 
 export function MealImageSlot({
   imageUrl,
@@ -114,6 +123,7 @@ export function MealImageSlot({
   ingredients,
   savedMealId,
   mediaAssetId,
+  boardTarget,
   isLoading = false,
   height = "h-64",
   className = "",
@@ -132,6 +142,9 @@ export function MealImageSlot({
   const resolvedType = sourceType ?? detectTypeFromName(mealName);
   const label = TYPE_LABELS[resolvedType];
   const renderedUrl = withImageDeliveryRetry(recoveredUrl ?? imageUrl ?? "", retryNonce);
+  const boardRecoveryKey = boardTarget && imageUrl
+    ? `${boardTarget.weekStartISO}|${boardTarget.dateISO}|${boardTarget.slot}|${boardTarget.mealId}|${imageUrl}`
+    : null;
 
   useEffect(() => {
     // A new server-supplied URL starts a new display lifecycle. This is distinct
@@ -143,13 +156,18 @@ export function MealImageSlot({
     setRecoveryState("idle");
     setRetryNonce(0);
     recoveryVersion.current += 1;
-  }, [imageUrl, savedMealId, mediaAssetId]);
+  }, [imageUrl, savedMealId, mediaAssetId, boardTarget?.weekStartISO, boardTarget?.dateISO, boardTarget?.slot, boardTarget?.mealId]);
 
   useEffect(() => () => {
     mounted.current = false;
   }, []);
 
   const requestRecovery = async () => {
+    if (boardRecoveryKey && terminalBoardRecoveryFailures.has(boardRecoveryKey)) {
+      setRecoveryState("idle");
+      setFailed(true);
+      return;
+    }
     if (!isFirstPartyPermanentImageUrl(imageUrl) || recoveryAttempted.current) {
       setFailed(true);
       return;
@@ -161,9 +179,35 @@ export function MealImageSlot({
     const canUpdate = () => mounted.current && requestVersion === recoveryVersion.current;
 
     try {
-      // Generator and board cards have a durable URL but no saved-meal asset
-      // relationship. They must not call the persistence recovery endpoints,
-      // but they still deserve one retry after a transient storage read error.
+      if (boardTarget?.weekStartISO && boardTarget.dateISO && boardTarget.slot && boardTarget.mealId) {
+        const recovery = await post<{
+          status: "retry" | "recovered" | "unavailable";
+          imageUrl?: string;
+        }>("/api/weekly-board/image-recovery", {
+          ...boardTarget,
+          imageUrl,
+          mediaAssetId,
+        });
+        if (!canUpdate()) return;
+        if ((recovery.status === "retry" || recovery.status === "recovered") && recovery.imageUrl) {
+          if (recovery.status === "recovered" && boardRecoveryKey) {
+            terminalBoardRecoveryFailures.delete(boardRecoveryKey);
+          }
+          setRecoveredUrl(recovery.imageUrl);
+          setRetryNonce(recovery.status === "retry" ? 1 : 0);
+          setRecoveryState("idle");
+          setFailed(false);
+          setRevealed(false);
+          return;
+        }
+        if (boardRecoveryKey) terminalBoardRecoveryFailures.add(boardRecoveryKey);
+        setRecoveryState("idle");
+        setFailed(true);
+        return;
+      }
+
+      // Generator cards without a persisted owner relationship get one bounded
+      // delivery retry but cannot mutate server state.
       if (!savedMealId || !mediaAssetId) {
         await new Promise((resolve) => window.setTimeout(resolve, 700));
         if (canUpdate()) {

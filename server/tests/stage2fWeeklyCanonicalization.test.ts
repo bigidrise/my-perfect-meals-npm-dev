@@ -14,7 +14,7 @@ describe("Stage 2F weekly canonicalization contract", () => {
     expect(canonical).toContain("Array.from({ length: weeks * 7 }");
     expect(canonical).toContain("date.getUTCDay()");
     expect(canonical).toContain("dateISO,");
-    expect(context).toContain("resolveDailyNutritionState(input.subjectUserId, dateISO, input.excludeItemId)");
+    expect(context).toContain("resolveDailyNutritionState(nutritionUserId, dateISO, input.excludeItemId)");
     expect(nutrition).toContain("mb.start_date::date");
     expect(nutrition).toContain("projectedRemaining");
     expect(nutrition).toContain("consumedRemaining");

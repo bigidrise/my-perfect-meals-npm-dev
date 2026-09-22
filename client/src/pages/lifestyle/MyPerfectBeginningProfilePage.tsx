@@ -10,6 +10,10 @@ import { usePageTitle } from "@/contexts/PageTitleContext";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { apiRequest } from "@/lib/apiRequest";
 import { PillButton, type PillButtonVariant } from "@/components/ui/pill-button";
+import { NutritionPrioritiesSelector } from "@/components/NutritionPrioritiesSelector";
+import { useChildNutritionPriorities } from "@/hooks/useNutritionPriorities";
+import { useAuth } from "@/contexts/AuthContext";
+import { resolveRememberedProfileId } from "@/lib/myPerfectBeginningChildSelection";
 
 // ── Multi-select pill group (toggle on/off) ───────────────────────────────────
 function MultiPillSelect({
@@ -320,6 +324,7 @@ function TagInput({
 
 export default function MyPerfectBeginningProfilePage() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
   const isDesktop = useIsDesktop();
   usePageTitle("Child Nutrition Profile");
 
@@ -329,8 +334,10 @@ export default function MyPerfectBeginningProfilePage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  const [loadAccessError, setLoadAccessError] = useState("");
   const [newAllergen, setNewAllergen] = useState({ allergen: "", severity: "confirmed_allergy", epinephrinePrescribed: false, crossContactConcern: false, clinicianInstructions: "" });
   const [showAllergenForm, setShowAllergenForm] = useState(false);
+  const nutritionPriorities = useChildNutritionPriorities(user?.id, profile.id);
 
   const set = useCallback(<K extends keyof ChildProfile>(field: K, value: ChildProfile[K]) => {
     setProfile(p => ({ ...p, [field]: value }));
@@ -351,8 +358,20 @@ export default function MyPerfectBeginningProfilePage() {
     (async () => {
       try {
         const data = await apiRequest(apiUrl("/api/my-perfect-beginning/children"));
-        const child = (data.children ?? []).find((c: any) => c.id === activeId);
-        if (!child) { setIsNew(true); setLoading(false); return; }
+        const authorizedChildren = data.children ?? [];
+        const authorizedId = resolveRememberedProfileId(
+          activeId,
+          authorizedChildren.map((candidate: any) => candidate.id),
+          "GENERAL",
+        );
+        const child = authorizedChildren.find((candidate: any) => candidate.id === authorizedId);
+        if (!child) {
+          try { localStorage.removeItem(LS_ACTIVE_CHILD_KEY); } catch {}
+          setProfile({ ...EMPTY_PROFILE });
+          setIsNew(true);
+          setLoading(false);
+          return;
+        }
         setIsNew(false);
         setProfile({
           id: child.id,
@@ -382,7 +401,7 @@ export default function MyPerfectBeginningProfilePage() {
           family_goals: Array.isArray(child.family_goals) ? child.family_goals : [],
         });
       } catch {
-        setIsNew(true);
+        setLoadAccessError("We couldn't securely load this child profile. Return to My Perfect Beginnings and try again.");
       } finally {
         setLoading(false);
       }
@@ -414,10 +433,15 @@ export default function MyPerfectBeginningProfilePage() {
             body: JSON.stringify(body),
           });
       const saved = data.child ?? data;
+      const savedChildId = saved?.id ?? profile.id;
       if (saved?.id) {
         setProfile(p => ({ ...p, id: saved.id }));
         setIsNew(false);
         try { localStorage.setItem(LS_ACTIVE_CHILD_KEY, saved.id); } catch {}
+      }
+      if (nutritionPriorities.isDirty) {
+        if (!savedChildId) throw new Error("The child profile was saved, but its Nutrition Priorities could not be linked.");
+        await nutritionPriorities.save({ childProfileId: savedChildId });
       }
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -449,6 +473,25 @@ export default function MyPerfectBeginningProfilePage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0d1a12] via-[#0f1f18] to-[#0a1510] flex items-center justify-center">
         <Loader2 className="h-8 w-8 text-emerald-400 animate-spin" />
+      </div>
+    );
+  }
+
+  if (loadAccessError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#0d1a12] via-[#0f1f18] to-[#0a1510] flex items-center justify-center px-4">
+        <div className="w-full max-w-md rounded-2xl border border-amber-400/30 bg-black/50 p-6 text-center space-y-4">
+          <AlertTriangle className="h-8 w-8 text-amber-300 mx-auto" />
+          <p className="text-white font-semibold">Child profile unavailable</p>
+          <p className="text-sm text-white/70">{loadAccessError}</p>
+          <button
+            type="button"
+            onClick={() => setLocation("/lifestyle/my-perfect-beginning")}
+            className="w-full rounded-xl border border-emerald-400/40 bg-emerald-600/40 px-4 py-2.5 text-sm font-semibold text-white"
+          >
+            Back to My Perfect Beginnings
+          </button>
+        </div>
       </div>
     );
   }
@@ -764,7 +807,38 @@ export default function MyPerfectBeginningProfilePage() {
           </div>
         </div>
 
-        {/* ── 7. Growth ── */}
+        {/* ── 7. Nutrition Priorities ── */}
+        <div className={sectionClass}>
+          <SectionHeader icon={Utensils} title="Nutrition Priorities" />
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-white">Foods you'd like us to consider more often</p>
+            {profile.name.trim() && (
+              <p className="text-xs font-medium text-emerald-300">These choices apply only to {profile.name.trim()}.</p>
+            )}
+            <p className="text-xs leading-relaxed text-white/70">
+              Tell us about foods or nutrition characteristics you'd like this child's meals to include when they fit.
+              My Perfect Meals will still consider their age, allergies, dietary needs, preferences, feeding considerations,
+              and what you're asking for right now.
+            </p>
+            <p className="text-[11px] leading-relaxed text-white/50">
+              Select any number, or none. A selection means: consider this when it safely, naturally, developmentally,
+              and culinarily makes sense. It does not mean the child will eat it or that it belongs in every meal.
+            </p>
+          </div>
+          <NutritionPrioritiesSelector
+            selectedPriorityIds={nutritionPriorities.selectedPriorityIds}
+            onChange={nutritionPriorities.setSelectedPriorityIds}
+            disabled={saving || nutritionPriorities.isSaving}
+            isLoading={nutritionPriorities.isLoading}
+            error={nutritionPriorities.error}
+            onRetry={() => { void nutritionPriorities.retry(); }}
+            compact
+            audience="pediatric"
+            accent="emerald"
+          />
+        </div>
+
+        {/* ── 8. Growth ── */}
         <div className={sectionClass}>
           <SectionHeader icon={Activity} title="Growth & Health" />
 

@@ -17,4 +17,31 @@ describe("My Perfect Beginnings final validation order", () => {
     expect(imageIndex).toBeGreaterThan(validationIndex);
     expect(responseIndex).toBeGreaterThan(validationIndex);
   });
+
+  test("answers pediatric Nutrition Priority questions after ownership verification and before the LLM", () => {
+    const source = fs.readFileSync(
+      path.resolve(process.cwd(), "server/routes/myPerfectBeginning.ts"),
+      "utf8",
+    );
+    const routeIndex = source.indexOf('router.post("/parents-corner"');
+    const ownershipIndex = source.indexOf(
+      "await loadOwnedActiveChildProfile",
+      routeIndex,
+    );
+    const deterministicAnswerIndex = source.indexOf(
+      "answerNutritionPriorityEducationQuestion",
+      ownershipIndex,
+    );
+    const responseIndex = source.indexOf(
+      "return res.json({",
+      deterministicAnswerIndex,
+    );
+    const modelIndex = source.indexOf("const openai = getOpenAI()", routeIndex);
+
+    expect(routeIndex).toBeGreaterThan(-1);
+    expect(ownershipIndex).toBeGreaterThan(routeIndex);
+    expect(deterministicAnswerIndex).toBeGreaterThan(ownershipIndex);
+    expect(responseIndex).toBeGreaterThan(deterministicAnswerIndex);
+    expect(modelIndex).toBeGreaterThan(responseIndex);
+  });
 });

@@ -1325,8 +1325,8 @@ setTimeout(async () => {
   }
 }, 4000);
 
-// Backfill: purge stale temp URLs from meal_image_cache
-// Any non-S3 URL is expired or will expire — delete so next request regenerates clean
+// Backfill: purge only known temporary provider URLs. Replit Object Storage
+// /public-objects/ URLs are canonical and are validated lazily on cache reads.
 setTimeout(async () => {
   try {
     const { db } = await import("./db");
@@ -1553,11 +1553,16 @@ setTimeout(async () => {
 
     const result = await db
       .delete(mealImageCache)
-      .where(sql`${mealImageCache.imageUrl} NOT LIKE '%amazonaws.com%'`);
+      .where(sql`
+        ${mealImageCache.imageUrl} LIKE 'data:%'
+        OR ${mealImageCache.imageUrl} LIKE '%oaidalleapiprodscus%'
+        OR ${mealImageCache.imageUrl} LIKE '%blob.core.windows.net%'
+        OR ${mealImageCache.imageUrl} LIKE '%openai.com%'
+      `);
 
     const count = (result as any).rowCount ?? (result as any).count ?? '?';
     if (Number(count) > 0) {
-      console.log(`🧹 Image cache backfill: deleted ${count} stale non-S3 rows from meal_image_cache — they will regenerate with permanent URLs on next request`);
+      console.log(`🧹 Image cache backfill: deleted ${count} temporary-provider rows from meal_image_cache`);
     } else {
       console.log(`✅ Image cache backfill: no stale entries found — cache is clean`);
     }
@@ -1770,6 +1775,7 @@ async function start() {
     const { db: dbPre } = await import("./db");
     const { sql: sqlPre } = await import("drizzle-orm");
     const { runStudioVoiceStorageMigration } = await import("./db/migrations/runStudioVoiceStorageMigration");
+    const { runNutritionPrioritiesMigration } = await import("./db/migrations/runNutritionPrioritiesMigration");
     // Phase 2 ProCare Studio gate
     await dbPre.execute(sqlPre`ALTER TABLE users ADD COLUMN IF NOT EXISTS procare_training_completed boolean NOT NULL DEFAULT false`);
     // Performance Hub macro resolver
@@ -1794,6 +1800,7 @@ async function start() {
     await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS fsh numeric`);
     await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS dhea_s numeric`);
     await runStudioVoiceStorageMigration();
+    await runNutritionPrioritiesMigration(dbPre);
     console.log("✅ [guard-pre] Critical column pre-flight migrations complete");
   });
 

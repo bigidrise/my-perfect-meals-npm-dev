@@ -6,6 +6,10 @@ import {
 import type { HumanFoodCandidate } from "../../../shared/humanFoodValidation";
 import type { PediatricMealGenerationContext } from "../pediatric/pediatricResolver";
 import { freezeHumanFoodContext } from "./resolveHumanFoodContext";
+import {
+  normalizePediatricFoodInclusionPrioritiesDocument,
+  type FoodInclusionPrioritiesDocument,
+} from "../../../shared/nutritionPriorities";
 
 interface AllergyInput {
   allergenId: string;
@@ -21,6 +25,7 @@ interface BuildPediatricHumanFoodContextInput {
   allergies: AllergyInput[];
   dietaryPattern?: string | null;
   explicitCuisine?: string | null;
+  foodInclusionPriorities?: FoodInclusionPrioritiesDocument | null;
 }
 
 const unavailablePreference = () => ({
@@ -115,6 +120,15 @@ export function buildPediatricHumanFoodContext(
     nutrition: null,
     behavior: null,
     foodsIEnjoy: { explicit: [], legacyLikes: [] },
+    nutritionPriorities: (() => {
+      const document = normalizePediatricFoodInclusionPrioritiesDocument(
+        input.foodInclusionPriorities,
+      );
+      return {
+        selectedPriorityIds: document.selectedPriorityIds,
+        registryVersion: document.registryVersion,
+      };
+    })(),
     sweeteners: { preferred: [], avoided: [] },
     diabetesFoodPreferences: null,
     gaps: [],

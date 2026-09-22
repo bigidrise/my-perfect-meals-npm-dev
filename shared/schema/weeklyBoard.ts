@@ -42,6 +42,7 @@ export const MealSchema = z.object({
   includeInShoppingList: z.boolean().optional(),
   // Extended fields for Create With Chef / Fridge Rescue meals
   imageUrl: z.string().optional(),
+  mediaAssetId: z.string().uuid().nullable().optional(),
   description: z.string().optional(),
   cookingTime: z.string().optional(),
   difficulty: z.string().optional(),

@@ -164,6 +164,7 @@ export const ExpandIngredientResponseSchema = z.object({
 export const CreateDishIntentSchema = z.object({
   creator: z.literal("create_a_dish"),
   originalText: z.string().trim().min(1).max(300),
+  cuisine: z.string().trim().min(1).max(80).nullable().optional(),
   ingredient: z.object({
     canonicalId: z.string().min(1),
     canonicalName: z.string().min(1),
