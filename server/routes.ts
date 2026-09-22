@@ -5934,7 +5934,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ? dietaryRestrictions
               : null;
       const { createHumanFoodRequestScope } = await import("./services/humanFoodContext/requestScope");
-      const { buildCreatorHumanFoodPrompt, validateCreatorHumanFoodResult } = await import("./services/humanFoodContext/adapters");
+      const { buildCreatorHumanFoodPrompt } = await import("./services/humanFoodContext/adapters");
       const {
         recordRejectedHumanFoodCandidate,
         buildRejectedCandidatePrompt,
@@ -6836,10 +6836,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // filtering, creator transformation, and this validator again.
       const { validateHumanFoodCandidate } = await import("./services/humanFoodContext/finalValidation");
       const { validateMealForDiet: validateFinalMealForDiet } = await import("./services/guardrails/index");
-      const perServingNumber = (value: unknown, servingDivisor: number) => {
-        const numeric = Number(value);
-        return Number.isFinite(numeric) ? numeric / servingDivisor : value;
-      };
+      const {
+        perServingNumber,
+        toPerServingNutrition,
+      } = await import("./services/humanFoodContext/servingNutrition");
       const candidateComplianceEvidence = (meal: any, servingDivisor = 1) => {
         const protocolProof = scanGeneratedOutput(meal, _filterEnvelope, {
           generatorName: "craving_creator_final_evidence",
@@ -6899,16 +6899,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return ({
         ...meal,
         category: meal.category ?? meal.mealType ?? normalizedTargetMealType,
-        nutrition: {
-          calories: perServingNumber(meal.nutrition?.calories ?? meal.calories, servingDivisor),
-          protein: perServingNumber(meal.nutrition?.protein ?? meal.protein, servingDivisor),
-          carbs: perServingNumber(meal.nutrition?.carbs ?? meal.carbs, servingDivisor),
-          fat: perServingNumber(meal.nutrition?.fat ?? meal.fat, servingDivisor),
-          starchyCarbs: perServingNumber(
-            meal.nutrition?.starchyCarbs ?? meal.starchyCarbs,
-            servingDivisor,
-          ),
-        },
+        nutrition: toPerServingNutrition(meal, servingDivisor),
         evidence: {
           ...(meal.evidence ?? {}),
           sourceType: "generated_recipe",
@@ -7125,7 +7116,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Format and optionally scale each option
+      // Format and optionally scale each option. The response nutrition object
+      // represents total recipe nutrition for validatedServings; canonical
+      // person-specific validation converts it back to per-serving nutrition.
       let formattedOptions = scannedOptions.map(meal => {
         const { complianceSection, dietClassification } = buildMealComplianceBundle(
           meal, protocolEnvelope, { isChefAdapted: dietAdapted }
@@ -7184,10 +7177,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         meal,
         result: runFinalValidation(meal, validatedServings),
       }));
-      const postFormatFailure = postFormatResults.find(
+      const postFormatFailures = postFormatResults.filter(
         ({ result }) => result.outcome !== "pass",
       );
-      if (postFormatFailure) {
+      for (const [failureIndex, failure] of postFormatFailures.entries()) {
+        logCreateDishAcceptance({
+          stage: "post_format_validation_failed",
+          candidateId: failure.meal.id ?? `candidate-${failureIndex + 1}`,
+          servingCount: validatedServings,
+          nutritionRepresentation: "total_recipe",
+          reasonCodes: failure.result.findings.map((finding) => finding.code),
+        });
+      }
+      formattedOptions = postFormatResults
+        .filter(({ result }) => result.outcome === "pass")
+        .map(({ meal }) => meal);
+      if (formattedOptions.length === 0) {
+        const postFormatFailure =
+          postFormatFailures.find(({ result }) => result.outcome === "blocked")
+          ?? postFormatFailures.find(({ result }) => result.outcome === "review_required")
+          ?? postFormatFailures.find(({ result }) => result.outcome === "repairable")
+          ?? postFormatFailures[0];
         const outcome = postFormatFailure.result.outcome;
         const { buildCreateDishValidationOutcome } = await import(
           "./services/humanFoodContext/createDishOutcome"
@@ -7268,6 +7278,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 if (validatedCreateDishIntent) {
                   logCreateDishAcceptance({
                     stage: "image_final",
+                    candidateId: meal.id ?? `candidate-${formattedOptions.indexOf(meal) + 1}`,
+                    servingCount: validatedServings,
+                    nutritionRepresentation: "total_recipe",
+                    foodSemanticMutation: "none",
                     generated: Boolean(imageUrl),
                     fallback: imageUrl?.startsWith("/images/fallback/") ?? false,
                   });
@@ -7278,16 +7292,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           );
         } catch { return formattedOptions; } // pipeline failure non-fatal
       })();
-      const invalidHumanFoodResult = imagedOptions.find((meal: any) =>
-        !validateCreatorHumanFoodResult(humanFoodCreator, meal, humanFoodContext).valid
-      );
-      if (invalidHumanFoodResult) {
-        return res.status(422).json({
-          success: false,
-          code: "HUMAN_FOOD_CONTEXT_VALIDATION_FAILED",
-          message: "The generated food did not pass final food-context validation.",
-        });
-      }
+      // Image processing only adds image metadata. Food semantics were already
+      // checked by canonical final validation with the requested serving count,
+      // so a second independent food validator here would reinterpret totals.
       // ─────────────────────────────────────────────────────────────────────────────────────
 
       console.log("✅ CRAVING ROUTE COMPLETE", Date.now(), `(${Date.now() - startTime}ms)`);
