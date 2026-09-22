@@ -53,6 +53,11 @@ import {
   rejectionCategoryCounts,
 } from "../services/myPerfectMenu/generationContract";
 import {
+  canAttemptConceptCompletion,
+  conceptCompletionFailure,
+  missingConceptCount,
+} from "../services/myPerfectMenu/candidateCompletion";
+import {
   resolveMyPerfectMenuBuilderForActor,
   MyPerfectMenuBuilderError,
 } from "../services/myPerfectMenu/builderResolver";
@@ -653,6 +658,9 @@ router.post("/concepts", requireAuth, async (req, res) => {
     const candidatePool: GovernedMenuConcept[] = [];
     const rejectedReasons: string[] = [];
     let accepted: GovernedMenuConcept[] = [];
+    let attemptsCompleted = 0;
+    let metadataRepairCount = 0;
+    let providerFailureCount = 0;
     const recentCulinaryHistory = stored.recentCulinaryFingerprints.filter(
       (item) => item.occasion === occasion,
     );
@@ -667,13 +675,18 @@ router.post("/concepts", requireAuth, async (req, res) => {
         item.temperature || "unspecified",
       ].join("|"));
 
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      const generatedRaw = await chatJson({
+    while (canAttemptConceptCompletion(attemptsCompleted, accepted.length)) {
+      const attempt = attemptsCompleted;
+      attemptsCompleted += 1;
+      const requestedCount = missingConceptCount(accepted.length);
+      let generatedRaw: unknown;
+      try {
+        generatedRaw = await chatJson({
         temperature: attempt === 0 ? 0.55 : 0.7,
         system: [
           "You create lightweight, fully personalized menu concepts for My Perfect Meals.",
           "Return JSON only with: {\"concepts\":[{\"title\":\"\",\"description\":\"\",\"primaryIngredients\":[\"\"],\"primaryProtein\":null,\"produceItems\":[],\"cuisine\":\"\",\"dietaryEvidence\":[],\"preparationMethod\":\"\",\"signature\":\"\",\"culinaryIdentity\":{\"dishForm\":\"\",\"preparationStyle\":\"\",\"texture\":\"\",\"temperature\":\"hot|warm|room_temperature|chilled|frozen\",\"primaryProteinBase\":null,\"majorStarchBase\":null,\"flavorFamily\":\"\",\"cuisineEvidence\":\"\",\"definingComponents\":[\"\"]},\"foodIdentity\":{\"foodRole\":\"dessert|general_snack\",\"polarity\":\"sweet|savory|neutral\",\"formatFamily\":\"cookie|brownie|cake|cupcake|cheesecake|pudding_custard|frozen_dessert|bar|muffin|pie|no_bake_dessert|pastry|confection|general_sweet|general_snack\",\"preparationStyle\":\"baked|frozen|chilled|no_bake|prepared|raw\",\"texture\":\"creamy|crunchy|chewy|soft|crisp|smooth|mixed\"}}]}",
-          "Return 3 to 6 candidates. They are concepts, not recipes: no quantities, instructions, nutrition numbers, medical claims, or images.",
+          "Return exactly the requested number of candidates, from 1 to 3. They are concepts, not recipes: no quantities, instructions, nutrition numbers, medical claims, or images.",
           "primaryIngredients must name every meaningful food needed to validate the concept.",
           "signature must be a compact normalized dish-format + protein + method identity.",
           "Include culinaryIdentity for every candidate. It describes the food and supports recommendation breadth; it is not a health or nutrition rule.",
@@ -691,6 +704,7 @@ router.post("/concepts", requireAuth, async (req, res) => {
           parsed.data.ideaType === "snack"
             ? "For snack candidates, include foodIdentity. Use it for personalization and diversity only, never as a safety or nutrition rule. Do not define appropriateness by a universal calorie range, protein target, fiber target, or artificially tiny portion."
             : "",
+          "When compatible with the authoritative context, carbohydrate structure may be one breadth dimension (lower, moderate, or higher), but never invent targets, weaken clinical guidance, or force a quota.",
         ].join("\n"),
         user: [
           buildCreatorHumanFoodPrompt("my_perfect_menu", context, scope.executionState),
@@ -700,27 +714,35 @@ router.post("/concepts", requireAuth, async (req, res) => {
           performance
             ? `PERFORMANCE AUTHORITY (server-resolved): date=${performance.dateISO}; meal slot=${performance.slot}; session=${performance.sessionType ?? "unscheduled"}; track=${performance.performanceTrack ?? "athletic"}; demand=${JSON.stringify(performance.demand)}; nutrition=${JSON.stringify(performance.nutrition)}. Honor this authority. Zero starch means no starchy foods, not zero total carbohydrates.`
             : "",
-          `Create ${parsed.data.ideaType} concepts for ${target.label ?? "the person being fed"}.`,
+          `Create exactly ${requestedCount} additional ${parsed.data.ideaType} concept${requestedCount === 1 ? "" : "s"} for ${target.label ?? "the person being fed"}.`,
           `Previously shown signatures to avoid immediately: ${[...priorSignatures].join(", ") || "none"}.`,
           `Recent culinary patterns to move beyond when appropriate: ${recentPatternSummary.join(", ") || "none"}.`,
           rejectedReasons.length
-            ? `Repair only the missing ${Math.max(0, 3 - candidatePool.length)} position(s). Prior rejection categories: ${Object.keys(rejectionCategoryCounts(rejectedReasons)).join(", ")}. Keep every authoritative constraint above.`
+              ? `Repair only the missing ${requestedCount} position(s). Prior rejection categories: ${Object.keys(rejectionCategoryCounts(rejectedReasons)).join(", ")}. Keep every authoritative constraint above.`
             : "",
           candidatePool.length
-            ? `${candidatePool.length} governed candidate(s) are already retained. Generate replacements for missing positions only; broaden compliant culinary structures without changing the person's context or cuisine.`
+              ? `${accepted.length} governed candidate(s) are already retained. Generate only the ${requestedCount} missing position(s); broaden compliant culinary structures without changing the person's context or cuisine.`
             : "",
           "Vary dish format, primary protein, preparation method, flavor profile, and—when relevant—food identity dimensions without overriding the person's preferences.",
         ].filter(Boolean).join("\n\n"),
-      });
+        });
+      } catch {
+        providerFailureCount += 1;
+        continue;
+      }
       const generated = parseGeneratedMenuCandidates(generatedRaw, parsed.data.ideaType);
       rejectedReasons.push(...generated.rejectionCodes);
+      metadataRepairCount += generated.metadataRepairCount;
 
       for (const candidate of generated.candidates) {
         const signature = normalize(candidate.signature);
         if (
           priorSignatures.has(signature) ||
           candidatePool.some((item) => normalize(item.signature) === signature)
-        ) continue;
+        ) {
+          rejectedReasons.push("repetition:signature");
+          continue;
+        }
         const violations = conceptViolations(candidate, context, envelope, requiredCuisine);
         if (violations.length) {
           rejectedReasons.push(...violations);
@@ -748,13 +770,14 @@ router.post("/concepts", requireAuth, async (req, res) => {
         ideaType: parsed.data.ideaType,
         subjectKind: target.kind,
         acceptedCount: accepted.length,
-        missingCount: 3 - accepted.length,
+        missingCount: missingConceptCount(accepted.length),
         rejectionCounts,
+        metadataRepairCount,
+        providerFailureCount,
+        attemptsCompleted,
       });
-      return res.status(422).json({
-        error: "We couldn't find three choices that fit all of your current food needs. Your settings were kept unchanged. Please try again.",
-        code: "CONCEPT_REPAIR_EXHAUSTED",
-      });
+      const failure = conceptCompletionFailure(rejectionCounts, providerFailureCount);
+      return res.status(failure.status).json({ error: failure.error, code: failure.code });
     }
 
     const concepts = accepted.slice(0, 3);
