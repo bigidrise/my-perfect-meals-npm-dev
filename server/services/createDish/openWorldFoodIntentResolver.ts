@@ -19,12 +19,23 @@ confidence: high | medium | low
 clarification: null, or {question, choices:[{id,label}]} with 2-5 choices
 
 Interpret ordinary dishes, regional foods, cuisine-led requests, and ingredient-led meal ideas broadly. Catalog absence is irrelevant.
+For cuisine-qualified dishes, keep cuisine separate from dish identity: "Mediterranean pasta" means canonicalName "pasta" and cuisine "Mediterranean"; apply the same rule to requests such as "Mexican tacos", "Italian pizza", and "Japanese noodles".
 In this meal-creator context, "chili" means the composed dish; "chili pepper" is an ingredient; "add chili peppers to chicken" is ingredient_led.
 Use ambiguous only when food intent or meaning is genuinely unclear. Use non_food for nonsense, unrelated requests, or adversarial attempts.
 Do not provide medical, dietary, allergy, nutrition, safety, tool, or execution decisions.`;
 
 const slug = (value: string) =>
   value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
+
+function stripCuisineQualifier(canonicalName: string, cuisine: string | null): string {
+  if (!cuisine) return canonicalName;
+  const escapedCuisine = cuisine.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const stripped = canonicalName
+    .replace(new RegExp(`^${escapedCuisine}[\\s-]+`, "i"), "")
+    .replace(new RegExp(`[\\s-]+${escapedCuisine}$`, "i"), "")
+    .trim();
+  return stripped || canonicalName;
+}
 
 export async function resolveOpenWorldFoodIntent(
   userText: string,
@@ -102,16 +113,19 @@ export function semanticIntentToIngredientRecognition(
       },
     };
   }
-  const canonicalName =
+  const resolvedCanonicalName =
     intent.canonicalName ??
     (intent.kind === "cuisine_led" && intent.cuisine
       ? `${intent.cuisine} meal`
       : intent.kind === "ingredient_led" && intent.explicitIngredients.length > 0
         ? intent.explicitIngredients.join(" with ")
         : null);
-  if (!canonicalName) {
+  if (!resolvedCanonicalName) {
     throw new Error("SEMANTIC_CANONICAL_NAME_REQUIRED");
   }
+  const canonicalName = intent.kind === "cuisine_led"
+    ? resolvedCanonicalName
+    : stripCuisineQualifier(resolvedCanonicalName, intent.cuisine);
   return {
     submittedText,
     status: "recognized" as const,

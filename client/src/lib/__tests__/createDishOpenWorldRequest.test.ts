@@ -32,4 +32,18 @@ describe("Create a Dish open-world classification request", () => {
       'throw new Error("CREATE_DISH_CHOICES_INVALID")',
     );
   });
+
+  test("carries structured semantic cuisine into the authoritative intent", () => {
+    const source = fs.readFileSync(
+      path.resolve(process.cwd(), "client/src/pages/lifestyle/CreateDishPage.tsx"),
+      "utf8",
+    );
+    const intentStart = source.indexOf('creator: "create_a_dish"');
+    const intentEnd = source.indexOf("ingredient:", intentStart);
+    const intentSource = source.slice(intentStart, intentEnd);
+
+    expect(intentStart).toBeGreaterThan(-1);
+    expect(intentSource).toContain("result.semanticIntent?.cuisine");
+    expect(intentSource).toContain("combination.selectionSource.cuisine");
+  });
 });

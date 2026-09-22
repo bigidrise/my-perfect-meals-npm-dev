@@ -27,6 +27,53 @@ function normalizeIngredientOnlyText(value: string): string {
 const SEMANTIC_PREFERENCE_BLOCKED_CLAIMS =
   /\b(ignore|instruction|system|prompt|must|calorie|carb|sodium|sugar|fat|protein|diabetes|glp-?1|medical|clinical|allergy|allergen|heart[- ]healthy|weight loss|low[- ](?:carb|sodium|sugar|fat)|vegan|vegetarian|pescatarian|pregnan|pediatric)\b/i;
 
+const normalizeWords = (value: string) =>
+  value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
+
+function validatedExplicitCuisine(intent: CreateDishIntent): string | null {
+  const cuisine = intent.cuisine?.trim() || null;
+  if (!cuisine) return null;
+  const requestWords = ` ${normalizeWords(intent.originalText)} `;
+  const cuisineWords = normalizeWords(cuisine);
+  if (!cuisineWords || !requestWords.includes(` ${cuisineWords} `)) {
+    throw new Error("INVALID_CREATE_DISH_CUISINE");
+  }
+  return cuisine;
+}
+
+function stripCuisineFromSemanticIngredient(
+  ingredient: CreateDishIntent["ingredient"],
+  cuisine: string | null,
+): CreateDishIntent["ingredient"] {
+  if (!cuisine || !ingredient.canonicalId.startsWith("semantic-")) return ingredient;
+  const escapedCuisine = cuisine.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const canonicalName = ingredient.canonicalName
+    .replace(new RegExp(`^${escapedCuisine}[\\s-]+`, "i"), "")
+    .replace(new RegExp(`[\\s-]+${escapedCuisine}$`, "i"), "")
+    .trim();
+  if (!canonicalName || canonicalName === ingredient.canonicalName) return ingredient;
+  return {
+    ...ingredient,
+    canonicalName,
+    canonicalId: `semantic-${normalizeWords(canonicalName).replace(/\s+/g, "-")}`,
+  };
+}
+
+export function resolveValidatedCreateDishCuisine(raw: unknown): string | null {
+  return validatedExplicitCuisine(CreateDishIntentSchema.parse(raw));
+}
+
+export function resolveCreateDishCuisineAuthority(
+  manualCuisineOverride: unknown,
+  rawIntent: unknown,
+): string | null {
+  const manual =
+    typeof manualCuisineOverride === "string" && manualCuisineOverride.trim()
+      ? manualCuisineOverride.trim()
+      : null;
+  return manual ?? (rawIntent == null ? null : resolveValidatedCreateDishCuisine(rawIntent));
+}
+
 function isValidSemanticPreference(
   preference: NonNullable<CreateDishIntent["resolvedCombination"]["form"]>,
 ): boolean {
@@ -49,30 +96,36 @@ export async function revalidateCreateDishIntent(
   allergyTags: string[],
 ): Promise<CreateDishIntent> {
   const parsed = CreateDishIntentSchema.parse(raw);
+  const cuisine = validatedExplicitCuisine(parsed);
+  const parsedWithCuisineIdentity = CreateDishIntentSchema.parse({
+    ...parsed,
+    ...(parsed.cuisine !== undefined ? { cuisine } : {}),
+    ingredient: stripCuisineFromSemanticIngredient(parsed.ingredient, cuisine),
+  });
   const selectedSemanticPreferences = [
-    parsed.resolvedCombination.form,
-    parsed.resolvedCombination.texture,
-    parsed.resolvedCombination.flavor,
+    parsedWithCuisineIdentity.resolvedCombination.form,
+    parsedWithCuisineIdentity.resolvedCombination.texture,
+    parsedWithCuisineIdentity.resolvedCombination.flavor,
   ].filter(Boolean);
-  if (parsed.ingredient.canonicalId.startsWith("semantic-")) {
+  if (parsedWithCuisineIdentity.ingredient.canonicalId.startsWith("semantic-")) {
     if (
       selectedSemanticPreferences.every((preference) =>
         isValidSemanticPreference(preference!)
       )
     ) {
-      return parsed;
+      return parsedWithCuisineIdentity;
     }
     throw new Error("INVALID_CREATE_DISH_INTENT");
   }
-  const isComposedDish = !isBroadIngredientOnlyCreateDishIntent(parsed);
+  const isComposedDish = !isBroadIngredientOnlyCreateDishIntent(parsedWithCuisineIdentity);
   const selectedOptionIds: Partial<Record<ExpansionDimension, string>> = {};
   for (const dimension of ["form", "texture", "flavor"] as const) {
-    const selected = parsed.resolvedCombination[dimension];
+    const selected = parsedWithCuisineIdentity.resolvedCombination[dimension];
     if (selected) selectedOptionIds[dimension] = selected.id;
   }
   const expansion = await expandCreateDishIngredient(
     {
-      ingredientInput: parsed.ingredient.canonicalName,
+      ingredientInput: parsedWithCuisineIdentity.ingredient.canonicalName,
       creator: "create_a_dish",
       surprisePolicy: { delegatedDimensions: [], selectedOptionIds },
       useAiForGaps: false,
@@ -81,13 +134,13 @@ export async function revalidateCreateDishIntent(
   );
   if (
     expansion.ingredient.status !== "recognized" ||
-    expansion.ingredient.canonicalId !== parsed.ingredient.canonicalId ||
+    expansion.ingredient.canonicalId !== parsedWithCuisineIdentity.ingredient.canonicalId ||
     !expansion.resolvedCombination
   ) {
     throw new Error("INVALID_CREATE_DISH_INTENT");
   }
   return CreateDishIntentSchema.parse({
-    ...parsed,
+    ...parsedWithCuisineIdentity,
     ingredient: {
       canonicalId: expansion.ingredient.canonicalId,
       canonicalName: expansion.ingredient.canonicalName,
@@ -96,7 +149,7 @@ export async function revalidateCreateDishIntent(
     resolvedCombination: {
       form:
         isComposedDish &&
-        parsed.resolvedCombination.selectionSource.form === "system_selected"
+        parsedWithCuisineIdentity.resolvedCombination.selectionSource.form === "system_selected"
           ? null
           : expansion.resolvedCombination.form,
       texture: expansion.resolvedCombination.texture,
@@ -107,8 +160,8 @@ export async function revalidateCreateDishIntent(
           parsed.resolvedCombination.selectionSource.form === "system_selected"
             ? "not_applicable"
             : parsed.resolvedCombination.selectionSource.form,
-        texture: parsed.resolvedCombination.selectionSource.texture,
-        flavor: parsed.resolvedCombination.selectionSource.flavor,
+        texture: parsedWithCuisineIdentity.resolvedCombination.selectionSource.texture,
+        flavor: parsedWithCuisineIdentity.resolvedCombination.selectionSource.flavor,
       },
     },
   });
@@ -188,6 +241,7 @@ export function applyCreateDishIntentWithSoftFallback<T>(
 export function buildCreateDishIntentPrompt(intent: CreateDishIntent): string {
   const resolved = intent.resolvedCombination;
   const lines = [
+    intent.cuisine ? `Requested cuisine: ${intent.cuisine}` : null,
     `Primary ingredient: ${intent.ingredient.canonicalName}`,
     resolved.form ? `Form/cut: ${resolved.form.label}` : null,
     resolved.texture ? `Texture: ${resolved.texture.label}` : null,

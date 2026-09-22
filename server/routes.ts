@@ -6003,13 +6003,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      let effectiveRequestCuisine: string | null =
+        typeof cultureOverride === "string" && cultureOverride.trim()
+          ? cultureOverride.trim()
+          : null;
+      if (humanFoodCreator === "create_a_dish" && rawCreateDishIntent != null) {
+        try {
+          const { resolveCreateDishCuisineAuthority } = await import(
+            "./services/createDish/createDishIntent"
+          );
+          effectiveRequestCuisine = resolveCreateDishCuisineAuthority(
+            cultureOverride,
+            rawCreateDishIntent,
+          );
+        } catch {
+          // Full Create a Dish intent validation below returns the typed request error.
+        }
+      }
       const humanFoodRequestScope = createHumanFoodRequestScope({
         actorUserId: serverAuthUserId,
         subjectUserId: serverAuthUserId,
         creator: humanFoodCreator,
         correlationId: (req as any).id,
         dietOverride: requestDietOverride,
-        cuisine: typeof cultureOverride === "string" ? cultureOverride : null,
+        cuisine: effectiveRequestCuisine,
         cuisineIntensity: typeof req.body.cuisineIntensity === "string" ? req.body.cuisineIntensity : null,
       });
       let humanFoodContext = await humanFoodRequestScope.resolve();
@@ -6284,6 +6301,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             rawCreateDishIntent,
             protocolEnvelope.allergies ?? [],
           );
+          if (
+            effectiveRequestCuisine &&
+            validatedCreateDishIntent.cuisine !== effectiveRequestCuisine
+          ) {
+            validatedCreateDishIntent = {
+              ...validatedCreateDishIntent,
+              cuisine: effectiveRequestCuisine,
+            };
+          }
           enforceRequestedDishIdentity = !isBroadIngredientOnlyCreateDishIntent(
             validatedCreateDishIntent,
           );
@@ -6364,7 +6390,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         excludeMeals,
         strictMode === true,
         normalizedGenerationMode,
-        (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) ? cultureOverride.trim() : undefined,
+        effectiveRequestCuisine ?? undefined,
         _cravingGlp1Targets,
         _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
         _dishDirective,
@@ -6465,7 +6491,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               excludeMeals,
               strictMode === true,
               normalizedGenerationMode,
-              (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) ? cultureOverride.trim() : undefined,
+              effectiveRequestCuisine ?? undefined,
               _cravingGlp1Targets,
               _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
               _dishDirective,
@@ -6703,7 +6729,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 excludeMeals,
                 strictMode === true,
                 normalizedGenerationMode,
-                (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim()) ? cultureOverride.trim() : undefined,
+                effectiveRequestCuisine ?? undefined,
                 _cravingGlp1Targets,
                 _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
                 _dishDirective,
@@ -6927,9 +6953,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             excludeMeals,
             strictMode === true,
             normalizedGenerationMode,
-            (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim())
-              ? cultureOverride.trim()
-              : undefined,
+            effectiveRequestCuisine ?? undefined,
             _cravingGlp1Targets,
             _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
             _dishDirective,
@@ -7048,9 +7072,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               excludeMeals,
               true,
               normalizedGenerationMode,
-              (cultureOverride && typeof cultureOverride === "string" && cultureOverride.trim())
-                ? cultureOverride.trim()
-                : undefined,
+              effectiveRequestCuisine ?? undefined,
               _cravingGlp1Targets,
               _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
               _dishDirective,

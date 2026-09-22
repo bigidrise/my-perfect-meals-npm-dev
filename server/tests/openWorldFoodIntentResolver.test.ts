@@ -142,6 +142,27 @@ describe("open-world Create a Dish intent resolution", () => {
     });
   });
 
+  test.each([
+    ["Mediterranean pasta", "pasta", "Mediterranean"],
+    ["Mexican tacos", "tacos", "Mexican"],
+    ["Italian pizza", "pizza", "Italian"],
+    ["Japanese noodles", "noodles", "Japanese"],
+  ])("separates cuisine from dish identity for %s", async (text, dish, cuisine) => {
+    const intent = await resolveOpenWorldFoodIntent(text, {
+      resolve: async () => semantic({
+        canonicalName: text.toLowerCase(),
+        displayName: text,
+        cuisine,
+      }),
+    });
+    expect(semanticIntentToIngredientRecognition(text, intent)).toMatchObject({
+      status: "recognized",
+      canonicalId: `semantic-${dish}`,
+      canonicalName: dish,
+    });
+    expect(intent.cuisine).toBe(cuisine);
+  });
+
   test("an ingredient-led request does not require a pre-named dish", async () => {
     const intent = await resolveOpenWorldFoodIntent(
       "chili peppers with chicken",

@@ -849,6 +849,14 @@ export default function CreateDishPage() {
     return {
       creator: "create_a_dish",
       originalText: submittedDishInput.trim(),
+      cuisine:
+        result.semanticIntent?.cuisine ??
+        (
+          combination.cuisine &&
+          combination.selectionSource.cuisine === "user_selected"
+            ? combination.cuisine.label
+            : null
+        ),
       ingredient: {
         canonicalId: ingredient.canonicalId,
         canonicalName: ingredient.canonicalName,
