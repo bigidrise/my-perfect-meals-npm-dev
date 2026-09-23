@@ -94,6 +94,24 @@ async function intentFor(
 }
 
 describe("Create a Dish generation intent", () => {
+  test.each([
+    ["sirloin steak", "Grilled Sirloin Steak"],
+    ["filet mignon", "Pan-Seared Filet Mignon"],
+    ["flank steak", "Broiled Flank Steak"],
+  ])("recognizes %s as affirmative beef steak-cut evidence", async (cut, title) => {
+    const intent = await intentFor("Beef", { form: "steak-cut" });
+    expect(buildCreateDishIntentPrompt(intent)).toContain("Name the actual beef cut in the ingredient list");
+    expect(evaluateCreateDishIntentEvidence({
+      name: title,
+      ingredients: [{ name: cut }, { name: "rosemary" }],
+      instructions: ["Season, cook, and rest before serving."],
+    }, intent)).toMatchObject({ ingredient: true, form: true, passed: true });
+    expect(mealHonorsCreateDishIntent({
+      name: "Tuna Steak",
+      ingredients: [{ name: "tuna steak" }],
+      instructions: ["Grill and serve."],
+    }, intent)).toBe(false);
+  });
   test("preserves explicit Mediterranean cuisine while canonicalizing pasta identity", async () => {
     const raw = CreateDishIntentSchema.parse({
       creator: "create_a_dish",

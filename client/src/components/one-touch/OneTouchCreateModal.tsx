@@ -71,8 +71,8 @@ export default function OneTouchCreateModal({
     <UniversalDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={<span className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-orange-300" /> One-Touch Create</span>}
-      description="Let My Perfect Meals choose what to make. Change anything below only if you want to."
+      title={<span className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-orange-300" /> {creator === "create_a_dish" ? "Create a Dish Menu" : "Craving Menu"}</span>}
+      description="Let My Perfect Meals create a menu of ideas for you. Change anything below only if you want to."
       className="border-orange-300/20 bg-slate-950"
       footer={
         <ModalFooter className="border-t-0 pt-1">

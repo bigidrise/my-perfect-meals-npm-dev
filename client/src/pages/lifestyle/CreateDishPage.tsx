@@ -573,22 +573,30 @@ export default function CreateDishPage() {
   const selectedBatchNames = isCachedBatch ? null :
     cachedOneTouchNamesForMeal("create_a_dish", visibleMeals[0]?.name);
   const cachedOneTouchNames = isCachedBatch ? optionNames : selectedBatchNames ?? [];
-  const unverifiedOneTouchOptions = (isCachedBatch && oneTouchDisplayedOptions !== mealOptions) ||
+  const unverifiedOneTouchOptions = (!ONE_TOUCH_CREATE_ENABLED && (isCachedBatch || selectedBatchNames !== null)) ||
+    (isCachedBatch && oneTouchDisplayedOptions !== mealOptions) ||
     (selectedBatchNames !== null && verifiedSingleBatch !== `${user?.id}:${JSON.stringify(selectedBatchNames)}`);
   useEffect(() => {
-    if (!unverifiedOneTouchOptions || !user?.id) return;
+    if (!unverifiedOneTouchOptions) return;
     const controller = new AbortController();
     const discard = () => {
       clearOneTouchBatch("create_a_dish");
-      clearOptionsCache();
-      clearDishCache();
+      if (isCachedBatch) clearOptionsCache();
+      if (selectedBatchNames !== null) clearDishCache();
       setOneTouchLastRequest(null);
       setOneTouchDisplayedOptions(null);
       setVerifiedSingleBatch(null);
-      setMealOptions([]);
-      setGeneratedMeals([]);
-      setSelectedDishId(null);
+      if (isCachedBatch) setMealOptions([]);
+      if (selectedBatchNames !== null) {
+        setGeneratedMeals([]);
+        setSelectedDishId(null);
+      }
     };
+    if (!ONE_TOUCH_CREATE_ENABLED) {
+      discard();
+      return;
+    }
+    if (!user?.id) return;
     restoreOneTouchBatch("create_a_dish", user.id, cachedOneTouchNames, controller.signal)
       .then((restored) => {
         if (controller.signal.aborted) return;
@@ -1332,7 +1340,7 @@ export default function CreateDishPage() {
                           disabled={isGenerating}
                           className="w-full border border-orange-300/30 bg-orange-600/20 text-orange-100"
                         >
-                          ✨ One-Touch Create
+                          ✨ Create a Dish Menu
                         </GlassButton>
                       )}
                     </div>

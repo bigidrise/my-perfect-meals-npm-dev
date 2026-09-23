@@ -2,7 +2,7 @@ import type { HumanFoodContext } from "../../shared/humanFoodContext";
 import type { OneTouchRequest } from "../../shared/oneTouch";
 import type { UserProtocolEnvelope } from "../services/protocolEnvelope";
 import type { GLP1GlobalContext } from "../services/glp1/resolveGLP1GlobalContext";
-import { oneTouchContextFingerprint } from "../services/oneTouch/contextFingerprint";
+import { oneTouchContextFingerprint, oneTouchChangedAuthorityBranches } from "../services/oneTouch/contextFingerprint";
 
 const request: OneTouchRequest = {
   creator: "create_a_dish",
@@ -20,7 +20,12 @@ const context = {
   flavor: { cuisine: { value: "Japanese" } },
   safety: { allergies: ["peanuts"], avoidedFoods: ["mushrooms"], dislikedFoods: [] },
   authorization: { status: "none", action: null, reservationId: null, waivers: [] },
-  nutrition: { date: "2026-01-01", resolvedAt: "2026-01-01T00:00:00Z", prescription: { calories: 1900 } },
+  nutrition: {
+    date: "2026-01-01",
+    resolvedAt: "2026-01-01T00:00:00Z",
+    prescription: { calories: 1900 },
+    provenance: { calculationTimestamp: "2026-01-01T00:00:00Z", classificationSources: ["ingredient"] },
+  },
   behavior: null,
   foodsIEnjoy: { explicit: [], legacyLikes: [] },
   nutritionPriorities: { selectedPriorityIds: ["fiber_rich_foods"], registryVersion: "nutrition-priorities.v1" },
@@ -71,6 +76,36 @@ describe("One-Touch restored-card authority fingerprint", () => {
       nutrition: { ...context.nutrition!, resolvedAt: "2026-01-02T01:00:00Z" },
       diabetesFoodPreferences: { ...context.diabetesFoodPreferences!, ageMinutes: 9 },
     } as HumanFoodContext, { ...envelope, preferredLanguage: "fr" })).toBe(original);
+    expect(stamp({
+      ...context,
+      nutrition: {
+        ...context.nutrition!,
+        provenance: {
+          ...context.nutrition!.provenance!,
+          calculationTimestamp: "2026-01-02T01:00:00Z",
+        },
+      },
+    } as HumanFoodContext)).toBe(original);
+    expect(stamp({
+      ...context,
+      nutrition: {
+        ...context.nutrition!,
+        provenance: {
+          ...context.nutrition!.provenance!,
+          classificationSources: ["conservative_fallback_or_unclassified"],
+        },
+      },
+    } as HumanFoodContext)).not.toBe(original);
+    expect(oneTouchChangedAuthorityBranches(
+      { request, context, envelope, glp1 },
+      { request, context: {
+        ...context,
+        nutrition: { ...context.nutrition!, provenance: {
+          ...context.nutrition!.provenance!,
+          calculationTimestamp: "2026-01-02T01:00:00Z",
+        } },
+      } as HumanFoodContext, envelope, glp1 },
+    )).toEqual([]);
     expect(stamp({ ...context, safety: {
       ...context.safety, allergies: ["peanuts", "sesame"],
     } }, { ...envelope, allergies: ["sesame", "peanuts"] })).toBe(

@@ -12,28 +12,27 @@ const VOLATILE_KEYS = new Set([
   "reservationId", "ageMinutes",
 ]);
 
-function stable(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(stable)
+function stable(value: unknown, path = ""): unknown {
+  if (Array.isArray(value)) return value.map((item) => stable(item, path))
     .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
   if (value && typeof value === "object") {
     return Object.fromEntries(Object.entries(value as Record<string, unknown>)
-      .filter(([key]) => !VOLATILE_KEYS.has(key))
+      .filter(([key]) => !VOLATILE_KEYS.has(key) &&
+        !(path === "context.nutrition.provenance" && key === "calculationTimestamp"))
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([key, item]) => [key, stable(item)]));
+      .map(([key, item]) => [key, stable(item, path ? `${path}.${key}` : key)]));
   }
   return value;
 }
 
-export function oneTouchContextFingerprint(
+function authorityMaterial(
   request: OneTouchRequest,
   context: HumanFoodContext,
   envelope: UserProtocolEnvelope,
   glp1: GLP1GlobalContext,
-): string {
-  const secret = process.env.SESSION_SECRET;
-  if (!secret) throw new Error("SESSION_SECRET is required for One-Touch cache freshness.");
+): Record<string, unknown> {
   const { userId: _userId, preferredLanguage: _language, measurementSystem: _units, ...foodProtocol } = envelope;
-  const material = stable({
+  return stable({
     version: 1,
     subjectUserId: context.subjectUserId,
     creator: request.creator,
@@ -67,6 +66,58 @@ export function oneTouchContextFingerprint(
       dailyNutritionState: glp1.dailyNutritionState,
       compositionNote: glp1.compositionNote,
     },
-  });
+  }) as Record<string, unknown>;
+}
+
+export function oneTouchContextFingerprint(
+  request: OneTouchRequest,
+  context: HumanFoodContext,
+  envelope: UserProtocolEnvelope,
+  glp1: GLP1GlobalContext,
+): string {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) throw new Error("SESSION_SECRET is required for One-Touch cache freshness.");
+  const material = authorityMaterial(request, context, envelope, glp1);
   return createHmac("sha256", secret).update(JSON.stringify(material)).digest("base64url");
+}
+
+/** Diagnostic names only; never emit profile, nutrition, or medical values. */
+export function oneTouchChangedAuthorityBranches(
+  before: { request: OneTouchRequest; context: HumanFoodContext; envelope: UserProtocolEnvelope; glp1: GLP1GlobalContext },
+  after: { request: OneTouchRequest; context: HumanFoodContext; envelope: UserProtocolEnvelope; glp1: GLP1GlobalContext },
+): string[] {
+  const left = authorityMaterial(before.request, before.context, before.envelope, before.glp1);
+  const right = authorityMaterial(after.request, after.context, after.envelope, after.glp1);
+  const changed: string[] = [];
+  for (const field of ["version", "subjectUserId", "creator"]) {
+    if (JSON.stringify(left[field]) !== JSON.stringify(right[field])) changed.push(field);
+  }
+  for (const group of ["choices", "context", "protocol", "glp1"] as const) {
+    const a = left[group] as Record<string, unknown> | undefined;
+    const b = right[group] as Record<string, unknown> | undefined;
+    if (JSON.stringify(a) === JSON.stringify(b)) continue;
+    // Material object keys are fixed code-owned fields. Arrays and their
+    // contents are never logged, even if a nested profile value changes.
+    if (!a || !b || Array.isArray(a) || Array.isArray(b)) {
+      changed.push(group);
+      continue;
+    }
+    for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) {
+      if (JSON.stringify(a[key]) !== JSON.stringify(b[key])) {
+        if (group === "context" && key === "nutrition" &&
+            a[key] && b[key] && typeof a[key] === "object" && typeof b[key] === "object") {
+          const beforeNutrition = a[key] as Record<string, unknown>;
+          const afterNutrition = b[key] as Record<string, unknown>;
+          for (const field of new Set([...Object.keys(beforeNutrition), ...Object.keys(afterNutrition)])) {
+            if (JSON.stringify(beforeNutrition[field]) !== JSON.stringify(afterNutrition[field])) {
+              changed.push(`context.nutrition.${/^[a-zA-Z][a-zA-Z0-9_]{0,63}$/.test(field) ? field : "<field>"}`);
+            }
+          }
+        } else {
+          changed.push(`${group}.${key}`);
+        }
+      }
+    }
+  }
+  return changed;
 }

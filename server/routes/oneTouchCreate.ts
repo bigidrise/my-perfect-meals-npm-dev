@@ -15,13 +15,23 @@ import { withOneTouchDiet } from "../services/oneTouch/dietAuthority";
 import { buildDietPromptBlock } from "../services/allergyGuardrails";
 import { buildGLP1RecommendationBlock, resolveGLP1GlobalContext } from "../services/glp1/resolveGLP1GlobalContext";
 import { validateDishIdentity } from "../services/dishAdaptation/dishIdentityValidator";
-import { oneTouchContextFingerprint } from "../services/oneTouch/contextFingerprint";
+import { oneTouchContextFingerprint, oneTouchChangedAuthorityBranches } from "../services/oneTouch/contextFingerprint";
 
 type CanonicalCreatorHandler = (req: Request, res: Response) => unknown;
 
-// Dev-1 activation only. Production keeps the route closed until its migration
-// and release checks are explicitly approved.
-export const ONE_TOUCH_CREATE_ENABLED = process.env.NODE_ENV === "development";
+// Server authority for both experimental Creator Menus. Production stays off
+// unless explicitly enabled; a client build flag alone cannot open this route.
+export function isCreatorMenuEnabled(
+  environment: { NODE_ENV?: string; CREATOR_MENU_ENABLED?: string } = {
+    NODE_ENV: process.env.NODE_ENV,
+    CREATOR_MENU_ENABLED: process.env.CREATOR_MENU_ENABLED,
+  },
+): boolean {
+  return environment.NODE_ENV === "development" ||
+    (environment.NODE_ENV === "production" && environment.CREATOR_MENU_ENABLED === "true");
+}
+
+export const ONE_TOUCH_CREATE_ENABLED = isCreatorMenuEnabled();
 
 const allowedDiets = new Set(["vegan", "vegetarian", "pescatarian", "keto", "paleo", "gluten-free", "kosher", "halal", "carnivore"]);
 const allowedCuisines = new Set(["american", "soul food", "mexican", "italian", "indian", "chinese", "japanese", "mediterranean", "thai", "korean", "middle eastern", "greek", "french", "caribbean", "vietnamese", "ethiopian"]);
@@ -183,13 +193,13 @@ export default function createOneTouchRouter(canonicalHandler: CanonicalCreatorH
     if (!ONE_TOUCH_CREATE_ENABLED) {
       return res.status(503).json({
         code: "ONE_TOUCH_NOT_AVAILABLE",
-        error: "One-Touch Create is temporarily unavailable while its canonical safety path is being connected.",
+        error: "Creator Menus are not available right now.",
         retryable: true,
       });
     }
     const parsed = oneTouchRequestSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ code: "ONE_TOUCH_INVALID_REQUEST", error: "Invalid One-Touch request." });
+      return res.status(400).json({ code: "ONE_TOUCH_INVALID_REQUEST", error: "Invalid Creator Menu request." });
     }
     const { creator, servings, cuisine } = parsed.data;
     const overrides = requestOverrides(parsed.data);
@@ -278,6 +288,13 @@ export default function createOneTouchRouter(canonicalHandler: CanonicalCreatorH
       const selected = completed.accepted;
       const currentAuthority = await resolveOneTouchAuthority(userId, parsed.data, (req as any).id);
       if (currentAuthority.contextFingerprint !== contextFingerprint) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn("[CreatorMenu] Authority changed during completion (field names only):",
+            oneTouchChangedAuthorityBranches(
+              { request: parsed.data, context, envelope, glp1 },
+              { request: parsed.data, context: currentAuthority.context, envelope: currentAuthority.envelope, glp1: currentAuthority.glp1 },
+            ));
+        }
         stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your food protections changed while these meals were being created. Please try again.");
       }
       await appendOneTouchHistory(

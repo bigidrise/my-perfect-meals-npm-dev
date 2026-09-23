@@ -7130,6 +7130,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // A bounded intent repair can still leave no candidates. This is not a
+      // post-format validation failure (there is no failed meal to inspect).
+      if (scannedOptions.length === 0) {
+        return res.status(422).json({
+          status: "unable_to_generate",
+          reasonCode: validatedCreateDishIntent
+            ? "create_dish_intent_not_preserved"
+            : "no_candidates_survived",
+          retryable: true,
+          message: validatedCreateDishIntent
+            ? "We couldn't preserve the requested dish and preparation safely. Try another description or preparation."
+            : "We couldn't produce a meal that passed your food protections. Please try another request.",
+        });
+      }
+
       // Format and optionally scale each option. The response nutrition object
       // represents total recipe nutrition for validatedServings; canonical
       // person-specific validation converts it back to per-serving nutrition.
