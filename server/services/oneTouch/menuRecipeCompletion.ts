@@ -24,6 +24,7 @@ import { generateMealImageUnified, normalizeMealTypeToSourceType } from "../meal
 import { generateMenuRecipe, type MenuRecipeDraft } from "./menuRecipeGenerator";
 import { oneTouchContextFingerprint } from "./contextFingerprint";
 import type { GLP1GlobalContext } from "../glp1/resolveGLP1GlobalContext";
+import { assessMenuDietEvidence } from "./menuDietEvidence";
 
 /** Server-only operation. The caller must supply its authenticated actor, not a browser body ID. */
 export interface MenuRecipeCompletionInput {
@@ -133,7 +134,7 @@ function finalCandidate(
   card: MenuRecipeCard,
   draft: MenuRecipeDraft,
   servings: number,
-  proof: { diabetes?: boolean; glp1?: boolean },
+  proof: { diabetes?: boolean; glp1?: boolean; dietaryIdentity?: boolean },
   category: string,
 ): HumanFoodCandidate {
   const perServing = toPerServingNutrition(card, servings);
@@ -155,9 +156,9 @@ function finalCandidate(
       ingredientEvidence: "structured_generation",
       preparationEvidence: "structured_generation",
       nutritionEvidence: "structured_generation",
-      // A clean negative scan cannot prove a compositional diet or a specialist
-      // medical directive. The final validator requires positive evidence for
-      // those identities and deliberately returns review_required here.
+      // The identity classifier is the sole source of positive dietary proof.
+      // A clean protocol scan cannot prove keto macros or clinical directives.
+      dietaryIdentityCompliant: proof.dietaryIdentity,
       diabetesCompliant: proof.diabetes,
       glp1Compliant: proof.glp1,
       dishIdentityPreserved: true,
@@ -324,22 +325,29 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
     const hasOtherClinicalDirective = otherClinicalCondition || otherEnvelopeDirective;
     if (hasOtherClinicalDirective) return fail("protocol_clinical_rejected");
     const proof = { diabetes: diabetesCompliant, glp1: glp1Compliant };
-    const check = (value: MenuRecipeCard, servings: number) =>
-      validateHumanFoodCandidate(finalCandidate(value, draft, servings, proof, mealType), context, {
+    const check = (candidate: HumanFoodCandidate) =>
+      validateHumanFoodCandidate(candidate, context, {
         requestedDish: concept.title,
         requestedCategory: mealType,
         executionState: scope.executionState,
       });
-    if (check(card, 1).outcome !== "pass") return fail("final_validation_rejected");
+    const firstFood = finalCandidate(card, draft, 1, proof, mealType);
+    const firstDiet = assessMenuDietEvidence(firstFood, context.diet.effective);
+    if (firstDiet.status === "contradicted") return fail("diet_hfc_rejected");
+    firstFood.evidence = { ...firstFood.evidence, dietaryIdentityCompliant: firstDiet.dietaryIdentityCompliant };
+    if (check(firstFood).outcome !== "pass") return fail("final_validation_rejected");
     const formatted = scaleCard(card, input.servings);
     if (!formatted) return fail("serving_finalization_failed");
     // Repeat ALL food checks against the actual returned ingredients/instructions
     // and convert final total-recipe nutrition back to the one-serving authority.
     const finalFood = finalCandidate(formatted, draft, input.servings, proof, mealType);
+    const finalDiet = assessMenuDietEvidence(finalFood, context.diet.effective);
+    if (finalDiet.status === "contradicted") return fail("diet_hfc_rejected");
+    finalFood.evidence = { ...finalFood.evidence, dietaryIdentityCompliant: finalDiet.dietaryIdentityCompliant };
     if (!validateHumanFoodResult(finalFood, context).valid ||
         !scanGeneratedOutput(finalFood, envelope, { generatorName: "menu-recipe-completion" }).passed ||
         !conceptIdentityMatches(concept, { ...draft, ingredients: formatted.ingredients }) ||
-        check(formatted, input.servings).outcome !== "pass") {
+        check(finalFood).outcome !== "pass") {
       return fail("final_validation_rejected");
     }
     const current = await createHumanFoodRequestScope(scopeInput).resolve();
