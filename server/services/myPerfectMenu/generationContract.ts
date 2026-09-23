@@ -18,7 +18,17 @@ const generatedMenuEnvelopeSchema = z.object({
   concepts: z.array(z.unknown()).min(1).max(8),
 });
 
-export type GeneratedMenuConcept = z.infer<typeof generatedMenuConceptSchema>;
+type ParsedMenuConcept = z.infer<typeof generatedMenuConceptSchema>;
+type RequiredMenuConceptKeys =
+  | "title" | "description" | "primaryIngredients" | "primaryProtein"
+  | "produceItems" | "cuisine" | "dietaryEvidence" | "preparationMethod"
+  | "signature" | "culinaryIdentity";
+
+// The schema checks these fields, but this server tsconfig's non-strict null
+// mode makes Zod infer required object properties as optional.
+export type GeneratedMenuConcept =
+  Omit<ParsedMenuConcept, RequiredMenuConceptKeys> &
+  Required<Pick<ParsedMenuConcept, RequiredMenuConceptKeys>>;
 
 export interface ParsedGeneratedMenuCandidates {
   candidates: GeneratedMenuConcept[];
@@ -126,7 +136,19 @@ export function parseGeneratedMenuCandidates(
     const repaired = repairGeneratedConceptMetadata(candidate);
     const parsed = generatedMenuConceptSchema.safeParse(repaired.value);
     if (parsed.success) {
-      candidates.push(parsed.data);
+      candidates.push({
+        ...parsed.data,
+        title: parsed.data.title,
+        description: parsed.data.description,
+        primaryIngredients: parsed.data.primaryIngredients,
+        primaryProtein: parsed.data.primaryProtein,
+        produceItems: parsed.data.produceItems,
+        cuisine: parsed.data.cuisine,
+        dietaryEvidence: parsed.data.dietaryEvidence,
+        preparationMethod: parsed.data.preparationMethod,
+        signature: parsed.data.signature,
+        culinaryIdentity: parsed.data.culinaryIdentity,
+      });
       if (repaired.repaired) metadataRepairCount += 1;
     } else {
       rejectionCodes.push(
