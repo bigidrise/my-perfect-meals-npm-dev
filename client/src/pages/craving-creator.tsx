@@ -148,6 +148,7 @@ import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { captureAuthoritativeTextValue, commitTextInputValue } from "@/lib/authoritativeTextInput";
 import OneTouchCreateModal from "@/components/one-touch/OneTouchCreateModal";
 import { CreatorConceptCards } from "@/components/one-touch/CreatorConceptCards";
+import { CreatorMenuRestorationProgress } from "@/components/one-touch/CreatorMenuRestorationProgress";
 import { useCreatorConceptMenu } from "@/hooks/useCreatorConceptMenu";
 import {
   ONE_TOUCH_CREATE_ENABLED,
@@ -1523,6 +1524,9 @@ export default function CravingCreator() {
           </div>
 
           {/* 🎲 Variety Engine: Meal Options Panel */}
+          {conceptMenu.restoring && !oneTouchBusy && !isPlatingMeal && generatedMeals.length === 0 && (
+            <CreatorMenuRestorationProgress />
+          )}
           {oneTouchBusy && (
             <div className="mt-8 flex justify-center py-10" role="status" aria-label="Creating your Craving Menu">
               <MealGenerationProgress active context="snack" mode="options" />
@@ -1537,7 +1541,7 @@ export default function CravingCreator() {
               />
             </div>
           )}
-          {!isPlatingMeal && generatedMeals.length === 0 && (
+          {!conceptMenu.restoring && !isPlatingMeal && generatedMeals.length === 0 && (
             <CreatorConceptCards
               concepts={conceptMenu.concepts}
               choosingId={conceptMenu.choosingId}
@@ -1553,7 +1557,7 @@ export default function CravingCreator() {
           )}
 
           {/* Initial picker — only shown before a meal has been selected */}
-          {!unverifiedOneTouchOptions && !oneTouchBusy && !isPlatingMeal && conceptMenu.concepts.length === 0 && mealOptions.length > 0 && generatedMeals.length === 0 && (
+          {!conceptMenu.restoring && !unverifiedOneTouchOptions && !oneTouchBusy && !isPlatingMeal && conceptMenu.concepts.length === 0 && mealOptions.length > 0 && generatedMeals.length === 0 && (
             <div className="mt-8 space-y-4">
               <div className="flex items-center gap-3 mb-2">
                 <Sparkles className="h-5 w-5 text-yellow-500" />

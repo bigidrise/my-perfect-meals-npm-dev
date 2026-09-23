@@ -10,7 +10,7 @@ describe("Legacy finished-card display gates stay separate from restored concept
     expect(source).toContain("restoreOneTouchBatch(");
     expect(source).toContain("cachedOneTouchNamesForMeal(");
     expect(source).toContain("if (!restored) discard()");
-    expect(source).toContain("!unverifiedOneTouchOptions && !oneTouchBusy && !isPlatingMeal && conceptMenu.concepts.length === 0 && mealOptions.length > 0");
+    expect(source).toContain("!conceptMenu.restoring && !unverifiedOneTouchOptions && !oneTouchBusy && !isPlatingMeal && conceptMenu.concepts.length === 0 && mealOptions.length > 0");
     expect(source).toContain(`!unverifiedOneTouchOptions && ${cards}.length > 0`);
     expect(source).toContain("clearOneTouchBatch(");
     expect(source).toContain('useCreatorConceptMenu("');

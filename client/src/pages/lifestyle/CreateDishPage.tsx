@@ -94,6 +94,7 @@ import type {
 import { ExpandIngredientResponseSchema } from "../../../../shared/createDishIngredientExpansion";
 import OneTouchCreateModal from "@/components/one-touch/OneTouchCreateModal";
 import { CreatorConceptCards } from "@/components/one-touch/CreatorConceptCards";
+import { CreatorMenuRestorationProgress } from "@/components/one-touch/CreatorMenuRestorationProgress";
 import { useCreatorConceptMenu } from "@/hooks/useCreatorConceptMenu";
 import {
   ONE_TOUCH_CREATE_ENABLED,
@@ -1789,6 +1790,9 @@ export default function CreateDishPage() {
             </div>
           </div>
 
+          {conceptMenu.restoring && !oneTouchBusy && !isPlatingMeal && selectedDishId === null && generatedMeals.length === 0 && (
+            <CreatorMenuRestorationProgress />
+          )}
           {oneTouchBusy && (
             <div className="mt-8 flex justify-center py-10" role="status" aria-label="Creating your Dish Menu">
               <MealGenerationProgress active context="create-dish" mode="options" />
@@ -1803,7 +1807,7 @@ export default function CreateDishPage() {
               />
             </div>
           )}
-          {!isPlatingMeal && selectedDishId === null && generatedMeals.length === 0 && (
+          {!conceptMenu.restoring && !isPlatingMeal && selectedDishId === null && generatedMeals.length === 0 && (
             <CreatorConceptCards
               concepts={conceptMenu.concepts}
               choosingId={conceptMenu.choosingId}
@@ -1819,7 +1823,7 @@ export default function CreateDishPage() {
           )}
 
           {/* Initial picker — only shown before a meal has been selected */}
-          {!unverifiedOneTouchOptions && !oneTouchBusy && !isPlatingMeal && conceptMenu.concepts.length === 0 && mealOptions.length > 0 && selectedDishId === null && generatedMeals.length === 0 && (
+          {!conceptMenu.restoring && !unverifiedOneTouchOptions && !oneTouchBusy && !isPlatingMeal && conceptMenu.concepts.length === 0 && mealOptions.length > 0 && selectedDishId === null && generatedMeals.length === 0 && (
             <div className="mt-8 space-y-4" ref={mealOptionsRef}>
               <div className="flex items-center gap-3 mb-2">
                 <Sparkles className="h-5 w-5 text-orange-400" />

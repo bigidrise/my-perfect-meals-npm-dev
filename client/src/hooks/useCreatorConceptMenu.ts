@@ -25,13 +25,24 @@ function cacheKey(creator: OneTouchCreator, ownerId: string) {
   return `oneTouch.conceptChoices.${creator}.${ownerId}.v1`;
 }
 
+function hasSavedChoices(creator: OneTouchCreator, ownerId?: string) {
+  if (!ownerId || typeof localStorage === "undefined") return false;
+  try {
+    return localStorage.getItem(cacheKey(creator, ownerId)) !== null;
+  } catch {
+    return false;
+  }
+}
+
 /** Browser stores choices only. The server is the sole source of concept text and IDs. */
 export function useCreatorConceptMenu(creator: OneTouchCreator, ownerId?: string) {
   const [concepts, setConcepts] = useState<OneTouchConcept[]>([]);
   const [choices, setChoices] = useState<Choices | null>(null);
   const [generating, setGenerating] = useState(false);
   const [choosingId, setChoosingId] = useState<string | null>(null);
-  const [restoring, setRestoring] = useState(false);
+  // A saved request means the server restoration check starts on this mount.
+  // Show progress on the first paint, before the effect can begin the request.
+  const [restoring, setRestoring] = useState(() => hasSavedChoices(creator, ownerId));
   const epoch = useRef(0);
 
   useEffect(() => {

@@ -39,6 +39,12 @@ The user accepted a shared culinary concept engine for MPM and Creator Menus, wi
 
 **How to apply:** Keep concept and completed-meal gates distinct. Re-resolve authority for restoration and again on selection; the browser stores only request choices, not concept text or IDs. The server stores one current set per Creator and only current, exact IDs can be selected. Suppress stale ideas rather than trusting a browser marker.
 
+Creator Menu restoration should display the existing bouncing-dot progress immediately while server authority is checked, even if that check takes several seconds. Never make it appear instant by showing cached concepts before validation.
+
+**Why:** The user confirmed that waiting is acceptable when it protects against changed diet, allergy, avoidance, or other authority; the problem was an unexplained blank state, not the verification itself.
+
+**How to apply:** Keep restoration, new-concept generation, and selected-recipe completion as separate visible states on both Creator Menus. End the restoration indicator on valid, empty, or failed responses without changing server verification.
+
 Concept rejection and unsupported completed-recipe evidence must have distinct outcomes.
 
 **Why:** A concept can be replaced before display while preserving safe siblings, but a completed recipe's failed safety check must not silently substitute a different meal for the user's choice. A clinical directive with no positive evidence cannot be made safe by another recipe.
