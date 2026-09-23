@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { ONE_TOUCH_CREATE_ENABLED, invokeCanonical } from "../routes/oneTouchCreate";
+import { getOneTouchDiet } from "../services/oneTouch/internalRequest";
 
 describe("One-Touch canonical-handler safety gate", () => {
   const source = fs.readFileSync(
@@ -8,8 +9,8 @@ describe("One-Touch canonical-handler safety gate", () => {
     "utf8",
   );
 
-  it("remains fail-closed when Create Dish diet override cannot be preserved", () => {
-    expect(ONE_TOUCH_CREATE_ENABLED).toBe(false);
+  it("opens only in Development and keeps Production fail-closed", () => {
+    expect(ONE_TOUCH_CREATE_ENABLED).toBe(process.env.NODE_ENV === "development");
     expect(source).toContain("dietOverride");
     expect(source).toContain("ONE_TOUCH_NOT_AVAILABLE");
     expect(source).toContain("status(503)");
@@ -23,6 +24,21 @@ describe("One-Touch canonical-handler safety gate", () => {
     }, { body: {} } as any, { servings: 1 });
     expect(called).toBe(true);
     expect(result).toEqual({ status: 200, body: { meals: [{ name: "validated" }] } });
+  });
+
+  it("carries only a server-authorized dietary choice into a delegated invocation", async () => {
+    let observed: string | null = null;
+    const handler = async (req: any, res: any) => {
+      observed = getOneTouchDiet(req);
+      res.json({ meals: [] });
+    };
+    const original = { body: { dietOverride: "vegan" } } as any;
+    expect(getOneTouchDiet(original)).toBeNull();
+    await invokeCanonical(handler, original, { humanFoodCreator: "create_a_dish" }, "vegan");
+    expect(observed).toBe("vegan");
+    expect(getOneTouchDiet(original)).toBeNull();
+    await invokeCanonical(handler, original, { humanFoodCreator: "create_a_dish", dietOverride: "vegan" });
+    expect(observed).toBeNull();
   });
 
   it("fails closed when canonical resolves without JSON", async () => {

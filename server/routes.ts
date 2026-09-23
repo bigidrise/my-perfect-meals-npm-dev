@@ -5926,14 +5926,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: "Authentication is required to resolve food context.",
         });
       }
+      const { getOneTouchDiet } = await import("./services/oneTouch/internalRequest");
+      const { withOneTouchDiet, mutableProfileStyles } = await import("./services/oneTouch/dietAuthority");
+      const delegatedDiet = getOneTouchDiet(req);
       let requestDietOverride =
         humanFoodCreator === "create_a_dish"
-          ? null
-          : typeof dietOverride === "string"
-            ? dietOverride
-            : typeof dietaryRestrictions === "string"
-              ? dietaryRestrictions
-              : null;
+          ? delegatedDiet
+          : delegatedDiet ??
+            (typeof dietOverride === "string"
+              ? dietOverride
+              : typeof dietaryRestrictions === "string"
+                ? dietaryRestrictions
+                : null);
       const { createHumanFoodRequestScope } = await import("./services/humanFoodContext/requestScope");
       const { buildCreatorHumanFoodPrompt } = await import("./services/humanFoodContext/adapters");
       const {
@@ -6064,9 +6068,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // ── Load protocol envelope (single DB query — drives all enforcement) ──
-      const protocolEnvelope = userId
+      const profileProtocolEnvelope = userId
         ? (await loadUserProtocolEnvelope(userId)) ?? buildGuestEnvelope()
         : buildGuestEnvelope();
+      // A delegated choice replaces only the primary dietary preference for
+      // this invocation. Never change the saved envelope, allergies, medical
+      // limits, avoidances, or the manual Creator's existing behavior.
+      const protocolEnvelope = withOneTouchDiet(profileProtocolEnvelope, delegatedDiet);
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       let dietAdapted = false;
@@ -6083,7 +6091,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           safetyMode: safetyMode || "STRICT",
           overrideToken: overrideToken,
           ignoredAvoidances: _overriddenAvoidances,
-          ignoredDietaryRestrictions: _overriddenDietaryIdentities,
+          ignoredDietaryRestrictions: delegatedDiet
+            ? [..._overriddenDietaryIdentities, ...mutableProfileStyles(profileProtocolEnvelope)]
+            : _overriddenDietaryIdentities,
           correlationId: (req as any).id
         });
         if (safetyCheck.result === "BLOCKED") {
@@ -6560,11 +6570,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // dietaryRestrictions — not just the explicit dietOverride body field.
       const _overrideDietActive =
         _authorizedDietaryIdentityOverride ||
+        Boolean(delegatedDiet) ||
         (_resolvedPrimaryDiet.length > 0 && humanFoodCreator !== "create_a_dish" && (dietOverride || dietaryRestrictions));
       const _filterDietaryIdentity = _resolvedPrimaryDiet;
-      const _filterEnvelope = _overrideDietActive
-        ? { ...protocolEnvelope, dietaryIdentity: _filterDietaryIdentity, procedural: deriveProcedureRules(_filterDietaryIdentity) }
-        : protocolEnvelope;
+      const _filterEnvelope = delegatedDiet
+        ? protocolEnvelope
+        : _overrideDietActive
+          ? { ...protocolEnvelope, dietaryIdentity: _filterDietaryIdentity, procedural: deriveProcedureRules(_filterDietaryIdentity) }
+          : protocolEnvelope;
       const _identityResults: Array<{ mealName: string; result: import("./services/dishAdaptation/types").DishIdentityResult }> = [];
       // ── ALLERGEN_ADAPT requested-dish exemption (computed once, used by BOTH
       // the universal protocol filter below AND the Phase 3 scan) ─────────────
@@ -6616,7 +6629,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // diet — not the profile's stored diet. Same replacement semantics as generation.
         // Use _overrideDietActive (already computed) so this stays in sync with _filterEnvelope.
         const _fallbackDietIdentity = _overrideDietActive
-          ? _filterDietaryIdentity
+          ? _filterEnvelope.dietaryIdentity
           : protocolEnvelope.dietaryIdentity;
         const fallbackMeal = await generateSingleCompliantFallback(
           cravingInput || "something delicious",
