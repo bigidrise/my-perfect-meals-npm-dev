@@ -1,6 +1,5 @@
 import { Router, type Request, type Response } from "express";
 import { requireAuth } from "../middleware/requireAuth";
-import { chatJson } from "../utils/openaiSafe";
 import { oneTouchRequestSchema, directionToFingerprint, type OneTouchDirection } from "@shared/oneTouch";
 import { generateOneTouchDirections } from "../services/oneTouch/directions";
 import { appendOneTouchHistory, readOneTouchHistory } from "../services/oneTouch/history";
@@ -178,21 +177,12 @@ export default function createOneTouchRouter(canonicalHandler: CanonicalCreatorH
       const generatedFingerprints = priorHistory[creator];
       const tried: OneTouchDirection[] = [];
       const completedNames = new Set<string>();
-      const system = [
-        "Create lightweight My Perfect Meals directions, not recipes. Return JSON only with a concepts array.",
-        'Each concept has title, description, primaryIngredients, primaryProtein (string or null), produceItems, cuisine, dietaryEvidence, preparationMethod, signature, and culinaryIdentity: {dishForm, preparationStyle, texture, temperature, primaryProteinBase, majorStarchBase, flavorFamily, cuisineEvidence, definingComponents}.',
-        "Return exactly the requested number (1 to 3) inside {\"concepts\": [...]}. primaryIngredients, produceItems, dietaryEvidence, and culinaryIdentity.definingComponents must be arrays of strings. If there is no dietary evidence, use an empty array; do not invent evidence.",
-        "culinaryIdentity.temperature is optional; if included it must be one of hot, warm, room_temperature, chilled, frozen. primaryProtein and culinaryIdentity.primaryProteinBase/majorStarchBase must be strings or null.",
-        "Keep title, description, ingredients, and culinary metadata concise. Name every meaningful ingredient; no quantities, instructions, nutrition numbers, clinical claims or images.",
-        "Choose genuinely different dish forms and methods, not only different proteins or cuisine labels. Never relax the supplied protections.",
-        requiredCuisine ? `Every direction must be recognizably ${requiredCuisine}.` : "Explore compatible cuisines.",
-      ].join("\n");
-      const userPrompt = [
+      const userContext = [
         buildCreatorHumanFoodPrompt(creator, context, scope.executionState),
         buildDietPromptBlock(context.diet.effective),
         enforceBeforeGenerate(envelope, { generatorName: "one-touch-directions" }).combined,
         buildGLP1RecommendationBlock(glp1),
-      ].join("\n");
+      ];
       const makeDirections = async (count: 1 | 2 | 3, accepted: OneTouchDirection[]) => {
         const history = [
           ...generatedFingerprints,
@@ -207,11 +197,10 @@ export default function createOneTouchRouter(canonicalHandler: CanonicalCreatorH
           userProtocolEnvelope: envelope,
           requiredCuisine,
           validate: () => [],
-          generate: ({ requestedCount }) => chatJson({
-            temperature: 0.65,
-            system,
-            user: `${userPrompt}\nReturn exactly ${requestedCount} new, distinct directions, structurally unlike these previously attempted directions: ${tried.map((item) => item.title).join("; ") || "none"}.`,
-          }),
+          userContext,
+          extraInstructions: [
+            `Make genuinely different dishes from these already attempted directions: ${tried.map((item) => item.title).join("; ") || "none"}.`,
+          ],
         });
         return result.directions;
       };

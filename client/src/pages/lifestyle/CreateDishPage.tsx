@@ -95,7 +95,9 @@ import { ExpandIngredientResponseSchema } from "../../../../shared/createDishIng
 import OneTouchCreateModal from "@/components/one-touch/OneTouchCreateModal";
 import {
   ONE_TOUCH_CREATE_ENABLED,
+  loadOneTouchBatch,
   requestOneTouchMeals,
+  saveOneTouchBatch,
   type OneTouchCuisine,
   type OneTouchEatingStyle,
 } from "@/lib/oneTouchCreate";
@@ -556,6 +558,22 @@ export default function CreateDishPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [oneTouchOpen, setOneTouchOpen] = useState(false);
   const [oneTouchBusy, setOneTouchBusy] = useState(false);
+  const [oneTouchLastRequest, setOneTouchLastRequest] = useState<{
+    servings: number;
+    cuisine: OneTouchCuisine;
+    eatingStyle: OneTouchEatingStyle;
+  } | null>(null);
+  const [oneTouchDisplayedOptions, setOneTouchDisplayedOptions] = useState<any[] | null>(null);
+  useEffect(() => {
+    if (!user?.id || mealOptions.length !== 3 || oneTouchDisplayedOptions === mealOptions) return;
+    const restored = loadOneTouchBatch(
+      "create_a_dish", user.id, mealOptions.map((option) => String(option.name)),
+    );
+    if (restored) {
+      setOneTouchLastRequest(restored);
+      setOneTouchDisplayedOptions(mealOptions);
+    }
+  }, [user?.id, mealOptions, oneTouchDisplayedOptions]);
   const [stepsExpanded, setStepsExpanded] = useState<Record<string, boolean>>(
     {},
   );
@@ -590,6 +608,9 @@ export default function CreateDishPage() {
       const options = normalizeCreateDishOptions(meals, `one-touch-${Date.now()}`);
       setServings(request.servings);
       setMealOptions(options);
+      setOneTouchLastRequest(request);
+      setOneTouchDisplayedOptions(options);
+      saveOneTouchBatch("create_a_dish", user?.id, request, options.map((option) => String(option.name)));
       setSelectedDishId(null);
       setGeneratedMeals([]);
       setOneTouchOpen(false);
@@ -1786,6 +1807,16 @@ export default function CreateDishPage() {
                   </CardContent>
                 </Card>
               ))}
+              {ONE_TOUCH_CREATE_ENABLED && oneTouchLastRequest && oneTouchDisplayedOptions === mealOptions && (
+                <button
+                  type="button"
+                  disabled={oneTouchBusy}
+                  onClick={() => void handleOneTouchCreate(oneTouchLastRequest)}
+                  className="w-full min-h-11 rounded-xl border border-orange-400/40 bg-orange-400/10 px-4 text-sm font-bold text-orange-100 disabled:opacity-50"
+                >
+                  {oneTouchBusy ? "Creating more ideas…" : "Try 3 More"}
+                </button>
+              )}
               <button
                 onClick={() => {
                   setMealOptions([]);

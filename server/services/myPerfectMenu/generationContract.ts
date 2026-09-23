@@ -57,7 +57,10 @@ function repairGeneratedConceptMetadata(value: unknown): { value: unknown; repai
     repaired.produceItems = [];
     changed = true;
   }
-  if (repaired.dietaryEvidence === undefined) {
+  // Model claims are advisory, never safety evidence. Discard malformed
+  // representations rather than certifying their contents or rejecting an
+  // otherwise inspectable food concept.
+  if (!Array.isArray(repaired.dietaryEvidence)) {
     repaired.dietaryEvidence = [];
     changed = true;
   }

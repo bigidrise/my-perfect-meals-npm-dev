@@ -18,6 +18,46 @@ export interface OneTouchRequest {
   eatingStyle: OneTouchEatingStyle;
 }
 
+type OneTouchChoices = Omit<OneTouchRequest, "creator">;
+
+function batchKey(creator: OneTouchCreator) {
+  return `oneTouch.completedBatch.${creator}.v1`;
+}
+
+/** Keeps the last successful batch's request choices beside the existing card cache. */
+export function saveOneTouchBatch(
+  creator: OneTouchCreator,
+  ownerId: string | undefined,
+  choices: OneTouchChoices,
+  names: string[],
+): void {
+  if (!ownerId || names.length !== 3) return;
+  try {
+    localStorage.setItem(batchKey(creator), JSON.stringify({ ownerId, choices, names }));
+  } catch {}
+}
+
+export function loadOneTouchBatch(
+  creator: OneTouchCreator,
+  ownerId: string | undefined,
+  names: string[],
+): OneTouchChoices | null {
+  if (!ownerId || names.length !== 3) return null;
+  try {
+    const value = JSON.parse(localStorage.getItem(batchKey(creator)) || "null");
+    if (value?.ownerId !== ownerId || JSON.stringify(value.names) !== JSON.stringify(names)) return null;
+    const choices = value.choices;
+    if (!Number.isInteger(choices?.servings) || choices.servings < 1 || choices.servings > 10 ||
+      !["profile", "surprise", "explicit"].includes(choices.cuisine?.mode) ||
+      !["profile", "explicit"].includes(choices.eatingStyle?.mode) ||
+      (choices.cuisine.mode === "explicit" && typeof choices.cuisine.value !== "string") ||
+      (choices.eatingStyle.mode === "explicit" && typeof choices.eatingStyle.value !== "string")) return null;
+    return choices as OneTouchChoices;
+  } catch {
+    return null;
+  }
+}
+
 export async function requestOneTouchMeals<T>(
   request: OneTouchRequest,
   signal?: AbortSignal,

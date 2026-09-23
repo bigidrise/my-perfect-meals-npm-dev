@@ -1,7 +1,4 @@
 import {
-  buildCulinaryFingerprint,
-  hasMeaningfulCulinaryRepetition,
-  selectCulinarilyBroadConcepts,
   type CulinaryFingerprint,
 } from "@shared/culinaryIdentity";
 import type { MyPerfectMenuCategory } from "@shared/myPerfectMenuCategory";
@@ -9,11 +6,8 @@ import {
   directionToFingerprint,
   type OneTouchDirection,
 } from "@shared/oneTouch";
-import { conceptCompletionFailure } from "../myPerfectMenu/candidateCompletion";
-import {
-  cuisineLabelsCompatible,
-  parseGeneratedMenuCandidates,
-} from "../myPerfectMenu/generationContract";
+import { cuisineLabelsCompatible } from "../myPerfectMenu/generationContract";
+import { generateCulinaryConcepts } from "../myPerfectMenu/culinaryConceptEngine";
 import { validateHumanFoodResult } from "../humanFoodContext/validateHumanFoodResult";
 import type { HumanFoodContext } from "../../../shared/humanFoodContext";
 import { validateDietaryRestriction, type DietaryMode } from "../guardrails/validators/dietaryRestrictionValidator";
@@ -28,7 +22,9 @@ export interface GenerateOneTouchDirectionsInput {
   occasion: MyPerfectMenuCategory;
   history: CulinaryFingerprint[];
   existingDirections?: OneTouchDirection[];
-  generate: (attempt: DirectionGenerationAttempt) => Promise<unknown>;
+  generate?: (attempt: DirectionGenerationAttempt) => Promise<unknown>;
+  userContext?: string[];
+  extraInstructions?: string[];
   validate: (direction: OneTouchDirection) => string[];
   /** Authoritative, request-scoped safety inputs. When supplied they are always enforced. */
   humanFoodContext?: HumanFoodContext;
@@ -45,110 +41,42 @@ export interface GenerateOneTouchDirectionsResult {
   rejectionCodes: string[];
 }
 
-// Dietary evidence from the model is advisory metadata, never proof of safety.
-// An unstructured claim must not be promoted into evidence or prevent canonical
-// Creator validation from evaluating an otherwise well-formed direction.
-function discardMalformedDirectionEvidence(value: unknown): unknown {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
-  const envelope = value as Record<string, unknown>;
-  if (!Array.isArray(envelope.concepts)) return value;
-  return {
-    ...envelope,
-    concepts: envelope.concepts.map((concept) => {
-      if (!concept || typeof concept !== "object" || Array.isArray(concept)) return concept;
-      const candidate = concept as Record<string, unknown>;
-      return candidate.dietaryEvidence !== undefined && !Array.isArray(candidate.dietaryEvidence)
-        ? { ...candidate, dietaryEvidence: [] }
-        : concept;
-    }),
-  };
-}
-
 export async function generateOneTouchDirections(
   input: GenerateOneTouchDirectionsInput,
 ): Promise<GenerateOneTouchDirectionsResult> {
-  const targetCount = input.targetCount ?? 3;
-  if (targetCount < 1 || targetCount > 3) throw new Error("ONE_TOUCH_INVALID_TARGET_COUNT");
-  const candidates: OneTouchDirection[] = [...(input.existingDirections ?? [])].slice(0, targetCount);
-  const rejectionCodes: string[] = [];
-  let attemptsCompleted = 0;
-  let metadataRepairCount = 0;
-  let providerFailures = 0;
-
-  while (
-    candidates.length < targetCount &&
-    (attemptsCompleted < 3 || (candidates.length > 0 && attemptsCompleted < 5))
-  ) {
-    const attempt = attemptsCompleted;
-    attemptsCompleted += 1;
-    const requestedCount = Math.max(0, targetCount - candidates.length);
-    let raw: unknown;
-    try {
-      raw = await input.generate({ attempt, requestedCount });
-    } catch {
-      providerFailures += 1;
-      continue;
-    }
-    const parsed = parseGeneratedMenuCandidates(discardMalformedDirectionEvidence(raw), input.occasion);
-    metadataRepairCount += parsed.metadataRepairCount;
-    rejectionCodes.push(...parsed.rejectionCodes);
-    for (const candidate of parsed.candidates) {
-      const direction = { ...candidate, occasion: input.occasion } as OneTouchDirection;
-      const violations = [
+  const result = await generateCulinaryConcepts({
+    occasion: input.occasion,
+    subjectLabel: "the person being fed",
+    userContext: input.userContext ?? [],
+    extraInstructions: input.extraInstructions,
+    requiredCuisine: input.requiredCuisine ?? null,
+    targetCount: input.targetCount,
+    history: [
+      ...input.history,
+      ...(input.existingDirections ?? []).map(directionToFingerprint),
+    ],
+    rejectHistoryFingerprints: true,
+    validate: (concept) => {
+      const direction = { ...concept, occasion: input.occasion } as OneTouchDirection;
+      return [
         ...input.validate(direction),
         ...(input.humanFoodContext
           ? validateOneTouchDirectionSafety(direction, input.humanFoodContext, input.userProtocolEnvelope, input.requiredCuisine)
           : []),
       ];
-      if (violations.length) {
-        rejectionCodes.push(...violations);
-        continue;
-      }
-      const fingerprint = buildCulinaryFingerprint(direction, input.occasion);
-      if (
-        input.history.some((prior) => prior.fingerprint === fingerprint.fingerprint) ||
-        candidates.some((prior) => buildCulinaryFingerprint(prior, input.occasion).fingerprint === fingerprint.fingerprint)
-      ) {
-        rejectionCodes.push("repetition:signature");
-        continue;
-      }
-      candidates.push(direction);
-    }
-    const broad = selectCulinarilyBroadConcepts(candidates, input.occasion, input.history, targetCount);
-    candidates.splice(0, candidates.length, ...broad);
-    if (candidates.length === targetCount && !hasMeaningfulCulinaryRepetition(candidates, input.occasion)) break;
-  }
-
-  if (candidates.length !== targetCount) {
-    if (process.env.NODE_ENV === "development") {
-      console.warn("[OneTouch] Direction validation exhausted", {
-        attemptsCompleted,
-        acceptedCount: candidates.length,
-        providerFailures,
-        rejectionCodes: [...new Set(rejectionCodes)].slice(0, 20),
-      });
-    }
-    const categories = rejectionCodes.reduce<Record<string, number>>((result, code) => {
-      const category = code.includes(":") ? code.split(":")[0] : code;
-      result[category] = (result[category] ?? 0) + 1;
-      return result;
-    }, {});
-    const failure = conceptCompletionFailure(categories, providerFailures);
-    throw Object.assign(new Error(failure.error), {
-      code: failure.code,
-      status: failure.status,
-      missingCount: Math.max(0, targetCount - candidates.length),
-      attemptsCompleted,
-      metadataRepairCount,
-    });
-  }
-
+    },
+    generate: input.generate
+      ? ({ attempt, requestedCount }) => input.generate!({ attempt, requestedCount })
+      : undefined,
+  });
+  const directions = result.concepts.map((concept) =>
+    ({ ...concept, occasion: input.occasion }) as OneTouchDirection);
   return {
-    directions: candidates,
-    history: candidates.map((direction) => directionToFingerprint(direction)),
-    attemptsCompleted,
-    metadataRepairCount,
-    rejectionCodes,
+    directions,
+    history: directions.map(directionToFingerprint),
+    attemptsCompleted: result.attemptsCompleted,
+    metadataRepairCount: result.metadataRepairCount,
+    rejectionCodes: result.rejectionCodes,
   };
 }
 

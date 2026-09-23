@@ -114,6 +114,36 @@ describe("My Perfect Menu generated response normalization", () => {
     }));
   });
 
+  it("discards malformed advisory evidence and repairs representation-only temperature", () => {
+    const parsed = parseGeneratedMenuCandidates({
+      concepts: [{
+        title: "Roasted Lentil Skillet",
+        description: "Lentils with tomatoes and herbs.",
+        primaryIngredients: ["lentils", "tomatoes", "herbs"],
+        primaryProtein: "lentils",
+        produceItems: ["tomatoes"],
+        cuisine: "Mediterranean",
+        dietaryEvidence: { claim: "vegan" },
+        preparationMethod: "roasted",
+        signature: "lentils|skillet|roasted",
+        culinaryIdentity: {
+          dishForm: "skillet",
+          preparationStyle: "roasted",
+          temperature: "ambient",
+          primaryProteinBase: "lentils",
+          majorStarchBase: null,
+          flavorFamily: "herbs",
+          cuisineEvidence: "Mediterranean",
+          definingComponents: ["lentils", "tomatoes"],
+        },
+      }],
+    }, "lunch");
+    expect(parsed.candidates).toHaveLength(1);
+    expect(parsed.candidates[0].dietaryEvidence).toEqual([]);
+    expect(parsed.candidates[0].culinaryIdentity.temperature).not.toBe("ambient");
+    expect(parsed.candidates[0].primaryIngredients).toEqual(["lentils", "tomatoes", "herbs"]);
+  });
+
   it("does not rescue a candidate whose actual food description is incomplete", () => {
     const parsed = parseGeneratedMenuCandidates({
       concepts: [{
