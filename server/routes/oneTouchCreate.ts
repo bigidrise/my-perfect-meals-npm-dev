@@ -181,7 +181,9 @@ export default function createOneTouchRouter(canonicalHandler: CanonicalCreatorH
       const system = [
         "Create lightweight My Perfect Meals directions, not recipes. Return JSON only with a concepts array.",
         'Each concept has title, description, primaryIngredients, primaryProtein (string or null), produceItems, cuisine, dietaryEvidence, preparationMethod, signature, and culinaryIdentity: {dishForm, preparationStyle, texture, temperature, primaryProteinBase, majorStarchBase, flavorFamily, cuisineEvidence, definingComponents}.',
-        "Return exactly the requested number (1 to 3). Name every meaningful ingredient; no quantities, instructions, nutrition numbers, clinical claims or images.",
+        "Return exactly the requested number (1 to 3) inside {\"concepts\": [...]}. primaryIngredients, produceItems, dietaryEvidence, and culinaryIdentity.definingComponents must be arrays of strings. If there is no dietary evidence, use an empty array; do not invent evidence.",
+        "culinaryIdentity.temperature is optional; if included it must be one of hot, warm, room_temperature, chilled, frozen. primaryProtein and culinaryIdentity.primaryProteinBase/majorStarchBase must be strings or null.",
+        "Keep title, description, ingredients, and culinary metadata concise. Name every meaningful ingredient; no quantities, instructions, nutrition numbers, clinical claims or images.",
         "Choose genuinely different dish forms and methods, not only different proteins or cuisine labels. Never relax the supplied protections.",
         requiredCuisine ? `Every direction must be recognizably ${requiredCuisine}.` : "Explore compatible cuisines.",
       ].join("\n");
@@ -265,13 +267,16 @@ export default function createOneTouchRouter(canonicalHandler: CanonicalCreatorH
       });
     } catch (error: any) {
       console.error("[OneTouch] Request could not complete:", error);
-      return res.status(error?.oneTouchStop ? error.status : error?.status === 502 ? 502 : 422).json({
+      const technicalFailure = ["CONCEPT_TECHNICAL_COMPLETION_FAILED", "CONCEPT_PROVIDER_INCOMPLETE"].includes(error?.code);
+      return res.status(error?.oneTouchStop ? error.status : technicalFailure || error?.status === 502 ? 502 : 422).json({
         code: error?.oneTouchStop ? error.code
           : error?.code === "ONE_TOUCH_AUTHORITY_COMPLETION_FAILED" ? "ONE_TOUCH_DIRECTION_COMPLETION_FAILED"
-          : error?.code === "CONCEPT_PROVIDER_INCOMPLETE" ? "ONE_TOUCH_PROVIDER_INCOMPLETE"
+          : technicalFailure ? "ONE_TOUCH_PROVIDER_INCOMPLETE"
           : error?.code === "ONE_TOUCH_PROVIDER_INCOMPLETE" ? error.code
           : "ONE_TOUCH_DIRECTION_COMPLETION_FAILED",
-        error: error?.oneTouchStop ? error.message : "We couldn't safely complete three meals. Please try again.",
+        error: error?.oneTouchStop ? error.message
+          : technicalFailure ? "We couldn't finish creating three ideas this time. Please try again."
+          : "We couldn't safely complete three meals. Please try again.",
       });
     }
   });

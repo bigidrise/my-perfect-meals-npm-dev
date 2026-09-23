@@ -45,6 +45,25 @@ export interface GenerateOneTouchDirectionsResult {
   rejectionCodes: string[];
 }
 
+// Dietary evidence from the model is advisory metadata, never proof of safety.
+// An unstructured claim must not be promoted into evidence or prevent canonical
+// Creator validation from evaluating an otherwise well-formed direction.
+function discardMalformedDirectionEvidence(value: unknown): unknown {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const envelope = value as Record<string, unknown>;
+  if (!Array.isArray(envelope.concepts)) return value;
+  return {
+    ...envelope,
+    concepts: envelope.concepts.map((concept) => {
+      if (!concept || typeof concept !== "object" || Array.isArray(concept)) return concept;
+      const candidate = concept as Record<string, unknown>;
+      return candidate.dietaryEvidence !== undefined && !Array.isArray(candidate.dietaryEvidence)
+        ? { ...candidate, dietaryEvidence: [] }
+        : concept;
+    }),
+  };
+}
+
 export async function generateOneTouchDirections(
   input: GenerateOneTouchDirectionsInput,
 ): Promise<GenerateOneTouchDirectionsResult> {
@@ -70,7 +89,7 @@ export async function generateOneTouchDirections(
       providerFailures += 1;
       continue;
     }
-    const parsed = parseGeneratedMenuCandidates(raw, input.occasion);
+    const parsed = parseGeneratedMenuCandidates(discardMalformedDirectionEvidence(raw), input.occasion);
     metadataRepairCount += parsed.metadataRepairCount;
     rejectionCodes.push(...parsed.rejectionCodes);
     for (const candidate of parsed.candidates) {
@@ -101,6 +120,14 @@ export async function generateOneTouchDirections(
   }
 
   if (candidates.length !== targetCount) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[OneTouch] Direction validation exhausted", {
+        attemptsCompleted,
+        acceptedCount: candidates.length,
+        providerFailures,
+        rejectionCodes: [...new Set(rejectionCodes)].slice(0, 20),
+      });
+    }
     const categories = rejectionCodes.reduce<Record<string, number>>((result, code) => {
       const category = code.includes(":") ? code.split(":")[0] : code;
       result[category] = (result[category] ?? 0) + 1;
