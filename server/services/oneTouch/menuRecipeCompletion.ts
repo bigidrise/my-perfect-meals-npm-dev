@@ -301,10 +301,14 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
     // A protocol text scan alone cannot prove numeric or specialist directives
     // (for example renal sodium limits) that this one-recipe contract cannot
     // measure. Final validation must review those rather than receiving true.
+    const optimizationKeys = new Set(envelope.medicalOptimization.map((condition) => condition.trim().toLowerCase()));
     const otherClinicalCondition = context.safety.healthConditions.some(
-      (condition) => !/glp.?1|semaglutide|tirzepatide|diabet/i.test(condition),
+      (condition) => !optimizationKeys.has(condition.trim().toLowerCase()) &&
+        !/glp.?1|semaglutide|tirzepatide|diabet/i.test(condition),
     );
-    const otherEnvelopeDirective = [...envelope.medicalHardLimits, ...envelope.medicalOptimization]
+    // Optimization guidance is not a hard clinical limit. It still participates
+    // in the protocol prompt and output scan, but cannot require numeric proof.
+    const otherEnvelopeDirective = envelope.medicalHardLimits
       .some((condition) => !/glp.?1|semaglutide|tirzepatide|diabet/i.test(condition));
     const hasOtherClinicalDirective = otherClinicalCondition || otherEnvelopeDirective;
     if (hasOtherClinicalDirective) return fail("protocol_clinical_rejected");

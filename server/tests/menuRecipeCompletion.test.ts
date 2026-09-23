@@ -510,6 +510,25 @@ describe("Menu-owned one-recipe completion (not connected to the manual Creators
     expect(generateMealImageUnified).not.toHaveBeenCalled();
   });
 
+  it("treats optimization-only specialty flags as guidance, not fabricated hard clinical evidence", async () => {
+    (loadUserProtocolEnvelope as jest.Mock).mockResolvedValue({
+      ...envelope,
+      medicalHardLimits: [],
+      medicalOptimization: ["therapeutic-support", "performance-nutrition"],
+    });
+    (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+      resolve: async () => ({
+        ...context,
+        safety: { ...context.safety, healthConditions: ["therapeutic-support", "performance-nutrition"] },
+      }),
+      executionState: { rejectedCandidateSignatures: [] },
+    }));
+    const result = await completeMenuRecipe(input);
+    expect(result.ok).toBe(true);
+    expect(validateHumanFoodCandidate).toHaveBeenCalledTimes(2);
+    expect(generateMealImageUnified).toHaveBeenCalledTimes(1);
+  });
+
   it("rejects invalid model nutrition and never invents missing values", async () => {
     (generateMenuRecipe as jest.Mock).mockResolvedValue({ ...draft, calories: Number.NaN });
     expect(await completeMenuRecipe(input)).toMatchObject({

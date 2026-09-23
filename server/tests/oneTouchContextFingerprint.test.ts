@@ -121,6 +121,7 @@ describe("One-Touch restored-card authority fingerprint", () => {
     ["effective diet", { diet: { ...context.diet, effective: ["vegetarian"] } }, envelope, glp1],
     ["dietary identity", {}, { ...envelope, dietaryIdentity: ["vegetarian"] }, glp1],
     ["clinical protocol", {}, { ...envelope, medicalHardLimits: ["renal"] }, glp1],
+    ["optimization guidance", {}, { ...envelope, medicalOptimization: ["performance-nutrition"] }, glp1],
     ["diabetes", { diabetesFoodPreferences: { ...context.diabetesFoodPreferences!, state: "HIGH" } }, envelope, glp1],
     ["GLP-1", {}, envelope, { ...glp1, isActive: true, resolvedTargets: { treatmentPhase: "titration" } }],
     ["Nutrition Priorities", { nutritionPriorities: { ...context.nutritionPriorities!, selectedPriorityIds: [] } }, envelope, glp1],

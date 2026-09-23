@@ -1,10 +1,10 @@
 import { Router } from "express";
+import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { requireAuth } from "../middleware/requireAuth";
-import { oneTouchRequestSchema, directionToFingerprint, type OneTouchDirection, type OneTouchRequest } from "@shared/oneTouch";
+import { oneTouchRequestSchema, type OneTouchRequest, type OneTouchConcept } from "@shared/oneTouch";
 import { generateOneTouchDirections } from "../services/oneTouch/directions";
-import { appendOneTouchHistory, readOneTouchHistory } from "../services/oneTouch/history";
-import { completeOneTouchMeals } from "../services/oneTouch/completion";
+import { appendOneTouchHistory, readOneTouchHistory, saveOneTouchConceptSet } from "../services/oneTouch/history";
 import { completeMenuRecipe, type MenuRecipeCard } from "../services/oneTouch/menuRecipeCompletion";
 import { createHumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
 import { buildCreatorHumanFoodPrompt } from "../services/humanFoodContext/adapters";
@@ -13,6 +13,7 @@ import { withOneTouchDiet } from "../services/oneTouch/dietAuthority";
 import { buildDietPromptBlock } from "../services/allergyGuardrails";
 import { buildGLP1RecommendationBlock, resolveGLP1GlobalContext } from "../services/glp1/resolveGLP1GlobalContext";
 import { oneTouchContextFingerprint, oneTouchChangedAuthorityBranches } from "../services/oneTouch/contextFingerprint";
+import { directionToFingerprint } from "@shared/oneTouch";
 
 // Server authority for both experimental Creator Menus. Production stays off
 // unless explicitly enabled; a client build flag alone cannot open this route.
@@ -102,6 +103,84 @@ export default function createOneTouchRouter() {
       });
     }
   });
+  router.post("/restore", requireAuth, async (req, res) => {
+    if (!ONE_TOUCH_CREATE_ENABLED) return res.status(503).json({ code: "ONE_TOUCH_NOT_AVAILABLE" });
+    const parsed = oneTouchRequestSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ code: "ONE_TOUCH_INVALID_REQUEST" });
+    res.set("Cache-Control", "private, no-store, no-cache, max-age=0, must-revalidate");
+    try {
+      const userId = String((req as any).authUser.id);
+      const authority = await resolveOneTouchAuthority(userId, parsed.data, (req as any).id);
+      const stored = (await readOneTouchHistory(userId)).workingSets?.[parsed.data.creator];
+      const valid = stored?.contextFingerprint === authority.contextFingerprint &&
+        JSON.stringify(stored.request) === JSON.stringify(parsed.data);
+      return res.json({ concepts: valid ? stored.concepts : [], contextFingerprint: authority.contextFingerprint });
+    } catch (error: any) {
+      return res.status(error?.oneTouchStop ? error.status : 503).json({
+        code: error?.oneTouchStop ? error.code : "ONE_TOUCH_CONTEXT_UNRESOLVED",
+        error: error?.oneTouchStop ? error.message : "Your food protections could not be verified.",
+      });
+    }
+  });
+  router.post("/choose", requireAuth, async (req, res) => {
+    if (!ONE_TOUCH_CREATE_ENABLED) return res.status(503).json({ code: "ONE_TOUCH_NOT_AVAILABLE" });
+    const parsed = z.object({
+      request: oneTouchRequestSchema,
+      conceptId: z.string().uuid(),
+    }).strict().safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ code: "ONE_TOUCH_INVALID_REQUEST", error: "Choose a valid Menu idea." });
+    const { conceptId, request } = parsed.data;
+    const userId = String((req as any).authUser.id);
+    try {
+      const authority = await resolveOneTouchAuthority(userId, request, (req as any).id);
+      const stored = (await readOneTouchHistory(userId)).workingSets?.[request.creator];
+      if (!stored || stored.contextFingerprint !== authority.contextFingerprint ||
+          JSON.stringify(stored.request) !== JSON.stringify(request)) {
+        stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your Menu ideas are no longer current. Please generate new ideas.");
+      }
+      const selected = stored.concepts.find((concept) => concept.id === conceptId);
+      if (!selected) stop(404, "ONE_TOUCH_INVALID_SELECTION", "That Menu idea is not in your current choices.");
+      const overrides = requestOverrides(request)!;
+      const { id: _conceptId, ...approvedConcept } = selected;
+      const result = await completeMenuRecipe({
+        actorUserId: userId,
+        subject: { id: userId, kind: "account" },
+        approvedConcept,
+        servings: request.servings,
+        cuisine: overrides.cuisineOverride ?? (request.cuisine.mode === "surprise" ? selected.cuisine : null),
+        dietaryDirection: overrides.dietOverride,
+        clinicalMealSlot: "lunch",
+        contextCreator: request.creator,
+      });
+      if (!result.ok) {
+        if (result.code === "requirement_evidence_unsupported" || result.code === "protocol_clinical_rejected") {
+          stop(422, "ONE_TOUCH_REQUIREMENT_UNAVAILABLE",
+            "We can't safely complete this Menu option with your current nutrition settings yet. Your settings have not been changed.");
+        }
+        if (result.code === "unresolved_authority" || result.code === "unauthorized_subject") {
+          stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your current food protections could not be verified.");
+        }
+        stop(result.retryable ? 502 : 422, "ONE_TOUCH_RECIPE_REJECTED",
+          "We couldn't safely complete this selected idea. Please choose another or try again.");
+      }
+      // A concurrent Try 3 More or preference change cannot authorize an old choice.
+      const latest = await resolveOneTouchAuthority(userId, request, (req as any).id);
+      const currentSet = (await readOneTouchHistory(userId)).workingSets?.[request.creator];
+      if (latest.contextFingerprint !== authority.contextFingerprint ||
+          currentSet?.contextFingerprint !== authority.contextFingerprint ||
+          !currentSet.concepts.some((concept) => concept.id === conceptId)) {
+        stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your Menu choices changed while the recipe was being made.");
+      }
+      await appendOneTouchHistory(userId, request.creator, [{ ...directionToFingerprint(selected), creator: request.creator }]);
+      return res.json({ meal: toCreatorCard(result.card) });
+    } catch (error: any) {
+      console.error("[OneTouch] Selection could not complete:", error?.code ?? error?.message);
+      return res.status(error?.oneTouchStop ? error.status : 503).json({
+        code: error?.oneTouchStop ? error.code : "ONE_TOUCH_CONTEXT_UNRESOLVED",
+        error: error?.oneTouchStop ? error.message : "Your current food protections could not be verified.",
+      });
+    }
+  });
   router.post("/", requireAuth, async (req, res) => {
     if (!ONE_TOUCH_CREATE_ENABLED) {
       return res.status(503).json({
@@ -114,92 +193,45 @@ export default function createOneTouchRouter() {
     if (!parsed.success) {
       return res.status(400).json({ code: "ONE_TOUCH_INVALID_REQUEST", error: "Invalid Creator Menu request." });
     }
-    const { creator, servings, cuisine } = parsed.data;
+    const { creator, cuisine } = parsed.data;
     const overrides = requestOverrides(parsed.data);
     if (!overrides) {
       return res.status(400).json({ code: "ONE_TOUCH_INVALID_REQUEST", error: "Choose a listed cuisine and dietary preference." });
     }
-    const { cuisineOverride, dietOverride } = overrides;
     const userId = String((req as any).authUser.id);
     try {
-      const startedAt = Date.now();
       const { scope, context, envelope, glp1, contextFingerprint } =
         await resolveOneTouchAuthority(userId, parsed.data, (req as any).id);
       const requiredCuisine = cuisine.mode === "surprise"
         ? null
         : context.flavor.cuisine.available ? context.flavor.cuisine.value : null;
       const priorHistory = await readOneTouchHistory(userId);
-      const generatedFingerprints = priorHistory[creator];
-      const tried: OneTouchDirection[] = [];
-      const completedNames = new Set<string>();
+      const generatedFingerprints = [
+        ...priorHistory[creator],
+        ...(priorHistory.ideaHistory?.[creator] ?? []),
+        ...(priorHistory.workingSets?.[creator]?.concepts ?? []).map(directionToFingerprint),
+      ];
       const userContext = [
         buildCreatorHumanFoodPrompt(creator, context, scope.executionState),
         buildDietPromptBlock(context.diet.effective),
         enforceBeforeGenerate(envelope, { generatorName: "one-touch-directions" }).combined,
         buildGLP1RecommendationBlock(glp1),
       ];
-      const makeDirections = async (count: 1 | 2 | 3, accepted: OneTouchDirection[]) => {
-        const history = [
-          ...generatedFingerprints,
-          ...tried.map(directionToFingerprint),
-          ...accepted.map(directionToFingerprint),
-        ];
-        const result = await generateOneTouchDirections({
+      const result = await generateOneTouchDirections({
           // Snack is a broad culinary occasion; clinical GLP-1 authority still
           // uses the existing lunch slot, explicitly supplied at completion.
           occasion: creator === "craving_creator" ? "snack" : "lunch",
           menuShape: creator === "craving_creator" ? "craving" : "dish",
           cravingType: parsed.data.cravingType ?? "surprise",
           cravingFeel: parsed.data.cravingFeel ?? "surprise",
-          targetCount: count,
-          history,
+          targetCount: 3,
+          history: generatedFingerprints,
           humanFoodContext: context,
           userProtocolEnvelope: envelope,
           requiredCuisine,
           validate: () => [],
           userContext,
-          extraInstructions: [
-            `Make genuinely different dishes from these already attempted directions: ${tried.map((item) => item.title).join("; ") || "none"}.`,
-          ],
         });
-        return result.directions;
-      };
-      const directions = await makeDirections(3, []);
-      const conceptDurationMs = Date.now() - startedAt;
-      const completed = await completeOneTouchMeals<ReturnType<typeof toCreatorCard>>({
-        directions,
-        generateDirections: async ({ requestedCount, accepted }) =>
-          makeDirections(requestedCount as 1 | 2 | 3, accepted),
-        canonicalAccept: async (direction) => {
-          tried.push(direction);
-          const result = await completeMenuRecipe({
-            actorUserId: userId,
-            subject: { id: userId, kind: "account" },
-            approvedConcept: direction,
-            servings,
-            cuisine: cuisineOverride ?? (cuisine.mode === "surprise" ? direction.cuisine : null),
-            dietaryDirection: dietOverride,
-            clinicalMealSlot: "lunch",
-            contextCreator: creator,
-          });
-          if (!result.ok) {
-            if (result.code === "requirement_evidence_unsupported" ||
-                result.code === "protocol_clinical_rejected") {
-              stop(422, "ONE_TOUCH_REQUIREMENT_UNAVAILABLE",
-                "We can't safely complete this Menu option with your current nutrition settings yet. Your settings have not been changed.");
-            }
-            if (result.code === "unresolved_authority" || result.code === "unauthorized_subject") {
-              stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your current food protections could not be verified.");
-            }
-            return { accepted: false, failureClass: result.retryable ? "technical_provider" : "authority" };
-          }
-          const meal = toCreatorCard(result.card);
-          if (completedNames.has(meal.name.toLowerCase())) return { accepted: false, failureClass: "authority" };
-          completedNames.add(meal.name.toLowerCase());
-          return { accepted: true, value: meal };
-        },
-      });
-      const selected = completed.accepted;
       const currentAuthority = await resolveOneTouchAuthority(userId, parsed.data, (req as any).id);
       if (currentAuthority.contextFingerprint !== contextFingerprint) {
         if (process.env.NODE_ENV === "development") {
@@ -209,24 +241,21 @@ export default function createOneTouchRouter() {
               { request: parsed.data, context: currentAuthority.context, envelope: currentAuthority.envelope, glp1: currentAuthority.glp1 },
             ));
         }
-        stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your food protections changed while these meals were being created. Please try again.");
+        stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your food protections changed while these ideas were being created. Please try again.");
       }
-      await appendOneTouchHistory(
-        userId,
-        creator,
-        selected.map(({ direction }) => ({ ...directionToFingerprint(direction), creator })),
-      );
-      console.info("[CreatorMenu] completion", {
+      const concepts: OneTouchConcept[] = result.directions.map((direction) => ({ ...direction, id: randomUUID() }));
+      await saveOneTouchConceptSet(userId, creator, {
+        request: parsed.data, contextFingerprint, concepts,
+      });
+      await scope.completeAuthorization();
+      console.info("[CreatorMenu] concepts", {
         shape: creator === "craving_creator" ? "craving" : "dish",
-        conceptDurationMs,
-        recipeRequests: completed.attemptsCompleted,
-        retryCount: Math.max(0, completed.attemptsCompleted - 3),
-        imageCount: selected.filter(({ value }) => Boolean(value?.imageUrl)).length,
-        totalDurationMs: Date.now() - startedAt,
+        count: concepts.length,
+        attempts: result.attemptsCompleted,
       });
       return res.json({
         intentType: "one_touch_delegated",
-        meals: selected.map(({ value }) => value),
+        concepts,
         contextFingerprint,
       });
     } catch (error: any) {
@@ -240,7 +269,7 @@ export default function createOneTouchRouter() {
           : "ONE_TOUCH_DIRECTION_COMPLETION_FAILED",
         error: error?.oneTouchStop ? error.message
           : technicalFailure ? "We couldn't finish creating three ideas this time. Please try again."
-          : "We couldn't safely complete three meals. Please try again.",
+          : "We couldn't safely create three ideas. Please try again.",
       });
     }
   });

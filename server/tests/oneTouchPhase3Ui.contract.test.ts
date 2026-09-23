@@ -22,8 +22,10 @@ describe("Creator Menu modal and progress remain separate from manual Creators",
     expect(dish).toContain('aria-label="Creating your Dish Menu"');
     expect(dish).toContain('<MealGenerationProgress active context="create-dish" mode="options" />');
     expect(craving.indexOf('aria-label="Creating your Craving Menu"'))
-      .toBeLessThan(craving.indexOf("!oneTouchBusy && !isPlatingMeal && mealOptions.length > 0 && generatedMeals.length === 0"));
+      .toBeLessThan(craving.indexOf("<CreatorConceptCards"));
     expect(dish.indexOf('aria-label="Creating your Dish Menu"'))
-      .toBeLessThan(dish.indexOf("mealOptions.length > 0 && selectedDishId === null"));
+      .toBeLessThan(dish.indexOf("<CreatorConceptCards"));
+    expect(craving).toContain("conceptMenu.choose<MealData>(conceptId)");
+    expect(dish).toContain("conceptMenu.choose<MealData>(conceptId)");
   });
 });

@@ -63,6 +63,18 @@ export const oneTouchDirectionSchema = z.object({
 }).strict();
 export type OneTouchDirection = z.infer<typeof oneTouchDirectionSchema>;
 
+export const oneTouchConceptSchema = oneTouchDirectionSchema.extend({
+  id: z.string().uuid(),
+});
+export type OneTouchConcept = z.infer<typeof oneTouchConceptSchema>;
+
+export const oneTouchConceptSetSchema = z.object({
+  request: oneTouchRequestSchema,
+  contextFingerprint: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+  concepts: z.array(oneTouchConceptSchema).length(3),
+});
+export type OneTouchConceptSet = z.infer<typeof oneTouchConceptSetSchema>;
+
 export const oneTouchFailureCodeSchema = z.enum([
   "ONE_TOUCH_AUTH_REQUIRED",
   "ONE_TOUCH_CONTEXT_UNRESOLVED",
@@ -83,6 +95,15 @@ export const oneTouchHistorySchema = z.object({
   version: z.literal(1),
   create_a_dish: z.array(oneTouchHistoryEntrySchema).max(96).default([]),
   craving_creator: z.array(oneTouchHistoryEntrySchema).max(96).default([]),
+  // Kept separate from completed-meal history: showing an idea is not completing food.
+  ideaHistory: z.object({
+    create_a_dish: z.array(oneTouchHistoryEntrySchema).max(96).default([]),
+    craving_creator: z.array(oneTouchHistoryEntrySchema).max(96).default([]),
+  }).optional(),
+  workingSets: z.object({
+    create_a_dish: oneTouchConceptSetSchema.optional(),
+    craving_creator: oneTouchConceptSetSchema.optional(),
+  }).optional(),
 }).default({ version: 1, create_a_dish: [], craving_creator: [] });
 export type OneTouchHistory = z.infer<typeof oneTouchHistorySchema>;
 
