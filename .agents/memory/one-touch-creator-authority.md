@@ -33,23 +33,23 @@ The positive-evidence contract must distinguish each active requirement and its 
 
 **How to apply:** Resolve exact evidence separately for every active Menu requirement; keep unproven identities unavailable while allowing a future limited Menu rollout for independently supported identities. Do not interpret a passed protocol scan or a model nutrition estimate as verified composition.
 
-The user accepted a shared, non-persisting culinary concept engine for MPM and One-Touch, with separate destinations: MPM owns its saved concepts, while each Creator owns its canonically completed cards.
+The user accepted a shared culinary concept engine for MPM and Creator Menus, with separate destinations. Each Creator Menu presents exactly three governed concepts before any finished recipe is requested; only the selected server-owned concept is completed.
 
-**Why:** Sharing creative direction avoids divergent generation rules, but a concept is never evidence of safety or nutrition. Browser-restored completed cards also become unsafe when authoritative food protections change.
+**Why:** Sharing creative direction avoids divergent generation rules, but a concept is never evidence of safety or nutrition. Completing all three before selection wastes work and misrepresents a conceptual choice as a validated meal. Browser-restored concepts become unsafe when authoritative food protections change.
 
-**How to apply:** Keep concept and completed-meal gates distinct. Treat cached One-Touch cards as unverified on remount until fresh server authority matches; suppress cards rather than repairing old meals or trusting a browser-stored marker alone.
+**How to apply:** Keep concept and completed-meal gates distinct. Re-resolve authority for restoration and again on selection; the browser stores only request choices, not concept text or IDs. The server stores one current set per Creator and only current, exact IDs can be selected. Suppress stale ideas rather than trusting a browser marker.
 
-Candidate-specific protocol scan rejection and profile-wide unsupported clinical evidence must have distinct outcomes.
+Concept rejection and unsupported completed-recipe evidence must have distinct outcomes.
 
-**Why:** A failed recipe scan can be remedied by replacing only that concept, preserving two safe siblings. A clinical directive with no positive evidence cannot be made safe by another recipe and must stop the whole request.
+**Why:** A concept can be replaced before display while preserving safe siblings, but a completed recipe's failed safety check must not silently substitute a different meal for the user's choice. A clinical directive with no positive evidence cannot be made safe by another recipe.
 
-**How to apply:** Retry only the candidate-specific failure within the bounded Menu completion shell; stop immediately for unprovable authority. Never map both outcomes to one generic protocol failure code.
+**How to apply:** Use bounded refill for rejected concepts before presenting exactly three. On Choose This, complete only that concept; if final safety fails, show an explicit failure without serving a sibling or claiming unsupported evidence.
 
-When a browser may hold both old and new delegated-card markers, each version must be examined independently and an ambiguous match must remain unverified.
+Do not let legacy finished-card markers authorize the concept menu.
 
-**Why:** A corrupt or unrelated new marker can otherwise hide an old marker, letting an obsolete card render without the fresh authenticated authority check.
+**Why:** A previous generation of the Creator Menu stored completed-card markers, but the new concept-stage authority lives on the server and must not be inferred from old client caches.
 
-**How to apply:** Parse each generation separately, prefer fail-closed discard for overlap, and remove legacy markers after a successful new batch save.
+**How to apply:** Restore only from the Creator-owned server set and its current context fingerprint. Clear legacy finished-card markers when a new concept set is created; keep manual Creator caches isolated.
 
 Fingerprint authority must include the substance of daily nutrition and its provenance, but not the provenance calculation timestamp. Two consecutive resolutions of unchanged Dev nutrition data produced different fingerprints solely because that timestamp records each calculation time.
 

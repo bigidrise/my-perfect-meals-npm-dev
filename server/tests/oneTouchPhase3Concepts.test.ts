@@ -53,6 +53,40 @@ describe("Creator Menu culinary concepts, separate from clinical meal slots", ()
     })).toContain("culinary_shape:not_a_dish");
   });
 
+  it("refills an explicit quinoa avoidance and a non-Vegan ingredient without discarding safe siblings", async () => {
+    const attempts: number[] = [];
+    const context = {
+      authorization: { status: "none", waivers: [] },
+      safety: {
+        allergies: [], avoidedFoods: ["pork", "quinoa"],
+        healthConditions: [],
+      },
+      diet: { effective: ["vegan"] },
+      nutrition: null,
+      diabetesFoodPreferences: null,
+    } as any;
+    const result = await generateOneTouchDirections({
+      menuShape: "dish", occasion: "lunch", targetCount: 3,
+      history: [], validate: () => [], humanFoodContext: context,
+      generate: async ({ requestedCount }) => {
+        attempts.push(requestedCount);
+        return { concepts: attempts.length === 1
+          ? [
+              { ...concept("Quinoa Chili", "chili"), primaryIngredients: ["quinoa", "tomatoes"] },
+              concept("Tomato Lentil Stew", "stew"),
+              { ...concept("Chicken Curry", "curry"), primaryIngredients: ["chicken", "tomatoes"] },
+            ]
+          : [concept("Mushroom Lasagna", "lasagna"), concept("Black Bean Tacos", "tacos")] };
+      },
+    });
+    expect(attempts).toEqual([3, 2]);
+    expect(result.directions.map((item) => item.title)).toEqual(expect.arrayContaining([
+      "Tomato Lentil Stew", "Mushroom Lasagna", "Black Bean Tacos",
+    ]));
+    expect(result.directions.map((item) => item.title)).not.toContain("Quinoa Chili");
+    expect(result.directions.map((item) => item.title)).not.toContain("Chicken Curry");
+  });
+
   it.each([
     ["surprise", "surprise", "general_snack", "savory"],
     ["food", "salty", "general_snack", "savory"],

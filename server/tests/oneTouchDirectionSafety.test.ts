@@ -30,4 +30,15 @@ describe("One-Touch lightweight direction safety", () => {
     expect(violations.some((item) => item.startsWith("dietary:"))).toBe(true);
     expect(violations).toContain("cuisine_mismatch:Italian");
   });
+
+  it("does not treat a non-Vegan request as Vegan when there is no effective Vegan diet", () => {
+    const withVegan = validateOneTouchDirectionSafety(direction(["chicken"]), context, undefined, "Chinese");
+    const withoutVegan = validateOneTouchDirectionSafety(
+      direction(["chicken"]),
+      { ...context, diet: { effective: [] } },
+      undefined, "Chinese",
+    );
+    expect(withVegan.some((item) => item.startsWith("dietary:"))).toBe(true);
+    expect(withoutVegan.some((item) => item.startsWith("dietary:"))).toBe(false);
+  });
 });

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-describe("One-Touch Creator restored-card display gates", () => {
+describe("Legacy finished-card display gates stay separate from restored concepts", () => {
   it.each([
     ["Create a Dish", "client/src/pages/lifestyle/CreateDishPage.tsx", "visibleMeals"],
     ["Craving Creator", "client/src/pages/craving-creator.tsx", "generatedMeals"],
@@ -10,8 +10,10 @@ describe("One-Touch Creator restored-card display gates", () => {
     expect(source).toContain("restoreOneTouchBatch(");
     expect(source).toContain("cachedOneTouchNamesForMeal(");
     expect(source).toContain("if (!restored) discard()");
-    expect(source).toContain("!unverifiedOneTouchOptions && !oneTouchBusy && !isPlatingMeal && mealOptions.length > 0");
+    expect(source).toContain("!unverifiedOneTouchOptions && !oneTouchBusy && !isPlatingMeal && conceptMenu.concepts.length === 0 && mealOptions.length > 0");
     expect(source).toContain(`!unverifiedOneTouchOptions && ${cards}.length > 0`);
     expect(source).toContain("clearOneTouchBatch(");
+    expect(source).toContain('useCreatorConceptMenu("');
+    expect(source).toContain("<CreatorConceptCards");
   });
 });

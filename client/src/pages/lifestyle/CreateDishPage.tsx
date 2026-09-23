@@ -93,14 +93,14 @@ import type {
 } from "../../../../shared/createDishIngredientExpansion";
 import { ExpandIngredientResponseSchema } from "../../../../shared/createDishIngredientExpansion";
 import OneTouchCreateModal from "@/components/one-touch/OneTouchCreateModal";
+import { CreatorConceptCards } from "@/components/one-touch/CreatorConceptCards";
+import { useCreatorConceptMenu } from "@/hooks/useCreatorConceptMenu";
 import {
   ONE_TOUCH_CREATE_ENABLED,
   cachedOneTouchNamesForMeal,
   clearOneTouchBatch,
   isCachedOneTouchBatch,
-  requestOneTouchMeals,
   restoreOneTouchBatch,
-  saveOneTouchBatch,
   type OneTouchCuisine,
   type OneTouchEatingStyle,
 } from "@/lib/oneTouchCreate";
@@ -561,6 +561,7 @@ export default function CreateDishPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [oneTouchOpen, setOneTouchOpen] = useState(false);
   const [oneTouchBusy, setOneTouchBusy] = useState(false);
+  const conceptMenu = useCreatorConceptMenu("create_a_dish", user?.id);
   const [oneTouchLastRequest, setOneTouchLastRequest] = useState<{
     servings: number;
     cuisine: OneTouchCuisine;
@@ -637,17 +638,13 @@ export default function CreateDishPage() {
     setOneTouchBusy(true);
     setIsGenerating(true);
     try {
-      const { meals, contextFingerprint } = await requestOneTouchMeals<MealData>({
-        creator: "create_a_dish",
-        ...request,
-      });
-      const options = normalizeCreateDishOptions(meals, `one-touch-${Date.now()}`);
+      await conceptMenu.generate(request);
       setServings(request.servings);
-      setMealOptions(options);
-      setOneTouchLastRequest(request);
-      setOneTouchDisplayedOptions(options);
+      setMealOptions([]);
+      clearOneTouchBatch("create_a_dish");
+      setOneTouchLastRequest(null);
+      setOneTouchDisplayedOptions(null);
       setVerifiedSingleBatch(null);
-      saveOneTouchBatch("create_a_dish", user?.id, request, options.map((option) => String(option.name)), contextFingerprint);
       setSelectedDishId(null);
       setGeneratedMeals([]);
       setOneTouchOpen(false);
@@ -660,6 +657,23 @@ export default function CreateDishPage() {
     } finally {
       setOneTouchBusy(false);
       setIsGenerating(false);
+    }
+  };
+
+  const handleOneTouchChoose = async (conceptId: string) => {
+    setIsPlatingMeal(true);
+    try {
+      const meal = await conceptMenu.choose<MealData>(conceptId);
+      setMealOptions([meal]);
+      setSelectedDishId(meal.id);
+      setGeneratedMeals([]);
+      setGeneratedInSession(true);
+      addRecentMeal(meal.name);
+      saveDishCache({ generatedMeal: meal, servings, generatedAtISO: new Date().toISOString() });
+    } catch (error: any) {
+      toast({ title: "Couldn't complete this idea", description: error?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setIsPlatingMeal(false);
     }
   };
 
@@ -1789,9 +1803,23 @@ export default function CreateDishPage() {
               />
             </div>
           )}
+          {!isPlatingMeal && selectedDishId === null && generatedMeals.length === 0 && (
+            <CreatorConceptCards
+              concepts={conceptMenu.concepts}
+              choosingId={conceptMenu.choosingId}
+              generating={conceptMenu.generating}
+              onChoose={(id) => void handleOneTouchChoose(id)}
+              onTryMore={() => { if (conceptMenu.choices) void handleOneTouchCreate(conceptMenu.choices); }}
+              onClear={() => {
+                conceptMenu.clear();
+                setMealOptions([]);
+                clearOptionsCache();
+              }}
+            />
+          )}
 
           {/* Initial picker — only shown before a meal has been selected */}
-          {!unverifiedOneTouchOptions && !oneTouchBusy && !isPlatingMeal && mealOptions.length > 0 && selectedDishId === null && generatedMeals.length === 0 && (
+          {!unverifiedOneTouchOptions && !oneTouchBusy && !isPlatingMeal && conceptMenu.concepts.length === 0 && mealOptions.length > 0 && selectedDishId === null && generatedMeals.length === 0 && (
             <div className="mt-8 space-y-4" ref={mealOptionsRef}>
               <div className="flex items-center gap-3 mb-2">
                 <Sparkles className="h-5 w-5 text-orange-400" />
