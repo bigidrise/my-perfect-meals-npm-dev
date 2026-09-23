@@ -117,3 +117,4 @@
 - [Generated meal serving contract](generated-meal-serving-contract.md) — response nutrition is total-recipe; validators must normalize with the same requested serving count.
 - [Board meal media identity](board-meal-media-identity.md) — Weekly Board images retain canonical asset identity; URL shape alone never proves durable storage.
 - [One-Touch Creator authority](one-touch-creator-authority.md) — delegated choices must use canonical Creator enforcement and explicit diet authority; keep the entry hidden until both are true.
+- [Vite-only feature gates in Jest](vite-feature-gates-jest.md) — isolate import.meta.env gates from request helpers so CommonJS Jest can test them.

@@ -1,8 +1,6 @@
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
-
-// Dev-1 only. Production keeps both entry points hidden.
-export const ONE_TOUCH_CREATE_ENABLED = import.meta.env.DEV;
+export { ONE_TOUCH_CREATE_ENABLED } from "./oneTouchAvailability";
 
 export type OneTouchCreator = "create_a_dish" | "craving_creator";
 export type OneTouchCuisine =

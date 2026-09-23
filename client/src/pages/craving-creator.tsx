@@ -502,7 +502,9 @@ export default function CravingCreator() {
     cuisine: OneTouchCuisine;
     eatingStyle: OneTouchEatingStyle;
   }) => {
+    setOneTouchOpen(false);
     setOneTouchBusy(true);
+    setIsGenerating(true);
     try {
       const meals = await requestOneTouchMeals<MealData>({
         creator: "craving_creator",
@@ -520,6 +522,7 @@ export default function CravingCreator() {
       });
     } finally {
       setOneTouchBusy(false);
+      setIsGenerating(false);
     }
   };
   // Generation mode is now auto-routed server-side based on the dish name.
@@ -1063,6 +1066,23 @@ export default function CravingCreator() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
+                  {ONE_TOUCH_CREATE_ENABLED && (
+                    <div>
+                      {oneTouchBusy ? (
+                        <MealGenerationProgress active context="general" mode="options" />
+                      ) : (
+                        <GlassButton
+                          type="button"
+                          data-testid="cravingcreator-one-touch-button"
+                          onClick={() => setOneTouchOpen(true)}
+                          disabled={isGenerating}
+                          className="w-full border border-orange-300/30 bg-orange-600/20 text-orange-100"
+                        >
+                          ✨ One-Touch Create
+                        </GlassButton>
+                      )}
+                    </div>
+                  )}
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-md font-medium text-white">
@@ -1352,7 +1372,7 @@ export default function CravingCreator() {
                     </p>
                   </div>
 
-                  {isGenerating ? (
+                  {isGenerating ? (oneTouchBusy ? null : (
                     <div className="max-w-md mx-auto mb-4 flex justify-center">
                       <MealGenerationProgress
                         active={isGenerating}
@@ -1360,19 +1380,8 @@ export default function CravingCreator() {
                         mode="options"
                       />
                     </div>
-                  ) : (
+                  )) : (
                     <>
-                      {ONE_TOUCH_CREATE_ENABLED && (
-                        <GlassButton
-                          type="button"
-                          data-testid="cravingcreator-one-touch-button"
-                          onClick={() => setOneTouchOpen(true)}
-                          disabled={isGenerating || oneTouchBusy}
-                          className="mb-2 w-full border border-orange-300/30 bg-orange-600/20 text-orange-100"
-                        >
-                          ✨ One-Touch Create
-                        </GlassButton>
-                      )}
                       <GlassButton
                         data-testid="cravingcreator-create-button"
                         data-wt="cc-generate-button"

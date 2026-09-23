@@ -1,6 +1,7 @@
 /** @jest-environment jsdom */
 
 import { requestOneTouchMeals } from "@/lib/oneTouchCreate";
+jest.mock("@/lib/oneTouchAvailability", () => ({ ONE_TOUCH_CREATE_ENABLED: true }));
 
 describe("One-Touch client request contract", () => {
   afterEach(() => {
