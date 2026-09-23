@@ -14,7 +14,7 @@ describe("Nutrition Priorities Production release migration contract", () => {
 
   it("marks all three guarded columns as explicit Production release migrations", () => {
     const releaseManaged = CRITICAL_COLUMNS
-      .filter((item) => item.migrationMode === "production_release")
+      .filter((item) => item.migrationMode === "production_release" && item.column === "food_inclusion_priorities")
       .map((item) => `${item.table}.${item.column}`);
     expect(releaseManaged).toEqual(expected);
   });

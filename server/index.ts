@@ -1776,6 +1776,7 @@ async function start() {
     const { sql: sqlPre } = await import("drizzle-orm");
     const { runStudioVoiceStorageMigration } = await import("./db/migrations/runStudioVoiceStorageMigration");
     const { runNutritionPrioritiesMigration } = await import("./db/migrations/runNutritionPrioritiesMigration");
+    const { runOneTouchMigration } = await import("./db/migrations/runOneTouchMigration");
     // Phase 2 ProCare Studio gate
     await dbPre.execute(sqlPre`ALTER TABLE users ADD COLUMN IF NOT EXISTS procare_training_completed boolean NOT NULL DEFAULT false`);
     // Performance Hub macro resolver
@@ -1801,6 +1802,7 @@ async function start() {
     await dbPre.execute(sqlPre`ALTER TABLE clinical_labs ADD COLUMN IF NOT EXISTS dhea_s numeric`);
     await runStudioVoiceStorageMigration();
     await runNutritionPrioritiesMigration(dbPre);
+    await runOneTouchMigration(dbPre);
     console.log("✅ [guard-pre] Critical column pre-flight migrations complete");
   });
 
@@ -1832,8 +1834,6 @@ async function start() {
   await runFoodsIEnjoyMigration(dbRouteMigrations);
   const { runMyPerfectMenuMigration } = await import("./db/migrations/runMyPerfectMenuMigration");
   await runMyPerfectMenuMigration(dbRouteMigrations);
-  const { runOneTouchMigration } = await import("./db/migrations/runOneTouchMigration");
-  await runOneTouchMigration(dbRouteMigrations);
   const { runClinicPilotDevelopmentMigration } = await import("./db/migrations/runClinicPilotDevelopmentMigration");
   await runClinicPilotDevelopmentMigration();
   await registerRoutes(app);

@@ -445,6 +445,10 @@ async function initializeApp() {
             "./db/migrations/runNutritionPrioritiesMigration"
           );
           await runNutritionPrioritiesMigration(database as any);
+          const { runOneTouchMigration } = await import(
+            "./db/migrations/runOneTouchMigration"
+          );
+          await runOneTouchMigration(database as any);
           await database.execute(
             sql`ALTER TABLE macro_logs ADD COLUMN IF NOT EXISTS starchy_carbs numeric DEFAULT '0' NOT NULL`,
           );
