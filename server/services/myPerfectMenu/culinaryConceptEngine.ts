@@ -18,6 +18,8 @@ import {
 
 export interface CulinaryConceptRequest {
   occasion: MyPerfectMenuCategory;
+  /** Only Creator Menus specify a shape; ordinary MPM keeps its current prompt. */
+  menuShape?: "dish" | "craving";
   subjectLabel: string;
   userContext: string[];
   requiredCuisine: string | null;
@@ -89,6 +91,12 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
       : "",
     input.occasion === "snack"
       ? "For snack candidates, include foodIdentity. Use it for personalization and diversity only, never as a safety or nutrition rule. Do not define appropriateness by a universal calorie range, protein target, fiber target, or artificially tiny portion."
+      : "",
+    input.menuShape === "dish"
+      ? "DISH MENU: Each idea is ONE recognizable culinary preparation (such as beef chili, chicken curry, vegetable lasagna, or shrimp jambalaya), not a generic plate of a protein plus separate starch and vegetable. A dish may have many ingredients, garnish and sauce."
+      : "",
+    input.menuShape === "craving"
+      ? "CRAVING MENU: Snack describes the eating occasion, not a small portion or a narrow snack-food family. Tacos, fries, salads, chili, sandwiches and desserts can all fit when the person's authority permits them."
       : "",
     "When compatible with the authoritative context, carbohydrate structure may be one breadth dimension (lower, moderate, or higher), but never invent targets, weaken clinical guidance, or force a quota.",
   ].join("\n");

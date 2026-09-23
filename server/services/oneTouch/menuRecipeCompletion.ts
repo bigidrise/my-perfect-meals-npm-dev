@@ -31,6 +31,9 @@ export interface MenuRecipeCompletionInput {
   actorUserId: string;
   subject: { id: string; kind: "account" | "household" };
   approvedConcept: OneTouchDirection;
+  /** Culinary occasion may be snack; clinical/nutrition meal-slot authority stays explicit. */
+  clinicalMealSlot?: "breakfast" | "lunch" | "dinner" | "snack";
+  contextCreator?: "create_a_dish" | "craving_creator";
   servings: number;
   cuisine?: string | null;
   dietaryDirection?: string | null;
@@ -40,7 +43,7 @@ export interface MenuRecipeCompletionInput {
 export type MenuRecipeFailureCode =
   | "unauthorized_subject" | "unresolved_authority" | "invalid_request"
   | "concept_rejected" | "allergy_avoidance_rejected" | "diet_hfc_rejected"
-  | "diabetes_rejected" | "glp1_rejected" | "protocol_clinical_rejected"
+  | "diabetes_rejected" | "glp1_rejected" | "protocol_scan_rejected" | "protocol_clinical_rejected"
   | "generation_failed" | "nutrition_evidence_invalid" | "identity_mismatch"
   | "final_validation_rejected" | "requirement_evidence_unsupported"
   | "serving_finalization_failed";
@@ -184,6 +187,7 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
   }
   const concept = parsedConcept.data;
   const mealType = concept.occasion;
+  const clinicalMealSlot = input.clinicalMealSlot ?? mealType;
   const isHousehold = input.subject.kind === "household";
   if (input.subject.kind !== "account" && !isHousehold) return fail("invalid_request");
   if (!isHousehold && input.subject.id !== input.actorUserId) return fail("unauthorized_subject");
@@ -207,7 +211,7 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
   const scopeInput = {
     actorUserId: input.actorUserId,
     subjectUserId: input.subject.id,
-    creator: "my_perfect_menu" as const,
+    creator: input.contextCreator ?? "my_perfect_menu" as const,
     dietOverride: dietaryDirection,
     cuisine: input.cuisine ?? null,
     dateISO: input.dateISO,
@@ -236,7 +240,7 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
     if (envelope.glp1DailyTolerance?.shouldEscalate) return fail("glp1_rejected");
 
     const glp1 = isHousehold ? null : await resolveGLP1GlobalContext(
-      input.subject.id, input.dateISO ?? context.nutrition?.date ?? new Date().toISOString().slice(0, 10), mealType,
+      input.subject.id, input.dateISO ?? context.nutrition?.date ?? new Date().toISOString().slice(0, 10), clinicalMealSlot,
     );
     if (glp1?.isActive && !glp1.resolvedTargets) return fail("unresolved_authority", true);
     const envelopeMentionsGlp1 = [...envelope.medicalHardLimits, ...envelope.medicalOptimization]
@@ -275,7 +279,7 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
     }
 
     const authorityPrompt = [
-      buildCreatorHumanFoodPrompt("my_perfect_menu", context, scope.executionState),
+       buildCreatorHumanFoodPrompt(input.contextCreator ?? "my_perfect_menu", context, scope.executionState),
       buildDietPromptBlock(context.diet.effective),
       enforceBeforeGenerate(envelope, { generatorName: "menu-recipe-completion" }).combined,
       glp1 ? buildGLP1RecommendationBlock(glp1) : "",
@@ -292,7 +296,7 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
     const hfc = validateHumanFoodResult(card, context);
     if (!hfc.valid) return fail("diet_hfc_rejected");
     const protocol = scanGeneratedOutput(card, envelope, { generatorName: "menu-recipe-completion" });
-    if (!protocol.passed) return fail("protocol_clinical_rejected");
+    if (!protocol.passed) return fail("protocol_scan_rejected");
 
     // A protocol text scan alone cannot prove numeric or specialist directives
     // (for example renal sodium limits) that this one-recipe contract cannot
@@ -344,7 +348,7 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
           ingredients: candidate.ingredients as MenuRecipeCard["ingredients"],
           instructions: candidate.instructions,
           macros: candidate.nutrition,
-        }, "glp1", undefined, mealType === "snack", glp1.resolvedTargets).isValid;
+        }, "glp1", undefined, clinicalMealSlot === "snack", glp1.resolvedTargets).isValid;
         const proof: HumanFoodRequirementProof = {
           status: passed ? "pass" : "fail", source: "glp1_authority", nutritionBasis: "model_estimate",
         };
@@ -388,7 +392,7 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
     const current = await createHumanFoodRequestScope(scopeInput).resolve();
     const currentEnvelope = await loadUserProtocolEnvelope(input.actorUserId, isHousehold ? input.subject.id : undefined);
     const currentGlp1 = isHousehold ? null : await resolveGLP1GlobalContext(
-      input.subject.id, input.dateISO ?? current.nutrition?.date ?? new Date().toISOString().slice(0, 10), mealType,
+      input.subject.id, input.dateISO ?? current.nutrition?.date ?? new Date().toISOString().slice(0, 10), clinicalMealSlot,
     );
     if (current.status === "review_required" || current.status === "blocked" ||
         !currentEnvelope || (currentGlp1?.isActive && !currentGlp1.resolvedTargets) ||

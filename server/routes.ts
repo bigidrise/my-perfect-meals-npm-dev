@@ -7407,7 +7407,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   };
   app.post("/api/meals/craving-creator", cravingCreatorHandler);
-  app.use("/api/one-touch-create", oneTouchCreateRouter(cravingCreatorHandler));
+  app.use("/api/one-touch-create", oneTouchCreateRouter());
 
   // NEW: Onboarding-enforced meal generation routes
   app.post("/api/meals/craving-creator-enforced", async (req, res) => {

@@ -5,6 +5,7 @@ import type { MyPerfectMenuCategory } from "@shared/myPerfectMenuCategory";
 import {
   directionToFingerprint,
   type OneTouchDirection,
+  type OneTouchRequest,
 } from "@shared/oneTouch";
 import { cuisineLabelsCompatible } from "../myPerfectMenu/generationContract";
 import { generateCulinaryConcepts } from "../myPerfectMenu/culinaryConceptEngine";
@@ -16,10 +17,16 @@ import { scanGeneratedOutput, type UserProtocolEnvelope } from "../protocolEnvel
 export interface DirectionGenerationAttempt {
   requestedCount: number;
   attempt: number;
+  system: string;
+  user: string;
+  temperature: number;
 }
 
 export interface GenerateOneTouchDirectionsInput {
   occasion: MyPerfectMenuCategory;
+  menuShape?: "dish" | "craving";
+  cravingType?: OneTouchRequest["cravingType"];
+  cravingFeel?: OneTouchRequest["cravingFeel"];
   history: CulinaryFingerprint[];
   existingDirections?: OneTouchDirection[];
   generate?: (attempt: DirectionGenerationAttempt) => Promise<unknown>;
@@ -44,11 +51,20 @@ export interface GenerateOneTouchDirectionsResult {
 export async function generateOneTouchDirections(
   input: GenerateOneTouchDirectionsInput,
 ): Promise<GenerateOneTouchDirectionsResult> {
+  const direction = [
+    input.cravingType && input.cravingType !== "surprise"
+      ? `Craving Type: ${input.cravingType}. Food means a non-dessert food; Dessert means a dessert.`
+      : "",
+    input.cravingFeel && input.cravingFeel !== "surprise"
+      ? `Craving Feel: ${input.cravingFeel}. This describes culinary character only; light/hearty impose no calorie or portion target. Sweet does not imply Dessert; salty does not imply Food.`
+      : "",
+  ].filter(Boolean);
   const result = await generateCulinaryConcepts({
     occasion: input.occasion,
+    menuShape: input.menuShape,
     subjectLabel: "the person being fed",
     userContext: input.userContext ?? [],
-    extraInstructions: input.extraInstructions,
+    extraInstructions: [...direction, ...(input.extraInstructions ?? [])],
     requiredCuisine: input.requiredCuisine ?? null,
     targetCount: input.targetCount,
     history: [
@@ -60,14 +76,14 @@ export async function generateOneTouchDirections(
       const direction = { ...concept, occasion: input.occasion } as OneTouchDirection;
       return [
         ...input.validate(direction),
+        ...(input.menuShape === "dish" ? validateDishConcept(direction) : []),
+        ...(input.menuShape === "craving" ? validateCravingConcept(direction, input.cravingType, input.cravingFeel) : []),
         ...(input.humanFoodContext
           ? validateOneTouchDirectionSafety(direction, input.humanFoodContext, input.userProtocolEnvelope, input.requiredCuisine)
           : []),
       ];
     },
-    generate: input.generate
-      ? ({ attempt, requestedCount }) => input.generate!({ attempt, requestedCount })
-      : undefined,
+    generate: input.generate ? (request) => input.generate!(request) : undefined,
   });
   const directions = result.concepts.map((concept) =>
     ({ ...concept, occasion: input.occasion }) as OneTouchDirection);
@@ -78,6 +94,32 @@ export async function generateOneTouchDirections(
     metadataRepairCount: result.metadataRepairCount,
     rejectionCodes: result.rejectionCodes,
   };
+}
+
+/** A DISH is a coherent preparation, not a bare ingredient or a composed plate. */
+export function validateDishConcept(direction: OneTouchDirection): string[] {
+  const form = direction.culinaryIdentity.dishForm.toLowerCase().trim();
+  const title = direction.title.toLowerCase().trim();
+  if (/^(plate|platter|composed plate|protein plate|meal plate|protein with sides)$/.test(form) ||
+      /^(plate|platter|composed plate)$/.test(title) ||
+      direction.primaryIngredients.some((ingredient) => title === ingredient.toLowerCase().trim())) {
+    return ["culinary_shape:not_a_dish"];
+  }
+  return [];
+}
+
+export function validateCravingConcept(
+  direction: OneTouchDirection,
+  type: GenerateOneTouchDirectionsInput["cravingType"],
+  feel: GenerateOneTouchDirectionsInput["cravingFeel"],
+): string[] {
+  const identity = direction.foodIdentity;
+  if (type && type !== "surprise" && !identity) return ["craving_type:unverified"];
+  if (type === "dessert" && identity?.foodRole !== "dessert") return ["craving_type:dessert"];
+  if (type === "food" && identity?.foodRole === "dessert") return ["craving_type:food"];
+  if (feel === "salty" && identity?.polarity !== "savory") return ["craving_feel:salty"];
+  if (feel === "sweet" && identity?.polarity !== "sweet") return ["craving_feel:sweet"];
+  return [];
 }
 
 function directionMeal(direction: OneTouchDirection) {

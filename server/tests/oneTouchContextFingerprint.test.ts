@@ -133,7 +133,20 @@ describe("One-Touch restored-card authority fingerprint", () => {
   it("binds actor, creator, and temporary choices without changing the profile", () => {
     expect(stamp({ ...context, subjectUserId: "person-2" })).not.toBe(stamp());
     expect(stamp(context, envelope, glp1, { ...request, creator: "craving_creator" })).not.toBe(stamp());
+    expect(stamp(context, envelope, glp1, { ...request, servings: 5 })).not.toBe(stamp());
     expect(stamp(context, envelope, glp1, { ...request, cuisine: { mode: "surprise" } })).not.toBe(stamp());
     expect(stamp(context, envelope, glp1, { ...request, eatingStyle: { mode: "profile" } })).not.toBe(stamp());
+    const craving: OneTouchRequest = {
+      ...request, creator: "craving_creator", cravingType: "surprise", cravingFeel: "surprise",
+    };
+    expect(stamp(context, envelope, glp1, craving)).not.toBe(stamp());
+    expect(stamp(context, envelope, glp1, { ...craving, cravingType: "dessert" }))
+      .not.toBe(stamp(context, envelope, glp1, craving));
+    expect(stamp(context, envelope, glp1, { ...craving, cravingFeel: "hearty" }))
+      .not.toBe(stamp(context, envelope, glp1, craving));
+    expect(stamp(context, envelope, glp1, { ...craving, cravingType: "dessert", cravingFeel: "light" }))
+      .not.toBe(stamp(context, envelope, glp1, { ...craving, cravingType: "food", cravingFeel: "light" }));
+    expect(stamp(context, envelope, glp1, { ...craving, cravingType: undefined, cravingFeel: undefined }))
+      .toBe(stamp(context, envelope, glp1, craving));
   });
 });

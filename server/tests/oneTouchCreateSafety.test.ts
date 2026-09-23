@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
-import { ONE_TOUCH_CREATE_ENABLED, invokeCanonical, isCreatorMenuEnabled } from "../routes/oneTouchCreate";
-import { getOneTouchDiet } from "../services/oneTouch/internalRequest";
+jest.mock("../services/oneTouch/menuRecipeCompletion", () => ({ completeMenuRecipe: jest.fn() }));
+import { ONE_TOUCH_CREATE_ENABLED, isCreatorMenuEnabled } from "../routes/oneTouchCreate";
 
-describe("One-Touch canonical-handler safety gate", () => {
+describe("Menu-owned completion safety gate", () => {
   const source = fs.readFileSync(
     path.join(process.cwd(), "server/routes/oneTouchCreate.ts"),
     "utf8",
@@ -45,39 +45,15 @@ describe("One-Touch canonical-handler safety gate", () => {
     expect(craving).toContain("if (!ONE_TOUCH_CREATE_ENABLED)");
   });
 
-  it("proves the direct canonical capture seam itself", async () => {
-    let called = false;
-    const result = await invokeCanonical(async (_req, res) => {
-      called = true;
-      res.status(200).json({ meals: [{ name: "validated" }] });
-    }, { body: {} } as any, { servings: 1 });
-    expect(called).toBe(true);
-    expect(result).toEqual({ status: 200, body: { meals: [{ name: "validated" }] } });
-  });
-
-  it("carries only a server-authorized dietary choice into a delegated invocation", async () => {
-    let observed: string | null = null;
-    const handler = async (req: any, res: any) => {
-      observed = getOneTouchDiet(req);
-      res.json({ meals: [] });
-    };
-    const original = { body: { dietOverride: "vegan" } } as any;
-    expect(getOneTouchDiet(original)).toBeNull();
-    await invokeCanonical(handler, original, { humanFoodCreator: "create_a_dish" }, "vegan");
-    expect(observed).toBe("vegan");
-    expect(getOneTouchDiet(original)).toBeNull();
-    await invokeCanonical(handler, original, { humanFoodCreator: "create_a_dish", dietOverride: "vegan" });
-    expect(observed).toBeNull();
-  });
-
-  it("fails closed when canonical resolves without JSON", async () => {
-    await expect(invokeCanonical(async () => undefined, { body: {} } as any, {}))
-      .rejects.toThrow("ONE_TOUCH_CANONICAL_NO_JSON");
-  });
-
-  it("does not invent output or self-call over HTTP", () => {
+  it("calls only the isolated one-recipe service, never the manual Creator route or adapter", () => {
+    expect(source).toContain("completeMenuRecipe({");
+    expect(source).toContain("clinicalMealSlot: \"lunch\"");
+    expect(source).toContain('creator === "craving_creator" ? "snack" : "lunch"');
+    expect(source).toContain("requirement_evidence_unsupported");
+    expect(source).toContain("ONE_TOUCH_REQUIREMENT_UNAVAILABLE");
+    expect(source).not.toContain("invokeCanonical");
     expect(source).not.toContain("generateCravingMealOptions");
-    expect(source).not.toContain("scanGeneratedOutput");
+    expect(source).not.toContain("/api/meals/craving-creator");
     expect(source).not.toContain("fetch(");
     expect(source).not.toContain("axios");
   });

@@ -7,7 +7,7 @@ One-Touch is a delegated food request, not permission to invent compliance evide
 
 **Why:** The canonical Create a Dish path intentionally ignores ordinary dietary override input. A separate One-Touch modal's explicit eating-style choice would be silently lost even if its recipes were generated through that handler. A generic scan also cannot attest numeric diabetes or GLP-1 compliance. The user clarified that MPM's temporary choices are not restricted to a newly invented “more restrictive only” hierarchy.
 
-**How to apply:** Reuse MPM-style one-generation cuisine and dietary choices; the saved profile resumes afterward. Keep existing food-conflict and allergy acknowledgements separate, exact, and authorized through their existing UX, never a new One-Touch waiver. The modal exposes only servings, cuisine, and dietary preference. Preserve religious/specialty protections, allergies, avoidances, and clinical rules; do not broaden manual Creator defaults as a shortcut.
+**How to apply:** Reuse MPM-style one-generation cuisine and dietary choices; the saved profile resumes afterward. Keep existing food-conflict and allergy acknowledgements separate, exact, and authorized through their existing UX, never a new One-Touch waiver. Both Menus expose servings, cuisine, and dietary preference; Craving Menu alone also exposes independent culinary Type and Feel. Preserve religious/specialty protections, allergies, avoidances, and clinical rules; do not broaden manual Creator defaults as a shortcut.
 
 Menu-owned flows must not modify the existing manual Craving Creator or Create a Dish behavior just to gain a one-candidate mode. An internal count parameter threaded through their shared generator and live route is still a change to those originals, even if the manual default stays at three.
 
@@ -38,6 +38,18 @@ The user accepted a shared, non-persisting culinary concept engine for MPM and O
 **Why:** Sharing creative direction avoids divergent generation rules, but a concept is never evidence of safety or nutrition. Browser-restored completed cards also become unsafe when authoritative food protections change.
 
 **How to apply:** Keep concept and completed-meal gates distinct. Treat cached One-Touch cards as unverified on remount until fresh server authority matches; suppress cards rather than repairing old meals or trusting a browser-stored marker alone.
+
+Candidate-specific protocol scan rejection and profile-wide unsupported clinical evidence must have distinct outcomes.
+
+**Why:** A failed recipe scan can be remedied by replacing only that concept, preserving two safe siblings. A clinical directive with no positive evidence cannot be made safe by another recipe and must stop the whole request.
+
+**How to apply:** Retry only the candidate-specific failure within the bounded Menu completion shell; stop immediately for unprovable authority. Never map both outcomes to one generic protocol failure code.
+
+When a browser may hold both old and new delegated-card markers, each version must be examined independently and an ambiguous match must remain unverified.
+
+**Why:** A corrupt or unrelated new marker can otherwise hide an old marker, letting an obsolete card render without the fresh authenticated authority check.
+
+**How to apply:** Parse each generation separately, prefer fail-closed discard for overlap, and remove legacy markers after a successful new batch save.
 
 Fingerprint authority must include the substance of daily nutrition and its provenance, but not the provenance calculation timestamp. Two consecutive resolutions of unchanged Dev nutrition data produced different fingerprints solely because that timestamp records each calculation time.
 

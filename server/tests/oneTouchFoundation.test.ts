@@ -70,6 +70,15 @@ describe("One-Touch server foundation", () => {
     }).success).toBe(false);
     expect(oneTouchCuisineSchema.safeParse({ mode: "explicit", value: "Chinese" }).success).toBe(true);
     expect(oneTouchEatingStyleSchema.safeParse({ mode: "explicit", value: "Vegan" }).success).toBe(true);
+    const craving = {
+      creator: "craving_creator", servings: 2,
+      cuisine: { mode: "profile" }, eatingStyle: { mode: "profile" },
+      cravingType: "food", cravingFeel: "sweet",
+    };
+    expect(oneTouchRequestSchema.safeParse(craving).success).toBe(true);
+    expect(oneTouchRequestSchema.safeParse({ ...craving, cravingType: "dessert", cravingFeel: "light" }).success).toBe(true);
+    expect(oneTouchRequestSchema.safeParse({ ...craving, creator: "create_a_dish" }).success).toBe(false);
+    expect(oneTouchRequestSchema.safeParse({ ...craving, cravingFeel: "clinical" }).success).toBe(false);
   });
 
   it("keeps manual and delegated intent types distinct", () => {

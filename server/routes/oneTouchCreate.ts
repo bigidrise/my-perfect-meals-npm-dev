@@ -1,23 +1,18 @@
-import { Router, type Request, type Response } from "express";
+import { Router } from "express";
+import { randomUUID } from "node:crypto";
 import { requireAuth } from "../middleware/requireAuth";
 import { oneTouchRequestSchema, directionToFingerprint, type OneTouchDirection, type OneTouchRequest } from "@shared/oneTouch";
 import { generateOneTouchDirections } from "../services/oneTouch/directions";
 import { appendOneTouchHistory, readOneTouchHistory } from "../services/oneTouch/history";
-import { expandCreateDishIngredient } from "../services/createDish/ingredientExpansionService";
-import { revalidateCreateDishIntent } from "../services/createDish/createDishIntent";
-import { CreateDishIntentSchema } from "@shared/createDishIngredientExpansion";
-import { setOneTouchDiet } from "../services/oneTouch/internalRequest";
 import { completeOneTouchMeals } from "../services/oneTouch/completion";
+import { completeMenuRecipe, type MenuRecipeCard } from "../services/oneTouch/menuRecipeCompletion";
 import { createHumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
 import { buildCreatorHumanFoodPrompt } from "../services/humanFoodContext/adapters";
 import { enforceBeforeGenerate, loadUserProtocolEnvelope } from "../services/protocolEnvelope";
 import { withOneTouchDiet } from "../services/oneTouch/dietAuthority";
 import { buildDietPromptBlock } from "../services/allergyGuardrails";
 import { buildGLP1RecommendationBlock, resolveGLP1GlobalContext } from "../services/glp1/resolveGLP1GlobalContext";
-import { validateDishIdentity } from "../services/dishAdaptation/dishIdentityValidator";
 import { oneTouchContextFingerprint, oneTouchChangedAuthorityBranches } from "../services/oneTouch/contextFingerprint";
-
-type CanonicalCreatorHandler = (req: Request, res: Response) => unknown;
 
 // Server authority for both experimental Creator Menus. Production stays off
 // unless explicitly enabled; a client build flag alone cannot open this route.
@@ -40,100 +35,18 @@ function explicitValue(value: { mode: string; value?: string }): string | undefi
   return value.mode === "explicit" ? value.value : undefined;
 }
 
-async function buildServerCreateDishIntent(
-  direction: OneTouchDirection,
-  cuisine: string | undefined,
-) {
-  const originalText = cuisine && !direction.title.toLowerCase().includes(cuisine.toLowerCase())
-    ? `${cuisine} ${direction.title}`
-    : direction.title;
-  const expansion = await expandCreateDishIngredient({
-    ingredientInput: originalText,
-    creator: "create_a_dish",
-    surprisePolicy: { delegatedDimensions: [], selectedOptionIds: {} },
-    useAiForGaps: false,
-  });
-  if (expansion.ingredient.status !== "recognized" || !expansion.resolvedCombination) {
-    throw new Error("ONE_TOUCH_CREATOR_VALIDATION_FAILED");
-  }
-  return revalidateCreateDishIntent(
-    CreateDishIntentSchema.parse({
-      creator: "create_a_dish",
-      originalText,
-      cuisine,
-      ingredient: expansion.ingredient,
-      resolvedCombination: {
-        form: expansion.resolvedCombination.form,
-        texture: expansion.resolvedCombination.texture,
-        flavor: expansion.resolvedCombination.flavor,
-        selectionSource: {
-          form: "system_selected",
-          texture: "system_selected",
-          flavor: "system_selected",
-        },
-      },
-    }),
-    [],
-  );
-}
-
-export function invokeCanonical(
-  handler: CanonicalCreatorHandler,
-  originalRequest: Request,
-  body: Record<string, unknown>,
-  authorizedDiet?: string,
-): Promise<{ status: number; body: any }> {
-  return new Promise((resolve, reject) => {
-    let status = 200;
-    let settled = false;
-    const finish = (value: { status: number; body: any }) => {
-      if (settled) return;
-      settled = true;
-      resolve(value);
-    };
-    const request = Object.create(originalRequest) as Request;
-    request.body = body;
-    setOneTouchDiet(request, authorizedDiet);
-    const response = {
-      status(code: number) {
-        if (!Number.isInteger(code)) throw new Error("ONE_TOUCH_UNSUPPORTED_CANONICAL_RESPONSE");
-        status = code;
-        return response;
-      },
-      json(value: unknown) {
-        finish({ status, body: value });
-        return response;
-      },
-    } as unknown as Response;
-    try {
-      const result = handler(request, response);
-      if (result && typeof (result as Promise<unknown>).then === "function") {
-        (result as Promise<unknown>).then(() => {
-          if (!settled) reject(new Error("ONE_TOUCH_CANONICAL_NO_JSON"));
-        }).catch(reject);
-      } else if (!settled) {
-        reject(new Error("ONE_TOUCH_CANONICAL_NO_JSON"));
-      }
-    } catch (error) {
-      reject(error);
-    }
-  });
-}
-
-function matchingMeal(direction: OneTouchDirection, meals: unknown[]): any | null {
-  const matches = meals.flatMap((meal: any) => {
-    if (!meal || typeof meal.name !== "string" || !Array.isArray(meal.ingredients)) return [];
-    const identity = validateDishIdentity(direction.title, meal);
-    const ingredients = meal.ingredients.map((item: any) =>
-      String(typeof item === "string" ? item : item?.name ?? item?.item ?? "").toLowerCase(),
-    );
-    const includesPrimary = direction.primaryIngredients.some((item) =>
-      ingredients.some((ingredient: string) => ingredient.includes(item.toLowerCase())),
-    );
-    return identity.passed && includesPrimary ? [{ meal, score: identity.score }] : [];
-  });
-  matches.sort((a, b) => b.score - a.score);
-  return matches[0]?.meal ?? null;
+function toCreatorCard(card: MenuRecipeCard) {
+  return {
+    ...card,
+    id: `menu-${randomUUID()}`,
+    calories: card.nutrition.calories,
+    protein: card.nutrition.protein,
+    carbs: card.nutrition.carbs,
+    fat: card.nutrition.fat,
+    starchyCarbs: card.nutrition.starchyCarbs,
+    reasoning: "",
+    medicalBadges: [],
+  };
 }
 
 function stop(status: number, code: string, error: string): never {
@@ -173,7 +86,7 @@ async function resolveOneTouchAuthority(userId: string, request: OneTouchRequest
   return { scope, context, envelope, glp1, contextFingerprint, ...overrides };
 }
 
-export default function createOneTouchRouter(canonicalHandler: CanonicalCreatorHandler) {
+export default function createOneTouchRouter() {
   const router = Router();
   router.post("/context-fingerprint", requireAuth, async (req, res) => {
     if (!ONE_TOUCH_CREATE_ENABLED) return res.status(503).json({ code: "ONE_TOUCH_NOT_AVAILABLE" });
@@ -209,6 +122,7 @@ export default function createOneTouchRouter(canonicalHandler: CanonicalCreatorH
     const { cuisineOverride, dietOverride } = overrides;
     const userId = String((req as any).authUser.id);
     try {
+      const startedAt = Date.now();
       const { scope, context, envelope, glp1, contextFingerprint } =
         await resolveOneTouchAuthority(userId, parsed.data, (req as any).id);
       const requiredCuisine = cuisine.mode === "surprise"
@@ -231,7 +145,12 @@ export default function createOneTouchRouter(canonicalHandler: CanonicalCreatorH
           ...accepted.map(directionToFingerprint),
         ];
         const result = await generateOneTouchDirections({
-          occasion: "lunch",
+          // Snack is a broad culinary occasion; clinical GLP-1 authority still
+          // uses the existing lunch slot, explicitly supplied at completion.
+          occasion: creator === "craving_creator" ? "snack" : "lunch",
+          menuShape: creator === "craving_creator" ? "craving" : "dish",
+          cravingType: parsed.data.cravingType ?? "surprise",
+          cravingFeel: parsed.data.cravingFeel ?? "surprise",
           targetCount: count,
           history,
           humanFoodContext: context,
@@ -246,42 +165,37 @@ export default function createOneTouchRouter(canonicalHandler: CanonicalCreatorH
         return result.directions;
       };
       const directions = await makeDirections(3, []);
-      const completed = await completeOneTouchMeals<any>({
+      const conceptDurationMs = Date.now() - startedAt;
+      const completed = await completeOneTouchMeals<ReturnType<typeof toCreatorCard>>({
         directions,
         generateDirections: async ({ requestedCount, accepted }) =>
           makeDirections(requestedCount as 1 | 2 | 3, accepted),
         canonicalAccept: async (direction) => {
           tried.push(direction);
-          let createDishIntent: Awaited<ReturnType<typeof buildServerCreateDishIntent>> | undefined;
-          if (creator === "create_a_dish") {
-            try {
-              createDishIntent = await buildServerCreateDishIntent(direction, cuisineOverride);
-            } catch {
-              // Ingredient expansion is advisory in the manual Creator too.
-              // The canonical dish-identity and final food checks still run.
-            }
-          }
-          const body: Record<string, unknown> = {
-            humanFoodCreator: creator,
-            cravingInput: `${direction.title}. ${direction.description}. Main ingredients: ${direction.primaryIngredients.join(", ")}`,
-            targetMealType: "lunch",
+          const result = await completeMenuRecipe({
+            actorUserId: userId,
+            subject: { id: userId, kind: "account" },
+            approvedConcept: direction,
             servings,
-            generationMode: "recipe",
-            ...(cuisineOverride || cuisine.mode === "surprise" ? { cultureOverride: cuisineOverride ?? direction.cuisine } : {}),
-            ...(dietOverride ? { dietOverride } : {}),
-            ...(createDishIntent ? { createDishIntent } : {}),
-          };
-          const result = await invokeCanonical(canonicalHandler, req, body, dietOverride);
-          if ([401, 403, 409, 503].includes(result.status)) {
-            stop(result.status, result.body?.code ?? "ONE_TOUCH_CONTEXT_UNRESOLVED",
-              result.body?.message ?? result.body?.error ?? "This food request needs review before continuing.");
+            cuisine: cuisineOverride ?? (cuisine.mode === "surprise" ? direction.cuisine : null),
+            dietaryDirection: dietOverride,
+            clinicalMealSlot: "lunch",
+            contextCreator: creator,
+          });
+          if (!result.ok) {
+            if (result.code === "requirement_evidence_unsupported" ||
+                result.code === "protocol_clinical_rejected") {
+              stop(422, "ONE_TOUCH_REQUIREMENT_UNAVAILABLE",
+                "We can't safely complete this Menu option with your current nutrition settings yet. Your settings have not been changed.");
+            }
+            if (result.code === "unresolved_authority" || result.code === "unauthorized_subject") {
+              stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your current food protections could not be verified.");
+            }
+            return { accepted: false, failureClass: result.retryable ? "technical_provider" : "authority" };
           }
-          if (result.status !== 200 || !Array.isArray(result.body?.meals)) {
-            return { accepted: false, failureClass: result.status >= 500 ? "technical_provider" : "authority" };
-          }
-          const meal = matchingMeal(direction, result.body.meals);
-          if (!meal || completedNames.has(String(meal.name).toLowerCase())) return { accepted: false, failureClass: "authority" };
-          completedNames.add(String(meal.name).toLowerCase());
+          const meal = toCreatorCard(result.card);
+          if (completedNames.has(meal.name.toLowerCase())) return { accepted: false, failureClass: "authority" };
+          completedNames.add(meal.name.toLowerCase());
           return { accepted: true, value: meal };
         },
       });
@@ -302,6 +216,14 @@ export default function createOneTouchRouter(canonicalHandler: CanonicalCreatorH
         creator,
         selected.map(({ direction }) => ({ ...directionToFingerprint(direction), creator })),
       );
+      console.info("[CreatorMenu] completion", {
+        shape: creator === "craving_creator" ? "craving" : "dish",
+        conceptDurationMs,
+        recipeRequests: completed.attemptsCompleted,
+        retryCount: Math.max(0, completed.attemptsCompleted - 3),
+        imageCount: selected.filter(({ value }) => Boolean(value?.imageUrl)).length,
+        totalDurationMs: Date.now() - startedAt,
+      });
       return res.json({
         intentType: "one_touch_delegated",
         meals: selected.map(({ value }) => value),

@@ -73,7 +73,7 @@ describe("One-Touch history migration", () => {
     const routes = read("server/routes.ts");
     const manualHandler = routes.slice(
       routes.indexOf("const cravingCreatorHandler ="),
-      routes.indexOf('app.use("/api/one-touch-create", oneTouchCreateRouter(cravingCreatorHandler))'),
+      routes.indexOf('app.use("/api/one-touch-create", oneTouchCreateRouter())'),
     );
     expect(manualHandler).toContain('app.post("/api/meals/craving-creator"');
     expect(manualHandler).not.toMatch(/oneTouchHistory|readOneTouchHistory|appendOneTouchHistory/);

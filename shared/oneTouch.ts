@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { buildCulinaryFingerprint, culinaryFingerprintSchema, culinaryIdentitySchema, type CulinaryFingerprint } from "./culinaryIdentity";
 import { myPerfectMenuCategorySchema } from "./myPerfectMenuCategory";
+import { foodIdentitySchema } from "./foodIdentity";
 
 export const oneTouchCreatorSchema = z.enum(["create_a_dish", "craving_creator"]);
 export type OneTouchCreator = z.infer<typeof oneTouchCreatorSchema>;
@@ -25,6 +26,9 @@ export const oneTouchEatingStyleSchema = z.discriminatedUnion("mode", [
 ]);
 export type OneTouchEatingStyle = z.infer<typeof oneTouchEatingStyleSchema>;
 
+export const oneTouchCravingTypeSchema = z.enum(["surprise", "food", "dessert"]);
+export const oneTouchCravingFeelSchema = z.enum(["surprise", "salty", "sweet", "light", "hearty"]);
+
 /**
  * Deliberately strict: browser input contains only request-scoped meal choices.
  * Actor, subject, health facts, context, and authorization are server-resolved.
@@ -34,7 +38,13 @@ export const oneTouchRequestSchema = z.object({
   servings: z.number().int().min(1).max(10),
   cuisine: oneTouchCuisineSchema,
   eatingStyle: oneTouchEatingStyleSchema,
-}).strict();
+  cravingType: oneTouchCravingTypeSchema.optional(),
+  cravingFeel: oneTouchCravingFeelSchema.optional(),
+}).strict().superRefine((value, ctx) => {
+  if (value.creator === "create_a_dish" && (value.cravingType || value.cravingFeel)) {
+    ctx.addIssue({ code: "custom", message: "Craving controls only apply to Craving Menu." });
+  }
+});
 export type OneTouchRequest = z.infer<typeof oneTouchRequestSchema>;
 
 export const oneTouchDirectionSchema = z.object({
@@ -48,6 +58,7 @@ export const oneTouchDirectionSchema = z.object({
   preparationMethod: z.string().trim().min(2).max(80),
   signature: z.string().trim().min(5).max(180),
   culinaryIdentity: culinaryIdentitySchema,
+  foodIdentity: foodIdentitySchema.optional(),
   occasion: myPerfectMenuCategorySchema,
 }).strict();
 export type OneTouchDirection = z.infer<typeof oneTouchDirectionSchema>;
