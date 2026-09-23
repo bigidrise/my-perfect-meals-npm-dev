@@ -425,7 +425,8 @@ function buildTherapeuticSummary(ctx: {
 
 export function buildNutritionSummary(
   envelope: UserProtocolEnvelope,
-  extras: UserExtrasForSummary
+  extras: UserExtrasForSummary,
+  options?: { includeDayContext?: boolean },
 ): NutritionPersonalizationSummary {
   const generatedAt = new Date().toISOString();
 
@@ -477,7 +478,7 @@ export function buildNutritionSummary(
       detail = typeLabels[pCtx.trainingType] ?? pCtx.trainingType;
     }
 
-    if (extras.weeklyTrainingSchedule?.schedule) {
+    if (options?.includeDayContext !== false && extras.weeklyTrainingSchedule?.schedule) {
       const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
       const todayKey = days[new Date().getDay()];
       const todayType = extras.weeklyTrainingSchedule.schedule[todayKey];
@@ -529,7 +530,8 @@ export function buildNutritionSummary(
       postpartum: "Postpartum",
     };
     const stageLabel = stageLabels[ctx.stage] ?? ctx.stage;
-    const detail = ctx.weekOfPregnancy ? `Week ${ctx.weekOfPregnancy}` : stageLabel;
+    const detail = options?.includeDayContext !== false && ctx.weekOfPregnancy
+      ? `Week ${ctx.weekOfPregnancy}` : stageLabel;
     pregnancySummary = { label: "Pregnancy Nutrition", detail };
     const pregPriorities = ["Prenatal nutrient priority", "Food safety focus", "Folate and iron support"];
     for (const p of pregPriorities) {
@@ -682,7 +684,7 @@ export function buildNutritionSummary(
       liveMetricsForDrivers.push({ label: "Training Frequency", value: `${pCtx.trainingFrequency}× / week` });
     }
   }
-  if (pregnancySummary && envelope.pregnancySupportContext) {
+  if (options?.includeDayContext !== false && pregnancySummary && envelope.pregnancySupportContext) {
     const pregCtx = envelope.pregnancySupportContext as any;
     if (pregCtx.weekOfPregnancy) {
       liveMetricsForDrivers.push({ label: "Pregnancy Week", value: `Week ${pregCtx.weekOfPregnancy}` });

@@ -10,83 +10,46 @@
 import { Router } from "express";
 import { requireAuth } from "../middleware/requireAuth";
 import { db } from "../db";
-import { macroProgramHistory, mealPlansCurrent, users } from "@shared/schema";
+import { macroProgramHistory, mealPlansCurrent } from "@shared/schema";
 import { and, eq, desc, ne } from "drizzle-orm";
-import { glucoseLogs } from "../../shared/diabetes-schema";
-import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
-import {
-  buildNutritionSummary,
-  type UserExtrasForSummary,
-} from "../services/nutritionSummary/buildNutritionSummary";
+import { loadSelfNutritionSummary } from "../services/nutritionSummary/loadSelfSummary";
+import type { NutritionPersonalizationSummary } from "../services/nutritionSummary/buildNutritionSummary";
 import { resolveHydrationDay } from "../services/hydration/hydrationDay";
 import { resolveHydrationCenterState } from "../services/hydration/hydrationCenterService";
 import { hydrationClinicianDirectives } from "../db/schema/hydration";
 
 const router = Router();
 
-router.get("/", requireAuth, async (req, res) => {
-  try {
-    const userId = (req as any).authUser?.id as string;
+type Summary = NutritionPersonalizationSummary;
 
-    const envelope = await loadUserProtocolEnvelope(userId);
-    if (!envelope) {
-      return res.status(404).json({ error: "User not found" });
-    }
+export function pickDynamicNutritionContext(summary: Summary, enriched: Summary) {
+  // Use the same server-local clock as buildNutritionSummary's weekday selection.
+  const nextServerMidnight = new Date();
+  nextServerMidnight.setHours(24, 0, 0, 0);
+  return {
+    performance: summary.activeInputs.performance,
+    pregnancy: summary.activeInputs.pregnancy,
+    liveMetrics: summary.nutritionDrivers?.liveMetrics.filter(
+      metric => metric.label === "Blood Glucose" || metric.label === "Pregnancy Week",
+    ) ?? [],
+    compositeExplanation: summary.compositeExplanation,
+    hydration: enriched.hydration,
+    professionalUpdates: enriched.professionalUpdates,
+    nextDayBoundaryAt: nextServerMidnight.toISOString(),
+  };
+}
 
-    const [userRow] = await db
-      .select({
-        dailyCalorieTarget:       (users as any).dailyCalorieTarget,
-        dailyProteinTarget:       (users as any).dailyProteinTarget,
-        dailyCarbTarget:          (users as any).dailyCarbsTarget,
-        dailyStarchyCarbsTarget:  (users as any).dailyStarchyCarbsTarget,
-        dailyFibrousCarbsTarget:  (users as any).dailyFibrousCarbsTarget,
-        dailyFatTarget:           (users as any).dailyFatTarget,
-        goalType:               (users as any).goalType,
-        goalTarget:             (users as any).goalTarget,
-        goalTimelineWeeks:      (users as any).goalTimelineWeeks,
-        fitnessGoal:            users.fitnessGoal,
-        performanceContext:     users.performanceContext,
-        weeklyTrainingSchedule: (users as any).weeklyTrainingSchedule,
-        selectedMealBuilder:    users.selectedMealBuilder,
-        activeBoard:            users.activeBoard,
-        carbCycleState:         (users as any).carbCycleState,
-        alphaGalProfile:        (users as any).alphaGalProfile,
-        foodInclusionPriorities: users.foodInclusionPriorities,
-      })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-
-    const [latestGlucoseLog] = await db
-      .select({ value: glucoseLogs.valueMgdl })
-      .from(glucoseLogs)
-      .where(eq(glucoseLogs.userId, userId))
-      .orderBy(desc(glucoseLogs.recordedAt))
-      .limit(1);
-
-    const extras: UserExtrasForSummary = {
-      dailyCalorieTarget:       userRow?.dailyCalorieTarget       ?? null,
-      dailyProteinTarget:       userRow?.dailyProteinTarget       ?? null,
-      dailyCarbTarget:          userRow?.dailyCarbTarget          ?? null,
-      dailyStarchyCarbsTarget:  userRow?.dailyStarchyCarbsTarget  ?? null,
-      dailyFibrousCarbsTarget:  userRow?.dailyFibrousCarbsTarget  ?? null,
-      dailyFatTarget:           userRow?.dailyFatTarget           ?? null,
-      goalType:               userRow?.goalType ?? null,
-      goalTarget:             userRow?.goalTarget ?? null,
-      goalTimelineWeeks:      userRow?.goalTimelineWeeks ?? null,
-      fitnessGoal:            userRow?.fitnessGoal ?? null,
-      performanceContext:     userRow?.performanceContext ?? null,
-      weeklyTrainingSchedule: userRow?.weeklyTrainingSchedule ?? null,
-      latestGlucose:          latestGlucoseLog?.value ?? null,
-      selectedMealBuilder:    userRow?.selectedMealBuilder ?? null,
-      activeBoard:            userRow?.activeBoard ?? null,
-      carbCycleState:         userRow?.carbCycleState ?? null,
-      alphaGalProfile:        (userRow?.alphaGalProfile as any) ?? null,
-      foodInclusionPriorities: userRow?.foodInclusionPriorities ?? null,
-    };
-
-    const summary = buildNutritionSummary(envelope, extras);
-    const hydrationDay = await resolveHydrationDay({ subjectUserId: userId });
+async function enrichSummary(userId: string, summary: Summary): Promise<Summary> {
+    const startedAt = performance.now();
+    const [hydrationDay, [latestMacroUpdate], [latestMealPlan]] = await Promise.all([
+      resolveHydrationDay({ subjectUserId: userId }),
+      db.select().from(macroProgramHistory).where(and(
+        eq(macroProgramHistory.clientUserId, userId),
+        ne(macroProgramHistory.coachUserId, userId),
+      )).orderBy(desc(macroProgramHistory.createdAt)).limit(1),
+      db.select().from(mealPlansCurrent).where(eq(mealPlansCurrent.userId, userId)).limit(1),
+    ]);
+    const independentMs = Math.round(performance.now() - startedAt);
     const hydrationState = await resolveHydrationCenterState({
       subjectUserId: userId,
       localDate: hydrationDay.localDate,
@@ -98,6 +61,7 @@ router.get("/", requireAuth, async (req, res) => {
         authorizationStatus: "allowed",
       },
     });
+    const hydrationMs = Math.round(performance.now() - startedAt) - independentMs;
     const directiveId = hydrationState.numericPolicy.directiveId;
     const [directiveRow] = directiveId
       ? await db
@@ -111,20 +75,12 @@ router.get("/", requireAuth, async (req, res) => {
           .where(eq(hydrationClinicianDirectives.id, directiveId))
           .limit(1)
       : [];
-    const [latestMacroUpdate] = await db
-      .select()
-      .from(macroProgramHistory)
-      .where(and(
-        eq(macroProgramHistory.clientUserId, userId),
-        ne(macroProgramHistory.coachUserId, userId),
-      ))
-      .orderBy(desc(macroProgramHistory.createdAt))
-      .limit(1);
-    const [latestMealPlan] = await db
-      .select()
-      .from(mealPlansCurrent)
-      .where(eq(mealPlansCurrent.userId, userId))
-      .limit(1);
+    if (process.env.NODE_ENV === "development") {
+      console.log(
+        `[NutritionSummaryTiming] context.parallel=${independentMs}ms ` +
+        `context.hydration=${hydrationMs}ms context.directive=${Math.round(performance.now() - startedAt) - independentMs - hydrationMs}ms`,
+      );
+    }
 
     const professionalUpdates: NonNullable<typeof summary.professionalUpdates> = [];
     if (directiveRow?.authorUserId && directiveRow.authorUserId !== userId) {
@@ -177,7 +133,7 @@ router.get("/", requireAuth, async (req, res) => {
         )
       : null;
 
-    return res.json({
+    return {
       ...summary,
       hydration: {
         tracking: {
@@ -200,7 +156,54 @@ router.get("/", requireAuth, async (req, res) => {
         href: "/hydration",
       },
       professionalUpdates: professionalUpdates.slice(0, 3),
-    });
+    };
+}
+
+router.get("/baseline", requireAuth, async (req, res) => {
+  const startedAt = performance.now();
+  try {
+    const summary = await loadSelfNutritionSummary((req as any).authUser.id, false);
+    if (!summary) return res.status(404).json({ error: "User not found" });
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[NutritionSummaryTiming] baseline=${Math.round(performance.now() - startedAt)}ms`);
+    }
+    return res.json(summary);
+  } catch (err) {
+    console.error("[NutritionSummary] Baseline error:", err);
+    return res.status(500).json({ error: "Failed to build nutrition summary" });
+  }
+});
+
+router.get("/dynamic", requireAuth, async (req, res) => {
+  const startedAt = performance.now();
+  try {
+    const userId = (req as any).authUser.id as string;
+    const summary = await loadSelfNutritionSummary(userId, true);
+    if (!summary) return res.status(404).json({ error: "User not found" });
+    const coreMs = Math.round(performance.now() - startedAt);
+    const enriched = await enrichSummary(userId, summary);
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[NutritionSummaryTiming] dynamic.core=${coreMs}ms dynamic.total=${Math.round(performance.now() - startedAt)}ms`);
+    }
+    return res.json(pickDynamicNutritionContext(summary, enriched));
+  } catch (err) {
+    console.error("[NutritionSummary] Dynamic error:", err);
+    return res.status(500).json({ error: "Failed to build nutrition context" });
+  }
+});
+
+router.get("/", requireAuth, async (req, res) => {
+  const startedAt = performance.now();
+  try {
+    const userId = (req as any).authUser.id as string;
+    const summary = await loadSelfNutritionSummary(userId, true);
+    if (!summary) return res.status(404).json({ error: "User not found" });
+    const coreMs = Math.round(performance.now() - startedAt);
+    const enriched = await enrichSummary(userId, summary);
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[NutritionSummaryTiming] combined.core=${coreMs}ms combined.total=${Math.round(performance.now() - startedAt)}ms`);
+    }
+    return res.json(enriched);
   } catch (err) {
     console.error("[NutritionSummary] Error:", err);
     return res.status(500).json({ error: "Failed to build nutrition summary" });

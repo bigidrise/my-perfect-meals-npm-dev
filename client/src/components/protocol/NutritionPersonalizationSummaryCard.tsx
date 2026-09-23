@@ -4,7 +4,7 @@
  * "Your Nutrition Life Plan" — the user-facing window into the Protocol Envelope.
  * Lives at the top of the Dashboard, above all other protocol cards.
  *
- * Read-only. No new protocol logic. Reads from GET /api/nutrition-summary.
+ * Read-only. Self mode reads separate baseline and day-context projections.
  *
  * Accepts an optional `summary` prop so it can be embedded in ProCare views.
  * When no prop is provided it fetches via useNutritionSummary hook.
@@ -96,7 +96,7 @@ export function NutritionPersonalizationSummaryCard({
   audience = "customer",
   source = "self",
 }: Props = {}) {
-  const hook = useNutritionSummary();
+  const hook = useNutritionSummary(source === "self");
   const data = resolveNutritionSummaryCardData(source, summaryProp, hook.data);
   const isLoading = isLoadingProp ?? (source === "self" ? hook.isLoading : false);
   const [expanded, setExpanded] = useState(defaultExpanded);
@@ -175,6 +175,11 @@ export function NutritionPersonalizationSummaryCard({
           </span>
         )}
       </div>
+      {source === "self" && (hook.isDynamicLoading || hook.isDynamicError) && (
+        <p className="px-4 pb-2 text-[10px] text-white/50">
+          {hook.isDynamicError ? "Today's context is temporarily unavailable." : "Updating today's context…"}
+        </p>
+      )}
 
       {latestProfessionalUpdate && !updateSeen && (
         <button

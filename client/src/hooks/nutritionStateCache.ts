@@ -108,7 +108,14 @@ export function getCacheGeneration(): number {
  * `_nutritionStateCache.clear()` directly, so that any in-flight requests that
  * resolve after the logout cannot repopulate the cache.
  */
+let clearSummaryQueries: (() => void) | null = null;
+
+export function registerNutritionSummaryCacheClearer(clear: () => void): void {
+  clearSummaryQueries = clear;
+}
+
 export function clearNutritionCache(): void {
   _nutritionStateCache.clear();
   _cacheGeneration++;
+  clearSummaryQueries?.();
 }

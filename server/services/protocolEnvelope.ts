@@ -866,6 +866,7 @@ function classifyHealthConditions(conditions: string[]): {
 export async function loadUserProtocolEnvelope(
   userId: string,
   householdProfileId?: string,
+  options?: { includeDailyNutritionState?: boolean },
 ): Promise<UserProtocolEnvelope | null> {
   try {
     const [user] = await db
@@ -1519,8 +1520,8 @@ export async function loadUserProtocolEnvelope(
       interventionPatientSummary,
     };
 
-    // ── DAILY NUTRITION STATE — resolve only when performance-nutrition is active ─
-    if (performanceNutrition) {
+    // ── DAILY NUTRITION STATE — summary-only callers do not need today's meal ledger ─
+    if (performanceNutrition && options?.includeDailyNutritionState !== false) {
       try {
         const wts = (user as any).weeklyTrainingSchedule ?? null;
         const ppc = (user as any).performanceProtocolConfig ?? null;

@@ -310,7 +310,7 @@ export default function PerformanceNutritionSetupForm({
       if (!res.ok) throw new Error("Save failed");
 
       if (track === "athletic" && apnPhase) {
-        await fetch(apiUrl("/api/performance/schedule"), {
+        const scheduleResponse = await fetch(apiUrl("/api/performance/schedule"), {
           method: "POST",
           headers: { "Content-Type": "application/json", ...getAuthHeaders() },
           credentials: "include",
@@ -320,10 +320,13 @@ export default function PerformanceNutritionSetupForm({
             primaryGoal: primaryGoal || undefined,
           }),
         });
+        if (!scheduleResponse.ok) throw new Error("Schedule save failed");
       }
 
       await refreshUser();
       await queryClient.invalidateQueries({ queryKey: ["carbCycleDashboard"] });
+      window.dispatchEvent(new CustomEvent("mpm:conditionsUpdated"));
+      window.dispatchEvent(new CustomEvent("mpm:performanceUpdated"));
       const label = track === "competition" ? t("performanceSetup.toast.compSaved") : t("performanceSetup.toast.athleticSaved");
       toast({ title: t("performanceSetup.toast.activated"), description: label });
       onSave?.();
