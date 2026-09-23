@@ -55,8 +55,8 @@ function stop(status: number, code: string, error: string): never {
 }
 
 function requestOverrides(request: OneTouchRequest) {
-  const cuisineOverride = explicitValue(request.cuisine)?.trim().toLowerCase();
-  const dietOverride = explicitValue(request.eatingStyle)?.trim().toLowerCase();
+  const cuisineOverride = explicitValue({ ...request.cuisine, mode: request.cuisine.mode })?.trim().toLowerCase();
+  const dietOverride = explicitValue({ ...request.eatingStyle, mode: request.eatingStyle.mode })?.trim().toLowerCase();
   if ((cuisineOverride && !allowedCuisines.has(cuisineOverride)) ||
       (dietOverride && !allowedDiets.has(dietOverride))) return null;
   return { cuisineOverride, dietOverride };
@@ -152,7 +152,7 @@ export default function createOneTouchRouter() {
         clinicalMealSlot: "lunch",
         contextCreator: request.creator,
       });
-      if (!result.ok) {
+      if (result.ok === false) {
         if (result.code === "requirement_evidence_unsupported" || result.code === "protocol_clinical_rejected") {
           stop(422, "ONE_TOUCH_REQUIREMENT_UNAVAILABLE",
             "We can't safely complete this Menu option with your current nutrition settings yet. Your settings have not been changed.");
