@@ -151,7 +151,17 @@ beforeEach(() => {
   (generateMenuRecipe as jest.Mock).mockResolvedValue(draft);
   (oneTouchContextFingerprint as jest.Mock).mockReturnValue("stable-authority");
   (validateHumanFoodResult as jest.Mock).mockReturnValue({ valid: true, violations: [] });
-  (validateHumanFoodCandidate as jest.Mock).mockReturnValue({ outcome: "pass", findings: [] });
+  (validateHumanFoodCandidate as jest.Mock).mockImplementation((candidate, currentContext, options) => {
+    if (options.evidenceMode !== "exact") return { outcome: "review_required" };
+    const requirements = candidate.evidence.requirementEvidence ?? {};
+    const active = currentContext.diet.effective.map((value: string) =>
+      `dietary_identity:${value.toLowerCase().replace(/[_-]+/g, " ")}`);
+    const missing = active.filter((key: string) => requirements[key]?.status !== "pass");
+    return {
+      outcome: missing.length ? "review_required" : "pass",
+      findings: missing.map((key: string) => ({ code: `requirement_evidence_required:${key}` })),
+    };
+  });
   (scanGeneratedOutput as jest.Mock).mockReturnValue({ passed: true });
   (validateOneTouchDirectionSafety as jest.Mock).mockReturnValue([]);
   (enforceSafetyProfile as jest.Mock).mockResolvedValue({ result: "SAFE" });
@@ -294,17 +304,115 @@ describe("Menu-owned one-recipe completion (not connected to the manual Creators
       resolve: async () => ({ ...context, diet: { effective: ["keto"] } }),
       executionState: { rejectedCandidateSignatures: [] },
     }));
-    (validateHumanFoodCandidate as jest.Mock).mockImplementation((candidate) => ({
-      outcome: candidate.evidence.dietaryIdentityCompliant === true ? "pass" : "review_required",
-    }));
     expect(await completeMenuRecipe(input)).toMatchObject({
-      ok: false, code: "final_validation_rejected",
+      ok: false, code: "requirement_evidence_unsupported",
     });
     expect(validateHumanFoodCandidate).toHaveBeenCalledWith(
       expect.objectContaining({
-        evidence: expect.not.objectContaining({ dietaryIdentityCompliant: true }),
-      }), expect.anything(), expect.anything(),
+        evidence: expect.objectContaining({
+          requirementEvidence: expect.objectContaining({
+            "dietary_identity:keto": { status: "review_required", source: "none" },
+          }),
+        }),
+      }), expect.anything(), expect.objectContaining({ evidenceMode: "exact" }),
     );
+  });
+
+  it("does not let a vegan PASS mask unsupported keto or Mediterranean", async () => {
+    for (const unsupported of ["keto", "mediterranean"]) {
+      (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+        resolve: async () => ({ ...context, diet: { effective: ["vegan", unsupported] } }),
+        executionState: { rejectedCandidateSignatures: [] },
+      }));
+      expect(await completeMenuRecipe(input)).toMatchObject({
+        ok: false, code: "requirement_evidence_unsupported",
+      });
+      const candidate = (validateHumanFoodCandidate as jest.Mock).mock.lastCall?.[0];
+      expect(candidate.evidence.requirementEvidence).toMatchObject({
+        "dietary_identity:vegan": { status: "pass", source: "ingredient_classifier" },
+        [`dietary_identity:${unsupported}`]: { status: "review_required", source: "none" },
+      });
+      expect(candidate.evidence.dietaryIdentityCompliant).toBeUndefined();
+      expect(generateMealImageUnified).not.toHaveBeenCalled();
+    }
+  });
+
+  it("derives independent diabetes proof from resolved authority, including after scaling", async () => {
+    (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+      resolve: async () => ({
+        ...context, diet: { effective: ["vegan", "diabetic"] },
+        safety: { ...context.safety, healthConditions: ["diabetes"] },
+      }),
+      executionState: { rejectedCandidateSignatures: [] },
+    }));
+    (loadUserProtocolEnvelope as jest.Mock).mockResolvedValue({
+      ...envelope, hasDiabetes: true, diabeticGlucoseState: "elevated",
+    });
+    (generateMenuRecipe as jest.Mock).mockResolvedValue({ ...draft, starchyCarbs: 5, fibrousCarbs: 5 });
+    expect(await completeMenuRecipe({ ...input, servings: 4 })).toMatchObject({ ok: true });
+    const checked = (validateHumanFoodCandidate as jest.Mock).mock.calls.map(([candidate]) => candidate);
+    expect(checked).toHaveLength(2);
+    for (const candidate of checked) {
+      expect(candidate.evidence.requirementEvidence).toMatchObject({
+        "dietary_identity:vegan": { status: "pass", source: "ingredient_classifier" },
+        "dietary_identity:diabetic": {
+          status: "pass", source: "diabetes_authority", nutritionBasis: "model_estimate",
+        },
+        "clinical:diabetes": {
+          status: "pass", source: "diabetes_authority", nutritionBasis: "model_estimate",
+        },
+      });
+      expect(candidate.nutrition.carbs).toBe(10);
+      expect(candidate.evidence.nutritionEvidence).toBe("structured_generation");
+    }
+    expect(validateDiabeticMeal({ name: draft.name, ingredients: [{ name: "sugar" }],
+      macros: { carbs: 10 } }, { glucoseState: "high-risk" }).isValid).toBe(false);
+  });
+
+  it("does not borrow diabetes proof when the subject's authority is absent", async () => {
+    (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+      resolve: async () => ({ ...context, diet: { effective: ["diabetic"] } }),
+      executionState: { rejectedCandidateSignatures: [] },
+    }));
+    expect(await completeMenuRecipe(input)).toMatchObject({ ok: false, code: "unresolved_authority" });
+    expect(validateHumanFoodCandidate).not.toHaveBeenCalled();
+    (loadUserProtocolEnvelope as jest.Mock).mockResolvedValue({
+      ...envelope, hasDiabetes: true, diabeticGlucoseState: null,
+    });
+    expect(await completeMenuRecipe(input)).toMatchObject({ ok: false, code: "unresolved_authority" });
+  });
+
+  it("creates GLP-1 evidence from resolved targets, then rejects a final-payload failure", async () => {
+    (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+      resolve: async () => ({
+        ...context, diet: { effective: ["vegetarian", "glp1"] },
+        safety: { ...context.safety, healthConditions: ["GLP-1"] },
+      }),
+      executionState: { rejectedCandidateSignatures: [] },
+    }));
+    (resolveGLP1GlobalContext as jest.Mock).mockResolvedValue({
+      isActive: true, resolvedTargets: { targetProteinGrams: 30, maximumToleratedFatGrams: 10 },
+    });
+    (validateMealForDiet as jest.Mock).mockReturnValue({ isValid: true });
+    expect(await completeMenuRecipe({ ...input, servings: 3 })).toMatchObject({ ok: true });
+    const checked = (validateHumanFoodCandidate as jest.Mock).mock.calls.map(([candidate]) => candidate);
+    expect(checked).toHaveLength(2);
+    expect(checked[1].evidence.requirementEvidence).toMatchObject({
+      "dietary_identity:vegetarian": { status: "pass", source: "ingredient_classifier" },
+      "dietary_identity:glp1": {
+        status: "pass", source: "glp1_authority", nutritionBasis: "model_estimate",
+      },
+      "clinical:glp1": { status: "pass", source: "glp1_authority" },
+    });
+    expect((validateMealForDiet as jest.Mock).mock.calls.slice(0, 2).map(([meal]) => meal.macros.carbs))
+      .toEqual([35, 35]);
+    (validateMealForDiet as jest.Mock).mockClear()
+      .mockReturnValueOnce({ isValid: true })
+      .mockReturnValueOnce({ isValid: false });
+    (generateMealImageUnified as jest.Mock).mockClear();
+    expect(await completeMenuRecipe({ ...input, servings: 3 }))
+      .toMatchObject({ ok: false, code: "glp1_rejected" });
+    expect(generateMealImageUnified).not.toHaveBeenCalled();
   });
 
   it("supplies positive carnivore evidence only from the shared classifier on both payloads", async () => {
@@ -316,7 +424,10 @@ describe("Menu-owned one-recipe completion (not connected to the manual Creators
     const result = await completeMenuRecipe({ ...input, approvedConcept: carnivoreConcept, servings: 4 });
     expect(result.ok).toBe(true);
     const candidates = (validateHumanFoodCandidate as jest.Mock).mock.calls.map(([value]) => value);
-    expect(candidates.map((value) => value.evidence.dietaryIdentityCompliant)).toEqual([true, true]);
+    expect(candidates.map((value) => value.evidence.requirementEvidence["dietary_identity:carnivore"]))
+      .toEqual(Array(2).fill({
+        status: "pass", source: "ingredient_classifier", nutritionBasis: "not_applicable",
+      }));
     expect((validateDietaryRestriction as jest.Mock).mock.calls).toHaveLength(2);
     expect((validateDietaryRestriction as jest.Mock).mock.calls[1][0].ingredients[0].quantity).toBe("2");
     expect(generateMenuRecipe).toHaveBeenCalledTimes(1);

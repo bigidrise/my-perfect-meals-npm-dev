@@ -75,6 +75,109 @@ function generatedEvidence(overrides: HumanFoodCandidate["evidence"] = {}) {
   };
 }
 
+describe("strict Menu exact-requirement evidence", () => {
+  const candidate = (overrides: HumanFoodCandidate["evidence"] = {}): HumanFoodCandidate => ({
+    name: "Lentil Tomato Stew",
+    ingredients: ["lentils", "tomatoes"],
+    instructions: "Simmer lentils and tomatoes until tender.",
+    nutrition: { calories: 300, protein: 20, carbs: 30, fat: 5, starchyCarbs: 20 },
+    evidence: generatedEvidence(overrides),
+  });
+  const strict = (diets: string[], evidence: HumanFoodCandidate["evidence"], conditions: string[] = []) => {
+    const baseline = context();
+    return validateHumanFoodCandidate(candidate(evidence), context({
+      diet: { ...baseline.diet, effective: diets },
+      safety: { ...baseline.safety, healthConditions: conditions },
+    }), { evidenceMode: "exact" });
+  };
+  const ingredient = (status: "pass" | "fail" | "review_required") => ({
+    status, source: "ingredient_classifier" as const, nutritionBasis: "not_applicable" as const,
+  });
+  const medical = (status: "pass" | "fail", source: "diabetes_authority" | "glp1_authority") => ({
+    status, source, nutritionBasis: "model_estimate" as const,
+  });
+
+  it("accepts the exact ingredient identity, blocks FAIL, and reviews UNKNOWN", () => {
+    expect(strict(["vegan"], { requirementEvidence: { "dietary_identity:vegan": ingredient("pass") } }).outcome).toBe("pass");
+    expect(strict(["vegan"], { requirementEvidence: { "dietary_identity:vegan": ingredient("fail") } }).outcome).toBe("blocked");
+    expect(strict(["vegan"], { requirementEvidence: { "dietary_identity:vegan": ingredient("review_required") } }).outcome).toBe("review_required");
+  });
+
+  it("does not let vegan, a generic true, or a scan prove keto or Mediterranean", () => {
+    for (const diet of ["keto", "mediterranean"]) {
+      const result = strict(["vegan", diet], {
+        dietaryIdentityCompliant: true,
+        requirementEvidence: {
+          "dietary_identity:vegan": ingredient("pass"),
+          [`dietary_identity:${diet}`]: { status: "pass", source: "protocol_scan" },
+        },
+      });
+      expect(result.outcome).toBe("review_required");
+      expect(result.findings).toEqual(expect.arrayContaining([
+        expect.objectContaining({ code: `requirement_evidence_required:dietary_identity:${diet}` }),
+      ]));
+    }
+  });
+
+  it("does not let one valid identity hide an unknown or a failure on another", () => {
+    expect(strict(["vegan", "carnivore"], {
+      requirementEvidence: { "dietary_identity:vegan": ingredient("pass") },
+    }).outcome).toBe("review_required");
+    expect(strict(["vegan", "carnivore"], {
+      requirementEvidence: {
+        "dietary_identity:vegan": ingredient("pass"),
+        "dietary_identity:carnivore": ingredient("fail"),
+      },
+    }).outcome).toBe("blocked");
+  });
+
+  it("requires the exact diabetes and GLP-1 authority, not generic clinical success", () => {
+    expect(strict(["diabetic"], {
+      dietaryIdentityCompliant: true, clinicalDirectivesCompliant: true, diabetesCompliant: true,
+    }, ["diabetes"]).outcome).toBe("review_required");
+    expect(strict(["diabetic"], { requirementEvidence: {
+      "dietary_identity:diabetic": medical("pass", "diabetes_authority"),
+      "clinical:diabetes": medical("pass", "diabetes_authority"),
+    } }, ["diabetes"]).outcome).toBe("pass");
+    expect(strict(["glp1"], { requirementEvidence: {
+      "dietary_identity:glp1": medical("pass", "glp1_authority"),
+      "clinical:glp1": medical("pass", "glp1_authority"),
+    } }, ["semaglutide"]).outcome).toBe("pass");
+    expect(strict(["glp1"], { requirementEvidence: {
+      "dietary_identity:glp1": medical("pass", "glp1_authority"),
+    } }, ["semaglutide"]).outcome).toBe("review_required");
+  });
+
+  it("requires each clinical directive separately even if generic clinical proof is true", () => {
+    const result = strict(["vegan"], {
+      clinicalDirectivesCompliant: true,
+      requirementEvidence: { "dietary_identity:vegan": ingredient("pass") },
+    }, ["kidney disease"]);
+    expect(result.outcome).toBe("review_required");
+    expect(result.findings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "requirement_evidence_required:clinical:kidney disease" }),
+    ]));
+  });
+
+  it("does not treat a generic, unrelated, or nutrition-provenance-free claim as authority", () => {
+    expect(strict(["vegan"], { dietaryIdentityCompliant: true }).outcome).toBe("review_required");
+    expect(strict(["vegan"], { requirementEvidence: {
+      "dietary_identity:vegan": { status: "pass", source: "glp1_authority" },
+    } }).outcome).toBe("review_required");
+    expect(strict(["diabetic"], { requirementEvidence: {
+      "dietary_identity:diabetic": { status: "pass", source: "diabetes_authority" },
+    } }).outcome).toBe("review_required");
+  });
+
+  it("retains legacy generic evidence semantics without extending them to strict mode", () => {
+    const baseline = context();
+    const old = validateHumanFoodCandidate(candidate({ dietaryIdentityCompliant: true }),
+      context({ diet: { ...baseline.diet, effective: ["keto"] } }));
+    expect(old.findings.some((finding) => finding.code === "dietary_identity_evidence_required:keto")).toBe(false);
+    expect(strict(["keto"], { dietaryIdentityCompliant: true }).outcome).toBe("review_required");
+  });
+});
+
 describe("universal Human Food final-validation contract", () => {
   it("does not enforce fallback placeholder zeroes as canonical nutrition budgets", () => {
     const fallbackContext = context({

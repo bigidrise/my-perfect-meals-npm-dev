@@ -36,6 +36,25 @@ export interface HumanFoodValidationFinding {
   repairHint?: string;
 }
 
+/** Exact requirement keys prevent a result for one diet or protocol from proving another. */
+export type HumanFoodRequirementKey =
+  | `dietary_identity:${string}`
+  | `clinical:${string}`
+  | `program:${string}`;
+
+export interface HumanFoodRequirementProof {
+  status: "pass" | "fail" | "review_required";
+  source:
+    | "ingredient_classifier"
+    | "diabetes_authority"
+    | "glp1_authority"
+    | "protocol_scan"
+    | "program_rule_pack"
+    | "nutrition_target_check"
+    | "none";
+  nutritionBasis?: "model_estimate" | "verified" | "not_applicable";
+}
+
 export interface HumanFoodCandidateEvidence {
   sourceType?: "generated_recipe" | "verified_label" | "restaurant" | "branded_product";
   ingredientEvidence?: "verified" | "structured_generation" | "unknown";
@@ -53,6 +72,8 @@ export interface HumanFoodCandidateEvidence {
   clinicalDirectivesCompliant?: boolean;
   glp1Compliant?: boolean;
   diabetesCompliant?: boolean;
+  /** Additive contract; legacy callers continue to use their existing fields. */
+  requirementEvidence?: Partial<Record<HumanFoodRequirementKey, HumanFoodRequirementProof>>;
   halalCertification?: "verified" | "claimed" | "unknown";
   kosherCertification?: "verified" | "claimed" | "unknown";
 }

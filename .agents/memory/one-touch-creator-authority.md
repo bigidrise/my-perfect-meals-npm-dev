@@ -27,6 +27,12 @@ For Menu recipe completion, the shared compound-aware classifier can substantiat
 
 **How to apply:** Recheck supported identity classification after final serving formatting. Keep keto, paleo, Mediterranean, and other unsupported composition identities review-required until a shared authoritative meal rule and suitable evidence source exist.
 
+The positive-evidence contract must distinguish each active requirement and its producer. Legacy Creator booleans may retain their historical meaning for unchanged callers, but they must not become proof for new strict Menu claims.
+
+**Why:** A single true dietary flag can otherwise certify unrelated nutrition, clinical, and program rules that were never checked. The user wants eventual support for more identities without inventing their policies first.
+
+**How to apply:** Resolve exact evidence separately for every active Menu requirement; keep unproven identities unavailable while allowing a future limited Menu rollout for independently supported identities. Do not interpret a passed protocol scan or a model nutrition estimate as verified composition.
+
 The user accepted a shared, non-persisting culinary concept engine for MPM and One-Touch, with separate destinations: MPM owns its saved concepts, while each Creator owns its canonically completed cards.
 
 **Why:** Sharing creative direction avoids divergent generation rules, but a concept is never evidence of safety or nutrition. Browser-restored completed cards also become unsafe when authoritative food protections change.
