@@ -1832,6 +1832,8 @@ async function start() {
   await runFoodsIEnjoyMigration(dbRouteMigrations);
   const { runMyPerfectMenuMigration } = await import("./db/migrations/runMyPerfectMenuMigration");
   await runMyPerfectMenuMigration(dbRouteMigrations);
+  const { runOneTouchMigration } = await import("./db/migrations/runOneTouchMigration");
+  await runOneTouchMigration(dbRouteMigrations);
   const { runClinicPilotDevelopmentMigration } = await import("./db/migrations/runClinicPilotDevelopmentMigration");
   await runClinicPilotDevelopmentMigration();
   await registerRoutes(app);

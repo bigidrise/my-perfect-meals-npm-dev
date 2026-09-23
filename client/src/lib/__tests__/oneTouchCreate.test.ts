@@ -1,0 +1,53 @@
+/** @jest-environment jsdom */
+
+import { requestOneTouchMeals } from "@/lib/oneTouchCreate";
+
+describe("One-Touch client request contract", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("sends request-scoped controls and requires exactly three meals", async () => {
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ meals: [{ id: "1" }, { id: "2" }, { id: "3" }] }),
+    });
+    Object.defineProperty(globalThis, "fetch", { configurable: true, value: fetchMock });
+    const result = await requestOneTouchMeals({
+      creator: "create_a_dish",
+      servings: 4,
+      cuisine: { mode: "explicit", value: "chinese" },
+      eatingStyle: { mode: "profile" },
+    });
+
+    expect(result).toHaveLength(3);
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/one-touch-create"),
+      expect.objectContaining({
+        method: "POST",
+        credentials: "include",
+        body: JSON.stringify({
+          creator: "create_a_dish",
+          servings: 4,
+          cuisine: { mode: "explicit", value: "chinese" },
+          eatingStyle: { mode: "profile" },
+        }),
+      }),
+    );
+  });
+
+  it("rejects a partial response without allowing the page to replace cards", async () => {
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ meals: [{ id: "1" }, { id: "2" }] }),
+    });
+    Object.defineProperty(globalThis, "fetch", { configurable: true, value: fetchMock });
+
+    await expect(requestOneTouchMeals({
+      creator: "craving_creator",
+      servings: 1,
+      cuisine: { mode: "surprise" },
+      eatingStyle: { mode: "profile" },
+    })).rejects.toThrow("three ideas");
+  });
+});
