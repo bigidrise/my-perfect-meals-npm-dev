@@ -149,8 +149,11 @@ import { captureAuthoritativeTextValue, commitTextInputValue } from "@/lib/autho
 import OneTouchCreateModal from "@/components/one-touch/OneTouchCreateModal";
 import {
   ONE_TOUCH_CREATE_ENABLED,
-  loadOneTouchBatch,
+  cachedOneTouchNamesForMeal,
+  clearOneTouchBatch,
+  isCachedOneTouchBatch,
   requestOneTouchMeals,
+  restoreOneTouchBatch,
   saveOneTouchBatch,
   type OneTouchCuisine,
   type OneTouchEatingStyle,
@@ -496,16 +499,40 @@ export default function CravingCreator() {
     eatingStyle: OneTouchEatingStyle;
   } | null>(null);
   const [oneTouchDisplayedOptions, setOneTouchDisplayedOptions] = useState<MealData[] | null>(null);
+  const [verifiedSingleBatch, setVerifiedSingleBatch] = useState<string | null>(null);
+  const optionNames = mealOptions.map((option) => String(option.name));
+  const isCachedBatch = isCachedOneTouchBatch("craving_creator", optionNames);
+  const selectedBatchNames = isCachedBatch ? null :
+    cachedOneTouchNamesForMeal("craving_creator", generatedMeals[0]?.name);
+  const cachedOneTouchNames = isCachedBatch ? optionNames : selectedBatchNames ?? [];
+  const unverifiedOneTouchOptions = (isCachedBatch && oneTouchDisplayedOptions !== mealOptions) ||
+    (selectedBatchNames !== null && verifiedSingleBatch !== `${user?.id}:${JSON.stringify(selectedBatchNames)}`);
   useEffect(() => {
-    if (!user?.id || mealOptions.length !== 3 || oneTouchDisplayedOptions === mealOptions) return;
-    const restored = loadOneTouchBatch(
-      "craving_creator", user.id, mealOptions.map((option) => String(option.name)),
-    );
-    if (restored) {
-      setOneTouchLastRequest(restored);
-      setOneTouchDisplayedOptions(mealOptions);
-    }
-  }, [user?.id, mealOptions, oneTouchDisplayedOptions]);
+    if (!unverifiedOneTouchOptions || !user?.id) return;
+    const controller = new AbortController();
+    const discard = () => {
+      clearOneTouchBatch("craving_creator");
+      clearCravingOptionsCache();
+      clearCravingCache();
+      setOneTouchLastRequest(null);
+      setOneTouchDisplayedOptions(null);
+      setVerifiedSingleBatch(null);
+      setMealOptions([]);
+      setGeneratedMeals([]);
+    };
+    restoreOneTouchBatch("craving_creator", user.id, cachedOneTouchNames, controller.signal)
+      .then((restored) => {
+        if (controller.signal.aborted) return;
+        if (!restored) discard();
+        else {
+          setOneTouchLastRequest(restored);
+          if (isCachedBatch) setOneTouchDisplayedOptions(mealOptions);
+          else setVerifiedSingleBatch(`${user.id}:${JSON.stringify(cachedOneTouchNames)}`);
+        }
+      })
+      .catch(() => { if (!controller.signal.aborted) discard(); });
+    return () => controller.abort();
+  }, [user?.id, mealOptions, generatedMeals[0]?.name, unverifiedOneTouchOptions]);
 
   // Safety override integration - always starts ON, auto-resets after generation
   const [safetyEnabled, setSafetyEnabled] = useState(true);
@@ -524,7 +551,7 @@ export default function CravingCreator() {
     setOneTouchBusy(true);
     setIsGenerating(true);
     try {
-      const meals = await requestOneTouchMeals<MealData>({
+      const { meals, contextFingerprint } = await requestOneTouchMeals<MealData>({
         creator: "craving_creator",
         ...request,
       });
@@ -532,7 +559,8 @@ export default function CravingCreator() {
       setMealOptions(meals);
       setOneTouchLastRequest(request);
       setOneTouchDisplayedOptions(meals);
-      saveOneTouchBatch("craving_creator", user?.id, request, meals.map((meal) => String(meal.name)));
+      setVerifiedSingleBatch(null);
+      saveOneTouchBatch("craving_creator", user?.id, request, meals.map((meal) => String(meal.name)), contextFingerprint);
       setGeneratedMeals([]);
       setOneTouchOpen(false);
     } catch (error: any) {
@@ -1478,7 +1506,7 @@ export default function CravingCreator() {
           )}
 
           {/* Initial picker — only shown before a meal has been selected */}
-          {!isPlatingMeal && mealOptions.length > 0 && generatedMeals.length === 0 && (
+          {!unverifiedOneTouchOptions && !isPlatingMeal && mealOptions.length > 0 && generatedMeals.length === 0 && (
             <div className="mt-8 space-y-4">
               <div className="flex items-center gap-3 mb-2">
                 <Sparkles className="h-5 w-5 text-yellow-500" />
@@ -1532,7 +1560,7 @@ export default function CravingCreator() {
             </div>
           )}
 
-          {generatedMeals.length > 0 && (
+          {!unverifiedOneTouchOptions && generatedMeals.length > 0 && (
             <div className="mt-8 space-y-6">
               {generatedMeals.map((meal, index) => (
                 <div key={index}>
@@ -2078,7 +2106,7 @@ export default function CravingCreator() {
         </div>
 
         {/* Shopping Aggregate Bar */}
-        {generatedMeals.length > 0 && (
+        {!unverifiedOneTouchOptions && generatedMeals.length > 0 && (
           <ShoppingAggregateBar
             ingredients={generatedMeals.flatMap((meal) =>
               meal.ingredients.map((ing: StructuredIngredient) => ({

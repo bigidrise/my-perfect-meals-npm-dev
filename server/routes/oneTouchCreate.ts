@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from "express";
 import { requireAuth } from "../middleware/requireAuth";
-import { oneTouchRequestSchema, directionToFingerprint, type OneTouchDirection } from "@shared/oneTouch";
+import { oneTouchRequestSchema, directionToFingerprint, type OneTouchDirection, type OneTouchRequest } from "@shared/oneTouch";
 import { generateOneTouchDirections } from "../services/oneTouch/directions";
 import { appendOneTouchHistory, readOneTouchHistory } from "../services/oneTouch/history";
 import { expandCreateDishIngredient } from "../services/createDish/ingredientExpansionService";
@@ -15,6 +15,7 @@ import { withOneTouchDiet } from "../services/oneTouch/dietAuthority";
 import { buildDietPromptBlock } from "../services/allergyGuardrails";
 import { buildGLP1RecommendationBlock, resolveGLP1GlobalContext } from "../services/glp1/resolveGLP1GlobalContext";
 import { validateDishIdentity } from "../services/dishAdaptation/dishIdentityValidator";
+import { oneTouchContextFingerprint } from "../services/oneTouch/contextFingerprint";
 
 type CanonicalCreatorHandler = (req: Request, res: Response) => unknown;
 
@@ -129,8 +130,55 @@ function stop(status: number, code: string, error: string): never {
   throw Object.assign(new Error(error), { oneTouchStop: true, status, code });
 }
 
+function requestOverrides(request: OneTouchRequest) {
+  const cuisineOverride = explicitValue(request.cuisine)?.trim().toLowerCase();
+  const dietOverride = explicitValue(request.eatingStyle)?.trim().toLowerCase();
+  if ((cuisineOverride && !allowedCuisines.has(cuisineOverride)) ||
+      (dietOverride && !allowedDiets.has(dietOverride))) return null;
+  return { cuisineOverride, dietOverride };
+}
+
+async function resolveOneTouchAuthority(userId: string, request: OneTouchRequest, correlationId?: string) {
+  const overrides = requestOverrides(request);
+  if (!overrides) stop(400, "ONE_TOUCH_INVALID_REQUEST", "Choose a listed cuisine and dietary preference.");
+  const scope = createHumanFoodRequestScope({
+    actorUserId: userId,
+    subjectUserId: userId,
+    creator: request.creator,
+    correlationId,
+    dietOverride: overrides.dietOverride ?? null,
+    cuisine: overrides.cuisineOverride ?? null,
+  });
+  const context = await scope.resolve();
+  if (context.status === "review_required" || context.status === "blocked") {
+    stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", context.notices[0] || "Your food context needs review.");
+  }
+  const profileEnvelope = await loadUserProtocolEnvelope(userId);
+  if (!profileEnvelope) stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your food protections could not be resolved.");
+  const envelope = withOneTouchDiet(profileEnvelope, overrides.dietOverride);
+  const glp1 = await resolveGLP1GlobalContext(userId, new Date().toISOString().slice(0, 10), "lunch");
+  if (glp1.isActive && !glp1.resolvedTargets) stop(503, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your current GLP-1 targets could not be verified.");
+  if (profileEnvelope.glp1DailyTolerance?.shouldEscalate) stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your current GLP-1 symptoms need a safety check-in first.");
+  const contextFingerprint = oneTouchContextFingerprint(request, context, envelope, glp1);
+  return { scope, context, envelope, glp1, contextFingerprint, ...overrides };
+}
+
 export default function createOneTouchRouter(canonicalHandler: CanonicalCreatorHandler) {
   const router = Router();
+  router.post("/context-fingerprint", requireAuth, async (req, res) => {
+    if (!ONE_TOUCH_CREATE_ENABLED) return res.status(503).json({ code: "ONE_TOUCH_NOT_AVAILABLE" });
+    const parsed = oneTouchRequestSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ code: "ONE_TOUCH_INVALID_REQUEST" });
+    try {
+      const authority = await resolveOneTouchAuthority(String((req as any).authUser.id), parsed.data, (req as any).id);
+      return res.json({ contextFingerprint: authority.contextFingerprint });
+    } catch (error: any) {
+      return res.status(error?.oneTouchStop ? error.status : 503).json({
+        code: error?.oneTouchStop ? error.code : "ONE_TOUCH_CONTEXT_UNRESOLVED",
+        error: error?.oneTouchStop ? error.message : "Your current food protections could not be verified.",
+      });
+    }
+  });
   router.post("/", requireAuth, async (req, res) => {
     if (!ONE_TOUCH_CREATE_ENABLED) {
       return res.status(503).json({
@@ -143,33 +191,16 @@ export default function createOneTouchRouter(canonicalHandler: CanonicalCreatorH
     if (!parsed.success) {
       return res.status(400).json({ code: "ONE_TOUCH_INVALID_REQUEST", error: "Invalid One-Touch request." });
     }
-    const { creator, servings, cuisine, eatingStyle } = parsed.data;
-    const cuisineOverride = explicitValue(cuisine)?.trim().toLowerCase();
-    const dietOverride = explicitValue(eatingStyle)?.trim().toLowerCase();
-    if ((cuisineOverride && !allowedCuisines.has(cuisineOverride)) ||
-        (dietOverride && !allowedDiets.has(dietOverride))) {
+    const { creator, servings, cuisine } = parsed.data;
+    const overrides = requestOverrides(parsed.data);
+    if (!overrides) {
       return res.status(400).json({ code: "ONE_TOUCH_INVALID_REQUEST", error: "Choose a listed cuisine and dietary preference." });
     }
+    const { cuisineOverride, dietOverride } = overrides;
     const userId = String((req as any).authUser.id);
     try {
-      const scope = createHumanFoodRequestScope({
-        actorUserId: userId,
-        subjectUserId: userId,
-        creator,
-        correlationId: (req as any).id,
-        dietOverride: dietOverride ?? null,
-        cuisine: cuisineOverride ?? null,
-      });
-      const context = await scope.resolve();
-      if (context.status === "review_required" || context.status === "blocked") {
-        stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", context.notices[0] || "Your food context needs review.");
-      }
-      const profileEnvelope = await loadUserProtocolEnvelope(userId);
-      if (!profileEnvelope) stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your food protections could not be resolved.");
-      const envelope = withOneTouchDiet(profileEnvelope, dietOverride);
-      const glp1 = await resolveGLP1GlobalContext(userId, new Date().toISOString().slice(0, 10), "lunch");
-      if (glp1.isActive && !glp1.resolvedTargets) stop(503, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your current GLP-1 targets could not be verified.");
-      if (profileEnvelope.glp1DailyTolerance?.shouldEscalate) stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your current GLP-1 symptoms need a safety check-in first.");
+      const { scope, context, envelope, glp1, contextFingerprint } =
+        await resolveOneTouchAuthority(userId, parsed.data, (req as any).id);
       const requiredCuisine = cuisine.mode === "surprise"
         ? null
         : context.flavor.cuisine.available ? context.flavor.cuisine.value : null;
@@ -245,6 +276,10 @@ export default function createOneTouchRouter(canonicalHandler: CanonicalCreatorH
         },
       });
       const selected = completed.accepted;
+      const currentAuthority = await resolveOneTouchAuthority(userId, parsed.data, (req as any).id);
+      if (currentAuthority.contextFingerprint !== contextFingerprint) {
+        stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your food protections changed while these meals were being created. Please try again.");
+      }
       await appendOneTouchHistory(
         userId,
         creator,
@@ -253,6 +288,7 @@ export default function createOneTouchRouter(canonicalHandler: CanonicalCreatorH
       return res.json({
         intentType: "one_touch_delegated",
         meals: selected.map(({ value }) => value),
+        contextFingerprint,
       });
     } catch (error: any) {
       console.error("[OneTouch] Request could not complete:", error);

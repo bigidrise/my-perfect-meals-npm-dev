@@ -95,8 +95,11 @@ import { ExpandIngredientResponseSchema } from "../../../../shared/createDishIng
 import OneTouchCreateModal from "@/components/one-touch/OneTouchCreateModal";
 import {
   ONE_TOUCH_CREATE_ENABLED,
-  loadOneTouchBatch,
+  cachedOneTouchNamesForMeal,
+  clearOneTouchBatch,
+  isCachedOneTouchBatch,
   requestOneTouchMeals,
+  restoreOneTouchBatch,
   saveOneTouchBatch,
   type OneTouchCuisine,
   type OneTouchEatingStyle,
@@ -564,16 +567,41 @@ export default function CreateDishPage() {
     eatingStyle: OneTouchEatingStyle;
   } | null>(null);
   const [oneTouchDisplayedOptions, setOneTouchDisplayedOptions] = useState<any[] | null>(null);
+  const [verifiedSingleBatch, setVerifiedSingleBatch] = useState<string | null>(null);
+  const optionNames = mealOptions.map((option) => String(option.name));
+  const isCachedBatch = isCachedOneTouchBatch("create_a_dish", optionNames);
+  const selectedBatchNames = isCachedBatch ? null :
+    cachedOneTouchNamesForMeal("create_a_dish", visibleMeals[0]?.name);
+  const cachedOneTouchNames = isCachedBatch ? optionNames : selectedBatchNames ?? [];
+  const unverifiedOneTouchOptions = (isCachedBatch && oneTouchDisplayedOptions !== mealOptions) ||
+    (selectedBatchNames !== null && verifiedSingleBatch !== `${user?.id}:${JSON.stringify(selectedBatchNames)}`);
   useEffect(() => {
-    if (!user?.id || mealOptions.length !== 3 || oneTouchDisplayedOptions === mealOptions) return;
-    const restored = loadOneTouchBatch(
-      "create_a_dish", user.id, mealOptions.map((option) => String(option.name)),
-    );
-    if (restored) {
-      setOneTouchLastRequest(restored);
-      setOneTouchDisplayedOptions(mealOptions);
-    }
-  }, [user?.id, mealOptions, oneTouchDisplayedOptions]);
+    if (!unverifiedOneTouchOptions || !user?.id) return;
+    const controller = new AbortController();
+    const discard = () => {
+      clearOneTouchBatch("create_a_dish");
+      clearOptionsCache();
+      clearDishCache();
+      setOneTouchLastRequest(null);
+      setOneTouchDisplayedOptions(null);
+      setVerifiedSingleBatch(null);
+      setMealOptions([]);
+      setGeneratedMeals([]);
+      setSelectedDishId(null);
+    };
+    restoreOneTouchBatch("create_a_dish", user.id, cachedOneTouchNames, controller.signal)
+      .then((restored) => {
+        if (controller.signal.aborted) return;
+        if (!restored) discard();
+        else {
+          setOneTouchLastRequest(restored);
+          if (isCachedBatch) setOneTouchDisplayedOptions(mealOptions);
+          else setVerifiedSingleBatch(`${user.id}:${JSON.stringify(cachedOneTouchNames)}`);
+        }
+      })
+      .catch(() => { if (!controller.signal.aborted) discard(); });
+    return () => controller.abort();
+  }, [user?.id, mealOptions, visibleMeals[0]?.name, unverifiedOneTouchOptions]);
   const [stepsExpanded, setStepsExpanded] = useState<Record<string, boolean>>(
     {},
   );
@@ -601,7 +629,7 @@ export default function CreateDishPage() {
     setOneTouchBusy(true);
     setIsGenerating(true);
     try {
-      const meals = await requestOneTouchMeals<MealData>({
+      const { meals, contextFingerprint } = await requestOneTouchMeals<MealData>({
         creator: "create_a_dish",
         ...request,
       });
@@ -610,7 +638,8 @@ export default function CreateDishPage() {
       setMealOptions(options);
       setOneTouchLastRequest(request);
       setOneTouchDisplayedOptions(options);
-      saveOneTouchBatch("create_a_dish", user?.id, request, options.map((option) => String(option.name)));
+      setVerifiedSingleBatch(null);
+      saveOneTouchBatch("create_a_dish", user?.id, request, options.map((option) => String(option.name)), contextFingerprint);
       setSelectedDishId(null);
       setGeneratedMeals([]);
       setOneTouchOpen(false);
@@ -1749,7 +1778,7 @@ export default function CreateDishPage() {
           )}
 
           {/* Initial picker — only shown before a meal has been selected */}
-          {!isPlatingMeal && mealOptions.length > 0 && selectedDishId === null && generatedMeals.length === 0 && (
+          {!unverifiedOneTouchOptions && !isPlatingMeal && mealOptions.length > 0 && selectedDishId === null && generatedMeals.length === 0 && (
             <div className="mt-8 space-y-4" ref={mealOptionsRef}>
               <div className="flex items-center gap-3 mb-2">
                 <Sparkles className="h-5 w-5 text-orange-400" />
@@ -1831,7 +1860,7 @@ export default function CreateDishPage() {
             </div>
           )}
 
-          {visibleMeals.length > 0 && (
+          {!unverifiedOneTouchOptions && visibleMeals.length > 0 && (
             <div className="mt-8 space-y-6">
               {visibleMeals.map((meal) => (
                 <div key={meal.id}>
@@ -2345,7 +2374,7 @@ export default function CreateDishPage() {
           )}
         </div>
 
-        {visibleMeals.length > 0 && generatedInSession && (
+        {!unverifiedOneTouchOptions && visibleMeals.length > 0 && generatedInSession && (
           <ShoppingAggregateBar
             ingredients={visibleMeals.flatMap((meal) =>
               meal.ingredients.map((ing: StructuredIngredient) => ({
