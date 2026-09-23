@@ -167,6 +167,7 @@ import { scaleIngredientQuantity } from "./services/servingScaling";
 import foodsIEnjoyRouter, { householdFoodsIEnjoyRouter } from "./routes/foodsIEnjoy";
 import nutritionPrioritiesRouter from "./routes/nutritionPriorities";
 import myPerfectMenuRouter from "./routes/myPerfectMenu";
+import oneTouchCreateRouter from "./routes/oneTouchCreate";
 
 function normalizeFitnessGoal(value?: string | null): string | null {
   switch (value) {
@@ -5861,7 +5862,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/meals/craving-creator", async (req, res) => {
+  const cravingCreatorHandler = async (req: any, res: any) => {
     // An advisory acknowledgement is a one-action authorization. Keep it reserved
     // until this request has actually fulfilled, so a transient context/generation
     // failure does not make the user repeat the acknowledgement.
@@ -7376,7 +7377,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
     }
-  });
+  };
+  app.post("/api/meals/craving-creator", cravingCreatorHandler);
+  app.use("/api/one-touch-create", oneTouchCreateRouter(cravingCreatorHandler));
 
   // NEW: Onboarding-enforced meal generation routes
   app.post("/api/meals/craving-creator-enforced", async (req, res) => {
