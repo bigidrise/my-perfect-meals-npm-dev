@@ -690,10 +690,10 @@ router.post("/concepts", requireAuth, async (req, res) => {
     return res.json({ concepts, subject: { id: target.id, label: target.label }, builder });
   } catch (error) {
     await scope.releaseAuthorization().catch(() => {});
-    if (error && typeof error === "object" && "code" in error &&
+    if (error instanceof Error && "code" in error &&
       typeof error.code === "string" && error.code.startsWith("CONCEPT_") &&
       "status" in error && typeof error.status === "number") {
-      return res.status(error.status).json({ error: (error as Error).message, code: error.code });
+      return res.status(error.status).json({ error: error.message, code: error.code });
     }
     console.error("[my-perfect-menu] concept generation failed", error);
     return res.status(500).json({
