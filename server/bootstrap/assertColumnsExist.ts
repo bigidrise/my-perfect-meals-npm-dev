@@ -75,6 +75,12 @@ export const CRITICAL_COLUMNS: ColumnDescriptor[] = [
     migrationMode: "production_release",
     hint: "Nutrition Priorities — pediatric HFC resolution requires this authoritative subject column",
   },
+  {
+    table: "users",
+    column: "one_touch_history",
+    migrationMode: "production_release",
+    hint: "Creator Menu history — the release migration must prepare this column before startup",
+  },
   // ── Clinical Labs Phase 5 columns ──────────────────────────────────────────
   // These columns were added in the Phase 5 migration. If absent the labs
   // GET handler silently returns null for hormone/thyroid panels, breaking
