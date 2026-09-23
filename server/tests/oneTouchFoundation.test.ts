@@ -30,6 +30,29 @@ const candidate = (title: string, form: string) => ({
 });
 
 describe("One-Touch server foundation", () => {
+  it("discards malformed advisory evidence and repairs temperature without bypassing direction safety", async () => {
+    const concepts = [
+      candidate("Roasted Lentil Skillet", "skillet"),
+      candidate("Lentil Stuffed Peppers", "stuffed pepper"),
+      candidate("Lentil Herb Wrap", "wrap"),
+    ].map((concept) => ({
+      ...concept,
+      dietaryEvidence: "a model claim, not verified evidence",
+      culinaryIdentity: { ...concept.culinaryIdentity, temperature: "ambient" },
+    }));
+    const validate = jest.fn(() => []);
+    const result = await generateOneTouchDirections({
+      occasion: "lunch",
+      history: [],
+      generate: async () => ({ concepts }),
+      validate,
+    });
+    expect(result.directions).toHaveLength(3);
+    expect(validate).toHaveBeenCalledTimes(3);
+    expect(result.directions.every((direction) => direction.dietaryEvidence.length === 0)).toBe(true);
+    expect(result.directions.every((direction) => direction.culinaryIdentity.temperature !== "ambient")).toBe(true);
+  });
+
   it("accepts only meal-level browser controls", () => {
     expect(oneTouchRequestSchema.safeParse({
       creator: "craving_creator",
