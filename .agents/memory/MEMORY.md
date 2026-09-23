@@ -22,6 +22,7 @@
 - [Professional context architecture](professional-context-architecture.md) — preserve the separation between personal and professional product worlds.
 - [Professional client-switch isolation](professional-client-switch-isolation.md) — route changes must hide stale client state and reject late responses from the prior client.
 - [Performance nutrition](performance-nutrition.md) — the MacroCalculator remains the always-live baseline beneath session modifiers.
+- [Nutrition Life Plan cache boundary](nutrition-life-plan-cache-boundary.md) — saved baseline targets and changing day context have distinct freshness; preserve self-summary authorization and weekday semantics.
 - [Shared resolver ownership](nutrition-resolver-ownership.md) — workflow pages resolve once and pass data into shared components.
 - [Production media delivery](production-image-differential-diagnosis.md) — diagnose image records on their exact saved-object path.
 - [Savory-side image recovery](savory-side-image-recovery.md) — ambiguous savory sides get bounded plated guidance and one strictly validated recovery attempt.
@@ -108,9 +109,12 @@
 - [My Perfect Menu context authority](my-perfect-menu-context-authority.md) — revalidate opaque per-category authority before selection; household boards use server-derived namespaces.
 - [My Perfect Menu builder authority](my-perfect-menu-builder-authority.md) — one server-resolved builder governs generation, board scope, cache events, and destination.
 - [My Perfect Menu stable choices](my-perfect-menu-stable-choices.md) — keep one stable set of three; Builders create meals and Favorites preserves them.
+- [My Perfect Menu restoration payloads](my-perfect-menu-restoration-payloads.md) — remount APIs must return full authoritative JSON and never treat transport failure as an empty set.
 - [Restrictive-diet generation contract](restrictive-diet-generation-contract.md) — generation and validation must share the same dietary universe; diversity stays inside it.
 - [Customer release identity](customer-release-identity.md) — build metadata stays separate; one explicit release ID owns notes, timestamp, comparison, and dismissal.
 - [Nutrition Priorities authority](nutrition-priorities-authority.md) — subject-owned optional food inclusion guidance enters HFC identity; release DDL stays explicitly gated.
 - [Culinary preference authority](culinary-preference-authority.md) — profile palate values guide generation; only explicit request sources may reject or repair a dish.
 - [Generated meal serving contract](generated-meal-serving-contract.md) — response nutrition is total-recipe; validators must normalize with the same requested serving count.
 - [Board meal media identity](board-meal-media-identity.md) — Weekly Board images retain canonical asset identity; URL shape alone never proves durable storage.
+- [One-Touch Creator authority](one-touch-creator-authority.md) — delegated choices require explicit diet authority and safety-equivalent checks; Menu stays separate from manual Creators.
+- [Vite-only feature gates in Jest](vite-feature-gates-jest.md) — isolate import.meta.env gates from request helpers so CommonJS Jest can test them.

@@ -132,7 +132,7 @@ export function setPerfSelectedDate(dateStr: string | null): void {
     localStorage.removeItem(LS_PERF_SELECTED_DATE);
   }
   clearResolvedTargetsCache();
-  window.dispatchEvent(new CustomEvent('mpm:targetsUpdated'));
+  window.dispatchEvent(new CustomEvent('mpm:targetsUpdated', { detail: { reason: 'performanceDate' } }));
 }
 
 function getPerformanceProtocolTargets(userId?: string): ResolvedTargets | null {

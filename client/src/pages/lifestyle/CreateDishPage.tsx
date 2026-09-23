@@ -92,6 +92,19 @@ import type {
   ValidatedCookingMethodId,
 } from "../../../../shared/createDishIngredientExpansion";
 import { ExpandIngredientResponseSchema } from "../../../../shared/createDishIngredientExpansion";
+import OneTouchCreateModal from "@/components/one-touch/OneTouchCreateModal";
+import { CreatorConceptCards } from "@/components/one-touch/CreatorConceptCards";
+import { CreatorMenuRestorationProgress } from "@/components/one-touch/CreatorMenuRestorationProgress";
+import { useCreatorConceptMenu } from "@/hooks/useCreatorConceptMenu";
+import {
+  ONE_TOUCH_CREATE_ENABLED,
+  cachedOneTouchNamesForMeal,
+  clearOneTouchBatch,
+  isCachedOneTouchBatch,
+  restoreOneTouchBatch,
+  type OneTouchCuisine,
+  type OneTouchEatingStyle,
+} from "@/lib/oneTouchCreate";
 
 interface StructuredIngredient {
   name: string;
@@ -547,6 +560,58 @@ export default function CreateDishPage() {
   const [cuisineOverrideEnabled, setCuisineOverrideEnabled] = useState(false);
   const [cuisineOverrideValue, setCuisineOverrideValue] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [oneTouchOpen, setOneTouchOpen] = useState(false);
+  const [oneTouchBusy, setOneTouchBusy] = useState(false);
+  const conceptMenu = useCreatorConceptMenu("create_a_dish", user?.id);
+  const [oneTouchLastRequest, setOneTouchLastRequest] = useState<{
+    servings: number;
+    cuisine: OneTouchCuisine;
+    eatingStyle: OneTouchEatingStyle;
+  } | null>(null);
+  const [oneTouchDisplayedOptions, setOneTouchDisplayedOptions] = useState<any[] | null>(null);
+  const [verifiedSingleBatch, setVerifiedSingleBatch] = useState<string | null>(null);
+  const optionNames = mealOptions.map((option) => String(option.name));
+  const isCachedBatch = isCachedOneTouchBatch("create_a_dish", optionNames);
+  const selectedBatchNames = isCachedBatch ? null :
+    cachedOneTouchNamesForMeal("create_a_dish", visibleMeals[0]?.name);
+  const cachedOneTouchNames = isCachedBatch ? optionNames : selectedBatchNames ?? [];
+  const unverifiedOneTouchOptions = (!ONE_TOUCH_CREATE_ENABLED && (isCachedBatch || selectedBatchNames !== null)) ||
+    (isCachedBatch && oneTouchDisplayedOptions !== mealOptions) ||
+    (selectedBatchNames !== null && verifiedSingleBatch !== `${user?.id}:${JSON.stringify(selectedBatchNames)}`);
+  useEffect(() => {
+    if (!unverifiedOneTouchOptions) return;
+    const controller = new AbortController();
+    const discard = () => {
+      clearOneTouchBatch("create_a_dish");
+      if (isCachedBatch) clearOptionsCache();
+      if (selectedBatchNames !== null) clearDishCache();
+      setOneTouchLastRequest(null);
+      setOneTouchDisplayedOptions(null);
+      setVerifiedSingleBatch(null);
+      if (isCachedBatch) setMealOptions([]);
+      if (selectedBatchNames !== null) {
+        setGeneratedMeals([]);
+        setSelectedDishId(null);
+      }
+    };
+    if (!ONE_TOUCH_CREATE_ENABLED) {
+      discard();
+      return;
+    }
+    if (!user?.id) return;
+    restoreOneTouchBatch("create_a_dish", user.id, cachedOneTouchNames, controller.signal)
+      .then((restored) => {
+        if (controller.signal.aborted) return;
+        if (!restored) discard();
+        else {
+          setOneTouchLastRequest(restored);
+          if (isCachedBatch) setOneTouchDisplayedOptions(mealOptions);
+          else setVerifiedSingleBatch(`${user.id}:${JSON.stringify(cachedOneTouchNames)}`);
+        }
+      })
+      .catch(() => { if (!controller.signal.aborted) discard(); });
+    return () => controller.abort();
+  }, [user?.id, mealOptions, visibleMeals[0]?.name, unverifiedOneTouchOptions]);
   const [stepsExpanded, setStepsExpanded] = useState<Record<string, boolean>>(
     {},
   );
@@ -564,6 +629,54 @@ export default function CreateDishPage() {
   const [acceptedExpansionSource, setAcceptedExpansionSource] = useState<string | null>(null);
   const [classificationComplete, setClassificationComplete] = useState(false);
   const [classifiedDishInput, setClassifiedDishInput] = useState("");
+
+  const handleOneTouchCreate = async (request: {
+    servings: number;
+    cuisine: OneTouchCuisine;
+    eatingStyle: OneTouchEatingStyle;
+  }) => {
+    setOneTouchOpen(false);
+    setOneTouchBusy(true);
+    setIsGenerating(true);
+    try {
+      await conceptMenu.generate(request);
+      setServings(request.servings);
+      setMealOptions([]);
+      clearOneTouchBatch("create_a_dish");
+      setOneTouchLastRequest(null);
+      setOneTouchDisplayedOptions(null);
+      setVerifiedSingleBatch(null);
+      setSelectedDishId(null);
+      setGeneratedMeals([]);
+      setOneTouchOpen(false);
+    } catch (error: any) {
+      toast({
+        title: "Couldn't create your ideas",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setOneTouchBusy(false);
+      setIsGenerating(false);
+    }
+  };
+
+  const handleOneTouchChoose = async (conceptId: string) => {
+    setIsPlatingMeal(true);
+    try {
+      const meal = await conceptMenu.choose<MealData>(conceptId);
+      setMealOptions([meal]);
+      setSelectedDishId(meal.id);
+      setGeneratedMeals([]);
+      setGeneratedInSession(true);
+      addRecentMeal(meal.name);
+      saveDishCache({ generatedMeal: meal, servings, generatedAtISO: new Date().toISOString() });
+    } catch (error: any) {
+      toast({ title: "Couldn't complete this idea", description: error?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setIsPlatingMeal(false);
+    }
+  };
 
   const expansionPolicy = () => {
     const mappedMethodId = COOK_METHOD_TO_EXPANSION_ID[cookMethod] ?? null;
@@ -1230,6 +1343,23 @@ export default function CreateDishPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {ONE_TOUCH_CREATE_ENABLED && (
+                    <div>
+                      {oneTouchBusy ? (
+                        <MealGenerationProgress active context="create-dish" mode="options" />
+                      ) : (
+                        <GlassButton
+                          type="button"
+                          data-testid="create-dish-one-touch-button"
+                          onClick={() => setOneTouchOpen(true)}
+                          disabled={isGenerating}
+                          className="w-full border border-orange-300/30 bg-orange-600/20 text-orange-100"
+                        >
+                          ✨ Create a Dish Menu
+                        </GlassButton>
+                      )}
+                    </div>
+                  )}
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-md font-medium text-white">
@@ -1631,7 +1761,7 @@ export default function CreateDishPage() {
                     </p>
                   </div>
 
-                  {isGenerating && (
+                  {isGenerating && !oneTouchBusy && (
                     <div className="flex justify-center mt-2">
                       <MealGenerationProgress
                         active={isGenerating}
@@ -1642,14 +1772,16 @@ export default function CreateDishPage() {
                   )}
 
                   {!isGenerating ? (
-                    <GlassButton
-                      onClick={() => handleGenerateDish()}
-                      disabled={isGenerating || starchBlocked}
-                      className="w-full bg-lime-600 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
-                    >
-                      <ChefHat className="h-4 w-4" />
-                      {"Create My Dish"}
-                    </GlassButton>
+                    <>
+                      <GlassButton
+                        onClick={() => handleGenerateDish()}
+                        disabled={isGenerating || starchBlocked}
+                        className="w-full bg-lime-600 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
+                      >
+                        <ChefHat className="h-4 w-4" />
+                        {"Create My Dish"}
+                      </GlassButton>
+                    </>
                   ) : null}
                     </>
                   )}
@@ -1658,6 +1790,14 @@ export default function CreateDishPage() {
             </div>
           </div>
 
+          {conceptMenu.restoring && !oneTouchBusy && !isPlatingMeal && selectedDishId === null && generatedMeals.length === 0 && (
+            <CreatorMenuRestorationProgress />
+          )}
+          {oneTouchBusy && (
+            <div className="mt-8 flex justify-center py-10" role="status" aria-label="Creating your Dish Menu">
+              <MealGenerationProgress active context="create-dish" mode="options" />
+            </div>
+          )}
           {isPlatingMeal && (
             <div className="mt-8 flex justify-center py-10">
               <MealGenerationProgress
@@ -1667,9 +1807,23 @@ export default function CreateDishPage() {
               />
             </div>
           )}
+          {!conceptMenu.restoring && !isPlatingMeal && selectedDishId === null && generatedMeals.length === 0 && (
+            <CreatorConceptCards
+              concepts={conceptMenu.concepts}
+              choosingId={conceptMenu.choosingId}
+              generating={conceptMenu.generating}
+              onChoose={(id) => void handleOneTouchChoose(id)}
+              onTryMore={() => { if (conceptMenu.choices) void handleOneTouchCreate(conceptMenu.choices); }}
+              onClear={() => {
+                conceptMenu.clear();
+                setMealOptions([]);
+                clearOptionsCache();
+              }}
+            />
+          )}
 
           {/* Initial picker — only shown before a meal has been selected */}
-          {!isPlatingMeal && mealOptions.length > 0 && selectedDishId === null && generatedMeals.length === 0 && (
+          {!conceptMenu.restoring && !unverifiedOneTouchOptions && !oneTouchBusy && !isPlatingMeal && conceptMenu.concepts.length === 0 && mealOptions.length > 0 && selectedDishId === null && generatedMeals.length === 0 && (
             <div className="mt-8 space-y-4" ref={mealOptionsRef}>
               <div className="flex items-center gap-3 mb-2">
                 <Sparkles className="h-5 w-5 text-orange-400" />
@@ -1727,6 +1881,16 @@ export default function CreateDishPage() {
                   </CardContent>
                 </Card>
               ))}
+              {ONE_TOUCH_CREATE_ENABLED && oneTouchLastRequest && oneTouchDisplayedOptions === mealOptions && (
+                <button
+                  type="button"
+                  disabled={oneTouchBusy}
+                  onClick={() => void handleOneTouchCreate(oneTouchLastRequest)}
+                  className="w-full min-h-11 rounded-xl border border-orange-400/40 bg-orange-400/10 px-4 text-sm font-bold text-orange-100 disabled:opacity-50"
+                >
+                  {oneTouchBusy ? "Creating more ideas…" : "Try 3 More"}
+                </button>
+              )}
               <button
                 onClick={() => {
                   setMealOptions([]);
@@ -1741,7 +1905,7 @@ export default function CreateDishPage() {
             </div>
           )}
 
-          {visibleMeals.length > 0 && (
+          {!unverifiedOneTouchOptions && visibleMeals.length > 0 && (
             <div className="mt-8 space-y-6">
               {visibleMeals.map((meal) => (
                 <div key={meal.id}>
@@ -2255,7 +2419,7 @@ export default function CreateDishPage() {
           )}
         </div>
 
-        {visibleMeals.length > 0 && generatedInSession && (
+        {!unverifiedOneTouchOptions && visibleMeals.length > 0 && generatedInSession && (
           <ShoppingAggregateBar
             ingredients={visibleMeals.flatMap((meal) =>
               meal.ingredients.map((ing: StructuredIngredient) => ({
@@ -2296,6 +2460,18 @@ export default function CreateDishPage() {
           setAllergyConflict(null);
         }}
       />
+      {ONE_TOUCH_CREATE_ENABLED && (
+        <OneTouchCreateModal
+          open={oneTouchOpen}
+          onOpenChange={setOneTouchOpen}
+          creator="create_a_dish"
+          defaultServings={servings}
+          savedCuisine={user?.cuisinePreference}
+          savedDiet={user?.dietaryRestrictions}
+          busy={oneTouchBusy}
+          onSubmit={handleOneTouchCreate}
+        />
+      )}
     </PhaseGate>
   );
 }

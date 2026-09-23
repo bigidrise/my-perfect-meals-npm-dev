@@ -46,6 +46,7 @@ export default function GeneralNutritionBuilderEntry() {
     try {
       await apiRequest("/api/performance/mode", { method: "PATCH", body: JSON.stringify({ enabled }) });
       await refreshUser();
+      window.dispatchEvent(new CustomEvent("mpm:conditionsUpdated"));
     } catch { /* silent — navigation proceeds regardless */ }
   }, [refreshUser]);
 

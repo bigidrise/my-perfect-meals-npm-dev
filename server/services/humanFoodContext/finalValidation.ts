@@ -3,6 +3,8 @@ import {
   HUMAN_FOOD_VALIDATOR_VERSION,
   type HumanFoodCandidate,
   type HumanFoodFinalValidationResult,
+  type HumanFoodRequirementKey,
+  type HumanFoodRequirementProof,
   type HumanFoodValidationFinding,
   type HumanFoodValidationOutcome,
 } from "../../../shared/humanFoodValidation";
@@ -33,6 +35,8 @@ export interface HumanFoodFinalValidationOptions {
   dishDirective?: DishAdaptationDirective | null;
   executionState?: HumanFoodRequestExecutionState;
   practicalWholeFoodAlternativeAvailable?: boolean;
+  /** Menu-only opt-in. Legacy callers retain their existing evidence interpretation. */
+  evidenceMode?: "legacy" | "exact";
 }
 
 const OUTCOME_RANK: Record<HumanFoodValidationOutcome, number> = {
@@ -78,6 +82,53 @@ const UNRESTRICTED_DIETARY_IDENTITIES = new Set(["omnivore"]);
 
 function normalize(value: unknown): string {
   return String(value ?? "").toLowerCase().replace(/[_-]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+const STRICT_DIET_SOURCES: Record<string, HumanFoodRequirementProof["source"]> = {
+  vegan: "ingredient_classifier",
+  vegetarian: "ingredient_classifier",
+  pescatarian: "ingredient_classifier",
+  carnivore: "ingredient_classifier",
+  diabetic: "diabetes_authority",
+  glp1: "glp1_authority",
+};
+
+function exactEvidenceResult(
+  evidence: HumanFoodCandidate["evidence"],
+  key: HumanFoodRequirementKey,
+  expectedSource: HumanFoodRequirementProof["source"] | undefined,
+): "pass" | "fail" | "review_required" {
+  const proof = evidence?.requirementEvidence?.[key];
+  // A keyed claim is not sufficient if its producer lacks authority for that
+  // requirement. Unsupported identities stay unsupported even if a caller
+  // supplies a purported PASS from a prompt or unrelated protocol scan.
+  if (!proof || !expectedSource || proof.source !== expectedSource) return "review_required";
+  if (expectedSource === "ingredient_classifier" && proof.nutritionBasis !== "not_applicable") {
+    return "review_required";
+  }
+  if (expectedSource === "diabetes_authority" || expectedSource === "glp1_authority") {
+    if (proof.nutritionBasis !== "model_estimate" && proof.nutritionBasis !== "verified") {
+      return "review_required";
+    }
+  }
+  return proof.status;
+}
+
+function addExactEvidenceFinding(
+  findings: HumanFoodValidationFinding[],
+  key: HumanFoodRequirementKey,
+  label: string,
+  dimension: "dietary_identity" | "clinical",
+  status: "pass" | "fail" | "review_required",
+): void {
+  if (status === "pass") return;
+  add(findings, {
+    dimension,
+    outcome: status === "fail" ? "blocked" : "review_required",
+    code: status === "fail" ? `requirement_noncompliant:${key}` : `requirement_evidence_required:${key}`,
+    message: `${label} requires evidence from its own authoritative check.`,
+    assurance: "structured_evidence",
+  });
 }
 
 function candidateText(candidate: HumanFoodCandidate): string {
@@ -279,7 +330,13 @@ export function validateHumanFoodCandidate(
       message: `The candidate conflicts with the effective ${diet} identity.`,
       assurance: "deterministic", matchedTerms: matched,
     });
-    if (requiresStructuredEvidence) {
+    if (options.evidenceMode === "exact" && !UNRESTRICTED_DIETARY_IDENTITIES.has(key)) {
+      const requirementKey = `dietary_identity:${key}` as const;
+      addExactEvidenceFinding(
+        findings, requirementKey, String(diet), "dietary_identity",
+        exactEvidenceResult(evidence, requirementKey, STRICT_DIET_SOURCES[key]),
+      );
+    } else if (requiresStructuredEvidence) {
       if (evidence.dietaryIdentityCompliant !== true) {
         add(findings, {
           dimension: "dietary_identity",
@@ -356,16 +413,25 @@ export function validateHumanFoodCandidate(
   }
 
   const conditions = context.safety.healthConditions.map(normalize);
-  const glp1Active = conditions.some((condition) => condition.includes("glp 1") || condition.includes("semaglutide") || condition.includes("tirzepatide"));
+  const glp1Active = conditions.some((condition) =>
+    condition.includes("glp 1") || condition.includes("semaglutide") ||
+    condition.includes("tirzepatide") || (options.evidenceMode === "exact" && condition.includes("glp1")));
   const diabetesActive = conditions.some((condition) => condition.includes("diabet"));
   const otherClinicalDirectives = conditions.filter((condition) =>
     !condition.includes("glp 1") &&
+    !(options.evidenceMode === "exact" && condition.includes("glp1")) &&
     !condition.includes("semaglutide") &&
     !condition.includes("tirzepatide") &&
     !condition.includes("diabet"),
   );
   if (otherClinicalDirectives.length > 0) {
-    if (evidence.clinicalDirectivesCompliant === false) add(findings, {
+    if (options.evidenceMode === "exact") {
+      for (const directive of otherClinicalDirectives) {
+        const requirementKey = `clinical:${directive}` as const;
+        addExactEvidenceFinding(findings, requirementKey, directive, "clinical",
+          exactEvidenceResult(evidence, requirementKey, undefined));
+      }
+    } else if (evidence.clinicalDirectivesCompliant === false) add(findings, {
       dimension: "clinical", outcome: "blocked", code: "clinical_directive_noncompliant",
       message: "Structured clinical evidence marks the candidate noncompliant with an active directive.",
       assurance: "structured_evidence",
@@ -377,7 +443,10 @@ export function validateHumanFoodCandidate(
     });
   }
   if (glp1Active) {
-    if (evidence.glp1Compliant === false) add(findings, {
+    if (options.evidenceMode === "exact") {
+      addExactEvidenceFinding(findings, "clinical:glp1", "GLP-1", "clinical",
+        exactEvidenceResult(evidence, "clinical:glp1", "glp1_authority"));
+    } else if (evidence.glp1Compliant === false) add(findings, {
       dimension: "clinical", outcome: "blocked", code: "glp1_noncompliant",
       message: "Structured clinical evidence marks the candidate GLP-1 noncompliant.",
       assurance: "structured_evidence",
@@ -389,7 +458,10 @@ export function validateHumanFoodCandidate(
     });
   }
   if (diabetesActive) {
-    if (evidence.diabetesCompliant === false) add(findings, {
+    if (options.evidenceMode === "exact") {
+      addExactEvidenceFinding(findings, "clinical:diabetes", "Diabetes", "clinical",
+        exactEvidenceResult(evidence, "clinical:diabetes", "diabetes_authority"));
+    } else if (evidence.diabetesCompliant === false) add(findings, {
       dimension: "clinical", outcome: "blocked", code: "diabetes_noncompliant",
       message: "Structured clinical evidence marks the candidate diabetes-noncompliant.",
       assurance: "structured_evidence",

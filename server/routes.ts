@@ -167,6 +167,7 @@ import { scaleIngredientQuantity } from "./services/servingScaling";
 import foodsIEnjoyRouter, { householdFoodsIEnjoyRouter } from "./routes/foodsIEnjoy";
 import nutritionPrioritiesRouter from "./routes/nutritionPriorities";
 import myPerfectMenuRouter from "./routes/myPerfectMenu";
+import oneTouchCreateRouter from "./routes/oneTouchCreate";
 
 function normalizeFitnessGoal(value?: string | null): string | null {
   switch (value) {
@@ -5861,7 +5862,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/meals/craving-creator", async (req, res) => {
+  const cravingCreatorHandler = async (req: any, res: any) => {
     // An advisory acknowledgement is a one-action authorization. Keep it reserved
     // until this request has actually fulfilled, so a transient context/generation
     // failure does not make the user repeat the acknowledgement.
@@ -5925,14 +5926,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: "Authentication is required to resolve food context.",
         });
       }
+      const { getOneTouchDiet } = await import("./services/oneTouch/internalRequest");
+      const { withOneTouchDiet, mutableProfileStyles } = await import("./services/oneTouch/dietAuthority");
+      const delegatedDiet = getOneTouchDiet(req);
       let requestDietOverride =
         humanFoodCreator === "create_a_dish"
-          ? null
-          : typeof dietOverride === "string"
-            ? dietOverride
-            : typeof dietaryRestrictions === "string"
-              ? dietaryRestrictions
-              : null;
+          ? delegatedDiet
+          : delegatedDiet ??
+            (typeof dietOverride === "string"
+              ? dietOverride
+              : typeof dietaryRestrictions === "string"
+                ? dietaryRestrictions
+                : null);
       const { createHumanFoodRequestScope } = await import("./services/humanFoodContext/requestScope");
       const { buildCreatorHumanFoodPrompt } = await import("./services/humanFoodContext/adapters");
       const {
@@ -6063,9 +6068,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // ── Load protocol envelope (single DB query — drives all enforcement) ──
-      const protocolEnvelope = userId
+      const profileProtocolEnvelope = userId
         ? (await loadUserProtocolEnvelope(userId)) ?? buildGuestEnvelope()
         : buildGuestEnvelope();
+      // A delegated choice replaces only the primary dietary preference for
+      // this invocation. Never change the saved envelope, allergies, medical
+      // limits, avoidances, or the manual Creator's existing behavior.
+      const protocolEnvelope = withOneTouchDiet(profileProtocolEnvelope, delegatedDiet);
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       let dietAdapted = false;
@@ -6082,7 +6091,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           safetyMode: safetyMode || "STRICT",
           overrideToken: overrideToken,
           ignoredAvoidances: _overriddenAvoidances,
-          ignoredDietaryRestrictions: _overriddenDietaryIdentities,
+          ignoredDietaryRestrictions: delegatedDiet
+            ? [..._overriddenDietaryIdentities, ...mutableProfileStyles(profileProtocolEnvelope)]
+            : _overriddenDietaryIdentities,
           correlationId: (req as any).id
         });
         if (safetyCheck.result === "BLOCKED") {
@@ -6559,11 +6570,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // dietaryRestrictions — not just the explicit dietOverride body field.
       const _overrideDietActive =
         _authorizedDietaryIdentityOverride ||
+        Boolean(delegatedDiet) ||
         (_resolvedPrimaryDiet.length > 0 && humanFoodCreator !== "create_a_dish" && (dietOverride || dietaryRestrictions));
       const _filterDietaryIdentity = _resolvedPrimaryDiet;
-      const _filterEnvelope = _overrideDietActive
-        ? { ...protocolEnvelope, dietaryIdentity: _filterDietaryIdentity, procedural: deriveProcedureRules(_filterDietaryIdentity) }
-        : protocolEnvelope;
+      const _filterEnvelope = delegatedDiet
+        ? protocolEnvelope
+        : _overrideDietActive
+          ? { ...protocolEnvelope, dietaryIdentity: _filterDietaryIdentity, procedural: deriveProcedureRules(_filterDietaryIdentity) }
+          : protocolEnvelope;
       const _identityResults: Array<{ mealName: string; result: import("./services/dishAdaptation/types").DishIdentityResult }> = [];
       // ── ALLERGEN_ADAPT requested-dish exemption (computed once, used by BOTH
       // the universal protocol filter below AND the Phase 3 scan) ─────────────
@@ -6615,7 +6629,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // diet — not the profile's stored diet. Same replacement semantics as generation.
         // Use _overrideDietActive (already computed) so this stays in sync with _filterEnvelope.
         const _fallbackDietIdentity = _overrideDietActive
-          ? _filterDietaryIdentity
+          ? _filterEnvelope.dietaryIdentity
           : protocolEnvelope.dietaryIdentity;
         const fallbackMeal = await generateSingleCompliantFallback(
           cravingInput || "something delicious",
@@ -7116,6 +7130,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // A bounded intent repair can still leave no candidates. This is not a
+      // post-format validation failure (there is no failed meal to inspect).
+      if (scannedOptions.length === 0) {
+        return res.status(422).json({
+          status: "unable_to_generate",
+          reasonCode: validatedCreateDishIntent
+            ? "create_dish_intent_not_preserved"
+            : "no_candidates_survived",
+          retryable: true,
+          message: validatedCreateDishIntent
+            ? "We couldn't preserve the requested dish and preparation safely. Try another description or preparation."
+            : "We couldn't produce a meal that passed your food protections. Please try another request.",
+        });
+      }
+
       // Format and optionally scale each option. The response nutrition object
       // represents total recipe nutrition for validatedServings; canonical
       // person-specific validation converts it back to per-serving nutrition.
@@ -7376,7 +7405,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
     }
-  });
+  };
+  app.post("/api/meals/craving-creator", cravingCreatorHandler);
+  app.use("/api/one-touch-create", oneTouchCreateRouter());
 
   // NEW: Onboarding-enforced meal generation routes
   app.post("/api/meals/craving-creator-enforced", async (req, res) => {

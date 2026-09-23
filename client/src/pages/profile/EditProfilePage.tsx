@@ -636,7 +636,7 @@ export default function EditProfilePage() {
       }
 
       await refreshUser?.();
-      window.dispatchEvent(new CustomEvent("mpm:dietaryUpdated"));
+      window.dispatchEvent(new CustomEvent("mpm:dietaryUpdated")); window.dispatchEvent(new CustomEvent("mpm:conditionsUpdated"));
       queryClient.invalidateQueries({ queryKey: ["nutrition-summary"] });
 
       toast({

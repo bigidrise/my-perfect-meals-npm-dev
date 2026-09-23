@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { Router } from "express";
+import { Router, type NextFunction, type Request, type Response } from "express";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "../db";
@@ -23,8 +23,6 @@ import { resolveUserGlucoseState } from "../services/glucoseStateResolver";
 import { foodsIEnjoyDocumentSchema } from "@shared/foodsIEnjoy";
 import {
   buildCulinaryFingerprint,
-  hasMeaningfulCulinaryRepetition,
-  selectCulinarilyBroadConcepts,
   type CulinaryConceptInput,
 } from "@shared/culinaryIdentity";
 import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
@@ -45,13 +43,11 @@ import {
   buildGLP1RecommendationBlock,
   resolveGLP1GlobalContext,
 } from "../services/glp1/resolveGLP1GlobalContext";
-import { chatJson } from "../utils/openaiSafe";
 import { buildDietPromptBlock } from "../services/allergyGuardrails";
 import {
   cuisineLabelsCompatible,
-  parseGeneratedMenuCandidates,
-  rejectionCategoryCounts,
 } from "../services/myPerfectMenu/generationContract";
+import { generateCulinaryConcepts } from "../services/myPerfectMenu/culinaryConceptEngine";
 import {
   resolveMyPerfectMenuBuilderForActor,
   MyPerfectMenuBuilderError,
@@ -62,6 +58,26 @@ import { issuePerformanceAuthorityToken } from "../services/myPerfectMenu/perfor
 
 const router = Router();
 const categorySchema = myPerfectMenuCategorySchema;
+
+/**
+ * Restoration requests repopulate empty in-memory page state and therefore
+ * require a complete JSON body on every remount. Remove conditional validators
+ * narrowly for these routes so Express cannot convert the response to a
+ * bodyless 304, including for clients with an older cached representation.
+ */
+export function requireFullMyPerfectMenuRestorationPayload(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
+  delete req.headers["if-none-match"];
+  delete req.headers["if-modified-since"];
+  res.setHeader("Cache-Control", "private, no-store, no-cache, max-age=0, must-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  res.setHeader("Surrogate-Control", "no-store");
+  next();
+}
 
 const subjectSchema = z.object({
   subjectUserId: z.string().uuid().optional(),
@@ -142,7 +158,7 @@ export function effectiveBuilderForTarget(
     : builder;
 }
 
-router.get("/effective-builder", requireAuth, async (req, res) => {
+router.get("/effective-builder", requireAuth, requireFullMyPerfectMenuRestorationPayload, async (req, res) => {
   const parsed = subjectSchema.pick({
     subjectUserId: true,
     requestedBuilderKey: true,
@@ -360,7 +376,7 @@ function conceptViolations(
   return violations;
 }
 
-router.get("/concepts", requireAuth, async (req, res) => {
+router.get("/concepts", requireAuth, requireFullMyPerfectMenuRestorationPayload, async (req, res) => {
   const parsed = subjectSchema.safeParse(req.query);
   if (!parsed.success) return res.status(400).json({ error: "Invalid food profile." });
   const actorUserId = String((req as AuthenticatedRequest).authUser.id);
@@ -630,114 +646,31 @@ router.post("/concepts", requireAuth, async (req, res) => {
     const requiredCuisine = context.flavor.cuisine.available ? context.flavor.cuisine.value : null;
     const dietBlock = buildDietPromptBlock(context.diet.effective);
     const occasion = parsed.data.ideaType as MyPerfectMenuCategory;
-    const candidatePool: GovernedMenuConcept[] = [];
-    const rejectedReasons: string[] = [];
-    let accepted: GovernedMenuConcept[] = [];
     const recentCulinaryHistory = stored.recentCulinaryFingerprints.filter(
       (item) => item.occasion === occasion,
     );
-    const recentPatternSummary = recentCulinaryHistory
-      .slice(0, 48)
-      .map((item) => [
-        item.dishForm,
-        item.preparationStyle,
-        item.majorStarchBase || item.primaryProteinBase || "none",
-        item.flavorFamily,
-        item.texture || "unspecified",
-        item.temperature || "unspecified",
-      ].join("|"));
-
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      const generatedRaw = await chatJson({
-        temperature: attempt === 0 ? 0.55 : 0.7,
-        system: [
-          "You create lightweight, fully personalized menu concepts for My Perfect Meals.",
-          "Return JSON only with: {\"concepts\":[{\"title\":\"\",\"description\":\"\",\"primaryIngredients\":[\"\"],\"primaryProtein\":null,\"produceItems\":[],\"cuisine\":\"\",\"dietaryEvidence\":[],\"preparationMethod\":\"\",\"signature\":\"\",\"culinaryIdentity\":{\"dishForm\":\"\",\"preparationStyle\":\"\",\"texture\":\"\",\"temperature\":\"hot|warm|room_temperature|chilled|frozen\",\"primaryProteinBase\":null,\"majorStarchBase\":null,\"flavorFamily\":\"\",\"cuisineEvidence\":\"\",\"definingComponents\":[\"\"]},\"foodIdentity\":{\"foodRole\":\"dessert|general_snack\",\"polarity\":\"sweet|savory|neutral\",\"formatFamily\":\"cookie|brownie|cake|cupcake|cheesecake|pudding_custard|frozen_dessert|bar|muffin|pie|no_bake_dessert|pastry|confection|general_sweet|general_snack\",\"preparationStyle\":\"baked|frozen|chilled|no_bake|prepared|raw\",\"texture\":\"creamy|crunchy|chewy|soft|crisp|smooth|mixed\"}}]}",
-          "Return 3 to 6 candidates. They are concepts, not recipes: no quantities, instructions, nutrition numbers, medical claims, or images.",
-          "primaryIngredients must name every meaningful food needed to validate the concept.",
-          "signature must be a compact normalized dish-format + protein + method identity.",
-          "Include culinaryIdentity for every candidate. It describes the food and supports recommendation breadth; it is not a health or nutrition rule.",
-          "Treat changing only the protein, adjective, or cuisine label on an otherwise identical bowl, salad, wrap, plate, or other structure as substantial similarity.",
-          "Explore meaningfully different dish forms, bases, preparations, flavors, textures, and temperatures when they fit the person. Do not use quotas or force every dimension to differ.",
-          "Do not default to generic healthy-food templates such as bowls, salads, grilled protein with vegetables, yogurt, oatmeal, or wraps.",
-          "Every candidate must obey the supplied authoritative context and protocol guidance.",
-          requiredCuisine
-            ? `Cuisine requirement: every candidate must be recognizably ${requiredCuisine}; adapt that cuisine to higher-priority requirements rather than changing cuisines.`
-            : "Use the resolved cuisine guidance when available.",
-          "Foods I Enjoy and learned preferences improve ranking but never override protections.",
-          parsed.data.ideaType === "snack"
-            ? "SNACK DEFINITION: snack is an eating occasion, not a narrow food category. Dessert is a normal possible snack family alongside savory, fruit-based, baked, chilled/frozen, dairy or dairy-alternative, grain-based, and protein-oriented foods. Rank styles from this person's context and recent variety. Do not force a dessert or any sweet/savory quota."
-            : "",
-          parsed.data.ideaType === "snack"
-            ? "For snack candidates, include foodIdentity. Use it for personalization and diversity only, never as a safety or nutrition rule. Do not define appropriateness by a universal calorie range, protein target, fiber target, or artificially tiny portion."
-            : "",
-        ].join("\n"),
-        user: [
-          buildCreatorHumanFoodPrompt("my_perfect_menu", context, scope.executionState),
-          dietBlock,
-          protocolBlock,
-          glp1Block,
-          performance
-            ? `PERFORMANCE AUTHORITY (server-resolved): date=${performance.dateISO}; meal slot=${performance.slot}; session=${performance.sessionType ?? "unscheduled"}; track=${performance.performanceTrack ?? "athletic"}; demand=${JSON.stringify(performance.demand)}; nutrition=${JSON.stringify(performance.nutrition)}. Honor this authority. Zero starch means no starchy foods, not zero total carbohydrates.`
-            : "",
-          `Create ${parsed.data.ideaType} concepts for ${target.label ?? "the person being fed"}.`,
-          `Previously shown signatures to avoid immediately: ${[...priorSignatures].join(", ") || "none"}.`,
-          `Recent culinary patterns to move beyond when appropriate: ${recentPatternSummary.join(", ") || "none"}.`,
-          rejectedReasons.length
-            ? `Repair only the missing ${Math.max(0, 3 - candidatePool.length)} position(s). Prior rejection categories: ${Object.keys(rejectionCategoryCounts(rejectedReasons)).join(", ")}. Keep every authoritative constraint above.`
-            : "",
-          candidatePool.length
-            ? `${candidatePool.length} governed candidate(s) are already retained. Generate replacements for missing positions only; broaden compliant culinary structures without changing the person's context or cuisine.`
-            : "",
-          "Vary dish format, primary protein, preparation method, flavor profile, and—when relevant—food identity dimensions without overriding the person's preferences.",
-        ].filter(Boolean).join("\n\n"),
-      });
-      const generated = parseGeneratedMenuCandidates(generatedRaw, parsed.data.ideaType);
-      rejectedReasons.push(...generated.rejectionCodes);
-
-      for (const candidate of generated.candidates) {
-        const signature = normalize(candidate.signature);
-        if (
-          priorSignatures.has(signature) ||
-          candidatePool.some((item) => normalize(item.signature) === signature)
-        ) continue;
-        const violations = conceptViolations(candidate, context, envelope, requiredCuisine);
-        if (violations.length) {
-          rejectedReasons.push(...violations);
-          continue;
-        }
-        candidatePool.push({
-          ...candidate,
-          id: randomUUID(),
-          ideaType: parsed.data.ideaType,
-        } as GovernedMenuConcept);
-      }
-
-      accepted = selectCulinarilyBroadConcepts(
-        candidatePool,
-        occasion,
-        recentCulinaryHistory,
-        3,
-      );
-      if (accepted.length === 3 && !hasMeaningfulCulinaryRepetition(accepted, occasion)) break;
-    }
-
-    if (accepted.length !== 3) {
-      const rejectionCounts = rejectionCategoryCounts(rejectedReasons);
-      console.warn("[my-perfect-menu] governed concept repair exhausted", {
-        ideaType: parsed.data.ideaType,
-        subjectKind: target.kind,
-        acceptedCount: accepted.length,
-        missingCount: 3 - accepted.length,
-        rejectionCounts,
-      });
-      return res.status(422).json({
-        error: "We couldn't find three choices that fit all of your current food needs. Your settings were kept unchanged. Please try again.",
-        code: "CONCEPT_REPAIR_EXHAUSTED",
-      });
-    }
-
-    const concepts = accepted.slice(0, 3);
+    const generated = await generateCulinaryConcepts({
+      occasion,
+      subjectLabel: target.label ?? "the person being fed",
+      requiredCuisine,
+      history: recentCulinaryHistory,
+      priorSignatures: [...priorSignatures],
+      userContext: [
+        buildCreatorHumanFoodPrompt("my_perfect_menu", context, scope.executionState),
+        dietBlock,
+        protocolBlock,
+        glp1Block,
+        performance
+          ? `PERFORMANCE AUTHORITY (server-resolved): date=${performance.dateISO}; meal slot=${performance.slot}; session=${performance.sessionType ?? "unscheduled"}; track=${performance.performanceTrack ?? "athletic"}; demand=${JSON.stringify(performance.demand)}; nutrition=${JSON.stringify(performance.nutrition)}. Honor this authority. Zero starch means no starchy foods, not zero total carbohydrates.`
+          : "",
+      ],
+      validate: (concept) => conceptViolations(concept, context, envelope, requiredCuisine),
+    });
+    const concepts: GovernedMenuConcept[] = generated.concepts.map((concept) => ({
+      ...concept,
+      id: randomUUID(),
+      ideaType: parsed.data.ideaType,
+    }));
     const stamp = await currentStamp(actorUserId, target, parsed.data.ideaType, context, envelope, target.kind === "user" ? await resolveGLP1GlobalContext(actorUserId, parsed.data.destinationDate ?? new Date().toISOString().slice(0, 10), parsed.data.ideaType) : null, builder, parsed.data.destinationDate, parsed.data.mealSlot);
     await mutatePreferences(actorUserId, target, (current) => ({
       version: 1,
@@ -757,6 +690,11 @@ router.post("/concepts", requireAuth, async (req, res) => {
     return res.json({ concepts, subject: { id: target.id, label: target.label }, builder });
   } catch (error) {
     await scope.releaseAuthorization().catch(() => {});
+    if (error instanceof Error && "code" in error &&
+      typeof error.code === "string" && error.code.startsWith("CONCEPT_") &&
+      "status" in error && typeof error.status === "number") {
+      return res.status(error.status).json({ error: error.message, code: error.code });
+    }
     console.error("[my-perfect-menu] concept generation failed", error);
     return res.status(500).json({
       error: "We couldn't create your menu ideas right now. Please try again.",

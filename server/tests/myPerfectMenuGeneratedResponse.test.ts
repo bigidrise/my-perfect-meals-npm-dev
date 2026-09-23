@@ -86,6 +86,81 @@ describe("My Perfect Menu generated response normalization", () => {
     ]));
   });
 
+  it("repairs safely reconstructable metadata without changing the dish", () => {
+    const parsed = parseGeneratedMenuCandidates({
+      concepts: [{
+        title: "Skillet Eggs with Tomatoes",
+        description: "Eggs cooked with tomatoes, spinach, and herbs.",
+        primaryIngredients: ["eggs", "tomatoes", "spinach", "herbs"],
+        primaryProtein: "eggs",
+        produceItems: ["tomatoes", "spinach"],
+        cuisine: "Mediterranean",
+        preparationMethod: "skillet cooked",
+      }],
+    }, "breakfast");
+
+    expect(parsed.rejectionCodes).toEqual([]);
+    expect(parsed.metadataRepairCount).toBe(1);
+    expect(parsed.candidates[0]).toEqual(expect.objectContaining({
+      title: "Skillet Eggs with Tomatoes",
+      primaryIngredients: ["eggs", "tomatoes", "spinach", "herbs"],
+      dietaryEvidence: [],
+      signature: expect.stringContaining("Skillet Eggs with Tomatoes"),
+      culinaryIdentity: expect.objectContaining({
+        preparationStyle: "skillet cooked",
+        primaryProteinBase: "eggs",
+        cuisineEvidence: "Mediterranean",
+      }),
+    }));
+  });
+
+  it("discards malformed advisory evidence and repairs representation-only temperature", () => {
+    const parsed = parseGeneratedMenuCandidates({
+      concepts: [{
+        title: "Roasted Lentil Skillet",
+        description: "Lentils with tomatoes and herbs.",
+        primaryIngredients: ["lentils", "tomatoes", "herbs"],
+        primaryProtein: "lentils",
+        produceItems: ["tomatoes"],
+        cuisine: "Mediterranean",
+        dietaryEvidence: { claim: "vegan" },
+        preparationMethod: "roasted",
+        signature: "lentils|skillet|roasted",
+        culinaryIdentity: {
+          dishForm: "skillet",
+          preparationStyle: "roasted",
+          temperature: "ambient",
+          primaryProteinBase: "lentils",
+          majorStarchBase: null,
+          flavorFamily: "herbs",
+          cuisineEvidence: "Mediterranean",
+          definingComponents: ["lentils", "tomatoes"],
+        },
+      }],
+    }, "lunch");
+    expect(parsed.candidates).toHaveLength(1);
+    expect(parsed.candidates[0].dietaryEvidence).toEqual([]);
+    expect(parsed.candidates[0].culinaryIdentity.temperature).not.toBe("ambient");
+    expect(parsed.candidates[0].primaryIngredients).toEqual(["lentils", "tomatoes", "herbs"]);
+  });
+
+  it("does not rescue a candidate whose actual food description is incomplete", () => {
+    const parsed = parseGeneratedMenuCandidates({
+      concepts: [{
+        title: "Mystery Breakfast",
+        description: "A breakfast idea.",
+        primaryIngredients: ["eggs"],
+        cuisine: "American",
+        preparationMethod: "cooked",
+      }],
+    }, "breakfast");
+
+    expect(parsed.candidates).toEqual([]);
+    expect(parsed.rejectionCodes).toEqual(expect.arrayContaining([
+      expect.stringContaining("schema_metadata_failure"),
+    ]));
+  });
+
   it("accepts syntactic cuisine-label variants without weakening cuisine identity", () => {
     expect(cuisineLabelsCompatible("Italian-inspired cuisine", "Italian")).toBe(true);
     expect(cuisineLabelsCompatible("Traditional Japanese cooking", "Japanese cuisine")).toBe(true);

@@ -146,6 +146,21 @@ import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import { safeLocalStorageSet, safeLocalStorageGetArray } from "@/lib/safeLocalStorage";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { captureAuthoritativeTextValue, commitTextInputValue } from "@/lib/authoritativeTextInput";
+import OneTouchCreateModal from "@/components/one-touch/OneTouchCreateModal";
+import { CreatorConceptCards } from "@/components/one-touch/CreatorConceptCards";
+import { CreatorMenuRestorationProgress } from "@/components/one-touch/CreatorMenuRestorationProgress";
+import { useCreatorConceptMenu } from "@/hooks/useCreatorConceptMenu";
+import {
+  ONE_TOUCH_CREATE_ENABLED,
+  cachedOneTouchNamesForMeal,
+  clearOneTouchBatch,
+  isCachedOneTouchBatch,
+  restoreOneTouchBatch,
+  type OneTouchCuisine,
+  type OneTouchEatingStyle,
+  type OneTouchCravingType,
+  type OneTouchCravingFeel,
+} from "@/lib/oneTouchCreate";
 
 // ---- Persist the generated meal so it never "disappears" ----
 const CACHE_KEY = "cravingCreator.cache.v1";
@@ -479,6 +494,57 @@ export default function CravingCreator() {
 
   // 🔥 SIMPLIFIED: Use same pattern as Fridge Rescue (working system)
   const [isGenerating, setIsGenerating] = useState(false);
+  const [oneTouchOpen, setOneTouchOpen] = useState(false);
+  const [oneTouchBusy, setOneTouchBusy] = useState(false);
+  const conceptMenu = useCreatorConceptMenu("craving_creator", user?.id);
+  const [oneTouchLastRequest, setOneTouchLastRequest] = useState<{
+    servings: number;
+    cuisine: OneTouchCuisine;
+    eatingStyle: OneTouchEatingStyle;
+    cravingType?: OneTouchCravingType;
+    cravingFeel?: OneTouchCravingFeel;
+  } | null>(null);
+  const [oneTouchDisplayedOptions, setOneTouchDisplayedOptions] = useState<MealData[] | null>(null);
+  const [verifiedSingleBatch, setVerifiedSingleBatch] = useState<string | null>(null);
+  const optionNames = mealOptions.map((option) => String(option.name));
+  const isCachedBatch = isCachedOneTouchBatch("craving_creator", optionNames);
+  const selectedBatchNames = isCachedBatch ? null :
+    cachedOneTouchNamesForMeal("craving_creator", generatedMeals[0]?.name);
+  const cachedOneTouchNames = isCachedBatch ? optionNames : selectedBatchNames ?? [];
+  const unverifiedOneTouchOptions = (!ONE_TOUCH_CREATE_ENABLED && (isCachedBatch || selectedBatchNames !== null)) ||
+    (isCachedBatch && oneTouchDisplayedOptions !== mealOptions) ||
+    (selectedBatchNames !== null && verifiedSingleBatch !== `${user?.id}:${JSON.stringify(selectedBatchNames)}`);
+  useEffect(() => {
+    if (!unverifiedOneTouchOptions) return;
+    const controller = new AbortController();
+    const discard = () => {
+      clearOneTouchBatch("craving_creator");
+      if (isCachedBatch) clearCravingOptionsCache();
+      if (selectedBatchNames !== null) clearCravingCache();
+      setOneTouchLastRequest(null);
+      setOneTouchDisplayedOptions(null);
+      setVerifiedSingleBatch(null);
+      if (isCachedBatch) setMealOptions([]);
+      if (selectedBatchNames !== null) setGeneratedMeals([]);
+    };
+    if (!ONE_TOUCH_CREATE_ENABLED) {
+      discard();
+      return;
+    }
+    if (!user?.id) return;
+    restoreOneTouchBatch("craving_creator", user.id, cachedOneTouchNames, controller.signal)
+      .then((restored) => {
+        if (controller.signal.aborted) return;
+        if (!restored) discard();
+        else {
+          setOneTouchLastRequest(restored);
+          if (isCachedBatch) setOneTouchDisplayedOptions(mealOptions);
+          else setVerifiedSingleBatch(`${user.id}:${JSON.stringify(cachedOneTouchNames)}`);
+        }
+      })
+      .catch(() => { if (!controller.signal.aborted) discard(); });
+    return () => controller.abort();
+  }, [user?.id, mealOptions, generatedMeals[0]?.name, unverifiedOneTouchOptions]);
 
   // Safety override integration - always starts ON, auto-resets after generation
   const [safetyEnabled, setSafetyEnabled] = useState(true);
@@ -487,6 +553,56 @@ export default function CravingCreator() {
   const [flavorPersonal, setFlavorPersonal] = useState(true);
   const [keepItSimple, setKeepItSimple] = useState(false);
   const [cookMethod, setCookMethod] = useState("");
+
+  const handleOneTouchCreate = async (request: {
+    servings: number;
+    cuisine: OneTouchCuisine;
+    eatingStyle: OneTouchEatingStyle;
+    cravingType?: OneTouchCravingType;
+    cravingFeel?: OneTouchCravingFeel;
+  }) => {
+    setOneTouchOpen(false);
+    setOneTouchBusy(true);
+    setIsGenerating(true);
+    try {
+      await conceptMenu.generate(request);
+      setServings(request.servings);
+      setMealOptions([]);
+      clearOneTouchBatch("craving_creator");
+      setOneTouchLastRequest(null);
+      setOneTouchDisplayedOptions(null);
+      setVerifiedSingleBatch(null);
+      setGeneratedMeals([]);
+      setOneTouchOpen(false);
+    } catch (error: any) {
+      toast({
+        title: "Couldn't create your ideas",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setOneTouchBusy(false);
+      setIsGenerating(false);
+    }
+  };
+
+  const handleOneTouchChoose = async (conceptId: string) => {
+    setIsPlatingMeal(true);
+    try {
+      const meal = await conceptMenu.choose<MealData>(conceptId);
+      setMealOptions([]);
+      setGeneratedMeals([meal]);
+      addRecentMeal(meal.name);
+      saveCravingCache({
+        generatedMeal: meal, craving: cravingInput, servings,
+        mealType: "snacks", generatedAtISO: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      toast({ title: "Couldn't complete this idea", description: error?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setIsPlatingMeal(false);
+    }
+  };
   // Generation mode is now auto-routed server-side based on the dish name.
   // Culinary-ratio-sensitive dishes (bread, cake, cheesecake, pasta, etc.) automatically
   // use the recipe engine; everything else uses the nutrition-first meal engine.
@@ -1028,6 +1144,23 @@ export default function CravingCreator() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
+                  {ONE_TOUCH_CREATE_ENABLED && (
+                    <div>
+                      {oneTouchBusy ? (
+                        <MealGenerationProgress active context="snack" mode="options" />
+                      ) : (
+                        <GlassButton
+                          type="button"
+                          data-testid="cravingcreator-one-touch-button"
+                          onClick={() => setOneTouchOpen(true)}
+                          disabled={isGenerating}
+                          className="w-full border border-orange-300/30 bg-orange-600/20 text-orange-100"
+                        >
+                          ✨ Craving Menu
+                        </GlassButton>
+                      )}
+                    </div>
+                  )}
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-md font-medium text-white">
@@ -1317,7 +1450,7 @@ export default function CravingCreator() {
                     </p>
                   </div>
 
-                  {isGenerating ? (
+                  {isGenerating ? (oneTouchBusy ? null : (
                     <div className="max-w-md mx-auto mb-4 flex justify-center">
                       <MealGenerationProgress
                         active={isGenerating}
@@ -1325,18 +1458,20 @@ export default function CravingCreator() {
                         mode="options"
                       />
                     </div>
-                  ) : (
-                    <GlassButton
-                      data-testid="cravingcreator-create-button"
-                      data-wt="cc-generate-button"
-                      onClick={() => handleGenerateMeal()}
-                      disabled={isGenerating || safetyChecking || starchBlocked}
-                      className="w-full bg-lime-600 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
-                    >
-                      {safetyChecking
-                        ? t("checkingSafety")
-                        : t("createBtn")}
-                    </GlassButton>
+                  )) : (
+                    <>
+                      <GlassButton
+                        data-testid="cravingcreator-create-button"
+                        data-wt="cc-generate-button"
+                        onClick={() => handleGenerateMeal()}
+                        disabled={isGenerating || safetyChecking || starchBlocked}
+                        className="w-full bg-lime-600 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
+                      >
+                        {safetyChecking
+                          ? t("checkingSafety")
+                          : t("createBtn")}
+                      </GlassButton>
+                    </>
                   )}
 
                   {/* Dish Identity Failure — persistent inline alert */}
@@ -1389,6 +1524,14 @@ export default function CravingCreator() {
           </div>
 
           {/* 🎲 Variety Engine: Meal Options Panel */}
+          {conceptMenu.restoring && !oneTouchBusy && !isPlatingMeal && generatedMeals.length === 0 && (
+            <CreatorMenuRestorationProgress />
+          )}
+          {oneTouchBusy && (
+            <div className="mt-8 flex justify-center py-10" role="status" aria-label="Creating your Craving Menu">
+              <MealGenerationProgress active context="snack" mode="options" />
+            </div>
+          )}
           {isPlatingMeal && (
             <div className="mt-8 flex justify-center py-10">
               <MealGenerationProgress
@@ -1398,9 +1541,23 @@ export default function CravingCreator() {
               />
             </div>
           )}
+          {!conceptMenu.restoring && !isPlatingMeal && generatedMeals.length === 0 && (
+            <CreatorConceptCards
+              concepts={conceptMenu.concepts}
+              choosingId={conceptMenu.choosingId}
+              generating={conceptMenu.generating}
+              onChoose={(id) => void handleOneTouchChoose(id)}
+              onTryMore={() => { if (conceptMenu.choices) void handleOneTouchCreate(conceptMenu.choices); }}
+              onClear={() => {
+                conceptMenu.clear();
+                setMealOptions([]);
+                clearCravingOptionsCache();
+              }}
+            />
+          )}
 
           {/* Initial picker — only shown before a meal has been selected */}
-          {!isPlatingMeal && mealOptions.length > 0 && generatedMeals.length === 0 && (
+          {!conceptMenu.restoring && !unverifiedOneTouchOptions && !oneTouchBusy && !isPlatingMeal && conceptMenu.concepts.length === 0 && mealOptions.length > 0 && generatedMeals.length === 0 && (
             <div className="mt-8 space-y-4">
               <div className="flex items-center gap-3 mb-2">
                 <Sparkles className="h-5 w-5 text-yellow-500" />
@@ -1435,6 +1592,16 @@ export default function CravingCreator() {
                   </CardContent>
                 </Card>
               ))}
+              {ONE_TOUCH_CREATE_ENABLED && oneTouchLastRequest && oneTouchDisplayedOptions === mealOptions && (
+                <button
+                  type="button"
+                  disabled={oneTouchBusy}
+                  onClick={() => void handleOneTouchCreate(oneTouchLastRequest)}
+                  className="w-full min-h-11 rounded-xl border border-yellow-400/40 bg-yellow-400/10 px-4 text-sm font-bold text-yellow-100 disabled:opacity-50"
+                >
+                  {oneTouchBusy ? "Creating more ideas…" : "Try 3 More"}
+                </button>
+              )}
               <button
                 onClick={() => { setMealOptions([]); clearCravingOptionsCache(); setCravingInput(""); }}
                 className="w-full text-sm text-white/50 hover:text-white/80 py-2 transition-colors"
@@ -1444,7 +1611,7 @@ export default function CravingCreator() {
             </div>
           )}
 
-          {generatedMeals.length > 0 && (
+          {!unverifiedOneTouchOptions && generatedMeals.length > 0 && (
             <div className="mt-8 space-y-6">
               {generatedMeals.map((meal, index) => (
                 <div key={index}>
@@ -1990,7 +2157,7 @@ export default function CravingCreator() {
         </div>
 
         {/* Shopping Aggregate Bar */}
-        {generatedMeals.length > 0 && (
+        {!unverifiedOneTouchOptions && generatedMeals.length > 0 && (
           <ShoppingAggregateBar
             ingredients={generatedMeals.flatMap((meal) =>
               meal.ingredients.map((ing: StructuredIngredient) => ({
@@ -2039,6 +2206,18 @@ export default function CravingCreator() {
           setRefineIndex(null);
         }}
       />
+      {ONE_TOUCH_CREATE_ENABLED && (
+        <OneTouchCreateModal
+          open={oneTouchOpen}
+          onOpenChange={setOneTouchOpen}
+          creator="craving_creator"
+          defaultServings={servings}
+          savedCuisine={user?.cuisinePreference}
+          savedDiet={user?.dietaryRestrictions}
+          busy={oneTouchBusy}
+          onSubmit={handleOneTouchCreate}
+        />
+      )}
     </PhaseGate>
   );
 }

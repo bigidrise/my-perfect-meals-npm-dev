@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   Coffee,
   Cookie,
-  Loader2,
   Sparkles,
   Soup,
   UtensilsCrossed,
@@ -40,9 +39,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { MyPerfectMenuBuilderContext } from "@shared/builderNamespaces";
+import { buildMyPerfectMenuReturnTarget } from "@/lib/myPerfectMenuReturn";
+import {
+  shouldGenerateMissingMyPerfectMenuCategory,
+  type MyPerfectMenuRestorationStatus,
+} from "@/lib/myPerfectMenuRestoration";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PerformanceNutritionSetupForm from "@/components/performance/PerformanceNutritionSetupForm";
 import { getTodayISOSafe } from "@/utils/midnight";
+import { BouncingDots } from "@/components/ui/bouncing-dots";
 
 type IdeaType = "breakfast" | "lunch" | "dinner" | "snack";
 
@@ -124,12 +129,23 @@ export default function MyPerfectMenu() {
   const [, setLocation] = useLocation();
   const search = useSearch();
   const { user } = useAuth();
-  const { activeProfile } = useHousehold();
+  const {
+    activeProfile,
+    activeProfileId,
+    profiles,
+    loading: householdLoading,
+    setActive: setActiveHouseholdProfile,
+  } = useHousehold();
+  const requestedHouseholdProfileId = useMemo(
+    () => new URLSearchParams(search).get("householdProfileId") || undefined,
+    [search],
+  );
   const subjectUserId = activeProfile?.id;
   const requestedBuilderKey = useMemo(
     () => new URLSearchParams(search).get("builder") || undefined,
     [search],
   );
+  const requestedBuilderForSubject = subjectUserId ? undefined : requestedBuilderKey;
   const returnedIdeaType = useMemo(() => {
     const value = new URLSearchParams(search).get("category");
     return IDEA_TYPES.some((item) => item.value === value) ? value as IdeaType : null;
@@ -138,7 +154,19 @@ export default function MyPerfectMenu() {
     () => new URLSearchParams(search).get("glp1SettingsChanged") === "1",
     [search],
   );
-  const [ideaType, setIdeaType] = useState<IdeaType | null>(null);
+  const returnedDestination = useMemo(() => {
+    const params = new URLSearchParams(search);
+    const dateISO = params.get("destinationDate");
+    const slot = params.get("destinationSlot");
+    if (!dateISO || !/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) return null;
+    if (!["breakfast", "lunch", "dinner", "meal4", "meal5", "meal6", "snacks"].includes(slot ?? "")) return null;
+    return {
+      dateISO,
+      slot: slot as MealPlanDestination["slot"],
+      builderType: "performanceCompetition",
+    };
+  }, [search]);
+  const [ideaType, setIdeaType] = useState<IdeaType | null>(() => returnedIdeaType);
   const [conceptSets, setConceptSets] = useState<ConceptSets>({});
   const [selectedConcept, setSelectedConcept] = useState<MenuConcept | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -159,6 +187,7 @@ export default function MyPerfectMenu() {
   const [performanceSlot, setPerformanceSlot] = useState<MealPlanDestination["slot"] | null>(null);
   const [performanceSetupOpen, setPerformanceSetupOpen] = useState(false);
   const [builderRefreshEpoch, setBuilderRefreshEpoch] = useState(0);
+  const [restorationStatus, setRestorationStatus] = useState<MyPerfectMenuRestorationStatus>("loading");
   const handledReturnRef = useRef(false);
   const subjectRef = useRef(subjectUserId ?? user?.id ?? null);
   const subjectEpochRef = useRef(0);
@@ -169,12 +198,26 @@ export default function MyPerfectMenu() {
   const concepts = ideaType ? conceptSets[ideaType] ?? [] : [];
 
   useEffect(() => {
+    if (!requestedHouseholdProfileId || householdLoading || activeProfileId === requestedHouseholdProfileId) return;
+    if (profiles.some((profile) => profile.id === requestedHouseholdProfileId)) {
+      void setActiveHouseholdProfile(requestedHouseholdProfileId);
+    }
+  }, [
+    requestedHouseholdProfileId,
+    householdLoading,
+    activeProfileId,
+    profiles,
+    setActiveHouseholdProfile,
+  ]);
+
+  useEffect(() => {
     const refreshBuilder = () => setBuilderRefreshEpoch((current) => current + 1);
     window.addEventListener("mpm:builderUpdated", refreshBuilder);
     return () => window.removeEventListener("mpm:builderUpdated", refreshBuilder);
   }, []);
 
   useEffect(() => {
+    if (requestedHouseholdProfileId && subjectUserId !== requestedHouseholdProfileId) return;
     subjectEpochRef.current += 1;
     glp1PreflightEpochRef.current = -1;
     subjectRef.current = subjectUserId ?? user?.id ?? null;
@@ -188,16 +231,22 @@ export default function MyPerfectMenu() {
     setContextStatus(null);
     setBuilderContext(null);
     setSelectedConcept(null);
-    setPerformanceDestination(null);
-    setPerformanceDate(getTodayISOSafe("America/Chicago"));
-    setPerformanceSlot(null);
+    setPerformanceDestination(returnedDestination);
+    setPerformanceDate(returnedDestination?.dateISO ?? getTodayISOSafe("America/Chicago"));
+    setPerformanceSlot(returnedDestination?.slot ?? null);
     setPerformanceSetupOpen(false);
     setPickerOpen(false);
     setTryMoreOpen(false);
+    setError(null);
+    setRestorationStatus("loading");
     let cancelled = false;
     const params = new URLSearchParams();
     if (subjectUserId) params.set("subjectUserId", subjectUserId);
-    if (requestedBuilderKey) params.set("requestedBuilderKey", requestedBuilderKey);
+    if (requestedBuilderForSubject) params.set("requestedBuilderKey", requestedBuilderForSubject);
+    if (returnedDestination) {
+      params.set("destinationDate", returnedDestination.dateISO);
+      params.set("mealSlot", returnedDestination.slot);
+    }
     const query = params.toString() ? `?${params.toString()}` : "";
     void (async () => {
       try {
@@ -210,7 +259,7 @@ export default function MyPerfectMenu() {
         if (cancelled) return;
         const effectiveBuilder = builderPayload.builder as MyPerfectMenuBuilderContext;
         setBuilderContext(effectiveBuilder);
-        if (effectiveBuilder.key === "performance_competition") return;
+        if (effectiveBuilder.key === "performance_competition" && !returnedDestination) return;
 
         const response = await fetch(apiUrl(`/api/my-perfect-menu/concepts${query}`), {
           credentials: "include",
@@ -222,13 +271,26 @@ export default function MyPerfectMenu() {
         const expectedSubject = subjectUserId ?? user?.id;
         if (payload.subject?.id && payload.subject.id !== expectedSubject) return;
         setConceptSets(payload.categories ?? {});
+        setRestorationStatus("succeeded");
         if (payload.builder) setBuilderContext(payload.builder);
       } catch (cause) {
-        if (!cancelled) setError(cause instanceof Error ? cause.message : "We couldn't restore your menu ideas.");
+        if (!cancelled) {
+          setRestorationStatus("failed");
+          setError(cause instanceof Error ? cause.message : "We couldn't restore your menu ideas.");
+        }
       }
     })();
     return () => { cancelled = true; };
-  }, [subjectUserId, user?.id, requestedBuilderKey, cancelMeal, cancelSnack, builderRefreshEpoch]);
+  }, [
+    subjectUserId,
+    user?.id,
+    requestedHouseholdProfileId,
+    requestedBuilderForSubject,
+    returnedDestination,
+    cancelMeal,
+    cancelSnack,
+    builderRefreshEpoch,
+  ]);
 
   const requestIdeas = async (nextType: IdeaType, destination = performanceDestination) => {
     const requestedSubject = subjectUserId ?? user?.id ?? null;
@@ -244,7 +306,7 @@ export default function MyPerfectMenu() {
         body: JSON.stringify({
           ideaType: nextType,
           subjectUserId,
-          requestedBuilderKey,
+          requestedBuilderKey: requestedBuilderForSubject,
           ...(builderContext?.key === "performance_competition" && destination
             ? { destinationDate: destination.dateISO, mealSlot: destination.slot }
             : {}),
@@ -276,7 +338,7 @@ export default function MyPerfectMenu() {
   ): Promise<MenuContextStatus | null> => {
     const params = new URLSearchParams();
     if (subjectUserId) params.set("subjectUserId", subjectUserId);
-    if (requestedBuilderKey) params.set("requestedBuilderKey", requestedBuilderKey);
+    if (requestedBuilderForSubject) params.set("requestedBuilderKey", requestedBuilderForSubject);
     if (builderContext?.key === "performance_competition" && destination) {
       params.set("destinationDate", destination.dateISO);
       params.set("mealSlot", destination.slot);
@@ -381,12 +443,21 @@ export default function MyPerfectMenu() {
 
   const openCategory = (nextType: IdeaType) => {
     setIdeaType(nextType);
+    if (restorationStatus === "failed") {
+      setError("We couldn't restore your saved menu ideas. Please reload before creating new ones.");
+      return;
+    }
     setError(null);
     if (builderContext?.key === "performance_competition" && !performanceDestination) {
       setPendingIdeaType(nextType);
       return;
     }
-    if (!conceptSets[nextType]?.length) void prepareIdeaRequest(nextType);
+    if (shouldGenerateMissingMyPerfectMenuCategory(
+      restorationStatus,
+      conceptSets[nextType]?.length ?? 0,
+    )) {
+      void prepareIdeaRequest(nextType);
+    }
   };
 
   const startPerformanceIdeas = async () => {
@@ -436,7 +507,11 @@ export default function MyPerfectMenu() {
         method: "DELETE",
         credentials: "include",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ ideaType: requestedType, subjectUserId, requestedBuilderKey }),
+        body: JSON.stringify({
+          ideaType: requestedType,
+          subjectUserId,
+          requestedBuilderKey: requestedBuilderForSubject,
+        }),
       });
       const payload = await response.json().catch(() => ({}));
        if (!response.ok) throw responseError(response, payload, "We couldn't clear these ideas.");
@@ -538,7 +613,7 @@ export default function MyPerfectMenu() {
           ideaType: conceptToGenerate.ideaType,
           conceptId: conceptToGenerate.id,
           subjectUserId,
-          requestedBuilderKey,
+          requestedBuilderKey: requestedBuilderForSubject,
           destinationDate: destination.dateISO,
           mealSlot: destination.slot,
         }),
@@ -647,6 +722,14 @@ export default function MyPerfectMenu() {
         routeParams.set("destinationDate", destination.dateISO);
         routeParams.set("destinationSlot", destination.slot);
       }
+      routeParams.set("returnTo", buildMyPerfectMenuReturnTarget({
+        builderKey: resolvedBuilder.key,
+        category: conceptToGenerate.ideaType,
+        householdProfileId: subjectUserId,
+        destinationDate: resolvedBuilder.key === "performance_competition" ? destination.dateISO : undefined,
+        destinationSlot: resolvedBuilder.key === "performance_competition" ? destination.slot : undefined,
+        selectedConceptId: conceptToGenerate.id,
+      }));
       const routeQuery = routeParams.toString();
       setLocation(`${resolvedBuilder.route}${routeQuery ? `?${routeQuery}` : ""}`);
     } catch (cause) {
@@ -781,7 +864,7 @@ export default function MyPerfectMenu() {
                    </p>
                  )}
               </div>
-               {!loadingIdeas && (
+               {!loadingIdeas && restorationStatus === "succeeded" && (
                  <div className="flex gap-2">
                     {builderContext?.key === "performance_competition" && (
                       <button
@@ -850,9 +933,16 @@ export default function MyPerfectMenu() {
                </div>
              )}
 
-            {loadingContext && (
-              <div className="mt-6 flex min-h-32 flex-col items-center justify-center rounded-3xl border border-violet-300/20 bg-black/45">
-                <Loader2 className="h-7 w-7 animate-spin text-violet-300" />
+             {restorationStatus === "loading" && (
+               <div role="status" aria-live="polite" className="mt-6 flex min-h-32 flex-col items-center justify-center rounded-3xl border border-violet-300/20 bg-black/45">
+                 <BouncingDots />
+                 <p className="mt-3 text-sm font-semibold">Restoring your {activeType?.title ?? "Menu Ideas"}…</p>
+               </div>
+             )}
+
+             {restorationStatus !== "loading" && loadingContext && (
+               <div role="status" aria-live="polite" className="mt-6 flex min-h-32 flex-col items-center justify-center rounded-3xl border border-violet-300/20 bg-black/45">
+                 <BouncingDots />
                 <p className="mt-3 text-sm font-semibold">Checking your current food context…</p>
               </div>
             )}
@@ -957,13 +1047,13 @@ export default function MyPerfectMenu() {
               </>
             )}
 
-            {!loadingContext && !pendingIdeaType && loadingIdeas && concepts.length === 0 ? (
-              <div className="mt-6 flex min-h-56 flex-col items-center justify-center rounded-3xl border border-violet-300/20 bg-black/45 px-6 text-center">
-                <Loader2 className="h-8 w-8 animate-spin text-violet-300" />
-                <p className="mt-4 font-semibold">Creating three ideas for you…</p>
+             {restorationStatus !== "loading" && !loadingContext && !pendingIdeaType && loadingIdeas && concepts.length === 0 ? (
+               <div role="status" aria-live="polite" className="mt-6 flex min-h-56 flex-col items-center justify-center rounded-3xl border border-violet-300/20 bg-black/45 px-6 text-center">
+                 <BouncingDots />
+                 <p className="mt-4 font-semibold">Creating your {activeType?.title ?? "Menu Ideas"}…</p>
                 <p className="mt-1 max-w-xs text-sm leading-relaxed text-white/45">Using your food preferences and current nutrition context.</p>
               </div>
-            ) : !loadingContext && !pendingIdeaType ? (
+             ) : restorationStatus !== "loading" && !loadingContext && !pendingIdeaType ? (
               <div className="mt-5 grid gap-4">
                 {concepts.map((concept, index) => (
                   <article key={concept.id} className="overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-r from-black via-violet-950/35 to-black shadow-2xl">
@@ -982,8 +1072,8 @@ export default function MyPerfectMenu() {
               </div>
             ) : null}
             {loadingIdeas && concepts.length > 0 && (
-              <div className="mt-4 flex items-center justify-center gap-2 text-sm font-semibold text-violet-200">
-                <Loader2 className="h-4 w-4 animate-spin" /> Creating three new ideas to replace these choices…
+               <div role="status" aria-live="polite" className="mt-4 flex items-center justify-center gap-3 text-sm font-semibold text-violet-200">
+                 <BouncingDots dotClassName="h-2 w-2" /> Creating 3 new {activeType?.title ?? "Menu Ideas"}…
               </div>
             )}
           </section>
