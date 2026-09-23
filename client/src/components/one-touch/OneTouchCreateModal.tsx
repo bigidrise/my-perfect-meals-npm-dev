@@ -8,6 +8,8 @@ import type {
   OneTouchCreator,
   OneTouchCuisine,
   OneTouchEatingStyle,
+  OneTouchCravingType,
+  OneTouchCravingFeel,
 } from "@/lib/oneTouchCreate";
 
 interface OneTouchCreateModalProps {
@@ -22,6 +24,8 @@ interface OneTouchCreateModalProps {
     servings: number;
     cuisine: OneTouchCuisine;
     eatingStyle: OneTouchEatingStyle;
+    cravingType?: OneTouchCravingType;
+    cravingFeel?: OneTouchCravingFeel;
   }) => void;
 }
 
@@ -40,6 +44,8 @@ export default function OneTouchCreateModal({
   const [cuisineValue, setCuisineValue] = useState("");
   const [dietMode, setDietMode] = useState<"profile" | "explicit">("profile");
   const [dietValue, setDietValue] = useState("");
+  const [cravingType, setCravingType] = useState<OneTouchCravingType>("surprise");
+  const [cravingFeel, setCravingFeel] = useState<OneTouchCravingFeel>("surprise");
   const profileCuisine = savedCuisine?.trim() || "your preferences";
   const profileDiet = useMemo(() => {
     const value = Array.isArray(savedDiet) ? savedDiet.join(", ") : savedDiet;
@@ -53,6 +59,8 @@ export default function OneTouchCreateModal({
     setCuisineValue("");
     setDietMode("profile");
     setDietValue("");
+    setCravingType("surprise");
+    setCravingFeel("surprise");
   }, [open, defaultServings]);
 
   const submit = () => {
@@ -64,6 +72,7 @@ export default function OneTouchCreateModal({
       eatingStyle: dietMode === "explicit"
         ? { mode: "explicit", value: dietValue }
         : { mode: "profile" },
+      ...(creator === "craving_creator" ? { cravingType, cravingFeel } : {}),
     });
   };
 
@@ -130,6 +139,34 @@ export default function OneTouchCreateModal({
             </SelectContent>
           </Select>
         </div>
+        {creator === "craving_creator" && (
+          <>
+            <div>
+              <label htmlFor="one-touch-craving-type" className="text-sm font-bold text-white">Craving Type</label>
+              <Select value={cravingType} onValueChange={(value) => setCravingType(value as OneTouchCravingType)} disabled={busy}>
+                <SelectTrigger id="one-touch-craving-type" className="mt-2 border-white/15 bg-white/5 text-white"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="surprise">Surprise Me</SelectItem>
+                  <SelectItem value="food">Food</SelectItem>
+                  <SelectItem value="dessert">Dessert</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label htmlFor="one-touch-craving-feel" className="text-sm font-bold text-white">Craving Feel</label>
+              <Select value={cravingFeel} onValueChange={(value) => setCravingFeel(value as OneTouchCravingFeel)} disabled={busy}>
+                <SelectTrigger id="one-touch-craving-feel" className="mt-2 border-white/15 bg-white/5 text-white"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="surprise">Surprise Me</SelectItem>
+                  <SelectItem value="salty">Salty</SelectItem>
+                  <SelectItem value="sweet">Sweet</SelectItem>
+                  <SelectItem value="light">Light</SelectItem>
+                  <SelectItem value="hearty">Hearty</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        )}
         <p className="text-xs leading-relaxed text-white/55">Your existing allergies, food preferences, nutrition, and clinical settings are automatically considered.</p>
       </div>
     </UniversalDialog>

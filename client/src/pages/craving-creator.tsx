@@ -157,6 +157,8 @@ import {
   saveOneTouchBatch,
   type OneTouchCuisine,
   type OneTouchEatingStyle,
+  type OneTouchCravingType,
+  type OneTouchCravingFeel,
 } from "@/lib/oneTouchCreate";
 
 // ---- Persist the generated meal so it never "disappears" ----
@@ -497,6 +499,8 @@ export default function CravingCreator() {
     servings: number;
     cuisine: OneTouchCuisine;
     eatingStyle: OneTouchEatingStyle;
+    cravingType?: OneTouchCravingType;
+    cravingFeel?: OneTouchCravingFeel;
   } | null>(null);
   const [oneTouchDisplayedOptions, setOneTouchDisplayedOptions] = useState<MealData[] | null>(null);
   const [verifiedSingleBatch, setVerifiedSingleBatch] = useState<string | null>(null);
@@ -552,6 +556,8 @@ export default function CravingCreator() {
     servings: number;
     cuisine: OneTouchCuisine;
     eatingStyle: OneTouchEatingStyle;
+    cravingType?: OneTouchCravingType;
+    cravingFeel?: OneTouchCravingFeel;
   }) => {
     setOneTouchOpen(false);
     setOneTouchBusy(true);
@@ -1124,7 +1130,7 @@ export default function CravingCreator() {
                   {ONE_TOUCH_CREATE_ENABLED && (
                     <div>
                       {oneTouchBusy ? (
-                        <MealGenerationProgress active context="general" mode="options" />
+                        <MealGenerationProgress active context="snack" mode="options" />
                       ) : (
                         <GlassButton
                           type="button"
@@ -1501,6 +1507,11 @@ export default function CravingCreator() {
           </div>
 
           {/* 🎲 Variety Engine: Meal Options Panel */}
+          {oneTouchBusy && (
+            <div className="mt-8 flex justify-center py-10" role="status" aria-label="Creating your Craving Menu">
+              <MealGenerationProgress active context="snack" mode="options" />
+            </div>
+          )}
           {isPlatingMeal && (
             <div className="mt-8 flex justify-center py-10">
               <MealGenerationProgress
@@ -1512,7 +1523,7 @@ export default function CravingCreator() {
           )}
 
           {/* Initial picker — only shown before a meal has been selected */}
-          {!unverifiedOneTouchOptions && !isPlatingMeal && mealOptions.length > 0 && generatedMeals.length === 0 && (
+          {!unverifiedOneTouchOptions && !oneTouchBusy && !isPlatingMeal && mealOptions.length > 0 && generatedMeals.length === 0 && (
             <div className="mt-8 space-y-4">
               <div className="flex items-center gap-3 mb-2">
                 <Sparkles className="h-5 w-5 text-yellow-500" />

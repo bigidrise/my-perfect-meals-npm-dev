@@ -10,7 +10,7 @@ describe("One-Touch Creator restored-card display gates", () => {
     expect(source).toContain("restoreOneTouchBatch(");
     expect(source).toContain("cachedOneTouchNamesForMeal(");
     expect(source).toContain("if (!restored) discard()");
-    expect(source).toContain("!unverifiedOneTouchOptions && !isPlatingMeal && mealOptions.length > 0");
+    expect(source).toContain("!unverifiedOneTouchOptions && !oneTouchBusy && !isPlatingMeal && mealOptions.length > 0");
     expect(source).toContain(`!unverifiedOneTouchOptions && ${cards}.length > 0`);
     expect(source).toContain("clearOneTouchBatch(");
   });

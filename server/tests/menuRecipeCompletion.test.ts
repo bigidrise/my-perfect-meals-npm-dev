@@ -415,6 +415,29 @@ describe("Menu-owned one-recipe completion (not connected to the manual Creators
     expect(generateMealImageUnified).not.toHaveBeenCalled();
   });
 
+  it("keeps a broad Snack culinary occasion separate from the existing lunch clinical slot", async () => {
+    (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+      resolve: async () => ({
+        ...context, diet: { effective: ["vegetarian", "glp1"] },
+        safety: { ...context.safety, healthConditions: ["GLP-1"] },
+      }),
+      executionState: { rejectedCandidateSignatures: [] },
+    }));
+    (resolveGLP1GlobalContext as jest.Mock).mockResolvedValue({
+      isActive: true, resolvedTargets: { targetProteinGrams: 30, maximumToleratedFatGrams: 10 },
+    });
+    expect(await completeMenuRecipe({
+      ...input, approvedConcept: { ...concept, occasion: "snack" },
+      contextCreator: "craving_creator", clinicalMealSlot: "lunch",
+    })).toMatchObject({ ok: true });
+    expect((createHumanFoodRequestScope as jest.Mock).mock.calls[0][0].creator).toBe("craving_creator");
+    expect((resolveGLP1GlobalContext as jest.Mock).mock.calls.map((call) => call[2]))
+      .toEqual(["lunch", "lunch"]);
+    expect((validateMealForDiet as jest.Mock).mock.calls.map((call) => call[3]))
+      .toEqual([false, false]);
+    expect((validateHumanFoodCandidate as jest.Mock).mock.calls[0][0].category).toBe("snack");
+  });
+
   it("supplies positive carnivore evidence only from the shared classifier on both payloads", async () => {
     (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
       resolve: async () => ({ ...context, diet: { effective: ["carnivore"] } }),
@@ -508,7 +531,7 @@ describe("Menu-owned one-recipe completion (not connected to the manual Creators
   it("fails closed on a new unsafe ingredient or instruction", async () => {
     (scanGeneratedOutput as jest.Mock).mockReturnValue({ passed: false });
     expect(await completeMenuRecipe(input)).toMatchObject({
-      ok: false, code: "protocol_clinical_rejected",
+      ok: false, code: "protocol_scan_rejected",
     });
     expect(generateMealImageUnified).not.toHaveBeenCalled();
   });

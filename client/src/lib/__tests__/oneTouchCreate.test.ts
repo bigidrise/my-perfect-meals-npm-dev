@@ -13,6 +13,7 @@ describe("One-Touch client request contract", () => {
     cuisine: { mode: "surprise" as const },
     eatingStyle: { mode: "explicit" as const, value: "vegan" },
   };
+  const cravingChoices = { ...choices, cravingType: "food" as const, cravingFeel: "light" as const };
   const names = ["Lentil Skillet", "Stuffed Peppers", "Herb Flatbread"];
   afterEach(() => {
     jest.restoreAllMocks();
@@ -34,19 +35,19 @@ describe("One-Touch client request contract", () => {
   });
 
   it("keeps cards across navigation only while the authenticated authority matches", async () => {
-    saveOneTouchBatch("craving_creator", "owner-1", choices, names, fingerprint);
+    saveOneTouchBatch("craving_creator", "owner-1", cravingChoices, names, fingerprint);
     const fetchMock = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ contextFingerprint: fingerprint }),
     });
     Object.defineProperty(globalThis, "fetch", { configurable: true, value: fetchMock });
-    expect(await restoreOneTouchBatch("craving_creator", "owner-1", names)).toEqual(choices);
-    expect(await restoreOneTouchBatch("craving_creator", "owner-1", names)).toEqual(choices);
+    expect(await restoreOneTouchBatch("craving_creator", "owner-1", names)).toEqual(cravingChoices);
+    expect(await restoreOneTouchBatch("craving_creator", "owner-1", names)).toEqual(cravingChoices);
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/api/one-touch-create/context-fingerprint"),
       expect.objectContaining({
         credentials: "include",
-        body: JSON.stringify({ creator: "craving_creator", ...choices }),
+        body: JSON.stringify({ creator: "craving_creator", ...cravingChoices }),
       }),
     );
     expect(await restoreOneTouchBatch("craving_creator", "owner-2", names)).toBeNull();
@@ -67,6 +68,44 @@ describe("One-Touch client request contract", () => {
       value: jest.fn().mockRejectedValue(new Error("offline")),
     });
     expect(await restoreOneTouchBatch("create_a_dish", "owner-1", names)).toBeNull();
+  });
+
+  it("rejects legacy complete batches and malformed craving directions instead of restoring old cards", async () => {
+    localStorage.setItem("oneTouch.completedBatch.craving_creator.v1", JSON.stringify({
+      ownerId: "owner-1", names, choices, contextFingerprint: fingerprint,
+    }));
+    expect(isCachedOneTouchBatch("craving_creator", names)).toBe(true);
+    expect(cachedOneTouchNamesForMeal("craving_creator", names[0])).toEqual(names);
+    expect(await restoreOneTouchBatch("craving_creator", "owner-1", names)).toBeNull();
+    clearOneTouchBatch("craving_creator");
+    expect(isCachedOneTouchBatch("craving_creator", names)).toBe(false);
+    saveOneTouchBatch("craving_creator", "owner-1", cravingChoices, names, fingerprint);
+    const key = "oneTouch.completedBatch.craving_creator.v2";
+    const saved = JSON.parse(localStorage.getItem(key)!);
+    localStorage.setItem(key, JSON.stringify({ ...saved, choices: { ...cravingChoices, cravingFeel: undefined } }));
+    expect(loadOneTouchBatch("craving_creator", "owner-1", names)).toBeNull();
+    saveOneTouchBatch("create_a_dish", "owner-1", cravingChoices, names, fingerprint);
+    expect(loadOneTouchBatch("create_a_dish", "owner-1", names)).toBeNull();
+  });
+
+  it("detects an old card even when the new cache is malformed or belongs to a different batch", async () => {
+    const legacy = JSON.stringify({ ownerId: "owner-1", names, choices, contextFingerprint: fingerprint });
+    const oldKey = "oneTouch.completedBatch.craving_creator.v1";
+    const newKey = "oneTouch.completedBatch.craving_creator.v2";
+    localStorage.setItem(oldKey, legacy);
+    localStorage.setItem(newKey, "{broken json");
+    expect(isCachedOneTouchBatch("craving_creator", names)).toBe(true);
+    expect(cachedOneTouchNamesForMeal("craving_creator", names[0])).toEqual(names);
+    expect(await restoreOneTouchBatch("craving_creator", "owner-1", names)).toBeNull();
+    localStorage.setItem(newKey, JSON.stringify({
+      ownerId: "owner-1", names: ["Risotto", "Soup", "Curry"],
+      choices: cravingChoices, contextFingerprint: fingerprint,
+    }));
+    expect(isCachedOneTouchBatch("craving_creator", names)).toBe(true);
+    expect(cachedOneTouchNamesForMeal("craving_creator", names[0])).toEqual(names);
+    saveOneTouchBatch("craving_creator", "owner-1", cravingChoices, names, fingerprint);
+    expect(localStorage.getItem(oldKey)).toBeNull();
+    expect(loadOneTouchBatch("craving_creator", "owner-1", names)).not.toBeNull();
   });
 
   it("sends request-scoped controls and requires exactly three meals", async () => {

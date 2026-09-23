@@ -33,10 +33,17 @@ function authorityMaterial(
 ): Record<string, unknown> {
   const { userId: _userId, preferredLanguage: _language, measurementSystem: _units, ...foodProtocol } = envelope;
   return stable({
-    version: 1,
+    version: 2,
     subjectUserId: context.subjectUserId,
     creator: request.creator,
-    choices: { servings: request.servings, cuisine: request.cuisine, eatingStyle: request.eatingStyle },
+    choices: {
+      servings: request.servings, cuisine: request.cuisine, eatingStyle: request.eatingStyle,
+      shape: request.creator === "create_a_dish" ? "dish" : "craving",
+      ...(request.creator === "craving_creator" ? {
+        cravingType: request.cravingType ?? "surprise",
+        cravingFeel: request.cravingFeel ?? "surprise",
+      } : {}),
+    },
     context: {
       version: context.version,
       status: context.status,

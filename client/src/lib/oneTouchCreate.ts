@@ -10,12 +10,16 @@ export type OneTouchCuisine =
 export type OneTouchEatingStyle =
   | { mode: "profile" }
   | { mode: "explicit"; value: string };
+export type OneTouchCravingType = "surprise" | "food" | "dessert";
+export type OneTouchCravingFeel = "surprise" | "salty" | "sweet" | "light" | "hearty";
 
 export interface OneTouchRequest {
   creator: OneTouchCreator;
   servings: number;
   cuisine: OneTouchCuisine;
   eatingStyle: OneTouchEatingStyle;
+  cravingType?: OneTouchCravingType;
+  cravingFeel?: OneTouchCravingFeel;
 }
 
 type OneTouchChoices = Omit<OneTouchRequest, "creator">;
@@ -25,6 +29,9 @@ export interface OneTouchCompletedBatch {
 }
 
 function batchKey(creator: OneTouchCreator) {
+  return `oneTouch.completedBatch.${creator}.v2`;
+}
+function legacyBatchKey(creator: OneTouchCreator) {
   return `oneTouch.completedBatch.${creator}.v1`;
 }
 
@@ -39,6 +46,7 @@ export function saveOneTouchBatch(
   if (!ownerId || names.length !== 3 || !validFingerprint(contextFingerprint)) return;
   try {
     localStorage.setItem(batchKey(creator), JSON.stringify({ ownerId, choices, names, contextFingerprint }));
+    localStorage.removeItem(legacyBatchKey(creator));
   } catch {}
 }
 
@@ -49,29 +57,42 @@ function validFingerprint(value: unknown): value is string {
 /** Detect the exact cached set before rendering it, including old records without a stamp. */
 export function isCachedOneTouchBatch(creator: OneTouchCreator, names: string[]): boolean {
   if (names.length !== 3) return false;
-  try {
-    const value = JSON.parse(localStorage.getItem(batchKey(creator)) || "null");
-    return JSON.stringify(value?.names) === JSON.stringify(names);
-  } catch {
-    return false;
-  }
+  return [batchKey(creator), legacyBatchKey(creator)]
+    .some((key) => matchesBatchNames(readStoredBatch(key), names));
 }
 
-/** A picked card may survive even if the separate three-option cache is missing. */
-export function cachedOneTouchNamesForMeal(creator: OneTouchCreator, mealName: string | undefined): string[] | null {
-  if (!mealName) return null;
+function readStoredBatch(key: string): any {
   try {
-    const value = JSON.parse(localStorage.getItem(batchKey(creator)) || "null");
-    return Array.isArray(value?.names) && value.names.length === 3 &&
-      value.names.every((name: unknown) => typeof name === "string") &&
-      value.names.includes(mealName) ? value.names : null;
+    return JSON.parse(localStorage.getItem(key) || "null");
   } catch {
     return null;
   }
 }
 
+function matchesBatchNames(batch: any, names: string[]): boolean {
+  return Array.isArray(batch?.names) &&
+    JSON.stringify(batch.names) === JSON.stringify(names);
+}
+
+/** A picked card may survive even if the separate three-option cache is missing. */
+export function cachedOneTouchNamesForMeal(creator: OneTouchCreator, mealName: string | undefined): string[] | null {
+  if (!mealName) return null;
+  // Prefer an older marker when both identify a picked card: only a fresh
+  // authenticated v2 batch may restore it, never the old name-only record.
+  for (const key of [legacyBatchKey(creator), batchKey(creator)]) {
+    const value = readStoredBatch(key);
+    if (Array.isArray(value?.names) && value.names.length === 3 &&
+        value.names.every((name: unknown) => typeof name === "string") &&
+        value.names.includes(mealName)) return value.names;
+  }
+  return null;
+}
+
 export function clearOneTouchBatch(creator: OneTouchCreator): void {
-  try { localStorage.removeItem(batchKey(creator)); } catch {}
+  try {
+    localStorage.removeItem(batchKey(creator));
+    localStorage.removeItem(legacyBatchKey(creator));
+  } catch {}
 }
 
 export function loadOneTouchBatch(
@@ -81,13 +102,19 @@ export function loadOneTouchBatch(
 ): OneTouchCompletedBatch | null {
   if (!ownerId || names.length !== 3) return null;
   try {
-    const value = JSON.parse(localStorage.getItem(batchKey(creator)) || "null");
+    const value = readStoredBatch(batchKey(creator));
+    if (matchesBatchNames(readStoredBatch(legacyBatchKey(creator)), names)) return null;
     if (value?.ownerId !== ownerId || JSON.stringify(value.names) !== JSON.stringify(names) ||
       !validFingerprint(value.contextFingerprint)) return null;
     const choices = value.choices;
     if (!Number.isInteger(choices?.servings) || choices.servings < 1 || choices.servings > 10 ||
       !["profile", "surprise", "explicit"].includes(choices.cuisine?.mode) ||
       !["profile", "explicit"].includes(choices.eatingStyle?.mode) ||
+      (creator === "craving_creator" && (
+        !["surprise", "food", "dessert"].includes(choices.cravingType) ||
+        !["surprise", "salty", "sweet", "light", "hearty"].includes(choices.cravingFeel)
+      )) ||
+      (creator === "create_a_dish" && (choices.cravingType || choices.cravingFeel)) ||
       (choices.cuisine.mode === "explicit" && typeof choices.cuisine.value !== "string") ||
       (choices.eatingStyle.mode === "explicit" && typeof choices.eatingStyle.value !== "string")) return null;
     return { choices: choices as OneTouchChoices, contextFingerprint: value.contextFingerprint };
