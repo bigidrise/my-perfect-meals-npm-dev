@@ -3,7 +3,7 @@ name: One-Touch Creator authority
 description: Why delegated Creator generation needs both canonical meal validation and a supported request-scoped dietary choice.
 ---
 
-One-Touch is a delegated food request, not permission to invent compliance evidence. Completed meals must pass the exact canonical Creator path, including protocol, diabetes, GLP-1, dish identity, serving normalization, and post-format validation. A direct generator plus a generic output scan is not an equivalent substitute.
+One-Touch is a delegated food request, not permission to invent compliance evidence. Completed meals need safety-equivalent authority checks, including protocol, diabetes, GLP-1, dish identity, serving normalization, and post-format validation. The Menu-owned path is deliberately separate from the live manual Creator routes; a direct generator plus a generic output scan is not an equivalent substitute.
 
 **Why:** The canonical Create a Dish path intentionally ignores ordinary dietary override input. A separate One-Touch modal's explicit eating-style choice would be silently lost even if its recipes were generated through that handler. A generic scan also cannot attest numeric diabetes or GLP-1 compliance. The user clarified that MPM's temporary choices are not restricted to a newly invented “more restrictive only” hierarchy.
 
@@ -14,6 +14,12 @@ Menu-owned flows must not modify the existing manual Craving Creator or Create a
 **Why:** The user requires the Menu options to be independently owned and does not accept regression risk in the working manual Creators for Menu optimization.
 
 **How to apply:** Reuse lower-level policy and validation primitives where safely possible, but do not claim that a separate Menu path has the exact canonical safety sequence until that parity is established and verified. If zero changes to the active route and generator are a hard boundary, the existing three-candidate route cannot simply be made one-candidate by configuration.
+
+A passed negative protocol scan cannot serve as positive evidence of a compositional diet or a numeric clinical limit, and model-estimated macros are not independently verified nutrition. Unsupported evidence must stay review-required or be rejected, even if this reduces the number of concepts that can finish automatically.
+
+**Why:** A scan can miss a high-risk diabetic macro excess or an unmeasured specialty limit; labeling either as compliant would make an apparently finished card unsafe.
+
+**How to apply:** Require the actual state-aware diabetic and GLP-1 validators for those conditions; never derive keto/specialty compliance flags solely from a clean text scan. Keep unavailable dietary and clinical evidence fail-closed until a trustworthy positive validator exists.
 
 The user accepted a shared, non-persisting culinary concept engine for MPM and One-Touch, with separate destinations: MPM owns its saved concepts, while each Creator owns its canonically completed cards.
 
