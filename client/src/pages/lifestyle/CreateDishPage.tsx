@@ -92,6 +92,13 @@ import type {
   ValidatedCookingMethodId,
 } from "../../../../shared/createDishIngredientExpansion";
 import { ExpandIngredientResponseSchema } from "../../../../shared/createDishIngredientExpansion";
+import OneTouchCreateModal from "@/components/one-touch/OneTouchCreateModal";
+import {
+  ONE_TOUCH_CREATE_ENABLED,
+  requestOneTouchMeals,
+  type OneTouchCuisine,
+  type OneTouchEatingStyle,
+} from "@/lib/oneTouchCreate";
 
 interface StructuredIngredient {
   name: string;
@@ -547,6 +554,8 @@ export default function CreateDishPage() {
   const [cuisineOverrideEnabled, setCuisineOverrideEnabled] = useState(false);
   const [cuisineOverrideValue, setCuisineOverrideValue] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [oneTouchOpen, setOneTouchOpen] = useState(false);
+  const [oneTouchBusy, setOneTouchBusy] = useState(false);
   const [stepsExpanded, setStepsExpanded] = useState<Record<string, boolean>>(
     {},
   );
@@ -564,6 +573,34 @@ export default function CreateDishPage() {
   const [acceptedExpansionSource, setAcceptedExpansionSource] = useState<string | null>(null);
   const [classificationComplete, setClassificationComplete] = useState(false);
   const [classifiedDishInput, setClassifiedDishInput] = useState("");
+
+  const handleOneTouchCreate = async (request: {
+    servings: number;
+    cuisine: OneTouchCuisine;
+    eatingStyle: OneTouchEatingStyle;
+  }) => {
+    setOneTouchBusy(true);
+    try {
+      const meals = await requestOneTouchMeals<MealData>({
+        creator: "create_a_dish",
+        ...request,
+      });
+      const options = normalizeCreateDishOptions(meals, `one-touch-${Date.now()}`);
+      setServings(request.servings);
+      setMealOptions(options);
+      setSelectedDishId(null);
+      setGeneratedMeals([]);
+      setOneTouchOpen(false);
+    } catch (error: any) {
+      toast({
+        title: "Couldn't create your ideas",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setOneTouchBusy(false);
+    }
+  };
 
   const expansionPolicy = () => {
     const mappedMethodId = COOK_METHOD_TO_EXPANSION_ID[cookMethod] ?? null;
@@ -1642,14 +1679,27 @@ export default function CreateDishPage() {
                   )}
 
                   {!isGenerating ? (
-                    <GlassButton
-                      onClick={() => handleGenerateDish()}
-                      disabled={isGenerating || starchBlocked}
-                      className="w-full bg-lime-600 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
-                    >
-                      <ChefHat className="h-4 w-4" />
-                      {"Create My Dish"}
-                    </GlassButton>
+                    <>
+                      {ONE_TOUCH_CREATE_ENABLED && (
+                        <GlassButton
+                          type="button"
+                          data-testid="create-dish-one-touch-button"
+                          onClick={() => setOneTouchOpen(true)}
+                          disabled={isGenerating || oneTouchBusy}
+                          className="mb-2 w-full border border-orange-300/30 bg-orange-600/20 text-orange-100"
+                        >
+                          ✨ One-Touch Create
+                        </GlassButton>
+                      )}
+                      <GlassButton
+                        onClick={() => handleGenerateDish()}
+                        disabled={isGenerating || starchBlocked}
+                        className="w-full bg-lime-600 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
+                      >
+                        <ChefHat className="h-4 w-4" />
+                        {"Create My Dish"}
+                      </GlassButton>
+                    </>
                   ) : null}
                     </>
                   )}
@@ -2296,6 +2346,18 @@ export default function CreateDishPage() {
           setAllergyConflict(null);
         }}
       />
+      {ONE_TOUCH_CREATE_ENABLED && (
+        <OneTouchCreateModal
+          open={oneTouchOpen}
+          onOpenChange={setOneTouchOpen}
+          creator="create_a_dish"
+          defaultServings={servings}
+          savedCuisine={user?.cuisinePreference}
+          savedDiet={user?.dietaryRestrictions}
+          busy={oneTouchBusy}
+          onSubmit={handleOneTouchCreate}
+        />
+      )}
     </PhaseGate>
   );
 }

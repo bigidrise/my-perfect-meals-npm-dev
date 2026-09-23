@@ -146,6 +146,13 @@ import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import { safeLocalStorageSet, safeLocalStorageGetArray } from "@/lib/safeLocalStorage";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { captureAuthoritativeTextValue, commitTextInputValue } from "@/lib/authoritativeTextInput";
+import OneTouchCreateModal from "@/components/one-touch/OneTouchCreateModal";
+import {
+  ONE_TOUCH_CREATE_ENABLED,
+  requestOneTouchMeals,
+  type OneTouchCuisine,
+  type OneTouchEatingStyle,
+} from "@/lib/oneTouchCreate";
 
 // ---- Persist the generated meal so it never "disappears" ----
 const CACHE_KEY = "cravingCreator.cache.v1";
@@ -479,6 +486,8 @@ export default function CravingCreator() {
 
   // 🔥 SIMPLIFIED: Use same pattern as Fridge Rescue (working system)
   const [isGenerating, setIsGenerating] = useState(false);
+  const [oneTouchOpen, setOneTouchOpen] = useState(false);
+  const [oneTouchBusy, setOneTouchBusy] = useState(false);
 
   // Safety override integration - always starts ON, auto-resets after generation
   const [safetyEnabled, setSafetyEnabled] = useState(true);
@@ -487,6 +496,32 @@ export default function CravingCreator() {
   const [flavorPersonal, setFlavorPersonal] = useState(true);
   const [keepItSimple, setKeepItSimple] = useState(false);
   const [cookMethod, setCookMethod] = useState("");
+
+  const handleOneTouchCreate = async (request: {
+    servings: number;
+    cuisine: OneTouchCuisine;
+    eatingStyle: OneTouchEatingStyle;
+  }) => {
+    setOneTouchBusy(true);
+    try {
+      const meals = await requestOneTouchMeals<MealData>({
+        creator: "craving_creator",
+        ...request,
+      });
+      setServings(request.servings);
+      setMealOptions(meals);
+      setGeneratedMeals([]);
+      setOneTouchOpen(false);
+    } catch (error: any) {
+      toast({
+        title: "Couldn't create your ideas",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setOneTouchBusy(false);
+    }
+  };
   // Generation mode is now auto-routed server-side based on the dish name.
   // Culinary-ratio-sensitive dishes (bread, cake, cheesecake, pasta, etc.) automatically
   // use the recipe engine; everything else uses the nutrition-first meal engine.
@@ -1326,17 +1361,30 @@ export default function CravingCreator() {
                       />
                     </div>
                   ) : (
-                    <GlassButton
-                      data-testid="cravingcreator-create-button"
-                      data-wt="cc-generate-button"
-                      onClick={() => handleGenerateMeal()}
-                      disabled={isGenerating || safetyChecking || starchBlocked}
-                      className="w-full bg-lime-600 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
-                    >
-                      {safetyChecking
-                        ? t("checkingSafety")
-                        : t("createBtn")}
-                    </GlassButton>
+                    <>
+                      {ONE_TOUCH_CREATE_ENABLED && (
+                        <GlassButton
+                          type="button"
+                          data-testid="cravingcreator-one-touch-button"
+                          onClick={() => setOneTouchOpen(true)}
+                          disabled={isGenerating || oneTouchBusy}
+                          className="mb-2 w-full border border-orange-300/30 bg-orange-600/20 text-orange-100"
+                        >
+                          ✨ One-Touch Create
+                        </GlassButton>
+                      )}
+                      <GlassButton
+                        data-testid="cravingcreator-create-button"
+                        data-wt="cc-generate-button"
+                        onClick={() => handleGenerateMeal()}
+                        disabled={isGenerating || safetyChecking || starchBlocked}
+                        className="w-full bg-lime-600 overflow-hidden text-ellipsis whitespace-nowrap flex items-center justify-center gap-2"
+                      >
+                        {safetyChecking
+                          ? t("checkingSafety")
+                          : t("createBtn")}
+                      </GlassButton>
+                    </>
                   )}
 
                   {/* Dish Identity Failure — persistent inline alert */}
@@ -2039,6 +2087,18 @@ export default function CravingCreator() {
           setRefineIndex(null);
         }}
       />
+      {ONE_TOUCH_CREATE_ENABLED && (
+        <OneTouchCreateModal
+          open={oneTouchOpen}
+          onOpenChange={setOneTouchOpen}
+          creator="craving_creator"
+          defaultServings={servings}
+          savedCuisine={user?.cuisinePreference}
+          savedDiet={user?.dietaryRestrictions}
+          busy={oneTouchBusy}
+          onSubmit={handleOneTouchCreate}
+        />
+      )}
     </PhaseGate>
   );
 }
