@@ -22,6 +22,7 @@
 - [Professional context architecture](professional-context-architecture.md) — preserve the separation between personal and professional product worlds.
 - [Professional client-switch isolation](professional-client-switch-isolation.md) — route changes must hide stale client state and reject late responses from the prior client.
 - [Performance nutrition](performance-nutrition.md) — the MacroCalculator remains the always-live baseline beneath session modifiers.
+- [Nutrition Life Plan cache boundary](nutrition-life-plan-cache-boundary.md) — saved baseline targets and changing day context have distinct freshness; preserve self-summary authorization and weekday semantics.
 - [Shared resolver ownership](nutrition-resolver-ownership.md) — workflow pages resolve once and pass data into shared components.
 - [Production media delivery](production-image-differential-diagnosis.md) — diagnose image records on their exact saved-object path.
 - [Savory-side image recovery](savory-side-image-recovery.md) — ambiguous savory sides get bounded plated guidance and one strictly validated recovery attempt.

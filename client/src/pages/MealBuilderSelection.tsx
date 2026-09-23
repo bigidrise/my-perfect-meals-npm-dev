@@ -212,7 +212,7 @@ export default function MealBuilderSelection() {
       await refreshUser();
       await queryClient.invalidateQueries({ queryKey: ["my-perfect-menu-effective-builder"] });
       window.dispatchEvent(new CustomEvent("mpm:builderUpdated"));
-      queryClient.invalidateQueries({ queryKey: ["nutrition-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["nutrition-summary", "baseline", user?.id] });
 
       toast({
         title: "Builder Updated",

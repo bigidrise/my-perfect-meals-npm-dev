@@ -133,24 +133,32 @@ export function getHydrationHubState(input: {
   return apiRequest<HydrationCenterState>(`/api/hydration/hub?${params.toString()}`);
 }
 
+async function notifyHydrationChange<T>(request: Promise<T>): Promise<T> {
+  const result = await request;
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("mpm:hydrationUpdated"));
+  }
+  return result;
+}
+
 export function saveHydrationHubPreferences(input: {
   consented: boolean;
   optedOut?: boolean;
   preferences: Record<string, unknown>;
 }) {
-  return apiRequest<{ ok: boolean; consented: boolean }>("/api/hydration/hub/preferences", {
+  return notifyHydrationChange(apiRequest<{ ok: boolean; consented: boolean }>("/api/hydration/hub/preferences", {
     method: "PUT",
     body: JSON.stringify(input),
-  });
+  }));
 }
 
 export function saveHydrationHubBarriers(input: {
   barriers: Array<{ barrierCode: HydrationBarrierCode; note?: string }>;
 }) {
-  return apiRequest<{ ok: boolean }>("/api/hydration/hub/barriers", {
+  return notifyHydrationChange(apiRequest<{ ok: boolean }>("/api/hydration/hub/barriers", {
     method: "PUT",
     body: JSON.stringify(input),
-  });
+  }));
 }
 
 export function createHydrationHelp(input: {
@@ -184,20 +192,20 @@ export function recordHydrationInterventionEvent(
 }
 
 export function createHydrationLiquidProtocol(input: LiquidNutritionProtocolInput) {
-  return apiRequest<{ protocol: HydrationProtocolRecord }>("/api/hydration/hub/liquid-protocol", {
+  return notifyHydrationChange(apiRequest<{ protocol: HydrationProtocolRecord }>("/api/hydration/hub/liquid-protocol", {
     method: "POST",
     body: JSON.stringify(input),
-  });
+  }));
 }
 
 export function activateHydrationLiquidProtocol(protocolId: string) {
-  return apiRequest<{ protocol: HydrationProtocolRecord }>(
+  return notifyHydrationChange(apiRequest<{ protocol: HydrationProtocolRecord }>(
     `/api/hydration/hub/liquid-protocol/${encodeURIComponent(protocolId)}/activate`,
     {
       method: "POST",
       body: JSON.stringify({ confirm: true }),
     },
-  );
+  ));
 }
 
 export function createHydrationHandoff(input: {

@@ -58,8 +58,10 @@ export async function createWaterLog(input: {
   freeText?: string;
   clientId?: string;
 }): Promise<WaterLogRow> {
-  return apiRequest<WaterLogRow>("/api/water-logs", {
+  const row = await apiRequest<WaterLogRow>("/api/water-logs", {
     method: "POST",
     body: JSON.stringify(input),
   });
+  if (!input.clientId) window.dispatchEvent(new CustomEvent("mpm:hydrationUpdated"));
+  return row;
 }

@@ -106,6 +106,7 @@ export function useLogGlucose() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/diabetes/glucose", variables.userId] });
       queryClient.invalidateQueries({ queryKey: ["/api/meal-engine/constraints", variables.userId] });
+      window.dispatchEvent(new CustomEvent("mpm:glucoseUpdated"));
     },
   });
 }
