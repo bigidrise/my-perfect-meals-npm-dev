@@ -72,7 +72,6 @@ import InspirationCaptureModal from "@/components/InspirationCaptureModal";
 import MacroScanModal from "@/components/MacroScanModal";
 import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
 import { useMyPerfectMenuBuilder } from "@/hooks/useMyPerfectMenuBuilder";
-import { TodaysPrescriptionCard } from "@/components/dashboard/TodaysPrescriptionCard";
 import { WhatsNewCard } from "@/components/WhatsNewCard";
 import { TrialStatusCard } from "@/components/TrialStatusCard";
 import { QuickStartPopover } from "@/components/QuickStartPopover";
@@ -994,8 +993,6 @@ export default function DashboardNew() {
         </motion.div>
 
          <NutritionPersonalizationSummaryCard />
-
-        <TodaysPrescriptionCard />
 
         {COACHES_CORNER_ENABLED && <CoachCornerCard />}
 

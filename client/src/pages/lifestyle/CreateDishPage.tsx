@@ -579,7 +579,9 @@ export default function CreateDishPage() {
     cuisine: OneTouchCuisine;
     eatingStyle: OneTouchEatingStyle;
   }) => {
+    setOneTouchOpen(false);
     setOneTouchBusy(true);
+    setIsGenerating(true);
     try {
       const meals = await requestOneTouchMeals<MealData>({
         creator: "create_a_dish",
@@ -599,6 +601,7 @@ export default function CreateDishPage() {
       });
     } finally {
       setOneTouchBusy(false);
+      setIsGenerating(false);
     }
   };
 
@@ -1267,6 +1270,23 @@ export default function CreateDishPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {ONE_TOUCH_CREATE_ENABLED && (
+                    <div>
+                      {oneTouchBusy ? (
+                        <MealGenerationProgress active context="create-dish" mode="options" />
+                      ) : (
+                        <GlassButton
+                          type="button"
+                          data-testid="create-dish-one-touch-button"
+                          onClick={() => setOneTouchOpen(true)}
+                          disabled={isGenerating}
+                          className="w-full border border-orange-300/30 bg-orange-600/20 text-orange-100"
+                        >
+                          ✨ One-Touch Create
+                        </GlassButton>
+                      )}
+                    </div>
+                  )}
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-md font-medium text-white">
@@ -1668,7 +1688,7 @@ export default function CreateDishPage() {
                     </p>
                   </div>
 
-                  {isGenerating && (
+                  {isGenerating && !oneTouchBusy && (
                     <div className="flex justify-center mt-2">
                       <MealGenerationProgress
                         active={isGenerating}
@@ -1680,17 +1700,6 @@ export default function CreateDishPage() {
 
                   {!isGenerating ? (
                     <>
-                      {ONE_TOUCH_CREATE_ENABLED && (
-                        <GlassButton
-                          type="button"
-                          data-testid="create-dish-one-touch-button"
-                          onClick={() => setOneTouchOpen(true)}
-                          disabled={isGenerating || oneTouchBusy}
-                          className="mb-2 w-full border border-orange-300/30 bg-orange-600/20 text-orange-100"
-                        >
-                          ✨ One-Touch Create
-                        </GlassButton>
-                      )}
                       <GlassButton
                         onClick={() => handleGenerateDish()}
                         disabled={isGenerating || starchBlocked}
