@@ -36,6 +36,9 @@ jest.mock("../services/glp1/resolveGLP1GlobalContext", () => ({
 jest.mock("../services/guardrails", () => ({
   validateMealForDiet: jest.fn(() => ({ isValid: true })),
 }));
+jest.mock("../services/guardrails/validators/dietaryRestrictionValidator", () => ({
+  validateDietaryRestriction: jest.fn(() => ({ isValid: true, confidence: "high" })),
+}));
 jest.mock("../services/dishAdaptation/dishIdentityValidator", () => ({
   validateDishIdentity: jest.fn(() => ({ passed: true, catastrophicDeviation: false })),
 }));
@@ -59,6 +62,7 @@ import { loadUserProtocolEnvelope, scanGeneratedOutput } from "../services/proto
 import { resolveGLP1GlobalContext } from "../services/glp1/resolveGLP1GlobalContext";
 import { validateDiabeticMeal } from "../services/guardrails/validators/diabeticValidator";
 import { validateMealForDiet } from "../services/guardrails";
+import { validateDietaryRestriction } from "../services/guardrails/validators/dietaryRestrictionValidator";
 import { validateOneTouchDirectionSafety } from "../services/oneTouch/directions";
 import { generateMealImageUnified } from "../services/mealImageGenerator";
 import { generateMenuRecipe } from "../services/oneTouch/menuRecipeGenerator";
@@ -96,6 +100,31 @@ const draft = {
   calories: 300, protein: 20, starchyCarbs: 25, fibrousCarbs: 10, fat: 5,
   cookingTime: "30 minutes",
 };
+const carnivoreConcept: OneTouchDirection = {
+  ...concept,
+  title: "Beef and Egg Skillet",
+  description: "A cooked beef and egg skillet.",
+  primaryIngredients: ["beef", "eggs"],
+  primaryProtein: "beef",
+  produceItems: [],
+  signature: "beef-and-egg-skillet",
+  culinaryIdentity: {
+    ...concept.culinaryIdentity,
+    dishForm: "skillet",
+    primaryProteinBase: "beef",
+    definingComponents: ["beef", "eggs"],
+  },
+};
+const carnivoreDraft = {
+  ...draft,
+  name: "Beef and Egg Skillet",
+  description: "Cooked beef and eggs served hot.",
+  ingredients: [
+    { name: "beef", quantity: "1/2", unit: "lb" },
+    { name: "eggs", quantity: "2", unit: "whole" },
+  ],
+  instructions: "Cook the beef, then add eggs and cook through.",
+};
 const context = {
   status: "resolved", internalFingerprint: "volatile", nutrition: null,
   gaps: [],
@@ -127,6 +156,7 @@ beforeEach(() => {
   (validateOneTouchDirectionSafety as jest.Mock).mockReturnValue([]);
   (enforceSafetyProfile as jest.Mock).mockResolvedValue({ result: "SAFE" });
   (validateMealForDiet as jest.Mock).mockReturnValue({ isValid: true });
+  (validateDietaryRestriction as jest.Mock).mockReturnValue({ isValid: true, confidence: "high" });
   (generateMealImageUnified as jest.Mock).mockResolvedValue("/images/validated.png");
 });
 
@@ -275,6 +305,37 @@ describe("Menu-owned one-recipe completion (not connected to the manual Creators
         evidence: expect.not.objectContaining({ dietaryIdentityCompliant: true }),
       }), expect.anything(), expect.anything(),
     );
+  });
+
+  it("supplies positive carnivore evidence only from the shared classifier on both payloads", async () => {
+    (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+      resolve: async () => ({ ...context, diet: { effective: ["carnivore"] } }),
+      executionState: { rejectedCandidateSignatures: [] },
+    }));
+    (generateMenuRecipe as jest.Mock).mockResolvedValue(carnivoreDraft);
+    const result = await completeMenuRecipe({ ...input, approvedConcept: carnivoreConcept, servings: 4 });
+    expect(result.ok).toBe(true);
+    const candidates = (validateHumanFoodCandidate as jest.Mock).mock.calls.map(([value]) => value);
+    expect(candidates.map((value) => value.evidence.dietaryIdentityCompliant)).toEqual([true, true]);
+    expect((validateDietaryRestriction as jest.Mock).mock.calls).toHaveLength(2);
+    expect((validateDietaryRestriction as jest.Mock).mock.calls[1][0].ingredients[0].quantity).toBe("2");
+    expect(generateMenuRecipe).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a late scaled-payload diet contradiction rather than patching the flag", async () => {
+    (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+      resolve: async () => ({ ...context, diet: { effective: ["carnivore"] } }),
+      executionState: { rejectedCandidateSignatures: [] },
+    }));
+    (validateDietaryRestriction as jest.Mock)
+      .mockReturnValueOnce({ isValid: true, confidence: "high" })
+      .mockReturnValueOnce({ isValid: false, confidence: "high" });
+    (generateMenuRecipe as jest.Mock).mockResolvedValue(carnivoreDraft);
+    expect(await completeMenuRecipe({ ...input, approvedConcept: carnivoreConcept, servings: 4 })).toMatchObject({
+      ok: false, code: "diet_hfc_rejected",
+    });
+    expect(generateMenuRecipe).toHaveBeenCalledTimes(1);
+    expect(generateMealImageUnified).not.toHaveBeenCalled();
   });
 
   it("fails closed if active GLP-1 targets are absent or the completed recipe fails validation", async () => {

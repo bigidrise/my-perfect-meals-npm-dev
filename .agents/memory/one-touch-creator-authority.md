@@ -21,6 +21,12 @@ A passed negative protocol scan cannot serve as positive evidence of a compositi
 
 **How to apply:** Require the actual state-aware diabetic and GLP-1 validators for those conditions; never derive keto/specialty compliance flags solely from a clean text scan. Keep unavailable dietary and clinical evidence fail-closed until a trustworthy positive validator exists.
 
+For Menu recipe completion, the shared compound-aware classifier can substantiate bounded vegan, vegetarian, pescatarian, and carnivore ingredient identities from explicit final ingredients; it cannot substantiate a keto meal's numeric or full composition claim. Beverage-specific keto limits and Chef prompt guidance are not product-wide finished-meal thresholds.
+
+**Why:** Reusing a beverage ceiling or model-estimated macros as independently verified keto composition would invent a meal policy. The existing identity classifier has a narrower, ingredient-based authority.
+
+**How to apply:** Recheck supported identity classification after final serving formatting. Keep keto, paleo, Mediterranean, and other unsupported composition identities review-required until a shared authoritative meal rule and suitable evidence source exist.
+
 The user accepted a shared, non-persisting culinary concept engine for MPM and One-Touch, with separate destinations: MPM owns its saved concepts, while each Creator owns its canonically completed cards.
 
 **Why:** Sharing creative direction avoids divergent generation rules, but a concept is never evidence of safety or nutrition. Browser-restored completed cards also become unsafe when authoritative food protections change.
