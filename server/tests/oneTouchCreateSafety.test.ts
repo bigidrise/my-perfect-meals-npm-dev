@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { ONE_TOUCH_CREATE_ENABLED, invokeCanonical } from "../routes/oneTouchCreate";
+import { ONE_TOUCH_CREATE_ENABLED, invokeCanonical, isCreatorMenuEnabled } from "../routes/oneTouchCreate";
 import { getOneTouchDiet } from "../services/oneTouch/internalRequest";
 
 describe("One-Touch canonical-handler safety gate", () => {
@@ -9,11 +9,40 @@ describe("One-Touch canonical-handler safety gate", () => {
     "utf8",
   );
 
-  it("opens only in Development and keeps Production fail-closed", () => {
-    expect(ONE_TOUCH_CREATE_ENABLED).toBe(process.env.NODE_ENV === "development");
+  it("opens in Development and requires explicit Production enablement", () => {
+    expect(ONE_TOUCH_CREATE_ENABLED).toBe(isCreatorMenuEnabled());
+    expect(isCreatorMenuEnabled({ NODE_ENV: "development" })).toBe(true);
+    expect(isCreatorMenuEnabled({ NODE_ENV: "production" })).toBe(false);
+    expect(isCreatorMenuEnabled({ NODE_ENV: "production", CREATOR_MENU_ENABLED: "false" })).toBe(false);
+    expect(isCreatorMenuEnabled({ NODE_ENV: "production", CREATOR_MENU_ENABLED: "true" })).toBe(true);
+    expect(isCreatorMenuEnabled({ NODE_ENV: undefined, CREATOR_MENU_ENABLED: "true" })).toBe(false);
     expect(source).toContain("dietOverride");
     expect(source).toContain("ONE_TOUCH_NOT_AVAILABLE");
     expect(source).toContain("status(503)");
+  });
+
+  it("uses separate client and server opt-ins and no customer-facing One-Touch label", () => {
+    const clientGate = fs.readFileSync(
+      path.join(process.cwd(), "client/src/lib/oneTouchAvailability.ts"), "utf8",
+    );
+    const dish = fs.readFileSync(
+      path.join(process.cwd(), "client/src/pages/lifestyle/CreateDishPage.tsx"), "utf8",
+    );
+    const craving = fs.readFileSync(
+      path.join(process.cwd(), "client/src/pages/craving-creator.tsx"), "utf8",
+    );
+    const modal = fs.readFileSync(
+      path.join(process.cwd(), "client/src/components/one-touch/OneTouchCreateModal.tsx"), "utf8",
+    );
+    expect(clientGate).toContain('import.meta.env.VITE_CREATOR_MENU_ENABLED === "true"');
+    expect(clientGate).toContain("import.meta.env.DEV");
+    expect(dish).toContain("✨ Create a Dish Menu");
+    expect(craving).toContain("✨ Craving Menu");
+    expect(modal).toContain('creator === "create_a_dish" ? "Create a Dish Menu" : "Craving Menu"');
+    expect(`${dish}\n${craving}\n${modal}`).not.toContain("One-Touch Create");
+    expect(source).not.toContain('error: "One-Touch');
+    expect(dish).toContain("if (!ONE_TOUCH_CREATE_ENABLED)");
+    expect(craving).toContain("if (!ONE_TOUCH_CREATE_ENABLED)");
   });
 
   it("proves the direct canonical capture seam itself", async () => {

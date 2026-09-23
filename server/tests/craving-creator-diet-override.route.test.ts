@@ -244,7 +244,7 @@ describe("A. Structural — routes.ts /api/meals/craving-creator diet override",
 
   it("uses one serving-aware final validator and treats images as metadata-only", () => {
     const block = ROUTES_SRC.slice(
-      ROUTES_SRC.indexOf('app.post("/api/meals/craving-creator"'),
+      ROUTES_SRC.indexOf("const cravingCreatorHandler = async"),
       ROUTES_SRC.indexOf("// NEW: Onboarding-enforced meal generation routes"),
     );
     expect(block).toContain("runFinalValidation(meal, validatedServings)");
@@ -263,6 +263,25 @@ describe("A. Structural — routes.ts /api/meals/craving-creator diet override",
     expect(block).toContain('.filter(({ result }) => result.outcome === "pass")');
     expect(block).toContain("if (formattedOptions.length === 0)");
     expect(block).not.toContain("if (postFormatFailure)");
+  });
+
+  it("handles zero initial and zero repaired survivors before formatting or dereferencing a failed candidate", () => {
+    const initial = ROUTES_SRC.indexOf("if (finalEnforcement.accepted.length === 0)");
+    const repair = ROUTES_SRC.indexOf('stage: "intent_repair"', initial);
+    const empty = ROUTES_SRC.indexOf("if (scannedOptions.length === 0)", repair);
+    const format = ROUTES_SRC.indexOf("let formattedOptions = scannedOptions.map", empty);
+    expect(initial).toBeGreaterThan(0);
+    expect(repair).toBeGreaterThan(initial);
+    expect(empty).toBeGreaterThan(repair);
+    expect(format).toBeGreaterThan(empty);
+    const initialBlock = ROUTES_SRC.slice(initial, ROUTES_SRC.indexOf("scannedOptions = finalEnforcement.accepted", initial));
+    expect(initialBlock).toContain("HUMAN_FOOD_FINAL_VALIDATION_FAILED");
+    expect(initialBlock).toContain("strongest?.result");
+    const emptyBlock = ROUTES_SRC.slice(empty, format);
+    expect(emptyBlock).toContain('status: "unable_to_generate"');
+    expect(emptyBlock).toContain('"create_dish_intent_not_preserved"');
+    expect(emptyBlock).toContain('"no_candidates_survived"');
+    expect(emptyBlock).not.toContain("postFormatFailure.result");
   });
 
   it("generateCravingMealOptions is called with bodyDietRestrictions (the resolved diet)", () => {
@@ -308,7 +327,7 @@ describe("A. Structural — routes.ts /api/meals/craving-creator diet override",
 
   it("keeps an acknowledged identity waiver through prompt, pipeline, and finalization", () => {
     const routeBlock = ROUTES_SRC.slice(
-      ROUTES_SRC.indexOf('app.post("/api/meals/craving-creator"'),
+      ROUTES_SRC.indexOf("const cravingCreatorHandler = async"),
       ROUTES_SRC.indexOf('// NEW: Onboarding-enforced meal generation routes'),
     );
     // The one-action identity override must become the Human Food Context's
@@ -639,7 +658,7 @@ describe("E. Emergency fallback — _fallbackDietIdentity must use keto, not veg
     expect(questionMarkIdx).toBeGreaterThan(-1);
     expect(colonIdx).toBeGreaterThan(questionMarkIdx);
 
-    const trueBranchPos  = ternaryBlock.indexOf("_filterDietaryIdentity", questionMarkIdx);
+    const trueBranchPos  = ternaryBlock.indexOf("_filterEnvelope.dietaryIdentity", questionMarkIdx);
     const falseBranchPos = ternaryBlock.indexOf("protocolEnvelope.dietaryIdentity", colonIdx);
 
     // TRUE branch: _resolvedPrimaryDiet must appear after ? and before the ternary colon
@@ -667,7 +686,7 @@ describe("E. Emergency fallback — _fallbackDietIdentity must use keto, not veg
     const conditionPos   = ternaryBlock.indexOf("_overrideDietActive");
     const questionPos    = ternaryBlock.indexOf("?");
     const colonPos       = ternaryBlock.indexOf(": protocolEnvelope.dietaryIdentity");
-    const trueBranchPos  = ternaryBlock.indexOf("_filterDietaryIdentity", questionPos);
+    const trueBranchPos  = ternaryBlock.indexOf("_filterEnvelope.dietaryIdentity", questionPos);
     const falseBranchPos = ternaryBlock.indexOf("protocolEnvelope.dietaryIdentity", colonPos);
 
     // Condition appears first, then ?, then TRUE branch (_resolvedPrimaryDiet), then :, then FALSE branch

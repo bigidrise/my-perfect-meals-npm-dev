@@ -505,21 +505,27 @@ export default function CravingCreator() {
   const selectedBatchNames = isCachedBatch ? null :
     cachedOneTouchNamesForMeal("craving_creator", generatedMeals[0]?.name);
   const cachedOneTouchNames = isCachedBatch ? optionNames : selectedBatchNames ?? [];
-  const unverifiedOneTouchOptions = (isCachedBatch && oneTouchDisplayedOptions !== mealOptions) ||
+  const unverifiedOneTouchOptions = (!ONE_TOUCH_CREATE_ENABLED && (isCachedBatch || selectedBatchNames !== null)) ||
+    (isCachedBatch && oneTouchDisplayedOptions !== mealOptions) ||
     (selectedBatchNames !== null && verifiedSingleBatch !== `${user?.id}:${JSON.stringify(selectedBatchNames)}`);
   useEffect(() => {
-    if (!unverifiedOneTouchOptions || !user?.id) return;
+    if (!unverifiedOneTouchOptions) return;
     const controller = new AbortController();
     const discard = () => {
       clearOneTouchBatch("craving_creator");
-      clearCravingOptionsCache();
-      clearCravingCache();
+      if (isCachedBatch) clearCravingOptionsCache();
+      if (selectedBatchNames !== null) clearCravingCache();
       setOneTouchLastRequest(null);
       setOneTouchDisplayedOptions(null);
       setVerifiedSingleBatch(null);
-      setMealOptions([]);
-      setGeneratedMeals([]);
+      if (isCachedBatch) setMealOptions([]);
+      if (selectedBatchNames !== null) setGeneratedMeals([]);
     };
+    if (!ONE_TOUCH_CREATE_ENABLED) {
+      discard();
+      return;
+    }
+    if (!user?.id) return;
     restoreOneTouchBatch("craving_creator", user.id, cachedOneTouchNames, controller.signal)
       .then((restored) => {
         if (controller.signal.aborted) return;
@@ -1127,7 +1133,7 @@ export default function CravingCreator() {
                           disabled={isGenerating}
                           className="w-full border border-orange-300/30 bg-orange-600/20 text-orange-100"
                         >
-                          ✨ One-Touch Create
+                          ✨ Craving Menu
                         </GlassButton>
                       )}
                     </div>

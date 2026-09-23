@@ -271,6 +271,9 @@ export function buildCreateDishIntentPrompt(intent: CreateDishIntent): string {
       : null,
   ].filter(Boolean);
   const hasHardDimensions = hardRequirements.length > 1;
+  const steakIngredientEvidence = intent.ingredient.canonicalId === "beef" && resolved.form?.id === "steak-cut"
+    ? 'Name the actual beef cut in the ingredient list (for example "beef sirloin" or "filet mignon"). "Steak" alone is ambiguous because fish and vegetable steaks exist.'
+    : null;
   return `[CREATE A DISH — VALIDATED CULINARY INTENT]
 ${lines.join("\n")}
 ${hasHardDimensions ? `[CREATE A DISH — HARD CULINARY INTENT]
@@ -278,6 +281,7 @@ ${hardRequirements.join("\n")}
 The explicitly selected dimensions above are fixed current-request requirements.
 Do not vary any selected form/cut, texture, or flavor. Create variety only through unconstrained side pairings, vegetables, garnishes, plating, or other unselected dimensions.
 Explicit current culinary intent overrides general cuisine, broad-flavor, heat, and palate defaults when they conflict.` : `Use ${intent.ingredient.canonicalName} as the primary ingredient; no preparation dimensions are fixed.`}
+${steakIngredientEvidence ?? ""}
 ${softPreferences.length > 0 ? `[CREATE A DISH — OPTIONAL CREATIVE GUIDANCE]
 ${softPreferences.join("\n")}
 These system-selected ideas are optional. Never distort the requested dish or fail generation to preserve them.` : ""}
@@ -363,11 +367,16 @@ export function evaluateCreateDishIntentEvidence(
           });
         })
       );
+  const form = intent.resolvedCombination.form;
+  // A named beef steak cut is affirmative evidence of both beef and steak
+  // form. "Steak" by itself is not: fish and vegetable steaks exist too.
+  const beefSteakCuts = intent.ingredient.canonicalId === "beef" && form?.id === "steak-cut"
+    ? ["sirloin", "ribeye", "filet mignon", "beef tenderloin", "flank steak", "strip steak", "t-bone", "porterhouse"]
+    : [];
   const ingredientPassed = hasAffirmativeTerm(
     ingredients,
-    [intent.ingredient.canonicalName.toLowerCase()],
+    [intent.ingredient.canonicalName.toLowerCase(), ...beefSteakCuts],
   );
-  const form = intent.resolvedCombination.form;
   const formTerms = form
     ? getCreateDishGovernedEvidenceTerms(
         "form",
@@ -378,7 +387,7 @@ export function evaluateCreateDishIntentEvidence(
     : [];
   const formPassed = !form || hasAffirmativeTerm(
     `${ingredients}. ${instructions}`,
-    formTerms,
+    [...formTerms, ...beefSteakCuts],
   );
   const texture = intent.resolvedCombination.texture;
   const texturePassed = !texture || hasAffirmativeTerm(
