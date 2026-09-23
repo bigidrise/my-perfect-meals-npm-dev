@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { householdProfiles, users } from "@shared/schema";
 import { oneTouchDirectionSchema, type OneTouchDirection, type OneTouchRequest } from "@shared/oneTouch";
-import type { HumanFoodCandidate } from "@shared/humanFoodValidation";
+import type { HumanFoodCandidate, HumanFoodRequirementProof } from "@shared/humanFoodValidation";
 import { db } from "../../db";
 import { createHumanFoodRequestScope } from "../humanFoodContext/requestScope";
 import { buildCreatorHumanFoodPrompt } from "../humanFoodContext/adapters";
@@ -42,7 +42,8 @@ export type MenuRecipeFailureCode =
   | "concept_rejected" | "allergy_avoidance_rejected" | "diet_hfc_rejected"
   | "diabetes_rejected" | "glp1_rejected" | "protocol_clinical_rejected"
   | "generation_failed" | "nutrition_evidence_invalid" | "identity_mismatch"
-  | "final_validation_rejected" | "serving_finalization_failed";
+  | "final_validation_rejected" | "requirement_evidence_unsupported"
+  | "serving_finalization_failed";
 
 export interface MenuRecipeCard {
   name: string;
@@ -134,7 +135,6 @@ function finalCandidate(
   card: MenuRecipeCard,
   draft: MenuRecipeDraft,
   servings: number,
-  proof: { diabetes?: boolean; glp1?: boolean; dietaryIdentity?: boolean },
   category: string,
 ): HumanFoodCandidate {
   const perServing = toPerServingNutrition(card, servings);
@@ -156,11 +156,8 @@ function finalCandidate(
       ingredientEvidence: "structured_generation",
       preparationEvidence: "structured_generation",
       nutritionEvidence: "structured_generation",
-      // The identity classifier is the sole source of positive dietary proof.
-      // A clean protocol scan cannot prove keto macros or clinical directives.
-      dietaryIdentityCompliant: proof.dietaryIdentity,
-      diabetesCompliant: proof.diabetes,
-      glp1Compliant: proof.glp1,
+      // Exact requirement evidence is attached only after running the matching
+      // validator against this payload. Legacy generic booleans prove nothing here.
       dishIdentityPreserved: true,
       cuisine: draft.evidence?.cuisine ?? undefined,
       cuisineIntensity: draft.evidence?.cuisineIntensity ?? undefined,
@@ -297,23 +294,6 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
     const protocol = scanGeneratedOutput(card, envelope, { generatorName: "menu-recipe-completion" });
     if (!protocol.passed) return fail("protocol_clinical_rejected");
 
-    const diabetesCompliant = envelope.hasDiabetes
-      ? validateDiabeticMeal({
-          name: card.name, description: card.description,
-          ingredients: card.ingredients, instructions: card.instructions,
-          macros: card.nutrition,
-        }, { glucoseState: envelope.diabeticGlucoseState ?? undefined }).isValid
-      : undefined;
-    if (diabetesCompliant === false) return fail("diabetes_rejected");
-    const glp1Compliant = glp1?.isActive
-      ? validateMealForDiet({
-          name: card.name,
-          ingredients: card.ingredients,
-          instructions: card.instructions,
-          macros: card.nutrition,
-        }, "glp1", undefined, mealType === "snack", glp1.resolvedTargets!).isValid
-      : undefined;
-    if (glp1Compliant === false) return fail("glp1_rejected");
     // A protocol text scan alone cannot prove numeric or specialist directives
     // (for example renal sodium limits) that this one-recipe contract cannot
     // measure. Final validation must review those rather than receiving true.
@@ -324,32 +304,87 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
       .some((condition) => !/glp.?1|semaglutide|tirzepatide|diabet/i.test(condition));
     const hasOtherClinicalDirective = otherClinicalCondition || otherEnvelopeDirective;
     if (hasOtherClinicalDirective) return fail("protocol_clinical_rejected");
-    const proof = { diabetes: diabetesCompliant, glp1: glp1Compliant };
+    const effectiveDiets = context.diet.effective.map((diet) =>
+      diet.toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim(),
+    );
+    const diabetesRequired = envelope.hasDiabetes ||
+      context.safety.healthConditions.some((condition) => /diabet/i.test(condition)) ||
+      effectiveDiets.includes("diabetic");
+    const glp1Required = Boolean(glp1?.isActive) ||
+      context.safety.healthConditions.some((condition) => /glp.?1|semaglutide|tirzepatide/i.test(condition)) ||
+      effectiveDiets.includes("glp1");
+    const assess = (candidate: HumanFoodCandidate): MenuRecipeFailureCode | null => {
+      const diet = assessMenuDietEvidence(candidate, context.diet.effective);
+      const requirements = diet.requirements;
+      if (diet.status === "contradicted") return "diet_hfc_rejected";
+      if (diabetesRequired) {
+        if (!envelope.hasDiabetes || !envelope.diabeticGlucoseState ||
+            !Number.isFinite(candidate.nutrition?.carbs)) return "unresolved_authority";
+        const passed = validateDiabeticMeal({
+          name: candidate.name!, description: candidate.description,
+          ingredients: candidate.ingredients as MenuRecipeCard["ingredients"],
+          instructions: candidate.instructions,
+          macros: candidate.nutrition,
+        }, { glucoseState: envelope.diabeticGlucoseState }).isValid;
+        const proof: HumanFoodRequirementProof = {
+          status: passed ? "pass" : "fail", source: "diabetes_authority", nutritionBasis: "model_estimate",
+        };
+        requirements["clinical:diabetes"] = proof;
+        if (effectiveDiets.includes("diabetic")) requirements["dietary_identity:diabetic"] = proof;
+        if (!passed) return "diabetes_rejected";
+      }
+      if (glp1Required) {
+        if (!glp1?.isActive || !glp1.resolvedTargets ||
+            !["calories", "protein", "fat"].every((macro) =>
+              Number.isFinite(candidate.nutrition?.[macro as "calories" | "protein" | "fat"]))) {
+          return "unresolved_authority";
+        }
+        const passed = validateMealForDiet({
+          name: candidate.name!,
+          ingredients: candidate.ingredients as MenuRecipeCard["ingredients"],
+          instructions: candidate.instructions,
+          macros: candidate.nutrition,
+        }, "glp1", undefined, mealType === "snack", glp1.resolvedTargets).isValid;
+        const proof: HumanFoodRequirementProof = {
+          status: passed ? "pass" : "fail", source: "glp1_authority", nutritionBasis: "model_estimate",
+        };
+        requirements["clinical:glp1"] = proof;
+        if (effectiveDiets.includes("glp1")) requirements["dietary_identity:glp1"] = proof;
+        if (!passed) return "glp1_rejected";
+      }
+      candidate.evidence = { ...candidate.evidence, requirementEvidence: requirements };
+      return null;
+    };
     const check = (candidate: HumanFoodCandidate) =>
       validateHumanFoodCandidate(candidate, context, {
         requestedDish: concept.title,
         requestedCategory: mealType,
         executionState: scope.executionState,
+        evidenceMode: "exact",
       });
-    const firstFood = finalCandidate(card, draft, 1, proof, mealType);
-    const firstDiet = assessMenuDietEvidence(firstFood, context.diet.effective);
-    if (firstDiet.status === "contradicted") return fail("diet_hfc_rejected");
-    firstFood.evidence = { ...firstFood.evidence, dietaryIdentityCompliant: firstDiet.dietaryIdentityCompliant };
-    if (check(firstFood).outcome !== "pass") return fail("final_validation_rejected");
+    const finalValidationFailure = (result: ReturnType<typeof check>): MenuRecipeFailureCode =>
+      result.findings?.some((finding) => finding.code.startsWith("requirement_evidence_required:"))
+        ? "requirement_evidence_unsupported"
+        : "final_validation_rejected";
+    const firstFood = finalCandidate(card, draft, 1, mealType);
+    const firstIssue = assess(firstFood);
+    if (firstIssue) return fail(firstIssue);
+    const firstValidation = check(firstFood);
+    if (firstValidation.outcome !== "pass") return fail(finalValidationFailure(firstValidation));
     const formatted = scaleCard(card, input.servings);
     if (!formatted) return fail("serving_finalization_failed");
     // Repeat ALL food checks against the actual returned ingredients/instructions
     // and convert final total-recipe nutrition back to the one-serving authority.
-    const finalFood = finalCandidate(formatted, draft, input.servings, proof, mealType);
-    const finalDiet = assessMenuDietEvidence(finalFood, context.diet.effective);
-    if (finalDiet.status === "contradicted") return fail("diet_hfc_rejected");
-    finalFood.evidence = { ...finalFood.evidence, dietaryIdentityCompliant: finalDiet.dietaryIdentityCompliant };
+    const finalFood = finalCandidate(formatted, draft, input.servings, mealType);
+    const finalIssue = assess(finalFood);
+    if (finalIssue) return fail(finalIssue);
     if (!validateHumanFoodResult(finalFood, context).valid ||
         !scanGeneratedOutput(finalFood, envelope, { generatorName: "menu-recipe-completion" }).passed ||
-        !conceptIdentityMatches(concept, { ...draft, ingredients: formatted.ingredients }) ||
-        check(finalFood).outcome !== "pass") {
+        !conceptIdentityMatches(concept, { ...draft, ingredients: formatted.ingredients })) {
       return fail("final_validation_rejected");
     }
+    const finalValidation = check(finalFood);
+    if (finalValidation.outcome !== "pass") return fail(finalValidationFailure(finalValidation));
     const current = await createHumanFoodRequestScope(scopeInput).resolve();
     const currentEnvelope = await loadUserProtocolEnvelope(input.actorUserId, isHousehold ? input.subject.id : undefined);
     const currentGlp1 = isHousehold ? null : await resolveGLP1GlobalContext(
