@@ -1,11 +1,27 @@
 /** @jest-environment jsdom */
 
-import { requestOneTouchMeals } from "@/lib/oneTouchCreate";
+import { loadOneTouchBatch, requestOneTouchMeals, saveOneTouchBatch } from "@/lib/oneTouchCreate";
 jest.mock("@/lib/oneTouchAvailability", () => ({ ONE_TOUCH_CREATE_ENABLED: true }));
 
 describe("One-Touch client request contract", () => {
   afterEach(() => {
     jest.restoreAllMocks();
+    localStorage.clear();
+  });
+
+  it("restores the previous choices only for the same account and completed three-card set", () => {
+    const choices = {
+      servings: 4,
+      cuisine: { mode: "surprise" as const },
+      eatingStyle: { mode: "explicit" as const, value: "vegan" },
+    };
+    const names = ["Lentil Skillet", "Stuffed Peppers", "Herb Flatbread"];
+    saveOneTouchBatch("create_a_dish", "owner-1", choices, names);
+    expect(loadOneTouchBatch("create_a_dish", "owner-1", names)).toEqual(choices);
+    expect(loadOneTouchBatch("create_a_dish", "other-owner", names)).toBeNull();
+    expect(loadOneTouchBatch("craving_creator", "owner-1", names)).toBeNull();
+    expect(loadOneTouchBatch("create_a_dish", "owner-1", ["Manual Meal", ...names.slice(1)])).toBeNull();
+    expect(loadOneTouchBatch("create_a_dish", "owner-1", names.slice(0, 2))).toBeNull();
   });
 
   it("sends request-scoped controls and requires exactly three meals", async () => {

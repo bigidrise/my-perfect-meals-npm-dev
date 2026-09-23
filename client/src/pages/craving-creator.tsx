@@ -149,7 +149,9 @@ import { captureAuthoritativeTextValue, commitTextInputValue } from "@/lib/autho
 import OneTouchCreateModal from "@/components/one-touch/OneTouchCreateModal";
 import {
   ONE_TOUCH_CREATE_ENABLED,
+  loadOneTouchBatch,
   requestOneTouchMeals,
+  saveOneTouchBatch,
   type OneTouchCuisine,
   type OneTouchEatingStyle,
 } from "@/lib/oneTouchCreate";
@@ -488,6 +490,22 @@ export default function CravingCreator() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [oneTouchOpen, setOneTouchOpen] = useState(false);
   const [oneTouchBusy, setOneTouchBusy] = useState(false);
+  const [oneTouchLastRequest, setOneTouchLastRequest] = useState<{
+    servings: number;
+    cuisine: OneTouchCuisine;
+    eatingStyle: OneTouchEatingStyle;
+  } | null>(null);
+  const [oneTouchDisplayedOptions, setOneTouchDisplayedOptions] = useState<MealData[] | null>(null);
+  useEffect(() => {
+    if (!user?.id || mealOptions.length !== 3 || oneTouchDisplayedOptions === mealOptions) return;
+    const restored = loadOneTouchBatch(
+      "craving_creator", user.id, mealOptions.map((option) => String(option.name)),
+    );
+    if (restored) {
+      setOneTouchLastRequest(restored);
+      setOneTouchDisplayedOptions(mealOptions);
+    }
+  }, [user?.id, mealOptions, oneTouchDisplayedOptions]);
 
   // Safety override integration - always starts ON, auto-resets after generation
   const [safetyEnabled, setSafetyEnabled] = useState(true);
@@ -512,6 +530,9 @@ export default function CravingCreator() {
       });
       setServings(request.servings);
       setMealOptions(meals);
+      setOneTouchLastRequest(request);
+      setOneTouchDisplayedOptions(meals);
+      saveOneTouchBatch("craving_creator", user?.id, request, meals.map((meal) => String(meal.name)));
       setGeneratedMeals([]);
       setOneTouchOpen(false);
     } catch (error: any) {
@@ -1492,6 +1513,16 @@ export default function CravingCreator() {
                   </CardContent>
                 </Card>
               ))}
+              {ONE_TOUCH_CREATE_ENABLED && oneTouchLastRequest && oneTouchDisplayedOptions === mealOptions && (
+                <button
+                  type="button"
+                  disabled={oneTouchBusy}
+                  onClick={() => void handleOneTouchCreate(oneTouchLastRequest)}
+                  className="w-full min-h-11 rounded-xl border border-yellow-400/40 bg-yellow-400/10 px-4 text-sm font-bold text-yellow-100 disabled:opacity-50"
+                >
+                  {oneTouchBusy ? "Creating more ideas…" : "Try 3 More"}
+                </button>
+              )}
               <button
                 onClick={() => { setMealOptions([]); clearCravingOptionsCache(); setCravingInput(""); }}
                 className="w-full text-sm text-white/50 hover:text-white/80 py-2 transition-colors"
