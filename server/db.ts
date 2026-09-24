@@ -13,6 +13,7 @@ import { builderPlans } from "./db/schema/builderPlans";
 import { organizations } from "./db/schema/organizations";
 import { businessPilotAuthorizations } from "./db/schema/businessPilotAuthorization";
 import { studioVideoMedia, studioVideoMessages } from "./db/schema/studio";
+import { healthProtocolSources, healthProtocolEvents } from "./db/schema/healthProtocols";
 import {
   coachConversations,
   coachMessages,
@@ -95,6 +96,8 @@ export const db = drizzle(pool, {
     businessPilotAuthorizations,
     studioVideoMedia,
     studioVideoMessages,
+    healthProtocolSources,
+    healthProtocolEvents,
     coachConversations,
     coachMessages,
     coachInvestigations,

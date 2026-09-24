@@ -33,7 +33,7 @@ These are target behaviors, **not a claim that current endpoints enforce them**.
 Clinical ownership, patient disputes, and the review/confirmation workflow
 require approval before write paths are switched over.
 
-## Proposed DEV schema (not yet applied)
+## DEV schema (additive tables applied; shadow-only)
 
 Add `health_protocol_sources`: `id` (UUID), `subject_user_id`, canonical
 `protocol_key`, `source_kind` (`user`, `provider`, `lab`, `medication`,
@@ -49,6 +49,14 @@ status, reason code, and timestamp; restrict evidence references to valid
 authorized rows. Provider/lab/medication source writes must have distinct
 server-side authorization and evidence verification. No private clinical
 values belong in generic application logs.
+
+The DEV migration is explicit (`NODE_ENV=development npx tsx
+scripts/migrate-health-protocols-dev.ts`), never an application boot migration.
+It rejects non-DEV environments and creates an update/delete blocker on the
+event table. Evidence references are verified by source-specific service
+queries before writes; the generic reference is intentionally *not* a foreign
+key because it spans different evidence tables. An authorization check at the
+eventual HTTP boundary is still required before any write route is enabled.
 
 No existing table or field is removed. Keep current `users` columns,
 `glp1_profile`, clinical labs/recommendations, studio membership, and
@@ -75,6 +83,23 @@ remain in the live legacy path. The new resolver returns no food decision when
 a claim needs review; it must not be used for live reads until UI and blocking
 behavior are ready. Avoid flipping only one route to the new source of truth.
 
+**DEV Phase 2 shadow observation:** The exact-name backfill (dry-run, then
+apply; rerunning adds zero) inserted 86 review-pending source claims and 86
+creation events. Four are GLP-1; zero are verified-current medication, active
+provider claims, or active lab claims. No builder selection was backfilled as
+medical evidence. The read-only comparison uses the *same* GLP-1 activation
+predicate as the live resolver and the pure shadow resolver: four legacy
+GLP-1 activations have pending-review new claims, one legacy GLP-1
+builder-only activation has no new medical source, and one legacy GLP-1 medical
+signal overlaps an ended membership without proven current provider ownership.
+Other aggregate mismatches: seven anti-inflammatory builder-only, 18
+anti-inflammatory legacy conditions pending review, one renal pending review,
+and ten cardiac pending review (overlap is possible). There are 34 accepted
+recommendation rows with matching labs, but acceptance at one point does not
+establish currentness or the absence of a later discontinuation; none were
+automatically promoted. This is **not** a full legacy food-generation
+comparison for non-GLP-1 protocols. It is not safe to enable new reads.
+
 ## Staged activation and rollback
 
 1. **Completed first phase:** define and test the deterministic contract
@@ -84,6 +109,13 @@ behavior are ready. Avoid flipping only one route to the new source of truth.
    instrument reconciliation, and implement authorized user/provider/lab
    mutations and explicit confirmation/review UI. Shadow-read against legacy
    behavior; do not use shadow rows to serve food.
+
+   The schema, DEV-only service, conservative legacy backfill and bounded
+   aggregate comparison are present. No HTTP write route or confirmation UI
+   is connected yet, and no food consumer reads the tables. Unverified
+   medication and system suggestions can be persisted for review but cannot
+   activate themselves. A provider disconnect can explicitly mark its own
+   source pending review without erasing another source.
 3. Route all human-food, protocol envelope, GLP-1, and nutrition resolvers
    through a single authoritative snapshot. Verify Create a Dish, Craving,
    Dessert, Beverage, Sushi, Fridge Rescue (both routes), Recipe Scan,
@@ -99,6 +131,9 @@ Rollback is an application feature flag returning reads to the unchanged
 legacy pipeline. Disable new writes or dual-write safely before rollback;
 retain additive tables and events for audit, not destructive reverse DDL.
 Production is outside this plan's execution scope.
+At this stage there is no read flag to flip: reads already remain entirely
+legacy. Stop invoking the DEV-only service/backfill to return to the
+pre-Phase-2 behavior, retaining the audit tables and original fields.
 
 ## Recipe intent and the existing 409
 
