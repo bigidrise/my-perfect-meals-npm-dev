@@ -96,11 +96,12 @@ const clientQuery = jest.fn(async (sql: string, args: unknown[] = []) => {
     for (const row of changed) row.status = "inactive";
     return { rows: changed.map((row) => ({ id: row.id })), rowCount: changed.length };
   }
-  if (sql.includes("UPDATE health_protocol_sources SET status=$5")) {
-    const found = rows.find((row) => row.id === args[9]);
+  if (sql.includes("UPDATE health_protocol_sources SET status=$1")) {
+    if (args.length !== 6) throw new Error("Claim update parameters must be contiguous.");
+    const found = rows.find((row) => row.id === args[5]);
     if (!found) throw new Error("Test claim missing.");
-    found.status = String(args[4]);
-    found.accepted_recommendation = args[7] as boolean | null;
+    found.status = String(args[0]);
+    found.accepted_recommendation = args[3] as boolean | null;
     return { rows: [{ id: found.id }], rowCount: 1 };
   }
   if (sql.includes("UPDATE health_protocol_sources") && sql.includes("SET status='inactive'") &&
@@ -191,6 +192,11 @@ describe("DEV shadow protocol persistence and source ownership", () => {
     expect((await user(true)).activeHealthContext).toEqual(["glp1"]);
     expect((await user(false)).activeHealthContext).toEqual([]);
     expect((await user(true)).activeHealthContext).toEqual(["glp1"]);
+    const updates = clientQuery.mock.calls.filter(([sql]) =>
+      String(sql).includes("UPDATE health_protocol_sources SET status=$1"));
+    expect(updates).toHaveLength(2);
+    expect(updates[0][1]).toEqual(["inactive", null, null, null, null, "claim-1"]);
+    expect(updates[1][1]).toEqual(["active", null, null, null, null, "claim-1"]);
     expect(rows).toHaveLength(1);
     expect(events.map((event) => event.after)).toEqual(["active", "inactive", "active"]);
     await user(true);

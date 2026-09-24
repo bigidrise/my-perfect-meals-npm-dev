@@ -79,15 +79,15 @@ export async function putClaim(client: PoolClient, input: ClaimInput): Promise<s
   ];
   const { rows } = existing[0]
     ? await client.query(
-      `UPDATE health_protocol_sources SET status=$5, owner_user_id=$6,
-        care_relationship_id=$7, accepted_recommendation=$8,
-        current_medication_use=$9, updated_at=now(),
-        activated_at=CASE WHEN $5='active' AND status <> 'active' THEN now() ELSE activated_at END,
-        ended_at=CASE WHEN $5 IN ('inactive','historical') AND status <> $5 THEN now()
-                      WHEN $5='active' THEN NULL ELSE ended_at END,
-        reviewed_at=CASE WHEN $5='pending_review' THEN NULL ELSE now() END
-       WHERE id=$10 RETURNING id`,
-      [...values, existing[0].id],
+      `UPDATE health_protocol_sources SET status=$1, owner_user_id=$2,
+        care_relationship_id=$3, accepted_recommendation=$4,
+        current_medication_use=$5, updated_at=now(),
+        activated_at=CASE WHEN $1='active' AND status <> 'active' THEN now() ELSE activated_at END,
+        ended_at=CASE WHEN $1 IN ('inactive','historical') AND status <> $1 THEN now()
+                      WHEN $1='active' THEN NULL ELSE ended_at END,
+        reviewed_at=CASE WHEN $1='pending_review' THEN NULL ELSE now() END
+       WHERE id=$6 RETURNING id`,
+      [...values.slice(4), existing[0].id],
     )
     : await client.query(
       `INSERT INTO health_protocol_sources
