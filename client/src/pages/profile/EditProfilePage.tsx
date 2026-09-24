@@ -1407,7 +1407,7 @@ export default function EditProfilePage() {
                       <div>
                         <p className="text-orange-300 text-xs font-semibold mb-1">Existing GLP-1 meal-generation guidance</p>
                         <p className="text-white/70 text-xs leading-relaxed">
-                          This older profile setting currently affects meal generation, including alongside a Diabetic Builder. It does not prove current medication use. The separate DEV support setting below does not change today's meals. Follow your clinician's guidance where applicable.
+                          This older profile setting currently affects meal generation, including alongside a Diabetic Builder. It does not prove current medication use. Your separate nutrition support choice below does not yet change today's meals. Follow your clinician's guidance where applicable.
                         </p>
                       </div>
                     </div>
@@ -1468,7 +1468,7 @@ export default function EditProfilePage() {
               <div className="rounded-xl border border-green-500/20 bg-green-950/10 p-3">
                 <p className="text-white/80 text-xs font-semibold mb-1">Current meals: Anti-Inflammatory Support</p>
                 <p className="text-white/50 text-xs mb-3 leading-relaxed">
-                  This existing preference affects today's meals when you save your profile. It layers onto any Builder. The DEV preview below stores future support choices separately.
+                  This preference affects today's meals when you save your profile. It layers onto any Builder. The additional support choices below are saved separately and do not yet change meals.
                 </p>
                 <PillButton
                   disabled={!antiInflammatorySupportLoaded}
