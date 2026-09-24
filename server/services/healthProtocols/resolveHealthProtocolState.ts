@@ -75,8 +75,6 @@ export function resolveHealthProtocolState(input: {
     let reason: ProtocolReviewReason | null = null;
     if (record.source === "legacy_migrated") {
       reason = "legacy_unverified";
-    } else if (record.status === "pending_review") {
-      reason = "state_pending_review";
     } else if (record.source === "provider") {
       const relationship = record.relationshipId
         ? input.relationshipStatus[record.relationshipId]
@@ -86,6 +84,9 @@ export function resolveHealthProtocolState(input: {
           ? "provider_relationship_ended"
           : "provider_relationship_unverified";
       }
+    }
+    if (!reason && record.status === "pending_review") {
+      reason = "state_pending_review";
     } else if (record.source === "lab" && record.acceptedRecommendation !== true) {
       reason = "lab_acceptance_unverified";
     } else if (record.source === "medication" && record.currentMedicationUse !== true) {

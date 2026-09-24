@@ -4,6 +4,10 @@ import { oneTouchHistorySchema, type OneTouchDirection } from "@shared/oneTouch"
 
 const mockSets = new Map<string, Record<string, any>>();
 let mockFingerprint = "a".repeat(43);
+let useRealFingerprint = false;
+let nutritionCalories = 1900;
+let resolutionCount = 0;
+const routeFingerprints: string[] = [];
 
 jest.mock("../middleware/requireAuth", () => ({
   requireAuth: (req: any, _res: any, next: () => void) => {
@@ -24,10 +28,20 @@ jest.mock("../services/oneTouch/history", () => ({
 }));
 jest.mock("../services/humanFoodContext/requestScope", () => ({
   createHumanFoodRequestScope: jest.fn(() => ({
-    resolve: async () => ({
-      status: "resolved", diet: { effective: ["vegan"] },
-      flavor: { cuisine: { available: false, value: null } }, notices: [],
-    }),
+    resolve: async () => {
+      const stamp = new Date(Date.UTC(2026, 0, 1, 0, 0, resolutionCount++)).toISOString();
+      return {
+        status: "resolved", diet: { effective: ["vegan"] },
+        flavor: { cuisine: { available: false, value: null } }, notices: [],
+        subjectUserId: "menu-person",
+        authorization: { status: "none", action: null, waivers: [] },
+        resolvedAt: stamp,
+        nutrition: {
+          resolvedAt: stamp, prescription: { calories: nutritionCalories },
+          provenance: { calculationTimestamp: stamp },
+        },
+      };
+    },
     executionState: {},
     completeAuthorization: async () => undefined,
   })),
@@ -51,10 +65,18 @@ jest.mock("../services/glp1/resolveGLP1GlobalContext", () => ({
   resolveGLP1GlobalContext: jest.fn(async () => ({ isActive: false, resolvedTargets: null })),
   buildGLP1RecommendationBlock: jest.fn(() => ""),
 }));
-jest.mock("../services/oneTouch/contextFingerprint", () => ({
-  oneTouchContextFingerprint: jest.fn(() => mockFingerprint),
-  oneTouchChangedAuthorityBranches: jest.fn(() => []),
-}));
+jest.mock("../services/oneTouch/contextFingerprint", () => {
+  const actual = jest.requireActual("../services/oneTouch/contextFingerprint");
+  return {
+    oneTouchContextFingerprint: jest.fn((...args: unknown[]) => {
+      const fingerprint = useRealFingerprint
+        ? actual.oneTouchContextFingerprint(...args) : mockFingerprint;
+      routeFingerprints.push(fingerprint);
+      return fingerprint;
+    }),
+    oneTouchChangedAuthorityBranches: actual.oneTouchChangedAuthorityBranches,
+  };
+});
 
 const choices = (creator: "create_a_dish" | "craving_creator") => ({
   creator, servings: 3, cuisine: { mode: "explicit", value: "italian" },
@@ -98,6 +120,10 @@ describe("Creator Menu selects one server-owned concept before completion", () =
     jest.clearAllMocks();
     mockSets.clear();
     mockFingerprint = "a".repeat(43);
+    useRealFingerprint = false;
+    nutritionCalories = 1900;
+    resolutionCount = 0;
+    routeFingerprints.length = 0;
     directions.mockImplementation(async ({ occasion }: { occasion: "lunch" | "snack" }) => ({
       directions: [1, 2, 3].map((n) => idea(n, occasion)), attemptsCompleted: 1,
     }));
@@ -112,6 +138,50 @@ describe("Creator Menu selects one server-owned concept before completion", () =
         imageUrl: "/completed.jpg",
       },
     }));
+  });
+
+  it("uses the real fingerprint at both route checks: timestamp churn alone does not 409", async () => {
+    const oldSecret = process.env.SESSION_SECRET;
+    process.env.SESSION_SECRET = "creator-menu-route-test-only";
+    useRealFingerprint = true;
+    try {
+      const first = await request(app).post("/api/one-touch-create").send(choices("create_a_dish"));
+      expect(first.status).toBe(200);
+      expect(routeFingerprints).toHaveLength(2);
+      expect(routeFingerprints[0]).toBe(routeFingerprints[1]);
+      const selected = await request(app).post("/api/one-touch-create/choose").send({
+        request: choices("create_a_dish"), conceptId: first.body.concepts[0].id,
+      });
+      expect(selected.status).toBe(200);
+      expect(routeFingerprints).toHaveLength(4);
+      expect(new Set(routeFingerprints).size).toBe(1);
+      expect(resolutionCount).toBeGreaterThanOrEqual(4);
+    } finally {
+      useRealFingerprint = false;
+      if (oldSecret === undefined) delete process.env.SESSION_SECRET;
+      else process.env.SESSION_SECRET = oldSecret;
+    }
+  });
+
+  it("uses the real fingerprint to reject a substantive changed nutrition target", async () => {
+    const oldSecret = process.env.SESSION_SECRET;
+    process.env.SESSION_SECRET = "creator-menu-route-test-only";
+    useRealFingerprint = true;
+    try {
+      const first = await request(app).post("/api/one-touch-create").send(choices("create_a_dish"));
+      expect(first.status).toBe(200);
+      nutritionCalories = 1700;
+      const selected = await request(app).post("/api/one-touch-create/choose").send({
+        request: choices("create_a_dish"), conceptId: first.body.concepts[0].id,
+      });
+      expect(selected.status).toBe(409);
+      expect(routeFingerprints[0]).not.toBe(routeFingerprints[2]);
+      expect(complete).not.toHaveBeenCalled();
+    } finally {
+      useRealFingerprint = false;
+      if (oldSecret === undefined) delete process.env.SESSION_SECRET;
+      else process.env.SESSION_SECRET = oldSecret;
+    }
   });
 
   it.each(["create_a_dish", "craving_creator"] as const)(

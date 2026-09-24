@@ -45,32 +45,11 @@ import { loadGLP1ResolvedTargets } from "./glp1TargetLoader";
 import type { ResolvedGLP1Targets } from "./resolveGLP1MealTargets";
 import { resolveDailyNutritionState } from "../nutritionStateService";
 import type { DailyNutritionState } from "../../../shared/dailyNutritionPrescription";
-
-// ─── GLP-1 activation keyword sets ──────────────────────────────────────────
-// Must match a condition array entry containing any of these substrings
-// (case-insensitive) to count as GLP-1 active from that source.
-const GLP1_CONDITION_KEYS = [
-  "glp1", "glp-1", "glp 1",
-  "semaglutide", "tirzepatide", "ozempic", "wegovy", "mounjaro",
-  "rybelsus", "liraglutide", "dulaglutide", "exenatide", "trulicity",
-  "victoza", "saxenda", "zepbound",
-];
-
-function arrayIncludesGLP1(arr: unknown): boolean {
-  if (!Array.isArray(arr)) return false;
-  return arr.some(
-    (v) =>
-      typeof v === "string" &&
-      GLP1_CONDITION_KEYS.some((k) => v.toLowerCase().includes(k)),
-  );
-}
+import { detectLegacyGLP1ActivationSources } from "./activationSources";
+import type { GLP1ActivationSource } from "./activationSources";
+export type { GLP1ActivationSource } from "./activationSources";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-
-export type GLP1ActivationSource =
-  | "selectedMealBuilder"
-  | "medicalConditions"
-  | "specialtyConditions";
 
 export interface GLP1GlobalContext {
   /** True when GLP-1 is active from ANY detection source. */
@@ -147,26 +126,10 @@ export async function resolveGLP1GlobalContext(
   }
 
   // ── 2. Detect activation from every possible source ──────────────────────
-  const activationSources: GLP1ActivationSource[] = [];
-
-  if (userRow) {
-    // Source 1: currently selected builder — user actively controls this
-    if (userRow.selectedMealBuilder === "glp1") {
-      activationSources.push("selectedMealBuilder");
-    }
-    // Source 2: physician-managed clinical assignment
-    // PUT /api/pro/glp1-protocol/:clientId {enabled:true/false} adds/removes "glp1"
-    // from this array — the canonical clinical toggle for GLP-1 activation/deactivation
-    if (arrayIncludesGLP1(userRow.medicalConditions)) {
-      activationSources.push("medicalConditions");
-    }
-    // Source 3: specialty conditions overlay (updateable; GLP-1 keywords valid here)
-    if (arrayIncludesGLP1(userRow.specialtyConditions)) {
-      activationSources.push("specialtyConditions");
-    }
-    // NOT CHECKED: preferredBuilder — onboarding recommendation, not current treatment state
-    // NOT CHECKED: glp1_profile row — no is_active field; persists forever after setup
-  }
+  // Source order and keyword matching are unchanged. This same predicate is
+  // shared with the DEV shadow comparison; preferredBuilder and profile-row
+  // existence are intentionally excluded.
+  const activationSources: GLP1ActivationSource[] = detectLegacyGLP1ActivationSources(userRow);
 
   const isActive = activationSources.length > 0;
 
