@@ -18,6 +18,9 @@ const candidates = `
     SELECT u.specialty_condition, 'specialty_conditions' WHERE u.specialty_condition IS NOT NULL
     UNION ALL
     SELECT value, 'health_conditions' FROM unnest(coalesce(u.health_conditions, ARRAY[]::text[])) value
+    UNION ALL
+    SELECT 'anti-inflammatory'::text, 'app_preferences_anti_inflammatory'::text
+    WHERE u.app_preferences->>'antiInflammatorySupport' = 'true'
   ) x
   JOIN (VALUES
     ('glp1','glp1'),('glp-1','glp1'),('glp 1','glp1'),
