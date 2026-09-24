@@ -28,6 +28,7 @@ import { clinicalLabs } from '../db/schema/clinicalLabs';
 import { studioMemberships } from '../db/schema/studio';
 import { users } from '../../shared/schema';
 import { eq, and, desc } from 'drizzle-orm';
+import { clinicalProtocolRecommendations } from '../db/schema/clinicalProtocolRecommendations';
 import {
   resolveProtocolFromLabs,
   resolveThyroidFromLabs,
@@ -41,6 +42,39 @@ const PROTOCOL_TO_CONDITION: Record<string, string> = {
   'liver-disease':  'liver-disease',
   'liver-support':  'liver-support',
 };
+
+// A subject's explicit off decision is distinct from a lab measurement or a
+// downgrade recommendation. Keep it in the existing clinical decision audit
+// so a later profile save cannot silently reactivate the same lab signal.
+const CARDIAC_LAB_CHOICE_REASON = 'subject_disabled_lab_cardiac_support';
+
+export async function discontinueLabDrivenCardiac(userId: string): Promise<string[]> {
+  if (await getPhysicianLockStatus(userId, true)) {
+    throw new Error('Physician-controlled protocols cannot be changed here.');
+  }
+  const conditions = await db.transaction(async (tx) => {
+    const [user] = await tx.select({
+      specialtyConditions: users.specialtyConditions,
+      specialtyCondition: users.specialtyCondition,
+    }).from(users).where(eq(users.id, userId)).for('update').limit(1);
+    if (!user) throw new Error('Profile unavailable.');
+
+    const next = ((user.specialtyConditions as string[] | null) ??
+      (user.specialtyCondition ? [user.specialtyCondition] : []))
+      .filter((condition) => condition !== 'cardiac');
+    await tx.insert(clinicalProtocolRecommendations).values({
+      userId, recommendedProtocol: 'heart-failure', status: 'removed',
+      reason: CARDIAC_LAB_CHOICE_REASON,
+    });
+    await tx.update(users).set({
+      specialtyConditions: next,
+      specialtyCondition: next[0] ?? null,
+      updatedAt: new Date(),
+    }).where(eq(users.id, userId));
+    return next;
+  });
+  return conditions;
+}
 
 /**
  * Returns the list of specialty condition values that are currently driven
@@ -98,7 +132,20 @@ export async function getLabDrivenConditions(userId: string): Promise<string[]> 
     });
     if (signal?.protocol) {
       const cond = PROTOCOL_TO_CONDITION[signal.protocol];
-      if (cond) labDriven.push(cond);
+      if (cond === 'cardiac') {
+        const [choice] = await db.select({ status: clinicalProtocolRecommendations.status })
+          .from(clinicalProtocolRecommendations)
+          .where(and(
+            eq(clinicalProtocolRecommendations.userId, userId),
+            eq(clinicalProtocolRecommendations.recommendedProtocol, 'heart-failure'),
+            eq(clinicalProtocolRecommendations.reason, CARDIAC_LAB_CHOICE_REASON),
+          ))
+          .orderBy(desc(clinicalProtocolRecommendations.id))
+          .limit(1);
+        if (!choice || choice.status !== 'removed') labDriven.push(cond);
+      } else if (cond) {
+        labDriven.push(cond);
+      }
     }
   }
 
@@ -151,7 +198,7 @@ export async function getLabDrivenConditions(userId: string): Promise<string[]> 
  * Returns true if the user has an active, non-archived studio membership
  * with an assigned builder — meaning a physician controls their protocol.
  */
-export async function getPhysicianLockStatus(userId: string): Promise<boolean> {
+export async function getPhysicianLockStatus(userId: string, failClosed = false): Promise<boolean> {
   try {
     const rows = await db
       .select({ assignedBuilder: studioMemberships.assignedBuilder })
@@ -165,7 +212,8 @@ export async function getPhysicianLockStatus(userId: string): Promise<boolean> {
       )
       .limit(1);
     return rows.length > 0 && !!rows[0].assignedBuilder;
-  } catch {
+  } catch (error) {
+    if (failClosed) throw error;
     return false;
   }
 }

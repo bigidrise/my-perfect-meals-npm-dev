@@ -63,6 +63,7 @@ import { loadUserProtocolEnvelope, enforceBeforeGenerate, filterMealsByProtocol,
 import { deriveCompPrepStatus } from "./services/protocol/competitionPrepDateEngine";
 import { getActiveNutritionContext } from "./services/nutritionContext/getActiveNutritionContext";
 import { getLabDrivenConditions, getPhysicianLockStatus } from "./services/labProtocolOwnership";
+import cardiacLabChoiceRouter from "./routes/cardiacLabChoice";
 import { 
   hasUserSetPin, 
   setUserPin, 
@@ -4438,6 +4439,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to update preferences" });
     }
   });
+
+  // PATCH /api/user/specialty-condition
+  app.use("/api/user", cardiacLabChoiceRouter());
 
   // PATCH /api/user/specialty-condition
   // Saves the user's self-selected specialty health protocol(s).

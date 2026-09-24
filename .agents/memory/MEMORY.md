@@ -121,3 +121,4 @@
 - [One-Touch Creator authority](one-touch-creator-authority.md) — delegated choices require explicit diet authority and safety-equivalent checks; Menu stays separate from manual Creators.
 - [Vite-only feature gates in Jest](vite-feature-gates-jest.md) — isolate import.meta.env gates from request helpers so CommonJS Jest can test them.
 - [Health protocol cutover](health-protocol-cutover.md) — GLP-1 is the sole new personal intent; existing clinical supports remain authoritative until reviewed all-surface migration.
+- [Cardiac lab user choice](cardiac-lab-user-choice.md) — users can stop lab-derived Cardiac guidance without changing lab evidence; physician-owned protocols stay protected.

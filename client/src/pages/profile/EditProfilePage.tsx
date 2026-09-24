@@ -280,6 +280,7 @@ export default function EditProfilePage() {
   const [specialtyConditions, setSpecialtyConditions] = useState<string[]>(
     (user as any)?.specialtyConditions ?? (user?.specialtyCondition ? [user.specialtyCondition] : [])
   );
+  const [cardiacLabOffPending, setCardiacLabOffPending] = useState(false);
   const [glp1Active, setGlp1Active] = useState<boolean>(
     !!((user as any)?.medicalConditions as string[] | undefined)?.includes("glp1")
   );
@@ -375,6 +376,10 @@ export default function EditProfilePage() {
     const arr: string[] = (user as any)?.specialtyConditions ?? (user?.specialtyCondition ? [user.specialtyCondition] : []);
     setSpecialtyConditions(arr);
   }, [(user as any)?.specialtyConditions, user?.specialtyCondition]);
+
+  useEffect(() => {
+    setCardiacLabOffPending(false);
+  }, [user?.id]);
 
   // Sync glp1Active from user object
   useEffect(() => {
@@ -555,13 +560,22 @@ export default function EditProfilePage() {
       const savedSpecialtyConditions: string[] =
         (user as any)?.specialtyConditions ??
         (user?.specialtyCondition ? [user.specialtyCondition] : []);
+      const conditionsToSave = cardiacLabOffPending
+        ? specialtyConditions.filter((condition) => condition !== "cardiac")
+        : specialtyConditions;
       const specialtyConditionsChanged =
-        JSON.stringify([...specialtyConditions].sort()) !==
+        JSON.stringify([...conditionsToSave].sort()) !==
         JSON.stringify([...savedSpecialtyConditions].sort());
 
       // Health protocols have separate clinical ownership rules. Do not submit
       // this provider-controlled field when the user only changed unrelated
       // profile data such as their personal dietary preference.
+      if (cardiacLabOffPending) {
+        await apiRequest("/api/user/lab-cardiac-support", {
+          method: "PATCH",
+          body: JSON.stringify({ enabled: false }),
+        });
+      }
       if (specialtyConditionsChanged) {
         const condRes = await fetch(apiUrl("/api/user/specialty-condition"), {
           method: "PATCH",
@@ -570,10 +584,13 @@ export default function EditProfilePage() {
             ...authHeaders,
           },
           credentials: "include",
-          body: JSON.stringify({ conditions: specialtyConditions }),
+          body: JSON.stringify({ conditions: conditionsToSave }),
         });
         if (!condRes.ok) {
           const condErr = await condRes.json().catch(() => ({}));
+          if (cardiacLabOffPending) {
+            throw new Error(condErr.message || "Cardiac support was turned off, but your other health changes could not be saved. Please reload and try again.");
+          }
           if (condErr.error === "lab_driven") {
             toast({
               title: "Protocol locked by lab values",
@@ -590,6 +607,7 @@ export default function EditProfilePage() {
           // Still allow the rest of the save (profile data saved OK — only conditions were blocked)
         }
       }
+      if (cardiacLabOffPending) setCardiacLabOffPending(false);
 
       // Save thyroid type (only relevant when thyroid-support is active, but always sync)
       if (specialtyConditions.includes("thyroid-support") || thyroidType) {
@@ -1219,7 +1237,7 @@ export default function EditProfilePage() {
                     <div className="flex items-start gap-2">
                       <span className="text-sky-400 text-xs mt-0.5">🔬</span>
                       <p className="text-sky-300/80 text-xs leading-relaxed">
-                        <span className="font-semibold text-sky-300">Lab-activated protocols</span> are shown below with a <span className="font-semibold">🔬</span> indicator. These protocols are active because your lab values support them. To remove them, update your lab values in Biometrics.
+                        <span className="font-semibold text-sky-300">Lab-activated protocols</span> are marked <span className="font-semibold">🔬</span>. You can turn off Cardiac / Heart Disease here and save your profile without changing your lab values. This stops Cardiac nutrition guidance unless your physician controls it. Other lab-activated protocols are managed through Biometrics.
                       </p>
                     </div>
                   </div>
@@ -1258,15 +1276,22 @@ export default function EditProfilePage() {
                     { label: "🩷 My Perfect Pregnancy", value: "pregnancy-support" },
                   ] as const).map((opt) => {
                     const isLabDriven = labDrivenConditions.includes(opt.value);
-                    const locked = isConditionLocked(opt.value);
-                    const isActive = specialtyConditions.includes(opt.value) || isLabDriven;
+                    const editableLabCardiac = opt.value === "cardiac" && isLabDriven && !physicianLocked;
+                    const locked = isConditionLocked(opt.value) && !editableLabCardiac;
+                    const isActive = (specialtyConditions.includes(opt.value) || isLabDriven)
+                      && !(editableLabCardiac && cardiacLabOffPending);
                     return (
                       <PillButton
                         key={opt.value}
                         active={isActive}
+                        disabled={saving}
                         onClick={() => {
                           if (locked) return;
                           if (physicianOncologyLocked && opt.value === "oncology-support") return;
+                          if (editableLabCardiac) {
+                            setCardiacLabOffPending((pending) => !pending);
+                            return;
+                          }
                           setSpecialtyConditions((prev) =>
                             prev.includes(opt.value) ? prev.filter(c => c !== opt.value) : [...prev, opt.value]
                           );
@@ -1274,6 +1299,7 @@ export default function EditProfilePage() {
                         className={locked ? "opacity-80 cursor-not-allowed" : ""}
                       >
                         {isLabDriven ? <span className="mr-1 text-[10px]">🔬</span> : null}{opt.label}
+                        {editableLabCardiac && cardiacLabOffPending ? " · Off when saved" : ""}
                       </PillButton>
                     );
                   })}
