@@ -429,7 +429,7 @@ export default function Auth() {
                          text-white placeholder-white/60
                          focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
               required
-              minLength={12}
+              minLength={mode === "signup" ? 12 : undefined}
               autoCorrect="off"
               autoCapitalize="off"
               value={pwd}
