@@ -181,4 +181,36 @@ describe("Creator Menu selects one server-owned concept before completion", () =
     expect(selected.body.code).toBe("ONE_TOUCH_REQUIREMENT_UNAVAILABLE");
     expect(history).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ["identity_mismatch", false, 422, "identity_mismatch"],
+    ["generation_failed", true, 502, "generation_failed"],
+    ["diabetes_rejected", false, 422, "protected_food_or_authority_rejected"],
+  ] as const)("logs a safe %s reason for the general rejection, then restores the same ideas", async (reason, retryable, status, safeReason) => {
+    const first = await request(app).post("/api/one-touch-create").send(choices("create_a_dish"));
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      complete.mockResolvedValue({ ok: false, code: reason, retryable });
+      const selected = await request(app).post("/api/one-touch-create/choose").send({
+        request: choices("create_a_dish"), conceptId: first.body.concepts[0].id,
+      });
+      expect(selected.status).toBe(status);
+      expect(selected.body).toEqual({
+        code: "ONE_TOUCH_RECIPE_REJECTED",
+        error: "We couldn't safely complete this selected idea. Please choose another or try again.",
+      });
+      expect(warn).toHaveBeenCalledWith("[CreatorMenu] Choose completion rejected", {
+        creator: "create_a_dish", reason: safeReason, retryable, status,
+      });
+      expect(JSON.stringify(warn.mock.calls)).not.toContain(first.body.concepts[0].title);
+      if (reason === "diabetes_rejected") expect(JSON.stringify(warn.mock.calls)).not.toContain(reason);
+      expect(history).not.toHaveBeenCalled();
+      const restored = await request(app).post("/api/one-touch-create/restore").send(choices("create_a_dish"));
+      expect(restored.status).toBe(200);
+      expect(restored.body.concepts).toEqual(first.body.concepts);
+      expect(directions).toHaveBeenCalledTimes(1);
+    } finally {
+      warn.mockRestore();
+    }
+  });
 });

@@ -537,6 +537,25 @@ describe("Menu-owned one-recipe completion (not connected to the manual Creators
     expect(generateMealImageUnified).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["invalid_json", () => new SyntaxError("private provider content"), "invalid_json"],
+    ["provider_rate_limited", () => Object.assign(new Error("private provider content"), { status: 429 }), "provider_rate_limited"],
+    ["unclassified_generation_error", () => new Error("private provider content"), "unclassified_generation_error"],
+  ])("keeps a %s generator failure retryable and logs only its safe category", async (_label, error, reason) => {
+    (generateMenuRecipe as jest.Mock).mockRejectedValueOnce(error());
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      expect(await completeMenuRecipe(input)).toMatchObject({
+        ok: false, code: "generation_failed", retryable: true,
+      });
+      expect(warn).toHaveBeenCalledWith("[CreatorMenu] Selected recipe generation failed", { reason });
+      expect(JSON.stringify(warn.mock.calls)).not.toContain("private provider content");
+      expect(generateMealImageUnified).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it("rejects unscalable ingredient quantities instead of returning false recipe totals", async () => {
     (generateMenuRecipe as jest.Mock).mockResolvedValue({
       ...draft, ingredients: [{ ...draft.ingredients[0], quantity: "a little" }, draft.ingredients[1]],
