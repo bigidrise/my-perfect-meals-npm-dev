@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { HEALTH_PROTOCOLS, type HealthProtocol } from "../../shared/healthProtocolState";
+import { isSelfSelectableSupport } from "../../shared/nutritionSupportOptions";
 import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
 import {
   readHealthContextView, decideLegacySupport, decideEarlierAntiPreference, markMedicationInformationPast,
@@ -49,10 +50,9 @@ export default function healthContextControlRouter() {
       const current = await readHealthContextView(subjectUserId);
       const previouslyPersonal = current.supports.find((item) => item.protocol === parsed.data)
         ?.sources.some((source) => source.kind === "you");
-      const optionalOverlay = parsed.data === "glp1" || parsed.data === "anti_inflammatory";
-      if (!optionalOverlay && !previouslyPersonal) {
+      if (!isSelfSelectableSupport(parsed.data) && (!previouslyPersonal || body.data.enabled)) {
         return res.status(409).json({
-          message: "Confirm your earlier profile information before changing this support.",
+          message: "This support requires a separate review before it can be changed.",
         });
       }
       if (!body.data.enabled && !previouslyPersonal) {
@@ -70,9 +70,9 @@ export default function healthContextControlRouter() {
       return res.json({
         ...view,
         message: !body.data.enabled && item.status === "active"
-          ? "Your personal support is off. Another current source still applies."
-          : body.data.enabled ? "Your personal support is on in your future support settings."
-            : "Your personal support is off in your future support settings.",
+          ? "Your personal support is off. Another current source is still recorded separately."
+          : body.data.enabled ? "Your personal nutrition support choice was saved. Current meals are unchanged."
+            : "Your personal nutrition support choice was turned off. Current meals are unchanged.",
       });
     } catch {
       return res.status(503).json({ message: "Your support change could not be saved." });

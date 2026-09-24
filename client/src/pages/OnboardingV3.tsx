@@ -10,6 +10,9 @@ import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { useToast } from "@/hooks/use-toast";
 import { PillButton } from "@/components/ui/pill-button";
+import { HealthContextControls } from "@/components/profile/HealthContextControls";
+import { persistOnboardingHealthInformation } from "@/lib/onboardingHealthPersistence";
+import { NUTRITION_SUPPORT_OPTIONS } from "@shared/nutritionSupportOptions";
 import { captureException } from "@/lib/sentry";
 import { useTranslation } from "react-i18next";
 import { computeTrialDays } from "@shared/trialDays";
@@ -185,6 +188,7 @@ export default function OnboardingV3() {
   const [oncologyIntroAnswer, setOncologyIntroAnswer] = useState<"yes" | "skip" | null>(null);
   const [oncologySupportIntentChoice, setOncologySupportIntentChoice] = useState<"own_provider" | "request_support" | "self_directed" | null>(null);
   const [specialtyConditions, setSpecialtyConditions] = useState<string[]>([]);
+  const [supportStatus, setSupportStatus] = useState<"loading" | "ready" | "saving" | "error">("loading");
   const [thyroidType, setThyroidType] = useState<"hypothyroid" | "hyperthyroid" | "hashimotos" | null>(null);
   const [dietaryStyle, setDietaryStyle] = useState("");
   const [customDietInput, setCustomDietInput] = useState("");
@@ -369,28 +373,23 @@ export default function OnboardingV3() {
           break;
         }
         case 3:
+          if (import.meta.env.DEV && user?.id && supportStatus !== "ready") {
+            throw new Error("Please wait for your nutrition support choices to finish saving before continuing.");
+          }
           if (medicalConditions.length === 0) {
             toast({ title: "Please select at least one condition, or choose 'None'", variant: "destructive" });
             setSaving(false);
             return;
           }
-          await saveProfile({ medicalConditions }, "medical_conditions");
-          // Save specialty conditions separately (non-blocking — failure does not block step advance)
-          fetch(apiUrl("/api/user/specialty-condition"), {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-            body: JSON.stringify({ conditions: specialtyConditions }),
-          }).catch((err) => {
-            captureException(err, { step: "specialty_condition", specialtyConditions });
-          });
-          // Save thyroid subtype (non-blocking — null = no subtype specified)
-          if (specialtyConditions.includes("thyroid-support")) {
-            fetch(apiUrl("/api/user/thyroid-type"), {
+          await persistOnboardingHealthInformation({
+            medicalConditions, specialtyConditions, thyroidType,
+            saveMedical: (conditions) => saveProfile({ medicalConditions: conditions }, "medical_conditions"),
+            patch: (path, body) => fetchWithTimeout(apiUrl(path), {
               method: "PATCH",
               headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-              body: JSON.stringify({ thyroidType }),
-            }).catch(() => {});
-          }
+              body: JSON.stringify(body),
+            }),
+          });
           break;
         case 4: {
           const intent = oncologyIntroAnswer === "yes" ? oncologySupportIntentChoice : null;
@@ -787,11 +786,13 @@ export default function OnboardingV3() {
             <div className="max-w-sm mx-auto rounded-xl border border-sky-500/30 bg-sky-950/20 p-4 mt-2">
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-base">🩺</span>
-                <span className="text-sky-300 font-semibold text-sm">Specialty Health Protocol</span>
+                <span className="text-sky-300 font-semibold text-sm">
+                  {import.meta.env.DEV ? "Health information & additional support" : "Health information for your current meals"}
+                </span>
                 <span className="text-white/40 text-xs">(optional)</span>
               </div>
               <p className="text-white/60 text-xs mb-3">
-                Do any of these apply to you? Select all that apply — you can choose more than one. Each condition activates its full clinical protocol across every meal generator, and they all stack together automatically.
+                Tell us what you already know applies to you. Health information is used by current meal settings and may require care-team or lab review. Nutrition support choices are separate and do not yet change meals.
               </p>
               <div className="flex flex-wrap gap-2">
                 {[
@@ -809,7 +810,9 @@ export default function OnboardingV3() {
                   { label: "Perimenopause", value: "perimenopause" },
                   { label: "Metabolic Recovery", value: "metabolic-recovery" },
                   { label: "🩷 My Perfect Pregnancy", value: "pregnancy-support" },
-                ].map((opt) => (
+                ].filter((opt) => !import.meta.env.DEV || !NUTRITION_SUPPORT_OPTIONS.some(
+                  (item) => "currentCondition" in item && item.currentCondition === opt.value
+                )).map((opt) => (
                   <PillButton
                     key={opt.value}
                     active={specialtyConditions.includes(opt.value)}
@@ -893,6 +896,20 @@ export default function OnboardingV3() {
                       </p>
                     </div>
                   </div>
+                </div>
+              )}
+              {import.meta.env.DEV && user?.id && (
+                <div className="mt-4">
+                  <HealthContextControls
+                    key={user.id} userId={user.id} placement="onboarding"
+                    currentConditions={specialtyConditions}
+                    onCurrentConditionToggle={(condition) => setSpecialtyConditions((previous) =>
+                      previous.includes(condition)
+                        ? previous.filter((item) => item !== condition)
+                        : [...previous, condition]
+                    )}
+                    onStatusChange={setSupportStatus}
+                  />
                 </div>
               )}
             </div>

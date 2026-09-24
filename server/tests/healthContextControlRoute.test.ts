@@ -1,6 +1,7 @@
 import express from "express";
 import request from "supertest";
 import { csrfProtection } from "../lib/csrfProtection";
+import { NUTRITION_SUPPORT_OPTIONS } from "../../shared/nutritionSupportOptions";
 
 const mockView = jest.fn();
 const mockUserSupport = jest.fn();
@@ -39,8 +40,8 @@ const testView = {
   supports: [
     { protocol: "glp1", status: "needs_confirmation", personalEnabled: false,
       sources: [{ id: validId, kind: "earlier_profile", status: "needs_confirmation" }] },
-    { protocol: "anti_inflammatory", status: "off", personalEnabled: false, sources: [] },
-    { protocol: "renal", status: "off", personalEnabled: false, sources: [] },
+    ...NUTRITION_SUPPORT_OPTIONS.filter((item) => item.protocol !== "glp1")
+      .map(({ protocol }) => ({ protocol, status: "off", personalEnabled: false, sources: [] })),
   ],
 };
 
@@ -98,7 +99,7 @@ describe("DEV-only health-context routes", () => {
     expect(mockUserSupport).not.toHaveBeenCalled();
   });
 
-  it("rejects client-supplied source/subject, unknown protocols and unconfirmed non-overlay activation", async () => {
+  it("rejects client-supplied source/subject, unknown protocols and unreviewed clinical activation", async () => {
     const url = "/api/health-context/support/glp1";
     expect((await withCsrf(request(app).put(url))
       .send({ enabled: true, source: "provider" })).status).toBe(400);
@@ -106,14 +107,25 @@ describe("DEV-only health-context routes", () => {
       .send({ enabled: true, subjectUserId: "other" })).status).toBe(400);
     expect((await withCsrf(request(app).put("/api/health-context/support/unknown"))
       .send({ enabled: true })).status).toBe(400);
-    expect((await withCsrf(request(app).put("/api/health-context/support/renal"))
+    expect((await withCsrf(request(app).put("/api/health-context/support/liver_disease"))
       .send({ enabled: true })).status).toBe(409);
-    expect((await withCsrf(request(app).put("/api/health-context/support/renal"))
+    expect((await withCsrf(request(app).put("/api/health-context/support/pregnancy_support"))
       .send({ enabled: false })).status).toBe(409);
-    expect((await withCsrf(request(app).put("/api/health-context/support/renal"))
-      .send({ enabled: true })).status).toBe(409);
     expect(mockUserSupport).not.toHaveBeenCalled();
   });
+
+  it.each(NUTRITION_SUPPORT_OPTIONS.map(({ protocol }) => protocol))(
+    "allows a personal %s preference without changing any clinical source or Builder",
+    async (protocol) => {
+      const response = await withCsrf(request(app).put(`/api/health-context/support/${protocol}`))
+        .send({ enabled: true });
+      expect(response.status).toBe(200);
+      expect(mockUserSupport).toHaveBeenCalledWith({
+        actorUserId: "subject", subjectUserId: "subject", protocol, enabled: true,
+      });
+      expect(response.body.builder).toBe("anti_inflammatory");
+    },
+  );
 
   it("changes only the authenticated subject's personal overlay; Builder is untouched", async () => {
     const response = await withCsrf(request(app).put("/api/health-context/support/glp1"))
@@ -123,7 +135,60 @@ describe("DEV-only health-context routes", () => {
       actorUserId: "subject", subjectUserId: "subject", protocol: "glp1", enabled: true,
     });
     expect(response.body.builder).toBe("anti_inflammatory");
-    expect(response.body.message).toContain("future support");
+    expect(response.body.message).toContain("Current meals are unchanged");
+  });
+
+  it("turns off only personal GLP-1 support while a care-team source remains visible", async () => {
+    const withCareTeam = {
+      ...testView,
+      supports: [
+        { protocol: "glp1", status: "active", personalEnabled: true,
+          sources: [
+            { id: "personal", kind: "you", status: "active" },
+            { id: "care", kind: "care_team", status: "active" },
+          ] },
+        ...testView.supports.filter((item) => item.protocol !== "glp1"),
+      ],
+    };
+    mockView.mockResolvedValueOnce(withCareTeam).mockResolvedValueOnce({
+      ...withCareTeam,
+      supports: [
+        { protocol: "glp1", status: "active", personalEnabled: false,
+          sources: [
+            { id: "personal", kind: "you", status: "off" },
+            { id: "care", kind: "care_team", status: "active" },
+          ] },
+        ...testView.supports.filter((item) => item.protocol !== "glp1"),
+      ],
+    });
+    const response = await withCsrf(request(app).put("/api/health-context/support/glp1"))
+      .send({ enabled: false });
+    expect(response.status).toBe(200);
+    expect(mockUserSupport).toHaveBeenCalledWith({
+      actorUserId: "subject", subjectUserId: "subject", protocol: "glp1", enabled: false,
+    });
+    expect(response.body.supports[0].sources[1]).toEqual({
+      id: "care", kind: "care_team", status: "active",
+    });
+    expect(response.body.message).toContain("Another current source");
+  });
+
+  it("lets an older personal clinical source turn off, but never reactivate as a simple preference", async () => {
+    mockView.mockResolvedValue({
+      ...testView,
+      supports: [
+        ...testView.supports,
+        { protocol: "pregnancy_support", status: "active", personalEnabled: true,
+          sources: [{ id: "older-personal", kind: "you", status: "active" }] },
+      ],
+    });
+    const path = "/api/health-context/support/pregnancy_support";
+    expect((await withCsrf(request(app).put(path)).send({ enabled: true })).status).toBe(409);
+    expect(mockUserSupport).not.toHaveBeenCalled();
+    expect((await withCsrf(request(app).put(path)).send({ enabled: false })).status).toBe(200);
+    expect(mockUserSupport).toHaveBeenCalledWith({
+      actorUserId: "subject", subjectUserId: "subject", protocol: "pregnancy_support", enabled: false,
+    });
   });
 
   it("scopes earlier-profile decisions to authenticated subject with strict boolean input", async () => {

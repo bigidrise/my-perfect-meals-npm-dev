@@ -20,3 +20,9 @@ The finished Edit Profile should have one Health & Nutrition Support area with p
 **Why:** The user confirmed that the duplicated Anti-Inflammatory controls are acceptable only as temporary DEV scaffolding, not as the intended product design.
 
 **How to apply:** Remove the duplicate and transition wording only after source-backed reads, existing-user reconciliation, and food-consumer parity are proven. Do not interpret either overlay alone as evidence of current medication use.
+
+Onboarding can present a current-meals health fact and an optional nutrition-support intent in one row, but the two actions must stay independent. The support list is an explicit, narrower allowlist than the protocol registry; clinical diagnoses, medication status, and safety-critical protocols are not created by a preference toggle.
+
+**Why:** Earlier specialty selections already affect live meals, while a new self-selected support intent is only a shadow preference. Automatically reconciling one into the other would fabricate medical evidence or silently change live food behavior; duplicating the entire questionnaire would confuse users.
+
+**How to apply:** Preserve the old live write and ask for separate support intent in the same onboarding flow. Turning a personal choice off must retain its history and leave provider, lab, and medication sources untouched. Keep the live Anti-Inflammatory control until the all-surface cutover, then remove the temporary duplication.
