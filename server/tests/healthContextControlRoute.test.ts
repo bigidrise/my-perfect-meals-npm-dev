@@ -117,12 +117,22 @@ describe("DEV-only health-context routes", () => {
   it.each([
     "diabetes", "cardiac", "renal", "liver_support", "thyroid",
     "hormone_optimization", "menopause", "perimenopause", "metabolic_recovery",
-    "oncology", "anti_inflammatory", "performance",
+    "oncology", "performance",
   ])("does not create a new personal %s support preference", async (protocol) => {
     const response = await withCsrf(request(app).put(`/api/health-context/support/${protocol}`))
       .send({ enabled: true });
     expect(response.status).toBe(409);
     expect(mockUserSupport).not.toHaveBeenCalled();
+  });
+
+  it("allows an explicit anti-inflammatory personal choice without changing a clinical source", async () => {
+    const response = await withCsrf(request(app).put("/api/health-context/support/anti_inflammatory"))
+      .send({ enabled: true });
+    expect(response.status).toBe(200);
+    expect(mockUserSupport).toHaveBeenCalledWith({
+      actorUserId: "subject", subjectUserId: "subject",
+      protocol: "anti_inflammatory", enabled: true,
+    });
   });
 
   it.each(NUTRITION_SUPPORT_OPTIONS.map(({ protocol }) => protocol))(
@@ -146,7 +156,7 @@ describe("DEV-only health-context routes", () => {
       actorUserId: "subject", subjectUserId: "subject", protocol: "glp1", enabled: true,
     });
     expect(response.body.builder).toBe("anti_inflammatory");
-    expect(response.body.message).toContain("Current meals are unchanged");
+    expect(response.body.message).toContain("Development meal guidance");
   });
 
   it("turns off only personal GLP-1 support while a care-team source remains visible", async () => {

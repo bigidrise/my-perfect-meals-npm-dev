@@ -4456,7 +4456,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const authReq = req as AuthenticatedRequest;
       const userId = authReq.authUser.id;
-      const ALLOWED = ["renal", "cardiac", "liver-disease", "liver-support", "oncology-support", "thyroid-support", "hormone-optimization", "hashimotos", "hypothyroid", "hyperthyroid", "menopause", "perimenopause", "metabolic-recovery"];
+      const ALLOWED = ["renal", "cardiac", "liver-disease", "liver-support", "oncology-support", "thyroid-support", "hormone-optimization", "hashimotos", "hypothyroid", "hyperthyroid", "menopause", "perimenopause", "metabolic-recovery", "pregnancy-support", "alpha-gal-syndrome"];
       const { condition, conditions } = req.body;
 
       // ── Tier 1: Physician lock ────────────────────────────────────────────
@@ -4480,6 +4480,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!Array.isArray(conditions)) return res.status(400).json({ error: "conditions must be an array" });
         const invalid = conditions.find((c: any) => !ALLOWED.includes(c));
         if (invalid) return res.status(400).json({ error: `Invalid condition: ${invalid}` });
+        if (conditions.includes("alpha-gal-syndrome")) {
+          const [alphaGal] = await db.select({ profile: users.alphaGalProfile })
+            .from(users).where(eq(users.id, userId)).limit(1);
+          if (!alphaGal?.profile?.profileComplete) {
+            return res.status(409).json({
+              error: "alpha_gal_profile_required",
+              message: "Complete and save Alpha-gal details before activating this allergy protocol.",
+            });
+          }
+        }
+        if (conditions.includes("pregnancy-support")) {
+          const [pregnancy] = await db.select({ stage: users.pregnancyStage })
+            .from(users).where(eq(users.id, userId)).limit(1);
+          if (!pregnancy?.stage) {
+            return res.status(409).json({
+              error: "pregnancy_setup_required",
+              message: "Choose a pregnancy support stage before activating this protocol.",
+            });
+          }
+        }
         // Merge: preserve any lab-driven conditions even if user omitted them
         const merged = Array.from(new Set([...conditions, ...labDriven]));
         const primaryCondition = merged.length > 0 ? merged[0] : null;
@@ -4489,6 +4509,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } as any).where(eq(users.id, userId));
         console.log(`[specialty-condition] User ${userId} multi-set → ${merged.length} conditions (${labDriven.length} lab-protected)`);
         return res.json({ ok: true, specialtyConditions: merged, specialtyCondition: primaryCondition });
+      }
+      if (condition === "pregnancy-support") {
+        const [pregnancy] = await db.select({ stage: users.pregnancyStage })
+          .from(users).where(eq(users.id, userId)).limit(1);
+        if (!pregnancy?.stage) {
+          return res.status(409).json({
+            error: "pregnancy_setup_required",
+            message: "Choose a pregnancy support stage before activating this protocol.",
+          });
+        }
+      }
+      if (condition === "alpha-gal-syndrome") {
+        const [alphaGal] = await db.select({ profile: users.alphaGalProfile })
+          .from(users).where(eq(users.id, userId)).limit(1);
+        if (!alphaGal?.profile?.profileComplete) {
+          return res.status(409).json({
+            error: "alpha_gal_profile_required",
+            message: "Complete and save Alpha-gal details before activating this allergy protocol.",
+          });
+        }
       }
 
       // Single-condition path: backward compat
@@ -4643,6 +4683,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const authReq = req as AuthenticatedRequest;
       const userId = authReq.authUser.id;
       const { profile } = req.body;
+      if (await getPhysicianLockStatus(userId)) {
+        return res.status(403).json({
+          error: "physician_locked",
+          message: "Your clinical profile is controlled by your physician and cannot be changed here.",
+        });
+      }
 
       if (!profile || typeof profile !== "object") {
         return res.status(400).json({ error: "profile object is required" });

@@ -9,7 +9,7 @@ Do not treat ambiguous legacy health entries as verified current medication or s
 
 **How to apply:** Use additive, reversible migration stages and compare old/new decisions before enabling authoritative reads. Preserve source-specific history and require an explicit review outcome for ambiguous or ended-owner claims; do not use a Builder as the master medical switch.
 
-During the DEV user-control stage, keep source-backed support choices shadow-only and visibly distinguish them from existing meal-generation settings. Treat an enabled old Anti-Inflammatory preference as something to confirm, not as permission to activate the new claim; never treat an old GLP-1 meal setting as evidence of current medication use.
+During the earlier DEV user-control stage, keep source-backed support choices shadow-only and visibly distinguish them from existing meal-generation settings. Treat an enabled old Anti-Inflammatory preference as something to confirm, not as permission to activate the new claim; never treat an old GLP-1 meal setting as evidence of current medication use.
 
 **Why:** A one-way or bidirectional profile dual-write would let unrelated legacy saves revive a discontinued source or make the new switch appear to change meals before every food surface is migrated together.
 
@@ -26,3 +26,9 @@ Onboarding retains its existing clinical/specialty choices for current meals. A 
 **Why:** Earlier specialty selections already affect live meals, while the GLP-1 support intent is only a shadow preference. Automatically reconciling one into the other would fabricate medical evidence or silently change live food behavior; duplicate support buttons confused users.
 
 **How to apply:** Preserve the old clinical write and keep GLP-1 personal intent independent in onboarding. Turning it off must retain history and leave provider, lab, and medication sources untouched. Reconcile Anti-Inflammatory deliberately instead of adding a second ordinary control.
+
+During the later Development-only source-to-context stage, an explicitly confirmed active personal GLP-1 nutrition choice may contribute food guidance, but it is never evidence of medication use. An explicitly confirmed Anti-Inflammatory preference may also contribute guidance; an old preference alone cannot. These additions must remain gated out of Production until an all-surface review. Native Builders and clinical/legacy sources retain their own authority, without applying the personal overlay twice.
+
+**Why:** A Development path from a saved personal choice into the central meal context was needed to test actual food behavior. Reusing medication-labeled guidance for GLP-1 intent or blindly trusting earlier Anti-Inflammatory preferences would turn an unverified preference into a medical claim.
+
+**How to apply:** Keep separate nutrition-only language and subject-aware reads, preserve clinical and Builder state, and test both source persistence and resolved meal context. Do not describe this stage as verified enforcement across all food surfaces.

@@ -30,7 +30,7 @@ describe("DEV profile support controls", () => {
     expect(await screen.findByText("Your current meal strategy: Diabetic Builder. These support settings do not switch it.")).toBeTruthy();
     expect(screen.getByText("GLP-1 Nutrition Support")).toBeTruthy();
     expect(screen.queryByText("Anti-Inflammatory Nutrition Support")).toBeNull();
-    expect(screen.getByText(/does not record medication use, change your Builder, or change meals yet/)).toBeTruthy();
+    expect(screen.getByText(/does not record medication use or change your Builder/)).toBeTruthy();
     const switches = screen.getAllByRole("button", { name: "Turn on my support" });
     expect(switches).toHaveLength(1);
     mockApiRequest.mockResolvedValueOnce({
@@ -71,6 +71,13 @@ describe("DEV profile support controls", () => {
     fireEvent.click(screen.getByRole("button", { name: "Turn on preference" }));
     expect(onToggle).toHaveBeenCalledTimes(1);
     expect(mockApiRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports whether the earlier anti-inflammatory preference has an active personal source", async () => {
+    const onStatus = jest.fn();
+    render(<HealthContextControls userId="account-a" onPersonalAntiStatus={onStatus} />);
+    await screen.findByText("GLP-1 Nutrition Support");
+    await waitFor(() => expect(onStatus).toHaveBeenCalledWith(false));
   });
 
   it("acknowledges one GLP-1 click immediately and waits for the saved result before changing its state", async () => {

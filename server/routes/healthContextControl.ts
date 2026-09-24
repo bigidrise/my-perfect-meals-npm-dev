@@ -71,8 +71,8 @@ export default function healthContextControlRouter() {
         ...view,
         message: !body.data.enabled && item.status === "active"
           ? "Your personal support is off. Another current source is still recorded separately."
-          : body.data.enabled ? "Your personal nutrition support choice was saved. Current meals are unchanged."
-            : "Your personal nutrition support choice was turned off. Current meals are unchanged.",
+          : body.data.enabled ? "Your personal nutrition support choice was saved for Development meal guidance."
+            : "Your personal nutrition support choice was turned off for Development meal guidance.",
       });
     } catch {
       return res.status(503).json({ message: "Your support change could not be saved." });

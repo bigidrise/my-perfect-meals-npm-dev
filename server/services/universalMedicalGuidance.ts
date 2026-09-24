@@ -18,6 +18,7 @@
 import type { DemandProfile } from "../../shared/performanceDemandEngine";
 import { buildTherapeuticGuidanceBlocks } from "./therapeuticGuidance";
 import type { TherapeuticSupportCtx } from "./therapeuticGuidance";
+import { buildLiverDiseasePrompt } from "./guardrails/prompt/liverDiseasePromptBuilder";
 
 export type OncologySymptom =
   | "low_appetite"
@@ -29,6 +30,8 @@ export type OncologySymptom =
 export interface UniversalGuidanceInput {
   userId: string;
   healthConditions: string[];
+  /** Explicit nutrition-only choice; never evidence of medication use. */
+  personalGlp1NutritionSupport?: boolean;
   oncologySupportContext?: {
     enabled: boolean;
     symptoms: OncologySymptom[];
@@ -172,6 +175,15 @@ const GLP1_GUIDANCE = `
 - If a beverage is being generated: no carbonation, no sugar, no heavy cream — water, herbal tea, diluted juice, plain yogurt-based drinks only.
 `.trim();
 
+// Keep the existing food constraints, but never present a personal nutrition
+// preference as a medication history or claim GLP-1 side effects.
+const GLP1_PERSONAL_NUTRITION_GUIDANCE = GLP1_GUIDANCE
+  .replace(
+    "💊 GLP-1 MEDICATION PROTOCOL — MANDATORY (user is on semaglutide, tirzepatide, or similar):",
+    "GLP-1 NUTRITION SUPPORT — PERSONAL CHOICE (do not infer medication use or diagnosis):",
+  )
+  .replace("carbonation worsens GLP-1 side effects.", "favor still drinks for comfort.");
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ANTI-INFLAMMATORY
 // ─────────────────────────────────────────────────────────────────────────────
@@ -243,6 +255,8 @@ const LIVER_GUIDANCE = `
 - Cooking methods: baking, steaming, grilling, light sautéing in olive oil only.
 - Beverages: water, herbal tea, green tea, unsweetened plant milk, small amounts of fresh fruit juice — NO alcohol, no soda, no energy drinks, no sweet tea.
 `.trim();
+
+const LIVER_DISEASE_GUIDANCE = buildLiverDiseasePrompt("");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ONCOLOGY SUPPORT
@@ -364,8 +378,12 @@ const CARDIAC_KEYS = new Set([
   "cardiac", "heart disease", "heart failure", "hypertension",
 ]);
 
-const LIVER_KEYS = new Set([
-  "fatty liver", "nafld", "liver disease", "liver support",
+const LIVER_DISEASE_KEYS = new Set([
+  "liver-disease", "liver disease",
+]);
+
+const LIVER_SUPPORT_KEYS = new Set([
+  "liver-support", "liver support", "fatty liver", "nafld",
   "non-alcoholic fatty liver", "non alcoholic fatty liver",
 ]);
 
@@ -387,6 +405,8 @@ export async function buildUniversalConditionGuidance(
 
   if (conditions.some(c => GLP1_CONDITION_KEYS.has(c))) {
     blocks.push(GLP1_GUIDANCE);
+  } else if (input.personalGlp1NutritionSupport) {
+    blocks.push(GLP1_PERSONAL_NUTRITION_GUIDANCE);
   }
 
   if (conditions.some(c => ANTI_INFLAMMATORY_KEYS.has(c))) {
@@ -401,7 +421,11 @@ export async function buildUniversalConditionGuidance(
     blocks.push(CARDIAC_GUIDANCE);
   }
 
-  if (conditions.some(c => LIVER_KEYS.has(c))) {
+  // Liver disease is the stricter protocol. If support and disease are both
+  // saved, emit only the disease block rather than duplicating liver guidance.
+  if (conditions.some(c => LIVER_DISEASE_KEYS.has(c))) {
+    blocks.push(LIVER_DISEASE_GUIDANCE);
+  } else if (conditions.some(c => LIVER_SUPPORT_KEYS.has(c))) {
     blocks.push(LIVER_GUIDANCE);
   }
 

@@ -25,6 +25,7 @@ import {
   appendWholeFoodStandardPrompt,
   evaluateWholeFoodCandidate,
 } from "../services/wholeFoodStandard";
+import { getPhysicianLockStatus } from "../services/labProtocolOwnership";
 
 const router = express.Router();
 
@@ -595,6 +596,12 @@ router.post("/setup", async (req, res) => {
   try {
     const userId = resolveUserId(req);
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    if (await getPhysicianLockStatus(userId)) {
+      return res.status(403).json({
+        error: "physician_locked",
+        message: "Pregnancy support is controlled by your physician and cannot be changed here.",
+      });
+    }
     const history = await getConversation(userId);
     const {
       stage,
@@ -612,22 +619,29 @@ router.post("/setup", async (req, res) => {
       "breastfeeding",
       "postpartum",
     ];
-    if (stage && !validStages.includes(stage)) {
+    if (!stage || !validStages.includes(stage)) {
       return res.status(400).json({ error: "Invalid stage" });
     }
 
     const now = new Date().toISOString();
 
     const [currentUser] = await db
-      .select({ specialtyConditions: users.specialtyConditions })
+      .select({
+        specialtyConditions: users.specialtyConditions,
+        specialtyCondition: users.specialtyCondition,
+      })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
 
-    const currentConditions: string[] =
-      (currentUser?.specialtyConditions as string[] | null) ?? [];
-    const updatedConditions = currentConditions.filter(
-      c => c !== "pregnancy-support"
+    const currentConditions = Array.from(
+      new Set([
+        ...((currentUser?.specialtyConditions as string[] | null) ?? []),
+        ...(currentUser?.specialtyCondition ? [currentUser.specialtyCondition] : []),
+      ])
+    );
+    const updatedConditions = Array.from(
+      new Set([...currentConditions, "pregnancy-support"])
     );
 
     await db
@@ -644,6 +658,7 @@ router.post("/setup", async (req, res) => {
           activatedAt: now,
           updatedAt: now,
         } as any,
+        specialtyCondition: updatedConditions[0] ?? null,
         specialtyConditions: updatedConditions as any,
       })
       .where(eq(users.id, userId));
@@ -666,15 +681,28 @@ router.delete("/setup", async (req, res) => {
   try {
     const userId = resolveUserId(req);
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
+    if (await getPhysicianLockStatus(userId)) {
+      return res.status(403).json({
+        error: "physician_locked",
+        message: "Pregnancy support is controlled by your physician and cannot be changed here.",
+      });
+    }
     const history = await getConversation(userId);
     const [currentUser] = await db
-      .select({ specialtyConditions: users.specialtyConditions })
+      .select({
+        specialtyConditions: users.specialtyConditions,
+        specialtyCondition: users.specialtyCondition,
+      })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
 
-    const currentConditions: string[] =
-      (currentUser?.specialtyConditions as string[] | null) ?? [];
+    const currentConditions = Array.from(
+      new Set([
+        ...((currentUser?.specialtyConditions as string[] | null) ?? []),
+        ...(currentUser?.specialtyCondition ? [currentUser.specialtyCondition] : []),
+      ])
+    );
     const updatedConditions = currentConditions.filter(
       c => c !== "pregnancy-support"
     );
@@ -685,6 +713,7 @@ router.delete("/setup", async (req, res) => {
         pregnancyStage: null,
         pregnancyDueDate: null,
         pregnancySupportContext: null,
+        specialtyCondition: updatedConditions[0] ?? null,
         specialtyConditions: updatedConditions as any,
       })
       .where(eq(users.id, userId));

@@ -59,6 +59,7 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
   const [saved, setSaved] = useState(false);
   const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function toggleSymptom(s: Symptom) {
     setSymptoms(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
@@ -67,6 +68,7 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
   async function handleSave() {
     if (!stage) return;
     setSaving(true);
+    setError(null);
     try {
       await apiRequest("/api/pregnancy/setup", {
         method: "POST",
@@ -86,6 +88,7 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
       }, 1200);
     } catch (err) {
       console.error("[PregnancySetup] save failed:", err);
+      setError(err instanceof Error ? err.message : "Could not save pregnancy support. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -93,6 +96,7 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
 
   async function handleDeactivate() {
     setDeactivating(true);
+    setError(null);
     try {
       await apiRequest("/api/pregnancy/setup", { method: "DELETE" });
       onSaved?.({ stage: "", dueDate: null });
@@ -100,6 +104,7 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
       setTimeout(() => onOpenChange(false), 400);
     } catch (err) {
       console.error("[PregnancySetup] deactivate failed:", err);
+      setError(err instanceof Error ? err.message : "Could not turn off pregnancy support. Please try again.");
     } finally {
       setDeactivating(false);
     }
@@ -121,6 +126,11 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
         </SheetHeader>
 
         <div className="py-5 space-y-6">
+          {error && (
+            <p role="alert" className="rounded-lg border border-red-500/40 bg-red-950/30 p-3 text-sm text-red-200">
+              {error}
+            </p>
+          )}
           {/* Stage selection */}
           <div>
             <p className="text-pink-300 text-sm font-semibold mb-3">{t("pregnancySupport.whereAreYou")}</p>

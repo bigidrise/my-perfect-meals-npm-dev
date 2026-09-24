@@ -46,6 +46,7 @@ import type { ResolvedGLP1Targets } from "./resolveGLP1MealTargets";
 import { resolveDailyNutritionState } from "../nutritionStateService";
 import type { DailyNutritionState } from "../../../shared/dailyNutritionPrescription";
 import { detectLegacyGLP1ActivationSources } from "./activationSources";
+import { readDevelopmentPersonalFoodSupports } from "../healthProtocols/developmentFoodSupports";
 import type { GLP1ActivationSource } from "./activationSources";
 export type { GLP1ActivationSource } from "./activationSources";
 
@@ -130,6 +131,10 @@ export async function resolveGLP1GlobalContext(
   // shared with the DEV shadow comparison; preferredBuilder and profile-row
   // existence are intentionally excluded.
   const activationSources: GLP1ActivationSource[] = detectLegacyGLP1ActivationSources(userRow);
+  if (!userRow?.activeHouseholdProfileId &&
+      (await readDevelopmentPersonalFoodSupports(userId)).has("glp1")) {
+    activationSources.push("personalNutritionSupport");
+  }
 
   const isActive = activationSources.length > 0;
 
@@ -251,15 +256,15 @@ export function buildGLP1RecommendationBlock(ctx: GLP1GlobalContext): string {
   const calTarget = t?.resolvedMealCalories ?? 400;
 
   const lines: string[] = [
-    `GLP-1 MEDICATION PROTOCOL — ACTIVE (sources: ${ctx.activationSources.join(", ")})`,
+    `GLP-1 NUTRITION GUIDANCE — ACTIVE (sources: ${ctx.activationSources.join(", ")}; do not infer medication use)`,
     `Treatment phase: ${phase} | Meal target: ~${calTarget} kcal | Protein: ≥${proteinTarget}g | Fat ceiling: ≤${fatCeiling}g`,
     "",
-    "FOOD SELECTION RULES for this GLP-1 patient (recommendation surface — you cannot control exact serving sizes, so guide CHOICES and PREPARATION):",
+    "FOOD SELECTION RULES for GLP-1-oriented nutrition support (do not infer medication use; guide CHOICES and PREPARATION):",
     `• PROTEIN FIRST: Always lead recommendations with the highest-protein option available. Target ≥${proteinTarget}g protein.`,
     `• FAT CEILING: Avoid fried foods, heavy cream sauces, buttery preparations, and high-fat cheeses. Favor preparations ≤${fatCeiling}g fat.`,
     "• PREPARATION: Prefer grilled, baked, steamed, or roasted. Avoid breaded, fried, or sauce-heavy dishes.",
     "• STARCH STRATEGY: Recommend skipping or reducing starchy sides (fries, rice, bun, bread). Suggest vegetables or salad instead.",
-    "• PORTION AWARENESS: Note that GLP-1 medications reduce appetite — smaller portions are appropriate. Do NOT encourage large plates or 'hearty' meals.",
+    "• PORTION AWARENESS: Suggest manageable portions and let the person adjust to their appetite. Do NOT encourage large plates or 'hearty' meals.",
     "• AVOID: Heavy appetizers, creamy soups, sugary drinks, desserts, high-fat entrees.",
   ];
 
