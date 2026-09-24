@@ -701,6 +701,25 @@ export default function EditProfilePage() {
     }
   };
 
+  const antiInflammatoryPreferenceCard = (
+    <div className="rounded-lg border border-white/20 bg-black/30 p-3">
+      <p className="text-white font-semibold text-sm">Anti-Inflammatory Support</p>
+      <p className="text-white/70 text-xs mt-1">
+        Save your profile to keep this preference. It is separate from the Anti-Inflammatory Builder and clinical guidance; this preference alone is not verified to change your current meals.
+      </p>
+      <div className="mt-3">
+        <PillButton
+          disabled={!antiInflammatorySupportLoaded}
+          active={antiInflammatorySupport}
+          onClick={() => setAntiInflammatorySupport(prev => !prev)}
+        >
+          {!antiInflammatorySupportLoaded ? "Current preference unavailable"
+            : antiInflammatorySupport ? "Preference on · turn off" : "Turn on preference"}
+        </PillButton>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24">
       <MobileHeaderGuard>
@@ -1488,22 +1507,18 @@ export default function EditProfilePage() {
                 )}
               </div>
 
-              <div className="rounded-xl border border-green-500/20 bg-green-950/10 p-3">
-                <p className="text-white/80 text-xs font-semibold mb-1">Anti-Inflammatory Support preference</p>
-                <p className="text-white/50 text-xs mb-3 leading-relaxed">
-                  Save your profile to keep this preference. It is separate from the Anti-Inflammatory Builder and clinical guidance; this preference alone is not verified to change your current meals.
-                </p>
-                <PillButton
-                  disabled={!antiInflammatorySupportLoaded}
-                  active={antiInflammatorySupport}
-                  onClick={() => setAntiInflammatorySupport(prev => !prev)}
-                >
-                  {!antiInflammatorySupportLoaded ? "Current preference unavailable"
-                    : antiInflammatorySupport ? "Preference on · turn off" : "Turn on preference"}
-                </PillButton>
-              </div>
-
-              {import.meta.env.DEV && user?.id && <HealthContextControls key={user.id} userId={user.id} />}
+              {import.meta.env.DEV && user?.id ? (
+                <HealthContextControls
+                  key={user.id}
+                  userId={user.id}
+                  profilePreferenceCard={antiInflammatoryPreferenceCard}
+                />
+              ) : (
+                <section className="rounded-xl border border-amber-400/40 bg-amber-950/20 p-3 space-y-3" aria-label="Health and nutrition support settings">
+                  <p className="text-amber-200 text-sm font-bold">Health &amp; Nutrition Support</p>
+                  <div className="grid gap-3 sm:grid-cols-2">{antiInflammatoryPreferenceCard}</div>
+                </section>
+              )}
 
               <div className="rounded-xl border border-white/10 bg-black/30 p-3">
                 <div className="flex items-center gap-2 mb-2">
