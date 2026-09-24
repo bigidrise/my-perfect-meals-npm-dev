@@ -12,7 +12,6 @@ import { useToast } from "@/hooks/use-toast";
 import { PillButton } from "@/components/ui/pill-button";
 import { HealthContextControls } from "@/components/profile/HealthContextControls";
 import { persistOnboardingHealthInformation } from "@/lib/onboardingHealthPersistence";
-import { NUTRITION_SUPPORT_OPTIONS } from "@shared/nutritionSupportOptions";
 import { captureException } from "@/lib/sentry";
 import { useTranslation } from "react-i18next";
 import { computeTrialDays } from "@shared/trialDays";
@@ -787,12 +786,12 @@ export default function OnboardingV3() {
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-base">🩺</span>
                 <span className="text-sky-300 font-semibold text-sm">
-                  {import.meta.env.DEV ? "Health information & additional support" : "Health information for your current meals"}
+                  Health information for your current meals
                 </span>
                 <span className="text-white/40 text-xs">(optional)</span>
               </div>
               <p className="text-white/60 text-xs mb-3">
-                Tell us what you already know applies to you. Health information is used by current meal settings and may require care-team or lab review. Nutrition support choices are separate and do not yet change meals.
+                Tell us what you already know applies to you. Health information is used by current meal settings and may require care-team or lab review.
               </p>
               <div className="flex flex-wrap gap-2">
                 {[
@@ -810,9 +809,7 @@ export default function OnboardingV3() {
                   { label: "Perimenopause", value: "perimenopause" },
                   { label: "Metabolic Recovery", value: "metabolic-recovery" },
                   { label: "🩷 My Perfect Pregnancy", value: "pregnancy-support" },
-                ].filter((opt) => !import.meta.env.DEV || !NUTRITION_SUPPORT_OPTIONS.some(
-                  (item) => "currentCondition" in item && item.currentCondition === opt.value
-                )).map((opt) => (
+                ].map((opt) => (
                   <PillButton
                     key={opt.value}
                     active={specialtyConditions.includes(opt.value)}
@@ -902,12 +899,6 @@ export default function OnboardingV3() {
                 <div className="mt-4">
                   <HealthContextControls
                     key={user.id} userId={user.id} placement="onboarding"
-                    currentConditions={specialtyConditions}
-                    onCurrentConditionToggle={(condition) => setSpecialtyConditions((previous) =>
-                      previous.includes(condition)
-                        ? previous.filter((item) => item !== condition)
-                        : [...previous, condition]
-                    )}
                     onStatusChange={setSupportStatus}
                   />
                 </div>

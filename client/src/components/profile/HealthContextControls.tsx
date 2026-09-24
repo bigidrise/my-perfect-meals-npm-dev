@@ -3,7 +3,7 @@ import { apiRequest } from "@/lib/apiRequest";
 import { PillButton } from "@/components/ui/pill-button";
 import type { HealthProtocol } from "@shared/healthProtocolState";
 import type { HealthContextView, HealthSupportSummary, HealthSupportSource } from "@shared/healthContextControl";
-import { isSelfSelectableSupport, NUTRITION_SUPPORT_OPTIONS } from "@shared/nutritionSupportOptions";
+import { NUTRITION_SUPPORT_OPTIONS } from "@shared/nutritionSupportOptions";
 
 const LABELS: Record<HealthProtocol, string> = {
   glp1: "GLP-1 Support",
@@ -41,7 +41,7 @@ const SOURCE_LABELS: Record<HealthSupportSource["kind"], string> = {
   suggestion: "Suggested support",
 };
 const STATUS_LABELS: Record<HealthSupportSource["status"], string> = {
-  active: "currently included",
+  active: "recorded as current",
   needs_confirmation: "needs a check-in",
   previous: "previously noted",
   off: "off",
@@ -62,13 +62,11 @@ function SourceList({ item }: { item: HealthSupportSummary }) {
 }
 
 export function HealthContextControls({
-  userId, placement = "profile", onStatusChange, currentConditions, onCurrentConditionToggle,
+  userId, placement = "profile", onStatusChange,
 }: {
   userId: string;
   placement?: "profile" | "onboarding";
   onStatusChange?: (status: "loading" | "ready" | "saving" | "error") => void;
-  currentConditions?: readonly string[];
-  onCurrentConditionToggle?: (condition: string) => void;
 }) {
   const [view, setView] = useState<HealthContextView | null>(null);
   const [loading, setLoading] = useState(true);
@@ -174,44 +172,16 @@ export function HealthContextControls({
     return null;
   });
 
-  const renderOther = (item: HealthSupportSummary) => (
-    <div key={item.protocol} className="rounded-xl border border-white/15 bg-black/30 p-3">
-      <div className="flex justify-between gap-3">
-        <p className="font-semibold text-white text-sm">{LABELS[item.protocol]}</p>
-        <span className="text-xs text-amber-200">
-          {item.status === "active" ? "Support saved"
-            : item.status === "needs_confirmation" ? "Needs a check-in"
-              : item.status === "previous" ? "Previously noted" : "Off"}
-        </span>
-      </div>
-      <SourceList item={item} />
-      {renderReviewActions(item)}
-      {item.sources.some((source) => source.kind === "you") &&
-        (isSelfSelectableSupport(item.protocol) || item.personalEnabled) && (
-        <PillButton disabled={busy} className="mt-3"
-          onClick={() => change(`/api/health-context/support/${item.protocol}`, "PUT", { enabled: !item.personalEnabled })}>
-          {item.personalEnabled ? "Turn off my support" : "Use my support again"}
-        </PillButton>
-      )}
-      {item.sources.some((source) => source.kind === "lab_recommendation" && source.status === "active") && (
-        <PillButton disabled={busy} className="mt-2"
-          onClick={() => change(`/api/health-context/lab/${item.protocol}/discontinue`, "POST", {})}>
-          Stop my accepted lab-based support
-        </PillButton>
-      )}
-    </div>
-  );
-
   return (
     <section className="rounded-xl border border-amber-400/40 bg-amber-950/20 p-3 space-y-3" aria-label="Health and nutrition support settings">
       <div>
         <p className="text-amber-200 text-sm font-bold">Health &amp; Nutrition Support</p>
         <p className="text-white/70 text-xs mt-1">
           {placement === "onboarding"
-            ? "For each option, tell us separately what already applies to your current meals and what additional nutrition support you want. You can review your support choices later in Edit Profile. "
-            : "Choose or update the nutrition support you want. "}
-          These preferences are saved separately from your Builder and do not change meals yet.
-          A choice here does not record a diagnosis or medication use.
+            ? "You can choose GLP-1-oriented nutrition support here and review it later in Edit Profile. "
+            : "Choose whether you want GLP-1-oriented nutrition support. "}
+          This choice is separate from your Builder and does not change meals yet.
+          It does not record a diagnosis or medication use.
         </p>
       </div>
       {loading && <p role="status" className="text-white/70 text-xs">Loading support settings…</p>}
@@ -226,22 +196,11 @@ export function HealthContextControls({
               const { protocol, label, description } = option;
               const item = view.supports.find((entry) => entry.protocol === protocol);
               if (!item) return null;
-              const currentCondition = "currentCondition" in option ? option.currentCondition : null;
               return (
                 <div key={protocol} className="rounded-lg border border-white/20 bg-black/30 p-3">
                   <p className="text-white font-semibold text-sm">{label}</p>
                   <p className="text-white/70 text-xs mt-1">{description}</p>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {placement === "onboarding" && currentCondition && onCurrentConditionToggle && (
-                      <PillButton
-                        active={currentConditions?.includes(currentCondition) ?? false}
-                        onClick={() => onCurrentConditionToggle(currentCondition)}
-                      >
-                        {currentConditions?.includes(currentCondition)
-                          ? "Applies to my current meals"
-                          : "This already applies to me"}
-                      </PillButton>
-                    )}
                     <PillButton disabled={busy} active={item.personalEnabled}
                       onClick={() => change(`/api/health-context/support/${protocol}`, "PUT", { enabled: !item.personalEnabled })}>
                       {pendingPath === `/api/health-context/support/${protocol}`
@@ -273,49 +232,30 @@ export function HealthContextControls({
               );
             })}
           </div>
-          {view.legacyAntiPreferenceNeedsReview && (
-            <div className="rounded-lg border border-amber-400/40 bg-amber-950/25 p-3 text-xs text-amber-100">
-              <p>Your earlier Anti-Inflammatory meal preference is on. Do you still want this additional support?</p>
-              <p className="mt-1 text-white/70">This choice will not change today's meals or switch your Builder.</p>
-              <div className="flex flex-wrap gap-2 mt-2">
-                <PillButton disabled={busy}
-                  onClick={() => change("/api/health-context/earlier-anti-preference/decision", "POST", { current: true })}>
-                  Yes, keep support
-                </PillButton>
-                <PillButton disabled={busy}
-                  onClick={() => change("/api/health-context/earlier-anti-preference/decision", "POST", { current: false })}>
-                  No, this is past
-                </PillButton>
-              </div>
-            </div>
-          )}
-          {view.labReviews?.map((recommendation) => (
-            <div key={recommendation.id} className="rounded-lg border border-white/20 bg-black/30 p-3 text-xs text-white/80">
-              <p>Earlier lab recommendation: {LABELS[recommendation.protocol]} — {recommendation.earlierDecision === "accepted" ? "previously accepted" : "previously declined"}.</p>
-              <p className="mt-1 text-white/60">
-                This past decision is not treated as current support unless you review it here.
-              </p>
-              <PillButton disabled={busy} className="mt-2"
-                onClick={() => change(`/api/health-context/lab-recommendation/${recommendation.id}/review`, "POST", {})}>
-                {recommendation.earlierDecision === "accepted"
-                  ? "Confirm this accepted support"
-                  : "Keep this declined recommendation as previous information"}
-              </PillButton>
-            </div>
-          ))}
-          {view.supports.filter((item) =>
-            !NUTRITION_SUPPORT_OPTIONS.some((option) => option.protocol === item.protocol) && item.sources.length > 0
-          ).map(renderOther)}
-          {view.history?.length > 0 && (
+          {(view.supports.some((item) => item.protocol !== "glp1" && item.sources.length > 0)
+            || view.legacyAntiPreferenceNeedsReview || view.labReviews?.length > 0 || view.history?.length > 0) && (
             <details className="rounded-lg border border-white/20 bg-black/30 p-3">
-              <summary className="cursor-pointer text-white/90 text-xs font-semibold">Recent support history</summary>
-              <ul className="mt-2 space-y-2 text-xs text-white/70">
+              <summary className="cursor-pointer text-white/90 text-xs font-semibold">Earlier support information</summary>
+              <div className="mt-2 space-y-3 text-xs text-white/70">
+                <p>These records are kept for reference. They do not change current meals or replace your clinical settings.</p>
+                {view.legacyAntiPreferenceNeedsReview && <p>An earlier Anti-Inflammatory preference was noted. Use the preference control above to manage it.</p>}
+                {view.labReviews?.map((recommendation) => (
+                  <p key={recommendation.id}>Earlier lab recommendation: {LABELS[recommendation.protocol]} — {recommendation.earlierDecision === "accepted" ? "previously accepted" : "previously declined"}.</p>
+                ))}
+                {view.supports.filter((item) => item.protocol !== "glp1" && item.sources.length > 0).map((item) => (
+                  <div key={item.protocol}>
+                    <p className="font-semibold">{LABELS[item.protocol]}</p>
+                    <SourceList item={item} />
+                  </div>
+                ))}
+              </div>
+              {view.history?.length > 0 && <ul className="mt-3 space-y-2 text-xs text-white/70">
                 {view.history.map((event, index) => (
                   <li key={`${event.occurredAt}-${index}`}>
                     {LABELS[event.protocol]} · {event.activity} · {new Date(event.occurredAt).toLocaleDateString()}
                   </li>
                 ))}
-              </ul>
+              </ul>}
             </details>
           )}
         </>

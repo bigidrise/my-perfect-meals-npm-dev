@@ -43,4 +43,18 @@ describe("onboarding health writes", () => {
     expect(patch).toHaveBeenCalledWith("/api/user/specialty-condition", { conditions: [] });
     expect(patch).toHaveBeenCalledTimes(1);
   });
+
+  it("continues sending existing self-selected clinical conditions through the original specialty path", async () => {
+    const conditions = [
+      "cardiac", "renal", "liver-support", "liver-disease", "oncology-support",
+      "thyroid-support", "hashimotos", "hypothyroid", "hyperthyroid",
+      "hormone-optimization", "menopause", "perimenopause", "metabolic-recovery",
+    ];
+    const patch = jest.fn(async () => ({ ok: true }));
+    await persistOnboardingHealthInformation({
+      medicalConditions: [], specialtyConditions: conditions, thyroidType: null,
+      saveMedical: async () => {}, patch,
+    });
+    expect(patch).toHaveBeenCalledWith("/api/user/specialty-condition", { conditions });
+  });
 });

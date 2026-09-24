@@ -1,7 +1,6 @@
 /** @jest-environment jsdom */
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { HealthContextControls } from "@/components/profile/HealthContextControls";
-import { NUTRITION_SUPPORT_OPTIONS } from "@shared/nutritionSupportOptions";
 
 const mockApiRequest = jest.fn();
 jest.mock("@/lib/apiRequest", () => ({
@@ -26,14 +25,14 @@ describe("DEV profile support controls", () => {
     mockApiRequest.mockResolvedValue(initial);
   });
 
-  it("renders GLP-1 and Anti-Inflammatory as editable peer overlays without a medication assertion", async () => {
+  it("offers only GLP-1 as a personal support choice, independently of medication and Builder", async () => {
     render(<HealthContextControls userId="account-a" />);
     expect(await screen.findByText("Your current meal strategy: Diabetic Builder. These support settings do not switch it.")).toBeTruthy();
     expect(screen.getByText("GLP-1 Nutrition Support")).toBeTruthy();
-    expect(screen.getByText("Anti-Inflammatory Nutrition Support")).toBeTruthy();
-    expect(screen.getByText("Nutrition support only. This does not record medication use or change your Builder.")).toBeTruthy();
+    expect(screen.queryByText("Anti-Inflammatory Nutrition Support")).toBeNull();
+    expect(screen.getByText(/does not record medication use, change your Builder, or change meals yet/)).toBeTruthy();
     const switches = screen.getAllByRole("button", { name: "Turn on my support" });
-    expect(switches).toHaveLength(2);
+    expect(switches).toHaveLength(1);
     mockApiRequest.mockResolvedValueOnce({
       ...initial,
       supports: [
@@ -42,12 +41,12 @@ describe("DEV profile support controls", () => {
           sources: [{ id: "personal", kind: "you", status: "active" }] },
       ],
     });
-    fireEvent.click(switches[1]);
+    fireEvent.click(switches[0]);
     await waitFor(() => expect(mockApiRequest).toHaveBeenCalledWith(
       "/api/health-context/support/glp1", { method: "PUT", body: '{"enabled":true}' },
     ));
     expect(await screen.findByRole("button", { name: "My support is on · turn off" })).toBeTruthy();
-    expect(screen.getAllByRole("button", { name: "Turn on my support" })).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: "Turn on my support" })).toBeNull();
   });
 
   it("acknowledges one GLP-1 click immediately and waits for the saved result before changing its state", async () => {
@@ -57,7 +56,7 @@ describe("DEV profile support controls", () => {
     mockApiRequest.mockImplementationOnce(() =>
       new Promise<typeof initial>((resolve) => { finishSave = resolve; }));
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Turn on my support" })[1]);
+    fireEvent.click(screen.getByRole("button", { name: "Turn on my support" }));
     const saving = screen.getByRole("button", { name: "Saving…" });
     expect((saving as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText("Saving your support choice…")).toBeTruthy();
@@ -87,40 +86,27 @@ describe("DEV profile support controls", () => {
     expect(await screen.findByText("GLP-1 Nutrition Support")).toBeTruthy();
   });
 
-  it("shows the same eligible options on onboarding and keeps protected sources separate", async () => {
+  it("does not turn existing clinical records into extra onboarding switches", async () => {
     mockApiRequest.mockResolvedValueOnce({
       ...initial,
-      supports: NUTRITION_SUPPORT_OPTIONS.map(({ protocol }) => ({
-        protocol, status: protocol === "cardiac" ? "active" : "off",
-        personalEnabled: false,
-        sources: protocol === "cardiac"
-          ? [{ id: "care", kind: "care_team", status: "active" }] : [],
-      })),
-    });
-    render(<HealthContextControls userId="account-a" placement="onboarding" />);
-    expect(await screen.findByText("Heart Nutrition Support")).toBeTruthy();
-    expect(screen.getAllByRole("button", { name: "Turn on my support" })).toHaveLength(NUTRITION_SUPPORT_OPTIONS.length);
-    expect(screen.getByText(/Another source still includes this support/)).toBeTruthy();
-    expect(screen.queryByText("Pregnancy Nutrition Support")).toBeNull();
-  });
-
-  it("keeps a known health fact and a personal nutrition preference as separate choices", async () => {
-    const toggleCurrent = jest.fn();
-    mockApiRequest.mockResolvedValueOnce({
-      ...initial,
+      legacyAntiPreferenceNeedsReview: true,
       supports: [
-        ...initial.supports,
-        { protocol: "cardiac", status: "off", personalEnabled: false, sources: [] },
+        initial.supports[1],
+        ...["diabetes", "cardiac", "renal", "liver_support", "thyroid",
+          "hormone_optimization", "menopause", "perimenopause",
+          "metabolic_recovery", "oncology", "anti_inflammatory", "performance"].map((protocol) => ({
+          protocol, status: "active", personalEnabled: true,
+          sources: [{ id: `${protocol}-personal`, kind: "you", status: "active" }],
+        })),
       ],
     });
-    render(<HealthContextControls
-      userId="account-a" placement="onboarding"
-      currentConditions={[]}
-      onCurrentConditionToggle={toggleCurrent}
-    />);
-    await screen.findByText("Heart Nutrition Support");
-    fireEvent.click(screen.getByRole("button", { name: "This already applies to me" }));
-    expect(toggleCurrent).toHaveBeenCalledWith("cardiac");
+    render(<HealthContextControls userId="account-a" placement="onboarding" />);
+    expect(await screen.findByText("GLP-1 Nutrition Support")).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "Turn on my support" })).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: "This already applies to me" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Use my support again" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Yes, keep support" })).toBeNull();
+    expect(screen.getByText("Earlier support information")).toBeTruthy();
     expect(mockApiRequest).toHaveBeenCalledTimes(1);
     expect(mockApiRequest).toHaveBeenCalledWith("/api/health-context");
   });
@@ -150,7 +136,7 @@ describe("DEV profile support controls", () => {
     });
     const { unmount } = render(<HealthContextControls userId="account-a" placement="onboarding" />);
     await screen.findByText("GLP-1 Nutrition Support");
-    fireEvent.click(screen.getAllByRole("button", { name: "Turn on my support" })[1]);
+    fireEvent.click(screen.getByRole("button", { name: "Turn on my support" }));
     await screen.findByRole("button", { name: "My support is on · turn off" });
     unmount();
     render(<HealthContextControls userId="account-a" />);
