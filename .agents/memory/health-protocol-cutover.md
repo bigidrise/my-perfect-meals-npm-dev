@@ -14,3 +14,9 @@ During the DEV user-control stage, keep source-backed support choices shadow-onl
 **Why:** A one-way or bidirectional profile dual-write would let unrelated legacy saves revive a discontinued source or make the new switch appear to change meals before every food surface is migrated together.
 
 **How to apply:** Preserve explicit source ownership and history while the old meal settings remain live. A future cutover must specify the atomic reconciliation, rollback, and all-surface safety plan before removing the temporary separation.
+
+The finished Edit Profile should have one Health & Nutrition Support area with peer Anti-Inflammatory and GLP-1 nutrition overlays. Keep the original Anti-Inflammatory control until the replacement has taken over its verified behavior; the final UI must not expose migration, DEV, or current-versus-future terminology.
+
+**Why:** The user confirmed that the duplicated Anti-Inflammatory controls are acceptable only as temporary DEV scaffolding, not as the intended product design.
+
+**How to apply:** Remove the duplicate and transition wording only after source-backed reads, existing-user reconciliation, and food-consumer parity are proven. Do not interpret either overlay alone as evidence of current medication use.
