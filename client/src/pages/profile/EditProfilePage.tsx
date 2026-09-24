@@ -1299,7 +1299,6 @@ export default function EditProfilePage() {
                         className={locked ? "opacity-80 cursor-not-allowed" : ""}
                       >
                         {isLabDriven ? <span className="mr-1 text-[10px]">🔬</span> : null}{opt.label}
-                        {editableLabCardiac && cardiacLabOffPending ? " · Off when saved" : ""}
                       </PillButton>
                     );
                   })}
