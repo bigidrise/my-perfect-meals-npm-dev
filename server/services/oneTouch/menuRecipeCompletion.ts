@@ -1,4 +1,5 @@
 import { and, eq } from "drizzle-orm";
+import { ZodError } from "zod";
 import { householdProfiles, users } from "@shared/schema";
 import { oneTouchDirectionSchema, type OneTouchDirection, type OneTouchRequest } from "@shared/oneTouch";
 import type { HumanFoodCandidate, HumanFoodRequirementProof } from "@shared/humanFoodValidation";
@@ -66,6 +67,18 @@ export type MenuRecipeCompletionResult =
 
 const fail = (code: MenuRecipeFailureCode, retryable = false): MenuRecipeCompletionResult =>
   ({ ok: false, code, retryable });
+
+function generationFailureCategory(error: unknown): string {
+  if (error instanceof ZodError) return "invalid_recipe_schema";
+  if (error instanceof SyntaxError) return "invalid_json";
+  if (error instanceof Error && error.message === "Menu recipe provider is unavailable") return "provider_unavailable";
+  if (error instanceof Error && error.message === "Menu recipe provider returned no candidate") return "empty_provider_response";
+  if (error && typeof error === "object" && "status" in error && typeof error.status === "number") {
+    if (error.status === 429) return "provider_rate_limited";
+    return error.status >= 500 ? "provider_upstream_error" : "provider_request_error";
+  }
+  return "unclassified_generation_error";
+}
 
 const ALLOWED_DIETS = new Set([
   "vegan", "vegetarian", "pescatarian", "keto", "paleo", "gluten-free",
@@ -287,7 +300,11 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
     let draft: MenuRecipeDraft;
     try {
       draft = await generateMenuRecipe({ concept, cuisine: input.cuisine ?? null, authorityPrompt });
-    } catch {
+    } catch (error) {
+      // Never log provider messages, generated food, prompts, or profile facts.
+      console.warn("[CreatorMenu] Selected recipe generation failed", {
+        reason: generationFailureCategory(error),
+      });
       return fail("generation_failed", true);
     }
     if (!validMacros(draft)) return fail("nutrition_evidence_invalid");

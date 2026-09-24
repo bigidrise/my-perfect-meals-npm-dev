@@ -5,7 +5,7 @@ import { requireAuth } from "../middleware/requireAuth";
 import { oneTouchRequestSchema, type OneTouchRequest, type OneTouchConcept } from "@shared/oneTouch";
 import { generateOneTouchDirections } from "../services/oneTouch/directions";
 import { appendOneTouchHistory, readOneTouchHistory, saveOneTouchConceptSet } from "../services/oneTouch/history";
-import { completeMenuRecipe, type MenuRecipeCard } from "../services/oneTouch/menuRecipeCompletion";
+import { completeMenuRecipe, type MenuRecipeCard, type MenuRecipeFailureCode } from "../services/oneTouch/menuRecipeCompletion";
 import { createHumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
 import { buildCreatorHumanFoodPrompt } from "../services/humanFoodContext/adapters";
 import { enforceBeforeGenerate, loadUserProtocolEnvelope } from "../services/protocolEnvelope";
@@ -34,6 +34,23 @@ const allowedCuisines = new Set(["american", "soul food", "mexican", "italian", 
 
 function explicitValue(value: { mode: string; value?: string }): string | undefined {
   return value.mode === "explicit" ? value.value : undefined;
+}
+
+function safeCompletionReason(code: MenuRecipeFailureCode): string {
+  switch (code) {
+    case "invalid_request":
+    case "concept_rejected":
+    case "generation_failed":
+    case "nutrition_evidence_invalid":
+    case "identity_mismatch":
+    case "serving_finalization_failed":
+    case "final_validation_rejected":
+      return code;
+    default:
+      // Never reveal a person's diet, allergy, diabetes, GLP-1, or clinical
+      // status through an operational log, even when the failure code names it.
+      return "protected_food_or_authority_rejected";
+  }
 }
 
 function toCreatorCard(card: MenuRecipeCard) {
@@ -153,6 +170,16 @@ export default function createOneTouchRouter() {
         contextCreator: request.creator,
       });
       if (result.ok === false) {
+        const status = result.code === "requirement_evidence_unsupported" || result.code === "protocol_clinical_rejected"
+          ? 422
+          : result.code === "unresolved_authority" || result.code === "unauthorized_subject"
+            ? 409
+            : result.retryable ? 502 : 422;
+        // Log only a privacy-safe category and status. The client still gets
+        // the same general message, never private authority or food details.
+        console.warn("[CreatorMenu] Choose completion rejected", {
+          creator: request.creator, reason: safeCompletionReason(result.code), retryable: result.retryable, status,
+        });
         if (result.code === "requirement_evidence_unsupported" || result.code === "protocol_clinical_rejected") {
           stop(422, "ONE_TOUCH_REQUIREMENT_UNAVAILABLE",
             "We can't safely complete this Menu option with your current nutrition settings yet. Your settings have not been changed.");
@@ -160,7 +187,7 @@ export default function createOneTouchRouter() {
         if (result.code === "unresolved_authority" || result.code === "unauthorized_subject") {
           stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your current food protections could not be verified.");
         }
-        stop(result.retryable ? 502 : 422, "ONE_TOUCH_RECIPE_REJECTED",
+        stop(status, "ONE_TOUCH_RECIPE_REJECTED",
           "We couldn't safely complete this selected idea. Please choose another or try again.");
       }
       // A concurrent Try 3 More or preference change cannot authorize an old choice.
