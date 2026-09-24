@@ -10,7 +10,7 @@ import {
 } from "../../../shared/healthProtocolState";
 import { resolveHealthProtocolState } from "./resolveHealthProtocolState";
 
-function devOnly() {
+export function devOnly() {
   if (process.env.NODE_ENV !== "development" || process.env.REPLIT_DEPLOYMENT) {
     throw new Error("Shadow health-protocol storage is DEV-only.");
   }
@@ -20,7 +20,7 @@ function knownProtocol(protocol: HealthProtocol) {
   if (!HEALTH_PROTOCOLS.includes(protocol)) throw new Error("Unsupported health protocol.");
 }
 
-async function transaction<T>(work: (client: PoolClient) => Promise<T>): Promise<T> {
+export async function shadowTransaction<T>(work: (client: PoolClient) => Promise<T>): Promise<T> {
   devOnly();
   const client = await pool.connect();
   try {
@@ -51,7 +51,7 @@ type ClaimInput = {
   reasonCode: string;
 };
 
-async function putClaim(client: PoolClient, input: ClaimInput): Promise<string> {
+export async function putClaim(client: PoolClient, input: ClaimInput): Promise<string> {
   knownProtocol(input.protocol);
   if (!input.subjectUserId || !input.evidenceRef || !input.reasonCode) {
     throw new Error("Protocol claim requires subject, evidence identity, and reason.");
@@ -123,7 +123,7 @@ export async function setUserNutritionSupport(input: {
   if (input.actorUserId !== input.subjectUserId) {
     throw new Error("Only the subject can change their personal nutrition support.");
   }
-  await transaction((client) => putClaim(client, {
+  await shadowTransaction((client) => putClaim(client, {
     ...input, actorUserId: input.actorUserId, source: "user",
     evidenceRef: "personal_support", status: input.enabled ? "active" : "inactive",
     reasonCode: input.enabled ? "user_enabled" : "user_discontinued",
@@ -143,7 +143,7 @@ export async function setProviderProtocol(input: {
   protocol: HealthProtocol;
   enabled: boolean;
 }) {
-  await transaction(async (client) => {
+  await shadowTransaction(async (client) => {
     const { rows } = await client.query(
       `SELECT sm.id FROM studio_memberships sm JOIN studios s ON s.id=sm.studio_id
        WHERE sm.id=$1 AND sm.client_user_id=$2 AND sm.status='active'
@@ -169,7 +169,7 @@ export async function markEndedProviderRelationship(input: {
   subjectUserId: string;
   membershipId: string;
 }) {
-  await transaction(async (client) => {
+  await shadowTransaction(async (client) => {
     const { rows: memberships } = await client.query(
       `SELECT id FROM studio_memberships
        WHERE id=$1 AND client_user_id=$2 AND (status <> 'active' OR is_archived=true)`,
@@ -195,7 +195,7 @@ export async function markEndedProviderRelationship(input: {
   return readShadowProtocolState(input.subjectUserId, "standard");
 }
 
-const LAB_PROTOCOLS: Partial<Record<string, HealthProtocol>> = {
+export const LAB_PROTOCOLS: Partial<Record<string, HealthProtocol>> = {
   "kidney-disease": "renal", renal: "renal",
   "heart-failure": "cardiac", cardiac: "cardiac",
   "inflammation-support": "anti_inflammatory",
@@ -240,7 +240,7 @@ export async function recordLabDecision(input: {
   if (input.actorUserId !== input.subjectUserId) {
     throw new Error("Lab recommendation must be accepted by its subject.");
   }
-  const protocol = await transaction(async (client) => {
+  const protocol = await shadowTransaction(async (client) => {
     const { rows } = await client.query(
       `SELECT r.recommended_protocol, r.status FROM clinical_protocol_recommendations r
        JOIN clinical_labs l ON l.id=r.clinical_lab_id AND l.user_id=r.user_id
@@ -273,7 +273,7 @@ export async function discontinueLabProtocol(input: {
     throw new Error("Only the subject can discontinue their accepted lab protocol.");
   }
   knownProtocol(input.protocol);
-  await transaction((client) =>
+  await shadowTransaction((client) =>
     endActiveLabClaims(client, input.subjectUserId, input.protocol, input.actorUserId, "lab_user_discontinued"));
   return readShadowProtocolState(input.subjectUserId, "standard");
 }
@@ -286,7 +286,7 @@ export async function recordUnverifiedMedicationContext(input: {
   evidenceRef: string;
 }) {
   if (input.actorUserId !== input.subjectUserId) throw new Error("Medication subject mismatch.");
-  await transaction((client) => putClaim(client, {
+  await shadowTransaction((client) => putClaim(client, {
     ...input, source: "medication", status: "pending_review",
     currentMedicationUse: false, reasonCode: "medication_use_unverified",
   }));
@@ -299,7 +299,7 @@ export async function recordSystemRecommendation(input: {
   protocol: HealthProtocol;
   evidenceRef: string;
 }) {
-  await transaction((client) => putClaim(client, {
+  await shadowTransaction((client) => putClaim(client, {
     ...input, actorUserId: null, source: "system_recommendation",
     status: "pending_review", reasonCode: "system_suggested",
   }));
@@ -316,7 +316,7 @@ export async function decideSystemRecommendation(input: {
   if (input.actorUserId !== input.subjectUserId) {
     throw new Error("Only the subject can decide on a system recommendation.");
   }
-  await transaction(async (client) => {
+  await shadowTransaction(async (client) => {
     const { rows } = await client.query(
       `SELECT id, protocol_key, status FROM health_protocol_sources
        WHERE id=$1 AND subject_user_id=$2 AND source_kind='system_recommendation'

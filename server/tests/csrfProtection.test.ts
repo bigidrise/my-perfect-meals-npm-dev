@@ -121,6 +121,27 @@ describe("U4 CSRF protection", () => {
     expect(next).not.toHaveBeenCalled();
   });
 
+  it("cannot bypass a cookie session's CSRF token with a dummy bearer header", () => {
+    const res = response();
+    const next = jest.fn();
+    csrfProtection(request({
+      session: { userId: "user-1", csrfToken: "expected" },
+      headers: { origin: "https://app.myperfectmeals.ai", "x-auth-token": "invalid-token" },
+    }), res, next);
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ code: "CSRF_TOKEN_INVALID" }),
+    );
+    expect(next).not.toHaveBeenCalled();
+
+    const bearerNext = jest.fn();
+    csrfProtection(request({
+      session: {},
+      headers: { "x-auth-token": "native-bearer" },
+    }), response(), bearerNext);
+    expect(bearerNext).toHaveBeenCalledTimes(1);
+  });
+
   it("rejects a mismatched token and accepts the exact token", () => {
     const invalidReq = request({
       session: { userId: "user-1", csrfToken: "expected-token" },
@@ -369,7 +390,7 @@ describe("U4 CSRF protection", () => {
       request({ method: "GET" }),
       request({ headers: { "x-requested-with": "XMLHttpRequest" } }),
       request({
-        session: { userId: "user-1" },
+        session: {},
         headers: { "x-auth-token": "explicit-bearer" },
       }),
     ]) {

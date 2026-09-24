@@ -15,6 +15,7 @@ import { apiRequest } from "@/lib/apiRequest";
 import { getAuthHeaders } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { PillButton } from "@/components/ui/pill-button";
+import { HealthContextControls } from "@/components/profile/HealthContextControls";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { getGuestPageExplanation } from "@/components/copilot/CopilotPageExplanations";
 import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanationStore";
@@ -312,6 +313,8 @@ export default function EditProfilePage() {
   );
 
   const [antiInflammatorySupport, setAntiInflammatorySupport] = useState(false);
+  const [antiInflammatorySupportLoadedFor, setAntiInflammatorySupportLoadedFor] = useState<string | null>(null);
+  const antiInflammatorySupportLoaded = !!user?.id && antiInflammatorySupportLoadedFor === user.id;
 
   // Protocol Ownership Model — physician-set oncology context (read from server)
   const oncologyCtx = user?.oncologySupportContext ?? null;
@@ -396,9 +399,16 @@ export default function EditProfilePage() {
   // Load anti-inflammatory support preference from server (stored in app-preferences)
   useEffect(() => {
     if (!user?.id) return;
+    let current = true;
+    setAntiInflammatorySupportLoadedFor(null);
     apiRequest(`/api/users/${user.id}/app-preferences`)
-      .then(prefs => { if (prefs?.antiInflammatorySupport) setAntiInflammatorySupport(true); })
-      .catch(() => {});
+      .then(prefs => {
+        if (!current) return;
+        setAntiInflammatorySupport(prefs?.antiInflammatorySupport === true);
+        setAntiInflammatorySupportLoadedFor(user.id);
+      })
+      .catch(() => { if (current) setAntiInflammatorySupportLoadedFor(null); });
+    return () => { current = false; };
   }, [user?.id]);
   
   const verifyPinForAllergies = async () => {
@@ -515,7 +525,9 @@ export default function EditProfilePage() {
         ...(allergiesChanged && allergyEditToken ? { allergyEditToken } : {}),
       } as any;
 
-      // Merge glp1Active into medicalConditions — preserve existing values, only toggle 'glp1'
+      // Existing live meal setting only. New DEV support choices are saved
+      // separately and NEVER merged into medicalConditions by profile Save.
+      // Keep the legacy behavior until the coordinated food cutover.
       const existingMedical: string[] = Array.isArray((user as any)?.medicalConditions)
         ? (user as any).medicalConditions
         : [];
@@ -627,18 +639,32 @@ export default function EditProfilePage() {
         body: JSON.stringify({ measurementSystem: localMeasurementSystem, countryCode: localCountryCode }),
       }).catch(() => {});
 
-      // Save anti-inflammatory support preference
-      if (user?.id) {
-        await apiRequest(`/api/users/${user.id}/app-preferences`, {
-          method: "PATCH",
-          body: JSON.stringify({ antiInflammatorySupport }),
-        }).catch(() => {});
+      // Save the existing live preference separately from DEV shadow support.
+      // A failed live write must not be reported as a successful full save.
+      let currentMealPreferenceSaved = !user?.id || antiInflammatorySupportLoaded;
+      if (user?.id && antiInflammatorySupportLoaded) {
+        try {
+          await apiRequest(`/api/users/${user.id}/app-preferences`, {
+            method: "PATCH",
+            body: JSON.stringify({ antiInflammatorySupport }),
+          });
+        } catch {
+          currentMealPreferenceSaved = false;
+        }
       }
 
       await refreshUser?.();
       window.dispatchEvent(new CustomEvent("mpm:dietaryUpdated")); window.dispatchEvent(new CustomEvent("mpm:conditionsUpdated"));
       queryClient.invalidateQueries({ queryKey: ["nutrition-summary"] });
 
+      if (!currentMealPreferenceSaved) {
+        toast({
+          title: "Profile partly saved",
+          description: "Your current Anti-Inflammatory meal preference could not be loaded or saved. Please retry before changing it.",
+          variant: "destructive",
+        });
+        return;
+      }
       toast({
         title: "Profile updated",
         description: "Your changes were saved successfully.",
@@ -1255,7 +1281,7 @@ export default function EditProfilePage() {
                     active={glp1Active}
                     onClick={() => setGlp1Active(prev => !prev)}
                   >
-                    Metabolic Med Active
+                    Existing meal-generation GLP-1 setting
                   </PillButton>
                   {/* Alpha-gal Syndrome — clinical allergy, handled separately from specialty conditions */}
                   <PillButton
@@ -1379,9 +1405,9 @@ export default function EditProfilePage() {
                     <div className="flex items-start gap-2">
                       <span className="text-orange-400 text-base mt-0.5">💉</span>
                       <div>
-                        <p className="text-orange-300 text-xs font-semibold mb-1">Metabolic Medication Support — Nutritional Guidance Only</p>
+                        <p className="text-orange-300 text-xs font-semibold mb-1">Existing GLP-1 meal-generation guidance</p>
                         <p className="text-white/70 text-xs leading-relaxed">
-                          Enabling this activates metabolic medication-aware meal generation — smaller, nutrient-dense portions, high protein floors (≥25g), nausea-safe ingredients, and reduced fat ceilings to match how these medications affect appetite and digestion. If you are on a diabetic protocol, both layers stack automatically. This is <span className="text-white font-medium">not a substitute for your prescribing doctor's guidance</span>. Always follow your physician's instructions.
+                          This older profile setting currently affects meal generation, including alongside a Diabetic Builder. It does not prove current medication use. The separate DEV support setting below does not change today's meals. Follow your clinician's guidance where applicable.
                         </p>
                       </div>
                     </div>
@@ -1437,19 +1463,24 @@ export default function EditProfilePage() {
                 )}
               </div>
 
-              {/* Anti-Inflammatory Support — independent toggle, not part of specialty condition */}
+              {/* Existing live preference; the source-backed DEV controls below
+                  are intentionally separate until a safe cutover is approved. */}
               <div className="rounded-xl border border-green-500/20 bg-green-950/10 p-3">
-                <p className="text-white/80 text-xs font-semibold mb-1">Anti-Inflammatory Support</p>
+                <p className="text-white/80 text-xs font-semibold mb-1">Current meals: Anti-Inflammatory Support</p>
                 <p className="text-white/50 text-xs mb-3 leading-relaxed">
-                  Layer anti-inflammatory nutrition optimization onto any builder — including Metabolic Med and Diabetic. Emphasizes food quality, healthy fats, and reduced ultra-processed ingredients. No medical condition required.
+                  This existing preference affects today's meals when you save your profile. It layers onto any Builder. The DEV preview below stores future support choices separately.
                 </p>
                 <PillButton
+                  disabled={!antiInflammatorySupportLoaded}
                   active={antiInflammatorySupport}
                   onClick={() => setAntiInflammatorySupport(prev => !prev)}
                 >
-                  {antiInflammatorySupport ? "Active — Anti-Inflammatory" : "Enable Anti-Inflammatory Support"}
+                  {!antiInflammatorySupportLoaded ? "Current preference unavailable"
+                    : antiInflammatorySupport ? "Active — Anti-Inflammatory" : "Enable Anti-Inflammatory Support"}
                 </PillButton>
               </div>
+
+              {import.meta.env.DEV && user?.id && <HealthContextControls key={user.id} userId={user.id} />}
 
               <div className="rounded-xl border border-white/10 bg-black/30 p-3">
                 <div className="flex items-center gap-2 mb-2">
