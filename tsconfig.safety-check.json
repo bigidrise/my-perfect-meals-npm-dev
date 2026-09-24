@@ -9,7 +9,9 @@
     "client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx",
     "client/src/types/meal.ts",
     "server/storage.ts",
-    "server/routes/pregnancyCoach.ts"
+    "server/routes/pregnancyCoach.ts",
+    "server/services/healthProtocols/resolveHealthProtocolState.ts",
+    "shared/healthProtocolState.ts"
   ],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"]
 }
