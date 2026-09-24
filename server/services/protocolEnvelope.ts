@@ -58,6 +58,7 @@ import {
   type GlucoseState,
 } from "./diabeticContextService";
 import { buildUniversalConditionGuidance } from "./universalMedicalGuidance";
+import { readDevelopmentPersonalFoodSupports } from "./healthProtocols/developmentFoodSupports";
 import { validateDishIdentity } from "./dishAdaptation/dishIdentityValidator";
 import { deriveCompPrepStatus } from "./protocol/competitionPrepDateEngine";
 import { sanitizeIdentifiers } from "./promptSanitizer";
@@ -1025,7 +1026,18 @@ export async function loadUserProtocolEnvelope(
       [];
     const GLP1_MC_KEYS = new Set(["glp1", "glp-1", "semaglutide", "ozempic", "wegovy", "tirzepatide", "mounjaro", "zepbound", "rybelsus", "liraglutide", "saxenda", "victoza", "dulaglutide", "trulicity", "exenatide", "byetta", "bydureon"]);
     const medicalConditionsGlp1 = _activeMedicalConditions.filter((c: string) => GLP1_MC_KEYS.has(c.toLowerCase()));
-    const mergedHealthConditions = [...new Set([...healthConditions, ...specialtyConditionsArr, ...medicalConditionsGlp1])];
+    // Phase 2B: only an explicitly confirmed, active personal source may add
+    // food guidance. Never use the old unreviewed app preference or another
+    // household member's support choice as the nutrition subject's context.
+    const personalSupports = householdProfileId || (user as any).activeHouseholdProfileId
+      ? new Set()
+      : await readDevelopmentPersonalFoodSupports(userId);
+    const mergedHealthConditions = [...new Set([
+      ...healthConditions, ...specialtyConditionsArr, ...medicalConditionsGlp1,
+      ...(personalSupports.has("anti_inflammatory") &&
+        user.selectedMealBuilder !== "anti_inflammatory" &&
+        user.selectedMealBuilder !== "anti-inflammatory" ? ["anti-inflammatory"] : []),
+    ])];
     const dislikedFoods: string[] = (user.dislikedFoods as string[]) || [];
     const avoidedFoods: string[] = (user.avoidedFoods as string[]) || [];
     const likedFoods: string[] = (user.likedFoods as string[]) || [];
@@ -1353,6 +1365,7 @@ export async function loadUserProtocolEnvelope(
     const conditionGuidanceBlocks = await buildUniversalConditionGuidance({
       userId: householdProfileId ?? userId,
       healthConditions: mergedHealthConditions,
+      personalGlp1NutritionSupport: personalSupports.has("glp1") && user.selectedMealBuilder !== "glp1",
       oncologySupportContext,
       thyroidSupportContext: thyroidSupport
         ? {

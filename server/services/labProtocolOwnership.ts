@@ -69,7 +69,6 @@ export async function discontinueLabDrivenCardiac(userId: string): Promise<strin
     await tx.update(users).set({
       specialtyConditions: next,
       specialtyCondition: next[0] ?? null,
-      updatedAt: new Date(),
     }).where(eq(users.id, userId));
     return next;
   });

@@ -16,7 +16,8 @@ function arrayIncludesGLP1(arr: unknown): boolean {
 export type GLP1ActivationSource =
   | "selectedMealBuilder"
   | "medicalConditions"
-  | "specialtyConditions";
+  | "specialtyConditions"
+  | "personalNutritionSupport";
 
 export function detectLegacyGLP1ActivationSources(user: {
   selectedMealBuilder?: string | null;

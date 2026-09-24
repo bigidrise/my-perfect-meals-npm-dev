@@ -7,7 +7,7 @@ import type { HealthProtocol } from "./healthProtocolState";
  * the old anti-inflammatory preference remains separate until reconciliation.
  */
 export const NUTRITION_SUPPORT_OPTIONS = [
-  { protocol: "glp1", label: "GLP-1 Nutrition Support", description: "Apply GLP-1-oriented nutrition support to my food. This choice does not record medication use, change your Builder, or change meals yet." },
+  { protocol: "glp1", label: "GLP-1 Nutrition Support", description: "Apply GLP-1-oriented nutrition support to my food in Development. This does not record medication use or change your Builder." },
 ] as const satisfies readonly {
   protocol: HealthProtocol;
   label: string;
@@ -15,5 +15,5 @@ export const NUTRITION_SUPPORT_OPTIONS = [
 }[];
 
 export function isSelfSelectableSupport(protocol: HealthProtocol): boolean {
-  return NUTRITION_SUPPORT_OPTIONS.some((option) => option.protocol === protocol);
+  return protocol === "anti_inflammatory" || NUTRITION_SUPPORT_OPTIONS.some((option) => option.protocol === protocol);
 }

@@ -62,11 +62,12 @@ function SourceList({ item }: { item: HealthSupportSummary }) {
 }
 
 export function HealthContextControls({
-  userId, placement = "profile", onStatusChange, profilePreferenceCard,
+  userId, placement = "profile", onStatusChange, onPersonalAntiStatus, profilePreferenceCard,
 }: {
   userId: string;
   placement?: "profile" | "onboarding";
   onStatusChange?: (status: "loading" | "ready" | "saving" | "error") => void;
+  onPersonalAntiStatus?: (enabled: boolean) => void;
   profilePreferenceCard?: ReactNode;
 }) {
   const [view, setView] = useState<HealthContextView | null>(null);
@@ -76,6 +77,12 @@ export function HealthContextControls({
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const scopeVersion = useRef(0);
+
+  useEffect(() => {
+    if (view) onPersonalAntiStatus?.(
+      view.supports.find((item) => item.protocol === "anti_inflammatory")?.personalEnabled === true,
+    );
+  }, [view, onPersonalAntiStatus]);
 
   const reload = useCallback(async () => {
     const version = ++scopeVersion.current;
@@ -122,7 +129,7 @@ export function HealthContextControls({
       if (!next?.shadowOnly || !Array.isArray(next.supports)) throw new Error("Support settings could not be verified.");
       if (scopeVersion.current === version) {
         setView(next);
-        setNotice(next.message || "Your support preference was saved. Current meals are unchanged.");
+        setNotice(next.message || "Your support preference was saved for Development meal guidance.");
         onStatusChange?.("ready");
       }
     } catch (err) {
@@ -179,8 +186,8 @@ export function HealthContextControls({
         <p className="text-amber-200 text-sm font-bold">Health &amp; Nutrition Support</p>
         <p className="text-white/70 text-xs mt-1">
           {placement === "onboarding"
-            ? "You can choose GLP-1-oriented nutrition support here and review it later in Edit Profile. This choice is separate from your Builder and does not change meals yet. It does not record a diagnosis or medication use."
-            : "Choose your nutrition support preferences here. The Anti-Inflammatory preference is saved with your profile; the separate GLP-1 choice does not change meals yet or record a diagnosis or medication use."}
+            ? "You can choose GLP-1-oriented nutrition support here and review it later in Edit Profile. This choice is separate from your Builder and does not record a diagnosis or medication use."
+            : "Choose your nutrition support preferences here. In Development, a new confirmed choice contributes to meal guidance without switching your Builder or recording a diagnosis or medication use."}
         </p>
       </div>
       {loading && <p role="status" className="text-white/70 text-xs">Loading support settings…</p>}

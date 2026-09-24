@@ -44,6 +44,10 @@ const clientQuery = jest.fn(async (sql: string, args: unknown[] = []) => {
   if (sql.includes("SELECT app_preferences->>'antiInflammatorySupport' AS current_anti")) {
     return { rows: [{ current_anti: liveAntiPreference ? "true" : null }] };
   }
+  if (sql.includes("UPDATE users SET app_preferences")) {
+    liveAntiPreference = args[0] === true;
+    return { rows: [], rowCount: 1 };
+  }
   if (sql.includes("evidence_ref='legacy:app_preferences_anti_inflammatory'") &&
       sql.includes("SELECT id FROM health_protocol_sources")) {
     const found = rows.find((row) => row.subject_user_id === args[0] &&
@@ -201,6 +205,16 @@ describe("DEV shadow protocol persistence and source ownership", () => {
     expect(events.map((event) => event.after)).toEqual(["active", "inactive", "active"]);
     await user(true);
     expect(events).toHaveLength(3); // idempotent repeated enable
+  });
+
+  it("keeps an explicit anti-inflammatory personal source and the old preference in one transaction", async () => {
+    expect(liveAntiPreference).toBe(false);
+    expect((await user(true, "anti_inflammatory")).activeHealthContext).toEqual(["anti_inflammatory"]);
+    expect(liveAntiPreference).toBe(true);
+    expect((await user(false, "anti_inflammatory")).activeHealthContext).toEqual([]);
+    expect(liveAntiPreference).toBe(false);
+    expect(rows).toHaveLength(1);
+    expect(clientQuery.mock.calls.filter(([sql]) => String(sql).includes("UPDATE users SET app_preferences"))).toHaveLength(2);
   });
 
   it("cannot allow a patient to edit another person's own claim", async () => {

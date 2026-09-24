@@ -123,11 +123,24 @@ export async function setUserNutritionSupport(input: {
   if (input.actorUserId !== input.subjectUserId) {
     throw new Error("Only the subject can change their personal nutrition support.");
   }
-  await shadowTransaction((client) => putClaim(client, {
-    ...input, actorUserId: input.actorUserId, source: "user",
-    evidenceRef: "personal_support", status: input.enabled ? "active" : "inactive",
-    reasonCode: input.enabled ? "user_enabled" : "user_discontinued",
-  }));
+  await shadowTransaction(async (client) => {
+    await putClaim(client, {
+      ...input, actorUserId: input.actorUserId, source: "user",
+      evidenceRef: "personal_support", status: input.enabled ? "active" : "inactive",
+      reasonCode: input.enabled ? "user_enabled" : "user_discontinued",
+    });
+    // The preexisting profile preference and explicit personal source must
+    // commit together; a legacy preference alone is never meal authority.
+    if (input.protocol === "anti_inflammatory") {
+      await client.query(
+        `UPDATE users SET app_preferences =
+           COALESCE(app_preferences, '{}'::jsonb) ||
+           jsonb_build_object('antiInflammatorySupport', $1::boolean)
+         WHERE id=$2`,
+        [input.enabled, input.subjectUserId],
+      );
+    }
+  });
   return readShadowProtocolState(input.subjectUserId, "standard");
 }
 
