@@ -73,6 +73,7 @@ export function HealthContextControls({
   const [view, setView] = useState<HealthContextView | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const scopeVersion = useRef(0);
@@ -104,6 +105,7 @@ export function HealthContextControls({
     setView(null);
     setNotice("");
     setBusy(false);
+    setPendingPath(null);
     void reload();
     return () => { scopeVersion.current++; };
   }, [userId, reload]);
@@ -112,6 +114,7 @@ export function HealthContextControls({
     if (busy) return;
     const version = scopeVersion.current;
     setBusy(true);
+    setPendingPath(path);
     setError("");
     setNotice("");
     onStatusChange?.("saving");
@@ -129,7 +132,10 @@ export function HealthContextControls({
         onStatusChange?.("error");
       }
     } finally {
-      if (scopeVersion.current === version) setBusy(false);
+      if (scopeVersion.current === version) {
+        setBusy(false);
+        setPendingPath(null);
+      }
     }
   };
 
@@ -209,6 +215,7 @@ export function HealthContextControls({
         </p>
       </div>
       {loading && <p role="status" className="text-white/70 text-xs">Loading support settings…</p>}
+      {busy && <p role="status" className="text-amber-200 text-xs">Saving your support choice…</p>}
       {error && <p role="alert" className="text-red-200 text-xs">{error} <PillButton onClick={() => void reload()}>Retry</PillButton></p>}
       {notice && <p role="status" className="text-green-200 text-xs">{notice}</p>}
       {view && (
@@ -237,7 +244,9 @@ export function HealthContextControls({
                     )}
                     <PillButton disabled={busy} active={item.personalEnabled}
                       onClick={() => change(`/api/health-context/support/${protocol}`, "PUT", { enabled: !item.personalEnabled })}>
-                      {item.personalEnabled ? "My support is on · turn off" : "Turn on my support"}
+                      {pendingPath === `/api/health-context/support/${protocol}`
+                        ? "Saving…"
+                        : item.personalEnabled ? "My support is on · turn off" : "Turn on my support"}
                     </PillButton>
                   </div>
                   <SourceList item={item} />

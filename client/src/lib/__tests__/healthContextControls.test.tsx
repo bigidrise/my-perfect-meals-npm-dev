@@ -50,6 +50,30 @@ describe("DEV profile support controls", () => {
     expect(screen.getAllByRole("button", { name: "Turn on my support" })).toHaveLength(1);
   });
 
+  it("acknowledges one GLP-1 click immediately and waits for the saved result before changing its state", async () => {
+    let finishSave!: (value: typeof initial) => void;
+    render(<HealthContextControls userId="account-a" />);
+    await screen.findByText("GLP-1 Nutrition Support");
+    mockApiRequest.mockImplementationOnce(() =>
+      new Promise<typeof initial>((resolve) => { finishSave = resolve; }));
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Turn on my support" })[1]);
+    const saving = screen.getByRole("button", { name: "Saving…" });
+    expect((saving as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText("Saving your support choice…")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "My support is on · turn off" })).toBeNull();
+    expect(mockApiRequest).toHaveBeenCalledTimes(2);
+
+    finishSave({
+      ...initial,
+      supports: [initial.supports[0], {
+        protocol: "glp1", status: "active", personalEnabled: true,
+        sources: [{ id: "personal", kind: "you", status: "active" }],
+      }],
+    });
+    expect(await screen.findByRole("button", { name: "My support is on · turn off" })).toBeTruthy();
+  });
+
   it("clears the prior account's controls immediately on keyed account change", async () => {
     const { rerender } = render(<HealthContextControls key="account-a" userId="account-a" />);
     await screen.findByText("GLP-1 Nutrition Support");

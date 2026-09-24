@@ -3,6 +3,14 @@ import type { GlycemicSettings } from "@/types/glycemic";
 import { get, put } from "@/lib/api";
 
 const KEY = ["glycemic-settings"];
+const EMPTY_GLYCEMIC_SETTINGS: GlycemicSettings = {
+  bloodGlucose: null,
+  preferredCarbs: [],
+  lowRangeCarbs: [],
+  midRangeCarbs: [],
+  highRangeCarbs: [],
+  glycemicPreferencesConfigured: false,
+};
 
 async function fetchGlycemicSettings(): Promise<GlycemicSettings> {
   const data = await get<Partial<GlycemicSettings>>("/api/glycemic-settings");
@@ -38,14 +46,7 @@ export function useGlycemicSettings(enabled = true) {
   });
 
   return {
-    data: query.data ?? {
-      bloodGlucose: null,
-      preferredCarbs: [],
-      lowRangeCarbs: [],
-      midRangeCarbs: [],
-      highRangeCarbs: [],
-      glycemicPreferencesConfigured: false,
-    },
+    data: query.data ?? EMPTY_GLYCEMIC_SETTINGS,
     isLoading: query.isLoading,
     isError: query.isError,
     save: mutation.mutateAsync,
