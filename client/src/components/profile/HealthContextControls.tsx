@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { apiRequest } from "@/lib/apiRequest";
 import { PillButton } from "@/components/ui/pill-button";
 import type { HealthProtocol } from "@shared/healthProtocolState";
@@ -62,11 +62,12 @@ function SourceList({ item }: { item: HealthSupportSummary }) {
 }
 
 export function HealthContextControls({
-  userId, placement = "profile", onStatusChange,
+  userId, placement = "profile", onStatusChange, profilePreferenceCard,
 }: {
   userId: string;
   placement?: "profile" | "onboarding";
   onStatusChange?: (status: "loading" | "ready" | "saving" | "error") => void;
+  profilePreferenceCard?: ReactNode;
 }) {
   const [view, setView] = useState<HealthContextView | null>(null);
   const [loading, setLoading] = useState(true);
@@ -178,10 +179,8 @@ export function HealthContextControls({
         <p className="text-amber-200 text-sm font-bold">Health &amp; Nutrition Support</p>
         <p className="text-white/70 text-xs mt-1">
           {placement === "onboarding"
-            ? "You can choose GLP-1-oriented nutrition support here and review it later in Edit Profile. "
-            : "Choose whether you want GLP-1-oriented nutrition support. "}
-          This choice is separate from your Builder and does not change meals yet.
-          It does not record a diagnosis or medication use.
+            ? "You can choose GLP-1-oriented nutrition support here and review it later in Edit Profile. This choice is separate from your Builder and does not change meals yet. It does not record a diagnosis or medication use."
+            : "Choose your nutrition support preferences here. The Anti-Inflammatory preference is saved with your profile; the separate GLP-1 choice does not change meals yet or record a diagnosis or medication use."}
         </p>
       </div>
       {loading && <p role="status" className="text-white/70 text-xs">Loading support settings…</p>}
@@ -191,8 +190,12 @@ export function HealthContextControls({
       {view && (
         <>
           <p className="text-white/70 text-xs">Your current meal strategy: {BUILDER_LABELS[view.builder || ""] || "Selected Builder"}. These support settings do not switch it.</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {NUTRITION_SUPPORT_OPTIONS.map((option) => {
+        </>
+      )}
+      {(profilePreferenceCard || view) && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {profilePreferenceCard}
+          {view && NUTRITION_SUPPORT_OPTIONS.map((option) => {
               const { protocol, label, description } = option;
               const item = view.supports.find((entry) => entry.protocol === protocol);
               if (!item) return null;
@@ -231,7 +234,10 @@ export function HealthContextControls({
                 </div>
               );
             })}
-          </div>
+        </div>
+      )}
+      {view && (
+        <>
           {(view.supports.some((item) => item.protocol !== "glp1" && item.sources.length > 0)
             || view.legacyAntiPreferenceNeedsReview || view.labReviews?.length > 0 || view.history?.length > 0) && (
             <details className="rounded-lg border border-white/20 bg-black/30 p-3">

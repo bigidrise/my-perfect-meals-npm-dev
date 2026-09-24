@@ -49,6 +49,30 @@ describe("DEV profile support controls", () => {
     expect(screen.queryByRole("button", { name: "Turn on my support" })).toBeNull();
   });
 
+  it("places the separate profile preference beside GLP-1 without changing its save action", async () => {
+    const onToggle = jest.fn();
+    render(
+      <HealthContextControls
+        userId="account-a"
+        profilePreferenceCard={
+          <div>
+            <p>Anti-Inflammatory Support</p>
+            <button onClick={onToggle}>Turn on preference</button>
+          </div>
+        }
+      />,
+    );
+    const supportSection = screen.getByRole("region", { name: "Health and nutrition support settings" });
+    const antiCard = screen.getByText("Anti-Inflammatory Support");
+    const glpCard = await screen.findByText("GLP-1 Nutrition Support");
+    expect(supportSection.contains(antiCard)).toBe(true);
+    expect(supportSection.contains(glpCard)).toBe(true);
+    expect(antiCard.closest(".grid")).toBe(glpCard.closest(".grid"));
+    fireEvent.click(screen.getByRole("button", { name: "Turn on preference" }));
+    expect(onToggle).toHaveBeenCalledTimes(1);
+    expect(mockApiRequest).toHaveBeenCalledTimes(1);
+  });
+
   it("acknowledges one GLP-1 click immediately and waits for the saved result before changing its state", async () => {
     let finishSave!: (value: typeof initial) => void;
     render(<HealthContextControls userId="account-a" />);
