@@ -1463,12 +1463,10 @@ export default function EditProfilePage() {
                 )}
               </div>
 
-              {/* Existing live preference; the source-backed DEV controls below
-                  are intentionally separate until a safe cutover is approved. */}
               <div className="rounded-xl border border-green-500/20 bg-green-950/10 p-3">
-                <p className="text-white/80 text-xs font-semibold mb-1">Current meals: Anti-Inflammatory Support</p>
+                <p className="text-white/80 text-xs font-semibold mb-1">Anti-Inflammatory Support preference</p>
                 <p className="text-white/50 text-xs mb-3 leading-relaxed">
-                  This preference affects today's meals when you save your profile. It layers onto any Builder. The additional support choices below are saved separately and do not yet change meals.
+                  Save your profile to keep this preference. It is separate from the Anti-Inflammatory Builder and clinical guidance; this preference alone is not verified to change your current meals.
                 </p>
                 <PillButton
                   disabled={!antiInflammatorySupportLoaded}
@@ -1476,7 +1474,7 @@ export default function EditProfilePage() {
                   onClick={() => setAntiInflammatorySupport(prev => !prev)}
                 >
                   {!antiInflammatorySupportLoaded ? "Current preference unavailable"
-                    : antiInflammatorySupport ? "Active — Anti-Inflammatory" : "Enable Anti-Inflammatory Support"}
+                    : antiInflammatorySupport ? "Preference on · turn off" : "Turn on preference"}
                 </PillButton>
               </div>
 

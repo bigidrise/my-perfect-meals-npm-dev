@@ -114,6 +114,17 @@ describe("DEV-only health-context routes", () => {
     expect(mockUserSupport).not.toHaveBeenCalled();
   });
 
+  it.each([
+    "diabetes", "cardiac", "renal", "liver_support", "thyroid",
+    "hormone_optimization", "menopause", "perimenopause", "metabolic_recovery",
+    "oncology", "anti_inflammatory", "performance",
+  ])("does not create a new personal %s support preference", async (protocol) => {
+    const response = await withCsrf(request(app).put(`/api/health-context/support/${protocol}`))
+      .send({ enabled: true });
+    expect(response.status).toBe(409);
+    expect(mockUserSupport).not.toHaveBeenCalled();
+  });
+
   it.each(NUTRITION_SUPPORT_OPTIONS.map(({ protocol }) => protocol))(
     "allows a personal %s preference without changing any clinical source or Builder",
     async (protocol) => {
