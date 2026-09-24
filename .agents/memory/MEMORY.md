@@ -39,7 +39,7 @@
 - [Voice message queue integrity](voice-message-queue-integrity.md) — pending voice notes require stored audio and a transcription job; otherwise show failure.
 - [Bundled-first iOS startup](bundled-first-ios-startup.md) — native startup must use packaged web assets; remote APIs are a separate, explicit dependency.
 - [iOS capture diagnosis](ios-capture-diagnosis.md) — diagnose Grocery Voice Add separately from Studio capture, and sync the native bundle before device evidence.
-- [Runtime database identity](runtime-database-identity.md) — compare active connection fingerprints when the platform inspector cannot identify the deployed database.
+- [Shared Neon database boundary](runtime-database-identity.md) — development and production use the same external Neon database; do not revisit isolation as a blocker.
 - [Studio browser verification access](studio-browser-verification-access.md) — DEV browser recording checks can be blocked by workspace entitlements or browser media permissions.
 - [Private Studio moderation policy](private-studio-moderation-policy.md) — ordinary profanity is flagged but deliverable in private Studio; serious categories and public policy stay unchanged.
 - [Beverage safeguard alternative parity](beverage-safeguard-alternative-parity.md) — alternative offers must use every original validation surface and stay DEV-gated until intentionally released.
