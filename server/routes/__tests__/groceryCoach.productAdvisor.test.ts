@@ -24,6 +24,7 @@ import type {
   ContextLoader,
 } from "../../services/productAdvisor";
 import type { GroceryCoachContext } from "../../services/groceryCoachContext";
+import { buildGuestEnvelope } from "../../services/protocolEnvelope";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Minimal test harness (matches refinement.test.ts style)
@@ -71,7 +72,7 @@ function section(name: string) {
 /** Bare-minimum GroceryCoachContext with no clinical flags */
 function makeBaseContext(overrides: Partial<GroceryCoachContext> = {}): GroceryCoachContext {
   return {
-    envelope: {} as any,
+    envelope: { ...buildGuestEnvelope(), userId: "test-user" },
     protocolContext: "Dietary identity: standard healthy eating",
     glp1Failed: false,
     glp1Active: false,

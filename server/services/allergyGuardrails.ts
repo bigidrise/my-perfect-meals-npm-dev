@@ -124,6 +124,8 @@ export function normalizeForDietaryScan(text: string): string {
  * so they remain available in the starch lane for macro planning.
  */
 export const AVOIDANCE_EXPANSION: Record<string, string[]> = {
+  peanuts: ["peanut", "peanuts", "peanut butter", "peanut oil"],
+  peanut: ["peanut", "peanuts", "peanut butter", "peanut oil"],
   vegetables: [
     "broccoli", "spinach", "kale", "asparagus", "zucchini", "green beans",
     "brussels sprouts", "cauliflower", "cabbage", "arugula", "bok choy",

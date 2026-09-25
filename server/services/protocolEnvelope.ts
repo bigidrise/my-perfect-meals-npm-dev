@@ -40,6 +40,7 @@ import {
   AVOIDANCE_EXPANSION,
   RESTRICTION_EXPANSION,
   scanForHiddenDietaryViolations,
+  violatesDietaryConstraints,
   ALLERGEN_EXPANSION,
   allergenKeysMatch,
   classifyKosherMealCategory,
@@ -59,6 +60,7 @@ import {
 } from "./diabeticContextService";
 import { buildUniversalConditionGuidance } from "./universalMedicalGuidance";
 import { readDevelopmentPersonalFoodSupports } from "./healthProtocols/developmentFoodSupports";
+import { scanClinicalFoodSafety } from "./healthProtocols/clinicalOutputChecks";
 import { validateDishIdentity } from "./dishAdaptation/dishIdentityValidator";
 import { deriveCompPrepStatus } from "./protocol/competitionPrepDateEngine";
 import { sanitizeIdentifiers } from "./promptSanitizer";
@@ -444,6 +446,14 @@ export function deriveProcedureRules(dietaryIdentity: string[]): ProtocolProcedu
  */
 export interface UserProtocolEnvelope {
   userId: string;
+  /** Subject-owned Alpha-gal clinical answers, not a client-supplied badge. */
+  alphaGalContext?: {
+    active: boolean;
+    dairyTolerance: "yes" | "no" | "unsure";
+    gelatinRestriction: "yes" | "no" | "unsure";
+    severeReactionHistory: "yes" | "no" | "unsure";
+    profileComplete: boolean;
+  } | null;
 
   /** Tier 1 — Dietary identity: the outer wall.
    * Examples: vegan, vegetarian, pescatarian, keto, paleo, Mediterranean,
@@ -1515,6 +1525,7 @@ export async function loadUserProtocolEnvelope(
       performanceControlMode: (((user as any).performanceControlMode as string | null) ?? "self_guided") as "self_guided"|"coach_controlled",
       pregnancySupport,
       pregnancySupportContext: pregnancySupportCtx,
+      alphaGalContext: alphaGalCtx,
       carbCycleContext,
       performanceNutrition,
       performanceContext: performanceNutritionCtx,
@@ -2335,6 +2346,23 @@ export function scanGeneratedOutput(
     envelope.avoidances,
     { skipMeatDairyCombinationCheck: context?.skipAdaptableConflicts === true }
   );
+  // The hidden-term scanner catches derivatives but intentionally does not
+  // include obvious animal foods. The outer dietary wall still has to reject
+  // chicken/beef/fish in a vegan or vegetarian generated result.
+  for (const diet of envelope.dietaryIdentity) {
+    const normalizedDiet = diet.trim().toLowerCase();
+    if (!["vegan", "vegetarian", "pescatarian"].includes(normalizedDiet)) continue;
+    const direct = violatesDietaryConstraints(ingredientText, [normalizedDiet]);
+    for (const term of direct.reasons) {
+      if (!rawIngredientViolations.some(v => v.term.toLowerCase() === term.toLowerCase())) {
+        rawIngredientViolations.push({
+          term,
+          category: `dietary:${normalizedDiet}`,
+          reason: `"${term}" conflicts with the active ${normalizedDiet} dietary identity`,
+        });
+      }
+    }
+  }
 
   // ── Allergen derivative scan (universal) ─────────────────────────────────
   // Scan envelope.allergies against ALLERGEN_EXPANSION so allergen leaks are
@@ -2444,6 +2472,7 @@ export function scanGeneratedOutput(
       reason: `${wholeFoodDecision.reason} Preserve the dish identity and required nutrition purpose while using a stronger practical form.`,
     });
   }
+  ingredientViolations.push(...scanClinicalFoodSafety(meal, envelope));
 
   // ── Instruction-level scan ────────────────────────────────────────────────
   const instructionViolations = scanInstructionsForViolations(

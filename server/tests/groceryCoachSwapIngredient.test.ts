@@ -415,6 +415,16 @@ describe("POST /api/grocery-coach/swap-ingredient — five-item test matrix", ()
     resetAll();
   });
 
+  test("fails closed when GLP-1 status cannot be resolved", async () => {
+    mockResolveGLP1.mockRejectedValueOnce(new Error("resolver unavailable"));
+    const response = await request(app)
+      .post("/api/grocery-coach/swap-ingredient")
+      .send(swapBody("brown rice"));
+    expect(response.status).toBe(503);
+    expect(response.body.retryable).toBe(true);
+    expect(capturedCalls).toHaveLength(0);
+  });
+
   // ── B.1  Chicken breast → proteins (not chicken variations) ────────────────
   describe("1. Chicken breast — role lock: lean_protein / fatty_protein", () => {
     test("returns 200 with coachSuggestion and two alternatives", async () => {

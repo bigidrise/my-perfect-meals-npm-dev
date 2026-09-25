@@ -16,6 +16,7 @@
 import {
   ProductAdvisorEngine,
   ClinicalContextUnavailableError,
+  WholeFoodRecommendationUnavailableError,
   buildProtocolContextString,
   sanitizeUsualPicks,
   applyFindProductEvidencePolicy,
@@ -24,12 +25,13 @@ import {
   type CartRecommendationResult,
 } from "../services/productAdvisor";
 import type { GroceryCoachContext } from "../services/groceryCoachContext";
+import { buildGuestEnvelope } from "../services/protocolEnvelope";
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 
 const baseCtx = (overrides: Partial<GroceryCoachContext> = {}): GroceryCoachContext =>
   ({
-    envelope: {} as any,
+    envelope: { ...buildGuestEnvelope(), userId: "test-user" },
     protocolContext: "PROTOCOL: cardiac",
     glp1Failed: false,
     glp1Active: false,
@@ -97,6 +99,17 @@ describe("ProductAdvisorEngine clinical fail-closed guard", () => {
     expect(err.retryable).toBe(true);
   });
 
+  it("fails closed when the protocol envelope is unavailable", async () => {
+    const provider = advisorResult(SAUCE_RESULT);
+    const engine = createProductAdvisorEngineForTest(provider, async () =>
+      baseCtx({ envelope: buildGuestEnvelope() }),
+    );
+    await expect(engine.buildCartRecommendations("u1", ["milk"])).rejects.toBeInstanceOf(
+      ClinicalContextUnavailableError,
+    );
+    expect(provider.getCartRecommendations).not.toHaveBeenCalled();
+  });
+
   it("proceeds normally when GLP-1 targets resolved", async () => {
     const provider = advisorResult(SAUCE_RESULT);
     const engine = createProductAdvisorEngineForTest(provider, async () =>
@@ -160,6 +173,115 @@ describe("sanitizeUsualPicks", () => {
     const out = await engine.buildCartRecommendations("u1", ["marinara sauce"]);
     expect(out.advice[0].usualPick).toBeUndefined(); // no compliant saved rows
   });
+});
+
+describe("ProductAdvisorEngine protocol scans", () => {
+  const avoidanceContext = () =>
+    baseCtx({
+      envelope: {
+        ...buildGuestEnvelope(),
+        userId: "test-user",
+        avoidances: ["peanuts"],
+      },
+    });
+
+  const resultWithBrands = (...brands: string[]): CartRecommendationResult => ({
+    advice: [{
+      ingredient: "oats",
+      category: "Grain",
+      recommended: brands.map((brand, index) => ({
+        brand,
+        rank: (index + 1) as 1 | 2 | 3,
+        grade: "A" as const,
+        reason: "A good option for your profile",
+      })),
+      avoid: [],
+    }],
+    profileUsed: [],
+  });
+
+  it("filters protocol-conflicting brands while retaining valid recommendations and shape", async () => {
+    const provider = advisorResult(resultWithBrands("Peanuts & Co Oats", "Plain Oats Co"));
+    const engine = createProductAdvisorEngineForTest(provider, async () => avoidanceContext());
+
+    const out = await engine.buildCartRecommendations("u1", ["oats"]);
+
+    expect(out).toMatchObject({ profileUsed: [], advice: [{ ingredient: "oats", category: "Grain" }] });
+    expect(out.advice[0].recommended.map(({ brand }) => brand)).toEqual(["Plain Oats Co"]);
+  });
+
+  it("fails closed when every provider candidate violates the resolved protocol", async () => {
+    const provider = advisorResult(resultWithBrands("Peanuts & Co Oats", "Peanut Valley Oats"));
+    const engine = createProductAdvisorEngineForTest(provider, async () => avoidanceContext());
+
+    await expect(engine.buildCartRecommendations("u1", ["oats"])).rejects.toBeInstanceOf(
+      WholeFoodRecommendationUnavailableError,
+    );
+  });
+});
+
+describe("ProductAdvisorEngine requires label evidence for high-risk protocols", () => {
+  const brandOnlyRecommendation: CartRecommendationResult = {
+    advice: [{
+      ingredient: "oats",
+      category: "Grain",
+      recommended: [{
+        brand: "North Valley Oats",
+        rank: 1,
+        grade: "A",
+        reason: "A clean, safe option for your profile",
+      }],
+      avoid: [],
+    }],
+    profileUsed: [],
+  };
+
+  const protectedContexts: Array<[string, Partial<GroceryCoachContext>]> = [
+    ["Alpha-gal", {
+      envelope: {
+        ...buildGuestEnvelope(),
+        userId: "test-user",
+        medicalHardLimits: ["Alpha-gal syndrome"],
+      },
+    }],
+    ["pregnancy trimester", {
+      envelope: {
+        ...buildGuestEnvelope(),
+        userId: "test-user",
+        pregnancySupport: true,
+        pregnancySupportContext: {
+          active: true,
+          stage: "trimester-1",
+          weekOfPregnancy: 8,
+          dueDate: null,
+          symptoms: [],
+          isBreastfeeding: false,
+        },
+      },
+    }],
+    ["food allergy", {
+      envelope: {
+        ...buildGuestEnvelope(),
+        userId: "test-user",
+        allergies: ["peanuts"],
+      },
+    }],
+  ];
+
+  it.each(protectedContexts)(
+    "returns an explicit protocol-unavailable error for brand-only %s recommendations",
+    async (_profile, overrides) => {
+      const provider = advisorResult(brandOnlyRecommendation);
+      const engine = createProductAdvisorEngineForTest(provider, async () => baseCtx(overrides));
+
+      const error = await engine.buildCartRecommendations("u1", ["oats"]).catch((reason) => reason);
+
+      expect(error).toBeInstanceOf(ClinicalContextUnavailableError);
+      expect(error.message).toMatch(/Protocol verification unavailable/i);
+      expect(error.message).toMatch(/complete product ingredients/i);
+      expect(provider.getCartRecommendations).toHaveBeenCalled();
+    },
+  );
 });
 
 // ── 4. Shared context string ─────────────────────────────────────────────────

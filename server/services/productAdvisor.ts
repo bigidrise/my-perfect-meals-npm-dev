@@ -15,6 +15,7 @@ import { openai } from "../utils/openaiSafe";
 import { buildGroceryCoachContext } from "./groceryCoachContext";
 import type { GroceryCoachContext } from "./groceryCoachContext";
 import { appendWholeFoodStandardPrompt, evaluateWholeFoodCandidate } from "./wholeFoodStandard";
+import { scanGeneratedOutput } from "./protocolEnvelope";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -412,12 +413,34 @@ export class ClinicalContextUnavailableError extends Error {
 }
 export class WholeFoodRecommendationUnavailableError extends Error {
   constructor() {
-    super("No product recommendations met the Whole-Food Standard. Please choose a different product category or provide a clinically recognized purpose.");
+    super("No product recommendations met the user's protocol and Whole-Food Standard. Please choose a different product category or provide a clinically recognized purpose.");
     this.name = "WholeFoodRecommendationUnavailableError";
   }
 }
 
 const normalizeBrand = (s: string): string => s.trim().toLowerCase();
+
+/**
+ * These profiles need product-level ingredient evidence, not a brand-name
+ * match. BrandKnowledgeProvider currently returns no trusted complete-label
+ * field, so brand-only recommendations cannot be cleared for these users.
+ */
+function requiresVerifiedProductIngredients(ctx: GroceryCoachContext): boolean {
+  const envelope = ctx.envelope;
+  const alphaGalProfile = [
+    ...envelope.dietaryIdentity,
+    ...envelope.medicalHardLimits,
+    ...envelope.medicalOptimization,
+    ...(envelope.conditionGuidanceBlocks ?? []),
+  ].some((condition) => /alpha[\s-]*gal/i.test(condition));
+  const pregnancyContext = envelope.pregnancySupportContext;
+  const activePregnancyTrimester =
+    (envelope.pregnancySupport || pregnancyContext?.active === true) &&
+    pregnancyContext?.active === true &&
+    /^trimester-[123]$/.test(pregnancyContext.stage);
+
+  return alphaGalProfile || activePregnancyTrimester || envelope.allergies.length > 0;
+}
 
 /** True when a model-asserted usualPick brand matches a compliant saved row. */
 function matchesSavedRow(brand: string, ctx: GroceryCoachContext): boolean {
@@ -492,11 +515,62 @@ export class ProductAdvisorEngine {
         "GLP-1 clinical targets temporarily unavailable. Please try again.",
       );
     }
+    // buildGroceryCoachContext uses a guest envelope when loading the user's
+    // protocol fails. Do not mistake that unavailable context for an
+    // unrestricted/safe profile when validating provider output.
+    if (
+      ctx.envelope?.userId === "guest" ||
+      !ctx.envelope ||
+      !Array.isArray(ctx.envelope.dietaryIdentity) ||
+      !Array.isArray(ctx.envelope.allergies) ||
+      !Array.isArray(ctx.envelope.medicalHardLimits) ||
+      !Array.isArray(ctx.envelope.medicalOptimization) ||
+      !Array.isArray(ctx.envelope.avoidances) ||
+      !Array.isArray(ctx.envelope.procedural?.forbiddenInstructions)
+    ) {
+      throw new ClinicalContextUnavailableError(
+        "Dietary protocol temporarily unavailable. Please try again.",
+      );
+    }
 
     const protocolContext = buildProtocolContextString(ctx);
 
     const raw = await this.provider.getCartRecommendations(ingredients, protocolContext, store);
-    return sanitizeUsualPicks(raw, ctx);
+    const hasProviderCandidates = raw.advice.some((item) => item.recommended.length > 0);
+    if (hasProviderCandidates && requiresVerifiedProductIngredients(ctx)) {
+      throw new ClinicalContextUnavailableError(
+        "Protocol verification unavailable: this profile requires verified, complete product ingredients, but only brand-level recommendations are available.",
+      );
+    }
+    const sanitized = sanitizeUsualPicks(raw, ctx);
+    let candidateCount = 0;
+    let acceptedCount = 0;
+    const advice = sanitized.advice.map((item) => {
+      const recommended = item.recommended.filter((recommendation) => {
+        candidateCount += 1;
+        // This is only a contradiction screen over provider text, not a
+        // complete product-label scan. In particular, passing a brand name
+        // here does not establish product composition or safety.
+        const scan = scanGeneratedOutput(
+          {
+            name: recommendation.brand,
+            ingredients: [item.ingredient, item.category, recommendation.brand]
+              .filter((value): value is string => Boolean(value)),
+          },
+          ctx.envelope,
+          { generatorName: "grocery_product_advisor" },
+        );
+        if (!scan.passed) return false;
+        acceptedCount += 1;
+        return true;
+      });
+      return { ...item, recommended };
+    });
+
+    if (candidateCount > 0 && acceptedCount === 0) {
+      throw new WholeFoodRecommendationUnavailableError();
+    }
+    return { ...sanitized, advice };
   }
 
   /**

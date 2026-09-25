@@ -58,11 +58,18 @@ jest.mock("../services/diabeticContextService", () => ({
   getGlucoseBasedMealGuidance: jest.fn(() => null),
 }));
 
-import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
+import { buildGuestEnvelope, enforceBeforeGenerate, loadUserProtocolEnvelope, scanGeneratedOutput } from "../services/protocolEnvelope";
 
 describe("protocol envelope medicalConditions projection", () => {
+  it("blocks an obvious animal ingredient under vegan identity, not just hidden derivatives", () => {
+    const envelope = buildGuestEnvelope();
+    envelope.dietaryIdentity = ["vegan"];
+    expect(scanGeneratedOutput({ name: "Lunch", ingredients: ["chicken breast"] }, envelope).passed).toBe(false);
+    expect(scanGeneratedOutput({ name: "Lunch", ingredients: ["lentils", "carrots"] }, envelope).passed).toBe(true);
+  });
   afterEach(() => {
     selectedUser.medicalConditions = ["glp1", "diabetes-type2"];
+    selectedUser.healthConditions = ["hypertension"];
     selectedUser.selectedMealBuilder = null;
     selectedUser.specialtyConditions = [];
     selectedUser.alphaGalProfile = null;
@@ -89,6 +96,10 @@ describe("protocol envelope medicalConditions projection", () => {
     expect(guidance).toMatch(/GLP-1 NUTRITION SUPPORT/i);
     expect(guidance).not.toMatch(/user is on semaglutide|GLP-1 side effects/i);
     expect((guidance.match(/GLP-1 NUTRITION SUPPORT/g) ?? [])).toHaveLength(1);
+    const actualPrompt = enforceBeforeGenerate(envelope!, { generatorName: "phase2c_test_creator" }).combined;
+    expect(actualPrompt).toMatch(/ANTI-INFLAMMATORY/i);
+    expect(actualPrompt).toMatch(/GLP-1 NUTRITION SUPPORT/i);
+    expect(actualPrompt).not.toMatch(/user is on semaglutide|GLP-1 side effects/i);
     expect(envelope?.selectedMealBuilder).toBeNull();
     expect(mockPersonalSupports).toHaveBeenCalledWith("protocol-user");
   });
@@ -98,6 +109,21 @@ describe("protocol envelope medicalConditions projection", () => {
     const envelope = await loadUserProtocolEnvelope("protocol-user");
     expect((envelope?.conditionGuidanceBlocks ?? []).join("\n").match(/GLP-1 MEDICATION PROTOCOL/g)).toHaveLength(1);
   });
+  it("does not add personal GLP-1 medication claims when support is off", async () => {
+    selectedUser.medicalConditions = [];
+    const envelope = await loadUserProtocolEnvelope("protocol-user");
+    const prompt = enforceBeforeGenerate(envelope!, { generatorName: "phase2c_test_creator" }).combined;
+    expect(prompt).not.toMatch(/GLP-1 MEDICATION PROTOCOL|GLP-1 NUTRITION SUPPORT/i);
+  });
+
+  it("carries active cardiac and renal guidance into the generation prompt", async () => {
+    selectedUser.medicalConditions = [];
+    selectedUser.healthConditions = ["kidney disease", "heart disease"];
+    const envelope = await loadUserProtocolEnvelope("protocol-user");
+    const prompt = enforceBeforeGenerate(envelope!, { generatorName: "phase2c_test_creator" }).combined;
+    expect(prompt).toMatch(/kidney|renal/i);
+    expect(prompt).toMatch(/cardiac|heart/i);
+  });
 
   it("leaves native Builders to apply their own protocols instead of adding a second personal block", async () => {
     selectedUser.medicalConditions = [];
@@ -105,10 +131,12 @@ describe("protocol envelope medicalConditions projection", () => {
     mockPersonalSupports.mockResolvedValue(new Set(["anti_inflammatory"]));
     const anti = await loadUserProtocolEnvelope("protocol-user");
     expect((anti?.conditionGuidanceBlocks ?? []).join("\n")).not.toMatch(/ANTI-INFLAMMATORY/);
+    expect(enforceBeforeGenerate(anti!, { generatorName: "phase2c_test_creator" }).combined).not.toMatch(/ANTI-INFLAMMATORY SUPPORT.*ANTI-INFLAMMATORY SUPPORT/s);
     selectedUser.selectedMealBuilder = "glp1";
     mockPersonalSupports.mockResolvedValue(new Set(["glp1"]));
     const glp1 = await loadUserProtocolEnvelope("protocol-user");
     expect((glp1?.conditionGuidanceBlocks ?? []).join("\n")).not.toMatch(/GLP-1 MEDICATION PROTOCOL/);
+    expect(enforceBeforeGenerate(glp1!, { generatorName: "phase2c_test_creator" }).combined).not.toMatch(/GLP-1 MEDICATION PROTOCOL.*GLP-1 MEDICATION PROTOCOL/s);
   });
 
   it.each(["liver-disease", "liver-support"])("passes saved %s through to the correct meal guidance", async (condition) => {
@@ -119,6 +147,10 @@ describe("protocol envelope medicalConditions projection", () => {
     expect(guidance).toMatch(/liver/i);
     if (condition === "liver-disease") expect(guidance).toMatch(/NO RAW SHELLFISH/i);
     else expect(guidance).not.toMatch(/NO RAW SHELLFISH/i);
+    const prompt = enforceBeforeGenerate(envelope!, { generatorName: "phase2c_test_creator" }).combined;
+    expect(prompt).toMatch(/liver/i);
+    if (condition === "liver-disease") expect(prompt).toMatch(/NO RAW SHELLFISH/i);
+    else expect(prompt).not.toMatch(/NO RAW SHELLFISH/i);
   });
 
   it("passes a saved Alpha-gal allergy and completed profile into hard-limit meal guidance", async () => {
@@ -130,6 +162,10 @@ describe("protocol envelope medicalConditions projection", () => {
     };
     const envelope = await loadUserProtocolEnvelope("protocol-user");
     expect((envelope?.conditionGuidanceBlocks ?? []).join("\n")).toMatch(/ALPHA-GAL SYNDROME/i);
+    expect(envelope?.alphaGalContext?.dairyTolerance).toBe("no");
+    expect(scanGeneratedOutput({ name: "Beef dinner", ingredients: ["beef", "roasted carrots"] }, envelope!).passed).toBe(false);
+    expect(scanGeneratedOutput({ name: "Gelatin dessert", ingredients: ["gelatin", "berries"] }, envelope!).passed).toBe(false);
+    expect(scanGeneratedOutput({ name: "Cream sauce", ingredients: ["cream", "rice"] }, envelope!).passed).toBe(false);
   });
 
   it("passes a saved pregnancy stage and selection into meal guidance", async () => {
@@ -139,5 +175,15 @@ describe("protocol envelope medicalConditions projection", () => {
     selectedUser.pregnancySupportContext = { symptoms: [], trackingMode: "manual", isBreastfeeding: false };
     const envelope = await loadUserProtocolEnvelope("protocol-user");
     expect((envelope?.conditionGuidanceBlocks ?? []).join("\n")).toMatch(/PREGNANCY/i);
+    expect(scanGeneratedOutput({ name: "Raw tuna plate", ingredients: ["raw tuna", "rice"] }, envelope!).passed).toBe(false);
+    expect(scanGeneratedOutput({ name: "Unnamed food" }, envelope!).passed).toBe(false);
+  });
+
+  it("rejects known thyroid hard violations through the common post-generation scan", async () => {
+    selectedUser.medicalConditions = [];
+    selectedUser.specialtyConditions = ["thyroid-support"];
+    const envelope = await loadUserProtocolEnvelope("protocol-user");
+    expect(scanGeneratedOutput({ name: "Thyroid cleanse", ingredients: ["kelp powder", "rice"] }, envelope!).passed).toBe(false);
+    expect(scanGeneratedOutput({ name: "Salmon rice", ingredients: ["salmon", "rice"] }, envelope!).passed).toBe(true);
   });
 });

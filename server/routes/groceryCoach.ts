@@ -697,10 +697,15 @@ router.post("/swap-ingredient", async (req, res) => {
     }
 
     // ── Same context stack as /recommend ─────────────────────────────────────
-    // /swap-ingredient is NOT fail-closed on GLP-1 unavailability — a temporary
-    // service hiccup should not block replacing an ingredient. Clinical constraints
-    // ARE enforced when the context IS available.
+    // A replacement is still a food recommendation: unavailable clinical
+    // authority cannot be treated as permission to offer an unrestricted swap.
     const ctx = await buildGroceryCoachContext(userId);
+    if (ctx.envelope.userId === "guest" || ctx.glp1Failed || (ctx.glp1Active && !ctx.glp1Targets)) {
+      return res.status(503).json({
+        error: "Clinical guidance temporarily unavailable. Please try again.",
+        retryable: true,
+      });
+    }
     const { envelope, glp1Targets, compliantSavedRows, isClinical, hasDiabetes } = ctx;
 
     // ── Nutritional-role classification (deterministic, zero AI cost) ─────────
