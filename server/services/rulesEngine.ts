@@ -19,6 +19,10 @@ export type PlanParams = {
   dislikes?: string[]; // disliked foods
   /** Explicit Foods I Enjoy labels; soft ranking only after safety filters. */
   preferredFoods?: string[];
+  /** Existing, explicit support tags only; a match is a preference, not clinical proof. */
+  optimizationTags?: string[];
+  /** Pre-selection safety gate; final candidate validation remains authoritative. */
+  templateEligibility?: (template: Template) => boolean;
 };
 
 export type HardRules = {
@@ -121,6 +125,13 @@ export function scoreTemplateForUser(t: Template, params: PlanParams) {
   // Simple scoring to break ties: prefer diet match, fewer ingredients, shorter time
   let score = 0;
   if (params.diet && t.dietTags.includes(params.diet)) score += 2;
+  if (params.optimizationTags?.length) {
+    const tags = [...(t.dietTags ?? []), ...(t.badges ?? [])]
+      .map((tag) => tag.toLowerCase().replace(/[_\s]+/g, "-"));
+    for (const desired of params.optimizationTags) {
+      if (tags.includes(desired)) score += 6;
+    }
+  }
   score += Math.max(0, 8 - t.ingredients.length) * 0.1;
   const totalCook = (t.prepTime ?? 0) + (t.cookTime ?? 0);
   score += Math.max(0, 45 - totalCook) * 0.02;
@@ -142,6 +153,20 @@ export function scoreSafeTemplates<T extends Template>(templates: T[], params: P
   return templates
     .filter((template) => fitsBaseSafety(template, params))
     .sort((a, b) => scoreTemplateForUser(b, params) - scoreTemplateForUser(a, params));
+}
+
+/** Choose the highest-ranked available template without forgetting weekly variety. */
+export function selectWeeklyTemplate<T extends Template>(
+  rankedPool: T[],
+  recent: Set<string>,
+  params: PlanParams,
+): T {
+  if (!rankedPool.length) throw new Error("Empty pool");
+  const unused = rankedPool.filter((template) => !recent.has(template.slug));
+  const candidates = (unused.length ? unused : rankedPool).slice(0, 6);
+  const bestScore = scoreTemplateForUser(candidates[0], params);
+  const tied = candidates.filter((template) => scoreTemplateForUser(template, params) === bestScore);
+  return tied[Math.floor(Math.random() * tied.length)];
 }
 
 export function enforceWeeklyCaps(week: Template[][], rules=defaultRules) {

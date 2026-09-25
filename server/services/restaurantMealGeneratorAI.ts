@@ -511,7 +511,7 @@ CUISINE VARIETY RULES:
 Generate 3 specific meal recommendations that a person could walk into this restaurant and order TODAY. Each meal should:
 1. Have a realistic name matching this restaurant type's menu language (see RESTAURANT REALISM RULES above)
 2. Be a healthier choice (grilled, baked, or steamed options preferred)
-3. Include accurate macro estimates (calories, protein, carbs, fat)
+3. Include approximate macro estimates (calories, protein, carbs, fat); these are not verified menu nutrition or proof of clinical compliance
 4. Include structured ordering instructions (howToOrder)
 5. List the main ingredients
 6. Be anchored to a real-world recognizable item (menuAnchorItem)

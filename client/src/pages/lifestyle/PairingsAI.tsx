@@ -381,6 +381,11 @@ export default function PairingsAI() {
                     ? `Pairings for ${input}`
                     : `Drinks similar to ${input}`}
                 </h2>
+                {results.compositionNote && (
+                  <p className="text-sm text-amber-200" role="note">
+                    {results.compositionNote}
+                  </p>
+                )}
                 {results.pairings.map((pairing: any, idx: number) => (
                   <PairingResultCard
                     key={`${pairing.category}-${pairing.name}-${idx}`}

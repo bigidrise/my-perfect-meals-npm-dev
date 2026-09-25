@@ -27,6 +27,7 @@ import {
   rollbackAdvisoryOverrideToken,
 } from "../services/safetyPinService";
 import { createHumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
+import { requiresVerifiedIngredientEvidence } from "../services/foodCompositionEvidence";
 import { buildHumanFoodPromptBlock } from "../services/humanFoodContext/buildHumanFoodPromptBlock";
 import { applyRestaurantGlucoseProduceAdvisory } from "../services/restaurantGlucoseAdvisory";
 
@@ -70,11 +71,22 @@ function attachAlphaGalBadges(meals: any[], alphaGalActive: boolean): any[] {
       true, // isActive = true (already confirmed above)
     );
     if (!badge) return meal;
+    // Menu names and model-inferred ingredients are not a complete verified
+    // ingredient list. Never turn "no known trigger" into a green safe badge.
+    const evidenceAwareBadge = badge.status === "protected"
+      ? {
+          ...badge,
+          status: "verify" as const,
+          color: "yellow" as const,
+          label: "⚠ Verify Ingredients",
+          reason: "The restaurant's complete ingredients and preparation have not been verified for Alpha-gal.",
+        }
+      : badge;
     return {
       ...meal,
       medicalBadges: [
         ...(Array.isArray(meal.medicalBadges) ? meal.medicalBadges : []),
-        badge,
+        evidenceAwareBadge,
       ],
     };
   });
@@ -273,7 +285,19 @@ router.post("/guide", async (req, res) => {
           `remainingMacros=${fallbackRemainingMacrosBlock ? "populated" : "empty"}`
         );
       } catch {
-        console.warn(`⚠️ [Guide/AI] Could not load nutrition context — continuing with GLP-1 constraints only`);
+        releaseClaimedGovernanceToken();
+        return res.status(503).json({ error: "Your active food-safety information is unavailable. Please try again.", retryable: true });
+      }
+      const fallbackEnvelope = fallbackContext?.envelope;
+      if (!fallbackEnvelope || fallbackEnvelope.userId === "guest") {
+        releaseClaimedGovernanceToken();
+        return res.status(503).json({ error: "Your active food-safety information is unavailable. Please try again.", retryable: true });
+      }
+      if (requiresVerifiedIngredientEvidence(fallbackEnvelope)) {
+        releaseClaimedGovernanceToken();
+        return res.status(503).json({
+          error: "This restaurant has no verified menu ingredients for your active food-safety restrictions. Ask the venue for complete ingredients or choose a restaurant with verified details.",
+        });
       }
 
       // Combine protocol block with GLP-1 recommendation guidance
@@ -331,7 +355,10 @@ router.post("/guide", async (req, res) => {
 
       // Attach alpha-gal safety badges when user has the condition active.
       const aiRecsWithBadges = attachAlphaGalBadges(
-        applyRestaurantGlucoseProduceAdvisory(filteredAiRecs, humanFoodContext),
+        applyRestaurantGlucoseProduceAdvisory(filteredAiRecs, humanFoodContext).map((meal: any) => ({
+          ...meal,
+          compositionEvidence: "unverified",
+        })),
         isAlphaGalActive(user),
       );
 
@@ -343,6 +370,8 @@ router.post("/guide", async (req, res) => {
       }
       res.json({
         recommendations: aiRecsWithBadges,
+        compositionEvidence: "unverified",
+        compositionNote: "Menu availability, complete ingredients, preparation, and nutrition were not verified. Nutrition numbers are estimates; confirm details with the restaurant.",
         restaurantInfo,
         restaurantName: restaurantInfo.name,
         craving,
@@ -419,6 +448,14 @@ router.post("/guide", async (req, res) => {
     const guideActionEnvelope = acknowledgedDietIdentity
       ? { ...guideContext.envelope, dietaryIdentity: effectiveDiet }
       : guideContext.envelope;
+    // A verified menu item name is not a verified complete ingredient list.
+    // Without that evidence, high-risk profiles cannot be cleared by this path.
+    if (requiresVerifiedIngredientEvidence(guideActionEnvelope)) {
+      releaseClaimedGovernanceToken();
+      return res.status(503).json({
+        error: "This restaurant menu does not provide complete verified ingredients for your active food-safety restrictions. Confirm details with the venue.",
+      });
+    }
 
     // ── Step 4: AI reasons over verified items ─────────────────────────────────
     const aiUser = bodyDiet.length > 0
@@ -485,7 +522,12 @@ router.post("/guide", async (req, res) => {
     }
     res.json({
       status: "ok",
-      recommendations: finalRecommendations,
+      recommendations: finalRecommendations.map((meal: any) => ({
+        ...meal,
+        compositionEvidence: "menu-item-only",
+      })),
+      compositionEvidence: "menu-item-only",
+      compositionNote: "Menu items were found, but complete ingredients, preparation, and clinical nutrient compliance were not verified. Confirm details with the restaurant.",
       restaurantInfo,
       restaurantName: restaurantInfo.name,
       craving,

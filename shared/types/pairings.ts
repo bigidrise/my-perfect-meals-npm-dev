@@ -67,6 +67,8 @@ export const PairingsAIResponse = z.object({
     category: PairingsCategory,
   }),
   pairings: z.array(PairingItem).min(1).max(10),
+  compositionEvidence: z.literal("unverified").optional(),
+  compositionNote: z.string().optional(),
   safety: SafetyResult,
 });
 export type PairingsAIResponse = z.infer<typeof PairingsAIResponse>;

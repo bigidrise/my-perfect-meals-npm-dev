@@ -119,6 +119,7 @@ describe("POST /api/ai-pairings protocol output safety", () => {
 
   beforeEach(() => {
     mockPairings.splice(0, mockPairings.length);
+    mockEnvelope.allergies.length = 0;
     mockScanGeneratedOutput.mockReset().mockImplementation((output, envelope) => {
       const scannedText = [
         output.name,
@@ -155,6 +156,8 @@ describe("POST /api/ai-pairings protocol output safety", () => {
       { generatorName: "pairings_ai" },
     );
     expect(res.body.pairings.map((item: any) => item.name)).toEqual(["Sparkling water"]);
+    expect(res.body.compositionEvidence).toBe("unverified");
+    expect(res.body.compositionNote).toMatch(/not been verified/i);
     expect(JSON.stringify(res.body)).not.toMatch(/whiskey|bourbon/i);
     expect(mockGeneratePairingImages).toHaveBeenCalledWith(
       [{ name: "Sparkling water", category: "non-alcoholic" }],
@@ -172,5 +175,25 @@ describe("POST /api/ai-pairings protocol output safety", () => {
     expect(res.status).toBe(500);
     expect(res.body).toEqual({ error: "AI returned no valid pairings" });
     expect(mockGeneratePairingImages).not.toHaveBeenCalled();
+  });
+
+  it("does not certify a brand-only pairing for an allergy profile", async () => {
+    mockEnvelope.allergies.push("milk");
+    const res = await request(app)
+      .post("/api/ai-pairings")
+      .send({ mode: "pairing", category: "both", input: "grilled vegetables" });
+    expect(res.status).toBe(503);
+    expect(res.body.error).toMatch(/verified pairing ingredients are unavailable/i);
+    expect(mockChatJson).not.toHaveBeenCalled();
+  });
+
+  it("does not fall back to a guest protocol when the authenticated envelope is unavailable", async () => {
+    const { loadUserProtocolEnvelope } = await import("../services/protocolEnvelope");
+    (loadUserProtocolEnvelope as jest.Mock).mockResolvedValueOnce(null);
+    const res = await request(app)
+      .post("/api/ai-pairings")
+      .send({ mode: "pairing", category: "both", input: "grilled vegetables" });
+    expect(res.status).toBe(503);
+    expect(mockChatJson).not.toHaveBeenCalled();
   });
 });

@@ -1107,6 +1107,9 @@ export default function FastFoodGuidePage() {
                       </div>
                     )}
                   </div>
+                  <p role="note" className="mb-4 text-sm text-amber-200">
+                    Restaurant ingredients, preparation, and nutrition are not fully verified. Nutrition numbers are estimates, not proof of clinical compliance; confirm details with the restaurant.
+                  </p>
                   <div className="grid gap-4">
                     {generatedMeals.map((meal, index) => {
                       const imageKey = chefFlowMealId(meal, "fast-food");
