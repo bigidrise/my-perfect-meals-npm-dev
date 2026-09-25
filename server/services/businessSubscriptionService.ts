@@ -99,6 +99,7 @@ export async function applyBusinessSubscriptionTransition(input: {
         business.status !== "pending_billing"
         && business.commercialAccessMode !== "onboarding_pilot"
       )
+      || !business.stripeCheckoutSessionId
       || !input.checkoutReservationId
       || business.stripeCheckoutReservationId !== input.checkoutReservationId
     ) {
@@ -119,7 +120,6 @@ export async function applyBusinessSubscriptionTransition(input: {
 
     if (
       input.checkoutSessionId
-      && business.stripeCheckoutSessionId
       && business.stripeCheckoutSessionId !== input.checkoutSessionId
     ) {
       return { updated: false, reason: "RESERVATION_CONFLICT" };
