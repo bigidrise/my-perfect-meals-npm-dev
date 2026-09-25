@@ -16,6 +16,7 @@ import { buildGroceryCoachContext } from "./groceryCoachContext";
 import type { GroceryCoachContext } from "./groceryCoachContext";
 import { appendWholeFoodStandardPrompt, evaluateWholeFoodCandidate } from "./wholeFoodStandard";
 import { scanGeneratedOutput } from "./protocolEnvelope";
+import { requiresVerifiedIngredientEvidence } from "./foodCompositionEvidence";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -426,20 +427,7 @@ const normalizeBrand = (s: string): string => s.trim().toLowerCase();
  * field, so brand-only recommendations cannot be cleared for these users.
  */
 function requiresVerifiedProductIngredients(ctx: GroceryCoachContext): boolean {
-  const envelope = ctx.envelope;
-  const alphaGalProfile = [
-    ...envelope.dietaryIdentity,
-    ...envelope.medicalHardLimits,
-    ...envelope.medicalOptimization,
-    ...(envelope.conditionGuidanceBlocks ?? []),
-  ].some((condition) => /alpha[\s-]*gal/i.test(condition));
-  const pregnancyContext = envelope.pregnancySupportContext;
-  const activePregnancyTrimester =
-    (envelope.pregnancySupport || pregnancyContext?.active === true) &&
-    pregnancyContext?.active === true &&
-    /^trimester-[123]$/.test(pregnancyContext.stage);
-
-  return alphaGalProfile || activePregnancyTrimester || envelope.allergies.length > 0;
+  return requiresVerifiedIngredientEvidence(ctx.envelope);
 }
 
 /** True when a model-asserted usualPick brand matches a compliant saved row. */

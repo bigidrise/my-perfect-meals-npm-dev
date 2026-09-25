@@ -67,6 +67,16 @@ describe("protocol envelope medicalConditions projection", () => {
     expect(scanGeneratedOutput({ name: "Lunch", ingredients: ["chicken breast"] }, envelope).passed).toBe(false);
     expect(scanGeneratedOutput({ name: "Lunch", ingredients: ["lentils", "carrots"] }, envelope).passed).toBe(true);
   });
+
+  it.each([
+    { diet: "vegetarian", blocked: "chicken breast", allowed: "eggs" },
+    { diet: "pescatarian", blocked: "beef steak", allowed: "salmon" },
+  ])("rejects direct $diet conflicts without blocking its allowed foods", ({ diet, blocked, allowed }) => {
+    const envelope = buildGuestEnvelope();
+    envelope.dietaryIdentity = [diet];
+    expect(scanGeneratedOutput({ name: "Lunch", ingredients: [blocked] }, envelope).passed).toBe(false);
+    expect(scanGeneratedOutput({ name: "Lunch", ingredients: [allowed] }, envelope).passed).toBe(true);
+  });
   afterEach(() => {
     selectedUser.medicalConditions = ["glp1", "diabetes-type2"];
     selectedUser.healthConditions = ["hypertension"];

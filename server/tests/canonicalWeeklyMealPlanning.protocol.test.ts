@@ -98,6 +98,43 @@ beforeEach(() => {
 });
 
 describe("canonical weekly meal protocol scan", () => {
+  test("passes hard-safety eligibility and explicit optimization tags into actual template selection", async () => {
+    const envelope = {
+      ...activeVeganEnvelope,
+      medicalOptimization: ["anti-inflammatory"],
+      conditionGuidanceBlocks: ["GLP-1 NUTRITION SUPPORT — PERSONAL CHOICE (do not infer medication use or diagnosis):"],
+    };
+    mockLoadProtocolEnvelope.mockResolvedValue(envelope);
+    mockGenerateTemplates.mockImplementation(async (params: any) => {
+      expect(params.optimizationTags).toEqual(["anti-inflammatory", "glp-1", "glp1"]);
+      expect(params.templateEligibility(templateMeal("chicken breast"))).toBe(false);
+      expect(params.templateEligibility(templateMeal("firm tofu"))).toBe(true);
+      return sourceFor(templateMeal("firm tofu"));
+    });
+    const result = await generateCanonicalWeeklyMealPlan({
+      userId: "nutrition-subject-1", weeks: 1, mealsPerDay: 1, startDateISO: "2024-01-07",
+    });
+    expect(result.plan.weeks[0].days[0].meals[0].ingredients[0].name).toBe("firm tofu");
+  });
+
+  test("medical guidance alone does not require ingredient evidence that the template lacks", async () => {
+    mockLoadProtocolEnvelope.mockResolvedValue({
+      ...activeVeganEnvelope,
+      dietaryIdentity: [],
+      medicalHardLimits: ["heart disease", "kidney disease"],
+    });
+    const generic = {
+      ...templateMeal(""), ingredients: [{ name: "Fresh seasonal ingredients", amount: "1", unit: "portion" }],
+    };
+    mockGenerateTemplates.mockImplementation(async (params: any) => {
+      expect(params.templateEligibility(generic)).toBe(true);
+      expect(params.optimizationTags).toEqual(expect.arrayContaining(["heart-disease", "kidney-disease"]));
+      return sourceFor(generic);
+    });
+    await expect(generateCanonicalWeeklyMealPlan({
+      userId: "nutrition-subject-1", weeks: 1, mealsPerDay: 1, startDateISO: "2024-01-07",
+    })).resolves.toHaveProperty("plan.weeks");
+  });
   test("rejects an unsafe selected template before a generated week can be returned", async () => {
     await expect(generateCanonicalWeeklyMealPlan({
       userId: "nutrition-subject-1",
