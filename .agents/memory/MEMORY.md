@@ -31,6 +31,7 @@
 - [Drizzle schema migration fallback](drizzle-kit-push-instability.md) — use small idempotent SQL migrations when schema-pull tooling is unreliable.
 - [Drizzle array columns](ace-drizzle-array-rule.md) — SQL templates expand arrays; use explicit per-value conditions for membership queries.
 - [PostgreSQL parameter gaps](postgres-parameter-gaps.md) — mocked writes can pass while live updates fail if SQL leaves unused leading placeholders.
+- [Neon pooler read-only queries](neon-pooler-read-only-queries.md) — pooled connection rejects read-only startup options; use an explicit read-only transaction.
 - [Studio video purge retention](studio-video-purge-retention.md) — private media purge needs a renewable token lease and immutable retained transcript before references clear.
 - [Studio video MIME compatibility](studio-video-mime-compatibility.md) — use browser capability selection and server MIME normalization across WebM, MP4, and QuickTime.
 - [Failed Studio video deletion](failed-studio-video-deletion.md) — failed-transcription media is deletable without creating a transcript or weakening playback gates.
