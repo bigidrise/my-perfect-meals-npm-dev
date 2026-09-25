@@ -188,6 +188,7 @@ export default function BusinessDashboard() {
 
   const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
   const fromCheckout = params.get("checkout") === "success";
+  const checkoutSessionId = params.get("session_id");
 
   const [ownerData, setOwnerData] = useState<BusinessData | null>(null);
   const [memberData, setMemberData] = useState<MembershipData | null>(null);
@@ -200,7 +201,10 @@ export default function BusinessDashboard() {
   const [viewMode, setViewMode] = useState<"owner" | "admin" | "member" | "none" | null>(null);
   const isDesktop = useIsDesktop();
   const [loading, setLoading] = useState(true);
-  const [polling, setPolling] = useState(fromCheckout);
+  const [polling, setPolling] = useState(fromCheckout && !checkoutSessionId);
+  const [checkoutState, setCheckoutState] = useState<"verifying" | "needs_attention" | "complete">("verifying");
+  const [checkoutAttempt, setCheckoutAttempt] = useState(0);
+  const [checkoutError, setCheckoutError] = useState("");
   const [workspaceOptions, setWorkspaceOptions] = useState<WorkspaceOption[]>([]);
   const [activeWorkspace, setActiveWorkspace] = useState<ActiveWorkspace | null>(null);
   const [workspaceSelectionRequired, setWorkspaceSelectionRequired] = useState(false);
@@ -469,12 +473,55 @@ export default function BusinessDashboard() {
   const refreshIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
+    if (!fromCheckout || !checkoutSessionId) return;
+    let cancelled = false;
+    const verifyCheckout = async () => {
+      setCheckoutState("verifying");
+      setCheckoutError("");
+      for (let attempt = 0; attempt < 4 && !cancelled; attempt += 1) {
+        try {
+          const response = await fetch("/api/stripe/reconcile-checkout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            credentials: "include",
+            body: JSON.stringify({ sessionId: checkoutSessionId }),
+          });
+          if (response.status === 403) {
+            setCheckoutError("This checkout belongs to another account. Sign in with the account that purchased it.");
+            break;
+          }
+          if (response.ok && (await response.json()).status === "active") {
+            if (cancelled) return;
+            const url = new URL(window.location.href);
+            url.searchParams.delete("checkout");
+            url.searchParams.delete("session_id");
+            window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+            setPolling(false);
+            setCheckoutState("complete");
+            void refreshUser().catch(() => {});
+            void fetchData();
+            return;
+          }
+        } catch {
+          // The checkout session stays in the URL so the owner can retry safely.
+        }
+        if (attempt < 3) {
+          await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
+        }
+      }
+      if (!cancelled) setCheckoutState("needs_attention");
+    };
+    void verifyCheckout();
+    return () => { cancelled = true; };
+  }, [checkoutAttempt]);
+
+  useEffect(() => {
     const init = async () => {
       const found = await fetchData();
       setLoading(false);
 
       // If came from checkout and business not ready yet, poll for up to 30s
-      if (!found && fromCheckout) {
+      if (!found && fromCheckout && !checkoutSessionId) {
         setPolling(true);
         const tryAgain = async () => {
           pollCount.current += 1;
@@ -699,17 +746,35 @@ export default function BusinessDashboard() {
   // `viewMode`, `memberData`, or `ownerData`. This prevents a re-joined member
   // from briefly seeing stale removal-notice UI before the membership API
   // responds. Never hoist membership-status-dependent JSX above this block.
-  if (loading || polling) {
+  if (loading || polling || (fromCheckout && checkoutSessionId && checkoutState !== "complete")) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-black/80 via-orange-900/60 to-black/80 flex flex-col items-center justify-center px-4 text-center">
-        <Loader2 className="w-10 h-10 text-orange-400 animate-spin mb-4" />
-        {polling && fromCheckout ? (
-          <>
-            <h2 className="text-white text-lg font-bold mb-1">{t("businessDashboard.settingUp")}</h2>
-            <p className="text-white/50 text-sm">{t("businessDashboard.confirmingPayment")}</p>
-          </>
+        {checkoutState === "needs_attention" && fromCheckout && checkoutSessionId ? (
+          <div className="max-w-sm space-y-4">
+            <AlertTriangle className="w-10 h-10 text-orange-400 mx-auto" />
+            <h2 className="text-white text-lg font-bold">Payment needs verification</h2>
+            <p className="text-white/70 text-sm">
+              {checkoutError || "Your payment may have succeeded, but we could not verify your organization yet. Do not pay again. Keep this page open or return to this link and retry."}
+            </p>
+            <button
+              className="rounded-lg bg-orange-500 px-5 py-2 text-black font-semibold"
+              onClick={() => setCheckoutAttempt((attempt) => attempt + 1)}
+            >
+              Retry verification
+            </button>
+          </div>
         ) : (
-          <p className="text-white/50 text-sm">{t("businessDashboard.loading")}</p>
+          <>
+            <Loader2 className="w-10 h-10 text-orange-400 animate-spin mb-4" />
+            {fromCheckout ? (
+              <>
+                <h2 className="text-white text-lg font-bold mb-1">{t("businessDashboard.settingUp")}</h2>
+                <p className="text-white/50 text-sm">{t("businessDashboard.confirmingPayment")}</p>
+              </>
+            ) : (
+              <p className="text-white/50 text-sm">{t("businessDashboard.loading")}</p>
+            )}
+          </>
         )}
       </div>
     );
@@ -1009,6 +1074,9 @@ export default function BusinessDashboard() {
             </p>
             <p className="text-white/40 text-xs leading-relaxed">
               Once billing is confirmed, you can invite team members and manage your organization.
+            </p>
+            <p className="text-orange-200 text-xs leading-relaxed mt-3">
+              Already paid? Do not pay again. Return to your checkout confirmation link to retry verification, or contact support.
             </p>
           </div>
           <button

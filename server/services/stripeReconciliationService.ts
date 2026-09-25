@@ -1,7 +1,9 @@
 import type Stripe from "stripe";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "../db";
 import { users } from "@shared/schema";
+import { businesses } from "../db/schema/business";
+import { stripeIdentityOwners } from "../db/schema/stripeBilling";
 import { claimBillingEvent, completeBillingEvent, failBillingEvent } from "./stripeBillingEventService";
 import { planFromSubscription } from "./stripePlanCatalog";
 import { updateUserSubscription } from "./subscriptionService";
@@ -18,6 +20,47 @@ export type ReconciliationResult =
       status: "pending";
       subscriptionStatus: string;
     };
+
+async function verifyBusinessCheckoutState(input: {
+  businessId: string;
+  ownerUserId: string;
+  customerId: string;
+  subscriptionId: string;
+  sessionId: string;
+}): Promise<void> {
+  const [business] = await db.select({
+    ownerUserId: businesses.ownerUserId,
+    status: businesses.status,
+    customerId: businesses.stripeCustomerId,
+    subscriptionId: businesses.stripeSubscriptionId,
+    sessionId: businesses.stripeCheckoutSessionId,
+  }).from(businesses).where(eq(businesses.id, input.businessId)).limit(1);
+  if (
+    !business
+    || business.ownerUserId !== input.ownerUserId
+    || business.status !== "active"
+    || business.customerId !== input.customerId
+    || business.subscriptionId !== input.subscriptionId
+    || business.sessionId !== input.sessionId
+  ) {
+    throw new Error("Business checkout is paid but business billing is not active");
+  }
+  for (const [identityType, identityValue] of [
+    ["customer", input.customerId],
+    ["subscription", input.subscriptionId],
+  ] as const) {
+    const [owner] = await db.select({
+      ownerUserId: stripeIdentityOwners.ownerUserId,
+      businessId: stripeIdentityOwners.businessId,
+    }).from(stripeIdentityOwners).where(and(
+      eq(stripeIdentityOwners.identityType, identityType),
+      eq(stripeIdentityOwners.identityValue, identityValue),
+    )).limit(1);
+    if (!owner || owner.businessId !== input.businessId || owner.ownerUserId !== input.ownerUserId) {
+      throw new Error("Business checkout is paid but Stripe ownership is not verified");
+    }
+  }
+}
 
 export async function reconcileCheckoutSession(args: {
   stripe: Stripe;
@@ -63,6 +106,37 @@ export async function reconcileCheckoutSession(args: {
     throw new Error("Flat organization subscriptions must retain Stripe quantity 1");
   }
 
+  const isBusiness = trustedPlan.planLookupKey === "clinical_business_monthly";
+  const businessId = session.metadata?.businessId;
+  if (isBusiness) {
+    if (
+      session.payment_status !== "paid"
+      || session.metadata?.subscriptionType !== "business_seat"
+      || subscription.metadata?.subscriptionType !== "business_seat"
+      || !businessId
+      || subscription.metadata?.businessId !== businessId
+      || !session.metadata?.checkoutReservationId
+      || subscription.metadata?.checkoutReservationId !== session.metadata.checkoutReservationId
+    ) {
+      throw new Error("Business checkout payment or identity could not be verified");
+    }
+    const [reserved] = await db.select({
+      ownerUserId: businesses.ownerUserId,
+      plan: businesses.plan,
+      sessionId: businesses.stripeCheckoutSessionId,
+      reservationId: businesses.stripeCheckoutReservationId,
+    }).from(businesses).where(eq(businesses.id, businessId)).limit(1);
+    if (
+      !reserved
+      || reserved.ownerUserId !== args.userId
+      || reserved.plan !== "clinical_business_monthly"
+      || reserved.sessionId !== session.id
+      || reserved.reservationId !== session.metadata.checkoutReservationId
+    ) {
+      throw new Error("Business checkout does not match the owner's saved reservation");
+    }
+  }
+
   if (subscription.status !== "active" && subscription.status !== "trialing") {
     return { status: "pending", subscriptionStatus: subscription.status };
   }
@@ -81,10 +155,10 @@ export async function reconcileCheckoutSession(args: {
 
   try {
     if (claim === "claimed") {
-      const result = trustedPlan.planLookupKey === "clinical_business_monthly"
+      const result = isBusiness
         ? await applyBusinessSubscriptionTransition({
             ownerUserId: args.userId,
-            businessId: session.metadata?.businessId,
+            businessId,
             checkoutReservationId: session.metadata?.checkoutReservationId,
             checkoutSessionId: session.id,
             stripeCustomerId: customerId,
@@ -116,11 +190,16 @@ export async function reconcileCheckoutSession(args: {
           `Verified Stripe subscription could not be persisted (${result.reason})`,
         );
       }
-      await completeBillingEvent(
-        eventId,
-        result.updated ? "processed" : "ignored",
-        args.userId,
-      );
+    }
+
+    if (isBusiness) {
+      await verifyBusinessCheckoutState({
+        businessId: businessId!,
+        ownerUserId: args.userId,
+        customerId,
+        subscriptionId: subscription.id,
+        sessionId: session.id,
+      });
     }
 
     const [user] = await db
@@ -133,15 +212,18 @@ export async function reconcileCheckoutSession(args: {
       .where(eq(users.id, args.userId))
       .limit(1);
 
-    if (!user || user.planLookupKey !== trustedPlan.planLookupKey) {
+    if (!user || (!isBusiness && user.planLookupKey !== trustedPlan.planLookupKey)) {
       throw new Error("Verified Stripe subscription could not be persisted");
     }
 
+    if (claim === "claimed") {
+      await completeBillingEvent(eventId, "processed", args.userId);
+    }
     return {
       status: "active",
-      planLookupKey: user.planLookupKey,
+      planLookupKey: isBusiness ? trustedPlan.planLookupKey : user.planLookupKey!,
       entitlements: user.entitlements ?? [],
-      subscriptionStatus: user.subscriptionStatus ?? "active",
+      subscriptionStatus: isBusiness ? "active" : user.subscriptionStatus ?? "active",
     };
   } catch (error) {
     if (claim === "claimed") {

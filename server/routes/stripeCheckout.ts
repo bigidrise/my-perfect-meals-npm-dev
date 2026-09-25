@@ -335,11 +335,12 @@ router.post("/reconcile-checkout", requireAuth, async (req: any, res) => {
     const message = error?.message ?? "Subscription reconciliation failed";
     const forbidden = message.includes("does not belong")
       || message.includes("identity does not match");
-    console.error("[stripe/reconcile-checkout]", message);
+    console.error("[stripe/reconcile-checkout] Verification did not complete:", message);
     return res.status(forbidden ? 403 : 409).json({
+      code: forbidden ? "CHECKOUT_ACCOUNT_MISMATCH" : "BILLING_VERIFICATION_PENDING",
       error: forbidden
         ? "Checkout session does not belong to this account."
-        : "Payment is still being verified. Please try again shortly.",
+        : "Payment may have succeeded, but organization billing has not been verified. Do not pay again; retry this checkout session shortly.",
     });
   }
 });
@@ -432,6 +433,7 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
         id: bizTable.id,
         reservationId: bizTable.stripeCheckoutReservationId,
         reservedSeatCount: bizTable.stripeCheckoutSeatCount,
+        savedSessionId: bizTable.stripeCheckoutSessionId,
       });
 
     if (!reservedBusiness) {
@@ -456,6 +458,49 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
         code: "ORGANIZATION_CHECKOUT_CONFLICT",
         error: "A checkout with a different seat count is already in progress.",
       });
+    }
+
+    if (!reservedBusiness.savedSessionId && reservedBusiness.reservationId !== proposedReservationId) {
+      // Stripe may have created a session before the previous request lost its
+      // database write. Reusing an old reservation after the idempotency window
+      // could create another payable subscription, so require manual review.
+      return res.status(409).json({
+        code: "ORGANIZATION_CHECKOUT_UNBOUND",
+        error: "A checkout was already started but could not be verified. Do not pay again; contact support to recover it.",
+      });
+    }
+
+    if (reservedBusiness.savedSessionId) {
+      const savedSession = await stripe.checkout.sessions.retrieve(reservedBusiness.savedSessionId);
+      if (
+        savedSession.metadata?.userId !== userId
+        || savedSession.metadata?.businessId !== reservedBusiness.id
+        || savedSession.metadata?.checkoutReservationId !== reservedBusiness.reservationId
+        || savedSession.metadata?.sku !== "clinical_business_monthly"
+      ) {
+        return res.status(409).json({
+          code: "ORGANIZATION_CHECKOUT_CONFLICT",
+          error: "The saved checkout does not match this organization. Contact support before paying again.",
+        });
+      }
+      if (savedSession.status === "complete" || savedSession.payment_status === "paid" || savedSession.subscription) {
+        return res.status(409).json({
+          code: "BILLING_VERIFICATION_PENDING",
+          error: "This organization already has a completed checkout. Do not pay again; verify the existing payment.",
+          recoveryUrl: `/business-dashboard?checkout=success&session_id=${encodeURIComponent(savedSession.id)}`,
+        });
+      }
+      if (savedSession.status === "open" && savedSession.url) {
+        return res.json({ url: savedSession.url });
+      }
+      if (savedSession.status !== "expired") {
+        return res.status(409).json({
+          code: "ORGANIZATION_CHECKOUT_CONFLICT",
+          error: "The saved checkout could not be verified. Contact support before paying again.",
+        });
+      }
+      // An expired, unpaid checkout cannot collect payment. The existing
+      // idempotency key remains authoritative for any replacement attempt.
     }
 
     const session = await stripe.checkout.sessions.create({
