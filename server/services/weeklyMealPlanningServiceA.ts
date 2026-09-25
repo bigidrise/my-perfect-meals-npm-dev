@@ -367,7 +367,7 @@ export const weeklyMealPlanningServiceA = {
         // Add snacks - snacks don't get carb split (user requirement: only full meals)
         for (let s = 0; s < (params.snacksPerDay ?? 0); s++) {
           // snacks may repeat less critically; still try to vary
-          const t = sampleNoRecent(byType.snack.length ? byType.snack : safe.filter(x => x.type === "snack"), recent, 10);
+          const t = sampleNoRecent(byType.snack.length ? byType.snack : safe.filter(x => x.type === "snack"), recent);
           recent.add(t.slug);
           dayMeals.push({ ...t, imageUrl: `/meal-images/${t.slug}.jpg` });
         }

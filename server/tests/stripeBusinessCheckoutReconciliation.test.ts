@@ -34,7 +34,7 @@ function matches(table: any, row: Row, condition: any): boolean {
     }
     if (row.id !== params[0]) return false;
     if (sql.includes('"stripe_customer_id"')) {
-      return row.stripeCustomerId === params[1] || row.stripeSubscriptionId === params[2];
+      return row.stripeCustomerId === params[1] && row.stripeSubscriptionId === params[2];
     }
     return true;
   }
@@ -153,7 +153,7 @@ function resetRows() {
     users: [{
       id: "owner-1",
       stripeCustomerId: "cus_personal_separate",
-      stripeSubscriptionId: null,
+      stripeSubscriptionId: "sub_personal_separate",
       planLookupKey: "mpm_ultimate_monthly",
       subscriptionStatus: "active",
     }],
@@ -210,7 +210,7 @@ describe("verified Clinical Business checkout reconciliation (no external servic
       expect.objectContaining({ identityType: "subscription", identityValue: "sub_business_1", businessId: "business-1", ownerUserId: "owner-1" }),
     ]));
     expect(mockState.members).toHaveLength(1);
-    expect(mockState.users[0]).toMatchObject({ stripeCustomerId: "cus_personal_separate", stripeSubscriptionId: null });
+    expect(mockState.users[0]).toMatchObject({ stripeCustomerId: "cus_personal_separate", stripeSubscriptionId: "sub_personal_separate" });
     expect(mockState.events[0]).toMatchObject({ status: "processed", source: "reconciliation" });
     const firstEntitlements = mockState.users[0].entitlements;
     await expect(reconcile()).resolves.toMatchObject({ status: "active" });
@@ -272,6 +272,36 @@ describe("verified Clinical Business checkout reconciliation (no external servic
     expect(mockState.members).toHaveLength(0);
     expect(mockState.events[0].status).toBe("failed");
   });
+
+  it("removes only an exact legacy same-owner duplicate from personal billing", async () => {
+    mockState.users[0].stripeCustomerId = "cus_business_1";
+    mockState.users[0].stripeSubscriptionId = "sub_business_1";
+    await expect(reconcile()).resolves.toMatchObject({ status: "active" });
+    expect(mockState.users[0]).toMatchObject({ stripeCustomerId: null, stripeSubscriptionId: null });
+    expect(mockState.businesses[0]).toMatchObject({
+      status: "active", stripeCustomerId: "cus_business_1", stripeSubscriptionId: "sub_business_1",
+    });
+    expect(mockState.owners).toHaveLength(2);
+  });
+
+  it.each(["customer", "subscription"] as const)(
+    "rejects a partial same-owner %s match without clearing independent personal billing",
+    async (matchingIdentity) => {
+      if (matchingIdentity === "customer") mockState.users[0].stripeCustomerId = "cus_business_1";
+      else mockState.users[0].stripeSubscriptionId = "sub_business_1";
+      const personalBefore = { ...mockState.users[0] };
+      await expect(reconcile()).rejects.toThrow("IDENTITY_CONFLICT");
+      expect(mockState.users[0]).toMatchObject({
+        stripeCustomerId: personalBefore.stripeCustomerId,
+        stripeSubscriptionId: personalBefore.stripeSubscriptionId,
+      });
+      expect(mockState.businesses[0]).toMatchObject({
+        status: "pending_billing", stripeCustomerId: null, stripeSubscriptionId: null,
+      });
+      expect(mockState.owners).toHaveLength(0);
+      expect(mockState.events[0].status).toBe("failed");
+    },
+  );
 
   it("refuses to bind a webhook checkout before its saved session is attached", async () => {
     mockState.businesses[0].stripeCheckoutSessionId = null;

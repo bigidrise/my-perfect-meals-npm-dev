@@ -53,7 +53,6 @@ export default function PricingPage() {
     null,
   );
   const [restoringPurchases, setRestoringPurchases] = useState(false);
-  const [businessCheckoutLoading, setBusinessCheckoutLoading] = useState(false);
 
   const [procareRole, setProcareRole] = useState<"trainer" | "physician">(
     () => (localStorage.getItem("procare_role") as "trainer" | "physician" | null) || "trainer"
@@ -540,38 +539,6 @@ export default function PricingPage() {
       });
     }
   };
-
-  async function handleBusinessCheckout() {
-    if (!user) {
-      setLocation("/welcome");
-      return;
-    }
-    setBusinessCheckoutLoading(true);
-    try {
-      const res = await fetch(apiUrl("/api/stripe/checkout/business"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        credentials: "include",
-        body: JSON.stringify({}),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        toast({ title: "Checkout Error", description: data.error || "Please try again.", variant: "destructive" });
-        return;
-      }
-      if (data.url) {
-        if (window.self !== window.top) {
-          window.open(data.url, "_blank", "noopener,noreferrer");
-        } else {
-          window.location.assign(data.url);
-        }
-      }
-    } catch (err: any) {
-      toast({ title: "Checkout Error", description: "Something went wrong. Please try again.", variant: "destructive" });
-    } finally {
-      setBusinessCheckoutLoading(false);
-    }
-  }
 
   const getButtonText = (sku: string): string => {
     const currentPlan = user?.planLookupKey;
@@ -1115,17 +1082,12 @@ export default function PricingPage() {
               <div className="p-5">
                 <button
                   className="w-full py-3 px-4 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  disabled={businessCheckoutLoading}
-                  onClick={handleBusinessCheckout}
+                  onClick={() => setLocation("/business/start")}
                 >
-                  {businessCheckoutLoading ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" />Processing…</>
-                  ) : (
-                    "Start an Organization — $44.99/mo"
-                  )}
+                  Start Your Organization
                 </button>
                 <p className="text-white/40 text-xs text-center mt-2">
-                  Web billing only · Manage clients and team members from your Organization Dashboard
+                  Start with organization setup and your onboarding pilot. No payment is required today.
                 </p>
               </div>
             </Card>
