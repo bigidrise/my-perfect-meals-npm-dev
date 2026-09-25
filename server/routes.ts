@@ -332,6 +332,38 @@ function hasUnmeasured(ings: Array<{ name: string; amount: string }>): boolean {
   return ings.some(i => !i.amount || /^\d+(\.\d+)?$/.test(i.amount));
 }
 
+async function resolveRecommendationProtocolContext(req: any) {
+  const userId = typeof req.authUser?.id === "string" ? req.authUser.id : null;
+  const envelope = userId
+    ? await loadUserProtocolEnvelope(userId)
+    : buildGuestEnvelope();
+  if (!envelope) {
+    throw new Error("Unable to resolve protocol context for recommendation");
+  }
+  return { userId, envelope };
+}
+
+function recommendationText(value: any): string[] {
+  if (typeof value === "string" || typeof value === "number") return [String(value)];
+  if (Array.isArray(value)) return value.flatMap(recommendationText);
+  if (value && typeof value === "object") return Object.values(value).flatMap(recommendationText);
+  return [];
+}
+
+function scanRecommendationOutput(output: any, envelope: any, generatorName: string) {
+  const text = recommendationText(output);
+  return scanGeneratedOutput(
+    {
+      name: String(output?.name ?? output?.wineName ?? output?.spiritName ?? output?.mealName ?? ""),
+      description: text.join("\n"),
+      ingredients: text,
+      instructions: text,
+    },
+    envelope,
+    { generatorName },
+  );
+}
+
 
 export async function registerRoutes(app: Express): Promise<Server> {
   console.log("🔧 registerRoutes called - starting route registration");
@@ -8288,6 +8320,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Alcohol recommendations endpoint (handles both old format and new beer pairing format)
   app.post("/api/recommendations/alcohol", async (req, res) => {
     try {
+      const { envelope: alcoholEnvelope } = await resolveRecommendationProtocolContext(req);
+      const alcoholProtocolBlock = enforceBeforeGenerate(alcoholEnvelope, { generatorName: "alcohol_recommendations" }).combined;
       // Check if this is the new beer pairing format
       const { type, mealType, cuisine, mainIngredient, occasion, priceRange, preferences, abvRange } = req.body;
 
@@ -8306,6 +8340,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const abvMax = abvRange?.max || 8.0;
 
         const prompt = `You are an expert beer sommelier and cicerone. Provide 3 beer pairing recommendations for the following meal:
+${alcoholProtocolBlock ? `\n${alcoholProtocolBlock}\n` : ""}
 
 Meal Type: ${mealType}
 ${cuisine ? `Cuisine: ${cuisine}` : ''}
@@ -8356,6 +8391,12 @@ Provide recommendations in JSON format with the following structure:
         });
 
         const result = JSON.parse(completion.choices[0].message.content || '{"recommendations": []}');
+        for (const recommendation of Array.isArray(result.recommendations) ? result.recommendations : []) {
+          const scan = scanRecommendationOutput(recommendation, alcoholEnvelope, "alcohol_recommendations");
+          if (!scan.passed) {
+            return res.status(400).json({ error: "PROTOCOL_VIOLATION", message: scan.message, retryable: true });
+          }
+        }
 
         return res.json({
           ok: true,
@@ -8406,6 +8447,11 @@ Provide recommendations in JSON format with the following structure:
           break;
         default:
           return res.status(400).json({ error: "Invalid category" });
+      }
+
+      const alcoholScan = scanRecommendationOutput(recommendation, alcoholEnvelope, "alcohol_recommendations");
+      if (!alcoholScan.passed) {
+        return res.status(400).json({ error: "PROTOCOL_VIOLATION", message: alcoholScan.message, retryable: true });
       }
 
       // Generate image for the recommendation
@@ -10062,7 +10108,7 @@ function getMealIngredientsDatabase() {
   // Wine Pairing AI endpoint
   app.post("/api/ai/wine-pairing", async (req, res) => {
     try {
-      const { userId, mealType, cuisine, mainIngredient, occasion, priceRange, preferences } = req.body;
+      const { mealType, cuisine, mainIngredient, occasion, priceRange, preferences } = req.body;
 
       if (!mealType) {
         return res.status(400).json({ error: "Meal type is required" });
@@ -10076,9 +10122,7 @@ function getMealIngredientsDatabase() {
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
       // ── Protocol envelope enforcement ─────────────────────────────────────
-      const winePairingEnvelope = userId
-        ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
-        : buildGuestEnvelope();
+      const { userId, envelope: winePairingEnvelope } = await resolveRecommendationProtocolContext(req);
       const winePairingProtocolBlock = enforceBeforeGenerate(winePairingEnvelope, { generatorName: 'wine_pairing' }).combined;
 
       // Build the prompt for wine pairing
@@ -10127,6 +10171,12 @@ Provide recommendations in JSON format with the following structure:
       });
 
       const result = JSON.parse(completion.choices[0].message.content || '{"recommendations": []}');
+      for (const recommendation of Array.isArray(result.recommendations) ? result.recommendations : []) {
+        const scan = scanRecommendationOutput(recommendation, winePairingEnvelope, "wine_pairing");
+        if (!scan.passed) {
+          return res.status(400).json({ error: "PROTOCOL_VIOLATION", message: scan.message, retryable: true });
+        }
+      }
 
       res.json({
         id: `wine-pairing-${Date.now()}`,
@@ -10149,7 +10199,7 @@ Provide recommendations in JSON format with the following structure:
   // Bourbon & Spirits Pairing AI endpoint
   app.post("/api/ai/bourbon-spirits-pairing", async (req, res) => {
     try {
-      const { userId, mealType, cuisine, mainIngredient, occasion, priceRange, preferences } = req.body;
+      const { mealType, cuisine, mainIngredient, occasion, priceRange, preferences } = req.body;
 
       if (!mealType) {
         return res.status(400).json({ error: "Meal type is required" });
@@ -10163,9 +10213,7 @@ Provide recommendations in JSON format with the following structure:
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
       // ── Protocol envelope enforcement ─────────────────────────────────────
-      const bourbonEnvelope = userId
-        ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
-        : buildGuestEnvelope();
+      const { userId, envelope: bourbonEnvelope } = await resolveRecommendationProtocolContext(req);
       const bourbonProtocolBlock = enforceBeforeGenerate(bourbonEnvelope, { generatorName: 'bourbon_spirits_pairing' }).combined;
 
       // Build the prompt for bourbon/spirits pairing
@@ -10210,6 +10258,10 @@ Provide a single BEST recommendation in JSON format with the following structure
       });
 
       const result = JSON.parse(completion.choices[0].message.content || '{}');
+      const bourbonScan = scanRecommendationOutput(result, bourbonEnvelope, "bourbon_spirits_pairing");
+      if (!bourbonScan.passed) {
+        return res.status(400).json({ error: "PROTOCOL_VIOLATION", message: bourbonScan.message, retryable: true });
+      }
 
       res.json({
         id: `bourbon-pairing-${Date.now()}`,
@@ -10232,7 +10284,7 @@ Provide a single BEST recommendation in JSON format with the following structure
   // Meal Pairing AI endpoint (reverse pairing: drink → meal)
   app.post("/api/ai/meal-pairing", async (req, res) => {
     try {
-      const { userId, drinkType, specificDrink, mealPreference, cookingTime, servings } = req.body;
+      const { drinkType, specificDrink, mealPreference, cookingTime, servings } = req.body;
 
       if (!drinkType || !specificDrink) {
         return res.status(400).json({ error: "Drink type and specific drink are required" });
@@ -10246,9 +10298,7 @@ Provide a single BEST recommendation in JSON format with the following structure
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
       // ── Protocol envelope enforcement ─────────────────────────────────────
-      const mealPairingEnvelope = userId
-        ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
-        : buildGuestEnvelope();
+      const { userId, envelope: mealPairingEnvelope } = await resolveRecommendationProtocolContext(req);
       const mealPairingProtocolBlock = enforceBeforeGenerate(mealPairingEnvelope, { generatorName: 'meal_pairing' }).combined;
 
       // Build the prompt for meal pairing

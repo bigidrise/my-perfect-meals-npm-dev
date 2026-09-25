@@ -4280,7 +4280,12 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
               `wild salmon, pumpkin seeds, chickpeas, sweet potato).`;
             continue;
           }
-          console.error(`❌ [THYROID GUARD] Could not resolve violations after ${attemptCount} attempts — serving as-is (safe, hard-blocked ingredient not confirmed)`);
+          console.error(`❌ [THYROID GUARD] Could not resolve hard violations after ${attemptCount} attempts — rejecting`);
+          return {
+            success: false,
+            source: 'error',
+            error: `This meal still conflicts with your Thyroid Support safety rules (${hardViolations.join(', ')}). Please try a different request.`,
+          };
         } else {
           if (thyroidValidation.violations.length > 0) {
             console.log(`🦋 [THYROID GUARD] Passed (${thyroidValidation.violations.length} advisory note(s)): ${thyroidValidation.violations.join(' | ')}`);

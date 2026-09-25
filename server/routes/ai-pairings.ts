@@ -6,7 +6,12 @@ import { buildPairingsConstraints } from "../services/pairings/pairingsPersonali
 import { generatePairingImages } from "../services/pairings/pairingsImageService";
 import { chatJson } from "../utils/openaiSafe";
 import { log } from "../vite";
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope } from "../services/protocolEnvelope";
+import {
+  loadUserProtocolEnvelope,
+  enforceBeforeGenerate,
+  buildGuestEnvelope,
+  scanGeneratedOutput,
+} from "../services/protocolEnvelope";
 
 const router = Router();
 
@@ -167,7 +172,23 @@ router.post("/", async (req, res) => {
     for (const p of pairings) {
       const itemParsed = PairingItem.safeParse({ ...p, imageUrl: null });
       if (itemParsed.success) {
-        validatedPairings.push(itemParsed.data);
+        const item = itemParsed.data;
+        const protocolScan = scanGeneratedOutput(
+          {
+            name: item.name,
+            description: [item.category, item.explanation, item.servingTips].join("\n"),
+            // A pairing is a recommendation, not a recipe. Its name/category
+            // are the strongest food evidence; alternatives must be safe too.
+            ingredients: [item.name, item.category, ...item.alternatives, ...(item.flavorProfile || [])],
+          },
+          pairingsEnvelope,
+          { generatorName: "pairings_ai" }
+        );
+        if (protocolScan.passed) {
+          validatedPairings.push(item);
+        } else {
+          log(`[PairingsAI] Skipping protocol-violating pairing "${item.name}": ${protocolScan.message}`, "warn");
+        }
       } else {
         log(`[PairingsAI] Skipping invalid pairing item: ${JSON.stringify(p)}`, "warn");
       }
