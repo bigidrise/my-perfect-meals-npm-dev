@@ -1,4 +1,4 @@
-import { and, eq, or, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db";
 import { businesses, businessMembers } from "../db/schema/business";
 import { users } from "@shared/schema";
@@ -107,7 +107,11 @@ export async function applyBusinessSubscriptionTransition(input: {
     }
 
     const userIdentityClaims = await tx
-      .select({ id: users.id })
+      .select({
+        id: users.id,
+        customerId: users.stripeCustomerId,
+        subscriptionId: users.stripeSubscriptionId,
+      })
       .from(users)
       .where(sql`
         ${users.stripeCustomerId} = ${input.stripeCustomerId}
@@ -115,6 +119,17 @@ export async function applyBusinessSubscriptionTransition(input: {
       `)
       .limit(2);
     if (userIdentityClaims.some((claim) => claim.id !== input.ownerUserId)) {
+      return { updated: false, reason: "IDENTITY_CONFLICT" };
+    }
+    const legacyDuplicate = userIdentityClaims.find(
+      (claim) => claim.id === input.ownerUserId,
+    );
+    if (legacyDuplicate && (
+      legacyDuplicate.customerId !== input.stripeCustomerId
+      || legacyDuplicate.subscriptionId !== input.stripeSubscriptionId
+    )) {
+      // A partial match may be a separate personal subscription. Never clear
+      // both personal fields to repair only one overlapping Business identity.
       return { updated: false, reason: "IDENTITY_CONFLICT" };
     }
 
@@ -143,22 +158,24 @@ export async function applyBusinessSubscriptionTransition(input: {
       .limit(1);
     if (!owner) return { updated: false, reason: "USER_NOT_FOUND" };
 
-    // A legacy same-owner duplicate is repaired only after this verified
-    // business transition has passed reservation, identity, and ordering
-    // checks. Never repair customer records directly or from client claims.
-    await tx
-      .update(users)
-      .set({
-        stripeCustomerId: null,
-        stripeSubscriptionId: null,
-      })
-      .where(and(
-        eq(users.id, input.ownerUserId),
-        or(
+    // Only a verified exact same-owner duplicate transfers out of personal
+    // billing. The conditional write also rejects a concurrent personal
+    // subscription change rather than clearing its new identity.
+    if (legacyDuplicate) {
+      const [cleared] = await tx
+        .update(users)
+        .set({
+          stripeCustomerId: null,
+          stripeSubscriptionId: null,
+        })
+        .where(and(
+          eq(users.id, input.ownerUserId),
           eq(users.stripeCustomerId, input.stripeCustomerId),
           eq(users.stripeSubscriptionId, input.stripeSubscriptionId),
-        ),
-      ));
+        ))
+        .returning({ id: users.id });
+      if (!cleared) throw new StripeIdentityOwnershipConflictError();
+    }
 
     if (input.status === "active") {
       const entitlements = getEntitlementsForPlan("clinical_business_monthly");

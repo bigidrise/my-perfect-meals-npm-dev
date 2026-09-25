@@ -1,13 +1,14 @@
 /** @jest-environment jsdom */
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { HealthContextControls } from "@/components/profile/HealthContextControls";
+import type { HealthContextView } from "@shared/healthContextControl";
 
 const mockApiRequest = jest.fn();
 jest.mock("@/lib/apiRequest", () => ({
   apiRequest: (...args: unknown[]) => mockApiRequest(...args),
 }));
 
-const initial = {
+const initial: HealthContextView = {
   shadowOnly: true,
   builder: "diabetic",
   supports: [
@@ -143,11 +144,11 @@ describe("DEV profile support controls", () => {
   });
 
   it("reloads the same personal support choices after navigation without changing the Builder", async () => {
-    let stored = {
+    let stored: HealthContextView = {
       ...initial,
       supports: [
-        { protocol: "anti_inflammatory", status: "off", personalEnabled: false, sources: [] as { id: string; kind: string; status: string }[] },
-        { protocol: "glp1", status: "off", personalEnabled: false, sources: [] as { id: string; kind: string; status: string }[] },
+        { protocol: "anti_inflammatory", status: "off", personalEnabled: false, sources: [] },
+        { protocol: "glp1", status: "off", personalEnabled: false, sources: [] },
       ],
     };
     mockApiRequest.mockImplementation(async (path: string, options?: { body: string }) => {
