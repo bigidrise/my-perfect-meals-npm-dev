@@ -12,16 +12,12 @@ describe("Development personal support food authority", () => {
     jest.clearAllMocks();
   });
 
-  it("only reads active, explicitly subject-owned personal support", async () => {
+  it("does not read saved personal overlays in Development while frozen", async () => {
     process.env.NODE_ENV = "development";
     delete process.env.REPLIT_DEPLOYMENT;
     mockQuery.mockResolvedValue({ rows: [{ protocol_key: "glp1" }, { protocol_key: "anti_inflammatory" }] });
-    expect(await readDevelopmentPersonalFoodSupports("subject-a")).toEqual(new Set(["glp1", "anti_inflammatory"]));
-    const [sql, params] = mockQuery.mock.calls[0];
-    expect(sql).toContain("source_kind='user'");
-    expect(sql).toContain("status='active'");
-    expect(sql).toContain("evidence_ref='personal_support'");
-    expect(params).toEqual(["subject-a"]);
+    expect(await readDevelopmentPersonalFoodSupports("subject-a")).toEqual(new Set());
+    expect(mockQuery).not.toHaveBeenCalled();
   });
 
   it("never reads shadow sources from production", async () => {
@@ -30,10 +26,11 @@ describe("Development personal support food authority", () => {
     expect(mockQuery).not.toHaveBeenCalled();
   });
 
-  it("fails rather than silently omitting a claimed active support when its source query fails", async () => {
+  it("cannot activate optional overlays from a failing source query while frozen", async () => {
     process.env.NODE_ENV = "development";
     delete process.env.REPLIT_DEPLOYMENT;
     mockQuery.mockRejectedValue(new Error("source storage unavailable"));
-    await expect(readDevelopmentPersonalFoodSupports("subject-a")).rejects.toThrow("source storage unavailable");
+    expect(await readDevelopmentPersonalFoodSupports("subject-a")).toEqual(new Set());
+    expect(mockQuery).not.toHaveBeenCalled();
   });
 });

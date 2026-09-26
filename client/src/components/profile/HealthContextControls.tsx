@@ -4,6 +4,7 @@ import { PillButton } from "@/components/ui/pill-button";
 import type { HealthProtocol } from "@shared/healthProtocolState";
 import type { HealthContextView, HealthSupportSummary, HealthSupportSource } from "@shared/healthContextControl";
 import { NUTRITION_SUPPORT_OPTIONS } from "@shared/nutritionSupportOptions";
+import { PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED } from "@shared/personalFoodSupportFreeze";
 
 const LABELS: Record<HealthProtocol, string> = {
   glp1: "GLP-1 Support",
@@ -79,9 +80,8 @@ export function HealthContextControls({
   const scopeVersion = useRef(0);
 
   useEffect(() => {
-    if (view) onPersonalAntiStatus?.(
-      view.supports.find((item) => item.protocol === "anti_inflammatory")?.personalEnabled === true,
-    );
+    if (view) onPersonalAntiStatus?.(PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED &&
+      view.supports.find((item) => item.protocol === "anti_inflammatory")?.personalEnabled === true);
   }, [view, onPersonalAntiStatus]);
 
   const reload = useCallback(async () => {
@@ -179,6 +179,54 @@ export function HealthContextControls({
     );
     return null;
   });
+
+  if (!PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED) {
+    return (
+      <section className="rounded-xl border border-amber-400/40 bg-amber-950/20 p-3 space-y-3" aria-label="Health and nutrition support settings">
+        <p className="text-amber-200 text-sm font-bold">Health &amp; Nutrition Support</p>
+        <p className="text-white/70 text-xs">Your selected Builder remains your nutrition strategy. Optional personal support choices are paused; clinical and safety guidance remains active.</p>
+        {loading && <p role="status" className="text-white/70 text-xs">Loading health context…</p>}
+        {error && <p role="alert" className="text-red-200 text-xs">{error} <PillButton onClick={() => void reload()}>Retry</PillButton></p>}
+        {view && (
+          <>
+            <p className="text-white/70 text-xs">Your current meal strategy: {BUILDER_LABELS[view.builder || ""] || "Selected Builder"}.</p>
+            {view.supports.map((item) => {
+              const clinicalSources = item.sources.filter((source) =>
+                source.kind === "care_team" || source.kind === "lab_recommendation" ||
+                source.kind === "medication_information");
+              if (!clinicalSources.length) return null;
+              return (
+                <div key={item.protocol} className="rounded-lg border border-white/20 bg-black/30 p-3">
+                  <p className="text-white font-semibold text-sm">{LABELS[item.protocol]}</p>
+                  <SourceList item={{ ...item, sources: clinicalSources }} />
+                  {clinicalSources.filter((source) => source.kind === "medication_information" &&
+                    (source.status === "active" || source.status === "needs_confirmation")).map((source) => (
+                    <PillButton key={source.id} disabled={busy} className="mt-2"
+                      onClick={() => change(`/api/health-context/medication/${source.id}/past`, "POST", {})}>
+                      This medication information is no longer current
+                    </PillButton>
+                  ))}
+                  {clinicalSources.some((source) => source.kind === "lab_recommendation" && source.status === "active") && (
+                    <PillButton disabled={busy} className="mt-2"
+                      onClick={() => change(`/api/health-context/lab/${item.protocol}/discontinue`, "POST", {})}>
+                      Stop my accepted lab-based support
+                    </PillButton>
+                  )}
+                </div>
+              );
+            })}
+            {(view.history?.length > 0 || view.supports.some((item) => item.sources.some((source) => source.kind === "you"))) && (
+              <details className="rounded-lg border border-white/20 bg-black/30 p-3">
+                <summary className="cursor-pointer text-white/90 text-xs font-semibold">Earlier support information</summary>
+                <p className="mt-2 text-white/70 text-xs">Saved personal support choices are retained but paused for meal guidance.</p>
+              </details>
+            )}
+          </>
+        )}
+        {notice && <p role="status" className="text-green-200 text-xs">{notice}</p>}
+      </section>
+    );
+  }
 
   return (
     <section className="rounded-xl border border-amber-400/40 bg-amber-950/20 p-3 space-y-3" aria-label="Health and nutrition support settings">

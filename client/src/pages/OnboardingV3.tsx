@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED } from "@shared/personalFoodSupportFreeze";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -372,7 +373,7 @@ export default function OnboardingV3() {
           break;
         }
         case 3:
-          if (import.meta.env.DEV && user?.id && supportStatus !== "ready") {
+          if (PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED && import.meta.env.DEV && user?.id && supportStatus !== "ready") {
             throw new Error("Please wait for your nutrition support choices to finish saving before continuing.");
           }
           if (medicalConditions.length === 0) {
@@ -895,7 +896,7 @@ export default function OnboardingV3() {
                   </div>
                 </div>
               )}
-              {import.meta.env.DEV && user?.id && (
+              {PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED && import.meta.env.DEV && user?.id && (
                 <div className="mt-4">
                   <HealthContextControls
                     key={user.id} userId={user.id} placement="onboarding"

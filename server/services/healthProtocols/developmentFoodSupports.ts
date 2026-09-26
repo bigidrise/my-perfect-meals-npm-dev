@@ -1,4 +1,5 @@
 import { pool } from "../../db";
+import { PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED } from "../../../shared/personalFoodSupportFreeze";
 
 export type PersonalFoodSupport = "glp1" | "anti_inflammatory";
 
@@ -6,7 +7,8 @@ export type PersonalFoodSupport = "glp1" | "anti_inflammatory";
  * medication, legacy preference, lab result, or provider claim. Production
  * remains on the established clinical path until the all-surface cutover. */
 export async function readDevelopmentPersonalFoodSupports(subjectUserId: string): Promise<Set<PersonalFoodSupport>> {
-  if (process.env.NODE_ENV !== "development" || process.env.REPLIT_DEPLOYMENT) {
+  if (!PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED ||
+      process.env.NODE_ENV !== "development" || process.env.REPLIT_DEPLOYMENT) {
     return new Set();
   }
   const { rows } = await pool.query(

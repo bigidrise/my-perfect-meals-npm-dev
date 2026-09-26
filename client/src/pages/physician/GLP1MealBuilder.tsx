@@ -198,20 +198,6 @@ export default function GLP1MealBuilder() {
     return () => { cancelled = true; };
   }, [effectiveUserId]);
 
-  // Anti-Inflammatory support bridge: user opted in via Edit Profile → app-preferences
-  const [antiInflammatoryFromUserPrefs, setAntiInflammatoryFromUserPrefs] = useState(false);
-  useEffect(() => {
-    if (!effectiveUserId) return;
-    let cancelled = false;
-    apiRequest(`/api/users/${effectiveUserId}/app-preferences`)
-      .then((prefs) => {
-        if (cancelled) return;
-        if (prefs?.antiInflammatorySupport) setAntiInflammatoryFromUserPrefs(true);
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [effectiveUserId]);
-
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
   const [weekStartISO, setWeekStartISO] =
@@ -1199,7 +1185,7 @@ export default function GLP1MealBuilder() {
               {(() => {
                 const flags = nutritionTargets.flags;
                 return [
-                  { key: "anti-inflammatory", label: t("metabolicBuilder.clinicalAntiInflam"), isActive: !!flags?.antiInflammatory || antiInflammatoryFromUserPrefs,                                            activeColor: "text-green-400",   dotColor: "bg-green-400",   dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"   },
+                  { key: "anti-inflammatory", label: t("metabolicBuilder.clinicalAntiInflam"), isActive: !!flags?.antiInflammatory,                                            activeColor: "text-green-400",   dotColor: "bg-green-400",   dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"   },
                   { key: "cardiac",            label: t("metabolicBuilder.clinicalCardiac"),    isActive: !!flags?.cardiac           || labDerivedConditions.includes('heart-failure'),    activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
                   { key: "kidney-disease",     label: t("metabolicBuilder.clinicalKidney"),     isActive: !!flags?.renal             || labDerivedConditions.includes('kidney-disease'),   activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"   },
                   { key: "liver-support",      label: t("metabolicBuilder.clinicalLiverSupport"),isActive: !!flags?.liverSupport      || labDerivedConditions.includes('liver-support'),    activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
