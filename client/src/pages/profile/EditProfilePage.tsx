@@ -17,6 +17,7 @@ import { getAuthHeaders } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { PillButton } from "@/components/ui/pill-button";
 import { HealthContextControls } from "@/components/profile/HealthContextControls";
+import { ConsumerHealthContextSection } from "@/components/profile/ConsumerHealthContextSection";
 import { PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED } from "@shared/personalFoodSupportFreeze";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { getGuestPageExplanation } from "@/components/copilot/CopilotPageExplanations";
@@ -1584,19 +1585,21 @@ export default function EditProfilePage() {
                 )}
               </div>
 
-              {import.meta.env.DEV && user?.id ? (
-                <HealthContextControls
-                  key={user.id}
-                  userId={user.id}
-                  profilePreferenceCard={PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED ? antiInflammatoryPreferenceCard : undefined}
-                  onPersonalAntiStatus={setAntiInflammatoryPersonalEnabled}
-                />
-              ) : (
-                <section className="rounded-xl border border-amber-400/40 bg-amber-950/20 p-3 space-y-3" aria-label="Health and nutrition support settings">
-                  <p className="text-amber-200 text-sm font-bold">Health &amp; Nutrition Support</p>
-                  {PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED && <div className="grid gap-3 sm:grid-cols-2">{antiInflammatoryPreferenceCard}</div>}
-                </section>
-              )}
+              <ConsumerHealthContextSection>
+                {import.meta.env.DEV && user?.id ? (
+                  <HealthContextControls
+                    key={user.id}
+                    userId={user.id}
+                    profilePreferenceCard={PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED ? antiInflammatoryPreferenceCard : undefined}
+                    onPersonalAntiStatus={setAntiInflammatoryPersonalEnabled}
+                  />
+                ) : (
+                  <section className="rounded-xl border border-amber-400/40 bg-amber-950/20 p-3 space-y-3" aria-label="Health and nutrition support settings">
+                    <p className="text-amber-200 text-sm font-bold">Health &amp; Nutrition Support</p>
+                    {PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED && <div className="grid gap-3 sm:grid-cols-2">{antiInflammatoryPreferenceCard}</div>}
+                  </section>
+                )}
+              </ConsumerHealthContextSection>
 
               <div className="rounded-xl border border-white/10 bg-black/30 p-3">
                 <div className="flex items-center gap-2 mb-2">
