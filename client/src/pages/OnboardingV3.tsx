@@ -12,6 +12,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { useToast } from "@/hooks/use-toast";
 import { PillButton } from "@/components/ui/pill-button";
 import { HealthContextControls } from "@/components/profile/HealthContextControls";
+import { ConsumerHealthContextSection } from "@/components/profile/ConsumerHealthContextSection";
 import { persistOnboardingHealthInformation } from "@/lib/onboardingHealthPersistence";
 import { captureException } from "@/lib/sentry";
 import { useTranslation } from "react-i18next";
@@ -896,14 +897,16 @@ export default function OnboardingV3() {
                   </div>
                 </div>
               )}
-              {PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED && import.meta.env.DEV && user?.id && (
-                <div className="mt-4">
-                  <HealthContextControls
-                    key={user.id} userId={user.id} placement="onboarding"
-                    onStatusChange={setSupportStatus}
-                  />
-                </div>
-              )}
+              <ConsumerHealthContextSection>
+                {PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED && import.meta.env.DEV && user?.id && (
+                  <div className="mt-4">
+                    <HealthContextControls
+                      key={user.id} userId={user.id} placement="onboarding"
+                      onStatusChange={setSupportStatus}
+                    />
+                  </div>
+                )}
+              </ConsumerHealthContextSection>
             </div>
           </div>
         );
