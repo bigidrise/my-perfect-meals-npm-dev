@@ -368,7 +368,7 @@ export async function decideSystemRecommendation(input: {
 export async function readShadowProtocolState(subjectUserId: string, builder: FoodBuilderStrategy) {
   devOnly();
   const { rows } = await pool.query(
-    `SELECT id, protocol_key, source_kind, status, care_relationship_id,
+    `SELECT id, protocol_key, source_kind, status, owner_user_id, care_relationship_id,
             accepted_recommendation, current_medication_use
      FROM health_protocol_sources WHERE subject_user_id=$1 ORDER BY id`,
     [subjectUserId],
@@ -379,18 +379,35 @@ export async function readShadowProtocolState(subjectUserId: string, builder: Fo
     acceptedRecommendation: row.accepted_recommendation ?? undefined,
     currentMedicationUse: row.current_medication_use ?? undefined,
   }));
-  const membershipIds = [...new Set(records.map((row) => row.relationshipId).filter(Boolean))];
+  const membershipIds = [...new Set(records.filter((row) => row.source === "provider")
+    .map((row) => row.relationshipId).filter(Boolean))];
   const relationshipStatus: Record<string, "active" | "ended"> = {};
   if (membershipIds.length) {
     const { rows: memberships } = await pool.query(
-      `SELECT id, status, is_archived FROM studio_memberships
-       WHERE client_user_id=$1 AND id=ANY($2::uuid[])`,
+      `SELECT sm.id, sm.status, sm.is_archived, s.owner_user_id,
+              s.type, s.status AS studio_status, s.verification_status
+       FROM studio_memberships sm
+       JOIN studios s ON s.id=sm.studio_id
+       WHERE sm.client_user_id=$1 AND sm.id=ANY($2::uuid[])`,
       [subjectUserId, membershipIds],
     );
-    for (const membership of memberships) {
-      relationshipStatus[membership.id] = membership.status === "active" && !membership.is_archived
-        ? "active" : "ended";
+    const unverifiedIds = new Set<string>();
+    for (const record of rows) {
+      if (record.source_kind !== "provider" || !record.care_relationship_id) continue;
+      const membership = memberships.find((item) => item.id === record.care_relationship_id);
+      if (!membership || !record.owner_user_id ||
+          membership.owner_user_id !== record.owner_user_id ||
+          membership.type !== "clinic" || membership.studio_status !== "active" ||
+          membership.verification_status !== "verified") {
+        unverifiedIds.add(record.care_relationship_id);
+      } else if (membership.status !== "active" || membership.is_archived) {
+        relationshipStatus[record.care_relationship_id] = "ended";
+      } else if (relationshipStatus[record.care_relationship_id] !== "ended") {
+        relationshipStatus[record.care_relationship_id] = "active";
+      }
     }
+    // One malformed claim must not inherit another claim's verified relationship.
+    for (const id of unverifiedIds) delete relationshipStatus[id];
   }
   return resolveHealthProtocolState({ records, relationshipStatus, builder });
 }

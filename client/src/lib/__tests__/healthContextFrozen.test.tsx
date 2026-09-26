@@ -1,5 +1,5 @@
 /** @jest-environment jsdom */
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { HealthContextControls } from "@/components/profile/HealthContextControls";
 import type { HealthContextView } from "@shared/healthContextControl";
 import { PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED } from "@shared/personalFoodSupportFreeze";
@@ -43,5 +43,53 @@ describe("frozen optional personal support UI", () => {
     expect(screen.getByText(/Saved personal support choices are retained but paused/)).toBeTruthy();
     await waitFor(() => expect(mockApiRequest).toHaveBeenCalledTimes(1));
     expect(mockApiRequest).not.toHaveBeenCalledWith(expect.stringContaining("/support/"), expect.anything());
+  });
+
+  it("shows unresolved earlier clinical history even while optional support controls are paused", async () => {
+    const pending = {
+      shadowOnly: true, builder: "standard",
+      supports: [
+        { protocol: "cardiac", status: "needs_confirmation", personalEnabled: false,
+          sources: [{ id: "00000000-0000-4000-8000-000000000001", kind: "earlier_profile", status: "needs_confirmation" }] },
+        { protocol: "renal", status: "needs_confirmation", personalEnabled: false,
+          sources: [{ id: "00000000-0000-4000-8000-000000000002", kind: "care_team", status: "needs_confirmation" }] },
+      ],
+      history: [], labReviews: [], legacyAntiPreferenceNeedsReview: false,
+    } as HealthContextView;
+    mockApiRequest.mockResolvedValueOnce(pending).mockResolvedValueOnce({
+      ...pending, supports: [pending.supports[1]], message: "Earlier profile information reviewed.",
+    });
+    render(<HealthContextControls userId="person" />);
+    expect(await screen.findByText("Health information needing review")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Yes, keep support" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "No, this is past" })).toBeTruthy();
+    expect(screen.getByText(/A personal choice cannot remove a provider-owned instruction/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Turn on my support/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "No, this is past" }));
+    await waitFor(() => expect(mockApiRequest).toHaveBeenCalledWith(
+      "/api/health-context/earlier-profile/00000000-0000-4000-8000-000000000001/decision",
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ current: false }) }),
+    ));
+    expect(await screen.findByText("Earlier profile information reviewed.")).toBeTruthy();
+  });
+
+  it("lets a subject mark pending medication information as past without certifying current use", async () => {
+    const sourceId = "00000000-0000-4000-8000-000000000003";
+    mockApiRequest.mockResolvedValueOnce({
+      shadowOnly: true, builder: "standard",
+      supports: [{ protocol: "glp1", status: "needs_confirmation", personalEnabled: false,
+        sources: [{ id: sourceId, kind: "medication_information", status: "needs_confirmation" }] }],
+      history: [], labReviews: [], legacyAntiPreferenceNeedsReview: false,
+    } as HealthContextView).mockResolvedValueOnce({
+      shadowOnly: true, builder: "standard", supports: [],
+      history: [], labReviews: [], legacyAntiPreferenceNeedsReview: false,
+    } as HealthContextView);
+    render(<HealthContextControls userId="person" />);
+    fireEvent.click(await screen.findByRole("button", { name: /medication information is no longer current/i }));
+    await waitFor(() => expect(mockApiRequest).toHaveBeenCalledWith(
+      `/api/health-context/medication/${sourceId}/past`,
+      expect.objectContaining({ method: "POST", body: "{}" }),
+    ));
+    expect(await screen.findByText(/review was recorded.*current meal safety rules remain unchanged/i)).toBeTruthy();
   });
 });
