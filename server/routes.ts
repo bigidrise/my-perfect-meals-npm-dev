@@ -6379,6 +6379,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bodyDietRestrictions = _resolvedPrimaryDiet.slice();
 
       let validatedCreateDishIntent: import("@shared/createDishIngredientExpansion").CreateDishIntent | null = null;
+      let createDishContract: import("./services/createDish/dishContract").CreateDishContract | undefined;
       let enforceRequestedDishIdentity = true;
       if (humanFoodCreator === "create_a_dish" && rawCreateDishIntent != null) {
         try {
@@ -6423,6 +6424,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               dalConstrainedByIntent: true,
             });
           }
+          const { resolveCreateDishContract } = await import("./services/createDish/dishContract");
+          createDishContract = resolveCreateDishContract(validatedCreateDishIntent, _dishDirective);
         } catch (intentError) {
           console.warn("[CreateDishIntent] rejected invalid or tampered intent", intentError);
           return res.status(400).json({
@@ -6492,6 +6495,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         _overriddenAvoidances,
         _overriddenDietaryIdentities,
         humanFoodCreator === "create_a_dish" ? rawCravingInput : undefined,
+        createDishContract,
       );
 
       if (humanFoodCreator === "create_a_dish") {
@@ -6593,6 +6597,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               _overriddenAvoidances,
               _overriddenDietaryIdentities,
               humanFoodCreator === "create_a_dish" ? rawCravingInput : undefined,
+              createDishContract,
             );
             if (_bglRetryOptions && _bglRetryOptions.length > 0) {
               // Revalidate against the SAME ceiling — the guardrail is never bypassed.
@@ -6834,6 +6839,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 _overriddenAvoidances,
                 _overriddenDietaryIdentities,
                 humanFoodCreator === "create_a_dish" ? rawCravingInput : undefined,
+                createDishContract,
               );
               if (retryOptions && retryOptions.length > 0) {
                 const retrySafe = retryOptions.filter(meal => {
@@ -7049,6 +7055,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             _overriddenAvoidances,
             _overriddenDietaryIdentities,
             humanFoodCreator === "create_a_dish" ? rawCravingInput : undefined,
+            createDishContract,
           );
           const protocolSafeRepairs = filterMealsByProtocol(repairOptions ?? [], _filterEnvelope, {
             generatorName: "craving_creator_final_repair",
@@ -7110,11 +7117,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      let createDishIntentFailureDetail: string | undefined;
       if (validatedCreateDishIntent && scannedOptions.length > 0) {
         const {
           applyCreateDishIntentWithSoftFallback,
           buildCreateDishIntentPrompt,
           evaluateCreateDishIntentEvidence,
+          buildCreateDishIntentRepairInstructions,
         } = await import("./services/createDish/createDishIntent");
         const intentResolution = applyCreateDishIntentWithSoftFallback(
           scannedOptions,
@@ -7147,10 +7156,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const failedDimensions = Array.from(new Set(
             initialEvidence.flatMap(({ evidence }) => evidence.failedDimensions),
           ));
+          const requiredCore = createDishContract?.leafVessel
+            ? "lettuce leaves used as the wrap vessel"
+            : createDishContract?.namedCore && createDishContract.namedFamily === "salad"
+              ? createDishContract.namedCore
+              : validatedCreateDishIntent.ingredient.canonicalName;
+          createDishIntentFailureDetail = failedDimensions.includes("ingredient")
+            ? `the defining ${requiredCore} in the recipe`
+            : `the requested ${failedDimensions.join(", ")} preparation`;
           try {
+            const repairInstructions = buildCreateDishIntentRepairInstructions(
+              validatedCreateDishIntent,
+              failedDimensions,
+              createDishContract!,
+            );
             const intentRepairOptions = await generateCravingMealOptions(
               `${cravingInput}\n\n[CREATE A DISH INTENT REPAIR — ONE ATTEMPT ONLY]\n` +
-              `The prior otherwise-valid candidates failed these fixed culinary dimensions: ${failedDimensions.join(", ")}.\n` +
+              `${repairInstructions}\n` +
               `${buildCreateDishIntentPrompt(validatedCreateDishIntent)}\n` +
               `Repair only those fixed dimensions. Do not change the user's selections or any safety, nutrition, clinical, allergy, avoidance, Cooking Method, or Cuisine requirement.`,
               normalizedTargetMealType,
@@ -7168,6 +7190,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               _overriddenAvoidances,
               _overriddenDietaryIdentities,
               rawCravingInput,
+              createDishContract,
             );
             const protocolSafeIntentRepairs = filterMealsByProtocol(
               intentRepairOptions ?? [],
@@ -7222,7 +7245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             : "no_candidates_survived",
           retryable: true,
           message: validatedCreateDishIntent
-            ? "We couldn't preserve the requested dish and preparation safely. Try another description or preparation."
+            ? `We couldn't verify ${createDishIntentFailureDetail ?? "the defining dish requirements"} for ${createDishContract?.requestedDish ?? rawCravingInput} together with all your food protections, even after a corrective attempt. Try another preparation or description.`
             : "We couldn't produce a meal that passed your food protections. Please try another request.",
         });
       }
@@ -7340,7 +7363,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(422).json({
             status: "unable_to_generate",
             reasonCode: "create_dish_intent_not_preserved",
-            message: "We couldn't preserve those preparation choices safely. Try changing one choice or use Surprise Me.",
+            message: `We couldn't verify the requested dish and preparation for ${createDishContract?.requestedDish ?? rawCravingInput} after final food validation. Try changing one choice or use Surprise Me.`,
           });
         }
       }

@@ -36,3 +36,9 @@ Generation must revalidate every option ID and compatibility against current ser
 **Why:** Presenting Tuna and Cauliflower as peer meanings of plain “steak” made the taxonomy technically defensible but unnatural and mixed primary ingredient with cut/form.
 
 **How to apply:** Keep species, form/cut, method, texture, flavor, and alternate interpretations separate. Add common fish deliberately with species-appropriate forms rather than giving every fish every cut.
+
+**Rule:** A named compound dish is more specific than its broad family. Affirmative culinary equivalents may prove its defining ingredient or physical role, but they never establish allergy, dietary, or clinical compliance.
+
+**Why:** Safe, recognizable composed dishes were rejected by an exact ingredient phrase check after general food validation, while a generic family prompt could demand the wrong structure. Relaxing safety to fix that would confuse identity with compliance.
+
+**How to apply:** Give generation and final intent evidence the same resolved dish identity; make repairs explain the missing structural role, then re-run every authoritative food gate. Never accept the dish name alone as proof that the defining ingredient is actually in the recipe.
