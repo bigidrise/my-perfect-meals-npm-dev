@@ -13,7 +13,7 @@
 
 import { isRecipeSensitiveDish } from './dishEngineRouter';
 import { getMeasurementPromptBlock, MeasurementSystem } from '../../shared/units';
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, filterMealsByProtocol, buildGuestEnvelope, deriveProcedureRules, type UserProtocolEnvelope } from './protocolEnvelope';
+import { loadUserProtocolEnvelope, loadGenerationProtocolEnvelope, ProtocolContextUnavailableError, enforceBeforeGenerate, scanGeneratedOutput, filterMealsByProtocol, buildGuestEnvelope, deriveProcedureRules, type UserProtocolEnvelope } from './protocolEnvelope';
 import { buildVegetableStrategyPrompt, NutritionStrategyContext, buildStrictModeBlock } from './promptBuilder';
 import { getDeterministicFallback, findMatchingTemplates, templateToMeal } from './templateMatcher';
 import { STARCHY_KEYWORDS } from '../../shared/starchKeywords';
@@ -713,7 +713,7 @@ export async function generateCravingMealUnified(
   // allergy, dietary rule, and avoidance stays enforced.
   if (result.success && userId) {
     const _cravingEnvelope =
-      (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope();
+      await loadGenerationProtocolEnvelope(userId);
     const _scanCtx = {
       generatorName: 'craving_unified',
       overriddenAllergens: overriddenAllergens?.length ? overriddenAllergens : undefined,
@@ -2188,9 +2188,8 @@ export async function generateCravingMealOptions(
     //   • procedural — preparation, equipment, and forbidden-instruction rules.
     // Both are injected into every generation attempt so Recipe Maker is
     // governed by the same complete Nutrition Life Plan as all other builders.
+    const envelope = await loadGenerationProtocolEnvelope(userId);
     try {
-      const envelope = await loadUserProtocolEnvelope(userId);
-      if (envelope) {
         const effectiveEnvelope = overriddenDietaryIdentities?.length
           ? (() => {
               const ignoredDiets = new Set(overriddenDietaryIdentities.map(value => value.trim().toLowerCase()));
@@ -2221,9 +2220,9 @@ export async function generateCravingMealOptions(
           proceduralBlock = promptBlock.layers.procedural;
           console.log(`[VARIETY ENGINE] Procedural enforcement active for user ${userId} (${effectiveEnvelope.dietaryIdentity.join(', ')})`);
         }
-      }
     } catch (err) {
-      console.warn("[VARIETY ENGINE] Could not load protocol envelope for protocol block:", err);
+      console.warn("[VARIETY ENGINE] Could not resolve protocol block:", err);
+      throw new ProtocolContextUnavailableError();
     }
   }
   if (dietaryRestrictionsOverride && dietaryRestrictionsOverride.length > 0) {
@@ -2804,7 +2803,7 @@ export async function generateFridgeRescueUnified(
   // Loaded BEFORE the cache check so cached meals are also post-scanned against
   // the user's CURRENT full protocol (allergies may have changed since caching).
   const _rawFridgeEnvelope = userId
-    ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+    ? await loadGenerationProtocolEnvelope(userId)
     : buildGuestEnvelope();
 
   // Post-generation safety scan applied to every meal this function returns —
@@ -3204,7 +3203,7 @@ async function generateBeverageFromDescription(
   console.log(`🍹 [CREATE-WITH-CHEF/BEVERAGE] "${beverageCategory}" intent detected — routing to beverage pipeline`);
 
   const envelope = userId
-    ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+    ? await loadGenerationProtocolEnvelope(userId)
     : buildGuestEnvelope();
   // PIN allergen override — exclude only the exactly-matching authorized
   // allergen(s) from the PROMPT envelope (exact canonical-key matching via
@@ -3526,7 +3525,7 @@ export async function generateFromDescriptionUnified(
     
     // ── Load protocol envelope (drives all dietary enforcement) ───────────────
     const chefEnvelope = protocolEnvelope ?? (userId
-      ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+      ? await loadGenerationProtocolEnvelope(userId)
       : buildGuestEnvelope());
 
     // Temporary diet override replaces the profile diet for this generation.
@@ -4527,7 +4526,7 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
     // ── Post-scan the deterministic fallback (full envelope + PIN override) ──
     // The resilience path must never bypass safety enforcement.
     const _chefFallbackEnvelope = protocolEnvelope ?? (userId
-      ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+      ? await loadGenerationProtocolEnvelope(userId)
       : buildGuestEnvelope());
     const _chefFallbackScan = scanGeneratedOutput(fallbackMeal, _chefFallbackEnvelope, {
       generatorName: 'create_with_chef_fallback',
@@ -4605,7 +4604,7 @@ export async function generateSnackFromCravingUnified(
     
     // ── Load protocol envelope (drives all dietary enforcement) ───────────────
     const snackEnvelope = protocolEnvelope ?? (userId
-      ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+      ? await loadGenerationProtocolEnvelope(userId)
       : buildGuestEnvelope());
 
     // PIN allergen override — exclude only the exactly-matching authorized
@@ -5114,7 +5113,7 @@ Create the personalized snack for: "${cravingDescription}"`;
     // ── Post-scan the deterministic fallback (full envelope + PIN override) ──
     // The resilience path must never bypass safety enforcement.
     const _snackFallbackEnvelope = protocolEnvelope ?? (userId
-      ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+      ? await loadGenerationProtocolEnvelope(userId)
       : buildGuestEnvelope());
     const _snackFallbackScan = scanGeneratedOutput(fallbackSnack, _snackFallbackEnvelope, {
       generatorName: 'snack_creator_fallback',

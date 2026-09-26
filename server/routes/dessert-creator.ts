@@ -12,7 +12,7 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
 import { buildPalateSection, PalatePreferences, buildStrictModeBlock, buildSweetenerAllowlistBlock, resolveSweetenerAllowlist } from "../services/promptBuilder";
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope, buildMealComplianceBundle } from "../services/protocolEnvelope";
+import { loadGenerationProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope, buildMealComplianceBundle } from "../services/protocolEnvelope";
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from "../services/behavioralMemoryService";
 import { getPrimaryDiet } from "../services/allergyGuardrails";
 import { buildChefAdaptationBlock } from "../utils/chefAdaptationBlock";
@@ -214,7 +214,7 @@ dessertCreatorRouter.post("/", async (req, res) => {
 
     // ── Load protocol envelope (drives all dietary enforcement) ───────────────
     const dessertEnvelope = (userId && userId !== "1")
-      ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+      ? await loadGenerationProtocolEnvelope(userId)
       : buildGuestEnvelope();
 
     // Apply per-request culture override if provided (overrides saved cuisine profile for this generation only)

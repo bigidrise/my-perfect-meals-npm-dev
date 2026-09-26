@@ -952,8 +952,8 @@ export async function loadUserProtocolEnvelope(
           .where(eq(householdProfiles.id, householdProfileId ?? (user as any).activeHouseholdProfileId))
           .limit(1);
 
-        if (householdProfileId && (!hProfile || hProfile.ownerUserId !== userId)) {
-          console.warn(`[ProtocolEnvelope] Explicit household profile is not owned by user ${userId}`);
+        if (!hProfile || hProfile.ownerUserId !== userId) {
+          console.warn(`[ProtocolEnvelope] Household profile is unavailable or not owned by user ${userId}`);
           return null;
         }
         if (hProfile && hProfile.ownerUserId === userId) {
@@ -1008,11 +1008,8 @@ export async function loadUserProtocolEnvelope(
           }
         }
       } catch (hErr) {
-        if (householdProfileId) {
-          console.error("[ProtocolEnvelope] Explicit household profile resolution failed:", hErr);
-          return null;
-        }
-        console.warn("[ProtocolEnvelope] Could not load household profile, falling back to owner:", hErr);
+        console.error("[ProtocolEnvelope] Household profile resolution failed:", hErr);
+        return null;
       }
     }
 
@@ -1102,6 +1099,7 @@ export async function loadUserProtocolEnvelope(
         diabeticGlucoseState = diabCtx.latestGlucose?.state ?? null;
       } catch (err) {
         console.warn("[ProtocolEnvelope] Could not load diabetic context:", err);
+        return null;
       }
     }
 
@@ -1420,8 +1418,8 @@ export async function loadUserProtocolEnvelope(
 
     // ── GLP-1 DAILY BEHAVIORAL TOLERANCE ────────────────────────────────────
     // Resolved only for users who have a GLP-1 / metabolic medication in their
-    // medical conditions. Falls back to null on any failure so the envelope
-    // never crashes due to missing check-in data.
+    // medical conditions. A failed clinical read must not look like an
+    // uneventful day with no symptoms.
     // The resolved guidance string is pushed into conditionGuidanceBlocks so
     // every generator automatically receives today's tolerance state without
     // any per-generator wiring.
@@ -1434,6 +1432,7 @@ export async function loadUserProtocolEnvelope(
         conditionGuidanceBlocks.push(buildGlp1ToleranceBlock(glp1DailyTolerance));
       } catch (err) {
         console.warn("[ProtocolEnvelope] GLP-1 daily tolerance resolution failed:", err);
+        return null;
       }
     }
 
@@ -1506,8 +1505,8 @@ export async function loadUserProtocolEnvelope(
         );
       }
     } catch (err) {
-      // Never crash envelope loading due to intervention query failure
       console.error(`[ProtocolEnvelope] Failed to load provider interventions for user ${userId}:`, err);
+      return null;
     }
 
     const envelope: any = {
@@ -1646,6 +1645,30 @@ function buildGlp1ToleranceBlock(t: DailyMedicationTolerance): string {
  * Build an empty envelope for unauthenticated or guest contexts.
  * Generators should use this instead of skipping enforcement entirely.
  */
+export class ProtocolContextUnavailableError extends Error {
+  readonly status = 503;
+  readonly code = "PROTOCOL_CONTEXT_UNRESOLVED";
+  constructor() {
+    super("Your food safety information could not be verified. No food was generated; please retry.");
+    this.name = "ProtocolContextUnavailableError";
+  }
+}
+
+/** Only a genuinely anonymous request may use guest authority. */
+export async function loadGenerationProtocolEnvelope(
+  userId?: string | null,
+): Promise<UserProtocolEnvelope> {
+  if (!userId) return buildGuestEnvelope();
+  let envelope: UserProtocolEnvelope | null;
+  try {
+    envelope = await loadUserProtocolEnvelope(userId);
+  } catch {
+    throw new ProtocolContextUnavailableError();
+  }
+  if (!envelope) throw new ProtocolContextUnavailableError();
+  return envelope;
+}
+
 export function buildGuestEnvelope(): UserProtocolEnvelope {
   return {
     userId: "guest",

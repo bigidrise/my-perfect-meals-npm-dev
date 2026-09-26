@@ -1,7 +1,7 @@
 import { Router } from "express";
 import OpenAI from "openai";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope } from "../services/protocolEnvelope";
+import { loadGenerationProtocolEnvelope, ProtocolContextUnavailableError, enforceBeforeGenerate, buildGuestEnvelope } from "../services/protocolEnvelope";
 import { getAuthUserId } from "../utils/getAuthUserId";
 
 let _openai: OpenAI | null = null;
@@ -63,7 +63,7 @@ chefPairingsRouter.post("/", async (req, res) => {
 
     // ── Protocol envelope: enforce dietary identity before generation ──────────
     const chefPairingsEnvelope = userId
-      ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+      ? await loadGenerationProtocolEnvelope(userId)
       : buildGuestEnvelope();
     const chefPairingsProtocolBlock = enforceBeforeGenerate(chefPairingsEnvelope, { generatorName: 'chef_pairings' }).combined;
 
@@ -180,6 +180,9 @@ RULES:
     });
   } catch (err: any) {
     console.error("[CHEF-PAIRINGS] Error:", err);
+    if (err instanceof ProtocolContextUnavailableError) {
+      return res.status(err.status).json({ code: err.code, message: err.message, retryable: true });
+    }
     return res.status(500).json({ error: "Failed to generate pairings" });
   }
 });

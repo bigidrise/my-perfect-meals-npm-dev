@@ -1,11 +1,22 @@
 import { Router } from "express";
 import { z } from "zod";
+import { db, pool } from "../db";
+import { users } from "../../shared/schema";
+import { eq } from "drizzle-orm";
+import { checkLegalAcceptance } from "../services/legalCheck";
+import { exactFoodDirectiveSchema } from "../../shared/clinicalMealAuthority";
 import { HEALTH_PROTOCOLS, type HealthProtocol } from "../../shared/healthProtocolState";
 import { isSelfSelectableSupport } from "../../shared/nutritionSupportOptions";
 import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
 import {
   readHealthContextView, decideLegacySupport, decideEarlierAntiPreference, markMedicationInformationPast,
+  reconcileLegacyClaim,
 } from "../services/healthProtocols/healthContextControl";
+import {
+  recordSubjectClinicalReview, recordSubjectHardFoodRestriction,
+  recordProviderFoodDirective, discontinueProviderFoodDirective,
+  verifyLegacyClaimAsProviderDirective,
+} from "../services/healthProtocols/clinicalDirectiveStorage";
 import {
   setUserNutritionSupport, discontinueLabProtocol, decideSystemRecommendation, recordLabDecision,
 } from "../services/healthProtocols/persistence";
@@ -15,6 +26,30 @@ const decision = z.object({ current: z.boolean() }).strict();
 const support = z.object({ enabled: z.boolean() }).strict();
 const recommendation = z.object({ accept: z.boolean() }).strict();
 const uuid = z.string().uuid();
+const sourceReview = z.discriminatedUnion("decision", [
+  z.object({ decision: z.literal("history_only") }).strict(),
+  z.object({ decision: z.literal("historical") }).strict(),
+  z.object({ decision: z.literal("current_guidance") }).strict(),
+  z.object({ decision: z.literal("unresolved") }).strict(),
+  z.object({ decision: z.literal("current_hard_restriction"), rule: exactFoodDirectiveSchema }).strict(),
+]);
+const providerDirective = z.object({
+  sourceId: uuid, membershipId: uuid, rule: exactFoodDirectiveSchema,
+  effectiveAt: z.string().datetime(), expiresAt: z.string().datetime().nullable().optional(),
+  supersedesId: uuid.nullable().optional(),
+}).strict();
+
+async function authorizeClinicalReview(actorId: string, subjectId: string) {
+  const [professional] = await db.select({
+    role: users.professionalRole, training: users.procareTrainingCompleted,
+  }).from(users).where(eq(users.id, actorId)).limit(1);
+  if (professional?.role !== "physician" || professional.training !== true) return false;
+  const [providerLegal, patientLegal] = await Promise.all([
+    checkLegalAcceptance(actorId, "physician"),
+    checkLegalAcceptance(subjectId, "patient_physician"),
+  ]);
+  return providerLegal.allAccepted && patientLegal.allAccepted;
+}
 
 export default function healthContextControlRouter() {
   const router = Router();
@@ -177,6 +212,161 @@ export default function healthContextControlRouter() {
       return res.json(await readHealthContextView(subjectUserId));
     } catch {
       return res.status(404).json({ message: "That recommendation is unavailable." });
+    }
+  });
+
+  router.post("/source/:sourceId/review", async (req, res) => {
+    const sourceId = uuid.safeParse(req.params.sourceId);
+    const body = sourceReview.safeParse(req.body);
+    if (!sourceId.success || !body.success) {
+      return res.status(400).json({ message: "Choose a review outcome and an exact rule when required." });
+    }
+    const subjectUserId = (req as unknown as AuthenticatedRequest).authUser.id;
+    try {
+      const { rows } = await pool.query(
+        `SELECT source_kind FROM health_protocol_sources WHERE id=$1 AND subject_user_id=$2`,
+        [sourceId.data, subjectUserId],
+      );
+      const kind = rows[0]?.source_kind;
+      if (kind === "legacy_migrated") {
+        if (body.data.decision === "historical") {
+          return res.json(await reconcileLegacyClaim({
+            actorUserId: subjectUserId, subjectUserId, sourceId: sourceId.data,
+            decision: "history_only",
+          }));
+        }
+        return res.json(await reconcileLegacyClaim({
+          actorUserId: subjectUserId, subjectUserId, sourceId: sourceId.data,
+          decision: body.data.decision, ...("rule" in body.data ? { rule: body.data.rule } : {}),
+        }));
+      }
+      if (kind !== "user" && kind !== "lab") {
+        return res.status(403).json({ message: "This source needs a separate authorized clinical review." });
+      }
+      if (body.data.decision === "current_hard_restriction") {
+        await recordSubjectHardFoodRestriction({
+          actorUserId: subjectUserId, subjectUserId, sourceId: sourceId.data,
+          rule: body.data.rule, effectiveAt: new Date(), reasonCode: "subject_exact_review",
+        });
+      } else {
+        await recordSubjectClinicalReview({
+          actorUserId: subjectUserId, subjectUserId, sourceId: sourceId.data,
+          disposition: body.data.decision, reasonCode: "subject_explicit_review",
+        });
+      }
+      return res.json(await readHealthContextView(subjectUserId));
+    } catch {
+      return res.status(503).json({ message: "Your review could not be verified or saved. No meal rules changed." });
+    }
+  });
+
+  // Physician actions are deliberately separate from patient review and only
+  // exist on this DEV-gated router. The storage service rechecks exact source
+  // ownership, verified active clinic membership and subject inside its lock.
+  router.get("/provider/:subjectId/sources", async (req, res) => {
+    const actorId = (req as unknown as AuthenticatedRequest).authUser.id;
+    const subjectId = req.params.subjectId;
+    try {
+      if (!await authorizeClinicalReview(actorId, subjectId)) {
+        return res.status(403).json({ message: "Current physician training and legal consent are required." });
+      }
+      const { rows } = await pool.query(
+        `SELECT p.id, p.protocol_key, p.care_relationship_id,
+                d.id AS directive_id, d.rule,
+                (SELECT r.disposition FROM health_protocol_review_decisions r
+                 WHERE r.directive_id=d.id ORDER BY r.decided_at DESC, r.id DESC LIMIT 1) AS disposition
+         FROM health_protocol_sources p
+         JOIN studio_memberships sm ON sm.id=p.care_relationship_id
+         JOIN studios s ON s.id=sm.studio_id
+         LEFT JOIN health_protocol_food_directives d ON d.source_id=p.id
+         WHERE p.subject_user_id=$1 AND p.owner_user_id=$2
+           AND p.source_kind='provider' AND p.status='active'
+           AND sm.client_user_id=$1 AND sm.status='active' AND sm.is_archived=false
+           AND s.owner_user_id=$2 AND s.type='clinic' AND s.status='active'
+           AND s.verification_status='verified'
+         ORDER BY p.created_at, d.created_at, d.id`,
+        [subjectId, actorId],
+      );
+      const { rows: legacyClaims } = await pool.query(
+        `SELECT DISTINCT p.id, p.protocol_key, sm.id AS membership_id
+         FROM health_protocol_sources p
+         JOIN studio_memberships sm ON sm.client_user_id=p.subject_user_id
+         JOIN studios s ON s.id=sm.studio_id
+         WHERE p.subject_user_id=$1 AND p.source_kind='legacy_migrated'
+           AND p.status='pending_review' AND sm.status='active' AND sm.is_archived=false
+           AND s.owner_user_id=$2 AND s.type='clinic' AND s.status='active'
+           AND s.verification_status='verified'
+         ORDER BY p.id, sm.id`,
+        [subjectId, actorId],
+      );
+      return res.json({ shadowOnly: true, sources: rows, legacyClaims });
+    } catch {
+      return res.status(503).json({ message: "Provider sources could not be verified." });
+    }
+  });
+
+  router.post("/provider/:subjectId/legacy/:legacySourceId/verify", async (req, res) => {
+    const legacySourceId = uuid.safeParse(req.params.legacySourceId);
+    const body = providerDirective.omit({ sourceId: true, supersedesId: true }).safeParse(req.body);
+    if (!legacySourceId.success || !body.success) {
+      return res.status(400).json({ message: "A pending claim, verified relationship, and exact instruction are required." });
+    }
+    const actorId = (req as unknown as AuthenticatedRequest).authUser.id;
+    try {
+      if (!await authorizeClinicalReview(actorId, req.params.subjectId)) {
+        return res.status(403).json({ message: "Current physician training and legal consent are required." });
+      }
+      const result = await verifyLegacyClaimAsProviderDirective({
+        actorUserId: actorId, subjectUserId: req.params.subjectId,
+        legacySourceId: legacySourceId.data, membershipId: body.data.membershipId,
+        rule: body.data.rule, effectiveAt: new Date(body.data.effectiveAt),
+        expiresAt: body.data.expiresAt ? new Date(body.data.expiresAt) : null,
+      });
+      return res.json({ shadowOnly: true, ...result });
+    } catch {
+      return res.status(503).json({ message: "Clinical ownership or exact instruction could not be verified. No claim was reconciled." });
+    }
+  });
+
+  router.post("/provider/:subjectId/directive", async (req, res) => {
+    const body = providerDirective.safeParse(req.body);
+    if (!body.success) return res.status(400).json({ message: "An exact current instruction is required." });
+    const actorId = (req as unknown as AuthenticatedRequest).authUser.id;
+    try {
+      if (!await authorizeClinicalReview(actorId, req.params.subjectId)) {
+        return res.status(403).json({ message: "Current physician training and legal consent are required." });
+      }
+      const id = await recordProviderFoodDirective({
+        actorUserId: actorId, subjectUserId: req.params.subjectId,
+        sourceId: body.data.sourceId, membershipId: body.data.membershipId,
+        rule: body.data.rule, effectiveAt: new Date(body.data.effectiveAt),
+        expiresAt: body.data.expiresAt ? new Date(body.data.expiresAt) : null,
+        supersedesId: body.data.supersedesId,
+        reasonCode: "provider_exact_review",
+      });
+      return res.json({ shadowOnly: true, directiveId: id });
+    } catch {
+      return res.status(503).json({ message: "Provider ownership or directive could not be verified. Nothing was changed." });
+    }
+  });
+
+  router.post("/provider/:subjectId/directive/:directiveId/discontinue", async (req, res) => {
+    const body = z.object({ sourceId: uuid, membershipId: uuid }).strict().safeParse(req.body);
+    const directiveId = uuid.safeParse(req.params.directiveId);
+    if (!body.success || !directiveId.success) return res.status(400).json({ message: "Choose a valid directive." });
+    const actorId = (req as unknown as AuthenticatedRequest).authUser.id;
+    try {
+      if (!await authorizeClinicalReview(actorId, req.params.subjectId)) {
+        return res.status(403).json({ message: "Current physician training and legal consent are required." });
+      }
+      await discontinueProviderFoodDirective({
+        actorUserId: actorId, subjectUserId: req.params.subjectId,
+        sourceId: body.data.sourceId, membershipId: body.data.membershipId,
+        directiveId: directiveId.data,
+      });
+      return res.json({ shadowOnly: true, status: "historical" });
+    } catch {
+      return res.status(503).json({ message: "The provider directive could not be updated." });
     }
   });
   return router;

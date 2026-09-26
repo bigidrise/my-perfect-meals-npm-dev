@@ -38,6 +38,13 @@ const selectedUser = {
 };
 const mockPersonalSupports = jest.fn(async () => new Set<string>());
 const mockQuery = jest.fn(async () => ({ rows: [] }));
+const mockTolerance = jest.fn(async () => ({
+  date: "2026-09-26", safetyEscalations: [], nutritionAdaptations: [],
+}));
+const mockDiabeticContext = jest.fn(async () => ({ latestGlucose: null }));
+let mockUserMissing = false;
+let mockUserLoadFailure = false;
+let mockSelectCalls = 0;
 jest.mock("../services/healthProtocols/developmentFoodSupports", () => ({
   readDevelopmentPersonalFoodSupports: (...args: unknown[]) => mockPersonalSupports(...args),
 }));
@@ -45,24 +52,67 @@ jest.mock("../services/healthProtocols/developmentFoodSupports", () => ({
 jest.mock("../db", () => ({
   pool: { query: (...args: unknown[]) => mockQuery(...args) },
   db: {
-    select: () => ({
+    select: () => {
+      mockSelectCalls++;
+      return ({
       from: () => ({
         where: () => ({
-          limit: async () => [selectedUser],
+          limit: async () => {
+            if (mockUserLoadFailure) throw new Error("Database unavailable");
+            return mockUserMissing ? [] : [selectedUser];
+          },
         }),
       }),
-    }),
+    });
+    },
   },
 }));
 
 jest.mock("../services/diabeticContextService", () => ({
-  getDiabeticContext: jest.fn(async () => ({ latestGlucose: null })),
+  getDiabeticContext: (...args: unknown[]) => mockDiabeticContext(...args),
   getGlucoseBasedMealGuidance: jest.fn(() => null),
 }));
+jest.mock("../services/glp1/resolveDailyMedicationTolerance", () => ({
+  resolveDailyMedicationTolerance: (...args: unknown[]) => mockTolerance(...args),
+}));
 
-import { buildGuestEnvelope, enforceBeforeGenerate, loadUserProtocolEnvelope, scanGeneratedOutput } from "../services/protocolEnvelope";
+import { buildGuestEnvelope, enforceBeforeGenerate, loadUserProtocolEnvelope, loadGenerationProtocolEnvelope, ProtocolContextUnavailableError, scanGeneratedOutput } from "../services/protocolEnvelope";
 
 describe("protocol envelope medicalConditions projection", () => {
+  it("reserves guest authority for genuinely anonymous generation", async () => {
+    mockSelectCalls = 0;
+    expect((await loadGenerationProtocolEnvelope(null)).userId).toBe("guest");
+    expect(mockSelectCalls).toBe(0);
+  });
+  it("uses the authenticated envelope and does not erase known allergies", async () => {
+    selectedUser.allergies = ["peanut"];
+    try {
+      const envelope = await loadGenerationProtocolEnvelope("protocol-user");
+      expect(envelope.userId).toBe("protocol-user");
+      expect(envelope.allergies).toContain("peanut");
+    } finally { selectedUser.allergies = []; }
+  });
+  it.each(["missing", "database failure"])("fails closed on authenticated %s", async (scenario) => {
+    mockUserMissing = scenario === "missing";
+    mockUserLoadFailure = scenario === "database failure";
+    try {
+      await expect(loadGenerationProtocolEnvelope("protocol-user")).rejects.toBeInstanceOf(ProtocolContextUnavailableError);
+      await expect(loadGenerationProtocolEnvelope("protocol-user")).rejects.toMatchObject({
+        status: 503, code: "PROTOCOL_CONTEXT_UNRESOLVED",
+      });
+    } finally { mockUserMissing = false; mockUserLoadFailure = false; }
+  });
+  it("does not generate when required diabetes or GLP-1 tolerance reads fail", async () => {
+    selectedUser.healthConditions = ["diabetes"];
+    mockDiabeticContext.mockRejectedValueOnce(new Error("glucose unavailable"));
+    expect(await loadUserProtocolEnvelope("protocol-user")).toBeNull();
+    await expect(loadGenerationProtocolEnvelope("protocol-user")).resolves.toMatchObject({
+      userId: "protocol-user",
+    });
+    selectedUser.healthConditions = [];
+    mockTolerance.mockRejectedValueOnce(new Error("tolerance unavailable"));
+    await expect(loadGenerationProtocolEnvelope("protocol-user")).rejects.toBeInstanceOf(ProtocolContextUnavailableError);
+  });
   it("does not promote ambiguous legacy GLP-1 into an Anti-Inflammatory envelope in Development", async () => {
     const previousEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = "development";
@@ -129,6 +179,8 @@ describe("protocol envelope medicalConditions projection", () => {
     selectedUser.pregnancySupportContext = null;
     mockPersonalSupports.mockReset();
     mockPersonalSupports.mockResolvedValue(new Set());
+    mockTolerance.mockClear();
+    mockDiabeticContext.mockClear();
   });
   it("promotes GLP-1 medication keys but keeps non-GLP-1 routing flags out", async () => {
     const envelope = await loadUserProtocolEnvelope("protocol-user");

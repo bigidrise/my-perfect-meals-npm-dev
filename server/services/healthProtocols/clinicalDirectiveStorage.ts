@@ -8,7 +8,7 @@ import {
   type ExactFoodDirective,
 } from "../../../shared/clinicalMealAuthority";
 import type { FoodBuilderStrategy, HealthProtocol } from "../../../shared/healthProtocolState";
-import { readShadowProtocolRecords, shadowTransaction, devOnly } from "./persistence";
+import { readShadowProtocolRecords, shadowTransaction, devOnly, putClaim } from "./persistence";
 import { resolveClinicalMealAuthority } from "./resolveClinicalMealAuthority";
 
 type ProviderWrite = {
@@ -18,7 +18,22 @@ type ProviderWrite = {
   sourceId: string;
 };
 
+async function lockVerifiedMembership(client: PoolClient, input: Pick<ProviderWrite, "actorUserId" | "subjectUserId" | "membershipId">) {
+  const { rows } = await client.query(
+    `SELECT sm.id FROM studio_memberships sm JOIN studios s ON s.id=sm.studio_id
+     WHERE sm.id=$1 AND sm.client_user_id=$2 AND sm.status='active'
+       AND sm.is_archived=false AND s.owner_user_id=$3 AND s.type='clinic'
+       AND s.status='active' AND s.verification_status='verified'
+     FOR UPDATE OF sm, s`,
+    [input.membershipId, input.subjectUserId, input.actorUserId],
+  );
+  if (!rows[0]) throw new Error("An active verified physician relationship is required.");
+}
+
 async function lockVerifiedProviderSource(client: PoolClient, input: ProviderWrite) {
+  // Take membership/clinic locks before source locks in every provider write,
+  // so revocation cannot race the final instruction commit.
+  await lockVerifiedMembership(client, input);
   const { rows } = await client.query<{ protocol_key: HealthProtocol }>(
     `SELECT p.protocol_key FROM health_protocol_sources p
      JOIN studio_memberships sm ON sm.id=p.care_relationship_id
@@ -96,6 +111,92 @@ export async function recordProviderFoodDirective(input: ProviderWrite & {
   });
 }
 
+/**
+ * A physician verifies one pending historical claim against a current,
+ * exact instruction. The legacy source remains intact; its historical
+ * transition event names the created directive ID for an auditable link.
+ * Provider source ownership and membership are checked under one transaction.
+ */
+export async function verifyLegacyClaimAsProviderDirective(input: Omit<ProviderWrite, "sourceId"> & {
+  legacySourceId: string;
+  rule: ExactFoodDirective;
+  effectiveAt: Date;
+  expiresAt?: Date | null;
+}): Promise<{ providerSourceId: string; directiveId: string }> {
+  const rule = exactFoodDirectiveSchema.parse(input.rule);
+  if (!Number.isFinite(input.effectiveAt.getTime()) ||
+      (input.expiresAt && (!Number.isFinite(input.expiresAt.getTime()) ||
+        input.expiresAt <= input.effectiveAt))) {
+    throw new Error("A valid exact directive interval is required.");
+  }
+  return shadowTransaction(async (client) => {
+    const { rows: legacy } = await client.query<{ protocol_key: HealthProtocol }>(
+      `SELECT protocol_key FROM health_protocol_sources
+       WHERE id=$1 AND subject_user_id=$2 AND source_kind='legacy_migrated'
+         AND status='pending_review' FOR UPDATE`,
+      [input.legacySourceId, input.subjectUserId],
+    );
+    if (!legacy[0]) throw new Error("A pending historical claim is required.");
+    await lockVerifiedMembership(client, input);
+    const providerSourceId = await putClaim(client, {
+      actorUserId: input.actorUserId, subjectUserId: input.subjectUserId,
+      protocol: legacy[0].protocol_key, source: "provider",
+      evidenceRef: `membership:${input.membershipId}`, status: "active",
+      ownerUserId: input.actorUserId, careRelationshipId: input.membershipId,
+      reasonCode: "provider_verified_legacy_claim",
+    });
+    const lockedProtocol = await lockVerifiedProviderSource(client, {
+      actorUserId: input.actorUserId, subjectUserId: input.subjectUserId,
+      sourceId: providerSourceId, membershipId: input.membershipId,
+    });
+    if (lockedProtocol !== legacy[0].protocol_key) throw new Error("Clinical source protocol mismatch.");
+    const { rows: directives } = await client.query<{ id: string }>(
+      `INSERT INTO health_protocol_food_directives
+       (subject_user_id, source_id, protocol_key, rule, effective_at, expires_at)
+       VALUES ($1,$2,$3,$4::jsonb,$5,$6) RETURNING id`,
+      [input.subjectUserId, providerSourceId, lockedProtocol,
+        JSON.stringify(rule), input.effectiveAt, input.expiresAt ?? null],
+    );
+    const directiveId = directives[0]?.id;
+    if (!directiveId) throw new Error("Verified instruction was not saved.");
+    await client.query(
+      `INSERT INTO health_protocol_review_decisions
+       (subject_user_id, source_id, directive_id, disposition, actor_user_id, reason_code)
+       VALUES ($1,$2,$3,'verified_provider_directive',$4,'provider_verified_legacy_claim')`,
+      [input.subjectUserId, providerSourceId, directiveId, input.actorUserId],
+    );
+    const { rows: reviewed } = await client.query<{ id: string }>(
+      `INSERT INTO health_protocol_review_decisions
+       (subject_user_id, source_id, disposition, actor_user_id, reason_code)
+       VALUES ($1,$2,'history_only',$3,'legacy_replaced_by_provider_directive') RETURNING id`,
+      [input.subjectUserId, input.legacySourceId, input.actorUserId],
+    );
+    if (!reviewed[0]) throw new Error("The original claim review was not recorded.");
+    await client.query(
+      `INSERT INTO health_protocol_review_links
+       (origin_source_id, subject_user_id, review_decision_id,
+        result_source_id, directive_id, actor_user_id)
+       VALUES ($1,$2,$3,$4,$5,$6)`,
+      [input.legacySourceId, input.subjectUserId, reviewed[0].id,
+        providerSourceId, directiveId, input.actorUserId],
+    );
+    await client.query(
+      `UPDATE health_protocol_sources
+       SET status='historical', ended_at=now(), reviewed_at=now(), updated_at=now()
+       WHERE id=$1 AND subject_user_id=$2 AND status='pending_review'`,
+      [input.legacySourceId, input.subjectUserId],
+    );
+    // The append-only link row is the relational provenance edge.
+    await client.query(
+      `INSERT INTO health_protocol_events
+       (source_id, actor_user_id, old_status, new_status, reason_code)
+       VALUES ($1,$2,'pending_review','historical',$3)`,
+      [input.legacySourceId, input.actorUserId, "legacy_verified_provider_directive"],
+    );
+    return { providerSourceId, directiveId };
+  });
+}
+
 /** A provider ends only their own exact directive; source history is retained. */
 export async function discontinueProviderFoodDirective(input: ProviderWrite & {
   directiveId: string;
@@ -140,7 +241,7 @@ export async function recordSubjectClinicalReview(input: {
   clinicalReviewDispositionSchema.parse(input.disposition);
   await shadowTransaction(async (client) => {
     const { rows } = await client.query(
-      `SELECT id FROM health_protocol_sources
+      `SELECT id, source_kind, status FROM health_protocol_sources
        WHERE id=$1 AND subject_user_id=$2
          AND source_kind IN ('user','lab','legacy_migrated')
          AND ($3::text <> 'current_guidance' OR
@@ -151,19 +252,52 @@ export async function recordSubjectClinicalReview(input: {
       [input.sourceId, input.subjectUserId, input.disposition],
     );
     if (!rows[0]) throw new Error("Subject cannot review this clinical source.");
+    if ((input.disposition === "historical" || input.disposition === "history_only") &&
+        rows[0].source_kind === "user" && rows[0].status !== "active") {
+      throw new Error("Only a current personal source can be marked past.");
+    }
     await client.query(
       `INSERT INTO health_protocol_review_decisions
        (subject_user_id, source_id, disposition, actor_user_id, reason_code)
        VALUES ($1,$2,$3,$4,$5)`,
       [input.subjectUserId, input.sourceId, input.disposition, input.actorUserId, input.reasonCode],
     );
+    if ((input.disposition === "historical" || input.disposition === "history_only") &&
+        rows[0].source_kind === "user") {
+      // The same transaction ends any typed personal rules linked to this
+      // source. No provider-owned source can satisfy the locked selector.
+      await client.query(
+        `INSERT INTO health_protocol_review_decisions
+         (subject_user_id, source_id, directive_id, disposition, actor_user_id, reason_code)
+         SELECT d.subject_user_id, d.source_id, d.id, 'historical', $3, 'subject_rule_ended'
+         FROM health_protocol_food_directives d
+         WHERE d.subject_user_id=$1 AND d.source_id=$2 AND
+           (SELECT r.disposition FROM health_protocol_review_decisions r
+            WHERE r.directive_id=d.id ORDER BY r.decided_at DESC, r.id DESC LIMIT 1)
+            = 'current_hard_restriction'`,
+        [input.subjectUserId, input.sourceId, input.actorUserId],
+      );
+      await client.query(
+        `UPDATE health_protocol_sources
+         SET status='historical', ended_at=now(), reviewed_at=now(), updated_at=now()
+         WHERE id=$1 AND subject_user_id=$2 AND source_kind='user' AND status='active'`,
+        [input.sourceId, input.subjectUserId],
+      );
+      await client.query(
+        `INSERT INTO health_protocol_events
+         (source_id, actor_user_id, old_status, new_status, reason_code)
+         VALUES ($1,$2,'active','historical','subject_reviewed_source_past')`,
+        [input.sourceId, input.actorUserId],
+      );
+    }
   });
 }
 
 /**
  * Explicit subject-owned hard restriction, separate from a condition name.
  * Existing allergies and other hard safety mechanisms remain independent.
- * This is not exposed as a patient-facing endpoint during the overlay freeze.
+ * Development review may expose this typed, subject-owned decision without
+ * activating it for live food generation.
  */
 export async function recordSubjectHardFoodRestriction(input: {
   actorUserId: string;

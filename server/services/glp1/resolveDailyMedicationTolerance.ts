@@ -383,10 +383,8 @@ export async function resolveDailyMedicationTolerance(
       };
     }
   } catch (err) {
-    console.warn(
-      "[resolveDailyMedicationTolerance] Failed to load hub check-in — skipping:",
-      err
-    );
+    console.error("[resolveDailyMedicationTolerance] Hub check-in unavailable:", err);
+    throw err;
   }
 
   // ── 2. Load ACE conversational check-in ───────────────────────────────────
@@ -419,10 +417,8 @@ export async function resolveDailyMedicationTolerance(
       aceUpdatedAt = aceRows[0].updatedAt ?? null;
     }
   } catch (err) {
-    console.warn(
-      "[resolveDailyMedicationTolerance] Failed to load ACE check-in — using empty symptoms:",
-      err
-    );
+    console.error("[resolveDailyMedicationTolerance] ACE check-in unavailable:", err);
+    throw err;
   }
 
   // ── 3. Merge-by-timestamp: pick most recent source ────────────────────────
@@ -457,10 +453,8 @@ export async function resolveDailyMedicationTolerance(
       );
     waterMlLogged = waterRows[0] ? Number(waterRows[0].total) : 0;
   } catch (err) {
-    console.warn(
-      "[resolveDailyMedicationTolerance] Failed to load water logs — defaulting to 0 mL:",
-      err
-    );
+    console.error("[resolveDailyMedicationTolerance] Water log unavailable:", err);
+    throw err;
   }
 
   // ── 5. Derive directional flags ────────────────────────────────────────────
