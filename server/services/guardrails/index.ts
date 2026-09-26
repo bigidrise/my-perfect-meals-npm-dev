@@ -329,9 +329,8 @@ export function applyGuardrails(
   // diet type is not 'glp1', append GLP-1 constraints as a mandatory medical
   // protocol additive layer (does not replace the primary diet's prompt).
   //
-  // Activation: any source — selectedMealBuilder, medicalConditions,
-  // specialtyConditions, preferredBuilder, or glp1_profile row — triggers
-  // this overlay. The overlay carries the patient-specific calorie/protein/fat
+  // Activation is decided by the canonical GLP-1 context before these targets
+  // reach this function. The overlay carries patient-specific calorie/protein/fat
   // ceilings from resolveGLP1MealTargets, or baseline values on fallback.
   if (glp1Targets && dietType !== 'glp1') {
     modifiedPrompt = modifiedPrompt + buildGLP1ConstraintOverlay(mealType, glp1Targets);

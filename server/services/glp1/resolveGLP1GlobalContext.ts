@@ -6,10 +6,9 @@
  * generating and food-recommending surface so the user experiences one
  * consistent GLP-1 intelligence layer, not per-feature recreations.
  *
- * ACTIVATION: GLP-1 is active when ANY of these current-state sources is true —
- *   • users.selectedMealBuilder === "glp1"         (user's currently selected builder)
- *   • users.medicalConditions contains "glp1"      (physician-managed: PUT /api/pro/glp1-protocol/:id)
- *   • users.specialtyConditions contains a GLP-1 keyword (updateable specialty overlay)
+ * In Development, current Builder or explicitly current verified clinical/
+ * medication sources activate this context. Legacy condition arrays retain
+ * history but cannot independently activate food rules.
  *
  * INTENTIONALLY EXCLUDED as activation sources:
  *   • users.preferredBuilder — "starting recommendation from onboarding" (schema comment),
@@ -17,9 +16,7 @@
  *   • glp1_profile row exists — table has no is_active field; a row persists forever
  *     after GLP-1 setup completes with no deactivation mechanism
  *
- * FUTURE: Add users.glp1_protocol_active boolean (canonical single flag).
- *   The three sources above establish/migrate that state, but every feature should
- *   eventually ask one question: "Is this person's GLP-1 protocol currently active?"
+ * Production's established legacy activation remains unchanged until release.
  *
  * GLP-1 + PERFORMANCE COMPOSITION:
  *   When Performance is also active (users.performanceModeEnabled), the
@@ -45,10 +42,8 @@ import { loadGLP1ResolvedTargets } from "./glp1TargetLoader";
 import type { ResolvedGLP1Targets } from "./resolveGLP1MealTargets";
 import { resolveDailyNutritionState } from "../nutritionStateService";
 import type { DailyNutritionState } from "../../../shared/dailyNutritionPrescription";
-import { detectLegacyGLP1ActivationSources } from "./activationSources";
-import { readDevelopmentPersonalFoodSupports } from "../healthProtocols/developmentFoodSupports";
-import type { GLP1ActivationSource } from "./activationSources";
-export type { GLP1ActivationSource } from "./activationSources";
+import { resolveCurrentGLP1MealAuthority, type CurrentGLP1Source } from "./currentMealAuthority";
+export type GLP1ActivationSource = CurrentGLP1Source;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -127,14 +122,9 @@ export async function resolveGLP1GlobalContext(
   }
 
   // ── 2. Detect activation from every possible source ──────────────────────
-  // Source order and keyword matching are unchanged. This same predicate is
-  // shared with the DEV shadow comparison; preferredBuilder and profile-row
-  // existence are intentionally excluded.
-  const activationSources: GLP1ActivationSource[] = detectLegacyGLP1ActivationSources(userRow);
-  if (!userRow?.activeHouseholdProfileId &&
-      (await readDevelopmentPersonalFoodSupports(userId)).has("glp1")) {
-    activationSources.push("personalNutritionSupport");
-  }
+  const activationSources = userRow
+    ? await resolveCurrentGLP1MealAuthority(userRow)
+    : [];
 
   const isActive = activationSources.length > 0;
 

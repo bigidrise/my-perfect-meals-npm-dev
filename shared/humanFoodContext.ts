@@ -63,6 +63,8 @@ export interface HumanFoodSafetyContext {
   avoidedFoods: string[];
   dislikedFoods: string[];
   healthConditions: string[];
+  /** Server-resolved current authority; legacy condition text is history, not proof. */
+  glp1MealAuthorityActive?: boolean;
 }
 
 /**

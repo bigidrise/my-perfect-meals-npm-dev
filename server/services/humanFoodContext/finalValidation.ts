@@ -1,3 +1,4 @@
+import { currentGLP1AuthorityEnabled } from "../glp1/currentMealAuthority";
 import type { HumanFoodContext } from "../../../shared/humanFoodContext";
 import {
   HUMAN_FOOD_VALIDATOR_VERSION,
@@ -413,9 +414,11 @@ export function validateHumanFoodCandidate(
   }
 
   const conditions = context.safety.healthConditions.map(normalize);
-  const glp1Active = conditions.some((condition) =>
-    condition.includes("glp 1") || condition.includes("semaglutide") ||
-    condition.includes("tirzepatide") || (options.evidenceMode === "exact" && condition.includes("glp1")));
+  const glp1Active = currentGLP1AuthorityEnabled()
+    ? context.safety.glp1MealAuthorityActive === true
+    : conditions.some((condition) =>
+        condition.includes("glp 1") || condition.includes("semaglutide") ||
+        condition.includes("tirzepatide") || (options.evidenceMode === "exact" && condition.includes("glp1")));
   const diabetesActive = conditions.some((condition) => condition.includes("diabet"));
   const otherClinicalDirectives = conditions.filter((condition) =>
     !condition.includes("glp 1") &&

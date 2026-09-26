@@ -32,6 +32,7 @@ import { requireWorkspaceAccess, WorkspaceRequest } from "../middleware/requireW
 import { getWeekBoard, upsertWeekBoard } from "../data/weekBoardsRepo";
 import { getWeekStartISO } from "../utils/week";
 import { verifyClinicalAccess } from "../utils/verifyClinicalAccess";
+import { readClinicalGLP1Active, setClinicalGLP1Authority } from "../services/glp1/clinicalProtocolWrite";
 import { assertSameOrg, handleOrgIsolationError } from "../lib/orgIsolation";
 import { logAudit, getClientIp } from "../lib/auditLog";
 import { isOncologySupportEnabled, type OncologySupportContext } from "../services/guardrails/prompt/oncologySupportPromptBuilder";
@@ -844,7 +845,7 @@ router.get("/glp1-protocol/:clientUserId", requireAuth, requireProAccess, requir
 
     const mc: string[] = Array.isArray(row?.medicalConditions) ? row.medicalConditions as string[] : [];
     logAudit({ actor: requesterId, target: clientUserId, orgId: (req as any).authUser?.organizationId ?? null, action: "READ", resourceType: "glp1_protocol", table: "users", field: "medical_conditions", route: req.path, ip: getClientIp(req as any) });
-    res.json({ glp1Active: mc.includes("glp1"), medicalConditions: mc });
+    res.json({ glp1Active: await readClinicalGLP1Active(clientUserId, mc), medicalConditions: mc });
   } catch (error: any) {
     console.error("[glp1-protocol GET]", error);
     res.status(500).json({ error: "Failed to retrieve GLP-1 protocol status" });
@@ -914,14 +915,13 @@ router.put("/glp1-protocol/:clientUserId", requireAuth, requireProAccess, requir
     const withoutGlp1 = existing.filter((v: string) => v !== "glp1");
     const updated = enabled ? [...withoutGlp1, "glp1"] : withoutGlp1;
 
-    await db
-      .update(users)
-      .set({ medicalConditions: updated as any, updatedAt: new Date() } as any)
-      .where(eq(users.id, clientUserId as any));
+    const medicalConditions = await setClinicalGLP1Authority({
+      clientUserId, requesterId, enabled, existing, updated,
+    });
 
     console.log(`[glp1-protocol PUT] GLP-1 Active ${enabled ? "assigned" : "removed"}`);
     logAudit({ actor: requesterId, target: clientUserId, orgId: (req as any).authUser?.organizationId ?? null, action: "WRITE", resourceType: "glp1_protocol", table: "users", field: "medical_conditions", route: req.path, ip: getClientIp(req as any), meta: { enabled } });
-    res.json({ ok: true, glp1Active: enabled, medicalConditions: updated });
+    res.json({ ok: true, glp1Active: enabled, medicalConditions });
   } catch (error: any) {
     console.error("[glp1-protocol PUT]", error);
     res.status(500).json({ error: "Failed to update GLP-1 protocol", detail: error?.message });

@@ -547,13 +547,13 @@ export default function EditProfilePage() {
       // Existing live meal setting only. New DEV support choices are saved
       // separately and NEVER merged into medicalConditions by profile Save.
       // Keep the legacy behavior until the coordinated food cutover.
-      const existingMedical: string[] = Array.isArray((user as any)?.medicalConditions)
-        ? (user as any).medicalConditions
-        : [];
-      const medicalWithoutGlp1 = existingMedical.filter((v: string) => v !== "glp1");
-      (payload as any).medicalConditions = glp1Active
-        ? [...medicalWithoutGlp1, "glp1"]
-        : medicalWithoutGlp1;
+      if (!import.meta.env.DEV) {
+        const existingMedical: string[] = Array.isArray((user as any)?.medicalConditions)
+          ? (user as any).medicalConditions : [];
+        const medicalWithoutGlp1 = existingMedical.filter((v: string) => v !== "glp1");
+        (payload as any).medicalConditions = glp1Active
+          ? [...medicalWithoutGlp1, "glp1"] : medicalWithoutGlp1;
+      }
 
       const authHeaders = getAuthHeaders();
       const res = await fetch(apiUrl("/api/users/profile"), {
@@ -1398,12 +1398,12 @@ export default function EditProfilePage() {
                       </PillButton>
                     );
                   })}
-                  <PillButton
-                    active={glp1Active}
-                    onClick={() => setGlp1Active(prev => !prev)}
-                  >
-                    Existing meal-generation GLP-1 setting
-                  </PillButton>
+                  {import.meta.env.DEV ? (
+                    glp1Active && <p className="text-sm text-muted-foreground">Earlier GLP-1 information is on your profile. It does not activate meal guidance by itself; current medication or care-team guidance needs review.</p>
+                  ) : (
+                    <PillButton active={glp1Active} onClick={() => setGlp1Active(prev => !prev)}>
+                      Existing meal-generation GLP-1 setting</PillButton>
+                  )}
                   {/* Alpha-gal Syndrome — clinical allergy, handled separately from specialty conditions */}
                   <PillButton
                     active={specialtyConditions.includes("alpha-gal-syndrome")}
@@ -1424,12 +1424,12 @@ export default function EditProfilePage() {
                   >
                     🩸 Alpha-gal Syndrome
                   </PillButton>
-                  {(specialtyConditions.filter(c => !labDrivenConditions.includes(c)).length > 0 || glp1Active) && !physicianOncologyLocked && !physicianLocked && (
+                  {(specialtyConditions.filter(c => !labDrivenConditions.includes(c)).length > 0 || (!import.meta.env.DEV && glp1Active)) && !physicianOncologyLocked && !physicianLocked && (
                     <PillButton
                       active={false}
                       onClick={() => {
                         setSpecialtyConditions(prev => prev.filter(c => labDrivenConditions.includes(c)));
-                        setGlp1Active(false);
+                        if (!import.meta.env.DEV) setGlp1Active(false);
                       }}
                     >
                       Clear All ×
