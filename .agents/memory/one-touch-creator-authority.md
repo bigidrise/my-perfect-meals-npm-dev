@@ -57,8 +57,8 @@ Do not let legacy finished-card markers authorize the concept menu.
 
 **How to apply:** Restore only from the Creator-owned server set and its current context fingerprint. Clear legacy finished-card markers when a new concept set is created; keep manual Creator caches isolated.
 
-Fingerprint authority must include the substance of daily nutrition and its provenance, but not the provenance calculation timestamp. Two consecutive resolutions of unchanged Dev nutrition data produced different fingerprints solely because that timestamp records each calculation time.
+Fingerprint authority must include the substance of daily nutrition and its provenance, but not the provenance calculation timestamp. This applies both to general food-context nutrition and the separately resolved GLP-1 daily nutrition state. Two consecutive resolutions of unchanged Dev nutrition data produced different fingerprints solely because that timestamp records each calculation time.
 
-**Why:** Including computation time invalidates newly generated and restored cards even when no food protections changed; excluding the entire provenance would incorrectly hide a real classification or source change.
+**Why:** Including computation time invalidates newly generated and restored cards even when no food protections changed. The GLP-1 state is a separate branch, so normalizing the food-context timestamp alone does not prevent this failure. Excluding the entire provenance would incorrectly hide a real classification or source change.
 
 **How to apply:** Canonicalize only non-authoritative calculation-time fields; retain status, nutrition values, provenance sources, and fail-closed comparison for meaningful changes. Diagnose future mismatches with field names only, never raw profile or clinical values.
