@@ -26,6 +26,50 @@ import { __varietyTestables } from "../services/unifiedMealPipeline";
 
 const { validateVarietyOption } = __varietyTestables;
 
+describe("Create a Dish named identity in the variety engine", () => {
+  const contract = {
+    requestedDish: "potato salad", definingIngredient: "Potato",
+    ingredientId: "potato", namedFamily: "salad" as const,
+    namedCore: "potato", leafVessel: false, physicalForm: "composed salad",
+    definingComponents: ["potatoes"], adaptableComponents: ["dressing"],
+    conflicts: [], cuisine: null,
+  };
+
+  it("keeps the broad family without imposing generic leafy/grain salad structure", () => {
+    expect(__varietyTestables.extractDishFamily("potato salad")).toBe("salad");
+    const prompt = __varietyTestables.buildVarietyPrompt(
+      "potato salad", "lunch", "meal", "salad", "", [], "", "", false, "", "", "imperial", contract,
+    );
+    expect(prompt).toContain('Core dish to stay within: "potato salad"');
+    expect(prompt).toContain("do NOT require a leafy-green or grain base");
+    expect(prompt).not.toContain("Every option must be built on a leafy green or grain base");
+    const generic = __varietyTestables.buildVarietyPrompt(
+      "salad", "lunch", "meal", "salad", "", [], "",
+    );
+    expect(generic).toContain("Every option must be built on a leafy green or grain base");
+  });
+
+  it("preserves a named dish in recipe mode and cuisine guidance", () => {
+    const prompt = __varietyTestables.buildRecipeVarietyPrompt(
+      "potato salad", "lunch", "salad", "", [], "", "", false, "", "", "imperial", contract,
+    );
+    expect(prompt).toContain('Core dish: "potato salad"');
+    const cuisine = __varietyTestables.buildCuisineGroundingBlock("Japanese", contract);
+    expect(cuisine).toContain('requested "potato salad"');
+    expect(cuisine).toContain("Do not replace the requested dish");
+    expect(__varietyTestables.buildCuisineGroundingBlock("Japanese")).toContain("CULTURAL GROUNDING");
+  });
+
+  it("requires lettuce leaves as the wrap vessel for a named lettuce wrap", () => {
+    const prompt = __varietyTestables.buildVarietyPrompt(
+      "lettuce wraps", "lunch", "meal", "wrap", "", [], "", "", false, "", "", "imperial",
+      { ...contract, requestedDish: "lettuce wraps", namedFamily: "wrap", namedCore: "lettuce", leafVessel: true },
+    );
+    expect(prompt).toContain("use actual lettuce leaves as the vessel");
+    expect(prompt).not.toContain("Every option must be enclosed in a tortilla");
+  });
+});
+
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 /** Minimal valid variety option object */

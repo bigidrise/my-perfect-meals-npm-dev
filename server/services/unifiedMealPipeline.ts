@@ -1518,7 +1518,10 @@ export function filterExcludedMealNames(
 }
 
 // Exported for unit testing — do not use in application code outside this module
-export const __varietyTestables = { validateVarietyOption, filterExcludedMealNames, normalizeForExclusion };
+export const __varietyTestables = {
+  validateVarietyOption, filterExcludedMealNames, normalizeForExclusion,
+  extractDishFamily, buildVarietyPrompt, buildRecipeVarietyPrompt, buildCuisineGroundingBlock,
+};
 
 // ── Kosher category intent detection ─────────────────────────────────────────
 // Reads the user's craving text to determine which kosher category they are
@@ -1730,7 +1733,17 @@ function buildIngredientConflictHint(
 }
 
 /** Build the hierarchy-enforcing prompt for the variety engine */
-function buildCuisineGroundingBlock(cuisine: string): string {
+function buildCuisineGroundingBlock(
+  cuisine: string,
+  createDishContract?: import("./createDish/dishContract").CreateDishContract,
+): string {
+  if (createDishContract) {
+    return `\nCUISINE GUIDANCE — CREATE A DISH:
+The user requested "${createDishContract.requestedDish}" with ${cuisine} cuisine.
+Keep the named dish's defining ingredient and physical form. Adapt compatible seasonings, herbs, aromatics, sauces, dressings and preparation using genuine ${cuisine} ingredients where safe.
+Do not replace the requested dish with a different ${cuisine} dish or claim an adaptation is a traditional dish when it is not.
+All allergy, dietary, clinical, provider, and food safety constraints still apply.\n`;
+  }
   return `\n🌍 CULTURAL GROUNDING — CUISINE OVERRIDE ACTIVE:
 Cuisine: ${cuisine}
 
@@ -1792,7 +1805,8 @@ function buildVarietyPrompt(
   strictMode: boolean = false,
   avoidanceBlock: string = '',
   cuisineGroundingBlock: string = '',
-  measurementSystem: MeasurementSystem = 'imperial'
+  measurementSystem: MeasurementSystem = 'imperial',
+  createDishContract?: import("./createDish/dishContract").CreateDishContract,
 ): string {
   const hasHardCreateDishIntent = cravingInput.includes(
     "[CREATE A DISH — HARD CULINARY INTENT]",
@@ -1821,7 +1835,11 @@ function buildVarietyPrompt(
     omelette:   'ALL 3 options MUST be omelettes. Every option must be egg-based, folded or rolled around a filling. Do NOT generate scrambles, frittatas, or non-omelette formats.',
   };
 
-  const formatLockText = FORMAT_LOCK_DISHES[dishFamily];
+  const formatLockText = createDishContract?.namedFamily === "salad"
+    ? `ALL 3 options MUST be recognizable variations of "${createDishContract.requestedDish}". Preserve the named salad's defining core and composed salad format; do NOT require a leafy-green or grain base solely because the broad family is salad.`
+    : createDishContract?.leafVessel
+      ? `ALL 3 options MUST be lettuce wraps: use actual lettuce leaves as the vessel enclosing the filling, not a tortilla with lettuce garnish.`
+      : FORMAT_LOCK_DISHES[dishFamily];
   const dessertNote = category === "dessert"
     ? `\nCATEGORY LOCK: This is a DESSERT request. ALL 3 options must be desserts. Never generate savory meals, wraps, salads, or non-dessert items.`
     : category === "beverage"
@@ -1844,7 +1862,7 @@ HIERARCHY (follow in this EXACT order):
 3. DISH FAMILY LOCK (non-negotiable)
    The user asked for: "${cravingInput}"
    Treat that request as the food to satisfy, not as inspiration for a different balanced meal.
-   Core dish to stay within: "${dishFamily}"
+    Core dish to stay within: "${createDishContract?.requestedDish ?? dishFamily}" (broad family: "${dishFamily}")
    ALL 3 options must be variations of "${dishFamily}"${hasHardCreateDishIntent ? " while preserving every fixed Create a Dish form/cut, texture, and flavor requirement" : " — different preparations, textures, flavors, or proteins"}.
    Example: "soup" → Chicken Noodle Soup, Lentil Tomato Soup, Creamy Broccoli Soup.
    Example: "cheesecake" → Classic Baked Cheesecake, No-Bake Cheesecake, Cheesecake Parfait.
@@ -1918,7 +1936,8 @@ function buildRecipeVarietyPrompt(
   strictMode: boolean = false,
   avoidanceBlock: string = '',
   cuisineGroundingBlock: string = '',
-  measurementSystem: MeasurementSystem = 'imperial'
+  measurementSystem: MeasurementSystem = 'imperial',
+  createDishContract?: import("./createDish/dishContract").CreateDishContract,
 ): string {
   const hasHardCreateDishIntent = cravingInput.includes(
     "[CREATE A DISH — HARD CULINARY INTENT]",
@@ -1951,7 +1970,7 @@ PRIORITY 2 — ALLERGEN SAFETY & DIET (non-negotiable):
 PRIORITY 3 — DISH VARIETY:
   The user requested: "${cravingInput}"
   Treat that request as the food to satisfy, not as inspiration for a different dish.
-  Core dish family: "${dishFamily}"
+  Core dish: "${createDishContract?.requestedDish ?? dishFamily}" (broad family: "${dishFamily}")
   ${hasHardCreateDishIntent
     ? "Generate 3 distinct variations while preserving every fixed Create a Dish form/cut, texture, and flavor requirement. Vary only unconstrained side pairings, vegetables, garnishes, plating, or other unselected dimensions."
     : `Generate 3 distinct variations using different:
@@ -2064,6 +2083,7 @@ export async function generateCravingMealOptions(
   /** Clean request text used only for category/dish classification. Generation
    * still receives the fully augmented cravingInput with all safety directives. */
   classificationInput?: string,
+  createDishContract?: import("./createDish/dishContract").CreateDishContract,
 ): Promise<UnifiedMeal[]> {
   const validMealType = normalizeMealType(mealType);
   const cleanClassificationInput = resolveVarietyClassificationInput(
@@ -2360,7 +2380,7 @@ export async function generateCravingMealOptions(
   }
 
   const cuisineGroundingBlock = cuisineOverride && cuisineOverride.trim()
-    ? buildCuisineGroundingBlock(cuisineOverride.trim())
+    ? buildCuisineGroundingBlock(cuisineOverride.trim(), createDishContract)
     : '';
 
   if (cuisineGroundingBlock) {
@@ -2370,8 +2390,8 @@ export async function generateCravingMealOptions(
   /** One attempt at calling AI and parsing result */
   const attempt = async (stricterMode: boolean, violationHint?: string): Promise<any[]> => {
     const prompt = isRecipeMode
-      ? buildRecipeVarietyPrompt(cravingInput, validMealType, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock, cuisineGroundingBlock, varietyMeasurementSystem)
-      : buildVarietyPrompt(cravingInput, validMealType, category, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock, cuisineGroundingBlock, varietyMeasurementSystem);
+      ? buildRecipeVarietyPrompt(cravingInput, validMealType, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock, cuisineGroundingBlock, varietyMeasurementSystem, createDishContract)
+      : buildVarietyPrompt(cravingInput, validMealType, category, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock, cuisineGroundingBlock, varietyMeasurementSystem, createDishContract);
     const stricter = stricterMode
       ? `\n\nSECOND ATTEMPT — STRICT MODE: The previous response drifted from the dish family. You MUST generate 3 options that are clearly recognizable variations of "${dishFamily}". No exceptions.`
       : "";
@@ -2379,13 +2399,16 @@ export async function generateCravingMealOptions(
     // Dish Adaptation Layer: identity anchor + explicit guardrail adaptations
     // prepended so every attempt adapts the dish rather than replacing it.
     const dalBlock = dishDirective?.adaptationBlock ? dishDirective.adaptationBlock + '\n\n' : '';
+    const contractBlock = createDishContract
+      ? (await import("./createDish/dishContract")).buildCreateDishContractPrompt(createDishContract) + '\n\n'
+      : '';
     const response = await openai.chat.completions.create({
       // fastMode (Try 3 More / skipImages path): use gpt-4o-mini — it's ~3x
       // faster and still produces solid variety-card suggestions. The initial
       // image-scan already anchored the dish concept, so full gpt-4o quality
       // isn't needed for subsequent swipes.
       model: fastMode ? "gpt-4o-mini" : "gpt-4o",
-      messages: [{ role: "user", content: dalBlock + (specialtyMedicalBlock ? specialtyMedicalBlock + '\n\n' : '') + (proceduralBlock ? proceduralBlock + '\n\n' : '') + prompt + stricter + hintAddendum }],
+      messages: [{ role: "user", content: contractBlock + dalBlock + (specialtyMedicalBlock ? specialtyMedicalBlock + '\n\n' : '') + (proceduralBlock ? proceduralBlock + '\n\n' : '') + prompt + stricter + hintAddendum }],
       temperature: stricterMode ? 0.6 : 0.85,
       max_tokens: fastMode ? 1500 : 2500,
       response_format: { type: "json_object" },

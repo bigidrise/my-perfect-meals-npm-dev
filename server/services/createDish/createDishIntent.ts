@@ -7,6 +7,10 @@ import { expandCreateDishIngredient } from "./ingredientExpansionService";
 import {
   getCreateDishGovernedEvidenceTerms,
 } from "../../../shared/catalog/createDishCulinary.catalog";
+import {
+  resolveCreateDishContract,
+  type CreateDishContract,
+} from "./dishContract";
 
 export interface CreateDishIntentEvidence {
   ingredient: boolean;
@@ -87,6 +91,9 @@ function isValidSemanticPreference(
 export function isBroadIngredientOnlyCreateDishIntent(
   intent: CreateDishIntent,
 ): boolean {
+  // A resolved prepared dish is never merely a raw ingredient even when the
+  // resolver kept the exact user wording (e.g. "potato salad").
+  if (intent.ingredient.category === "prepared-dish") return false;
   return normalizeIngredientOnlyText(intent.originalText) ===
     normalizeIngredientOnlyText(intent.ingredient.canonicalName);
 }
@@ -240,15 +247,23 @@ export function applyCreateDishIntentWithSoftFallback<T>(
 
 export function buildCreateDishIntentPrompt(intent: CreateDishIntent): string {
   const resolved = intent.resolvedCombination;
+  const contract = resolveCreateDishContract(intent);
+  const definingCore = contract.leafVessel
+    ? "lettuce leaves used as the wrap vessel"
+    : contract.namedFamily === "salad" && contract.namedCore
+      ? contract.namedCore
+      : intent.ingredient.canonicalName;
   const lines = [
     intent.cuisine ? `Requested cuisine: ${intent.cuisine}` : null,
-    `Primary ingredient: ${intent.ingredient.canonicalName}`,
+    contract.namedFamily
+      ? `Defining ingredient/role: ${definingCore}`
+      : `Primary ingredient: ${definingCore}`,
     resolved.form ? `Form/cut: ${resolved.form.label}` : null,
     resolved.texture ? `Texture: ${resolved.texture.label}` : null,
     resolved.flavor ? `Flavor direction: ${resolved.flavor.label}` : null,
   ].filter(Boolean);
   const hardRequirements = [
-    `Use ${intent.ingredient.canonicalName} as the primary ingredient.`,
+    `Use ${definingCore} as the defining ingredient/role of the requested dish.`,
     resolved.form && resolved.selectionSource.form === "user_selected"
       ? `Every candidate MUST use ${resolved.form.label} or a governed equivalent preparation of that form/cut.`
       : null,
@@ -280,7 +295,7 @@ ${hasHardDimensions ? `[CREATE A DISH — HARD CULINARY INTENT]
 ${hardRequirements.join("\n")}
 The explicitly selected dimensions above are fixed current-request requirements.
 Do not vary any selected form/cut, texture, or flavor. Create variety only through unconstrained side pairings, vegetables, garnishes, plating, or other unselected dimensions.
-Explicit current culinary intent overrides general cuisine, broad-flavor, heat, and palate defaults when they conflict.` : `Use ${intent.ingredient.canonicalName} as the primary ingredient; no preparation dimensions are fixed.`}
+Explicit current culinary intent overrides general cuisine, broad-flavor, heat, and palate defaults when they conflict.` : `Use ${definingCore} as the defining ingredient/role; no preparation dimensions are fixed.`}
 ${steakIngredientEvidence ?? ""}
 ${softPreferences.length > 0 ? `[CREATE A DISH — OPTIONAL CREATIVE GUIDANCE]
 ${softPreferences.join("\n")}
@@ -300,6 +315,7 @@ export function buildCreateDishIntentDishSubject(intent: CreateDishIntent): stri
 export function evaluateCreateDishIntentEvidence(
   meal: unknown,
   intent: CreateDishIntent,
+  contract: CreateDishContract = resolveCreateDishContract(intent),
 ): CreateDishIntentEvidence {
   const candidate = (meal ?? {}) as Record<string, unknown>;
   const ingredients = Array.isArray(candidate.ingredients)
@@ -373,10 +389,43 @@ export function evaluateCreateDishIntentEvidence(
   const beefSteakCuts = intent.ingredient.canonicalId === "beef" && form?.id === "steak-cut"
     ? ["sirloin", "ribeye", "filet mignon", "beef tenderloin", "flank steak", "strip steak", "t-bone", "porterhouse"]
     : [];
-  const ingredientPassed = hasAffirmativeTerm(
-    ingredients,
-    [intent.ingredient.canonicalName.toLowerCase(), ...beefSteakCuts],
-  );
+  const singular = (contract.namedCore && contract.namedFamily === "salad")
+    ? contract.namedCore
+    : intent.ingredient.canonicalName.toLowerCase();
+  // Only deterministic inflections and literal governed ingredient terms.
+  // Do not treat the name of a prepared dish as an ingredient: a potato salad
+  // lists potatoes, and a lettuce wrap lists lettuce leaves and its filling.
+  const inflections = /^[a-z]+$/.test(singular)
+    ? [singular, singular.endsWith("y")
+        ? `${singular.slice(0, -1)}ies`
+        : /(?:ch|sh|s|x|z|o)$/.test(singular)
+          ? `${singular}es` : `${singular}s`]
+    : [singular];
+  // "Fruit" is a food group, not normally a literal ingredient name in a
+  // fruit salad. Only concrete, bounded fruit names can establish this role.
+  const fruitTerms = [
+    "apple", "apples", "banana", "bananas", "orange", "oranges", "pear", "pears",
+    "strawberry", "strawberries", "blueberry", "blueberries", "raspberry", "raspberries",
+    "blackberry", "blackberries", "grape", "grapes", "melon", "watermelon", "cantaloupe",
+    "pineapple", "mango", "mangoes", "kiwi", "peach", "peaches", "plum", "plums",
+    "cherry", "cherries", "papaya", "pomegranate",
+  ];
+  const ingredientTerms = contract.leafVessel
+    ? ["lettuce"]
+    : contract.namedFamily === "salad" && contract.namedCore === "fruit"
+      ? fruitTerms
+      : [...inflections, ...beefSteakCuts];
+  const unqualifiedIngredient = ingredients
+    .split(/[.!?;\n]+/)
+    .filter((part) => !/\b(?:flavou?r(?:ed|ing)?|seasoning|extract|starch|powder)\b/i.test(part))
+    .join(". ");
+  const ingredientFound = hasAffirmativeTerm(unqualifiedIngredient, ingredientTerms);
+  const leafEvidence = contract.leafVessel
+    ? hasAffirmativeTerm(ingredients, ["lettuce leaf", "lettuce leaves", "romaine lettuce leaves", "romaine lettuce leaf"]) &&
+      /\b(?:wrap|fold|roll|fill|spoon|tuck|enclose|place)\b(?:\s+\w+){0,5}\s+(?:(?:in|into|on|onto|with|around)\s+)?(?:(?:the|fresh|large|romaine)\s+){0,3}lettuce\s+leaves?\b|\blettuce\s+leaves?\b(?:\s+\w+){0,5}\s+(?:around|over|to enclose|as wraps)\b/i.test(instructions) &&
+      !/\b(?:do not|don't|without|instead of|rather than|never)\s+(?:\w+\s+){0,4}(?:lettuce|leaves|leaf)\b/i.test(instructions)
+    : true;
+  const ingredientPassed = ingredientFound && leafEvidence;
   const formTerms = form
     ? getCreateDishGovernedEvidenceTerms(
         "form",
@@ -432,4 +481,31 @@ export function evaluateCreateDishIntentEvidence(
 
 export function mealHonorsCreateDishIntent(meal: unknown, intent: CreateDishIntent): boolean {
   return evaluateCreateDishIntentEvidence(meal, intent).passed;
+}
+
+export function buildCreateDishIntentRepairInstructions(
+  intent: CreateDishIntent,
+  failedDimensions: CreateDishIntentEvidence["failedDimensions"],
+  contract: CreateDishContract,
+): string {
+  const core = contract.namedCore && contract.namedFamily === "salad"
+    ? contract.namedCore
+    : contract.leafVessel ? "lettuce leaves" : intent.ingredient.canonicalName;
+  const ingredientReason = failedDimensions.includes("ingredient")
+    ? `The recipe ingredient list did not affirm the defining ${core}` +
+      (contract.leafVessel
+        ? " as lettuce leaves functioning as the wrap vessel in the instructions"
+        : "") +
+      `. A title or an ingredient merely flavored with ${core} is not evidence. ` +
+      `Include real ${core} in the ingredients and preparation while keeping "${contract.requestedDish}" recognizable; ` +
+      `never add a prohibited ingredient to satisfy this check. If no compliant recognizable version exists, it must fail validation.`
+    : "";
+  return [
+    `The previous candidates did not satisfy: ${failedDimensions.join(", ")}.`,
+    ingredientReason,
+    `Keep the named dish "${contract.requestedDish}" and its ${contract.physicalForm ?? "original physical form"}.`,
+    ...contract.definingComponents.slice(0, 4).map((part) => `Preserve defining role: ${part}.`),
+    ...contract.conflicts.slice(0, 4).map((conflict) => conflict.directive),
+    "Adapt only incompatible components; never weaken allergies, avoidances, dietary, clinical, provider, diabetic, GLP-1, protocol or final food protections.",
+  ].filter(Boolean).join("\n");
 }
