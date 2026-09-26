@@ -64,6 +64,64 @@ describe("One-Touch restored-card authority fingerprint", () => {
     ctx = context, protocol = envelope, global = glp1, choices = request,
   ) => oneTouchContextFingerprint(choices, ctx, protocol, global);
 
+  const activeGLP1 = {
+    ...glp1,
+    isActive: true,
+    activationSources: ["personalNutritionSupport"],
+    resolvedTargets: { resolvedMealCalories: 400, targetProteinGrams: 30 },
+    dailyNutritionState: {
+      resolvedAt: "2026-01-01T00:00:00Z",
+      remaining: { calories: 900, protein: 75 },
+      provenance: {
+        calculationTimestamp: "2026-01-01T00:00:00Z",
+        prescriptionSource: "macro_calculator",
+        classificationSources: ["ingredient"],
+      },
+    },
+  } as unknown as GLP1GlobalContext;
+
+  it("keeps active GLP-1 menu authority stable across calculation timestamps only", () => {
+    const later = {
+      ...activeGLP1,
+      dailyNutritionState: {
+        ...activeGLP1.dailyNutritionState!,
+        resolvedAt: "2026-01-01T00:00:25Z",
+        provenance: {
+          ...activeGLP1.dailyNutritionState!.provenance,
+          calculationTimestamp: "2026-01-01T00:00:25Z",
+        },
+      },
+    } as GLP1GlobalContext;
+    expect(stamp(context, envelope, later)).toBe(stamp(context, envelope, activeGLP1));
+    expect(oneTouchChangedAuthorityBranches(
+      { request, context, envelope, glp1: activeGLP1 },
+      { request, context, envelope, glp1: later },
+    )).toEqual([]);
+  });
+
+  it("still invalidates on substantive GLP-1 nutrition, provenance, targets, and support changes", () => {
+    const original = stamp(context, envelope, activeGLP1);
+    const state = activeGLP1.dailyNutritionState!;
+    expect(stamp(context, envelope, {
+      ...activeGLP1, dailyNutritionState: { ...state, remaining: { ...state.remaining, calories: 800 } },
+    })).not.toBe(original);
+    expect(stamp(context, envelope, {
+      ...activeGLP1, dailyNutritionState: {
+        ...state, provenance: { ...state.provenance, prescriptionSource: "clinical" },
+      },
+    } as GLP1GlobalContext)).not.toBe(original);
+    expect(stamp(context, envelope, {
+      ...activeGLP1, resolvedTargets: { ...activeGLP1.resolvedTargets!, resolvedMealCalories: 300 },
+    })).not.toBe(original);
+    expect(stamp(context, envelope, {
+      ...activeGLP1, activationSources: ["selectedBuilder"],
+    } as GLP1GlobalContext)).not.toBe(original);
+    expect(stamp(context, envelope, { ...activeGLP1, isActive: false })).not.toBe(original);
+    expect(stamp(context, {
+      ...envelope, glp1DailyTolerance: { shouldEscalate: true },
+    } as UserProtocolEnvelope, activeGLP1)).not.toBe(original);
+  });
+
   it("is opaque and stable across remounts, timestamps, and unrelated UI preferences", () => {
     const original = stamp();
     expect(original).toMatch(/^[A-Za-z0-9_-]{43}$/);
