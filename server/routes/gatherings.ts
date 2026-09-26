@@ -3,7 +3,7 @@
 import express, { Request, Response } from "express";
 import { z } from "zod";
 import {
-  loadUserProtocolEnvelope,
+  loadGenerationProtocolEnvelope,
   enforceBeforeGenerate,
   scanGeneratedOutput,
   buildGuestEnvelope,
@@ -537,7 +537,6 @@ router.post("/generate", async (req: Request, res: Response) => {
     notes,
     totalCourses,
     servingSize,
-    userId,
     dietaryRestrictions: reqDiet,
     allergies: reqAllergies,
     flavorPersonal,
@@ -546,6 +545,10 @@ router.post("/generate", async (req: Request, res: Response) => {
     cookingMethod,
     experienceType,
   } = parsed.data;
+  // The request body is not an authority source. Both registered mounts require
+  // authentication; never allow an omitted or sentinel body ID to mean guest.
+  const userId = (req as Request & { authUser?: { id?: string } }).authUser?.id;
+  if (!userId) return res.status(401).json({ error: "Authentication required." });
 
   // GUARDRAIL #1: Route enforces course structure
   // For outdoor, experience type overrides the course count selector
@@ -577,6 +580,17 @@ router.post("/generate", async (req: Request, res: Response) => {
     `🎪 [Gatherings] id=${experienceContext.id} | courses=[${courses.join(",")}] | ${situation}${eventType ? `/${eventType}` : ""} | serving=${servingSize} | selectedDishes=${selectedDishes.length} | familySpecialty=${!!familySpecialty}${proteinSource ? ` | ingredient=${proteinSource}` : ""}${cookingMethod ? ` | method=${cookingMethod}` : ""}${situation === "outdoor" ? ` | mode=${experienceType}` : ""}`,
   );
 
+  let gatheringsEnvelope;
+  try {
+    gatheringsEnvelope = await loadGenerationProtocolEnvelope(userId);
+  } catch {
+    return res.status(503).json({
+      code: "PROTOCOL_CONTEXT_UNRESOLVED",
+      message: "Your food safety information could not be verified. No food was generated; please retry.",
+      retryable: true,
+    });
+  }
+
   // ── Generate Nature-to-Table Guide for Great Outdoors (pre-course educational block) ──
   let harvestGuide: { title: string; sections: { heading: string; text: string }[] } | null = null;
   if (situation === "outdoor" && proteinSource) {
@@ -588,10 +602,6 @@ router.post("/generate", async (req: Request, res: Response) => {
   // ── Load full protocol envelope (dietary + medical + allergies + avoidances) ──
   let userDiet = [...(reqDiet || [])];
   let userAllergies = [...(reqAllergies || [])];
-
-  const gatheringsEnvelope = (userId && userId !== "1")
-    ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
-    : buildGuestEnvelope();
 
   // Merge envelope dietary identity + allergies into working arrays
   userDiet = [...new Set([...userDiet, ...gatheringsEnvelope.dietaryIdentity])];

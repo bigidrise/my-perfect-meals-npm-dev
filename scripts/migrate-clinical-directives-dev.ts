@@ -86,6 +86,49 @@ async function main() {
     await client.query(`CREATE INDEX IF NOT EXISTS health_protocol_review_decisions_directive_time_idx
       ON health_protocol_review_decisions(directive_id, decided_at DESC, id DESC)`);
     await client.query(`
+      CREATE TABLE IF NOT EXISTS health_protocol_review_links (
+        origin_source_id uuid PRIMARY KEY REFERENCES health_protocol_sources(id),
+        subject_user_id varchar NOT NULL REFERENCES users(id),
+        review_decision_id uuid NOT NULL UNIQUE REFERENCES health_protocol_review_decisions(id),
+        result_source_id uuid NOT NULL REFERENCES health_protocol_sources(id),
+        directive_id uuid REFERENCES health_protocol_food_directives(id),
+        actor_user_id varchar NOT NULL REFERENCES users(id),
+        created_at timestamptz NOT NULL DEFAULT now(),
+        CHECK (origin_source_id <> result_source_id)
+      )
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS health_protocol_review_links_result_idx
+      ON health_protocol_review_links(result_source_id)`);
+    await client.query(`
+      CREATE OR REPLACE FUNCTION validate_health_protocol_review_link()
+      RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM health_protocol_sources origin
+          JOIN health_protocol_sources result ON result.id=NEW.result_source_id
+          JOIN health_protocol_review_decisions review ON review.id=NEW.review_decision_id
+          WHERE origin.id=NEW.origin_source_id
+            AND origin.subject_user_id=NEW.subject_user_id
+            AND origin.source_kind='legacy_migrated'
+            AND result.subject_user_id=NEW.subject_user_id
+            AND result.protocol_key=origin.protocol_key
+            AND result.source_kind IN ('user','provider')
+            AND review.source_id=origin.id AND review.subject_user_id=NEW.subject_user_id
+            AND review.actor_user_id=NEW.actor_user_id
+        ) THEN
+          RAISE EXCEPTION 'Review provenance identity mismatch';
+        END IF;
+        IF NEW.directive_id IS NOT NULL AND NOT EXISTS (
+          SELECT 1 FROM health_protocol_food_directives d
+          WHERE d.id=NEW.directive_id AND d.source_id=NEW.result_source_id
+            AND d.subject_user_id=NEW.subject_user_id
+        ) THEN
+          RAISE EXCEPTION 'Review provenance directive mismatch';
+        END IF;
+        RETURN NEW;
+      END $$
+    `);
+    await client.query(`
       CREATE OR REPLACE FUNCTION validate_clinical_directive_identity()
       RETURNS trigger LANGUAGE plpgsql AS $$
       BEGIN
@@ -150,6 +193,16 @@ async function main() {
         IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='health_protocol_decisions_append_only') THEN
           CREATE TRIGGER health_protocol_decisions_append_only
           BEFORE UPDATE OR DELETE ON health_protocol_review_decisions
+          FOR EACH ROW EXECUTE FUNCTION reject_clinical_authority_history_mutation();
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='health_protocol_review_links_identity') THEN
+          CREATE TRIGGER health_protocol_review_links_identity
+          BEFORE INSERT ON health_protocol_review_links
+          FOR EACH ROW EXECUTE FUNCTION validate_health_protocol_review_link();
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='health_protocol_review_links_append_only') THEN
+          CREATE TRIGGER health_protocol_review_links_append_only
+          BEFORE UPDATE OR DELETE ON health_protocol_review_links
           FOR EACH ROW EXECUTE FUNCTION reject_clinical_authority_history_mutation();
         END IF;
       END $$

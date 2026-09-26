@@ -11,6 +11,40 @@ const mockSuggestionDecision = jest.fn();
 const mockMedicationPast = jest.fn();
 const mockLabReview = jest.fn();
 const mockEarlierAnti = jest.fn();
+const mockReconcile = jest.fn();
+const mockSubjectReview = jest.fn();
+const mockSubjectHard = jest.fn();
+const mockProviderRecord = jest.fn();
+const mockProviderEnd = jest.fn();
+const mockProviderLegacy = jest.fn();
+const mockLegal = jest.fn();
+let mockProfessional: { role: string | null; training: boolean } = { role: "physician", training: true };
+let mockSourceKind = "legacy_migrated";
+
+jest.mock("../db", () => ({
+  db: { select: () => ({
+    from: () => ({ where: () => ({ limit: async () => [{
+      professionalRole: mockProfessional.role,
+      procareTrainingCompleted: mockProfessional.training,
+      role: mockProfessional.role, training: mockProfessional.training,
+    }] }) }),
+  }) },
+  pool: { query: jest.fn(async (sql: string) => ({
+    rows: sql.includes("SELECT source_kind")
+      ? [{ source_kind: mockSourceKind }]
+      : [{ id: "00000000-0000-4000-8000-000000000001", care_relationship_id: "00000000-0000-4000-8000-000000000002" }],
+  })) },
+}));
+jest.mock("../services/legalCheck", () => ({
+  checkLegalAcceptance: (...args: unknown[]) => mockLegal(...args),
+}));
+jest.mock("../services/healthProtocols/clinicalDirectiveStorage", () => ({
+  recordSubjectClinicalReview: (...args: unknown[]) => mockSubjectReview(...args),
+  recordSubjectHardFoodRestriction: (...args: unknown[]) => mockSubjectHard(...args),
+  recordProviderFoodDirective: (...args: unknown[]) => mockProviderRecord(...args),
+  discontinueProviderFoodDirective: (...args: unknown[]) => mockProviderEnd(...args),
+  verifyLegacyClaimAsProviderDirective: (...args: unknown[]) => mockProviderLegacy(...args),
+}));
 
 jest.mock("../middleware/requireAuth", () => ({
   requireAuth: (req: any, res: any, next: () => void) => {
@@ -25,6 +59,7 @@ jest.mock("../services/healthProtocols/healthContextControl", () => ({
   decideLegacySupport: (...args: unknown[]) => mockLegacyDecision(...args),
   markMedicationInformationPast: (...args: unknown[]) => mockMedicationPast(...args),
   decideEarlierAntiPreference: (...args: unknown[]) => mockEarlierAnti(...args),
+  reconcileLegacyClaim: (...args: unknown[]) => mockReconcile(...args),
 }));
 jest.mock("../services/healthProtocols/persistence", () => ({
   setUserNutritionSupport: (...args: unknown[]) => mockUserSupport(...args),
@@ -70,10 +105,92 @@ describe("DEV-only health-context routes", () => {
     mockMedicationPast.mockResolvedValue(testView);
     mockLabReview.mockResolvedValue({});
     mockEarlierAnti.mockResolvedValue(testView);
+    mockReconcile.mockResolvedValue(testView);
+    mockSubjectReview.mockResolvedValue(undefined);
+    mockSubjectHard.mockResolvedValue(validId);
+    mockProviderRecord.mockResolvedValue(validId);
+    mockProviderEnd.mockResolvedValue(undefined);
+    mockProviderLegacy.mockResolvedValue({ providerSourceId: validId, directiveId: validId });
+    mockLegal.mockResolvedValue({ allAccepted: true });
+    mockProfessional = { role: "physician", training: true };
+    mockSourceKind = "legacy_migrated";
   });
   const asSubject = (r: request.Test) => r.set("x-test-user", "subject");
   const withCsrf = (r: request.Test) =>
     asSubject(r).set("Origin", "http://localhost:5000").set("x-csrf-token", "csrf-test");
+
+  it("keeps legacy review explicit and requires a typed rule for hard restrictions", async () => {
+    const url = `/api/health-context/source/${validId}/review`;
+    expect((await withCsrf(request(app).post(url))
+      .send({ decision: "current_hard_restriction" })).status).toBe(400);
+    expect(mockReconcile).not.toHaveBeenCalled();
+    expect((await withCsrf(request(app).post(url))
+      .send({ decision: "unresolved" })).status).toBe(200);
+    expect(mockReconcile).toHaveBeenCalledWith({
+      actorUserId: "subject", subjectUserId: "subject", sourceId: validId, decision: "unresolved",
+    });
+    expect((await withCsrf(request(app).post(url))
+      .send({ decision: "current_hard_restriction",
+        rule: { kind: "avoid_ingredient", ingredientKey: "peanut" } })).status).toBe(200);
+    expect(mockReconcile).toHaveBeenCalledWith({
+      actorUserId: "subject", subjectUserId: "subject", sourceId: validId,
+      decision: "current_hard_restriction", rule: { kind: "avoid_ingredient", ingredientKey: "peanut" },
+    });
+  });
+
+  it("does not permit subject review of a provider-owned source", async () => {
+    mockSourceKind = "provider";
+    const response = await withCsrf(request(app).post(`/api/health-context/source/${validId}/review`))
+      .send({ decision: "history_only" });
+    expect(response.status).toBe(403);
+    expect(mockSubjectReview).not.toHaveBeenCalled();
+    expect(mockProviderEnd).not.toHaveBeenCalled();
+  });
+
+  it("requires physician role, completed training, and current legal consent for provider writes", async () => {
+    const url = "/api/health-context/provider/patient/directive";
+    const payload = {
+      sourceId: validId, membershipId: "00000000-0000-4000-8000-000000000002",
+      rule: { kind: "avoid_ingredient", ingredientKey: "peanut" },
+      effectiveAt: new Date().toISOString(),
+    };
+    mockProfessional = { role: "trainer", training: true };
+    expect((await withCsrf(request(app).post(url)).send(payload)).status).toBe(403);
+    mockProfessional = { role: "physician", training: false };
+    expect((await withCsrf(request(app).post(url)).send(payload)).status).toBe(403);
+    mockProfessional.training = true;
+    mockLegal.mockResolvedValue({ allAccepted: false });
+    expect((await withCsrf(request(app).post(url)).send(payload)).status).toBe(403);
+    expect(mockProviderRecord).not.toHaveBeenCalled();
+    mockLegal.mockResolvedValue({ allAccepted: true });
+    expect((await withCsrf(request(app).post(url)).send(payload)).status).toBe(200);
+    expect(mockProviderRecord).toHaveBeenCalledWith(expect.objectContaining({
+      actorUserId: "subject", subjectUserId: "patient", sourceId: validId,
+      membershipId: payload.membershipId, rule: payload.rule,
+    }));
+  });
+
+  it("keeps provider verification of a legacy claim separate from patient review and checks its authorization", async () => {
+    const url = `/api/health-context/provider/patient/legacy/${validId}/verify`;
+    const payload = {
+      membershipId: "00000000-0000-4000-8000-000000000002",
+      rule: { kind: "avoid_ingredient", ingredientKey: "peanut" },
+      effectiveAt: new Date().toISOString(),
+    };
+    expect((await withCsrf(request(app).post(url)).send({
+      ...payload, rule: { kind: "nutrient_bound", nutrient: "sodium", comparator: "at_most",
+        amount: 200, unit: "g", scope: "per_day" },
+    })).status).toBe(400);
+    mockProfessional.role = "trainer";
+    expect((await withCsrf(request(app).post(url)).send(payload)).status).toBe(403);
+    expect(mockProviderLegacy).not.toHaveBeenCalled();
+    mockProfessional.role = "physician";
+    expect((await withCsrf(request(app).post(url)).send(payload)).status).toBe(200);
+    expect(mockProviderLegacy).toHaveBeenCalledWith(expect.objectContaining({
+      actorUserId: "subject", subjectUserId: "patient",
+      legacySourceId: validId, membershipId: payload.membershipId, rule: payload.rule,
+    }));
+  });
 
   it("requires authentication for the private read and returns no private evidence fields", async () => {
     expect((await request(app).get("/api/health-context")).status).toBe(401);

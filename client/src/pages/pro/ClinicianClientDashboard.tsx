@@ -47,6 +47,7 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ClinicalProtocolCard from "@/components/protocol/ClinicalProtocolCard";
 import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
 import ClinicalInterventionPanel from "@/components/pro/ClinicalInterventionPanel";
+import { ClinicalDirectiveReviewPanel } from "@/components/pro/ClinicalDirectiveReviewPanel";
 import { ProHydrationControls } from "@/components/pro/ProHydrationControls";
 import { resolveVerifiedProClientUserId } from "@/lib/proClientIdentity";
 
@@ -669,7 +670,10 @@ export default function ClinicianClientDashboard() {
 
         {/* ── CLINICAL INTERVENTION PANEL ──────────────────────────────────── */}
         {client && (
-          <ClinicalInterventionPanel clientUserId={clientId} />
+          <>
+            <ClinicalInterventionPanel clientUserId={clientId} />
+            <ClinicalDirectiveReviewPanel clientUserId={clientId} />
+          </>
         )}
 
         <Card className="bg-white/5 border border-white/20">

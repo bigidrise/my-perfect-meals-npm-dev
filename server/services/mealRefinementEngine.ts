@@ -30,6 +30,7 @@ import { userSavedGroceryItems } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import {
   loadUserProtocolEnvelope,
+  loadGenerationProtocolEnvelope,
   buildGuestEnvelope,
   enforceBeforeGenerate,
   scanGeneratedOutput,
@@ -216,14 +217,8 @@ async function loadProtocolContext(userId: string): Promise<{
   savedBlock: string;
 }> {
   // ── 1. Protocol envelope ────────────────────────────────────────────────────
-  let envelope: UserProtocolEnvelope = buildGuestEnvelope();
-  let protocolContext = "";
-  try {
-    envelope = await loadUserProtocolEnvelope(userId).catch(() => null) ?? buildGuestEnvelope();
-    protocolContext = enforceBeforeGenerate(envelope, { generatorName: "meal_refinement" }).combined;
-  } catch {
-    // Proceed without protocol context.
-  }
+  const envelope = await loadGenerationProtocolEnvelope(userId);
+  const protocolContext = enforceBeforeGenerate(envelope, { generatorName: "meal_refinement" }).combined;
 
   // ── 2. GLP-1 context ────────────────────────────────────────────────────────
   let glp1Block = "";
@@ -1110,19 +1105,8 @@ Respond ONLY with valid JSON:
     } = req;
 
     // ── 1. Protocol envelope ────────────────────────────────────────────────
-    let envelope: import("./protocolEnvelope").UserProtocolEnvelope =
-      (await import("./protocolEnvelope")).buildGuestEnvelope();
-    let protocolContext = "";
-
-    try {
-      const { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope } =
-        await import("./protocolEnvelope");
-      const loaded = await loadUserProtocolEnvelope(userId).catch(() => null);
-      envelope       = loaded ?? buildGuestEnvelope();
-      protocolContext = enforceBeforeGenerate(envelope, { generatorName: "replace_component" }).combined;
-    } catch {
-      /* non-fatal — proceed with guest envelope */
-    }
+    const envelope = await loadGenerationProtocolEnvelope(userId);
+    const protocolContext = enforceBeforeGenerate(envelope, { generatorName: "replace_component" }).combined;
 
     // ── 2. GLP-1 context — prefer pre-resolved targets, fall-close on failure ─
     let glp1Targets: import("./glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | null =
@@ -1584,15 +1568,8 @@ export async function refineMeal(request: MealRefinementRequest): Promise<Refine
   } = request;
 
   // ── 1. Load protocol envelope ─────────────────────────────────────────────
-  let envelope: UserProtocolEnvelope = buildGuestEnvelope();
-  let protocolContext = "";
-
-  try {
-    envelope = (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope();
-    protocolContext = enforceBeforeGenerate(envelope, { generatorName }).combined;
-  } catch {
-    /* proceed with guest envelope — non-fatal */
-  }
+  const envelope = await loadGenerationProtocolEnvelope(userId);
+  const protocolContext = enforceBeforeGenerate(envelope, { generatorName }).combined;
 
   // ── 2. Load GLP-1 context — FAIL CLOSED ──────────────────────────────────
   // Mirrors the canonical pattern from groceryCoach.ts /recommend:

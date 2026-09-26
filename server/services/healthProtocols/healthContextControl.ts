@@ -158,60 +158,116 @@ export async function decideEarlierAntiPreference(input: {
   return decideLegacySupport({ ...input, sourceId });
 }
 
-/**
- * One explicit decision resolves all pending legacy origins of the same
- * protocol. The legacy arrays remain unchanged and cannot re-add resolved
- * claims on a rerun of the idempotent backfill.
- */
+/** Existing Yes/No entry point delegates to a single-origin audited review. */
 export async function decideLegacySupport(input: {
   actorUserId: string;
   subjectUserId: string;
   sourceId: string;
   current: boolean;
 }): Promise<HealthContextView> {
+  return reconcileLegacyClaim({
+    actorUserId: input.actorUserId, subjectUserId: input.subjectUserId,
+    sourceId: input.sourceId,
+    decision: input.current ? "current_guidance" : "history_only",
+  });
+}
+
+/** Resolve exactly one legacy origin; the original source and audit survive. */
+export async function reconcileLegacyClaim(input: {
+  actorUserId: string;
+  subjectUserId: string;
+  sourceId: string;
+  decision: "history_only" | "current_guidance" | "current_hard_restriction" | "unresolved";
+  rule?: import("../../../shared/clinicalMealAuthority").ExactFoodDirective;
+}): Promise<HealthContextView> {
   if (input.actorUserId !== input.subjectUserId) throw new Error("Subject ownership required.");
+  const rule = input.decision === "current_hard_restriction"
+    ? (await import("../../../shared/clinicalMealAuthority")).exactFoodDirectiveSchema.parse(input.rule)
+    : undefined;
+  if (input.decision !== "current_hard_restriction" && input.rule !== undefined) {
+    throw new Error("A history or guidance review cannot impose a food rule.");
+  }
   await shadowTransaction(async (client) => {
     const { rows: identified } = await client.query(
-      `SELECT protocol_key FROM health_protocol_sources
-       WHERE id=$1 AND subject_user_id=$2 AND source_kind='legacy_migrated'`,
+      `SELECT protocol_key, status FROM health_protocol_sources
+       WHERE id=$1 AND subject_user_id=$2 AND source_kind='legacy_migrated'
+       FOR UPDATE`,
       [input.sourceId, input.subjectUserId],
     );
     if (!identified[0]) throw new Error("This earlier profile entry is unavailable.");
     const protocol: HealthProtocol = identified[0].protocol_key;
+    if (identified[0].status !== "pending_review") return;
+    const { rows: decisions } = await client.query<{ id: string }>(
+      `INSERT INTO health_protocol_review_decisions
+       (subject_user_id, source_id, disposition, actor_user_id, reason_code)
+       VALUES ($1,$2,$3,$4,'legacy_explicit_review') RETURNING id`,
+      [input.subjectUserId, input.sourceId,
+        input.decision === "unresolved" ? "unresolved" : "history_only", input.actorUserId],
+    );
+    const reviewDecisionId = decisions[0]?.id;
+    if (!reviewDecisionId) throw new Error("The original claim review was not recorded.");
+    if (input.decision === "unresolved") return;
+    await client.query(
+      `UPDATE health_protocol_sources
+       SET status='historical', ended_at=now(), reviewed_at=now(), updated_at=now()
+       WHERE id=$1`, [input.sourceId],
+    );
+    await client.query(
+      `INSERT INTO health_protocol_events
+       (source_id, actor_user_id, old_status, new_status, reason_code)
+       VALUES ($1,$2,'pending_review','historical',$3)`,
+      [input.sourceId, input.actorUserId,
+        input.decision === "history_only" ? "legacy_discontinued_support" : "legacy_confirmed_support"],
+    );
+    if (input.decision === "history_only") return;
+    // There is exactly one personal source per subject/protocol in the
+    // existing schema. Reuse it, and link every reviewed origin explicitly.
     await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [
-      `legacy:${input.subjectUserId}:${protocol}`,
+      `${input.subjectUserId}:${protocol}:user:personal_support`,
     ]);
-    const { rows: pending } = await client.query(
-      `SELECT id FROM health_protocol_sources
-       WHERE subject_user_id=$1 AND protocol_key=$2
-         AND source_kind='legacy_migrated' AND status='pending_review'
-       ORDER BY id FOR UPDATE`,
+    const { rows: existingUserSources } = await client.query<{ evidence_ref: string }>(
+      `SELECT evidence_ref FROM health_protocol_sources
+       WHERE subject_user_id=$1 AND protocol_key=$2 AND source_kind='user'
+       FOR UPDATE`,
       [input.subjectUserId, protocol],
     );
-    // A repeated confirmation does not create a new event or switch the answer.
-    if (!pending.some((row) => row.id === input.sourceId)) return;
-    for (const row of pending) {
-      await client.query(
-        `UPDATE health_protocol_sources
-         SET status='historical', ended_at=now(), reviewed_at=now(), updated_at=now()
-         WHERE id=$1`,
-        [row.id],
+    const currentSourceId = await putClaim(client, {
+      subjectUserId: input.subjectUserId, actorUserId: input.actorUserId,
+      protocol, source: "user", evidenceRef: existingUserSources[0]?.evidence_ref ?? "personal_support",
+      status: "active", reasonCode: "user_confirmed_legacy_support",
+    });
+    let directiveId: string | null = null;
+    if (rule) {
+      const { rows: directives } = await client.query<{ id: string }>(
+        `INSERT INTO health_protocol_food_directives
+         (subject_user_id, source_id, protocol_key, rule, effective_at)
+         VALUES ($1,$2,$3,$4::jsonb,now()) RETURNING id`,
+        [input.subjectUserId, currentSourceId, protocol, JSON.stringify(rule)],
       );
+      if (!directives[0]) throw new Error("Exact restriction was not saved.");
+      directiveId = directives[0].id;
       await client.query(
-        `INSERT INTO health_protocol_events
-         (source_id, actor_user_id, old_status, new_status, reason_code)
-         VALUES ($1,$2,'pending_review','historical',$3)`,
-        [row.id, input.actorUserId,
-          input.current ? "legacy_confirmed_support" : "legacy_discontinued_support"],
+        `INSERT INTO health_protocol_review_decisions
+         (subject_user_id, source_id, directive_id, disposition, actor_user_id, reason_code)
+         VALUES ($1,$2,$3,'current_hard_restriction',$4,'legacy_explicit_exact_rule')`,
+        [input.subjectUserId, currentSourceId, directives[0].id, input.actorUserId],
+      );
+    } else {
+      await client.query(
+        `INSERT INTO health_protocol_review_decisions
+         (subject_user_id, source_id, disposition, actor_user_id, reason_code)
+         VALUES ($1,$2,'current_guidance',$3,'legacy_explicit_guidance')`,
+        [input.subjectUserId, currentSourceId, input.actorUserId],
       );
     }
-    if (input.current) {
-      await putClaim(client, {
-        subjectUserId: input.subjectUserId, actorUserId: input.actorUserId,
-        protocol, source: "user", evidenceRef: "personal_support",
-        status: "active", reasonCode: "user_confirmed_legacy_support",
-      });
-    }
+    await client.query(
+      `INSERT INTO health_protocol_review_links
+       (origin_source_id, subject_user_id, review_decision_id,
+        result_source_id, directive_id, actor_user_id)
+       VALUES ($1,$2,$3,$4,$5,$6)`,
+      [input.sourceId, input.subjectUserId, reviewDecisionId,
+        currentSourceId, directiveId, input.actorUserId],
+    );
   });
   return readHealthContextView(input.subjectUserId);
 }

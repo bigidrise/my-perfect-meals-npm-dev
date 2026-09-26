@@ -15,14 +15,11 @@
  */
 
 import {
-  loadUserProtocolEnvelope,
+  loadGenerationProtocolEnvelope,
   enforceBeforeGenerate,
   buildGuestEnvelope,
   UserProtocolEnvelope,
 } from "../protocolEnvelope";
-import { db } from "../../db";
-import { users } from "@shared/schema";
-import { eq } from "drizzle-orm";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -224,41 +221,26 @@ function buildBuilderPromptBlock(builder: BuilderKey, guidance: BuilderGuidance)
 /**
  * Load the unified Active Nutrition Context for a user.
  *
- * Always safe to call — falls back to guest envelope + no builder on any error.
- * Never throws.
+ * Only an anonymous caller receives guest authority. An authenticated
+ * protocol failure rejects instead of removing food safety context.
  */
 export async function getActiveNutritionContext(
   userId: string | null | undefined,
 ): Promise<ActiveNutritionContext> {
-  const isGuest = !userId || userId === "1";
+  const isGuest = !userId;
 
   // ── 1. Load protocol envelope (existing system — untouched) ────────────────
   const envelope: UserProtocolEnvelope = isGuest
     ? buildGuestEnvelope()
-    : (await loadUserProtocolEnvelope(userId!).catch(() => null)) ?? buildGuestEnvelope();
+    : await loadGenerationProtocolEnvelope(userId!);
 
   // ── 2. Derive protocol prompt block ───────────────────────────────────────
   const protocolBlock = enforceBeforeGenerate(envelope, {
     generatorName: "active_nutrition_context",
   }).combined;
 
-  // ── 3. Read selectedMealBuilder from DB ────────────────────────────────────
-  let builder: BuilderKey = null;
-
-  if (!isGuest) {
-    try {
-      const [user] = await db
-        .select({ selectedMealBuilder: users.selectedMealBuilder })
-        .from(users)
-        .where(eq(users.id, userId!))
-        .limit(1);
-
-      const raw = user?.selectedMealBuilder ?? null;
-      builder = (raw as BuilderKey) ?? null;
-    } catch {
-      // Non-fatal — proceed without builder context
-    }
-  }
+  // ── 3. Use the builder from the same authenticated envelope snapshot ──────
+  const builder: BuilderKey = (envelope.selectedMealBuilder as BuilderKey) ?? null;
 
   // ── 4. Map builder → guidance ──────────────────────────────────────────────
   const guidance: BuilderGuidance =

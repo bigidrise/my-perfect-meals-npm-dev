@@ -10,6 +10,7 @@ import { finalizeMealCard } from "../services/mealCardFinalizer";
 import { filterSavedGroceriesForCompliance, buildSavedGroceriesPromptBlock } from "../services/savedGroceryCompliance";
 import { getLanguageInstruction } from "../utils/languageInstruction";
 import { buildGroceryCoachContext } from "../services/groceryCoachContext";
+import { ProtocolContextUnavailableError } from "../services/protocolEnvelope";
 import { classifyNutritionalRole, nutritionalRoleLabel, isRoleCompatible } from "../services/groceryNutritionalRole";
 import { createHumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
 import { buildHumanFoodPromptBlock } from "../services/humanFoodContext/buildHumanFoodPromptBlock";
@@ -640,6 +641,9 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     return res.json({ ...result, servingCount: finalServingCount });
   } catch (err: any) {
     console.error("[GroceryCoach] Error:", err?.message);
+    if (err instanceof ProtocolContextUnavailableError) {
+      return res.status(err.status).json({ code: err.code, error: err.message, retryable: true });
+    }
     return res.status(500).json({ error: "Your coach is unavailable right now. Please try again." });
   } finally {
     await humanFoodScope?.releaseAuthorization();
@@ -917,6 +921,9 @@ router.post("/swap-ingredient", async (req, res) => {
 
   } catch (err: any) {
     console.error("[GroceryCoach/Swap] Error:", err?.message);
+    if (err instanceof ProtocolContextUnavailableError) {
+      return res.status(err.status).json({ code: err.code, error: err.message, retryable: true });
+    }
     return res.status(500).json({ error: "Ingredient swap unavailable. Please try again." });
   }
 });

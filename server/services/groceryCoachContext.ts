@@ -10,7 +10,7 @@ import { db } from "../db";
 import { users, userSavedGroceryItems } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import {
-  loadUserProtocolEnvelope,
+  loadGenerationProtocolEnvelope,
   enforceBeforeGenerate,
   buildGuestEnvelope,
 } from "./protocolEnvelope";
@@ -68,9 +68,8 @@ export interface GroceryCoachContext {
 
 export async function buildGroceryCoachContext(userId: string): Promise<GroceryCoachContext> {
   // ── Protocol envelope ───────────────────────────────────────────────────────
-  const loadedEnvelope = await loadUserProtocolEnvelope(userId).catch(() => null);
-  const envelopeFailed = loadedEnvelope === null;
-  const envelope = loadedEnvelope ?? buildGuestEnvelope();
+  const envelope = await loadGenerationProtocolEnvelope(userId);
+  const envelopeFailed = false; // A failed authenticated load throws before recommendations.
   const protocolContext = enforceBeforeGenerate(envelope, {
     generatorName: "grocery_coach",
   }).combined;

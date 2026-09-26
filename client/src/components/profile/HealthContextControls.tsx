@@ -77,6 +77,12 @@ export function HealthContextControls({
   const [pendingPath, setPendingPath] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const [exactSourceId, setExactSourceId] = useState<string | null>(null);
+  const [exactIngredient, setExactIngredient] = useState("");
+  const [exactNutrient, setExactNutrient] = useState<"sodium" | "potassium" | "phosphorus" | "carbohydrate" | "protein" | "saturated_fat">("sodium");
+  const [exactAmount, setExactAmount] = useState("");
+  const [exactScope, setExactScope] = useState<"per_serving" | "per_day">("per_serving");
+  const [exactKind, setExactKind] = useState<"avoid_ingredient" | "nutrient_bound">("avoid_ingredient");
   const scopeVersion = useRef(0);
 
   useEffect(() => {
@@ -112,6 +118,7 @@ export function HealthContextControls({
     setNotice("");
     setBusy(false);
     setPendingPath(null);
+    setExactSourceId(null);
     void reload();
     return () => { scopeVersion.current++; };
   }, [userId, reload]);
@@ -148,6 +155,16 @@ export function HealthContextControls({
   };
 
   const renderReviewActions = (item: HealthSupportSummary) => item.sources.map((source) => {
+    if (source.kind === "you" && source.status === "active") return (
+      <PillButton key={source.id} disabled={busy} className="mt-2"
+        onClick={() => {
+          if (window.confirm("Mark this personal guidance and its exact restrictions as past? Its review history will be retained. Current meal rules will not change until cutover.")) {
+            void change(`/api/health-context/source/${source.id}/review`, "POST", { decision: "historical" });
+          }
+        }}>
+        My recorded guidance or restriction is no longer current
+      </PillButton>
+    );
     if (source.status !== "needs_confirmation") return null;
     if (source.kind === "earlier_profile") return (
       <div key={source.id} className="mt-3 rounded-lg border border-amber-400/30 bg-amber-950/20 p-3 text-xs">
@@ -157,14 +174,78 @@ export function HealthContextControls({
         </p>
         <div className="flex flex-wrap gap-2">
           <PillButton disabled={busy} active={false}
-            onClick={() => change(`/api/health-context/earlier-profile/${source.id}/decision`, "POST", { current: true })}>
-            Yes, keep support
+            onClick={() => change(`/api/health-context/source/${source.id}/review`, "POST", { decision: "current_guidance" })}>
+            Current nutrition guidance
           </PillButton>
           <PillButton disabled={busy}
-            onClick={() => change(`/api/health-context/earlier-profile/${source.id}/decision`, "POST", { current: false })}>
-            No, this is past
+            onClick={() => change(`/api/health-context/source/${source.id}/review`, "POST", { decision: "history_only" })}>
+            Health history only
+          </PillButton>
+          <PillButton disabled={busy}
+            onClick={() => change(`/api/health-context/source/${source.id}/review`, "POST", { decision: "unresolved" })}>
+            Need more information
+          </PillButton>
+          <PillButton disabled={busy} onClick={() => setExactSourceId(
+            exactSourceId === source.id ? null : source.id)}>
+            Confirm an exact restriction
           </PillButton>
         </div>
+        {exactSourceId === source.id && (
+          <div className="mt-3 space-y-2 rounded-lg border border-amber-400/30 p-3 text-white/80">
+            <p>A condition name alone is not a food rule. Record only an exact restriction you can confirm. Your current meal rules will not change yet.</p>
+            <label className="block">Rule type
+              <select value={exactKind} onChange={(event) => setExactKind(event.target.value as typeof exactKind)}
+                className="block w-full rounded bg-neutral-900 p-2 text-white">
+                <option value="avoid_ingredient">Avoid exact ingredient</option>
+                <option value="nutrient_bound">Measurable nutrient bound</option>
+              </select>
+            </label>
+            {exactKind === "avoid_ingredient" ? (
+              <label className="block">Ingredient
+                <input value={exactIngredient} onChange={(event) => setExactIngredient(event.target.value)}
+                  placeholder="e.g. peanut" className="block w-full rounded bg-neutral-900 p-2 text-white" />
+              </label>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <label>Nutrient
+                  <select value={exactNutrient} onChange={(event) => setExactNutrient(event.target.value as typeof exactNutrient)}
+                    className="block w-full rounded bg-neutral-900 p-2 text-white">
+                    {["sodium", "potassium", "phosphorus", "carbohydrate", "protein", "saturated_fat"].map((value) =>
+                      <option key={value} value={value}>{value.replace("_", " ")}</option>)}
+                  </select>
+                </label>
+                <label>At most
+                  <input type="number" min="0.01" step="any" value={exactAmount}
+                    onChange={(event) => setExactAmount(event.target.value)}
+                    className="block w-full rounded bg-neutral-900 p-2 text-white" />
+                </label>
+                <label>Unit
+                  <span className="block p-2">{["sodium", "potassium", "phosphorus"].includes(exactNutrient) ? "mg" : "g"}</span>
+                </label>
+                <label>Scope
+                  <select value={exactScope} onChange={(event) => setExactScope(event.target.value as typeof exactScope)}
+                    className="block w-full rounded bg-neutral-900 p-2 text-white">
+                    <option value="per_serving">Per serving</option><option value="per_day">Per day</option>
+                  </select>
+                </label>
+              </div>
+            )}
+            <PillButton disabled={busy || (exactKind === "avoid_ingredient" ? !exactIngredient.trim() : !Number(exactAmount))}
+              onClick={() => change(`/api/health-context/source/${source.id}/review`, "POST", {
+                decision: "current_hard_restriction",
+                rule: exactKind === "avoid_ingredient"
+                  ? { kind: exactKind, ingredientKey: exactIngredient.trim().toLowerCase().replace(/\s+/g, "_") }
+                  : {
+                    kind: exactKind, nutrient: exactNutrient, comparator: "at_most",
+                    amount: Number(exactAmount),
+                    unit: ["sodium", "potassium", "phosphorus"].includes(exactNutrient) ? "mg" : "g",
+                    scope: exactScope,
+                  },
+              })}>
+              Record exact restriction
+            </PillButton>
+          </div>
+        )}
       </div>
     );
     if (source.kind === "suggestion") return (
@@ -186,7 +267,8 @@ export function HealthContextControls({
     const pendingClinicalReview = view?.supports.filter((item) =>
       item.sources.some((source) => source.status === "needs_confirmation" &&
         (source.kind === "earlier_profile" || source.kind === "care_team" ||
-          source.kind === "medication_information" || source.kind === "lab_recommendation"))) ?? [];
+          source.kind === "medication_information" || source.kind === "lab_recommendation") ||
+          (source.kind === "you" && source.status === "active"))) ?? [];
     return (
       <section className="rounded-xl border border-amber-400/40 bg-amber-950/20 p-3 space-y-3" aria-label="Health and nutrition support settings">
         <p className="text-amber-200 text-sm font-bold">Health &amp; Nutrition Support</p>
@@ -205,9 +287,10 @@ export function HealthContextControls({
                   <div key={item.protocol} className="rounded-lg border border-white/20 bg-black/30 p-3">
                     <p className="text-white font-semibold text-sm">{LABELS[item.protocol]}</p>
                     <SourceList item={{ ...item, sources: item.sources.filter((source) =>
-                      source.status === "needs_confirmation" &&
+                       (source.kind === "you" && source.status === "active") ||
+                       (source.status === "needs_confirmation" &&
                       (source.kind === "earlier_profile" || source.kind === "care_team" ||
-                        source.kind === "medication_information" || source.kind === "lab_recommendation")) }} />
+                         source.kind === "medication_information" || source.kind === "lab_recommendation"))) }} />
                     {renderReviewActions(item)}
                     {item.sources.filter((source) => source.kind === "medication_information" &&
                       source.status === "needs_confirmation").map((source) => (

@@ -8,6 +8,8 @@ type Row = {
 };
 let rows: Row[] = [];
 let events: { sourceId: string; before: string | null; after: string; reason: string }[] = [];
+let decisions: { sourceId: string; disposition: string; directiveId?: string }[] = [];
+let links: { origin: string; result: string; directiveId: string | null }[] = [];
 let membershipActive = true;
 let clinicOwner = "doctor";
 let liveAntiPreference = false;
@@ -36,11 +38,11 @@ const clientQuery = jest.fn(async (sql: string, args: unknown[] = []) => {
       row.subject_user_id === args[1] && row.source_kind === "system_recommendation");
     return { rows: found ? [found] : [], rowCount: Number(!!found) };
   }
-  if (sql.includes("SELECT protocol_key FROM health_protocol_sources") &&
+  if (sql.includes("SELECT protocol_key, status FROM health_protocol_sources") &&
       sql.includes("source_kind='legacy_migrated'")) {
     const found = rows.find((row) => row.id === args[0] &&
       row.subject_user_id === args[1] && row.source_kind === "legacy_migrated");
-    return { rows: found ? [{ protocol_key: found.protocol_key }] : [], rowCount: Number(!!found) };
+    return { rows: found ? [{ protocol_key: found.protocol_key, status: found.status }] : [], rowCount: Number(!!found) };
   }
   if (sql.includes("SELECT app_preferences->>'antiInflammatorySupport' AS current_anti")) {
     return { rows: [{ current_anti: liveAntiPreference ? "true" : null }] };
@@ -70,7 +72,17 @@ const clientQuery = jest.fn(async (sql: string, args: unknown[] = []) => {
       row.status === "pending_review");
     return { rows: found.map((row) => ({ id: row.id })), rowCount: found.length };
   }
+  if (sql.includes("SELECT evidence_ref FROM health_protocol_sources") &&
+      sql.includes("source_kind='user'")) {
+    const found = rows.find((row) => row.subject_user_id === args[0] &&
+      row.protocol_key === args[1] && row.source_kind === "user");
+    return { rows: found ? [{ evidence_ref: found.evidence_ref }] : [] };
+  }
   if (sql.includes("INSERT INTO health_protocol_sources")) {
+    if (args[2] === "user" && rows.some((row) =>
+      row.subject_user_id === args[0] && row.protocol_key === args[1] && row.source_kind === "user")) {
+      throw new Error("Unique user source per subject/protocol.");
+    }
     const row: Row = {
       id: `claim-${rows.length + 1}`, subject_user_id: String(args[0]),
       protocol_key: args[1] as HealthProtocol, source_kind: String(args[2]),
@@ -82,6 +94,24 @@ const clientQuery = jest.fn(async (sql: string, args: unknown[] = []) => {
     };
     rows.push(row);
     return { rows: [{ id: row.id }], rowCount: 1 };
+  }
+  if (sql.includes("INSERT INTO health_protocol_food_directives")) {
+    return { rows: [{ id: `directive-${decisions.length + 1}` }], rowCount: 1 };
+  }
+  if (sql.includes("INSERT INTO health_protocol_review_decisions")) {
+    decisions.push({
+      sourceId: String(args[1]),
+      disposition: sql.includes("'current_hard_restriction'") ? "current_hard_restriction"
+        : sql.includes("'current_guidance'") ? "current_guidance"
+        : String(args[2]),
+      directiveId: sql.includes("'current_hard_restriction'") ? String(args[2]) : undefined,
+    });
+    return { rows: [{ id: `review-${decisions.length}` }], rowCount: 1 };
+  }
+  if (sql.includes("INSERT INTO health_protocol_review_links")) {
+    links.push({ origin: String(args[0]), result: String(args[3]),
+      directiveId: args[4] as string | null });
+    return { rows: [], rowCount: 1 };
   }
   if (sql.includes("UPDATE health_protocol_sources SET status='pending_review'")) {
     const changed = rows.filter((row) => row.care_relationship_id === args[0] &&
@@ -175,7 +205,7 @@ import {
   readShadowProtocolState,
 } from "../services/healthProtocols/persistence";
 import {
-  decideLegacySupport, decideEarlierAntiPreference, markMedicationInformationPast,
+  decideLegacySupport, reconcileLegacyClaim, decideEarlierAntiPreference, markMedicationInformationPast,
   presentHealthContext, readHealthContextView,
 } from "../services/healthProtocols/healthContextControl";
 import { resolveHealthProtocolState } from "../services/healthProtocols/resolveHealthProtocolState";
@@ -185,7 +215,7 @@ describe("DEV shadow protocol persistence and source ownership", () => {
   beforeAll(() => { process.env.NODE_ENV = "development"; });
   afterAll(() => { process.env.NODE_ENV = oldNodeEnv; });
   beforeEach(() => {
-    rows = []; events = []; membershipActive = true; clinicOwner = "doctor"; liveAntiPreference = false;
+    rows = []; events = []; decisions = []; links = []; membershipActive = true; clinicOwner = "doctor"; liveAntiPreference = false;
     labStatuses.clear(); mockBuilder = "anti_inflammatory";
     clientQuery.mockClear(); poolQuery.mockClear();
   });
@@ -345,7 +375,54 @@ describe("DEV shadow protocol persistence and source ownership", () => {
     });
   };
 
-  it("confirms every earlier GLP-1 origin once without changing Anti-Inflammatory Builder or claiming medication use", async () => {
+  it("leaves an unresolved legacy origin pending with an append-only review decision", async () => {
+    legacy("cardiac", "earlier-1");
+    const result = await reconcileLegacyClaim({
+      actorUserId: "subject", subjectUserId: "subject", sourceId: "earlier-1",
+      decision: "unresolved",
+    });
+    expect(result.supports.find((item) => item.protocol === "cardiac")?.status).toBe("needs_confirmation");
+    expect(rows[0].status).toBe("pending_review");
+    expect(events).toHaveLength(0);
+    expect(decisions).toEqual([{ sourceId: "earlier-1", disposition: "unresolved", directiveId: undefined }]);
+  });
+
+  it("does not create a hard rule from guidance or a broad condition name", async () => {
+    legacy("cardiac", "earlier-1");
+    await expect(reconcileLegacyClaim({
+      actorUserId: "subject", subjectUserId: "subject", sourceId: "earlier-1",
+      decision: "current_hard_restriction",
+    })).rejects.toThrow();
+    expect(rows[0].status).toBe("pending_review");
+    expect(decisions).toHaveLength(0);
+    await reconcileLegacyClaim({
+      actorUserId: "subject", subjectUserId: "subject", sourceId: "earlier-1",
+      decision: "current_guidance",
+    });
+    expect(decisions.some((item) => item.disposition === "current_hard_restriction")).toBe(false);
+    expect(decisions.some((item) => item.disposition === "current_guidance")).toBe(true);
+  });
+
+  it("records an exact restriction and preserves the selected original legacy claim", async () => {
+    legacy("renal", "earlier-1");
+    legacy("renal", "earlier-2");
+    await reconcileLegacyClaim({
+      actorUserId: "subject", subjectUserId: "subject", sourceId: "earlier-1",
+      decision: "current_hard_restriction",
+      rule: { kind: "avoid_ingredient", ingredientKey: "peanut" },
+    });
+    expect(rows[0].status).toBe("historical");
+    expect(rows[1].status).toBe("pending_review");
+    expect(rows[2].evidence_ref).toBe("personal_support");
+    expect(links).toEqual([{ origin: "earlier-1", result: "claim-3", directiveId: "directive-2" }]);
+    expect(decisions).toEqual([
+      { sourceId: "earlier-1", disposition: "history_only", directiveId: undefined },
+      { sourceId: "claim-3", disposition: "current_hard_restriction", directiveId: "directive-2" },
+    ]);
+    expect(clientQuery.mock.calls.some(([sql]) => String(sql).includes("INSERT INTO health_protocol_food_directives"))).toBe(true);
+  });
+
+  it("resolves only the chosen GLP-1 origin without changing Anti-Inflammatory Builder or claiming medication use", async () => {
     legacy("glp1", "earlier-1");
     legacy("glp1", "earlier-2");
     const result = await decideLegacySupport({
@@ -355,19 +432,31 @@ describe("DEV shadow protocol persistence and source ownership", () => {
     const glp1 = result.supports.find((item) => item.protocol === "glp1")!;
     expect(glp1.personalEnabled).toBe(true);
     expect(glp1.sources.filter((source) => source.kind === "earlier_profile")
-      .every((source) => source.status === "previous")).toBe(true);
+      .map((source) => source.status)).toEqual(["previous", "needs_confirmation"]);
     expect(rows.find((row) => row.source_kind === "user")?.current_medication_use).toBeNull();
     expect(events.map((item) => item.reason)).toEqual([
-      "legacy_confirmed_support", "legacy_confirmed_support", "user_confirmed_legacy_support",
+      "legacy_confirmed_support", "user_confirmed_legacy_support",
+    ]);
+    expect(decisions).toEqual([
+      { sourceId: "earlier-1", disposition: "history_only", directiveId: undefined },
+      { sourceId: "claim-3", disposition: "current_guidance", directiveId: undefined },
     ]);
     await decideLegacySupport({
       actorUserId: "subject", subjectUserId: "subject", sourceId: "earlier-1", current: false,
     });
-    expect(events).toHaveLength(3);
+    expect(events).toHaveLength(2);
     expect(rows).toHaveLength(3);
+    await decideLegacySupport({
+      actorUserId: "subject", subjectUserId: "subject", sourceId: "earlier-2", current: true,
+    });
+    expect(rows).toHaveLength(3); // the real schema permits only one personal source per protocol
+    expect(links).toEqual([
+      { origin: "earlier-1", result: "claim-3", directiveId: null },
+      { origin: "earlier-2", result: "claim-3", directiveId: null },
+    ]);
     await user(false);
     expect((await user(true)).activeHealthContext).toEqual(["glp1"]);
-    expect(rows.slice(0, 2).every((row) => row.status === "historical")).toBe(true);
+    expect(rows.slice(0, 2).map((row) => row.status)).toEqual(["historical", "historical"]);
   });
 
   it("declines earlier GLP-1 support without erasing provider support or changing the Builder", async () => {

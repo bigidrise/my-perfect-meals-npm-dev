@@ -235,7 +235,8 @@ router.post("/preview", async (req, res) => {
 
     return res.json(response);
   } catch (err: any) {
-    const status = err.statusCode ?? (err instanceof MealRefinementRetryableError ? 503 : 500);
+    const status = err.statusCode ?? (err.code === "PROTOCOL_CONTEXT_UNRESOLVED" ? 503
+      : err instanceof MealRefinementRetryableError ? 503 : 500);
     console.error("[Refinement/preview]", err?.message);
     return res.status(status).json({ error: err.message ?? "Preview generation failed." });
   }
@@ -457,8 +458,9 @@ router.post("/freeform-preview", async (req, res) => {
     return res.json(result);
   } catch (err: any) {
     const isRetryable = err instanceof MealRefinementRetryableError;
+    const contextUnavailable = err.code === "PROTOCOL_CONTEXT_UNRESOLVED";
     const isProtocolViolation = err.message?.startsWith("PROTOCOL_VIOLATION");
-    const status = isRetryable ? 503 : isProtocolViolation ? 422 : 500;
+    const status = isRetryable || contextUnavailable ? 503 : isProtocolViolation ? 422 : 500;
     console.error("[Refinement/freeform-preview]", err?.message);
 
     // Translate raw engine errors into patient-friendly messages.
@@ -469,7 +471,10 @@ router.post("/freeform-preview", async (req, res) => {
 
     let userMessage: string;
     let code: string | undefined;
-    if (isRetryable) {
+    if (contextUnavailable) {
+      userMessage = "Your food safety information could not be verified. No food was generated; please retry.";
+      code = "PROTOCOL_CONTEXT_UNRESOLVED";
+    } else if (isRetryable) {
       userMessage = "The coach couldn't apply that change right now — please try again in a moment.";
       code = "REFINEMENT_UNAVAILABLE";
     } else if (isGlp1FatViolation) {
