@@ -110,12 +110,16 @@ comparison for non-GLP-1 protocols. It is not safe to enable new reads.
    mutations and explicit confirmation/review UI. Shadow-read against legacy
    behavior; do not use shadow rows to serve food.
 
-   The schema, DEV-only service, conservative legacy backfill and bounded
-   aggregate comparison are present. No HTTP write route or confirmation UI
-   is connected yet, and no food consumer reads the tables. Unverified
-   medication and system suggestions can be persisted for review but cannot
-   activate themselves. A provider disconnect can explicitly mark its own
-   source pending review without erasing another source.
+    The schema, DEV-only service, conservative legacy backfill and bounded
+    aggregate comparison are present. A DEV-only authenticated Health Context
+    route and confirmation UI now allow a subject to review earlier profile
+    entries, mark medication information past, and discontinue lab-based support.
+    The paused personal-support screen also exposes pending legacy review.
+    These choices remain shadow-only: no food consumer reads the tables.
+    Unverified medication and system suggestions cannot activate themselves.
+    A provider disconnect can mark its own source pending review without
+    erasing another source. Provider-owned review and source-specific clinical
+    food restrictions still need a verified care-team path before cutover.
 3. Route all human-food, protocol envelope, GLP-1, and nutrition resolvers
    through a single authoritative snapshot. Verify Create a Dish, Craving,
    Dessert, Beverage, Sushi, Fridge Rescue (both routes), Recipe Scan,
@@ -131,9 +135,13 @@ Rollback is an application feature flag returning reads to the unchanged
 legacy pipeline. Disable new writes or dual-write safely before rollback;
 retain additive tables and events for audit, not destructive reverse DDL.
 Production is outside this plan's execution scope.
-At this stage there is no read flag to flip: reads already remain entirely
-legacy. Stop invoking the DEV-only service/backfill to return to the
-pre-Phase-2 behavior, retaining the audit tables and original fields.
+At this stage there is no food-read flag to flip: food reads remain entirely
+legacy. The DEV review endpoint is not itself a food-read cutover. Before
+connecting it, ensure every authenticated food path fails closed instead of
+falling back to a guest envelope on a missing protocol, and verify that
+provider-owned directives have exact, current, relationship-verified authority.
+Stop invoking the DEV-only service/backfill to return to the pre-Phase-2 food
+behavior, retaining the audit tables and original fields.
 
 ## Recipe intent and the existing 409
 

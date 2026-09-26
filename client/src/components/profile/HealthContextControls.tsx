@@ -129,7 +129,9 @@ export function HealthContextControls({
       if (!next?.shadowOnly || !Array.isArray(next.supports)) throw new Error("Support settings could not be verified.");
       if (scopeVersion.current === version) {
         setView(next);
-        setNotice(next.message || "Your support preference was saved for Development meal guidance.");
+        setNotice(next.message || (PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED
+          ? "Your support preference was saved for Development meal guidance."
+          : "Your review was recorded. Current meal safety rules remain unchanged until the authority cutover."));
         onStatusChange?.("ready");
       }
     } catch (err) {
@@ -181,19 +183,52 @@ export function HealthContextControls({
   });
 
   if (!PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED) {
+    const pendingClinicalReview = view?.supports.filter((item) =>
+      item.sources.some((source) => source.status === "needs_confirmation" &&
+        (source.kind === "earlier_profile" || source.kind === "care_team" ||
+          source.kind === "medication_information" || source.kind === "lab_recommendation"))) ?? [];
     return (
       <section className="rounded-xl border border-amber-400/40 bg-amber-950/20 p-3 space-y-3" aria-label="Health and nutrition support settings">
         <p className="text-amber-200 text-sm font-bold">Health &amp; Nutrition Support</p>
-        <p className="text-white/70 text-xs">Your selected Builder remains your nutrition strategy. Optional personal support choices are paused; clinical and safety guidance remains active.</p>
+        <p className="text-white/70 text-xs">Your selected Builder remains your nutrition strategy. Optional personal support choices are paused. This review records your answer, but does not change the current meal safety rules yet.</p>
         {loading && <p role="status" className="text-white/70 text-xs">Loading health context…</p>}
+        {busy && <p role="status" className="text-amber-200 text-xs">Saving your review…</p>}
         {error && <p role="alert" className="text-red-200 text-xs">{error} <PillButton onClick={() => void reload()}>Retry</PillButton></p>}
         {view && (
           <>
             <p className="text-white/70 text-xs">Your current meal strategy: {BUILDER_LABELS[view.builder || ""] || "Selected Builder"}.</p>
+            {pendingClinicalReview.length > 0 && (
+              <div className="rounded-lg border border-amber-400/40 bg-amber-950/30 p-3 space-y-3" aria-label="Health information needing review">
+                <p className="text-amber-100 text-sm font-semibold">Health information needing review</p>
+                <p className="text-white/70 text-xs">Earlier profile entries do not prove a current diagnosis or care-team instruction. Review each one for the future health-context model. Until that model is connected to meals, existing conservative safety rules remain in place. Your choice does not change your Builder or confirm medication use.</p>
+                {pendingClinicalReview.map((item) => (
+                  <div key={item.protocol} className="rounded-lg border border-white/20 bg-black/30 p-3">
+                    <p className="text-white font-semibold text-sm">{LABELS[item.protocol]}</p>
+                    <SourceList item={{ ...item, sources: item.sources.filter((source) =>
+                      source.status === "needs_confirmation" &&
+                      (source.kind === "earlier_profile" || source.kind === "care_team" ||
+                        source.kind === "medication_information" || source.kind === "lab_recommendation")) }} />
+                    {renderReviewActions(item)}
+                    {item.sources.filter((source) => source.kind === "medication_information" &&
+                      source.status === "needs_confirmation").map((source) => (
+                      <PillButton key={source.id} disabled={busy} className="mt-2"
+                        onClick={() => change(`/api/health-context/medication/${source.id}/past`, "POST", {})}>
+                        This medication information is no longer current
+                      </PillButton>
+                    ))}
+                    {item.sources.some((source) => source.kind === "care_team" && source.status === "needs_confirmation") &&
+                      <p className="mt-2 text-amber-100 text-xs">This care-team guidance needs review with your care team. A personal choice cannot remove a provider-owned instruction.</p>}
+                    {item.sources.some((source) => source.kind === "lab_recommendation" && source.status === "needs_confirmation") &&
+                      <p className="mt-2 text-amber-100 text-xs">A past lab result alone cannot establish current meal guidance. Ask your care team to review this recommendation.</p>}
+                  </div>
+                ))}
+              </div>
+            )}
             {view.supports.map((item) => {
               const clinicalSources = item.sources.filter((source) =>
                 source.kind === "care_team" || source.kind === "lab_recommendation" ||
-                source.kind === "medication_information");
+                source.kind === "medication_information").filter((source) =>
+                  source.status !== "needs_confirmation");
               if (!clinicalSources.length) return null;
               return (
                 <div key={item.protocol} className="rounded-lg border border-white/20 bg-black/30 p-3">

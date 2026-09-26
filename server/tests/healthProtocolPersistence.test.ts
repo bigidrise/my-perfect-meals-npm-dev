@@ -9,6 +9,7 @@ type Row = {
 let rows: Row[] = [];
 let events: { sourceId: string; before: string | null; after: string; reason: string }[] = [];
 let membershipActive = true;
+let clinicOwner = "doctor";
 let liveAntiPreference = false;
 const labStatuses = new Map<number, string>();
 let mockBuilder = "anti_inflammatory";
@@ -152,8 +153,12 @@ const poolQuery = jest.fn(async (sql: string, args: unknown[] = []) => {
   }
   if (sql.includes("FROM studio_memberships")) {
     return {
-      rows: (args[1] as string[]).map((id) => ({
-        id, status: membershipActive ? "active" : "revoked", is_archived: !membershipActive,
+      rows: membershipActive ? (args[1] as string[]).map((id) => ({
+        id, owner_user_id: clinicOwner, status: "active", is_archived: false,
+        type: "clinic", studio_status: "active", verification_status: "verified",
+      })) : (args[1] as string[]).map((id) => ({
+        id, owner_user_id: clinicOwner, status: "revoked", is_archived: true,
+        type: "clinic", studio_status: "active", verification_status: "verified",
       })),
     };
   }
@@ -167,6 +172,7 @@ import {
   setUserNutritionSupport, setProviderProtocol, markEndedProviderRelationship,
   recordLabDecision, discontinueLabProtocol,
   recordUnverifiedMedicationContext, recordSystemRecommendation, decideSystemRecommendation,
+  readShadowProtocolState,
 } from "../services/healthProtocols/persistence";
 import {
   decideLegacySupport, decideEarlierAntiPreference, markMedicationInformationPast,
@@ -179,7 +185,7 @@ describe("DEV shadow protocol persistence and source ownership", () => {
   beforeAll(() => { process.env.NODE_ENV = "development"; });
   afterAll(() => { process.env.NODE_ENV = oldNodeEnv; });
   beforeEach(() => {
-    rows = []; events = []; membershipActive = true; liveAntiPreference = false;
+    rows = []; events = []; membershipActive = true; clinicOwner = "doctor"; liveAntiPreference = false;
     labStatuses.clear(); mockBuilder = "anti_inflammatory";
     clientQuery.mockClear(); poolQuery.mockClear();
   });
@@ -190,6 +196,18 @@ describe("DEV shadow protocol persistence and source ownership", () => {
   const provider = (enabled: boolean) => setProviderProtocol({
     actorUserId: "doctor", subjectUserId: "subject",
     membershipId: "care-1", protocol: "glp1", enabled,
+  });
+
+  it("does not authorize a provider claim when its owner no longer matches the verified clinic", async () => {
+    expect((await provider(true)).activeHealthContext).toEqual(["glp1"]);
+    const claim = rows.find((row) => row.source_kind === "provider")!;
+    claim.owner_user_id = "different-provider";
+    const unresolved = await readShadowProtocolState("subject", "standard");
+    expect(unresolved.activeHealthContext).toEqual([]);
+    expect(unresolved.effectiveForFood).toBeNull();
+    expect(unresolved.needsReview[0].reason).toBe("provider_relationship_unverified");
+    claim.owner_user_id = null;
+    expect((await readShadowProtocolState("subject", "standard")).effectiveForFood).toBeNull();
   });
 
   it("enables, discontinues and re-enables a user claim without deleting its history", async () => {
