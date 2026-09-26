@@ -799,7 +799,7 @@ export default function MyPerfectMenu() {
           </p>
           {builderContext?.displayName && (
             <div className="mt-4 inline-flex max-w-full items-center rounded-full border border-emerald-300 bg-emerald-600 px-3 py-1.5 text-xs font-extrabold leading-tight text-white shadow-md shadow-emerald-500/25 sm:px-3.5 sm:py-1.5 sm:text-sm">
-              Using your {builderContext.displayName}
+              {builderContext.displayName}
             </div>
           )}
           {activeProfile && <p className="mt-3 text-sm font-semibold text-violet-200">Choosing for {activeProfile.displayName}</p>}
