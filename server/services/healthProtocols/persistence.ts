@@ -365,7 +365,10 @@ export async function decideSystemRecommendation(input: {
   return readShadowProtocolState(input.subjectUserId, "standard");
 }
 
-export async function readShadowProtocolState(subjectUserId: string, builder: FoodBuilderStrategy) {
+export async function readShadowProtocolRecords(subjectUserId: string): Promise<{
+  records: HealthProtocolRecord[];
+  relationshipStatus: Record<string, "active" | "ended">;
+}> {
   devOnly();
   const { rows } = await pool.query(
     `SELECT id, protocol_key, source_kind, status, owner_user_id, care_relationship_id,
@@ -376,6 +379,7 @@ export async function readShadowProtocolState(subjectUserId: string, builder: Fo
   const records: HealthProtocolRecord[] = rows.map((row) => ({
     id: row.id, protocol: row.protocol_key, source: row.source_kind, status: row.status,
     relationshipId: row.care_relationship_id ?? undefined,
+    ownerUserId: row.owner_user_id ?? undefined,
     acceptedRecommendation: row.accepted_recommendation ?? undefined,
     currentMedicationUse: row.current_medication_use ?? undefined,
   }));
@@ -409,5 +413,10 @@ export async function readShadowProtocolState(subjectUserId: string, builder: Fo
     // One malformed claim must not inherit another claim's verified relationship.
     for (const id of unverifiedIds) delete relationshipStatus[id];
   }
+  return { records, relationshipStatus };
+}
+
+export async function readShadowProtocolState(subjectUserId: string, builder: FoodBuilderStrategy) {
+  const { records, relationshipStatus } = await readShadowProtocolRecords(subjectUserId);
   return resolveHealthProtocolState({ records, relationshipStatus, builder });
 }

@@ -143,6 +143,57 @@ provider-owned directives have exact, current, relationship-verified authority.
 Stop invoking the DEV-only service/backfill to return to the pre-Phase-2 food
 behavior, retaining the audit tables and original fields.
 
+## Exact directives and review decisions — staged, not activated
+
+An additive **shadow-only** layer is defined in
+`server/db/schema/healthProtocolDirectives.ts` and the explicit migration
+`scripts/migrate-clinical-directives-dev.ts`. It does not alter the existing
+profile fields, clinical labs, source claims, or food consumers:
+
+- `health_protocol_food_directives` stores immutable versions of typed food
+  rules, bound to an exact subject, protocol, and source. Rules currently
+  represent an exact ingredient avoidance or a measurable nutrient bound with
+  unit and per-serving/per-day scope. Each has an effective time, optional
+  expiry, and optional superseded version. A condition name and free-text
+  provider note are **not** a rule.
+- `health_protocol_review_decisions` stores append-only actor/time/reason
+  decisions. A source can be retained as history, confirmed as current
+  guidance, or left unresolved. A directive may be confirmed as a specific
+  hard restriction, verified as provider-owned, or later marked historical.
+  Database triggers reject updates/deletes and cross-subject/source links.
+  An end or supersession appends a decision; it never erases the prior rule.
+- The DEV-only internal service validates exact rule shape, subject ownership,
+  and active verified clinic membership/recorded provider owner before
+  recording a provider rule. It is **not an HTTP endpoint**: clinical training,
+  consent, and role gates must be added before exposing provider writes.
+  Subject decisions cannot change provider-owned claims. The read-only shadow
+  loader rejects absent tables instead of treating missing evidence as empty.
+- The pure `resolveClinicalMealAuthority` contract accepts health history,
+  source records, directives, and decisions separately. Only an explicit,
+  current, source-matched decision makes a typed rule a hard restriction.
+  Pending or conflicting evidence yields a null shadow candidate. Even with
+  reviewed inputs, `effectiveForFood` is **always null** until a separate,
+  independently verified legacy/source completeness gate is implemented.
+  It does not feed `protocolEnvelope`, Human Food Context, or any meal
+  surface yet.
+
+**Storage boundary:** Development and Production intentionally share the
+project's external Neon database. The migration creates additive tables in
+that shared schema; it is an explicit Development-only command requiring
+both migration opt-in and shared-schema acknowledgement, not a boot migration
+or a production application change. New application reads/writes remain
+Development-gated and no production food consumer uses these tables.
+The migration was applied after a read-only target preflight: the two new
+tables and four identity/append-only triggers exist, and both new tables
+were empty on verification. No account records were converted or edited.
+
+Before any food-read activation, connect a complete authorized review path,
+reconcile legacy names without guessing clinical instructions, validate the
+actual production-effective authenticated routes (some currently fall back
+to guest envelopes), and prove all major food surfaces and independent
+allergy/GLP-1/Alpha-gal/pregnancy protections remain intact. Stop and report
+at that gate rather than flipping one consumer at a time.
+
 ## Recipe intent and the existing 409
 
 Keep 1–10 **total** servings and per-serving nutrition distinct. The

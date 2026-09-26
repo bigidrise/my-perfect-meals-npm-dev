@@ -43,6 +43,8 @@ export interface HealthProtocolRecord {
   status: HealthProtocolStatus;
   /** Provider source only. The relationship must still be active. */
   relationshipId?: string;
+  /** Source owner, checked against the verified clinic at the read boundary. */
+  ownerUserId?: string;
   /** Lab source only. A raw lab signal is not an accepted recommendation. */
   acceptedRecommendation?: boolean;
   /** Medication source only. Historical medication names are not current use. */
