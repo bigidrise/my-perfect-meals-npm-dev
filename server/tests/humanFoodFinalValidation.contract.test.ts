@@ -75,6 +75,35 @@ function generatedEvidence(overrides: HumanFoodCandidate["evidence"] = {}) {
   };
 }
 
+describe("Development GLP-1 final evidence gate", () => {
+  const oldEnv = process.env.NODE_ENV;
+  const oldDeployment = process.env.REPLIT_DEPLOYMENT;
+  afterAll(() => {
+    process.env.NODE_ENV = oldEnv;
+    if (oldDeployment === undefined) delete process.env.REPLIT_DEPLOYMENT;
+    else process.env.REPLIT_DEPLOYMENT = oldDeployment;
+  });
+  it("treats old medication text as history, but enforces an explicitly resolved current authority", () => {
+    process.env.NODE_ENV = "development";
+    delete process.env.REPLIT_DEPLOYMENT;
+    const candidate: HumanFoodCandidate = {
+      name: "Potato salad", ingredients: ["potatoes"], instructions: "Prepare and serve.",
+      evidence: generatedEvidence(),
+    };
+    const oldHistory = context({ safety: {
+      ...context().safety, healthConditions: ["semaglutide"], glp1MealAuthorityActive: false,
+    } });
+    const historical = validateHumanFoodCandidate(candidate, oldHistory);
+    expect(historical.findings.some((finding) => finding.code === "glp1_evidence_missing")).toBe(false);
+    const current = validateHumanFoodCandidate(candidate, context({ safety: {
+      ...oldHistory.safety, glp1MealAuthorityActive: true,
+    } }));
+    expect(current.findings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "glp1_evidence_missing" }),
+    ]));
+  });
+});
+
 describe("strict Menu exact-requirement evidence", () => {
   const candidate = (overrides: HumanFoodCandidate["evidence"] = {}): HumanFoodCandidate => ({
     name: "Lentil Tomato Stew",

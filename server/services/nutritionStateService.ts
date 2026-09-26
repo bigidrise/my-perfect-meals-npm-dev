@@ -17,6 +17,7 @@ import { eq, sql, and } from "drizzle-orm";
 import { resolveDailyNutritionPrescription } from "./prescriptionResolver";
 import { getUserTimezone } from "./nutritionDayService";
 import { dailyNutritionPrescriptions } from "../db/schema/dailyNutritionPrescriptions";
+import { resolveCurrentGLP1MealAuthority } from "./glp1/currentMealAuthority";
 import type {
   DailyNutritionState,
   GenerationContext,
@@ -248,8 +249,7 @@ export async function resolveDailyNutritionState(
   const medicalConditions = Array.isArray(user.medicalConditions)
     ? (user.medicalConditions as string[]) : [];
 
-  const glp1Active = specialtyConditions.includes("glp1")
-    || medicalConditions.some(c => c === "glp1" || c === "glp-1");
+  const glp1Active = (await resolveCurrentGLP1MealAuthority(user)).length > 0;
   const diabeticActive = specialtyConditions.includes("diabetic")
     || medicalConditions.some(c => c === "diabetic" || c.includes("diabetes"));
   const performanceActive = !!(user as any).performanceModeEnabled

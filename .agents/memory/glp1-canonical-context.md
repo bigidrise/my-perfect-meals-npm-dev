@@ -19,18 +19,12 @@ Returns `GLP1GlobalContext`:
 - `dailyNutritionState: DailyNutritionState | null` — remaining macros today
 - `compositionNote: string` — GLP-1 + Performance composition guidance
 
-## Activation sources (3 current-state sources only)
-1. `users.selectedMealBuilder === "glp1"` — user's actively selected builder
-2. `users.medicalConditions` contains "glp1" — physician-managed via `PUT /api/pro/glp1-protocol/:id {enabled:true/false}` (adds/removes "glp1" from array — the canonical clinical toggle)
-3. `users.specialtyConditions` contains a GLP-1 medication keyword (updateable)
+## Development authority boundary
+An actively selected GLP-1 Builder or an explicitly current, relationship-verified provider claim or current medication claim may activate GLP-1 meal behavior. Old medical/specialty condition arrays, previous medication use, paused personal support, and mere profile existence cannot prove current authority. Do not infer clinician provenance from an old array entry.
 
-**INTENTIONALLY EXCLUDED:**
-- `users.preferredBuilder` — schema comment says "starting recommendation from onboarding"; NOT a current treatment indicator, could be stale
-- `glp1_profile row exists` — table has no `is_active` field (`id, user_id UNIQUE, guardrails JSONB, created_at, updated_at`); row persists forever after setup with no deactivation mechanism
+**Why:** The legacy condition value was written by onboarding, profile settings, and clinicians alike; it survived Builder changes and medication discontinuation, causing unrelated Builders to inherit GLP-1 validation.
 
-**Why:** Two stale sources were removed after audit confirmed they can represent historical state ("has ever been GLP-1") not current treatment state. For Premier: "GLP-1 protocol currently active" ≠ "has ever been on GLP-1."
-
-**Future:** Add `users.glp1_protocol_active boolean` as the canonical single flag. The 3 sources establish/migrate it; every feature asks one question: "Is this person's GLP-1 protocol currently active?"
+**How to apply:** Use the same current-status decision for generation, final validation, prescriptions, envelope, coaching, and recommendations; preserve old information as history, not a live switch. Existing ambiguous users require individual review before a production cutover. The correction is Development-only until deliberately reviewed and released; the published app still uses the older policy.
 
 ## Threading path for generated meals
 `POST /api/meals/generate` (routes.ts) →
@@ -75,12 +69,6 @@ Any phase-specific reduction rules belong in `resolveGLP1MealTargets` registry (
 - Block appended to `combinedBuilderBlock` → flows into `generateFridgeRescueMeals({ ..., builderBlock })`
 - Protocol enforcement (`filterMealsByProtocol`) already runs post-gen — GLP-1 guidance now also reaches the prompt layer
 
-### Proof log signature (what the server emits for a GLP-1 user)
-```
-[GLP1Context] user=X date=Y meal=Z active=true sources=[medicalConditions] performance=false targets=420kcal / 28g prot / 11g fat-ceiling [phase: maintenance]
-💊 [CRAVING/GLP-1] Personalized targets: 420kcal / 28g prot / 11g fat-ceiling [phase: maintenance] [baseline: default]
-✅ [CRAVING/GLP-1] Post-gen validation PASSED — meal: "..." | 385kcal / 32g prot / 9g fat
-```
 
 ## Weekly Meal Plan wired (/api/ai/generate-meal-plan)
 - `resolveGLP1GlobalContext` called once per plan generation (after userProfile fetch)

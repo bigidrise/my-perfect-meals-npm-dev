@@ -60,6 +60,7 @@ import {
 } from "./diabeticContextService";
 import { buildUniversalConditionGuidance } from "./universalMedicalGuidance";
 import { readDevelopmentPersonalFoodSupports } from "./healthProtocols/developmentFoodSupports";
+import { resolveCurrentGLP1MealAuthority, currentGLP1AuthorityEnabled } from "./glp1/currentMealAuthority";
 import { scanClinicalFoodSafety } from "./healthProtocols/clinicalOutputChecks";
 import { validateDishIdentity } from "./dishAdaptation/dishIdentityValidator";
 import { deriveCompPrepStatus } from "./protocol/competitionPrepDateEngine";
@@ -1035,7 +1036,13 @@ export async function loadUserProtocolEnvelope(
       ((user as any).medicalConditions as string[] | null) ||
       [];
     const GLP1_MC_KEYS = new Set(["glp1", "glp-1", "semaglutide", "ozempic", "wegovy", "tirzepatide", "mounjaro", "zepbound", "rybelsus", "liraglutide", "saxenda", "victoza", "dulaglutide", "trulicity", "exenatide", "byetta", "bydureon"]);
-    const medicalConditionsGlp1 = _activeMedicalConditions.filter((c: string) => GLP1_MC_KEYS.has(c.toLowerCase()));
+    const glp1Authority = await resolveCurrentGLP1MealAuthority(
+      user as typeof user & { id: string },
+      !!(householdProfileId || (user as any).activeHouseholdProfileId),
+    );
+    const medicalConditionsGlp1 = currentGLP1AuthorityEnabled()
+      ? (glp1Authority.length > 0 ? ["glp1"] : [])
+      : _activeMedicalConditions.filter((c: string) => GLP1_MC_KEYS.has(c.toLowerCase()));
     // Phase 2B: only an explicitly confirmed, active personal source may add
     // food guidance. Never use the old unreviewed app preference or another
     // household member's support choice as the nutrition subject's context.
@@ -1043,7 +1050,13 @@ export async function loadUserProtocolEnvelope(
       ? new Set()
       : await readDevelopmentPersonalFoodSupports(userId);
     const mergedHealthConditions = [...new Set([
-      ...healthConditions, ...specialtyConditionsArr, ...medicalConditionsGlp1,
+      ...(currentGLP1AuthorityEnabled()
+        ? healthConditions.filter((c) => !GLP1_MC_KEYS.has(c.toLowerCase()))
+        : healthConditions),
+      ...(currentGLP1AuthorityEnabled()
+        ? specialtyConditionsArr.filter((c) => !GLP1_MC_KEYS.has(c.toLowerCase()))
+        : specialtyConditionsArr),
+      ...medicalConditionsGlp1,
       ...(personalSupports.has("anti_inflammatory") &&
         user.selectedMealBuilder !== "anti_inflammatory" &&
         user.selectedMealBuilder !== "anti-inflammatory" ? ["anti-inflammatory"] : []),

@@ -29,6 +29,7 @@
  */
 
 import { db } from "../../db";
+import { currentGLP1AuthorityEnabled, resolveCurrentGLP1MealAuthority } from "../glp1/currentMealAuthority";
 import { sql } from "drizzle-orm";
 import {
   getCapabilitiesForUser,
@@ -176,6 +177,7 @@ export async function buildCoachingContext(
     dietary_restrictions: string[] | null;
     medical_conditions: string[] | null;
     specialty_conditions: string[] | null;
+    selected_meal_builder: string | null;
     activity_level: string | null;
     fitness_goal: string | null;
     performance_mode_enabled: boolean | null;
@@ -187,6 +189,7 @@ export async function buildCoachingContext(
       dietary_restrictions,
       medical_conditions,
       specialty_conditions,
+      selected_meal_builder,
       activity_level,
       fitness_goal,
       performance_mode_enabled,
@@ -377,8 +380,16 @@ export async function buildCoachingContext(
   };
 
   // ── 7. Overlays ────────────────────────────────────────────────────────────
+  const glp1Active = currentGLP1AuthorityEnabled()
+    ? (await resolveCurrentGLP1MealAuthority({
+        id: userId,
+        selectedMealBuilder: profile?.selected_meal_builder,
+        medicalConditions: profile?.medical_conditions,
+        specialtyConditions: specialtyConditions,
+      })).length > 0
+    : specialtyConditions.includes("glp1") || specialtyConditions.includes("glp-1");
   const activeOverlays = {
-    glp1Active:             specialtyConditions.includes("glp1") || specialtyConditions.includes("glp-1"),
+    glp1Active,
     pregnancyActive:        specialtyConditions.includes("pregnancy-support") || specialization === "pregnancy",
     performanceModeActive:  profile?.performance_mode_enabled === true,
     antiInflammatoryActive: specialtyConditions.includes("anti-inflammatory") || specialtyConditions.includes("anti_inflammatory"),

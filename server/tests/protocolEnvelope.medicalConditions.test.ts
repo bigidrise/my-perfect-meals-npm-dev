@@ -37,11 +37,13 @@ const selectedUser = {
   measurementSystem: "imperial",
 };
 const mockPersonalSupports = jest.fn(async () => new Set<string>());
+const mockQuery = jest.fn(async () => ({ rows: [] }));
 jest.mock("../services/healthProtocols/developmentFoodSupports", () => ({
   readDevelopmentPersonalFoodSupports: (...args: unknown[]) => mockPersonalSupports(...args),
 }));
 
 jest.mock("../db", () => ({
+  pool: { query: (...args: unknown[]) => mockQuery(...args) },
   db: {
     select: () => ({
       from: () => ({
@@ -61,6 +63,22 @@ jest.mock("../services/diabeticContextService", () => ({
 import { buildGuestEnvelope, enforceBeforeGenerate, loadUserProtocolEnvelope, scanGeneratedOutput } from "../services/protocolEnvelope";
 
 describe("protocol envelope medicalConditions projection", () => {
+  it("does not promote ambiguous legacy GLP-1 into an Anti-Inflammatory envelope in Development", async () => {
+    const previousEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "development";
+    selectedUser.medicalConditions = ["glp1"];
+    selectedUser.specialtyConditions = [];
+    selectedUser.healthConditions = [];
+    selectedUser.selectedMealBuilder = "anti_inflammatory";
+    try {
+      const envelope = await loadUserProtocolEnvelope("protocol-user");
+      expect(envelope?.selectedMealBuilder).toBe("anti_inflammatory");
+      expect(JSON.stringify(envelope?.conditionGuidanceBlocks ?? [])).not.toMatch(/GLP-1 MEDICATION PROTOCOL/i);
+      expect(mockQuery).toHaveBeenCalled();
+    } finally {
+      process.env.NODE_ENV = previousEnv;
+    }
+  });
   it("does not add saved personal anti-inflammatory guidance while frozen, but preserves Builder guidance", async () => {
     const previousEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = "development";
