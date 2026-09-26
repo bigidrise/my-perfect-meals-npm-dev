@@ -61,6 +61,30 @@ jest.mock("../services/diabeticContextService", () => ({
 import { buildGuestEnvelope, enforceBeforeGenerate, loadUserProtocolEnvelope, scanGeneratedOutput } from "../services/protocolEnvelope";
 
 describe("protocol envelope medicalConditions projection", () => {
+  it("does not add saved personal anti-inflammatory guidance while frozen, but preserves Builder guidance", async () => {
+    const previousEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "development";
+    selectedUser.medicalConditions = [];
+    selectedUser.healthConditions = [];
+    selectedUser.specialtyConditions = [];
+    selectedUser.selectedMealBuilder = null;
+    mockPersonalSupports.mockImplementation(() =>
+      jest.requireActual("../services/healthProtocols/developmentFoodSupports")
+        .readDevelopmentPersonalFoodSupports("protocol-user"));
+    try {
+      const standard = await loadUserProtocolEnvelope("protocol-user");
+      expect((standard?.conditionGuidanceBlocks ?? []).join("\n")).not.toMatch(/ANTI-INFLAMMATORY/i);
+      selectedUser.selectedMealBuilder = "anti_inflammatory";
+      const builder = await loadUserProtocolEnvelope("protocol-user");
+      expect(builder?.selectedMealBuilder).toBe("anti_inflammatory");
+      // Builder guidance comes from the established diet guardrails, not a personal envelope block.
+      const { getSystemPromptForDiet } = jest.requireActual("../services/guardrails");
+      expect(getSystemPromptForDiet("anti-inflammatory"))
+        .toMatch(/ANTI-INFLAMMATORY/i);
+    } finally {
+      process.env.NODE_ENV = previousEnv;
+    }
+  });
   it("blocks an obvious animal ingredient under vegan identity, not just hidden derivatives", () => {
     const envelope = buildGuestEnvelope();
     envelope.dietaryIdentity = ["vegan"];

@@ -36,6 +36,48 @@ describe("personal GLP-1 food activation in Development", () => {
     mockDailyState.mockReset().mockResolvedValue(null);
   });
 
+  it.each(["standard", "anti_inflammatory", "performance_competition"])(
+    "does not activate GLP-1 for the %s Builder from saved personal overlays while frozen",
+    async (builder) => {
+      const previousEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "development";
+      user.selectedMealBuilder = builder;
+      // Use the actual frozen reader rather than the mock used to exercise dormant overlay logic below.
+      mockPersonalSupports.mockImplementation(() =>
+        jest.requireActual("../services/healthProtocols/developmentFoodSupports")
+          .readDevelopmentPersonalFoodSupports("subject"));
+      try {
+        const context = await resolveGLP1GlobalContext("subject", "2026-09-24");
+        expect(context.isActive).toBe(false);
+        expect(context.activationSources).toEqual([]);
+        expect(mockTargets).not.toHaveBeenCalled();
+      } finally {
+        process.env.NODE_ENV = previousEnv;
+      }
+    },
+  );
+
+  it("keeps Builder and medical GLP-1 authority active with personal overlays frozen", async () => {
+    const previousEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "development";
+    mockPersonalSupports.mockImplementation(() =>
+      jest.requireActual("../services/healthProtocols/developmentFoodSupports")
+        .readDevelopmentPersonalFoodSupports("subject"));
+    try {
+      user.selectedMealBuilder = "glp1";
+      const builderContext = await resolveGLP1GlobalContext("subject", "2026-09-24");
+      expect(builderContext.activationSources).toEqual(["selectedMealBuilder"]);
+      expect(builderContext.resolvedTargets).not.toBeNull();
+      user.selectedMealBuilder = "standard";
+      user.medicalConditions = ["glp1"];
+      const clinicalContext = await resolveGLP1GlobalContext("subject", "2026-09-24");
+      expect(clinicalContext.activationSources).toEqual(["medicalConditions"]);
+      expect(clinicalContext.resolvedTargets).not.toBeNull();
+    } finally {
+      process.env.NODE_ENV = previousEnv;
+    }
+  });
+
   it("uses only an active subject-owned personal source without asserting medication or switching builder", async () => {
     mockPersonalSupports.mockResolvedValue(new Set(["glp1"]));
     const context = await resolveGLP1GlobalContext("subject", "2026-09-24");

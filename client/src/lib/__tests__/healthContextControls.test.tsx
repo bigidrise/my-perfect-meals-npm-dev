@@ -2,6 +2,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { HealthContextControls } from "@/components/profile/HealthContextControls";
 import type { HealthContextView } from "@shared/healthContextControl";
+jest.mock("@shared/personalFoodSupportFreeze", () => ({ PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED: true }));
 
 const mockApiRequest = jest.fn();
 jest.mock("@/lib/apiRequest", () => ({

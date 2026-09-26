@@ -17,6 +17,7 @@ import { getAuthHeaders } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { PillButton } from "@/components/ui/pill-button";
 import { HealthContextControls } from "@/components/profile/HealthContextControls";
+import { PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED } from "@shared/personalFoodSupportFreeze";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { getGuestPageExplanation } from "@/components/copilot/CopilotPageExplanations";
 import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanationStore";
@@ -702,8 +703,8 @@ export default function EditProfilePage() {
       // Only an explicit changed choice creates or discontinues the personal
       // food source in Development. Never promote an old preference merely
       // because the user saved unrelated profile fields.
-      let currentMealPreferenceSaved = !user?.id || antiInflammatorySupportLoaded;
-      if (user?.id && antiInflammatorySupportLoaded) {
+      let currentMealPreferenceSaved = !PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED || !user?.id || antiInflammatorySupportLoaded;
+      if (PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED && user?.id && antiInflammatorySupportLoaded) {
         try {
           if (import.meta.env.DEV) {
             if (antiInflammatorySupport !== savedAntiInflammatorySupport || antiInflammatoryConfirmPending) {
@@ -1587,13 +1588,13 @@ export default function EditProfilePage() {
                 <HealthContextControls
                   key={user.id}
                   userId={user.id}
-                  profilePreferenceCard={antiInflammatoryPreferenceCard}
+                  profilePreferenceCard={PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED ? antiInflammatoryPreferenceCard : undefined}
                   onPersonalAntiStatus={setAntiInflammatoryPersonalEnabled}
                 />
               ) : (
                 <section className="rounded-xl border border-amber-400/40 bg-amber-950/20 p-3 space-y-3" aria-label="Health and nutrition support settings">
                   <p className="text-amber-200 text-sm font-bold">Health &amp; Nutrition Support</p>
-                  <div className="grid gap-3 sm:grid-cols-2">{antiInflammatoryPreferenceCard}</div>
+                  {PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED && <div className="grid gap-3 sm:grid-cols-2">{antiInflammatoryPreferenceCard}</div>}
                 </section>
               )}
 
