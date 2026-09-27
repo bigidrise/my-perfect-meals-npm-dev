@@ -18,7 +18,7 @@ jest.mock("../middleware/requireAuth", () => ({
     next();
   },
 }));
-jest.mock("../services/oneTouch/menuRecipeCompletion", () => ({ completeMenuRecipe: jest.fn() }));
+jest.mock("../services/oneTouch/selectedConceptHandoff", () => ({ completeSelectedConcept: jest.fn() }));
 jest.mock("../services/oneTouch/directions", () => ({ generateOneTouchDirections: jest.fn() }));
 jest.mock("../services/oneTouch/history", () => ({
   readOneTouchHistory: jest.fn(async (id: string) => ({
@@ -57,6 +57,7 @@ jest.mock("../services/protocolEnvelope", () => ({
 }));
 jest.mock("../services/oneTouch/dietAuthority", () => ({
   withOneTouchDiet: jest.fn((envelope: unknown) => envelope),
+  mutableProfileStyles: jest.fn(() => []),
 }));
 jest.mock("../services/humanFoodContext/adapters", () => ({
   buildCreatorHumanFoodPrompt: jest.fn(() => ""),
@@ -126,7 +127,7 @@ describe("Creator Menu selects one server-owned concept before completion", () =
     app = express();
     app.use(express.json());
     app.use("/api/one-touch-create", router());
-    complete = require("../services/oneTouch/menuRecipeCompletion").completeMenuRecipe;
+    complete = require("../services/oneTouch/selectedConceptHandoff").completeSelectedConcept;
     directions = require("../services/oneTouch/directions").generateOneTouchDirections;
     history = require("../services/oneTouch/history").appendOneTouchHistory;
   });
@@ -145,10 +146,10 @@ describe("Creator Menu selects one server-owned concept before completion", () =
     directions.mockImplementation(async ({ occasion }: { occasion: "lunch" | "snack" }) => ({
       directions: [1, 2, 3].map((n) => idea(n, occasion)), attemptsCompleted: 1,
     }));
-    complete.mockImplementation(async ({ approvedConcept }: { approvedConcept: OneTouchDirection }) => ({
+    complete.mockImplementation(async ({ concept }: { concept: OneTouchDirection }) => ({
       ok: true,
-      card: {
-        name: approvedConcept.title, description: approvedConcept.description,
+      meal: {
+        name: concept.title, description: concept.description,
         ingredients: [{ name: "lentils", quantity: "3", unit: "cups" }],
         instructions: "Simmer.", cookingTime: "25 minutes",
         nutrition: { calories: 900, protein: 60, carbs: 75, fat: 15, starchyCarbs: 60 },
@@ -255,9 +256,9 @@ describe("Creator Menu selects one server-owned concept before completion", () =
       expect(selected.body.meal.imageUrl).toBe("/completed.jpg");
       expect(complete).toHaveBeenCalledTimes(1);
       expect(complete).toHaveBeenCalledWith(expect.objectContaining({
-        approvedConcept: expect.objectContaining({ title: initial.body.concepts[1].title }),
-        servings: 3, cuisine: "italian", dietaryDirection: "vegan",
-        clinicalMealSlot: "lunch", contextCreator: creator,
+        concept: expect.objectContaining({ title: initial.body.concepts[1].title }),
+        servings: 3, cuisine: "italian", creator,
+        context: expect.objectContaining({ status: "resolved" }),
       }));
       expect(history).toHaveBeenCalledTimes(1);
     },
