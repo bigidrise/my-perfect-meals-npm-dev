@@ -391,29 +391,32 @@ router.get("/concepts", requireAuth, requireFullMyPerfectMenuRestorationPayload,
   if (!target) return res.status(404).json({ error: "Food profile not found." });
   builder = effectiveBuilderForTarget(builder, target);
   const destinationError = requirePerformanceDestination(builder, parsed.data);
-  if (destinationError) return res.status(400).json({ error: destinationError, code: "PERFORMANCE_DESTINATION_REQUIRED" });
+  if (destinationError) return res.status(400).json({ error: destinationError, code: "PERFORMANCE_DESTINATION_REQUIRED", builder, subject: { id: target.id, label: target.label } });
   const preferences = await readPreferences(target);
   const scope = createHumanFoodRequestScope({
     actorUserId, subjectUserId: target.id, creator: "my_perfect_menu",
     actionRequest: "read menu concepts", authorizationAction: "my_perfect_menu",
   });
-  let context: any = await scope.resolve();
+  const [resolvedContext, envelope, glp1] = await Promise.all([
+    scope.resolve(),
+    target.kind === "user"
+      ? loadUserProtocolEnvelope(actorUserId)
+      : loadUserProtocolEnvelope(actorUserId, target.id),
+    target.kind === "user"
+      ? resolveGLP1GlobalContext(actorUserId, new Date().toISOString().slice(0, 10), "lunch")
+      : Promise.resolve(null),
+  ]);
+  let context: any = resolvedContext;
   if (target.kind === "household") context = { ...context, nutrition: null, diabetesFoodPreferences: null, behavior: null };
-  const envelope = target.kind === "user"
-    ? await loadUserProtocolEnvelope(actorUserId)
-    : await loadUserProtocolEnvelope(actorUserId, target.id);
-  const glp1 = target.kind === "user"
-    ? await resolveGLP1GlobalContext(actorUserId, new Date().toISOString().slice(0, 10), "lunch")
-    : null;
   const categories: Partial<Record<MyPerfectMenuCategory, MyPerfectMenuConcept[]>> = {};
   const staleCategories: MyPerfectMenuCategory[] = [];
-  for (const category of ["breakfast", "lunch", "dinner", "snack"] as MyPerfectMenuCategory[]) {
-    if (!preferences.categories[category]) continue;
+  await Promise.all((["breakfast", "lunch", "dinner", "snack"] as MyPerfectMenuCategory[]).map(async (category) => {
+    if (!preferences.categories[category]) return;
     const stamp = await currentStamp(actorUserId, target, category, context, envelope, glp1, builder, parsed.data.destinationDate, parsed.data.mealSlot ?? (category === "snack" ? "snacks" : category));
     if (isMyPerfectMenuContextStampFresh(preferences.contextStamps[category], stamp)) {
       categories[category] = preferences.categories[category];
     } else staleCategories.push(category);
-  }
+  }));
   return res.json({ categories, staleCategories, subject: { id: target.id, label: target.label }, builder });
 });
 

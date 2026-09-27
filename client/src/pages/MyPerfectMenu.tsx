@@ -188,6 +188,7 @@ export default function MyPerfectMenu() {
   const [performanceSetupOpen, setPerformanceSetupOpen] = useState(false);
   const [builderRefreshEpoch, setBuilderRefreshEpoch] = useState(0);
   const [restorationStatus, setRestorationStatus] = useState<MyPerfectMenuRestorationStatus>("loading");
+  const categoryOpenedDuringRestorationRef = useRef<IdeaType | null>(null);
   const handledReturnRef = useRef(false);
   const subjectRef = useRef(subjectUserId ?? user?.id ?? null);
   const subjectEpochRef = useRef(0);
@@ -239,6 +240,7 @@ export default function MyPerfectMenu() {
     setTryMoreOpen(false);
     setError(null);
     setRestorationStatus("loading");
+    categoryOpenedDuringRestorationRef.current = null;
     let cancelled = false;
     const params = new URLSearchParams();
     if (subjectUserId) params.set("subjectUserId", subjectUserId);
@@ -250,29 +252,27 @@ export default function MyPerfectMenu() {
     const query = params.toString() ? `?${params.toString()}` : "";
     void (async () => {
       try {
-        const builderResponse = await fetch(apiUrl(`/api/my-perfect-menu/effective-builder${query}`), {
-          credentials: "include",
-          headers: getAuthHeaders(),
-        });
-        const builderPayload = await builderResponse.json().catch(() => ({}));
-        if (!builderResponse.ok) throw responseError(builderResponse, builderPayload, "We couldn't resolve your Menu Builder.");
-        if (cancelled) return;
-        const effectiveBuilder = builderPayload.builder as MyPerfectMenuBuilderContext;
-        setBuilderContext(effectiveBuilder);
-        if (effectiveBuilder.key === "performance_competition" && !returnedDestination) return;
-
         const response = await fetch(apiUrl(`/api/my-perfect-menu/concepts${query}`), {
           credentials: "include",
           headers: getAuthHeaders(),
         });
         const payload = await response.json().catch(() => ({}));
-        if (!response.ok) throw responseError(response, payload, "We couldn't restore your menu ideas.");
         if (cancelled) return;
+        // Performance ideas require a date and slot. The server still supplies
+        // the authoritative Builder so the destination picker can be shown.
+        if (response.status === 400 && payload.code === "PERFORMANCE_DESTINATION_REQUIRED" && payload.builder) {
+          setBuilderContext(payload.builder);
+          setRestorationStatus("succeeded");
+          return;
+        }
+        if (!response.ok) throw responseError(response, payload, "We couldn't restore your menu ideas.");
         const expectedSubject = subjectUserId ?? user?.id;
-        if (payload.subject?.id && payload.subject.id !== expectedSubject) return;
+        if (!payload.subject?.id || payload.subject.id !== expectedSubject || !payload.builder || !payload.categories) {
+          throw new Error("We couldn't verify your saved menu ideas. Please reload.");
+        }
         setConceptSets(payload.categories ?? {});
         setRestorationStatus("succeeded");
-        if (payload.builder) setBuilderContext(payload.builder);
+        setBuilderContext(payload.builder);
       } catch (cause) {
         if (!cancelled) {
           setRestorationStatus("failed");
@@ -443,6 +443,10 @@ export default function MyPerfectMenu() {
 
   const openCategory = (nextType: IdeaType) => {
     setIdeaType(nextType);
+    if (restorationStatus === "loading") {
+      categoryOpenedDuringRestorationRef.current = nextType;
+      return;
+    }
     if (restorationStatus === "failed") {
       setError("We couldn't restore your saved menu ideas. Please reload before creating new ones.");
       return;
@@ -459,6 +463,18 @@ export default function MyPerfectMenu() {
       void prepareIdeaRequest(nextType);
     }
   };
+
+  useEffect(() => {
+    if (restorationStatus !== "succeeded" || !builderContext) return;
+    const openedType = categoryOpenedDuringRestorationRef.current;
+    if (!openedType || openedType !== ideaType) return;
+    categoryOpenedDuringRestorationRef.current = null;
+    if (builderContext.key === "performance_competition" && !performanceDestination) {
+      setPendingIdeaType(openedType);
+    } else if (!conceptSets[openedType]?.length) {
+      void prepareIdeaRequest(openedType);
+    }
+  }, [restorationStatus, builderContext, ideaType, performanceDestination, conceptSets]);
 
   const startPerformanceIdeas = async () => {
     if (!ideaType || !performanceDate || !performanceSlot || !builderContext) return;
@@ -743,6 +759,7 @@ export default function MyPerfectMenu() {
   const activeType = IDEA_TYPES.find((item) => item.value === ideaType);
   const handleBack = () => {
     if (ideaType) {
+      categoryOpenedDuringRestorationRef.current = null;
       setIdeaType(null);
       setError(null);
       setPendingIdeaType(null);
@@ -841,7 +858,13 @@ export default function MyPerfectMenu() {
                  ? "Choose the day and intended meal slot first so your Performance prescription guides the ideas."
                  : "Choose a food style now. Pick the actual meal slot afterward."}
              </p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+             {restorationStatus === "loading" && (
+               <div role="status" aria-live="polite" className="mt-4 flex items-center gap-3 rounded-2xl border border-violet-300/20 bg-black/45 px-4 py-3 text-sm font-semibold text-violet-100">
+                 <BouncingDots dotClassName="h-2 w-2" />
+                 Restoring your saved menu ideas…
+               </div>
+             )}
+             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {IDEA_TYPES.map(({ value, title, description, icon: Icon, color }) => (
                 <button key={value} type="button" onClick={() => openCategory(value)} className={`group rounded-2xl border border-white/15 bg-gradient-to-br ${color} p-5 text-left shadow-xl backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-violet-300/45`}>
                   <div className="flex items-center gap-4">
