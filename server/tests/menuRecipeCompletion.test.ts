@@ -371,6 +371,12 @@ describe("Menu-owned one-recipe completion (not connected to the manual Creators
       ok: false, code: "ingredient_evidence_unsupported",
     });
     expect(generateMenuRecipe).toHaveBeenCalledTimes(3);
+    expect(generateMenuRecipe).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      lowCarbSourceGuidance: true,
+    }));
+    expect(generateMenuRecipe.mock.calls[1][0].authorityPrompt).toContain(
+      "unknown or needing explicit evidence",
+    );
     expect(generateMealImageUnified).not.toHaveBeenCalled();
   });
 

@@ -335,6 +335,7 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
         draft = await generateMenuRecipe({
           concept, cuisine: input.cuisine ?? null,
           authorityPrompt: [authorityPrompt, repairGuidance].filter(Boolean).join("\n\n"),
+           lowCarbSourceGuidance: lowCarbActive,
         });
       } catch (error) {
         // Never log provider messages, generated food, prompts, or profile facts.
@@ -367,6 +368,7 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
             "REPAIR THE SAME REQUESTED DISH, not a different food. The last recipe lacked sufficient Low Carb source evidence:",
             ...evidence.issues.map((issue) => `- ${issue}`),
             "Replace added sugar; use explicitly named components for homemade sauces and seasoning blends rather than unspecified commercial products. Keep whole avocado distinct from a sweetened or packaged avocado sauce.",
+             "For any ingredient reported as unknown or needing explicit evidence, use its actual single-source components if it is a homemade mixture. Otherwise choose an explicitly classifiable single-source ingredient only if it preserves the selected dish. Never invent a commercial product's composition, erase a defining ingredient, or relabel an unknown ingredient as verified.",
             "For a dish with no named concentrated/starchy source, starchyCarbs must be 0 and fibrousCarbs is the estimated remainder of total carbs, not dietary fiber grams. Do not invent nutrition or hide a real starch source to make these fields agree.",
             "Keep the approved concept's defining ingredients and physical form recognizable. Preserve all allergy, avoidance, and clinical protections.",
           ].join("\n");

@@ -39,6 +39,7 @@ export interface MenuRecipeGenerationInput {
   concept: OneTouchDirection;
   authorityPrompt: string;
   cuisine: string | null;
+  lowCarbSourceGuidance?: boolean;
 }
 
 let client: OpenAI | null = null;
@@ -64,6 +65,9 @@ export async function generateMenuRecipe(input: MenuRecipeGenerationInput): Prom
              ? "Selected food identity: non-dessert food craving. Do not substitute a dessert."
              : "",
         input.authorityPrompt,
+         input.lowCarbSourceGuidance
+           ? "LOW CARB RECIPE STRUCTURE: Prefer explicitly named single-source ingredients that can be checked from the finished recipe: non-starchy vegetables, plain uncoated proteins, plain cheese, whole avocado, simple oils, and individually named herbs/spices. Keep the selected dish and every defining ingredient; do not substitute a different food to satisfy this instruction. Avoid unspecified sauces, commercial blends, generic mixed foods, and added sugar. If a sauce or seasoning is essential, provide its actual complete components, including components of any nested sauce; a sugar-free or homemade label is not evidence. Estimate starchyCarbs as 0 only when there are no concentrated starch sources. This does not prove a daily carbohydrate-source allocation."
+           : "",
         "Use realistic quantities and explicit units for ONE serving. Include every ingredient used in the instructions.",
         'When you make a sauce or seasoning blend from named ingredients, include them in that ingredient\'s optional "components" array, each with name, quantity, and unit. A packaged sauce or seasoning has unknown contents: never invent them. Preserve the named compound and list every component you actually use.',
         "Nutrition is a model estimate for one serving, NOT a verified label or lab result.",
