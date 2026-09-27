@@ -34,6 +34,7 @@
  */
 
 import { db } from "../db";
+import { buildLowCarbSourceGuidance } from "../../shared/carbSourcePolicy";
 import { users } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import {
@@ -357,25 +358,25 @@ const PROTOCOL_PROCEDURE_MAP: Record<string, ProtocolProcedureRules> = {
 
   low_carb: {
     preparationRules: [
-      "Reduce carbohydrates significantly — avoid white bread, white rice, regular pasta, pastries, and refined grains",
+      buildLowCarbSourceGuidance(),
       "Do not use added sugar, sugary sauces, or sweetened condiments",
       "Do not use corn syrup, honey glaze, or sugar-based marinades",
-      "Favor protein, healthy fats, and non-starchy vegetables as the bulk of the dish",
-      "Small amounts of whole grains (quinoa, oats, legumes) are acceptable; refined starches are not",
+      "Favor protein and non-starchy vegetables without reducing the person's established total carbohydrate target",
+      "Adapt a requested starch source, sauce, or portion where needed; permitted starchy/concentrated sources remain part of the day-level allocation",
     ],
     storageRules: [],
     equipmentRules: [],
     forbiddenInstructions: [
       "serve with white rice",
-      "serve with pasta",
-      "serve with bread",
+      "serve with regular pasta",
+      "serve with white bread",
       "add sugar",
       "add corn syrup",
       "serve with a roll",
       "add croutons",
     ],
     requiredInstructionNotes: [
-      "Keep the dish low in refined carbohydrates — replace starchy sides with non-starchy vegetables or salad",
+      "Choose carbohydrate sources to support the day-level allocation; keep non-starchy vegetables distinct from dietary fiber grams",
     ],
     crossContaminationRules: [],
   },
@@ -422,7 +423,8 @@ export function deriveProcedureRules(dietaryIdentity: string[]): ProtocolProcedu
 
   for (const identity of dietaryIdentity) {
     const key = identity.trim().toLowerCase();
-    const rules = PROTOCOL_PROCEDURE_MAP[key];
+    const rules = PROTOCOL_PROCEDURE_MAP[key] ??
+      (key.replace(/[- ]+/g, "_") === "low_carb" ? PROTOCOL_PROCEDURE_MAP.low_carb : undefined);
     if (!rules) continue;
 
     for (const field of Object.keys(merged) as (keyof ProtocolProcedureRules)[]) {
@@ -2764,7 +2766,7 @@ function buildWhyThisComplies(
       return `${name} contains no land meat or poultry. Seafood and plant-based ingredients are used. Vegetable or seafood broths replace meat stocks.`;
 
     case "low_carb":
-      return `${name} is low-carbohydrate. Refined grains, sugary sauces, white bread, and regular pasta are excluded. Protein and healthy fats anchor the dish.`;
+      return `${name} follows the Low Carb carbohydrate-source policy without lowering the person's calculated total carbohydrate target. Non-starchy vegetables remain appropriate; concentrated starch and added sugar are handled separately.`;
 
     case "keto":
       return `${name} is low-carbohydrate and fits standard keto targets. It prioritizes protein and healthy fats. Avoid adding any high-carb sauces, thickeners, or accompaniments.`;

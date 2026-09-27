@@ -20,6 +20,7 @@ import { resolveGLP1GlobalContext, buildGLP1RecommendationBlock } from "../glp1/
 import { validateMealForDiet } from "../guardrails";
 import { validateDiabeticMeal } from "../guardrails/validators/diabeticValidator";
 import { validateDishIdentity } from "../dishAdaptation/dishIdentityValidator";
+import { assessLowCarbRecipeCompatibility } from "../foodAdaptation/lowCarbPolicy";
 import { scaleIngredientQuantity } from "../servingScaling";
 import { generateMealImageUnified, normalizeMealTypeToSourceType } from "../mealImageGenerator";
 import { generateMenuRecipe, type MenuRecipeDraft } from "./menuRecipeGenerator";
@@ -52,7 +53,10 @@ export type MenuRecipeFailureCode =
 export interface MenuRecipeCard {
   name: string;
   description: string;
-  ingredients: Array<{ name: string; quantity: string; unit: string }>;
+  ingredients: Array<{
+    name: string; quantity: string; unit: string;
+    components?: Array<{ name: string; quantity: string; unit: string }>;
+  }>;
   instructions: string;
   nutrition: { calories: number; protein: number; carbs: number; fat: number; starchyCarbs: number };
   cookingTime: string;
@@ -106,11 +110,18 @@ function perServingCard(draft: MenuRecipeDraft): MenuRecipeCard {
   return {
     name: draft.name,
     description: draft.description,
-    ingredients: draft.ingredients.map((ingredient) => ({
-      name: ingredient.name,
-      quantity: String(ingredient.quantity),
-      unit: ingredient.unit,
-    })),
+    ingredients: draft.ingredients.flatMap((ingredient) => {
+      const components = ingredient.components?.map((component) => ({
+        name: component.name, quantity: String(component.quantity), unit: component.unit,
+      }));
+      const base = {
+        name: ingredient.name, quantity: String(ingredient.quantity), unit: ingredient.unit,
+        ...(components ? { components } : {}),
+      };
+      // Safety and dietary scanners that read only top-level ingredient names
+      // must see every component used to make a compound sauce.
+      return components ? [base, ...components] : [base];
+    }),
     instructions: draft.instructions,
     nutrition: {
       calories: draft.calories,
@@ -129,12 +140,28 @@ function scaleCard(card: MenuRecipeCard, servings: number): MenuRecipeCard | nul
   const ingredients = card.ingredients.map((ingredient) => ({
     ...ingredient,
     quantity: scaleIngredientQuantity(ingredient.quantity, servings),
+    ...(ingredient.components ? {
+      components: ingredient.components.map((component) => ({
+        ...component, quantity: String(scaleIngredientQuantity(component.quantity, servings)),
+      })),
+    } : {}),
   }));
   // Never claim a multi-serving total when an ingredient quantity could not be scaled.
-  if (ingredients.some((ingredient) => !Number.isFinite(Number(ingredient.quantity)))) return null;
+  if (ingredients.some((ingredient) =>
+    !Number.isFinite(Number(ingredient.quantity)) ||
+    ingredient.components?.some((component) => !Number.isFinite(Number(component.quantity)))
+  )) return null;
   return {
     ...card,
-    ingredients: ingredients.map((ingredient) => ({ ...ingredient, quantity: String(ingredient.quantity) })),
+    ingredients: ingredients.map((ingredient) => ({
+      ...ingredient,
+      quantity: String(ingredient.quantity),
+      ...(ingredient.components ? {
+        components: ingredient.components.map((component) => ({
+          ...component, quantity: String(component.quantity),
+        })),
+      } : {}),
+    })),
     nutrition: Object.fromEntries(
       Object.entries(card.nutrition).map(([key, value]) => [key, value * servings]),
     ) as MenuRecipeCard["nutrition"],
@@ -297,17 +324,45 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
       enforceBeforeGenerate(envelope, { generatorName: "menu-recipe-completion" }).combined,
       glp1 ? buildGLP1RecommendationBlock(glp1) : "",
     ].filter(Boolean).join("\n\n");
-    let draft: MenuRecipeDraft;
-    try {
-      draft = await generateMenuRecipe({ concept, cuisine: input.cuisine ?? null, authorityPrompt });
-    } catch (error) {
-      // Never log provider messages, generated food, prompts, or profile facts.
-      console.warn("[CreatorMenu] Selected recipe generation failed", {
-        reason: generationFailureCategory(error),
-      });
-      return fail("generation_failed", true);
+    const lowCarbActive = context.diet.effective.some((diet) =>
+      diet.toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim() === "low carb",
+    );
+    let draft!: MenuRecipeDraft;
+    let repairGuidance = "";
+    for (let attempt = 0; attempt < (lowCarbActive ? 3 : 1); attempt++) {
+      try {
+        draft = await generateMenuRecipe({
+          concept, cuisine: input.cuisine ?? null,
+          authorityPrompt: [authorityPrompt, repairGuidance].filter(Boolean).join("\n\n"),
+        });
+      } catch (error) {
+        // Never log provider messages, generated food, prompts, or profile facts.
+        console.warn("[CreatorMenu] Selected recipe generation failed", {
+          reason: generationFailureCategory(error),
+        });
+        return fail("generation_failed", true);
+      }
+      if (!validMacros(draft)) return fail("nutrition_evidence_invalid");
+      if (lowCarbActive) {
+        const evidence = assessLowCarbRecipeCompatibility(
+          finalCandidate(perServingCard(draft), draft, 1, mealType), context,
+        );
+        if (evidence.status !== "pass") {
+          if (attempt === 2) return fail(
+            evidence.status === "adaptation_required"
+              ? "diet_hfc_rejected" : "requirement_evidence_unsupported",
+          );
+          repairGuidance = [
+            "REPAIR THE SAME REQUESTED DISH, not a different food. The last recipe lacked sufficient Low Carb source evidence:",
+            ...evidence.issues.map((issue) => `- ${issue}`),
+            "Replace added sugar; use explicitly named, unsweetened components for homemade sauces rather than an unspecified commercial sauce.",
+            "Keep the approved concept's defining ingredients and physical form recognizable. Preserve all allergy, avoidance, and clinical protections.",
+          ].join("\n");
+          continue;
+        }
+      }
+      break;
     }
-    if (!validMacros(draft)) return fail("nutrition_evidence_invalid");
     const card = perServingCard(draft);
     if (!conceptIdentityMatches(concept, draft)) return fail("identity_mismatch");
     const hfc = validateHumanFoodResult(card, context);
@@ -339,7 +394,7 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
       context.safety.healthConditions.some((condition) => /glp.?1|semaglutide|tirzepatide/i.test(condition)) ||
       effectiveDiets.includes("glp1");
     const assess = (candidate: HumanFoodCandidate): MenuRecipeFailureCode | null => {
-      const diet = assessMenuDietEvidence(candidate, context.diet.effective);
+      const diet = assessMenuDietEvidence(candidate, context.diet.effective, context);
       const requirements = diet.requirements;
       if (diet.status === "contradicted") return "diet_hfc_rejected";
       if (diabetesRequired) {

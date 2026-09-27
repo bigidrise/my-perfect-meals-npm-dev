@@ -2,10 +2,14 @@ import OpenAI from "openai";
 import { z } from "zod";
 import type { OneTouchDirection } from "@shared/oneTouch";
 
-const ingredientSchema = z.object({
+const sauceComponentSchema = z.object({
   name: z.string().trim().min(1),
   quantity: z.union([z.string().trim().min(1), z.number().finite()]),
   unit: z.string().trim().min(1),
+});
+const ingredientSchema = sauceComponentSchema.extend({
+  /** Explicit homemade sauce components, not an unverified commercial label. */
+  components: z.array(sauceComponentSchema).min(1).optional(),
 });
 
 export const menuRecipeSchema = z.object({
@@ -63,6 +67,7 @@ export async function generateMenuRecipe(input: MenuRecipeGenerationInput): Prom
         `Cuisine direction: ${input.cuisine ?? input.concept.cuisine}`,
         input.authorityPrompt,
         "Use realistic quantities and explicit units for ONE serving. Include every ingredient used in the instructions.",
+        'When you make a sauce from named ingredients, include them in the sauce ingredient\'s optional "components" array, each with name, quantity, and unit. Do not invent the contents of a packaged sauce. Preserve the named sauce and list every component.',
         "Nutrition is a model estimate for one serving, NOT a verified label or lab result.",
         'Return one JSON object: {"name":"...","description":"...","ingredients":[{"name":"...","quantity":"2","unit":"oz"}],"instructions":"Full cooking instructions...","calories":400,"protein":30,"starchyCarbs":20,"fibrousCarbs":10,"fat":15,"cookingTime":"25 minutes","evidence":{"cuisine":"... or null","cuisineIntensity":null,"heat":null,"seasoningIntensity":null,"broadFlavor":null,"flavorStyle":null}}',
       ].join("\n\n"),

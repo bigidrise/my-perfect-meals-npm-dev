@@ -82,7 +82,11 @@ export interface HumanFoodCandidate {
   name?: string;
   description?: string;
   category?: string;
-  ingredients?: Array<string | { name?: string; item?: string; quantity?: string; unit?: string }>;
+  ingredients?: Array<string | {
+    name?: string; item?: string; quantity?: string; unit?: string;
+    /** Structured sauce recipe; its components must also appear as top-level ingredients for safety scans. */
+    components?: Array<{ name: string; quantity: string; unit: string }>;
+  }>;
   instructions?: string | string[];
   nutrition?: {
     calories?: number;
