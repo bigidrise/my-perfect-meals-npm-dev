@@ -6,6 +6,8 @@ const saved = new Map<string, any>();
 let selectedTitle = "Chocolate Custard";
 let primaryIngredients = ["almond milk", "cocoa"];
 let recipe: any;
+let diabetesEnabled = false;
+let glp1Active = false;
 
 jest.mock("../middleware/requireAuth", () => ({
   requireAuth: (req: any, _res: any, next: () => void) => {
@@ -22,23 +24,6 @@ jest.mock("../services/oneTouch/history", () => ({
     saved.set(creator, set);
   }),
   appendOneTouchHistory: jest.fn(async () => undefined),
-}));
-jest.mock("../services/oneTouch/directions", () => ({
-  generateOneTouchDirections: jest.fn(async ({ occasion }: { occasion: "lunch" | "snack" }) => ({
-    directions: [1, 2, 3].map((n) => ({
-      title: n === 1 ? selectedTitle : `${selectedTitle} ${n}`,
-      description: "A complete prepared dish.",
-      primaryIngredients, primaryProtein: primaryIngredients[0], produceItems: [],
-      cuisine: "American", dietaryEvidence: [],
-      preparationMethod: "prepared", signature: `concept-${n}`,
-      culinaryIdentity: {
-        dishForm: "bowl", preparationStyle: "prepared", temperature: "cold",
-        primaryProteinBase: null, majorStarchBase: null, flavorFamily: "mild",
-        cuisineEvidence: "American", definingComponents: primaryIngredients,
-      }, occasion,
-    } as OneTouchDirection)),
-    attemptsCompleted: 1,
-  })),
 }));
 const context = {
   version: "human_food_context_v1", status: "resolved", creator: "craving_creator",
@@ -63,8 +48,12 @@ const context = {
   diabetesFoodPreferences: null, gaps: [], notices: [], blockedReasons: [],
 };
 jest.mock("../services/humanFoodContext/requestScope", () => ({
-  createHumanFoodRequestScope: jest.fn(() => ({
-    resolve: async () => context, executionState: { rejectedCandidateSignatures: [] },
+  createHumanFoodRequestScope: jest.fn(({ dietOverride }: { dietOverride?: string | null }) => ({
+    resolve: async () => ({
+      ...context,
+      diet: { ...context.diet, effective: dietOverride ? [dietOverride] : context.diet.effective },
+    }),
+    executionState: { rejectedCandidateSignatures: [] },
     completeAuthorization: async () => undefined,
   })),
 }));
@@ -78,26 +67,47 @@ jest.mock("../services/safetyProfileService", () => ({
 }));
 jest.mock("../services/protocolEnvelope", () => ({
   loadUserProtocolEnvelope: jest.fn(async () => ({
-    dietaryIdentity: ["low_carb"], hasDiabetes: false,
+    dietaryIdentity: ["low_carb"], hasDiabetes: diabetesEnabled,
+    diabeticGlucoseState: diabetesEnabled ? "normal" : null,
     medicalHardLimits: [], medicalOptimization: [], glp1DailyTolerance: null,
   })),
   enforceBeforeGenerate: jest.fn(() => ({ combined: "" })),
   scanGeneratedOutput: jest.fn(() => ({ passed: true })),
+  filterMealsByProtocol: jest.fn((meals: unknown[]) => meals),
+}));
+jest.mock("../services/dishAdaptation/dishAdaptationLayer", () => ({
+  buildGuardrailContext: jest.fn((input: unknown) => input),
+  getDishAdaptationDirective: jest.fn(async () => null),
 }));
 jest.mock("../services/oneTouch/dietAuthority", () => ({
   withOneTouchDiet: jest.fn((envelope: unknown) => envelope),
-  mutableProfileStyles: jest.fn(() => []),
+  mutableProfileStyles: jest.fn(() => ["low_carb"]),
 }));
 jest.mock("../services/glp1/resolveGLP1GlobalContext", () => ({
-  resolveGLP1GlobalContext: jest.fn(async () => ({ isActive: false, resolvedTargets: null })),
+  resolveGLP1GlobalContext: jest.fn(async () => ({
+    isActive: glp1Active,
+    resolvedTargets: glp1Active ? { resolvedMealCalories: 450 } : null,
+  })),
   buildGLP1RecommendationBlock: jest.fn(() => ""),
+}));
+jest.mock("../services/guardrails", () => ({
+  validateMealForDiet: jest.fn(({ macros }: { macros: { calories: number } }) =>
+    ({ isValid: macros.calories <= 450 })),
+}));
+jest.mock("../services/guardrails/validators/diabeticValidator", () => ({
+  validateDiabeticMeal: jest.fn(({ macros }: { macros: { carbs: number } }) =>
+    ({ isValid: macros.carbs <= 40 })),
 }));
 jest.mock("../services/oneTouch/contextFingerprint", () => ({
   oneTouchContextFingerprint: jest.fn(() => "stable-context"),
   oneTouchChangedAuthorityBranches: jest.fn(() => []),
 }));
-jest.mock("../services/oneTouch/menuRecipeGenerator", () => ({
-  generateMenuRecipe: jest.fn(async () => recipe),
+jest.mock("../services/unifiedMealPipeline", () => ({
+  generateCravingMealOptions: jest.fn(async () => [{
+    ...recipe,
+    id: "generated-meal", carbs: recipe.starchyCarbs + recipe.fibrousCarbs,
+    imageUrl: "", source: "ai",
+  }]),
 }));
 jest.mock("../services/foodAdaptation/contextualFoodEvidence", () => ({
   resolveContextualFoodEvidence: jest.fn(async () => [
@@ -122,7 +132,7 @@ jest.mock("../services/oneTouch/directions", () => ({
       cuisine: "American", dietaryEvidence: [], preparationMethod: "prepared",
       signature: `concept-${n}`,
       culinaryIdentity: {
-        dishForm: "bowl", preparationStyle: "prepared", temperature: "cold",
+        dishForm: "bowl", preparationStyle: "prepared", temperature: "chilled",
         primaryProteinBase: null, majorStarchBase: null, flavorFamily: "mild",
         cuisineEvidence: "American", definingComponents: primaryIngredients,
       }, occasion,
@@ -141,10 +151,19 @@ describe("Development Creator Menu selection returns completed cards, not just i
     app.use("/api/one-touch-create", require("../routes/oneTouchCreate").default());
   });
   afterAll(() => { process.env.NODE_ENV = previousEnv; });
-  beforeEach(() => { saved.clear(); });
+  beforeEach(() => {
+    jest.clearAllMocks();
+    saved.clear();
+    diabetesEnabled = false;
+    glp1Active = false;
+    context.diet.effective = ["low_carb"];
+    context.safety.allergies = [];
+    context.safety.avoidedFoods = [];
+    context.safety.healthConditions = [];
+  });
 
   it.each([
-    ["craving_creator", "food", "Zucchini Noodle Bowl", ["zucchini", "chicken"], ["zucchini noodles", "chicken breast"]],
+    ["craving_creator", "food", "Zucchini Noodle Bowl", ["zucchini", "chicken"], ["zucchini noodles", "chicken breast", "cauliflower rice"]],
     ["craving_creator", "dessert", "Chocolate Custard", ["almond milk", "cocoa"], ["unsweetened almond milk", "unsweetened cocoa powder", "vanilla extract"]],
     ["create_a_dish", "food", "Creamy Zucchini Bowl", ["almond milk", "zucchini"], ["unsweetened almond milk", "zucchini"]],
   ] as const)("%s %s returns a complete card through the real completion service", async (
@@ -167,6 +186,9 @@ describe("Development Creator Menu selection returns completed cards, not just i
     const concepts = await request(app).post("/api/one-touch-create").send(choices);
     expect(concepts.status).toBe(200);
     expect(concepts.body.concepts).toHaveLength(3);
+    if (cravingType === "dessert") {
+      expect(concepts.body.concepts.every((idea: { title: string }) => idea.title.includes("Custard"))).toBe(true);
+    }
     const chosen = await request(app).post("/api/one-touch-create/choose").send({
       request: choices, conceptId: concepts.body.concepts[0].id,
     });
@@ -175,5 +197,192 @@ describe("Development Creator Menu selection returns completed cards, not just i
       name: title, nutritionSource: "model_estimate",
       ingredients: expect.arrayContaining(names.map((name) => expect.objectContaining({ name }))),
     });
+    const slot = creator === "craving_creator" ? "snack" : "lunch";
+    expect(require("../services/glp1/resolveGLP1GlobalContext").resolveGLP1GlobalContext)
+      .toHaveBeenLastCalledWith("menu-person", expect.any(String), slot);
   });
+
+  it("scales the same card's flat macros, nutrition and ingredients together", async () => {
+    selectedTitle = "Zucchini Noodle Bowl";
+    primaryIngredients = ["zucchini", "chicken"];
+    recipe = {
+      name: selectedTitle, description: "A prepared zucchini bowl.",
+      ingredients: ["zucchini noodles", "chicken breast"].map((name) => ({ name, quantity: "1", unit: "cup" })),
+      instructions: "Cook all ingredients.",
+      calories: 320, protein: 18, starchyCarbs: 0, fibrousCarbs: 12, fat: 20,
+    };
+    const choices = {
+      creator: "craving_creator", servings: 3, cuisine: { mode: "profile" },
+      eatingStyle: { mode: "profile" }, cravingType: "food", cravingFeel: "light",
+    };
+    const concepts = await request(app).post("/api/one-touch-create").send(choices);
+    const chosen = await request(app).post("/api/one-touch-create/choose").send({
+      request: choices, conceptId: concepts.body.concepts[0].id,
+    });
+    expect(chosen.status).toBe(200);
+    expect(chosen.body.meal).toMatchObject({
+      calories: 960, protein: 54, carbs: 36, fat: 60,
+      nutrition: { calories: 960, protein: 54, carbs: 36, fat: 60, starchyCarbs: 0 },
+      servingSize: "3 servings",
+      ingredients: [
+        expect.objectContaining({ name: "zucchini noodles", quantity: "3" }),
+        expect.objectContaining({ name: "chicken breast", quantity: "3" }),
+      ],
+    });
+  });
+
+  it("uses a server-validated temporary Builder diet instead of the stored profile style", async () => {
+    selectedTitle = "Tofu Zucchini Bowl";
+    primaryIngredients = ["tofu", "zucchini"];
+    recipe = {
+      name: selectedTitle, description: "A tofu and zucchini bowl.",
+      ingredients: ["tofu", "zucchini noodles"].map((name) => ({ name, quantity: "1", unit: "cup" })),
+      instructions: "Cook tofu and zucchini.",
+      calories: 310, protein: 20, starchyCarbs: 0, fibrousCarbs: 12, fat: 18,
+    };
+    const choices = {
+      creator: "create_a_dish", servings: 1, cuisine: { mode: "profile" },
+      eatingStyle: { mode: "explicit", value: "vegan" },
+    };
+    const concepts = await request(app).post("/api/one-touch-create").send(choices);
+    const chosen = await request(app).post("/api/one-touch-create/choose").send({
+      request: choices, conceptId: concepts.body.concepts[0].id,
+    });
+    expect(chosen.status).toBe(200);
+    const variety = require("../services/unifiedMealPipeline").generateCravingMealOptions as jest.Mock;
+    expect(variety.mock.calls.at(-1)?.[3]).toEqual(["vegan"]);
+    expect(variety.mock.calls.at(-1)?.[14]).toEqual(["low_carb"]);
+    expect(require("../services/safetyProfileService").enforceSafetyProfile)
+      .toHaveBeenCalledWith("menu-person", expect.any(String), "menu-selected-concept",
+        expect.objectContaining({ ignoredDietaryRestrictions: ["low_carb"] }));
+  });
+
+  it("preserves Vegan plus Low Carb without accepting an animal ingredient", async () => {
+    context.diet.effective = ["vegan", "low_carb"];
+    selectedTitle = "Tofu Zucchini Bowl";
+    primaryIngredients = ["tofu", "zucchini"];
+    recipe = {
+      name: selectedTitle, description: "A tofu and zucchini bowl.",
+      ingredients: ["tofu", "zucchini noodles", "cauliflower rice"].map((name) => ({ name, quantity: "1", unit: "cup" })),
+      instructions: "Cook tofu and vegetables.",
+      calories: 310, protein: 20, starchyCarbs: 0, fibrousCarbs: 12, fat: 18,
+    };
+    const choices = { creator: "create_a_dish", servings: 1, cuisine: { mode: "profile" }, eatingStyle: { mode: "profile" } };
+    const concepts = await request(app).post("/api/one-touch-create").send(choices);
+    const chosen = await request(app).post("/api/one-touch-create/choose").send({
+      request: choices, conceptId: concepts.body.concepts[0].id,
+    });
+    expect(chosen.status).toBe(200);
+    expect(chosen.body.meal.ingredients.map((item: { name: string }) => item.name))
+      .toEqual(expect.arrayContaining(["tofu", "zucchini noodles", "cauliflower rice"]));
+  });
+
+  it.each(["allergy", "avoidance", "identity"] as const)("does not return a card on %s conflict", async (conflict) => {
+    selectedTitle = "Zucchini Noodle Bowl";
+    primaryIngredients = ["zucchini", "chicken"];
+    recipe = {
+      name: conflict === "identity" ? "Unrelated Rice Bowl" : selectedTitle,
+      description: "Prepared bowl.",
+      ingredients: (conflict === "identity" ? ["brown rice", "beans"] : ["zucchini noodles", "chicken breast"])
+        .map((name) => ({ name, quantity: "1", unit: "cup" })),
+      instructions: "Cook all named ingredients.",
+      calories: 320, protein: 18, starchyCarbs: 0, fibrousCarbs: 12, fat: 20,
+    };
+    if (conflict === "allergy") context.safety.allergies = ["chicken"];
+    if (conflict === "avoidance") context.safety.avoidedFoods = ["zucchini"];
+    const choices = {
+      creator: "craving_creator", servings: 1, cuisine: { mode: "profile" },
+      eatingStyle: { mode: "profile" }, cravingType: "food", cravingFeel: "light",
+    };
+    const concepts = await request(app).post("/api/one-touch-create").send(choices);
+    const chosen = await request(app).post("/api/one-touch-create/choose").send({
+      request: choices, conceptId: concepts.body.concepts[0].id,
+    });
+    expect(chosen.status).toBe(422);
+    expect(chosen.body.meal).toBeUndefined();
+  });
+
+  it("does not return a card when the clinical evidence is unresolved", async () => {
+    selectedTitle = "Zucchini Noodle Bowl";
+    primaryIngredients = ["zucchini", "chicken"];
+    recipe = {
+      name: selectedTitle, description: "Prepared bowl.",
+      ingredients: ["zucchini noodles", "chicken breast"].map((name) => ({ name, quantity: "1", unit: "cup" })),
+      instructions: "Cook the ingredients.",
+      calories: 320, protein: 18, starchyCarbs: 0, fibrousCarbs: 12, fat: 20,
+    };
+    context.safety.healthConditions = ["diabetes"];
+    const choices = {
+      creator: "craving_creator", servings: 1, cuisine: { mode: "profile" },
+      eatingStyle: { mode: "profile" }, cravingType: "food", cravingFeel: "light",
+    };
+    const concepts = await request(app).post("/api/one-touch-create").send(choices);
+    const chosen = await request(app).post("/api/one-touch-create/choose").send({
+      request: choices, conceptId: concepts.body.concepts[0].id,
+    });
+    expect(chosen.status).toBe(422);
+    expect(chosen.body.meal).toBeUndefined();
+  });
+
+  it("rejects a specialist hard limit that a protocol text scan cannot prove", async () => {
+    selectedTitle = "Zucchini Noodle Bowl";
+    primaryIngredients = ["zucchini", "chicken"];
+    recipe = {
+      name: selectedTitle, description: "Prepared bowl.",
+      ingredients: ["zucchini noodles", "chicken breast"].map((name) => ({ name, quantity: "1", unit: "cup" })),
+      instructions: "Cook the ingredients.",
+      calories: 320, protein: 18, starchyCarbs: 0, fibrousCarbs: 12, fat: 20,
+    };
+    context.safety.healthConditions = ["renal disease"];
+    const choices = {
+      creator: "craving_creator", servings: 1, cuisine: { mode: "profile" },
+      eatingStyle: { mode: "profile" }, cravingType: "food", cravingFeel: "light",
+    };
+    const concepts = await request(app).post("/api/one-touch-create").send(choices);
+    const chosen = await request(app).post("/api/one-touch-create/choose").send({
+      request: choices, conceptId: concepts.body.concepts[0].id,
+    });
+    expect(chosen.status).toBe(422);
+    expect(chosen.body.meal).toBeUndefined();
+    expect(require("../services/unifiedMealPipeline").generateCravingMealOptions).not.toHaveBeenCalled();
+  });
+
+  it.each(["glp1", "diabetes"] as const)(
+    "checks a three-serving %s card against per-serving clinical nutrition",
+    async (clinical) => {
+      selectedTitle = "Zucchini Noodle Bowl";
+      primaryIngredients = ["zucchini", "chicken"];
+      recipe = {
+        name: selectedTitle, description: "A prepared zucchini bowl.",
+        ingredients: ["zucchini noodles", "chicken breast"].map((name) => ({ name, quantity: "1", unit: "cup" })),
+        instructions: "Cook the ingredients.",
+        calories: 320, protein: 18, starchyCarbs: 0, fibrousCarbs: clinical === "diabetes" ? 25 : 12, fat: 20,
+      };
+      glp1Active = clinical === "glp1";
+      diabetesEnabled = clinical === "diabetes";
+      context.safety.healthConditions = [clinical === "glp1" ? "GLP-1" : "diabetes"];
+      const choices = {
+        creator: "craving_creator", servings: 3, cuisine: { mode: "profile" },
+        eatingStyle: { mode: "profile" }, cravingType: "food", cravingFeel: "light",
+      };
+      const concepts = await request(app).post("/api/one-touch-create").send(choices);
+      const chosen = await request(app).post("/api/one-touch-create/choose").send({
+        request: choices, conceptId: concepts.body.concepts[0].id,
+      });
+      expect(chosen.status).toBe(200);
+      expect(chosen.body.meal.nutrition.calories).toBe(960);
+      if (clinical === "glp1") {
+        expect(require("../services/guardrails").validateMealForDiet).toHaveBeenLastCalledWith(
+          expect.objectContaining({ macros: expect.objectContaining({ calories: 320 }) }),
+          "glp1", undefined, true, expect.anything(),
+        );
+      } else {
+        expect(require("../services/guardrails/validators/diabeticValidator").validateDiabeticMeal)
+          .toHaveBeenLastCalledWith(
+            expect.objectContaining({ macros: expect.objectContaining({ carbs: 25 }) }),
+            expect.anything(),
+          );
+      }
+    },
+  );
 });

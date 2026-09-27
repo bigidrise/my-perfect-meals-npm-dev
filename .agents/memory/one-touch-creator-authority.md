@@ -15,11 +15,11 @@ Menu-owned flows must not modify the existing manual Craving Creator or Create a
 
 **How to apply:** Reuse lower-level policy and validation primitives where safely possible, but do not claim that a separate Menu path has the exact canonical safety sequence until that parity is established and verified. If zero changes to the active route and generator are a hard boundary, the existing three-candidate route cannot simply be made one-candidate by configuration.
 
-Converging post-selection generation is not the same as passing a selected title to the general meal generator. That generator permits alternate/fallback meals and has a looser ingredient contract than Menu's compound-aware, exact-evidence completion. Its normal route also resolves authority and nutrition before calling it.
+The accepted Creator Menu architecture lets the Menu own three concepts and a trusted selection; the established manual Creator generation and final-validation primitives own completion. This supersedes treating the legacy Menu-only exact-evidence engine as the active completion contract. Simply passing a title to a general generator is still insufficient because the generator permits alternate meals.
 
-**Why:** A direct swap could return a different dish or omit the sauce-component and positive dietary evidence required to protect a selected Menu recipe. Conversely, relaxing Menu to the working paths' legacy validation would make completion more frequent by changing the safety contract, not by improving generation.
+**Why:** The user chose alignment with the working manual Creator completion behavior, while insisting that a selected concept must never silently become another dish or bypass the current user's protections. The older Menu-specific exact gate produced frequent safe-but-unusable rejections.
 
-**How to apply:** Any shared selected-concept engine must carry server-validated dish identity and complete ingredient evidence, reject generic fallback outputs, and preserve authoritative context and final exact checks. Reconcile validation policy explicitly before claiming parity with other meal-card paths.
+**How to apply:** Use a server-stored concept and current account authority; require its identity and defining ingredients before and after completion. Pass only authorized request-scoped diet replacement to shared generation, retain clinical and protocol checks, normalize per-serving evidence before validating a scaled card, and reject unsupported specialist directives. The legacy engine stays intact until live provider and authenticated acceptance verify the handoff. Do not describe shared primitives as full manual route parity while route-only allergy/glucose adaptation is absent.
 
 A passed negative protocol scan cannot serve as positive evidence of a compositional diet or a numeric clinical limit, and model-estimated macros are not independently verified nutrition. Unsupported evidence must stay review-required or be rejected, even if this reduces the number of concepts that can finish automatically.
 
@@ -33,11 +33,11 @@ For Menu recipe completion, the shared compound-aware classifier can substantiat
 
 **How to apply:** Recheck supported identity classification after final serving formatting. Keep keto, paleo, Mediterranean, and other unsupported composition identities review-required until a shared authoritative meal rule and suitable evidence source exist.
 
-The positive-evidence contract must distinguish each active requirement and its producer. Legacy Creator booleans may retain their historical meaning for unchanged callers, but they must not become proof for new strict Menu claims.
+The positive-evidence contract must distinguish each active requirement and its producer. Legacy Creator booleans retain their historical meaning for manual-style completion, but they must not become proof for a separate strict Menu claim.
 
 **Why:** A single true dietary flag can otherwise certify unrelated nutrition, clinical, and program rules that were never checked. The user wants eventual support for more identities without inventing their policies first.
 
-**How to apply:** Resolve exact evidence separately for every active Menu requirement; keep unproven identities unavailable while allowing a future limited Menu rollout for independently supported identities. Do not interpret a passed protocol scan or a model nutrition estimate as verified composition.
+**How to apply:** When using an exact-evidence policy, resolve each requirement separately. Do not promote a passed protocol scan or model nutrition estimate to independently verified composition or specialist clinical proof merely because the selected concept was trusted.
 
 The user accepted a shared culinary concept engine for MPM and Creator Menus, with separate destinations. Each Creator Menu presents exactly three governed concepts before any finished recipe is requested; only the selected server-owned concept is completed.
 

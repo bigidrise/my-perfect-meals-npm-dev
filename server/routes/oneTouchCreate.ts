@@ -5,11 +5,13 @@ import { requireAuth } from "../middleware/requireAuth";
 import { oneTouchRequestSchema, type OneTouchRequest, type OneTouchConcept } from "@shared/oneTouch";
 import { generateOneTouchDirections } from "../services/oneTouch/directions";
 import { appendOneTouchHistory, readOneTouchHistory, saveOneTouchConceptSet } from "../services/oneTouch/history";
-import { completeMenuRecipe, type MenuRecipeCard, type MenuRecipeFailureCode } from "../services/oneTouch/menuRecipeCompletion";
+import type { MenuRecipeCard, MenuRecipeFailureCode } from "../services/oneTouch/menuRecipeCompletion";
+import { completeSelectedConcept } from "../services/oneTouch/selectedConceptHandoff";
 import { createHumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
 import { buildCreatorHumanFoodPrompt } from "../services/humanFoodContext/adapters";
 import { enforceBeforeGenerate, loadUserProtocolEnvelope } from "../services/protocolEnvelope";
 import { withOneTouchDiet } from "../services/oneTouch/dietAuthority";
+import { mutableProfileStyles } from "../services/oneTouch/dietAuthority";
 import { buildDietPromptBlock } from "../services/allergyGuardrails";
 import { buildGLP1RecommendationBlock, resolveGLP1GlobalContext } from "../services/glp1/resolveGLP1GlobalContext";
 import { oneTouchContextFingerprint, oneTouchChangedAuthorityBranches } from "../services/oneTouch/contextFingerprint";
@@ -97,11 +99,14 @@ async function resolveOneTouchAuthority(userId: string, request: OneTouchRequest
   const profileEnvelope = await loadUserProtocolEnvelope(userId);
   if (!profileEnvelope) stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your food protections could not be resolved.");
   const envelope = withOneTouchDiet(profileEnvelope, overrides.dietOverride);
-  const glp1 = await resolveGLP1GlobalContext(userId, new Date().toISOString().slice(0, 10), "lunch");
+  const glp1 = await resolveGLP1GlobalContext(
+    userId, new Date().toISOString().slice(0, 10),
+    request.creator === "craving_creator" ? "snack" : "lunch",
+  );
   if (glp1.isActive && !glp1.resolvedTargets) stop(503, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your current GLP-1 targets could not be verified.");
   if (profileEnvelope.glp1DailyTolerance?.shouldEscalate) stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your current GLP-1 symptoms need a safety check-in first.");
   const contextFingerprint = oneTouchContextFingerprint(request, context, envelope, glp1);
-  return { scope, context, envelope, glp1, contextFingerprint, ...overrides };
+  return { scope, context, envelope, profileEnvelope, glp1, contextFingerprint, ...overrides };
 }
 
 export default function createOneTouchRouter() {
@@ -159,15 +164,18 @@ export default function createOneTouchRouter() {
       if (!selected) stop(404, "ONE_TOUCH_INVALID_SELECTION", "That Menu idea is not in your current choices.");
       const overrides = requestOverrides(request)!;
       const { id: _conceptId, ...approvedConcept } = selected;
-      const result = await completeMenuRecipe({
+      const result = await completeSelectedConcept({
         actorUserId: userId,
-        subject: { id: userId, kind: "account" },
-        approvedConcept,
+        creator: request.creator,
+        concept: approvedConcept,
         servings: request.servings,
         cuisine: overrides.cuisineOverride ?? (request.cuisine.mode === "surprise" ? selected.cuisine : null),
-        dietaryDirection: overrides.dietOverride,
-        clinicalMealSlot: "lunch",
-        contextCreator: request.creator,
+        context: authority.context,
+        envelope: authority.envelope,
+        glp1: authority.glp1,
+        overriddenDietaryIdentities: overrides.dietOverride
+          ? mutableProfileStyles(authority.profileEnvelope)
+          : [],
       });
       if (result.ok === false) {
         const status = ["requirement_evidence_unsupported", "ingredient_evidence_unsupported",
@@ -212,7 +220,7 @@ export default function createOneTouchRouter() {
         stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your Menu choices changed while the recipe was being made.");
       }
       await appendOneTouchHistory(userId, request.creator, [{ ...directionToFingerprint(selected), creator: request.creator }]);
-      return res.json({ meal: toCreatorCard(result.card) });
+      return res.json({ meal: result.meal });
     } catch (error: any) {
       console.error("[OneTouch] Selection could not complete:", error?.code ?? error?.message);
       return res.status(error?.oneTouchStop ? error.status : 503).json({
