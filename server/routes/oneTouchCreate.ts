@@ -180,7 +180,11 @@ export default function createOneTouchRouter() {
         console.warn("[CreatorMenu] Choose completion rejected", {
           creator: request.creator, reason: safeCompletionReason(result.code), retryable: result.retryable, status,
         });
-        if (result.code === "requirement_evidence_unsupported" || result.code === "protocol_clinical_rejected") {
+        if (result.code === "requirement_evidence_unsupported") {
+          stop(422, "ONE_TOUCH_REQUIREMENT_UNAVAILABLE",
+            "I couldn't verify the ingredients or current nutrition allocation for this idea. Try again or choose another idea. Your settings have not been changed.");
+        }
+        if (result.code === "protocol_clinical_rejected") {
           stop(422, "ONE_TOUCH_REQUIREMENT_UNAVAILABLE",
             "We can't safely complete this Menu option with your current nutrition settings yet. Your settings have not been changed.");
         }

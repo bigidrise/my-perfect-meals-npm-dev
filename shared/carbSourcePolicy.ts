@@ -13,6 +13,8 @@ export type CarbohydrateSourceCategory =
   | "added_sugar"
   | "fruit"
   | "legume"
+  | "whole_plant_fat"
+  | "spice_blend"
   | "dairy_source"
   | "dairy_carbohydrate"
   | "sauce_condiment"
@@ -33,7 +35,11 @@ const ADDED_SUGAR_PATTERN =
 const EXPLICITLY_UNSWEETENED_PATTERN =
   /\b(sugar[\s-]?free|no[\s-]+added[\s-]+sugar|unsweetened|without[\s-]+added[\s-]+sugar)\b/i;
 const SAUCE_PATTERN =
-  /\b(sauce|dressing|marinade|glaze|syrup|salsa|condiment|spread|dip|bbq|barbecue|buffalo sauce|teriyaki|ketchup|mustard|chutney|sriracha|hot sauce)\b/i;
+  /\b(sauce|dressing|marinade|glaze|syrup|salsa|condiment|spread|dip|bbq|barbecue|buffalo sauce|teriyaki|ketchup|mustard|chutney|sriracha|hot sauce|remoulade|mayonnaise|mayo|aioli)\b/i;
+const SPICE_BLEND_PATTERN =
+  /\b(cajun seasoning|creole seasoning|blackening seasoning|seasoning blend|spice blend)\b/i;
+const PLAIN_AVOCADO_PATTERN =
+  /^(?:(?:plain|fresh|diced|sliced|mashed|ripe)\s+)*avocados?$/i;
 const MIXED_FOOD_PATTERN =
   /\b(casserole|stew|soup|salad|bowl|sandwich|burger|pizza|pie|lasagna|meal|entrée|entree|mixed dish|stir[\s-]?fry|curry|wrap)\b/i;
 const LEGUME_PATTERN =
@@ -142,6 +148,19 @@ export function classifyCarbohydrateSource(
       true,
       "Sauce and condiment carbohydrate content requires ingredient or nutrition evidence.",
     );
+  }
+  if (SPICE_BLEND_PATTERN.test(name) || name === "seasoning") {
+    return classification(
+      ingredient,
+      "spice_blend",
+      true,
+      "A mixed seasoning needs its named components; a packaged blend can contain sugar or allergens.",
+    );
+  }
+  // Whole avocado is a named plant-fat source, not a fibrous vegetable.
+  // Natural carbohydrate still counts against the existing total-carb budget.
+  if (PLAIN_AVOCADO_PATTERN.test(name)) {
+    return classification(ingredient, "whole_plant_fat", false);
   }
 
   // A named, plain cheese is an explicit dairy ingredient class. It is neither

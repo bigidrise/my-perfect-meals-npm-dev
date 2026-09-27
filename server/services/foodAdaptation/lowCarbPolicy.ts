@@ -125,6 +125,7 @@ function expandRecipeIngredients(
     const hasComponentList = Array.isArray(components);
     const sourceClass = name ? classifyCarbohydrateSource(name) : null;
     const isSauce = sourceClass?.category === "sauce_condiment";
+    const isNamedCompound = isSauce || sourceClass?.category === "spice_blend";
 
     if (hasComponentsProperty && (!hasComponentList || components.length === 0)) {
       complete = false;
@@ -133,7 +134,7 @@ function expandRecipeIngredients(
       return;
     }
 
-    if (hasComponentList && isSauce && name) {
+    if (hasComponentList && isNamedCompound && name) {
       if (depth >= MAX_COMPONENT_DEPTH) {
         complete = false;
         issues.push(`The component list for ${name} is nested too deeply to evaluate.`);
@@ -141,7 +142,7 @@ function expandRecipeIngredients(
         return;
       }
 
-      expandedSauceComponentGroups += 1;
+      if (isSauce) expandedSauceComponentGroups += 1;
       activeObjects.add(ingredient);
       for (const component of components) visit(component, depth + 1);
       activeObjects.delete(ingredient);
@@ -158,7 +159,7 @@ function expandRecipeIngredients(
     if (hasComponentList) {
       complete = false;
       issues.push(
-        `Components are accepted only as explicit recipe components of a named sauce; review ${name || "this ingredient"}.`,
+        `Components are accepted only for a named sauce or seasoning blend; review ${name || "this ingredient"}.`,
       );
       if (depth >= MAX_COMPONENT_DEPTH) {
         issues.push("Nested component details exceed the supported depth.");
