@@ -57,6 +57,18 @@ describe("isolated Menu recipe generator", () => {
     expect(create.mock.calls[0][0].messages[0].content).toContain("NOT permission to substitute");
   });
 
+  it("guides Low Carb completion to explicit source evidence without changing the dish", async () => {
+    create.mockResolvedValue({ choices: [{ message: { content: JSON.stringify(valid) } }] });
+    await generateMenuRecipe({
+      concept, authorityPrompt: "No shellfish", cuisine: null, lowCarbSourceGuidance: true,
+    });
+    const prompt = create.mock.calls[0][0].messages[0].content as string;
+    expect(prompt).toContain("LOW CARB RECIPE STRUCTURE");
+    expect(prompt).toContain("actual complete components");
+    expect(prompt).toContain("Keep the selected dish");
+    expect(prompt).toContain("No shellfish");
+  });
+
   it("retries malformed JSON once, preserving the approved concept and food protections", async () => {
     create.mockResolvedValueOnce({ choices: [{ message: { content: '{"name":' } }] })
       .mockResolvedValueOnce({ choices: [{ message: { content: JSON.stringify(valid) } }] });
