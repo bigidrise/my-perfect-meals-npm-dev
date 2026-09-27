@@ -15,6 +15,12 @@ Menu-owned flows must not modify the existing manual Craving Creator or Create a
 
 **How to apply:** Reuse lower-level policy and validation primitives where safely possible, but do not claim that a separate Menu path has the exact canonical safety sequence until that parity is established and verified. If zero changes to the active route and generator are a hard boundary, the existing three-candidate route cannot simply be made one-candidate by configuration.
 
+Converging post-selection generation is not the same as passing a selected title to the general meal generator. That generator permits alternate/fallback meals and has a looser ingredient contract than Menu's compound-aware, exact-evidence completion. Its normal route also resolves authority and nutrition before calling it.
+
+**Why:** A direct swap could return a different dish or omit the sauce-component and positive dietary evidence required to protect a selected Menu recipe. Conversely, relaxing Menu to the working paths' legacy validation would make completion more frequent by changing the safety contract, not by improving generation.
+
+**How to apply:** Any shared selected-concept engine must carry server-validated dish identity and complete ingredient evidence, reject generic fallback outputs, and preserve authoritative context and final exact checks. Reconcile validation policy explicitly before claiming parity with other meal-card paths.
+
 A passed negative protocol scan cannot serve as positive evidence of a compositional diet or a numeric clinical limit, and model-estimated macros are not independently verified nutrition. Unsupported evidence must stay review-required or be rejected, even if this reduces the number of concepts that can finish automatically.
 
 **Why:** A scan can miss a high-risk diabetic macro excess or an unmeasured specialty limit; labeling either as compliant would make an apparently finished card unsafe.

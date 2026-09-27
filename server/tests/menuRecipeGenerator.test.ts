@@ -45,6 +45,18 @@ describe("isolated Menu recipe generator", () => {
     expect(request.messages[0].content).toContain("NOT dietary-fiber grams");
   });
 
+  it("preserves the selected dessert identity rather than treating snack as the dish", async () => {
+    create.mockResolvedValue({ choices: [{ message: { content: JSON.stringify(valid) } }] });
+    await generateMenuRecipe({
+      concept: { ...concept, title: "Chocolate Cake", foodIdentity: {
+        foodRole: "dessert", polarity: "sweet", formatFamily: "cake",
+      } }, authorityPrompt: "Vegan and allergy protections", cuisine: null,
+    });
+    expect(create.mock.calls[0][0].messages[0].content).toContain("dessert (cake)");
+    expect(create.mock.calls[0][0].messages[0].content).toContain("Vegan and allergy protections");
+    expect(create.mock.calls[0][0].messages[0].content).toContain("NOT permission to substitute");
+  });
+
   it("retries malformed JSON once, preserving the approved concept and food protections", async () => {
     create.mockResolvedValueOnce({ choices: [{ message: { content: '{"name":' } }] })
       .mockResolvedValueOnce({ choices: [{ message: { content: JSON.stringify(valid) } }] });
