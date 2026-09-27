@@ -207,6 +207,31 @@ describe("strict Menu exact-requirement evidence", () => {
     expect(result.findings).toEqual([]);
   });
 
+  it("uses request-scoped contextual evidence in exact validation without letting it override allergies", () => {
+    const candidate = lowCarbBuffaloCandidate({
+      ingredients: [
+        "chicken breast", "cauliflower", "cheddar cheese",
+        { name: "vanilla extract", quantity: "1", unit: "tsp" },
+      ],
+      instructions: "Bake chicken, cauliflower, and cheddar; finish with the named extract.",
+    });
+    const decision = [{
+      ingredient: "vanilla extract", category: "nonmaterial" as const,
+      role: "flavoring", reason: "A small measured flavoring.",
+    }];
+    expect(validateHumanFoodCandidate(candidate, lowCarbContext(), {
+      evidenceMode: "exact",
+    }).outcome).toBe("review_required");
+    expect(validateHumanFoodCandidate(candidate, lowCarbContext(), {
+      evidenceMode: "exact", contextualSourceDecisions: decision,
+    }).outcome).toBe("pass");
+    const allergic = lowCarbContext();
+    allergic.safety.allergies = ["chicken"];
+    expect(validateHumanFoodCandidate(candidate, allergic, {
+      evidenceMode: "exact", contextualSourceDecisions: decision,
+    }).outcome).not.toBe("pass");
+  });
+
   it("does not accept a claimed Low Carb PASS when ingredient or sauce-source evidence is ambiguous", () => {
     const candidate = lowCarbBuffaloCandidate({
       ingredients: [

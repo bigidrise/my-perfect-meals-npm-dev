@@ -3,7 +3,7 @@ import type {
 } from "@shared/humanFoodValidation";
 import type { HumanFoodContext } from "@shared/humanFoodContext";
 import { validateDietaryRestriction, type DietaryMode } from "../guardrails/validators/dietaryRestrictionValidator";
-import { assessLowCarbRecipeCompatibility } from "../foodAdaptation/lowCarbPolicy";
+import { assessLowCarbRecipeCompatibility, type ContextualSourceDecision } from "../foodAdaptation/lowCarbPolicy";
 
 export interface MenuDietEvidence {
   status: "supported" | "contradicted" | "unsupported";
@@ -23,6 +23,7 @@ export function assessMenuDietEvidence(
   candidate: HumanFoodCandidate,
   effectiveDiets: readonly string[],
   context?: HumanFoodContext,
+  contextualDecisions: readonly ContextualSourceDecision[] = [],
 ): MenuDietEvidence {
   const ingredients = candidate.ingredients?.map((item) =>
     typeof item === "string"
@@ -42,7 +43,7 @@ export function assessMenuDietEvidence(
         unsupported = true;
         continue;
       }
-      const sourceEvidence = assessLowCarbRecipeCompatibility(candidate, context);
+      const sourceEvidence = assessLowCarbRecipeCompatibility(candidate, context, contextualDecisions);
       const status = sourceEvidence.status === "pass" ? "pass"
         : sourceEvidence.status === "adaptation_required" ? "fail" : "review_required";
       requirements[key] = {

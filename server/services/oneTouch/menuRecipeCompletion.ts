@@ -21,6 +21,8 @@ import { validateMealForDiet } from "../guardrails";
 import { validateDiabeticMeal } from "../guardrails/validators/diabeticValidator";
 import { validateDishIdentity } from "../dishAdaptation/dishIdentityValidator";
 import { assessLowCarbRecipeCompatibility } from "../foodAdaptation/lowCarbPolicy";
+import { resolveContextualFoodEvidence } from "../foodAdaptation/contextualFoodEvidence";
+import type { ContextualSourceDecision } from "../foodAdaptation/lowCarbPolicy";
 import { scaleIngredientQuantity } from "../servingScaling";
 import { generateMealImageUnified, normalizeMealTypeToSourceType } from "../mealImageGenerator";
 import { generateMenuRecipe, type MenuRecipeDraft } from "./menuRecipeGenerator";
@@ -330,6 +332,7 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
     );
     let draft!: MenuRecipeDraft;
     let repairGuidance = "";
+    let contextualDecisions: ContextualSourceDecision[] = [];
     for (let attempt = 0; attempt < (lowCarbActive ? 3 : 1); attempt++) {
       try {
         draft = await generateMenuRecipe({
@@ -346,8 +349,13 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
       }
       if (!validMacros(draft)) return fail("nutrition_evidence_invalid");
       if (lowCarbActive) {
+        // Deterministic classifications run first inside the resolver; one
+        // bounded batch call handles only unknown names for this draft.
+        contextualDecisions = await resolveContextualFoodEvidence(
+          finalCandidate(perServingCard(draft), draft, 1, mealType),
+        );
         const evidence = assessLowCarbRecipeCompatibility(
-          finalCandidate(perServingCard(draft), draft, 1, mealType), context,
+          finalCandidate(perServingCard(draft), draft, 1, mealType), context, contextualDecisions,
         );
         if (evidence.status !== "pass") {
           if (attempt === 2) {
@@ -368,7 +376,7 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
             "REPAIR THE SAME REQUESTED DISH, not a different food. The last recipe lacked sufficient Low Carb source evidence:",
             ...evidence.issues.map((issue) => `- ${issue}`),
             "Replace added sugar; use explicitly named components for homemade sauces and seasoning blends rather than unspecified commercial products. Keep whole avocado distinct from a sweetened or packaged avocado sauce.",
-             "For any ingredient reported as unknown or needing explicit evidence, use its actual single-source components if it is a homemade mixture. Otherwise choose an explicitly classifiable single-source ingredient only if it preserves the selected dish. Never invent a commercial product's composition, erase a defining ingredient, or relabel an unknown ingredient as verified.",
+              "For unresolved material ingredients use actual named single-source components if homemade, or adapt the conflicting component without changing the dish. A minor flavoring is not a starchy source, but never invent commercial composition, erase defining ingredients, or relabel unknown materials as verified.",
             "For a dish with no named concentrated/starchy source, starchyCarbs must be 0 and fibrousCarbs is the estimated remainder of total carbs, not dietary fiber grams. Do not invent nutrition or hide a real starch source to make these fields agree.",
             "Keep the approved concept's defining ingredients and physical form recognizable. Preserve all allergy, avoidance, and clinical protections.",
           ].join("\n");
@@ -408,7 +416,7 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
       context.safety.healthConditions.some((condition) => /glp.?1|semaglutide|tirzepatide/i.test(condition)) ||
       effectiveDiets.includes("glp1");
     const assess = (candidate: HumanFoodCandidate): MenuRecipeFailureCode | null => {
-      const diet = assessMenuDietEvidence(candidate, context.diet.effective, context);
+      const diet = assessMenuDietEvidence(candidate, context.diet.effective, context, contextualDecisions);
       const requirements = diet.requirements;
       if (diet.status === "contradicted") return "diet_hfc_rejected";
       if (diabetesRequired) {
@@ -455,6 +463,7 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
         requestedCategory: mealType,
         executionState: scope.executionState,
         evidenceMode: "exact",
+        contextualSourceDecisions: contextualDecisions,
       });
     const finalValidationFailure = (result: ReturnType<typeof check>): MenuRecipeFailureCode =>
       result.findings?.some((finding) => finding.code.startsWith("requirement_evidence_required:"))

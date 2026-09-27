@@ -18,7 +18,7 @@ import {
   scanMealsForAllergenViolations,
 } from "../allergyGuardrails";
 import { evaluateWholeFoodCandidate } from "../wholeFoodStandard";
-import { assessLowCarbRecipeCompatibility } from "../foodAdaptation/lowCarbPolicy";
+import { assessLowCarbRecipeCompatibility, type ContextualSourceDecision } from "../foodAdaptation/lowCarbPolicy";
 import { validateGlycemicProduce } from "../glycemicProduceValidator";
 import {
   maskNonAnimalDietaryCompounds,
@@ -39,6 +39,8 @@ export interface HumanFoodFinalValidationOptions {
   practicalWholeFoodAlternativeAvailable?: boolean;
   /** Menu-only opt-in. Legacy callers retain their existing evidence interpretation. */
   evidenceMode?: "legacy" | "exact";
+  /** Request-scoped Menu evidence for this exact returned recipe, never a client claim. */
+  contextualSourceDecisions?: readonly ContextualSourceDecision[];
 }
 
 const OUTCOME_RANK: Record<HumanFoodValidationOutcome, number> = {
@@ -354,7 +356,7 @@ export function validateHumanFoodCandidate(
     if (options.evidenceMode === "exact" && !UNRESTRICTED_DIETARY_IDENTITIES.has(key)) {
       const requirementKey = `dietary_identity:${key}` as const;
       const lowCarbSource = key === "low carb"
-        ? assessLowCarbRecipeCompatibility(candidate, context)
+        ? assessLowCarbRecipeCompatibility(candidate, context, options.contextualSourceDecisions)
         : null;
       const suppliedProof = exactEvidenceResult(evidence, requirementKey, STRICT_DIET_SOURCES[key]);
       addExactEvidenceFinding(
