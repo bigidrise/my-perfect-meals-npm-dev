@@ -28,3 +28,9 @@ The signed raw-body webhook should be mounted before general application readine
 **Why:** Long boot migrations can prevent Stripe delivery from reaching the canonical handler, while request-time DDL creates lock and latency risk. Early routing without an explicit ledger gate can instead expose missing-schema failures.
 
 **How to apply:** Verify signatures before the readiness response, mark billing readiness only after controlled migration and schema assertion, and ensure every persistence rejection completes with a retryable response under the deployed Express version.
+
+An event claimed but not completed is not an idempotent success. Never acknowledge a concurrent or stranded processing claim as delivered, and never let a cancellation or late event for an older subscription replace the account's currently selected billing identity.
+
+**Why:** A process can die after claiming an event but before granting access; a successful retry acknowledgement would then strand a paid customer. Duplicate subscriptions also produce legitimate late events that must not revoke the retained subscription.
+
+**How to apply:** Keep retries non-2xx until the event is completed or safely reclaimed, and condition entitlement writes and revocations on the exact currently owned customer/subscription pair. Report unresolved multi-customer histories for human review rather than choosing a newer identity automatically.

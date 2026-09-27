@@ -62,10 +62,31 @@ async function verifyBusinessCheckoutState(input: {
   }
 }
 
+export function hasVerifiedCheckoutSubscriptionIdentity(input: {
+  userId: string;
+  sessionUserId?: string | null;
+  subscriptionUserId?: string | null;
+  paymentStatus?: string | null;
+  businessId?: string | null;
+  allowLegacySessionIdentity?: boolean;
+}): boolean {
+  if (input.sessionUserId !== input.userId) return false;
+  if (input.subscriptionUserId === input.userId) return true;
+  return Boolean(
+    input.allowLegacySessionIdentity &&
+    !input.subscriptionUserId &&
+    input.paymentStatus === "paid" &&
+    !input.businessId
+  );
+}
+
 export async function reconcileCheckoutSession(args: {
   stripe: Stripe;
   userId: string;
   sessionId: string;
+  // Only an MFA-protected administrator may opt into a legacy subscription
+  // whose completed, paid Checkout Session names the exact account.
+  allowLegacySessionIdentity?: boolean;
 }): Promise<ReconciliationResult> {
   const session = await args.stripe.checkout.sessions.retrieve(args.sessionId, {
     expand: ["subscription", "subscription.items.data.price"],
@@ -84,7 +105,14 @@ export async function reconcileCheckoutSession(args: {
     throw new Error("Checkout session subscription was not available");
   }
 
-  if (subscription.metadata?.userId !== args.userId) {
+  if (!hasVerifiedCheckoutSubscriptionIdentity({
+    userId: args.userId,
+    sessionUserId: session.metadata?.userId,
+    subscriptionUserId: subscription.metadata?.userId,
+    paymentStatus: session.payment_status,
+    businessId: session.metadata?.businessId,
+    allowLegacySessionIdentity: args.allowLegacySessionIdentity,
+  })) {
     throw new Error("Subscription identity does not match the authenticated user");
   }
 
@@ -152,6 +180,9 @@ export async function reconcileCheckoutSession(args: {
     userId: args.userId,
     source: "reconciliation",
   });
+  if (claim === "in_progress") {
+    throw new Error("Checkout reconciliation is still processing; retry shortly");
+  }
 
   try {
     if (claim === "claimed") {
@@ -207,12 +238,18 @@ export async function reconcileCheckoutSession(args: {
         planLookupKey: users.planLookupKey,
         entitlements: users.entitlements,
         subscriptionStatus: users.subscriptionStatus,
+        stripeCustomerId: users.stripeCustomerId,
+        stripeSubscriptionId: users.stripeSubscriptionId,
       })
       .from(users)
       .where(eq(users.id, args.userId))
       .limit(1);
 
-    if (!user || (!isBusiness && user.planLookupKey !== trustedPlan.planLookupKey)) {
+    if (!user || (!isBusiness && (
+      user.planLookupKey !== trustedPlan.planLookupKey ||
+      user.stripeCustomerId !== customerId ||
+      user.stripeSubscriptionId !== subscription.id
+    ))) {
       throw new Error("Verified Stripe subscription could not be persisted");
     }
 

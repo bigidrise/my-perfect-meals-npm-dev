@@ -304,7 +304,7 @@ describe("trusted Stripe entitlement pipeline", () => {
     expect(checkout).toContain("customer: customer.id");
     expect(checkout).toContain("consumerCheckoutIdempotencyKey");
     expect(guard).toContain("metadata['userId']");
-    expect(guard).not.toContain("customers.list({ email");
+    expect(guard).toContain("customerHasVerifiedUserIdentity");
     expect(client).toContain("pendingCheckoutPlans");
     expect(pricing).toContain("SUBSCRIPTION_ALREADY_ACTIVE");
   });

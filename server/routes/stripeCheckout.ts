@@ -7,6 +7,7 @@ import { assertStripeBillingOwnership } from "../services/stripeRuntimePolicy";
 import { reconcileCheckoutSession } from "../services/stripeReconciliationService";
 import {
   CheckoutBillingConflictError,
+  assertNoOtherActiveUserSubscription,
   consumerCheckoutIdempotencyKey,
   findBlockingMpmSubscription,
   resolveCanonicalCheckoutCustomer,
@@ -15,7 +16,8 @@ import { updateUserSubscription } from "../services/subscriptionService";
 import { claimStripeIdentityOwnership } from "../services/stripeIdentityOwnershipService";
 import { db } from "../db";
 import { users } from "@shared/schema";
-import { and, eq, isNull, or } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, or } from "drizzle-orm";
+import { stripeBillingEvents, stripeIdentityOwners } from "../db/schema/stripeBilling";
 import { randomUUID } from "node:crypto";
 import { getBusinessOfferCheckoutAttribution } from "../services/businessOfferLinkService";
 import { validateRewardfulReferralForAffiliate } from "../services/rewardfulApi";
@@ -131,6 +133,33 @@ router.post("/checkout", requireAuth, async (req, res) => {
           );
         }
       },
+    });
+    const [ownedCustomers, historicalCustomers] = await Promise.all([
+      db.select({ id: stripeIdentityOwners.identityValue })
+        .from(stripeIdentityOwners)
+        .where(and(
+          eq(stripeIdentityOwners.ownerUserId, userId),
+          eq(stripeIdentityOwners.identityType, "customer"),
+          isNull(stripeIdentityOwners.businessId),
+        )).limit(101),
+      db.selectDistinct({ id: stripeBillingEvents.customerId })
+        .from(stripeBillingEvents)
+        .where(and(eq(stripeBillingEvents.userId, userId), isNotNull(stripeBillingEvents.customerId)))
+        .limit(101),
+    ]);
+    if (ownedCustomers.length > 100 || historicalCustomers.length > 100) {
+      throw new CheckoutBillingConflictError(
+        "BILLING_IDENTITY_REVIEW_REQUIRED",
+        "Billing identity history requires review before another checkout.",
+      );
+    }
+    await assertNoOtherActiveUserSubscription({
+      stripe,
+      userId,
+      email: billingUser.email,
+      canonicalCustomerId: customer.id,
+      ownedCustomerIds: ownedCustomers.map((row) => row.id),
+      historicalCustomerIds: historicalCustomers.flatMap((row) => row.id ? [row.id] : []),
     });
 
     const blocking = await findBlockingMpmSubscription({

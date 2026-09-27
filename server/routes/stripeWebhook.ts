@@ -175,6 +175,9 @@ router.post("/", async (req, res) => {
     console.error("[webhook] Unable to durably claim Stripe event", error);
     return res.status(503).send("Stripe billing event store unavailable");
   }
+  if (claim === "in_progress") {
+    return res.status(503).json({ error: "Billing event is still processing; retry delivery" });
+  }
   if (claim === "duplicate") {
     return res.json({ received: true, duplicate: true });
   }
