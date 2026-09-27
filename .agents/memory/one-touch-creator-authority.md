@@ -21,6 +21,18 @@ The accepted Creator Menu architecture lets the Menu own three concepts and a tr
 
 **How to apply:** Use a server-stored concept and current account authority; require its identity and defining ingredients before and after completion. Pass only authorized request-scoped diet replacement to shared generation, retain clinical and protocol checks, normalize per-serving evidence before validating a scaled card, and reject unsupported specialist directives. The legacy engine stays intact until live provider and authenticated acceptance verify the handoff. Do not describe shared primitives as full manual route parity while route-only allergy/glucose adaptation is absent.
 
+Creator Menu concept creation accepts food context with non-blocking preference gaps. Selection must recognize that same eligible status while preserving the separate review-required and blocked boundaries.
+
+**Why:** A real signed-in Create a Dish choice was offered under a context with gaps, then rejected before generation solely because the completion handoff required a fully resolved status. That is an authority-state mismatch, not evidence that the selected food is unsafe.
+
+**How to apply:** Align eligibility at both stages; still re-resolve authority and run the normal protocol, clinical, dish-identity, and final-recipe checks. Do not treat missing preferences as permission to bypass those gates.
+
+The shared variety generator may preserve a dish's recognizable name but omit defining ingredients from every variant. One bounded identity repair is preferable to accepting a related but incomplete meal or silently changing the selected dish.
+
+**Why:** A real provider pass returned familiar versions of a selected wrap without satisfying the stored ingredient contract. After an explicit corrective pass, a complete matching card could be validated; name resemblance alone would have hidden the omission.
+
+**How to apply:** Retain the stored concept's required ingredients and physical form as immutable constraints across attempts. Recheck repaired output through the same safety and final gates, and return no card when safe preservation remains impossible.
+
 A passed negative protocol scan cannot serve as positive evidence of a compositional diet or a numeric clinical limit, and model-estimated macros are not independently verified nutrition. Unsupported evidence must stay review-required or be rejected, even if this reduces the number of concepts that can finish automatically.
 
 **Why:** A scan can miss a high-risk diabetic macro excess or an unmeasured specialty limit; labeling either as compliant would make an apparently finished card unsafe.
