@@ -12,6 +12,7 @@ import { validateOneTouchDirectionSafety } from "./directions";
 import { validateDishIdentity } from "../dishAdaptation/dishIdentityValidator";
 import { buildGuardrailContext, getDishAdaptationDirective } from "../dishAdaptation/dishAdaptationLayer";
 import { enforceSafetyProfile } from "../safetyProfileService";
+import { getRequestedDishExemptTerms } from "../allergyGuardrails";
 import { validateMealForDiet } from "../guardrails";
 import { validateDiabeticMeal } from "../guardrails/validators/diabeticValidator";
 import { scaleIngredientQuantity } from "../servingScaling";
@@ -70,8 +71,14 @@ export async function completeSelectedConcept(input: SelectedConceptHandoff): Pr
     "menu-selected-concept", {
       safetyMode: "STRICT",
       ignoredDietaryRestrictions: input.overriddenDietaryIdentities,
+      deferAmbiguousDishCheck: true,
     });
   if (safety.result !== "SAFE") return { ok: false, code: "concept_rejected" };
+  // Only exempt a requested cultural dish label, never a named allergen or
+  // derivative. The finished ingredients and instructions remain fully scanned.
+  const exemptDishNameTerms = new Set(
+    getRequestedDishExemptTerms(concept.title, envelope.allergies).map(term => term.toLowerCase()),
+  );
   const directive = await getDishAdaptationDirective(
     concept.title,
     buildGuardrailContext({
@@ -114,7 +121,7 @@ export async function completeSelectedConcept(input: SelectedConceptHandoff): Pr
     fat: meal.fat, starchyCarbs: meal.starchyCarbs,
   });
   const candidate = (meal: UnifiedMeal): HumanFoodCandidate => {
-    const protocol = scanGeneratedOutput(meal, envelope, { generatorName: "menu-selected-final" });
+    const protocol = scanGeneratedOutput(meal, envelope, { generatorName: "menu-selected-final", exemptDishNameTerms });
     const diabetes = envelope.hasDiabetes && envelope.diabeticGlucoseState
       ? validateDiabeticMeal({
           name: meal.name, description: meal.description, ingredients: meal.ingredients,
@@ -152,6 +159,7 @@ export async function completeSelectedConcept(input: SelectedConceptHandoff): Pr
     if (food.violations.some((violation) => !violation.startsWith("projected_"))) return false;
     return filterMealsByProtocol([meal], envelope, {
       generatorName: "menu-selected-concept",
+      exemptDishNameTerms,
       dishIdentity: { requestedDish: concept.title, directive },
     }).length === 1;
   };
@@ -240,7 +248,7 @@ export async function completeSelectedConcept(input: SelectedConceptHandoff): Pr
   });
   if (!matches({ ...selected, ingredients }) ||
       !validateHumanFoodResult(returnedCandidate, context).valid ||
-      !scanGeneratedOutput(meal, envelope, { generatorName: "menu-selected-final" }).passed ||
+       !scanGeneratedOutput(meal, envelope, { generatorName: "menu-selected-final", exemptDishNameTerms }).passed ||
       validateHumanFoodCandidate(returnedCandidate, context, {
         requestedDish: concept.title, requestedCategory: concept.occasion,
       }).outcome !== "pass") {

@@ -135,7 +135,7 @@ interface MealData {
     starchyCarbs?: number;
     fibrousCarbs?: number;
   };
-  instructions: string;
+  instructions: string[] | string;
   cookingInstructions?: string[];
   cookingTime?: string;
   reasoning: string;
