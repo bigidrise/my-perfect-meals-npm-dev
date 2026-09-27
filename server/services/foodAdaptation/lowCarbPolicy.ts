@@ -45,6 +45,14 @@ export interface LowCarbIngredientEvidence {
   reason?: string;
 }
 
+/** Request-scoped culinary interpretation, not a safety or nutrient certificate. */
+export interface ContextualSourceDecision {
+  ingredient: string;
+  category: CarbohydrateSourceCategory | "nonmaterial";
+  role: string;
+  reason: string;
+}
+
 export interface LowCarbSourceEvidence {
   /** Pass means the provided recipe's named source classes are explicit and usable. */
   status: LowCarbSourceEvidenceStatus;
@@ -213,6 +221,7 @@ function isSimpleOil(name: string, role: NutritionalRole): boolean {
 export function evaluateLowCarbSourceEvidence(
   ingredients: readonly LowCarbIngredientInput[] | null | undefined,
   nutrition: LowCarbNutritionEvidence | null | undefined,
+  contextualDecisions: readonly ContextualSourceDecision[] = [],
 ): LowCarbSourceEvidence {
   const list = Array.isArray(ingredients) ? ingredients : [];
   const expandedIngredients = expandRecipeIngredients(list);
@@ -254,6 +263,24 @@ export function evaluateLowCarbSourceEvidence(
       category = "starchy_concentrated";
       requiresExplicitEvidence = false;
       reason = undefined;
+    }
+
+    // Only genuinely unresolved names can use contextual culinary evidence.
+    // Compound/packaged, dairy, sugar and other explicitly guarded categories
+    // never become verified just because a model described them positively.
+    if (category === "unknown") {
+      const decision = contextualDecisions.find((entry) => entry.ingredient === name);
+      if (decision) {
+        if (decision.category === "nonmaterial") {
+          category = "non_carb_ingredient";
+          requiresExplicitEvidence = false;
+          reason = undefined;
+        } else if (["whole_plant_fat", "non_starchy_fibrous", "starchy_concentrated", "added_sugar"].includes(decision.category)) {
+          category = decision.category;
+          requiresExplicitEvidence = false;
+          reason = undefined;
+        }
+      }
     }
 
     ingredientEvidence.push({
@@ -306,8 +333,9 @@ export function evaluateLowCarbSourceEvidence(
 export function assessLowCarbRecipeCompatibility(
   candidate: HumanFoodCandidate,
   context: HumanFoodContext,
+  contextualDecisions: readonly ContextualSourceDecision[] = [],
 ): LowCarbSourceEvidence {
-  const source = evaluateLowCarbSourceEvidence(candidate.ingredients, candidate.nutrition);
+  const source = evaluateLowCarbSourceEvidence(candidate.ingredients, candidate.nutrition, contextualDecisions);
   if (source.status !== "pass") return source;
   const nutrition = context.nutrition;
   const remaining = nutrition?.projectedRemaining ?? nutrition?.remaining;
