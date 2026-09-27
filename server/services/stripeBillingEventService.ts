@@ -14,7 +14,7 @@ export interface BillingEventClaim {
 
 export async function claimBillingEvent(
   event: BillingEventClaim,
-): Promise<"claimed" | "duplicate"> {
+): Promise<"claimed" | "duplicate" | "in_progress"> {
   const [inserted] = await db
     .insert(stripeBillingEvents)
     .values({
@@ -50,7 +50,16 @@ export async function claimBillingEvent(
     ))
     .returning({ eventId: stripeBillingEvents.eventId });
 
-  return reclaimed ? "claimed" : "duplicate";
+  if (reclaimed) return "claimed";
+  const [existing] = await db.select({ status: stripeBillingEvents.status })
+    .from(stripeBillingEvents)
+    .where(eq(stripeBillingEvents.eventId, event.eventId))
+    .limit(1);
+  // An uncommitted transition is not a completed event. Tell Stripe to retry
+  // rather than acknowledging a crash between claim and entitlement update.
+  return existing?.status === "processed" || existing?.status === "ignored"
+    ? "duplicate"
+    : "in_progress";
 }
 
 export async function completeBillingEvent(

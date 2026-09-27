@@ -1,4 +1,7 @@
 import { Router } from "express";
+import Stripe from "stripe";
+import { isMfaVerifiedForUser } from "../lib/sessionSecurity";
+import { getClientIp, logAudit } from "../lib/auditLog";
 import { db, pool } from "../db";
 import { emailIdentityReviews, users } from "@shared/schema";
 import { mealImageCache } from "../db/schema/mealImageCache";
@@ -156,6 +159,107 @@ router.param("userId", (req, res, next, userId) => {
       next();
     })
     .catch((err) => next(err));
+});
+
+// This router is mounted behind requireAuth + MFA-backed requireAdmin in both
+// entrypoints. A legacy subscription may lack userId metadata, so repair is
+// authorized by its *paid Checkout Session*, never by email or a client claim.
+router.post("/users/:userId/billing/reconcile-legacy-checkout", async (req, res) => {
+  try {
+    const operatorId = (req as any).authUser?.id as string | undefined;
+    const [operator] = operatorId ? await db.select({
+      mfaEnabled: users.mfaEnabled,
+    }).from(users).where(eq(users.id, operatorId)).limit(1) : [];
+    if (!operatorId || !operator?.mfaEnabled ||
+        (!isMfaVerifiedForUser(req, operatorId) && (req as any).bearerMfaVerified !== true)) {
+      return res.status(403).json({ error: "A verified administrator MFA session is required", code: "MFA_REQUIRED" });
+    }
+    const { assertStripeBillingOwnership } = await import("../services/stripeRuntimePolicy");
+    const { reconcileCheckoutSession } = await import("../services/stripeReconciliationService");
+    const key = process.env.STRIPE_SECRET_KEY;
+    if (!key) return res.status(503).json({ error: "Billing is unavailable" });
+    assertStripeBillingOwnership(key);
+
+    const { sessionId, customerId, subscriptionId } = req.body ?? {};
+    if (req.body?.confirm !== "REPAIR BILLING") {
+      return res.status(400).json({ error: "Explicit billing repair confirmation is required" });
+    }
+    if (typeof sessionId !== "string" || !/^cs_(live|test)_[a-zA-Z0-9]+$/.test(sessionId) ||
+        typeof customerId !== "string" || !/^cus_[a-zA-Z0-9]+$/.test(customerId) ||
+        typeof subscriptionId !== "string" || !/^sub_[a-zA-Z0-9]+$/.test(subscriptionId)) {
+      return res.status(400).json({ error: "Exact Checkout Session, customer and subscription IDs are required" });
+    }
+    const targetUserId = req.params.userId;
+    const [account] = await db.select({
+      stripeCustomerId: users.stripeCustomerId,
+      stripeSubscriptionId: users.stripeSubscriptionId,
+    }).from(users).where(eq(users.id, targetUserId)).limit(1);
+    if (!account || (account.stripeCustomerId && account.stripeCustomerId !== customerId) ||
+        (account.stripeSubscriptionId && account.stripeSubscriptionId !== subscriptionId)) {
+      return res.status(409).json({ error: "Billing account already belongs to another Stripe identity" });
+    }
+
+    const stripe = new Stripe(key, { apiVersion: "2024-06-20" as any });
+    const [session, customer] = await Promise.all([
+      stripe.checkout.sessions.retrieve(sessionId, { expand: ["subscription"] }),
+      stripe.customers.retrieve(customerId),
+    ]);
+    const selected = session.subscription;
+    const selectedId = typeof selected === "string" ? selected : selected?.id;
+    if (customer.deleted || session.customer !== customerId || selectedId !== subscriptionId ||
+        session.mode !== "subscription" || session.status !== "complete" ||
+        session.payment_status !== "paid" || session.metadata?.userId !== targetUserId ||
+        (customer.metadata?.userId && customer.metadata.userId !== targetUserId)) {
+      return res.status(409).json({ error: "Stripe ownership or paid Checkout evidence does not match" });
+    }
+    const subscription = typeof selected === "string"
+      ? await stripe.subscriptions.retrieve(selected)
+      : selected;
+    if (!subscription || (subscription.metadata?.userId && subscription.metadata.userId !== targetUserId) ||
+        subscription.status !== "active") {
+      return res.status(409).json({ error: "Selected subscription is not an active subscription owned by this account" });
+    }
+
+    const result = await reconcileCheckoutSession({
+      stripe, userId: targetUserId, sessionId,
+      allowLegacySessionIdentity: true,
+    });
+    if (result.status !== "active") {
+      return res.status(409).json({ error: "Selected subscription was not active at reconciliation" });
+    }
+    // These metadata updates are idempotent; a retry after a provider failure
+    // finishes them without repeating the durable entitlement event.
+    if (!subscription.metadata?.userId) {
+      await stripe.subscriptions.update(subscriptionId, {
+        metadata: { ...subscription.metadata, userId: targetUserId },
+      }, { idempotencyKey: `mpm-legacy-sub-identity:${subscriptionId}:${targetUserId}` });
+    }
+    if (!customer.metadata?.userId) {
+      await stripe.customers.update(customerId, {
+        metadata: { ...customer.metadata, userId: targetUserId },
+      }, { idempotencyKey: `mpm-legacy-customer-identity:${customerId}:${targetUserId}` });
+    }
+    console.info("[admin/billing] Verified legacy Checkout reconciled", {
+      operatorUserId: operatorId,
+      targetUserId, customerId, subscriptionId, sessionId,
+    });
+    logAudit({
+      actor: operatorId,
+      target: targetUserId,
+      action: "WRITE",
+      resourceType: "billing_reconciliation",
+      resourceId: subscriptionId,
+      table: "users",
+      field: "stripe_customer_id,stripe_subscription_id,plan_lookup_key,entitlements",
+      route: req.path,
+      ip: getClientIp(req),
+      meta: { customerId, sessionId, source: "verified_legacy_checkout" },
+    });
+    return res.json({ status: result.status, planLookupKey: result.planLookupKey, customerId, subscriptionId });
+  } catch (error) {
+    console.error("[admin/billing] Legacy Checkout reconciliation failed", error instanceof Error ? error.message : "unknown error");
+    return res.status(409).json({ error: "Verified billing repair did not complete; review server logs" });
+  }
 });
 
 const SAFE_USER_FIELDS = {

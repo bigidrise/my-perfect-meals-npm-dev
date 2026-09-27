@@ -120,6 +120,18 @@ describe("Stripe webhook startup availability", () => {
       .expect(503, "Stripe billing event store unavailable");
   });
 
+  it("asks Stripe to retry an event whose earlier processing has not completed", async () => {
+    claimBillingEvent.mockResolvedValue("in_progress");
+    const { payload, signature } = signedPayload();
+    await request(app)
+      .post("/api/stripe/webhook")
+      .set("Content-Type", "application/json")
+      .set("stripe-signature", signature)
+      .send(payload)
+      .expect(503);
+    expect(completeBillingEvent).not.toHaveBeenCalled();
+  });
+
   it("still completes with 500 when both processing and failure recording reject", async () => {
     completeBillingEvent.mockRejectedValue(new Error("completion failed"));
     failBillingEvent.mockRejectedValue(new Error("failure ledger unavailable"));

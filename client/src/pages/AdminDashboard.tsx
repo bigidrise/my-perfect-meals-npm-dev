@@ -122,6 +122,47 @@ function UserDetail({ user, onAction }: { user: AdminUser; onAction: (label: str
   const [pilot, setPilot] = useState<PilotProCareStatus | null>(null);
   const [pilotBusy, setPilotBusy] = useState(false);
   const [pilotClientEmail, setPilotClientEmail] = useState("");
+  const [repairSession, setRepairSession] = useState("");
+  const [repairCustomer, setRepairCustomer] = useState("");
+  const [repairSubscription, setRepairSubscription] = useState("");
+  const [repairConfirmation, setRepairConfirmation] = useState("");
+  const [repairBusy, setRepairBusy] = useState(false);
+  const [repairResult, setRepairResult] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRepairSession("");
+    setRepairCustomer("");
+    setRepairSubscription("");
+    setRepairConfirmation("");
+    setRepairResult(null);
+  }, [user.id]);
+
+  const repairBilling = async () => {
+    if (repairConfirmation !== "REPAIR BILLING" ||
+        !window.confirm(`Reconcile the selected Stripe subscription to ${user.email} (${user.id})? This changes live billing ownership and access. It does not cancel or refund anything.`)) return;
+    setRepairBusy(true);
+    try {
+      const response = await fetch(apiUrl(`/api/admin/users/${user.id}/billing/reconcile-legacy-checkout`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        body: JSON.stringify({
+          sessionId: repairSession.trim(),
+          customerId: repairCustomer.trim(),
+          subscriptionId: repairSubscription.trim(),
+          confirm: repairConfirmation,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Billing repair failed");
+      setRepairResult(`${data.planLookupKey} active · ${data.customerId} · ${data.subscriptionId}`);
+      setRepairConfirmation("");
+      toast({ title: "Verified billing subscription reconciled", description: "Confirm account access and handle duplicate subscriptions separately." });
+    } catch (error: any) {
+      toast({ title: "Billing repair stopped", description: error.message, variant: "destructive" });
+    } finally {
+      setRepairBusy(false);
+    }
+  };
 
   const loadPilot = useCallback(async () => {
     const response = await fetch(apiUrl(`/api/admin/users/${user.id}/pilot-procare`), { headers: getAuthHeaders() });
@@ -324,6 +365,30 @@ function UserDetail({ user, onAction }: { user: AdminUser; onAction: (label: str
             })}
           </div>
         </div>
+
+        {ENV === "PRODUCTION" && (
+          <div className="border-t border-amber-500/30 pt-4 space-y-2">
+            <p className="text-sm font-medium text-amber-300">Verified legacy billing repair</p>
+            <p className="text-xs text-white/60">
+              For {user.email} ({user.id}). Requires administrator MFA and a paid Checkout Session that names this exact account.
+              This restores one subscription only; it does not cancel duplicates or issue refunds.
+            </p>
+            <input aria-label="Paid Stripe Checkout Session ID" value={repairSession} onChange={e => setRepairSession(e.target.value)}
+              placeholder="cs_live_..." className="w-full rounded border border-white/20 bg-black p-2 text-xs text-white" />
+            <input aria-label="Canonical Stripe customer ID" value={repairCustomer} onChange={e => setRepairCustomer(e.target.value)}
+              placeholder="cus_..." className="w-full rounded border border-white/20 bg-black p-2 text-xs text-white" />
+            <input aria-label="Canonical Stripe subscription ID" value={repairSubscription} onChange={e => setRepairSubscription(e.target.value)}
+              placeholder="sub_..." className="w-full rounded border border-white/20 bg-black p-2 text-xs text-white" />
+            <input aria-label="Type REPAIR BILLING to confirm" value={repairConfirmation} onChange={e => setRepairConfirmation(e.target.value)}
+              placeholder="Type REPAIR BILLING" className="w-full rounded border border-amber-500/50 bg-black p-2 text-xs text-white" />
+            <button type="button" onClick={() => void repairBilling()}
+              disabled={repairBusy || repairConfirmation !== "REPAIR BILLING" || !repairSession || !repairCustomer || !repairSubscription}
+              className="rounded bg-amber-700 px-3 py-2 text-xs font-semibold text-white disabled:opacity-40">
+              {repairBusy ? "Verifying with Stripe…" : "Verify and reconcile subscription"}
+            </button>
+            {repairResult && <p role="status" className="text-xs text-green-300">{repairResult}</p>}
+          </div>
+        )}
 
         <div className="border-t border-white/10 pt-4 space-y-3">
           <p className="text-xs text-white/30 uppercase tracking-wide">Private Pilot ProCare</p>
@@ -1296,7 +1361,7 @@ export default function AdminDashboard() {
             >
               ← Back to results
             </button>
-            <UserDetail user={selected} onAction={() => {}} />
+            <UserDetail key={selected.id} user={selected} onAction={() => {}} />
           </div>
         )}
       </div>

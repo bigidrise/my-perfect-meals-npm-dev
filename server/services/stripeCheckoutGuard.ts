@@ -51,6 +51,12 @@ async function customerHasVerifiedUserIdentity(
     stripe.subscriptions.list({ customer: customerId, status: "all", limit: 100 }),
     stripe.checkout.sessions.list({ customer: customerId, limit: 100 }),
   ]);
+  if (subscriptions.has_more || sessions.has_more) {
+    throw new CheckoutBillingConflictError(
+      "BILLING_IDENTITY_REVIEW_REQUIRED",
+      "Stripe identity history exceeds the checkout verification limit.",
+    );
+  }
   return subscriptions.data.some((item) => item.metadata?.userId === userId)
     || sessions.data.some((item) => item.metadata?.userId === userId);
 }
@@ -154,6 +160,12 @@ export async function findBlockingMpmSubscription(input: {
     status: "all",
     limit: 100,
   });
+  if (listed.has_more) {
+    throw new CheckoutBillingConflictError(
+      "BILLING_IDENTITY_REVIEW_REQUIRED",
+      "Stripe subscription history exceeds the checkout verification limit.",
+    );
+  }
   for (const subscription of listed.data) {
     if (!candidates.some((candidate) => candidate.id === subscription.id)) {
       candidates.push(subscription);
@@ -171,4 +183,53 @@ export async function findBlockingMpmSubscription(input: {
     }
   }
   return null;
+}
+
+// A saved canonical customer does not prove that another customer claiming the
+// same app user is inactive. Check those customers before opening new Checkout.
+export async function assertNoOtherActiveUserSubscription(input: {
+  stripe: Stripe;
+  userId: string;
+  email: string;
+  canonicalCustomerId: string;
+  ownedCustomerIds?: string[];
+  historicalCustomerIds?: string[];
+}): Promise<void> {
+  const { stripe, userId, email, canonicalCustomerId } = input;
+  const [metadataMatches, emailCandidates] = await Promise.all([
+    stripe.customers.search({
+      query: `metadata['userId']:'${stripeSearchLiteral(userId)}'`,
+      limit: 100,
+    }),
+    stripe.customers.list({ email, limit: 100 }),
+  ]);
+  if (metadataMatches.has_more || emailCandidates.has_more) {
+    throw new CheckoutBillingConflictError(
+      "BILLING_IDENTITY_REVIEW_REQUIRED",
+      "Stripe customer history exceeds the checkout verification limit.",
+    );
+  }
+  const candidates = new Map([
+    ...metadataMatches.data,
+    ...emailCandidates.data,
+  ].map((customer) => [customer.id, customer]));
+  const owned = new Set(input.ownedCustomerIds ?? []);
+  const allIds = new Set([
+    ...candidates.keys(),
+    ...owned,
+    ...(input.historicalCustomerIds ?? []),
+  ]);
+  for (const customerId of allIds) {
+    if (customerId === canonicalCustomerId) continue;
+    const candidate = candidates.get(customerId);
+    if (!owned.has(customerId) &&
+        candidate?.metadata?.userId !== userId &&
+        !(await customerHasVerifiedUserIdentity(stripe, customerId, userId))) continue;
+    if (await findBlockingMpmSubscription({ stripe, customerId })) {
+      throw new CheckoutBillingConflictError(
+        "BILLING_IDENTITY_REVIEW_REQUIRED",
+        "Another Stripe customer has an active subscription for this account.",
+      );
+    }
+  }
 }

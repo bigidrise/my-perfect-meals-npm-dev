@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import { getTrustedCheckoutPlan } from "../services/stripePlanCatalog";
 import {
   CheckoutBillingConflictError,
+  assertNoOtherActiveUserSubscription,
   consumerCheckoutIdempotencyKey,
   findBlockingMpmSubscription,
   resolveCanonicalCheckoutCustomer,
@@ -34,6 +35,59 @@ function subscription(
 }
 
 describe("consumer Stripe checkout guard", () => {
+  it("blocks another active subscription even when a canonical customer is already saved", async () => {
+    const trusted = getTrustedCheckoutPlan("mpm_premium")!;
+    const other = customer("cus_other");
+    const stripe = {
+      customers: {
+        search: jest.fn().mockResolvedValue({ data: [other] }),
+        list: jest.fn().mockResolvedValue({ data: [] }),
+      },
+      subscriptions: {
+        list: jest.fn().mockResolvedValue({
+          data: [subscription("sub_other", "active", trusted.priceId, trusted.planLookupKey)],
+        }),
+      },
+    } as unknown as Stripe;
+    await expect(assertNoOtherActiveUserSubscription({
+      stripe, userId: user.id, email: user.email, canonicalCustomerId: "cus_canonical",
+    })).rejects.toMatchObject({ code: "BILLING_IDENTITY_REVIEW_REQUIRED" });
+  });
+
+  it("permits checkout when other verified customers have no active plan", async () => {
+    const stripe = {
+      customers: {
+        search: jest.fn().mockResolvedValue({ data: [customer("cus_other")] }),
+        list: jest.fn().mockResolvedValue({ data: [] }),
+      },
+      subscriptions: { list: jest.fn().mockResolvedValue({ data: [] }) },
+    } as unknown as Stripe;
+    await expect(assertNoOtherActiveUserSubscription({
+      stripe, userId: user.id, email: user.email, canonicalCustomerId: "cus_canonical",
+    })).resolves.toBeUndefined();
+  });
+
+  it("finds an old-email customer in saved billing history when only its session names the user", async () => {
+    const trusted = getTrustedCheckoutPlan("mpm_premium")!;
+    const stripe = {
+      customers: {
+        search: jest.fn().mockResolvedValue({ data: [] }),
+        list: jest.fn().mockResolvedValue({ data: [] }),
+      },
+      subscriptions: {
+        list: jest.fn().mockResolvedValue({
+          data: [subscription("sub_legacy", "active", trusted.priceId, trusted.planLookupKey)],
+        }),
+      },
+      checkout: {
+        sessions: { list: jest.fn().mockResolvedValue({ data: [{ metadata: { userId: user.id } }] }) },
+      },
+    } as unknown as Stripe;
+    await expect(assertNoOtherActiveUserSubscription({
+      stripe, userId: user.id, email: user.email, canonicalCustomerId: "cus_canonical",
+      historicalCustomerIds: ["cus_old_email"],
+    })).rejects.toMatchObject({ code: "BILLING_IDENTITY_REVIEW_REQUIRED" });
+  });
   it("reuses a valid stored Stripe customer", async () => {
     const stored = customer("cus_stored");
     const stripe = {
