@@ -41,7 +41,7 @@
 - [Voice message queue integrity](voice-message-queue-integrity.md) — pending voice notes require stored audio and a transcription job; otherwise show failure.
 - [Bundled-first iOS startup](bundled-first-ios-startup.md) — native startup must use packaged web assets; remote APIs are a separate, explicit dependency.
 - [iOS capture diagnosis](ios-capture-diagnosis.md) — diagnose Grocery Voice Add separately from Studio capture, and sync the native bundle before device evidence.
-- [Shared Neon database boundary](runtime-database-identity.md) — development and production use the same external Neon database; do not revisit isolation as a blocker.
+- [Shared Neon and workspace release boundary](runtime-database-identity.md) — both workspaces share Neon, but Development Publish does not update Production.
 - [Studio browser verification access](studio-browser-verification-access.md) — DEV browser recording checks can be blocked by workspace entitlements or browser media permissions.
 - [Development browser session boundary](development-browser-session-boundary.md) — app-preview screenshots do not inherit the user's signed-in Development preview session.
 - [Private Studio moderation policy](private-studio-moderation-policy.md) — ordinary profanity is flagged but deliverable in private Studio; serious categories and public policy stay unchanged.
