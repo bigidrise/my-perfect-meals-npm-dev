@@ -196,6 +196,44 @@ describe("strict Menu exact-requirement evidence", () => {
     });
   };
 
+  it("permits only generic non-safety source uncertainty in Menu release mode, without recording positive proof", () => {
+    const generated = (ingredient: string): HumanFoodCandidate => ({
+      name: "Chocolate Custard",
+      ingredients: ["unsweetened cocoa powder", ingredient, "cauliflower"],
+      instructions: "Blend and chill.",
+      nutrition: { calories: 310, protein: 18, carbs: 12, fat: 20, starchyCarbs: 0 },
+      evidence: generatedEvidence({
+        requirementEvidence: {
+          "dietary_identity:low carb": {
+            status: "review_required", source: "program_rule_pack", nutritionBasis: "model_estimate",
+          },
+        },
+      }),
+    });
+    const cocoa = [{
+      ingredient: "unsweetened cocoa powder", category: "non_starchy_fibrous" as const,
+      role: "structural", reason: "Named single-source powder.",
+    }];
+    const strict = validateHumanFoodCandidate(generated("unsweetened almond milk"), lowCarbContext(), {
+      evidenceMode: "exact", contextualSourceDecisions: cocoa,
+    });
+    expect(strict.outcome).toBe("review_required");
+    const generic = validateHumanFoodCandidate(generated("unsweetened almond milk"), lowCarbContext(), {
+      evidenceMode: "exact", contextualSourceDecisions: cocoa, genericRecipeLowCarbRelease: true,
+    });
+    expect(generic.outcome).toBe("pass");
+    const unsafeSource = validateHumanFoodCandidate(generated("mystery sweetener"), lowCarbContext(), {
+      evidenceMode: "exact", contextualSourceDecisions: cocoa, genericRecipeLowCarbRelease: true,
+    });
+    expect(unsafeSource.outcome).not.toBe("pass");
+    const allergyContext = lowCarbContext();
+    allergyContext.safety.allergies = ["milk"];
+    const allergy = validateHumanFoodCandidate(generated("unsweetened almond milk"), allergyContext, {
+      evidenceMode: "exact", contextualSourceDecisions: cocoa, genericRecipeLowCarbRelease: true,
+    });
+    expect(allergy.outcome).toBe("blocked");
+  });
+
   it("accepts source evidence for the requested casserole without treating cauliflower as starch", () => {
     const result = validateHumanFoodCandidate(
       lowCarbBuffaloCandidate(),

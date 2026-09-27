@@ -29,6 +29,7 @@ import { generateMenuRecipe, type MenuRecipeDraft } from "./menuRecipeGenerator"
 import { oneTouchContextFingerprint } from "./contextFingerprint";
 import type { GLP1GlobalContext } from "../glp1/resolveGLP1GlobalContext";
 import { assessMenuDietEvidence } from "./menuDietEvidence";
+import { assessLowCarbRecipeRelease } from "./lowCarbRecipeRelease";
 
 /** Server-only operation. The caller must supply its authenticated actor, not a browser body ID. */
 export interface MenuRecipeCompletionInput {
@@ -354,14 +355,15 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
         contextualDecisions = await resolveContextualFoodEvidence(
           finalCandidate(perServingCard(draft), draft, 1, mealType),
         );
-        const evidence = assessLowCarbRecipeCompatibility(
-          finalCandidate(perServingCard(draft), draft, 1, mealType), context, contextualDecisions,
-        );
-        if (evidence.status !== "pass") {
+        const candidate = finalCandidate(perServingCard(draft), draft, 1, mealType);
+        const release = assessLowCarbRecipeRelease(candidate, context, contextualDecisions);
+        if (release === "repair_required" || release === "evidence_unavailable") {
+          const evidence = assessLowCarbRecipeCompatibility(candidate, context, contextualDecisions);
           if (attempt === 2) {
             // Preserve distinct, privacy-safe reasons without logging ingredients
             // or treating an estimated carb-source split as verified evidence.
-            const code: MenuRecipeFailureCode = evidence.status === "adaptation_required"
+            const code: MenuRecipeFailureCode = evidence.ingredientEvidence.some((item) => item.category === "added_sugar") ||
+                evidence.status === "adaptation_required"
               ? "diet_hfc_rejected"
               : !evidence.ingredientsComplete ||
                 evidence.ingredientEvidence.some((item) => item.requiresExplicitEvidence)
@@ -464,6 +466,7 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
         executionState: scope.executionState,
         evidenceMode: "exact",
         contextualSourceDecisions: contextualDecisions,
+        genericRecipeLowCarbRelease: lowCarbActive,
       });
     const finalValidationFailure = (result: ReturnType<typeof check>): MenuRecipeFailureCode =>
       result.findings?.some((finding) => finding.code.startsWith("requirement_evidence_required:"))

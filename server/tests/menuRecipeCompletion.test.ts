@@ -71,6 +71,7 @@ import { generateMealImageUnified } from "../services/mealImageGenerator";
 import { generateMenuRecipe } from "../services/oneTouch/menuRecipeGenerator";
 import { resolveContextualFoodEvidence } from "../services/foodAdaptation/contextualFoodEvidence";
 import { oneTouchContextFingerprint } from "../services/oneTouch/contextFingerprint";
+import { assessLowCarbRecipeRelease } from "../services/oneTouch/lowCarbRecipeRelease";
 import {
   completeMenuRecipe, type MenuRecipeCompletionInput,
 } from "../services/oneTouch/menuRecipeCompletion";
@@ -212,7 +213,9 @@ beforeEach(() => {
     const requirements = candidate.evidence.requirementEvidence ?? {};
     const active = currentContext.diet.effective.map((value: string) =>
       `dietary_identity:${value.toLowerCase().replace(/[_-]+/g, " ")}`);
-    const missing = active.filter((key: string) => requirements[key]?.status !== "pass");
+    const missing = active.filter((key: string) => requirements[key]?.status !== "pass" &&
+      !(key === "dietary_identity:low carb" && options.genericRecipeLowCarbRelease &&
+        assessLowCarbRecipeRelease(candidate, currentContext, options.contextualSourceDecisions) === "no_known_conflict"));
     return {
       outcome: missing.length ? "review_required" : "pass",
       findings: missing.map((key: string) => ({ code: `requirement_evidence_required:${key}` })),
@@ -314,6 +317,49 @@ describe("Menu-owned one-recipe completion (not connected to the manual Creators
     expect((validateHumanFoodCandidate as jest.Mock).mock.calls[0][2].contextualSourceDecisions)
       .toHaveLength(3);
     expect((validateHumanFoodCandidate as jest.Mock).mock.calls).toHaveLength(2);
+  });
+
+  it.each([
+    ["craving_creator", "snack"], ["craving_creator", "lunch"], ["create_a_dish", "lunch"],
+  ] as const)("returns a %s %s card for generic unsweetened product uncertainty without claiming exact Low Carb proof", async (creator, occasion) => {
+    (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+      resolve: async () => resolvedLowCarbContext(),
+      executionState: { rejectedCandidateSignatures: [] },
+    }));
+    const selected = {
+      ...buffaloCasseroleConcept,
+      title: "Chocolate Custard",
+      primaryIngredients: ["almond milk", "cocoa"],
+      occasion,
+    };
+    (generateMenuRecipe as jest.Mock).mockResolvedValue({
+      ...buffaloCasseroleDraft,
+      name: "Chocolate Custard", description: "A chilled chocolate custard.",
+      ingredients: [
+        { name: "unsweetened almond milk", quantity: "1", unit: "cup" },
+        { name: "unsweetened cocoa powder", quantity: "1", unit: "tbsp" },
+        { name: "vanilla extract", quantity: "1/2", unit: "tsp" },
+      ],
+      instructions: "Blend ingredients and chill into a custard.",
+      starchyCarbs: 0, fibrousCarbs: 12,
+    });
+    (resolveContextualFoodEvidence as jest.Mock).mockResolvedValue([
+      { ingredient: "unsweetened cocoa powder", category: "non_starchy_fibrous", role: "structural", reason: "Named plant source." },
+      { ingredient: "vanilla extract", category: "nonmaterial", role: "flavoring", reason: "Measured flavoring." },
+    ]);
+    const result = await completeMenuRecipe({
+      ...input, contextCreator: creator, approvedConcept: selected as OneTouchDirection,
+    });
+    expect(result).toMatchObject({ ok: true });
+    expect(generateMenuRecipe).toHaveBeenCalledTimes(1);
+    if (!result.ok) return;
+    expect(result.card.ingredients[0].name).toBe("unsweetened almond milk");
+    expect(result.card.nutritionSource).toBe("model_estimate");
+    expect((validateHumanFoodCandidate as jest.Mock).mock.calls).toHaveLength(2);
+    for (const [candidate, , options] of (validateHumanFoodCandidate as jest.Mock).mock.calls) {
+      expect(candidate.evidence.requirementEvidence["dietary_identity:low carb"].status).toBe("review_required");
+      expect(options.genericRecipeLowCarbRelease).toBe(true);
+    }
   });
 
   it("still blocks a material unknown sweetener despite resolving a tiny flavoring", async () => {

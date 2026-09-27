@@ -19,6 +19,7 @@ import {
 } from "../allergyGuardrails";
 import { evaluateWholeFoodCandidate } from "../wholeFoodStandard";
 import { assessLowCarbRecipeCompatibility, type ContextualSourceDecision } from "../foodAdaptation/lowCarbPolicy";
+import { assessLowCarbRecipeRelease } from "../oneTouch/lowCarbRecipeRelease";
 import { validateGlycemicProduce } from "../glycemicProduceValidator";
 import {
   maskNonAnimalDietaryCompounds,
@@ -41,6 +42,8 @@ export interface HumanFoodFinalValidationOptions {
   evidenceMode?: "legacy" | "exact";
   /** Request-scoped Menu evidence for this exact returned recipe, never a client claim. */
   contextualSourceDecisions?: readonly ContextualSourceDecision[];
+  /** Server-only generic Menu contract. Never supplies positive Low Carb proof. */
+  genericRecipeLowCarbRelease?: boolean;
 }
 
 const OUTCOME_RANK: Record<HumanFoodValidationOutcome, number> = {
@@ -359,12 +362,19 @@ export function validateHumanFoodCandidate(
         ? assessLowCarbRecipeCompatibility(candidate, context, options.contextualSourceDecisions)
         : null;
       const suppliedProof = exactEvidenceResult(evidence, requirementKey, STRICT_DIET_SOURCES[key]);
-      addExactEvidenceFinding(
-        findings, requirementKey, String(diet), "dietary_identity",
-        lowCarbSource?.status === "adaptation_required" ? "fail"
-          : lowCarbSource?.status === "review_required" ? "review_required"
-          : suppliedProof,
-      );
+      const genericRecipeUncertainty = key === "low carb" &&
+        options.genericRecipeLowCarbRelease === true &&
+        evidence.sourceType === "generated_recipe" &&
+        suppliedProof !== "fail" &&
+        assessLowCarbRecipeRelease(candidate, context, options.contextualSourceDecisions) === "no_known_conflict";
+      if (!genericRecipeUncertainty) {
+        addExactEvidenceFinding(
+          findings, requirementKey, String(diet), "dietary_identity",
+          lowCarbSource?.status === "adaptation_required" ? "fail"
+            : lowCarbSource?.status === "review_required" ? "review_required"
+            : suppliedProof,
+        );
+      }
     } else if (requiresStructuredEvidence) {
       if (evidence.dietaryIdentityCompliant !== true) {
         add(findings, {
