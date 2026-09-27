@@ -61,6 +61,7 @@ import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { 
   enforceSafetyProfile,
+  loadSafetyProfile,
   validateGeneratedMeal,
   extractSafetyProfileFromUser,
   SafetyAssessment
@@ -318,7 +319,7 @@ export interface MealGenerationRequest {
 
   nutritionStrategy?: NutritionStrategyContext; // Vegetable system + cut intensity guardrails
 
-  safetyAlreadyChecked?: boolean; // Skip internal safety check if route already verified with override token
+  safetyAlreadyChecked?: boolean; // Skip duplicate intent precheck only; never skip finished-recipe safety
 
   strictMode?: boolean; // "Keep It Simple" — AI uses ONLY user-listed ingredients, no additions
 
@@ -742,6 +743,33 @@ export async function generateCravingMealUnified(
       result.meals = _kept;
       if (result.meal && !_kept.some(m => m.name === result.meal!.name)) {
         result.meal = _kept[0];
+      }
+    }
+    // The protocol scan and a request preflight are not proof that every
+    // realized ingredient was checked. Apply the final recipe check to cache,
+    // template and AI results, including direct callers of this function.
+    const profile = await loadSafetyProfile(userId);
+    if (!profile) {
+      return { success: false, source: 'error', error: 'Your food safety profile could not be verified.' };
+    }
+    const scopedProfile = {
+      ...profile,
+      allergies: profile.allergies.filter(allergy =>
+        !overriddenAllergens?.some(authorized => allergenKeysMatch(allergy, authorized))),
+    };
+    const check = (meal: UnifiedMeal) => validateGeneratedMeal({
+      name: meal.name, description: meal.description, ingredients: meal.ingredients,
+      instructions: Array.isArray(meal.instructions) ? meal.instructions : meal.instructions ? [meal.instructions] : [],
+    }, scopedProfile).result !== 'BLOCKED';
+    if (result.meal && !check(result.meal)) {
+      return { success: false, source: 'error', safetyBlocked: true,
+        error: 'The generated recipe contains an ingredient that conflicts with your allergy profile.' };
+    }
+    if (result.meals?.length) {
+      result.meals = result.meals.filter(check);
+      if (!result.meals.length) {
+        return { success: false, source: 'error', safetyBlocked: true,
+          error: 'No generated recipes passed the final ingredient safety check.' };
       }
     }
   }
@@ -5151,10 +5179,13 @@ export async function generateMealUnified(
 
   // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
   // This MUST run before ANY AI generation to protect users with allergies
-  // Skip if safety was already checked at route level (e.g., with override token)
+  // Skip the duplicate intent check if the route already performed it.
   if (request.userId && !request.safetyAlreadyChecked) {
     const inputText = Array.isArray(request.input) ? request.input.join(' ') : request.input;
-    const safetyCheck = await enforceSafetyProfile(request.userId, inputText, `unified-${request.type}`, { correlationId: request.correlationId });
+    const safetyCheck = await enforceSafetyProfile(request.userId,
+      { kind: 'food_intent', requestedDish: Array.isArray(request.input) ? '' : inputText,
+        explicitIngredients: Array.isArray(request.input) ? request.input : [] },
+      `unified-${request.type}`, { correlationId: request.correlationId });
     
     if (safetyCheck.result === 'BLOCKED') {
       console.log(`🚫 [SAFETY] Blocked request for user ${request.userId}: ${safetyCheck.blockedTerms.join(', ')}`);
@@ -5354,11 +5385,18 @@ export async function generateMealUnified(
     }
   }
 
-  // 🚨 POST-GENERATION VALIDATION: Scan output for allergens that slipped through
-  // Skip if safety was already checked with override token (user acknowledged the risk)
-  if (request.userId && result.success && !request.safetyAlreadyChecked) {
+  // A completed precheck never substitutes for inspection of the actual recipe.
+  if (request.userId && result.success) {
     const { loadSafetyProfile, validateGeneratedMeal: validateMeal } = await import('./safetyProfileService');
-    const profile = await loadSafetyProfile(request.userId);
+    const loadedProfile = await loadSafetyProfile(request.userId);
+    if (!loadedProfile) {
+      return { success: false, source: 'error', error: 'Your food safety profile could not be verified.' };
+    }
+    const profile = {
+      ...loadedProfile,
+      allergies: loadedProfile.allergies.filter(allergy =>
+        !request.overriddenAllergens?.some(authorized => allergenKeysMatch(allergy, authorized))),
+    };
     
     if (profile) {
       // Helper to validate a single meal

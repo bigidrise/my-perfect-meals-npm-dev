@@ -232,7 +232,10 @@ beverageCreatorRouter.post("/", async (req, res) => {
     let _overriddenBeverageAllergens: string[] = [];
     if (userId) {
       const inputText = [customBeverageDescription, specificDrink, flavorFamily, beverageCategory].filter(Boolean).join(' ');
-      const safetyCheck = await enforceSafetyProfile(userId, inputText, "beverage-creator", {
+      const safetyCheck = await enforceSafetyProfile(userId, {
+        kind: "food_intent", requestedDish: [customBeverageDescription, specificDrink, flavorFamily].filter(Boolean).join(" "),
+        cuisine: beverageCategory,
+      }, "beverage-creator", {
         safetyMode: safetyMode || "STRICT",
         overrideToken: overrideToken,
         correlationId: (req as any).id

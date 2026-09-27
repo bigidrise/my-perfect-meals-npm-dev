@@ -5,7 +5,7 @@
 import { db } from "../db";
 import { users } from "../../shared/schema";
 import { eq } from "drizzle-orm";
-import { ALLERGEN_EXPANSION, RESTRICTION_EXPANSION, ADAPTABLE_DISH_NAME_TERMS, classifyAllergyConflict, AllergyConflict } from "./allergyGuardrails";
+import { ALLERGEN_EXPANSION, RESTRICTION_EXPANSION, ADAPTABLE_DISH_NAME_TERMS, classifyAllergyConflict, hasAffirmativeFoodTerm, AllergyConflict } from "./allergyGuardrails";
 import { SafetyMode, claimOverrideToken, commitOverrideToken, rollbackOverrideToken, logSafetyOverride } from "./safetyPinService";
 import { maskFoodIntentDietaryCompounds } from "@shared/semanticDietaryIngredients";
 
@@ -21,6 +21,66 @@ export interface SafetyOptions {
   ignoredAvoidances?: string[];
   /** Trusted request-scoped dietary identities already authorized by the server. */
   ignoredDietaryRestrictions?: string[];
+}
+
+/** A request for a food is not evidence of the ingredients in its eventual recipe. */
+export interface FoodSafetyIntent {
+  kind: "food_intent";
+  requestedDish: string;
+  explicitIngredients?: readonly string[];
+  cuisine?: string;
+  preparationMethod?: string;
+}
+
+export interface GeneratedRecipeSafetyInput {
+  kind: "generated_recipe";
+  requestedDish: string;
+  explicitIngredients: readonly string[];
+  preparationText?: string;
+}
+
+export type SafetyInput = string | FoodSafetyIntent | GeneratedRecipeSafetyInput;
+
+export function foodSafetyIntent(requestedDish: string, explicitIngredients?: readonly string[]): FoodSafetyIntent {
+  return { kind: "food_intent", requestedDish, explicitIngredients };
+}
+
+function safetyInputText(input: SafetyInput): string {
+  return typeof input === "string"
+    ? input
+    : [input.requestedDish, ...(input.explicitIngredients ?? []),
+       ...(input.kind === "generated_recipe" ? [input.preparationText ?? ""] : [])].filter(Boolean).join(" ");
+}
+
+function safetyEvidenceText(input: SafetyInput): string {
+  if (typeof input === "string") return input;
+  // Dish/cuisine/method associations are not ingredient evidence. A dish
+  // request can still explicitly name an allergen ("shrimp gumbo").
+  return [input.kind === "food_intent" ? input.requestedDish : "",
+    ...(input.explicitIngredients ?? []),
+    ...(input.kind === "generated_recipe" ? [input.preparationText ?? ""] : []),
+  ].filter(Boolean).join(" ");
+}
+
+function ingredientTermBank(profile: SafetyProfile, input: SafetyInput): Set<string> {
+  const bank = buildAllergyTermBank(profile);
+  if (typeof input !== "string") {
+    // Existing taxonomy identifies pure dish labels. They are not allergen
+    // ingredients even when an older expansion table lists them alongside one.
+    for (const term of ADAPTABLE_DISH_NAME_TERMS) bank.delete(normalize(term));
+  }
+  return bank;
+}
+
+function matchedAllergyEvidence(input: SafetyInput, profile: SafetyProfile): string[] {
+  const ingredientTerms = ingredientTermBank(profile, input);
+  const matches = findMatchedTerms(safetyEvidenceText(input), ingredientTerms);
+  if (typeof input === "string") return matches;
+  // In an actual ingredient list, a prepared dish/base is an unverified
+  // compound ingredient, not merely the name of the dish being requested.
+  const explicitMatches = findMatchedTerms(
+    (input.explicitIngredients ?? []).join(" "), buildAllergyTermBank(profile));
+  return Array.from(new Set([...matches, ...explicitMatches]));
 }
 
 export type SafetyResult = "SAFE" | "AMBIGUOUS" | "BLOCKED" | "DIET_ADAPT" | "ADVISORY";
@@ -319,7 +379,8 @@ function findMatchedTerms(text: string, termBank: Set<string>): string[] {
       origToScan = text.toLowerCase();
     }
     
-    if (pattern.test(textToScan) || pattern.test(origToScan)) {
+    if ((pattern.test(textToScan) && hasAffirmativeFoodTerm(textToScan, term)) ||
+        (pattern.test(origToScan) && hasAffirmativeFoodTerm(origToScan, term))) {
       matches.push(term);
     }
   }
@@ -429,10 +490,12 @@ export function getSafeSubstitute(blockedTerm: string): string {
 
 export async function enforceSafetyProfile(
   userId: string,
-  userText: string,
+  input: SafetyInput,
   builderId: string,
   options?: SafetyOptions
 ): Promise<SafetyAssessment> {
+  const userText = safetyInputText(input);
+  const evidenceText = safetyEvidenceText(input);
   const safetyMode = options?.safetyMode || "STRICT";
   const overrideToken = options?.overrideToken;
   const correlationId = options?.correlationId;
@@ -466,11 +529,10 @@ export async function enforceSafetyProfile(
   }
 
   // === PATH 1: ALLERGY CHECK — hard block for medical safety ===
-  const allergyTermBank = buildAllergyTermBank(profile);
   // Pure dish labels in the expansion bank (for example "gumbo") are not
   // evidence that the selected recipe contains the associated allergen.
   // Keep every explicit ingredient/derivative match, including "shrimp gumbo".
-  const allergyMatches = findMatchedTerms(userText, allergyTermBank)
+  const allergyMatches = matchedAllergyEvidence(input, profile)
     .filter(term => !options?.deferAmbiguousDishCheck || !ADAPTABLE_DISH_NAME_TERMS.has(term));
   const allergyCategories = findMatchedCategories(allergyMatches, profile);
 
@@ -534,7 +596,7 @@ export async function enforceSafetyProfile(
   // never suppress an allergy, clinical rule, or dietary identity requirement.
   const avoidanceMatches = normalizeAvoidanceEntries(profile.avoidIngredients)
     .filter(term => !ignoredAvoidances.has(term))
-    .filter(term => findMatchedTerms(userText, new Set([term])).length > 0);
+    .filter(term => findMatchedTerms(evidenceText, new Set([term])).length > 0);
   if (avoidanceMatches.length > 0) {
     const requestedFood = avoidanceMatches[0];
     return {
@@ -555,7 +617,8 @@ export async function enforceSafetyProfile(
   // A selected Menu concept is not a recipe. Its explicit ingredients are checked
   // above, while possible ingredients inferred from a dish name are constrained
   // during generation and checked against the finished recipe.
-  const ambiguousDishes = options?.deferAmbiguousDishCheck ? [] : checkAmbiguousDishes(userText, profile);
+  const ambiguousDishes = typeof input !== "string" || options?.deferAmbiguousDishCheck
+    ? [] : checkAmbiguousDishes(userText, profile);
 
   if (ambiguousDishes.length > 0) {
     if (safetyMode === "CUSTOM_AUTHENTICATED" && overrideToken) {
@@ -609,7 +672,7 @@ export async function enforceSafetyProfile(
       ...profile,
       dietaryRestrictions: activeDietaryRestrictions,
     });
-    const dietMatches = findMatchedTerms(userText, dietTermBank);
+    const dietMatches = findMatchedTerms(evidenceText, dietTermBank);
 
     if (dietMatches.length > 0) {
       const primaryDiet = activeDietaryRestrictions[0];
@@ -650,8 +713,10 @@ export async function enforceSafetyProfile(
 
 export function enforceSafetyProfileSync(
   profile: SafetyProfile,
-  userText: string
+  input: SafetyInput
 ): SafetyAssessment {
+  const userText = safetyInputText(input);
+  const evidenceText = safetyEvidenceText(input);
   if (profile.allergies.length === 0 && profile.dietaryRestrictions.length === 0 && profile.avoidIngredients.length === 0) {
     return {
       result: "SAFE",
@@ -663,8 +728,7 @@ export function enforceSafetyProfileSync(
   }
 
   // === PATH 1: ALLERGY CHECK — hard block for medical safety ===
-  const allergyTermBank = buildAllergyTermBank(profile);
-  const allergyMatches = findMatchedTerms(userText, allergyTermBank);
+  const allergyMatches = matchedAllergyEvidence(input, profile);
   const allergyCategories = findMatchedCategories(allergyMatches, profile);
 
   if (allergyMatches.length > 0) {
@@ -684,7 +748,7 @@ export function enforceSafetyProfileSync(
   }
 
   // === PATH 2: AMBIGUOUS DISH CHECK — allergy-only ===
-  const ambiguousDishes = checkAmbiguousDishes(userText, profile);
+  const ambiguousDishes = typeof input === "string" ? checkAmbiguousDishes(userText, profile) : [];
 
   if (ambiguousDishes.length > 0) {
     const firstDish = ambiguousDishes[0];
@@ -701,7 +765,7 @@ export function enforceSafetyProfileSync(
   // === PATH 3: DIET CHECK — soft adaptation, AI handles generation ===
   if (profile.dietaryRestrictions.length > 0) {
     const dietTermBank = buildDietTermBank(profile);
-    const dietMatches = findMatchedTerms(userText, dietTermBank);
+    const dietMatches = findMatchedTerms(evidenceText, dietTermBank);
 
     if (dietMatches.length > 0) {
       const primaryDiet = profile.dietaryRestrictions[0];
@@ -729,24 +793,12 @@ export function validateGeneratedMeal(
   meal: { name?: string; ingredients?: Array<{name: string} | string>; instructions?: string[]; description?: string },
   profile: SafetyProfile
 ): SafetyAssessment {
-  const textParts: string[] = [];
-  
-  if (meal.name) textParts.push(meal.name);
-  if (meal.description) textParts.push(meal.description);
-  
-  if (meal.ingredients) {
-    for (const ing of meal.ingredients) {
-      const name = typeof ing === 'string' ? ing : ing.name;
-      textParts.push(name);
-    }
-  }
-  
-  if (meal.instructions) {
-    textParts.push(...meal.instructions);
-  }
-  
-  const fullText = textParts.join(" ");
-  return enforceSafetyProfileSync(profile, fullText);
+  return enforceSafetyProfileSync(profile, {
+    kind: "generated_recipe",
+    requestedDish: meal.name ?? "",
+    explicitIngredients: (meal.ingredients ?? []).map(ing => typeof ing === "string" ? ing : ing.name),
+    preparationText: [meal.description ?? "", ...(meal.instructions ?? [])].join(" "),
+  });
 }
 
 async function logSafetyBlock(

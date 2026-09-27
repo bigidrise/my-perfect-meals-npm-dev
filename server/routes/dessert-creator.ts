@@ -178,7 +178,10 @@ dessertCreatorRouter.post("/", async (req, res) => {
     let _overriddenDessertAllergens: string[] = [];
     if (userId) {
       const inputText = [specificDessert, flavorFamily, dessertCategory].filter(Boolean).join(' ');
-      const safetyCheck = await enforceSafetyProfile(userId, inputText, "dessert-creator", {
+      const safetyCheck = await enforceSafetyProfile(userId, {
+        kind: "food_intent", requestedDish: [specificDessert, flavorFamily].filter(Boolean).join(" "),
+        cuisine: dessertCategory,
+      }, "dessert-creator", {
         safetyMode: safetyMode || "STRICT",
         overrideToken: overrideToken,
         correlationId: (req as any).id
