@@ -120,6 +120,7 @@
 - [Generated meal serving contract](generated-meal-serving-contract.md) — response nutrition is total-recipe; validators must normalize with the same requested serving count.
 - [Board meal media identity](board-meal-media-identity.md) — Weekly Board images retain canonical asset identity; URL shape alone never proves durable storage.
 - [One-Touch Creator authority](one-touch-creator-authority.md) — delegated choices require explicit diet authority and safety-equivalent checks; Menu stays separate from manual Creators.
+- [Creator Menu choice retention](creator-menu-choice-retention.md) — completing a recipe must keep its three Menu ideas available until the user explicitly replaces or removes them.
 - [Vite-only feature gates in Jest](vite-feature-gates-jest.md) — isolate import.meta.env gates from request helpers so CommonJS Jest can test them.
 - [Health protocol cutover](health-protocol-cutover.md) — GLP-1 is the sole new personal intent; existing clinical supports remain authoritative until reviewed all-surface migration.
 - [Optional support overlay freeze](optional-support-overlay-freeze.md) — Builder-first presentation pauses new personal stacking without deleting choices or suppressing clinical authority.
