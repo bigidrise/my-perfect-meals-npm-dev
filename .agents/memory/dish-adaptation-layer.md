@@ -42,3 +42,11 @@ The identity validator rejects a dish that keeps its name but arrives in a diffe
 **Why:** a preflight scan can reject a feasible transformation before structured generation and final validation ever run—for example, treating “cream” inside “vegan ice cream” as dairy evidence.
 
 **How to apply:** share semantic compound normalization between client and server preflight checks. Preserve term-specific allergy detection, then validate actual animal products from generated structured ingredients.
+
+## Selected-concept ingredient specificity
+
+**Rule:** A choice card's defining-ingredient list should contain concrete ingredients if selection requires those names to appear in the final structured recipe. Avoid treating abstract roles or parenthetical alternatives as literal ingredient names.
+
+**Why:** A recipe can preserve the intended dish yet fail literal selected-card matching after both initial generation and targeted repair because an abstract concept phrase cannot naturally appear as a recipe ingredient.
+
+**How to apply:** Make concept-generation output concrete before the user selects a card; do not weaken the dish-identity validator or invent unreviewed equivalences merely to make a selection pass.

@@ -93,6 +93,8 @@ export interface EnforcementRequest {
   phase: EnforcementPhase;
 
   inputText?: string;
+  /** Structured generation intent; legacy callers may still send inputText. */
+  safetyIntent?: import("./safetyProfileService").FoodSafetyIntent;
   generatedMeal?: GeneratedMealSnapshot;
 
   safetyMode?: "STRICT" | "CUSTOM_AUTHENTICATED";
@@ -391,7 +393,16 @@ export async function runEnforcement(request: EnforcementRequest): Promise<Enfor
 
   const safetyAssessment = await enforceSafetyProfile(
     request.userId,
-    textToCheck,
+    request.phase === "pre_generation"
+      ? request.safetyIntent ?? { kind: "food_intent", requestedDish: textToCheck }
+      : request.generatedMeal
+        ? {
+            kind: "generated_recipe",
+            requestedDish: request.generatedMeal.name ?? "",
+            explicitIngredients: ingredientNames,
+            preparationText: textToCheck,
+          }
+        : textToCheck,
     `${request.builderType}-${request.phase}`,
     safetyOptions
   );

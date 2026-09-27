@@ -54,9 +54,9 @@ import holidayFamilyRecipeRouter from "./routes/holiday-family-recipe";
 
 import { generateCravingMeal, generateWeeklyMeals } from "./services/stableMealGenerator";
 import { generateCravingMealWithProfile } from "./services/generators/cravingCreatorWrapped";
-import { enforceSafetyProfile } from "./services/safetyProfileService";
+import { enforceSafetyProfile, loadSafetyProfile, validateGeneratedMeal } from "./services/safetyProfileService";
 import { runEnforcement, toRouteResponse } from "./services/enforcementGateway";
-import { scanForHiddenDietaryViolations, AVOIDANCE_EXPANSION, getPrimaryDiet } from "./services/allergyGuardrails";
+import { scanForHiddenDietaryViolations, AVOIDANCE_EXPANSION, getPrimaryDiet, allergenKeysMatch } from "./services/allergyGuardrails";
 import { sanitizeMealName } from "./utils/mealNameSanitizer";
 import { buildChefAdaptationBlock } from "./utils/chefAdaptationBlock";
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, filterMealsByProtocol, buildGuestEnvelope, scanGeneratedOutput, buildComplianceSection, buildMealComplianceBundle, deriveProcedureRules } from "./services/protocolEnvelope";
@@ -1393,6 +1393,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           builderType: type || "create_dish",
           phase: "pre_generation",
           inputText,
+          safetyIntent: Array.isArray(input)
+            ? { kind: "food_intent", requestedDish: "", explicitIngredients: input }
+            : { kind: "food_intent", requestedDish: inputText },
           safetyMode: safetyMode || "STRICT",
           overrideToken,
         });
@@ -2393,6 +2396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           builderType: "fridge_rescue",
           phase: "pre_generation",
           inputText: ingredientsText,
+          safetyIntent: { kind: "food_intent", requestedDish: "", explicitIngredients: fridgeItems },
           safetyMode: safetyMode || "STRICT",
           overrideToken: safetyMode === "CUSTOM_AUTHENTICATED" ? overrideToken : undefined,
         });
@@ -2932,6 +2936,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           builderType: "meal_planner",
           phase: "pre_generation",
           inputText: ingredientsText,
+          safetyIntent: { kind: "food_intent", requestedDish: "", explicitIngredients: selectedIngredients },
         });
         const routeResponse = toRouteResponse(enforcement);
         if (routeResponse.blocked || routeResponse.reviewRequired) {
@@ -5900,7 +5905,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       if (userId && craving) {
-        const safetyCheck = await enforceSafetyProfile(userId, craving, "generate-craving-meal", {
+        const safetyCheck = await enforceSafetyProfile(userId, { kind: "food_intent", requestedDish: craving }, "generate-craving-meal", {
           correlationId: (req as any).id
         });
         if (safetyCheck.result === "BLOCKED") {
@@ -6169,7 +6174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Scan only the user's request. cravingInput already contains the internal
         // Human Food context at this point, including foods it instructs the model
         // to avoid; scanning that enrichment makes the safety layer match itself.
-        const safetyCheck = await enforceSafetyProfile(userId, rawCravingInput, "meals-craving-creator", {
+        const safetyCheck = await enforceSafetyProfile(userId, { kind: "food_intent", requestedDish: rawCravingInput }, "meals-craving-creator", {
           safetyMode: safetyMode || "STRICT",
           overrideToken: overrideToken,
           ignoredAvoidances: _overriddenAvoidances,
@@ -6458,24 +6463,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .slice(0, 9)  // allow up to 3 rounds × 3 cards
         : [];
 
-      // ── ALLERGEN_ADAPT: inject explicit allergen constraint into generation prompt ─
-      // The pre-generation safety check is skipped in ALLERGEN_ADAPT mode, but the
-      // LLM must still receive explicit, named allergen prohibitions with all derivatives.
-      // Without this the model generates the dish traditionally (e.g. gumbo with shellfish
-      // stock) and Phase 3 correctly kills every option. This block names the prohibited
-      // categories, lists all derivative terms, and instructs the model to preserve dish
-      // identity by replacing the allergen's functional role rather than just deleting it.
-      if (safetyMode === "ALLERGEN_ADAPT" && protocolEnvelope.allergies.length > 0) {
-        try {
-          const { buildAllergenAdaptPromptBlock } = await import("./services/allergyGuardrails");
-          const allergenBlock = buildAllergenAdaptPromptBlock(protocolEnvelope.allergies, rawCravingInput || "");
-          if (allergenBlock) {
-            cravingInput = `${cravingInput}\n${allergenBlock}`;
-            console.log(`[AllergenAdapt] Injected allergen constraint — allergens: ${protocolEnvelope.allergies.join(", ")}`);
-          }
-        } catch (blockErr) {
-          console.warn("[AllergenAdapt] Failed to build allergen constraint block:", blockErr);
-        }
+      // A safe dish request still needs a positive instruction to replace
+      // traditional allergens, not merely a precheck that lets it through.
+      // The profile and protocol are server-resolved; a PIN only exempts its
+      // precisely authorized allergen for this single request.
+      const activeCreatorAllergies = protocolEnvelope.allergies.filter(allergy =>
+        !_overriddenAllergens.some(authorized => allergenKeysMatch(allergy, authorized)));
+      if (activeCreatorAllergies.length > 0) {
+        const { buildAllergenAdaptPromptBlock } = await import("./services/allergyGuardrails");
+        cravingInput = `${cravingInput}\n${buildAllergenAdaptPromptBlock(activeCreatorAllergies, rawCravingInput || "")}`;
       }
 
       const mealOptions = await generateCravingMealOptions(
@@ -7525,7 +7521,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       if (cravingInput) {
-        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-craving-creator-enforced", {
+        const safetyCheck = await enforceSafetyProfile(userId, { kind: "food_intent", requestedDish: cravingInput }, "meals-craving-creator-enforced", {
           correlationId: (req as any).id
         });
         if (safetyCheck.result === "BLOCKED") {
@@ -7552,6 +7548,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("🛡️ Generating craving meal with medical validation for:", userId);
 
       const result = await generateCravingMealWithProfile(userId, cravingInput, overrides);
+      const meal = result.meals[0];
+      const safetyProfile = await loadSafetyProfile(userId);
+      if (!safetyProfile || !meal?.ingredients?.length) {
+        return res.status(503).json({
+          success: false, error: "The generated recipe could not be verified for ingredient safety.",
+        });
+      }
+      const finalSafety = validateGeneratedMeal({
+        name: meal.title,
+        ingredients: meal.ingredients,
+        instructions: Array.isArray(meal.instructions) ? meal.instructions : meal.instructions ? [meal.instructions] : [],
+      }, safetyProfile);
+      if (finalSafety.result === "BLOCKED") {
+        return res.status(422).json({
+          success: false, safetyBlocked: true,
+          error: "The generated recipe contains an ingredient that conflicts with your allergy profile.",
+        });
+      }
 
       console.log("✅ Medical badges applied:", result.meals[0]?.badges);
       res.json({ 
@@ -7841,7 +7855,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       if (userId && preferences) {
-        const safetyCheck = await enforceSafetyProfile(userId, preferences, "meals-kids", {
+        const safetyCheck = await enforceSafetyProfile(userId, { kind: "food_intent", requestedDish: preferences }, "meals-kids", {
           correlationId: (req as any).id
         });
         if (safetyCheck.result === "BLOCKED") {
@@ -7944,7 +7958,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       if (userId && cravingInput) {
-        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-ai-creator", {
+        const safetyCheck = await enforceSafetyProfile(userId, { kind: "food_intent", requestedDish: cravingInput }, "meals-ai-creator", {
           correlationId: (req as any).id
         });
         if (safetyCheck.result === "BLOCKED") {

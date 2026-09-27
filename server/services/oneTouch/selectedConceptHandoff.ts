@@ -12,7 +12,7 @@ import { validateOneTouchDirectionSafety } from "./directions";
 import { validateDishIdentity } from "../dishAdaptation/dishIdentityValidator";
 import { buildGuardrailContext, getDishAdaptationDirective } from "../dishAdaptation/dishAdaptationLayer";
 import { enforceSafetyProfile } from "../safetyProfileService";
-import { getRequestedDishExemptTerms } from "../allergyGuardrails";
+import { buildAllergenAdaptPromptBlock, getRequestedDishExemptTerms } from "../allergyGuardrails";
 import { validateMealForDiet } from "../guardrails";
 import { validateDiabeticMeal } from "../guardrails/validators/diabeticValidator";
 import { scaleIngredientQuantity } from "../servingScaling";
@@ -67,11 +67,11 @@ export async function completeSelectedConcept(input: SelectedConceptHandoff): Pr
     return { ok: false, code: "final_validation_rejected" };
   }
   const safety = await enforceSafetyProfile(input.actorUserId,
-    `${concept.title}. ${concept.description}. ${concept.primaryIngredients.join(", ")}`,
+    { kind: "food_intent", requestedDish: concept.title, explicitIngredients: concept.primaryIngredients,
+      cuisine: concept.cuisine, preparationMethod: concept.preparationMethod },
     "menu-selected-concept", {
       safetyMode: "STRICT",
       ignoredDietaryRestrictions: input.overriddenDietaryIdentities,
-      deferAmbiguousDishCheck: true,
     });
   if (safety.result !== "SAFE") return { ok: false, code: "concept_rejected" };
   // Only exempt a requested cultural dish label, never a named allergen or
@@ -100,6 +100,7 @@ export async function completeSelectedConcept(input: SelectedConceptHandoff): Pr
     concept.description,
     buildCreatorHumanFoodPrompt(input.creator, context),
     enforceBeforeGenerate(envelope, { generatorName: "menu-selected-concept" }).combined,
+    buildAllergenAdaptPromptBlock(envelope.allergies, concept.title),
   ].join("\n");
   const diet = context.diet.effective;
   const cuisine = input.cuisine ?? (context.flavor.cuisine.available ? context.flavor.cuisine.value : concept.cuisine);
@@ -116,6 +117,26 @@ export async function completeSelectedConcept(input: SelectedConceptHandoff): Pr
     const names = meal.ingredients.map((ingredient) => ingredient.name.toLowerCase()).join(" ");
     return concept.primaryIngredients.every((name) => names.includes(name.toLowerCase().trim()));
   };
+  const identityMatchesWithDiagnostics = (meals: UnifiedMeal[], phase: "initial" | "repair") =>
+    meals.filter((meal, candidateIndex) => {
+      const identity = validateDishIdentity(concept.title, meal, directive);
+      const names = meal.ingredients.map((ingredient) => ingredient.name.toLowerCase()).join(" ");
+      const missingIngredientIndices = concept.primaryIngredients.flatMap((name, index) =>
+        names.includes(name.toLowerCase().trim()) ? [] : [index]);
+      const accepted = matches(meal);
+      if (!accepted && process.env.NODE_ENV !== "production") {
+        // No recipe contents, user identifier, allergy, or health information.
+        // A literal miss is a diagnostic fact, not proof of a missing food:
+        // an equivalent ingredient might have been worded differently.
+        console.warn("[CreatorMenu] identity candidate rejected", {
+          phase, candidateIndex, semanticIdentityFailed: !identity.passed,
+          formMismatch: identity.formMismatch,
+          catastrophicDeviation: identity.catastrophicDeviation,
+          missingLiteralIngredientPositions: missingIngredientIndices,
+        });
+      }
+      return accepted;
+    });
   const nutrition = (meal: UnifiedMeal) => ({
     calories: meal.calories, protein: meal.protein, carbs: meal.carbs,
     fat: meal.fat, starchyCarbs: meal.starchyCarbs,
@@ -174,7 +195,7 @@ export async function completeSelectedConcept(input: SelectedConceptHandoff): Pr
   } catch {
     return { ok: false, code: "generation_failed", retryable: true };
   }
-  let identityMatches = generated.filter(matches);
+  let identityMatches = identityMatchesWithDiagnostics(generated, "initial");
   if (!identityMatches.length) {
     // The manual variety generator may offer recognizable variants while
     // omitting a defining ingredient from the selected Menu concept. Ask for
@@ -187,7 +208,8 @@ export async function completeSelectedConcept(input: SelectedConceptHandoff): Pr
         `List every defining ingredient by name as a separate structured ingredient: ${concept.primaryIngredients.join(", ")}. ` +
         "Preserve all allergies, avoidances, dietary and clinical restrictions. " +
         "If any defining ingredient cannot be used safely, do not substitute an unrelated dish.",
-      )).filter(matches);
+      ));
+      identityMatches = identityMatchesWithDiagnostics(identityMatches, "repair");
     } catch {
       return { ok: false, code: "generation_failed", retryable: true };
     }
