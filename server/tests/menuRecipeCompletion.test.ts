@@ -368,10 +368,24 @@ describe("Menu-owned one-recipe completion (not connected to the manual Creators
     (generateMenuRecipe as jest.Mock).mockResolvedValue(ambiguousSauce);
 
     expect(await completeMenuRecipe({ ...input, approvedConcept: buffaloCasseroleConcept })).toMatchObject({
-      ok: false, code: "requirement_evidence_unsupported",
+      ok: false, code: "ingredient_evidence_unsupported",
     });
     expect(generateMenuRecipe).toHaveBeenCalledTimes(3);
     expect(generateMealImageUnified).not.toHaveBeenCalled();
+  });
+
+  it("reports an inconsistent estimated starch split without treating zucchini noodles as starch", async () => {
+    (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+      resolve: async () => resolvedLowCarbContext(),
+      executionState: { rejectedCandidateSignatures: [] },
+    }));
+    (generateMenuRecipe as jest.Mock).mockResolvedValue({
+      ...buffaloCasseroleDraft, starchyCarbs: 4,
+    });
+    expect(await completeMenuRecipe({ ...input, approvedConcept: buffaloCasseroleConcept })).toMatchObject({
+      ok: false, code: "carb_source_split_unverified",
+    });
+    expect(generateMenuRecipe).toHaveBeenCalledTimes(3);
   });
 
   it("fails after bounded repair when the requested Low Carb recipe exceeds the resolved remaining budget", async () => {

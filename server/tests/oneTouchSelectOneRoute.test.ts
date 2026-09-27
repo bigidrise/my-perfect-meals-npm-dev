@@ -300,6 +300,21 @@ describe("Creator Menu selects one server-owned concept before completion", () =
   });
 
   it.each([
+    ["ingredient_evidence_unsupported", "did not identify every sauce"],
+    ["carb_source_split_unverified", "did not match its named ingredients"],
+  ] as const)("explains %s without returning an unverified card", async (reason, message) => {
+    const first = await request(app).post("/api/one-touch-create").send(choices("create_a_dish"));
+    complete.mockResolvedValue({ ok: false, code: reason, retryable: false });
+    const selected = await request(app).post("/api/one-touch-create/choose").send({
+      request: choices("create_a_dish"), conceptId: first.body.concepts[0].id,
+    });
+    expect(selected.status).toBe(422);
+    expect(selected.body.code).toBe("ONE_TOUCH_REQUIREMENT_UNAVAILABLE");
+    expect(selected.body.error).toContain(message);
+    expect(history).not.toHaveBeenCalled();
+  });
+
+  it.each([
     ["identity_mismatch", false, 422, "identity_mismatch"],
     ["generation_failed", true, 502, "generation_failed"],
     ["diabetes_rejected", false, 422, "protected_food_or_authority_rejected"],
