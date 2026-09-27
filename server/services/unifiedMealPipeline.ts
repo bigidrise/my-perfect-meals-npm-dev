@@ -12,6 +12,7 @@
  */
 
 import { isRecipeSensitiveDish } from './dishEngineRouter';
+import { parseGeneratedRecipeSteps } from './recipeInstructions';
 import { getMeasurementPromptBlock, MeasurementSystem } from '../../shared/units';
 import { loadUserProtocolEnvelope, loadGenerationProtocolEnvelope, ProtocolContextUnavailableError, enforceBeforeGenerate, scanGeneratedOutput, filterMealsByProtocol, buildGuestEnvelope, deriveProcedureRules, type UserProtocolEnvelope } from './protocolEnvelope';
 import { buildVegetableStrategyPrompt, NutritionStrategyContext, buildStrictModeBlock } from './promptBuilder';
@@ -1010,6 +1011,7 @@ CARB CLASSIFICATION RULES (CRITICAL):
 - Vegetables ARE carbs (fibrous) - never return 0 for fibrousCarbs if vegetables are present
 
 Respond with ONLY valid JSON in this exact format:
+The instructions field MUST be an array of ordered strings; each element is one cooking action, with no embedded step numbers or multiple actions in one element.
 {
   "name": "Creative meal name matching the craving",
   "description": "Appetizing 1-2 sentence description",
@@ -1017,7 +1019,7 @@ Respond with ONLY valid JSON in this exact format:
     {"name": "ingredient name", "quantity": "4", "unit": "oz"},
     {"name": "another ingredient", "quantity": "1", "unit": "cup"}
   ],
-  "instructions": "Step-by-step cooking instructions as a single string",
+  "instructions": ["Prepare the first component.", "Cook and finish the dish."],
   "calories": 400,
   "protein": 25,
   "starchyCarbs": 20,
@@ -1069,7 +1071,7 @@ Respond with ONLY valid JSON in this exact format:
         name: aiMeal.name || `${cravingInput} Delight`,
         description: aiMeal.description || `A delicious ${validMealType} inspired by ${cravingInput}`,
         ingredients: normalizedIngredients,
-        instructions: aiMeal.instructions || "Prepare ingredients and cook to your preference.",
+        instructions: parseGeneratedRecipeSteps(aiMeal.instructions),
         calories: aiMeal.calories || 400,
         protein: aiMeal.protein || 25,
         carbs: totalCarbs,
@@ -1888,6 +1890,7 @@ ${excludeClause}
 
 ═══════════════════════════════════════
 OUTPUT FORMAT — ONLY valid JSON, no markdown:
+The instructions field MUST be an array of ordered strings; each element is one cooking action, not a numbered paragraph.
 ═══════════════════════════════════════
 {
   "options": [
@@ -1895,7 +1898,7 @@ OUTPUT FORMAT — ONLY valid JSON, no markdown:
       "name": "Specific variation name",
       "description": "Appetizing 1-2 sentence description matching the dish and diet",
       "ingredients": [{"name": "ingredient", "quantity": "4", "unit": "oz"}],
-      "instructions": "Full step-by-step instructions as a single paragraph",
+      "instructions": ["Prepare the ingredients.", "Cook and finish the dish."],
       "calories": 400,
       "protein": 10,
       "starchyCarbs": 30,
@@ -1982,6 +1985,7 @@ ${excludeClause}
 
 ═══════════════════════════════════════
 OUTPUT FORMAT — ONLY valid JSON, no markdown:
+The instructions field MUST be an array of ordered strings; each element is one cooking action, not a numbered paragraph.
 ═══════════════════════════════════════
 {
   "options": [
@@ -1989,7 +1993,7 @@ OUTPUT FORMAT — ONLY valid JSON, no markdown:
       "name": "Specific recipe name",
       "description": "1-2 sentence appetizing description",
       "ingredients": [{"name": "ingredient", "quantity": "2", "unit": "cup"}],
-      "instructions": "Full step-by-step recipe as a single paragraph",
+      "instructions": ["Prepare the ingredients.", "Cook and finish the dish."],
       "calories": 350,
       "protein": 8,
       "starchyCarbs": 40,
@@ -2038,7 +2042,7 @@ export function mapToUnifiedMeal(opt: any, idx: number, cravingInput: string, va
     name: opt.name || `${cravingInput} Option ${idx + 1}`,
     description: opt.description || `A delicious ${validMealType} inspired by ${cravingInput}`,
     ingredients: normalizeIngredients(opt.ingredients || []),
-    instructions: opt.instructions || "Cook as desired.",
+    instructions: parseGeneratedRecipeSteps(opt.instructions),
     calories: opt.calories || 400,
     protein: opt.protein || 15,
     carbs: totalCarbs,
@@ -2722,8 +2726,8 @@ export async function generateSingleCompliantFallback(
     `The meal must be: ${cravingInput}`,
     `Keep it simple, compliant, and delicious.`,
     ``,
-    `OUTPUT FORMAT — ONLY valid JSON, no markdown fences:`,
-    `{"name":"...","description":"One appetizing sentence.","ingredients":[{"name":"...","quantity":"...","unit":"..."}],"instructions":"Full cooking steps as one paragraph.","calories":400,"protein":30,"starchyCarbs":20,"fibrousCarbs":10,"fat":15,"cookingTime":"25 minutes"}`,
+    `OUTPUT FORMAT — ONLY valid JSON, no markdown fences. Instructions MUST be an array with one cooking action per string:`,
+    `{"name":"...","description":"One appetizing sentence.","ingredients":[{"name":"...","quantity":"...","unit":"..."}],"instructions":["Prepare the ingredients.","Cook and serve the dish."],"calories":400,"protein":30,"starchyCarbs":20,"fibrousCarbs":10,"fat":15,"cookingTime":"25 minutes"}`,
   ].filter(Boolean).join('\n');
 
   try {
@@ -3660,7 +3664,7 @@ TASK: Create a complete ${validMealType} recipe for ${requestedServings} serving
 REQUIREMENTS:
 - Create a delicious, well-balanced meal that matches the user's description
 - Include realistic ingredients with precise quantities
-- Provide detailed step-by-step cooking instructions
+- Provide detailed step-by-step cooking instructions as an array of ordered strings, one cooking action per element (no embedded numbering or combined actions)
 - Include accurate nutritional estimates with SEPARATE carb types
 - Make the recipe achievable for home cooks
 ${starchGuidance}
@@ -3683,7 +3687,7 @@ FORMAT: Return as JSON object:
     {"name": "broccoli florets", "quantity": "2", "unit": "cup"},
     {"name": "olive oil", "quantity": "1", "unit": "tbsp"}
   ],
-  "instructions": "Detailed step-by-step cooking instructions as a single paragraph with numbered steps",
+   "instructions": ["Prepare the ingredients.", "Cook the components.", "Finish and serve."],
   "calories": number (per-serving calories — total recipe = this × ${requestedServings}),
   "protein": number (grams),
   "starchyCarbs": number (grams from starches: rice, pasta, bread, potatoes, grains),
@@ -3928,7 +3932,7 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
         name: culturalNameTransform(mealData.name, chefEnvelope.cuisinePreference ?? undefined),
         description: mealData.description,
         ingredients: normalizeIngredients(mealData.ingredients || []),
-        instructions: mealData.instructions,
+        instructions: parseGeneratedRecipeSteps(mealData.instructions),
         calories: mealData.calories || 400,
         protein: mealData.protein || 25,
         carbs: totalCarbs,
@@ -4445,7 +4449,7 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       name: finalMealData.name,
       description: finalMealData.description,
       ingredients: normalizeIngredients(finalMealData.ingredients || []),
-      instructions: finalMealData.instructions,
+      instructions: parseGeneratedRecipeSteps(finalMealData.instructions),
       calories: finalMealData.calories || 400,
       protein: finalMealData.protein || 25,
       carbs: finalMealData.totalCarbs,
@@ -4652,7 +4656,7 @@ SNACK PRODUCT DEFINITION:
 REQUIREMENTS:
 - Create a satisfying individual eating occasion that addresses the request
 - Include realistic ingredients with precise quantities
-- Provide clear preparation instructions (even if simple)
+- Provide clear preparation instructions as an array of ordered strings, one action per element (even for simple snacks)
 - Include accurate nutritional estimates with SEPARATE carb types
 - Keep preparation practical for the requested food; do not force a complex dessert under an arbitrary time limit
 
@@ -4683,7 +4687,7 @@ FORMAT: Return as JSON object:
     {"name": "mixed berries", "quantity": "1/2", "unit": "cup"},
     {"name": "almonds", "quantity": "1", "unit": "oz"}
   ],
-  "instructions": "Clear step-by-step preparation instructions as a single paragraph with numbered steps. Even simple snacks need instructions.",
+  "instructions": ["Prepare the ingredients.", "Assemble and serve the snack."],
   "calories": number (realistic for the food and supplied person-specific context),
   "protein": number (grams),
   "starchyCarbs": number (grams from starches: crackers, oats, bread, granola),
@@ -4778,7 +4782,7 @@ Create the personalized snack for: "${cravingDescription}"`;
         name: snackData.name,
         description: snackData.description,
         ingredients: normalizeIngredients(snackData.ingredients || []),
-        instructions: snackData.instructions,
+        instructions: parseGeneratedRecipeSteps(snackData.instructions),
         calories: snackData.calories || 150,
         protein: snackData.protein || 8,
         carbs: snackTotalCarbs,
@@ -5027,7 +5031,7 @@ Create the personalized snack for: "${cravingDescription}"`;
       name: finalSnackData.name,
       description: finalSnackData.description,
       ingredients: snackIngredients,
-      instructions: finalSnackData.instructions,
+      instructions: parseGeneratedRecipeSteps(finalSnackData.instructions),
       calories: finalSnackData.calories || 150,
       protein: finalSnackData.protein || 8,
       carbs: finalSnackData.snackTotalCarbs,

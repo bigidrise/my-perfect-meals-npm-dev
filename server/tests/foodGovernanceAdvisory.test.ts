@@ -27,6 +27,53 @@ describe("server-authoritative food governance advisory classification", () => {
     };
   });
 
+  it.each([
+    "Spicy Beef and Cauliflower Stir-Fry",
+    "Thai chicken basil",
+    "Chicken curry",
+    "Chicken fried rice",
+    "Vegetable sushi",
+    "Chicken gumbo",
+    "Vegetable tempura",
+    "Beef pho",
+  ])("defers only speculative associations for the selected concept: %s", async (title) => {
+    mockUser.allergies = ["shellfish"];
+    const usual = await enforceSafetyProfile(mockUser.id, title, "ordinary-precheck", { safetyMode: "STRICT" });
+    const selected = await enforceSafetyProfile(mockUser.id, title, "menu-selected-concept", {
+      safetyMode: "STRICT", deferAmbiguousDishCheck: true,
+    });
+    expect(selected.result).toBe("SAFE");
+    if (usual.result === "AMBIGUOUS") expect(usual.ambiguousTerms.length).toBeGreaterThan(0);
+  });
+
+  it("still blocks explicit shrimp in a selected stir-fry and in a finished recipe", async () => {
+    mockUser.allergies = ["shellfish"];
+    const selected = await enforceSafetyProfile(mockUser.id, "Shrimp Stir-Fry", "menu-selected-concept", {
+      safetyMode: "STRICT", deferAmbiguousDishCheck: true,
+    });
+    expect(selected.result).toBe("BLOCKED");
+    const finished = await enforceSafetyProfile(mockUser.id, "Beef stir-fry with shrimp", "finished-recipe", {
+      safetyMode: "STRICT",
+    });
+    expect(finished.result).toBe("BLOCKED");
+  });
+
+  it.each(["allergy", "avoidance"] as const)(
+    "allows a pork-free gumbo but never treats pork as an acceptable %s substitute",
+    async (restriction) => {
+      if (restriction === "allergy") mockUser.allergies = ["pork"];
+      else mockUser.avoidedFoods = ["pork"];
+      const safe = await enforceSafetyProfile(mockUser.id, "Chicken and Okra Gumbo", "menu-selected-concept", {
+        safetyMode: "STRICT", deferAmbiguousDishCheck: true,
+      });
+      const pork = await enforceSafetyProfile(mockUser.id, "Pork and Okra Gumbo", "menu-selected-concept", {
+        safetyMode: "STRICT", deferAmbiguousDishCheck: true,
+      });
+      expect(safe.result).toBe("SAFE");
+      expect(pork.result).toBe(restriction === "allergy" ? "BLOCKED" : "ADVISORY");
+    },
+  );
+
   it("classifies an avoided Pork request as a bypassable advisory with the exact reason", async () => {
     mockUser.avoidedFoods = ["pork"];
 

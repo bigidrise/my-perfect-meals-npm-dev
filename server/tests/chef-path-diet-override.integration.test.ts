@@ -128,6 +128,7 @@ const VEGAN_ENVELOPE = {
 };
 jest.mock("../services/protocolEnvelope", () => ({
   loadUserProtocolEnvelope: jest.fn().mockResolvedValue(VEGAN_ENVELOPE),
+  loadGenerationProtocolEnvelope: jest.fn().mockResolvedValue(VEGAN_ENVELOPE),
   // Dynamic mock: returns protocol block text that reflects the ACTUAL diet identity
   // in the envelope passed to it.  This allows the prompt assertion tests to
   // distinguish "keto override reached enforceBeforeGenerate" from "vegan profile did".
@@ -351,6 +352,14 @@ describe("B. Integration — generateFromDescriptionUnified: vegan profile + ket
     expect(result.success).toBe(true);
     expect(result.source).toBe("ai");
     expect(result.meal).toBeDefined();
+    expect(result.meal?.instructions).toEqual([
+      "Preheat oven to 350°F.",
+      "Mix almond flour, erythritol, eggs, and melted butter.",
+      "Pour batter into greased pan.",
+      "Bake 22 minutes.",
+      "Cool then frost with whipped cream cheese.",
+      "Top with fresh strawberries.",
+    ]);
   });
 
   it("OpenAI was called — the function reached the LLM, not a cache/error short-circuit", async () => {

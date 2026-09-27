@@ -5,13 +5,16 @@
 import { db } from "../db";
 import { users } from "../../shared/schema";
 import { eq } from "drizzle-orm";
-import { ALLERGEN_EXPANSION, RESTRICTION_EXPANSION, classifyAllergyConflict, AllergyConflict } from "./allergyGuardrails";
+import { ALLERGEN_EXPANSION, RESTRICTION_EXPANSION, ADAPTABLE_DISH_NAME_TERMS, classifyAllergyConflict, AllergyConflict } from "./allergyGuardrails";
 import { SafetyMode, claimOverrideToken, commitOverrideToken, rollbackOverrideToken, logSafetyOverride } from "./safetyPinService";
 import { maskFoodIntentDietaryCompounds } from "@shared/semanticDietaryIngredients";
 
 export interface SafetyOptions {
   safetyMode?: SafetyMode;
   overrideToken?: string;
+  /** Selected server-owned concept only: defer hypothetical dish/cuisine associations
+   * until a real recipe exists. Explicit allergen/avoidance/diet checks still run. */
+  deferAmbiguousDishCheck?: boolean;
   /** Express request correlation ID — stored in the audit row to trace the override back to the generation request */
   correlationId?: string;
   /** Trusted request-scoped advisory overrides already authorized by the server. */
@@ -464,7 +467,11 @@ export async function enforceSafetyProfile(
 
   // === PATH 1: ALLERGY CHECK — hard block for medical safety ===
   const allergyTermBank = buildAllergyTermBank(profile);
-  const allergyMatches = findMatchedTerms(userText, allergyTermBank);
+  // Pure dish labels in the expansion bank (for example "gumbo") are not
+  // evidence that the selected recipe contains the associated allergen.
+  // Keep every explicit ingredient/derivative match, including "shrimp gumbo".
+  const allergyMatches = findMatchedTerms(userText, allergyTermBank)
+    .filter(term => !options?.deferAmbiguousDishCheck || !ADAPTABLE_DISH_NAME_TERMS.has(term));
   const allergyCategories = findMatchedCategories(allergyMatches, profile);
 
   if (allergyMatches.length > 0) {
@@ -545,8 +552,10 @@ export async function enforceSafetyProfile(
     };
   }
 
-  // === PATH 3: AMBIGUOUS DISH CHECK — allergy-only, no change ===
-  const ambiguousDishes = checkAmbiguousDishes(userText, profile);
+  // A selected Menu concept is not a recipe. Its explicit ingredients are checked
+  // above, while possible ingredients inferred from a dish name are constrained
+  // during generation and checked against the finished recipe.
+  const ambiguousDishes = options?.deferAmbiguousDishCheck ? [] : checkAmbiguousDishes(userText, profile);
 
   if (ambiguousDishes.length > 0) {
     if (safetyMode === "CUSTOM_AUTHENTICATED" && overrideToken) {

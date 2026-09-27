@@ -68,3 +68,11 @@ An allergy pre-check was binary: any match → hard block. Requesting "gumbo" wi
 - `client/src/components/CreateWithChefModal.tsx` — modal integration
 
 **Why:** An allergy should block the dangerous ingredient, not automatically block every dish that traditionally contains it. "Shellfish-free gumbo" is a real dish; blocking it entirely is hostile UX.
+
+## Creator Menu selected dishes
+
+**Rule:** A selected dish family such as gumbo remains the requested dish when an allergen-safe version is made. Dish/cuisine/method associations alone are generation constraints, not evidence that the concept contains a prohibited ingredient; explicit named ingredients remain enforceable, and the finished recipe must pass the real-ingredient allergy and dish-identity checks. Pork-free gumbo is still gumbo, not an unrelated soup.
+
+**Why:** The creator confirmed that allergy and avoidance settings are meant to produce safe substitutions, not erase recognizable dishes. A speculative pre-generation association previously stopped a beef-and-cauliflower stir-fry for a shellfish allergy before a recipe existed.
+
+**How to apply:** In menu selection and future food surfaces, distinguish explicit prohibited ingredients from possible traditional ingredients. Preserve the culinary form while constraining generation; inspect the actual result for allergens and avoidances before showing a card. Do not turn an explicit allergen into permission to serve that ingredient.

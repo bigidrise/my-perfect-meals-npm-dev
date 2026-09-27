@@ -117,7 +117,7 @@ interface MealData {
     carbs_g?: number;
     fat_g?: number;
   };
-  instructions: string;
+  instructions: string[] | string;
   cookingInstructions?: string[];
   reasoning: string;
   servingSize: string;

@@ -1190,7 +1190,7 @@ function RecipeCard({
                       amount: i.quantity,
                       unit: i.unit ?? "",
                     })),
-                    instructions: recipe.instructions.join("\n"),
+                    instructions: recipe.instructions,
                     imageUrl: imageUrl ?? undefined,
                   };
                   writeChefHandoffMeal(mealData);
