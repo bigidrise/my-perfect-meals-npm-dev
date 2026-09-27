@@ -505,6 +505,7 @@ export default function CravingCreator() {
     cravingFeel?: OneTouchCravingFeel;
   } | null>(null);
   const [oneTouchDisplayedOptions, setOneTouchDisplayedOptions] = useState<MealData[] | null>(null);
+  const [selectedConceptId, setSelectedConceptId] = useState<string | null>(null);
   const [verifiedSingleBatch, setVerifiedSingleBatch] = useState<string | null>(null);
   const optionNames = mealOptions.map((option) => String(option.name));
   const isCachedBatch = isCachedOneTouchBatch("craving_creator", optionNames);
@@ -567,12 +568,13 @@ export default function CravingCreator() {
     try {
       await conceptMenu.generate(request);
       setServings(request.servings);
-      setMealOptions([]);
+      // Replacing ideas should not discard a completed recipe.
+      if (generatedMeals.length === 0) setMealOptions([]);
       clearOneTouchBatch("craving_creator");
       setOneTouchLastRequest(null);
       setOneTouchDisplayedOptions(null);
       setVerifiedSingleBatch(null);
-      setGeneratedMeals([]);
+      setSelectedConceptId(null);
       setOneTouchOpen(false);
     } catch (error: any) {
       toast({
@@ -592,6 +594,7 @@ export default function CravingCreator() {
       const meal = await conceptMenu.choose<MealData>(conceptId);
       setMealOptions([]);
       setGeneratedMeals([meal]);
+      setSelectedConceptId(conceptId);
       addRecentMeal(meal.name);
       saveCravingCache({
         generatedMeal: meal, craving: cravingInput, servings,
@@ -1541,21 +1544,6 @@ export default function CravingCreator() {
               />
             </div>
           )}
-          {!conceptMenu.restoring && !isPlatingMeal && generatedMeals.length === 0 && (
-            <CreatorConceptCards
-              concepts={conceptMenu.concepts}
-              choosingId={conceptMenu.choosingId}
-              generating={conceptMenu.generating}
-              onChoose={(id) => void handleOneTouchChoose(id)}
-              onTryMore={() => { if (conceptMenu.choices) void handleOneTouchCreate(conceptMenu.choices); }}
-              onClear={() => {
-                conceptMenu.clear();
-                setMealOptions([]);
-                clearCravingOptionsCache();
-              }}
-            />
-          )}
-
           {/* Initial picker — only shown before a meal has been selected */}
           {!conceptMenu.restoring && !unverifiedOneTouchOptions && !oneTouchBusy && !isPlatingMeal && conceptMenu.concepts.length === 0 && mealOptions.length > 0 && generatedMeals.length === 0 && (
             <div className="mt-8 space-y-4">
@@ -2153,6 +2141,25 @@ export default function CravingCreator() {
                 </div>
               )}
             </div>
+          )}
+          {!conceptMenu.restoring && !isPlatingMeal && !oneTouchBusy && (
+            <CreatorConceptCards
+              concepts={conceptMenu.concepts}
+              choosingId={conceptMenu.choosingId}
+              generating={conceptMenu.generating}
+              selectedConceptId={generatedMeals.length > 0 && conceptMenu.concepts.some((concept) => concept.id === selectedConceptId) ? selectedConceptId : null}
+              completedMealVisible={generatedMeals.length > 0}
+              onChoose={(id) => void handleOneTouchChoose(id)}
+              onTryMore={() => { if (conceptMenu.choices) void handleOneTouchCreate(conceptMenu.choices); }}
+              onClear={() => {
+                conceptMenu.clear();
+                setSelectedConceptId(null);
+                if (generatedMeals.length === 0) {
+                  setMealOptions([]);
+                  clearCravingOptionsCache();
+                }
+              }}
+            />
           )}
         </div>
 

@@ -569,6 +569,7 @@ export default function CreateDishPage() {
     eatingStyle: OneTouchEatingStyle;
   } | null>(null);
   const [oneTouchDisplayedOptions, setOneTouchDisplayedOptions] = useState<any[] | null>(null);
+  const [selectedConceptId, setSelectedConceptId] = useState<string | null>(null);
   const [verifiedSingleBatch, setVerifiedSingleBatch] = useState<string | null>(null);
   const optionNames = mealOptions.map((option) => String(option.name));
   const isCachedBatch = isCachedOneTouchBatch("create_a_dish", optionNames);
@@ -641,13 +642,13 @@ export default function CreateDishPage() {
     try {
       await conceptMenu.generate(request);
       setServings(request.servings);
-      setMealOptions([]);
+      // New ideas replace the working set, not a recipe the user is inspecting.
+      if (selectedDishId === null && generatedMeals.length === 0) setMealOptions([]);
       clearOneTouchBatch("create_a_dish");
       setOneTouchLastRequest(null);
       setOneTouchDisplayedOptions(null);
       setVerifiedSingleBatch(null);
-      setSelectedDishId(null);
-      setGeneratedMeals([]);
+      setSelectedConceptId(null);
       setOneTouchOpen(false);
     } catch (error: any) {
       toast({
@@ -667,6 +668,7 @@ export default function CreateDishPage() {
       const meal = await conceptMenu.choose<MealData>(conceptId);
       setMealOptions([meal]);
       setSelectedDishId(meal.id);
+      setSelectedConceptId(conceptId);
       setGeneratedMeals([]);
       setGeneratedInSession(true);
       addRecentMeal(meal.name);
@@ -1807,21 +1809,6 @@ export default function CreateDishPage() {
               />
             </div>
           )}
-          {!conceptMenu.restoring && !isPlatingMeal && selectedDishId === null && generatedMeals.length === 0 && (
-            <CreatorConceptCards
-              concepts={conceptMenu.concepts}
-              choosingId={conceptMenu.choosingId}
-              generating={conceptMenu.generating}
-              onChoose={(id) => void handleOneTouchChoose(id)}
-              onTryMore={() => { if (conceptMenu.choices) void handleOneTouchCreate(conceptMenu.choices); }}
-              onClear={() => {
-                conceptMenu.clear();
-                setMealOptions([]);
-                clearOptionsCache();
-              }}
-            />
-          )}
-
           {/* Initial picker — only shown before a meal has been selected */}
           {!conceptMenu.restoring && !unverifiedOneTouchOptions && !oneTouchBusy && !isPlatingMeal && conceptMenu.concepts.length === 0 && mealOptions.length > 0 && selectedDishId === null && generatedMeals.length === 0 && (
             <div className="mt-8 space-y-4" ref={mealOptionsRef}>
@@ -2416,6 +2403,25 @@ export default function CreateDishPage() {
                 </div>
               )}
             </div>
+          )}
+          {!conceptMenu.restoring && !isPlatingMeal && !oneTouchBusy && (
+            <CreatorConceptCards
+              concepts={conceptMenu.concepts}
+              choosingId={conceptMenu.choosingId}
+              generating={conceptMenu.generating}
+              selectedConceptId={visibleMeals.length > 0 && conceptMenu.concepts.some((concept) => concept.id === selectedConceptId) ? selectedConceptId : null}
+              completedMealVisible={visibleMeals.length > 0}
+              onChoose={(id) => void handleOneTouchChoose(id)}
+              onTryMore={() => { if (conceptMenu.choices) void handleOneTouchCreate(conceptMenu.choices); }}
+              onClear={() => {
+                conceptMenu.clear();
+                setSelectedConceptId(null);
+                if (visibleMeals.length === 0) {
+                  setMealOptions([]);
+                  clearOptionsCache();
+                }
+              }}
+            />
           )}
         </div>
 

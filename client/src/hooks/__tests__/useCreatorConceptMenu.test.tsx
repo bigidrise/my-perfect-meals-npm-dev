@@ -40,10 +40,31 @@ describe("Creator concept client boundary", () => {
     let selected: unknown;
     await act(async () => { selected = await result.current.choose("first-2"); });
     expect(selected).toEqual({ name: "Finished idea" });
+    expect(result.current.concepts.map((concept) => concept.id)).toEqual([
+      "first-1", "first-2", "first-3",
+    ]);
+    expect(localStorage.getItem(cacheKey)).not.toBeNull();
     expect(fetchMock.mock.calls[1][0]).toBe("/api/one-touch-create/choose");
     expect(JSON.parse(fetchMock.mock.calls[1][1]!.body as string)).toEqual({
       request: { creator: "create_a_dish", ...choices }, conceptId: "first-2",
     });
+  });
+
+  it("restores the same three ideas after choosing a finished recipe and remounting", async () => {
+    const fetchMock = jest.spyOn(global, "fetch")
+      .mockResolvedValueOnce(response({ concepts: concepts("kept") }) as any)
+      .mockResolvedValueOnce(response({ meal: { name: "Finished idea" } }) as any)
+      .mockResolvedValueOnce(response({ concepts: concepts("kept") }) as any);
+    const first = renderHook(() => useCreatorConceptMenu("create_a_dish", "owner-1"));
+    await act(async () => { await first.result.current.generate(choices); });
+    await act(async () => { await first.result.current.choose("kept-1"); });
+    first.unmount();
+    const restored = renderHook(() => useCreatorConceptMenu("create_a_dish", "owner-1"));
+    await waitFor(() => expect(restored.result.current.restoring).toBe(false));
+    expect(restored.result.current.concepts.map((concept) => concept.id)).toEqual([
+      "kept-1", "kept-2", "kept-3",
+    ]);
+    expect(fetchMock.mock.calls[2][0]).toBe("/api/one-touch-create/restore");
   });
 
   it("ignores a late restoration once a new three-idea set has been generated", async () => {
