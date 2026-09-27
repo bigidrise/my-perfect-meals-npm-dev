@@ -48,6 +48,7 @@ export type MenuRecipeFailureCode =
   | "diabetes_rejected" | "glp1_rejected" | "protocol_scan_rejected" | "protocol_clinical_rejected"
   | "generation_failed" | "nutrition_evidence_invalid" | "identity_mismatch"
   | "final_validation_rejected" | "requirement_evidence_unsupported"
+  | "ingredient_evidence_unsupported" | "carb_source_split_unverified"
   | "serving_finalization_failed";
 
 export interface MenuRecipeCard {
@@ -348,14 +349,25 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
           finalCandidate(perServingCard(draft), draft, 1, mealType), context,
         );
         if (evidence.status !== "pass") {
-          if (attempt === 2) return fail(
-            evidence.status === "adaptation_required"
-              ? "diet_hfc_rejected" : "requirement_evidence_unsupported",
-          );
+          if (attempt === 2) {
+            // Preserve distinct, privacy-safe reasons without logging ingredients
+            // or treating an estimated carb-source split as verified evidence.
+            const code: MenuRecipeFailureCode = evidence.status === "adaptation_required"
+              ? "diet_hfc_rejected"
+              : !evidence.ingredientsComplete ||
+                evidence.ingredientEvidence.some((item) => item.requiresExplicitEvidence)
+                ? "ingredient_evidence_unsupported"
+                : evidence.issues.some((issue) => issue.startsWith("Zero-starch ingredients"))
+                  ? "carb_source_split_unverified"
+                  : "requirement_evidence_unsupported";
+            console.warn("[CreatorMenu] Low Carb recipe evidence unresolved", { reason: code });
+            return fail(code);
+          }
           repairGuidance = [
             "REPAIR THE SAME REQUESTED DISH, not a different food. The last recipe lacked sufficient Low Carb source evidence:",
             ...evidence.issues.map((issue) => `- ${issue}`),
             "Replace added sugar; use explicitly named components for homemade sauces and seasoning blends rather than unspecified commercial products. Keep whole avocado distinct from a sweetened or packaged avocado sauce.",
+            "For a dish with no named concentrated/starchy source, starchyCarbs must be 0 and fibrousCarbs is the estimated remainder of total carbs, not dietary fiber grams. Do not invent nutrition or hide a real starch source to make these fields agree.",
             "Keep the approved concept's defining ingredients and physical form recognizable. Preserve all allergy, avoidance, and clinical protections.",
           ].join("\n");
           continue;

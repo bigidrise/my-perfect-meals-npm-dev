@@ -170,7 +170,8 @@ export default function createOneTouchRouter() {
         contextCreator: request.creator,
       });
       if (result.ok === false) {
-        const status = result.code === "requirement_evidence_unsupported" || result.code === "protocol_clinical_rejected"
+        const status = ["requirement_evidence_unsupported", "ingredient_evidence_unsupported",
+          "carb_source_split_unverified", "protocol_clinical_rejected"].includes(result.code)
           ? 422
           : result.code === "unresolved_authority" || result.code === "unauthorized_subject"
             ? 409
@@ -180,6 +181,14 @@ export default function createOneTouchRouter() {
         console.warn("[CreatorMenu] Choose completion rejected", {
           creator: request.creator, reason: safeCompletionReason(result.code), retryable: result.retryable, status,
         });
+        if (result.code === "ingredient_evidence_unsupported") {
+          stop(422, "ONE_TOUCH_REQUIREMENT_UNAVAILABLE",
+            "The full recipe did not identify every sauce, seasoning, or other ingredient needed to check this idea. The idea itself is not a verified recipe. Try again or choose another idea.");
+        }
+        if (result.code === "carb_source_split_unverified") {
+          stop(422, "ONE_TOUCH_REQUIREMENT_UNAVAILABLE",
+            "The generated recipe's carbohydrate-source estimate did not match its named ingredients. I couldn't safely finish this meal card. Try again or choose another idea.");
+        }
         if (result.code === "requirement_evidence_unsupported") {
           stop(422, "ONE_TOUCH_REQUIREMENT_UNAVAILABLE",
             "I couldn't verify the ingredients or current nutrition allocation for this idea. Try again or choose another idea. Your settings have not been changed.");
