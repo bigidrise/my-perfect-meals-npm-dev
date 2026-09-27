@@ -1,6 +1,6 @@
 ---
-name: Shared Neon database boundary
-description: Development and production use the same external Neon database, not a Replit-managed database.
+name: Shared Neon and workspace release boundary
+description: Development and Production are separate workspaces sharing external Neon; publishing Development does not release Production.
 ---
 
 Development and production use the same external Neon database; this project does not use Replit's managed database. Do not suggest proving database isolation between the two or raise it as a blocker or follow-up.
@@ -14,3 +14,9 @@ For explicitly approved additive, Development-only clinical storage, "Developmen
 **Why:** Requiring independent branch isolation contradicted the confirmed shared-database arrangement and delayed an approved additive migration.
 
 **How to apply:** State the shared-schema consequence before the write, keep changes additive and runtime-gated, and require separate approval before any food-read cutover or destructive data operation.
+
+Development and Production are separate Replit workspaces. Publishing this Development workspace does not update the Production workspace; approved code must be promoted through GitHub, synced into the Production workspace, verified there, and only then published there.
+
+**Why:** An incorrect suggestion to publish Development during an urgent billing incident would not have delivered the repair action to the separate Production workspace.
+
+**How to apply:** Inspect branch and release scope before proposing a GitHub promotion; never describe this workspace's Publish action or deployment URL as the live Production release. The shared Neon data can be inspected read-only here, but Production runtime failures require evidence from the Production workspace.
