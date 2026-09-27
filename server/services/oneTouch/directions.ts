@@ -62,6 +62,8 @@ export async function generateOneTouchDirections(
   const result = await generateCulinaryConcepts({
     occasion: input.occasion,
     menuShape: input.menuShape,
+    cravingCategory: input.menuShape === "craving" && (input.cravingType === "food" || input.cravingType === "dessert")
+      ? input.cravingType : undefined,
     subjectLabel: "the person being fed",
     userContext: input.userContext ?? [],
     extraInstructions: [...direction, ...(input.extraInstructions ?? [])],
@@ -115,7 +117,10 @@ export function validateCravingConcept(
 ): string[] {
   const identity = direction.foodIdentity;
   if (type && type !== "surprise" && !identity) return ["craving_type:unverified"];
-  if (type === "dessert" && identity?.foodRole !== "dessert") return ["craving_type:dessert"];
+  if (type === "dessert" && (identity?.foodRole !== "dessert" ||
+      identity?.polarity !== "sweet" ||
+      identity?.formatFamily === "general_snack" ||
+      identity?.formatFamily === "general_sweet")) return ["craving_type:dessert"];
   if (type === "food" && identity?.foodRole === "dessert") return ["craving_type:food"];
   if (feel === "salty" && identity?.polarity !== "savory") return ["craving_feel:salty"];
   if (feel === "sweet" && identity?.polarity !== "sweet") return ["craving_feel:sweet"];

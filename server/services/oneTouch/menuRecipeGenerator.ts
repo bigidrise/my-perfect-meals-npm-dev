@@ -58,6 +58,11 @@ export async function generateMenuRecipe(input: MenuRecipeGenerationInput): Prom
         `Preparation: ${input.concept.preparationMethod}`,
         `Culinary identity: ${JSON.stringify(input.concept.culinaryIdentity)}`,
         `Cuisine direction: ${input.cuisine ?? input.concept.cuisine}`,
+         input.concept.foodIdentity?.foodRole === "dessert"
+           ? `Selected food identity: dessert (${input.concept.foodIdentity.formatFamily}). Complete this recognizable dessert in its selected form. A snack is the eating occasion, NOT permission to substitute a savory or generic snack. Adapt its ingredients to the person's protections while preserving the selected dessert.`
+           : input.concept.foodIdentity?.foodRole === "general_snack"
+             ? "Selected food identity: non-dessert food craving. Do not substitute a dessert."
+             : "",
         input.authorityPrompt,
         "Use realistic quantities and explicit units for ONE serving. Include every ingredient used in the instructions.",
         'When you make a sauce or seasoning blend from named ingredients, include them in that ingredient\'s optional "components" array, each with name, quantity, and unit. A packaged sauce or seasoning has unknown contents: never invent them. Preserve the named compound and list every component you actually use.',

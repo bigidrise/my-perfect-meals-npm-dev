@@ -87,6 +87,46 @@ describe("Creator Menu culinary concepts, separate from clinical meal slots", ()
     expect(result.directions.map((item) => item.title)).not.toContain("Chicken Curry");
   });
 
+  it("requests desserts from the first attempt and refills only missing dessert slots", async () => {
+    const requested: number[] = [];
+    const first = [
+      concept("Chocolate Cake", "cake", "dessert", "sweet"),
+      concept("Chicken Tacos", "tacos"),
+      concept("Berry Cheesecake", "cheesecake", "dessert", "sweet"),
+    ];
+    const result = await generateOneTouchDirections({
+      menuShape: "craving", occasion: "snack", cravingType: "dessert",
+      targetCount: 3, history: [], validate: () => [],
+      generate: async ({ requestedCount, system, user }) => {
+        requested.push(requestedCount);
+        expect(system).toContain("DESSERT CRAVING — REQUIRED FOOD IDENTITY");
+        expect(system).toContain("not generic snacks later labeled as desserts");
+        expect(user).toContain("Every missing position must be a recognizable dessert");
+        return { concepts: requested.length === 1 ? first : [
+          concept("Vanilla Pudding", "pudding", "dessert", "sweet"),
+        ] };
+      },
+    });
+    expect(requested).toEqual([3, 1]);
+    expect(result.directions.map((item) => item.title)).toEqual(expect.arrayContaining([
+      "Chocolate Cake", "Berry Cheesecake", "Vanilla Pudding",
+    ]));
+    expect(result.directions.every((item) => item.foodIdentity?.foodRole === "dessert")).toBe(true);
+  });
+
+  it("requests non-dessert Food concepts at generation time", async () => {
+    const result = await generateOneTouchDirections({
+      menuShape: "craving", occasion: "snack", cravingType: "food",
+      targetCount: 1, history: [], validate: () => [],
+      generate: async ({ system }) => {
+        expect(system).toContain("FOOD CRAVING — REQUIRED FOOD IDENTITY");
+        return { concepts: [concept("Chicken Tacos", "tacos")] };
+      },
+    });
+    expect(result.directions).toHaveLength(1);
+    expect(result.directions[0].foodIdentity?.foodRole).toBe("general_snack");
+  });
+
   it.each([
     ["surprise", "surprise", "general_snack", "savory"],
     ["food", "salty", "general_snack", "savory"],
@@ -123,6 +163,9 @@ describe("Creator Menu culinary concepts, separate from clinical meal slots", ()
   it("rejects contradictory Type or Feel metadata without conflating Sweet and Dessert", () => {
     const base = { ...concept("Savory Tacos", "taco"), occasion: "snack" } as OneTouchDirection;
     expect(validateCravingConcept(base, "dessert", "surprise")).toContain("craving_type:dessert");
+    expect(validateCravingConcept({
+      ...base, foodIdentity: { foodRole: "dessert", polarity: "sweet", formatFamily: "general_snack" },
+    }, "dessert", "surprise")).toContain("craving_type:dessert");
     expect(validateCravingConcept(base, "food", "sweet")).toContain("craving_feel:sweet");
     expect(validateCravingConcept({
       ...base, foodIdentity: { foodRole: "general_snack", polarity: "sweet", formatFamily: "general_snack" },
