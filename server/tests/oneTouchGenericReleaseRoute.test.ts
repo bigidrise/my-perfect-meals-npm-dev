@@ -156,6 +156,8 @@ describe("Development Creator Menu selection returns completed cards, not just i
     saved.clear();
     diabetesEnabled = false;
     glp1Active = false;
+    context.status = "resolved";
+    context.gaps = [];
     context.diet.effective = ["low_carb"];
     context.safety.allergies = [];
     context.safety.avoidedFoods = [];
@@ -200,6 +202,89 @@ describe("Development Creator Menu selection returns completed cards, not just i
     const slot = creator === "craving_creator" ? "snack" : "lunch";
     expect(require("../services/glp1/resolveGLP1GlobalContext").resolveGLP1GlobalContext)
       .toHaveBeenLastCalledWith("menu-person", expect.any(String), slot);
+  });
+
+  it("finishes an accepted Create a Dish idea when only non-blocking profile preferences are missing", async () => {
+    context.status = "resolved_with_gaps";
+    context.gaps = ["flavor.heat"];
+    selectedTitle = "Tofu Zucchini Bowl";
+    primaryIngredients = ["tofu", "zucchini"];
+    recipe = {
+      name: selectedTitle, description: "A prepared tofu and zucchini bowl.",
+      ingredients: ["tofu", "zucchini noodles"].map((name) => ({ name, quantity: "1", unit: "cup" })),
+      instructions: "Cook tofu and zucchini.",
+      calories: 310, protein: 20, starchyCarbs: 0, fibrousCarbs: 12, fat: 18,
+    };
+    const choices = {
+      creator: "create_a_dish", servings: 1,
+      cuisine: { mode: "explicit", value: "american" }, eatingStyle: { mode: "profile" },
+    };
+    const concepts = await request(app).post("/api/one-touch-create").send(choices);
+    expect(concepts.status).toBe(200);
+    const chosen = await request(app).post("/api/one-touch-create/choose").send({
+      request: choices, conceptId: concepts.body.concepts[0].id,
+    });
+    expect(chosen.status).toBe(200);
+    expect(chosen.body.meal).toMatchObject({ name: selectedTitle, nutritionSource: "model_estimate" });
+  });
+
+  it("repairs a varied dish that omitted defining ingredients without accepting the wrong card", async () => {
+    selectedTitle = "Spicy Turkey Lettuce Wraps";
+    primaryIngredients = ["ground turkey", "lettuce leaves", "ginger", "garlic"];
+    recipe = {
+      name: selectedTitle, description: "Turkey and aromatics wrapped in lettuce.",
+      ingredients: primaryIngredients.map((name) => ({ name, quantity: "1", unit: "cup" })),
+      instructions: "Cook turkey with aromatics and serve in lettuce.",
+      calories: 320, protein: 28, starchyCarbs: 0, fibrousCarbs: 10, fat: 16,
+    };
+    const generator = require("../services/unifiedMealPipeline").generateCravingMealOptions as jest.Mock;
+    generator.mockResolvedValueOnce([{
+      ...recipe, id: "variant", ingredients: recipe.ingredients.slice(0, 2),
+      carbs: 10, source: "ai",
+    }]);
+    const choices = {
+      creator: "create_a_dish", servings: 1,
+      cuisine: { mode: "profile" }, eatingStyle: { mode: "profile" },
+    };
+    const concepts = await request(app).post("/api/one-touch-create").send(choices);
+    const chosen = await request(app).post("/api/one-touch-create/choose").send({
+      request: choices, conceptId: concepts.body.concepts[0].id,
+    });
+    expect(chosen.status).toBe(200);
+    expect(chosen.body.meal.name).toBe(selectedTitle);
+    expect(chosen.body.meal.ingredients).toEqual(expect.arrayContaining(
+      primaryIngredients.map((name) => expect.objectContaining({ name })),
+    ));
+    expect(generator).toHaveBeenCalledTimes(2);
+    expect(generator.mock.calls[1][0]).toContain("SELECTED DISH IDENTITY REPAIR");
+  });
+
+  it("still rejects an allergen introduced by the identity repair", async () => {
+    selectedTitle = "Spicy Turkey Lettuce Wraps";
+    primaryIngredients = ["ground turkey", "lettuce leaves", "ginger"];
+    context.safety.allergies = ["shellfish"];
+    recipe = {
+      name: selectedTitle, description: "Spicy turkey in lettuce.",
+      ingredients: [...primaryIngredients, "shellfish"].map((name) => ({ name, quantity: "1", unit: "cup" })),
+      instructions: "Cook turkey and serve in lettuce.",
+      calories: 320, protein: 28, starchyCarbs: 0, fibrousCarbs: 10, fat: 16,
+    };
+    const generator = require("../services/unifiedMealPipeline").generateCravingMealOptions as jest.Mock;
+    generator.mockResolvedValueOnce([{
+      ...recipe, id: "variant", ingredients: recipe.ingredients.slice(0, 2),
+      carbs: 10, source: "ai",
+    }]);
+    const choices = {
+      creator: "create_a_dish", servings: 1,
+      cuisine: { mode: "profile" }, eatingStyle: { mode: "profile" },
+    };
+    const concepts = await request(app).post("/api/one-touch-create").send(choices);
+    const chosen = await request(app).post("/api/one-touch-create/choose").send({
+      request: choices, conceptId: concepts.body.concepts[0].id,
+    });
+    expect(chosen.status).toBe(422);
+    expect(chosen.body.meal).toBeUndefined();
+    expect(generator).toHaveBeenCalledTimes(2);
   });
 
   it("scales the same card's flat macros, nutrition and ingredients together", async () => {

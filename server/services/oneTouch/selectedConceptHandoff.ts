@@ -44,7 +44,11 @@ export type SelectedConceptResult =
  */
 export async function completeSelectedConcept(input: SelectedConceptHandoff): Promise<SelectedConceptResult> {
   const { concept, context, envelope } = input;
-  if (context.status !== "resolved" || context.subjectUserId !== input.actorUserId ||
+  // The Menu can offer ideas with non-blocking preference gaps. Selection must
+  // accept the same authority state; clinical/protocol and final recipe gates
+  // still run against the freshly resolved context.
+  if (!["resolved", "resolved_with_gaps"].includes(context.status) ||
+      context.subjectUserId !== input.actorUserId ||
       concept.occasion !== (input.creator === "craving_creator" ? "snack" : "lunch") ||
       validateOneTouchDirectionSafety(concept, context, envelope, input.cuisine).length) {
     return { ok: false, code: "concept_rejected" };
@@ -162,7 +166,24 @@ export async function completeSelectedConcept(input: SelectedConceptHandoff): Pr
   } catch {
     return { ok: false, code: "generation_failed", retryable: true };
   }
-  const identityMatches = generated.filter(matches);
+  let identityMatches = generated.filter(matches);
+  if (!identityMatches.length) {
+    // The manual variety generator may offer recognizable variants while
+    // omitting a defining ingredient from the selected Menu concept. Ask for
+    // one targeted correction, then apply the exact same identity and safety
+    // gates; never turn an unrelated fallback into the chosen card.
+    try {
+      identityMatches = (await generate(
+        `${generationInput}\n\n[SELECTED DISH IDENTITY REPAIR — ONE ATTEMPT ONLY]\n` +
+        `Make ${concept.title} in the selected ${concept.culinaryIdentity.dishForm} form. ` +
+        `List every defining ingredient by name as a separate structured ingredient: ${concept.primaryIngredients.join(", ")}. ` +
+        "Preserve all allergies, avoidances, dietary and clinical restrictions. " +
+        "If any defining ingredient cannot be used safely, do not substitute an unrelated dish.",
+      )).filter(matches);
+    } catch {
+      return { ok: false, code: "generation_failed", retryable: true };
+    }
+  }
   if (!identityMatches.length) return { ok: false, code: "identity_mismatch" };
   const matching = identityMatches.filter(safe);
   if (!matching.length) return { ok: false, code: "final_validation_rejected" };
