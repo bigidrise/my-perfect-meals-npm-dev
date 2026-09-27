@@ -148,6 +148,205 @@ describe("strict Menu exact-requirement evidence", () => {
     }
   });
 
+  const lowCarbBuffaloCandidate = (overrides: HumanFoodCandidate = {}): HumanFoodCandidate => ({
+    name: "Buffalo Chicken Cauliflower Casserole",
+    description: "Baked chicken, cauliflower, cheddar, and homemade buffalo sauce.",
+    ingredients: [
+      "chicken breast",
+      "cauliflower",
+      "cheddar cheese",
+      {
+        name: "buffalo sauce",
+        quantity: "1",
+        unit: "tbsp",
+        components: [
+          { name: "butter", quantity: "1", unit: "tsp" },
+          { name: "apple cider vinegar", quantity: "1", unit: "tsp" },
+          { name: "cayenne pepper", quantity: "1/4", unit: "tsp" },
+        ],
+      },
+      // The shared final validator requires compound sauce leaves to also be
+      // exposed to its normal ingredient and allergen scans.
+      "butter",
+      "apple cider vinegar",
+      "cayenne pepper",
+    ],
+    instructions: "Mix the named sauce components, coat chicken, add cauliflower and cheddar, then bake.",
+    nutrition: { calories: 420, protein: 36, carbs: 10, fat: 26, starchyCarbs: 0 },
+    evidence: generatedEvidence({
+      requirementEvidence: {
+        "dietary_identity:low carb": {
+          status: "pass", source: "program_rule_pack", nutritionBasis: "model_estimate",
+        },
+      },
+    }),
+    ...overrides,
+  });
+  const lowCarbContext = () => {
+    const baseline = context();
+    return context({
+      diet: { ...baseline.diet, effective: ["low_carb"] },
+      nutrition: {
+        prescription: { source: "user_default" },
+        resolution: { status: "RESOLVED", reasonCodes: [] },
+        projectedRemaining: { calories: 1800, protein: 120, carbs: 200, fat: 70 },
+        remaining: { calories: 1800, protein: 120, carbs: 200, fat: 70 },
+        activeConstraints: { consumedStarchExhausted: false },
+      } as any,
+    });
+  };
+
+  it("accepts source evidence for the requested casserole without treating cauliflower as starch", () => {
+    const result = validateHumanFoodCandidate(
+      lowCarbBuffaloCandidate(),
+      lowCarbContext(),
+      { evidenceMode: "exact", requestedDish: "Buffalo Chicken Cauliflower Casserole" },
+    );
+
+    expect(result.outcome).toBe("pass");
+    expect(result.findings).toEqual([]);
+  });
+
+  it("does not accept a claimed Low Carb PASS when ingredient or sauce-source evidence is ambiguous", () => {
+    const candidate = lowCarbBuffaloCandidate({
+      ingredients: [
+        "chicken breast",
+        "cauliflower",
+        "cheddar cheese",
+        "buffalo sauce",
+      ],
+      evidence: generatedEvidence({
+        dietaryIdentityCompliant: true,
+        requirementEvidence: {
+          "dietary_identity:low carb": {
+            status: "pass", source: "program_rule_pack", nutritionBasis: "model_estimate",
+          },
+        },
+      }),
+    });
+    const result = validateHumanFoodCandidate(candidate, lowCarbContext(), { evidenceMode: "exact" });
+
+    expect(result.outcome).toBe("review_required");
+    expect(result.findings).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: "requirement_evidence_required:dietary_identity:low carb",
+        dimension: "dietary_identity",
+      }),
+    ]));
+  });
+
+  it("keeps a pasta-containing recipe under review even when its nutrition fits the remaining macro allocation", () => {
+    const candidate = lowCarbBuffaloCandidate({
+      ingredients: [
+        "chicken breast", "cauliflower", "cheddar cheese",
+        "whole wheat pasta",
+        {
+          name: "buffalo sauce", quantity: "1", unit: "tbsp",
+          components: [
+            { name: "butter", quantity: "1", unit: "tsp" },
+            { name: "apple cider vinegar", quantity: "1", unit: "tsp" },
+            { name: "cayenne pepper", quantity: "1/4", unit: "tsp" },
+          ],
+        },
+        "butter",
+        "apple cider vinegar",
+        "cayenne pepper",
+      ],
+      nutrition: { calories: 500, protein: 36, carbs: 45, fat: 26, starchyCarbs: 20 },
+    });
+    const result = validateHumanFoodCandidate(candidate, lowCarbContext(), { evidenceMode: "exact" });
+
+    expect(result.outcome).toBe("review_required");
+    expect(result.findings).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: "requirement_evidence_required:dietary_identity:low carb",
+      }),
+    ]));
+    expect(result.findings.some((finding) => finding.code === "projected_carbs_budget_exceeded")).toBe(false);
+  });
+
+  it("requires resolved non-fallback subject nutrition before Low Carb proof can pass", () => {
+    const candidate = lowCarbBuffaloCandidate();
+    const baseline = context();
+    const missing = context({
+      diet: { ...baseline.diet, effective: ["low_carb"] },
+      nutrition: null,
+    });
+    const fallback = context({
+      diet: { ...baseline.diet, effective: ["low_carb"] },
+      nutrition: {
+        prescription: { source: "fallback" },
+        projectedRemaining: { calories: 1800, protein: 120, carbs: 200, fat: 70 },
+        remaining: { calories: 1800, protein: 120, carbs: 200, fat: 70 },
+        activeConstraints: { consumedStarchExhausted: false },
+      } as any,
+    });
+
+    for (const currentContext of [missing, fallback]) {
+      const result = validateHumanFoodCandidate(candidate, currentContext, { evidenceMode: "exact" });
+      expect(result.outcome).toBe("review_required");
+      expect(result.findings).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          code: "requirement_evidence_required:dietary_identity:low carb",
+        }),
+      ]));
+    }
+  });
+
+  it("keeps allergen exclusions authoritative when Low Carb source evidence passes", () => {
+    const candidate = lowCarbBuffaloCandidate({
+      ingredients: [
+        "chicken breast", "cauliflower", "cheddar cheese", "peanut oil",
+      ],
+    });
+    const baseline = context();
+    const result = validateHumanFoodCandidate(
+      candidate,
+      context({
+        diet: { ...baseline.diet, effective: ["low_carb"] },
+        safety: { ...baseline.safety, allergies: ["peanut"] },
+      }),
+      { evidenceMode: "exact" },
+    );
+
+    expect(result.outcome).toBe("blocked");
+    expect(result.findings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ dimension: "allergy" }),
+    ]));
+  });
+
+  it("fails closed when an allergen is hidden inside nested sauce component evidence", () => {
+    const candidate = lowCarbBuffaloCandidate({
+      ingredients: [
+        "chicken breast", "cauliflower", "cheddar cheese",
+        {
+          name: "buffalo sauce", quantity: "1", unit: "tbsp",
+          components: [
+            { name: "butter", quantity: "1", unit: "tsp" },
+            { name: "peanut butter", quantity: "1", unit: "tsp" },
+          ],
+        },
+      ],
+    });
+    const baseline = context();
+    const result = validateHumanFoodCandidate(
+      candidate,
+      context({
+        diet: { ...baseline.diet, effective: ["low_carb"] },
+        safety: { ...baseline.safety, allergies: ["peanut"] },
+      }),
+      { evidenceMode: "exact" },
+    );
+
+    expect(result.outcome).toBe("blocked");
+    expect(result.findings).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: "compound_ingredients_not_exposed",
+        dimension: "provenance",
+      }),
+    ]));
+  });
+
   it("does not let one valid identity hide an unknown or a failure on another", () => {
     expect(strict(["vegan", "carnivore"], {
       requirementEvidence: { "dietary_identity:vegan": ingredient("pass") },
@@ -208,6 +407,26 @@ describe("strict Menu exact-requirement evidence", () => {
 });
 
 describe("universal Human Food final-validation contract", () => {
+  it("uses the Low Carb 70/30 source policy without changing the existing Macro Calculator carbohydrate target", () => {
+    const baseline = context();
+    const promptContext = context({
+      diet: { ...baseline.diet, effective: ["low_carb"] },
+      nutrition: {
+        prescription: { source: "user_default" },
+        resolution: { status: "RESOLVED", reasonCodes: [] },
+        projectedRemaining: { calories: 1800, protein: 120, carbs: 200, fat: 70 },
+        activeConstraints: { consumedStarchExhausted: false },
+      } as any,
+    });
+    const prompt = buildHumanFoodPromptBlock(promptContext);
+
+    expect(prompt).toContain("70% non-starchy/fibrous food sources");
+    expect(prompt).toContain("30% starchy/concentrated food sources");
+    expect(prompt).toContain("Keep the Macro Calculator's established total-carbohydrate target unchanged");
+    expect(prompt).toContain("no candidate may exceed 1800 kcal, 200g total carbohydrate, or 70g fat");
+    expect(prompt).not.toContain("recalculate it downward");
+  });
+
   it("does not enforce fallback placeholder zeroes as canonical nutrition budgets", () => {
     const fallbackContext = context({
       nutrition: {

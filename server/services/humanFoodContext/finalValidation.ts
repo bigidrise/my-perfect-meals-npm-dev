@@ -18,6 +18,7 @@ import {
   scanMealsForAllergenViolations,
 } from "../allergyGuardrails";
 import { evaluateWholeFoodCandidate } from "../wholeFoodStandard";
+import { assessLowCarbRecipeCompatibility } from "../foodAdaptation/lowCarbPolicy";
 import { validateGlycemicProduce } from "../glycemicProduceValidator";
 import {
   maskNonAnimalDietaryCompounds,
@@ -90,6 +91,7 @@ const STRICT_DIET_SOURCES: Record<string, HumanFoodRequirementProof["source"]> =
   vegetarian: "ingredient_classifier",
   pescatarian: "ingredient_classifier",
   carnivore: "ingredient_classifier",
+  "low carb": "program_rule_pack",
   diabetic: "diabetes_authority",
   glp1: "glp1_authority",
 };
@@ -239,6 +241,24 @@ export function validateHumanFoodCandidate(
       message: "Ingredients are required for final validation.", assurance: "structured_evidence",
     });
   }
+  // Ingredient-level safety scanners consume top-level names. A compound
+  // recipe must expose every component there as well; otherwise a hidden
+  // allergen or avoidance could escape the normal safety checks.
+  const topLevelNames = new Set((candidate.ingredients ?? [])
+    .map((item) => normalize(typeof item === "string" ? item : item.name ?? item.item))
+    .filter(Boolean));
+  if ((candidate.ingredients ?? []).some((item) =>
+    typeof item !== "string" && item.components?.some((component) =>
+      !component.name || !topLevelNames.has(normalize(component.name)) ||
+      Boolean((component as { components?: unknown }).components)
+    )
+  )) {
+    add(findings, {
+      dimension: "provenance", outcome: "blocked", code: "compound_ingredients_not_exposed",
+      message: "Every compound ingredient component must be listed separately for food safety checks.",
+      assurance: "structured_evidence",
+    });
+  }
 
   for (const allergy of context.safety.allergies) {
     const canonicalAllergy = canonicalAllergenKey(allergy);
@@ -333,9 +353,15 @@ export function validateHumanFoodCandidate(
     });
     if (options.evidenceMode === "exact" && !UNRESTRICTED_DIETARY_IDENTITIES.has(key)) {
       const requirementKey = `dietary_identity:${key}` as const;
+      const lowCarbSource = key === "low carb"
+        ? assessLowCarbRecipeCompatibility(candidate, context)
+        : null;
+      const suppliedProof = exactEvidenceResult(evidence, requirementKey, STRICT_DIET_SOURCES[key]);
       addExactEvidenceFinding(
         findings, requirementKey, String(diet), "dietary_identity",
-        exactEvidenceResult(evidence, requirementKey, STRICT_DIET_SOURCES[key]),
+        lowCarbSource?.status === "adaptation_required" ? "fail"
+          : lowCarbSource?.status === "review_required" ? "review_required"
+          : suppliedProof,
       );
     } else if (requiresStructuredEvidence) {
       if (evidence.dietaryIdentityCompliant !== true) {

@@ -1,4 +1,5 @@
 import type { HumanFoodContext } from "../../../shared/humanFoodContext";
+import { buildLowCarbSourceGuidance } from "../../../shared/carbSourcePolicy";
 import { buildNutritionPriorityPromptProjection } from "../nutritionPriorityPromptProjection";
 
 function line(label: string, value: string | null | undefined): string | null {
@@ -19,7 +20,13 @@ export function buildHumanFoodPromptBlock(context: HumanFoodContext): string {
   const priorityProjection = buildNutritionPriorityPromptProjection(context);
   const lines = [
     "HUMAN FOOD CONTEXT v1 — preserve through every retry, correction, and fallback:",
+    "- Adaptation-first: identify the requested food's defining form, ingredients, and culinary identity. Change only adaptable components (such as starch, sauce, sweetener, dairy, portion, or technique) to satisfy the resolved requirements. Never silently replace the requested dish with an unrelated meal.",
+    "- Apply all applicable dietary, allergy, avoidance, and current clinical requirements together before generating. If a component conflicts, choose a compatible substitute that performs the same culinary role; do not assume a requested dish is impossible merely because its customary recipe conflicts.",
+    "- Keep final safety checks authoritative. If a recognizable, safe adaptation cannot be established, do not claim compliance; explain the unsatisfied requirement rather than returning a generic substitute.",
     `- Effective diet: ${context.diet.effective.join(", ") || "no optional diet preference available"}`,
+    context.diet.effective.some((diet) => diet.toLowerCase().replace(/[_-]+/g, " ").trim() === "low carb")
+      ? buildLowCarbSourceGuidance()
+      : null,
     line("Cuisine", flavor.cuisine.value),
     line("Cuisine intensity", flavor.cuisineIntensity.value),
     line("Heat", flavor.heat.value),

@@ -126,3 +126,4 @@
 - [Cardiac lab user choice](cardiac-lab-user-choice.md) — users can stop lab-derived Cardiac guidance without changing lab evidence; physician-owned protocols stay protected.
 - [Nutrition enforcement classes](nutrition-enforcement-classes.md) — hard stops require evidence; guidance does not create universal clinical nutrient limits.
 - [Clinical cutover verification](clinical-cutover-verification.md) — mocked review tests and top-level envelope checks can miss real schema constraints and nested clinical read fallbacks.
+- [Low Carb proof scope](low-carb-proof-scope.md) — recipe source compatibility is not proof of a daily 70/30 allocation; unknown starch allocation must remain review-required.
