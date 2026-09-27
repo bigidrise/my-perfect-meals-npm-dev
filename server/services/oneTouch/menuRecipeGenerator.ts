@@ -67,7 +67,7 @@ export async function generateMenuRecipe(input: MenuRecipeGenerationInput): Prom
         `Cuisine direction: ${input.cuisine ?? input.concept.cuisine}`,
         input.authorityPrompt,
         "Use realistic quantities and explicit units for ONE serving. Include every ingredient used in the instructions.",
-        'When you make a sauce from named ingredients, include them in the sauce ingredient\'s optional "components" array, each with name, quantity, and unit. Do not invent the contents of a packaged sauce. Preserve the named sauce and list every component.',
+        'When you make a sauce or seasoning blend from named ingredients, include them in that ingredient\'s optional "components" array, each with name, quantity, and unit. A packaged sauce or seasoning has unknown contents: never invent them. Preserve the named compound and list every component you actually use.',
         "Nutrition is a model estimate for one serving, NOT a verified label or lab result.",
         'Return one JSON object: {"name":"...","description":"...","ingredients":[{"name":"...","quantity":"2","unit":"oz"}],"instructions":"Full cooking instructions...","calories":400,"protein":30,"starchyCarbs":20,"fibrousCarbs":10,"fat":15,"cookingTime":"25 minutes","evidence":{"cuisine":"... or null","cuisineIntensity":null,"heat":null,"seasoningIntensity":null,"broadFlavor":null,"flavorStyle":null}}',
       ].join("\n\n"),

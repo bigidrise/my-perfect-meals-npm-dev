@@ -15,6 +15,15 @@ const nutrition = {
 };
 
 describe("canonical carbohydrate source classification", () => {
+  it("keeps whole avocado separate from fibrous vegetables and requires mixed seasonings to identify their contents", () => {
+    expect(classifyCarbohydrateSource("avocado")).toMatchObject({
+      category: "whole_plant_fat", requiresExplicitEvidence: false,
+    });
+    expect(classifyCarbohydrateSource("avocado sauce").category).toBe("sauce_condiment");
+    expect(classifyCarbohydrateSource("Cajun seasoning")).toMatchObject({
+      category: "spice_blend", requiresExplicitEvidence: true,
+    });
+  });
   it.each(["cauliflower", "cauliflower rice", "broccoli", "spinach", "zucchini", "asparagus", "bell pepper"])(
     "classifies %s as a non-starchy/fibrous food source",
     (ingredient) => {
@@ -81,6 +90,23 @@ describe("canonical carbohydrate source classification", () => {
 });
 
 describe("Low Carb source-policy guidance and evidence", () => {
+  it("supports the selected catfish idea only with fully named homemade sauce and Cajun seasoning components", () => {
+    const named = [
+      { name: "blackened catfish fillets" },
+      { name: "zucchini noodles" },
+      { name: "avocado sauce", components: ["avocado", "olive oil", "apple cider vinegar"] },
+      { name: "Cajun seasoning", components: ["paprika", "cayenne pepper", "garlic powder", "thyme"] },
+    ];
+    expect(evaluateLowCarbSourceEvidence(named, { ...nutrition, starchyCarbs: 0 })).toMatchObject({
+      status: "pass", dailySourceDistributionVerified: false,
+    });
+    expect(evaluateLowCarbSourceEvidence(["blackened catfish fillets", "zucchini noodles", "avocado sauce", "Cajun seasoning"], nutrition).status)
+      .toBe("review_required");
+    expect(evaluateLowCarbSourceEvidence([
+      { name: "Cajun seasoning", components: ["paprika", "sugar"] },
+      "zucchini noodles",
+    ], nutrition).status).toBe("adaptation_required");
+  });
   it("describes 70/30 source allocation without converting it into fiber grams or changing macro targets", () => {
     const guidance = buildLowCarbSourceGuidance();
     expect(guidance).toContain("70% non-starchy/fibrous");

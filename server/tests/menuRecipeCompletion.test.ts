@@ -269,6 +269,63 @@ describe("Menu-owned one-recipe completion (not connected to the manual Creators
     }
   });
 
+  it("completes the blackened catfish idea with explicit avocado sauce and Cajun spice components", async () => {
+    (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+      resolve: async () => ({
+        ...resolvedLowCarbContext(),
+        safety: { healthConditions: [], allergies: ["Shellfish"], avoidedFoods: ["quinoa", "lemon"], dislikedFoods: [] },
+      }),
+      executionState: { rejectedCandidateSignatures: [] },
+    }));
+    const selected: OneTouchDirection = {
+      ...buffaloCasseroleConcept,
+      title: "Blackened Catfish with Zucchini Noodles",
+      description: "Blackened catfish over zucchini noodles with homemade avocado sauce.",
+      primaryIngredients: ["catfish", "zucchini", "avocado sauce", "Cajun seasoning"],
+      primaryProtein: "catfish",
+      produceItems: ["zucchini", "avocado"],
+      signature: "blackened-catfish-zucchini",
+      culinaryIdentity: {
+        ...buffaloCasseroleConcept.culinaryIdentity,
+        dishForm: "noodles",
+        primaryProteinBase: "catfish",
+        majorStarchBase: null,
+        flavorFamily: "cajun",
+        definingComponents: ["catfish", "zucchini noodles", "avocado sauce"],
+      },
+    };
+    (generateMenuRecipe as jest.Mock).mockResolvedValue({
+      name: selected.title,
+      description: selected.description,
+      ingredients: [
+        { name: "catfish fillets", quantity: "5", unit: "oz" },
+        { name: "zucchini noodles", quantity: "1", unit: "cup" },
+        { name: "avocado sauce", quantity: "2", unit: "tbsp", components: [
+          { name: "avocado", quantity: "1/4", unit: "whole" },
+          { name: "olive oil", quantity: "1", unit: "tsp" },
+          { name: "apple cider vinegar", quantity: "1", unit: "tsp" },
+        ] },
+        { name: "Cajun seasoning", quantity: "1", unit: "tsp", components: [
+          { name: "paprika", quantity: "1/4", unit: "tsp" },
+          { name: "cayenne pepper", quantity: "1/4", unit: "tsp" },
+          { name: "garlic powder", quantity: "1/4", unit: "tsp" },
+          { name: "thyme", quantity: "1/4", unit: "tsp" },
+        ] },
+      ],
+      instructions: "Mix the named Cajun spices, sear catfish, cook zucchini noodles, and blend the avocado sauce.",
+      calories: 420, protein: 36, starchyCarbs: 0, fibrousCarbs: 10, fat: 26,
+      cookingTime: "25 minutes",
+    });
+
+    const result = await completeMenuRecipe({ ...input, approvedConcept: selected });
+    expect(result).toMatchObject({ ok: true });
+    if (result.ok) {
+      expect(result.card.ingredients.map(({ name }) => name)).toEqual(expect.arrayContaining([
+        "catfish fillets", "zucchini noodles", "avocado", "paprika",
+      ]));
+    }
+  });
+
   it("repairs a sweetened buffalo sauce in place and does not reject cauliflower as carbohydrate", async () => {
     (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
       resolve: async () => resolvedLowCarbContext(["low carb"]),

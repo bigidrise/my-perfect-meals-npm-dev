@@ -355,7 +355,7 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
           repairGuidance = [
             "REPAIR THE SAME REQUESTED DISH, not a different food. The last recipe lacked sufficient Low Carb source evidence:",
             ...evidence.issues.map((issue) => `- ${issue}`),
-            "Replace added sugar; use explicitly named, unsweetened components for homemade sauces rather than an unspecified commercial sauce.",
+            "Replace added sugar; use explicitly named components for homemade sauces and seasoning blends rather than unspecified commercial products. Keep whole avocado distinct from a sweetened or packaged avocado sauce.",
             "Keep the approved concept's defining ingredients and physical form recognizable. Preserve all allergy, avoidance, and clinical protections.",
           ].join("\n");
           continue;
