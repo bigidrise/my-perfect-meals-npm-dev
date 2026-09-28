@@ -18,4 +18,13 @@ export interface StudioAccessStatus {
   ownsOrganization: boolean;
   setupDestination: string | null;
   billing: ServiceBillingStatus | null;
+  canManageRenewal?: boolean;
+}
+
+export function isPersonalStudioRenewalEligible(access: StudioAccessStatus): boolean {
+  return access.state === "active" &&
+    access.studioActive &&
+    access.sources.length === 1 &&
+    access.sources[0] === "personal" &&
+    (access.billing?.state === "active" || access.billing?.state === "ending");
 }

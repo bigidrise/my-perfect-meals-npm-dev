@@ -7,6 +7,10 @@ import {
 } from "../services/organizationWorkspaceService";
 import { getStudioAccessStatus, getWorkspaceAvailability } from "../services/workspaceAvailabilityService";
 import { getOrganizationAccessStatus } from "../services/organizationAccessStatus";
+import Stripe from "stripe";
+import { requireAuth } from "../middleware/requireAuth";
+import { assertStripeBillingOwnership, getStripeKeyMode } from "../services/stripeRuntimePolicy";
+import { changeStudioRenewal, StudioBillingReviewError } from "../services/studioRenewalService";
 
 const router = Router();
 
@@ -30,6 +34,40 @@ router.get("/studio-access", async (req, res) => {
   } catch (error) {
     console.error("[studio-access] error:", error);
     return res.status(500).json({ error: "Could not load Studio access." });
+  }
+});
+
+router.post("/studio-access/:action", requireAuth, async (req, res) => {
+  res.setHeader("Cache-Control", "private, no-store");
+  if (req.params.action !== "end" && req.params.action !== "keep") {
+    return res.status(404).json({ error: "Unknown Studio action." });
+  }
+  const stripeKey = process.env.STRIPE_SECRET_KEY ?? "";
+  // The running Development app must not operate on live Production billing,
+  // even if a shared environment accidentally configures an owner override.
+  const deployed = process.env.REPLIT_DEPLOYMENT === "1" ||
+    process.env.REPLIT_DEPLOYMENT === "true";
+  if (process.env.SERVICE_BILLING_SNAPSHOTS_ENABLED !== "true" || !stripeKey ||
+      (!deployed && getStripeKeyMode(stripeKey) !== "TEST")) {
+    return res.status(503).json({ error: "Studio billing changes are not available." });
+  }
+  try {
+    assertStripeBillingOwnership(stripeKey);
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-10-29.clover" });
+    const billing = await changeStudioRenewal({
+      userId: (req as any).authUser.id,
+      action: req.params.action,
+      stripe,
+    });
+    return res.json({ billing });
+  } catch (error) {
+    if (error instanceof StudioBillingReviewError) {
+      return res.status(409).json({ error: error.message, code: "STUDIO_BILLING_NEEDS_REVIEW" });
+    }
+    console.error("[studio-renewal] unable to verify requested change", error);
+    return res.status(503).json({
+      error: "Unable to confirm the Studio renewal change. Please refresh before trying again.",
+    });
   }
 });
 

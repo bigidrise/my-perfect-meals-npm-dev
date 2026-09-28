@@ -5,12 +5,14 @@ import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { formatPaidThrough } from "./OrganizationAccessCard";
+import { ConfirmationModal } from "@/components/ui/universal-modal";
+import { Button } from "@/components/ui/button";
 
 function statusCopy(access: StudioAccessStatus): { label: string; description: string } {
   switch (access.state) {
     case "inactive":
       if (access.billing?.state === "expired") {
-        return { label: "Expired", description: "Your personal professional subscription has ended. Your personal account and Studio records remain separate." };
+        return { label: "Inactive", description: "Your Studio subscription has expired. Your personal My Perfect Meals account and Studio history remain intact." };
       }
       if (access.billing?.state === "needs_review") {
         return { label: "Needs review", description: "Your previous professional billing identity could not be verified. Please contact support." };
@@ -68,27 +70,37 @@ function statusCopy(access: StudioAccessStatus): { label: string; description: s
 export function StudioAccessCard({ userId }: { userId: string | undefined }) {
   const [access, setAccess] = useState<StudioAccessStatus | null>(null);
   const [error, setError] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [confirmEnd, setConfirmEnd] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  async function loadAccess(): Promise<StudioAccessStatus> {
+    const response = await fetch(apiUrl("/api/business/workspace/studio-access"), {
+      credentials: "include",
+      cache: "no-store",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error("Studio access unavailable");
+    const payload = await response.json();
+    if (!payload.studioAccess || !Array.isArray(payload.studioAccess.sources) ||
+        !["inactive", "setup_available", "active", "managed_access", "needs_review"].includes(payload.studioAccess.state)) {
+      throw new Error("Invalid Studio access response");
+    }
+    return payload.studioAccess;
+  }
 
   useEffect(() => {
     let cancelled = false;
     setAccess(null);
     setError(false);
+    setActionError(null);
+    setConfirmEnd(false);
     if (!userId) return () => { cancelled = true; };
 
     void (async () => {
       try {
-        const response = await fetch(apiUrl("/api/business/workspace/studio-access"), {
-          credentials: "include",
-          cache: "no-store",
-          headers: getAuthHeaders(),
-        });
-        if (!response.ok) throw new Error("Studio access unavailable");
-        const payload = await response.json();
-        if (!payload.studioAccess || !Array.isArray(payload.studioAccess.sources) ||
-            !["inactive", "setup_available", "active", "managed_access", "needs_review"].includes(payload.studioAccess.state)) {
-          throw new Error("Invalid Studio access response");
-        }
-        if (!cancelled) setAccess(payload.studioAccess);
+        const fresh = await loadAccess();
+        if (!cancelled) setAccess(fresh);
       } catch {
         if (!cancelled) setError(true);
       }
@@ -96,8 +108,42 @@ export function StudioAccessCard({ userId }: { userId: string | undefined }) {
     return () => { cancelled = true; };
   }, [userId]);
 
+  async function changeRenewal(action: "end" | "keep") {
+    if (busy || !userId || !access?.canManageRenewal) return;
+    setBusy(true);
+    setActionError(null);
+    setConfirmEnd(false);
+    try {
+      const response = await fetch(apiUrl(`/api/business/workspace/studio-access/${action}`), {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.error || "We couldn't confirm the Studio renewal change.");
+      }
+      // The server's verified status is authoritative; never optimistically
+      // flip the button or show a paid-through date from local state.
+      setAccess(await loadAccess());
+      setError(false);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "We couldn't confirm the Studio renewal change.");
+      try { setAccess(await loadAccess()); } catch { setError(true); }
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const copy = access ? statusCopy(access) : null;
+  const billing = access?.billing;
+  const canEnd = access?.canManageRenewal === true && access.state === "active" &&
+    billing?.state === "active" && !!billing.paidThrough;
+  const canKeep = access?.canManageRenewal === true && access.state === "active" &&
+    billing?.state === "ending" && !!billing.paidThrough;
   return (
+    <>
     <GlassCard className="border border-orange-400/30" data-testid="studio-access-card">
       <GlassCardContent className="space-y-2 p-5">
         <div className="flex items-center gap-2">
@@ -112,11 +158,49 @@ export function StudioAccessCard({ userId }: { userId: string | undefined }) {
             ? "We couldn't check Studio access right now. Please try again later."
             : copy?.description ?? "Checking your professional access."}
         </p>
+        {canEnd && (
+          <Button type="button" variant="outline" disabled={busy}
+            onClick={() => setConfirmEnd(true)} data-testid="end-studio-access">
+            End Studio Access
+          </Button>
+        )}
+        {canKeep && (
+          <Button type="button" variant="outline" disabled={busy}
+            onClick={() => void changeRenewal("keep")} data-testid="keep-studio">
+            {busy ? "Checking…" : "Keep Studio"}
+          </Button>
+        )}
+        {actionError && <p role="alert" className="text-sm text-red-300">{actionError}</p>}
         {access?.ownsOrganization && access.state !== "inactive" && (
           <p className="text-xs text-white/60">You have organization responsibilities that require a separate review before leaving Studio.</p>
         )}
         <p className="text-xs text-white/55">Your personal My Perfect Meals account is separate from Studio.</p>
       </GlassCardContent>
     </GlassCard>
+    <ConfirmationModal
+      open={confirmEnd}
+      onOpenChange={(open) => { if (!busy) setConfirmEnd(open); }}
+      title="End Studio Access?"
+      description="This stops Studio renewal, not your personal My Perfect Meals account."
+      footer={
+        <>
+          <Button type="button" variant="outline" disabled={busy} onClick={() => setConfirmEnd(false)}>
+            Keep Studio
+          </Button>
+          <Button type="button" disabled={busy} onClick={() => void changeRenewal("end")}
+            data-testid="confirm-end-studio">
+            {busy ? "Checking…" : "Confirm End Studio Access"}
+          </Button>
+        </>
+      }
+    >
+      <ul className="list-disc space-y-2 pl-5 text-sm text-white/80">
+        <li>Studio renewal will stop at the end of your current paid period.</li>
+        <li>Studio remains available through {billing?.paidThrough ? formatPaidThrough(billing.paidThrough) : "the verified paid-through date"}.</li>
+        <li>Your personal My Perfect Meals account stays active.</li>
+        <li>Your Studio data and history are not deleted. You can choose Keep Studio before expiration.</li>
+      </ul>
+    </ConfirmationModal>
+    </>
   );
 }

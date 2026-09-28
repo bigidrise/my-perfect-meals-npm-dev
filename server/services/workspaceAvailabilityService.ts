@@ -3,7 +3,7 @@ import { users } from "@shared/schema";
 import type {
   WorkspaceAvailability,
 } from "@shared/workspaceAvailability";
-import type { StudioAccessStatus } from "@shared/studioAccess";
+import { isPersonalStudioRenewalEligible, type StudioAccessStatus } from "@shared/studioAccess";
 import { db } from "../db";
 import { studios } from "../db/schema/studio";
 import { discoverAuthorizedWorkspaces } from "./organizationWorkspaceService";
@@ -141,6 +141,14 @@ export async function getStudioAccessStatus(userId: string): Promise<StudioAcces
   } else if (!studioAccess.sources.includes("internal") && ownedStudio?.id) {
     studioAccess.billing = await readHistoricalProfessionalBillingStatus(user.id, ownedStudio.id);
   }
+  if (studioAccess.billing?.state === "expired" &&
+      studioAccess.sources.every((source) => source === "personal")) {
+    studioAccess.state = "inactive";
+    studioAccess.authorized = false;
+    studioAccess.studioReady = false;
+  }
+  studioAccess.canManageRenewal = process.env.SERVICE_BILLING_SNAPSHOTS_ENABLED === "true" &&
+    isPersonalStudioRenewalEligible(studioAccess);
   return studioAccess;
 }
 
