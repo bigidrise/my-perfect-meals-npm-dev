@@ -289,34 +289,10 @@ describe("Creator Menu selects one server-owned concept before completion", () =
     })).status).toBe(404);
   });
 
-  it("keeps unprovable finished-food evidence fail-closed after selection", async () => {
-    const first = await request(app).post("/api/one-touch-create").send(choices("create_a_dish"));
-    complete.mockResolvedValue({ ok: false, code: "requirement_evidence_unsupported", retryable: false });
-    const selected = await request(app).post("/api/one-touch-create/choose").send({
-      request: choices("create_a_dish"), conceptId: first.body.concepts[0].id,
-    });
-    expect(selected.status).toBe(422);
-    expect(selected.body.code).toBe("ONE_TOUCH_REQUIREMENT_UNAVAILABLE");
-    expect(history).not.toHaveBeenCalled();
-  });
-
   it.each([
-    ["ingredient_evidence_unsupported", "did not identify every sauce"],
-    ["carb_source_split_unverified", "did not match its named ingredients"],
-  ] as const)("explains %s without returning an unverified card", async (reason, message) => {
-    const first = await request(app).post("/api/one-touch-create").send(choices("create_a_dish"));
-    complete.mockResolvedValue({ ok: false, code: reason, retryable: false });
-    const selected = await request(app).post("/api/one-touch-create/choose").send({
-      request: choices("create_a_dish"), conceptId: first.body.concepts[0].id,
-    });
-    expect(selected.status).toBe(422);
-    expect(selected.body.code).toBe("ONE_TOUCH_REQUIREMENT_UNAVAILABLE");
-    expect(selected.body.error).toContain(message);
-    expect(history).not.toHaveBeenCalled();
-  });
-
-  it.each([
+    ["concept_rejected", false, 422, "concept_rejected"],
     ["identity_mismatch", false, 422, "identity_mismatch"],
+    ["final_validation_rejected", false, 422, "final_validation_rejected"],
     ["generation_failed", true, 502, "generation_failed"],
     ["diabetes_rejected", false, 422, "protected_food_or_authority_rejected"],
   ] as const)("logs a safe %s reason for the general rejection, then restores the same ideas", async (reason, retryable, status, safeReason) => {

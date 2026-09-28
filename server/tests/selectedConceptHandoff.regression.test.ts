@@ -33,7 +33,6 @@ jest.mock("../services/humanFoodContext/adapters", () => ({ buildCreatorHumanFoo
 jest.mock("../services/humanFoodContext/servingNutrition", () => ({
   toPerServingNutrition: jest.fn((meal: any) => meal),
 }));
-jest.mock("../services/servingScaling", () => ({ scaleIngredientQuantity: jest.fn((quantity: string) => quantity) }));
 jest.mock("../services/mealImageGenerator", () => ({
   generateMealImageUnified: jest.fn(async () => "/images/meal.jpg"),
   normalizeMealTypeToSourceType: jest.fn(() => "meal"),
@@ -78,7 +77,7 @@ describe("selected Creator Menu concept handoff", () => {
       description: "Shellfish-free beef and cauliflower.",
       ingredients: [
         { name: "beef", quantity: "6", unit: "oz" },
-        { name: "cauliflower", quantity: "1", unit: "cup" },
+        { name: "cauliflower", quantity: "1/2", unit: "cup" },
       ],
       instructions: ["Heat the pan.", "Cook the beef and cauliflower."],
       calories: 400, protein: 30, carbs: 20, fat: 15, imageUrl: "",
@@ -91,10 +90,17 @@ describe("selected Creator Menu concept handoff", () => {
       const direction = concept("Spicy Beef and Cauliflower Stir-Fry", ["beef", "cauliflower"]);
       if (creator === "craving_creator") direction.occasion = "snack";
       const result = await completeSelectedConcept({ ...input(direction), creator });
-      expect(preflight).toHaveBeenCalledWith("test-user", expect.any(String), "menu-selected-concept",
-        expect.objectContaining({ safetyMode: "STRICT", deferAmbiguousDishCheck: true }));
+      expect(preflight).toHaveBeenCalledWith("test-user", expect.objectContaining({
+        kind: "food_intent",
+        requestedDish: direction.title,
+        explicitIngredients: direction.primaryIngredients,
+      }), "menu-selected-concept",
+        expect.objectContaining({ safetyMode: "STRICT", ignoredDietaryRestrictions: [] }));
       expect(generate.mock.calls[0][0]).toContain("No shellfish ingredients or derivatives.");
       expect(result.ok).toBe(true);
+      expect(result).toMatchObject({ meal: {
+        ingredients: expect.arrayContaining([{ name: "cauliflower", quantity: "0.5", unit: "cup" }]),
+      } });
       if (result.ok) expect(result.meal.instructions).toEqual(["Heat the pan.", "Cook the beef and cauliflower."]);
     },
   );
@@ -138,6 +144,20 @@ describe("selected Creator Menu concept handoff", () => {
     const result = await completeSelectedConcept(input(concept("Spicy Beef and Cauliflower Stir-Fry", ["beef", "cauliflower"])));
     expect(result.ok).toBe(false);
     expect(result).toMatchObject({ code: "final_validation_rejected" });
+  });
+
+  it("rejects an unparseable ingredient quantity instead of returning an invalid meal card", async () => {
+    generate.mockImplementation(async (prompt: string) => [{
+      name: prompt.split("\n")[0], description: "Beef and cauliflower.",
+      ingredients: [
+        { name: "beef", quantity: { unexpected: "6" }, unit: "oz" },
+        { name: "cauliflower", quantity: "1", unit: "cup" },
+      ],
+      instructions: ["Cook the beef and cauliflower."],
+      calories: 400, protein: 30, carbs: 20, fat: 15, imageUrl: "",
+    }]);
+    const result = await completeSelectedConcept(input(concept("Beef and Cauliflower Stir-Fry", ["beef", "cauliflower"])));
+    expect(result).toEqual({ ok: false, code: "final_validation_rejected" });
   });
 
   it("will not silently replace the selected dish", async () => {
