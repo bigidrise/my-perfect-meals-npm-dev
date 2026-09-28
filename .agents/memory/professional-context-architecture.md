@@ -8,6 +8,13 @@ description: Phase roadmap, design constraints, and policy model for the two-wor
 - **Professional world:** businesses, clients, revenue — contextual, org-funded or independently purchased
 - A Studio or care relationship may control an explicitly assigned clinical protocol, but it never transfers ownership of the user's personal or religious dietary identity. Profile saves must keep those fields operationally separate.
 
+## Studio exit product boundary
+A normal professional must eventually be able to end optional Studio access from the consumer More page without deleting their MPM identity or unrelated personal data, access, and relationships. The control must resolve all active entitlement sources and ownership obligations server-side; paid, pilot, sponsored, and internal sources cannot share one blind revocation.
+
+**Why:** Studio navigation, professional billing, owned Studio lifecycle, and organization/client responsibilities are separate authorities. A generic disconnect could leave a paid subscription running, cancel an unrelated personal plan, or strand clients.
+
+**How to apply:** Treat a read-only status card as an intermediate step, not the final product. Design source-specific exit, exact billing disclosure, owner continuity, and navigation/API parity before enabling a mutation. Do not equate an active Studio record with professional entitlement.
+
 ## Current constraint (Phase 1)
 - `UNIQUE(businessId, userId)` constraint stays — removing it before the Professional Context engine exists creates an uninterpretable state
 - No `workspaces` table yet — that is Phase 2
