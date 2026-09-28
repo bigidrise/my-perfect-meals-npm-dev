@@ -206,7 +206,10 @@ router.post("/users/:userId/billing/reconcile-legacy-checkout", async (req, res)
     ]);
     const selected = session.subscription;
     const selectedId = typeof selected === "string" ? selected : selected?.id;
-    if (customer.deleted || session.customer !== customerId || selectedId !== subscriptionId ||
+    if (customer.deleted || !("metadata" in customer)) {
+      return res.status(409).json({ error: "Stripe ownership or paid Checkout evidence does not match" });
+    }
+    if (session.customer !== customerId || selectedId !== subscriptionId ||
         session.mode !== "subscription" || session.status !== "complete" ||
         session.payment_status !== "paid" || session.metadata?.userId !== targetUserId ||
         (customer.metadata?.userId && customer.metadata.userId !== targetUserId)) {

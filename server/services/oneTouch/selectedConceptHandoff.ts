@@ -235,11 +235,13 @@ export async function completeSelectedConcept(input: SelectedConceptHandoff): Pr
 
   // Mirror the manual Creator contract: total-recipe nutrition and quantities
   // for the requested serving count, with per-serving final revalidation.
-  const ingredients = selected.ingredients.map((ingredient) => ({
-    ...ingredient, quantity: scaleIngredientQuantity(ingredient.quantity, input.servings),
-  }));
-  if (ingredients.some((ingredient) => !Number.isFinite(Number(ingredient.quantity)))) {
-    return { ok: false, code: "final_validation_rejected" };
+  const ingredients: UnifiedMeal["ingredients"] = [];
+  for (const ingredient of selected.ingredients) {
+    const quantity = scaleIngredientQuantity(ingredient.quantity, input.servings);
+    if (typeof quantity !== "string" || !quantity.trim() || !Number.isFinite(Number(quantity))) {
+      return { ok: false, code: "final_validation_rejected" };
+    }
+    ingredients.push({ ...ingredient, quantity });
   }
   const meal = {
     ...selected, ingredients,

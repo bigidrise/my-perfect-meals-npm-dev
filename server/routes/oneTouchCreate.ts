@@ -5,8 +5,8 @@ import { requireAuth } from "../middleware/requireAuth";
 import { oneTouchRequestSchema, type OneTouchRequest, type OneTouchConcept } from "@shared/oneTouch";
 import { generateOneTouchDirections } from "../services/oneTouch/directions";
 import { appendOneTouchHistory, readOneTouchHistory, saveOneTouchConceptSet } from "../services/oneTouch/history";
-import type { MenuRecipeCard, MenuRecipeFailureCode } from "../services/oneTouch/menuRecipeCompletion";
-import { completeSelectedConcept } from "../services/oneTouch/selectedConceptHandoff";
+import type { MenuRecipeCard } from "../services/oneTouch/menuRecipeCompletion";
+import { completeSelectedConcept, type SelectedConceptResult } from "../services/oneTouch/selectedConceptHandoff";
 import { createHumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
 import { buildCreatorHumanFoodPrompt } from "../services/humanFoodContext/adapters";
 import { enforceBeforeGenerate, loadUserProtocolEnvelope } from "../services/protocolEnvelope";
@@ -38,14 +38,11 @@ function explicitValue(value: { mode: string; value?: string }): string | undefi
   return value.mode === "explicit" ? value.value : undefined;
 }
 
-function safeCompletionReason(code: MenuRecipeFailureCode): string {
+function safeCompletionReason(code: Extract<SelectedConceptResult, { ok: false }>["code"]): string {
   switch (code) {
-    case "invalid_request":
     case "concept_rejected":
     case "generation_failed":
-    case "nutrition_evidence_invalid":
     case "identity_mismatch":
-    case "serving_finalization_failed":
     case "final_validation_rejected":
       return code;
     default:
@@ -178,36 +175,12 @@ export default function createOneTouchRouter() {
           : [],
       });
       if (result.ok === false) {
-        const status = ["requirement_evidence_unsupported", "ingredient_evidence_unsupported",
-          "carb_source_split_unverified", "protocol_clinical_rejected"].includes(result.code)
-          ? 422
-          : result.code === "unresolved_authority" || result.code === "unauthorized_subject"
-            ? 409
-            : result.retryable ? 502 : 422;
+        const status = result.retryable ? 502 : 422;
         // Log only a privacy-safe category and status. The client still gets
         // the same general message, never private authority or food details.
         console.warn("[CreatorMenu] Choose completion rejected", {
           creator: request.creator, reason: safeCompletionReason(result.code), retryable: result.retryable, status,
         });
-        if (result.code === "ingredient_evidence_unsupported") {
-          stop(422, "ONE_TOUCH_REQUIREMENT_UNAVAILABLE",
-            "The full recipe did not identify every sauce, seasoning, or other ingredient needed to check this idea. The idea itself is not a verified recipe. Try again or choose another idea.");
-        }
-        if (result.code === "carb_source_split_unverified") {
-          stop(422, "ONE_TOUCH_REQUIREMENT_UNAVAILABLE",
-            "The generated recipe's carbohydrate-source estimate did not match its named ingredients. I couldn't safely finish this meal card. Try again or choose another idea.");
-        }
-        if (result.code === "requirement_evidence_unsupported") {
-          stop(422, "ONE_TOUCH_REQUIREMENT_UNAVAILABLE",
-            "I couldn't verify the ingredients or current nutrition allocation for this idea. Try again or choose another idea. Your settings have not been changed.");
-        }
-        if (result.code === "protocol_clinical_rejected") {
-          stop(422, "ONE_TOUCH_REQUIREMENT_UNAVAILABLE",
-            "We can't safely complete this Menu option with your current nutrition settings yet. Your settings have not been changed.");
-        }
-        if (result.code === "unresolved_authority" || result.code === "unauthorized_subject") {
-          stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your current food protections could not be verified.");
-        }
         stop(status, "ONE_TOUCH_RECIPE_REJECTED",
           "We couldn't safely complete this selected idea. Please choose another or try again.");
       }
