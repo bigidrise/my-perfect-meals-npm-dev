@@ -85,6 +85,7 @@
 - [Organization-owned Rewardful identity](organization-rewardful-identity.md) — Rewardful identities belong to exact organizations; never infer them from an operator’s user ID or email.
 - [Multi-organization membership](multi-organization-membership.md) — one account can manage multiple isolated organizations through explicit workspace selection.
 - [Business Suite commercial boundary](business-suite-commercial-boundary.md) — $44.99 is flat at quantity 1; invitations never grant permanent sponsored professional access.
+- [Permanent account and optional workspace lifecycle](account-workspace-lifecycle.md) — Studio and Organization attach to one identity; ending renewal preserves paid-through access and same-subscription reversal.
 - [Paid organization workspace visibility](paid-organization-workspace-visibility.md) — self-service organizations appear at login only after paid activation; pending setup stays hidden.
 - [Organization invitation clocks](organization-invitation-clocks.md) — organization, patient, and professional temporary access use separate clocks and entitlement types.
 - [Organization invitation delivery state](organization-invitation-delivery-state.md) — pending means provider-accepted; delivery failures must remain retryable and visible.
