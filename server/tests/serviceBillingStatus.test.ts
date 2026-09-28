@@ -54,6 +54,8 @@ describe("verified service billing status", () => {
   it("reports ending only at the verified Stripe period end", () => {
     expect(resolve({ ...snapshot, cancelAtPeriodEnd: true }))
       .toEqual({ state: "ending", paidThrough: "2026-10-31T23:59:00.000Z" });
+    expect(resolve({ ...snapshot, cancelAtPeriodEnd: false }))
+      .toEqual({ state: "active", paidThrough: end.toISOString() });
     expect(snapshot.status).toBe("active");
     expect(snapshot.cancelAtPeriodEnd).toBe(false);
   });
@@ -74,6 +76,7 @@ describe("verified service billing status", () => {
     expect(resolve({ ...snapshot, sourceEventId: "" })).toEqual(review);
     expect(resolve({ ...snapshot, trustedPlanKey: "mpm_ultimate" })).toEqual(review);
     expect(resolve({ ...snapshot, status: "past_due" })).toEqual(review);
+    expect(resolve({ ...snapshot, status: "payment_failed" })).toEqual(review);
     expect(resolve({ ...snapshot, status: "trialing" })).toEqual(review);
     expect(resolve({ ...snapshot, verifiedAt: new Date("2026-10-16") })).toEqual(review);
     expect(resolve(snapshot, { ...identity, stripeSubscriptionId: "sub_other" })).toEqual(review);
@@ -94,6 +97,25 @@ describe("verified service billing status", () => {
     expect(resolveServiceBillingStatus(org, orgSnapshot, now, orgPrice).state).toBe("active");
     expect(resolve(orgSnapshot)).toEqual({ state: "needs_review", paidThrough: null });
     expect(resolveServiceBillingStatus({ ...org, businessId: "other" }, orgSnapshot, now, orgPrice).state)
+      .toBe("needs_review");
+  });
+
+  it("does not treat a ProCare client's personal subscription as Studio billing", () => {
+    const clientIdentity: BillingIdentity = {
+      ...identity,
+      serviceType: "personal",
+      studioId: null,
+      trustedPlanKey: "mpm_ultimate",
+    };
+    const clientSnapshot: ServiceBillingSnapshot = {
+      ...snapshot,
+      serviceType: "personal",
+      studioId: null,
+      trustedPlanKey: "mpm_ultimate",
+    };
+    expect(resolveServiceBillingStatus(clientIdentity, clientSnapshot, now,
+      () => ({ planLookupKey: "mpm_ultimate" })).state).toBe("active");
+    expect(resolveServiceBillingStatus(identity, clientSnapshot, now, trustedPrice).state)
       .toBe("needs_review");
   });
 
