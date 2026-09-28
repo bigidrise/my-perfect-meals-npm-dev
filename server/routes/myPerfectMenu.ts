@@ -8,6 +8,7 @@ import {
   emptyMyPerfectMenuPreferences,
   myPerfectMenuCategorySchema,
   myPerfectMenuMealSlotSchema,
+  myPerfectMenuSnackTypeSchema,
   myPerfectMenuPreferencesSchema,
   type MyPerfectMenuCategory,
   type MyPerfectMenuConcept,
@@ -48,6 +49,7 @@ import {
   cuisineLabelsCompatible,
 } from "../services/myPerfectMenu/generationContract";
 import { generateCulinaryConcepts } from "../services/myPerfectMenu/culinaryConceptEngine";
+import { completedSnackMatchesConcept, matchesSnackType } from "../services/myPerfectMenu/snackIdentity";
 import {
   resolveMyPerfectMenuBuilderForActor,
   MyPerfectMenuBuilderError,
@@ -90,6 +92,11 @@ const subjectSchema = z.object({
 });
 const generationRequestSchema = subjectSchema.extend({
   ideaType: categorySchema,
+  snackType: myPerfectMenuSnackTypeSchema.optional(),
+}).superRefine((value, ctx) => {
+  if ((value.ideaType === "snack") !== Boolean(value.snackType)) {
+    ctx.addIssue({ code: "custom", message: "Choose Food Snack or Dessert Snack for snack ideas." });
+  }
 });
 const clearRequestSchema = subjectSchema.extend({
   ideaType: categorySchema,
@@ -412,6 +419,11 @@ router.get("/concepts", requireAuth, requireFullMyPerfectMenuRestorationPayload,
   const staleCategories: MyPerfectMenuCategory[] = [];
   await Promise.all((["breakfast", "lunch", "dinner", "snack"] as MyPerfectMenuCategory[]).map(async (category) => {
     if (!preferences.categories[category]) return;
+    if (category === "snack" && !preferences.categories.snack?.every(
+      (concept) => concept.snackType &&
+        concept.snackType === preferences.categories.snack?.[0]?.snackType &&
+        matchesSnackType(concept.foodIdentity, concept.snackType),
+    )) return; // Pre-selector snack sets have no explicit food/dessert authority.
     const stamp = await currentStamp(actorUserId, target, category, context, envelope, glp1, builder, parsed.data.destinationDate, parsed.data.mealSlot ?? (category === "snack" ? "snacks" : category));
     if (isMyPerfectMenuContextStampFresh(preferences.contextStamps[category], stamp)) {
       categories[category] = preferences.categories[category];
@@ -498,6 +510,13 @@ router.post("/validate-selection", requireAuth, async (req, res) => {
   const parsed = subjectSchema.extend({
     ideaType: categorySchema,
     conceptId: z.string().min(1).max(100),
+    snackType: myPerfectMenuSnackTypeSchema.optional(),
+    completedSnack: z.object({
+      name: z.string().trim().min(1).max(180),
+      description: z.string().max(4000).optional(),
+      ingredients: z.array(z.union([z.string(), z.object({ name: z.string().optional(), item: z.string().optional() }).passthrough()])).max(100).optional(),
+      instructions: z.union([z.string(), z.array(z.string())]).optional(),
+    }).passthrough().optional(),
   }).safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: "Choose a valid menu concept." });
   const actorUserId = String((req as AuthenticatedRequest).authUser.id);
@@ -516,6 +535,14 @@ router.post("/validate-selection", requireAuth, async (req, res) => {
   const preferences = await readPreferences(target);
   const concept = (preferences.categories[parsed.data.ideaType] ?? []).find((item) => item.id === parsed.data.conceptId);
   if (!concept) return res.status(404).json({ error: "Menu concept not found." });
+  if (parsed.data.ideaType === "snack" &&
+      (!concept.snackType || concept.snackType !== parsed.data.snackType ||
+       !matchesSnackType(concept.foodIdentity, concept.snackType))) {
+    return res.status(409).json({ error: "This snack choice is no longer current. Choose your snack type again.", code: "MY_PERFECT_MENU_CONTEXT_STALE" });
+  }
+  if (parsed.data.completedSnack && parsed.data.ideaType !== "snack") {
+    return res.status(400).json({ error: "Only snack recipes use snack identity validation." });
+  }
   const scope = createHumanFoodRequestScope({
     actorUserId, subjectUserId: target.id, creator: "my_perfect_menu",
     actionRequest: "validate menu selection", authorizationAction: "my_perfect_menu",
@@ -531,6 +558,12 @@ router.post("/validate-selection", requireAuth, async (req, res) => {
   const stamp = await currentStamp(actorUserId, target, parsed.data.ideaType, context, envelope, glp1, builder, parsed.data.destinationDate, parsed.data.mealSlot);
   if (!isMyPerfectMenuContextStampFresh(preferences.contextStamps[parsed.data.ideaType], stamp)) {
     return res.status(409).json({ error: "These menu ideas are based on an older food context. Please refresh them.", code: "MY_PERFECT_MENU_CONTEXT_STALE" });
+  }
+  if (parsed.data.completedSnack && !completedSnackMatchesConcept(concept, parsed.data.completedSnack)) {
+    return res.status(422).json({
+      code: "MY_PERFECT_MENU_SNACK_IDENTITY_CHANGED",
+      error: "The finished recipe doesn't match your selected snack idea. Please choose it again.",
+    });
   }
   const performance = builder.key === "performance_competition"
     ? await resolveMyPerfectMenuPerformanceContext(target.id, parsed.data.destinationDate!, parsed.data.mealSlot!)
@@ -654,6 +687,7 @@ router.post("/concepts", requireAuth, async (req, res) => {
     );
     const generated = await generateCulinaryConcepts({
       occasion,
+      ...(occasion === "snack" ? { menuShape: "craving" as const, cravingCategory: parsed.data.snackType } : {}),
       subjectLabel: target.label ?? "the person being fed",
       requiredCuisine,
       history: recentCulinaryHistory,
@@ -667,12 +701,18 @@ router.post("/concepts", requireAuth, async (req, res) => {
           ? `PERFORMANCE AUTHORITY (server-resolved): date=${performance.dateISO}; meal slot=${performance.slot}; session=${performance.sessionType ?? "unscheduled"}; track=${performance.performanceTrack ?? "athletic"}; demand=${JSON.stringify(performance.demand)}; nutrition=${JSON.stringify(performance.nutrition)}. Honor this authority. Zero starch means no starchy foods, not zero total carbohydrates.`
           : "",
       ],
-      validate: (concept) => conceptViolations(concept, context, envelope, requiredCuisine),
+      validate: (concept) => [
+        ...conceptViolations(concept, context, envelope, requiredCuisine),
+        ...(occasion === "snack" && (!parsed.data.snackType ||
+          !matchesSnackType(concept.foodIdentity, parsed.data.snackType))
+          ? ["snack_type:identity_mismatch"] : []),
+      ],
     });
     const concepts: GovernedMenuConcept[] = generated.concepts.map((concept) => ({
       ...concept,
       id: randomUUID(),
       ideaType: parsed.data.ideaType,
+      ...(occasion === "snack" ? { snackType: parsed.data.snackType } : {}),
     }));
     const stamp = await currentStamp(actorUserId, target, parsed.data.ideaType, context, envelope, target.kind === "user" ? await resolveGLP1GlobalContext(actorUserId, parsed.data.destinationDate ?? new Date().toISOString().slice(0, 10), parsed.data.ideaType) : null, builder, parsed.data.destinationDate, parsed.data.mealSlot);
     await mutatePreferences(actorUserId, target, (current) => ({
