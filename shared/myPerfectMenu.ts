@@ -19,6 +19,8 @@ export const myPerfectMenuMealSlotSchema = z.enum([
   "snacks",
 ]);
 export type MyPerfectMenuMealSlot = z.infer<typeof myPerfectMenuMealSlotSchema>;
+export const myPerfectMenuSnackTypeSchema = z.enum(["food", "dessert"]);
+export type MyPerfectMenuSnackType = z.infer<typeof myPerfectMenuSnackTypeSchema>;
 
 export const myPerfectMenuConceptSchema = z.object({
   id: z.string().min(8).max(100),
@@ -32,6 +34,7 @@ export const myPerfectMenuConceptSchema = z.object({
   dietaryEvidence: z.array(z.string().trim().min(1).max(100)).max(8),
   preparationMethod: z.string().trim().min(2).max(80),
   signature: z.string().trim().min(5).max(180),
+  snackType: myPerfectMenuSnackTypeSchema.optional(),
   foodIdentity: foodIdentitySchema.optional(),
   culinaryIdentity: culinaryIdentitySchema.optional(),
 });
