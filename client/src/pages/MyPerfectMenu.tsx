@@ -48,12 +48,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import PerformanceNutritionSetupForm from "@/components/performance/PerformanceNutritionSetupForm";
 import { getTodayISOSafe } from "@/utils/midnight";
 import { BouncingDots } from "@/components/ui/bouncing-dots";
+import type { MyPerfectMenuSnackType } from "@shared/myPerfectMenu";
 
 type IdeaType = "breakfast" | "lunch" | "dinner" | "snack";
 
 interface MenuConcept {
   id: string;
   ideaType: IdeaType;
+  snackType?: MyPerfectMenuSnackType;
   title: string;
   description: string;
   primaryIngredients?: string[];
@@ -97,7 +99,7 @@ const IDEA_TYPES: Array<{
   { value: "breakfast", title: "Breakfast Ideas", description: "Comforting, energizing ways to start any meal.", icon: Coffee, color: "from-amber-500/25 to-orange-950/20" },
   { value: "lunch", title: "Lunch Ideas", description: "Fresh, satisfying choices for any time of day.", icon: Soup, color: "from-emerald-500/25 to-emerald-950/20" },
   { value: "dinner", title: "Dinner Ideas", description: "Complete, flavorful meals without the decision fatigue.", icon: UtensilsCrossed, color: "from-violet-500/25 to-violet-950/20" },
-  { value: "snack", title: "Snack Ideas", description: "Simple choices for when you need something smaller.", icon: Apple, color: "from-rose-500/25 to-rose-950/20" },
+  { value: "snack", title: "Snack Ideas", description: "Choose food-style or dessert-style ideas.", icon: Apple, color: "from-rose-500/25 to-rose-950/20" },
 ];
 
 function completedMealPayload(meal: any) {
@@ -168,6 +170,9 @@ export default function MyPerfectMenu() {
   }, [search]);
   const [ideaType, setIdeaType] = useState<IdeaType | null>(() => returnedIdeaType);
   const [conceptSets, setConceptSets] = useState<ConceptSets>({});
+  const [snackType, setSnackType] = useState<MyPerfectMenuSnackType | null>(null);
+  const [snackChoiceOpen, setSnackChoiceOpen] = useState(false);
+  const [snackSwitchType, setSnackSwitchType] = useState<MyPerfectMenuSnackType | null>(null);
   const [selectedConcept, setSelectedConcept] = useState<MenuConcept | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [loadingIdeas, setLoadingIdeas] = useState(false);
@@ -189,6 +194,7 @@ export default function MyPerfectMenu() {
   const [builderRefreshEpoch, setBuilderRefreshEpoch] = useState(0);
   const [restorationStatus, setRestorationStatus] = useState<MyPerfectMenuRestorationStatus>("loading");
   const categoryOpenedDuringRestorationRef = useRef<IdeaType | null>(null);
+  const requestedSnackTypeRef = useRef<MyPerfectMenuSnackType | null>(null);
   const handledReturnRef = useRef(false);
   const subjectRef = useRef(subjectUserId ?? user?.id ?? null);
   const subjectEpochRef = useRef(0);
@@ -196,7 +202,10 @@ export default function MyPerfectMenu() {
   const { generateMeal, cancel: cancelMeal } = useCreateWithChefRequest(user?.id, undefined, subjectUserId);
   const { generateSnack, cancel: cancelSnack } = useSnackCreatorRequest(user?.id, subjectUserId);
   const logGlucose = useLogGlucose();
-  const concepts = ideaType ? conceptSets[ideaType] ?? [] : [];
+  const concepts = ideaType
+    ? (conceptSets[ideaType] ?? []).filter((concept) =>
+        ideaType !== "snack" || (snackType !== null && concept.snackType === snackType))
+    : [];
 
   useEffect(() => {
     if (!requestedHouseholdProfileId || householdLoading || activeProfileId === requestedHouseholdProfileId) return;
@@ -226,6 +235,10 @@ export default function MyPerfectMenu() {
     cancelSnack();
     setConceptSets({});
     setIdeaType(null);
+    setSnackType(null);
+    setSnackChoiceOpen(false);
+    setSnackSwitchType(null);
+    requestedSnackTypeRef.current = null;
     setLoadingIdeas(false);
     setLoadingContext(false);
     setPendingIdeaType(null);
@@ -271,6 +284,8 @@ export default function MyPerfectMenu() {
           throw new Error("We couldn't verify your saved menu ideas. Please reload.");
         }
         setConceptSets(payload.categories ?? {});
+        const restoredSnack = payload.categories.snack?.[0]?.snackType;
+        if (!requestedSnackTypeRef.current && (restoredSnack === "food" || restoredSnack === "dessert")) setSnackType(restoredSnack);
         setRestorationStatus("succeeded");
         setBuilderContext(payload.builder);
       } catch (cause) {
@@ -292,7 +307,15 @@ export default function MyPerfectMenu() {
     builderRefreshEpoch,
   ]);
 
-  const requestIdeas = async (nextType: IdeaType, destination = performanceDestination) => {
+  const requestIdeas = async (
+    nextType: IdeaType,
+    destination = performanceDestination,
+    selectedSnackType = snackType,
+  ) => {
+    if (nextType === "snack" && !selectedSnackType) {
+      setError("Choose Food Snack or Dessert Snack first.");
+      return;
+    }
     const requestedSubject = subjectUserId ?? user?.id ?? null;
     const requestedEpoch = subjectEpochRef.current;
     setIdeaType(nextType);
@@ -305,6 +328,7 @@ export default function MyPerfectMenu() {
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({
           ideaType: nextType,
+          ...(nextType === "snack" ? { snackType: selectedSnackType } : {}),
           subjectUserId,
           requestedBuilderKey: requestedBuilderForSubject,
           ...(builderContext?.key === "performance_competition" && destination
@@ -370,7 +394,11 @@ export default function MyPerfectMenu() {
     return Boolean(payload.checkin);
   };
 
-  const prepareIdeaRequest = async (nextType: IdeaType, destination = performanceDestination) => {
+  const prepareIdeaRequest = async (
+    nextType: IdeaType,
+    destination = performanceDestination,
+    selectedSnackType = snackType,
+  ) => {
     const requestedEpoch = subjectEpochRef.current;
     const requestedSubject = subjectUserId ?? user?.id ?? null;
     setIdeaType(nextType);
@@ -403,7 +431,7 @@ export default function MyPerfectMenu() {
         return;
       }
       setPendingIdeaType(null);
-      await requestIdeas(nextType, destination);
+      await requestIdeas(nextType, destination, selectedSnackType);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "We couldn't check the current food context.");
     } finally {
@@ -441,7 +469,11 @@ export default function MyPerfectMenu() {
     }
   }, [returnedIdeaType, returnedSettingsChanged, builderContext]);
 
-  const openCategory = (nextType: IdeaType) => {
+  const openCategory = (nextType: IdeaType, selectedSnackType = snackType) => {
+    if (nextType === "snack" && !selectedSnackType) {
+      setSnackChoiceOpen(true);
+      return;
+    }
     setIdeaType(nextType);
     if (restorationStatus === "loading") {
       categoryOpenedDuringRestorationRef.current = nextType;
@@ -452,16 +484,29 @@ export default function MyPerfectMenu() {
       return;
     }
     setError(null);
+    const savedSnackType = conceptSets.snack?.[0]?.snackType;
+    if (nextType === "snack" && savedSnackType && savedSnackType !== selectedSnackType) {
+      setSnackSwitchType(selectedSnackType);
+      return;
+    }
     if (builderContext?.key === "performance_competition" && !performanceDestination) {
       setPendingIdeaType(nextType);
       return;
     }
     if (shouldGenerateMissingMyPerfectMenuCategory(
       restorationStatus,
-      conceptSets[nextType]?.length ?? 0,
+      nextType === "snack" && savedSnackType !== selectedSnackType ? 0 : conceptSets[nextType]?.length ?? 0,
     )) {
-      void prepareIdeaRequest(nextType);
+      void prepareIdeaRequest(nextType, performanceDestination, selectedSnackType);
     }
+  };
+
+  const chooseSnackType = (selected: MyPerfectMenuSnackType) => {
+    if (loadingIdeas || loadingContext || savingMeal) return;
+    setSnackChoiceOpen(false);
+    requestedSnackTypeRef.current = selected;
+    setSnackType(selected);
+    openCategory("snack", selected);
   };
 
   useEffect(() => {
@@ -471,10 +516,13 @@ export default function MyPerfectMenu() {
     categoryOpenedDuringRestorationRef.current = null;
     if (builderContext.key === "performance_competition" && !performanceDestination) {
       setPendingIdeaType(openedType);
+    } else if (openedType === "snack" && conceptSets.snack?.[0]?.snackType &&
+               conceptSets.snack[0].snackType !== snackType) {
+      setSnackSwitchType(snackType);
     } else if (!conceptSets[openedType]?.length) {
       void prepareIdeaRequest(openedType);
     }
-  }, [restorationStatus, builderContext, ideaType, performanceDestination, conceptSets]);
+  }, [restorationStatus, builderContext, ideaType, performanceDestination, conceptSets, snackType]);
 
   const startPerformanceIdeas = async () => {
     if (!ideaType || !performanceDate || !performanceSlot || !builderContext) return;
@@ -550,6 +598,10 @@ export default function MyPerfectMenu() {
   };
 
   const chooseConcept = (concept: MenuConcept) => {
+    if (concept.ideaType === "snack" && (!snackType || concept.snackType !== snackType)) {
+      setError("Choose the current snack type before completing an idea.");
+      return;
+    }
     setSelectedConcept(concept);
     if (builderContext?.key === "performance_competition" && performanceDestination) {
       void generateForDestination(performanceDestination, concept);
@@ -560,7 +612,7 @@ export default function MyPerfectMenu() {
   };
 
   const confirmTryMore = () => {
-    if (!ideaType) return;
+    if (!ideaType || (ideaType === "snack" && !snackType)) return;
     setTryMoreOpen(false);
     void prepareIdeaRequest(ideaType);
   };
@@ -628,6 +680,7 @@ export default function MyPerfectMenu() {
         body: JSON.stringify({
           ideaType: conceptToGenerate.ideaType,
           conceptId: conceptToGenerate.id,
+          ...(conceptToGenerate.ideaType === "snack" ? { snackType: conceptToGenerate.snackType } : {}),
           subjectUserId,
           requestedBuilderKey: requestedBuilderForSubject,
           destinationDate: destination.dateISO,
@@ -660,6 +713,11 @@ export default function MyPerfectMenu() {
         "My Perfect Menu selected concept. Preserve this dish and cuisine identity.",
         `Resolved builder: ${resolvedBuilder.key}. Use its established generation contract.`,
         `Title: ${conceptToGenerate.title}`,
+        conceptToGenerate.snackType === "dessert"
+          ? "Selected snack identity: a recognizable dessert. Preserve its dessert format; do not substitute a food-style snack."
+          : conceptToGenerate.snackType === "food"
+            ? "Selected snack identity: non-dessert food. Do not substitute a dessert."
+            : "",
         `Description: ${conceptToGenerate.description}`,
         conceptToGenerate.cuisine ? `Required cuisine: ${conceptToGenerate.cuisine}` : "",
         conceptToGenerate.primaryIngredients?.length
@@ -724,6 +782,30 @@ export default function MyPerfectMenu() {
       if (subjectRef.current !== requestedSubject) throw new Error("The active food profile changed. Please choose the meal again.");
       const finalMeal = await finalizeMeal(meal, destination.slot === "snacks" ? "snack" : destination.slot);
       if (subjectRef.current !== requestedSubject) throw new Error("The active food profile changed. Please choose the meal again.");
+      if (conceptToGenerate.ideaType === "snack") {
+        const identityResponse = await fetch(apiUrl("/api/my-perfect-menu/validate-selection"), {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+          body: JSON.stringify({
+            ideaType: "snack",
+            conceptId: conceptToGenerate.id,
+            snackType: conceptToGenerate.snackType,
+            subjectUserId,
+            requestedBuilderKey: requestedBuilderForSubject,
+            destinationDate: destination.dateISO,
+            mealSlot: destination.slot,
+            completedSnack: {
+              name: finalMeal.name || finalMeal.title,
+              description: finalMeal.description,
+              ingredients: finalMeal.ingredients,
+              instructions: finalMeal.instructions,
+            },
+          }),
+        });
+        const identityPayload = await identityResponse.json().catch(() => ({}));
+        if (!identityResponse.ok) throw responseError(identityResponse, identityPayload, "The finished snack did not match your selected idea.");
+      }
       await addCompletedMeal(destination, finalMeal, resolvedBuilder);
       setPickerOpen(false);
       window.dispatchEvent(new CustomEvent("show-toast", {
@@ -866,7 +948,7 @@ export default function MyPerfectMenu() {
              )}
              <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {IDEA_TYPES.map(({ value, title, description, icon: Icon, color }) => (
-                <button key={value} type="button" onClick={() => openCategory(value)} className={`group rounded-2xl border border-white/15 bg-gradient-to-br ${color} p-5 text-left shadow-xl backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-violet-300/45`}>
+                <button key={value} type="button" onClick={() => value === "snack" ? (!loadingIdeas && !loadingContext && !savingMeal && setSnackChoiceOpen(true)) : openCategory(value)} className={`group rounded-2xl border border-white/15 bg-gradient-to-br ${color} p-5 text-left shadow-xl backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-violet-300/45`}>
                   <div className="flex items-center gap-4">
                     <div className="rounded-xl border border-white/15 bg-black/35 p-3"><Icon className="h-6 w-6 text-white/85" /></div>
                     <div><h3 className="font-bold text-white">{title}</h3><p className="mt-1 text-sm text-white/55">{description}</p></div>
@@ -880,7 +962,10 @@ export default function MyPerfectMenu() {
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-300">Three choices</p>
-                <h2 className="mt-1 text-2xl font-black">{activeType?.title}</h2>
+                <h2 className="mt-1 text-2xl font-black">{ideaType === "snack" && snackType
+                  ? `${snackType === "dessert" ? "Dessert" : "Food"} Snack Ideas`
+                  : activeType?.title}</h2>
+                {ideaType === "snack" && <button type="button" disabled={loadingIdeas || loadingContext || savingMeal} onClick={() => setSnackChoiceOpen(true)} className="mt-2 text-sm font-semibold text-violet-200 underline underline-offset-4 disabled:opacity-50">Change snack type</button>}
                  {builderContext?.key === "performance_competition" && performanceDestination && (
                    <p className="mt-2 text-xs font-semibold text-orange-200">
                      For {performanceDestination.dateISO} · {performanceDestination.slot}
@@ -1128,6 +1213,52 @@ export default function MyPerfectMenu() {
           onSelect={generateForDestination}
         />
       )}
+
+      <Dialog open={snackChoiceOpen} onOpenChange={setSnackChoiceOpen}>
+        <DialogContent className="border-violet-300/25 bg-black/95 text-white">
+          <DialogHeader>
+            <DialogTitle>What kind of snack would you like?</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3 py-2">
+            <button type="button" onClick={() => chooseSnackType("food")} className="min-h-20 rounded-2xl border border-white/20 bg-white/5 p-4 text-left hover:border-violet-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-300">
+              <span className="block font-bold">🍽️ Food Snack</span>
+              <span className="block text-sm text-white/65">Something savory or food-style</span>
+            </button>
+            <button type="button" onClick={() => chooseSnackType("dessert")} className="min-h-20 rounded-2xl border border-white/20 bg-white/5 p-4 text-left hover:border-violet-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-300">
+              <span className="block font-bold">🍰 Dessert Snack</span>
+              <span className="block text-sm text-white/65">Something dessert-style or sweet</span>
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={snackSwitchType !== null} onOpenChange={(open) => {
+        if (!open) {
+          setSnackSwitchType(null);
+          setSnackType(conceptSets.snack?.[0]?.snackType ?? null);
+        }
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace your current snack ideas?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Switching snack types replaces the three saved snack ideas. Save any finished recipe you want to keep to Favorites first.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep These Ideas</AlertDialogCancel>
+            <AlertDialogAction onClick={(event) => {
+              event.preventDefault();
+              const next = snackSwitchType;
+              setSnackSwitchType(null);
+              if (next) {
+                setSnackType(next);
+                void prepareIdeaRequest("snack", performanceDestination, next);
+              }
+            }}>Replace Ideas</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={tryMoreOpen} onOpenChange={setTryMoreOpen}>
         <AlertDialogContent>
