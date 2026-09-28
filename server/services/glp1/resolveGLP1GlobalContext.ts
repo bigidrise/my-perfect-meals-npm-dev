@@ -6,10 +6,9 @@
  * generating and food-recommending surface so the user experiences one
  * consistent GLP-1 intelligence layer, not per-feature recreations.
  *
- * ACTIVATION: GLP-1 is active when ANY of these current-state sources is true —
- *   • users.selectedMealBuilder === "glp1"         (user's currently selected builder)
- *   • users.medicalConditions contains "glp1"      (physician-managed: PUT /api/pro/glp1-protocol/:id)
- *   • users.specialtyConditions contains a GLP-1 keyword (updateable specialty overlay)
+ * In Development, current Builder or explicitly current verified clinical/
+ * medication sources activate this context. Legacy condition arrays retain
+ * history but cannot independently activate food rules.
  *
  * INTENTIONALLY EXCLUDED as activation sources:
  *   • users.preferredBuilder — "starting recommendation from onboarding" (schema comment),
@@ -17,9 +16,7 @@
  *   • glp1_profile row exists — table has no is_active field; a row persists forever
  *     after GLP-1 setup completes with no deactivation mechanism
  *
- * FUTURE: Add users.glp1_protocol_active boolean (canonical single flag).
- *   The three sources above establish/migrate that state, but every feature should
- *   eventually ask one question: "Is this person's GLP-1 protocol currently active?"
+ * Production's established legacy activation remains unchanged until release.
  *
  * GLP-1 + PERFORMANCE COMPOSITION:
  *   When Performance is also active (users.performanceModeEnabled), the
@@ -45,32 +42,10 @@ import { loadGLP1ResolvedTargets } from "./glp1TargetLoader";
 import type { ResolvedGLP1Targets } from "./resolveGLP1MealTargets";
 import { resolveDailyNutritionState } from "../nutritionStateService";
 import type { DailyNutritionState } from "../../../shared/dailyNutritionPrescription";
-
-// ─── GLP-1 activation keyword sets ──────────────────────────────────────────
-// Must match a condition array entry containing any of these substrings
-// (case-insensitive) to count as GLP-1 active from that source.
-const GLP1_CONDITION_KEYS = [
-  "glp1", "glp-1", "glp 1",
-  "semaglutide", "tirzepatide", "ozempic", "wegovy", "mounjaro",
-  "rybelsus", "liraglutide", "dulaglutide", "exenatide", "trulicity",
-  "victoza", "saxenda", "zepbound",
-];
-
-function arrayIncludesGLP1(arr: unknown): boolean {
-  if (!Array.isArray(arr)) return false;
-  return arr.some(
-    (v) =>
-      typeof v === "string" &&
-      GLP1_CONDITION_KEYS.some((k) => v.toLowerCase().includes(k)),
-  );
-}
+import { resolveCurrentGLP1MealAuthority, type CurrentGLP1Source } from "./currentMealAuthority";
+export type GLP1ActivationSource = CurrentGLP1Source;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-
-export type GLP1ActivationSource =
-  | "selectedMealBuilder"
-  | "medicalConditions"
-  | "specialtyConditions";
 
 export interface GLP1GlobalContext {
   /** True when GLP-1 is active from ANY detection source. */
@@ -147,26 +122,9 @@ export async function resolveGLP1GlobalContext(
   }
 
   // ── 2. Detect activation from every possible source ──────────────────────
-  const activationSources: GLP1ActivationSource[] = [];
-
-  if (userRow) {
-    // Source 1: currently selected builder — user actively controls this
-    if (userRow.selectedMealBuilder === "glp1") {
-      activationSources.push("selectedMealBuilder");
-    }
-    // Source 2: physician-managed clinical assignment
-    // PUT /api/pro/glp1-protocol/:clientId {enabled:true/false} adds/removes "glp1"
-    // from this array — the canonical clinical toggle for GLP-1 activation/deactivation
-    if (arrayIncludesGLP1(userRow.medicalConditions)) {
-      activationSources.push("medicalConditions");
-    }
-    // Source 3: specialty conditions overlay (updateable; GLP-1 keywords valid here)
-    if (arrayIncludesGLP1(userRow.specialtyConditions)) {
-      activationSources.push("specialtyConditions");
-    }
-    // NOT CHECKED: preferredBuilder — onboarding recommendation, not current treatment state
-    // NOT CHECKED: glp1_profile row — no is_active field; persists forever after setup
-  }
+  const activationSources = userRow
+    ? await resolveCurrentGLP1MealAuthority(userRow)
+    : [];
 
   const isActive = activationSources.length > 0;
 
@@ -288,15 +246,15 @@ export function buildGLP1RecommendationBlock(ctx: GLP1GlobalContext): string {
   const calTarget = t?.resolvedMealCalories ?? 400;
 
   const lines: string[] = [
-    `GLP-1 MEDICATION PROTOCOL — ACTIVE (sources: ${ctx.activationSources.join(", ")})`,
+    `GLP-1 NUTRITION GUIDANCE — ACTIVE (sources: ${ctx.activationSources.join(", ")}; do not infer medication use)`,
     `Treatment phase: ${phase} | Meal target: ~${calTarget} kcal | Protein: ≥${proteinTarget}g | Fat ceiling: ≤${fatCeiling}g`,
     "",
-    "FOOD SELECTION RULES for this GLP-1 patient (recommendation surface — you cannot control exact serving sizes, so guide CHOICES and PREPARATION):",
+    "FOOD SELECTION RULES for GLP-1-oriented nutrition support (do not infer medication use; guide CHOICES and PREPARATION):",
     `• PROTEIN FIRST: Always lead recommendations with the highest-protein option available. Target ≥${proteinTarget}g protein.`,
     `• FAT CEILING: Avoid fried foods, heavy cream sauces, buttery preparations, and high-fat cheeses. Favor preparations ≤${fatCeiling}g fat.`,
     "• PREPARATION: Prefer grilled, baked, steamed, or roasted. Avoid breaded, fried, or sauce-heavy dishes.",
     "• STARCH STRATEGY: Recommend skipping or reducing starchy sides (fries, rice, bun, bread). Suggest vegetables or salad instead.",
-    "• PORTION AWARENESS: Note that GLP-1 medications reduce appetite — smaller portions are appropriate. Do NOT encourage large plates or 'hearty' meals.",
+    "• PORTION AWARENESS: Suggest manageable portions and let the person adjust to their appetite. Do NOT encourage large plates or 'hearty' meals.",
     "• AVOID: Heavy appetizers, creamy soups, sugary drinks, desserts, high-fat entrees.",
   ];
 

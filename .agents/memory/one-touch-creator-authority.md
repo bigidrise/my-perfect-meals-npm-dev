@@ -15,6 +15,24 @@ Menu-owned flows must not modify the existing manual Craving Creator or Create a
 
 **How to apply:** Reuse lower-level policy and validation primitives where safely possible, but do not claim that a separate Menu path has the exact canonical safety sequence until that parity is established and verified. If zero changes to the active route and generator are a hard boundary, the existing three-candidate route cannot simply be made one-candidate by configuration.
 
+The accepted Creator Menu architecture lets the Menu own three concepts and a trusted selection; the established manual Creator generation and final-validation primitives own completion. This supersedes treating the legacy Menu-only exact-evidence engine as the active completion contract. Simply passing a title to a general generator is still insufficient because the generator permits alternate meals.
+
+**Why:** The user chose alignment with the working manual Creator completion behavior, while insisting that a selected concept must never silently become another dish or bypass the current user's protections. The older Menu-specific exact gate produced frequent safe-but-unusable rejections.
+
+**How to apply:** Use a server-stored concept and current account authority; require its identity and defining ingredients before and after completion. Pass only authorized request-scoped diet replacement to shared generation, retain clinical and protocol checks, normalize per-serving evidence before validating a scaled card, and reject unsupported specialist directives. The legacy engine stays intact until live provider and authenticated acceptance verify the handoff. Do not describe shared primitives as full manual route parity while route-only allergy/glucose adaptation is absent.
+
+Creator Menu concept creation accepts food context with non-blocking preference gaps. Selection must recognize that same eligible status while preserving the separate review-required and blocked boundaries.
+
+**Why:** A real signed-in Create a Dish choice was offered under a context with gaps, then rejected before generation solely because the completion handoff required a fully resolved status. That is an authority-state mismatch, not evidence that the selected food is unsafe.
+
+**How to apply:** Align eligibility at both stages; still re-resolve authority and run the normal protocol, clinical, dish-identity, and final-recipe checks. Do not treat missing preferences as permission to bypass those gates.
+
+The shared variety generator may preserve a dish's recognizable name but omit defining ingredients from every variant. One bounded identity repair is preferable to accepting a related but incomplete meal or silently changing the selected dish.
+
+**Why:** A real provider pass returned familiar versions of a selected wrap without satisfying the stored ingredient contract. After an explicit corrective pass, a complete matching card could be validated; name resemblance alone would have hidden the omission.
+
+**How to apply:** Retain the stored concept's required ingredients and physical form as immutable constraints across attempts. Recheck repaired output through the same safety and final gates, and return no card when safe preservation remains impossible.
+
 A passed negative protocol scan cannot serve as positive evidence of a compositional diet or a numeric clinical limit, and model-estimated macros are not independently verified nutrition. Unsupported evidence must stay review-required or be rejected, even if this reduces the number of concepts that can finish automatically.
 
 **Why:** A scan can miss a high-risk diabetic macro excess or an unmeasured specialty limit; labeling either as compliant would make an apparently finished card unsafe.
@@ -27,11 +45,11 @@ For Menu recipe completion, the shared compound-aware classifier can substantiat
 
 **How to apply:** Recheck supported identity classification after final serving formatting. Keep keto, paleo, Mediterranean, and other unsupported composition identities review-required until a shared authoritative meal rule and suitable evidence source exist.
 
-The positive-evidence contract must distinguish each active requirement and its producer. Legacy Creator booleans may retain their historical meaning for unchanged callers, but they must not become proof for new strict Menu claims.
+The positive-evidence contract must distinguish each active requirement and its producer. Legacy Creator booleans retain their historical meaning for manual-style completion, but they must not become proof for a separate strict Menu claim.
 
 **Why:** A single true dietary flag can otherwise certify unrelated nutrition, clinical, and program rules that were never checked. The user wants eventual support for more identities without inventing their policies first.
 
-**How to apply:** Resolve exact evidence separately for every active Menu requirement; keep unproven identities unavailable while allowing a future limited Menu rollout for independently supported identities. Do not interpret a passed protocol scan or a model nutrition estimate as verified composition.
+**How to apply:** When using an exact-evidence policy, resolve each requirement separately. Do not promote a passed protocol scan or model nutrition estimate to independently verified composition or specialist clinical proof merely because the selected concept was trusted.
 
 The user accepted a shared culinary concept engine for MPM and Creator Menus, with separate destinations. Each Creator Menu presents exactly three governed concepts before any finished recipe is requested; only the selected server-owned concept is completed.
 
@@ -57,8 +75,8 @@ Do not let legacy finished-card markers authorize the concept menu.
 
 **How to apply:** Restore only from the Creator-owned server set and its current context fingerprint. Clear legacy finished-card markers when a new concept set is created; keep manual Creator caches isolated.
 
-Fingerprint authority must include the substance of daily nutrition and its provenance, but not the provenance calculation timestamp. Two consecutive resolutions of unchanged Dev nutrition data produced different fingerprints solely because that timestamp records each calculation time.
+Fingerprint authority must include the substance of daily nutrition and its provenance, but not the provenance calculation timestamp. This applies both to general food-context nutrition and the separately resolved GLP-1 daily nutrition state. Two consecutive resolutions of unchanged Dev nutrition data produced different fingerprints solely because that timestamp records each calculation time.
 
-**Why:** Including computation time invalidates newly generated and restored cards even when no food protections changed; excluding the entire provenance would incorrectly hide a real classification or source change.
+**Why:** Including computation time invalidates newly generated and restored cards even when no food protections changed. The GLP-1 state is a separate branch, so normalizing the food-context timestamp alone does not prevent this failure. Excluding the entire provenance would incorrectly hide a real classification or source change.
 
 **How to apply:** Canonicalize only non-authoritative calculation-time fields; retain status, nutrition values, provenance sources, and fail-closed comparison for meaningful changes. Diagnose future mismatches with field names only, never raw profile or clinical values.

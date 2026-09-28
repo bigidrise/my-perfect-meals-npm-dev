@@ -1583,7 +1583,7 @@ export default function DashboardNew() {
                 </div>
                 {effectiveMenuBuilder?.builder.displayName && (
                   <div className="absolute bottom-3 right-3 max-w-[58%] rounded-full border border-emerald-300 bg-emerald-600 px-2.5 py-1 text-right text-[10px] font-extrabold leading-tight tracking-wide text-white shadow-md shadow-emerald-500/25 sm:max-w-none sm:px-3.5 sm:py-1.5 sm:text-xs">
-                    Using your {effectiveMenuBuilder.builder.displayName}
+                    {effectiveMenuBuilder.builder.displayName}
                   </div>
                 )}
                <CardContent className="p-5 pb-16 pr-20 sm:pb-14">

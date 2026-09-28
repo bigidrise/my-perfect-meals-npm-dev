@@ -20,6 +20,8 @@ export interface CulinaryConceptRequest {
   occasion: MyPerfectMenuCategory;
   /** Only Creator Menus specify a shape; ordinary MPM keeps its current prompt. */
   menuShape?: "dish" | "craving";
+  /** An explicit Craving Menu choice, not an inference from the snack occasion. */
+  cravingCategory?: "food" | "dessert";
   subjectLabel: string;
   userContext: string[];
   requiredCuisine: string | null;
@@ -98,6 +100,12 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
     input.menuShape === "craving"
       ? "CRAVING MENU: Snack describes the eating occasion, not a small portion or a narrow snack-food family. Tacos, fries, salads, chili, sandwiches and desserts can all fit when the person's authority permits them."
       : "",
+    input.menuShape === "craving" && input.cravingCategory === "dessert"
+      ? "DESSERT CRAVING — REQUIRED FOOD IDENTITY: Create recognizable desserts from the outset, not generic snacks later labeled as desserts. Each concept must have foodIdentity.foodRole = dessert, sweet polarity, and a specific dessert formatFamily (cake, cookie, brownie, pie, pudding_custard, cheesecake, frozen_dessert, pastry, confection, bar, or no_bake_dessert). Preserve dessert identity while adapting ingredients to every resolved dietary, allergy, avoidance, and clinical requirement. If a dessert cannot safely fit, do not replace it with unrelated snack food."
+      : "",
+    input.menuShape === "craving" && input.cravingCategory === "food"
+      ? "FOOD CRAVING — REQUIRED FOOD IDENTITY: Create non-dessert food cravings from the outset, not dessert concepts to filter later. Sweet food is possible, but dessert identity is not requested."
+      : "",
     "When compatible with the authoritative context, carbohydrate structure may be one breadth dimension (lower, moderate, or higher), but never invent targets, weaken clinical guidance, or force a quota.",
   ].join("\n");
 
@@ -109,6 +117,11 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
     const user = [
       ...input.userContext,
       `Create exactly ${requestedCount} additional ${input.occasion} concept${requestedCount === 1 ? "" : "s"} for ${input.subjectLabel}.`,
+      input.cravingCategory === "dessert"
+        ? `Every missing position must be a recognizable dessert adapted to the person's requirements. Return only ${requestedCount} dessert concept${requestedCount === 1 ? "" : "s"}; retain the already approved desserts.`
+        : input.cravingCategory === "food"
+          ? `Every missing position must be a non-dessert food craving. Return only ${requestedCount} food concept${requestedCount === 1 ? "" : "s"}.`
+          : "",
       `Previously shown signatures to avoid immediately: ${[...priorSignatures].join(", ") || "none"}.`,
       `Recent culinary patterns to move beyond when appropriate: ${recentPatterns.join(", ") || "none"}.`,
       rejectedReasons.length

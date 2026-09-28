@@ -135,9 +135,17 @@ let mockScanPassed = true;
 let mockScanMessage = "";
 let mockScanViolations: any[] = [];
 
-jest.mock("../services/protocolEnvelope", () => ({
+jest.mock("../services/protocolEnvelope", () => {
+  const loadUserProtocolEnvelope = jest.fn().mockResolvedValue(makeEnvelope());
+  return {
   buildGuestEnvelope: jest.fn(() => makeEnvelope()),
-  loadUserProtocolEnvelope: jest.fn().mockResolvedValue(makeEnvelope()),
+  loadUserProtocolEnvelope,
+  loadGenerationProtocolEnvelope: jest.fn(async (userId?: string) => {
+    if (!userId) return makeEnvelope({ userId: "guest" });
+    const loaded = await loadUserProtocolEnvelope(userId);
+    if (!loaded) throw new Error("Your food safety information could not be verified. No food was generated; please retry.");
+    return loaded;
+  }),
   enforceBeforeGenerate: jest.fn(() => ({
     combined: "No dietary restrictions — apply general healthy eating.",
     blocks: [],
@@ -148,7 +156,8 @@ jest.mock("../services/protocolEnvelope", () => ({
     violations: mockScanViolations,
     primaryViolation: mockScanViolations[0] ?? null,
   })),
-}));
+  };
+});
 
 // ── Mock: resolveGLP1GlobalContext ────────────────────────────────────────────
 let mockGlp1Context: any = null; // null = not active

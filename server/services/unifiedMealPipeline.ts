@@ -12,8 +12,9 @@
  */
 
 import { isRecipeSensitiveDish } from './dishEngineRouter';
+import { parseGeneratedRecipeSteps } from './recipeInstructions';
 import { getMeasurementPromptBlock, MeasurementSystem } from '../../shared/units';
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, filterMealsByProtocol, buildGuestEnvelope, deriveProcedureRules, type UserProtocolEnvelope } from './protocolEnvelope';
+import { loadUserProtocolEnvelope, loadGenerationProtocolEnvelope, ProtocolContextUnavailableError, enforceBeforeGenerate, scanGeneratedOutput, filterMealsByProtocol, buildGuestEnvelope, deriveProcedureRules, type UserProtocolEnvelope } from './protocolEnvelope';
 import { buildVegetableStrategyPrompt, NutritionStrategyContext, buildStrictModeBlock } from './promptBuilder';
 import { getDeterministicFallback, findMatchingTemplates, templateToMeal } from './templateMatcher';
 import { STARCHY_KEYWORDS } from '../../shared/starchKeywords';
@@ -60,6 +61,7 @@ import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { 
   enforceSafetyProfile,
+  loadSafetyProfile,
   validateGeneratedMeal,
   extractSafetyProfileFromUser,
   SafetyAssessment
@@ -317,7 +319,7 @@ export interface MealGenerationRequest {
 
   nutritionStrategy?: NutritionStrategyContext; // Vegetable system + cut intensity guardrails
 
-  safetyAlreadyChecked?: boolean; // Skip internal safety check if route already verified with override token
+  safetyAlreadyChecked?: boolean; // Skip duplicate intent precheck only; never skip finished-recipe safety
 
   strictMode?: boolean; // "Keep It Simple" — AI uses ONLY user-listed ingredients, no additions
 
@@ -713,7 +715,7 @@ export async function generateCravingMealUnified(
   // allergy, dietary rule, and avoidance stays enforced.
   if (result.success && userId) {
     const _cravingEnvelope =
-      (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope();
+      await loadGenerationProtocolEnvelope(userId);
     const _scanCtx = {
       generatorName: 'craving_unified',
       overriddenAllergens: overriddenAllergens?.length ? overriddenAllergens : undefined,
@@ -741,6 +743,33 @@ export async function generateCravingMealUnified(
       result.meals = _kept;
       if (result.meal && !_kept.some(m => m.name === result.meal!.name)) {
         result.meal = _kept[0];
+      }
+    }
+    // The protocol scan and a request preflight are not proof that every
+    // realized ingredient was checked. Apply the final recipe check to cache,
+    // template and AI results, including direct callers of this function.
+    const profile = await loadSafetyProfile(userId);
+    if (!profile) {
+      return { success: false, source: 'error', error: 'Your food safety profile could not be verified.' };
+    }
+    const scopedProfile = {
+      ...profile,
+      allergies: profile.allergies.filter(allergy =>
+        !overriddenAllergens?.some(authorized => allergenKeysMatch(allergy, authorized))),
+    };
+    const check = (meal: UnifiedMeal) => validateGeneratedMeal({
+      name: meal.name, description: meal.description, ingredients: meal.ingredients,
+      instructions: Array.isArray(meal.instructions) ? meal.instructions : meal.instructions ? [meal.instructions] : [],
+    }, scopedProfile).result !== 'BLOCKED';
+    if (result.meal && !check(result.meal)) {
+      return { success: false, source: 'error', safetyBlocked: true,
+        error: 'The generated recipe contains an ingredient that conflicts with your allergy profile.' };
+    }
+    if (result.meals?.length) {
+      result.meals = result.meals.filter(check);
+      if (!result.meals.length) {
+        return { success: false, source: 'error', safetyBlocked: true,
+          error: 'No generated recipes passed the final ingredient safety check.' };
       }
     }
   }
@@ -1010,6 +1039,7 @@ CARB CLASSIFICATION RULES (CRITICAL):
 - Vegetables ARE carbs (fibrous) - never return 0 for fibrousCarbs if vegetables are present
 
 Respond with ONLY valid JSON in this exact format:
+The instructions field MUST be an array of ordered strings; each element is one cooking action, with no embedded step numbers or multiple actions in one element.
 {
   "name": "Creative meal name matching the craving",
   "description": "Appetizing 1-2 sentence description",
@@ -1017,7 +1047,7 @@ Respond with ONLY valid JSON in this exact format:
     {"name": "ingredient name", "quantity": "4", "unit": "oz"},
     {"name": "another ingredient", "quantity": "1", "unit": "cup"}
   ],
-  "instructions": "Step-by-step cooking instructions as a single string",
+  "instructions": ["Prepare the first component.", "Cook and finish the dish."],
   "calories": 400,
   "protein": 25,
   "starchyCarbs": 20,
@@ -1069,7 +1099,7 @@ Respond with ONLY valid JSON in this exact format:
         name: aiMeal.name || `${cravingInput} Delight`,
         description: aiMeal.description || `A delicious ${validMealType} inspired by ${cravingInput}`,
         ingredients: normalizedIngredients,
-        instructions: aiMeal.instructions || "Prepare ingredients and cook to your preference.",
+        instructions: parseGeneratedRecipeSteps(aiMeal.instructions),
         calories: aiMeal.calories || 400,
         protein: aiMeal.protein || 25,
         carbs: totalCarbs,
@@ -1518,7 +1548,10 @@ export function filterExcludedMealNames(
 }
 
 // Exported for unit testing — do not use in application code outside this module
-export const __varietyTestables = { validateVarietyOption, filterExcludedMealNames, normalizeForExclusion };
+export const __varietyTestables = {
+  validateVarietyOption, filterExcludedMealNames, normalizeForExclusion,
+  extractDishFamily, buildVarietyPrompt, buildRecipeVarietyPrompt, buildCuisineGroundingBlock,
+};
 
 // ── Kosher category intent detection ─────────────────────────────────────────
 // Reads the user's craving text to determine which kosher category they are
@@ -1730,7 +1763,17 @@ function buildIngredientConflictHint(
 }
 
 /** Build the hierarchy-enforcing prompt for the variety engine */
-function buildCuisineGroundingBlock(cuisine: string): string {
+function buildCuisineGroundingBlock(
+  cuisine: string,
+  createDishContract?: import("./createDish/dishContract").CreateDishContract,
+): string {
+  if (createDishContract) {
+    return `\nCUISINE GUIDANCE — CREATE A DISH:
+The user requested "${createDishContract.requestedDish}" with ${cuisine} cuisine.
+Keep the named dish's defining ingredient and physical form. Adapt compatible seasonings, herbs, aromatics, sauces, dressings and preparation using genuine ${cuisine} ingredients where safe.
+Do not replace the requested dish with a different ${cuisine} dish or claim an adaptation is a traditional dish when it is not.
+All allergy, dietary, clinical, provider, and food safety constraints still apply.\n`;
+  }
   return `\n🌍 CULTURAL GROUNDING — CUISINE OVERRIDE ACTIVE:
 Cuisine: ${cuisine}
 
@@ -1792,7 +1835,8 @@ function buildVarietyPrompt(
   strictMode: boolean = false,
   avoidanceBlock: string = '',
   cuisineGroundingBlock: string = '',
-  measurementSystem: MeasurementSystem = 'imperial'
+  measurementSystem: MeasurementSystem = 'imperial',
+  createDishContract?: import("./createDish/dishContract").CreateDishContract,
 ): string {
   const hasHardCreateDishIntent = cravingInput.includes(
     "[CREATE A DISH — HARD CULINARY INTENT]",
@@ -1821,7 +1865,11 @@ function buildVarietyPrompt(
     omelette:   'ALL 3 options MUST be omelettes. Every option must be egg-based, folded or rolled around a filling. Do NOT generate scrambles, frittatas, or non-omelette formats.',
   };
 
-  const formatLockText = FORMAT_LOCK_DISHES[dishFamily];
+  const formatLockText = createDishContract?.namedFamily === "salad"
+    ? `ALL 3 options MUST be recognizable variations of "${createDishContract.requestedDish}". Preserve the named salad's defining core and composed salad format; do NOT require a leafy-green or grain base solely because the broad family is salad.`
+    : createDishContract?.leafVessel
+      ? `ALL 3 options MUST be lettuce wraps: use actual lettuce leaves as the vessel enclosing the filling, not a tortilla with lettuce garnish.`
+      : FORMAT_LOCK_DISHES[dishFamily];
   const dessertNote = category === "dessert"
     ? `\nCATEGORY LOCK: This is a DESSERT request. ALL 3 options must be desserts. Never generate savory meals, wraps, salads, or non-dessert items.`
     : category === "beverage"
@@ -1844,7 +1892,7 @@ HIERARCHY (follow in this EXACT order):
 3. DISH FAMILY LOCK (non-negotiable)
    The user asked for: "${cravingInput}"
    Treat that request as the food to satisfy, not as inspiration for a different balanced meal.
-   Core dish to stay within: "${dishFamily}"
+    Core dish to stay within: "${createDishContract?.requestedDish ?? dishFamily}" (broad family: "${dishFamily}")
    ALL 3 options must be variations of "${dishFamily}"${hasHardCreateDishIntent ? " while preserving every fixed Create a Dish form/cut, texture, and flavor requirement" : " — different preparations, textures, flavors, or proteins"}.
    Example: "soup" → Chicken Noodle Soup, Lentil Tomato Soup, Creamy Broccoli Soup.
    Example: "cheesecake" → Classic Baked Cheesecake, No-Bake Cheesecake, Cheesecake Parfait.
@@ -1870,6 +1918,7 @@ ${excludeClause}
 
 ═══════════════════════════════════════
 OUTPUT FORMAT — ONLY valid JSON, no markdown:
+The instructions field MUST be an array of ordered strings; each element is one cooking action, not a numbered paragraph.
 ═══════════════════════════════════════
 {
   "options": [
@@ -1877,7 +1926,7 @@ OUTPUT FORMAT — ONLY valid JSON, no markdown:
       "name": "Specific variation name",
       "description": "Appetizing 1-2 sentence description matching the dish and diet",
       "ingredients": [{"name": "ingredient", "quantity": "4", "unit": "oz"}],
-      "instructions": "Full step-by-step instructions as a single paragraph",
+      "instructions": ["Prepare the ingredients.", "Cook and finish the dish."],
       "calories": 400,
       "protein": 10,
       "starchyCarbs": 30,
@@ -1918,7 +1967,8 @@ function buildRecipeVarietyPrompt(
   strictMode: boolean = false,
   avoidanceBlock: string = '',
   cuisineGroundingBlock: string = '',
-  measurementSystem: MeasurementSystem = 'imperial'
+  measurementSystem: MeasurementSystem = 'imperial',
+  createDishContract?: import("./createDish/dishContract").CreateDishContract,
 ): string {
   const hasHardCreateDishIntent = cravingInput.includes(
     "[CREATE A DISH — HARD CULINARY INTENT]",
@@ -1951,7 +2001,7 @@ PRIORITY 2 — ALLERGEN SAFETY & DIET (non-negotiable):
 PRIORITY 3 — DISH VARIETY:
   The user requested: "${cravingInput}"
   Treat that request as the food to satisfy, not as inspiration for a different dish.
-  Core dish family: "${dishFamily}"
+  Core dish: "${createDishContract?.requestedDish ?? dishFamily}" (broad family: "${dishFamily}")
   ${hasHardCreateDishIntent
     ? "Generate 3 distinct variations while preserving every fixed Create a Dish form/cut, texture, and flavor requirement. Vary only unconstrained side pairings, vegetables, garnishes, plating, or other unselected dimensions."
     : `Generate 3 distinct variations using different:
@@ -1963,6 +2013,7 @@ ${excludeClause}
 
 ═══════════════════════════════════════
 OUTPUT FORMAT — ONLY valid JSON, no markdown:
+The instructions field MUST be an array of ordered strings; each element is one cooking action, not a numbered paragraph.
 ═══════════════════════════════════════
 {
   "options": [
@@ -1970,7 +2021,7 @@ OUTPUT FORMAT — ONLY valid JSON, no markdown:
       "name": "Specific recipe name",
       "description": "1-2 sentence appetizing description",
       "ingredients": [{"name": "ingredient", "quantity": "2", "unit": "cup"}],
-      "instructions": "Full step-by-step recipe as a single paragraph",
+      "instructions": ["Prepare the ingredients.", "Cook and finish the dish."],
       "calories": 350,
       "protein": 8,
       "starchyCarbs": 40,
@@ -2019,7 +2070,7 @@ export function mapToUnifiedMeal(opt: any, idx: number, cravingInput: string, va
     name: opt.name || `${cravingInput} Option ${idx + 1}`,
     description: opt.description || `A delicious ${validMealType} inspired by ${cravingInput}`,
     ingredients: normalizeIngredients(opt.ingredients || []),
-    instructions: opt.instructions || "Cook as desired.",
+    instructions: parseGeneratedRecipeSteps(opt.instructions),
     calories: opt.calories || 400,
     protein: opt.protein || 15,
     carbs: totalCarbs,
@@ -2064,6 +2115,7 @@ export async function generateCravingMealOptions(
   /** Clean request text used only for category/dish classification. Generation
    * still receives the fully augmented cravingInput with all safety directives. */
   classificationInput?: string,
+  createDishContract?: import("./createDish/dishContract").CreateDishContract,
 ): Promise<UnifiedMeal[]> {
   const validMealType = normalizeMealType(mealType);
   const cleanClassificationInput = resolveVarietyClassificationInput(
@@ -2168,9 +2220,8 @@ export async function generateCravingMealOptions(
     //   • procedural — preparation, equipment, and forbidden-instruction rules.
     // Both are injected into every generation attempt so Recipe Maker is
     // governed by the same complete Nutrition Life Plan as all other builders.
+    const envelope = await loadGenerationProtocolEnvelope(userId);
     try {
-      const envelope = await loadUserProtocolEnvelope(userId);
-      if (envelope) {
         const effectiveEnvelope = overriddenDietaryIdentities?.length
           ? (() => {
               const ignoredDiets = new Set(overriddenDietaryIdentities.map(value => value.trim().toLowerCase()));
@@ -2201,9 +2252,9 @@ export async function generateCravingMealOptions(
           proceduralBlock = promptBlock.layers.procedural;
           console.log(`[VARIETY ENGINE] Procedural enforcement active for user ${userId} (${effectiveEnvelope.dietaryIdentity.join(', ')})`);
         }
-      }
     } catch (err) {
-      console.warn("[VARIETY ENGINE] Could not load protocol envelope for protocol block:", err);
+      console.warn("[VARIETY ENGINE] Could not resolve protocol block:", err);
+      throw new ProtocolContextUnavailableError();
     }
   }
   if (dietaryRestrictionsOverride && dietaryRestrictionsOverride.length > 0) {
@@ -2360,7 +2411,7 @@ export async function generateCravingMealOptions(
   }
 
   const cuisineGroundingBlock = cuisineOverride && cuisineOverride.trim()
-    ? buildCuisineGroundingBlock(cuisineOverride.trim())
+    ? buildCuisineGroundingBlock(cuisineOverride.trim(), createDishContract)
     : '';
 
   if (cuisineGroundingBlock) {
@@ -2370,8 +2421,8 @@ export async function generateCravingMealOptions(
   /** One attempt at calling AI and parsing result */
   const attempt = async (stricterMode: boolean, violationHint?: string): Promise<any[]> => {
     const prompt = isRecipeMode
-      ? buildRecipeVarietyPrompt(cravingInput, validMealType, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock, cuisineGroundingBlock, varietyMeasurementSystem)
-      : buildVarietyPrompt(cravingInput, validMealType, category, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock, cuisineGroundingBlock, varietyMeasurementSystem);
+      ? buildRecipeVarietyPrompt(cravingInput, validMealType, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock, cuisineGroundingBlock, varietyMeasurementSystem, createDishContract)
+      : buildVarietyPrompt(cravingInput, validMealType, category, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock, cuisineGroundingBlock, varietyMeasurementSystem, createDishContract);
     const stricter = stricterMode
       ? `\n\nSECOND ATTEMPT — STRICT MODE: The previous response drifted from the dish family. You MUST generate 3 options that are clearly recognizable variations of "${dishFamily}". No exceptions.`
       : "";
@@ -2379,13 +2430,16 @@ export async function generateCravingMealOptions(
     // Dish Adaptation Layer: identity anchor + explicit guardrail adaptations
     // prepended so every attempt adapts the dish rather than replacing it.
     const dalBlock = dishDirective?.adaptationBlock ? dishDirective.adaptationBlock + '\n\n' : '';
+    const contractBlock = createDishContract
+      ? (await import("./createDish/dishContract")).buildCreateDishContractPrompt(createDishContract) + '\n\n'
+      : '';
     const response = await openai.chat.completions.create({
       // fastMode (Try 3 More / skipImages path): use gpt-4o-mini — it's ~3x
       // faster and still produces solid variety-card suggestions. The initial
       // image-scan already anchored the dish concept, so full gpt-4o quality
       // isn't needed for subsequent swipes.
       model: fastMode ? "gpt-4o-mini" : "gpt-4o",
-      messages: [{ role: "user", content: dalBlock + (specialtyMedicalBlock ? specialtyMedicalBlock + '\n\n' : '') + (proceduralBlock ? proceduralBlock + '\n\n' : '') + prompt + stricter + hintAddendum }],
+      messages: [{ role: "user", content: contractBlock + dalBlock + (specialtyMedicalBlock ? specialtyMedicalBlock + '\n\n' : '') + (proceduralBlock ? proceduralBlock + '\n\n' : '') + prompt + stricter + hintAddendum }],
       temperature: stricterMode ? 0.6 : 0.85,
       max_tokens: fastMode ? 1500 : 2500,
       response_format: { type: "json_object" },
@@ -2700,8 +2754,8 @@ export async function generateSingleCompliantFallback(
     `The meal must be: ${cravingInput}`,
     `Keep it simple, compliant, and delicious.`,
     ``,
-    `OUTPUT FORMAT — ONLY valid JSON, no markdown fences:`,
-    `{"name":"...","description":"One appetizing sentence.","ingredients":[{"name":"...","quantity":"...","unit":"..."}],"instructions":"Full cooking steps as one paragraph.","calories":400,"protein":30,"starchyCarbs":20,"fibrousCarbs":10,"fat":15,"cookingTime":"25 minutes"}`,
+    `OUTPUT FORMAT — ONLY valid JSON, no markdown fences. Instructions MUST be an array with one cooking action per string:`,
+    `{"name":"...","description":"One appetizing sentence.","ingredients":[{"name":"...","quantity":"...","unit":"..."}],"instructions":["Prepare the ingredients.","Cook and serve the dish."],"calories":400,"protein":30,"starchyCarbs":20,"fibrousCarbs":10,"fat":15,"cookingTime":"25 minutes"}`,
   ].filter(Boolean).join('\n');
 
   try {
@@ -2781,7 +2835,7 @@ export async function generateFridgeRescueUnified(
   // Loaded BEFORE the cache check so cached meals are also post-scanned against
   // the user's CURRENT full protocol (allergies may have changed since caching).
   const _rawFridgeEnvelope = userId
-    ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+    ? await loadGenerationProtocolEnvelope(userId)
     : buildGuestEnvelope();
 
   // Post-generation safety scan applied to every meal this function returns —
@@ -3181,7 +3235,7 @@ async function generateBeverageFromDescription(
   console.log(`🍹 [CREATE-WITH-CHEF/BEVERAGE] "${beverageCategory}" intent detected — routing to beverage pipeline`);
 
   const envelope = userId
-    ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+    ? await loadGenerationProtocolEnvelope(userId)
     : buildGuestEnvelope();
   // PIN allergen override — exclude only the exactly-matching authorized
   // allergen(s) from the PROMPT envelope (exact canonical-key matching via
@@ -3503,7 +3557,7 @@ export async function generateFromDescriptionUnified(
     
     // ── Load protocol envelope (drives all dietary enforcement) ───────────────
     const chefEnvelope = protocolEnvelope ?? (userId
-      ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+      ? await loadGenerationProtocolEnvelope(userId)
       : buildGuestEnvelope());
 
     // Temporary diet override replaces the profile diet for this generation.
@@ -3638,7 +3692,7 @@ TASK: Create a complete ${validMealType} recipe for ${requestedServings} serving
 REQUIREMENTS:
 - Create a delicious, well-balanced meal that matches the user's description
 - Include realistic ingredients with precise quantities
-- Provide detailed step-by-step cooking instructions
+- Provide detailed step-by-step cooking instructions as an array of ordered strings, one cooking action per element (no embedded numbering or combined actions)
 - Include accurate nutritional estimates with SEPARATE carb types
 - Make the recipe achievable for home cooks
 ${starchGuidance}
@@ -3661,7 +3715,7 @@ FORMAT: Return as JSON object:
     {"name": "broccoli florets", "quantity": "2", "unit": "cup"},
     {"name": "olive oil", "quantity": "1", "unit": "tbsp"}
   ],
-  "instructions": "Detailed step-by-step cooking instructions as a single paragraph with numbered steps",
+   "instructions": ["Prepare the ingredients.", "Cook the components.", "Finish and serve."],
   "calories": number (per-serving calories — total recipe = this × ${requestedServings}),
   "protein": number (grams),
   "starchyCarbs": number (grams from starches: rice, pasta, bread, potatoes, grains),
@@ -3906,7 +3960,7 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
         name: culturalNameTransform(mealData.name, chefEnvelope.cuisinePreference ?? undefined),
         description: mealData.description,
         ingredients: normalizeIngredients(mealData.ingredients || []),
-        instructions: mealData.instructions,
+        instructions: parseGeneratedRecipeSteps(mealData.instructions),
         calories: mealData.calories || 400,
         protein: mealData.protein || 25,
         carbs: totalCarbs,
@@ -4280,7 +4334,12 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
               `wild salmon, pumpkin seeds, chickpeas, sweet potato).`;
             continue;
           }
-          console.error(`❌ [THYROID GUARD] Could not resolve violations after ${attemptCount} attempts — serving as-is (safe, hard-blocked ingredient not confirmed)`);
+          console.error(`❌ [THYROID GUARD] Could not resolve hard violations after ${attemptCount} attempts — rejecting`);
+          return {
+            success: false,
+            source: 'error',
+            error: `This meal still conflicts with your Thyroid Support safety rules (${hardViolations.join(', ')}). Please try a different request.`,
+          };
         } else {
           if (thyroidValidation.violations.length > 0) {
             console.log(`🦋 [THYROID GUARD] Passed (${thyroidValidation.violations.length} advisory note(s)): ${thyroidValidation.violations.join(' | ')}`);
@@ -4418,7 +4477,7 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       name: finalMealData.name,
       description: finalMealData.description,
       ingredients: normalizeIngredients(finalMealData.ingredients || []),
-      instructions: finalMealData.instructions,
+      instructions: parseGeneratedRecipeSteps(finalMealData.instructions),
       calories: finalMealData.calories || 400,
       protein: finalMealData.protein || 25,
       carbs: finalMealData.totalCarbs,
@@ -4499,7 +4558,7 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
     // ── Post-scan the deterministic fallback (full envelope + PIN override) ──
     // The resilience path must never bypass safety enforcement.
     const _chefFallbackEnvelope = protocolEnvelope ?? (userId
-      ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+      ? await loadGenerationProtocolEnvelope(userId)
       : buildGuestEnvelope());
     const _chefFallbackScan = scanGeneratedOutput(fallbackMeal, _chefFallbackEnvelope, {
       generatorName: 'create_with_chef_fallback',
@@ -4577,7 +4636,7 @@ export async function generateSnackFromCravingUnified(
     
     // ── Load protocol envelope (drives all dietary enforcement) ───────────────
     const snackEnvelope = protocolEnvelope ?? (userId
-      ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+      ? await loadGenerationProtocolEnvelope(userId)
       : buildGuestEnvelope());
 
     // PIN allergen override — exclude only the exactly-matching authorized
@@ -4625,7 +4684,7 @@ SNACK PRODUCT DEFINITION:
 REQUIREMENTS:
 - Create a satisfying individual eating occasion that addresses the request
 - Include realistic ingredients with precise quantities
-- Provide clear preparation instructions (even if simple)
+- Provide clear preparation instructions as an array of ordered strings, one action per element (even for simple snacks)
 - Include accurate nutritional estimates with SEPARATE carb types
 - Keep preparation practical for the requested food; do not force a complex dessert under an arbitrary time limit
 
@@ -4656,7 +4715,7 @@ FORMAT: Return as JSON object:
     {"name": "mixed berries", "quantity": "1/2", "unit": "cup"},
     {"name": "almonds", "quantity": "1", "unit": "oz"}
   ],
-  "instructions": "Clear step-by-step preparation instructions as a single paragraph with numbered steps. Even simple snacks need instructions.",
+  "instructions": ["Prepare the ingredients.", "Assemble and serve the snack."],
   "calories": number (realistic for the food and supplied person-specific context),
   "protein": number (grams),
   "starchyCarbs": number (grams from starches: crackers, oats, bread, granola),
@@ -4751,7 +4810,7 @@ Create the personalized snack for: "${cravingDescription}"`;
         name: snackData.name,
         description: snackData.description,
         ingredients: normalizeIngredients(snackData.ingredients || []),
-        instructions: snackData.instructions,
+        instructions: parseGeneratedRecipeSteps(snackData.instructions),
         calories: snackData.calories || 150,
         protein: snackData.protein || 8,
         carbs: snackTotalCarbs,
@@ -5000,7 +5059,7 @@ Create the personalized snack for: "${cravingDescription}"`;
       name: finalSnackData.name,
       description: finalSnackData.description,
       ingredients: snackIngredients,
-      instructions: finalSnackData.instructions,
+      instructions: parseGeneratedRecipeSteps(finalSnackData.instructions),
       calories: finalSnackData.calories || 150,
       protein: finalSnackData.protein || 8,
       carbs: finalSnackData.snackTotalCarbs,
@@ -5086,7 +5145,7 @@ Create the personalized snack for: "${cravingDescription}"`;
     // ── Post-scan the deterministic fallback (full envelope + PIN override) ──
     // The resilience path must never bypass safety enforcement.
     const _snackFallbackEnvelope = protocolEnvelope ?? (userId
-      ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+      ? await loadGenerationProtocolEnvelope(userId)
       : buildGuestEnvelope());
     const _snackFallbackScan = scanGeneratedOutput(fallbackSnack, _snackFallbackEnvelope, {
       generatorName: 'snack_creator_fallback',
@@ -5120,10 +5179,13 @@ export async function generateMealUnified(
 
   // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
   // This MUST run before ANY AI generation to protect users with allergies
-  // Skip if safety was already checked at route level (e.g., with override token)
+  // Skip the duplicate intent check if the route already performed it.
   if (request.userId && !request.safetyAlreadyChecked) {
     const inputText = Array.isArray(request.input) ? request.input.join(' ') : request.input;
-    const safetyCheck = await enforceSafetyProfile(request.userId, inputText, `unified-${request.type}`, { correlationId: request.correlationId });
+    const safetyCheck = await enforceSafetyProfile(request.userId,
+      { kind: 'food_intent', requestedDish: Array.isArray(request.input) ? '' : inputText,
+        explicitIngredients: Array.isArray(request.input) ? request.input : [] },
+      `unified-${request.type}`, { correlationId: request.correlationId });
     
     if (safetyCheck.result === 'BLOCKED') {
       console.log(`🚫 [SAFETY] Blocked request for user ${request.userId}: ${safetyCheck.blockedTerms.join(', ')}`);
@@ -5323,11 +5385,18 @@ export async function generateMealUnified(
     }
   }
 
-  // 🚨 POST-GENERATION VALIDATION: Scan output for allergens that slipped through
-  // Skip if safety was already checked with override token (user acknowledged the risk)
-  if (request.userId && result.success && !request.safetyAlreadyChecked) {
+  // A completed precheck never substitutes for inspection of the actual recipe.
+  if (request.userId && result.success) {
     const { loadSafetyProfile, validateGeneratedMeal: validateMeal } = await import('./safetyProfileService');
-    const profile = await loadSafetyProfile(request.userId);
+    const loadedProfile = await loadSafetyProfile(request.userId);
+    if (!loadedProfile) {
+      return { success: false, source: 'error', error: 'Your food safety profile could not be verified.' };
+    }
+    const profile = {
+      ...loadedProfile,
+      allergies: loadedProfile.allergies.filter(allergy =>
+        !request.overriddenAllergens?.some(authorized => allergenKeysMatch(allergy, authorized))),
+    };
     
     if (profile) {
       // Helper to validate a single meal

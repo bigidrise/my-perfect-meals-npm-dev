@@ -124,6 +124,8 @@ export function normalizeForDietaryScan(text: string): string {
  * so they remain available in the starch lane for macro planning.
  */
 export const AVOIDANCE_EXPANSION: Record<string, string[]> = {
+  peanuts: ["peanut", "peanuts", "peanut butter", "peanut oil"],
+  peanut: ["peanut", "peanuts", "peanut butter", "peanut oil"],
   vegetables: [
     "broccoli", "spinach", "kale", "asparagus", "zucchini", "green beans",
     "brussels sprouts", "cauliflower", "cabbage", "arugula", "bok choy",
@@ -1457,7 +1459,9 @@ export function buildAllergenAdaptPromptBlock(allergens: string[], dishName?: st
     const key = allergen.toLowerCase();
     const expanded = ALLERGEN_EXPANSION[key];
     const derivativeTerms = expanded
-      ? Array.from(new Set(expanded)).slice(0, 20).join(", ")
+      ? Array.from(new Set(expanded))
+          .filter(term => !ADAPTABLE_DISH_NAME_TERMS.has(term.toLowerCase()))
+          .slice(0, 20).join(", ")
       : allergen;
     lines.push(`PROHIBITED ALLERGEN — ${allergen.toUpperCase()}: ${derivativeTerms}`);
   }
@@ -1483,6 +1487,21 @@ export function buildAllergenAdaptPromptBlock(allergens: string[], dishName?: st
   );
 
   return lines.join("\n");
+}
+
+/** Negated exclusions are not evidence that the ingredient was added. Inspect
+ * each occurrence independently so "without shrimp; add shrimp paste" still fails. */
+export function hasAffirmativeFoodTerm(text: string, term: string): boolean {
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const occurrences = new RegExp(`\\b${escaped}\\b`, "gi");
+  for (const match of text.matchAll(occurrences)) {
+    const before = text.slice(Math.max(0, (match.index ?? 0) - 32), match.index).toLowerCase();
+    const after = text.slice((match.index ?? 0) + match[0].length, (match.index ?? 0) + match[0].length + 12).toLowerCase();
+    if (/(?:^|\b)(?:no|without|free of|exclude|avoid|do not (?:add|use|include)|never (?:add|use|include))\s+$/.test(before) ||
+        /^(?:[- ]free)\b/.test(after)) continue;
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -2105,7 +2124,7 @@ export function scanMealsForAllergenViolations<T extends AllergenScanMeal>(
         } else if (!isNutKey && termLower === "butter") {
           textToScan = nutButterMasked;
         }
-        if (regexes[i].test(textToScan)) {
+        if (regexes[i].test(textToScan) && hasAffirmativeFoodTerm(textToScan, term)) {
           hits.push(term);
         }
       }

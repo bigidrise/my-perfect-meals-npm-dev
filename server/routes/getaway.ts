@@ -58,6 +58,11 @@ router.post("/coach", async (req, res) => {
       nutritionContext = await getActiveNutritionContext(userId);
     } catch (e) {
       console.warn("[Getaway] Could not load user profile:", e);
+      return res.status(503).json({
+        code: "PROTOCOL_CONTEXT_UNRESOLVED",
+        error: "Your food safety information could not be verified. No food was generated; please retry.",
+        retryable: true,
+      });
     }
 
     const profileLines: string[] = [];

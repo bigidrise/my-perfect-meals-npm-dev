@@ -1,7 +1,7 @@
 // services/weeklyMealPlanningServiceA.ts
 import { db } from "../db";
 import { eq, sql } from "drizzle-orm";
-import { defaultRules, fitsBaseSafety, rejectReason, scoreTemplateForUser, enforceWeeklyCaps, meetsVariety, type PlanParams } from "./rulesEngine";
+import { defaultRules, fitsBaseSafety, rejectReason, scoreTemplateForUser, selectWeeklyTemplate, enforceWeeklyCaps, meetsVariety, type PlanParams } from "./rulesEngine";
 import { deriveCarbSplit } from "./generators/macros/carbSplit";
 
 // Fallback templates when database is not available - expanded for variety
@@ -278,7 +278,8 @@ export const weeklyMealPlanningServiceA = {
     }
 
     // Load templates (fallback or DB). Normalize type.
-    const all = templates.map(t => ({ ...t, type: normalizeType(t) }));
+    const all = templates.map(t => ({ ...t, type: normalizeType(t) }))
+      .filter(t => !params.templateEligibility || params.templateEligibility(t));
 
     // Add detailed debugging about rejection reasons
     const reasons: Record<string, number> = {};
@@ -318,20 +319,10 @@ export const weeklyMealPlanningServiceA = {
     const safe: any[] = [...byType.breakfast, ...byType.lunch, ...byType.dinner, ...byType.snack];
     const addCarbSplit = (t: any) => ({ ...t, imageUrl: `/meal-images/${t.slug}.jpg` });
     
-    // Smart picker that avoids recent selections
-    function sampleNoRecent<T extends { slug: string }>(
-      pool: T[],
-      recent: Set<string>,
-      fallbackLimit = 6
-    ) {
-      if (!pool.length) throw new Error("Empty pool");
-      const candidates = pool
-        .filter(t => !recent.has(t.slug))
-        .sort(() => Math.random() - 0.5)
-        .slice(0, fallbackLimit);
-      const pickFrom = candidates.length ? candidates : pool;
-      return pickFrom[Math.floor(Math.random() * pickFrom.length)];
-    }
+    // Pools are already safety-filtered and ranked. Preserve that ranking
+    // while cycling away from recently selected meals.
+    const sampleNoRecent = (pool: any[], recent: Set<string>) =>
+      selectWeeklyTemplate(pool, recent, params);
 
     for (let w = 0; w < params.weeks; w++) {
       const weekDays: any[] = [];
@@ -376,7 +367,7 @@ export const weeklyMealPlanningServiceA = {
         // Add snacks - snacks don't get carb split (user requirement: only full meals)
         for (let s = 0; s < (params.snacksPerDay ?? 0); s++) {
           // snacks may repeat less critically; still try to vary
-          const t = sampleNoRecent(byType.snack.length ? byType.snack : safe.filter(x => x.type === "snack"), recent, 10);
+          const t = sampleNoRecent(byType.snack.length ? byType.snack : safe.filter(x => x.type === "snack"), recent);
           recent.add(t.slug);
           dayMeals.push({ ...t, imageUrl: `/meal-images/${t.slug}.jpg` });
         }

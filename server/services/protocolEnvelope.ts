@@ -34,12 +34,14 @@
  */
 
 import { db } from "../db";
+import { buildLowCarbSourceGuidance } from "../../shared/carbSourcePolicy";
 import { users } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import {
   AVOIDANCE_EXPANSION,
   RESTRICTION_EXPANSION,
   scanForHiddenDietaryViolations,
+  violatesDietaryConstraints,
   ALLERGEN_EXPANSION,
   allergenKeysMatch,
   classifyKosherMealCategory,
@@ -58,6 +60,9 @@ import {
   type GlucoseState,
 } from "./diabeticContextService";
 import { buildUniversalConditionGuidance } from "./universalMedicalGuidance";
+import { readDevelopmentPersonalFoodSupports } from "./healthProtocols/developmentFoodSupports";
+import { resolveCurrentGLP1MealAuthority, currentGLP1AuthorityEnabled } from "./glp1/currentMealAuthority";
+import { scanClinicalFoodSafety } from "./healthProtocols/clinicalOutputChecks";
 import { validateDishIdentity } from "./dishAdaptation/dishIdentityValidator";
 import { deriveCompPrepStatus } from "./protocol/competitionPrepDateEngine";
 import { sanitizeIdentifiers } from "./promptSanitizer";
@@ -353,25 +358,25 @@ const PROTOCOL_PROCEDURE_MAP: Record<string, ProtocolProcedureRules> = {
 
   low_carb: {
     preparationRules: [
-      "Reduce carbohydrates significantly — avoid white bread, white rice, regular pasta, pastries, and refined grains",
+      buildLowCarbSourceGuidance(),
       "Do not use added sugar, sugary sauces, or sweetened condiments",
       "Do not use corn syrup, honey glaze, or sugar-based marinades",
-      "Favor protein, healthy fats, and non-starchy vegetables as the bulk of the dish",
-      "Small amounts of whole grains (quinoa, oats, legumes) are acceptable; refined starches are not",
+      "Favor protein and non-starchy vegetables without reducing the person's established total carbohydrate target",
+      "Adapt a requested starch source, sauce, or portion where needed; permitted starchy/concentrated sources remain part of the day-level allocation",
     ],
     storageRules: [],
     equipmentRules: [],
     forbiddenInstructions: [
       "serve with white rice",
-      "serve with pasta",
-      "serve with bread",
+      "serve with regular pasta",
+      "serve with white bread",
       "add sugar",
       "add corn syrup",
       "serve with a roll",
       "add croutons",
     ],
     requiredInstructionNotes: [
-      "Keep the dish low in refined carbohydrates — replace starchy sides with non-starchy vegetables or salad",
+      "Choose carbohydrate sources to support the day-level allocation; keep non-starchy vegetables distinct from dietary fiber grams",
     ],
     crossContaminationRules: [],
   },
@@ -418,7 +423,8 @@ export function deriveProcedureRules(dietaryIdentity: string[]): ProtocolProcedu
 
   for (const identity of dietaryIdentity) {
     const key = identity.trim().toLowerCase();
-    const rules = PROTOCOL_PROCEDURE_MAP[key];
+    const rules = PROTOCOL_PROCEDURE_MAP[key] ??
+      (key.replace(/[- ]+/g, "_") === "low_carb" ? PROTOCOL_PROCEDURE_MAP.low_carb : undefined);
     if (!rules) continue;
 
     for (const field of Object.keys(merged) as (keyof ProtocolProcedureRules)[]) {
@@ -443,6 +449,14 @@ export function deriveProcedureRules(dietaryIdentity: string[]): ProtocolProcedu
  */
 export interface UserProtocolEnvelope {
   userId: string;
+  /** Subject-owned Alpha-gal clinical answers, not a client-supplied badge. */
+  alphaGalContext?: {
+    active: boolean;
+    dairyTolerance: "yes" | "no" | "unsure";
+    gelatinRestriction: "yes" | "no" | "unsure";
+    severeReactionHistory: "yes" | "no" | "unsure";
+    profileComplete: boolean;
+  } | null;
 
   /** Tier 1 — Dietary identity: the outer wall.
    * Examples: vegan, vegetarian, pescatarian, keto, paleo, Mediterranean,
@@ -940,8 +954,8 @@ export async function loadUserProtocolEnvelope(
           .where(eq(householdProfiles.id, householdProfileId ?? (user as any).activeHouseholdProfileId))
           .limit(1);
 
-        if (householdProfileId && (!hProfile || hProfile.ownerUserId !== userId)) {
-          console.warn(`[ProtocolEnvelope] Explicit household profile is not owned by user ${userId}`);
+        if (!hProfile || hProfile.ownerUserId !== userId) {
+          console.warn(`[ProtocolEnvelope] Household profile is unavailable or not owned by user ${userId}`);
           return null;
         }
         if (hProfile && hProfile.ownerUserId === userId) {
@@ -996,11 +1010,8 @@ export async function loadUserProtocolEnvelope(
           }
         }
       } catch (hErr) {
-        if (householdProfileId) {
-          console.error("[ProtocolEnvelope] Explicit household profile resolution failed:", hErr);
-          return null;
-        }
-        console.warn("[ProtocolEnvelope] Could not load household profile, falling back to owner:", hErr);
+        console.error("[ProtocolEnvelope] Household profile resolution failed:", hErr);
+        return null;
       }
     }
 
@@ -1024,8 +1035,31 @@ export async function loadUserProtocolEnvelope(
       ((user as any).medicalConditions as string[] | null) ||
       [];
     const GLP1_MC_KEYS = new Set(["glp1", "glp-1", "semaglutide", "ozempic", "wegovy", "tirzepatide", "mounjaro", "zepbound", "rybelsus", "liraglutide", "saxenda", "victoza", "dulaglutide", "trulicity", "exenatide", "byetta", "bydureon"]);
-    const medicalConditionsGlp1 = _activeMedicalConditions.filter((c: string) => GLP1_MC_KEYS.has(c.toLowerCase()));
-    const mergedHealthConditions = [...new Set([...healthConditions, ...specialtyConditionsArr, ...medicalConditionsGlp1])];
+    const glp1Authority = await resolveCurrentGLP1MealAuthority(
+      user as typeof user & { id: string },
+      !!(householdProfileId || (user as any).activeHouseholdProfileId),
+    );
+    const medicalConditionsGlp1 = currentGLP1AuthorityEnabled()
+      ? (glp1Authority.length > 0 ? ["glp1"] : [])
+      : _activeMedicalConditions.filter((c: string) => GLP1_MC_KEYS.has(c.toLowerCase()));
+    // Phase 2B: only an explicitly confirmed, active personal source may add
+    // food guidance. Never use the old unreviewed app preference or another
+    // household member's support choice as the nutrition subject's context.
+    const personalSupports = householdProfileId || (user as any).activeHouseholdProfileId
+      ? new Set()
+      : await readDevelopmentPersonalFoodSupports(userId);
+    const mergedHealthConditions = [...new Set([
+      ...(currentGLP1AuthorityEnabled()
+        ? healthConditions.filter((c) => !GLP1_MC_KEYS.has(c.toLowerCase()))
+        : healthConditions),
+      ...(currentGLP1AuthorityEnabled()
+        ? specialtyConditionsArr.filter((c) => !GLP1_MC_KEYS.has(c.toLowerCase()))
+        : specialtyConditionsArr),
+      ...medicalConditionsGlp1,
+      ...(personalSupports.has("anti_inflammatory") &&
+        user.selectedMealBuilder !== "anti_inflammatory" &&
+        user.selectedMealBuilder !== "anti-inflammatory" ? ["anti-inflammatory"] : []),
+    ])];
     const dislikedFoods: string[] = (user.dislikedFoods as string[]) || [];
     const avoidedFoods: string[] = (user.avoidedFoods as string[]) || [];
     const likedFoods: string[] = (user.likedFoods as string[]) || [];
@@ -1067,6 +1101,7 @@ export async function loadUserProtocolEnvelope(
         diabeticGlucoseState = diabCtx.latestGlucose?.state ?? null;
       } catch (err) {
         console.warn("[ProtocolEnvelope] Could not load diabetic context:", err);
+        return null;
       }
     }
 
@@ -1353,6 +1388,7 @@ export async function loadUserProtocolEnvelope(
     const conditionGuidanceBlocks = await buildUniversalConditionGuidance({
       userId: householdProfileId ?? userId,
       healthConditions: mergedHealthConditions,
+      personalGlp1NutritionSupport: personalSupports.has("glp1") && user.selectedMealBuilder !== "glp1",
       oncologySupportContext,
       thyroidSupportContext: thyroidSupport
         ? {
@@ -1384,8 +1420,8 @@ export async function loadUserProtocolEnvelope(
 
     // ── GLP-1 DAILY BEHAVIORAL TOLERANCE ────────────────────────────────────
     // Resolved only for users who have a GLP-1 / metabolic medication in their
-    // medical conditions. Falls back to null on any failure so the envelope
-    // never crashes due to missing check-in data.
+    // medical conditions. A failed clinical read must not look like an
+    // uneventful day with no symptoms.
     // The resolved guidance string is pushed into conditionGuidanceBlocks so
     // every generator automatically receives today's tolerance state without
     // any per-generator wiring.
@@ -1398,6 +1434,7 @@ export async function loadUserProtocolEnvelope(
         conditionGuidanceBlocks.push(buildGlp1ToleranceBlock(glp1DailyTolerance));
       } catch (err) {
         console.warn("[ProtocolEnvelope] GLP-1 daily tolerance resolution failed:", err);
+        return null;
       }
     }
 
@@ -1470,8 +1507,8 @@ export async function loadUserProtocolEnvelope(
         );
       }
     } catch (err) {
-      // Never crash envelope loading due to intervention query failure
       console.error(`[ProtocolEnvelope] Failed to load provider interventions for user ${userId}:`, err);
+      return null;
     }
 
     const envelope: any = {
@@ -1502,6 +1539,7 @@ export async function loadUserProtocolEnvelope(
       performanceControlMode: (((user as any).performanceControlMode as string | null) ?? "self_guided") as "self_guided"|"coach_controlled",
       pregnancySupport,
       pregnancySupportContext: pregnancySupportCtx,
+      alphaGalContext: alphaGalCtx,
       carbCycleContext,
       performanceNutrition,
       performanceContext: performanceNutritionCtx,
@@ -1609,6 +1647,30 @@ function buildGlp1ToleranceBlock(t: DailyMedicationTolerance): string {
  * Build an empty envelope for unauthenticated or guest contexts.
  * Generators should use this instead of skipping enforcement entirely.
  */
+export class ProtocolContextUnavailableError extends Error {
+  readonly status = 503;
+  readonly code = "PROTOCOL_CONTEXT_UNRESOLVED";
+  constructor() {
+    super("Your food safety information could not be verified. No food was generated; please retry.");
+    this.name = "ProtocolContextUnavailableError";
+  }
+}
+
+/** Only a genuinely anonymous request may use guest authority. */
+export async function loadGenerationProtocolEnvelope(
+  userId?: string | null,
+): Promise<UserProtocolEnvelope> {
+  if (!userId) return buildGuestEnvelope();
+  let envelope: UserProtocolEnvelope | null;
+  try {
+    envelope = await loadUserProtocolEnvelope(userId);
+  } catch {
+    throw new ProtocolContextUnavailableError();
+  }
+  if (!envelope) throw new ProtocolContextUnavailableError();
+  return envelope;
+}
+
 export function buildGuestEnvelope(): UserProtocolEnvelope {
   return {
     userId: "guest",
@@ -2322,6 +2384,23 @@ export function scanGeneratedOutput(
     envelope.avoidances,
     { skipMeatDairyCombinationCheck: context?.skipAdaptableConflicts === true }
   );
+  // The hidden-term scanner catches derivatives but intentionally does not
+  // include obvious animal foods. The outer dietary wall still has to reject
+  // chicken/beef/fish in a vegan or vegetarian generated result.
+  for (const diet of envelope.dietaryIdentity) {
+    const normalizedDiet = diet.trim().toLowerCase();
+    if (!["vegan", "vegetarian", "pescatarian"].includes(normalizedDiet)) continue;
+    const direct = violatesDietaryConstraints(ingredientText, [normalizedDiet]);
+    for (const term of direct.reasons) {
+      if (!rawIngredientViolations.some(v => v.term.toLowerCase() === term.toLowerCase())) {
+        rawIngredientViolations.push({
+          term,
+          category: `dietary:${normalizedDiet}`,
+          reason: `"${term}" conflicts with the active ${normalizedDiet} dietary identity`,
+        });
+      }
+    }
+  }
 
   // ── Allergen derivative scan (universal) ─────────────────────────────────
   // Scan envelope.allergies against ALLERGEN_EXPANSION so allergen leaks are
@@ -2431,6 +2510,7 @@ export function scanGeneratedOutput(
       reason: `${wholeFoodDecision.reason} Preserve the dish identity and required nutrition purpose while using a stronger practical form.`,
     });
   }
+  ingredientViolations.push(...scanClinicalFoodSafety(meal, envelope));
 
   // ── Instruction-level scan ────────────────────────────────────────────────
   const instructionViolations = scanInstructionsForViolations(
@@ -2686,7 +2766,7 @@ function buildWhyThisComplies(
       return `${name} contains no land meat or poultry. Seafood and plant-based ingredients are used. Vegetable or seafood broths replace meat stocks.`;
 
     case "low_carb":
-      return `${name} is low-carbohydrate. Refined grains, sugary sauces, white bread, and regular pasta are excluded. Protein and healthy fats anchor the dish.`;
+      return `${name} follows the Low Carb carbohydrate-source policy without lowering the person's calculated total carbohydrate target. Non-starchy vegetables remain appropriate; concentrated starch and added sugar are handled separately.`;
 
     case "keto":
       return `${name} is low-carbohydrate and fits standard keto targets. It prioritizes protein and healthy fats. Avoid adding any high-carb sauces, thickeners, or accompaniments.`;

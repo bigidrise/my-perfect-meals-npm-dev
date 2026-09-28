@@ -119,6 +119,16 @@ export async function updateUserSubscription(opts: {
   try {
     const result = await db.transaction(async (tx) => {
       if (stripeCustomerId || stripeSubscriptionId) {
+        const [current] = await tx.select({
+          stripeCustomerId: users.stripeCustomerId,
+          stripeSubscriptionId: users.stripeSubscriptionId,
+        }).from(users).where(eq(users.id, verifiedUser.id)).limit(1);
+        if ((stripeCustomerId && current?.stripeCustomerId &&
+             current.stripeCustomerId !== stripeCustomerId) ||
+            (stripeSubscriptionId && current?.stripeSubscriptionId &&
+             current.stripeSubscriptionId !== stripeSubscriptionId)) {
+          throw new StripeIdentityOwnershipConflictError();
+        }
         await claimStripeIdentityOwnership(tx, {
           ownerUserId: verifiedUser.id,
           stripeCustomerId,
@@ -151,11 +161,33 @@ export async function updateUserSubscription(opts: {
         }
       }
 
-      return tx
+      const updated = await tx
         .update(users)
         .set(updateFields as any)
-        .where(ordering ? and(eq(users.id, verifiedUser.id), ordering) : eq(users.id, verifiedUser.id))
+        .where(and(
+          eq(users.id, verifiedUser.id),
+          ...(ordering ? [ordering] : []),
+          ...(stripeCustomerId
+            ? [or(isNull(users.stripeCustomerId), eq(users.stripeCustomerId, stripeCustomerId))]
+            : []),
+          ...(stripeSubscriptionId
+            ? [or(isNull(users.stripeSubscriptionId), eq(users.stripeSubscriptionId, stripeSubscriptionId))]
+            : []),
+        ))
         .returning({ id: users.id });
+      if (!updated.length && (stripeCustomerId || stripeSubscriptionId)) {
+        const [latest] = await tx.select({
+          stripeCustomerId: users.stripeCustomerId,
+          stripeSubscriptionId: users.stripeSubscriptionId,
+        }).from(users).where(eq(users.id, verifiedUser.id)).limit(1);
+        if ((stripeCustomerId && latest?.stripeCustomerId &&
+             latest.stripeCustomerId !== stripeCustomerId) ||
+            (stripeSubscriptionId && latest?.stripeSubscriptionId &&
+             latest.stripeSubscriptionId !== stripeSubscriptionId)) {
+          throw new StripeIdentityOwnershipConflictError();
+        }
+      }
+      return updated;
     });
 
     console.log(`✅ [subscription] Activated user ${userId} on plan ${lookupKey} — ${entitlements.length} entitlements`);
@@ -183,6 +215,9 @@ export async function cancelUserSubscription(
   mutation?: SubscriptionMutationContext,
   storeAsPersonalPlan = true,
 ) {
+  if (!stripeSubscriptionId) {
+    return { updated: false, reason: "AMBIGUOUS_OR_NOT_FOUND" as const, user: null };
+  }
   const user = await resolveSubscriptionUser(stripeCustomerId, stripeSubscriptionId);
   if (!user) return { updated: false, reason: "AMBIGUOUS_OR_NOT_FOUND" as const, user: null };
 
@@ -225,7 +260,12 @@ export async function cancelUserSubscription(
         stripeEntitlementSource: mutation.source,
       } : {}),
     } as any)
-    .where(ordering ? and(eq(users.id, user.id), ordering) : eq(users.id, user.id))
+    .where(and(
+      eq(users.id, user.id),
+      eq(users.stripeCustomerId, stripeCustomerId),
+      eq(users.stripeSubscriptionId, stripeSubscriptionId),
+      ...(ordering ? [ordering] : []),
+    ))
     .returning({ id: users.id });
 
   console.log(`⚠️ [subscription] Cancelled subscription for Stripe customer ${stripeCustomerId} — entitlements cleared`);

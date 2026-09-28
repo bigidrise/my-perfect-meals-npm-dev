@@ -19,6 +19,7 @@ import {
 import { db } from "../../db";
 import { derivePreferenceProfile } from "../behavioralMemoryService";
 import { resolveDailyNutritionState } from "../nutritionStateService";
+import { resolveCurrentGLP1MealAuthority } from "../glp1/currentMealAuthority";
 import { resolveFlavorCompatibility } from "./flavorCompatibility";
 import {
   claimAdvisoryOverrideToken,
@@ -216,6 +217,9 @@ export async function resolveHumanFoodContext(
       foodsIEnjoy: users.foodsIEnjoy,
       foodInclusionPriorities: users.foodInclusionPriorities,
       healthConditions: users.healthConditions,
+      selectedMealBuilder: users.selectedMealBuilder,
+      medicalConditions: users.medicalConditions,
+      specialtyConditions: users.specialtyConditions,
       palateSpiceTolerance: users.palateSpiceTolerance,
       palateSeasoningIntensity: users.palateSeasoningIntensity,
       palateFlavorStyle: users.palateFlavorStyle,
@@ -414,6 +418,13 @@ export async function resolveHumanFoodContext(
   if (!effectiveDiet.length) gaps.push("diet.preference");
   if (status === "resolved" && gaps.length) status = "resolved_with_gaps";
 
+  const glp1MealAuthorityActive = (await resolveCurrentGLP1MealAuthority({
+    id: input.subjectUserId,
+    selectedMealBuilder: profile.selectedMealBuilder,
+    medicalConditions: profile.medicalConditions,
+    specialtyConditions: profile.specialtyConditions,
+    activeHouseholdProfileId: userProfile?.activeHouseholdProfileId,
+  }, !userProfile || !!userProfile.activeHouseholdProfileId)).length > 0;
   const authorization = resolveAdvisoryAuthorization(input);
   const base: Omit<HumanFoodContext, "internalFingerprint"> = {
     version: HUMAN_FOOD_CONTEXT_VERSION,
@@ -442,6 +453,7 @@ export async function resolveHumanFoodContext(
       avoidedFoods: profile.avoidedFoods ?? [],
       dislikedFoods: profile.dislikedFoods ?? [],
       healthConditions: profile.healthConditions ?? [],
+      glp1MealAuthorityActive,
     },
     authorization,
     nutrition,

@@ -199,8 +199,17 @@ jest.mock("../services/glp1/resolveGLP1GlobalContext", () => ({
 
 // ── Mock: savedGroceryCompliance ───────────────────────────────────────────────
 jest.mock("../services/savedGroceryCompliance", () => ({
-  filterSavedGroceriesForCompliance: jest.fn(() => ({ compliant: [], excluded: [] })),
-  buildSavedGroceriesPromptBlock:    jest.fn(() => ""),
+  ...jest.requireActual("../services/savedGroceryCompliance"),
+}));
+
+const mockBlockedSavedIds = new Set<string>();
+jest.mock("../services/savedGroceryRevalidation", () => ({
+  revalidateSavedGroceriesForUser: jest.fn(async (_userId: string, rows: Array<{ id: string }>) =>
+    rows.map((row) => ({
+      id: row.id,
+      status: mockBlockedSavedIds.has(row.id) ? "blocked" : "approved",
+    })),
+  ),
 }));
 
 // ── Mock: mealCardFinalizer (uses @replit/object-storage — ESM) ───────────────
@@ -308,6 +317,7 @@ function resetAll() {
   openAIResponseQueue.length = 0;
   mockDbUserRows.length = 0;
   mockDbSgRows.length = 0;
+  mockBlockedSavedIds.clear();
   mockGlp1Context = { isActive: false, resolvedTargets: null };
   activeEnvelope = makeEnvelope();
   scanGeneratedOutputMock.mockClear();
@@ -413,6 +423,16 @@ describe("POST /api/grocery-coach/swap-ingredient — five-item test matrix", ()
 
   beforeEach(() => {
     resetAll();
+  });
+
+  test("fails closed when GLP-1 status cannot be resolved", async () => {
+    mockResolveGLP1.mockRejectedValueOnce(new Error("resolver unavailable"));
+    const response = await request(app)
+      .post("/api/grocery-coach/swap-ingredient")
+      .send(swapBody("brown rice"));
+    expect(response.status).toBe(503);
+    expect(response.body.retryable).toBe(true);
+    expect(capturedCalls).toHaveLength(0);
   });
 
   // ── B.1  Chicken breast → proteins (not chicken variations) ────────────────
@@ -1105,6 +1125,23 @@ describe("POST /api/grocery-coach/swap-ingredient — five-item test matrix", ()
 
   // ── B.11 savedOption — saved grocery favorites ────────────────────────────
   describe("savedOption — saved grocery favorites", () => {
+    test("authoritatively blocked saved items cannot be offered even when the model requests them", async () => {
+      mockDbSgRows.push({
+        id: "blocked-turkey", productName: "Turkey breast", brand: "Applegate",
+        category: "Meat", nutritionJson: { calories: 120, protein: 26, fat: 1, carbs: 0 },
+      });
+      mockBlockedSavedIds.add("blocked-turkey");
+      openAIResponseQueue.push(() => ({
+        coachSuggestion: { item: "Cod fillet", reason: "Lean protein." },
+        alternatives: [],
+        savedOption: { item: "Turkey breast", reason: "Saved product." },
+      }));
+      const response = await request(app)
+        .post("/api/grocery-coach/swap-ingredient")
+        .send(swapBody("chicken breast"));
+      expect(response.status).toBe(200);
+      expect(response.body.savedOption).toBeNull();
+    });
     // ── B.11.0  System prompt injection — saved product name reaches AI ───────
     // This is the foundational guard: if the injection at groceryCoach.ts line 718
     // is ever silently dropped, the AI can never return a savedOption from real

@@ -42,6 +42,7 @@ import {
 } from "./protocol/performanceProtocolResolver";
 import { getTierForLookupKey } from "../../shared/planFeatures";
 import { getExecutableRuleValue } from "./glp1/ruleRegistry";
+import { resolveCurrentGLP1MealAuthority } from "./glp1/currentMealAuthority";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -163,12 +164,7 @@ export async function resolveDailyNutritionPrescription(
   // Applied BEFORE Performance so Performance modifiers operate on the
   // GLP-1-adjusted baseline, never on the raw Macro Calculator values.
   // Design rule: Performance must not bypass GLP-1 clinical constraints.
-  const specialtyConditions = Array.isArray(user.specialtyConditions)
-    ? (user.specialtyConditions as string[]) : [];
-  const isGLP1Active =
-    specialtyConditions.includes("glp1") ||
-    (Array.isArray(user.medicalConditions) &&
-      (user.medicalConditions as string[]).some((c) => c === "glp1" || c === "glp-1"));
+  const isGLP1Active = (await resolveCurrentGLP1MealAuthority(user)).length > 0;
 
   let glp1DailyProteinFloor: number | null = null;
   let glp1DailyFatCeiling: number | null = null;

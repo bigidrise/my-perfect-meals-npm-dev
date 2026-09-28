@@ -1,4 +1,5 @@
 import { and, eq } from "drizzle-orm";
+import { ZodError } from "zod";
 import { householdProfiles, users } from "@shared/schema";
 import { oneTouchDirectionSchema, type OneTouchDirection, type OneTouchRequest } from "@shared/oneTouch";
 import type { HumanFoodCandidate, HumanFoodRequirementProof } from "@shared/humanFoodValidation";
@@ -19,12 +20,16 @@ import { resolveGLP1GlobalContext, buildGLP1RecommendationBlock } from "../glp1/
 import { validateMealForDiet } from "../guardrails";
 import { validateDiabeticMeal } from "../guardrails/validators/diabeticValidator";
 import { validateDishIdentity } from "../dishAdaptation/dishIdentityValidator";
+import { assessLowCarbRecipeCompatibility } from "../foodAdaptation/lowCarbPolicy";
+import { resolveContextualFoodEvidence } from "../foodAdaptation/contextualFoodEvidence";
+import type { ContextualSourceDecision } from "../foodAdaptation/lowCarbPolicy";
 import { scaleIngredientQuantity } from "../servingScaling";
 import { generateMealImageUnified, normalizeMealTypeToSourceType } from "../mealImageGenerator";
 import { generateMenuRecipe, type MenuRecipeDraft } from "./menuRecipeGenerator";
 import { oneTouchContextFingerprint } from "./contextFingerprint";
 import type { GLP1GlobalContext } from "../glp1/resolveGLP1GlobalContext";
 import { assessMenuDietEvidence } from "./menuDietEvidence";
+import { assessLowCarbRecipeRelease } from "./lowCarbRecipeRelease";
 
 /** Server-only operation. The caller must supply its authenticated actor, not a browser body ID. */
 export interface MenuRecipeCompletionInput {
@@ -46,12 +51,16 @@ export type MenuRecipeFailureCode =
   | "diabetes_rejected" | "glp1_rejected" | "protocol_scan_rejected" | "protocol_clinical_rejected"
   | "generation_failed" | "nutrition_evidence_invalid" | "identity_mismatch"
   | "final_validation_rejected" | "requirement_evidence_unsupported"
+  | "ingredient_evidence_unsupported" | "carb_source_split_unverified"
   | "serving_finalization_failed";
 
 export interface MenuRecipeCard {
   name: string;
   description: string;
-  ingredients: Array<{ name: string; quantity: string; unit: string }>;
+  ingredients: Array<{
+    name: string; quantity: string; unit: string;
+    components?: Array<{ name: string; quantity: string; unit: string }>;
+  }>;
   instructions: string;
   nutrition: { calories: number; protein: number; carbs: number; fat: number; starchyCarbs: number };
   cookingTime: string;
@@ -66,6 +75,18 @@ export type MenuRecipeCompletionResult =
 
 const fail = (code: MenuRecipeFailureCode, retryable = false): MenuRecipeCompletionResult =>
   ({ ok: false, code, retryable });
+
+function generationFailureCategory(error: unknown): string {
+  if (error instanceof ZodError) return "invalid_recipe_schema";
+  if (error instanceof SyntaxError) return "invalid_json";
+  if (error instanceof Error && error.message === "Menu recipe provider is unavailable") return "provider_unavailable";
+  if (error instanceof Error && error.message === "Menu recipe provider returned no candidate") return "empty_provider_response";
+  if (error && typeof error === "object" && "status" in error && typeof error.status === "number") {
+    if (error.status === 429) return "provider_rate_limited";
+    return error.status >= 500 ? "provider_upstream_error" : "provider_request_error";
+  }
+  return "unclassified_generation_error";
+}
 
 const ALLOWED_DIETS = new Set([
   "vegan", "vegetarian", "pescatarian", "keto", "paleo", "gluten-free",
@@ -93,11 +114,18 @@ function perServingCard(draft: MenuRecipeDraft): MenuRecipeCard {
   return {
     name: draft.name,
     description: draft.description,
-    ingredients: draft.ingredients.map((ingredient) => ({
-      name: ingredient.name,
-      quantity: String(ingredient.quantity),
-      unit: ingredient.unit,
-    })),
+    ingredients: draft.ingredients.flatMap((ingredient) => {
+      const components = ingredient.components?.map((component) => ({
+        name: component.name, quantity: String(component.quantity), unit: component.unit,
+      }));
+      const base = {
+        name: ingredient.name, quantity: String(ingredient.quantity), unit: ingredient.unit,
+        ...(components ? { components } : {}),
+      };
+      // Safety and dietary scanners that read only top-level ingredient names
+      // must see every component used to make a compound sauce.
+      return components ? [base, ...components] : [base];
+    }),
     instructions: draft.instructions,
     nutrition: {
       calories: draft.calories,
@@ -116,12 +144,28 @@ function scaleCard(card: MenuRecipeCard, servings: number): MenuRecipeCard | nul
   const ingredients = card.ingredients.map((ingredient) => ({
     ...ingredient,
     quantity: scaleIngredientQuantity(ingredient.quantity, servings),
+    ...(ingredient.components ? {
+      components: ingredient.components.map((component) => ({
+        ...component, quantity: String(scaleIngredientQuantity(component.quantity, servings)),
+      })),
+    } : {}),
   }));
   // Never claim a multi-serving total when an ingredient quantity could not be scaled.
-  if (ingredients.some((ingredient) => !Number.isFinite(Number(ingredient.quantity)))) return null;
+  if (ingredients.some((ingredient) =>
+    !Number.isFinite(Number(ingredient.quantity)) ||
+    ingredient.components?.some((component) => !Number.isFinite(Number(component.quantity)))
+  )) return null;
   return {
     ...card,
-    ingredients: ingredients.map((ingredient) => ({ ...ingredient, quantity: String(ingredient.quantity) })),
+    ingredients: ingredients.map((ingredient) => ({
+      ...ingredient,
+      quantity: String(ingredient.quantity),
+      ...(ingredient.components ? {
+        components: ingredient.components.map((component) => ({
+          ...component, quantity: String(component.quantity),
+        })),
+      } : {}),
+    })),
     nutrition: Object.fromEntries(
       Object.entries(card.nutrition).map(([key, value]) => [key, value * servings]),
     ) as MenuRecipeCard["nutrition"],
@@ -284,13 +328,65 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
       enforceBeforeGenerate(envelope, { generatorName: "menu-recipe-completion" }).combined,
       glp1 ? buildGLP1RecommendationBlock(glp1) : "",
     ].filter(Boolean).join("\n\n");
-    let draft: MenuRecipeDraft;
-    try {
-      draft = await generateMenuRecipe({ concept, cuisine: input.cuisine ?? null, authorityPrompt });
-    } catch {
-      return fail("generation_failed", true);
+    const lowCarbActive = context.diet.effective.some((diet) =>
+      diet.toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim() === "low carb",
+    );
+    let draft!: MenuRecipeDraft;
+    let repairGuidance = "";
+    let contextualDecisions: ContextualSourceDecision[] = [];
+    for (let attempt = 0; attempt < (lowCarbActive ? 3 : 1); attempt++) {
+      try {
+        draft = await generateMenuRecipe({
+          concept, cuisine: input.cuisine ?? null,
+          authorityPrompt: [authorityPrompt, repairGuidance].filter(Boolean).join("\n\n"),
+           lowCarbSourceGuidance: lowCarbActive,
+        });
+      } catch (error) {
+        // Never log provider messages, generated food, prompts, or profile facts.
+        console.warn("[CreatorMenu] Selected recipe generation failed", {
+          reason: generationFailureCategory(error),
+        });
+        return fail("generation_failed", true);
+      }
+      if (!validMacros(draft)) return fail("nutrition_evidence_invalid");
+      if (lowCarbActive) {
+        // Deterministic classifications run first inside the resolver; one
+        // bounded batch call handles only unknown names for this draft.
+        contextualDecisions = await resolveContextualFoodEvidence(
+          finalCandidate(perServingCard(draft), draft, 1, mealType),
+        );
+        const candidate = finalCandidate(perServingCard(draft), draft, 1, mealType);
+        const release = assessLowCarbRecipeRelease(candidate, context, contextualDecisions);
+        if (release === "repair_required" || release === "evidence_unavailable") {
+          const evidence = assessLowCarbRecipeCompatibility(candidate, context, contextualDecisions);
+          if (attempt === 2) {
+            // Preserve distinct, privacy-safe reasons without logging ingredients
+            // or treating an estimated carb-source split as verified evidence.
+            const code: MenuRecipeFailureCode = evidence.ingredientEvidence.some((item) => item.category === "added_sugar") ||
+                evidence.status === "adaptation_required"
+              ? "diet_hfc_rejected"
+              : !evidence.ingredientsComplete ||
+                evidence.ingredientEvidence.some((item) => item.requiresExplicitEvidence)
+                ? "ingredient_evidence_unsupported"
+                : evidence.issues.some((issue) => issue.startsWith("Zero-starch ingredients"))
+                  ? "carb_source_split_unverified"
+                  : "requirement_evidence_unsupported";
+            console.warn("[CreatorMenu] Low Carb recipe evidence unresolved", { reason: code });
+            return fail(code);
+          }
+          repairGuidance = [
+            "REPAIR THE SAME REQUESTED DISH, not a different food. The last recipe lacked sufficient Low Carb source evidence:",
+            ...evidence.issues.map((issue) => `- ${issue}`),
+            "Replace added sugar; use explicitly named components for homemade sauces and seasoning blends rather than unspecified commercial products. Keep whole avocado distinct from a sweetened or packaged avocado sauce.",
+              "For unresolved material ingredients use actual named single-source components if homemade, or adapt the conflicting component without changing the dish. A minor flavoring is not a starchy source, but never invent commercial composition, erase defining ingredients, or relabel unknown materials as verified.",
+            "For a dish with no named concentrated/starchy source, starchyCarbs must be 0 and fibrousCarbs is the estimated remainder of total carbs, not dietary fiber grams. Do not invent nutrition or hide a real starch source to make these fields agree.",
+            "Keep the approved concept's defining ingredients and physical form recognizable. Preserve all allergy, avoidance, and clinical protections.",
+          ].join("\n");
+          continue;
+        }
+      }
+      break;
     }
-    if (!validMacros(draft)) return fail("nutrition_evidence_invalid");
     const card = perServingCard(draft);
     if (!conceptIdentityMatches(concept, draft)) return fail("identity_mismatch");
     const hfc = validateHumanFoodResult(card, context);
@@ -322,7 +418,7 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
       context.safety.healthConditions.some((condition) => /glp.?1|semaglutide|tirzepatide/i.test(condition)) ||
       effectiveDiets.includes("glp1");
     const assess = (candidate: HumanFoodCandidate): MenuRecipeFailureCode | null => {
-      const diet = assessMenuDietEvidence(candidate, context.diet.effective);
+      const diet = assessMenuDietEvidence(candidate, context.diet.effective, context, contextualDecisions);
       const requirements = diet.requirements;
       if (diet.status === "contradicted") return "diet_hfc_rejected";
       if (diabetesRequired) {
@@ -369,6 +465,8 @@ export async function completeMenuRecipe(input: MenuRecipeCompletionInput): Prom
         requestedCategory: mealType,
         executionState: scope.executionState,
         evidenceMode: "exact",
+        contextualSourceDecisions: contextualDecisions,
+        genericRecipeLowCarbRelease: lowCarbActive,
       });
     const finalValidationFailure = (result: ReturnType<typeof check>): MenuRecipeFailureCode =>
       result.findings?.some((finding) => finding.code.startsWith("requirement_evidence_required:"))

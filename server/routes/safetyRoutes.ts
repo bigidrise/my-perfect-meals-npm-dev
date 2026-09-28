@@ -197,7 +197,7 @@ router.post("/safety-check", async (req: any, res) => {
     }
 
     if (resolvedUserId) {
-      const safetyCheck = await enforceSafetyProfile(resolvedUserId, input, builderId, {
+      const safetyCheck = await enforceSafetyProfile(resolvedUserId, { kind: "food_intent", requestedDish: input }, builderId, {
         safetyMode: "STRICT",
         correlationId: (req as any).id,
       });
@@ -246,7 +246,7 @@ router.post("/safety-check", async (req: any, res) => {
         healthConditions: [],
         avoidIngredients: [],
       };
-      const safetyCheck = enforceSafetyProfileSync(guestProfile, input);
+      const safetyCheck = enforceSafetyProfileSync(guestProfile, { kind: "food_intent", requestedDish: input });
       return res.json({
         result: safetyCheck.result,
         blockedTerms: safetyCheck.blockedTerms,
@@ -280,7 +280,7 @@ router.post("/food-governance/acknowledge", requireAuth, async (req: any, res) =
     if (!input || typeof input !== "string" || !reasonCode || typeof reasonCode !== "string") {
       return res.status(400).json({ error: "Request text and reason code are required" });
     }
-    const assessment = await enforceSafetyProfile(userId, input, builderId, {
+    const assessment = await enforceSafetyProfile(userId, { kind: "food_intent", requestedDish: input }, builderId, {
       safetyMode: "STRICT",
       correlationId: (req as any).id,
     });

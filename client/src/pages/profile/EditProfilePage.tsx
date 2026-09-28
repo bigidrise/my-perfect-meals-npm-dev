@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, CheckCircle2, User, Utensils, Shield, Lock, Unlock, AlertTriangle } from "lucide-react";
 import { AlphaGalProfileModal, type AlphaGalProfileData, type AlphaGalDraft, DEFAULT_ALPHA_GAL_DRAFT } from "@/components/AlphaGalProfileModal";
+import { PregnancySupportSetupModal } from "@/components/PregnancySupportSetupModal";
 import { SafetyPinSettings } from "@/components/SafetyPinSettings";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,6 +16,9 @@ import { apiRequest } from "@/lib/apiRequest";
 import { getAuthHeaders } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { PillButton } from "@/components/ui/pill-button";
+import { HealthContextControls } from "@/components/profile/HealthContextControls";
+import { ConsumerHealthContextSection } from "@/components/profile/ConsumerHealthContextSection";
+import { PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED } from "@shared/personalFoodSupportFreeze";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { getGuestPageExplanation } from "@/components/copilot/CopilotPageExplanations";
 import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanationStore";
@@ -279,6 +283,11 @@ export default function EditProfilePage() {
   const [specialtyConditions, setSpecialtyConditions] = useState<string[]>(
     (user as any)?.specialtyConditions ?? (user?.specialtyCondition ? [user.specialtyCondition] : [])
   );
+  const [pregnancyPersistedActive, setPregnancyPersistedActive] = useState<boolean>(
+    ((user as any)?.specialtyConditions ?? (user?.specialtyCondition ? [user.specialtyCondition] : []))
+      .includes("pregnancy-support")
+  );
+  const [cardiacLabOffPending, setCardiacLabOffPending] = useState(false);
   const [glp1Active, setGlp1Active] = useState<boolean>(
     !!((user as any)?.medicalConditions as string[] | undefined)?.includes("glp1")
   );
@@ -297,6 +306,7 @@ export default function EditProfilePage() {
 
   // Alpha-gal Syndrome state
   const [showAlphaGalModal, setShowAlphaGalModal] = useState(false);
+  const [showPregnancySetupModal, setShowPregnancySetupModal] = useState(false);
   const [alphaGalProfile, setAlphaGalProfile] = useState<AlphaGalProfileData | null>(
     (user as any)?.alphaGalProfile ?? null
   );
@@ -312,6 +322,11 @@ export default function EditProfilePage() {
   );
 
   const [antiInflammatorySupport, setAntiInflammatorySupport] = useState(false);
+  const [savedAntiInflammatorySupport, setSavedAntiInflammatorySupport] = useState(false);
+  const [antiInflammatoryPersonalEnabled, setAntiInflammatoryPersonalEnabled] = useState<boolean | null>(null);
+  const [antiInflammatoryConfirmPending, setAntiInflammatoryConfirmPending] = useState(false);
+  const [antiInflammatorySupportLoadedFor, setAntiInflammatorySupportLoadedFor] = useState<string | null>(null);
+  const antiInflammatorySupportLoaded = !!user?.id && antiInflammatorySupportLoadedFor === user.id;
 
   // Protocol Ownership Model — physician-set oncology context (read from server)
   const oncologyCtx = user?.oncologySupportContext ?? null;
@@ -371,7 +386,12 @@ export default function EditProfilePage() {
   useEffect(() => {
     const arr: string[] = (user as any)?.specialtyConditions ?? (user?.specialtyCondition ? [user.specialtyCondition] : []);
     setSpecialtyConditions(arr);
+    setPregnancyPersistedActive(arr.includes("pregnancy-support"));
   }, [(user as any)?.specialtyConditions, user?.specialtyCondition]);
+
+  useEffect(() => {
+    setCardiacLabOffPending(false);
+  }, [user?.id]);
 
   // Sync glp1Active from user object
   useEffect(() => {
@@ -396,9 +416,19 @@ export default function EditProfilePage() {
   // Load anti-inflammatory support preference from server (stored in app-preferences)
   useEffect(() => {
     if (!user?.id) return;
+    let current = true;
+    setAntiInflammatorySupportLoadedFor(null);
+    setAntiInflammatoryPersonalEnabled(null);
+    setAntiInflammatoryConfirmPending(false);
     apiRequest(`/api/users/${user.id}/app-preferences`)
-      .then(prefs => { if (prefs?.antiInflammatorySupport) setAntiInflammatorySupport(true); })
-      .catch(() => {});
+      .then(prefs => {
+        if (!current) return;
+        setAntiInflammatorySupport(prefs?.antiInflammatorySupport === true);
+        setSavedAntiInflammatorySupport(prefs?.antiInflammatorySupport === true);
+        setAntiInflammatorySupportLoadedFor(user.id);
+      })
+      .catch(() => { if (current) setAntiInflammatorySupportLoadedFor(null); });
+    return () => { current = false; };
   }, [user?.id]);
   
   const verifyPinForAllergies = async () => {
@@ -515,14 +545,16 @@ export default function EditProfilePage() {
         ...(allergiesChanged && allergyEditToken ? { allergyEditToken } : {}),
       } as any;
 
-      // Merge glp1Active into medicalConditions — preserve existing values, only toggle 'glp1'
-      const existingMedical: string[] = Array.isArray((user as any)?.medicalConditions)
-        ? (user as any).medicalConditions
-        : [];
-      const medicalWithoutGlp1 = existingMedical.filter((v: string) => v !== "glp1");
-      (payload as any).medicalConditions = glp1Active
-        ? [...medicalWithoutGlp1, "glp1"]
-        : medicalWithoutGlp1;
+      // Existing live meal setting only. New DEV support choices are saved
+      // separately and NEVER merged into medicalConditions by profile Save.
+      // Keep the legacy behavior until the coordinated food cutover.
+      if (!import.meta.env.DEV) {
+        const existingMedical: string[] = Array.isArray((user as any)?.medicalConditions)
+          ? (user as any).medicalConditions : [];
+        const medicalWithoutGlp1 = existingMedical.filter((v: string) => v !== "glp1");
+        (payload as any).medicalConditions = glp1Active
+          ? [...medicalWithoutGlp1, "glp1"] : medicalWithoutGlp1;
+      }
 
       const authHeaders = getAuthHeaders();
       const res = await fetch(apiUrl("/api/users/profile"), {
@@ -540,16 +572,66 @@ export default function EditProfilePage() {
         throw new Error(txt || "Failed to update profile");
       }
 
-      const savedSpecialtyConditions: string[] =
+      const profileSpecialtyConditions: string[] =
         (user as any)?.specialtyConditions ??
         (user?.specialtyCondition ? [user.specialtyCondition] : []);
+      const savedSpecialtyConditions = pregnancyPersistedActive
+        ? Array.from(new Set([...profileSpecialtyConditions, "pregnancy-support"]))
+        : profileSpecialtyConditions.filter((condition) => condition !== "pregnancy-support");
+      const conditionsToSave = cardiacLabOffPending
+        ? specialtyConditions.filter((condition) => condition !== "cardiac")
+        : specialtyConditions;
+      const pregnancyWasActive = savedSpecialtyConditions.includes("pregnancy-support");
+      const pregnancyWillBeActive = conditionsToSave.includes("pregnancy-support");
+      const restoredSpecialtyConditions = pregnancyWasActive && !pregnancyWillBeActive
+        ? savedSpecialtyConditions.filter((condition) => condition !== "pregnancy-support")
+        : savedSpecialtyConditions;
+      const alphaGalWasActive = savedSpecialtyConditions.includes("alpha-gal-syndrome");
+      const alphaGalWillBeActive = conditionsToSave.includes("alpha-gal-syndrome");
       const specialtyConditionsChanged =
-        JSON.stringify([...specialtyConditions].sort()) !==
-        JSON.stringify([...savedSpecialtyConditions].sort());
+        JSON.stringify(conditionsToSave.filter((condition) => condition !== "pregnancy-support").sort()) !==
+        JSON.stringify(savedSpecialtyConditions.filter((condition) => condition !== "pregnancy-support").sort());
+      // Pregnancy owns its stage and activation in the dedicated setup route.
+      // Do not let the generic specialty PATCH activate a stage-less pregnancy.
+      if (pregnancyWasActive && !pregnancyWillBeActive) {
+        await apiRequest("/api/pregnancy/setup", { method: "DELETE" });
+        setPregnancyPersistedActive(false);
+      }
+      if (alphaGalWillBeActive && !alphaGalProfile?.profileComplete) {
+        setSpecialtyConditions(restoredSpecialtyConditions);
+        throw new Error("Complete your Alpha-gal profile details before activating Alpha-gal support.");
+      }
+
+      // Persist the clinical allergy details before enabling the selection so
+      // a rejected profile write cannot leave an apparently active protocol.
+      if (alphaGalWillBeActive && alphaGalProfile) {
+        const alphaRes = await fetch(apiUrl("/api/user/alpha-gal-profile"), {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            ...authHeaders,
+          },
+          credentials: "include",
+          body: JSON.stringify({ profile: alphaGalProfile }),
+        });
+        if (!alphaRes.ok) {
+          const alphaErr = await alphaRes.json().catch(() => ({}));
+          if (alphaGalWasActive !== alphaGalWillBeActive) {
+            setSpecialtyConditions(restoredSpecialtyConditions);
+          }
+          throw new Error(alphaErr.message || alphaErr.error || "Failed to save Alpha-gal profile details.");
+        }
+      }
 
       // Health protocols have separate clinical ownership rules. Do not submit
       // this provider-controlled field when the user only changed unrelated
       // profile data such as their personal dietary preference.
+      if (cardiacLabOffPending) {
+        await apiRequest("/api/user/lab-cardiac-support", {
+          method: "PATCH",
+          body: JSON.stringify({ enabled: false }),
+        });
+      }
       if (specialtyConditionsChanged) {
         const condRes = await fetch(apiUrl("/api/user/specialty-condition"), {
           method: "PATCH",
@@ -558,10 +640,14 @@ export default function EditProfilePage() {
             ...authHeaders,
           },
           credentials: "include",
-          body: JSON.stringify({ conditions: specialtyConditions }),
+          body: JSON.stringify({ conditions: conditionsToSave }),
         });
         if (!condRes.ok) {
           const condErr = await condRes.json().catch(() => ({}));
+          setSpecialtyConditions(restoredSpecialtyConditions);
+          if (cardiacLabOffPending) {
+            throw new Error(condErr.message || "Cardiac support was turned off, but your other health changes could not be saved. Please reload and try again.");
+          }
           if (condErr.error === "lab_driven") {
             toast({
               title: "Protocol locked by lab values",
@@ -575,9 +661,10 @@ export default function EditProfilePage() {
               variant: "destructive",
             });
           }
-          // Still allow the rest of the save (profile data saved OK — only conditions were blocked)
+          throw new Error(condErr.message || condErr.error || "Your specialty health settings could not be saved. Please reload and try again.");
         }
       }
+      if (cardiacLabOffPending) setCardiacLabOffPending(false);
 
       // Save thyroid type (only relevant when thyroid-support is active, but always sync)
       if (specialtyConditions.includes("thyroid-support") || thyroidType) {
@@ -589,19 +676,6 @@ export default function EditProfilePage() {
           },
           credentials: "include",
           body: JSON.stringify({ thyroidType }),
-        }).catch(() => {});
-      }
-
-      // Save Alpha-gal profile if condition is active and profile data exists
-      if (specialtyConditions.includes("alpha-gal-syndrome") && alphaGalProfile) {
-        await fetch(apiUrl("/api/user/alpha-gal-profile"), {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            ...authHeaders,
-          },
-          credentials: "include",
-          body: JSON.stringify({ profile: alphaGalProfile }),
         }).catch(() => {});
       }
 
@@ -627,18 +701,44 @@ export default function EditProfilePage() {
         body: JSON.stringify({ measurementSystem: localMeasurementSystem, countryCode: localCountryCode }),
       }).catch(() => {});
 
-      // Save anti-inflammatory support preference
-      if (user?.id) {
-        await apiRequest(`/api/users/${user.id}/app-preferences`, {
-          method: "PATCH",
-          body: JSON.stringify({ antiInflammatorySupport }),
-        }).catch(() => {});
+      // Only an explicit changed choice creates or discontinues the personal
+      // food source in Development. Never promote an old preference merely
+      // because the user saved unrelated profile fields.
+      let currentMealPreferenceSaved = !PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED || !user?.id || antiInflammatorySupportLoaded;
+      if (PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED && user?.id && antiInflammatorySupportLoaded) {
+        try {
+          if (import.meta.env.DEV) {
+            if (antiInflammatorySupport !== savedAntiInflammatorySupport || antiInflammatoryConfirmPending) {
+              await apiRequest("/api/health-context/support/anti_inflammatory", {
+                method: "PUT",
+                body: JSON.stringify({ enabled: antiInflammatorySupport }),
+              });
+              setSavedAntiInflammatorySupport(antiInflammatorySupport);
+              setAntiInflammatoryConfirmPending(false);
+            }
+          } else {
+            await apiRequest(`/api/users/${user.id}/app-preferences`, {
+              method: "PATCH",
+              body: JSON.stringify({ antiInflammatorySupport }),
+            });
+          }
+        } catch {
+          currentMealPreferenceSaved = false;
+        }
       }
 
       await refreshUser?.();
       window.dispatchEvent(new CustomEvent("mpm:dietaryUpdated")); window.dispatchEvent(new CustomEvent("mpm:conditionsUpdated"));
       queryClient.invalidateQueries({ queryKey: ["nutrition-summary"] });
 
+      if (!currentMealPreferenceSaved) {
+        toast({
+          title: "Profile partly saved",
+          description: "Your current Anti-Inflammatory meal preference could not be loaded or saved. Please retry before changing it.",
+          variant: "destructive",
+        });
+        return;
+      }
       toast({
         title: "Profile updated",
         description: "Your changes were saved successfully.",
@@ -656,6 +756,39 @@ export default function EditProfilePage() {
       setSaving(false);
     }
   };
+
+  const antiInflammatoryPreferenceCard = (
+    <div className="rounded-lg border border-white/20 bg-black/30 p-3">
+      <p className="text-white font-semibold text-sm">Anti-Inflammatory Support</p>
+      <p className="text-white/70 text-xs mt-1">
+        {import.meta.env.DEV
+          ? "Save your profile to apply this personal preference to meal guidance in Development. It stays separate from the Anti-Inflammatory Builder and clinical care."
+          : "Save your profile to keep this preference. It is separate from the Anti-Inflammatory Builder and clinical guidance; this preference alone is not verified to change your current meals."}
+      </p>
+      <div className="mt-3">
+        <PillButton
+          disabled={!antiInflammatorySupportLoaded}
+          active={antiInflammatorySupport && (antiInflammatoryPersonalEnabled !== false || antiInflammatoryConfirmPending)}
+          onClick={() => {
+            if (import.meta.env.DEV && antiInflammatorySupport && antiInflammatoryPersonalEnabled === false && !antiInflammatoryConfirmPending) {
+              setAntiInflammatoryConfirmPending(true);
+            } else {
+              setAntiInflammatorySupport(prev => !prev);
+              setAntiInflammatoryConfirmPending(false);
+            }
+          }}
+        >
+          {!antiInflammatorySupportLoaded ? "Current preference unavailable"
+            : antiInflammatoryConfirmPending ? "Apply preference on Save"
+            : antiInflammatorySupport && antiInflammatoryPersonalEnabled === false ? "Apply preference to meals"
+            : antiInflammatorySupport ? "Preference on · turn off" : "Turn on preference"}
+        </PillButton>
+      </div>
+      {import.meta.env.DEV && antiInflammatorySupport && antiInflammatoryPersonalEnabled === false && !antiInflammatoryConfirmPending && (
+        <p className="text-amber-200 text-xs mt-2">An earlier preference is saved but is not active for meals. Apply it explicitly to start meal guidance.</p>
+      )}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-24">
@@ -1193,7 +1326,7 @@ export default function EditProfilePage() {
                     <div className="flex items-start gap-2">
                       <span className="text-sky-400 text-xs mt-0.5">🔬</span>
                       <p className="text-sky-300/80 text-xs leading-relaxed">
-                        <span className="font-semibold text-sky-300">Lab-activated protocols</span> are shown below with a <span className="font-semibold">🔬</span> indicator. These protocols are active because your lab values support them. To remove them, update your lab values in Biometrics.
+                        <span className="font-semibold text-sky-300">Lab-activated protocols</span> are marked <span className="font-semibold">🔬</span>. You can turn off Cardiac / Heart Disease here and save your profile without changing your lab values. This stops Cardiac nutrition guidance unless your physician controls it. Other lab-activated protocols are managed through Biometrics.
                       </p>
                     </div>
                   </div>
@@ -1232,15 +1365,30 @@ export default function EditProfilePage() {
                     { label: "🩷 My Perfect Pregnancy", value: "pregnancy-support" },
                   ] as const).map((opt) => {
                     const isLabDriven = labDrivenConditions.includes(opt.value);
-                    const locked = isConditionLocked(opt.value);
-                    const isActive = specialtyConditions.includes(opt.value) || isLabDriven;
+                    const editableLabCardiac = opt.value === "cardiac" && isLabDriven && !physicianLocked;
+                    const locked = isConditionLocked(opt.value) && !editableLabCardiac;
+                    const isActive = (specialtyConditions.includes(opt.value) || isLabDriven)
+                      && !(editableLabCardiac && cardiacLabOffPending);
                     return (
                       <PillButton
                         key={opt.value}
                         active={isActive}
-                        onClick={() => {
+                        disabled={saving}
+                          onClick={() => {
                           if (locked) return;
                           if (physicianOncologyLocked && opt.value === "oncology-support") return;
+                            if (opt.value === "pregnancy-support") {
+                              if (specialtyConditions.includes(opt.value)) {
+                                setSpecialtyConditions((prev) => prev.filter((c) => c !== opt.value));
+                              } else {
+                                setShowPregnancySetupModal(true);
+                              }
+                              return;
+                            }
+                          if (editableLabCardiac) {
+                            setCardiacLabOffPending((pending) => !pending);
+                            return;
+                          }
                           setSpecialtyConditions((prev) =>
                             prev.includes(opt.value) ? prev.filter(c => c !== opt.value) : [...prev, opt.value]
                           );
@@ -1251,12 +1399,12 @@ export default function EditProfilePage() {
                       </PillButton>
                     );
                   })}
-                  <PillButton
-                    active={glp1Active}
-                    onClick={() => setGlp1Active(prev => !prev)}
-                  >
-                    Metabolic Med Active
-                  </PillButton>
+                  {import.meta.env.DEV ? (
+                    glp1Active && <p className="text-sm text-muted-foreground">Earlier GLP-1 information is on your profile. It does not activate meal guidance by itself; current medication or care-team guidance needs review.</p>
+                  ) : (
+                    <PillButton active={glp1Active} onClick={() => setGlp1Active(prev => !prev)}>
+                      Existing meal-generation GLP-1 setting</PillButton>
+                  )}
                   {/* Alpha-gal Syndrome — clinical allergy, handled separately from specialty conditions */}
                   <PillButton
                     active={specialtyConditions.includes("alpha-gal-syndrome")}
@@ -1277,12 +1425,12 @@ export default function EditProfilePage() {
                   >
                     🩸 Alpha-gal Syndrome
                   </PillButton>
-                  {(specialtyConditions.filter(c => !labDrivenConditions.includes(c)).length > 0 || glp1Active) && !physicianOncologyLocked && !physicianLocked && (
+                  {(specialtyConditions.filter(c => !labDrivenConditions.includes(c)).length > 0 || (!import.meta.env.DEV && glp1Active)) && !physicianOncologyLocked && !physicianLocked && (
                     <PillButton
                       active={false}
                       onClick={() => {
                         setSpecialtyConditions(prev => prev.filter(c => labDrivenConditions.includes(c)));
-                        setGlp1Active(false);
+                        if (!import.meta.env.DEV) setGlp1Active(false);
                       }}
                     >
                       Clear All ×
@@ -1379,9 +1527,9 @@ export default function EditProfilePage() {
                     <div className="flex items-start gap-2">
                       <span className="text-orange-400 text-base mt-0.5">💉</span>
                       <div>
-                        <p className="text-orange-300 text-xs font-semibold mb-1">Metabolic Medication Support — Nutritional Guidance Only</p>
+                        <p className="text-orange-300 text-xs font-semibold mb-1">Existing GLP-1 meal-generation guidance</p>
                         <p className="text-white/70 text-xs leading-relaxed">
-                          Enabling this activates metabolic medication-aware meal generation — smaller, nutrient-dense portions, high protein floors (≥25g), nausea-safe ingredients, and reduced fat ceilings to match how these medications affect appetite and digestion. If you are on a diabetic protocol, both layers stack automatically. This is <span className="text-white font-medium">not a substitute for your prescribing doctor's guidance</span>. Always follow your physician's instructions.
+                          This older profile setting currently affects meal generation, including alongside a Diabetic Builder. It does not prove current medication use. Your separate nutrition support choice below does not yet change today's meals. Follow your clinician's guidance where applicable.
                         </p>
                       </div>
                     </div>
@@ -1437,19 +1585,21 @@ export default function EditProfilePage() {
                 )}
               </div>
 
-              {/* Anti-Inflammatory Support — independent toggle, not part of specialty condition */}
-              <div className="rounded-xl border border-green-500/20 bg-green-950/10 p-3">
-                <p className="text-white/80 text-xs font-semibold mb-1">Anti-Inflammatory Support</p>
-                <p className="text-white/50 text-xs mb-3 leading-relaxed">
-                  Layer anti-inflammatory nutrition optimization onto any builder — including Metabolic Med and Diabetic. Emphasizes food quality, healthy fats, and reduced ultra-processed ingredients. No medical condition required.
-                </p>
-                <PillButton
-                  active={antiInflammatorySupport}
-                  onClick={() => setAntiInflammatorySupport(prev => !prev)}
-                >
-                  {antiInflammatorySupport ? "Active — Anti-Inflammatory" : "Enable Anti-Inflammatory Support"}
-                </PillButton>
-              </div>
+              <ConsumerHealthContextSection>
+                {import.meta.env.DEV && user?.id ? (
+                  <HealthContextControls
+                    key={user.id}
+                    userId={user.id}
+                    profilePreferenceCard={PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED ? antiInflammatoryPreferenceCard : undefined}
+                    onPersonalAntiStatus={setAntiInflammatoryPersonalEnabled}
+                  />
+                ) : (
+                  <section className="rounded-xl border border-amber-400/40 bg-amber-950/20 p-3 space-y-3" aria-label="Health and nutrition support settings">
+                    <p className="text-amber-200 text-sm font-bold">Health &amp; Nutrition Support</p>
+                    {PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED && <div className="grid gap-3 sm:grid-cols-2">{antiInflammatoryPreferenceCard}</div>}
+                  </section>
+                )}
+              </ConsumerHealthContextSection>
 
               <div className="rounded-xl border border-white/10 bg-black/30 p-3">
                 <div className="flex items-center gap-2 mb-2">
@@ -2061,6 +2211,18 @@ export default function EditProfilePage() {
         onSave={(profile) => setAlphaGalProfile(profile)}
         onClose={() => setShowAlphaGalModal(false)}
         isUpdate={!!alphaGalProfile?.profileComplete}
+      />
+      <PregnancySupportSetupModal
+        open={showPregnancySetupModal}
+        onOpenChange={setShowPregnancySetupModal}
+        onSaved={({ stage }) => {
+          setPregnancyPersistedActive(!!stage);
+          setSpecialtyConditions((prev) =>
+            stage
+              ? prev.includes("pregnancy-support") ? prev : [...prev, "pregnancy-support"]
+              : prev.filter((condition) => condition !== "pregnancy-support")
+          );
+        }}
       />
     </div>
   );

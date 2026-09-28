@@ -8,8 +8,19 @@
     "client/src/pages/pro/GeneralNutritionBuilder.tsx",
     "client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx",
     "client/src/types/meal.ts",
+    "client/src/components/profile/HealthContextControls.tsx",
     "server/storage.ts",
-    "server/routes/pregnancyCoach.ts"
+    "server/routes/healthContextControl.ts",
+    "server/routes/pregnancyCoach.ts",
+    "server/services/healthProtocols/resolveHealthProtocolState.ts",
+    "server/services/healthProtocols/persistence.ts",
+    "server/services/healthProtocols/healthContextControl.ts",
+    "server/services/glp1/activationSources.ts",
+    "server/db/schema/healthProtocols.ts",
+    "scripts/migrate-health-protocols-dev.ts",
+    "scripts/backfill-health-protocols-dev.ts",
+    "scripts/compare-health-protocols-dev.ts",
+    "shared/healthProtocolState.ts"
   ],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"]
 }

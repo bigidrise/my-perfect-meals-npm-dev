@@ -36,7 +36,7 @@ function MenuView({ creator }: { creator: OneTouchCreator }) {
           concepts={menu.concepts}
           choosingId={menu.choosingId}
           generating={menu.generating}
-          onChoose={(id) => { void menu.choose(id).then(() => setFinished(true)); }}
+          onChoose={(id) => { void menu.choose(id).then(() => setFinished(true)).catch(() => undefined); }}
           onTryMore={() => { if (menu.choices) void menu.generate(menu.choices); }}
           onClear={menu.clear}
         />
@@ -104,6 +104,28 @@ describe.each(["create_a_dish", "craving_creator"] as const)("%s restoration pro
     expect(screen.getByText("new idea 1")).toBeTruthy();
     expect(screen.getAllByRole("button", { name: "Choose This" })).toHaveLength(3);
   });
+
+  it("does not show a finished recipe while Choose This is pending or after a failed selection", async () => {
+    localStorage.setItem(key(creator), JSON.stringify(choices));
+    let rejectChoose!: (error: Error) => void;
+    const pending = new Promise<any>((_resolve, reject) => { rejectChoose = reject; });
+    const fetchMock = jest.spyOn(global, "fetch")
+      .mockResolvedValueOnce(response({ concepts: ideas("saved") }) as any)
+      .mockImplementationOnce(() => pending)
+      .mockResolvedValueOnce(response({ concepts: ideas("saved") }) as any);
+    const { unmount } = render(<MenuView creator={creator} />);
+    await screen.findByText("saved idea 1");
+    fireEvent.click(screen.getAllByRole("button", { name: "Choose This" })[0]);
+    expect(screen.queryByRole("button", { name: "Delete finished recipe" })).toBeNull();
+    expect(screen.getByText("Completing your recipe…")).toBeTruthy();
+    await act(async () => { rejectChoose(new Error("Failed selection")); try { await pending; } catch { /* expected */ } });
+    expect(screen.queryByRole("button", { name: "Delete finished recipe" })).toBeNull();
+    expect(screen.getAllByRole("button", { name: "Choose This" })).toHaveLength(3);
+    unmount();
+    render(<MenuView creator={creator} />);
+    await screen.findByText("saved idea 1");
+    expect(fetchMock).toHaveBeenCalledTimes(3); // restore, choose, restore; never generate
+  });
 });
 
 it.each([
@@ -117,4 +139,17 @@ it.each([
   expect(source).toContain("onTryMore={() =>");
   expect(source).toContain("onChoose={(id) =>");
   expect(source).toContain("setGeneratedMeals([])");
+});
+
+it.each([
+  ["client/src/pages/lifestyle/CreateDishPage.tsx", "setGeneratedInSession(true)"],
+  ["client/src/pages/craving-creator.tsx", "setGeneratedMeals([meal])"],
+])("%s only marks a finished recipe after Choose This succeeds", (file, successState) => {
+  const source = fs.readFileSync(file, "utf8");
+  const start = source.indexOf("const handleOneTouchChoose = async");
+  const chooseHandler = source.slice(start, source.indexOf("\n  };", start));
+  expect(start).toBeGreaterThan(-1);
+  expect(chooseHandler.indexOf("await conceptMenu.choose")).toBeGreaterThan(-1);
+  expect(chooseHandler.indexOf(successState)).toBeGreaterThan(chooseHandler.indexOf("await conceptMenu.choose"));
+  expect(chooseHandler).toContain("catch (error");
 });

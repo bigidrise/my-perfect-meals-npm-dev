@@ -175,6 +175,9 @@ router.post("/", async (req, res) => {
     console.error("[webhook] Unable to durably claim Stripe event", error);
     return res.status(503).send("Stripe billing event store unavailable");
   }
+  if (claim === "in_progress") {
+    return res.status(503).json({ error: "Billing event is still processing; retry delivery" });
+  }
   if (claim === "duplicate") {
     return res.json({ received: true, duplicate: true });
   }
@@ -205,6 +208,9 @@ router.post("/", async (req, res) => {
         if (subscription.metadata?.userId !== userId) {
           throw new Error("Completed checkout subscription identity does not match the MPM user");
         }
+        if (stripeObjectId(subscription.customer as any) !== customerId) {
+          throw new Error("Completed checkout customer does not match the subscription customer");
+        }
         const trustedPlan = planFromSubscription(subscription, sku);
         if (!trustedPlan) {
           throw new Error("Completed checkout price is not mapped to the supplied trusted SKU");
@@ -225,6 +231,16 @@ router.post("/", async (req, res) => {
           const seatCount = 1;
 
         if (subscriptionType === "business_seat") {
+          if (
+            session.payment_status !== "paid"
+            || !metadata.businessId
+            || !metadata.checkoutReservationId
+            || subscription.metadata?.businessId !== metadata.businessId
+            || subscription.metadata?.checkoutReservationId !== metadata.checkoutReservationId
+            || subscription.metadata?.subscriptionType !== "business_seat"
+          ) {
+            throw new Error("Completed business checkout payment or reservation could not be verified");
+          }
           const { businesses } = await import("../db/schema/business");
           const { eq: eqBiz, sql: drizzleSql } = await import("drizzle-orm");
           const businessId = metadata.businessId ?? subscription.metadata?.businessId;

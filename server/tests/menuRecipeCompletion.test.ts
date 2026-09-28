@@ -49,6 +49,9 @@ jest.mock("../services/mealImageGenerator", () => ({
 jest.mock("../services/oneTouch/menuRecipeGenerator", () => ({
   generateMenuRecipe: jest.fn(),
 }));
+jest.mock("../services/foodAdaptation/contextualFoodEvidence", () => ({
+  resolveContextualFoodEvidence: jest.fn(async () => []),
+}));
 jest.mock("../services/oneTouch/contextFingerprint", () => ({
   oneTouchContextFingerprint: jest.fn(() => "stable-authority"),
 }));
@@ -66,7 +69,9 @@ import { validateDietaryRestriction } from "../services/guardrails/validators/di
 import { validateOneTouchDirectionSafety } from "../services/oneTouch/directions";
 import { generateMealImageUnified } from "../services/mealImageGenerator";
 import { generateMenuRecipe } from "../services/oneTouch/menuRecipeGenerator";
+import { resolveContextualFoodEvidence } from "../services/foodAdaptation/contextualFoodEvidence";
 import { oneTouchContextFingerprint } from "../services/oneTouch/contextFingerprint";
+import { assessLowCarbRecipeRelease } from "../services/oneTouch/lowCarbRecipeRelease";
 import {
   completeMenuRecipe, type MenuRecipeCompletionInput,
 } from "../services/oneTouch/menuRecipeCompletion";
@@ -125,6 +130,43 @@ const carnivoreDraft = {
   ],
   instructions: "Cook the beef, then add eggs and cook through.",
 };
+const buffaloCasseroleConcept: OneTouchDirection = {
+  ...concept,
+  title: "Buffalo Chicken Cauliflower Casserole",
+  description: "A baked buffalo chicken casserole with cauliflower and cheddar.",
+  primaryIngredients: ["chicken", "cauliflower", "buffalo sauce", "cheddar cheese"],
+  primaryProtein: "chicken breast",
+  produceItems: ["cauliflower"],
+  signature: "buffalo-chicken-cauliflower-casserole",
+  culinaryIdentity: {
+    ...concept.culinaryIdentity,
+    dishForm: "casserole",
+    primaryProteinBase: "chicken",
+    majorStarchBase: null,
+    flavorFamily: "buffalo",
+    definingComponents: ["chicken", "cauliflower", "buffalo sauce", "cheddar cheese"],
+  },
+};
+const buffaloCasseroleDraft = {
+  name: "Buffalo Chicken Cauliflower Casserole",
+  description: "Baked chicken, cauliflower, cheddar, and a homemade tangy buffalo sauce.",
+  ingredients: [
+    { name: "chicken breast", quantity: "5", unit: "oz" },
+    { name: "cauliflower", quantity: "1", unit: "cup" },
+    { name: "cheddar cheese", quantity: "1", unit: "oz" },
+    {
+      name: "buffalo sauce", quantity: "1", unit: "tbsp",
+      components: [
+        { name: "butter", quantity: "1", unit: "tsp" },
+        { name: "apple cider vinegar", quantity: "1", unit: "tsp" },
+        { name: "cayenne pepper", quantity: "1/4", unit: "tsp" },
+      ],
+    },
+  ],
+  instructions: "Mix the homemade buffalo sauce, coat the chicken, add cauliflower and cheddar, and bake.",
+  calories: 420, protein: 36, starchyCarbs: 0, fibrousCarbs: 10, fat: 26,
+  cookingTime: "30 minutes",
+};
 const context = {
   status: "resolved", internalFingerprint: "volatile", nutrition: null,
   gaps: [],
@@ -139,8 +181,23 @@ const input: MenuRecipeCompletionInput = {
   actorUserId: "user-1", subject: { kind: "account", id: "user-1" },
   approvedConcept: concept, servings: 1,
 };
+const resolvedLowCarbContext = (
+  diets: string[] = ["low_carb"],
+  remaining = { calories: 1800, protein: 120, carbs: 200, fat: 70 },
+) => ({
+  ...context,
+  subjectUserId: "user-1",
+  diet: { effective: diets },
+  nutrition: {
+    prescription: { source: "user_default" },
+    projectedRemaining: remaining,
+    remaining,
+    subject: { userId: "user-1" },
+  },
+});
 
 beforeEach(() => {
+  (resolveContextualFoodEvidence as jest.Mock).mockReset().mockResolvedValue([]);
   jest.clearAllMocks();
   (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
     resolve: async () => context,
@@ -156,7 +213,9 @@ beforeEach(() => {
     const requirements = candidate.evidence.requirementEvidence ?? {};
     const active = currentContext.diet.effective.map((value: string) =>
       `dietary_identity:${value.toLowerCase().replace(/[_-]+/g, " ")}`);
-    const missing = active.filter((key: string) => requirements[key]?.status !== "pass");
+    const missing = active.filter((key: string) => requirements[key]?.status !== "pass" &&
+      !(key === "dietary_identity:low carb" && options.genericRecipeLowCarbRelease &&
+        assessLowCarbRecipeRelease(candidate, currentContext, options.contextualSourceDecisions) === "no_known_conflict"));
     return {
       outcome: missing.length ? "review_required" : "pass",
       findings: missing.map((key: string) => ({ code: `requirement_evidence_required:${key}` })),
@@ -189,6 +248,403 @@ describe("Menu-owned one-recipe completion (not connected to the manual Creators
     expect(generateMealImageUnified).toHaveBeenCalledTimes(1);
     expect((generateMealImageUnified as jest.Mock).mock.invocationCallOrder[0])
       .toBeGreaterThan((validateHumanFoodCandidate as jest.Mock).mock.invocationCallOrder[1]);
+  });
+
+  it("completes Low Carb Buffalo Chicken Cauliflower Casserole with named sauce components and preserves the requested dish", async () => {
+    (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+      resolve: async () => resolvedLowCarbContext(),
+      executionState: { rejectedCandidateSignatures: [] },
+    }));
+    (generateMenuRecipe as jest.Mock).mockResolvedValue(buffaloCasseroleDraft);
+
+    const result = await completeMenuRecipe({ ...input, approvedConcept: buffaloCasseroleConcept });
+
+    expect(result).toMatchObject({ ok: true });
+    expect(generateMenuRecipe).toHaveBeenCalledTimes(1);
+    if (!result.ok) return;
+    expect(result.card.name).toBe("Buffalo Chicken Cauliflower Casserole");
+    expect(result.card.ingredients.map(({ name }) => name)).toEqual(expect.arrayContaining([
+      "chicken breast", "cauliflower", "cheddar cheese", "buffalo sauce",
+      "butter", "apple cider vinegar", "cayenne pepper",
+    ]));
+    const checked = (validateHumanFoodCandidate as jest.Mock).mock.calls.map(([candidate]) => candidate);
+    expect(checked).toHaveLength(2);
+    for (const candidate of checked) {
+      expect(candidate.evidence.requirementEvidence["dietary_identity:low carb"]).toEqual({
+        status: "pass", source: "program_rule_pack", nutritionBasis: "model_estimate",
+      });
+      expect(candidate.ingredients.some((ingredient: { name?: string }) => ingredient.name === "cauliflower")).toBe(true);
+    }
+  });
+
+  it("completes a Low Carb cheesecake when contextual evidence resolves its otherwise unknown sources", async () => {
+    (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+      resolve: async () => resolvedLowCarbContext(),
+      executionState: { rejectedCandidateSignatures: [] },
+    }));
+    const cheesecakeConcept = {
+      ...buffaloCasseroleConcept,
+      title: "Chocolate Cheesecake",
+      primaryIngredients: ["cream cheese", "cocoa"],
+      occasion: "snack",
+    };
+    const cheesecakeDraft = {
+      ...buffaloCasseroleDraft,
+      name: "Chocolate Cheesecake",
+      description: "Sliceable baked chocolate cheesecake.",
+      ingredients: [
+        { name: "cream cheese", quantity: "3", unit: "oz" },
+        { name: "unsweetened cocoa powder", quantity: "2", unit: "tsp" },
+        { name: "almond flour", quantity: "1/4", unit: "cup" },
+        { name: "vanilla extract", quantity: "1/2", unit: "tsp" },
+      ],
+      instructions: "Mix all ingredients, bake gently, and chill into a sliceable cheesecake.",
+      starchyCarbs: 0,
+      fibrousCarbs: 10,
+    };
+    (generateMenuRecipe as jest.Mock).mockResolvedValue(cheesecakeDraft);
+    (resolveContextualFoodEvidence as jest.Mock).mockResolvedValue([
+      { ingredient: "unsweetened cocoa powder", category: "non_starchy_fibrous", role: "structural", reason: "Named single-source cocoa." },
+      { ingredient: "almond flour", category: "whole_plant_fat", role: "structural", reason: "Named almond ingredient." },
+      { ingredient: "vanilla extract", category: "nonmaterial", role: "flavoring", reason: "A tiny flavoring quantity." },
+    ]);
+
+    const result = await completeMenuRecipe({
+      ...input, approvedConcept: cheesecakeConcept as OneTouchDirection,
+    });
+    expect(result).toMatchObject({ ok: true });
+    expect(generateMenuRecipe).toHaveBeenCalledTimes(1);
+    expect((validateHumanFoodCandidate as jest.Mock).mock.calls[0][2].contextualSourceDecisions)
+      .toHaveLength(3);
+    expect((validateHumanFoodCandidate as jest.Mock).mock.calls).toHaveLength(2);
+  });
+
+  it.each([
+    ["craving_creator", "snack"], ["craving_creator", "lunch"], ["create_a_dish", "lunch"],
+  ] as const)("returns a %s %s card for generic unsweetened product uncertainty without claiming exact Low Carb proof", async (creator, occasion) => {
+    (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+      resolve: async () => resolvedLowCarbContext(),
+      executionState: { rejectedCandidateSignatures: [] },
+    }));
+    const selected = {
+      ...buffaloCasseroleConcept,
+      title: "Chocolate Custard",
+      primaryIngredients: ["almond milk", "cocoa"],
+      occasion,
+    };
+    (generateMenuRecipe as jest.Mock).mockResolvedValue({
+      ...buffaloCasseroleDraft,
+      name: "Chocolate Custard", description: "A chilled chocolate custard.",
+      ingredients: [
+        { name: "unsweetened almond milk", quantity: "1", unit: "cup" },
+        { name: "unsweetened cocoa powder", quantity: "1", unit: "tbsp" },
+        { name: "vanilla extract", quantity: "1/2", unit: "tsp" },
+      ],
+      instructions: "Blend ingredients and chill into a custard.",
+      starchyCarbs: 0, fibrousCarbs: 12,
+    });
+    (resolveContextualFoodEvidence as jest.Mock).mockResolvedValue([
+      { ingredient: "unsweetened cocoa powder", category: "non_starchy_fibrous", role: "structural", reason: "Named plant source." },
+      { ingredient: "vanilla extract", category: "nonmaterial", role: "flavoring", reason: "Measured flavoring." },
+    ]);
+    const result = await completeMenuRecipe({
+      ...input, contextCreator: creator, approvedConcept: selected as OneTouchDirection,
+    });
+    expect(result).toMatchObject({ ok: true });
+    expect(generateMenuRecipe).toHaveBeenCalledTimes(1);
+    if (!result.ok) return;
+    expect(result.card.ingredients[0].name).toBe("unsweetened almond milk");
+    expect(result.card.nutritionSource).toBe("model_estimate");
+    expect((validateHumanFoodCandidate as jest.Mock).mock.calls).toHaveLength(2);
+    for (const [candidate, , options] of (validateHumanFoodCandidate as jest.Mock).mock.calls) {
+      expect(candidate.evidence.requirementEvidence["dietary_identity:low carb"].status).toBe("review_required");
+      expect(options.genericRecipeLowCarbRelease).toBe(true);
+    }
+  });
+
+  it("still blocks a material unknown sweetener despite resolving a tiny flavoring", async () => {
+    (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+      resolve: async () => resolvedLowCarbContext(),
+      executionState: { rejectedCandidateSignatures: [] },
+    }));
+    (generateMenuRecipe as jest.Mock).mockResolvedValue({
+      ...buffaloCasseroleDraft,
+      ingredients: [
+        ...buffaloCasseroleDraft.ingredients,
+        { name: "mystery sweetener", quantity: "1/4", unit: "cup" },
+        { name: "vanilla extract", quantity: "1/2", unit: "tsp" },
+      ],
+    });
+    (resolveContextualFoodEvidence as jest.Mock).mockResolvedValue([
+      { ingredient: "vanilla extract", category: "nonmaterial", role: "flavoring", reason: "Tiny flavoring." },
+    ]);
+    expect(await completeMenuRecipe({ ...input, approvedConcept: buffaloCasseroleConcept }))
+      .toMatchObject({ ok: false, code: "ingredient_evidence_unsupported" });
+    expect(generateMealImageUnified).not.toHaveBeenCalled();
+  });
+
+  it("composes Vegan and Low Carb checks for a dessert instead of letting source evidence replace vegan validation", async () => {
+    (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+      resolve: async () => resolvedLowCarbContext(["vegan", "low_carb"]),
+      executionState: { rejectedCandidateSignatures: [] },
+    }));
+    const veganConcept = {
+      ...buffaloCasseroleConcept,
+      title: "Vegan Chocolate Custard",
+      primaryIngredients: ["tofu", "cocoa"],
+      occasion: "snack",
+    };
+    (generateMenuRecipe as jest.Mock).mockResolvedValue({
+      ...buffaloCasseroleDraft,
+      name: "Vegan Chocolate Custard",
+      description: "Chilled vegan chocolate custard.",
+      ingredients: [
+        { name: "tofu", quantity: "4", unit: "oz" },
+        { name: "unsweetened cocoa powder", quantity: "2", unit: "tsp" },
+        { name: "vanilla extract", quantity: "1/2", unit: "tsp" },
+      ],
+      instructions: "Blend tofu, cocoa, and vanilla; chill until set as custard.",
+      starchyCarbs: 0, fibrousCarbs: 10,
+    });
+    (resolveContextualFoodEvidence as jest.Mock).mockResolvedValue([
+      { ingredient: "unsweetened cocoa powder", category: "non_starchy_fibrous", role: "structural", reason: "Single-source cocoa." },
+      { ingredient: "vanilla extract", category: "nonmaterial", role: "flavoring", reason: "Tiny flavoring." },
+    ]);
+    const result = await completeMenuRecipe({
+      ...input, approvedConcept: veganConcept as OneTouchDirection,
+    });
+    expect(result).toMatchObject({ ok: true });
+    expect(validateDietaryRestriction).toHaveBeenCalledWith(
+      expect.anything(), "vegan",
+    );
+    const requirements = (validateHumanFoodCandidate as jest.Mock).mock.calls[0][0].evidence.requirementEvidence;
+    expect(requirements["dietary_identity:vegan"].status).toBe("pass");
+    expect(requirements["dietary_identity:low carb"].status).toBe("pass");
+  });
+
+  it("completes the blackened catfish idea with explicit avocado sauce and Cajun spice components", async () => {
+    (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+      resolve: async () => ({
+        ...resolvedLowCarbContext(),
+        safety: { healthConditions: [], allergies: ["Shellfish"], avoidedFoods: ["quinoa", "lemon"], dislikedFoods: [] },
+      }),
+      executionState: { rejectedCandidateSignatures: [] },
+    }));
+    const selected: OneTouchDirection = {
+      ...buffaloCasseroleConcept,
+      title: "Blackened Catfish with Zucchini Noodles",
+      description: "Blackened catfish over zucchini noodles with homemade avocado sauce.",
+      primaryIngredients: ["catfish", "zucchini", "avocado sauce", "Cajun seasoning"],
+      primaryProtein: "catfish",
+      produceItems: ["zucchini", "avocado"],
+      signature: "blackened-catfish-zucchini",
+      culinaryIdentity: {
+        ...buffaloCasseroleConcept.culinaryIdentity,
+        dishForm: "noodles",
+        primaryProteinBase: "catfish",
+        majorStarchBase: null,
+        flavorFamily: "cajun",
+        definingComponents: ["catfish", "zucchini noodles", "avocado sauce"],
+      },
+    };
+    (generateMenuRecipe as jest.Mock).mockResolvedValue({
+      name: selected.title,
+      description: selected.description,
+      ingredients: [
+        { name: "catfish fillets", quantity: "5", unit: "oz" },
+        { name: "zucchini noodles", quantity: "1", unit: "cup" },
+        { name: "avocado sauce", quantity: "2", unit: "tbsp", components: [
+          { name: "avocado", quantity: "1/4", unit: "whole" },
+          { name: "olive oil", quantity: "1", unit: "tsp" },
+          { name: "apple cider vinegar", quantity: "1", unit: "tsp" },
+        ] },
+        { name: "Cajun seasoning", quantity: "1", unit: "tsp", components: [
+          { name: "paprika", quantity: "1/4", unit: "tsp" },
+          { name: "cayenne pepper", quantity: "1/4", unit: "tsp" },
+          { name: "garlic powder", quantity: "1/4", unit: "tsp" },
+          { name: "thyme", quantity: "1/4", unit: "tsp" },
+        ] },
+      ],
+      instructions: "Mix the named Cajun spices, sear catfish, cook zucchini noodles, and blend the avocado sauce.",
+      calories: 420, protein: 36, starchyCarbs: 0, fibrousCarbs: 10, fat: 26,
+      cookingTime: "25 minutes",
+    });
+
+    const result = await completeMenuRecipe({ ...input, approvedConcept: selected });
+    expect(result).toMatchObject({ ok: true });
+    if (result.ok) {
+      expect(result.card.ingredients.map(({ name }) => name)).toEqual(expect.arrayContaining([
+        "catfish fillets", "zucchini noodles", "avocado", "paprika",
+      ]));
+    }
+  });
+
+  it("repairs a sweetened buffalo sauce in place and does not reject cauliflower as carbohydrate", async () => {
+    (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+      resolve: async () => resolvedLowCarbContext(["low carb"]),
+      executionState: { rejectedCandidateSignatures: [] },
+    }));
+    const sweetenedDraft = {
+      ...buffaloCasseroleDraft,
+      ingredients: buffaloCasseroleDraft.ingredients.map((ingredient) =>
+        ingredient.name === "buffalo sauce" ? {
+          ...ingredient,
+          components: [...ingredient.components, { name: "brown sugar", quantity: "1", unit: "tsp" }],
+        } : ingredient,
+      ),
+    };
+    (generateMenuRecipe as jest.Mock)
+      .mockResolvedValueOnce(sweetenedDraft)
+      .mockResolvedValueOnce(buffaloCasseroleDraft);
+
+    const result = await completeMenuRecipe({ ...input, approvedConcept: buffaloCasseroleConcept });
+
+    expect(result).toMatchObject({ ok: true });
+    expect(generateMenuRecipe).toHaveBeenCalledTimes(2);
+    expect(generateMenuRecipe.mock.calls[1][0].authorityPrompt).toContain("REPAIR THE SAME REQUESTED DISH");
+    expect(generateMenuRecipe.mock.calls[1][0].authorityPrompt).toContain("added/concentrated sugar");
+    expect(result.ok && result.card.name).toBe("Buffalo Chicken Cauliflower Casserole");
+    expect(generateMealImageUnified).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails safely after bounded retries when Low Carb sauce source evidence remains ambiguous", async () => {
+    (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+      resolve: async () => resolvedLowCarbContext(),
+      executionState: { rejectedCandidateSignatures: [] },
+    }));
+    const ambiguousSauce = {
+      ...buffaloCasseroleDraft,
+      ingredients: buffaloCasseroleDraft.ingredients.map((ingredient) =>
+        ingredient.name === "buffalo sauce" ? { ...ingredient, components: undefined } : ingredient,
+      ),
+    };
+    (generateMenuRecipe as jest.Mock).mockResolvedValue(ambiguousSauce);
+
+    expect(await completeMenuRecipe({ ...input, approvedConcept: buffaloCasseroleConcept })).toMatchObject({
+      ok: false, code: "ingredient_evidence_unsupported",
+    });
+    expect(generateMenuRecipe).toHaveBeenCalledTimes(3);
+    expect(generateMenuRecipe).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      lowCarbSourceGuidance: true,
+    }));
+    expect(generateMenuRecipe.mock.calls[1][0].authorityPrompt).toContain(
+      "unresolved material ingredients",
+    );
+    expect(generateMealImageUnified).not.toHaveBeenCalled();
+  });
+
+  it("reports an inconsistent estimated starch split without treating zucchini noodles as starch", async () => {
+    (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+      resolve: async () => resolvedLowCarbContext(),
+      executionState: { rejectedCandidateSignatures: [] },
+    }));
+    (generateMenuRecipe as jest.Mock).mockResolvedValue({
+      ...buffaloCasseroleDraft, starchyCarbs: 4,
+    });
+    expect(await completeMenuRecipe({ ...input, approvedConcept: buffaloCasseroleConcept })).toMatchObject({
+      ok: false, code: "carb_source_split_unverified",
+    });
+    expect(generateMenuRecipe).toHaveBeenCalledTimes(3);
+  });
+
+  it("fails after bounded repair when the requested Low Carb recipe exceeds the resolved remaining budget", async () => {
+    (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+      resolve: async () => resolvedLowCarbContext(["low_carb"], {
+        calories: 300, protein: 120, carbs: 20, fat: 15,
+      }),
+      executionState: { rejectedCandidateSignatures: [] },
+    }));
+    (generateMenuRecipe as jest.Mock).mockResolvedValue(buffaloCasseroleDraft);
+
+    expect(await completeMenuRecipe({ ...input, approvedConcept: buffaloCasseroleConcept })).toMatchObject({
+      ok: false, code: "diet_hfc_rejected",
+    });
+    expect(generateMenuRecipe).toHaveBeenCalledTimes(3);
+    expect(generateMealImageUnified).not.toHaveBeenCalled();
+  });
+
+  it("does not positively verify a sweetened sauce when bounded repair cannot remove added sugar", async () => {
+    (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+      resolve: async () => resolvedLowCarbContext(),
+      executionState: { rejectedCandidateSignatures: [] },
+    }));
+    const persistentlySweetened = {
+      ...buffaloCasseroleDraft,
+      ingredients: buffaloCasseroleDraft.ingredients.map((ingredient) =>
+        ingredient.name === "buffalo sauce" ? {
+          ...ingredient,
+          components: [...ingredient.components, { name: "brown sugar", quantity: "1", unit: "tsp" }],
+        } : ingredient,
+      ),
+    };
+    (generateMenuRecipe as jest.Mock).mockResolvedValue(persistentlySweetened);
+
+    expect(await completeMenuRecipe({ ...input, approvedConcept: buffaloCasseroleConcept })).toMatchObject({
+      ok: false, code: "diet_hfc_rejected",
+    });
+    expect(generateMenuRecipe).toHaveBeenCalledTimes(3);
+    expect(generateMealImageUnified).not.toHaveBeenCalled();
+  });
+
+  it.each(["missing", "fallback"] as const)(
+    "does not positively verify Low Carb recipes with %s macro authority",
+    async (authority) => {
+      const unavailable = authority === "missing"
+        ? { ...context, diet: { effective: ["low_carb"] }, nutrition: null }
+        : {
+          ...resolvedLowCarbContext(),
+          nutrition: {
+            prescription: { source: "fallback" },
+            projectedRemaining: { calories: 1800, protein: 120, carbs: 200, fat: 70 },
+            remaining: { calories: 1800, protein: 120, carbs: 200, fat: 70 },
+            subject: { userId: "user-1" },
+          },
+        };
+      (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+        resolve: async () => unavailable,
+        executionState: { rejectedCandidateSignatures: [] },
+      }));
+      (generateMenuRecipe as jest.Mock).mockResolvedValue(buffaloCasseroleDraft);
+
+      expect(await completeMenuRecipe({ ...input, approvedConcept: buffaloCasseroleConcept })).toMatchObject({
+        ok: false, code: "requirement_evidence_unsupported",
+      });
+      expect(generateMenuRecipe).toHaveBeenCalledTimes(3);
+      expect(generateMealImageUnified).not.toHaveBeenCalled();
+    },
+  );
+
+  it("does not bypass a pre-generation allergy conflict for a Low Carb concept", async () => {
+    (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+      resolve: async () => ({
+        ...context,
+        diet: { effective: ["low_carb"] },
+        safety: { ...context.safety, allergies: ["peanut"] },
+      }),
+      executionState: { rejectedCandidateSignatures: [] },
+    }));
+    (validateOneTouchDirectionSafety as jest.Mock).mockReturnValueOnce(["forbidden_ingredient:peanut"]);
+
+    expect(await completeMenuRecipe({ ...input, approvedConcept: buffaloCasseroleConcept })).toMatchObject({
+      ok: false, code: "concept_rejected",
+    });
+    expect(generateMenuRecipe).not.toHaveBeenCalled();
+  });
+
+  it("does not let Low Carb evidence override an incompatible second dietary requirement", async () => {
+    (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
+      resolve: async () => resolvedLowCarbContext(["low_carb", "vegan"]),
+      executionState: { rejectedCandidateSignatures: [] },
+    }));
+    (generateMenuRecipe as jest.Mock).mockResolvedValue(buffaloCasseroleDraft);
+    (validateDietaryRestriction as jest.Mock).mockImplementation((_meal, diet) => ({
+      isValid: diet !== "vegan", confidence: "high",
+    }));
+
+    expect(await completeMenuRecipe({ ...input, approvedConcept: buffaloCasseroleConcept })).toMatchObject({
+      ok: false, code: "diet_hfc_rejected",
+    });
+    expect(generateMealImageUnified).not.toHaveBeenCalled();
   });
 
   it("rejects an account subject other than the actor before generation", async () => {
@@ -535,6 +991,25 @@ describe("Menu-owned one-recipe completion (not connected to the manual Creators
       ok: false, code: "nutrition_evidence_invalid",
     });
     expect(generateMealImageUnified).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["invalid_json", () => new SyntaxError("private provider content"), "invalid_json"],
+    ["provider_rate_limited", () => Object.assign(new Error("private provider content"), { status: 429 }), "provider_rate_limited"],
+    ["unclassified_generation_error", () => new Error("private provider content"), "unclassified_generation_error"],
+  ])("keeps a %s generator failure retryable and logs only its safe category", async (_label, error, reason) => {
+    (generateMenuRecipe as jest.Mock).mockRejectedValueOnce(error());
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      expect(await completeMenuRecipe(input)).toMatchObject({
+        ok: false, code: "generation_failed", retryable: true,
+      });
+      expect(warn).toHaveBeenCalledWith("[CreatorMenu] Selected recipe generation failed", { reason });
+      expect(JSON.stringify(warn.mock.calls)).not.toContain("private provider content");
+      expect(generateMealImageUnified).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it("rejects unscalable ingredient quantities instead of returning false recipe totals", async () => {

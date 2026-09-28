@@ -1,7 +1,9 @@
 import type {
   HumanFoodCandidate, HumanFoodRequirementKey, HumanFoodRequirementProof,
 } from "@shared/humanFoodValidation";
+import type { HumanFoodContext } from "@shared/humanFoodContext";
 import { validateDietaryRestriction, type DietaryMode } from "../guardrails/validators/dietaryRestrictionValidator";
+import { assessLowCarbRecipeCompatibility, type ContextualSourceDecision } from "../foodAdaptation/lowCarbPolicy";
 
 export interface MenuDietEvidence {
   status: "supported" | "contradicted" | "unsupported";
@@ -20,6 +22,8 @@ const CLASSIFIED_IDENTITIES = new Set<DietaryMode>([
 export function assessMenuDietEvidence(
   candidate: HumanFoodCandidate,
   effectiveDiets: readonly string[],
+  context?: HumanFoodContext,
+  contextualDecisions: readonly ContextualSourceDecision[] = [],
 ): MenuDietEvidence {
   const ingredients = candidate.ingredients?.map((item) =>
     typeof item === "string"
@@ -33,6 +37,23 @@ export function assessMenuDietEvidence(
   for (const value of effectiveDiets) {
     const normalized = value.toLowerCase().trim().replace(/[_-]+/g, " ").replace(/\s+/g, " ");
     const key = `dietary_identity:${normalized}` as const;
+    if (normalized === "low carb") {
+      if (!context) {
+        requirements[key] = { status: "review_required", source: "none" };
+        unsupported = true;
+        continue;
+      }
+      const sourceEvidence = assessLowCarbRecipeCompatibility(candidate, context, contextualDecisions);
+      const status = sourceEvidence.status === "pass" ? "pass"
+        : sourceEvidence.status === "adaptation_required" ? "fail" : "review_required";
+      requirements[key] = {
+        status, source: "program_rule_pack",
+        nutritionBasis: "model_estimate",
+      };
+      if (status === "fail") contradicted = true;
+      if (status === "review_required") unsupported = true;
+      continue;
+    }
     if (!CLASSIFIED_IDENTITIES.has(normalized as DietaryMode) || !completeIngredients) {
       requirements[key] = { status: "review_required", source: "none" };
       unsupported = true;

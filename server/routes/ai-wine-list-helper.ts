@@ -6,7 +6,7 @@ import { buildPairingsConstraints } from "../services/pairings/pairingsPersonali
 import { generatePairingImages } from "../services/pairings/pairingsImageService";
 import { chatJson } from "../utils/openaiSafe";
 import { log } from "../vite";
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope } from "../services/protocolEnvelope";
+import { loadGenerationProtocolEnvelope, ProtocolContextUnavailableError, enforceBeforeGenerate, buildGuestEnvelope } from "../services/protocolEnvelope";
 
 const router = Router();
 
@@ -95,7 +95,7 @@ router.post("/", async (req, res) => {
     const constraints = buildPairingsConstraints(profile);
 
     // ── Protocol envelope: add identity-level enforcement above profile constraints ──
-    const wineListEnvelope = await loadUserProtocolEnvelope(userId).catch(() => null) ?? buildGuestEnvelope();
+    const wineListEnvelope = await loadGenerationProtocolEnvelope(userId);
     const wineListProtocolBlock = enforceBeforeGenerate(wineListEnvelope, { generatorName: 'wine_list_helper' }).combined;
     const augmentedConstraints = wineListProtocolBlock
       ? `${wineListProtocolBlock}\n${constraints.fullConstraintBlock}`
@@ -160,6 +160,9 @@ router.post("/", async (req, res) => {
     });
   } catch (error: any) {
     log(`[WineListHelper] Unexpected error: ${error.message}`, "error");
+    if (error instanceof ProtocolContextUnavailableError) {
+      return res.status(error.status).json({ code: error.code, message: error.message, retryable: true });
+    }
     return res.status(500).json({ error: "Internal server error" });
   }
 });

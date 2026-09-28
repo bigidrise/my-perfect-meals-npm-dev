@@ -51,6 +51,9 @@ function mockSelectQueue(values: unknown[]) {
 
 jest.mock("../db", () => ({
   db: {
+    insert: jest.fn(() => ({
+      values: () => ({ onConflictDoUpdate: () => Promise.resolve() }),
+    })),
     select: jest.fn(() => {
       const val = selectQueue.shift() ?? [];
       return makeChain(val);

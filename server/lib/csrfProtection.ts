@@ -85,6 +85,10 @@ export function csrfProtection(
   }
 
   const hasBearer = Boolean(req.get("x-auth-token"));
+  // Authentication resolves a browser session before considering a bearer
+  // header. A stray or forged header cannot turn a cookie-authenticated write
+  // into an exempt bearer write.
+  const bearerOnly = hasBearer && !req.session?.userId;
   const hasApiClientMarker =
     req.get("x-requested-with") === "XMLHttpRequest";
   const isAuthenticatedCallback =
@@ -93,7 +97,7 @@ export function csrfProtection(
 
   if (
     (!hasOrigin &&
-      !hasBearer &&
+      !bearerOnly &&
       !hasApiClientMarker &&
       !isAuthenticatedCallback) ||
     (hasOrigin && !isTrustedRequestOrigin(req))
@@ -107,7 +111,7 @@ export function csrfProtection(
 
   // Explicit bearer credentials and native clients do not rely on ambient
   // browser cookies, so they are not vulnerable to browser CSRF.
-  if (hasBearer) {
+  if (bearerOnly) {
     next();
     return;
   }

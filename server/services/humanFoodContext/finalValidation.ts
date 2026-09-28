@@ -1,3 +1,4 @@
+import { currentGLP1AuthorityEnabled } from "../glp1/currentMealAuthority";
 import type { HumanFoodContext } from "../../../shared/humanFoodContext";
 import {
   HUMAN_FOOD_VALIDATOR_VERSION,
@@ -17,6 +18,8 @@ import {
   scanMealsForAllergenViolations,
 } from "../allergyGuardrails";
 import { evaluateWholeFoodCandidate } from "../wholeFoodStandard";
+import { assessLowCarbRecipeCompatibility, type ContextualSourceDecision } from "../foodAdaptation/lowCarbPolicy";
+import { assessLowCarbRecipeRelease } from "../oneTouch/lowCarbRecipeRelease";
 import { validateGlycemicProduce } from "../glycemicProduceValidator";
 import {
   maskNonAnimalDietaryCompounds,
@@ -37,6 +40,10 @@ export interface HumanFoodFinalValidationOptions {
   practicalWholeFoodAlternativeAvailable?: boolean;
   /** Menu-only opt-in. Legacy callers retain their existing evidence interpretation. */
   evidenceMode?: "legacy" | "exact";
+  /** Request-scoped Menu evidence for this exact returned recipe, never a client claim. */
+  contextualSourceDecisions?: readonly ContextualSourceDecision[];
+  /** Server-only generic Menu contract. Never supplies positive Low Carb proof. */
+  genericRecipeLowCarbRelease?: boolean;
 }
 
 const OUTCOME_RANK: Record<HumanFoodValidationOutcome, number> = {
@@ -89,6 +96,7 @@ const STRICT_DIET_SOURCES: Record<string, HumanFoodRequirementProof["source"]> =
   vegetarian: "ingredient_classifier",
   pescatarian: "ingredient_classifier",
   carnivore: "ingredient_classifier",
+  "low carb": "program_rule_pack",
   diabetic: "diabetes_authority",
   glp1: "glp1_authority",
 };
@@ -238,6 +246,24 @@ export function validateHumanFoodCandidate(
       message: "Ingredients are required for final validation.", assurance: "structured_evidence",
     });
   }
+  // Ingredient-level safety scanners consume top-level names. A compound
+  // recipe must expose every component there as well; otherwise a hidden
+  // allergen or avoidance could escape the normal safety checks.
+  const topLevelNames = new Set((candidate.ingredients ?? [])
+    .map((item) => normalize(typeof item === "string" ? item : item.name ?? item.item))
+    .filter(Boolean));
+  if ((candidate.ingredients ?? []).some((item) =>
+    typeof item !== "string" && item.components?.some((component) =>
+      !component.name || !topLevelNames.has(normalize(component.name)) ||
+      Boolean((component as { components?: unknown }).components)
+    )
+  )) {
+    add(findings, {
+      dimension: "provenance", outcome: "blocked", code: "compound_ingredients_not_exposed",
+      message: "Every compound ingredient component must be listed separately for food safety checks.",
+      assurance: "structured_evidence",
+    });
+  }
 
   for (const allergy of context.safety.allergies) {
     const canonicalAllergy = canonicalAllergenKey(allergy);
@@ -332,10 +358,23 @@ export function validateHumanFoodCandidate(
     });
     if (options.evidenceMode === "exact" && !UNRESTRICTED_DIETARY_IDENTITIES.has(key)) {
       const requirementKey = `dietary_identity:${key}` as const;
-      addExactEvidenceFinding(
-        findings, requirementKey, String(diet), "dietary_identity",
-        exactEvidenceResult(evidence, requirementKey, STRICT_DIET_SOURCES[key]),
-      );
+      const lowCarbSource = key === "low carb"
+        ? assessLowCarbRecipeCompatibility(candidate, context, options.contextualSourceDecisions)
+        : null;
+      const suppliedProof = exactEvidenceResult(evidence, requirementKey, STRICT_DIET_SOURCES[key]);
+      const genericRecipeUncertainty = key === "low carb" &&
+        options.genericRecipeLowCarbRelease === true &&
+        evidence.sourceType === "generated_recipe" &&
+        suppliedProof !== "fail" &&
+        assessLowCarbRecipeRelease(candidate, context, options.contextualSourceDecisions) === "no_known_conflict";
+      if (!genericRecipeUncertainty) {
+        addExactEvidenceFinding(
+          findings, requirementKey, String(diet), "dietary_identity",
+          lowCarbSource?.status === "adaptation_required" ? "fail"
+            : lowCarbSource?.status === "review_required" ? "review_required"
+            : suppliedProof,
+        );
+      }
     } else if (requiresStructuredEvidence) {
       if (evidence.dietaryIdentityCompliant !== true) {
         add(findings, {
@@ -413,9 +452,11 @@ export function validateHumanFoodCandidate(
   }
 
   const conditions = context.safety.healthConditions.map(normalize);
-  const glp1Active = conditions.some((condition) =>
-    condition.includes("glp 1") || condition.includes("semaglutide") ||
-    condition.includes("tirzepatide") || (options.evidenceMode === "exact" && condition.includes("glp1")));
+  const glp1Active = currentGLP1AuthorityEnabled()
+    ? context.safety.glp1MealAuthorityActive === true
+    : conditions.some((condition) =>
+        condition.includes("glp 1") || condition.includes("semaglutide") ||
+        condition.includes("tirzepatide") || (options.evidenceMode === "exact" && condition.includes("glp1")));
   const diabetesActive = conditions.some((condition) => condition.includes("diabet"));
   const otherClinicalDirectives = conditions.filter((condition) =>
     !condition.includes("glp 1") &&

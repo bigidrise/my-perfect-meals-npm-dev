@@ -5,6 +5,7 @@ import { resolveHumanFoodContext } from "./humanFoodContext/resolveHumanFoodCont
 import { validateHumanFoodCandidate } from "./humanFoodContext/finalValidation";
 import { createHumanFoodRequestExecutionState } from "./humanFoodContext/requestExecutionState";
 import { validateMealForDiet } from "./guardrails";
+import { loadUserProtocolEnvelope, scanGeneratedOutput } from "./protocolEnvelope";
 
 export class WeeklyMealGenerationError extends Error {
   readonly code: string;
@@ -14,6 +15,101 @@ export class WeeklyMealGenerationError extends Error {
     this.code = code;
     this.status = status;
   }
+}
+
+async function loadWeeklyProtocolEnvelope(userId: string) {
+  const envelope = await loadUserProtocolEnvelope(userId);
+  if (!envelope) {
+    throw new WeeklyMealGenerationError(
+      "PROTOCOL_ENVELOPE_UNRESOLVED",
+      "The nutrition subject's protocol could not be resolved; no weekly meals were served.",
+    );
+  }
+  return envelope;
+}
+
+function assertWeeklyMealProtocolSafe(meal: any, envelope: Awaited<ReturnType<typeof loadWeeklyProtocolEnvelope>>, dateISO: string) {
+  const ingredients = meal?.ingredients;
+  const ingredientNames = Array.isArray(ingredients)
+    ? ingredients.map((ingredient: any) =>
+      typeof ingredient === "string" ? ingredient.trim() : String(ingredient?.name ?? ingredient?.item ?? "").trim(),
+    )
+    : [];
+  // The template fallback may use generic descriptions rather than ingredient
+  // evidence. Such entries cannot establish protocol safety and must not pass.
+  const hasIngredientEvidence = ingredientNames.length > 0 && ingredientNames.every((name: string) =>
+    name.length > 0 && !/^(fresh seasonal ingredients|premium .+|ingredients as needed|assorted ingredients)$/i.test(name),
+  );
+  // Do not turn incomplete legacy templates into a new global outage for
+  // unrestricted users. When an active food constraint depends on ingredients,
+  // however, an unspecified template cannot establish compliance.
+  const needsIngredientEvidence = Boolean(
+    envelope.dietaryIdentity.some((diet) =>
+      !["balanced", "general-nutrition", "standard"].includes(diet.toLowerCase().replace(/[_\s]+/g, "-"))) ||
+    envelope.allergies.length ||
+    envelope.avoidances.length ||
+    // A condition classified as "medical" does not by itself supply an
+    // ingredient-level prohibition. Cardiac/renal/liver guidance must not
+    // turn a legacy placeholder into a hard safety failure.
+    envelope.hasDiabetes ||
+    envelope.alphaGalContext?.active ||
+    (envelope.pregnancySupportContext?.active &&
+      envelope.pregnancySupportContext.stage.startsWith("trimester-")) ||
+    envelope.thyroidSupport
+  );
+  if (!hasIngredientEvidence && needsIngredientEvidence) {
+    throw new WeeklyMealGenerationError(
+      "PROTOCOL_INGREDIENT_EVIDENCE_MISSING",
+      `Meal for ${dateISO} has no usable ingredient evidence for protocol validation; no plan was served.`,
+    );
+  }
+  const result = scanGeneratedOutput({
+    name: meal.name,
+    description: meal.description,
+    ingredients,
+    instructions: meal.steps ?? meal.instructions,
+    preparationEvidence: "unknown",
+  }, envelope, { generatorName: "weekly_meal_plan" });
+  if (!result.passed) {
+    throw new WeeklyMealGenerationError(
+      "PROTOCOL_MEAL_REJECTED",
+      `Meal for ${dateISO} failed protocol validation: ${result.message || "protocol conflict detected"}.`,
+    );
+  }
+}
+
+function weeklySelectionPolicy(
+  envelope: Awaited<ReturnType<typeof loadWeeklyProtocolEnvelope>>,
+  dateISO: string,
+) {
+  const active = [...envelope.medicalOptimization, ...envelope.medicalHardLimits]
+    .map((value) => value.toLowerCase().replace(/[_\s]+/g, "-"));
+  const selectedBuilder = envelope.selectedMealBuilder?.toLowerCase().replace(/[_\s]+/g, "-");
+  const guidanceTags = new Set([
+    "cardiac-health", "heart-disease", "heart-failure", "renal", "kidney-disease",
+    "liver-support", "liver-disease", "thyroid-support", "menopause", "perimenopause",
+    "hormone-optimization", "metabolic-recovery", "oncology", "anti-inflammatory",
+  ]);
+  const optimizationTags = [...new Set([
+    ...active.filter((value) => guidanceTags.has(value)),
+    ...(active.includes("anti-inflammatory") || selectedBuilder === "anti-inflammatory" ? ["anti-inflammatory"] : []),
+    ...(selectedBuilder === "glp1" ||
+      active.some((value) => value === "glp-1" || value === "glp1") ||
+      envelope.conditionGuidanceBlocks?.some((block) => block.includes("GLP-1 NUTRITION SUPPORT — PERSONAL CHOICE"))
+      ? ["glp-1", "glp1"] : []),
+  ])];
+  return {
+    optimizationTags,
+    templateEligibility: (template: any) => {
+      try {
+        assertWeeklyMealProtocolSafe(template, envelope, dateISO);
+        return true;
+      } catch (error) {
+        if (error instanceof WeeklyMealGenerationError) return false;
+        throw error;
+      }
+    },
+  };
 }
 
 export interface CanonicalWeeklyGenerationInput {
@@ -163,7 +259,9 @@ async function generateCanonicalDay(input: {
   dietOverride?: string; correlationId?: string; excludeItemId?: string;
   context?: Awaited<ReturnType<typeof resolveHumanFoodContext>>;
   executionState?: ReturnType<typeof createHumanFoodRequestExecutionState>;
+  protocolEnvelope?: Awaited<ReturnType<typeof loadWeeklyProtocolEnvelope>>;
 }) {
+  const protocolEnvelope = input.protocolEnvelope ?? await loadWeeklyProtocolEnvelope(input.userId);
   const context = input.context ?? await resolveHumanFoodContext({
     actorUserId: input.userId, subjectUserId: input.userId, creator: "weekly_meal_plan",
     dateISO: input.dateISO, excludeItemId: input.excludeItemId,
@@ -187,11 +285,13 @@ async function generateCanonicalDay(input: {
     diet: context.diet.effective[0] ?? "balanced",
     medicalFlags: context.safety.healthConditions, userAllergens: context.safety.allergies,
     preferredFoods: context.foodsIEnjoy?.explicit.map((item) => item.displayLabel) ?? [],
+    ...weeklySelectionPolicy(protocolEnvelope, input.dateISO),
   } as any);
   const meals = source.plan?.[0]?.days?.[input.dayIndex]?.meals;
   if (!Array.isArray(meals) || !meals.length) throw new WeeklyMealGenerationError("CANDIDATE_DAY_INCOMPLETE", `No meals generated for ${input.dateISO}.`);
   const execution = input.executionState ?? createHumanFoodRequestExecutionState();
   const validated = meals.map((meal: any) => {
+    assertWeeklyMealProtocolSafe(meal, protocolEnvelope, input.dateISO);
     const validation = validateHumanFoodCandidate(candidateFrom(meal, context), context, { executionState: execution });
     if (validation.outcome !== "pass") {
       throw new WeeklyMealGenerationError(validation.outcome === "repairable" ? "CANDIDATE_REPAIR_REQUIRED" : "CANDIDATE_REJECTED",
@@ -213,6 +313,7 @@ export async function generateCanonicalWeeklyMealPlan(input: CanonicalWeeklyGene
   const snacksPerDay = Math.max(0, Math.min(3, input.snacksPerDay ?? 0));
   const targets = input.targets ?? { calories: 2000, protein: 140 };
   const timezone = await getUserTimezone(input.userId);
+  const protocolEnvelope = await loadWeeklyProtocolEnvelope(input.userId);
   const startDate = input.startDateISO ? sundayFor(input.startDateISO) : sundayFor(localToday(timezone));
   const dates = Array.from({ length: weeks * 7 }, (_, index) => addDays(startDate, index));
 
@@ -240,6 +341,7 @@ export async function generateCanonicalWeeklyMealPlan(input: CanonicalWeeklyGene
     medicalFlags: contexts[0].safety.healthConditions,
     userAllergens: contexts[0].safety.allergies,
     preferredFoods: contexts[0].foodsIEnjoy?.explicit.map((item) => item.displayLabel) ?? [],
+    ...weeklySelectionPolicy(protocolEnvelope, dates[0]),
   } as any);
   const sourceWeeks = Array.isArray(source.plan) ? source.plan : (source.plan as any)?.weeks;
   if (!Array.isArray(sourceWeeks) || sourceWeeks.length !== weeks) {
@@ -257,6 +359,7 @@ export async function generateCanonicalWeeklyMealPlan(input: CanonicalWeeklyGene
         throw new WeeklyMealGenerationError("CANDIDATE_DAY_INCOMPLETE", `No meals generated for ${dates[weekIndex * 7 + dayIndex]}.`);
       }
       const meals = day.meals.map((meal: any) => {
+        assertWeeklyMealProtocolSafe(meal, protocolEnvelope, dates[weekIndex * 7 + dayIndex]);
         const validation = validateHumanFoodCandidate(candidateFrom(meal, context), context, { executionState: execution });
         if (validation.outcome !== "pass") {
           // A repair needs a materially different candidate source. Legacy
@@ -308,10 +411,12 @@ export async function regenerateCanonicalWeeklyDay(input: CanonicalDayRegenerati
   }
   const dateISO = oldDays[input.dayIndex]?.date;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateISO ?? "")) throw new WeeklyMealGenerationError("MEAL_DATE_UNRESOLVED", "The requested day has no user-local date.");
+  const protocolEnvelope = await loadWeeklyProtocolEnvelope(input.userId);
   const generated = await generateCanonicalDay({
     userId: input.userId, dateISO, dayIndex: input.dayIndex,
     mealsPerDay: oldDays[input.dayIndex].meals?.length, targets: input.targets,
     dietOverride: input.dietOverride, correlationId: input.correlationId,
+    protocolEnvelope,
   });
   const days = oldDays.slice();
   days[input.dayIndex] = generated.day;
@@ -343,6 +448,7 @@ export async function rerollCanonicalWeeklyMeal(input: CanonicalMealRerollInput)
   if (context.status === "blocked" || context.status === "review_required") {
     throw new WeeklyMealGenerationError("HUMAN_FOOD_CONTEXT_UNRESOLVED", `Food context for ${dateISO} is ${context.status}.`);
   }
+  const protocolEnvelope = await loadWeeklyProtocolEnvelope(input.userId);
   const oldSignature = `${oldDay.meals[input.mealIndex].name}|${JSON.stringify(oldDay.meals[input.mealIndex].ingredients ?? [])}`;
   const executionState = createHumanFoodRequestExecutionState();
   let replacement: any;
@@ -356,9 +462,11 @@ export async function rerollCanonicalWeeklyMeal(input: CanonicalMealRerollInput)
       diet: context.diet.effective[0] ?? "balanced",
       medicalFlags: context.safety.healthConditions, userAllergens: context.safety.allergies,
       preferredFoods: context.foodsIEnjoy?.explicit.map((item) => item.displayLabel) ?? [],
+      ...weeklySelectionPolicy(protocolEnvelope, dateISO),
     } as any);
     const candidate = source.plan?.[0]?.days?.[input.dayIndex]?.meals?.[input.mealIndex];
     if (!candidate) throw new WeeklyMealGenerationError("REROLL_CANDIDATE_MISSING", "No replacement candidate was generated.");
+    assertWeeklyMealProtocolSafe(candidate, protocolEnvelope, dateISO);
     const duplicate = oldSignature === `${candidate.name}|${JSON.stringify(candidate.ingredients ?? [])}`;
     const result = duplicate ? null : validateHumanFoodCandidate(candidateFrom(candidate, context), context, { executionState });
     if (!duplicate && result?.outcome === "pass") { replacement = candidate; validation = result; break; }

@@ -6,6 +6,11 @@ import {
   appendWholeFoodStandardPrompt,
   evaluateWholeFoodCandidate,
 } from "../services/wholeFoodStandard";
+import {
+  enforceBeforeGenerate,
+  loadUserProtocolEnvelope,
+  scanGeneratedOutput,
+} from "../services/protocolEnvelope";
 
 const router = express.Router();
 
@@ -37,10 +42,26 @@ router.post("/chef/ask", requireAuth, requireActiveAccess, async (req, res) => {
     const langInstr = baseLang !== "en" && langNames[baseLang]
       ? ` Respond entirely in ${langNames[baseLang]}.`
       : "";
-    const system = appendWholeFoodStandardPrompt(
+    // Resolve protocols for the authenticated subject only. Never accept a
+    // user/profile identity from the request body for food-safety context.
+    const userId = String((req as any).authUser?.id ?? "");
+    if (!userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    const envelope = await loadUserProtocolEnvelope(userId);
+    if (!envelope) {
+      return res.status(503).json({ error: "Unable to resolve active food-safety protocols." });
+    }
+    const protocolPrompt = enforceBeforeGenerate(envelope, {
+      userInput: question.trim(),
+      generatorName: "chef_chat",
+      actorId: userId,
+    });
+    const baseSystem = appendWholeFoodStandardPrompt(
       `You are a concise, friendly culinary coach. Give practical, safe cooking and nutrition advice. Keep answers short.${langInstr}`,
       { recommendationSurface: "chef_chat" },
     );
+    const system = `${baseSystem}\n\n${protocolPrompt.combined}`;
     const user = question.trim();
 
     const resp = await getOpenAI().chat.completions.create({
@@ -72,6 +93,24 @@ router.post("/chef/ask", requireAuth, requireActiveAccess, async (req, res) => {
         recommendationSurface: "chef_chat",
       }).shouldSubstitute) {
         return res.status(422).json({ error: "Unable to provide a food recommendation that meets the Whole-Food Standard." });
+      }
+    }
+
+    // General culinary explanations and other non-recommendation Q&A remain
+    // available. Any answer responding to a food-choice request or phrased as
+    // a food recommendation is checked against the resolved subject protocol.
+    const recommendationCue =
+      /\b(recommend|suggest|try|eat|choose|use|add|serve|pair|substitut\w*|recipe|meal|dish|ingredient|food|snack|breakfast|lunch|dinner|cook|prepare)\b/i;
+    if (recommendationCue.test(user) || recommendationCue.test(answer)) {
+      const protocolScan = scanGeneratedOutput(
+        { name: "Chef answer", ingredients: [answer] },
+        envelope,
+        { generatorName: "chef_chat" },
+      );
+      if (!protocolScan.passed) {
+        return res.status(422).json({
+          error: "Unable to provide a food recommendation that meets the active food-safety protocols.",
+        });
       }
     }
     res.json({ answer });

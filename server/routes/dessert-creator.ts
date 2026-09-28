@@ -12,7 +12,7 @@ import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
 import { buildPalateSection, PalatePreferences, buildStrictModeBlock, buildSweetenerAllowlistBlock, resolveSweetenerAllowlist } from "../services/promptBuilder";
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope, buildMealComplianceBundle } from "../services/protocolEnvelope";
+import { loadGenerationProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput, buildGuestEnvelope, buildMealComplianceBundle } from "../services/protocolEnvelope";
 import { derivePreferenceProfile, buildBehavioralMemoryPromptSection } from "../services/behavioralMemoryService";
 import { getPrimaryDiet } from "../services/allergyGuardrails";
 import { buildChefAdaptationBlock } from "../utils/chefAdaptationBlock";
@@ -178,7 +178,10 @@ dessertCreatorRouter.post("/", async (req, res) => {
     let _overriddenDessertAllergens: string[] = [];
     if (userId) {
       const inputText = [specificDessert, flavorFamily, dessertCategory].filter(Boolean).join(' ');
-      const safetyCheck = await enforceSafetyProfile(userId, inputText, "dessert-creator", {
+      const safetyCheck = await enforceSafetyProfile(userId, {
+        kind: "food_intent", requestedDish: [specificDessert, flavorFamily].filter(Boolean).join(" "),
+        cuisine: dessertCategory,
+      }, "dessert-creator", {
         safetyMode: safetyMode || "STRICT",
         overrideToken: overrideToken,
         correlationId: (req as any).id
@@ -214,7 +217,7 @@ dessertCreatorRouter.post("/", async (req, res) => {
 
     // ── Load protocol envelope (drives all dietary enforcement) ───────────────
     const dessertEnvelope = (userId && userId !== "1")
-      ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
+      ? await loadGenerationProtocolEnvelope(userId)
       : buildGuestEnvelope();
 
     // Apply per-request culture override if provided (overrides saved cuisine profile for this generation only)

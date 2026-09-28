@@ -18,7 +18,9 @@ function stable(value: unknown, path = ""): unknown {
   if (value && typeof value === "object") {
     return Object.fromEntries(Object.entries(value as Record<string, unknown>)
       .filter(([key]) => !VOLATILE_KEYS.has(key) &&
-        !(path === "context.nutrition.provenance" && key === "calculationTimestamp"))
+        !((path === "context.nutrition.provenance" ||
+            path === "glp1.dailyNutritionState.provenance") &&
+          key === "calculationTimestamp"))
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([key, item]) => [key, stable(item, path ? `${path}.${key}` : key)]));
   }

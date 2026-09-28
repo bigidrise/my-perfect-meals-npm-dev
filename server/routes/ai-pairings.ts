@@ -6,7 +6,12 @@ import { buildPairingsConstraints } from "../services/pairings/pairingsPersonali
 import { generatePairingImages } from "../services/pairings/pairingsImageService";
 import { chatJson } from "../utils/openaiSafe";
 import { log } from "../vite";
-import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope } from "../services/protocolEnvelope";
+import { requiresVerifiedIngredientEvidence } from "../services/foodCompositionEvidence";
+import {
+  loadUserProtocolEnvelope,
+  enforceBeforeGenerate,
+  scanGeneratedOutput,
+} from "../services/protocolEnvelope";
 
 const router = Router();
 
@@ -130,7 +135,17 @@ router.post("/", async (req, res) => {
     const constraints = buildPairingsConstraints(profile);
 
     // ── Protocol envelope: add identity-level enforcement above profile constraints ──
-    const pairingsEnvelope = await loadUserProtocolEnvelope(userId).catch(() => null) ?? buildGuestEnvelope();
+    const pairingsEnvelope = await loadUserProtocolEnvelope(userId).catch(() => null);
+    if (!pairingsEnvelope) {
+      return res.status(503).json({ error: "Your active food-safety information is unavailable. Please try again." });
+    }
+    // Pairing names and flavor notes are not a verified ingredient label.
+    // These established high-risk profiles cannot be cleared from a drink name.
+    if (requiresVerifiedIngredientEvidence(pairingsEnvelope)) {
+      return res.status(503).json({
+        error: "Verified pairing ingredients are unavailable for your active food-safety restrictions. Please check a complete label or ask the venue.",
+      });
+    }
     // Apply per-request culture override if provided (overrides saved cuisine profile for this generation only)
     const cultureOverride = req.body?.cultureOverride?.trim() || null;
     if (cultureOverride) {
@@ -167,7 +182,23 @@ router.post("/", async (req, res) => {
     for (const p of pairings) {
       const itemParsed = PairingItem.safeParse({ ...p, imageUrl: null });
       if (itemParsed.success) {
-        validatedPairings.push(itemParsed.data);
+        const item = itemParsed.data;
+        const protocolScan = scanGeneratedOutput(
+          {
+            name: item.name,
+            description: [item.category, item.explanation, item.servingTips].join("\n"),
+            // A pairing is a recommendation, not a recipe. Its name/category
+            // are the strongest food evidence; alternatives must be safe too.
+            ingredients: [item.name, item.category, ...item.alternatives, ...(item.flavorProfile || [])],
+          },
+          pairingsEnvelope,
+          { generatorName: "pairings_ai" }
+        );
+        if (protocolScan.passed) {
+          validatedPairings.push(item);
+        } else {
+          log(`[PairingsAI] Skipping protocol-violating pairing "${item.name}": ${protocolScan.message}`, "warn");
+        }
       } else {
         log(`[PairingsAI] Skipping invalid pairing item: ${JSON.stringify(p)}`, "warn");
       }
@@ -192,9 +223,11 @@ router.post("/", async (req, res) => {
     return res.json({
       query: { input, detectedIntent, category },
       pairings: validatedPairings,
+      compositionEvidence: "unverified",
+      compositionNote: "Pairing ingredients, nutrition, and preparation have not been verified. Check the label or ask the venue before choosing, especially for active dietary or clinical restrictions.",
       safety: {
         result: "SAFE",
-        message: "Request passed safety checks",
+        message: "Known conflicts were screened; product composition has not been verified.",
         blockedTerms: [],
         blockedCategories: [],
         ambiguousTerms: [],

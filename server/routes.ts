@@ -54,15 +54,16 @@ import holidayFamilyRecipeRouter from "./routes/holiday-family-recipe";
 
 import { generateCravingMeal, generateWeeklyMeals } from "./services/stableMealGenerator";
 import { generateCravingMealWithProfile } from "./services/generators/cravingCreatorWrapped";
-import { enforceSafetyProfile } from "./services/safetyProfileService";
+import { enforceSafetyProfile, loadSafetyProfile, validateGeneratedMeal } from "./services/safetyProfileService";
 import { runEnforcement, toRouteResponse } from "./services/enforcementGateway";
-import { scanForHiddenDietaryViolations, AVOIDANCE_EXPANSION, getPrimaryDiet } from "./services/allergyGuardrails";
+import { scanForHiddenDietaryViolations, AVOIDANCE_EXPANSION, getPrimaryDiet, allergenKeysMatch } from "./services/allergyGuardrails";
 import { sanitizeMealName } from "./utils/mealNameSanitizer";
 import { buildChefAdaptationBlock } from "./utils/chefAdaptationBlock";
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, filterMealsByProtocol, buildGuestEnvelope, scanGeneratedOutput, buildComplianceSection, buildMealComplianceBundle, deriveProcedureRules } from "./services/protocolEnvelope";
 import { deriveCompPrepStatus } from "./services/protocol/competitionPrepDateEngine";
 import { getActiveNutritionContext } from "./services/nutritionContext/getActiveNutritionContext";
 import { getLabDrivenConditions, getPhysicianLockStatus } from "./services/labProtocolOwnership";
+import cardiacLabChoiceRouter from "./routes/cardiacLabChoice";
 import { 
   hasUserSetPin, 
   setUserPin, 
@@ -329,6 +330,38 @@ function enforceMeasuredIngredients(ings: Array<{ name: string; amount: any }>):
 
 function hasUnmeasured(ings: Array<{ name: string; amount: string }>): boolean {
   return ings.some(i => !i.amount || /^\d+(\.\d+)?$/.test(i.amount));
+}
+
+async function resolveRecommendationProtocolContext(req: any) {
+  const userId = typeof req.authUser?.id === "string" ? req.authUser.id : null;
+  const envelope = userId
+    ? await loadUserProtocolEnvelope(userId)
+    : buildGuestEnvelope();
+  if (!envelope) {
+    throw new Error("Unable to resolve protocol context for recommendation");
+  }
+  return { userId, envelope };
+}
+
+function recommendationText(value: any): string[] {
+  if (typeof value === "string" || typeof value === "number") return [String(value)];
+  if (Array.isArray(value)) return value.flatMap(recommendationText);
+  if (value && typeof value === "object") return Object.values(value).flatMap(recommendationText);
+  return [];
+}
+
+function scanRecommendationOutput(output: any, envelope: any, generatorName: string) {
+  const text = recommendationText(output);
+  return scanGeneratedOutput(
+    {
+      name: String(output?.name ?? output?.wineName ?? output?.spiritName ?? output?.mealName ?? ""),
+      description: text.join("\n"),
+      ingredients: text,
+      instructions: text,
+    },
+    envelope,
+    { generatorName },
+  );
 }
 
 
@@ -1360,6 +1393,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           builderType: type || "create_dish",
           phase: "pre_generation",
           inputText,
+          safetyIntent: Array.isArray(input)
+            ? { kind: "food_intent", requestedDish: "", explicitIngredients: input }
+            : { kind: "food_intent", requestedDish: inputText },
           safetyMode: safetyMode || "STRICT",
           overrideToken,
         });
@@ -2360,6 +2396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           builderType: "fridge_rescue",
           phase: "pre_generation",
           inputText: ingredientsText,
+          safetyIntent: { kind: "food_intent", requestedDish: "", explicitIngredients: fridgeItems },
           safetyMode: safetyMode || "STRICT",
           overrideToken: safetyMode === "CUSTOM_AUTHENTICATED" ? overrideToken : undefined,
         });
@@ -2899,6 +2936,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           builderType: "meal_planner",
           phase: "pre_generation",
           inputText: ingredientsText,
+          safetyIntent: { kind: "food_intent", requestedDish: "", explicitIngredients: selectedIngredients },
         });
         const routeResponse = toRouteResponse(enforcement);
         if (routeResponse.blocked || routeResponse.reviewRequired) {
@@ -4440,6 +4478,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PATCH /api/user/specialty-condition
+  app.use("/api/user", cardiacLabChoiceRouter());
+
+  // PATCH /api/user/specialty-condition
   // Saves the user's self-selected specialty health protocol(s).
   // Accepts: { condition: string } (single, backward-compat) OR { conditions: string[] } (multi)
   // Allowed values: 'renal' | 'cardiac' | 'liver-disease' | 'liver-support' | 'oncology-support' | 'thyroid-support' | 'hormone-optimization'
@@ -4452,7 +4493,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const authReq = req as AuthenticatedRequest;
       const userId = authReq.authUser.id;
-      const ALLOWED = ["renal", "cardiac", "liver-disease", "liver-support", "oncology-support", "thyroid-support", "hormone-optimization", "hashimotos", "hypothyroid", "hyperthyroid", "menopause", "perimenopause", "metabolic-recovery"];
+      const ALLOWED = ["renal", "cardiac", "liver-disease", "liver-support", "oncology-support", "thyroid-support", "hormone-optimization", "hashimotos", "hypothyroid", "hyperthyroid", "menopause", "perimenopause", "metabolic-recovery", "pregnancy-support", "alpha-gal-syndrome"];
       const { condition, conditions } = req.body;
 
       // ── Tier 1: Physician lock ────────────────────────────────────────────
@@ -4476,6 +4517,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!Array.isArray(conditions)) return res.status(400).json({ error: "conditions must be an array" });
         const invalid = conditions.find((c: any) => !ALLOWED.includes(c));
         if (invalid) return res.status(400).json({ error: `Invalid condition: ${invalid}` });
+        if (conditions.includes("alpha-gal-syndrome")) {
+          const [alphaGal] = await db.select({ profile: users.alphaGalProfile })
+            .from(users).where(eq(users.id, userId)).limit(1);
+          if (!alphaGal?.profile?.profileComplete) {
+            return res.status(409).json({
+              error: "alpha_gal_profile_required",
+              message: "Complete and save Alpha-gal details before activating this allergy protocol.",
+            });
+          }
+        }
+        if (conditions.includes("pregnancy-support")) {
+          const [pregnancy] = await db.select({ stage: users.pregnancyStage })
+            .from(users).where(eq(users.id, userId)).limit(1);
+          if (!pregnancy?.stage) {
+            return res.status(409).json({
+              error: "pregnancy_setup_required",
+              message: "Choose a pregnancy support stage before activating this protocol.",
+            });
+          }
+        }
         // Merge: preserve any lab-driven conditions even if user omitted them
         const merged = Array.from(new Set([...conditions, ...labDriven]));
         const primaryCondition = merged.length > 0 ? merged[0] : null;
@@ -4485,6 +4546,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } as any).where(eq(users.id, userId));
         console.log(`[specialty-condition] User ${userId} multi-set → ${merged.length} conditions (${labDriven.length} lab-protected)`);
         return res.json({ ok: true, specialtyConditions: merged, specialtyCondition: primaryCondition });
+      }
+      if (condition === "pregnancy-support") {
+        const [pregnancy] = await db.select({ stage: users.pregnancyStage })
+          .from(users).where(eq(users.id, userId)).limit(1);
+        if (!pregnancy?.stage) {
+          return res.status(409).json({
+            error: "pregnancy_setup_required",
+            message: "Choose a pregnancy support stage before activating this protocol.",
+          });
+        }
+      }
+      if (condition === "alpha-gal-syndrome") {
+        const [alphaGal] = await db.select({ profile: users.alphaGalProfile })
+          .from(users).where(eq(users.id, userId)).limit(1);
+        if (!alphaGal?.profile?.profileComplete) {
+          return res.status(409).json({
+            error: "alpha_gal_profile_required",
+            message: "Complete and save Alpha-gal details before activating this allergy protocol.",
+          });
+        }
       }
 
       // Single-condition path: backward compat
@@ -4639,6 +4720,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const authReq = req as AuthenticatedRequest;
       const userId = authReq.authUser.id;
       const { profile } = req.body;
+      if (await getPhysicianLockStatus(userId)) {
+        return res.status(403).json({
+          error: "physician_locked",
+          message: "Your clinical profile is controlled by your physician and cannot be changed here.",
+        });
+      }
 
       if (!profile || typeof profile !== "object") {
         return res.status(400).json({ error: "profile object is required" });
@@ -5818,7 +5905,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       if (userId && craving) {
-        const safetyCheck = await enforceSafetyProfile(userId, craving, "generate-craving-meal", {
+        const safetyCheck = await enforceSafetyProfile(userId, { kind: "food_intent", requestedDish: craving }, "generate-craving-meal", {
           correlationId: (req as any).id
         });
         if (safetyCheck.result === "BLOCKED") {
@@ -6087,7 +6174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Scan only the user's request. cravingInput already contains the internal
         // Human Food context at this point, including foods it instructs the model
         // to avoid; scanning that enrichment makes the safety layer match itself.
-        const safetyCheck = await enforceSafetyProfile(userId, rawCravingInput, "meals-craving-creator", {
+        const safetyCheck = await enforceSafetyProfile(userId, { kind: "food_intent", requestedDish: rawCravingInput }, "meals-craving-creator", {
           safetyMode: safetyMode || "STRICT",
           overrideToken: overrideToken,
           ignoredAvoidances: _overriddenAvoidances,
@@ -6297,6 +6384,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bodyDietRestrictions = _resolvedPrimaryDiet.slice();
 
       let validatedCreateDishIntent: import("@shared/createDishIngredientExpansion").CreateDishIntent | null = null;
+      let createDishContract: import("./services/createDish/dishContract").CreateDishContract | undefined;
       let enforceRequestedDishIdentity = true;
       if (humanFoodCreator === "create_a_dish" && rawCreateDishIntent != null) {
         try {
@@ -6341,6 +6429,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               dalConstrainedByIntent: true,
             });
           }
+          const { resolveCreateDishContract } = await import("./services/createDish/dishContract");
+          createDishContract = resolveCreateDishContract(validatedCreateDishIntent, _dishDirective);
         } catch (intentError) {
           console.warn("[CreateDishIntent] rejected invalid or tampered intent", intentError);
           return res.status(400).json({
@@ -6373,24 +6463,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .slice(0, 9)  // allow up to 3 rounds × 3 cards
         : [];
 
-      // ── ALLERGEN_ADAPT: inject explicit allergen constraint into generation prompt ─
-      // The pre-generation safety check is skipped in ALLERGEN_ADAPT mode, but the
-      // LLM must still receive explicit, named allergen prohibitions with all derivatives.
-      // Without this the model generates the dish traditionally (e.g. gumbo with shellfish
-      // stock) and Phase 3 correctly kills every option. This block names the prohibited
-      // categories, lists all derivative terms, and instructs the model to preserve dish
-      // identity by replacing the allergen's functional role rather than just deleting it.
-      if (safetyMode === "ALLERGEN_ADAPT" && protocolEnvelope.allergies.length > 0) {
-        try {
-          const { buildAllergenAdaptPromptBlock } = await import("./services/allergyGuardrails");
-          const allergenBlock = buildAllergenAdaptPromptBlock(protocolEnvelope.allergies, rawCravingInput || "");
-          if (allergenBlock) {
-            cravingInput = `${cravingInput}\n${allergenBlock}`;
-            console.log(`[AllergenAdapt] Injected allergen constraint — allergens: ${protocolEnvelope.allergies.join(", ")}`);
-          }
-        } catch (blockErr) {
-          console.warn("[AllergenAdapt] Failed to build allergen constraint block:", blockErr);
-        }
+      // A safe dish request still needs a positive instruction to replace
+      // traditional allergens, not merely a precheck that lets it through.
+      // The profile and protocol are server-resolved; a PIN only exempts its
+      // precisely authorized allergen for this single request.
+      const activeCreatorAllergies = protocolEnvelope.allergies.filter(allergy =>
+        !_overriddenAllergens.some(authorized => allergenKeysMatch(allergy, authorized)));
+      if (activeCreatorAllergies.length > 0) {
+        const { buildAllergenAdaptPromptBlock } = await import("./services/allergyGuardrails");
+        cravingInput = `${cravingInput}\n${buildAllergenAdaptPromptBlock(activeCreatorAllergies, rawCravingInput || "")}`;
       }
 
       const mealOptions = await generateCravingMealOptions(
@@ -6410,6 +6491,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         _overriddenAvoidances,
         _overriddenDietaryIdentities,
         humanFoodCreator === "create_a_dish" ? rawCravingInput : undefined,
+        createDishContract,
       );
 
       if (humanFoodCreator === "create_a_dish") {
@@ -6511,6 +6593,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               _overriddenAvoidances,
               _overriddenDietaryIdentities,
               humanFoodCreator === "create_a_dish" ? rawCravingInput : undefined,
+              createDishContract,
             );
             if (_bglRetryOptions && _bglRetryOptions.length > 0) {
               // Revalidate against the SAME ceiling — the guardrail is never bypassed.
@@ -6752,6 +6835,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 _overriddenAvoidances,
                 _overriddenDietaryIdentities,
                 humanFoodCreator === "create_a_dish" ? rawCravingInput : undefined,
+                createDishContract,
               );
               if (retryOptions && retryOptions.length > 0) {
                 const retrySafe = retryOptions.filter(meal => {
@@ -6967,6 +7051,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             _overriddenAvoidances,
             _overriddenDietaryIdentities,
             humanFoodCreator === "create_a_dish" ? rawCravingInput : undefined,
+            createDishContract,
           );
           const protocolSafeRepairs = filterMealsByProtocol(repairOptions ?? [], _filterEnvelope, {
             generatorName: "craving_creator_final_repair",
@@ -7028,11 +7113,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      let createDishIntentFailureDetail: string | undefined;
       if (validatedCreateDishIntent && scannedOptions.length > 0) {
         const {
           applyCreateDishIntentWithSoftFallback,
           buildCreateDishIntentPrompt,
           evaluateCreateDishIntentEvidence,
+          buildCreateDishIntentRepairInstructions,
         } = await import("./services/createDish/createDishIntent");
         const intentResolution = applyCreateDishIntentWithSoftFallback(
           scannedOptions,
@@ -7065,10 +7152,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const failedDimensions = Array.from(new Set(
             initialEvidence.flatMap(({ evidence }) => evidence.failedDimensions),
           ));
+          const requiredCore = createDishContract?.leafVessel
+            ? "lettuce leaves used as the wrap vessel"
+            : createDishContract?.namedCore && createDishContract.namedFamily === "salad"
+              ? createDishContract.namedCore
+              : validatedCreateDishIntent.ingredient.canonicalName;
+          createDishIntentFailureDetail = failedDimensions.includes("ingredient")
+            ? `the defining ${requiredCore} in the recipe`
+            : `the requested ${failedDimensions.join(", ")} preparation`;
           try {
+            const repairInstructions = buildCreateDishIntentRepairInstructions(
+              validatedCreateDishIntent,
+              failedDimensions,
+              createDishContract!,
+            );
             const intentRepairOptions = await generateCravingMealOptions(
               `${cravingInput}\n\n[CREATE A DISH INTENT REPAIR — ONE ATTEMPT ONLY]\n` +
-              `The prior otherwise-valid candidates failed these fixed culinary dimensions: ${failedDimensions.join(", ")}.\n` +
+              `${repairInstructions}\n` +
               `${buildCreateDishIntentPrompt(validatedCreateDishIntent)}\n` +
               `Repair only those fixed dimensions. Do not change the user's selections or any safety, nutrition, clinical, allergy, avoidance, Cooking Method, or Cuisine requirement.`,
               normalizedTargetMealType,
@@ -7086,6 +7186,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               _overriddenAvoidances,
               _overriddenDietaryIdentities,
               rawCravingInput,
+              createDishContract,
             );
             const protocolSafeIntentRepairs = filterMealsByProtocol(
               intentRepairOptions ?? [],
@@ -7140,7 +7241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             : "no_candidates_survived",
           retryable: true,
           message: validatedCreateDishIntent
-            ? "We couldn't preserve the requested dish and preparation safely. Try another description or preparation."
+            ? `We couldn't verify ${createDishIntentFailureDetail ?? "the defining dish requirements"} for ${createDishContract?.requestedDish ?? rawCravingInput} together with all your food protections, even after a corrective attempt. Try another preparation or description.`
             : "We couldn't produce a meal that passed your food protections. Please try another request.",
         });
       }
@@ -7258,7 +7359,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(422).json({
             status: "unable_to_generate",
             reasonCode: "create_dish_intent_not_preserved",
-            message: "We couldn't preserve those preparation choices safely. Try changing one choice or use Surprise Me.",
+            message: `We couldn't verify the requested dish and preparation for ${createDishContract?.requestedDish ?? rawCravingInput} after final food validation. Try changing one choice or use Surprise Me.`,
           });
         }
       }
@@ -7420,7 +7521,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       if (cravingInput) {
-        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-craving-creator-enforced", {
+        const safetyCheck = await enforceSafetyProfile(userId, { kind: "food_intent", requestedDish: cravingInput }, "meals-craving-creator-enforced", {
           correlationId: (req as any).id
         });
         if (safetyCheck.result === "BLOCKED") {
@@ -7447,6 +7548,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("🛡️ Generating craving meal with medical validation for:", userId);
 
       const result = await generateCravingMealWithProfile(userId, cravingInput, overrides);
+      const meal = result.meals[0];
+      const safetyProfile = await loadSafetyProfile(userId);
+      if (!safetyProfile || !meal?.ingredients?.length) {
+        return res.status(503).json({
+          success: false, error: "The generated recipe could not be verified for ingredient safety.",
+        });
+      }
+      const finalSafety = validateGeneratedMeal({
+        name: meal.title,
+        ingredients: meal.ingredients,
+        instructions: Array.isArray(meal.instructions) ? meal.instructions : meal.instructions ? [meal.instructions] : [],
+      }, safetyProfile);
+      if (finalSafety.result === "BLOCKED") {
+        return res.status(422).json({
+          success: false, safetyBlocked: true,
+          error: "The generated recipe contains an ingredient that conflicts with your allergy profile.",
+        });
+      }
 
       console.log("✅ Medical badges applied:", result.meals[0]?.badges);
       res.json({ 
@@ -7736,7 +7855,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       if (userId && preferences) {
-        const safetyCheck = await enforceSafetyProfile(userId, preferences, "meals-kids", {
+        const safetyCheck = await enforceSafetyProfile(userId, { kind: "food_intent", requestedDish: preferences }, "meals-kids", {
           correlationId: (req as any).id
         });
         if (safetyCheck.result === "BLOCKED") {
@@ -7839,7 +7958,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       if (userId && cravingInput) {
-        const safetyCheck = await enforceSafetyProfile(userId, cravingInput, "meals-ai-creator", {
+        const safetyCheck = await enforceSafetyProfile(userId, { kind: "food_intent", requestedDish: cravingInput }, "meals-ai-creator", {
           correlationId: (req as any).id
         });
         if (safetyCheck.result === "BLOCKED") {
@@ -8238,6 +8357,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Alcohol recommendations endpoint (handles both old format and new beer pairing format)
   app.post("/api/recommendations/alcohol", async (req, res) => {
     try {
+      const { envelope: alcoholEnvelope } = await resolveRecommendationProtocolContext(req);
+      const alcoholProtocolBlock = enforceBeforeGenerate(alcoholEnvelope, { generatorName: "alcohol_recommendations" }).combined;
       // Check if this is the new beer pairing format
       const { type, mealType, cuisine, mainIngredient, occasion, priceRange, preferences, abvRange } = req.body;
 
@@ -8256,6 +8377,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const abvMax = abvRange?.max || 8.0;
 
         const prompt = `You are an expert beer sommelier and cicerone. Provide 3 beer pairing recommendations for the following meal:
+${alcoholProtocolBlock ? `\n${alcoholProtocolBlock}\n` : ""}
 
 Meal Type: ${mealType}
 ${cuisine ? `Cuisine: ${cuisine}` : ''}
@@ -8306,6 +8428,12 @@ Provide recommendations in JSON format with the following structure:
         });
 
         const result = JSON.parse(completion.choices[0].message.content || '{"recommendations": []}');
+        for (const recommendation of Array.isArray(result.recommendations) ? result.recommendations : []) {
+          const scan = scanRecommendationOutput(recommendation, alcoholEnvelope, "alcohol_recommendations");
+          if (!scan.passed) {
+            return res.status(400).json({ error: "PROTOCOL_VIOLATION", message: scan.message, retryable: true });
+          }
+        }
 
         return res.json({
           ok: true,
@@ -8356,6 +8484,11 @@ Provide recommendations in JSON format with the following structure:
           break;
         default:
           return res.status(400).json({ error: "Invalid category" });
+      }
+
+      const alcoholScan = scanRecommendationOutput(recommendation, alcoholEnvelope, "alcohol_recommendations");
+      if (!alcoholScan.passed) {
+        return res.status(400).json({ error: "PROTOCOL_VIOLATION", message: alcoholScan.message, retryable: true });
       }
 
       // Generate image for the recommendation
@@ -10012,7 +10145,7 @@ function getMealIngredientsDatabase() {
   // Wine Pairing AI endpoint
   app.post("/api/ai/wine-pairing", async (req, res) => {
     try {
-      const { userId, mealType, cuisine, mainIngredient, occasion, priceRange, preferences } = req.body;
+      const { mealType, cuisine, mainIngredient, occasion, priceRange, preferences } = req.body;
 
       if (!mealType) {
         return res.status(400).json({ error: "Meal type is required" });
@@ -10026,9 +10159,7 @@ function getMealIngredientsDatabase() {
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
       // ── Protocol envelope enforcement ─────────────────────────────────────
-      const winePairingEnvelope = userId
-        ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
-        : buildGuestEnvelope();
+      const { userId, envelope: winePairingEnvelope } = await resolveRecommendationProtocolContext(req);
       const winePairingProtocolBlock = enforceBeforeGenerate(winePairingEnvelope, { generatorName: 'wine_pairing' }).combined;
 
       // Build the prompt for wine pairing
@@ -10077,6 +10208,12 @@ Provide recommendations in JSON format with the following structure:
       });
 
       const result = JSON.parse(completion.choices[0].message.content || '{"recommendations": []}');
+      for (const recommendation of Array.isArray(result.recommendations) ? result.recommendations : []) {
+        const scan = scanRecommendationOutput(recommendation, winePairingEnvelope, "wine_pairing");
+        if (!scan.passed) {
+          return res.status(400).json({ error: "PROTOCOL_VIOLATION", message: scan.message, retryable: true });
+        }
+      }
 
       res.json({
         id: `wine-pairing-${Date.now()}`,
@@ -10099,7 +10236,7 @@ Provide recommendations in JSON format with the following structure:
   // Bourbon & Spirits Pairing AI endpoint
   app.post("/api/ai/bourbon-spirits-pairing", async (req, res) => {
     try {
-      const { userId, mealType, cuisine, mainIngredient, occasion, priceRange, preferences } = req.body;
+      const { mealType, cuisine, mainIngredient, occasion, priceRange, preferences } = req.body;
 
       if (!mealType) {
         return res.status(400).json({ error: "Meal type is required" });
@@ -10113,9 +10250,7 @@ Provide recommendations in JSON format with the following structure:
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
       // ── Protocol envelope enforcement ─────────────────────────────────────
-      const bourbonEnvelope = userId
-        ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
-        : buildGuestEnvelope();
+      const { userId, envelope: bourbonEnvelope } = await resolveRecommendationProtocolContext(req);
       const bourbonProtocolBlock = enforceBeforeGenerate(bourbonEnvelope, { generatorName: 'bourbon_spirits_pairing' }).combined;
 
       // Build the prompt for bourbon/spirits pairing
@@ -10160,6 +10295,10 @@ Provide a single BEST recommendation in JSON format with the following structure
       });
 
       const result = JSON.parse(completion.choices[0].message.content || '{}');
+      const bourbonScan = scanRecommendationOutput(result, bourbonEnvelope, "bourbon_spirits_pairing");
+      if (!bourbonScan.passed) {
+        return res.status(400).json({ error: "PROTOCOL_VIOLATION", message: bourbonScan.message, retryable: true });
+      }
 
       res.json({
         id: `bourbon-pairing-${Date.now()}`,
@@ -10182,7 +10321,7 @@ Provide a single BEST recommendation in JSON format with the following structure
   // Meal Pairing AI endpoint (reverse pairing: drink → meal)
   app.post("/api/ai/meal-pairing", async (req, res) => {
     try {
-      const { userId, drinkType, specificDrink, mealPreference, cookingTime, servings } = req.body;
+      const { drinkType, specificDrink, mealPreference, cookingTime, servings } = req.body;
 
       if (!drinkType || !specificDrink) {
         return res.status(400).json({ error: "Drink type and specific drink are required" });
@@ -10196,9 +10335,7 @@ Provide a single BEST recommendation in JSON format with the following structure
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
       // ── Protocol envelope enforcement ─────────────────────────────────────
-      const mealPairingEnvelope = userId
-        ? (await loadUserProtocolEnvelope(userId).catch(() => null)) ?? buildGuestEnvelope()
-        : buildGuestEnvelope();
+      const { userId, envelope: mealPairingEnvelope } = await resolveRecommendationProtocolContext(req);
       const mealPairingProtocolBlock = enforceBeforeGenerate(mealPairingEnvelope, { generatorName: 'meal_pairing' }).combined;
 
       // Build the prompt for meal pairing

@@ -142,7 +142,8 @@ router.post('/meal-finder', async (req, res) => {
         // (diabetic ingredient blocking, protocol post-scan, oncology/renal/cardiac rules).
         // getActiveNutritionContext only returns text blocks; we need the structured object.
         const envelope = await loadUserProtocolEnvelope(userId);
-        if (envelope) protocolEnvelope = envelope;
+        if (!envelope) throw new Error("Authenticated food safety context unavailable.");
+        protocolEnvelope = envelope;
         console.log(`🔒 [MEAL-FINDER] Nutrition context: diet=[${nutritionContext.diet.join(",")}] medical=[${nutritionContext.medical.length} flags] builder=${nutritionContext.builder ?? "none"} envelope=${protocolEnvelope ? "✓" : "✗"} hasDiabetes=${protocolEnvelope?.hasDiabetes ?? false}`);
 
         // Load remaining macros (non-fatal — omitted on error)
@@ -171,6 +172,11 @@ router.post('/meal-finder', async (req, res) => {
         }
       } catch (err) {
         console.warn('[MEAL-FINDER] Could not load nutrition context:', err);
+        return res.status(503).json({
+          code: "PROTOCOL_CONTEXT_UNRESOLVED",
+          error: "Your food safety information could not be verified. No food was generated; please retry.",
+          retryable: true,
+        });
       }
     }
     

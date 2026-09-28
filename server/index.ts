@@ -475,6 +475,10 @@ app.use("/api", onboardingProgressRouter);
 // User Preferences System
 app.use("/api", preferencesRouter);
 
+// DEV-only shadow controls: never authoritative for live food generation.
+import healthContextControlRouter from "./routes/healthContextControl";
+app.use("/api/health-context", healthContextControlRouter());
+
 // User Meal Preferences System - Cafeteria goal and food preferences
 app.use("/api/user-prefs/meals", userMealPrefsRouter);
 
