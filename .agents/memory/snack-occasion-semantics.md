@@ -12,3 +12,9 @@ Do not equate healthier with smaller. Serving amount is one possible contextual 
 **Why:** Blanket “healthy snack alternative” assumptions redirected legitimate dessert requests and treated arbitrary shrinking as the default adaptation even when no person-specific constraint required it.
 
 **How to apply:** Use shared optional food-identity facets for personalization and variety only. Keep allergy, diet, medical, glucose, GLP-1, pregnancy, performance, household isolation, and final validation authoritative.
+
+For My Perfect Menu, the user confirmed an explicit Food Snack / Dessert Snack choice before creating three snack ideas. Reuse the shared Craving Menu culinary concept engine and food/dessert identity rules, but keep My Perfect Menu's own selection, Builder context, persistence, Snack Creator completion, and meal-card path. The explicit identity must persist through Try 3 More, restoration, selection, and final-recipe validation; do not route completion through Craving Creator.
+
+**Why:** The ordinary snack occasion does not enforce dessert identity, and a correct dessert concept can still become an unrelated food at recipe completion if its identity is not carried through.
+
+**How to apply:** Treat the user's choice as authoritative request intent, separate from sweet/savory taste. Preserve the current safety checks and reject a finished recipe whose food identity no longer matches the selected concept.
