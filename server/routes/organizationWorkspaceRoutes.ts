@@ -5,7 +5,7 @@ import {
   resolveActiveWorkspace,
   WorkspaceContextError,
 } from "../services/organizationWorkspaceService";
-import { getWorkspaceAvailability } from "../services/workspaceAvailabilityService";
+import { getStudioAccessStatus, getWorkspaceAvailability } from "../services/workspaceAvailabilityService";
 
 const router = Router();
 
@@ -19,6 +19,16 @@ router.get("/availability", async (req, res) => {
   } catch (error) {
     console.error("[workspace-availability] error:", error);
     return res.status(500).json({ error: "Could not load workspace availability." });
+  }
+});
+
+router.get("/studio-access", async (req, res) => {
+  res.setHeader("Cache-Control", "private, no-store, no-cache, must-revalidate");
+  try {
+    return res.json({ studioAccess: await getStudioAccessStatus((req as any).authUser.id) });
+  } catch (error) {
+    console.error("[studio-access] error:", error);
+    return res.status(500).json({ error: "Could not load Studio access." });
   }
 });
 

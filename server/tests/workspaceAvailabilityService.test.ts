@@ -31,28 +31,25 @@ describe("workspace availability authority", () => {
     });
   });
 
-  it("keeps entitlement separate from readiness", () => {
+  it("keeps setup-eligible providers out of Studio navigation until a Studio is active and ready", () => {
     const result = buildWorkspaceAvailability({
       onboardingCompletedAt: new Date(),
       professionalRole: "trainer",
       organizations: [],
       studioEntitled: true,
       studioReady: false,
-      readinessCode: "PHASE1_CERT_REQUIRED",
     });
 
     expect(result.studio).toEqual({
-      available: true,
-      destination: "/pro-launchpad",
-      readiness: "phase1_required",
+      available: false,
+      destination: null,
+      readiness: null,
     });
   });
 
-  it("shows an existing active Studio owner regardless of new-provider eligibility", () => {
+  it("hides an old active Studio when professional entitlement is gone", () => {
     const result = buildWorkspaceAvailability({
       onboardingCompletedAt: new Date(),
-      // Legacy internal owner account: neither field is a new-Studio
-      // eligibility requirement when an active owned Studio already exists.
       professionalRole: "general_nutrition",
       organizations: [],
       studioEntitled: false,
@@ -61,10 +58,23 @@ describe("workspace availability authority", () => {
     });
 
     expect(result.studio).toEqual({
-      available: true,
-      destination: "/pro/clients",
-      readiness: "ready",
+      available: false,
+      destination: null,
+      readiness: null,
     });
+  });
+
+  it("hides an entitled Studio until its protected professional gates are ready", () => {
+    const result = buildWorkspaceAvailability({
+      onboardingCompletedAt: new Date(),
+      professionalRole: "trainer",
+      organizations: [],
+      studioEntitled: true,
+      existingStudioStatus: "active",
+      studioReady: false,
+    });
+    expect(result.studio).toEqual({ available: false, destination: null, readiness: null });
+    expect(result.personal.available).toBe(true);
   });
 
   it("does not resurface a suspended or deactivated owned Studio", () => {
@@ -92,6 +102,7 @@ describe("workspace availability authority", () => {
       organizations: [organization],
       studioEntitled: true,
       studioReady: true,
+      existingStudioStatus: "active",
     });
 
     expect(result.studio).toEqual({
