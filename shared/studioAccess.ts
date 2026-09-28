@@ -1,3 +1,5 @@
+import type { ServiceBillingStatus } from "./serviceBilling";
+
 export type StudioAccessSource = "personal" | "pilot" | "sponsored" | "internal";
 
 export type StudioAccessState =
@@ -15,4 +17,5 @@ export interface StudioAccessStatus {
   authorized: boolean;
   ownsOrganization: boolean;
   setupDestination: string | null;
+  billing: ServiceBillingStatus | null;
 }

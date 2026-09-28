@@ -4,6 +4,7 @@ import type { StudioAccessStatus } from "@shared/studioAccess";
 import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { formatPaidThrough } from "./OrganizationAccessCard";
 
 function statusCopy(access: StudioAccessStatus): { label: string; description: string } {
   switch (access.state) {
@@ -21,17 +22,38 @@ function statusCopy(access: StudioAccessStatus): { label: string; description: s
     case "needs_review":
       return { label: "Needs review", description: "We can't verify your Studio access right now. Please contact support before making changes." };
     case "active":
+      if (access.billing?.state === "ending" && access.billing.paidThrough) {
+        const ending = `Your personal professional plan is ending ${formatPaidThrough(access.billing.paidThrough)}.`;
+        return access.sources.length === 1
+          ? { label: `Ending ${formatPaidThrough(access.billing.paidThrough)}`,
+              description: access.studioReady
+                ? `${ending} Studio access remains available through that date.`
+                : `${ending} Professional setup is still required before opening Studio.` }
+          : { label: "Active", description: `${ending} Other access sources may continue afterward.` };
+      }
+      if (access.billing?.state === "expired") {
+        return access.sources.length === 1
+          ? { label: "Needs review", description: "Your personal professional subscription has ended, but Studio still appears active. Please contact support." }
+          : { label: "Active", description: "Your personal professional subscription has ended. Other access sources may still apply." };
+      }
       if (!access.studioReady) {
-        return { label: "Active", description: "Your professional access is active. Complete any required training before opening Studio." };
+        return { label: "Active", description: access.billing?.state === "needs_review"
+          ? "Complete any required training before opening Studio. Billing details could not be verified."
+          : "Your professional access is active. Complete any required training before opening Studio." };
       }
       if (access.sources.length > 1) {
-        return { label: "Active", description: "Your Studio access has more than one source." };
+        return { label: "Active", description: access.billing?.state === "needs_review"
+          ? "Your Studio has more than one access source; personal billing details could not be verified."
+          : "Your Studio access has more than one source." };
       }
       if (access.sources.includes("sponsored")) {
         return { label: "Active", description: "Your Studio professional access is provided by an organization." };
       }
       if (access.sources.includes("pilot")) {
         return { label: "Active", description: "You have temporary Studio professional access." };
+      }
+      if (access.billing?.state === "needs_review") {
+        return { label: "Active", description: "Your professional access is active, but a billing end date has not been verified. No renewal change has been made." };
       }
       return { label: "Active", description: "Your Studio professional access is provided through your personal plan." };
   }
