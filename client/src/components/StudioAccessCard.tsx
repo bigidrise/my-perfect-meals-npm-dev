@@ -9,6 +9,12 @@ import { formatPaidThrough } from "./OrganizationAccessCard";
 function statusCopy(access: StudioAccessStatus): { label: string; description: string } {
   switch (access.state) {
     case "inactive":
+      if (access.billing?.state === "expired") {
+        return { label: "Expired", description: "Your personal professional subscription has ended. Your personal account and Studio records remain separate." };
+      }
+      if (access.billing?.state === "needs_review") {
+        return { label: "Needs review", description: "Your previous professional billing identity could not be verified. Please contact support." };
+      }
       return { label: "Not active", description: "You don't currently have Studio professional access." };
     case "setup_available":
       return { label: "Ready to set up", description: "Your professional access is available, but Studio hasn't been set up yet." };

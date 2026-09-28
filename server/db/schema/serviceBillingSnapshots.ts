@@ -1,4 +1,4 @@
-import { boolean, index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 /**
  * Verified Stripe subscription facts, separate from entitlement and workspace
@@ -18,7 +18,11 @@ export const serviceBillingSnapshots = pgTable("stripe_service_subscription_snap
   status: text("status").notNull(),
   currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }).notNull(),
   cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull(),
+  terminalAt: timestamp("terminal_at", { withTimezone: true }),
   sourceEventId: text("source_event_id").notNull(),
+  source: text("source").$type<"webhook" | "reconciliation" | "backfill">().notNull(),
+  eventCreatedAt: timestamp("event_created_at", { withTimezone: true }).notNull(),
+  eventRank: integer("event_rank").notNull(),
   verifiedAt: timestamp("verified_at", { withTimezone: true }).notNull(),
 }, (table) => ({
   ownerIdx: index("service_billing_snapshots_owner_idx").on(table.ownerUserId, table.serviceType),
