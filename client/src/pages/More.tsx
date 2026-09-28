@@ -21,6 +21,7 @@ import { WorkspaceChooser } from "@/components/WorkspaceChooser";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ClientLegalModal from "@/components/pro/ClientLegalModal";
 import { SponsorEndedBanner } from "@/components/SponsorEndedBanner";
+import { StudioAccessCard } from "@/components/StudioAccessCard";
 import { useTranslation } from "react-i18next";
 import {
   businessCardPresentation,
@@ -601,6 +602,8 @@ export default function MorePage() {
                 </Card>
               );
             })}
+
+            <StudioAccessCard userId={user?.id} />
 
             {/* Provider Connection Card */}
             {connectionStatus?.connected && connectionStatus.provider ? (
