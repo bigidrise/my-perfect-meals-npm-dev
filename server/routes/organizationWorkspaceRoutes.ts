@@ -11,6 +11,10 @@ import Stripe from "stripe";
 import { requireAuth } from "../middleware/requireAuth";
 import { assertStripeBillingOwnership, getStripeKeyMode } from "../services/stripeRuntimePolicy";
 import { changeStudioRenewal, StudioBillingReviewError } from "../services/studioRenewalService";
+import {
+  changeOrganizationRenewal,
+  OrganizationBillingReviewError,
+} from "../services/organizationBillingLifecycleService";
 
 const router = Router();
 
@@ -78,6 +82,43 @@ router.get("/organization-access", async (req, res) => {
   } catch (error) {
     console.error("[organization-access] error:", error);
     return res.status(500).json({ error: "Could not load Organization access." });
+  }
+});
+
+router.post("/organization-access/:businessId/:action", requireAuth, async (req, res) => {
+  res.setHeader("Cache-Control", "private, no-store");
+  const { businessId, action } = req.params;
+  if (action !== "end" && action !== "keep") {
+    return res.status(404).json({ error: "Unknown Organization action." });
+  }
+  const stripeKey = process.env.STRIPE_SECRET_KEY ?? "";
+  const deployed = process.env.REPLIT_DEPLOYMENT === "1" ||
+    process.env.REPLIT_DEPLOYMENT === "true";
+  if (process.env.SERVICE_BILLING_SNAPSHOTS_ENABLED !== "true" || !stripeKey ||
+      (!deployed && getStripeKeyMode(stripeKey) !== "TEST")) {
+    return res.status(503).json({ error: "Organization billing changes are not available." });
+  }
+  try {
+    assertStripeBillingOwnership(stripeKey);
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-10-29.clover" });
+    const billing = await changeOrganizationRenewal({
+      ownerUserId: (req as any).authUser.id,
+      businessId,
+      action,
+      stripe,
+    });
+    return res.json({ billing });
+  } catch (error) {
+    if (error instanceof OrganizationBillingReviewError) {
+      return res.status(409).json({
+        error: error.message,
+        code: "ORGANIZATION_BILLING_NEEDS_REVIEW",
+      });
+    }
+    console.error("[organization-renewal] unable to verify requested change", error);
+    return res.status(503).json({
+      error: "Unable to confirm the Organization renewal change. Please refresh before trying again.",
+    });
   }
 });
 

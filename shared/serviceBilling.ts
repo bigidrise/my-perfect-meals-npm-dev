@@ -13,6 +13,10 @@ export interface OrganizationAccessEntry {
   state: ServiceBillingState | "managed_access" | "not_active";
   accessSource: "paid" | "pilot" | "organization" | "arrangement" | "unknown";
   paidThrough: string | null;
+  /** Owner-only handle for billing controls; never a Stripe identifier. */
+  businessId: string | null;
+  canManageRenewal: boolean;
+  canReconnect: boolean;
 }
 
 export interface OrganizationAccessStatus {

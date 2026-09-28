@@ -64,6 +64,8 @@ export const studioBilling = pgTable("studio_billing", {
   stripeAccountId: text("stripe_account_id"),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
+  stripeCheckoutReservationId: text("stripe_checkout_reservation_id"),
+  stripeCheckoutSessionId: text("stripe_checkout_session_id"),
   planCode: text("plan_code").notNull().default("studio_59"),
   status: text("status").notNull().default("trialing"),
   currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),

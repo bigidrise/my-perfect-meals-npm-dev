@@ -47,7 +47,7 @@ export interface ProviderStudioProvisionResult extends ProviderStudioReadiness {
  */
 export async function getProviderStudioReadiness(
   providerUserId: string,
-  options: { requireTraining?: boolean } = {},
+  options: { requireTraining?: boolean; requireSubscription?: boolean } = {},
 ): Promise<ProviderStudioReadiness> {
   const [provider] = await db
     .select({
@@ -71,7 +71,8 @@ export async function getProviderStudioReadiness(
     return { ok: false, code: "PROVIDER_NOT_FOUND", message: "Provider account was not found." };
   }
 
-  if (!provider.isProCare || !isStudioProviderRole(provider.professionalRole)) {
+  if ((!provider.isProCare && options.requireSubscription !== false) ||
+      !isStudioProviderRole(provider.professionalRole)) {
     return {
       ok: false,
       code: "PROVIDER_ROLE_REQUIRED",
@@ -79,7 +80,7 @@ export async function getProviderStudioReadiness(
     };
   }
 
-  if (!(await providerHasProCareStudioAccess(provider))) {
+  if (options.requireSubscription !== false && !(await providerHasProCareStudioAccess(provider))) {
     return {
       ok: false,
       code: "PROCARE_ACCESS_REQUIRED",

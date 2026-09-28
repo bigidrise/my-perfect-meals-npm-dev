@@ -18,39 +18,57 @@ export function resolveOwnedOrganizationEntry(
 ): OrganizationAccessEntry {
   if (business.commercialAccessMode === "onboarding_pilot" && !business.stripeSubscriptionId) {
     if (!business.commercialAccessStartedAt || !business.commercialAccessEndsAt) {
-      return { name: business.name, state: "needs_review", accessSource: "pilot", paidThrough: null };
+      return { name: business.name, state: "needs_review", accessSource: "pilot", paidThrough: null,
+        businessId: null, canManageRenewal: false, canReconnect: false };
     }
     return { name: business.name,
       state: business.status === "active" &&
         business.commercialAccessStartedAt <= now && business.commercialAccessEndsAt > now
         ? "managed_access" : "not_active",
-      accessSource: "pilot", paidThrough: null };
+      accessSource: "pilot", paidThrough: null, businessId: null,
+      canManageRenewal: false, canReconnect: false };
   }
   if (business.commercialAccessMode === "authorized_arrangement" && !business.stripeSubscriptionId) {
     return { name: business.name,
       state: business.status === "active" && (!business.commercialAccessEndsAt || business.commercialAccessEndsAt > now)
         ? "managed_access" : "not_active",
-      accessSource: "arrangement", paidThrough: null };
+      accessSource: "arrangement", paidThrough: null, businessId: null,
+      canManageRenewal: false, canReconnect: false };
   }
   if (business.commercialAccessMode === "onboarding_pilot" && business.stripeSubscriptionId) {
-    return { name: business.name, state: "needs_review", accessSource: "unknown", paidThrough: null };
+    return { name: business.name, state: "needs_review", accessSource: "unknown", paidThrough: null,
+      businessId: null, canManageRenewal: false, canReconnect: false };
   }
   if (!business.stripeCustomerId || !business.stripeSubscriptionId) {
-    return { name: business.name, state: "needs_review", accessSource: "unknown", paidThrough: null };
+    return { name: business.name, state: "needs_review", accessSource: "unknown", paidThrough: null,
+      businessId: null, canManageRenewal: false, canReconnect: false };
   }
-  if (!billing) return { name: business.name, state: "needs_review", accessSource: "unknown", paidThrough: null };
+  if (!billing) return { name: business.name, state: "needs_review", accessSource: "unknown",
+    paidThrough: null, businessId: null, canManageRenewal: false, canReconnect: false };
   // Subscription and commercial state must agree. Neither one alone proves
   // that the workspace is currently available.
   if ((billing.state === "active" || billing.state === "ending") &&
       business.status !== "active") {
-    return { name: business.name, state: "needs_review", accessSource: "paid", paidThrough: null };
+    return { name: business.name, state: "needs_review", accessSource: "paid", paidThrough: null,
+      businessId: null, canManageRenewal: false, canReconnect: false };
   }
   if (billing.state === "expired" && business.status === "active") {
-    return { name: business.name, state: "needs_review", accessSource: "paid", paidThrough: null };
+    return { name: business.name, state: "needs_review", accessSource: "paid", paidThrough: null,
+      businessId: null, canManageRenewal: false, canReconnect: false };
   }
-  return { name: business.name, state: billing.state,
+  const state = billing.state;
+  const manageable = business.commercialAccessMode === "paid" &&
+    business.status === "active" &&
+    (state === "active" || state === "ending");
+  const reconnectable = business.commercialAccessMode === "paid" &&
+    business.status === "cancelled" && state === "expired";
+  return { name: business.name, state,
     accessSource: billing.state === "needs_review" ? "unknown" : "paid",
-    paidThrough: billing.paidThrough };
+    paidThrough: billing.paidThrough,
+    businessId: manageable || reconnectable ? business.id : null,
+    canManageRenewal: manageable,
+    canReconnect: reconnectable,
+  };
 }
 
 /** The owner sees their own historical business even when it is no longer an active workspace. */
@@ -102,6 +120,9 @@ export async function getOrganizationAccessStatus(userId: string): Promise<Organ
       state: workspace.role === "owner" ? "needs_review" : "managed_access",
       accessSource: workspace.role === "owner" ? "unknown" : "organization",
       paidThrough: null,
+      businessId: null,
+      canManageRenewal: false,
+      canReconnect: false,
     });
   }
   return { organizations: entries };

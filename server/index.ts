@@ -107,6 +107,7 @@ import { templateRouter } from "./routes/mealTemplates";
 import { userMealPrefsRouter } from "./routes/userMealPrefs";
 import stripeRouter from "./routes/stripe";
 import stripeCheckoutRouter from "./routes/stripeCheckout";
+import studioStripeRouter from "./routes/studioStripeRoutes";
 import coachingRouter from "./routes/coaching";
 import productCodesRouter from "./routes/product-codes";
 import stripeWebhookRouter from "./routes/stripeWebhook";
@@ -412,6 +413,7 @@ app.get("/api/health/full", async (req, res) => {
 
 // Stripe checkout route (after express.json())
 app.use("/api/stripe", stripeCheckoutRouter);
+app.use("/api/stripe/studio", studioStripeRouter);
 
 // Coaching notifications
 app.use("/api/coaching", coachingRouter);

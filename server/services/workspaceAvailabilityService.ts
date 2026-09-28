@@ -3,15 +3,17 @@ import { users } from "@shared/schema";
 import type {
   WorkspaceAvailability,
 } from "@shared/workspaceAvailability";
-import { isPersonalStudioRenewalEligible, type StudioAccessStatus } from "@shared/studioAccess";
+import { isIndependentStudioRenewalEligible, type StudioAccessStatus } from "@shared/studioAccess";
 import { db } from "../db";
 import { studios } from "../db/schema/studio";
 import { discoverAuthorizedWorkspaces } from "./organizationWorkspaceService";
 import { computeEffectiveAccess } from "./effectiveAccess";
 import { resolveStudioAccessStatus } from "./studioAccessStatus";
 import { isAcademyRequired } from "../middleware/requirePhase1Cert";
+import { isStudioProviderRole } from "./procareStudioReadiness";
 import { getAcademyProgression } from "./academyProgression";
-import { readHistoricalProfessionalBillingStatus, readServiceBillingStatus } from "./serviceBillingStatus";
+import { readHistoricalProfessionalBillingStatus } from "./serviceBillingStatus";
+import { readIndependentStudioAccess } from "./independentStudioAccess";
 
 export function buildWorkspaceAvailability(input: {
   onboardingCompletedAt: Date | string | null;
@@ -76,7 +78,7 @@ async function isStudioRouteReady(user: {
 }
 
 async function getStudioAccessSnapshot(userId: string) {
-  const [user, organizations, ownedStudio] = await Promise.all([
+  const [user, organizations, ownedStudio, independentStudio] = await Promise.all([
     db
       .select({
         id: users.id,
@@ -105,6 +107,7 @@ async function getStudioAccessSnapshot(userId: string) {
       .where(eq(studios.ownerUserId, userId))
       .limit(1)
       .then((rows) => rows[0] ?? null),
+    readIndependentStudioAccess(userId),
   ]);
 
   if (!user) {
@@ -120,35 +123,66 @@ async function getStudioAccessSnapshot(userId: string) {
     process.env.BILLING_ENFORCED === "true",
     false,
   );
+  studioAccess.studioId = independentStudio.studioId;
+  if (!independentStudio.legacyEligible && !independentStudio.hasSubscription &&
+      studioAccess.sources.includes("personal")) {
+    studioAccess.sources = studioAccess.sources.filter(source => source !== "personal");
+    if (studioAccess.sources.length === 0) {
+      studioAccess.authorized = false;
+      studioAccess.state = "inactive";
+      studioAccess.studioReady = false;
+    }
+  }
+  if (independentStudio.hasSubscription) {
+    studioAccess.billing = independentStudio.billing;
+    if (independentStudio.billing?.state === "active" ||
+        independentStudio.billing?.state === "ending") {
+      studioAccess.sources.push("studio");
+      studioAccess.authorized = true;
+      if (studioAccess.studioActive && studioAccess.state !== "managed_access") {
+        studioAccess.state = "active";
+      }
+    } else if (!studioAccess.sources.length || studioAccess.sources.every(source => source === "personal")) {
+      // A historical Personal professional plan is not a second Studio payment.
+      studioAccess.state = independentStudio.billing?.state === "expired" ? "inactive" : "needs_review";
+      studioAccess.authorized = false;
+      studioAccess.studioReady = false;
+    }
+  }
   if (studioAccess.authorized && studioAccess.studioActive && studioAccess.state !== "needs_review") {
     studioAccess.studioReady = await isStudioRouteReady(user);
   }
-  return { user, organizations, ownedStudio, studioAccess };
+  return { user, organizations, ownedStudio, independentStudio, studioAccess };
 }
 
 export async function getStudioAccessStatus(userId: string): Promise<StudioAccessStatus> {
-  const { user, ownedStudio, studioAccess } = await getStudioAccessSnapshot(userId);
+  const { user, ownedStudio, independentStudio, studioAccess } = await getStudioAccessSnapshot(userId);
   // Internal authority is not an individual paid professional subscription.
-  if (studioAccess.sources.includes("personal") && !studioAccess.sources.includes("internal")) {
-    studioAccess.billing = await readServiceBillingStatus({
-      serviceType: "professional",
-      ownerUserId: user.id,
-      stripeCustomerId: user.stripeCustomerId,
-      stripeSubscriptionId: user.stripeSubscriptionId,
-      trustedPlanKey: user.personalPlanLookupKey ?? user.planLookupKey,
-      studioId: ownedStudio?.id ?? null,
-    });
-  } else if (!studioAccess.sources.includes("internal") && ownedStudio?.id) {
+  if (!independentStudio.hasSubscription && !studioAccess.sources.includes("internal") && ownedStudio?.id) {
     studioAccess.billing = await readHistoricalProfessionalBillingStatus(user.id, ownedStudio.id);
   }
   if (studioAccess.billing?.state === "expired" &&
-      studioAccess.sources.every((source) => source === "personal")) {
+      studioAccess.sources.every((source) => source === "personal" || source === "studio")) {
     studioAccess.state = "inactive";
     studioAccess.authorized = false;
     studioAccess.studioReady = false;
   }
   studioAccess.canManageRenewal = process.env.SERVICE_BILLING_SNAPSHOTS_ENABLED === "true" &&
-    isPersonalStudioRenewalEligible(studioAccess);
+    isIndependentStudioRenewalEligible(studioAccess);
+  studioAccess.canReconnect = process.env.SERVICE_BILLING_SNAPSHOTS_ENABLED === "true" &&
+    studioAccess.studioActive &&
+    studioAccess.billing?.state === "expired" &&
+    independentStudio.hasSubscription &&
+    !studioAccess.sources.includes("internal") &&
+    !studioAccess.sources.includes("sponsored") &&
+    !studioAccess.sources.includes("pilot");
+  studioAccess.canStartStudioCheckout = process.env.SERVICE_BILLING_SNAPSHOTS_ENABLED === "true" &&
+    !independentStudio.hasSubscription &&
+    !studioAccess.billing &&
+    isStudioProviderRole(user.professionalRole) &&
+    !user.isFounder && !user.isSandbox && !user.isTester &&
+    !studioAccess.sources.includes("sponsored") &&
+    !studioAccess.sources.includes("pilot");
   return studioAccess;
 }
 

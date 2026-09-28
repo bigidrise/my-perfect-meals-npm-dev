@@ -1,6 +1,6 @@
 import type Stripe from "stripe";
 import { users } from "@shared/schema";
-import { studios } from "../db/schema/studio";
+import { studios, studioBilling } from "../db/schema/studio";
 import { serviceBillingSnapshots } from "../db/schema/serviceBillingSnapshots";
 import { stripeIdentityOwners } from "../db/schema/stripeBilling";
 import { STRIPE_PRICE_IDS } from "../config/stripePrices";
@@ -20,6 +20,7 @@ jest.mock("../db", () => ({
               limit: async () => {
                 if (table === users) return mockState.user ? [mockState.user] : [];
                 if (table === studios) return mockState.studios;
+                if (table === studioBilling) return [mockState.studioBilling];
                 if (table === serviceBillingSnapshots) return mockState.snapshot ? [mockState.snapshot] : [];
                 if (table === stripeIdentityOwners) return [mockState.bindings[mockState.bindingRead++]];
                 throw new Error("Unexpected table read");
@@ -63,9 +64,15 @@ beforeEach(() => {
   const date = new Date(periodEnd * 1000);
   mockState = {
     user: {
-      id: "person-1", customerId: "cus_test_one", subscriptionId: "sub_test_one",
-      planKey: "mpm_trainer_5", fallbackPlanKey: "mpm_trainer_5",
+      id: "person-1", customerId: "cus_personal_unrelated", subscriptionId: "sub_personal_unrelated",
+      personalCustomerId: "cus_personal_unrelated",
+      personalSubscriptionId: "sub_personal_unrelated",
+      planKey: "mpm_basic_monthly",
       isFounder: false, isSandbox: false, isTester: false,
+    },
+    studioBilling: {
+      customerId: "cus_test_one", subscriptionId: "sub_test_one",
+      planKey: "mpm_trainer_5", status: "active",
     },
     studios: [{ id: studioId, status: "active" }],
     snapshot: {
@@ -83,7 +90,7 @@ beforeEach(() => {
       { ownerUserId: "person-1", businessId: null },
     ],
     access: {
-      state: "active", sources: ["personal"], studioActive: true, studioReady: true,
+      state: "active", sources: ["studio"], studioActive: true, studioReady: true,
       authorized: true, ownsOrganization: false, setupDestination: null,
       billing: { state: "active", paidThrough: date.toISOString() },
       canManageRenewal: true,
@@ -173,7 +180,11 @@ describe("Studio renewal on the exact verified subscription", () => {
     ["managed", () => { mockState.access.sources = ["internal"]; mockState.access.state = "managed_access"; }],
     ["sponsored", () => { mockState.access.sources = ["sponsored"]; }],
     ["pilot", () => { mockState.access.sources = ["pilot"]; }],
-    ["mixed sources", () => { mockState.access.sources = ["personal", "sponsored"]; }],
+    ["mixed sources", () => { mockState.access.sources = ["studio", "sponsored"]; }],
+    ["only Personal source", () => { mockState.access.sources = ["personal"]; }],
+    ["Studio billing points at Personal subscription", () => {
+      mockState.studioBilling.subscriptionId = mockState.user.subscriptionId;
+    }],
   ])("does not mutate Stripe for %s", async (_name, alter) => {
     alter();
     await refused();

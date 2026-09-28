@@ -27,6 +27,11 @@ import {
   prepareVerifiedSnapshotHook,
 } from "../services/verifiedServiceBillingWriter";
 import { isStripeBillingReady } from "../services/stripeBillingReadiness";
+import {
+  applyStudioStripeSubscription,
+  type StudioStripeMutation,
+} from "../services/studioStripeBillingService";
+import { hasStudioBillingMetadata } from "../services/studioStripePlanCatalog";
 
 const router = Router();
 
@@ -208,6 +213,39 @@ router.post("/", async (req, res) => {
       source: "webhook",
     },
   });
+  const applyStudioEvent = (
+    subscription: Stripe.Subscription,
+    customerId: string,
+    options: { checkoutSessionId?: string; paymentFailed?: boolean } = {},
+  ) => {
+    const metadata = subscription.metadata ?? {};
+    if (!hasStudioBillingMetadata(metadata)) return null;
+    if (
+      metadata.serviceType !== "studio" ||
+      metadata.subscriptionType !== "studio" ||
+      !metadata.userId ||
+      !metadata.studioId ||
+      !metadata.checkoutReservationId
+    ) {
+      throw new Error("Studio subscription is missing its immutable service, owner, Studio, or reservation metadata");
+    }
+    return applyStudioStripeSubscription({
+      stripe: stripe!,
+      subscription,
+      customerId,
+      ownerUserId: metadata.userId,
+      studioId: metadata.studioId,
+      reservationId: metadata.checkoutReservationId,
+      checkoutSessionId: options.checkoutSessionId,
+      paymentFailed: options.paymentFailed,
+      mutation: {
+        eventId: event.id,
+        eventCreatedAt: new Date(event.created * 1000),
+        eventRank: eventRank(event.type),
+        source: "webhook",
+      } satisfies StudioStripeMutation,
+    });
+  };
   try {
     switch (event.type) {
       // ── Payment completed: new subscription ──────────────────────────────
@@ -215,6 +253,47 @@ router.post("/", async (req, res) => {
         const session = event.data.object as Stripe.Checkout.Session;
 
         const metadata = session.metadata || {};
+        if (hasStudioBillingMetadata(metadata)) {
+          if (
+            metadata.serviceType !== "studio" ||
+            metadata.subscriptionType !== "studio" ||
+            !metadata.userId ||
+            !metadata.studioId ||
+            !metadata.checkoutReservationId ||
+            !metadata.sku ||
+            session.payment_status !== "paid"
+          ) {
+            throw new Error("Completed Studio checkout is missing verified payment or immutable identity metadata");
+          }
+          const subscriptionId = stripeObjectId(session.subscription as any);
+          const customerId = stripeObjectId(session.customer as any);
+          if (!subscriptionId || !customerId) {
+            throw new Error("Completed Studio checkout is missing its Stripe subscription or customer");
+          }
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          if (
+            subscription.metadata?.serviceType !== "studio" ||
+            subscription.metadata?.subscriptionType !== "studio" ||
+            subscription.metadata?.userId !== metadata.userId ||
+            subscription.metadata?.studioId !== metadata.studioId ||
+            subscription.metadata?.checkoutReservationId !== metadata.checkoutReservationId ||
+            subscription.metadata?.sku !== metadata.sku
+          ) {
+            throw new Error("Completed Studio checkout and subscription identity do not match");
+          }
+          const transition = await applyStudioEvent(subscription, customerId, {
+            checkoutSessionId: session.id,
+          });
+          if (!transition) throw new Error("Studio checkout metadata could not be resolved");
+          if (!transition.updated && transition.reason === "STALE_EVENT") {
+            processedUserId = metadata.userId;
+            await completeBillingEvent(event.id, "ignored", metadata.userId);
+            return res.json({ received: true, ignored: "stale_studio_event" });
+          }
+          processedUserId = metadata.userId;
+          break;
+        }
+
         const userId = metadata.userId;
         const sku = metadata.sku as LookupKey;
 
@@ -419,6 +498,16 @@ router.post("/", async (req, res) => {
         }
 
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        if (hasStudioBillingMetadata(subscription.metadata)) {
+          if (subscription.status !== "active" && subscription.status !== "trialing") {
+            console.log("[webhook] invoice.payment_succeeded — Studio subscription is not active");
+            break;
+          }
+          const transition = await applyStudioEvent(subscription, customerId);
+          if (!transition) throw new Error("Studio invoice subscription metadata could not be resolved");
+          processedUserId = subscription.metadata?.userId ?? null;
+          break;
+        }
         const user = await resolveStripeEventUser({
           stripeCustomerId: customerId,
           stripeSubscriptionId: subscriptionId,
@@ -521,6 +610,15 @@ router.post("/", async (req, res) => {
           console.log("[webhook] invoice.payment_failed — current Stripe subscription is active; ignoring stale invoice failure");
           break;
         }
+        if (hasStudioBillingMetadata(failedSubscription.metadata)) {
+          const studioOwnerId = failedSubscription.metadata?.userId ?? null;
+          const transition = await applyStudioEvent(failedSubscription, customerId, {
+            paymentFailed: true,
+          });
+          if (!transition) throw new Error("Studio failed-invoice subscription metadata could not be resolved");
+          processedUserId = studioOwnerId;
+          break;
+        }
         if (failedPlan.planLookupKey === "clinical_business_monthly") {
           const owner = await resolveStripeEventUser({
             stripeCustomerId: customerId,
@@ -581,6 +679,13 @@ router.post("/", async (req, res) => {
           break;
         }
         const cancelledLookupKey = cancelledPlan.planLookupKey;
+        if (hasStudioBillingMetadata(subscription.metadata)) {
+          const studioOwnerId = subscription.metadata?.userId ?? null;
+          const transition = await applyStudioEvent(subscription, customerId);
+          if (!transition) throw new Error("Deleted Studio subscription metadata could not be resolved");
+          processedUserId = studioOwnerId;
+          break;
+        }
         const affectedUser = cancelledLookupKey === "clinical_business_monthly"
           ? await resolveStripeEventUser({
               stripeCustomerId: customerId,
@@ -672,6 +777,17 @@ router.post("/", async (req, res) => {
           && subscription.items.data[0]?.quantity !== 1
         ) {
           throw new Error("Flat organization subscriptions must retain Stripe quantity 1");
+        }
+
+        if (hasStudioBillingMetadata(subscription.metadata)) {
+          const studioOwnerId = subscription.metadata?.userId ?? null;
+          const transition = await applyStudioEvent(subscription, customerId, {
+            paymentFailed: ["past_due", "unpaid", "paused", "incomplete", "incomplete_expired"]
+              .includes(subscription.status),
+          });
+          if (!transition) throw new Error("Studio subscription metadata could not be resolved");
+          processedUserId = studioOwnerId;
+          break;
         }
 
         const user = await resolveStripeEventUser({
