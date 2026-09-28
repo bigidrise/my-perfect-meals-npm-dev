@@ -4,12 +4,25 @@ type MiddlewareResult = {
   body?: Record<string, unknown>;
 };
 
+jest.mock("../services/independentStudioAccess", () => ({
+  readIndependentStudioAccess: jest.fn(async () => ({
+    studioId: "legacy-studio", studioActive: true, hasSubscription: false,
+    legacyEligible: true, billing: null,
+  })),
+}));
+
 async function invokeGate(
   authUser: Record<string, unknown> | undefined,
   billingEnforced: boolean,
+  studioStatus?: { hasSubscription: boolean; legacyEligible: boolean; studioActive: boolean;
+    billing: { state: string; paidThrough: string | null } | null },
 ): Promise<MiddlewareResult> {
   process.env.BILLING_ENFORCED = billingEnforced ? "true" : "false";
   jest.resetModules();
+  if (studioStatus) {
+    const { readIndependentStudioAccess } = await import("../services/independentStudioAccess");
+    (readIndependentStudioAccess as jest.Mock).mockResolvedValueOnce(studioStatus);
+  }
   const { requireProCareAccess } = await import("../middleware/requireProCareAccess");
 
   const result: MiddlewareResult = { nextCalled: false };
@@ -24,7 +37,7 @@ async function invokeGate(
     },
   };
 
-  requireProCareAccess(
+  await requireProCareAccess(
     { authUser } as any,
     res as any,
     () => { result.nextCalled = true; },
@@ -40,13 +53,36 @@ describe("requireProCareAccess — production billing enforcement", () => {
     else process.env.BILLING_ENFORCED = originalBillingEnforced;
   });
 
-  it("allows a Clinical Business Studio owner", async () => {
+  it("does not grant Studio merely from owning a Clinical Business", async () => {
     const result = await invokeGate({
       id: "clinical-business-owner",
       accessTier: "PAID_FULL",
       planLookupKey: "clinical_business_monthly",
     }, true);
+    expect(result).toMatchObject({
+      nextCalled: false, statusCode: 403,
+      body: { code: "PROCARE_SUBSCRIPTION_REQUIRED" },
+    });
+  });
+
+  it("allows a verified standalone Studio while the Personal account stays Basic", async () => {
+    const result = await invokeGate({
+      id: "standalone-studio-owner", accessTier: "PAID_BASIC", planLookupKey: "mpm_basic_monthly",
+    }, true, {
+      hasSubscription: true, legacyEligible: false, studioActive: true,
+      billing: { state: "ending", paidThrough: new Date(Date.now() + 86400000).toISOString() },
+    });
     expect(result.nextCalled).toBe(true);
+  });
+
+  it("does not revive an expired Studio with a Personal professional plan", async () => {
+    const result = await invokeGate({
+      id: "expired-studio-owner", accessTier: "PAID_FULL", planLookupKey: "mpm_trainer_5",
+    }, true, {
+      hasSubscription: true, legacyEligible: false, studioActive: true,
+      billing: { state: "expired", paidThrough: null },
+    });
+    expect(result).toMatchObject({ nextCalled: false, statusCode: 403 });
   });
 
   it("rejects a personal Ultimate subscriber from Studio access", async () => {

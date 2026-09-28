@@ -3,7 +3,9 @@ import { db } from "../db";
 import type { AcceptedSubscriptionHook } from "./subscriptionService";
 import { businesses, businessMembers } from "../db/schema/business";
 import { users } from "@shared/schema";
-import { getEntitlementsForPlan } from "../entitlements";
+import { serviceBillingSnapshots } from "../db/schema/serviceBillingSnapshots";
+import { stripeIdentityOwners } from "../db/schema/stripeBilling";
+import { resolveServiceBillingStatus } from "./serviceBillingStatus";
 import type { SubscriptionMutationContext } from "./subscriptionService";
 import {
   claimStripeIdentityOwnership,
@@ -89,12 +91,51 @@ export async function applyBusinessSubscriptionTransition(input: {
     const alreadyBound = Boolean(
       business.stripeCustomerId || business.stripeSubscriptionId,
     );
+    let reconnectingExpiredBusiness = false;
     if (alreadyBound) {
       if (
         business.stripeCustomerId !== input.stripeCustomerId
         || business.stripeSubscriptionId !== input.stripeSubscriptionId
       ) {
-        return { updated: false, reason: "IDENTITY_CONFLICT" };
+        if (business.status !== "cancelled" ||
+            business.commercialAccessMode !== "paid" ||
+            !business.stripeCustomerId ||
+            !business.stripeSubscriptionId ||
+            !input.checkoutSessionId ||
+            !input.checkoutReservationId ||
+            business.stripeCheckoutSessionId !== input.checkoutSessionId ||
+            business.stripeCheckoutReservationId !== input.checkoutReservationId) {
+          return { updated: false, reason: "IDENTITY_CONFLICT" };
+        }
+        const previousCustomerId = business.stripeCustomerId;
+        const previousSubscriptionId = business.stripeSubscriptionId;
+        const [previousSnapshot] = await tx.select().from(serviceBillingSnapshots)
+          .where(eq(serviceBillingSnapshots.stripeSubscriptionId, previousSubscriptionId))
+          .limit(1);
+        const previousStatus = resolveServiceBillingStatus({
+          serviceType: "organization",
+          ownerUserId: input.ownerUserId,
+          businessId: business.id,
+          stripeCustomerId: previousCustomerId,
+          stripeSubscriptionId: previousSubscriptionId,
+          trustedPlanKey: "clinical_business_monthly",
+        }, previousSnapshot ?? null);
+        const [previousCustomerBinding] = await tx.select().from(stripeIdentityOwners).where(and(
+          eq(stripeIdentityOwners.identityType, "customer"),
+          eq(stripeIdentityOwners.identityValue, previousCustomerId),
+        )).limit(1);
+        const [previousSubscriptionBinding] = await tx.select().from(stripeIdentityOwners).where(and(
+          eq(stripeIdentityOwners.identityType, "subscription"),
+          eq(stripeIdentityOwners.identityValue, previousSubscriptionId),
+        )).limit(1);
+        if (previousStatus.state !== "expired" ||
+            previousCustomerBinding?.ownerUserId !== input.ownerUserId ||
+            previousCustomerBinding.businessId !== business.id ||
+            previousSubscriptionBinding?.ownerUserId !== input.ownerUserId ||
+            previousSubscriptionBinding.businessId !== business.id) {
+          return { updated: false, reason: "IDENTITY_CONFLICT" };
+        }
+        reconnectingExpiredBusiness = true;
       }
     } else if (
       (
@@ -111,8 +152,6 @@ export async function applyBusinessSubscriptionTransition(input: {
     const userIdentityClaims = await tx
       .select({
         id: users.id,
-        customerId: users.stripeCustomerId,
-        subscriptionId: users.stripeSubscriptionId,
       })
       .from(users)
       .where(sql`
@@ -123,18 +162,21 @@ export async function applyBusinessSubscriptionTransition(input: {
     if (userIdentityClaims.some((claim) => claim.id !== input.ownerUserId)) {
       return { updated: false, reason: "IDENTITY_CONFLICT" };
     }
-    const legacyDuplicate = userIdentityClaims.find(
-      (claim) => claim.id === input.ownerUserId,
-    );
-    if (legacyDuplicate && (
-      legacyDuplicate.customerId !== input.stripeCustomerId
-      || legacyDuplicate.subscriptionId !== input.stripeSubscriptionId
-    )) {
-      // A partial match may be a separate personal subscription. Never clear
-      // both personal fields to repair only one overlapping Business identity.
+    if (userIdentityClaims.length) {
+      // Organization subscriptions have their own billing partition. Even an
+      // exact same-owner match is not permission to clear or replace Personal
+      // subscription fields; conflicting legacy state requires reconciliation.
       return { updated: false, reason: "IDENTITY_CONFLICT" };
     }
 
+    if (reconnectingExpiredBusiness && (
+      !input.checkoutSessionId ||
+      !input.checkoutReservationId ||
+      business.stripeCheckoutSessionId !== input.checkoutSessionId ||
+      business.stripeCheckoutReservationId !== input.checkoutReservationId
+    )) {
+      return { updated: false, reason: "RESERVATION_CONFLICT" };
+    }
     if (
       input.checkoutSessionId
       && business.stripeCheckoutSessionId !== input.checkoutSessionId
@@ -159,57 +201,6 @@ export async function applyBusinessSubscriptionTransition(input: {
       .where(eq(users.id, input.ownerUserId))
       .limit(1);
     if (!owner) return { updated: false, reason: "USER_NOT_FOUND" };
-
-    // Only a verified exact same-owner duplicate transfers out of personal
-    // billing. The conditional write also rejects a concurrent personal
-    // subscription change rather than clearing its new identity.
-    if (legacyDuplicate) {
-      const [cleared] = await tx
-        .update(users)
-        .set({
-          stripeCustomerId: null,
-          stripeSubscriptionId: null,
-        })
-        .where(and(
-          eq(users.id, input.ownerUserId),
-          eq(users.stripeCustomerId, input.stripeCustomerId),
-          eq(users.stripeSubscriptionId, input.stripeSubscriptionId),
-        ))
-        .returning({ id: users.id });
-      if (!cleared) throw new StripeIdentityOwnershipConflictError();
-    }
-
-    if (input.status === "active") {
-      const entitlements = getEntitlementsForPlan("clinical_business_monthly");
-      await tx
-        .update(users)
-        .set({
-          planLookupKey: "clinical_business_monthly",
-          subscriptionPlan: "ultimate",
-          entitlements,
-          subscriptionStatus: "active",
-        })
-        .where(eq(users.id, input.ownerUserId));
-    } else {
-      await tx
-        .update(users)
-        .set({
-          planLookupKey: users.personalPlanLookupKey,
-          subscriptionPlan: sql`
-            CASE
-              WHEN ${users.personalPlanLookupKey} IS NULL THEN 'basic'
-              WHEN ${users.personalPlanLookupKey} LIKE '%ultimate%' THEN 'ultimate'
-              WHEN ${users.personalPlanLookupKey} LIKE '%premium%'
-                OR ${users.personalPlanLookupKey} LIKE '%upgrade%'
-                OR ${users.personalPlanLookupKey} = 'mpm_guidance' THEN 'premium'
-              ELSE 'basic'
-            END
-          `,
-          entitlements: users.personalEntitlements,
-          subscriptionStatus: users.personalSubscriptionStatus,
-        })
-        .where(eq(users.id, input.ownerUserId));
-    }
 
     await tx
       .update(businesses)

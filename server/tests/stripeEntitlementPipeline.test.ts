@@ -114,15 +114,16 @@ describe("trusted Stripe entitlement pipeline", () => {
     expect(legacy).not.toContain(".where(eq(users.email");
   });
 
-  it("keeps Clinical Business renewals out of the owner's personal plan snapshot", () => {
+  it("keeps Clinical Business billing wholly separate from the owner's personal subscription", () => {
     const webhook = source("server/routes/stripeWebhook.ts");
     const service = source("server/services/businessSubscriptionService.ts");
 
     expect(webhook).toContain("applyBusinessSubscriptionTransition");
-    expect(service).not.toContain("stripeCustomerId: input.stripeCustomerId,\n          stripeSubscriptionId");
-    expect(service).toContain("planLookupKey: users.personalPlanLookupKey");
-    expect(service).toContain("planLookupKey: users.personalPlanLookupKey");
-    expect(service).toContain("personalEntitlements");
+    expect(service).toContain("serviceType: \"organization\"");
+    expect(service).toContain("previousStatus.state !== \"expired\"");
+    expect(service).not.toContain(".update(users)");
+    expect(service).not.toContain("stripeCustomerId: null");
+    expect(service).not.toContain("stripeSubscriptionId: null");
   });
 
   it("makes stale subscription events no-ops for destructive and business side effects", () => {
@@ -252,8 +253,8 @@ describe("trusted Stripe entitlement pipeline", () => {
     expect(ownership).toContain("stored.ownerUserId !== input.ownerUserId");
     expect(personal).toContain("claimStripeIdentityOwnership");
     expect(business).toContain("claimStripeIdentityOwnership");
-    expect(business).toContain("stripeCustomerId: null");
-    expect(business).toContain("stripeSubscriptionId: null");
+    expect(business).not.toContain("stripeCustomerId: null");
+    expect(business).not.toContain("stripeSubscriptionId: null");
   });
 
   it("routes business checkout reconciliation through the atomic business transition", () => {

@@ -4,6 +4,8 @@ import type { OrganizationAccessEntry, OrganizationAccessStatus } from "@shared/
 import { GlassCard, GlassCardContent } from "@/components/glass/GlassCard";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
+import { Button } from "@/components/ui/button";
+import { ConfirmationModal } from "@/components/ui/universal-modal";
 
 export function formatPaidThrough(value: string): string {
   const date = new Date(value);
@@ -38,6 +40,23 @@ function organizationCopy(entry: OrganizationAccessEntry): string {
 export function OrganizationAccessCard({ userId }: { userId: string | undefined }) {
   const [status, setStatus] = useState<OrganizationAccessStatus | null>(null);
   const [error, setError] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [busyBusinessId, setBusyBusinessId] = useState<string | null>(null);
+  const [confirmEnd, setConfirmEnd] = useState<OrganizationAccessEntry | null>(null);
+
+  async function loadStatus(): Promise<OrganizationAccessStatus> {
+    const response = await fetch(apiUrl("/api/business/workspace/organization-access"), {
+      credentials: "include",
+      cache: "no-store",
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error("Organization access unavailable");
+    const body = await response.json();
+    if (!Array.isArray(body?.organizationAccess?.organizations)) {
+      throw new Error("Invalid Organization access response");
+    }
+    return body.organizationAccess;
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -46,17 +65,8 @@ export function OrganizationAccessCard({ userId }: { userId: string | undefined 
     if (!userId) return () => { cancelled = true; };
     void (async () => {
       try {
-        const response = await fetch(apiUrl("/api/business/workspace/organization-access"), {
-          credentials: "include",
-          cache: "no-store",
-          headers: getAuthHeaders(),
-        });
-        if (!response.ok) throw new Error("Organization access unavailable");
-        const body = await response.json();
-        if (!Array.isArray(body?.organizationAccess?.organizations)) {
-          throw new Error("Invalid Organization access response");
-        }
-        if (!cancelled) setStatus(body.organizationAccess);
+        const fresh = await loadStatus();
+        if (!cancelled) setStatus(fresh);
       } catch {
         if (!cancelled) setError(true);
       }
@@ -64,7 +74,60 @@ export function OrganizationAccessCard({ userId }: { userId: string | undefined 
     return () => { cancelled = true; };
   }, [userId]);
 
+  async function changeRenewal(entry: OrganizationAccessEntry, action: "end" | "keep") {
+    if (busyBusinessId || !entry.businessId || !entry.canManageRenewal) return;
+    setBusyBusinessId(entry.businessId);
+    setActionError(null);
+    setConfirmEnd(null);
+    try {
+      const response = await fetch(apiUrl(
+        `/api/business/workspace/organization-access/${encodeURIComponent(entry.businessId)}/${action}`,
+      ), {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.error || "We couldn't confirm the Organization renewal change.");
+      }
+      setStatus(await loadStatus());
+    } catch (err) {
+      setActionError(err instanceof Error
+        ? err.message : "We couldn't confirm the Organization renewal change.");
+      try { setStatus(await loadStatus()); } catch { setError(true); }
+    } finally {
+      setBusyBusinessId(null);
+    }
+  }
+
+  async function reconnect(entry: OrganizationAccessEntry) {
+    if (busyBusinessId || !entry.businessId || !entry.canReconnect) return;
+    setBusyBusinessId(entry.businessId);
+    setActionError(null);
+    try {
+      const response = await fetch(apiUrl("/api/stripe/checkout/business"), {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
+        headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ businessId: entry.businessId, seats: 1 }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || typeof body?.url !== "string") {
+        throw new Error(body?.error || "We couldn't start Organization reconnection.");
+      }
+      window.location.assign(body.url);
+    } catch (err) {
+      setActionError(err instanceof Error
+        ? err.message : "We couldn't start Organization reconnection.");
+      setBusyBusinessId(null);
+    }
+  }
+
   return (
+    <>
     <GlassCard className="border border-blue-400/30" data-testid="organization-access-card">
       <GlassCardContent className="space-y-3 p-5">
         <div className="flex items-center gap-2">
@@ -80,15 +143,67 @@ export function OrganizationAccessCard({ userId }: { userId: string | undefined 
         ) : (
           <ul className="space-y-2">
             {status.organizations.map((organization, index) => (
-              <li key={`${organization.name}-${index}`} className="rounded-lg border border-white/10 bg-white/5 p-3">
+              <li key={`${organization.name}-${index}`} className="space-y-2 rounded-lg border border-white/10 bg-white/5 p-3">
                 <p className="text-sm font-semibold text-white">{organization.name}</p>
                 <p className="text-xs text-white/70">{organizationCopy(organization)}</p>
+                {organization.canManageRenewal && organization.businessId &&
+                  organization.state === "active" && organization.paidThrough && (
+                  <Button type="button" variant="outline" disabled={busyBusinessId !== null}
+                    onClick={() => setConfirmEnd(organization)}
+                    data-testid="end-organization-access">
+                    End Organization
+                  </Button>
+                )}
+                {organization.canManageRenewal && organization.businessId &&
+                  organization.state === "ending" && organization.paidThrough && (
+                  <Button type="button" variant="outline" disabled={busyBusinessId !== null}
+                    onClick={() => void changeRenewal(organization, "keep")}
+                    data-testid="keep-organization">
+                    {busyBusinessId === organization.businessId ? "Checking…" : "Keep Organization"}
+                  </Button>
+                )}
+                {organization.canReconnect && organization.businessId && organization.state === "expired" && (
+                  <Button type="button" variant="outline" disabled={busyBusinessId !== null}
+                    onClick={() => void reconnect(organization)}
+                    data-testid="reconnect-organization">
+                    {busyBusinessId === organization.businessId ? "Checking…" : "Reconnect Organization"}
+                  </Button>
+                )}
               </li>
             ))}
           </ul>
         )}
+        {actionError && <p role="alert" className="text-sm text-red-300">{actionError}</p>}
         <p className="text-xs text-white/55">Organization access is separate from your personal My Perfect Meals account.</p>
       </GlassCardContent>
     </GlassCard>
+    <ConfirmationModal
+      open={confirmEnd !== null}
+      onOpenChange={(open) => { if (!busyBusinessId && !open) setConfirmEnd(null); }}
+      title="End Organization renewal?"
+      description="This stops renewal for this Organization subscription, not your personal My Perfect Meals account."
+      footer={
+        <>
+          <Button type="button" variant="outline" disabled={busyBusinessId !== null}
+            onClick={() => setConfirmEnd(null)}>
+            Keep Organization
+          </Button>
+          <Button type="button" disabled={busyBusinessId !== null || !confirmEnd}
+            onClick={() => confirmEnd && void changeRenewal(confirmEnd, "end")}
+            data-testid="confirm-end-organization">
+            {busyBusinessId ? "Checking…" : "Confirm End Organization"}
+          </Button>
+        </>
+      }
+    >
+      <ul className="list-disc space-y-2 pl-5 text-sm text-white/80">
+        <li>Renewal stops at the end of the current paid Organization period.</li>
+        <li>Organization access remains available through {confirmEnd?.paidThrough
+          ? formatPaidThrough(confirmEnd.paidThrough) : "the verified paid-through date"}.</li>
+        <li>Your personal My Perfect Meals account and subscription stay independent.</li>
+        <li>The Organization and its data remain available for reconnection after expiration.</li>
+      </ul>
+    </ConfirmationModal>
+    </>
   );
 }

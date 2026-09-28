@@ -1,9 +1,10 @@
 import { resolveAccessTier } from "../lib/accessTier";
-import { canAccessProCareStudio } from "@shared/planFeatures";
+import { canAccessProCareStudio, isProCarePlanKey } from "@shared/planFeatures";
 import {
   computeEffectiveAccess,
   type EffectiveAccess,
 } from "./effectiveAccess";
+import { readIndependentStudioAccess } from "./independentStudioAccess";
 
 /**
  * Fields needed to resolve a provider's actual Studio access. Provider-facing
@@ -52,7 +53,23 @@ export function canProviderAccessProCareStudio(
 export async function providerHasProCareStudioAccess(
   provider: ProCareProviderSnapshot,
 ): Promise<boolean> {
+  const independent = await readIndependentStudioAccess(provider.id);
+  if (independent.hasSubscription) {
+    if (independent.studioActive &&
+        (independent.billing?.state === "active" || independent.billing?.state === "ending")) return true;
+  }
   const effectiveAccess = await computeEffectiveAccess(provider);
+  if (independent.hasSubscription && !provider.isFounder && !provider.isSandbox &&
+      !provider.isTester && !effectiveAccess.sponsoredProCareAccess &&
+      !effectiveAccess.pilotProCareAccess) return false;
+  if (!independent.hasSubscription && !independent.legacyEligible &&
+      isProCarePlanKey(effectiveAccess.planLookupKey) &&
+      !effectiveAccess.sponsoredProCareAccess && !effectiveAccess.pilotProCareAccess &&
+      !provider.isFounder && !provider.isSandbox && !provider.isTester) return false;
+  if (!independent.hasSubscription &&
+      effectiveAccess.planLookupKey === "clinical_business_monthly" &&
+      !effectiveAccess.sponsoredProCareAccess && !effectiveAccess.pilotProCareAccess &&
+      !provider.isFounder && !provider.isSandbox && !provider.isTester) return false;
   return canProviderAccessProCareStudio(
     provider,
     effectiveAccess,

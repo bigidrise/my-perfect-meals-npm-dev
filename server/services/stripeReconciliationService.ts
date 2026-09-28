@@ -9,6 +9,10 @@ import { planFromSubscription } from "./stripePlanCatalog";
 import { updateUserSubscription } from "./subscriptionService";
 import { applyBusinessSubscriptionTransition } from "./businessSubscriptionService";
 import { prepareVerifiedSnapshotHook } from "./verifiedServiceBillingWriter";
+import { applyStudioStripeSubscription } from "./studioStripeBillingService";
+import { hasStudioBillingMetadata } from "./studioStripePlanCatalog";
+import { studios, studioBilling } from "../db/schema/studio";
+import { serviceBillingSnapshots } from "../db/schema/serviceBillingSnapshots";
 
 export type ReconciliationResult =
   | {
@@ -59,6 +63,72 @@ async function verifyBusinessCheckoutState(input: {
     )).limit(1);
     if (!owner || owner.businessId !== input.businessId || owner.ownerUserId !== input.ownerUserId) {
       throw new Error("Business checkout is paid but Stripe ownership is not verified");
+    }
+  }
+}
+
+async function verifyStudioCheckoutState(input: {
+  studioId: string;
+  ownerUserId: string;
+  customerId: string;
+  subscriptionId: string;
+  sessionId: string;
+  reservationId: string;
+  planLookupKey: string;
+}): Promise<void> {
+  const [studio] = await db.select({
+    ownerUserId: studios.ownerUserId,
+  }).from(studios).where(eq(studios.id, input.studioId)).limit(1);
+  const [billing] = await db.select({
+    customerId: studioBilling.stripeCustomerId,
+    subscriptionId: studioBilling.stripeSubscriptionId,
+    sessionId: studioBilling.stripeCheckoutSessionId,
+    reservationId: studioBilling.stripeCheckoutReservationId,
+    planCode: studioBilling.planCode,
+    status: studioBilling.status,
+  }).from(studioBilling).where(eq(studioBilling.studioId, input.studioId)).limit(1);
+  const [snapshot] = await db.select({
+    ownerUserId: serviceBillingSnapshots.ownerUserId,
+    serviceType: serviceBillingSnapshots.serviceType,
+    customerId: serviceBillingSnapshots.stripeCustomerId,
+    businessId: serviceBillingSnapshots.businessId,
+    studioId: serviceBillingSnapshots.studioId,
+    status: serviceBillingSnapshots.status,
+  }).from(serviceBillingSnapshots)
+    .where(eq(serviceBillingSnapshots.stripeSubscriptionId, input.subscriptionId)).limit(1);
+  if (
+    !studio ||
+    studio.ownerUserId !== input.ownerUserId ||
+    !billing ||
+    billing.customerId !== input.customerId ||
+    billing.subscriptionId !== input.subscriptionId ||
+    billing.sessionId !== input.sessionId ||
+    billing.reservationId !== input.reservationId ||
+    billing.planCode !== input.planLookupKey ||
+    billing.status !== "active" ||
+    !snapshot ||
+    snapshot.ownerUserId !== input.ownerUserId ||
+    snapshot.serviceType !== "professional" ||
+    snapshot.customerId !== input.customerId ||
+    snapshot.businessId !== null ||
+    snapshot.studioId !== input.studioId ||
+    snapshot.status !== "active"
+  ) {
+    throw new Error("Studio checkout is paid but its exact Studio billing binding is not active");
+  }
+  for (const [identityType, identityValue] of [
+    ["customer", input.customerId],
+    ["subscription", input.subscriptionId],
+  ] as const) {
+    const [owner] = await db.select({
+      ownerUserId: stripeIdentityOwners.ownerUserId,
+      businessId: stripeIdentityOwners.businessId,
+    }).from(stripeIdentityOwners).where(and(
+      eq(stripeIdentityOwners.identityType, identityType),
+      eq(stripeIdentityOwners.identityValue, identityValue),
+    )).limit(1);
+    if (!owner || owner.ownerUserId !== input.ownerUserId || owner.businessId !== null) {
+      throw new Error("Studio checkout is paid but Stripe ownership is not verified");
     }
   }
 }
@@ -137,6 +207,30 @@ export async function reconcileCheckoutSession(args: {
 
   const isBusiness = trustedPlan.planLookupKey === "clinical_business_monthly";
   const businessId = session.metadata?.businessId;
+  const isStudio = hasStudioBillingMetadata(session.metadata) ||
+    hasStudioBillingMetadata(subscription.metadata);
+  const studioId = session.metadata?.studioId;
+  const studioReservationId = session.metadata?.checkoutReservationId;
+  if (isStudio) {
+    if (
+      isBusiness ||
+      session.payment_status !== "paid" ||
+      session.metadata?.serviceType !== "studio" ||
+      session.metadata?.subscriptionType !== "studio" ||
+      session.metadata?.userId !== args.userId ||
+      !studioId ||
+      !studioReservationId ||
+      !trustedPlan ||
+      subscription.metadata?.serviceType !== "studio" ||
+      subscription.metadata?.subscriptionType !== "studio" ||
+      subscription.metadata?.userId !== args.userId ||
+      subscription.metadata?.studioId !== studioId ||
+      subscription.metadata?.checkoutReservationId !== studioReservationId ||
+      subscription.metadata?.sku !== session.metadata?.sku
+    ) {
+      throw new Error("Studio checkout payment or immutable identity could not be verified");
+    }
+  }
   if (isBusiness) {
     if (
       session.payment_status !== "paid"
@@ -187,56 +281,82 @@ export async function reconcileCheckoutSession(args: {
 
   try {
     if (claim === "claimed") {
-      const onAccepted = await prepareVerifiedSnapshotHook({
-        stripe: args.stripe,
-        subscription,
-        customerId,
-        ownerUserId: args.userId,
-        expectedPlanKey: trustedPlan.planLookupKey,
-        mutation: {
-          eventId,
-          eventCreatedAt,
-          eventRank: 90,
-          source: "reconciliation",
-        },
-      });
-      const result = isBusiness
-        ? await applyBusinessSubscriptionTransition({
-            ownerUserId: args.userId,
-            businessId,
-            checkoutReservationId: session.metadata?.checkoutReservationId,
-            checkoutSessionId: session.id,
-            stripeCustomerId: customerId,
-            stripeSubscriptionId: subscription.id,
-            status: "active",
-            onAccepted,
-            // The ordinary organization plan is flat; Stripe quantity is not
-            // professional capacity.
-            mutation: {
-              eventId,
-              eventCreatedAt,
-              eventRank: 90,
-              source: "reconciliation",
-            },
-          })
-        : await updateUserSubscription({
-            userId: args.userId,
-            lookupKey: trustedPlan.planLookupKey,
-            stripeCustomerId: customerId,
-            stripeSubscriptionId: subscription.id,
-            onAccepted,
-            mutation: {
-              eventId,
-              eventCreatedAt,
-              eventRank: 90,
-              source: "reconciliation",
-            },
-          });
-      if (!result.updated && result.reason !== "STALE_EVENT") {
-        throw new Error(
-          `Verified Stripe subscription could not be persisted (${result.reason})`,
-        );
+      const mutation = {
+        eventId,
+        eventCreatedAt,
+        eventRank: 90,
+        source: "reconciliation" as const,
+      };
+      if (isStudio) {
+        const result = await applyStudioStripeSubscription({
+          stripe: args.stripe,
+          subscription,
+          customerId,
+          ownerUserId: args.userId,
+          studioId: studioId!,
+          reservationId: studioReservationId!,
+          checkoutSessionId: session.id,
+          mutation,
+        });
+        if (!result.updated && result.reason !== "STALE_EVENT") {
+          throw new Error("Verified Studio subscription could not be persisted");
+        }
+      } else {
+        const onAccepted = await prepareVerifiedSnapshotHook({
+          stripe: args.stripe,
+          subscription,
+          customerId,
+          ownerUserId: args.userId,
+          expectedPlanKey: trustedPlan.planLookupKey,
+          mutation,
+        });
+        const result = isBusiness
+          ? await applyBusinessSubscriptionTransition({
+              ownerUserId: args.userId,
+              businessId,
+              checkoutReservationId: session.metadata?.checkoutReservationId,
+              checkoutSessionId: session.id,
+              stripeCustomerId: customerId,
+              stripeSubscriptionId: subscription.id,
+              status: "active",
+              onAccepted,
+              // The ordinary organization plan is flat; Stripe quantity is not
+              // professional capacity.
+              mutation,
+            })
+          : await updateUserSubscription({
+              userId: args.userId,
+              lookupKey: trustedPlan.planLookupKey,
+              stripeCustomerId: customerId,
+              stripeSubscriptionId: subscription.id,
+              onAccepted,
+              mutation,
+            });
+        if (!result.updated && result.reason !== "STALE_EVENT") {
+          throw new Error(
+            `Verified Stripe subscription could not be persisted (${result.reason})`,
+          );
+        }
       }
+    }
+
+    if (isStudio) {
+      await verifyStudioCheckoutState({
+        studioId: studioId!,
+        ownerUserId: args.userId,
+        customerId,
+        subscriptionId: subscription.id,
+        sessionId: session.id,
+        reservationId: studioReservationId!,
+        planLookupKey: trustedPlan.planLookupKey,
+      });
+      if (claim === "claimed") await completeBillingEvent(eventId, "processed", args.userId);
+      return {
+        status: "active",
+        planLookupKey: trustedPlan.planLookupKey,
+        entitlements: [],
+        subscriptionStatus: subscription.status,
+      };
     }
 
     if (isBusiness) {

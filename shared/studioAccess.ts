@@ -1,6 +1,6 @@
 import type { ServiceBillingStatus } from "./serviceBilling";
 
-export type StudioAccessSource = "personal" | "pilot" | "sponsored" | "internal";
+export type StudioAccessSource = "personal" | "studio" | "pilot" | "sponsored" | "internal";
 
 export type StudioAccessState =
   | "inactive"
@@ -11,6 +11,7 @@ export type StudioAccessState =
 
 export interface StudioAccessStatus {
   state: StudioAccessState;
+  studioId?: string | null;
   sources: StudioAccessSource[];
   studioActive: boolean;
   studioReady: boolean;
@@ -19,12 +20,17 @@ export interface StudioAccessStatus {
   setupDestination: string | null;
   billing: ServiceBillingStatus | null;
   canManageRenewal?: boolean;
+  canReconnect?: boolean;
+  canStartStudioCheckout?: boolean;
 }
 
-export function isPersonalStudioRenewalEligible(access: StudioAccessStatus): boolean {
+export function isIndependentStudioRenewalEligible(access: StudioAccessStatus): boolean {
   return access.state === "active" &&
     access.studioActive &&
-    access.sources.length === 1 &&
-    access.sources[0] === "personal" &&
+    access.sources.includes("studio") &&
+    access.sources.every(source => source === "studio" || source === "personal") &&
     (access.billing?.state === "active" || access.billing?.state === "ending");
 }
+
+/** Legacy professional plans on the Personal account are not Studio renewal authority. */
+export const isPersonalStudioRenewalEligible = isIndependentStudioRenewalEligible;

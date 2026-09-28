@@ -61,6 +61,25 @@ function resultRows(result: unknown): Array<Record<string, unknown>> {
 export async function assertStripeBillingSchema(
   db: Pick<NodePgDatabase<any>, "execute">,
 ): Promise<void> {
+  // The independent Studio checkout is gated separately. Requiring these
+  // columns only when enabled lets the existing app run until the additive
+  // migration is deliberately applied; the feature fails closed beforehand.
+  if (process.env.SERVICE_BILLING_SNAPSHOTS_ENABLED === "true") {
+    const studioResult = await db.execute(sql`
+      SELECT
+        (SELECT COUNT(*)::int FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'studio_billing'
+            AND column_name IN ('stripe_checkout_reservation_id', 'stripe_checkout_session_id')) AS columns_present,
+        (SELECT COUNT(*)::int FROM pg_indexes
+          WHERE schemaname = 'public'
+            AND indexname = 'studio_billing_checkout_session_id_uniq') AS indexes_present
+    `);
+    const [studioSchema] = resultRows(studioResult);
+    if (Number(studioSchema?.columns_present) !== 2 ||
+        Number(studioSchema?.indexes_present) !== 1) {
+      throw new Error("Studio checkout schema is not ready; apply the additive Studio reservation migration before enabling service billing snapshots.");
+    }
+  }
   const columnResult = await db.execute(sql`
     SELECT table_name, column_name
     FROM information_schema.columns

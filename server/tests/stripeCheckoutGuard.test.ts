@@ -25,11 +25,12 @@ function subscription(
   status: Stripe.Subscription.Status,
   priceId: string,
   lookupKey: string,
+  metadata: Record<string, string> = { userId: user.id, sku: lookupKey },
 ) {
   return {
     id,
     status,
-    metadata: { userId: user.id, sku: lookupKey },
+    metadata,
     items: { data: [{ price: { id: priceId, lookup_key: lookupKey } }] },
   } as unknown as Stripe.Subscription;
 }
@@ -130,6 +131,100 @@ describe("consumer Stripe checkout guard", () => {
     })).resolves.toBe(recovered);
     expect(persist).toHaveBeenCalledWith(recovered.id);
     expect((stripe.customers.create as jest.Mock)).not.toHaveBeenCalled();
+  });
+
+  it("creates a separate Personal customer instead of adopting an owned Studio customer", async () => {
+    const studio = customer("cus_studio", {
+      userId: user.id, serviceType: "studio", studioId: "studio-123",
+    });
+    const personal = customer("cus_personal");
+    const persist = jest.fn().mockResolvedValue(undefined);
+    const stripe = {
+      customers: {
+        search: jest.fn().mockResolvedValue({ data: [studio] }),
+        list: jest.fn().mockResolvedValue({ data: [studio] }),
+        create: jest.fn().mockResolvedValue(personal),
+        retrieve: jest.fn(),
+      },
+    } as unknown as Stripe;
+
+    await expect(resolveCanonicalCheckoutCustomer({
+      stripe,
+      user,
+      studioCustomerIds: [studio.id],
+      persistCustomerId: persist,
+    })).resolves.toBe(personal);
+    expect((stripe.customers.create as jest.Mock)).toHaveBeenCalledWith(
+      expect.objectContaining({ metadata: { userId: user.id } }),
+      { idempotencyKey: `mpm-customer:${user.id}` },
+    );
+    expect(persist).toHaveBeenCalledWith(personal.id);
+    expect((stripe.customers.retrieve as jest.Mock)).not.toHaveBeenCalled();
+  });
+
+  it("ignores an active Studio subscription only when its exact ID is verified", async () => {
+    const trusted = getTrustedCheckoutPlan("mpm_trainer_5")!;
+    const studio = customer("cus_studio", {
+      userId: user.id, serviceType: "studio", studioId: "studio-123",
+    });
+    const stripe = {
+      customers: {
+        search: jest.fn().mockResolvedValue({ data: [studio] }),
+        list: jest.fn().mockResolvedValue({ data: [studio] }),
+      },
+      subscriptions: {
+        list: jest.fn().mockResolvedValue({
+          data: [subscription("sub_studio", "active", trusted.priceId,
+            trusted.planLookupKey, {
+              userId: user.id, serviceType: "studio", studioId: "studio-123",
+              sku: trusted.planLookupKey,
+            })],
+        }),
+      },
+    } as unknown as Stripe;
+
+    await expect(assertNoOtherActiveUserSubscription({
+      stripe,
+      userId: user.id,
+      email: user.email,
+      canonicalCustomerId: "cus_personal",
+      studioCustomerIds: [studio.id],
+      studioSubscriptionIds: ["sub_studio"],
+    })).resolves.toBeUndefined();
+  });
+
+  it("still blocks a Personal professional subscription on a Studio customer", async () => {
+    const trusted = getTrustedCheckoutPlan("mpm_trainer_5")!;
+    const studio = customer("cus_studio", {
+      userId: user.id, serviceType: "studio", studioId: "studio-123",
+    });
+    const stripe = {
+      customers: {
+        search: jest.fn().mockResolvedValue({ data: [studio] }),
+        list: jest.fn().mockResolvedValue({ data: [studio] }),
+      },
+      subscriptions: {
+        list: jest.fn().mockResolvedValue({
+          data: [
+            subscription("sub_studio", "active", trusted.priceId,
+              trusted.planLookupKey, {
+                userId: user.id, serviceType: "studio", studioId: "studio-123",
+                sku: trusted.planLookupKey,
+              }),
+            subscription("sub_personal", "active", trusted.priceId, trusted.planLookupKey),
+          ],
+        }),
+      },
+    } as unknown as Stripe;
+
+    await expect(assertNoOtherActiveUserSubscription({
+      stripe,
+      userId: user.id,
+      email: user.email,
+      canonicalCustomerId: "cus_personal",
+      studioCustomerIds: [studio.id],
+      studioSubscriptionIds: ["sub_studio"],
+    })).rejects.toMatchObject({ code: "BILLING_IDENTITY_REVIEW_REQUIRED" });
   });
 
   it("creates one metadata-bound customer only when no verified customer exists", async () => {

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import type { AuthenticatedRequest } from "./requireAuth";
-import { canAccessProCareStudio } from "@shared/planFeatures";
+import { canAccessProCareStudio, isProCarePlanKey } from "@shared/planFeatures";
+import { readIndependentStudioAccess } from "../services/independentStudioAccess";
 
 /**
  * requireProCareAccess — gates routes that require an active ProCare subscription.
@@ -24,7 +25,7 @@ export function requireProCareAccess(
   req: Request,
   res: Response,
   next: NextFunction
-): void {
+): Promise<void> | void {
   const authReq = req as AuthenticatedRequest;
 
   if (!authReq.authUser) {
@@ -32,6 +33,50 @@ export function requireProCareAccess(
     return;
   }
 
+  return readIndependentStudioAccess(authReq.authUser.id).then((independent) => {
+    if (independent.hasSubscription) {
+      if (independent.studioActive &&
+          (independent.billing?.state === "active" || independent.billing?.state === "ending")) {
+        next();
+        return;
+      }
+      // A Personal professional plan must not revive an expired independent Studio.
+      // Internal/managed sources retain their own existing authorization policy.
+      if (!authReq.authUser.isFounder && !authReq.authUser.isSandbox &&
+          !authReq.authUser.isTester && !authReq.authUser.sponsoredProCareAccess &&
+          !authReq.authUser.pilotProCareAccess) {
+        denyProCareAccess(res, authReq.authUser.accessTier, authReq.authUser.planLookupKey);
+        return;
+      }
+    }
+    if (!independent.hasSubscription && !independent.legacyEligible &&
+        isProCarePlanKey(authReq.authUser.planLookupKey) &&
+        !authReq.authUser.isFounder && !authReq.authUser.isSandbox &&
+        !authReq.authUser.isTester && !authReq.authUser.sponsoredProCareAccess &&
+        !authReq.authUser.pilotProCareAccess) {
+      denyProCareAccess(res, authReq.authUser.accessTier, authReq.authUser.planLookupKey);
+      return;
+    }
+    if (!independent.hasSubscription &&
+        authReq.authUser.planLookupKey === "clinical_business_monthly" &&
+        !authReq.authUser.isFounder && !authReq.authUser.isSandbox &&
+        !authReq.authUser.isTester && !authReq.authUser.sponsoredProCareAccess &&
+        !authReq.authUser.pilotProCareAccess) {
+      denyProCareAccess(res, authReq.authUser.accessTier, authReq.authUser.planLookupKey);
+      return;
+    }
+    checkLegacyProCareAccess(authReq, res, next);
+  }).catch((error) => {
+    console.error("[studio-access] verified Studio access unavailable", error);
+    res.status(503).json({ error: "Unable to verify Studio access right now." });
+  });
+}
+
+function checkLegacyProCareAccess(
+  authReq: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+): void {
   const {
     accessTier,
     planLookupKey,
@@ -74,6 +119,10 @@ export function requireProCareAccess(
     return;
   }
 
+  denyProCareAccess(res, accessTier, planLookupKey);
+}
+
+function denyProCareAccess(res: Response, accessTier: string, planLookupKey: string | null): void {
   if (accessTier !== "PAID_FULL") {
     res.status(403).json({
       error: "ProCare Studio requires an active ProCare subscription.",

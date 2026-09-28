@@ -12,7 +12,7 @@ function statusCopy(access: StudioAccessStatus): { label: string; description: s
   switch (access.state) {
     case "inactive":
       if (access.billing?.state === "expired") {
-        return { label: "Inactive", description: "Your Studio subscription has expired. Your personal My Perfect Meals account and Studio history remain intact." };
+        return { label: "Inactive", description: "Your Studio subscription has expired. Your personal My Perfect Meals account and Studio history remain intact. Reconnecting requires a new subscription." };
       }
       if (access.billing?.state === "needs_review") {
         return { label: "Needs review", description: "Your previous professional billing identity could not be verified. Please contact support." };
@@ -31,7 +31,7 @@ function statusCopy(access: StudioAccessStatus): { label: string; description: s
       return { label: "Needs review", description: "We can't verify your Studio access right now. Please contact support before making changes." };
     case "active":
       if (access.billing?.state === "ending" && access.billing.paidThrough) {
-        const ending = `Your personal professional plan is ending ${formatPaidThrough(access.billing.paidThrough)}.`;
+        const ending = `Your Studio subscription is ending ${formatPaidThrough(access.billing.paidThrough)}.`;
         return access.sources.length === 1
           ? { label: `Ending ${formatPaidThrough(access.billing.paidThrough)}`,
               description: access.studioReady
@@ -41,8 +41,8 @@ function statusCopy(access: StudioAccessStatus): { label: string; description: s
       }
       if (access.billing?.state === "expired") {
         return access.sources.length === 1
-          ? { label: "Needs review", description: "Your personal professional subscription has ended, but Studio still appears active. Please contact support." }
-          : { label: "Active", description: "Your personal professional subscription has ended. Other access sources may still apply." };
+          ? { label: "Needs review", description: "Your Studio subscription has ended, but Studio still appears active. Please contact support." }
+          : { label: "Active", description: "Your Studio subscription has ended. Other access sources may still apply." };
       }
       if (!access.studioReady) {
         return { label: "Active", description: access.billing?.state === "needs_review"
@@ -63,7 +63,9 @@ function statusCopy(access: StudioAccessStatus): { label: string; description: s
       if (access.billing?.state === "needs_review") {
         return { label: "Active", description: "Your professional access is active, but a billing end date has not been verified. No renewal change has been made." };
       }
-      return { label: "Active", description: "Your Studio professional access is provided through your personal plan." };
+      return { label: "Active", description: access.sources.includes("studio")
+        ? "Your Studio access has its own subscription, separate from your personal plan."
+        : "Your professional access is linked to a legacy Personal plan. Studio renewal cannot be changed here until its billing is reviewed." };
   }
 }
 
@@ -136,6 +138,30 @@ export function StudioAccessCard({ userId }: { userId: string | undefined }) {
     }
   }
 
+  async function openStudioCheckout() {
+    if (busy || (!access?.canReconnect && !access?.canStartStudioCheckout)) return;
+    setBusy(true);
+    setActionError(null);
+    try {
+      const response = await fetch(apiUrl("/api/stripe/studio/checkout"), {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
+        headers: { ...getAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify(access.studioId ? { studioId: access.studioId } : {}),
+      });
+      const body = await response.json();
+      if (!response.ok || typeof body?.url !== "string" ||
+          !body.url.startsWith("https://checkout.stripe.com/")) {
+        throw new Error(body?.error || "Studio checkout could not be verified. Do not pay again; contact support.");
+      }
+      window.location.assign(body.url);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Unable to reconnect Studio.");
+      setBusy(false);
+    }
+  }
+
   const copy = access ? statusCopy(access) : null;
   const billing = access?.billing;
   const canEnd = access?.canManageRenewal === true && access.state === "active" &&
@@ -168,6 +194,18 @@ export function StudioAccessCard({ userId }: { userId: string | undefined }) {
           <Button type="button" variant="outline" disabled={busy}
             onClick={() => void changeRenewal("keep")} data-testid="keep-studio">
             {busy ? "Checking…" : "Keep Studio"}
+          </Button>
+        )}
+        {access?.canReconnect && (
+          <Button type="button" variant="outline" disabled={busy}
+            onClick={() => void openStudioCheckout()} data-testid="reconnect-studio">
+            {busy ? "Checking…" : "Reconnect Studio"}
+          </Button>
+        )}
+        {access?.canStartStudioCheckout && !access.canReconnect && (
+          <Button type="button" variant="outline" disabled={busy}
+            onClick={() => void openStudioCheckout()} data-testid="start-studio">
+            {busy ? "Checking…" : "Start Studio"}
           </Button>
         )}
         {actionError && <p role="alert" className="text-sm text-red-300">{actionError}</p>}

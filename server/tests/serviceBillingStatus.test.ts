@@ -154,7 +154,15 @@ describe("organization access is distinct from billing", () => {
 
   it("keeps the workspace attached while renewal is scheduled to end", () => {
     expect(resolveOwnedOrganizationEntry(business, { state: "ending", paidThrough: end.toISOString() }))
-      .toEqual({ name: "Organization", state: "ending", accessSource: "paid", paidThrough: end.toISOString() });
+      .toEqual({
+        name: "Organization",
+        state: "ending",
+        accessSource: "paid",
+        paidThrough: end.toISOString(),
+        businessId: business.id,
+        canManageRenewal: true,
+        canReconnect: false,
+      });
     expect(business.status).toBe("active");
   });
 

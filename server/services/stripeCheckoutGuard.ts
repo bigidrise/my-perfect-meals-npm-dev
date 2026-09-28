@@ -42,10 +42,30 @@ function customerUserId(customer: Stripe.Customer): string | null {
   return customer.metadata?.userId?.trim() || null;
 }
 
+function hasStudioBillingMarker(metadata: Stripe.Metadata | null | undefined): boolean {
+  return metadata?.serviceType === "studio" ||
+    metadata?.subscriptionType === "studio" ||
+    Boolean(metadata?.studioId);
+}
+
+function assertStudioIdentityKnown(
+  customerId: string,
+  metadata: Stripe.Metadata | null | undefined,
+  studioCustomerIds: Set<string>,
+): void {
+  if (hasStudioBillingMarker(metadata) && !studioCustomerIds.has(customerId)) {
+    throw new CheckoutBillingConflictError(
+      "BILLING_IDENTITY_REVIEW_REQUIRED",
+      "A Stripe customer is marked for Studio billing but has no verified Studio billing record.",
+    );
+  }
+}
+
 async function customerHasVerifiedUserIdentity(
   stripe: Stripe,
   customerId: string,
   userId: string,
+  studioCustomerIds: Set<string>,
 ): Promise<boolean> {
   const [subscriptions, sessions] = await Promise.all([
     stripe.subscriptions.list({ customer: customerId, status: "all", limit: 100 }),
@@ -57,18 +77,28 @@ async function customerHasVerifiedUserIdentity(
       "Stripe identity history exceeds the checkout verification limit.",
     );
   }
-  return subscriptions.data.some((item) => item.metadata?.userId === userId)
-    || sessions.data.some((item) => item.metadata?.userId === userId);
+  for (const item of subscriptions.data) {
+    assertStudioIdentityKnown(customerId, item.metadata, studioCustomerIds);
+    if (item.metadata?.userId === userId && !hasStudioBillingMarker(item.metadata)) return true;
+  }
+  for (const item of sessions.data) {
+    assertStudioIdentityKnown(customerId, item.metadata, studioCustomerIds);
+    if (item.metadata?.userId === userId && !hasStudioBillingMarker(item.metadata)) return true;
+  }
+  return false;
 }
 
 export async function resolveCanonicalCheckoutCustomer(input: {
   stripe: Stripe;
   user: CheckoutBillingUser;
+  /** Customer IDs independently bound to an owned Studio, never Personal customers. */
+  studioCustomerIds?: string[];
   persistCustomerId: (customerId: string) => Promise<void>;
 }): Promise<Stripe.Customer> {
   const { stripe, user } = input;
+  const studioCustomerIds = new Set(input.studioCustomerIds ?? []);
 
-  if (user.stripeCustomerId) {
+  if (user.stripeCustomerId && !studioCustomerIds.has(user.stripeCustomerId)) {
     const stored = await stripe.customers.retrieve(user.stripeCustomerId);
     if (stored.deleted) {
       throw new CheckoutBillingConflictError(
@@ -96,8 +126,19 @@ export async function resolveCanonicalCheckoutCustomer(input: {
     query: `metadata['userId']:'${stripeSearchLiteral(user.id)}'`,
     limit: 10,
   });
+  if (metadataMatches.has_more) {
+    throw new CheckoutBillingConflictError(
+      "BILLING_IDENTITY_REVIEW_REQUIRED",
+      "Stripe customer history exceeds the checkout verification limit.",
+    );
+  }
+  for (const candidate of metadataMatches.data) {
+    assertStudioIdentityKnown(candidate.id, candidate.metadata, studioCustomerIds);
+  }
   const verifiedById = new Map(
-    metadataMatches.data.map((candidate) => [candidate.id, candidate]),
+    metadataMatches.data
+      .filter((candidate) => !studioCustomerIds.has(candidate.id))
+      .map((candidate) => [candidate.id, candidate]),
   );
 
   // Email is only a candidate-discovery mechanism. A candidate is accepted
@@ -108,9 +149,12 @@ export async function resolveCanonicalCheckoutCustomer(input: {
     limit: 100,
   });
   await Promise.all(emailCandidates.data.map(async (candidate) => {
+    assertStudioIdentityKnown(candidate.id, candidate.metadata, studioCustomerIds);
     if (
+      !studioCustomerIds.has(candidate.id)
+      &&
       !verifiedById.has(candidate.id)
-      && await customerHasVerifiedUserIdentity(stripe, candidate.id, user.id)
+      && await customerHasVerifiedUserIdentity(stripe, candidate.id, user.id, studioCustomerIds)
     ) {
       verifiedById.set(candidate.id, candidate);
     }
@@ -143,10 +187,13 @@ export async function findBlockingMpmSubscription(input: {
   stripe: Stripe;
   customerId: string;
   storedSubscriptionId?: string | null;
+  /** Exact Studio subscriptions already verified against studio_billing + snapshot. */
+  studioSubscriptionIds?: string[];
 }): Promise<{ subscription: Stripe.Subscription; planLookupKey: LookupKey } | null> {
   const candidates: Stripe.Subscription[] = [];
+  const studioSubscriptionIds = new Set(input.studioSubscriptionIds ?? []);
 
-  if (input.storedSubscriptionId) {
+  if (input.storedSubscriptionId && !studioSubscriptionIds.has(input.storedSubscriptionId)) {
     try {
       candidates.push(await input.stripe.subscriptions.retrieve(input.storedSubscriptionId));
     } catch {
@@ -173,6 +220,7 @@ export async function findBlockingMpmSubscription(input: {
   }
 
   for (const subscription of candidates) {
+    if (studioSubscriptionIds.has(subscription.id)) continue;
     if (!ACTIVE_SUBSCRIPTION_STATUSES.has(subscription.status)) continue;
     const trustedPlan = planFromSubscription(subscription);
     if (trustedPlan) {
@@ -194,6 +242,8 @@ export async function assertNoOtherActiveUserSubscription(input: {
   canonicalCustomerId: string;
   ownedCustomerIds?: string[];
   historicalCustomerIds?: string[];
+  studioCustomerIds?: string[];
+  studioSubscriptionIds?: string[];
 }): Promise<void> {
   const { stripe, userId, email, canonicalCustomerId } = input;
   const [metadataMatches, emailCandidates] = await Promise.all([
@@ -214,18 +264,41 @@ export async function assertNoOtherActiveUserSubscription(input: {
     ...emailCandidates.data,
   ].map((customer) => [customer.id, customer]));
   const owned = new Set(input.ownedCustomerIds ?? []);
+  const studioCustomers = new Set(input.studioCustomerIds ?? []);
   const allIds = new Set([
     ...candidates.keys(),
     ...owned,
     ...(input.historicalCustomerIds ?? []),
+    ...studioCustomers,
   ]);
   for (const customerId of allIds) {
     if (customerId === canonicalCustomerId) continue;
+    // Do not infer Personal identity from a Studio-owned customer's metadata,
+    // but still scan its subscriptions below: any non-Studio subscription is
+    // a blocker and may indicate an ambiguous shared legacy customer.
+    if (studioCustomers.has(customerId)) {
+      if (await findBlockingMpmSubscription({
+        stripe,
+        customerId,
+        studioSubscriptionIds: input.studioSubscriptionIds,
+      })) {
+        throw new CheckoutBillingConflictError(
+          "BILLING_IDENTITY_REVIEW_REQUIRED",
+          "A Personal subscription is already active on a separately claimed Studio customer.",
+        );
+      }
+      continue;
+    }
     const candidate = candidates.get(customerId);
+    if (candidate) assertStudioIdentityKnown(customerId, candidate.metadata, studioCustomers);
     if (!owned.has(customerId) &&
         candidate?.metadata?.userId !== userId &&
-        !(await customerHasVerifiedUserIdentity(stripe, customerId, userId))) continue;
-    if (await findBlockingMpmSubscription({ stripe, customerId })) {
+        !(await customerHasVerifiedUserIdentity(stripe, customerId, userId, studioCustomers))) continue;
+    if (await findBlockingMpmSubscription({
+      stripe,
+      customerId,
+      studioSubscriptionIds: input.studioSubscriptionIds,
+    })) {
       throw new CheckoutBillingConflictError(
         "BILLING_IDENTITY_REVIEW_REQUIRED",
         "Another Stripe customer has an active subscription for this account.",
