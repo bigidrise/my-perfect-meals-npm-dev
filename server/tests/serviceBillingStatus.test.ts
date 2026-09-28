@@ -1,5 +1,9 @@
 import { readFileSync } from "node:fs";
-import { resolveServiceBillingStatus, type BillingIdentity } from "../services/serviceBillingStatus";
+import {
+  resolveHistoricalProfessionalBilling,
+  resolveServiceBillingStatus,
+  type BillingIdentity,
+} from "../services/serviceBillingStatus";
 import { resolveOwnedOrganizationEntry } from "../services/organizationAccessStatus";
 import type { ServiceBillingSnapshot } from "../db/schema/serviceBillingSnapshots";
 
@@ -26,7 +30,11 @@ const snapshot: ServiceBillingSnapshot = {
   status: "active",
   currentPeriodEnd: end,
   cancelAtPeriodEnd: false,
+  terminalAt: null,
   sourceEventId: "evt_test_one",
+  source: "webhook",
+  eventCreatedAt: new Date("2026-10-15T11:00:00.000Z"),
+  eventRank: 75,
   verifiedAt: new Date("2026-10-15T11:00:00.000Z"),
 };
 const trustedPrice = (priceId: string) =>
@@ -51,7 +59,9 @@ describe("verified service billing status", () => {
   });
 
   it("reports an ended subscription as expired, not an inferred 30-day grace period", () => {
-    expect(resolve({ ...snapshot, status: "canceled" })).toEqual({ state: "expired", paidThrough: null });
+    expect(resolve({ ...snapshot, status: "canceled", terminalAt: new Date("2026-10-14") }))
+      .toEqual({ state: "expired", paidThrough: null });
+    expect(resolve({ ...snapshot, status: "canceled" }).state).toBe("needs_review");
     expect(resolve({ ...snapshot, currentPeriodEnd: new Date("2026-10-14") }))
       .toEqual({ state: "needs_review", paidThrough: null });
   });
@@ -84,6 +94,22 @@ describe("verified service billing status", () => {
     expect(resolveServiceBillingStatus(org, orgSnapshot, now, orgPrice).state).toBe("active");
     expect(resolve(orgSnapshot)).toEqual({ state: "needs_review", paidThrough: null });
     expect(resolveServiceBillingStatus({ ...org, businessId: "other" }, orgSnapshot, now, orgPrice).state)
+      .toBe("needs_review");
+  });
+
+  it("retains an expired Studio billing identity after the current user subscription ID is cleared", () => {
+    const user = { id: "person-1", stripeSubscriptionId: null };
+    const ended = { ...snapshot, status: "canceled", terminalAt: new Date("2026-10-14") };
+    const ownership = [
+      { identityType: "customer", identityValue: "cus_test_one" },
+      { identityType: "subscription", identityValue: "sub_test_one" },
+    ];
+    expect(user.stripeSubscriptionId).toBeNull();
+    expect(resolveHistoricalProfessionalBilling(ended, user.id, identity.studioId!, ownership, now, trustedPrice))
+      .toEqual({ state: "expired", paidThrough: null });
+    expect(resolveHistoricalProfessionalBilling(ended, user.id, "wrong-studio", ownership).state).toBe("needs_review");
+    expect(resolveHistoricalProfessionalBilling(ended, "wrong-owner", identity.studioId!, ownership).state).toBe("needs_review");
+    expect(resolveHistoricalProfessionalBilling(ended, user.id, identity.studioId!, ownership.slice(0, 1)).state)
       .toBe("needs_review");
   });
 

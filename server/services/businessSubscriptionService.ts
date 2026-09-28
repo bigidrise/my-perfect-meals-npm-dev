@@ -1,5 +1,6 @@
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../db";
+import type { AcceptedSubscriptionHook } from "./subscriptionService";
 import { businesses, businessMembers } from "../db/schema/business";
 import { users } from "@shared/schema";
 import { getEntitlementsForPlan } from "../entitlements";
@@ -57,6 +58,7 @@ export async function applyBusinessSubscriptionTransition(input: {
   businessId?: string | null;
   checkoutReservationId?: string | null;
   checkoutSessionId?: string | null;
+  onAccepted?: AcceptedSubscriptionHook;
 }): Promise<BusinessSubscriptionTransitionResult> {
   try {
     return await db.transaction(async (tx) => {
@@ -250,6 +252,8 @@ export async function applyBusinessSubscriptionTransition(input: {
         status: "active",
       })
       .onConflictDoNothing();
+
+    await input.onAccepted?.(tx, input.ownerUserId, business.id);
 
     return {
       updated: true,

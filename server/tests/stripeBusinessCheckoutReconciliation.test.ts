@@ -123,6 +123,7 @@ jest.mock("../db", () => ({
 
 import { reconcileCheckoutSession } from "../services/stripeReconciliationService";
 import { applyBusinessSubscriptionTransition } from "../services/businessSubscriptionService";
+import { cancelUserSubscription, updateUserSubscription } from "../services/subscriptionService";
 
 const priceId = process.env.STRIPE_CLINICAL_BUSINESS_MONTHLY_PRICE_ID;
 const metadata = {
@@ -194,6 +195,89 @@ describe("verified Clinical Business checkout reconciliation (no external servic
     if (!priceId) throw new Error("Clinical Business price must be configured for the regression fixture");
   });
   beforeEach(resetRows);
+
+  it("rolls back and retries a personal transition when snapshot persistence fails", async () => {
+    const mutation = {
+      eventId: "evt_personal_retry", eventCreatedAt: new Date("2026-09-09T01:37:26Z"),
+      eventRank: 75, source: "webhook" as const,
+    };
+    const transition = (onAccepted: any) => updateUserSubscription({
+      userId: "owner-1", lookupKey: "mpm_premium", mutation, onAccepted,
+    });
+    await expect(transition(async () => { throw new Error("snapshot write failed"); }))
+      .rejects.toThrow("snapshot write failed");
+    expect(mockState.users[0].planLookupKey).toBe("mpm_ultimate_monthly");
+    const persisted = jest.fn(async () => {});
+    await expect(transition(persisted)).resolves.toMatchObject({ updated: true });
+    expect(persisted).toHaveBeenCalledTimes(1);
+    expect(mockState.users[0].planLookupKey).toBe("mpm_premium");
+  });
+
+  it("rolls back and retries a business transition when snapshot persistence fails", async () => {
+    const mutation = {
+      eventId: "evt_business_retry", eventCreatedAt: new Date("2026-09-09T01:37:26Z"),
+      eventRank: 50, source: "webhook" as const,
+    };
+    const transition = (onAccepted: any) => applyBusinessSubscriptionTransition({
+      ownerUserId: "owner-1", businessId: "business-1",
+      checkoutReservationId: "reservation-1", checkoutSessionId: "cs_business_1",
+      stripeCustomerId: "cus_business_1", stripeSubscriptionId: "sub_business_1",
+      status: "active", mutation, onAccepted,
+    });
+    await expect(transition(async () => { throw new Error("snapshot write failed"); }))
+      .rejects.toThrow("snapshot write failed");
+    expect(mockState.businesses[0].status).toBe("pending_billing");
+    expect(mockState.owners).toHaveLength(0);
+    const persisted = jest.fn(async () => {});
+    await expect(transition(persisted)).resolves.toMatchObject({ updated: true });
+    expect(persisted).toHaveBeenCalledTimes(1);
+    expect(mockState.businesses[0].status).toBe("active");
+  });
+
+  it("rolls back a personal revocation if its adverse-status snapshot cannot persist", async () => {
+    const mutation = {
+      eventId: "evt_past_due", eventCreatedAt: new Date("2026-09-09T01:37:26Z"),
+      eventRank: 75, source: "webhook" as const,
+    };
+    await expect(cancelUserSubscription(
+      "cus_personal_separate", "sub_personal_separate", mutation, true,
+      async () => { throw new Error("snapshot write failed"); },
+    )).rejects.toThrow("snapshot write failed");
+    expect(mockState.users[0].stripeSubscriptionId).toBe("sub_personal_separate");
+    const result = await cancelUserSubscription(
+      "cus_personal_separate", "sub_personal_separate", mutation, true,
+      async () => {},
+    );
+    expect(result.updated).toBe(true);
+    expect(mockState.users[0].stripeSubscriptionId).toBeNull();
+  });
+
+  it("revokes a bound business on an adverse subscription update without clearing personal billing", async () => {
+    const activeMutation = {
+      eventId: "evt_activation", eventCreatedAt: new Date("2026-09-09T01:37:26Z"),
+      eventRank: 50, source: "webhook" as const,
+    };
+    const adverseMutation = {
+      eventId: "evt_past_due", eventCreatedAt: new Date("2026-09-10T01:37:26Z"),
+      eventRank: 75, source: "webhook" as const,
+    };
+    const input = {
+      ownerUserId: "owner-1", businessId: "business-1",
+      checkoutReservationId: "reservation-1", checkoutSessionId: "cs_business_1",
+      stripeCustomerId: "cus_business_1", stripeSubscriptionId: "sub_business_1",
+    };
+    await applyBusinessSubscriptionTransition({ ...input, status: "active", mutation: activeMutation });
+    await expect(applyBusinessSubscriptionTransition({
+      ...input, status: "past_due", mutation: adverseMutation,
+      onAccepted: async () => { throw new Error("snapshot write failed"); },
+    })).rejects.toThrow("snapshot write failed");
+    expect(mockState.businesses[0].status).toBe("active");
+    await expect(applyBusinessSubscriptionTransition({
+      ...input, status: "past_due", mutation: adverseMutation, onAccepted: async () => {},
+    })).resolves.toMatchObject({ updated: true });
+    expect(mockState.businesses[0].status).toBe("past_due");
+    expect(mockState.users[0].stripeSubscriptionId).toBe("sub_personal_separate");
+  });
 
   it("activates the saved business atomically, claims both identities, and preserves personal billing", async () => {
     await expect(reconcile()).resolves.toMatchObject({ status: "active", planLookupKey: "clinical_business_monthly" });

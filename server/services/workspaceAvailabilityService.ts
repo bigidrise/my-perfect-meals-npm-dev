@@ -11,7 +11,7 @@ import { computeEffectiveAccess } from "./effectiveAccess";
 import { resolveStudioAccessStatus } from "./studioAccessStatus";
 import { isAcademyRequired } from "../middleware/requirePhase1Cert";
 import { getAcademyProgression } from "./academyProgression";
-import { readServiceBillingStatus } from "./serviceBillingStatus";
+import { readHistoricalProfessionalBillingStatus, readServiceBillingStatus } from "./serviceBillingStatus";
 
 export function buildWorkspaceAvailability(input: {
   onboardingCompletedAt: Date | string | null;
@@ -138,6 +138,8 @@ export async function getStudioAccessStatus(userId: string): Promise<StudioAcces
       trustedPlanKey: user.personalPlanLookupKey ?? user.planLookupKey,
       studioId: ownedStudio?.id ?? null,
     });
+  } else if (!studioAccess.sources.includes("internal") && ownedStudio?.id) {
+    studioAccess.billing = await readHistoricalProfessionalBillingStatus(user.id, ownedStudio.id);
   }
   return studioAccess;
 }

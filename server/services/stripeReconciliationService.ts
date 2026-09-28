@@ -8,6 +8,7 @@ import { claimBillingEvent, completeBillingEvent, failBillingEvent } from "./str
 import { planFromSubscription } from "./stripePlanCatalog";
 import { updateUserSubscription } from "./subscriptionService";
 import { applyBusinessSubscriptionTransition } from "./businessSubscriptionService";
+import { prepareVerifiedSnapshotHook } from "./verifiedServiceBillingWriter";
 
 export type ReconciliationResult =
   | {
@@ -186,6 +187,19 @@ export async function reconcileCheckoutSession(args: {
 
   try {
     if (claim === "claimed") {
+      const onAccepted = await prepareVerifiedSnapshotHook({
+        stripe: args.stripe,
+        subscription,
+        customerId,
+        ownerUserId: args.userId,
+        expectedPlanKey: trustedPlan.planLookupKey,
+        mutation: {
+          eventId,
+          eventCreatedAt,
+          eventRank: 90,
+          source: "reconciliation",
+        },
+      });
       const result = isBusiness
         ? await applyBusinessSubscriptionTransition({
             ownerUserId: args.userId,
@@ -195,6 +209,7 @@ export async function reconcileCheckoutSession(args: {
             stripeCustomerId: customerId,
             stripeSubscriptionId: subscription.id,
             status: "active",
+            onAccepted,
             // The ordinary organization plan is flat; Stripe quantity is not
             // professional capacity.
             mutation: {
@@ -209,6 +224,7 @@ export async function reconcileCheckoutSession(args: {
             lookupKey: trustedPlan.planLookupKey,
             stripeCustomerId: customerId,
             stripeSubscriptionId: subscription.id,
+            onAccepted,
             mutation: {
               eventId,
               eventCreatedAt,

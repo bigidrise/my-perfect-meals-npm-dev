@@ -22,6 +22,10 @@ import { planFromSubscription } from "../services/stripePlanCatalog";
 import { assertStripeBillingOwnership } from "../services/stripeRuntimePolicy";
 import { verifyStripeWebhookEvent } from "../services/stripeWebhookSignature";
 import { applyBusinessSubscriptionTransition } from "../services/businessSubscriptionService";
+import {
+  persistVerifiedTerminalFromHistory,
+  prepareVerifiedSnapshotHook,
+} from "../services/verifiedServiceBillingWriter";
 import { isStripeBillingReady } from "../services/stripeBillingReadiness";
 
 const router = Router();
@@ -184,6 +188,26 @@ router.post("/", async (req, res) => {
 
   let processedUserId: string | null = identity.userId;
   let eventWasHandled = true;
+  const snapshotHook = (
+    subscription: Stripe.Subscription,
+    customerId: string,
+    ownerUserId: string,
+    planLookupKey: string,
+    paymentFailed = false,
+  ) => prepareVerifiedSnapshotHook({
+    stripe: stripe!,
+    subscription,
+    customerId,
+    ownerUserId,
+    expectedPlanKey: planLookupKey,
+    paymentFailed,
+    mutation: {
+      eventId: event.id,
+      eventCreatedAt: new Date(event.created * 1000),
+      eventRank: eventRank(event.type),
+      source: "webhook",
+    },
+  });
   try {
     switch (event.type) {
       // ── Payment completed: new subscription ──────────────────────────────
@@ -255,6 +279,7 @@ router.post("/", async (req, res) => {
             stripeCustomerId: customerId,
             stripeSubscriptionId: subscriptionId,
             status: "active",
+            onAccepted: await snapshotHook(subscription, customerId, userId, trustedPlan.planLookupKey),
             mutation: {
               eventId: event.id,
               eventCreatedAt: new Date(event.created * 1000),
@@ -359,6 +384,7 @@ router.post("/", async (req, res) => {
             lookupKey: trustedPlan.planLookupKey,
             stripeCustomerId: customerId,
             stripeSubscriptionId: subscriptionId,
+            onAccepted: await snapshotHook(subscription, customerId, userId, trustedPlan.planLookupKey),
             mutation: {
               eventId: event.id,
               eventCreatedAt: new Date(event.created * 1000),
@@ -420,6 +446,7 @@ router.post("/", async (req, res) => {
                 stripeCustomerId: customerId,
                 stripeSubscriptionId: subscriptionId,
                 status: "active",
+                onAccepted: await snapshotHook(subscription, customerId, user.id, trustedPlan.planLookupKey),
                 mutation: {
                   eventId: event.id,
                   eventCreatedAt: new Date(event.created * 1000),
@@ -444,6 +471,7 @@ router.post("/", async (req, res) => {
                 lookupKey: trustedPlan.planLookupKey,
                 stripeCustomerId: customerId,
                 stripeSubscriptionId: subscriptionId,
+                onAccepted: await snapshotHook(subscription, customerId, user.id, trustedPlan.planLookupKey),
                 mutation: {
                   eventId: event.id,
                   eventCreatedAt: new Date(event.created * 1000),
@@ -487,6 +515,12 @@ router.post("/", async (req, res) => {
           );
           break;
         }
+        // A late failed invoice is not authority to revoke a subscription
+        // that Stripe currently reports as recovered and active.
+        if (failedSubscription.status === "active" || failedSubscription.status === "trialing") {
+          console.log("[webhook] invoice.payment_failed — current Stripe subscription is active; ignoring stale invoice failure");
+          break;
+        }
         if (failedPlan.planLookupKey === "clinical_business_monthly") {
           const owner = await resolveStripeEventUser({
             stripeCustomerId: customerId,
@@ -502,6 +536,7 @@ router.post("/", async (req, res) => {
             stripeCustomerId: customerId,
             stripeSubscriptionId: subscriptionId,
             status: "past_due",
+            onAccepted: await snapshotHook(failedSubscription, customerId, owner.id, failedPlan.planLookupKey, true),
             mutation: {
               eventId: event.id,
               eventCreatedAt: new Date(event.created * 1000),
@@ -514,12 +549,17 @@ router.post("/", async (req, res) => {
           }
           processedUserId = owner.id;
         } else {
+          const failedOwner = process.env.SERVICE_BILLING_SNAPSHOTS_ENABLED === "true"
+            ? await resolveSubscriptionUser(customerId, subscriptionId)
+            : null;
           const cancelled = await cancelUserSubscription(customerId, subscriptionId, {
             eventId: event.id,
             eventCreatedAt: new Date(event.created * 1000),
             eventRank: eventRank(event.type),
             source: "webhook",
-          });
+          }, true, failedOwner
+            ? await snapshotHook(failedSubscription, customerId, failedOwner.id, failedPlan.planLookupKey, true)
+            : undefined);
           processedUserId = cancelled.user?.id ?? null;
         }
         break;
@@ -550,6 +590,20 @@ router.post("/", async (req, res) => {
             })
           : await resolveSubscriptionUser(customerId, subscription.id);
         if (!affectedUser) {
+          if (cancelledLookupKey !== "clinical_business_monthly") {
+            processedUserId = await persistVerifiedTerminalFromHistory({
+              stripe: stripe!,
+              subscription,
+              customerId,
+              expectedPlanKey: cancelledLookupKey,
+              mutation: {
+                eventId: event.id,
+                eventCreatedAt: new Date(event.created * 1000),
+                eventRank: eventRank(event.type),
+                source: "webhook",
+              },
+            });
+          }
           console.warn(`[webhook] customer.subscription.deleted — ambiguous or missing owner for customer ${customerId}`);
           break;
         }
@@ -562,6 +616,7 @@ router.post("/", async (req, res) => {
               stripeCustomerId: customerId,
               stripeSubscriptionId: subscription.id,
               status: "cancelled",
+              onAccepted: await snapshotHook(subscription, customerId, affectedUser.id, cancelledLookupKey),
               mutation: {
                 eventId: event.id,
                 eventCreatedAt: new Date(event.created * 1000),
@@ -574,7 +629,7 @@ router.post("/", async (req, res) => {
               eventCreatedAt: new Date(event.created * 1000),
               eventRank: eventRank(event.type),
               source: "webhook",
-            });
+            }, true, await snapshotHook(subscription, customerId, affectedUser.id, cancelledLookupKey));
         if (!cancellation.updated) {
           console.warn(
             cancellation.reason === "STALE_EVENT"
@@ -626,6 +681,21 @@ router.post("/", async (req, res) => {
           allowMetadataBootstrap: true,
         });
         if (!user) {
+          if (subscription.status === "canceled" &&
+              trustedPlan.planLookupKey !== "clinical_business_monthly") {
+            processedUserId = await persistVerifiedTerminalFromHistory({
+              stripe: stripe!,
+              subscription,
+              customerId,
+              expectedPlanKey: trustedPlan.planLookupKey,
+              mutation: {
+                eventId: event.id,
+                eventCreatedAt: new Date(event.created * 1000),
+                eventRank: eventRank(event.type),
+                source: "webhook",
+              },
+            });
+          }
           console.warn(`[webhook] ${event.type} — ambiguous or missing owner for customer ${customerId}`);
           break;
         }
@@ -640,6 +710,7 @@ router.post("/", async (req, res) => {
                 stripeCustomerId: customerId,
                 stripeSubscriptionId: subscription.id,
                 status: "active",
+                onAccepted: await snapshotHook(subscription, customerId, user.id, trustedPlan.planLookupKey),
                 mutation: {
                   eventId: event.id,
                   eventCreatedAt: new Date(event.created * 1000),
@@ -652,6 +723,7 @@ router.post("/", async (req, res) => {
                 lookupKey: trustedPlan.planLookupKey,
                 stripeCustomerId: customerId,
                 stripeSubscriptionId: subscription.id,
+                onAccepted: await snapshotHook(subscription, customerId, user.id, trustedPlan.planLookupKey),
                 mutation: {
                   eventId: event.id,
                   eventCreatedAt: new Date(event.created * 1000),
@@ -678,6 +750,7 @@ router.post("/", async (req, res) => {
                 stripeCustomerId: customerId,
                 stripeSubscriptionId: subscription.id,
                 status: subscription.status === "unpaid" ? "past_due" : "cancelled",
+                onAccepted: await snapshotHook(subscription, customerId, user.id, trustedPlan.planLookupKey),
                 mutation: {
                   eventId: event.id,
                   eventCreatedAt: new Date(event.created * 1000),
@@ -690,11 +763,68 @@ router.post("/", async (req, res) => {
                 eventCreatedAt: new Date(event.created * 1000),
                 eventRank: eventRank(event.type),
                 source: "webhook",
-              });
+              }, true, await snapshotHook(subscription, customerId, user.id, trustedPlan.planLookupKey));
           if (!cancellation.updated && cancellation.reason !== "STALE_EVENT") {
-            throw new Error(`${event.type} cancellation could not be applied (${cancellation.reason})`);
+            const historicalOwner = subscription.status === "canceled" &&
+              cancellation.reason === "AMBIGUOUS_OR_NOT_FOUND"
+              ? await persistVerifiedTerminalFromHistory({
+                  stripe: stripe!,
+                  subscription,
+                  customerId,
+                  expectedPlanKey: trustedPlan.planLookupKey,
+                  mutation: {
+                    eventId: event.id,
+                    eventCreatedAt: new Date(event.created * 1000),
+                    eventRank: eventRank(event.type),
+                    source: "webhook",
+                  },
+                })
+              : null;
+            if (!historicalOwner) {
+              throw new Error(`${event.type} cancellation could not be applied (${cancellation.reason})`);
+            }
+            processedUserId = historicalOwner;
           }
           console.log(`⚠️ [webhook] customer.subscription.updated — user ${user.id} revoked (status: ${subscription.status})`);
+        } else if (
+          process.env.SERVICE_BILLING_SNAPSHOTS_ENABLED === "true" &&
+          ["past_due", "paused", "incomplete", "incomplete_expired"].includes(subscription.status)
+        ) {
+          // The existing failed-invoice policy revokes paid access. A status
+          // update may arrive without that invoice, so apply the same policy
+          // atomically rather than reporting Needs review while leaving paid
+          // service access active.
+          const mutation = {
+            eventId: event.id,
+            eventCreatedAt: new Date(event.created * 1000),
+            eventRank: eventRank(event.type),
+            source: "webhook" as const,
+          };
+          const onAccepted = await snapshotHook(subscription, customerId, user.id, trustedPlan.planLookupKey);
+          if (trustedPlan.planLookupKey === "clinical_business_monthly") {
+            const transition = await applyBusinessSubscriptionTransition({
+              ownerUserId: user.id,
+              businessId: subscription.metadata?.businessId,
+              checkoutReservationId: subscription.metadata?.checkoutReservationId,
+              stripeCustomerId: customerId,
+              stripeSubscriptionId: subscription.id,
+              status: "past_due",
+              mutation,
+              onAccepted,
+            });
+            if (!transition.updated && transition.reason !== "STALE_EVENT") {
+              throw new Error(`Business adverse status could not be applied (${transition.reason})`);
+            }
+          } else {
+            const transition = await cancelUserSubscription(
+              customerId, subscription.id, mutation, true, onAccepted,
+            );
+            if (!transition.updated && transition.reason !== "STALE_EVENT" &&
+                transition.reason !== "AMBIGUOUS_OR_NOT_FOUND") {
+              throw new Error(`Personal adverse status could not be applied (${transition.reason})`);
+            }
+          }
+          processedUserId = user.id;
         } else {
           console.log(`[webhook] customer.subscription.updated — user ${user.id} status ${subscription.status}, no action`);
         }

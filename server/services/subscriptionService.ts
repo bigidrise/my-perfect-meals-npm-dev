@@ -17,6 +17,12 @@ export interface SubscriptionMutationContext {
   source: "webhook" | "reconciliation";
 }
 
+export type AcceptedSubscriptionHook = (
+  tx: any,
+  ownerUserId: string,
+  businessId?: string | null,
+) => Promise<void>;
+
 function legacyPlanName(lookupKey: string): string {
   const tier = getTierForLookupKey(lookupKey);
   return tier === "basic" ? "basic" : tier === "premium" ? "premium" : "ultimate";
@@ -69,6 +75,7 @@ export async function updateUserSubscription(opts: {
   stripeSubscriptionId?: string;
   mutation?: SubscriptionMutationContext;
   storeAsPersonalPlan?: boolean;
+  onAccepted?: AcceptedSubscriptionHook;
 }) {
   const {
     userId,
@@ -187,6 +194,7 @@ export async function updateUserSubscription(opts: {
           throw new StripeIdentityOwnershipConflictError();
         }
       }
+      if (updated.length) await opts.onAccepted?.(tx, verifiedUser.id, null);
       return updated;
     });
 
@@ -214,6 +222,7 @@ export async function cancelUserSubscription(
   stripeSubscriptionId?: string | null,
   mutation?: SubscriptionMutationContext,
   storeAsPersonalPlan = true,
+  onAccepted?: AcceptedSubscriptionHook,
 ) {
   if (!stripeSubscriptionId) {
     return { updated: false, reason: "AMBIGUOUS_OR_NOT_FOUND" as const, user: null };
@@ -248,8 +257,8 @@ export async function cancelUserSubscription(
         subscriptionStatus: users.personalSubscriptionStatus,
       };
 
-  const result = await db
-    .update(users)
+  const result = await db.transaction(async (tx) => {
+    const updated = await tx.update(users)
     .set({
       stripeSubscriptionId: null,
       ...cancellationFields,
@@ -267,6 +276,9 @@ export async function cancelUserSubscription(
       ...(ordering ? [ordering] : []),
     ))
     .returning({ id: users.id });
+    if (updated.length) await onAccepted?.(tx, user.id, null);
+    return updated;
+  });
 
   console.log(`⚠️ [subscription] Cancelled subscription for Stripe customer ${stripeCustomerId} — entitlements cleared`);
 
