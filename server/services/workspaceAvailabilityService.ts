@@ -11,6 +11,7 @@ import { computeEffectiveAccess } from "./effectiveAccess";
 import { resolveStudioAccessStatus } from "./studioAccessStatus";
 import { isAcademyRequired } from "../middleware/requirePhase1Cert";
 import { getAcademyProgression } from "./academyProgression";
+import { readServiceBillingStatus } from "./serviceBillingStatus";
 
 export function buildWorkspaceAvailability(input: {
   onboardingCompletedAt: Date | string | null;
@@ -90,6 +91,8 @@ async function getStudioAccessSnapshot(userId: string) {
         isFounder: users.isFounder,
         isSandbox: users.isSandbox,
         isTester: users.isTester,
+        stripeCustomerId: users.stripeCustomerId,
+        stripeSubscriptionId: users.stripeSubscriptionId,
       })
       .from(users)
       .where(eq(users.id, userId))
@@ -97,7 +100,7 @@ async function getStudioAccessSnapshot(userId: string) {
       .then((rows) => rows[0]),
     discoverAuthorizedWorkspaces(userId),
     db
-      .select({ status: studios.status })
+      .select({ id: studios.id, status: studios.status })
       .from(studios)
       .where(eq(studios.ownerUserId, userId))
       .limit(1)
@@ -120,11 +123,23 @@ async function getStudioAccessSnapshot(userId: string) {
   if (studioAccess.authorized && studioAccess.studioActive && studioAccess.state !== "needs_review") {
     studioAccess.studioReady = await isStudioRouteReady(user);
   }
-  return { user, organizations, studioAccess };
+  return { user, organizations, ownedStudio, studioAccess };
 }
 
 export async function getStudioAccessStatus(userId: string): Promise<StudioAccessStatus> {
-  return (await getStudioAccessSnapshot(userId)).studioAccess;
+  const { user, ownedStudio, studioAccess } = await getStudioAccessSnapshot(userId);
+  // Internal authority is not an individual paid professional subscription.
+  if (studioAccess.sources.includes("personal") && !studioAccess.sources.includes("internal")) {
+    studioAccess.billing = await readServiceBillingStatus({
+      serviceType: "professional",
+      ownerUserId: user.id,
+      stripeCustomerId: user.stripeCustomerId,
+      stripeSubscriptionId: user.stripeSubscriptionId,
+      trustedPlanKey: user.personalPlanLookupKey ?? user.planLookupKey,
+      studioId: ownedStudio?.id ?? null,
+    });
+  }
+  return studioAccess;
 }
 
 export async function getWorkspaceAvailability(

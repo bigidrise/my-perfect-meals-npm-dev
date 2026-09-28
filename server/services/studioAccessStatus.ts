@@ -50,5 +50,6 @@ export function resolveStudioAccessStatus(
     authorized,
     ownsOrganization,
     setupDestination: state === "setup_available" ? "/professional-dashboard" : null,
+    billing: null,
   };
 }

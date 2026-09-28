@@ -6,6 +6,7 @@ import {
   WorkspaceContextError,
 } from "../services/organizationWorkspaceService";
 import { getStudioAccessStatus, getWorkspaceAvailability } from "../services/workspaceAvailabilityService";
+import { getOrganizationAccessStatus } from "../services/organizationAccessStatus";
 
 const router = Router();
 
@@ -29,6 +30,16 @@ router.get("/studio-access", async (req, res) => {
   } catch (error) {
     console.error("[studio-access] error:", error);
     return res.status(500).json({ error: "Could not load Studio access." });
+  }
+});
+
+router.get("/organization-access", async (req, res) => {
+  res.setHeader("Cache-Control", "private, no-store, no-cache, must-revalidate");
+  try {
+    return res.json({ organizationAccess: await getOrganizationAccessStatus((req as any).authUser.id) });
+  } catch (error) {
+    console.error("[organization-access] error:", error);
+    return res.status(500).json({ error: "Could not load Organization access." });
   }
 });
 
