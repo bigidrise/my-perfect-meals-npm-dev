@@ -210,7 +210,13 @@ export function StudioAccessCard({ userId }: { userId: string | undefined }) {
           <BriefcaseBusiness className="h-5 w-5 text-orange-400" aria-hidden="true" />
           <h2 className="text-lg font-bold text-white">Studio Access</h2>
         </div>
-        <p className="text-sm font-semibold text-orange-200" role="status">
+        <p className={`w-fit rounded-full px-3 py-1 text-sm font-semibold ${
+          !error && access?.canReconnectAddon
+            ? "bg-red-800 text-white"
+            : !error && (access?.canDisconnectAddon || access?.state === "active")
+              ? "bg-green-800 text-white"
+              : "text-orange-200"
+        }`} role="status">
           {error ? "Unable to check access" : copy?.label ?? "Checking access…"}
         </p>
         <p className="text-sm text-white/70">
@@ -225,13 +231,15 @@ export function StudioAccessCard({ userId }: { userId: string | undefined }) {
           </Button>
         )}
         {access?.canDisconnectAddon && (
-          <Button type="button" variant="outline" disabled={busy}
+          <Button type="button" disabled={busy}
+            className="h-11 w-full border border-white/70 bg-black px-5 font-semibold text-white hover:bg-zinc-900 focus-visible:ring-white sm:w-auto"
             onClick={() => setConfirmDisconnect(true)} data-testid="disconnect-studio-addon">
             Disconnect Studio
           </Button>
         )}
         {access?.canReconnectAddon && (
-          <Button type="button" variant="outline" disabled={busy}
+          <Button type="button" disabled={busy}
+            className="h-11 w-full border border-white/70 bg-black px-5 font-semibold text-white hover:bg-zinc-900 focus-visible:ring-white sm:w-auto"
             onClick={() => void changeAddon("reconnect")} data-testid="reconnect-studio-addon">
             {busy ? "Checking…" : "Reconnect Studio"}
           </Button>
@@ -272,6 +280,7 @@ export function StudioAccessCard({ userId }: { userId: string | undefined }) {
             Keep Studio
           </Button>
           <Button type="button" disabled={busy} onClick={() => void changeAddon("disconnect")}
+            className="border border-white/70 bg-black font-semibold text-white hover:bg-zinc-900 focus-visible:ring-white"
             data-testid="confirm-disconnect-studio">
             {busy ? "Checking…" : "Disconnect Studio"}
           </Button>
