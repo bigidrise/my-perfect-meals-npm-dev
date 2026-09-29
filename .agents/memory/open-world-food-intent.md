@@ -14,3 +14,9 @@ description: Governs how unfamiliar natural-language food requests enter Create 
 **Why:** Generic requests such as gumbo can otherwise be rejected for not spelling out a model-inferred cuisine, or every generated recipe can be rejected for omitting a nonexistent ingredient named after the dish.
 
 **How to apply:** Carry explicit versus inferred provenance through interpretation and handoffs. Only verified user text or an explicit selection may become a hard cuisine instruction. For prepared dishes, evaluate real structured composition and form without inferring ingredient presence or safety from the title alone.
+
+**Rule:** Do not separately patch the legacy inferred-cuisine handoff just to make plain gumbo work when the FoodMeaning path is intentionally disabled for isolation.
+
+**Why:** The user confirmed that FoodMeaning already solved that interpretation problem; the later legacy failure was expected when its Development gate was turned off to test an unrelated preflight identity correction. Maintaining two competing semantic fixes would obscure which path is authoritative.
+
+**How to apply:** Test person continuity and FoodMeaning separately when needed, then validate them together with the Development gate enabled. Keep Production untouched until separately authorized; do not mistake an isolated legacy-path rejection for a FoodMeaning regression.
