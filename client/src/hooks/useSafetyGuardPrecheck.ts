@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, MutableRefObject } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
-import { getAuthHeaders } from "@/lib/auth";
+import { getAuthHeaders, isNativePlatform } from "@/lib/auth";
 import { SafetyAlertState, EMPTY_SAFETY_ALERT } from "@/components/SafetyGuardBanner";
 import { isGuestMode } from "@/lib/guestMode";
 
@@ -81,10 +81,20 @@ export function useSafetyGuardPrecheck(): UseSafetyGuardPrecheckResult {
     
     try {
       const isGuest = isGuestMode();
+      // This signals that a browser expects its cookie session to be used.
+      // It is never identity evidence: the server must resolve the session.
+      // Native requests already present their bearer token. Avoid adding a
+      // browser-only header that a cross-origin native preflight may reject.
+      const expectsAuthentication = !isGuest && !isNativePlatform() &&
+        Boolean(window.localStorage.getItem("mpm_current_user"));
       
       const response = await fetch(apiUrl("/api/safety-check"), {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+        headers: {
+          "Content-Type": "application/json",
+          ...(expectsAuthentication ? { "x-safety-auth-intent": "authenticated" } : {}),
+          ...getAuthHeaders(),
+        },
         credentials: "include",
         body: JSON.stringify({ 
           input, 
@@ -93,6 +103,15 @@ export function useSafetyGuardPrecheck(): UseSafetyGuardPrecheckResult {
         })
       });
 
+      if (response.status === 401) {
+        setAlert({
+          ...EMPTY_SAFETY_ALERT,
+          show: true,
+          result: "AMBIGUOUS",
+          message: "Your sign-in session has expired. Please sign in again before creating food.",
+        });
+        return false;
+      }
       if (!response.ok) {
         console.warn("[SafetyGuard] Preflight check failed, allowing generation");
         return true;
