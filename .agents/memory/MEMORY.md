@@ -130,3 +130,4 @@
 - [Clinical cutover verification](clinical-cutover-verification.md) — mocked review tests and top-level envelope checks can miss real schema constraints and nested clinical read fallbacks.
 - [Low Carb proof scope](low-carb-proof-scope.md) — recipe source compatibility is not proof of a daily 70/30 allocation; unknown starch allocation must remain review-required.
 - [Contextual food reasoning limits](contextual-food-reasoning-limits.md) — model food-source labels can vary even for simple recipes; anchor nonmateriality in bounded role and quantity evidence.
+- [Final Create a Dish choices](final-create-dish-choices.md) — aim for three distinct, fully verified recipes; never count pre-validation candidates or pad with unverified food.
