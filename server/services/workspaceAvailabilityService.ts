@@ -158,8 +158,14 @@ async function getStudioAccessSnapshot(userId: string) {
 export async function getStudioAccessStatus(userId: string): Promise<StudioAccessStatus> {
   const { user, ownedStudio, independentStudio, studioAccess } = await getStudioAccessSnapshot(userId);
   // Internal authority is not an individual paid professional subscription.
-  if (!independentStudio.hasSubscription && !studioAccess.sources.includes("internal") && ownedStudio?.id) {
+  if (!independentStudio.hasSubscription && !independentStudio.studioDisconnected &&
+      !studioAccess.sources.includes("internal") && ownedStudio?.id) {
     studioAccess.billing = await readHistoricalProfessionalBillingStatus(user.id, ownedStudio.id);
+  }
+  if (independentStudio.studioDisconnected) {
+    studioAccess.state = "inactive";
+    studioAccess.authorized = false;
+    studioAccess.studioReady = false;
   }
   if (studioAccess.billing?.state === "expired" &&
       studioAccess.sources.every((source) => source === "personal" || source === "studio")) {
@@ -177,12 +183,17 @@ export async function getStudioAccessStatus(userId: string): Promise<StudioAcces
     !studioAccess.sources.includes("sponsored") &&
     !studioAccess.sources.includes("pilot");
   studioAccess.canStartStudioCheckout = process.env.SERVICE_BILLING_SNAPSHOTS_ENABLED === "true" &&
+    !independentStudio.studioDisconnected &&
     !independentStudio.hasSubscription &&
     !studioAccess.billing &&
     isStudioProviderRole(user.professionalRole) &&
     !user.isFounder && !user.isSandbox && !user.isTester &&
     !studioAccess.sources.includes("sponsored") &&
     !studioAccess.sources.includes("pilot");
+  studioAccess.canDisconnectAddon = independentStudio.legacyToggleEligible &&
+    independentStudio.studioActive;
+  studioAccess.canReconnectAddon = independentStudio.legacyToggleEligible &&
+    independentStudio.studioDisconnected;
   return studioAccess;
 }
 

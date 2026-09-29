@@ -15,6 +15,7 @@ import {
   changeOrganizationRenewal,
   OrganizationBillingReviewError,
 } from "../services/organizationBillingLifecycleService";
+import { changeStudioAddonAttachment, StudioAddonAttachmentError } from "../services/studioAddonAttachment";
 
 const router = Router();
 
@@ -38,6 +39,23 @@ router.get("/studio-access", async (req, res) => {
   } catch (error) {
     console.error("[studio-access] error:", error);
     return res.status(500).json({ error: "Could not load Studio access." });
+  }
+});
+
+router.post("/studio-access/addon/:action", requireAuth, async (req, res) => {
+  res.setHeader("Cache-Control", "private, no-store");
+  if (req.params.action !== "disconnect" && req.params.action !== "reconnect") {
+    return res.status(404).json({ error: "Unknown Studio action." });
+  }
+  try {
+    const studio = await changeStudioAddonAttachment((req as any).authUser.id, req.params.action);
+    return res.json({ studio });
+  } catch (error) {
+    if (error instanceof StudioAddonAttachmentError) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    console.error("[studio-addon] unable to change attachment", error);
+    return res.status(503).json({ error: "Unable to verify Studio access right now. No change was confirmed." });
   }
 });
 

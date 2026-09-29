@@ -22,6 +22,8 @@ export interface StudioAccessStatus {
   canManageRenewal?: boolean;
   canReconnect?: boolean;
   canStartStudioCheckout?: boolean;
+  canDisconnectAddon?: boolean;
+  canReconnectAddon?: boolean;
 }
 
 export function isIndependentStudioRenewalEligible(access: StudioAccessStatus): boolean {
