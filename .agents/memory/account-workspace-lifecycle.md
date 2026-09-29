@@ -9,6 +9,8 @@ The login MPM account is the permanent identity. Personal MPM, Studio, and Organ
 
 **How to apply:** For future Studio or Organization lifecycle design, separate billing state, entitlement state, workspace visibility, and relationship continuity. Verify the actual billing source and paid-through period before offering a cancellation or reversal. Never infer personal payment from ownership, membership, or a Studio row.
 
+The user confirmed that disconnecting an existing legacy Studio through the More control worked in Development. Reconnection was not yet tested. Treat this as validation of the non-billing disconnect approach only, not of paid Studio or Organization behavior.
+
 Transitional exception: preserve access for already-established legacy Studios whose owners' Personal professional plans previously paid for Studio. New Studio purchases must use independent Studio billing; an expired independent Studio cannot fall back to Personal billing. Do not offer Studio End/Keep against a Personal subscription. This exception is temporary until a reviewed migration can handle legacy subscribers explicitly.
 
 **Why:** Immediately removing legacy access would strand existing paying professionals, but extending that coupling to new Studios would violate the independent-service model and risk canceling Personal billing from Studio controls.
