@@ -8,7 +8,7 @@ export interface FinalCreatorValidation<T> {
 export interface EnforceFinalCreatorCandidatesInput<T> {
   candidates: T[];
   validate: (candidate: T) => HumanFoodFinalValidationResult;
-  repair: (instructions: string[]) => Promise<T[]>;
+  repair?: (instructions: string[]) => Promise<T[]>;
 }
 
 export interface EnforceFinalCreatorCandidatesResult<T> {
@@ -33,7 +33,7 @@ export async function enforceFinalCreatorCandidates<T>(
     .filter(({ result }) => result.outcome === "pass")
     .map(({ candidate }) => candidate);
   const repairable = initial.find(({ result }) => result.outcome === "repairable");
-  if (!repairable) {
+  if (!repairable || !input.repair) {
     return {
       accepted,
       validations: initial,

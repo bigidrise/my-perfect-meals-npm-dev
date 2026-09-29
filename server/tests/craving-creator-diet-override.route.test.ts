@@ -216,10 +216,10 @@ const PIPELINE_SRC = fs.readFileSync(
 describe("A. Structural — routes.ts /api/meals/craving-creator diet override", () => {
   it("scans the clean user request instead of the internally enriched prompt", () => {
     expect(ROUTES_SRC).toContain(
-      'enforceSafetyProfile(userId, rawCravingInput, "meals-craving-creator"',
+      'enforceSafetyProfile(userId, { kind: "food_intent", requestedDish: rawCravingInput }, "meals-craving-creator"',
     );
     expect(ROUTES_SRC).not.toContain(
-      'enforceSafetyProfile(userId, cravingInput, "meals-craving-creator"',
+      'enforceSafetyProfile(userId, { kind: "food_intent", requestedDish: cravingInput }, "meals-craving-creator"',
     );
   });
 
@@ -261,14 +261,14 @@ describe("A. Structural — routes.ts /api/meals/craving-creator diet override",
     );
     expect(block).toContain("postFormatFailures");
     expect(block).toContain('.filter(({ result }) => result.outcome === "pass")');
-    expect(block).toContain("if (formattedOptions.length === 0)");
+    expect(block).toContain('if (formattedOptions.length === 0 && humanFoodCreator !== "create_a_dish")');
     expect(block).not.toContain("if (postFormatFailure)");
   });
 
   it("handles zero initial and zero repaired survivors before formatting or dereferencing a failed candidate", () => {
-    const initial = ROUTES_SRC.indexOf("if (finalEnforcement.accepted.length === 0)");
+    const initial = ROUTES_SRC.indexOf('if (finalEnforcement.accepted.length === 0 && humanFoodCreator !== "create_a_dish")');
     const repair = ROUTES_SRC.indexOf('stage: "intent_repair"', initial);
-    const empty = ROUTES_SRC.indexOf("if (scannedOptions.length === 0)", repair);
+    const empty = ROUTES_SRC.indexOf('if (scannedOptions.length === 0 && humanFoodCreator !== "create_a_dish")', repair);
     const format = ROUTES_SRC.indexOf("let formattedOptions = scannedOptions.map", empty);
     expect(initial).toBeGreaterThan(0);
     expect(repair).toBeGreaterThan(initial);
