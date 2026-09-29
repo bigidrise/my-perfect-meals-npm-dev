@@ -3,7 +3,7 @@ import Stripe from "stripe";
 import type { LookupKey } from "../../client/src/data/planSkus";
 import { requireAuth } from "../middleware/requireAuth";
 import { getTrustedCheckoutPlan } from "../services/stripePlanCatalog";
-import { assertStripeBillingOwnership } from "../services/stripeRuntimePolicy";
+import { assertStripeBillingOwnership, getStripeKeyMode } from "../services/stripeRuntimePolicy";
 import { reconcileCheckoutSession } from "../services/stripeReconciliationService";
 import {
   CheckoutBillingConflictError,
@@ -18,9 +18,13 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { and, eq, isNotNull, isNull, or } from "drizzle-orm";
 import { stripeBillingEvents, stripeIdentityOwners } from "../db/schema/stripeBilling";
+import { studios, studioBilling } from "../db/schema/studio";
+import { serviceBillingSnapshots } from "../db/schema/serviceBillingSnapshots";
 import { randomUUID } from "node:crypto";
 import { getBusinessOfferCheckoutAttribution } from "../services/businessOfferLinkService";
 import { validateRewardfulReferralForAffiliate } from "../services/rewardfulApi";
+import { getExpiredOrganizationForReconnect } from "../services/organizationBillingLifecycleService";
+import { resolveServiceBillingStatus } from "../services/serviceBillingStatus";
 
 const router = Router();
 
@@ -42,6 +46,77 @@ function getUserId(req: any): string | null {
   if (req.session?.userId) return req.session.userId as string;
 
   return null;
+}
+
+/**
+ * Build the Personal-checkout exclusion set from the exact Studio row and
+ * authoritative billing snapshot. Customer IDs from studio_billing are never
+ * accepted as Personal customers; subscriptions are ignored as Personal
+ * blockers only when ownership and verified snapshot identity all agree.
+ */
+async function getOwnedStudioBillingIdentities(userId: string): Promise<{
+  customerIds: string[];
+  subscriptionIds: string[];
+  activeSubscriptionIds: string[];
+}> {
+  const owned = await db.select({
+    studioId: studios.id,
+    customerId: studioBilling.stripeCustomerId,
+    subscriptionId: studioBilling.stripeSubscriptionId,
+    planKey: studioBilling.planCode,
+  }).from(studios)
+    .innerJoin(studioBilling, eq(studioBilling.studioId, studios.id))
+    .where(eq(studios.ownerUserId, userId))
+    .limit(2);
+  if (owned.length > 1) {
+    throw new CheckoutBillingConflictError(
+      "BILLING_IDENTITY_REVIEW_REQUIRED",
+      "Multiple Studio billing identities need review before Personal checkout.",
+    );
+  }
+
+  const customerIds = owned.flatMap(({ customerId }) => customerId ? [customerId] : []);
+  const subscriptionIds: string[] = [];
+  const activeSubscriptionIds: string[] = [];
+  for (const studio of owned) {
+    if (!studio.customerId || !studio.subscriptionId) continue;
+    const [snapshot] = await db.select().from(serviceBillingSnapshots)
+      .where(eq(serviceBillingSnapshots.stripeSubscriptionId, studio.subscriptionId))
+      .limit(1);
+    const claims = await db.select({
+      identityType: stripeIdentityOwners.identityType,
+      identityValue: stripeIdentityOwners.identityValue,
+    }).from(stripeIdentityOwners).where(and(
+      eq(stripeIdentityOwners.ownerUserId, userId),
+      isNull(stripeIdentityOwners.businessId),
+      or(
+        and(
+          eq(stripeIdentityOwners.identityType, "customer"),
+          eq(stripeIdentityOwners.identityValue, studio.customerId),
+        ),
+        and(
+          eq(stripeIdentityOwners.identityType, "subscription"),
+          eq(stripeIdentityOwners.identityValue, studio.subscriptionId),
+        ),
+      ),
+    ));
+    const customerClaimed = claims.some((claim) =>
+      claim.identityType === "customer" && claim.identityValue === studio.customerId);
+    const subscriptionClaimed = claims.some((claim) =>
+      claim.identityType === "subscription" && claim.identityValue === studio.subscriptionId);
+    if (!customerClaimed || !subscriptionClaimed) continue;
+    const billing = resolveServiceBillingStatus({
+      serviceType: "professional",
+      ownerUserId: userId,
+      stripeCustomerId: studio.customerId,
+      stripeSubscriptionId: studio.subscriptionId,
+      studioId: studio.studioId,
+      trustedPlanKey: studio.planKey,
+    }, snapshot ?? null);
+    if (billing.state !== "needs_review") subscriptionIds.push(studio.subscriptionId);
+    if (billing.state === "active" || billing.state === "ending") activeSubscriptionIds.push(studio.subscriptionId);
+  }
+  return { customerIds, subscriptionIds, activeSubscriptionIds };
 }
 
 interface CheckoutRequestBody {
@@ -108,21 +183,44 @@ router.post("/checkout", requireAuth, async (req, res) => {
       return res.status(401).json({ error: "Authenticated billing account was not found." });
     }
 
+    const studioBillingIdentities = await getOwnedStudioBillingIdentities(userId);
+    const storedSubscriptionIsStudio = Boolean(billingUser.stripeSubscriptionId &&
+      studioBillingIdentities.subscriptionIds.includes(billingUser.stripeSubscriptionId));
+    const personalBillingUser = {
+      ...billingUser,
+      stripeCustomerId: billingUser.stripeCustomerId &&
+        !studioBillingIdentities.customerIds.includes(billingUser.stripeCustomerId)
+        ? billingUser.stripeCustomerId : null,
+      stripeSubscriptionId: storedSubscriptionIsStudio ? null : billingUser.stripeSubscriptionId,
+    };
     const customer = await resolveCanonicalCheckoutCustomer({
       stripe,
-      user: billingUser,
+      user: personalBillingUser,
+      studioCustomerIds: studioBillingIdentities.customerIds,
       persistCustomerId: async (customerId) => {
         const linked = await db.transaction(async (tx) => {
           await claimStripeIdentityOwnership(tx, {
             ownerUserId: billingUser.id,
             stripeCustomerId: customerId,
           });
-          return tx
-            .update(users)
-            .set({ stripeCustomerId: customerId })
+          return tx.update(users)
+            .set({
+              stripeCustomerId: customerId,
+              ...(storedSubscriptionIsStudio ? { stripeSubscriptionId: null } : {}),
+            })
             .where(and(
               eq(users.id, billingUser.id),
-              or(isNull(users.stripeCustomerId), eq(users.stripeCustomerId, customerId)),
+              or(
+                isNull(users.stripeCustomerId),
+                eq(users.stripeCustomerId, customerId),
+                ...(billingUser.stripeCustomerId &&
+                    studioBillingIdentities.customerIds.includes(billingUser.stripeCustomerId)
+                  ? [eq(users.stripeCustomerId, billingUser.stripeCustomerId)]
+                  : []),
+              ),
+              storedSubscriptionIsStudio
+                ? eq(users.stripeSubscriptionId, billingUser.stripeSubscriptionId!)
+                : undefined,
             ))
             .returning({ id: users.id });
         });
@@ -158,6 +256,8 @@ router.post("/checkout", requireAuth, async (req, res) => {
       userId,
       email: billingUser.email,
       canonicalCustomerId: customer.id,
+      studioCustomerIds: studioBillingIdentities.customerIds,
+      studioSubscriptionIds: studioBillingIdentities.activeSubscriptionIds,
       ownedCustomerIds: ownedCustomers.map((row) => row.id),
       historicalCustomerIds: historicalCustomers.flatMap((row) => row.id ? [row.id] : []),
     });
@@ -165,7 +265,10 @@ router.post("/checkout", requireAuth, async (req, res) => {
     const blocking = await findBlockingMpmSubscription({
       stripe,
       customerId: customer.id,
-      storedSubscriptionId: billingUser.stripeSubscriptionId,
+      storedSubscriptionId: studioBillingIdentities.subscriptionIds.includes(
+        billingUser.stripeSubscriptionId ?? "",
+      ) ? null : billingUser.stripeSubscriptionId,
+      studioSubscriptionIds: studioBillingIdentities.activeSubscriptionIds,
     });
     if (blocking) {
       const repairId = `checkout-preflight:${blocking.subscription.id}`;
@@ -388,6 +491,13 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
       error: "Payment system not configured — STRIPE_SECRET_KEY is missing",
     });
   }
+  const deployed = process.env.REPLIT_DEPLOYMENT === "1" ||
+    process.env.REPLIT_DEPLOYMENT === "true";
+  if (!deployed && getStripeKeyMode(stripeKey) !== "TEST") {
+    return res.status(503).json({
+      error: "Organization checkout is disabled in Development unless Stripe is configured with a test key.",
+    });
+  }
 
   const userId = getUserId(req);
   if (!userId) {
@@ -435,6 +545,140 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
     const { businesses: bizTable } = await import("../db/schema/business");
     const { and, eq, isNull, or, sql: drizzleSql } = await import("drizzle-orm");
     const proposedReservationId = randomUUID();
+    const [ownedBusiness] = await checkoutDb.select().from(bizTable).where(and(
+      eq(bizTable.id, businessId),
+      eq(bizTable.ownerUserId, userId),
+    )).limit(1);
+    if (!ownedBusiness) {
+      return res.status(403).json({
+        code: "ORGANIZATION_REQUIRED",
+        error: "Please complete organization setup before starting checkout.",
+      });
+    }
+
+    if (ownedBusiness.stripeCustomerId || ownedBusiness.stripeSubscriptionId) {
+      let previousIdentity;
+      try {
+        previousIdentity = await getExpiredOrganizationForReconnect(userId, businessId);
+      } catch {
+        return res.status(409).json({
+          code: "ORGANIZATION_BILLING_NEEDS_REVIEW",
+          error: "Organization billing could not be verified as expired. No checkout was started.",
+        });
+      }
+
+      if (ownedBusiness.stripeCheckoutReservationId && !ownedBusiness.stripeCheckoutSessionId) {
+        return res.status(409).json({
+          code: "ORGANIZATION_CHECKOUT_UNBOUND",
+          error: "A checkout was already started but could not be verified. Do not pay again; contact support to recover it.",
+        });
+      }
+
+      if (ownedBusiness.stripeCheckoutSessionId) {
+        const savedSession = await stripe.checkout.sessions.retrieve(
+          ownedBusiness.stripeCheckoutSessionId,
+        );
+        const savedCustomerId = typeof savedSession.customer === "string"
+          ? savedSession.customer
+          : savedSession.customer?.id ?? null;
+        if (savedSession.metadata?.userId !== userId ||
+            savedSession.metadata?.businessId !== businessId ||
+            savedSession.metadata?.checkoutReservationId !== ownedBusiness.stripeCheckoutReservationId ||
+            savedSession.metadata?.sku !== "clinical_business_monthly" ||
+            (savedCustomerId && savedCustomerId !== previousIdentity.stripeCustomerId)) {
+          return res.status(409).json({
+            code: "ORGANIZATION_CHECKOUT_CONFLICT",
+            error: "The saved checkout does not match this organization. Contact support before paying again.",
+          });
+        }
+        const savedSubscriptionId = typeof savedSession.subscription === "string"
+          ? savedSession.subscription
+          : savedSession.subscription?.id ?? null;
+        if (savedSession.status === "open" && savedSession.url &&
+            savedSession.metadata?.context === "business_reconnect") {
+          return res.json({ url: savedSession.url });
+        }
+        if ((savedSession.status === "complete" || savedSession.payment_status === "paid" ||
+             savedSubscriptionId) && savedSubscriptionId !== previousIdentity.stripeSubscriptionId) {
+          return res.status(409).json({
+            code: "BILLING_VERIFICATION_PENDING",
+            error: "A recent Organization checkout may already have succeeded. Do not pay again; verify the existing payment.",
+            recoveryUrl: `/business-dashboard?checkout=success&session_id=${encodeURIComponent(savedSession.id)}`,
+          });
+        }
+        if (savedSession.status !== "expired" && savedSubscriptionId !== previousIdentity.stripeSubscriptionId) {
+          return res.status(409).json({
+            code: "ORGANIZATION_CHECKOUT_CONFLICT",
+            error: "The saved checkout could not be verified. Contact support before paying again.",
+          });
+        }
+      }
+
+      const reservationCondition = ownedBusiness.stripeCheckoutReservationId
+        ? eq(bizTable.stripeCheckoutReservationId, ownedBusiness.stripeCheckoutReservationId)
+        : isNull(bizTable.stripeCheckoutReservationId);
+      const [reservedBusiness] = await checkoutDb.update(bizTable).set({
+        stripeCheckoutReservationId: proposedReservationId,
+        stripeCheckoutSessionId: null,
+        stripeCheckoutSeatCount: requestedSeats,
+        updatedAt: new Date(),
+      }).where(and(
+        eq(bizTable.id, businessId),
+        eq(bizTable.ownerUserId, userId),
+        eq(bizTable.status, "cancelled"),
+        eq(bizTable.commercialAccessMode, "paid"),
+        eq(bizTable.stripeCustomerId, previousIdentity.stripeCustomerId),
+        eq(bizTable.stripeSubscriptionId, previousIdentity.stripeSubscriptionId),
+        reservationCondition,
+      )).returning({
+        id: bizTable.id,
+        reservationId: bizTable.stripeCheckoutReservationId,
+      });
+      if (!reservedBusiness) {
+        return res.status(409).json({
+          code: "ORGANIZATION_CHECKOUT_CONFLICT",
+          error: "Organization billing changed before reconnection could start. Refresh and try again.",
+        });
+      }
+
+      const reconnectMetadata = {
+        userId,
+        businessId: reservedBusiness.id,
+        checkoutReservationId: reservedBusiness.reservationId!,
+        sku: "clinical_business_monthly",
+        subscriptionType: "business_seat",
+        seatCount: String(requestedSeats),
+        context: "business_reconnect",
+      };
+      const session = await stripe.checkout.sessions.create({
+        mode: "subscription",
+        customer: previousIdentity.stripeCustomerId,
+        line_items: [{ price: trustedBusinessPlan.priceId, quantity: requestedSeats }],
+        success_url: `${appUrl}/business-dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${appUrl}/business-dashboard`,
+        metadata: reconnectMetadata,
+        subscription_data: { metadata: reconnectMetadata },
+      }, {
+        idempotencyKey: `mpm-business-reconnect:${reservedBusiness.id}:${reservedBusiness.reservationId}`,
+      });
+      if (!session.url) {
+        throw new Error("Stripe reconnect session created but no checkout URL returned");
+      }
+      const [sessionBound] = await checkoutDb.update(bizTable).set({
+        stripeCheckoutSessionId: session.id,
+        updatedAt: new Date(),
+      }).where(and(
+        eq(bizTable.id, reservedBusiness.id),
+        eq(bizTable.ownerUserId, userId),
+        eq(bizTable.stripeCheckoutReservationId, reservedBusiness.reservationId!),
+        eq(bizTable.stripeSubscriptionId, previousIdentity.stripeSubscriptionId),
+      )).returning({ id: bizTable.id });
+      if (!sessionBound) {
+        throw new Error("Organization reconnect reservation changed before the session could be bound");
+      }
+      return res.json({ url: session.url });
+    }
+
     const [reservedBusiness] = await checkoutDb
       .update(bizTable)
       .set({

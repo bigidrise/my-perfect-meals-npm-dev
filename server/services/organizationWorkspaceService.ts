@@ -1,4 +1,4 @@
-import { and, eq, isNull, or } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, or } from "drizzle-orm";
 import { db } from "../db";
 import { businesses, businessMembers } from "../db/schema/business";
 import {
@@ -20,6 +20,18 @@ export type WorkspaceLocationOption = {
   role: string;
   isDefault: boolean;
 };
+
+export function filterDisconnectedOwnerWorkspaces<
+  T extends { organizationId: string; sourceBusinessId: string | null },
+>(
+  rows: T[],
+  disconnected: { id: string; organizationId: string | null }[],
+): T[] {
+  const hiddenOrganizations = new Set(disconnected.map((business) => business.organizationId));
+  const hiddenBusinesses = new Set(disconnected.map((business) => business.id));
+  return rows.filter((row) => !hiddenOrganizations.has(row.organizationId) &&
+    !(row.sourceBusinessId && hiddenBusinesses.has(row.sourceBusinessId)));
+}
 
 export type WorkspaceOrganizationOption = {
   id: string;
@@ -117,6 +129,7 @@ export async function discoverAuthorizedWorkspaces(
   const rows = await db
     .select({
       organizationId: organizations.id,
+      sourceBusinessId: organizations.sourceBusinessId,
       organizationName: organizations.name,
       organizationRole: organizationMemberships.role,
       organizationRelationshipType: organizationMemberships.relationshipType,
@@ -158,8 +171,17 @@ export async function discoverAuthorizedWorkspaces(
     ))
     .orderBy(organizations.name, organizationLocations.name);
 
+  // This is an owner-only presentation/access overlay. The tenant and all
+  // staff memberships remain active; every Location for this owner is hidden.
+  const disconnected = await db.select({
+    id: businesses.id,
+    organizationId: businesses.organizationId,
+  }).from(businesses).where(and(
+    eq(businesses.ownerUserId, userId),
+    isNotNull(businesses.ownerWorkspaceDisconnectedAt),
+  ));
   const grouped = new Map<string, WorkspaceOrganizationOption>();
-  for (const row of rows) {
+  for (const row of filterDisconnectedOwnerWorkspaces(rows, disconnected)) {
     let organization = grouped.get(row.organizationId);
     if (!organization) {
       organization = {

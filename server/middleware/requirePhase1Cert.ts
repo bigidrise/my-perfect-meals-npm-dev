@@ -20,7 +20,7 @@ import { getAcademyProgression } from "../services/academyProgression";
  */
 
 /** False-wins: returns false if any org the user belongs to has requireAcademy: false */
-async function isAcademyRequired(userId: string): Promise<boolean> {
+export async function isAcademyRequired(userId: string): Promise<boolean> {
   try {
     const { loadOrgContext } = await import("../lib/orgContext");
     const { businesses, businessMembers } = await import("../db/schema/business");

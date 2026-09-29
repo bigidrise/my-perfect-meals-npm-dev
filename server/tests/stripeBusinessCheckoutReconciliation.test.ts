@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { businesses, businessMembers } from "../db/schema/business";
 import { stripeBillingEvents, stripeIdentityOwners } from "../db/schema/stripeBilling";
+import { serviceBillingSnapshots } from "../db/schema/serviceBillingSnapshots";
 import { users } from "@shared/schema";
 
 type Row = Record<string, any>;
@@ -11,6 +12,7 @@ type State = {
   owners: Row[];
   members: Row[];
   events: Row[];
+  snapshots: Row[];
 };
 
 let mockState: State;
@@ -22,6 +24,7 @@ function tableRows(state: State, table: any): Row[] {
   if (table === stripeIdentityOwners) return state.owners;
   if (table === businessMembers) return state.members;
   if (table === stripeBillingEvents) return state.events;
+  if (table === serviceBillingSnapshots) return state.snapshots;
   throw new Error("Unexpected table in billing test");
 }
 
@@ -45,6 +48,9 @@ function matches(table: any, row: Row, condition: any): boolean {
     return row.eventId === params[0] && (
       !sql.includes('"status"') || row.status === "failed"
     );
+  }
+  if (table === serviceBillingSnapshots) {
+    return row.stripeSubscriptionId === params[0];
   }
   throw new Error("Unexpected billing test predicate");
 }
@@ -123,6 +129,7 @@ jest.mock("../db", () => ({
 
 import { reconcileCheckoutSession } from "../services/stripeReconciliationService";
 import { applyBusinessSubscriptionTransition } from "../services/businessSubscriptionService";
+import { cancelUserSubscription, updateUserSubscription } from "../services/subscriptionService";
 
 const priceId = process.env.STRIPE_CLINICAL_BUSINESS_MONTHLY_PRICE_ID;
 const metadata = {
@@ -174,6 +181,7 @@ function resetRows() {
     owners: [],
     members: [],
     events: [],
+      snapshots: [],
   };
 }
 
@@ -194,6 +202,89 @@ describe("verified Clinical Business checkout reconciliation (no external servic
     if (!priceId) throw new Error("Clinical Business price must be configured for the regression fixture");
   });
   beforeEach(resetRows);
+
+  it("rolls back and retries a personal transition when snapshot persistence fails", async () => {
+    const mutation = {
+      eventId: "evt_personal_retry", eventCreatedAt: new Date("2026-09-09T01:37:26Z"),
+      eventRank: 75, source: "webhook" as const,
+    };
+    const transition = (onAccepted: any) => updateUserSubscription({
+      userId: "owner-1", lookupKey: "mpm_premium", mutation, onAccepted,
+    });
+    await expect(transition(async () => { throw new Error("snapshot write failed"); }))
+      .rejects.toThrow("snapshot write failed");
+    expect(mockState.users[0].planLookupKey).toBe("mpm_ultimate_monthly");
+    const persisted = jest.fn(async () => {});
+    await expect(transition(persisted)).resolves.toMatchObject({ updated: true });
+    expect(persisted).toHaveBeenCalledTimes(1);
+    expect(mockState.users[0].planLookupKey).toBe("mpm_premium");
+  });
+
+  it("rolls back and retries a business transition when snapshot persistence fails", async () => {
+    const mutation = {
+      eventId: "evt_business_retry", eventCreatedAt: new Date("2026-09-09T01:37:26Z"),
+      eventRank: 50, source: "webhook" as const,
+    };
+    const transition = (onAccepted: any) => applyBusinessSubscriptionTransition({
+      ownerUserId: "owner-1", businessId: "business-1",
+      checkoutReservationId: "reservation-1", checkoutSessionId: "cs_business_1",
+      stripeCustomerId: "cus_business_1", stripeSubscriptionId: "sub_business_1",
+      status: "active", mutation, onAccepted,
+    });
+    await expect(transition(async () => { throw new Error("snapshot write failed"); }))
+      .rejects.toThrow("snapshot write failed");
+    expect(mockState.businesses[0].status).toBe("pending_billing");
+    expect(mockState.owners).toHaveLength(0);
+    const persisted = jest.fn(async () => {});
+    await expect(transition(persisted)).resolves.toMatchObject({ updated: true });
+    expect(persisted).toHaveBeenCalledTimes(1);
+    expect(mockState.businesses[0].status).toBe("active");
+  });
+
+  it("rolls back a personal revocation if its adverse-status snapshot cannot persist", async () => {
+    const mutation = {
+      eventId: "evt_past_due", eventCreatedAt: new Date("2026-09-09T01:37:26Z"),
+      eventRank: 75, source: "webhook" as const,
+    };
+    await expect(cancelUserSubscription(
+      "cus_personal_separate", "sub_personal_separate", mutation, true,
+      async () => { throw new Error("snapshot write failed"); },
+    )).rejects.toThrow("snapshot write failed");
+    expect(mockState.users[0].stripeSubscriptionId).toBe("sub_personal_separate");
+    const result = await cancelUserSubscription(
+      "cus_personal_separate", "sub_personal_separate", mutation, true,
+      async () => {},
+    );
+    expect(result.updated).toBe(true);
+    expect(mockState.users[0].stripeSubscriptionId).toBeNull();
+  });
+
+  it("revokes a bound business on an adverse subscription update without clearing personal billing", async () => {
+    const activeMutation = {
+      eventId: "evt_activation", eventCreatedAt: new Date("2026-09-09T01:37:26Z"),
+      eventRank: 50, source: "webhook" as const,
+    };
+    const adverseMutation = {
+      eventId: "evt_past_due", eventCreatedAt: new Date("2026-09-10T01:37:26Z"),
+      eventRank: 75, source: "webhook" as const,
+    };
+    const input = {
+      ownerUserId: "owner-1", businessId: "business-1",
+      checkoutReservationId: "reservation-1", checkoutSessionId: "cs_business_1",
+      stripeCustomerId: "cus_business_1", stripeSubscriptionId: "sub_business_1",
+    };
+    await applyBusinessSubscriptionTransition({ ...input, status: "active", mutation: activeMutation });
+    await expect(applyBusinessSubscriptionTransition({
+      ...input, status: "past_due", mutation: adverseMutation,
+      onAccepted: async () => { throw new Error("snapshot write failed"); },
+    })).rejects.toThrow("snapshot write failed");
+    expect(mockState.businesses[0].status).toBe("active");
+    await expect(applyBusinessSubscriptionTransition({
+      ...input, status: "past_due", mutation: adverseMutation, onAccepted: async () => {},
+    })).resolves.toMatchObject({ updated: true });
+    expect(mockState.businesses[0].status).toBe("past_due");
+    expect(mockState.users[0].stripeSubscriptionId).toBe("sub_personal_separate");
+  });
 
   it("activates the saved business atomically, claims both identities, and preserves personal billing", async () => {
     await expect(reconcile()).resolves.toMatchObject({ status: "active", planLookupKey: "clinical_business_monthly" });
@@ -273,15 +364,18 @@ describe("verified Clinical Business checkout reconciliation (no external servic
     expect(mockState.events[0].status).toBe("failed");
   });
 
-  it("removes only an exact legacy same-owner duplicate from personal billing", async () => {
+  it("fails closed on an exact legacy identity collision instead of changing Personal billing", async () => {
     mockState.users[0].stripeCustomerId = "cus_business_1";
     mockState.users[0].stripeSubscriptionId = "sub_business_1";
-    await expect(reconcile()).resolves.toMatchObject({ status: "active" });
-    expect(mockState.users[0]).toMatchObject({ stripeCustomerId: null, stripeSubscriptionId: null });
-    expect(mockState.businesses[0]).toMatchObject({
-      status: "active", stripeCustomerId: "cus_business_1", stripeSubscriptionId: "sub_business_1",
+    await expect(reconcile()).rejects.toThrow("IDENTITY_CONFLICT");
+    expect(mockState.users[0]).toMatchObject({
+      stripeCustomerId: "cus_business_1",
+      stripeSubscriptionId: "sub_business_1",
     });
-    expect(mockState.owners).toHaveLength(2);
+    expect(mockState.businesses[0]).toMatchObject({
+      status: "pending_billing", stripeCustomerId: null, stripeSubscriptionId: null,
+    });
+    expect(mockState.owners).toHaveLength(0);
   });
 
   it.each(["customer", "subscription"] as const)(
@@ -338,5 +432,144 @@ describe("verified Clinical Business checkout reconciliation (no external servic
     mockState.events.push({ eventId: "reconcile:cs_business_1:sub_business_1", status: "processed" });
     await expect(reconcile()).rejects.toThrow("business billing is not active");
     expect(mockState.businesses[0].status).toBe("pending_billing");
+  });
+
+  it("reconnects the same expired Organization only through its current saved reservation", async () => {
+    const now = new Date();
+    const periodEnd = new Date(now.getTime() - 60_000);
+    const terminalAt = new Date(now.getTime() - 30_000);
+    mockState.businesses[0] = {
+      ...mockState.businesses[0],
+      status: "cancelled",
+      commercialAccessMode: "paid",
+      stripeCustomerId: "cus_business_1",
+      stripeSubscriptionId: "sub_business_old",
+      stripeCheckoutReservationId: "reservation-reconnect",
+      stripeCheckoutSessionId: "cs_business_reconnect",
+      stripeLastEventCreatedAt: new Date(now.getTime() - 20_000),
+      stripeLastEventRank: 50,
+      stripeLastEventId: "evt_business_expired",
+    };
+    mockState.owners.push(
+      { identityType: "customer", identityValue: "cus_business_1", ownerUserId: "owner-1", businessId: "business-1" },
+      { identityType: "subscription", identityValue: "sub_business_old", ownerUserId: "owner-1", businessId: "business-1" },
+    );
+    mockState.snapshots.push({
+      stripeSubscriptionId: "sub_business_old",
+      stripeCustomerId: "cus_business_1",
+      ownerUserId: "owner-1",
+      serviceType: "organization",
+      businessId: "business-1",
+      studioId: null,
+      priceId: priceId!,
+      productId: "prod_business",
+      trustedPlanKey: "clinical_business_monthly",
+      status: "canceled",
+      currentPeriodEnd: periodEnd,
+      cancelAtPeriodEnd: true,
+      terminalAt,
+      sourceEventId: "evt_business_expired",
+      source: "webhook",
+      eventCreatedAt: new Date(now.getTime() - 20_000),
+      eventRank: 50,
+      verifiedAt: new Date(now.getTime() - 10_000),
+    });
+
+    await expect(applyBusinessSubscriptionTransition({
+      ownerUserId: "owner-1",
+      businessId: "business-1",
+      checkoutReservationId: "reservation-reconnect",
+      checkoutSessionId: "cs_business_reconnect",
+      stripeCustomerId: "cus_business_1",
+      stripeSubscriptionId: "sub_business_new",
+      status: "active",
+      mutation: {
+        eventId: "evt_business_reconnect",
+        eventCreatedAt: now,
+        eventRank: 50,
+        source: "webhook",
+      },
+    })).resolves.toMatchObject({ updated: true, businessId: "business-1" });
+    expect(mockState.businesses[0]).toMatchObject({
+      status: "active",
+      commercialAccessMode: "paid",
+      stripeCustomerId: "cus_business_1",
+      stripeSubscriptionId: "sub_business_new",
+      stripeCheckoutSessionId: "cs_business_reconnect",
+    });
+    expect(mockState.snapshots[0].stripeSubscriptionId).toBe("sub_business_old");
+    expect(mockState.users[0]).toMatchObject({
+      stripeCustomerId: "cus_personal_separate",
+      stripeSubscriptionId: "sub_personal_separate",
+      planLookupKey: "mpm_ultimate_monthly",
+    });
+  });
+
+  it("rejects Organization reconnection if the old billing evidence is not expired", async () => {
+    const now = new Date();
+    mockState.businesses[0] = {
+      ...mockState.businesses[0],
+      status: "cancelled",
+      commercialAccessMode: "paid",
+      stripeCustomerId: "cus_business_1",
+      stripeSubscriptionId: "sub_business_old",
+      stripeCheckoutReservationId: "reservation-reconnect",
+      stripeCheckoutSessionId: "cs_business_reconnect",
+    };
+    mockState.owners.push(
+      { identityType: "customer", identityValue: "cus_business_1", ownerUserId: "owner-1", businessId: "business-1" },
+      { identityType: "subscription", identityValue: "sub_business_old", ownerUserId: "owner-1", businessId: "business-1" },
+    );
+    mockState.snapshots.push({
+      stripeSubscriptionId: "sub_business_old",
+      stripeCustomerId: "cus_business_1",
+      ownerUserId: "owner-1",
+      serviceType: "organization",
+      businessId: "business-1",
+      studioId: null,
+      priceId: priceId!,
+      productId: "prod_business",
+      trustedPlanKey: "clinical_business_monthly",
+      status: "active",
+      currentPeriodEnd: new Date(now.getTime() + 60_000),
+      cancelAtPeriodEnd: false,
+      terminalAt: null,
+      sourceEventId: "evt_business_active",
+      source: "webhook",
+      eventCreatedAt: new Date(now.getTime() - 20_000),
+      eventRank: 50,
+      verifiedAt: new Date(now.getTime() - 10_000),
+    });
+
+    await expect(applyBusinessSubscriptionTransition({
+      ownerUserId: "owner-1",
+      businessId: "business-1",
+      checkoutReservationId: "reservation-reconnect",
+      checkoutSessionId: "cs_business_reconnect",
+      stripeCustomerId: "cus_business_1",
+      stripeSubscriptionId: "sub_business_new",
+      status: "active",
+      mutation: {
+        eventId: "evt_business_reconnect",
+        eventCreatedAt: now,
+        eventRank: 50,
+        source: "webhook",
+      },
+    })).resolves.toMatchObject({ updated: false, reason: "IDENTITY_CONFLICT" });
+    expect(mockState.businesses[0].stripeSubscriptionId).toBe("sub_business_old");
+    expect(mockState.users[0].stripeSubscriptionId).toBe("sub_personal_separate");
+  });
+
+  it("does not clear or overwrite a conflicting Personal Stripe identity for Organization billing", async () => {
+    mockState.users[0].stripeCustomerId = "cus_business_1";
+    mockState.users[0].stripeSubscriptionId = "sub_business_1";
+
+    await expect(reconcile()).rejects.toThrow("IDENTITY_CONFLICT");
+    expect(mockState.users[0]).toMatchObject({
+      stripeCustomerId: "cus_business_1",
+      stripeSubscriptionId: "sub_business_1",
+      planLookupKey: "mpm_ultimate_monthly",
+    });
+    expect(mockState.businesses[0].stripeSubscriptionId).toBeNull();
   });
 });

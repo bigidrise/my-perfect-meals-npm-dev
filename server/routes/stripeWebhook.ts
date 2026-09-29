@@ -22,7 +22,16 @@ import { planFromSubscription } from "../services/stripePlanCatalog";
 import { assertStripeBillingOwnership } from "../services/stripeRuntimePolicy";
 import { verifyStripeWebhookEvent } from "../services/stripeWebhookSignature";
 import { applyBusinessSubscriptionTransition } from "../services/businessSubscriptionService";
+import {
+  persistVerifiedTerminalFromHistory,
+  prepareVerifiedSnapshotHook,
+} from "../services/verifiedServiceBillingWriter";
 import { isStripeBillingReady } from "../services/stripeBillingReadiness";
+import {
+  applyStudioStripeSubscription,
+  type StudioStripeMutation,
+} from "../services/studioStripeBillingService";
+import { hasStudioBillingMetadata } from "../services/studioStripePlanCatalog";
 
 const router = Router();
 
@@ -184,6 +193,59 @@ router.post("/", async (req, res) => {
 
   let processedUserId: string | null = identity.userId;
   let eventWasHandled = true;
+  const snapshotHook = (
+    subscription: Stripe.Subscription,
+    customerId: string,
+    ownerUserId: string,
+    planLookupKey: string,
+    paymentFailed = false,
+  ) => prepareVerifiedSnapshotHook({
+    stripe: stripe!,
+    subscription,
+    customerId,
+    ownerUserId,
+    expectedPlanKey: planLookupKey,
+    paymentFailed,
+    mutation: {
+      eventId: event.id,
+      eventCreatedAt: new Date(event.created * 1000),
+      eventRank: eventRank(event.type),
+      source: "webhook",
+    },
+  });
+  const applyStudioEvent = (
+    subscription: Stripe.Subscription,
+    customerId: string,
+    options: { checkoutSessionId?: string; paymentFailed?: boolean } = {},
+  ) => {
+    const metadata = subscription.metadata ?? {};
+    if (!hasStudioBillingMetadata(metadata)) return null;
+    if (
+      metadata.serviceType !== "studio" ||
+      metadata.subscriptionType !== "studio" ||
+      !metadata.userId ||
+      !metadata.studioId ||
+      !metadata.checkoutReservationId
+    ) {
+      throw new Error("Studio subscription is missing its immutable service, owner, Studio, or reservation metadata");
+    }
+    return applyStudioStripeSubscription({
+      stripe: stripe!,
+      subscription,
+      customerId,
+      ownerUserId: metadata.userId,
+      studioId: metadata.studioId,
+      reservationId: metadata.checkoutReservationId,
+      checkoutSessionId: options.checkoutSessionId,
+      paymentFailed: options.paymentFailed,
+      mutation: {
+        eventId: event.id,
+        eventCreatedAt: new Date(event.created * 1000),
+        eventRank: eventRank(event.type),
+        source: "webhook",
+      } satisfies StudioStripeMutation,
+    });
+  };
   try {
     switch (event.type) {
       // ── Payment completed: new subscription ──────────────────────────────
@@ -191,6 +253,47 @@ router.post("/", async (req, res) => {
         const session = event.data.object as Stripe.Checkout.Session;
 
         const metadata = session.metadata || {};
+        if (hasStudioBillingMetadata(metadata)) {
+          if (
+            metadata.serviceType !== "studio" ||
+            metadata.subscriptionType !== "studio" ||
+            !metadata.userId ||
+            !metadata.studioId ||
+            !metadata.checkoutReservationId ||
+            !metadata.sku ||
+            session.payment_status !== "paid"
+          ) {
+            throw new Error("Completed Studio checkout is missing verified payment or immutable identity metadata");
+          }
+          const subscriptionId = stripeObjectId(session.subscription as any);
+          const customerId = stripeObjectId(session.customer as any);
+          if (!subscriptionId || !customerId) {
+            throw new Error("Completed Studio checkout is missing its Stripe subscription or customer");
+          }
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          if (
+            subscription.metadata?.serviceType !== "studio" ||
+            subscription.metadata?.subscriptionType !== "studio" ||
+            subscription.metadata?.userId !== metadata.userId ||
+            subscription.metadata?.studioId !== metadata.studioId ||
+            subscription.metadata?.checkoutReservationId !== metadata.checkoutReservationId ||
+            subscription.metadata?.sku !== metadata.sku
+          ) {
+            throw new Error("Completed Studio checkout and subscription identity do not match");
+          }
+          const transition = await applyStudioEvent(subscription, customerId, {
+            checkoutSessionId: session.id,
+          });
+          if (!transition) throw new Error("Studio checkout metadata could not be resolved");
+          if (!transition.updated && transition.reason === "STALE_EVENT") {
+            processedUserId = metadata.userId;
+            await completeBillingEvent(event.id, "ignored", metadata.userId);
+            return res.json({ received: true, ignored: "stale_studio_event" });
+          }
+          processedUserId = metadata.userId;
+          break;
+        }
+
         const userId = metadata.userId;
         const sku = metadata.sku as LookupKey;
 
@@ -255,6 +358,7 @@ router.post("/", async (req, res) => {
             stripeCustomerId: customerId,
             stripeSubscriptionId: subscriptionId,
             status: "active",
+            onAccepted: await snapshotHook(subscription, customerId, userId, trustedPlan.planLookupKey),
             mutation: {
               eventId: event.id,
               eventCreatedAt: new Date(event.created * 1000),
@@ -359,6 +463,7 @@ router.post("/", async (req, res) => {
             lookupKey: trustedPlan.planLookupKey,
             stripeCustomerId: customerId,
             stripeSubscriptionId: subscriptionId,
+            onAccepted: await snapshotHook(subscription, customerId, userId, trustedPlan.planLookupKey),
             mutation: {
               eventId: event.id,
               eventCreatedAt: new Date(event.created * 1000),
@@ -393,6 +498,16 @@ router.post("/", async (req, res) => {
         }
 
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        if (hasStudioBillingMetadata(subscription.metadata)) {
+          if (subscription.status !== "active" && subscription.status !== "trialing") {
+            console.log("[webhook] invoice.payment_succeeded — Studio subscription is not active");
+            break;
+          }
+          const transition = await applyStudioEvent(subscription, customerId);
+          if (!transition) throw new Error("Studio invoice subscription metadata could not be resolved");
+          processedUserId = subscription.metadata?.userId ?? null;
+          break;
+        }
         const user = await resolveStripeEventUser({
           stripeCustomerId: customerId,
           stripeSubscriptionId: subscriptionId,
@@ -420,6 +535,7 @@ router.post("/", async (req, res) => {
                 stripeCustomerId: customerId,
                 stripeSubscriptionId: subscriptionId,
                 status: "active",
+                onAccepted: await snapshotHook(subscription, customerId, user.id, trustedPlan.planLookupKey),
                 mutation: {
                   eventId: event.id,
                   eventCreatedAt: new Date(event.created * 1000),
@@ -444,6 +560,7 @@ router.post("/", async (req, res) => {
                 lookupKey: trustedPlan.planLookupKey,
                 stripeCustomerId: customerId,
                 stripeSubscriptionId: subscriptionId,
+                onAccepted: await snapshotHook(subscription, customerId, user.id, trustedPlan.planLookupKey),
                 mutation: {
                   eventId: event.id,
                   eventCreatedAt: new Date(event.created * 1000),
@@ -487,6 +604,21 @@ router.post("/", async (req, res) => {
           );
           break;
         }
+        // A late failed invoice is not authority to revoke a subscription
+        // that Stripe currently reports as recovered and active.
+        if (failedSubscription.status === "active" || failedSubscription.status === "trialing") {
+          console.log("[webhook] invoice.payment_failed — current Stripe subscription is active; ignoring stale invoice failure");
+          break;
+        }
+        if (hasStudioBillingMetadata(failedSubscription.metadata)) {
+          const studioOwnerId = failedSubscription.metadata?.userId ?? null;
+          const transition = await applyStudioEvent(failedSubscription, customerId, {
+            paymentFailed: true,
+          });
+          if (!transition) throw new Error("Studio failed-invoice subscription metadata could not be resolved");
+          processedUserId = studioOwnerId;
+          break;
+        }
         if (failedPlan.planLookupKey === "clinical_business_monthly") {
           const owner = await resolveStripeEventUser({
             stripeCustomerId: customerId,
@@ -502,6 +634,7 @@ router.post("/", async (req, res) => {
             stripeCustomerId: customerId,
             stripeSubscriptionId: subscriptionId,
             status: "past_due",
+            onAccepted: await snapshotHook(failedSubscription, customerId, owner.id, failedPlan.planLookupKey, true),
             mutation: {
               eventId: event.id,
               eventCreatedAt: new Date(event.created * 1000),
@@ -514,12 +647,17 @@ router.post("/", async (req, res) => {
           }
           processedUserId = owner.id;
         } else {
+          const failedOwner = process.env.SERVICE_BILLING_SNAPSHOTS_ENABLED === "true"
+            ? await resolveSubscriptionUser(customerId, subscriptionId)
+            : null;
           const cancelled = await cancelUserSubscription(customerId, subscriptionId, {
             eventId: event.id,
             eventCreatedAt: new Date(event.created * 1000),
             eventRank: eventRank(event.type),
             source: "webhook",
-          });
+          }, true, failedOwner
+            ? await snapshotHook(failedSubscription, customerId, failedOwner.id, failedPlan.planLookupKey, true)
+            : undefined);
           processedUserId = cancelled.user?.id ?? null;
         }
         break;
@@ -541,6 +679,13 @@ router.post("/", async (req, res) => {
           break;
         }
         const cancelledLookupKey = cancelledPlan.planLookupKey;
+        if (hasStudioBillingMetadata(subscription.metadata)) {
+          const studioOwnerId = subscription.metadata?.userId ?? null;
+          const transition = await applyStudioEvent(subscription, customerId);
+          if (!transition) throw new Error("Deleted Studio subscription metadata could not be resolved");
+          processedUserId = studioOwnerId;
+          break;
+        }
         const affectedUser = cancelledLookupKey === "clinical_business_monthly"
           ? await resolveStripeEventUser({
               stripeCustomerId: customerId,
@@ -550,6 +695,20 @@ router.post("/", async (req, res) => {
             })
           : await resolveSubscriptionUser(customerId, subscription.id);
         if (!affectedUser) {
+          if (cancelledLookupKey !== "clinical_business_monthly") {
+            processedUserId = await persistVerifiedTerminalFromHistory({
+              stripe: stripe!,
+              subscription,
+              customerId,
+              expectedPlanKey: cancelledLookupKey,
+              mutation: {
+                eventId: event.id,
+                eventCreatedAt: new Date(event.created * 1000),
+                eventRank: eventRank(event.type),
+                source: "webhook",
+              },
+            });
+          }
           console.warn(`[webhook] customer.subscription.deleted — ambiguous or missing owner for customer ${customerId}`);
           break;
         }
@@ -562,6 +721,7 @@ router.post("/", async (req, res) => {
               stripeCustomerId: customerId,
               stripeSubscriptionId: subscription.id,
               status: "cancelled",
+              onAccepted: await snapshotHook(subscription, customerId, affectedUser.id, cancelledLookupKey),
               mutation: {
                 eventId: event.id,
                 eventCreatedAt: new Date(event.created * 1000),
@@ -574,7 +734,7 @@ router.post("/", async (req, res) => {
               eventCreatedAt: new Date(event.created * 1000),
               eventRank: eventRank(event.type),
               source: "webhook",
-            });
+            }, true, await snapshotHook(subscription, customerId, affectedUser.id, cancelledLookupKey));
         if (!cancellation.updated) {
           console.warn(
             cancellation.reason === "STALE_EVENT"
@@ -619,6 +779,17 @@ router.post("/", async (req, res) => {
           throw new Error("Flat organization subscriptions must retain Stripe quantity 1");
         }
 
+        if (hasStudioBillingMetadata(subscription.metadata)) {
+          const studioOwnerId = subscription.metadata?.userId ?? null;
+          const transition = await applyStudioEvent(subscription, customerId, {
+            paymentFailed: ["past_due", "unpaid", "paused", "incomplete", "incomplete_expired"]
+              .includes(subscription.status),
+          });
+          if (!transition) throw new Error("Studio subscription metadata could not be resolved");
+          processedUserId = studioOwnerId;
+          break;
+        }
+
         const user = await resolveStripeEventUser({
           stripeCustomerId: customerId,
           stripeSubscriptionId: subscription.id,
@@ -626,6 +797,21 @@ router.post("/", async (req, res) => {
           allowMetadataBootstrap: true,
         });
         if (!user) {
+          if (subscription.status === "canceled" &&
+              trustedPlan.planLookupKey !== "clinical_business_monthly") {
+            processedUserId = await persistVerifiedTerminalFromHistory({
+              stripe: stripe!,
+              subscription,
+              customerId,
+              expectedPlanKey: trustedPlan.planLookupKey,
+              mutation: {
+                eventId: event.id,
+                eventCreatedAt: new Date(event.created * 1000),
+                eventRank: eventRank(event.type),
+                source: "webhook",
+              },
+            });
+          }
           console.warn(`[webhook] ${event.type} — ambiguous or missing owner for customer ${customerId}`);
           break;
         }
@@ -640,6 +826,7 @@ router.post("/", async (req, res) => {
                 stripeCustomerId: customerId,
                 stripeSubscriptionId: subscription.id,
                 status: "active",
+                onAccepted: await snapshotHook(subscription, customerId, user.id, trustedPlan.planLookupKey),
                 mutation: {
                   eventId: event.id,
                   eventCreatedAt: new Date(event.created * 1000),
@@ -652,6 +839,7 @@ router.post("/", async (req, res) => {
                 lookupKey: trustedPlan.planLookupKey,
                 stripeCustomerId: customerId,
                 stripeSubscriptionId: subscription.id,
+                onAccepted: await snapshotHook(subscription, customerId, user.id, trustedPlan.planLookupKey),
                 mutation: {
                   eventId: event.id,
                   eventCreatedAt: new Date(event.created * 1000),
@@ -678,6 +866,7 @@ router.post("/", async (req, res) => {
                 stripeCustomerId: customerId,
                 stripeSubscriptionId: subscription.id,
                 status: subscription.status === "unpaid" ? "past_due" : "cancelled",
+                onAccepted: await snapshotHook(subscription, customerId, user.id, trustedPlan.planLookupKey),
                 mutation: {
                   eventId: event.id,
                   eventCreatedAt: new Date(event.created * 1000),
@@ -690,11 +879,69 @@ router.post("/", async (req, res) => {
                 eventCreatedAt: new Date(event.created * 1000),
                 eventRank: eventRank(event.type),
                 source: "webhook",
-              });
+              }, true, await snapshotHook(subscription, customerId, user.id, trustedPlan.planLookupKey));
           if (!cancellation.updated && cancellation.reason !== "STALE_EVENT") {
-            throw new Error(`${event.type} cancellation could not be applied (${cancellation.reason})`);
+            const historicalOwner = subscription.status === "canceled" &&
+              cancellation.reason === "AMBIGUOUS_OR_NOT_FOUND"
+              ? await persistVerifiedTerminalFromHistory({
+                  stripe: stripe!,
+                  subscription,
+                  customerId,
+                  expectedPlanKey: trustedPlan.planLookupKey,
+                  mutation: {
+                    eventId: event.id,
+                    eventCreatedAt: new Date(event.created * 1000),
+                    eventRank: eventRank(event.type),
+                    source: "webhook",
+                  },
+                })
+              : null;
+            if (!historicalOwner) {
+              throw new Error(`${event.type} cancellation could not be applied (${cancellation.reason})`);
+            }
+            processedUserId = historicalOwner;
           }
           console.log(`⚠️ [webhook] customer.subscription.updated — user ${user.id} revoked (status: ${subscription.status})`);
+        } else if (
+          process.env.SERVICE_BILLING_SNAPSHOTS_ENABLED === "true" &&
+          ["past_due", "paused", "incomplete", "incomplete_expired"].includes(subscription.status)
+        ) {
+          // The existing failed-invoice policy revokes paid access. A status
+          // update may arrive without that invoice, so apply the same policy
+          // atomically rather than reporting Needs review while leaving paid
+          // service access active.
+          const mutation = {
+            eventId: event.id,
+            eventCreatedAt: new Date(event.created * 1000),
+            eventRank: eventRank(event.type),
+            source: "webhook" as const,
+          };
+          const onAccepted = await snapshotHook(subscription, customerId, user.id, trustedPlan.planLookupKey);
+          if (trustedPlan.planLookupKey === "clinical_business_monthly") {
+            const transition = await applyBusinessSubscriptionTransition({
+              ownerUserId: user.id,
+              businessId: subscription.metadata?.businessId,
+              checkoutReservationId: subscription.metadata?.checkoutReservationId,
+              stripeCustomerId: customerId,
+              stripeSubscriptionId: subscription.id,
+              status: "past_due",
+              mutation,
+              onAccepted,
+            });
+            if (!transition.updated && transition.reason !== "STALE_EVENT") {
+              throw new Error(`Business adverse status could not be applied (${transition.reason})`);
+            }
+          } else {
+            const transition = await cancelUserSubscription(
+              customerId, subscription.id, mutation, true, onAccepted,
+            );
+            const reason: string | undefined = transition.reason;
+            if (!transition.updated && reason !== "STALE_EVENT" &&
+                reason !== "AMBIGUOUS_OR_NOT_FOUND") {
+              throw new Error(`Personal adverse status could not be applied (${reason ?? "UNKNOWN"})`);
+            }
+          }
+          processedUserId = user.id;
         } else {
           console.log(`[webhook] customer.subscription.updated — user ${user.id} status ${subscription.status}, no action`);
         }

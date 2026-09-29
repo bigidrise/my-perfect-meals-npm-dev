@@ -56,6 +56,12 @@ export async function assertOrganizationWorkspaceSchema(
           AND table_name = 'business_members'
           AND column_name = 'relationship_type'
       ) AS business_member_relationship_column,
+       EXISTS (
+         SELECT 1 FROM information_schema.columns
+         WHERE table_schema = 'public'
+           AND table_name = 'businesses'
+           AND column_name = 'owner_workspace_disconnected_at'
+       ) AS owner_attachment_column,
       EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_schema = 'public'
@@ -188,6 +194,7 @@ export async function assertOrganizationWorkspaceSchema(
     "organization_source_column",
     "business_member_location_column",
     "business_member_relationship_column",
+    "owner_attachment_column",
     "invitation_location_column",
     "authorization_indexes",
     "organization_source_unique_index",

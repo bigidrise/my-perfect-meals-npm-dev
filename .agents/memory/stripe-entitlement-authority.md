@@ -34,3 +34,9 @@ An event claimed but not completed is not an idempotent success. Never acknowled
 **Why:** A process can die after claiming an event but before granting access; a successful retry acknowledgement would then strand a paid customer. Duplicate subscriptions also produce legitimate late events that must not revoke the retained subscription.
 
 **How to apply:** Keep retries non-2xx until the event is completed or safely reclaimed, and condition entitlement writes and revocations on the exact currently owned customer/subscription pair. Report unresolved multi-customer histories for human review rather than choosing a newer identity automatically.
+
+Verified service billing evidence and paid access must change together for every adverse provider event, including subscription-status updates that arrive without an invoice. Historical terminal evidence may outlive the account's current subscription binding, but requires an already verified service record and exact immutable ownership claims. Offline backfill has lower ordering authority than every signed provider event, regardless of when the backfill fetch ran.
+
+**Why:** A status-only snapshot could report payment trouble while the same workspace remained authorized; a late terminal event could miss an already-cleared current binding; locally timed backfills could supersede fresher webhook truth.
+
+**How to apply:** Attach snapshot writes to accepted entitlement transactions and keep failed writes retryable. For terminal history, verify existing provenance instead of inferring from metadata. Never let a backfill timestamp outrank a webhook's event watermark.

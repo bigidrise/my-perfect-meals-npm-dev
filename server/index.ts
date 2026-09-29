@@ -107,6 +107,7 @@ import { templateRouter } from "./routes/mealTemplates";
 import { userMealPrefsRouter } from "./routes/userMealPrefs";
 import stripeRouter from "./routes/stripe";
 import stripeCheckoutRouter from "./routes/stripeCheckout";
+import studioStripeRouter from "./routes/studioStripeRoutes";
 import coachingRouter from "./routes/coaching";
 import productCodesRouter from "./routes/product-codes";
 import stripeWebhookRouter from "./routes/stripeWebhook";
@@ -412,6 +413,7 @@ app.get("/api/health/full", async (req, res) => {
 
 // Stripe checkout route (after express.json())
 app.use("/api/stripe", stripeCheckoutRouter);
+app.use("/api/stripe/studio", studioStripeRouter);
 
 // Coaching notifications
 app.use("/api/coaching", coachingRouter);
@@ -1711,6 +1713,16 @@ async function start() {
     const { runOrganizationWorkspaceMigration } = await import("./db/migrations/runOrganizationWorkspaceMigration");
     await runOrganizationWorkspaceMigration(dbWorkspace);
   });
+  {
+    const { pool } = await import("./db");
+    const { runBoundedStartupMigration } = await import("./bootstrap/runBoundedStartupMigration");
+    const { runOrganizationOwnerAttachmentMigration } = await import("./db/migrations/runOrganizationOwnerAttachmentMigration");
+    await runBoundedStartupMigration({
+      pool,
+      migrationName: "organization-owner-attachment",
+      run: runOrganizationOwnerAttachmentMigration,
+    });
+  }
   await withBootRetry("Business commercial access migration", async () => {
     const { db: dbBusinessAccess } = await import("./db");
     const { runBusinessCommercialAccessMigration } = await import("./db/migrations/runBusinessCommercialAccessMigration");

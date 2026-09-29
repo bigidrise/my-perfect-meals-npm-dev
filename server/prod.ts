@@ -828,6 +828,8 @@ async function initializeApp() {
            await runStudioVoiceStorageMigration(database);
            const { runSavedGroceryShoppingIdentityMigration } = await import("./db/migrations/runSavedGroceryShoppingIdentityMigration");
            await runSavedGroceryShoppingIdentityMigration(database);
+           const { runOrganizationOwnerAttachmentMigration } = await import("./db/migrations/runOrganizationOwnerAttachmentMigration");
+           await runOrganizationOwnerAttachmentMigration(database);
            await database.execute(sql`
              CREATE TABLE IF NOT EXISTS "session" (
                "sid" varchar NOT NULL COLLATE "default",
