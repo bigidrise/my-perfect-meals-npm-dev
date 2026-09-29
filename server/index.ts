@@ -1713,6 +1713,16 @@ async function start() {
     const { runOrganizationWorkspaceMigration } = await import("./db/migrations/runOrganizationWorkspaceMigration");
     await runOrganizationWorkspaceMigration(dbWorkspace);
   });
+  {
+    const { pool } = await import("./db");
+    const { runBoundedStartupMigration } = await import("./bootstrap/runBoundedStartupMigration");
+    const { runOrganizationOwnerAttachmentMigration } = await import("./db/migrations/runOrganizationOwnerAttachmentMigration");
+    await runBoundedStartupMigration({
+      pool,
+      migrationName: "organization-owner-attachment",
+      run: runOrganizationOwnerAttachmentMigration,
+    });
+  }
   await withBootRetry("Business commercial access migration", async () => {
     const { db: dbBusinessAccess } = await import("./db");
     const { runBusinessCommercialAccessMigration } = await import("./db/migrations/runBusinessCommercialAccessMigration");

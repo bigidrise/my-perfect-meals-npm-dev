@@ -9,6 +9,12 @@ The login MPM account is the permanent identity. Personal MPM, Studio, and Organ
 
 **How to apply:** For future Studio or Organization lifecycle design, separate billing state, entitlement state, workspace visibility, and relationship continuity. Verify the actual billing source and paid-through period before offering a cancellation or reversal. Never infer personal payment from ownership, membership, or a Studio row.
 
+An owner's Organization add-on disconnect applies only to that owner's workspace connection. It does not pause the Organization tenant or Locations, revoke membership/ownership, interrupt staff or clients, or change paid renewal.
+
+**Why:** The user explicitly distinguished owner workspace disconnection from an Organization-wide shutdown and from a member leaving.
+
+**How to apply:** Resolve visibility against the authenticated owner and exact existing Business/Organization link; keep shared tenant and billing states authoritative and unchanged. Reconnect must use the same tenant and Location identities.
+
 The user confirmed that disconnecting an existing legacy Studio through the More control worked in Development. Reconnection was not yet tested. Treat this as validation of the non-billing disconnect approach only, not of paid Studio or Organization behavior.
 
 Transitional exception: preserve access for already-established legacy Studios whose owners' Personal professional plans previously paid for Studio. New Studio purchases must use independent Studio billing; an expired independent Studio cannot fall back to Personal billing. Do not offer Studio End/Keep against a Personal subscription. This exception is temporary until a reviewed migration can handle legacy subscribers explicitly.

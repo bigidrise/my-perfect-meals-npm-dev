@@ -17,6 +17,10 @@ export interface OrganizationAccessEntry {
   businessId: string | null;
   canManageRenewal: boolean;
   canReconnect: boolean;
+  /** Owner-only attachment control, independent of billing and membership. */
+  addonBusinessId?: string | null;
+  canDisconnectAddon?: boolean;
+  canReconnectAddon?: boolean;
 }
 
 export interface OrganizationAccessStatus {
