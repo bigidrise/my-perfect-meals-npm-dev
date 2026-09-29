@@ -6814,6 +6814,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`⚠️ [ProtocolEnvelope] Removed ${_bglGatedOptions.length - cleanOptions.length} violating option(s) — serving ${cleanOptions.length} clean option(s)`);
       }
 
+      // A rejected Create a Dish option should not silently reduce a three-card
+      // choice to two when another compliant version of the same dish is possible.
+      // This is one bounded attempt; every replacement still enters the existing
+      // allergen scan, Human Food, intent, and post-format final validation below.
+      if (
+        humanFoodCreator === "create_a_dish" &&
+        cleanOptions.length > 0 &&
+        cleanOptions.length < 3 &&
+        cleanOptions.length < _bglGatedOptions.length
+      ) {
+        const acceptedNames = new Set(
+          cleanOptions.map((meal: any) => meal.name?.trim().toLowerCase()).filter(Boolean),
+        );
+        _bglGatedOptions
+          .filter((meal: any) => !cleanOptions.includes(meal))
+          .forEach((meal: any) => recordRejectedHumanFoodCandidate(humanFoodExecutionState, meal));
+        const rejectedTerms = Array.from(new Set(
+          _bglGatedOptions
+            .filter((meal: any) => !cleanOptions.includes(meal))
+            .flatMap((meal: any) => scanGeneratedOutput(meal, _filterEnvelope, {
+              generatorName: "craving_creator_choice_refill_reason",
+              skipAdaptableConflicts: _effectiveSkipAdaptableConflicts,
+              overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+              exemptDishNameTerms: _adaptExemptTerms,
+            }).violations.map(violation => violation.term))
+            .filter(Boolean),
+        )).slice(0, 12);
+        try {
+          const refillOptions = await generateCravingMealOptions(
+            `${cravingInput}\n\n[CREATE A DISH SAFE CHOICE REFILL — ONE ATTEMPT] ` +
+            `Some options were rejected by the person's current food protocol. ` +
+            `Make materially different versions of the same requested dish. ` +
+            `${rejectedTerms.length ? `Do not use these rejected terms: ${rejectedTerms.join(", ")}. ` : ""}` +
+            `Do not violate any allergy, avoidance, dietary, clinical, ` +
+            `or nutrition rule. ${buildRejectedCandidatePrompt(humanFoodExecutionState)}`,
+            normalizedTargetMealType,
+            userId,
+            bodyDietRestrictions,
+            [...excludeMeals, ...cleanOptions.map((meal: any) => meal.name).filter(Boolean)],
+            true,
+            normalizedGenerationMode,
+            effectiveRequestCuisine ?? undefined,
+            _cravingGlp1Targets,
+            _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+            _dishDirective,
+            skipImages === true,
+            humanFoodExecutionState,
+            _overriddenAvoidances,
+            _overriddenDietaryIdentities,
+            rawCravingInput,
+            createDishContract,
+          );
+          const bglSafeRefills = (refillOptions ?? []).filter((meal: any) => {
+            if (!protocolEnvelope.hasDiabetes) return true;
+            const state = protocolEnvelope.diabeticGlucoseState;
+            if (state === "low" || state === "low-normal") return true;
+            const carbs = meal.carbs ?? meal.nutrition?.carbs;
+            const ceiling = state === "high-risk" ? 15 : state === "elevated" ? 25 : 35;
+            return carbs != null && Number(carbs) <= ceiling + 10;
+          });
+          const protocolSafeRefills = filterMealsByProtocol(bglSafeRefills, _filterEnvelope, {
+            generatorName: "craving_creator_choice_refill",
+            skipAdaptableConflicts: _effectiveSkipAdaptableConflicts,
+            overriddenAllergens: _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+            exemptDishNameTerms: _adaptExemptTerms,
+            dishIdentity: {
+              requestedDish: enforceRequestedDishIdentity ? rawCravingInput || "" : "",
+              directive: _dishDirective,
+              results: _identityResults,
+            },
+          });
+          for (const meal of protocolSafeRefills) {
+            if (cleanOptions.length >= 3) break;
+            const name = meal.name?.trim().toLowerCase();
+            if (!name || acceptedNames.has(name)) continue;
+            acceptedNames.add(name);
+            cleanOptions.push(meal);
+          }
+          logCreateDishAcceptance({
+            stage: "protocol_choice_refill",
+            candidates: refillOptions?.length ?? 0,
+            protocolSurvivors: protocolSafeRefills.length,
+            count: cleanOptions.length,
+          });
+        } catch (refillError) {
+          console.warn("[CreateDish] Safe choice refill failed; keeping validated options", refillError);
+        }
+      }
+
       let scannedOptions = cleanOptions;
 
       // ── Phase 3: Post-adaptation allergen scan (ALLERGEN_ADAPT mode only) ────
