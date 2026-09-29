@@ -44,8 +44,10 @@ async function ensureStudioCustomer(input: {
 }): Promise<string> {
   if (input.customerId) {
     const existing = await input.stripe.customers.retrieve(input.customerId);
+    if (existing.deleted === true) {
+      throw new Error("Existing Studio Stripe customer metadata is ambiguous; contact support before checkout.");
+    }
     if (
-      ("deleted" in existing && existing.deleted) ||
       existing.metadata?.userId !== input.userId ||
       existing.metadata?.serviceType !== "studio" ||
       existing.metadata?.studioId !== input.studioId

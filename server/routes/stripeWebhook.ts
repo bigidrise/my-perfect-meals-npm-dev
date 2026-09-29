@@ -935,9 +935,10 @@ router.post("/", async (req, res) => {
             const transition = await cancelUserSubscription(
               customerId, subscription.id, mutation, true, onAccepted,
             );
-            if (!transition.updated && transition.reason !== "STALE_EVENT" &&
-                transition.reason !== "AMBIGUOUS_OR_NOT_FOUND") {
-              throw new Error(`Personal adverse status could not be applied (${transition.reason})`);
+            const reason: string | undefined = transition.reason;
+            if (!transition.updated && reason !== "STALE_EVENT" &&
+                reason !== "AMBIGUOUS_OR_NOT_FOUND") {
+              throw new Error(`Personal adverse status could not be applied (${reason ?? "UNKNOWN"})`);
             }
           }
           processedUserId = user.id;
