@@ -238,14 +238,16 @@ export function OrganizationAccessCard({ userId }: { userId: string | undefined 
     <ConfirmationModal
       open={confirmDisconnect !== null}
       onOpenChange={(open) => { if (!busyBusinessId && !open) setConfirmDisconnect(null); }}
+      className="border border-white/25 bg-black/90 text-white shadow-2xl backdrop-blur-xl"
       title="Disconnect Organization workspace?"
-      description="This hides your Organization workspace from your account. It does not end renewal or close the Organization for anyone else."
+      description={<span className="text-white/85">This hides your Organization workspace from your account. It does not end renewal or close the Organization for anyone else.</span>}
       footer={
         <>
-          <Button type="button" variant="outline" disabled={busyBusinessId !== null}
+          <Button type="button" disabled={busyBusinessId !== null}
+            className="h-11 w-full border border-green-500 bg-green-700 px-4 font-semibold text-white hover:bg-green-800 hover:text-white focus-visible:ring-green-400 sm:w-auto"
             onClick={() => setConfirmDisconnect(null)}>Keep Connected</Button>
           <Button type="button" disabled={busyBusinessId !== null}
-            className="border border-white/70 bg-black font-semibold text-white hover:bg-zinc-900"
+            className="h-11 w-full border border-red-500 bg-red-700 px-4 font-semibold text-white hover:bg-red-800 hover:text-white focus-visible:ring-red-400 sm:w-auto"
             onClick={() => confirmDisconnect && void changeAttachment(confirmDisconnect, "disconnect")}
             data-testid="confirm-disconnect-organization">Disconnect Organization</Button>
         </>
