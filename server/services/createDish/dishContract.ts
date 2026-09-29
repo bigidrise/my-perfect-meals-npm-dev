@@ -1,5 +1,6 @@
 import type { CreateDishIntent } from "../../../shared/createDishIngredientExpansion";
 import type { DishAdaptationDirective } from "../dishAdaptation/types";
+import type { FoodMeaningV1 } from "../../../shared/foodMeaning";
 
 /**
  * Server-owned culinary contract. These are identity requirements, not evidence
@@ -17,6 +18,7 @@ export interface CreateDishContract {
   adaptableComponents: string[];
   conflicts: DishAdaptationDirective["conflicts"];
   cuisine: string | null;
+  conceptKind?: FoodMeaningV1["concept"]["kind"];
 }
 
 const normalize = (text: string) =>
@@ -25,6 +27,7 @@ const normalize = (text: string) =>
 export function resolveCreateDishContract(
   intent: CreateDishIntent,
   directive?: DishAdaptationDirective | null,
+  meaning?: FoodMeaningV1 | null,
 ): CreateDishContract {
   const requestedDish = intent.originalText.trim();
   const canonical = normalize(intent.ingredient.canonicalName);
@@ -55,6 +58,7 @@ export function resolveCreateDishContract(
     adaptableComponents: directive?.adaptableComponents ?? [],
     conflicts: directive?.conflicts ?? [],
     cuisine: intent.cuisine ?? null,
+    conceptKind: meaning?.concept.kind,
   };
 }
 
@@ -69,7 +73,9 @@ export function buildCreateDishContractPrompt(contract: CreateDishContract): str
     : `Preserve the requested dish "${contract.requestedDish}", not merely its broad family.`;
   return `[CREATE A DISH — RESOLVED DISH CONTRACT]
 ${named}
-Defining ingredient: ${contract.definingIngredient}.
+ ${contract.conceptKind === "prepared_dish"
+   ? `Prepared dish identity: ${contract.requestedDish}. Its name is not itself an ingredient; preserve its defining composition and form.`
+   : `Defining ingredient: ${contract.definingIngredient}.`}
 ${contract.physicalForm ? `Physical form: ${contract.physicalForm}.` : ""}
 ${contract.definingComponents.length ? `Defining components: ${contract.definingComponents.join("; ")}.` : ""}
 ${contract.adaptableComponents.length ? `Adaptable components: ${contract.adaptableComponents.join("; ")}.` : ""}

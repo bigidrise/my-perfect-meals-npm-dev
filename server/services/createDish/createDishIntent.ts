@@ -3,6 +3,8 @@ import {
   type CreateDishIntent,
   type ExpansionDimension,
 } from "../../../shared/createDishIngredientExpansion";
+import type { FoodMeaningV1 } from "../../../shared/foodMeaning";
+import { validateDishIdentity } from "../dishAdaptation/dishIdentityValidator";
 import { expandCreateDishIngredient } from "./ingredientExpansionService";
 import {
   getCreateDishGovernedEvidenceTerms,
@@ -206,6 +208,8 @@ export function relaxSystemSelectedCreateDishIntent(
 export function applyCreateDishIntentWithSoftFallback<T>(
   meals: T[],
   intent: CreateDishIntent,
+  contract?: CreateDishContract,
+  meaning?: FoodMeaningV1 | null,
 ): {
   initialEvidence: Array<{ meal: T; evidence: CreateDishIntentEvidence }>;
   survivors: T[];
@@ -214,7 +218,7 @@ export function applyCreateDishIntentWithSoftFallback<T>(
 } {
   const initialEvidence = meals.map((meal) => ({
     meal,
-    evidence: evaluateCreateDishIntentEvidence(meal, intent),
+    evidence: evaluateCreateDishIntentEvidence(meal, intent, contract, meaning),
   }));
   const initialSurvivors = initialEvidence
     .filter(({ evidence }) => evidence.passed)
@@ -234,7 +238,7 @@ export function applyCreateDishIntentWithSoftFallback<T>(
     JSON.stringify(intent.resolvedCombination);
   const relaxedSurvivors = relaxedSystemSelections
     ? meals.filter((meal) =>
-        evaluateCreateDishIntentEvidence(meal, relaxedIntent).passed
+        evaluateCreateDishIntentEvidence(meal, relaxedIntent, contract, meaning).passed
       )
     : [];
   return {
@@ -245,17 +249,21 @@ export function applyCreateDishIntentWithSoftFallback<T>(
   };
 }
 
-export function buildCreateDishIntentPrompt(intent: CreateDishIntent): string {
+export function buildCreateDishIntentPrompt(intent: CreateDishIntent, meaning?: FoodMeaningV1 | null): string {
   const resolved = intent.resolvedCombination;
   const contract = resolveCreateDishContract(intent);
+  const preparedDish = meaning?.concept.kind === "prepared_dish";
   const definingCore = contract.leafVessel
     ? "lettuce leaves used as the wrap vessel"
     : contract.namedFamily === "salad" && contract.namedCore
       ? contract.namedCore
       : intent.ingredient.canonicalName;
   const lines = [
+    meaning?.cuisine?.source === "semantic_inference"
+      ? `Possible cuisine association (inferred, optional): ${meaning.cuisine.value}`
+      : null,
     intent.cuisine ? `Requested cuisine: ${intent.cuisine}` : null,
-    contract.namedFamily
+    preparedDish ? `Prepared dish: ${intent.ingredient.canonicalName}` : contract.namedFamily
       ? `Defining ingredient/role: ${definingCore}`
       : `Primary ingredient: ${definingCore}`,
     resolved.form ? `Form/cut: ${resolved.form.label}` : null,
@@ -263,7 +271,9 @@ export function buildCreateDishIntentPrompt(intent: CreateDishIntent): string {
     resolved.flavor ? `Flavor direction: ${resolved.flavor.label}` : null,
   ].filter(Boolean);
   const hardRequirements = [
-    `Use ${definingCore} as the defining ingredient/role of the requested dish.`,
+    preparedDish
+      ? `Keep ${intent.ingredient.canonicalName} recognizable as a prepared dish; its name is not a recipe ingredient. Preserve the actual defining components and physical form.`
+      : `Use ${definingCore} as the defining ingredient/role of the requested dish.`,
     resolved.form && resolved.selectionSource.form === "user_selected"
       ? `Every candidate MUST use ${resolved.form.label} or a governed equivalent preparation of that form/cut.`
       : null,
@@ -291,11 +301,13 @@ export function buildCreateDishIntentPrompt(intent: CreateDishIntent): string {
     : null;
   return `[CREATE A DISH — VALIDATED CULINARY INTENT]
 ${lines.join("\n")}
-${hasHardDimensions ? `[CREATE A DISH — HARD CULINARY INTENT]
+ ${hasHardDimensions ? `[CREATE A DISH — HARD CULINARY INTENT]
 ${hardRequirements.join("\n")}
 The explicitly selected dimensions above are fixed current-request requirements.
 Do not vary any selected form/cut, texture, or flavor. Create variety only through unconstrained side pairings, vegetables, garnishes, plating, or other unselected dimensions.
-Explicit current culinary intent overrides general cuisine, broad-flavor, heat, and palate defaults when they conflict.` : `Use ${definingCore} as the defining ingredient/role; no preparation dimensions are fixed.`}
+ Explicit current culinary intent overrides general cuisine, broad-flavor, heat, and palate defaults when they conflict.` : preparedDish
+   ? `Preserve the actual components and preparation of ${intent.ingredient.canonicalName}; its name is not a recipe ingredient. No preparation dimensions are fixed.`
+   : `Use ${definingCore} as the defining ingredient/role; no preparation dimensions are fixed.`}
 ${steakIngredientEvidence ?? ""}
 ${softPreferences.length > 0 ? `[CREATE A DISH — OPTIONAL CREATIVE GUIDANCE]
 ${softPreferences.join("\n")}
@@ -316,6 +328,7 @@ export function evaluateCreateDishIntentEvidence(
   meal: unknown,
   intent: CreateDishIntent,
   contract: CreateDishContract = resolveCreateDishContract(intent),
+  meaning?: FoodMeaningV1 | null,
 ): CreateDishIntentEvidence {
   const candidate = (meal ?? {}) as Record<string, unknown>;
   const ingredients = Array.isArray(candidate.ingredients)
@@ -425,7 +438,32 @@ export function evaluateCreateDishIntentEvidence(
       /\b(?:wrap|fold|roll|fill|spoon|tuck|enclose|place)\b(?:\s+\w+){0,5}\s+(?:(?:in|into|on|onto|with|around)\s+)?(?:(?:the|fresh|large|romaine)\s+){0,3}lettuce\s+leaves?\b|\blettuce\s+leaves?\b(?:\s+\w+){0,5}\s+(?:around|over|to enclose|as wraps)\b/i.test(instructions) &&
       !/\b(?:do not|don't|without|instead of|rather than|never)\s+(?:\w+\s+){0,4}(?:lettuce|leaves|leaf)\b/i.test(instructions)
     : true;
-  const ingredientPassed = ingredientFound && leafEvidence;
+  // For a prepared dish, the dish name is not a literal ingredient. Require
+  // affirmative evidence for multiple distinct defining components in the
+  // structured recipe, in addition to the existing dish/form identity gate.
+  const preparedDish = meaning?.concept.kind === "prepared_dish";
+  const definingTerms = contract.definingComponents
+    .map(component => component.split("(")[0].trim().toLowerCase())
+    .filter(component => component.length >= 4 &&
+      !/^(?:the|vegetables?|proteins?|ingredients?|seasonings?|spices?|meat|seafood|base|sauce)$/.test(component));
+  const recipeText = `${ingredients}. ${instructions}`;
+  const componentMatches = definingTerms.filter(component =>
+    hasAffirmativeTerm(recipeText, [component]));
+  const dishIdentity = preparedDish
+    ? validateDishIdentity(contract.requestedDish, candidate as any, {
+        identityAnchor: contract.requestedDish,
+        definingComponents: contract.definingComponents,
+        adaptableComponents: contract.adaptableComponents,
+        dishForm: contract.physicalForm ?? undefined,
+        conflicts: contract.conflicts,
+        adaptationBlock: "",
+      })
+    : null;
+  const ingredientPassed = preparedDish
+    ? !!dishIdentity?.passed && !dishIdentity.catastrophicDeviation &&
+      definingTerms.length > 0 &&
+      componentMatches.length >= Math.min(2, definingTerms.length)
+    : ingredientFound && leafEvidence;
   const formTerms = form
     ? getCreateDishGovernedEvidenceTerms(
         "form",
@@ -479,8 +517,10 @@ export function evaluateCreateDishIntentEvidence(
   };
 }
 
-export function mealHonorsCreateDishIntent(meal: unknown, intent: CreateDishIntent): boolean {
-  return evaluateCreateDishIntentEvidence(meal, intent).passed;
+export function mealHonorsCreateDishIntent(
+  meal: unknown, intent: CreateDishIntent, contract?: CreateDishContract, meaning?: FoodMeaningV1 | null,
+): boolean {
+  return evaluateCreateDishIntentEvidence(meal, intent, contract, meaning).passed;
 }
 
 export function buildCreateDishIntentRepairInstructions(
@@ -488,10 +528,15 @@ export function buildCreateDishIntentRepairInstructions(
   failedDimensions: CreateDishIntentEvidence["failedDimensions"],
   contract: CreateDishContract,
 ): string {
+  const preparedDish = contract.conceptKind === "prepared_dish";
   const core = contract.namedCore && contract.namedFamily === "salad"
     ? contract.namedCore
     : contract.leafVessel ? "lettuce leaves" : intent.ingredient.canonicalName;
-  const ingredientReason = failedDimensions.includes("ingredient")
+  const ingredientReason = failedDimensions.includes("ingredient") && preparedDish
+    ? `The structured ingredients and preparation did not verify the defining components of "${contract.requestedDish}". ` +
+      `Keep its recognizable physical form and show its real ingredients; do not list the prepared dish itself as an ingredient. ` +
+      `If the culinary interpretation is uncertain, do not invent a component or evade food protections.`
+    : failedDimensions.includes("ingredient")
     ? `The recipe ingredient list did not affirm the defining ${core}` +
       (contract.leafVessel
         ? " as lettuce leaves functioning as the wrap vessel in the instructions"
@@ -504,7 +549,9 @@ export function buildCreateDishIntentRepairInstructions(
     `The previous candidates did not satisfy: ${failedDimensions.join(", ")}.`,
     ingredientReason,
     `Keep the named dish "${contract.requestedDish}" and its ${contract.physicalForm ?? "original physical form"}.`,
-    ...contract.definingComponents.slice(0, 4).map((part) => `Preserve defining role: ${part}.`),
+    ...contract.definingComponents.slice(0, 4)
+      .filter(part => part.trim().length >= 4 && !/^the\b/i.test(part.trim()))
+      .map((part) => `Preserve defining role: ${part}.`),
     ...contract.conflicts.slice(0, 4).map((conflict) => conflict.directive),
     "Adapt only incompatible components; never weaken allergies, avoidances, dietary, clinical, provider, diabetic, GLP-1, protocol or final food protections.",
   ].filter(Boolean).join("\n");

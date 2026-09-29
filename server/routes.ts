@@ -6097,11 +6097,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      const createDishMeaningV1Enabled =
+        humanFoodCreator === "create_a_dish" &&
+        (await import("./services/createDish/resolveFoodMeaning")).createDishMeaningEnabled();
+      let createDishMeaningV1: import("@shared/foodMeaning").FoodMeaningV1 | null = null;
+      let prevalidatedCreateDishIntent: import("@shared/createDishIngredientExpansion").CreateDishIntent | null = null;
       let effectiveRequestCuisine: string | null =
         typeof cultureOverride === "string" && cultureOverride.trim()
           ? cultureOverride.trim()
           : null;
-      if (humanFoodCreator === "create_a_dish" && rawCreateDishIntent != null) {
+      if (createDishMeaningV1Enabled && rawCreateDishIntent != null) {
+        try {
+          const { resolveCreateDishFoodMeaning } = await import("./services/createDish/resolveFoodMeaning");
+          const resolvedMeaning = await resolveCreateDishFoodMeaning(
+            rawCreateDishIntent, cultureOverride, [],
+          );
+          prevalidatedCreateDishIntent = resolvedMeaning.intent;
+          createDishMeaningV1 = resolvedMeaning.meaning;
+          effectiveRequestCuisine = resolvedMeaning.meaning.cuisine?.source === "semantic_inference"
+            ? null : resolvedMeaning.meaning.cuisine?.value ?? null;
+        } catch (error) {
+          console.warn("[CreateDishMeaning] request could not be resolved", {
+            reason: error instanceof Error ? error.message : "unknown",
+          });
+          return res.status(422).json({
+            status: "unable_to_generate",
+            reasonCode: "create_dish_semantic_classification_unresolved",
+            message: "We couldn't verify what this dish request means. Please clarify the dish or cuisine and try again.",
+          });
+        }
+      } else if (humanFoodCreator === "create_a_dish" && rawCreateDishIntent != null) {
         try {
           const { resolveCreateDishCuisineAuthority } = await import(
             "./services/createDish/createDishIntent"
@@ -6374,7 +6399,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let _dishDirective: import("./services/dishAdaptation/types").DishAdaptationDirective | null = null;
       try {
         _dishDirective = await getDishAdaptationDirective(
-          rawCravingInput || "",
+          createDishMeaningV1?.concept.canonicalName ?? rawCravingInput ?? "",
           _dalGuardrailCtx,
           "first_pass",
         );
@@ -6398,10 +6423,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } = await import(
             "./services/createDish/createDishIntent"
           );
-          validatedCreateDishIntent = await revalidateCreateDishIntent(
-            rawCreateDishIntent,
-            protocolEnvelope.allergies ?? [],
-          );
+          if (prevalidatedCreateDishIntent) {
+            const cuisine = prevalidatedCreateDishIntent.cuisine;
+            validatedCreateDishIntent = {
+              ...await revalidateCreateDishIntent(
+                { ...prevalidatedCreateDishIntent, cuisine: null },
+                protocolEnvelope.allergies ?? [],
+              ),
+              cuisine,
+            };
+          } else {
+            validatedCreateDishIntent = await revalidateCreateDishIntent(
+              rawCreateDishIntent, protocolEnvelope.allergies ?? [],
+            );
+          }
           if (
             effectiveRequestCuisine &&
             validatedCreateDishIntent.cuisine !== effectiveRequestCuisine
@@ -6414,11 +6449,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           enforceRequestedDishIdentity = !isBroadIngredientOnlyCreateDishIntent(
             validatedCreateDishIntent,
           );
-          cravingInput = `${cravingInput}\n\n${buildCreateDishIntentPrompt(validatedCreateDishIntent)}`;
+          cravingInput = `${cravingInput}\n\n${buildCreateDishIntentPrompt(validatedCreateDishIntent, createDishMeaningV1)}`;
           const resolved = validatedCreateDishIntent.resolvedCombination;
           if (resolved.form || resolved.texture || resolved.flavor) {
             _dishDirective = await getDishAdaptationDirective(
-              buildCreateDishIntentDishSubject(validatedCreateDishIntent),
+              createDishMeaningV1?.concept.canonicalName ??
+                buildCreateDishIntentDishSubject(validatedCreateDishIntent),
               _dalGuardrailCtx,
               "first_pass",
             );
@@ -6432,7 +6468,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           }
           const { resolveCreateDishContract } = await import("./services/createDish/dishContract");
-          createDishContract = resolveCreateDishContract(validatedCreateDishIntent, _dishDirective);
+          if (createDishMeaningV1) {
+            const { enrichFoodMeaning } = await import("./services/createDish/resolveFoodMeaning");
+            createDishMeaningV1 = enrichFoodMeaning(createDishMeaningV1, _dishDirective);
+          }
+          createDishContract = resolveCreateDishContract(validatedCreateDishIntent, _dishDirective, createDishMeaningV1);
         } catch (intentError) {
           console.warn("[CreateDishIntent] rejected invalid or tampered intent", intentError);
           return res.status(400).json({
@@ -7124,8 +7164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           buildCreateDishIntentRepairInstructions,
         } = await import("./services/createDish/createDishIntent");
         const intentResolution = applyCreateDishIntentWithSoftFallback(
-          scannedOptions,
-          validatedCreateDishIntent,
+          scannedOptions, validatedCreateDishIntent, createDishContract, createDishMeaningV1,
         );
         const { initialEvidence } = intentResolution;
         const initialIntentSurvivors = initialEvidence
@@ -7154,7 +7193,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const failedDimensions = Array.from(new Set(
             initialEvidence.flatMap(({ evidence }) => evidence.failedDimensions),
           ));
-          const requiredCore = createDishContract?.leafVessel
+          const requiredCore = createDishMeaningV1?.concept.kind === "prepared_dish"
+            ? `components and form of ${createDishContract?.requestedDish}`
+            : createDishContract?.leafVessel
             ? "lettuce leaves used as the wrap vessel"
             : createDishContract?.namedCore && createDishContract.namedFamily === "salad"
               ? createDishContract.namedCore
@@ -7171,7 +7212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const intentRepairOptions = await generateCravingMealOptions(
               `${cravingInput}\n\n[CREATE A DISH INTENT REPAIR — ONE ATTEMPT ONLY]\n` +
               `${repairInstructions}\n` +
-              `${buildCreateDishIntentPrompt(validatedCreateDishIntent)}\n` +
+              `${buildCreateDishIntentPrompt(validatedCreateDishIntent, createDishMeaningV1)}\n` +
               `Repair only those fixed dimensions. Do not change the user's selections or any safety, nutrition, clinical, allergy, avoidance, Cooking Method, or Cuisine requirement.`,
               normalizedTargetMealType,
               userId,
@@ -7212,7 +7253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             );
             scannedOptions = transformedIntentRepairs.filter((meal: any) =>
               runFinalValidation(meal).outcome === "pass" &&
-              evaluateCreateDishIntentEvidence(meal, validatedCreateDishIntent!).passed
+              evaluateCreateDishIntentEvidence(meal, validatedCreateDishIntent!, createDishContract, createDishMeaningV1).passed
             );
             logCreateDishAcceptance({
               stage: "intent_repair",
@@ -7355,7 +7396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "./services/createDish/createDishIntent"
         );
         formattedOptions = formattedOptions.filter((meal: any) =>
-          mealHonorsCreateDishIntent(meal, validatedCreateDishIntent!),
+          mealHonorsCreateDishIntent(meal, validatedCreateDishIntent!, createDishContract, createDishMeaningV1),
         );
         if (formattedOptions.length === 0) {
           return res.status(422).json({
