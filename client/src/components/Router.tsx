@@ -203,6 +203,7 @@ const PROCARE_CERT_POLL_MS = 5 * 60 * 1000; // 5 minutes
 function ProCareStudioGuard({ component: Component }: { component: React.ComponentType }) {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
+  const [studioAccess, setStudioAccess] = useState<"checking" | "available" | "disconnected" | "error">("checking");
   const [certChecked, setCertChecked] = useState(false);
   const [certified, setCertified] = useState(false);
   const [legalChecked, setLegalChecked] = useState(false);
@@ -211,6 +212,23 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
   const { org, isLoading: orgLoading } = useOrg();
   const requireAcademy = org.featureFlags.requireAcademy !== false; // default: true
   const { requestUpgrade } = useUpgradeModal();
+
+  useEffect(() => {
+    let active = true;
+    setStudioAccess("checking");
+    if (!user?.id) return () => { active = false; };
+    apiRequest("/api/business/workspace/studio-access")
+      .then((result: any) => {
+        if (!active) return;
+        const disconnected = result?.studioAccess?.canReconnectAddon === true;
+        setStudioAccess(disconnected ? "disconnected" : "available");
+        if (disconnected) setLocation("/more");
+      })
+      .catch(() => {
+        if (active) setStudioAccess("error");
+      });
+    return () => { active = false; };
+  }, [user?.id, setLocation]);
 
   useEffect(() => {
     if (!user?.professionalRole || user.professionalRole === "business") {
@@ -341,7 +359,8 @@ function ProCareStudioGuard({ component: Component }: { component: React.Compone
     return () => clearInterval(intervalId);
   }, [user?.id, verifyCert]);
 
-  if (!certChecked || !legalChecked) return null;
+  if (studioAccess === "error") return <p role="alert">Studio access could not be verified. Please refresh and try again.</p>;
+  if (studioAccess !== "available" || !certChecked || !legalChecked) return null;
   if (!certified || !legalAccepted) return null;
   return <Component />;
 }

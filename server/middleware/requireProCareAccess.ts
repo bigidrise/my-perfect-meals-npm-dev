@@ -34,6 +34,14 @@ export function requireProCareAccess(
   }
 
   return readIndependentStudioAccess(authReq.authUser.id).then((independent) => {
+    // Disconnecting an owned legacy Studio closes its workspace even when the
+    // owner also holds Personal, pilot, or internal professional authority.
+    // It must not revoke those authorities or alter their underlying records.
+    if (independent.studioDisconnected) {
+      res.status(403).json({ error: "Your Studio add-on is disconnected. Reconnect it from More.",
+        code: "STUDIO_DISCONNECTED" });
+      return;
+    }
     if (independent.hasSubscription) {
       if (independent.studioActive &&
           (independent.billing?.state === "active" || independent.billing?.state === "ending")) {

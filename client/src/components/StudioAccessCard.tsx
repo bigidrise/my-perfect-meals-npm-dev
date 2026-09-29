@@ -11,6 +11,9 @@ import { Button } from "@/components/ui/button";
 function statusCopy(access: StudioAccessStatus): { label: string; description: string } {
   switch (access.state) {
     case "inactive":
+      if (access.canReconnectAddon) {
+        return { label: "Studio disconnected", description: "Your existing Studio is inactive. Your Personal account, Organization access, and Studio history remain intact. Reconnect to reopen the same Studio." };
+      }
       if (access.billing?.state === "expired") {
         return { label: "Inactive", description: "Your Studio subscription has expired. Your personal My Perfect Meals account and Studio history remain intact. Reconnecting requires a new subscription." };
       }
@@ -76,6 +79,7 @@ export function StudioAccessCard({ userId }: { userId: string | undefined }) {
   const [error, setError] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [confirmEnd, setConfirmEnd] = useState(false);
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
   const [busy, setBusy] = useState(false);
 
   async function loadAccess(): Promise<StudioAccessStatus> {
@@ -99,6 +103,7 @@ export function StudioAccessCard({ userId }: { userId: string | undefined }) {
     setError(false);
     setActionError(null);
     setConfirmEnd(false);
+    setConfirmDisconnect(false);
     if (!userId) return () => { cancelled = true; };
 
     void (async () => {
@@ -164,6 +169,33 @@ export function StudioAccessCard({ userId }: { userId: string | undefined }) {
     }
   }
 
+  async function changeAddon(action: "disconnect" | "reconnect") {
+    if (busy || !userId || (action === "disconnect" ? !access?.canDisconnectAddon : !access?.canReconnectAddon)) return;
+    setBusy(true);
+    setActionError(null);
+    setConfirmDisconnect(false);
+    try {
+      const response = await fetch(apiUrl(`/api/business/workspace/studio-access/addon/${action}`), {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.error || "We couldn't change Studio access.");
+      }
+      await loadAccess();
+      // Navigation and workspace choosers may have cached availability. Reload
+      // the current More page so every surface reads the new server status.
+      window.location.reload();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "We couldn't change Studio access.");
+      try { setAccess(await loadAccess()); } catch { setError(true); }
+      setBusy(false);
+    }
+  }
+
   const copy = access ? statusCopy(access) : null;
   const billing = access?.billing;
   const canEnd = access?.canManageRenewal === true && access.state === "active" &&
@@ -192,6 +224,18 @@ export function StudioAccessCard({ userId }: { userId: string | undefined }) {
             End Studio Access
           </Button>
         )}
+        {access?.canDisconnectAddon && (
+          <Button type="button" variant="outline" disabled={busy}
+            onClick={() => setConfirmDisconnect(true)} data-testid="disconnect-studio-addon">
+            Disconnect Studio
+          </Button>
+        )}
+        {access?.canReconnectAddon && (
+          <Button type="button" variant="outline" disabled={busy}
+            onClick={() => void changeAddon("reconnect")} data-testid="reconnect-studio-addon">
+            {busy ? "Checking…" : "Reconnect Studio"}
+          </Button>
+        )}
         {canKeep && (
           <Button type="button" variant="outline" disabled={busy}
             onClick={() => void changeRenewal("keep")} data-testid="keep-studio">
@@ -217,6 +261,28 @@ export function StudioAccessCard({ userId }: { userId: string | undefined }) {
         <p className="text-xs text-white/55">Your personal My Perfect Meals account is separate from Studio.</p>
       </GlassCardContent>
     </GlassCard>
+    <ConfirmationModal
+      open={confirmDisconnect}
+      onOpenChange={(open) => { if (!busy) setConfirmDisconnect(open); }}
+      title="Disconnect Studio?"
+      description="This turns off your existing Studio add-on. It does not delete your Studio or cancel a subscription."
+      footer={
+        <>
+          <Button type="button" variant="outline" disabled={busy} onClick={() => setConfirmDisconnect(false)}>
+            Keep Studio
+          </Button>
+          <Button type="button" disabled={busy} onClick={() => void changeAddon("disconnect")}
+            data-testid="confirm-disconnect-studio">
+            {busy ? "Checking…" : "Disconnect Studio"}
+          </Button>
+        </>
+      }
+    >
+      <p className="text-sm text-white/80">
+        Studio navigation will be unavailable until you reconnect. Your Personal account,
+        Organization, clients, and Studio history remain unchanged. Reconnect restores this same Studio.
+      </p>
+    </ConfirmationModal>
     <ConfirmationModal
       open={confirmEnd}
       onOpenChange={(open) => { if (!busy) setConfirmEnd(open); }}
