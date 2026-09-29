@@ -45,6 +45,7 @@ export function OrganizationAccessCard({ userId }: { userId: string | undefined 
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyBusinessId, setBusyBusinessId] = useState<string | null>(null);
   const [confirmEnd, setConfirmEnd] = useState<OrganizationAccessEntry | null>(null);
+  const [confirmDisconnect, setConfirmDisconnect] = useState<OrganizationAccessEntry | null>(null);
 
   async function loadStatus(): Promise<OrganizationAccessStatus> {
     const response = await fetch(apiUrl("/api/business/workspace/organization-access"), {
@@ -128,6 +129,35 @@ export function OrganizationAccessCard({ userId }: { userId: string | undefined 
     }
   }
 
+  async function changeAttachment(entry: OrganizationAccessEntry, action: "disconnect" | "reconnect") {
+    if (busyBusinessId || !entry.addonBusinessId ||
+        (action === "disconnect" ? !entry.canDisconnectAddon : !entry.canReconnectAddon)) return;
+    setBusyBusinessId(entry.addonBusinessId);
+    setActionError(null);
+    setConfirmDisconnect(null);
+    try {
+      const response = await fetch(apiUrl(
+        `/api/business/workspace/organization-access/${encodeURIComponent(entry.addonBusinessId)}/addon/${action}`,
+      ), {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.error || "We couldn't change the Organization connection.");
+      }
+      await loadStatus();
+      // Re-read the workspace chooser and all location selections from the server.
+      window.location.reload();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "We couldn't change the Organization connection.");
+      try { setStatus(await loadStatus()); } catch { setError(true); }
+      setBusyBusinessId(null);
+    }
+  }
+
   return (
     <>
     <GlassCard className="border border-blue-400/30" data-testid="organization-access-card">
@@ -147,7 +177,33 @@ export function OrganizationAccessCard({ userId }: { userId: string | undefined 
             {status.organizations.map((organization, index) => (
               <li key={`${organization.name}-${index}`} className="space-y-2 rounded-lg border border-white/10 bg-white/5 p-3">
                 <p className="text-sm font-semibold text-white">{organization.name}</p>
-                <p className="text-xs text-white/70">{organizationCopy(organization)}</p>
+                <p className={`text-xs ${organization.canReconnectAddon ? "text-red-200" : "text-white/70"}`}>
+                  {organization.canReconnectAddon
+                    ? `Owner workspace disconnected · ${organizationCopy(organization)} · billing and other members are unchanged`
+                    : organizationCopy(organization)}
+                </p>
+                {(organization.canDisconnectAddon || organization.canReconnectAddon) && (
+                  <p className="text-xs font-semibold text-white/80">Your workspace connection</p>
+                )}
+                {organization.canDisconnectAddon && organization.addonBusinessId && (
+                  <Button type="button" disabled={busyBusinessId !== null}
+                    className="h-11 w-full border border-white/70 bg-black px-5 font-semibold text-white hover:bg-zinc-900 focus-visible:ring-white sm:w-auto"
+                    onClick={() => setConfirmDisconnect(organization)}
+                    data-testid="disconnect-organization-addon">
+                    Disconnect Organization
+                  </Button>
+                )}
+                {organization.canReconnectAddon && organization.addonBusinessId && (
+                  <Button type="button" disabled={busyBusinessId !== null}
+                    className="h-11 w-full border border-white/70 bg-black px-5 font-semibold text-white hover:bg-zinc-900 focus-visible:ring-white sm:w-auto"
+                    onClick={() => void changeAttachment(organization, "reconnect")}
+                    data-testid="reconnect-organization-addon">
+                    {busyBusinessId === organization.addonBusinessId ? "Checking…" : "Reconnect Organization"}
+                  </Button>
+                )}
+                {(organization.canManageRenewal || organization.canReconnect) && (
+                  <p className="text-xs font-semibold text-white/80">Subscription and renewal</p>
+                )}
                 {organization.canManageRenewal && organization.businessId &&
                   organization.state === "active" && organization.paidThrough && (
                   <Button type="button" variant="outline" disabled={busyBusinessId !== null}
@@ -168,7 +224,7 @@ export function OrganizationAccessCard({ userId }: { userId: string | undefined 
                   <Button type="button" variant="outline" disabled={busyBusinessId !== null}
                     onClick={() => void reconnect(organization)}
                     data-testid="reconnect-organization">
-                    {busyBusinessId === organization.businessId ? "Checking…" : "Reconnect Organization"}
+                    {busyBusinessId === organization.businessId ? "Checking…" : "Restart Organization Subscription"}
                   </Button>
                 )}
               </li>
@@ -179,6 +235,27 @@ export function OrganizationAccessCard({ userId }: { userId: string | undefined 
         <p className="text-xs text-white/55">Organization access is separate from your personal My Perfect Meals account.</p>
       </GlassCardContent>
     </GlassCard>
+    <ConfirmationModal
+      open={confirmDisconnect !== null}
+      onOpenChange={(open) => { if (!busyBusinessId && !open) setConfirmDisconnect(null); }}
+      title="Disconnect Organization workspace?"
+      description="This hides your Organization workspace from your account. It does not end renewal or close the Organization for anyone else."
+      footer={
+        <>
+          <Button type="button" variant="outline" disabled={busyBusinessId !== null}
+            onClick={() => setConfirmDisconnect(null)}>Keep Connected</Button>
+          <Button type="button" disabled={busyBusinessId !== null}
+            className="border border-white/70 bg-black font-semibold text-white hover:bg-zinc-900"
+            onClick={() => confirmDisconnect && void changeAttachment(confirmDisconnect, "disconnect")}
+            data-testid="confirm-disconnect-organization">Disconnect Organization</Button>
+        </>
+      }
+    >
+      <p className="text-sm text-white/80">
+        The same Business, Locations, members, clients, history, and billing remain unchanged.
+        Staff and clients retain their access. You remain the owner and can reconnect from More.
+      </p>
+    </ConfirmationModal>
     <ConfirmationModal
       open={confirmEnd !== null}
       onOpenChange={(open) => { if (!busyBusinessId && !open) setConfirmEnd(null); }}

@@ -16,6 +16,7 @@ import {
   OrganizationBillingReviewError,
 } from "../services/organizationBillingLifecycleService";
 import { changeStudioAddonAttachment, StudioAddonAttachmentError } from "../services/studioAddonAttachment";
+import { changeOrganizationOwnerAttachment, OrganizationOwnerAttachmentError } from "../services/organizationOwnerAttachment";
 
 const router = Router();
 
@@ -100,6 +101,26 @@ router.get("/organization-access", async (req, res) => {
   } catch (error) {
     console.error("[organization-access] error:", error);
     return res.status(500).json({ error: "Could not load Organization access." });
+  }
+});
+
+router.post("/organization-access/:businessId/addon/:action", requireAuth, async (req, res) => {
+  res.setHeader("Cache-Control", "private, no-store");
+  const { businessId, action } = req.params;
+  if (action !== "disconnect" && action !== "reconnect") {
+    return res.status(404).json({ error: "Unknown Organization action." });
+  }
+  try {
+    const attachment = await changeOrganizationOwnerAttachment(
+      (req as any).authUser.id, businessId, action,
+    );
+    return res.json({ attachment });
+  } catch (error) {
+    if (error instanceof OrganizationOwnerAttachmentError) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    console.error("[organization-attachment] unable to change owner attachment", error);
+    return res.status(503).json({ error: "Unable to verify Organization access. No change was confirmed." });
   }
 });
 

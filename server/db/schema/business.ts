@@ -33,6 +33,8 @@ export const businesses = pgTable("businesses", {
    * full org record yet. Phase 2 will enforce this relationship.
    */
   organizationId: uuid("organization_id"),
+  /** Owner-only workspace attachment; null means connected. Does not change tenant or billing state. */
+  ownerWorkspaceDisconnectedAt: timestamp("owner_workspace_disconnected_at", { withTimezone: true }),
   /**
    * Controls whether providers in this business may maintain independently-
    * sourced clients alongside organization-assigned clients.

@@ -2619,7 +2619,9 @@ router.get("/check-status", requireAuth, async (req, res) => {
     const [business] = await db
       .select({ id: businesses.id, status: businesses.status, name: businesses.name })
       .from(businesses)
-      .where(eq(businesses.ownerUserId, userId))
+      .where(and(eq(businesses.ownerUserId, userId),
+        eq(businesses.status, "active"),
+        isNull(businesses.ownerWorkspaceDisconnectedAt)))
       .limit(1);
 
     if (business) {
