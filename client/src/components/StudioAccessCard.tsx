@@ -23,9 +23,11 @@ function statusCopy(access: StudioAccessStatus): { label: string; description: s
     case "managed_access":
       return {
         label: "Managed access",
-        description: access.studioReady
-          ? "Your Studio access is managed by My Perfect Meals."
-          : "Your access is managed by My Perfect Meals. Complete any required professional setup before opening Studio.",
+        description: access.sources.includes("studio") && access.billing
+          ? "This account also has a Studio subscription, but its managed access prevents self-service renewal changes. Contact support to review the Studio billing before ending it."
+          : access.studioReady
+            ? "My Perfect Meals provides this Studio access. It is not a separate Studio subscription, so there is no Studio renewal to cancel here. Your Personal plan is separate."
+            : "My Perfect Meals provides this Studio access, not a separate Studio subscription. There is no Studio renewal to cancel here; complete professional setup before opening Studio.",
       };
     case "needs_review":
       return { label: "Needs review", description: "We can't verify your Studio access right now. Please contact support before making changes." };

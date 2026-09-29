@@ -30,10 +30,12 @@ function organizationCopy(entry: OrganizationAccessEntry): string {
     case "expired": return "Paid Organization access has expired";
     case "managed_access":
       return entry.accessSource === "pilot"
-        ? "Temporary Organization access"
-        : "Organization-provided access";
+        ? "Temporary Organization access · no paid Organization renewal to cancel"
+        : entry.accessSource === "arrangement"
+          ? "Organization access is provided by an arrangement · no self-service renewal to cancel"
+          : "Access is provided by the Organization · only its paying owner can end a verified subscription";
     case "not_active": return "Not active";
-    default: return "Billing details need review · no paid-through date verified";
+    default: return "Billing details need review · no renewal change is available until the paid-through date is verified";
   }
 }
 
