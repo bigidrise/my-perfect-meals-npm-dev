@@ -202,6 +202,12 @@ export function computeClientProductKey(brand: string, ingredient: string): stri
   return `name::${b}::${n}`;
 }
 
+function catalogSavedKey(product: CatalogProductMatch): string {
+  return product.barcode?.trim()
+    ? `upc::${product.barcode.trim()}`
+    : computeClientProductKey(product.brand, product.name);
+}
+
 /**
  * Merges the two ingredient buckets returned by the Grocery Coach into a single
  * ShoppingListItem array suitable for the Product Advisor.
@@ -469,6 +475,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       // within the same session (persisted in localStorage alongside the result).
       setSavedProductKeys(new Set());
       setSavingKey(null);
+      setSavingKey(null);
       setShowSavedOnly(false);
       setSwapTarget(null);
       setSwapResult(null);
@@ -619,6 +626,44 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     setProductAddedKeys((prev) => new Set([...prev, key]));
     toast({ title: t("findProduct.added"), description: name });
   }, [productAddedKeys, addItem, toast, t]);
+
+  const handleCatalogSave = useCallback(async (product: CatalogProductMatch) => {
+    const key = catalogSavedKey(product);
+    if (savedProductKeys.has(key) || savingKey) return;
+    const generation = sessionGenRef.current;
+    setSavingKey(key);
+    try {
+      const response = await post("/api/saved-groceries", {
+        productName: product.name,
+        brand: product.brand,
+        barcode: product.barcode || undefined,
+        category: productSearch?.query || "Other",
+        source: "grocery-coach",
+        productMeta: {
+          ingredients: product.ingredients ? [product.ingredients] : [],
+          nutrition: product.nutrition ?? [],
+          allergenInformation: product.allergenInformation ?? [],
+          catalogSource: product.source,
+          sourceRecordId: product.sourceRecordId,
+          catalogDate: product.catalogDate,
+          evidenceStatus: product.evidenceStatus,
+          recommendationStatus: product.recommendationStatus,
+          verificationMessage: product.verificationMessage,
+        },
+      });
+      if (sessionGenRef.current !== generation) return;
+      if (response?.item?.productKey !== key) throw new Error("Saved product identity did not match.");
+      setSavedProductKeys((previous) => new Set([...previous, key]));
+      try { new BroadcastChannel("mpm:grocery-saved").postMessage(null); } catch {}
+      toast({ title: t("findProduct.saved"), description: `${product.brand} · ${product.name}` });
+    } catch {
+      if (sessionGenRef.current === generation) {
+        toast({ title: "Could not save grocery", description: "Please try again.", variant: "destructive" });
+      }
+    } finally {
+      if (sessionGenRef.current === generation) setSavingKey(null);
+    }
+  }, [savedProductKeys, savingKey, productSearch?.query, toast, t]);
 
   const fetchProductAdvice = useCallback(async (shoppingList: ShoppingListItem[]) => {
     if (!shoppingList.length) return;
@@ -1126,7 +1171,18 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                             {product.catalogDate ? ` · Source identity date (not formulation date): ${product.catalogDate}` : ""}
                           </div>
                           <div style={{ color: "#fdba74", fontSize: 11, marginTop: 8, lineHeight: 1.4 }}>{product.verificationMessage}</div>
-                          <div style={{ marginTop: 10 }}>
+                          <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            <PillButton
+                              active={savedProductKeys.has(catalogSavedKey(product))}
+                              variant="amber"
+                              onClick={() => handleCatalogSave(product)}
+                              disabled={savedProductKeys.has(catalogSavedKey(product)) || !!savingKey}
+                            >
+                              {savedProductKeys.has(catalogSavedKey(product))
+                                ? t("findProduct.saved")
+                                : savingKey === catalogSavedKey(product)
+                                  ? t("findProduct.saving") : "Save to Groceries"}
+                            </PillButton>
                             <PillButton
                               active={productAddedKeys.has(`catalog:${product.productKey}`)}
                               variant="amber"
@@ -1136,6 +1192,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                               {productAddedKeys.has(`catalog:${product.productKey}`)
                                 ? t("findProduct.added") : t("findProduct.addToList")}
                             </PillButton>
+                          </div>
+                          <div>
                              {product.recommendationStatus === "review" && (
                               <div style={{ color: "#fdba74", fontSize: 11, marginTop: 5 }}>
                                 Adding to your list does not resolve the product or current-label checks above.
