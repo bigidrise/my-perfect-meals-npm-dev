@@ -18,6 +18,8 @@ export interface ProductRuleEvidenceRegistry {
   version: string;
   identityMaxAgeDays: number | null;
   reviewedRules: readonly ReviewedProductRule[];
+  /** Only for a catalog surface: a day-level diet may guide ranking without becoming an intrinsic package ban. */
+  contextualDietaryIdentities?: readonly string[];
 }
 
 export const UNREVIEWED_PRODUCT_POLICY: ProductRuleEvidenceRegistry = {
@@ -35,6 +37,7 @@ export const DEVELOPMENT_CATALOG_IDENTITY_POLICY: ProductRuleEvidenceRegistry = 
   version: "development-catalog-identity.v1",
   identityMaxAgeDays: 1,
   reviewedRules: [],
+  contextualDietaryIdentities: ["low_carb", "low carb"],
 };
 
 export interface UnresolvedProductRule {
@@ -76,7 +79,12 @@ export function resolveProductRulePolicy(
   function hard(id: string, type: ProductHardRequirement["type"]) {
     active.set(id, type);
   }
-  subject.dietaryIdentity.forEach((value) => hard(`dietary_identity:${key(value)}`, "dietary_identity"));
+  const contextualDiets = subject.dietaryIdentity.filter((value) =>
+    registry.contextualDietaryIdentities?.some((diet) => key(diet) === key(value)) &&
+    !byId.has(`dietary_identity:${key(value)}`));
+  subject.dietaryIdentity.forEach((value) => {
+    if (!contextualDiets.includes(value)) hard(`dietary_identity:${key(value)}`, "dietary_identity");
+  });
   subject.allergies.forEach((value) => hard(`allergy:${key(value)}`, "allergy"));
   subject.explicitAvoidances.forEach((value) => hard(`explicit_avoidance:${key(value)}`, "explicit_avoidance"));
   subject.medicalHardLimitNames.forEach((value) => hard(`clinical:${key(value)}`, "clinical"));
@@ -121,6 +129,9 @@ export function resolveProductRulePolicy(
     reason: "Support optimization does not establish an intrinsic product hard limit.",
   }));
   const rankingFactors: ProductRankingFactor[] = [
+    ...contextualDiets.map((value) => ({
+      id: `dietary_fit:${key(value)}`, type: "optimization" as const, weight: 1,
+    })),
     ...subject.dislikes.map((value) => ({
       id: `dislike:${key(value)}`, type: "dislike" as const, weight: 1,
     })),

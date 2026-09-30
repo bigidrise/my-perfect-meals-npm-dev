@@ -54,7 +54,8 @@ beforeEach(() => {
       source: 'Open Food Facts',
       sourceRecordId: '0851087000014',
       evidenceStatus: 'needs_verification',
-      needsProfileReview: true,
+      needsProfileReview: false,
+      policyUnresolved: true,
       verificationMessage: 'Current package and daily allocation need review.',
       profileInsight: 'Compare its catalog carbohydrates with your day.',
     }],
@@ -70,7 +71,7 @@ test('catalog Add puts the exact branded variant on the shopping list once witho
     fireEvent.click(screen.getByTestId('button-product-search'));
   });
   const card = await screen.findByTestId('catalog-product-match');
-  expect(within(card).getByText('Needs profile review')).toBeInTheDocument();
+  expect(within(card).getByText('Profile-guided option · product rule not cleared')).toBeInTheDocument();
   const add = within(card).getByRole('button', { name: 'Add to List' });
   fireEvent.click(add);
   expect(mockAddItem).toHaveBeenCalledWith(expect.objectContaining({

@@ -121,6 +121,7 @@ interface ProductAdviceResult {
     evidenceStatus: "eligible" | "needs_verification";
     verificationMessage: string;
     needsProfileReview?: boolean;
+    policyUnresolved?: boolean;
     research?: { source: string; result: string; phase?: string }[];
     nutrition?: { statement: string; source: string }[];
     allergenInformation?: { statement: string; source: string }[];
@@ -1084,8 +1085,10 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                           style={{ padding: "12px 14px", borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)" }}>
                           <div style={{ color: "white", fontWeight: 700, fontSize: 14 }}>{product.brand} · {product.name}</div>
                           <div style={{ color: product.evidenceStatus === "eligible" ? "#86efac" : "#fb923c", fontSize: 11, fontWeight: 700, marginTop: 5 }}>
-                            {product.evidenceStatus === "eligible" ? "Recommended for You · catalog evidence"
-                              : product.needsProfileReview ? "Needs profile review" : "Check the Label"}
+                            {product.evidenceStatus === "eligible" ? "Profile-guided choice · check current package"
+                              : product.needsProfileReview ? "Needs profile review"
+                              : product.policyUnresolved ? "Profile-guided option · product rule not cleared"
+                              : "Check Current Label"}
                           </div>
                           <div style={{ color: "rgba(255,255,255,0.62)", fontSize: 12, marginTop: 7, lineHeight: 1.45 }}>
                             {product.ingredients ? `Catalog ingredients: ${product.ingredients}` : "Ingredient declaration unavailable."}
@@ -1134,7 +1137,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                             </PillButton>
                             {product.evidenceStatus !== "eligible" && (
                               <div style={{ color: "#fdba74", fontSize: 11, marginTop: 5 }}>
-                                Adding to your list does not clear this product for your profile.
+                                Adding to your list does not resolve the product or current-label checks above.
                               </div>
                             )}
                           </div>

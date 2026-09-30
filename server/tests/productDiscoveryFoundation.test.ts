@@ -564,9 +564,10 @@ describe("Phase 2B internal authority and product evidence foundation", () => {
     expect(result.catalogMatches.map(({ brand }) => brand))
       .toEqual(["Peanut Butter & Co.", "Pic's", "Smucker's"]);
     expect(result.catalogMatches[0].name).toBe("Unsweetened Peanut Butter");
-    expect(result.catalogMatches.every(({ evidenceStatus, needsProfileReview, profileInsight }) =>
-      evidenceStatus === "needs_verification" && needsProfileReview &&
-      profileInsight?.includes("not an approved profile match"))).toBe(true);
+    expect(result.catalogMatches.every(({ evidenceStatus, needsProfileReview, policyUnresolved, profileInsight }) =>
+      evidenceStatus === "needs_verification" && !needsProfileReview && policyUnresolved &&
+      profileInsight?.includes("not an allergen or product-policy clearance"))).toBe(true);
+    expect(result.unresolved).not.toContain("dietary_identity:low_carb");
   });
   test("Product Scan's profile factor labels come from the same resolved subject used for the choices", async () => {
     const context = sources();
@@ -588,6 +589,27 @@ describe("Phase 2B internal authority and product evidence foundation", () => {
     });
     expect(result.profileUsed).toContain("Weight-loss goal");
     expect(result.catalogMatches[0].profileInsight).toContain("your weight-loss goal");
+  });
+  test("Development treats low-carb as day-level fit, not a hard packaged-product ban", async () => {
+    const result = await findProductDevelopment("owner", "peanut butter", {
+      sources: sources({ diet: ["low_carb"] }),
+      adapter: adapter([record({
+        name: "Unsweetened Peanut Butter", identityObservedAt: new Date().toISOString(),
+        observedAt: null, facts: [
+          { kind: "ingredients", originalStatement: "Peanuts, salt", completeness: "unknown" },
+          { kind: "nutrition", target: "carbs_g_per_100g",
+            originalStatement: "Carbohydrates: 11 g per 100g", completeness: "unknown",
+            nutritionMeasurement: { value: 11, unit: "g", basis: "per_100g" } },
+        ],
+      })]),
+      interpret: async () => null,
+    });
+    expect(result.unresolved).not.toContain("dietary_identity:low_carb");
+    expect(result.catalogMatches[0]).toMatchObject({
+      evidenceStatus: "eligible", needsProfileReview: false, policyUnresolved: false,
+    });
+    expect(result.catalogMatches[0].profileInsight).toContain("Serving and today's meals still determine low-carb fit");
+    expect(result.catalogMatches[0].verificationMessage).toContain("not a guarantee about today's package");
   });
   test("Development can search a second OFF page for distinct branded choices", async () => {
     const fetcher = jest.fn(async (url: URL) => ({
@@ -679,13 +701,13 @@ describe("Phase 2B internal authority and product evidence foundation", () => {
     expect(result.catalogMatches).toHaveLength(1);
     expect(result.catalogMatches[0]).toMatchObject({
       name: "Wheat pasta", evidenceStatus: "needs_verification",
-      needsProfileReview: true,
+      needsProfileReview: false, policyUnresolved: true,
     });
     expect(result.catalogMatches[0].verificationMessage)
-      .toContain("dietary_identity:low_carb");
+      .not.toContain("dietary_identity:low_carb");
     expect(result.catalogMatches[0].verificationMessage).toContain("explicit_avoidance:shellfish");
     expect(result.catalogMatches[0].profileInsight).toContain("For your low-carb pattern");
-    expect(result.catalogMatches[0].profileInsight).toContain("not an approved profile match");
+    expect(result.catalogMatches[0].profileInsight).toContain("not an allergen or product-policy clearance");
     expect(interpret).not.toHaveBeenCalled();
   });
   test("a declared shellfish trace excludes the exact product for a shellfish allergy", async () => {
@@ -871,7 +893,7 @@ describe("Phase 2B internal authority and product evidence foundation", () => {
     expect(result.catalogMatches[0]).toMatchObject({
       name: "Ragu Unsweetened Sauce", evidenceStatus: "needs_verification",
     });
-    expect(result.catalogMatches[0].profileInsight).toContain("not an approved profile match");
+    expect(result.catalogMatches[0].profileInsight).toContain("not an allergen or product-policy clearance");
   });
   test("a conflict discovered only during exact-product enrichment is rejected", async () => {
     const first = record({ name: "Ragu Sauce", sourceRecordId: "ragu-1", facts: [] });
