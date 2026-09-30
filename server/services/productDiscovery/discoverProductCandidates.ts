@@ -22,6 +22,7 @@ import {
 import {
   resolveProductSubjectAuthority,
   type ProductSubjectRequest,
+  type ProductSubjectSnapshot,
   type ProductSubjectSources,
 } from "./subjectAuthority";
 
@@ -56,6 +57,7 @@ export interface ProductDiscoveryResult {
   sourceFailures: { source: string; sourceRecordId?: string; reason: string }[];
   successfulSearchPages: number;
   knownConflicts: { productKey: string; reason: string }[];
+  subject?: ProductSubjectSnapshot;
 }
 
 export async function discoverProductCandidates(input: {
@@ -69,7 +71,11 @@ export async function discoverProductCandidates(input: {
   allowUnresolvedLeads?: boolean;
   /** Existing deterministic safety screen may reject known conflicts, never assert a pass. */
   knownConflict?: (candidate: ProductCandidate, subject: Awaited<ReturnType<typeof resolveProductSubjectAuthority>>) => string | null;
+  /** Development presentation gate may downgrade an otherwise eligible lead, never upgrade one. */
+  minimumEvidence?: (candidate: ProductCandidate) => string | null;
   evaluatedAt: string;
+  /** Live exact-record reads occur after the initial policy snapshot. */
+  useCurrentEvaluationTime?: boolean;
   maxCandidates: number;
   maxPages: number;
   targetCount: number;
@@ -96,6 +102,7 @@ export async function discoverProductCandidates(input: {
     sourceFailures: [],
     successfulSearchPages: 0,
     knownConflicts: [],
+    subject,
   };
   // Never search as if an unresolved subject or hard policy were unrestricted.
   if ((!policy.context.resolved || policy.context.policyStatus !== "resolved") &&
@@ -204,7 +211,20 @@ export async function discoverProductCandidates(input: {
             candidateSignature: enrichedSignature,
           });
         }
-        const decision = evaluateProductCandidate(candidate, policy.context, assessments);
+        let decision = evaluateProductCandidate(candidate, input.useCurrentEvaluationTime
+          ? { ...policy.context, evaluatedAt: new Date().toISOString() }
+          : policy.context, assessments);
+        if (decision.status === "eligible" && input.minimumEvidence) {
+          const missing = input.minimumEvidence(candidate);
+          if (missing) decision = {
+            ...decision,
+            status: "needs_verification",
+            presentation: "check_the_label",
+            reasons: [{ code: "evidence_missing", detail: missing }],
+            ranking: [],
+            continueDiscovery: true,
+          };
+        }
         result.evaluatedCandidates.push({ candidate, decision });
         if (decision.status === "eligible") result.qualified.push(decision);
         else if (decision.status === "needs_verification") result.needsVerification.push(decision);

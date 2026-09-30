@@ -194,7 +194,11 @@ export function createUsdaBrandedAdapter(fetcher: typeof fetch = fetch): Product
         const supplement = offEvidenceForExactUsdaProduct(off, record, new Date().toISOString());
         research.push({ source: "open_food_facts", result: supplement.result, phase: "barcode_lookup" });
         if (supplement.result === "matched") {
-          record = { ...record, facts: [...record.facts, ...supplement.facts] };
+          record = {
+            ...record,
+            identityObservedAt: new Date().toISOString(),
+            facts: [...record.facts, ...supplement.facts],
+          };
         }
       } else {
         research.push({ source: "open_food_facts", result: "skipped", phase: "barcode_lookup" });

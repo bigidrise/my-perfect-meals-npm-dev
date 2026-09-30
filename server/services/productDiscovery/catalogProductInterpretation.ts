@@ -1,26 +1,35 @@
-import type { ProductCandidate } from "../../../shared/productCandidateContract";
+import type { ProductCandidate, ProductEligibilityDecision } from "../../../shared/productCandidateContract";
 import { chatJson } from "../../utils/openaiSafe";
-import { buildAnalysisProfile, buildCompactProtocolContext } from "../ingredientScanService";
-import { loadUserProtocolEnvelope } from "../protocolEnvelope";
+import type { ProductSubjectSnapshot } from "./subjectAuthority";
 
 /**
- * Reuses Product Scan's authoritative profile shaping and model transport.
- * Interpretation is an evidence-cited note, never an eligibility assessment.
+ * Interpretation uses the exact resolved subject used for eligibility and
+ * only runs for eligible products. It is never an eligibility assessment.
  * By-name Scan verdicts and hypothetical alternatives are deliberately omitted.
  */
 export async function interpretCatalogProduct(
   actorUserId: string,
-  subjectUserId: string,
+  subject: ProductSubjectSnapshot,
   candidate: ProductCandidate,
+  decision: ProductEligibilityDecision,
 ): Promise<string | null> {
-  if (actorUserId !== subjectUserId) return null;
+  if (actorUserId !== subject.actorUserId || actorUserId !== subject.subjectId ||
+      subject.status !== "resolved" || decision.status !== "eligible" ||
+      subject.fingerprint !== decision.contextFingerprint ||
+      subject.subjectId !== decision.subjectId ||
+      decision.productKey !== candidate.identity.key) return null;
   try {
-    const envelope = await loadUserProtocolEnvelope(subjectUserId);
-    if (!envelope || envelope.userId !== subjectUserId) return null;
+    const profileContext = [
+      ...subject.dietaryIdentity.map((value) => `Dietary identity: ${value}`),
+      ...subject.allergies.map((value) => `Allergy: ${value}`),
+      ...subject.explicitAvoidances.map((value) => `Avoid: ${value}`),
+      ...subject.medicalOptimizationNames.map((value) => `Optimization: ${value}`),
+      ...subject.preferences.map((value) => `Preference: ${value}`),
+    ];
     const facts = candidate.facts.filter((fact) =>
       (fact.kind === "ingredients" || fact.kind === "nutrition") &&
       fact.statement.trim()).slice(0, 12);
-    if (!facts.length || !buildAnalysisProfile(envelope).length) return null;
+    if (!facts.length || !profileContext.length) return null;
     const answer = await chatJson({
       system: `You explain sourced packaged-food facts for MyPerfectMeals.
 Return JSON {"explanation": "one or two plain sentences", "factIds": ["cited ID"]}.
@@ -31,7 +40,7 @@ Do not turn daily nutrition targets into an intrinsic packaged-product prohibiti
 This is an educational explanation, not an eligibility verdict.`,
       user: JSON.stringify({
         product: candidate.identity.name,
-        profileContext: buildCompactProtocolContext(envelope),
+        profileContext,
         facts: facts.map((fact) => ({
           id: fact.id, statement: fact.statement,
           source: fact.provenance.source, observedAt: fact.provenance.observedAt,
