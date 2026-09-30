@@ -126,7 +126,7 @@ function enforceWholeFoodProductVerdict(
 // Human-readable list of what data points were used in this scan. Shown in the
 // UI so users understand why their result is personalised to them specifically.
 
-function buildAnalysisProfile(envelope: UserProtocolEnvelope): string[] {
+export function buildAnalysisProfile(envelope: UserProtocolEnvelope): string[] {
   const items: string[] = [];
 
   if (envelope.goalType === 'lose') items.push('Weight-loss goal');
@@ -283,7 +283,7 @@ function deriveProtocolCards(envelope: UserProtocolEnvelope | null): CardSpec[] 
   return result;
 }
 
-function buildCompactProtocolContext(envelope: UserProtocolEnvelope): string {
+export function buildCompactProtocolContext(envelope: UserProtocolEnvelope): string {
   const lines: string[] = [];
 
   if (envelope.goalType || envelope.fitnessGoal) {

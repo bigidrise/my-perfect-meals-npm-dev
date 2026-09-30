@@ -539,6 +539,7 @@
       "tabFindProduct": "Find a Product",
       "inputLabel": "What are you shopping for?",
       "inputPlaceholder": "e.g. spaghetti sauce, protein bars, milk…",
+      "verificationRequired": "Brand names alone can't confirm a product is safe for your profile. Close this coach and use Product Scan on this page to photograph the full ingredient label of a product you're considering.",
       "voiceStart": "Speak your request",
       "voiceStop": "Stop listening",
       "voiceUnsupported": "Voice input isn't supported on this device",

@@ -107,7 +107,33 @@ interface ProductAdviceResult {
   advice: IngredientAdvice[];
   profileUsed: string[];
   store?: string;
+  catalogNotice?: string;
+  catalogMatches?: {
+    productKey: string;
+    name: string;
+    brand: string;
+    barcode: string | null;
+    ingredients: string | null;
+    serving: string | null;
+    catalogDate: string | null;
+    source: string;
+    sourceRecordId: string;
+    evidenceStatus: "eligible" | "needs_verification";
+    recommendationStatus: "profile_matched_pick" | "review";
+    verificationMessage: string;
+    needsProfileReview?: boolean;
+    policyUnresolved?: boolean;
+    research?: { source: string; result: string; phase?: string }[];
+    nutrition?: { statement: string; source: string }[];
+    allergenInformation?: { statement: string; source: string }[];
+    profileInsight?: string;
+  }[];
+  sourceFailures?: string[];
+  catalogSearchAvailable?: boolean;
+  excludedReasons?: string[];
 }
+
+type CatalogProductMatch = NonNullable<ProductAdviceResult["catalogMatches"]>[number];
 
 interface SwapSuggestion {
   item: string;
@@ -174,6 +200,12 @@ export function computeClientProductKey(brand: string, ingredient: string): stri
   const b = brand.toLowerCase().replace(/[^a-z0-9]/g, "");
   const n = ingredient.toLowerCase().replace(/[^a-z0-9]/g, "");
   return `name::${b}::${n}`;
+}
+
+function catalogSavedKey(product: CatalogProductMatch): string {
+  return product.barcode?.trim()
+    ? `upc::${product.barcode.trim()}`
+    : computeClientProductKey(product.brand, product.name);
 }
 
 /**
@@ -268,6 +300,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const { toast } = useToast();
   const { t } = useTranslation("shopping");
   const addItems = useShoppingListStore((s) => s.addItems);
+  const addItem = useShoppingListStore((s) => s.addItem);
   const [, setLocation] = useLocation();
 
   // Scope the session key to the authenticated user so sessions are never shared across accounts.
@@ -325,7 +358,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
   // Same session-restore pattern as the meal result, scoped per user.
   const PRODUCT_SESSION_KEY = useMemo(
-    () => `grocery-coach-product-search:${user?.id ?? "guest"}`,
+    // Do not restore pre-decision catalog cards with the old blanket label status.
+    () => `grocery-coach-product-search:decision-v3:${user?.id ?? "guest"}`,
     [user?.id]
   );
 
@@ -441,6 +475,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       // within the same session (persisted in localStorage alongside the result).
       setSavedProductKeys(new Set());
       setSavingKey(null);
+      setSavingKey(null);
       setShowSavedOnly(false);
       setSwapTarget(null);
       setSwapResult(null);
@@ -515,25 +550,40 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     setProductError(null);
     setProductAddedKeys(new Set());
     try {
-      const data = await post("/api/grocery-coach/product-advisor", { ingredients: [query] });
+      const data = await post("/api/grocery-coach/product-advisor", { ingredients: [query], mode: "find_product" });
       if (sessionGenRef.current !== gen) return; // identity changed — discard
       if (data?.error) throw new Error(data.error);
-      if (data?.advice?.length) {
+      if (data?.advice?.length || data?.catalogMatches?.length || data?.excludedReasons?.length) {
         setProductSearch({ query, advice: data as ProductAdviceResult, savedAt: Date.now() });
         setProductSearchOwnerKey(PRODUCT_SESSION_KEY); // stamp ownership so persist effect may write
         setProductPhase("result");
       } else {
-        setProductError(t("findProduct.noResults"));
+        setProductError(data?.sourceFailures?.length && !data?.catalogSearchAvailable
+          ? "The product catalog is unavailable right now. Please try again."
+          : t("findProduct.noResults"));
         setProductPhase("idle");
       }
     } catch (e: any) {
       if (sessionGenRef.current !== gen) return;
-      // Surface server-provided messages (e.g. the retryable 503 when clinical
-      // GLP-1 targets are temporarily unavailable) over the generic fallback.
-      const serverMsg = typeof e?.message === "string" && e.message.trim() && !/failed to fetch/i.test(e.message)
-        ? e.message
-        : null;
-      setProductError(serverMsg ?? t("findProduct.errorGeneric"));
+      // ApiError.message contains the entire HTTP response body; never show
+      // that raw JSON in the Coach. A missing product label is not a retryable
+      // outage, while unresolved clinical context still needs its own message.
+      let serverMsg: string | null = null;
+      if (typeof e?.status === "number" && typeof e?.body === "string") {
+        try {
+          const body = JSON.parse(e.body);
+          if (body?.code === "PRODUCT_INGREDIENTS_UNVERIFIED") {
+            serverMsg = t("findProduct.verificationRequired");
+          } else if (typeof body?.error === "string") {
+            serverMsg = body.error;
+          }
+        } catch {
+          // HTML/invalid responses get the generic error, not a raw API dump.
+        }
+      } else if (typeof e?.message === "string" && !/failed to fetch/i.test(e.message)) {
+        serverMsg = e.message;
+      }
+      setProductError(serverMsg || t("findProduct.errorGeneric"));
       setProductPhase("idle");
     }
   }, [productQuery, t, PRODUCT_SESSION_KEY]);
@@ -560,6 +610,60 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     setProductAddedKeys((prev) => new Set(Array.from(prev).concat(key)));
     toast({ title: t("findProduct.added") });
   }, [productAddedKeys, addItems, toast, t]);
+
+  const handleCatalogAddToList = useCallback((product: CatalogProductMatch) => {
+    const key = `catalog:${product.productKey}`;
+    if (productAddedKeys.has(key)) return;
+    const label = product.name.toLowerCase().startsWith(product.brand.toLowerCase())
+      ? product.name : `${product.brand} ${product.name}`;
+    // The list stores names, not barcode identities. Keep the UPC outside
+    // parentheses: list hydration strips parenthetical text for deduplication.
+    const name = `${label}${product.barcode ? ` · UPC ${product.barcode}` : ""}`;
+    addItem({
+      name, quantity: 1, unit: "", category: "Other",
+      sourceMeals: [t("findProduct.tabFindProduct")],
+    });
+    setProductAddedKeys((prev) => new Set([...prev, key]));
+    toast({ title: t("findProduct.added"), description: name });
+  }, [productAddedKeys, addItem, toast, t]);
+
+  const handleCatalogSave = useCallback(async (product: CatalogProductMatch) => {
+    const key = catalogSavedKey(product);
+    if (savedProductKeys.has(key) || savingKey) return;
+    const generation = sessionGenRef.current;
+    setSavingKey(key);
+    try {
+      const response = await post("/api/saved-groceries", {
+        productName: product.name,
+        brand: product.brand,
+        barcode: product.barcode || undefined,
+        category: productSearch?.query || "Other",
+        source: "grocery-coach",
+        productMeta: {
+          ingredients: product.ingredients ? [product.ingredients] : [],
+          nutrition: product.nutrition ?? [],
+          allergenInformation: product.allergenInformation ?? [],
+          catalogSource: product.source,
+          sourceRecordId: product.sourceRecordId,
+          catalogDate: product.catalogDate,
+          evidenceStatus: product.evidenceStatus,
+          recommendationStatus: product.recommendationStatus,
+          verificationMessage: product.verificationMessage,
+        },
+      });
+      if (sessionGenRef.current !== generation) return;
+      if (response?.item?.productKey !== key) throw new Error("Saved product identity did not match.");
+      setSavedProductKeys((previous) => new Set([...previous, key]));
+      try { new BroadcastChannel("mpm:grocery-saved").postMessage(null); } catch {}
+      toast({ title: t("findProduct.saved"), description: `${product.brand} · ${product.name}` });
+    } catch {
+      if (sessionGenRef.current === generation) {
+        toast({ title: "Could not save grocery", description: "Please try again.", variant: "destructive" });
+      }
+    } finally {
+      if (sessionGenRef.current === generation) setSavingKey(null);
+    }
+  }, [savedProductKeys, savingKey, productSearch?.query, toast, t]);
 
   const fetchProductAdvice = useCallback(async (shoppingList: ShoppingListItem[]) => {
     if (!shoppingList.length) return;
@@ -1008,6 +1112,95 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                         <span key={p} style={{ padding: "3px 10px", borderRadius: 999, background: "rgba(234,88,12,0.15)", border: "1px solid rgba(249,115,22,0.25)", color: "#fb923c", fontSize: 11, fontWeight: 600 }}>
                           {p}
                         </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {productSearch.advice.catalogMatches && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      <div style={{ padding: "11px 13px", borderRadius: 10, background: "rgba(251,146,60,0.1)", border: "1px solid rgba(251,146,60,0.28)", color: "#fdba74", fontSize: 12, lineHeight: 1.5 }}>
+                        {productSearch.advice.catalogNotice || "Product decisions use sourced catalog evidence; verify important package details before choosing."}
+                      </div>
+                      {!!productSearch.advice.excludedReasons?.length && (
+                        <div style={{ color: "#fca5a5", fontSize: 12, lineHeight: 1.5 }}>
+                          {productSearch.advice.excludedReasons.length} product(s) excluded for a known conflict: {productSearch.advice.excludedReasons.join(" ")}
+                        </div>
+                      )}
+                      {productSearch.advice.catalogMatches.map((product) => (
+                        <div key={product.productKey} data-testid="catalog-product-match"
+                          style={{ padding: "12px 14px", borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)" }}>
+                          <div style={{ color: "white", fontWeight: 700, fontSize: 14 }}>{product.brand} · {product.name}</div>
+                           <div style={{ color: product.recommendationStatus === "profile_matched_pick" ? "#86efac" : "#fb923c", fontSize: 11, fontWeight: 700, marginTop: 5 }}>
+                             {product.recommendationStatus === "profile_matched_pick" ? "Profile-Matched Pick · check current label"
+                               : product.needsProfileReview ? "Needs profile review"
+                              : product.policyUnresolved ? "Profile-guided option · product rule not cleared"
+                              : "Check Current Label"}
+                          </div>
+                          <div style={{ color: "rgba(255,255,255,0.62)", fontSize: 12, marginTop: 7, lineHeight: 1.45 }}>
+                            {product.ingredients ? `Catalog ingredients: ${product.ingredients}` : "Ingredient declaration unavailable."}
+                          </div>
+                          {product.nutrition?.length ? (
+                            <div style={{ color: "rgba(255,255,255,0.62)", fontSize: 11, marginTop: 7, lineHeight: 1.45 }}>
+                              Source nutrition: {product.nutrition.slice(0, 5).map((fact) => fact.statement).join(" · ")}
+                            </div>
+                          ) : null}
+                          {product.allergenInformation?.length ? (
+                            <div style={{ color: "rgba(255,255,255,0.62)", fontSize: 11, marginTop: 7, lineHeight: 1.45 }}>
+                              Catalog allergen declarations: {product.allergenInformation.map((fact) =>
+                                `${fact.statement.replace(/\ben:/g, "")} (${fact.source === "open_food_facts" ? "Open Food Facts" : "USDA"})`
+                              ).join(" · ")}
+                            </div>
+                          ) : null}
+                          {product.profileInsight && (
+                            <div style={{ color: "#d6d3d1", fontSize: 12, marginTop: 8, lineHeight: 1.45 }}>
+                               {product.recommendationStatus === "profile_matched_pick" ? "Why this pick: " : "Why compare this choice: "}
+                              {product.profileInsight}
+                            </div>
+                          )}
+                          {product.research?.length ? (
+                            <div style={{ color: "rgba(255,255,255,0.52)", fontSize: 11, marginTop: 7 }}>
+                              Sources checked: {product.research.map((step) =>
+                                `${step.source === "usda_branded" ? "USDA" : "Open Food Facts"} ${step.phase?.replace("_", " ") ?? "lookup"}: ${step.result.replace("_", " ")}`
+                              ).join(" · ")}
+                            </div>
+                          ) : null}
+                          <div style={{ color: "rgba(255,255,255,0.48)", fontSize: 11, marginTop: 7, lineHeight: 1.5 }}>
+                            {product.serving ? `Serving: ${product.serving} · ` : ""}
+                            {product.barcode ? `GTIN/UPC: ${product.barcode} · ` : ""}
+                            {product.source} #{product.sourceRecordId}
+                            {product.catalogDate ? ` · Source identity date (not formulation date): ${product.catalogDate}` : ""}
+                          </div>
+                          <div style={{ color: "#fdba74", fontSize: 11, marginTop: 8, lineHeight: 1.4 }}>{product.verificationMessage}</div>
+                          <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            <PillButton
+                              active={savedProductKeys.has(catalogSavedKey(product))}
+                              variant="amber"
+                              onClick={() => handleCatalogSave(product)}
+                              disabled={savedProductKeys.has(catalogSavedKey(product)) || !!savingKey}
+                            >
+                              {savedProductKeys.has(catalogSavedKey(product))
+                                ? t("findProduct.saved")
+                                : savingKey === catalogSavedKey(product)
+                                  ? t("findProduct.saving") : "Save to Groceries"}
+                            </PillButton>
+                            <PillButton
+                              active={productAddedKeys.has(`catalog:${product.productKey}`)}
+                              variant="amber"
+                              onClick={() => handleCatalogAddToList(product)}
+                              disabled={productAddedKeys.has(`catalog:${product.productKey}`)}
+                            >
+                              {productAddedKeys.has(`catalog:${product.productKey}`)
+                                ? t("findProduct.added") : t("findProduct.addToList")}
+                            </PillButton>
+                          </div>
+                          <div>
+                             {product.recommendationStatus === "review" && (
+                              <div style={{ color: "#fdba74", fontSize: 11, marginTop: 5 }}>
+                                Adding to your list does not resolve the product or current-label checks above.
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       ))}
                     </div>
                   )}

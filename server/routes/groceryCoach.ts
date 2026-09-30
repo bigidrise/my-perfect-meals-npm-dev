@@ -5,7 +5,7 @@ import { users, userSavedGroceryItems } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, buildGuestEnvelope, scanGeneratedOutput } from "../services/protocolEnvelope";
 import { resolveGLP1GlobalContext, buildGLP1RecommendationBlock } from "../services/glp1/resolveGLP1GlobalContext";
-import { getProductAdvisorEngine, ClinicalContextUnavailableError, WholeFoodRecommendationUnavailableError } from "../services/productAdvisor";
+import { getProductAdvisorEngine, ClinicalContextUnavailableError, ProductIngredientVerificationRequiredError, WholeFoodRecommendationUnavailableError } from "../services/productAdvisor";
 import { finalizeMealCard } from "../services/mealCardFinalizer";
 import { filterSavedGroceriesForCompliance, buildSavedGroceriesPromptBlock } from "../services/savedGroceryCompliance";
 import { getLanguageInstruction } from "../utils/languageInstruction";
@@ -15,6 +15,7 @@ import { classifyNutritionalRole, nutritionalRoleLabel, isRoleCompatible } from 
 import { createHumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
 import { buildHumanFoodPromptBlock } from "../services/humanFoodContext/buildHumanFoodPromptBlock";
 import { validateHumanFoodResult } from "../services/humanFoodContext/validateHumanFoodResult";
+import { findProductDevelopment, ProductSubjectContextUnavailableError } from "../services/productDiscovery/findProductDevelopment";
 
 const router = express.Router();
 
@@ -662,11 +663,48 @@ router.post("/product-advisor", async (req, res) => {
       return res.status(400).json({ error: "ingredients array is required" });
     }
 
+    // Only the Find a Product tab in Development uses catalog discovery.
+    // Smart Cart, Replace, Product Scan, and Production retain their paths.
+    if (process.env.NODE_ENV === "development" && req.body.mode === "find_product") {
+      if (ingredients.length !== 1 || typeof ingredients[0] !== "string" ||
+          !ingredients[0].trim() || ingredients[0].trim().length > 80) {
+        return res.status(400).json({ error: "Enter one product category (up to 80 characters)." });
+      }
+      try {
+        const matches = await findProductDevelopment(userId, ingredients[0]);
+        if (!matches.catalogMatches.length && !matches.catalogSearchAvailable) {
+          return res.status(503).json({
+            error: "The product catalog is unavailable right now. Please try again.",
+            retryable: true,
+          });
+        }
+        return res.json({
+          advice: [], ...matches,
+          catalogNotice: "Important: My Perfect Meals uses your profile and available product information to identify products that may fit your needs. Ingredients, formulations, manufacturing practices, and allergen information can change. Always review the current product label and allergen statements before purchasing or consuming, especially with a food allergy, intolerance, or medical dietary restriction. My Perfect Meals cannot guarantee a product is free from a specific allergen or ingredient.",
+        });
+      } catch (error) {
+        console.error("[FindProduct/Development]", error);
+        return res.status(error instanceof ProductSubjectContextUnavailableError ? 409 : 503).json({
+          error: error instanceof ProductSubjectContextUnavailableError
+            ? error.message
+            : "Product search encountered a temporary error. Please try again.",
+          retryable: true,
+        });
+      }
+    }
+
     const engine = getProductAdvisorEngine();
     const result = await engine.buildCartRecommendations(userId!, ingredients as string[], store);
 
     return res.json(result);
   } catch (err: any) {
+    if (err instanceof ProductIngredientVerificationRequiredError) {
+      return res.status(422).json({
+        code: "PRODUCT_INGREDIENTS_UNVERIFIED",
+        error: err.message,
+        retryable: false,
+      });
+    }
     if (err instanceof ClinicalContextUnavailableError) {
       return res.status(503).json({ error: err.message, retryable: true });
     }
