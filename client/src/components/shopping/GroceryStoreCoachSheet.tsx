@@ -126,6 +126,7 @@ interface ProductAdviceResult {
     profileInsight?: string;
   }[];
   sourceFailures?: string[];
+  catalogSearchAvailable?: boolean;
 }
 
 interface SwapSuggestion {
@@ -543,7 +544,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         setProductSearchOwnerKey(PRODUCT_SESSION_KEY); // stamp ownership so persist effect may write
         setProductPhase("result");
       } else {
-        setProductError(data?.sourceFailures?.length
+        setProductError(data?.sourceFailures?.length && !data?.catalogSearchAvailable
           ? "The product catalog is unavailable right now. Please try again."
           : t("findProduct.noResults"));
         setProductPhase("idle");

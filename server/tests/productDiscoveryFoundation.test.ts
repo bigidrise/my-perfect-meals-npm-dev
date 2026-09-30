@@ -11,6 +11,7 @@ import { discoverProductCandidates, type ProductRuleAssessor } from
   "../services/productDiscovery/discoverProductCandidates";
 import { findProductDevelopment } from "../services/productDiscovery/findProductDevelopment";
 import { createUsdaBrandedAdapter } from "../services/productDiscovery/usdaBrandedAdapter";
+import { createOpenFoodFactsSearchAdapter } from "../services/productDiscovery/openFoodFactsSearchAdapter";
 import { lookupOpenFoodFactsByBarcode, offEvidenceForExactUsdaProduct } from
   "../services/productDiscovery/openFoodFactsLookup";
 
@@ -671,5 +672,62 @@ describe("Phase 2B internal authority and product evidence foundation", () => {
     });
     expect(result.rejected).toBe(1);
     expect(result.catalogMatches).toHaveLength(0);
+  });
+  test("USDA 429 falls back to exact OFF rice records and continues past an avoided ingredient", async () => {
+    const primary = adapter([]);
+    primary.search = async () => { throw new Error("USDA 429"); };
+    const hits = [
+      { code: "0859278003295", product_name: "Rice & Quinoa",
+        brands: ["Supreme Rice"], countries_tags: ["en:united-states"], quantity: "2 lbs" },
+      { code: "0859278003066", product_name: "White Long Grain Rice",
+        brands: ["Louisiana Rice Mill Llc"], countries_tags: ["en:united-states"] },
+      { code: "9310140006451", product_name: "Australian Brown Rice",
+        brands: ["Sun Rice"], countries_tags: ["en:australia"] },
+    ];
+    const fetcher = jest.fn(async (url: URL) => {
+      const path = new URL(String(url)).pathname;
+      const value = path === "/search" ? { hits } : {
+        status: 1, product: path.includes("0859278003295")
+          ? { code: "0859278003295", product_name: "Rice & Quinoa",
+            brands: "Supreme Rice", countries_tags: ["en:united-states"],
+            quantity: "2 lbs", ingredients_text: "Rice, quinoa" }
+          : { code: "0859278003066", product_name: "White Long Grain Rice",
+            brands: "Louisiana Rice Mill Llc", countries_tags: ["en:united-states"],
+            ingredients_text: "Rice", nutriments: { carbohydrates_100g: 77.8 } },
+      };
+      return { ok: true, status: 200, json: async () => value };
+    }) as unknown as typeof fetch;
+    const result = await findProductDevelopment("owner", "rice", {
+      sources: sources({ diet: ["low_carb"], avoided: ["quinoa"] }),
+      adapter: primary, fallbackAdapter: createOpenFoodFactsSearchAdapter(fetcher),
+    });
+    expect(result.sourceFailures).toContain("Product source search was unavailable.");
+    expect(result.catalogSearchAvailable).toBe(true);
+    expect(result.rejected).toBe(1);
+    expect(result.catalogMatches).toEqual([
+      expect.objectContaining({
+        name: "White Long Grain Rice", source: "Open Food Facts",
+        barcode: "0859278003066", evidenceStatus: "needs_verification",
+        ingredients: "Rice",
+        nutrition: [expect.objectContaining({ source: "open_food_facts" })],
+        research: [
+          { source: "open_food_facts", result: "matched", phase: "search" },
+          { source: "open_food_facts", result: "matched", phase: "barcode_lookup" },
+        ],
+      }),
+    ]);
+    expect(fetcher).toHaveBeenCalledTimes(3);
+  });
+  test("an empty but working fallback search is not reported as a catalog outage", async () => {
+    const primary = adapter([]);
+    primary.search = async () => { throw new Error("USDA 429"); };
+    const fallback = createOpenFoodFactsSearchAdapter(
+      (async () => ({ ok: true, status: 200, json: async () => ({ hits: [] }) })) as typeof fetch,
+    );
+    const result = await findProductDevelopment("owner", "rice", {
+      sources: sources(), adapter: primary, fallbackAdapter: fallback,
+    });
+    expect(result.catalogMatches).toHaveLength(0);
+    expect(result.catalogSearchAvailable).toBe(true);
   });
 });

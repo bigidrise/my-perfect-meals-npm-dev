@@ -54,6 +54,7 @@ export interface ProductDiscoveryResult {
   rejectedCount: number;
   inspectedCount: number;
   sourceFailures: { source: string; sourceRecordId?: string; reason: string }[];
+  successfulSearchPages: number;
   knownConflicts: { productKey: string; reason: string }[];
 }
 
@@ -93,6 +94,7 @@ export async function discoverProductCandidates(input: {
     rejectedCount: 0,
     inspectedCount: 0,
     sourceFailures: [],
+    successfulSearchPages: 0,
     knownConflicts: [],
   };
   // Never search as if an unresolved subject or hard policy were unrestricted.
@@ -128,6 +130,7 @@ export async function discoverProductCandidates(input: {
         break;
       }
       pages++;
+      result.successfulSearchPages++;
       if (page.references.length > 25) throw new Error("Evidence provider exceeded the requested page size.");
       for (const reference of page.references) {
         if (result.inspectedCount >= maxCandidates || result.qualified.length >= targetCount ||
