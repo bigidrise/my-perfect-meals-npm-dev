@@ -85,6 +85,47 @@ test('catalog Add puts the exact branded Profile-Matched Pick on the shopping li
   expect(mockAddItem).toHaveBeenCalledTimes(1);
 });
 
+test('catalog Save keeps exact brand, variant, UPC, and review evidence in Saved Groceries without adding to list', async () => {
+  const productKey = 'upc::0851087000014';
+  (post as jest.Mock).mockImplementation(async (path: string, body: any) => {
+    if (path === '/api/saved-groceries') return { item: { productKey }, created: true };
+    return {
+      advice: [], profileUsed: ['Low-carb diet'], catalogSearchAvailable: true,
+      catalogMatches: [{
+        productKey: 'open_food_facts:0851087000014',
+        brand: 'Peanut Butter & Co', name: 'Smooth Operator Creamy Peanut Butter',
+        barcode: '0851087000014', source: 'Open Food Facts', sourceRecordId: '0851087000014',
+        catalogDate: '2026-09-30T00:00:00Z',
+        ingredients: 'Peanuts, salt', nutrition: [{ statement: 'Carbohydrates: 12 g', source: 'open_food_facts' }],
+        evidenceStatus: 'needs_verification', recommendationStatus: 'profile_matched_pick',
+        verificationMessage: 'Check the current label.',
+      }],
+    };
+  });
+  render(<GroceryStoreCoachSheet open={true} onOpenChange={jest.fn()} />);
+  fireEvent.click(screen.getByTestId('tab-find-product'));
+  fireEvent.change(screen.getByTestId('input-find-product'), { target: { value: 'peanut butter' } });
+  await act(async () => { fireEvent.click(screen.getByTestId('button-product-search')); });
+  const card = await screen.findByTestId('catalog-product-match');
+  fireEvent.click(within(card).getByRole('button', { name: 'Save to Groceries' }));
+  await waitFor(() => expect(within(card).getByRole('button', { name: 'findProduct.saved' })).toBeDisabled());
+  expect(post).toHaveBeenCalledWith('/api/saved-groceries', expect.objectContaining({
+    productName: 'Smooth Operator Creamy Peanut Butter',
+    brand: 'Peanut Butter & Co',
+    barcode: '0851087000014',
+    category: 'peanut butter',
+    source: 'grocery-coach',
+    productMeta: expect.objectContaining({
+      ingredients: ['Peanuts, salt'],
+      evidenceStatus: 'needs_verification',
+      recommendationStatus: 'profile_matched_pick',
+      verificationMessage: 'Check the current label.',
+      sourceRecordId: '0851087000014',
+    }),
+  }));
+  expect(mockAddItem).not.toHaveBeenCalled();
+});
+
 test('different UPC variants remain distinct through shopping-list hydration keys', () => {
   const one = classifyIngredient('Peanut Butter & Co Smooth Operator · UPC 0851087000014');
   const two = classifyIngredient('Peanut Butter & Co Smooth Operator · UPC 0851087000311');
