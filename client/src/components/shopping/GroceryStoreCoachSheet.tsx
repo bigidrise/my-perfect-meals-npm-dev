@@ -119,6 +119,7 @@ interface ProductAdviceResult {
     source: string;
     sourceRecordId: string;
     evidenceStatus: "eligible" | "needs_verification";
+    recommendationStatus: "profile_matched_pick" | "review";
     verificationMessage: string;
     needsProfileReview?: boolean;
     policyUnresolved?: boolean;
@@ -1084,9 +1085,9 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                         <div key={product.productKey} data-testid="catalog-product-match"
                           style={{ padding: "12px 14px", borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)" }}>
                           <div style={{ color: "white", fontWeight: 700, fontSize: 14 }}>{product.brand} · {product.name}</div>
-                          <div style={{ color: product.evidenceStatus === "eligible" ? "#86efac" : "#fb923c", fontSize: 11, fontWeight: 700, marginTop: 5 }}>
-                            {product.evidenceStatus === "eligible" ? "Profile-guided choice · check current package"
-                              : product.needsProfileReview ? "Needs profile review"
+                           <div style={{ color: product.recommendationStatus === "profile_matched_pick" ? "#86efac" : "#fb923c", fontSize: 11, fontWeight: 700, marginTop: 5 }}>
+                             {product.recommendationStatus === "profile_matched_pick" ? "Profile-Matched Pick · check current label"
+                               : product.needsProfileReview ? "Needs profile review"
                               : product.policyUnresolved ? "Profile-guided option · product rule not cleared"
                               : "Check Current Label"}
                           </div>
@@ -1107,7 +1108,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                           ) : null}
                           {product.profileInsight && (
                             <div style={{ color: "#d6d3d1", fontSize: 12, marginTop: 8, lineHeight: 1.45 }}>
-                              {product.evidenceStatus === "eligible" ? "Why this choice: " : "Why compare this choice: "}
+                               {product.recommendationStatus === "profile_matched_pick" ? "Why this pick: " : "Why compare this choice: "}
                               {product.profileInsight}
                             </div>
                           )}
@@ -1135,7 +1136,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                               {productAddedKeys.has(`catalog:${product.productKey}`)
                                 ? t("findProduct.added") : t("findProduct.addToList")}
                             </PillButton>
-                            {product.evidenceStatus !== "eligible" && (
+                             {product.recommendationStatus === "review" && (
                               <div style={{ color: "#fdba74", fontSize: 11, marginTop: 5 }}>
                                 Adding to your list does not resolve the product or current-label checks above.
                               </div>

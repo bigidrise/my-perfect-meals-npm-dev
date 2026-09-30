@@ -505,9 +505,11 @@ describe("Phase 2B internal authority and product evidence foundation", () => {
     expect(result.catalogMatches.map((match) => match.evidenceStatus))
       .toEqual(["eligible", "needs_verification"]);
     expect(result.catalogMatches[0].verificationMessage)
-      .toContain("no unresolved hard product rule");
+      .toContain("not verification of the physical package");
+    expect(result.catalogMatches[0].recommendationStatus).toBe("profile_matched_pick");
     expect(result.catalogMatches[1].verificationMessage)
       .toContain("missing ingredients and nutrition");
+    expect(result.catalogMatches[1].recommendationStatus).toBe("review");
     expect(result.catalogMatches[1].needsProfileReview).toBe(false);
   });
   test("a fresh context fingerprint on the second healthy profile read does not abort discovery", async () => {
@@ -564,9 +566,10 @@ describe("Phase 2B internal authority and product evidence foundation", () => {
     expect(result.catalogMatches.map(({ brand }) => brand))
       .toEqual(["Peanut Butter & Co.", "Pic's", "Smucker's"]);
     expect(result.catalogMatches[0].name).toBe("Unsweetened Peanut Butter");
-    expect(result.catalogMatches.every(({ evidenceStatus, needsProfileReview, policyUnresolved, profileInsight }) =>
-      evidenceStatus === "needs_verification" && !needsProfileReview && policyUnresolved &&
-      profileInsight?.includes("not an allergen or product-policy clearance"))).toBe(true);
+    expect(result.catalogMatches.every(({ evidenceStatus, recommendationStatus, needsProfileReview, policyUnresolved, profileInsight }) =>
+      evidenceStatus === "needs_verification" && recommendationStatus === "profile_matched_pick" &&
+      !needsProfileReview && policyUnresolved &&
+      profileInsight?.includes("check the current label"))).toBe(true);
     expect(result.unresolved).not.toContain("dietary_identity:low_carb");
   });
   test("Product Scan's profile factor labels come from the same resolved subject used for the choices", async () => {
@@ -609,7 +612,69 @@ describe("Phase 2B internal authority and product evidence foundation", () => {
       evidenceStatus: "eligible", needsProfileReview: false, policyUnresolved: false,
     });
     expect(result.catalogMatches[0].profileInsight).toContain("Serving and today's meals still determine low-carb fit");
-    expect(result.catalogMatches[0].verificationMessage).toContain("not a guarantee about today's package");
+    expect(result.catalogMatches[0].verificationMessage).toContain("not verification of the physical package");
+  });
+  test.each([
+    ["peanut butter", ["Peanuts, salt", "Peanuts", "Peanuts, sea salt"], [11, 14, 17]],
+    ["rice", ["Brown rice", "White rice", "Rice"], [76, 79, 78]],
+    ["milk", ["Milk, vitamin D", "Soybeans, water", "Oats, water"], [5, 3, 6]],
+    ["spaghetti sauce", ["Tomatoes, olive oil", "Tomatoes, garlic", "Tomatoes, salt"], [7, 9, 6]],
+  ])("Development %s search gives three qualified profile-matched comparisons without changing evidence verdict",
+    async (query, ingredients, carbs) => {
+      const fresh = new Date().toISOString();
+      const products = ingredients.map((statement, index) => record({
+        sourceRecordId: `${query}-${index}`,
+        barcode: `00000000000${String(index + 1).padStart(2, "0")}`,
+        identityObservedAt: fresh, observedAt: null,
+        name: `${query} variety ${index + 1}`, brand: `Brand ${index + 1}`,
+        facts: [
+          { kind: "ingredients", originalStatement: statement, completeness: "unknown" },
+          { kind: "nutrition", target: "carbs_g_per_100g",
+            originalStatement: `Carbohydrates: ${carbs[index]} g per 100g`,
+            completeness: "unknown", nutritionMeasurement: {
+              value: carbs[index], unit: "g", basis: "per_100g",
+            } },
+        ],
+      }));
+      const result = await findProductDevelopment("owner", query, {
+        sources: sources({ diet: ["low_carb"], allergies: ["shellfish"], avoided: ["quinoa"] }),
+        adapter: adapter(products),
+      });
+      expect(result.catalogMatches).toHaveLength(3);
+      expect(result.catalogMatches.map((item) => item.brand).sort()).toEqual([
+        "Brand 1", "Brand 2", "Brand 3",
+      ]);
+      for (const match of result.catalogMatches) {
+        expect(match).toMatchObject({
+          evidenceStatus: "needs_verification", recommendationStatus: "profile_matched_pick",
+          needsProfileReview: false, policyUnresolved: true,
+        });
+        expect(match.profileInsight).toContain("your low-carb pattern");
+        expect(match.profileInsight).toContain("check the current label");
+        expect(match.verificationMessage).toContain("not verification of the physical package");
+      }
+    });
+  test("clinical policy gaps and missing ingredients stay review cases, even when nutrition is present", async () => {
+    const fresh = new Date().toISOString();
+    const product = record({
+      observedAt: null, identityObservedAt: fresh,
+      facts: [{ kind: "nutrition", originalStatement: "Sodium: 40 mg per serving", completeness: "unknown" }],
+    });
+    const missing = await findProductDevelopment("owner", "milk", {
+      sources: sources({ allergies: ["shellfish"] }), adapter: adapter([product]),
+    });
+    expect(missing.catalogMatches[0].recommendationStatus).toBe("review");
+    const clinical = await findProductDevelopment("owner", "milk", {
+      sources: sources({ hard: ["sodium limit"] }),
+      adapter: adapter([record({
+        ...product, facts: [
+          { kind: "ingredients", originalStatement: "Oats, water", completeness: "unknown" },
+          ...product.facts,
+        ],
+      })]),
+    });
+    expect(clinical.catalogMatches[0].recommendationStatus).toBe("review");
+    expect(clinical.catalogMatches[0].verificationMessage).toContain("clinical:sodium limit");
   });
   test("Development can search a second OFF page for distinct branded choices", async () => {
     const fetcher = jest.fn(async (url: URL) => ({
@@ -701,13 +766,12 @@ describe("Phase 2B internal authority and product evidence foundation", () => {
     expect(result.catalogMatches).toHaveLength(1);
     expect(result.catalogMatches[0]).toMatchObject({
       name: "Wheat pasta", evidenceStatus: "needs_verification",
-      needsProfileReview: false, policyUnresolved: true,
+      recommendationStatus: "profile_matched_pick", needsProfileReview: false, policyUnresolved: true,
     });
-    expect(result.catalogMatches[0].verificationMessage)
-      .not.toContain("dietary_identity:low_carb");
-    expect(result.catalogMatches[0].verificationMessage).toContain("explicit_avoidance:shellfish");
+    expect(result.unresolved).not.toContain("dietary_identity:low_carb");
+    expect(result.unresolved).toContain("explicit_avoidance:shellfish");
     expect(result.catalogMatches[0].profileInsight).toContain("For your low-carb pattern");
-    expect(result.catalogMatches[0].profileInsight).toContain("not an allergen or product-policy clearance");
+    expect(result.catalogMatches[0].profileInsight).toContain("check the current label");
     expect(interpret).not.toHaveBeenCalled();
   });
   test("a declared shellfish trace excludes the exact product for a shellfish allergy", async () => {
@@ -893,6 +957,7 @@ describe("Phase 2B internal authority and product evidence foundation", () => {
     expect(result.catalogMatches[0]).toMatchObject({
       name: "Ragu Unsweetened Sauce", evidenceStatus: "needs_verification",
     });
+    expect(result.catalogMatches[0].recommendationStatus).toBe("review");
     expect(result.catalogMatches[0].profileInsight).toContain("not an allergen or product-policy clearance");
   });
   test("a conflict discovered only during exact-product enrichment is rejected", async () => {
@@ -958,7 +1023,8 @@ describe("Phase 2B internal authority and product evidence foundation", () => {
     expect(result.catalogMatches).toEqual([
       expect.objectContaining({
         name: "White Long Grain Rice", source: "Open Food Facts",
-        barcode: "0859278003066", evidenceStatus: "needs_verification",
+         barcode: "0859278003066", evidenceStatus: "needs_verification",
+         recommendationStatus: "profile_matched_pick",
         ingredients: "Rice",
         nutrition: [expect.objectContaining({ source: "open_food_facts" })],
         research: [
