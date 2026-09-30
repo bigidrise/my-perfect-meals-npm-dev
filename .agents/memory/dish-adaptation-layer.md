@@ -27,6 +27,10 @@ The identity validator rejects a dish that keeps its name but arrives in a diffe
 **Why:** a model that can't solve a constraint escapes by converting the dish to another format while keeping the name.
 **How to apply:** form is judged from the generated meal's NAME only (descriptions/instructions legitimately mention "mixing bowl", bread, etc.), and a free-form dishForm string contributes only ONE primary allowed family — structural descriptors like "broth-based" must never whitelist a different presentation.
 
+**Rule:** A person-authorized vessel adaptation can preserve a prepared dish even when its default physical form changes; the permission must come from resolved person context and a changeable vessel in the dish contract, never the generated title. The finished recipe must independently prove its defining structure and pass all food protections.
+**Why:** A low-carb burger bowl or lettuce wrap can fulfill a burger request without a bun, while a merely renamed unrelated bowl must still fail. Gluten-free bread is not necessarily low-carb.
+**How to apply:** Keep the default physical-form rejection for other requests. For an authorized adaptation, test structured core and serving-vessel evidence separately; do not relax allergy, clinical, nutrition, or final-release validation. Do not infer permission from a user-selected form or generated name.
+
 ## Candidate-derived identity evidence
 **Rule:** cuisine, flavor, and identity evidence must describe the generated candidate; never copy the requested context into candidate evidence as a fallback.
 

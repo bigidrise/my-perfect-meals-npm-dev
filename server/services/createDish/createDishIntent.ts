@@ -442,18 +442,63 @@ export function evaluateCreateDishIntentEvidence(
   // affirmative evidence for multiple distinct defining components in the
   // structured recipe, in addition to the existing dish/form identity gate.
   const preparedDish = meaning?.concept.kind === "prepared_dish";
+  const structuredNames = Array.isArray(candidate.ingredients)
+    ? candidate.ingredients.map((part) =>
+        typeof part === "string" ? part :
+        part && typeof part === "object" ? String((part as Record<string, unknown>).name ?? (part as Record<string, unknown>).item ?? "") : "",
+      ).filter(Boolean)
+    : [];
   const definingTerms = contract.definingComponents
     .map(component => component.split("(")[0].trim().toLowerCase())
-    .filter(component => component.length >= 4 &&
+    .filter(component => component.length >= 3 &&
       !/^(?:the|vegetables?|proteins?|ingredients?|seasonings?|spices?|meat|seafood|base|sauce)$/.test(component));
   const recipeText = `${ingredients}. ${instructions}`;
-  const componentMatches = definingTerms.filter(component =>
-    hasAffirmativeTerm(recipeText, [component]));
+  const isVessel = (component: string) => /\b(?:buns?|breads?|rolls?|tortillas?|wraps?|pitas?|flatbreads?)\b/i.test(component);
+  const adaptedVessel = contract.permittedFormFamilies?.some(family =>
+    hasAffirmativeTerm(title, [family]) &&
+    (family === "bowl"
+      ? /\b(?:serve|assemble|place|spoon|layer)\b[^.!?;]{0,65}\bin(?:to)?\s+(?:a|the|individual)?\s*bowls?\b/i.test(instructions)
+      : /\b(?:wrap|fold|roll|fill)\b[^.!?;]{0,65}\b(?:lettuce|leaves|leaf)\b/i.test(instructions) &&
+        /\blettuce\s+leaves?\b/i.test(ingredients)),
+  ) ?? false;
+  const matchesComponent = (component: string): boolean => {
+    if (isVessel(component)) {
+      return hasAffirmativeTerm(ingredients, [component, "bun", "buns", "bread", "roll", "tortilla", "pita"]) ||
+        adaptedVessel;
+    }
+    // Structural roles need preparation and concrete structured food, not a
+    // title or a generated ingredient literally named "toppings"/"patty".
+    if (/\bpatt(?:y|ies)\b/.test(component)) {
+      const namedMaterial = component
+        .replace(/\bpatt(?:y|ies)\b|\b(?:ground|minced|formed|meat|protein|plant.based)\b/gi, " ")
+        .trim().replace(/\s+/g, " ");
+      return structuredNames.some(name => !/\b(?:sauce|spread|seasoning|bun|bread)\b/i.test(name)) &&
+        (!namedMaterial || hasAffirmativeTerm(ingredients, [namedMaterial])) &&
+        (hasAffirmativeTerm(ingredients, ["patty", "patties"]) ||
+          hasAffirmativeTerm(instructions, ["patty", "patties"]));
+    }
+    if (/\bcondiments?\b/.test(component)) {
+      return structuredNames.some(name => /\b(?:sauce|spread|dressing|relish|mayo(?:nnaise)?|mustard|ketchup|chutney)\b/i.test(name));
+    }
+    if (/\btoppings?\b/.test(component)) {
+      return structuredNames.length >= 3 &&
+        /\b(?:top|layer|pile|stack|assemble)\b/i.test(instructions);
+    }
+    return hasAffirmativeTerm(recipeText, [component]);
+  };
+  const componentMatches = definingTerms.filter(matchesComponent);
+  const hasStructuralRole = definingTerms
+    .filter(component => /\bpatt(?:y|ies)\b/.test(component))
+    .every(matchesComponent);
+  const hasRequiredVessel = definingTerms
+    .filter(isVessel)
+    .every(matchesComponent);
   const dishIdentity = preparedDish
     ? validateDishIdentity(contract.requestedDish, candidate as any, {
         identityAnchor: contract.requestedDish,
         definingComponents: contract.definingComponents,
         adaptableComponents: contract.adaptableComponents,
+        permittedFormFamilies: contract.permittedFormFamilies,
         dishForm: contract.physicalForm ?? undefined,
         conflicts: contract.conflicts,
         adaptationBlock: "",
@@ -461,6 +506,8 @@ export function evaluateCreateDishIntentEvidence(
     : null;
   const ingredientPassed = preparedDish
     ? !!dishIdentity?.passed && !dishIdentity.catastrophicDeviation &&
+      hasStructuralRole &&
+      hasRequiredVessel &&
       definingTerms.length > 0 &&
       componentMatches.length >= Math.min(2, definingTerms.length)
     : ingredientFound && leafEvidence;
@@ -534,7 +581,7 @@ export function buildCreateDishIntentRepairInstructions(
     : contract.leafVessel ? "lettuce leaves" : intent.ingredient.canonicalName;
   const ingredientReason = failedDimensions.includes("ingredient") && preparedDish
     ? `The structured ingredients and preparation did not verify the defining components of "${contract.requestedDish}". ` +
-      `Keep its recognizable physical form and show its real ingredients; do not list the prepared dish itself as an ingredient. ` +
+      `Keep its recognizable dish structure and show its real ingredients; do not list the prepared dish itself as an ingredient. ` +
       `If the culinary interpretation is uncertain, do not invent a component or evade food protections.`
     : failedDimensions.includes("ingredient")
     ? `The recipe ingredient list did not affirm the defining ${core}` +
@@ -548,7 +595,8 @@ export function buildCreateDishIntentRepairInstructions(
   return [
     `The previous candidates did not satisfy: ${failedDimensions.join(", ")}.`,
     ingredientReason,
-    `Keep the named dish "${contract.requestedDish}" and its ${contract.physicalForm ?? "original physical form"}.`,
+    `Keep the named dish "${contract.requestedDish}" and its ${contract.physicalForm ?? "original physical form"}` +
+      (contract.permittedFormFamilies?.length ? `, or an authorized ${contract.permittedFormFamilies.join("/")} presentation preserving the dish's defining roles.` : "."),
     ...contract.definingComponents.slice(0, 4)
       .filter(part => part.trim().length >= 4 && !/^the\b/i.test(part.trim()))
       .map((part) => `Preserve defining role: ${part}.`),
