@@ -4,7 +4,10 @@ const generate = jest.fn();
 const preflight = jest.fn();
 jest.mock("../services/unifiedMealPipeline", () => ({ generateCravingMealOptions: (...args: unknown[]) => generate(...args) }));
 jest.mock("../services/safetyProfileService", () => ({ enforceSafetyProfile: (...args: unknown[]) => preflight(...args) }));
-jest.mock("../services/oneTouch/directions", () => ({ validateOneTouchDirectionSafety: jest.fn(() => []) }));
+jest.mock("../services/oneTouch/directions", () => ({
+  validateOneTouchDirectionSafety: jest.fn(() => []),
+  validateDishConcept: jest.fn(() => []),
+}));
 jest.mock("../services/dishAdaptation/dishAdaptationLayer", () => ({
   buildGuardrailContext: jest.fn(() => ({})),
   getDishAdaptationDirective: jest.fn(async () => null),
@@ -168,5 +171,44 @@ describe("selected Creator Menu concept handoff", () => {
     }]);
     const result = await completeSelectedConcept(input(concept("Beef and Cauliflower Stir-Fry", ["beef", "cauliflower"])));
     expect(result).toEqual({ ok: false, code: "identity_mismatch" });
+  });
+
+  it("accepts concrete Gomen ingredients under ordinary singular/plural preparation wording", async () => {
+    const direction = concept("Gomen (Ethiopian Collard Greens)", [
+      "collard greens", "onions", "garlic", "niter kibbeh", "turmeric", "injera",
+    ]);
+    generate.mockResolvedValue([{
+      name: "Gomen (Ethiopian Collard Greens)", description: "Ethiopian collard greens.",
+      ingredients: ["chopped collard greens", "red onion", "minced garlic", "niter kibbeh",
+        "ground turmeric", "injera"].map(name => ({ name, quantity: "1", unit: "tbsp" })),
+      instructions: ["Cook the greens and serve with injera."],
+      calories: 400, protein: 30, carbs: 20, fat: 15, imageUrl: "",
+    }]);
+    const result = await completeSelectedConcept(input(direction));
+    expect(result.ok).toBe(true);
+    expect(generate).toHaveBeenCalledTimes(1);
+  });
+
+  it("still rejects a missing concrete Gomen ingredient after the targeted repair", async () => {
+    const direction = concept("Gomen (Ethiopian Collard Greens)", [
+      "collard greens", "onions", "garlic", "niter kibbeh", "turmeric", "injera",
+    ]);
+    generate.mockResolvedValue([{
+      name: "Gomen (Ethiopian Collard Greens)", description: "Ethiopian collard greens.",
+      ingredients: ["collard greens", "red onion", "garlic", "olive oil", "turmeric",
+        "injera"].map(name => ({ name, quantity: "1", unit: "tbsp" })),
+      instructions: ["Cook the greens."], calories: 400, protein: 30, carbs: 20, fat: 15,
+    }]);
+    const result = await completeSelectedConcept(input(direction));
+    expect(result).toEqual({ ok: false, code: "identity_mismatch" });
+    expect(generate).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects old abstract ingredient cards before spending time generating recipes", async () => {
+    const { validateDishConcept } = require("../services/oneTouch/directions");
+    validateDishConcept.mockReturnValueOnce(["culinary_shape:abstract_primary_ingredient"]);
+    const result = await completeSelectedConcept(input(concept("Gomen", ["collard greens", "spices"])));
+    expect(result).toEqual({ ok: false, code: "concept_rejected", reasonCode: "abstract_primary_ingredient" });
+    expect(generate).not.toHaveBeenCalled();
   });
 });
