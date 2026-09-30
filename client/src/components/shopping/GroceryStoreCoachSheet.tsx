@@ -120,6 +120,10 @@ interface ProductAdviceResult {
     sourceRecordId: string;
     evidenceStatus: "needs_verification";
     verificationMessage: string;
+    research?: { source: string; result: string; phase?: string }[];
+    nutrition?: { statement: string; source: string }[];
+    allergenInformation?: { statement: string; source: string }[];
+    profileInsight?: string;
   }[];
   sourceFailures?: string[];
 }
@@ -341,7 +345,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   // Same session-restore pattern as the meal result, scoped per user.
   const PRODUCT_SESSION_KEY = useMemo(
     // Do not restore pre-catalog AI brand suggestions as verified products.
-    () => `grocery-coach-product-search:catalog-v1:${user?.id ?? "guest"}`,
+    () => `grocery-coach-product-search:catalog-v2:${user?.id ?? "guest"}`,
     [user?.id]
   );
 
@@ -1056,6 +1060,30 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                           <div style={{ color: "rgba(255,255,255,0.62)", fontSize: 12, marginTop: 7, lineHeight: 1.45 }}>
                             {product.ingredients ? `Catalog ingredients: ${product.ingredients}` : "Ingredient declaration unavailable."}
                           </div>
+                          {product.nutrition?.length ? (
+                            <div style={{ color: "rgba(255,255,255,0.62)", fontSize: 11, marginTop: 7, lineHeight: 1.45 }}>
+                              Source nutrition: {product.nutrition.slice(0, 5).map((fact) => fact.statement).join(" · ")}
+                            </div>
+                          ) : null}
+                          {product.allergenInformation?.length ? (
+                            <div style={{ color: "rgba(255,255,255,0.62)", fontSize: 11, marginTop: 7, lineHeight: 1.45 }}>
+                              Catalog allergen declarations: {product.allergenInformation.map((fact) =>
+                                `${fact.statement.replace(/\ben:/g, "")} (${fact.source === "open_food_facts" ? "Open Food Facts" : "USDA"})`
+                              ).join(" · ")}
+                            </div>
+                          ) : null}
+                          {product.profileInsight && (
+                            <div style={{ color: "#d6d3d1", fontSize: 12, marginTop: 8, lineHeight: 1.45 }}>
+                              Profile context (not a product approval): {product.profileInsight}
+                            </div>
+                          )}
+                          {product.research?.length ? (
+                            <div style={{ color: "rgba(255,255,255,0.52)", fontSize: 11, marginTop: 7 }}>
+                              Sources checked: {product.research.map((step) =>
+                                `${step.source === "usda_branded" ? "USDA" : "Open Food Facts"} ${step.phase?.replace("_", " ") ?? "lookup"}: ${step.result.replace("_", " ")}`
+                              ).join(" · ")}
+                            </div>
+                          ) : null}
                           <div style={{ color: "rgba(255,255,255,0.48)", fontSize: 11, marginTop: 7, lineHeight: 1.5 }}>
                             {product.serving ? `Serving: ${product.serving} · ` : ""}
                             {product.barcode ? `GTIN/UPC: ${product.barcode} · ` : ""}

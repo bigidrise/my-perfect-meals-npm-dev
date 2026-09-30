@@ -1,4 +1,6 @@
 import type { ProductEvidenceAdapter, SourceProductRecord } from "./productEvidenceAdapters";
+import { canonicalGtin } from "./productEvidenceAdapters";
+import { lookupOpenFoodFactsByBarcode, offEvidenceForExactUsdaProduct } from "./openFoodFactsLookup";
 
 interface UsdaSearchFood {
   fdcId: number;
@@ -34,6 +36,7 @@ const NUTRIENTS: Record<number, { target: string; unit: string }> = {
 export function createUsdaBrandedAdapter(fetcher: typeof fetch = fetch): ProductEvidenceAdapter {
   const records = new Map<string, SourceProductRecord>();
   const cache = new Map<string, { expiresAt: number; foods: UsdaSearchFood[] }>();
+  let detailsRateLimited = false;
   return {
     source: "usda_branded",
     async search(intent, cursor, limit) {
@@ -110,6 +113,7 @@ export function createUsdaBrandedAdapter(fetcher: typeof fetch = fetch): Product
           market: food.marketCountry?.trim(),
           exactVariantMatch: !!food.gtinUpc && !!food.description && !!food.marketCountry,
           facts,
+          research: [{ source: "usda_branded", result: "matched", phase: "search" }],
         });
         return { source: "usda_branded" as const, sourceRecordId };
       });
@@ -123,6 +127,79 @@ export function createUsdaBrandedAdapter(fetcher: typeof fetch = fetch): Product
       const record = records.get(reference.sourceRecordId);
       if (!record) throw new Error("USDA record is not in this search snapshot.");
       return record;
+    },
+    async enrich(reference, initial) {
+      if (reference.sourceRecordId !== initial.sourceRecordId ||
+          initial.source !== "usda_branded") {
+        throw new Error("USDA enrichment reference does not match the candidate.");
+      }
+      const research = [...initial.research ?? []];
+      let record = initial;
+      if (!detailsRateLimited) {
+        try {
+          const url = new URL(`https://api.nal.usda.gov/fdc/v1/food/${encodeURIComponent(reference.sourceRecordId)}`);
+          url.searchParams.set("api_key", "DEMO_KEY");
+          const response = await fetcher(url, {
+            headers: { Accept: "application/json" }, signal: AbortSignal.timeout(7000),
+          });
+          if (response.status === 429) detailsRateLimited = true;
+          if (!response.ok) throw new Error(`USDA detail ${response.status}`);
+          const detail = await response.json() as {
+            fdcId?: number; gtinUpc?: string; ingredients?: string;
+            foodNutrients?: { nutrient?: { id?: number; name?: string; unitName?: string }; amount?: number }[];
+          };
+          if (String(detail.fdcId) !== reference.sourceRecordId ||
+              canonicalGtin(detail.gtinUpc ?? "") !== canonicalGtin(initial.barcode ?? "")) {
+            research.push({ source: "usda_branded", result: "identity_mismatch", phase: "detail" });
+          } else {
+            const detailedFacts: SourceProductRecord["facts"][number][] = [];
+            if (detail.ingredients?.trim()) detailedFacts.push({
+              kind: "ingredients", originalStatement: detail.ingredients.trim(),
+              completeness: "unknown",
+            });
+            for (const nutrient of detail.foodNutrients ?? []) {
+              const match = NUTRIENTS[nutrient.nutrient?.id ?? -1];
+              if (!match || typeof nutrient.amount !== "number" ||
+                  !Number.isFinite(nutrient.amount) ||
+                  nutrient.nutrient?.unitName?.toLowerCase() !== match.unit) continue;
+              detailedFacts.push({
+                kind: "nutrition", target: match.target,
+                originalStatement: `${nutrient.nutrient.name}: ${nutrient.amount} ${match.unit} per 100g (USDA exact record)`,
+                completeness: "unknown",
+                nutritionMeasurement: { value: nutrient.amount, unit: match.unit, basis: "per_100g" },
+              });
+            }
+            // Do not mix nutrient revisions within one USDA candidate: use
+            // the exact detail facts for each kind when present.
+            record = {
+              ...record,
+              facts: [
+                ...initial.facts.filter((fact) =>
+                  fact.kind !== "ingredients" || !detailedFacts.some((d) => d.kind === "ingredients"))
+                  .filter((fact) => fact.kind !== "nutrition" ||
+                    !detailedFacts.some((d) => d.kind === "nutrition" && d.target === fact.target)),
+                ...detailedFacts,
+              ],
+            };
+            research.push({ source: "usda_branded", result: "matched", phase: "detail" });
+          }
+        } catch {
+          research.push({ source: "usda_branded", result: "unavailable", phase: "detail" });
+        }
+      } else {
+        research.push({ source: "usda_branded", result: "unavailable", phase: "detail" });
+      }
+      if (record.barcode) {
+        const off = await lookupOpenFoodFactsByBarcode(record.barcode, fetcher);
+        const supplement = offEvidenceForExactUsdaProduct(off, record, new Date().toISOString());
+        research.push({ source: "open_food_facts", result: supplement.result, phase: "barcode_lookup" });
+        if (supplement.result === "matched") {
+          record = { ...record, facts: [...record.facts, ...supplement.facts] };
+        }
+      } else {
+        research.push({ source: "open_food_facts", result: "skipped", phase: "barcode_lookup" });
+      }
+      return { ...record, research };
     },
   };
 }

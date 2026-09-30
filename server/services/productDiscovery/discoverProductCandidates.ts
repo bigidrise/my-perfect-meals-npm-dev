@@ -72,6 +72,8 @@ export async function discoverProductCandidates(input: {
   maxCandidates: number;
   maxPages: number;
   targetCount: number;
+  /** Limit expensive enrichment to candidates actually presented after known conflicts. */
+  maxEvaluatedCandidates?: number;
 }): Promise<ProductDiscoveryResult> {
   const { maxCandidates, maxPages, targetCount } = input;
   if (![maxCandidates, maxPages, targetCount].every((value) =>
@@ -107,6 +109,8 @@ export async function discoverProductCandidates(input: {
     const visitedCursors = new Set<string>();
     do {
       if (pages >= maxPages || result.inspectedCount >= maxCandidates ||
+          (input.maxEvaluatedCandidates !== undefined &&
+            result.evaluatedCandidates.length >= input.maxEvaluatedCandidates) ||
           result.qualified.length >= targetCount) break outer;
       if (cursor !== null) {
         if (visitedCursors.has(cursor)) throw new Error("Evidence provider repeated its pagination cursor.");
@@ -126,7 +130,9 @@ export async function discoverProductCandidates(input: {
       pages++;
       if (page.references.length > 25) throw new Error("Evidence provider exceeded the requested page size.");
       for (const reference of page.references) {
-        if (result.inspectedCount >= maxCandidates || result.qualified.length >= targetCount) break outer;
+        if (result.inspectedCount >= maxCandidates || result.qualified.length >= targetCount ||
+            (input.maxEvaluatedCandidates !== undefined &&
+              result.evaluatedCandidates.length >= input.maxEvaluatedCandidates)) break outer;
         if (reference.source !== adapter.source || !reference.sourceRecordId.trim()) {
           throw new Error("Evidence provider returned a mismatched source reference.");
         }
@@ -144,7 +150,7 @@ export async function discoverProductCandidates(input: {
         if (record.source !== reference.source || record.sourceRecordId !== reference.sourceRecordId) {
           throw new Error("Evidence provider returned a different source record.");
         }
-        const candidate = normalizeProductEvidence(record);
+        let candidate = normalizeProductEvidence(record);
         // Never combine facts from separate source versions or conflicting
         // variants merely because the barcode or display name is similar.
         const signature = productCandidateSignature(candidate);
@@ -156,6 +162,31 @@ export async function discoverProductCandidates(input: {
           result.knownConflicts.push({ productKey: candidate.identity.key, reason: conflict });
           continue;
         }
+        if (adapter.enrich) {
+          try {
+            const enriched = await adapter.enrich(reference, record);
+            if (enriched.source !== reference.source ||
+                enriched.sourceRecordId !== reference.sourceRecordId ||
+                enriched.barcode !== record.barcode ||
+                enriched.market !== record.market) {
+              throw new Error("Enrichment changed product identity.");
+            }
+            record = enriched;
+            candidate = normalizeProductEvidence(record);
+          } catch {
+            result.sourceFailures.push({
+              source: adapter.source, sourceRecordId: reference.sourceRecordId,
+              reason: "Exact product research failed; catalog facts were retained.",
+            });
+          }
+        }
+        const enrichedConflict = input.knownConflict?.(candidate, subject);
+        if (enrichedConflict) {
+          result.rejectedCount++;
+          result.knownConflicts.push({ productKey: candidate.identity.key, reason: enrichedConflict });
+          continue;
+        }
+        const enrichedSignature = productCandidateSignature(candidate);
         const assessments: ProductRuleAssessment[] = [];
         for (const requirement of policy.context.hardRequirements) {
           const assessment = await assessor.assess({
@@ -167,7 +198,7 @@ export async function discoverProductCandidates(input: {
             subjectId: subject.subjectId,
             contextFingerprint: policy.context.contextFingerprint,
             policyVersion: policy.context.policyVersion,
-            candidateSignature: signature,
+            candidateSignature: enrichedSignature,
           });
         }
         const decision = evaluateProductCandidate(candidate, policy.context, assessments);

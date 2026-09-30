@@ -20,6 +20,7 @@ export type ApprovedProductEvidenceSource = Exclude<
 
 export type ProductFactKind =
   | "ingredients"
+  | "declared_allergens"
   | "precautionary_allergens"
   | "nutrition"
   | "certification"
@@ -77,6 +78,11 @@ export interface ProductFact {
 export interface ProductCandidate {
   identity: ProductIdentity;
   facts: readonly ProductFact[];
+  research?: readonly {
+    source: "usda_branded" | "open_food_facts";
+    result: "matched" | "unavailable" | "not_found" | "identity_mismatch" | "evidence_conflict" | "skipped";
+    phase?: "search" | "detail" | "barcode_lookup";
+  }[];
 }
 
 export interface ProductEvidenceNeed {

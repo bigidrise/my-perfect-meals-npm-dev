@@ -11,6 +11,8 @@ import { discoverProductCandidates, type ProductRuleAssessor } from
   "../services/productDiscovery/discoverProductCandidates";
 import { findProductDevelopment } from "../services/productDiscovery/findProductDevelopment";
 import { createUsdaBrandedAdapter } from "../services/productDiscovery/usdaBrandedAdapter";
+import { lookupOpenFoodFactsByBarcode, offEvidenceForExactUsdaProduct } from
+  "../services/productDiscovery/openFoodFactsLookup";
 
 const NOW = "2026-09-30T12:00:00.000Z";
 const SUBJECT = { actorUserId: "owner", subjectUserId: "owner", subjectKind: "account" as const, dateISO: "2026-09-30" };
@@ -33,6 +35,7 @@ const AVOID_REVIEW: ProductRuleEvidenceRegistry = {
 };
 function sources(options: {
   diet?: string[];
+  allergies?: string[];
   envelopeDiet?: string[];
   dislikes?: string[];
   avoided?: string[];
@@ -55,7 +58,7 @@ function sources(options: {
       source: options.requestDiet ? "request" : "profile",
     },
     safety: {
-      allergies: [], avoidedFoods: options.avoided ?? [],
+      allergies: options.allergies ?? [], avoidedFoods: options.avoided ?? [],
       dislikedFoods: options.dislikes ?? [], glp1MealAuthorityActive: false,
     },
     nutrition: null,
@@ -64,7 +67,7 @@ function sources(options: {
   const envelope = {
     userId: "owner",
     dietaryIdentity: options.envelopeDiet ?? options.diet ?? [],
-    allergies: [],
+    allergies: options.allergies ?? [],
     medicalHardLimits: options.hard ?? [],
     medicalOptimization: options.optimization ?? [],
     preferences: [],
@@ -513,5 +516,160 @@ describe("Phase 2B internal authority and product evidence foundation", () => {
     const provider = createUsdaBrandedAdapter(fetcher);
     const page = await provider.search(INTENT, null, 8);
     expect(page.references.map((item) => item.sourceRecordId)).toEqual(["2"]);
+  });
+  test("exact USDA detail and same-GTIN OFF evidence keep independent provenance", async () => {
+    const food = {
+      fdcId: 2078244, description: "MILK", brandName: "WINN-DIXIE",
+      gtinUpc: "02114029705", marketCountry: "United States",
+      packageWeight: "1 GAL/3.78 L", foodCategory: "Milk",
+      publishedDate: "2021-10-28", ingredients: "MILK, VITAMIN D3.",
+      servingSize: 240, servingSizeUnit: "ml",
+      foodNutrients: [{ nutrientId: 1005, nutrientName: "Carbohydrate, by difference",
+        unitName: "G", value: 4.58 }],
+    };
+    const fetcher = jest.fn(async (url: URL) => {
+      const path = new URL(String(url)).pathname;
+      const value = path.endsWith("/foods/search")
+        ? { foods: [food] }
+        : path.endsWith("/food/2078244")
+          ? { fdcId: food.fdcId, gtinUpc: food.gtinUpc,
+            ingredients: food.ingredients, foodNutrients: [
+              { nutrient: { id: 1005, name: "Carbohydrate, by difference",
+                unitName: "G" }, amount: 4.58 },
+            ] }
+          : { status: 1, code: "0002114029705", product: {
+            code: "0002114029705", brands: "Winn Dixie", product_name: "Milk",
+            countries_tags: ["en:united-states"], quantity: "1 gal",
+            ingredients_text: "Milk, vitamin D3.",
+            allergens_tags: ["en:milk"], traces_tags: [],
+            nutrition_data_per: "100ml",
+            nutriments: { carbohydrates_100ml: 4.58 },
+          } };
+      return { ok: true, status: 200, json: async () => value };
+    }) as unknown as typeof fetch;
+    const provider = createUsdaBrandedAdapter(fetcher);
+    const page = await provider.search(INTENT, null, 8);
+    const initial = await provider.read(page.references[0]);
+    const enriched = await provider.enrich!(page.references[0], initial);
+    const candidate = normalizeProductEvidence(enriched);
+    expect(enriched.research).toEqual([
+      { source: "usda_branded", result: "matched", phase: "search" },
+      { source: "usda_branded", result: "matched", phase: "detail" },
+      { source: "open_food_facts", result: "matched", phase: "barcode_lookup" },
+    ]);
+    expect(candidate.facts).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: "nutrition", target: "carbs_g_per_100g",
+        provenance: expect.objectContaining({ source: "usda_branded" }) }),
+      expect.objectContaining({ kind: "nutrition", target: "carbs_g_per_100ml",
+        provenance: expect.objectContaining({
+          source: "open_food_facts", observedAt: "", barcode: "0002114029705",
+          identityKey: candidate.identity.key,
+        }) }),
+    ]));
+  });
+  test("OFF rejects different variant and conflicting ingredients despite a matching barcode", () => {
+    const original = record({
+      name: "Ragu Marinara Sauce", brand: "Ragu", barcode: "123456789012",
+      market: "United States", packageSize: "24 oz",
+      facts: [{ kind: "ingredients", originalStatement: "Tomato, salt",
+        completeness: "unknown" }],
+    });
+    const sameCode = { status: "matched" as const, barcode: "00123456789012",
+      product: { brands: "Ragu", product_name: "Marinara Sauce",
+        countries_tags: ["en:united-states"], quantity: "24 oz",
+        ingredients_text: "Tomato, sugar, salt" } };
+    expect(offEvidenceForExactUsdaProduct(sameCode, original, NOW).result)
+      .toBe("evidence_conflict");
+    expect(offEvidenceForExactUsdaProduct({ ...sameCode, product: {
+      ...sameCode.product, quantity: "48 oz",
+    } }, original, NOW).result).toBe("identity_mismatch");
+    expect(offEvidenceForExactUsdaProduct({ ...sameCode, barcode: "123456789013" },
+      original, NOW).facts).toHaveLength(0);
+  });
+  test("identifiable Ragu sauce retains declared soy evidence, not a clean-label assertion", () => {
+    const ragu = record({
+      name: "Ragu Old World Style Marinara Sauce", brand: "Ragu",
+      barcode: "036200004005", market: "United States",
+      facts: [{ kind: "ingredients", completeness: "unknown",
+        originalStatement: "Tomato puree (water, tomato paste), tomatoes in puree (tomatoes, tomato puree, calcium chloride, citric acid), soybean oil, extra virgin olive oil, salt, sugar, dehydrated onions, spices, natural flavors." }],
+    });
+    const off = offEvidenceForExactUsdaProduct({
+      status: "matched", barcode: "0036200004005", product: {
+        product_name: "Old World Style Marinara Sauce", brands: "RAGÚ",
+        countries_tags: ["en:united-states", "en:world"],
+        ingredients_text: ragu.facts[0].originalStatement,
+        allergens_tags: ["en:soybeans"], traces_tags: [],
+      },
+    }, ragu, NOW);
+    expect(off.result).toBe("matched");
+    expect(off.facts).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: "declared_allergens",
+        originalStatement: "Catalog declared allergens: en:soybeans",
+        supplementalProvenance: expect.objectContaining({
+          source: "open_food_facts", barcode: "0036200004005", observedAt: null,
+        }) }),
+    ]));
+    expect(off.facts.some((fact) => fact.kind === "precautionary_allergens")).toBe(false);
+  });
+  test("OFF unavailable is explicit, not fabricated as a clean label", async () => {
+    const lookup = await lookupOpenFoodFactsByBarcode("02114029705",
+      (async () => ({ ok: false, status: 503 })) as typeof fetch);
+    expect(lookup.status).toBe("unavailable");
+    expect(offEvidenceForExactUsdaProduct(lookup, record(), NOW)).toEqual({
+      result: "unavailable", facts: [],
+    });
+  });
+  test("sauce avoidances discard a candidate before research, then research the next", async () => {
+    const first = record({ name: "Ragu Sauce", sourceRecordId: "ragu-1",
+      facts: [{ kind: "ingredients", originalStatement: "Tomato, sugar, salt",
+        completeness: "unknown" }] });
+    const second = record({ name: "Ragu Unsweetened Sauce", sourceRecordId: "ragu-2",
+      facts: [{ kind: "ingredients", originalStatement: "Tomato, olive oil, salt",
+        completeness: "unknown" }] });
+    const provider = adapter([first, second]);
+    const enrich = jest.fn(async (_reference, original: SourceProductRecord) => ({
+      ...original, research: [{ source: "usda_branded" as const, result: "matched" as const }],
+    }));
+    provider.enrich = enrich;
+    const result = await findProductDevelopment("owner", "pasta sauce", {
+      sources: sources({ avoided: ["sugar"] }), adapter: provider,
+      interpret: async () => "Catalog ingredients show tomato and olive oil.",
+    });
+    expect(result.rejected).toBe(1);
+    expect(enrich).toHaveBeenCalledTimes(1);
+    expect(enrich.mock.calls[0][1].sourceRecordId).toBe("ragu-2");
+    expect(result.catalogMatches[0]).toMatchObject({
+      name: "Ragu Unsweetened Sauce", evidenceStatus: "needs_verification",
+      profileInsight: "Catalog ingredients show tomato and olive oil.",
+    });
+  });
+  test("a conflict discovered only during exact-product enrichment is rejected", async () => {
+    const first = record({ name: "Ragu Sauce", sourceRecordId: "ragu-1", facts: [] });
+    const second = record({ name: "Ragu Unsweetened Sauce", sourceRecordId: "ragu-2",
+      facts: [{ kind: "ingredients", originalStatement: "Tomato, olive oil, salt",
+        completeness: "unknown" }] });
+    const provider = adapter([first, second]);
+    provider.enrich = async (_, original) => original.sourceRecordId === "ragu-1"
+      ? { ...original, facts: [{ kind: "ingredients",
+        originalStatement: "Tomato, sugar, salt", completeness: "unknown" }] }
+      : original;
+    const result = await findProductDevelopment("owner", "pasta sauce", {
+      sources: sources({ avoided: ["sugar"] }), adapter: provider,
+    });
+    expect(result.rejected).toBe(1);
+    expect(result.catalogMatches.map((item) => item.sourceRecordId)).toEqual(["ragu-2"]);
+  });
+  test("a positive catalog allergen declaration excludes milk for a milk-allergic subject", async () => {
+    const provider = adapter([record({ name: "Milk Drink", facts: [] })]);
+    provider.enrich = async (_, initial) => ({
+      ...initial, facts: [{ kind: "declared_allergens",
+        originalStatement: "Catalog declared allergens: en:milk",
+        completeness: "partial" }],
+    });
+    const result = await findProductDevelopment("owner", "milk", {
+      sources: sources({ allergies: ["MILK"] }), adapter: provider,
+    });
+    expect(result.rejected).toBe(1);
+    expect(result.catalogMatches).toHaveLength(0);
   });
 });
