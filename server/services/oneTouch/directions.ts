@@ -13,6 +13,7 @@ import { validateHumanFoodResult } from "../humanFoodContext/validateHumanFoodRe
 import type { HumanFoodContext } from "../../../shared/humanFoodContext";
 import { validateDietaryRestriction, type DietaryMode } from "../guardrails/validators/dietaryRestrictionValidator";
 import { scanGeneratedOutput, type UserProtocolEnvelope } from "../protocolEnvelope";
+import { hasConcreteSelectedIngredients } from "./selectedIngredientEvidence";
 
 export interface DirectionGenerationAttempt {
   requestedCount: number;
@@ -102,6 +103,9 @@ export async function generateOneTouchDirections(
 export function validateDishConcept(direction: OneTouchDirection): string[] {
   const form = direction.culinaryIdentity.dishForm.toLowerCase().trim();
   const title = direction.title.toLowerCase().trim();
+  if (!hasConcreteSelectedIngredients(direction.primaryIngredients)) {
+    return ["culinary_shape:abstract_primary_ingredient"];
+  }
   if (/^(plate|platter|composed plate|protein plate|meal plate|protein with sides)$/.test(form) ||
       /^(plate|platter|composed plate)$/.test(title) ||
       direction.primaryIngredients.some((ingredient) => title === ingredient.toLowerCase().trim())) {

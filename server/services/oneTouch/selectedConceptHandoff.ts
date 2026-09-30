@@ -8,7 +8,8 @@ import { validateHumanFoodResult } from "../humanFoodContext/validateHumanFoodRe
 import { toPerServingNutrition } from "../humanFoodContext/servingNutrition";
 import { buildCreatorHumanFoodPrompt } from "../humanFoodContext/adapters";
 import { enforceBeforeGenerate, filterMealsByProtocol, scanGeneratedOutput } from "../protocolEnvelope";
-import { validateOneTouchDirectionSafety } from "./directions";
+import { validateDishConcept, validateOneTouchDirectionSafety } from "./directions";
+import { missingSelectedIngredientPositions } from "./selectedIngredientEvidence";
 import { validateDishIdentity } from "../dishAdaptation/dishIdentityValidator";
 import { buildGuardrailContext, getDishAdaptationDirective } from "../dishAdaptation/dishAdaptationLayer";
 import { enforceSafetyProfile } from "../safetyProfileService";
@@ -36,7 +37,7 @@ export interface SelectedConceptHandoff {
 
 export type SelectedConceptResult =
   | { ok: true; meal: Record<string, unknown> }
-  | { ok: false; code: "concept_rejected" | "generation_failed" | "identity_mismatch" | "final_validation_rejected"; retryable?: boolean };
+  | { ok: false; code: "concept_rejected" | "generation_failed" | "identity_mismatch" | "final_validation_rejected"; retryable?: boolean; reasonCode?: "abstract_primary_ingredient" };
 
 /**
  * Menu owns the choice, not the recipe engine. This is an account-only,
@@ -45,12 +46,17 @@ export type SelectedConceptResult =
  */
 export async function completeSelectedConcept(input: SelectedConceptHandoff): Promise<SelectedConceptResult> {
   const { concept, context, envelope } = input;
+  if (input.creator === "create_a_dish" &&
+      validateDishConcept(concept).includes("culinary_shape:abstract_primary_ingredient")) {
+    return { ok: false, code: "concept_rejected", reasonCode: "abstract_primary_ingredient" };
+  }
   // The Menu can offer ideas with non-blocking preference gaps. Selection must
   // accept the same authority state; clinical/protocol and final recipe gates
   // still run against the freshly resolved context.
   if (!["resolved", "resolved_with_gaps"].includes(context.status) ||
       context.subjectUserId !== input.actorUserId ||
       concept.occasion !== (input.creator === "craving_creator" ? "snack" : "lunch") ||
+      (input.creator === "create_a_dish" && validateDishConcept(concept).length > 0) ||
       validateOneTouchDirectionSafety(concept, context, envelope, input.cuisine).length) {
     return { ok: false, code: "concept_rejected" };
   }
@@ -114,15 +120,16 @@ export async function completeSelectedConcept(input: SelectedConceptHandoff): Pr
   const matches = (meal: UnifiedMeal): boolean => {
     const identity = validateDishIdentity(concept.title, meal, directive);
     if (!identity.passed || identity.catastrophicDeviation) return false;
-    const names = meal.ingredients.map((ingredient) => ingredient.name.toLowerCase()).join(" ");
-    return concept.primaryIngredients.every((name) => names.includes(name.toLowerCase().trim()));
+    return missingSelectedIngredientPositions(
+      concept.primaryIngredients, meal.ingredients.map(ingredient => ingredient.name),
+    ).length === 0;
   };
   const identityMatchesWithDiagnostics = (meals: UnifiedMeal[], phase: "initial" | "repair") =>
     meals.filter((meal, candidateIndex) => {
       const identity = validateDishIdentity(concept.title, meal, directive);
-      const names = meal.ingredients.map((ingredient) => ingredient.name.toLowerCase()).join(" ");
-      const missingIngredientIndices = concept.primaryIngredients.flatMap((name, index) =>
-        names.includes(name.toLowerCase().trim()) ? [] : [index]);
+      const missingIngredientIndices = missingSelectedIngredientPositions(
+        concept.primaryIngredients, meal.ingredients.map(ingredient => ingredient.name),
+      );
       const accepted = matches(meal);
       if (!accepted && process.env.NODE_ENV !== "production") {
         // No recipe contents, user identifier, allergy, or health information.

@@ -24,6 +24,15 @@ function concept(title: string, form: string, foodRole: "dessert" | "general_sna
 }
 
 describe("Creator Menu culinary concepts, separate from clinical meal slots", () => {
+  it("does not offer a dish whose selected ingredients include abstract seasonings", () => {
+    const direction = concept("Gomen (Ethiopian Collard Greens)", "vegetable dish");
+    expect(validateDishConcept({
+      ...direction, primaryIngredients: ["collard greens", "onions", "spices"],
+    } as OneTouchDirection)).toContain("culinary_shape:abstract_primary_ingredient");
+    expect(validateDishConcept({
+      ...direction, primaryIngredients: ["collard greens", "onions", "turmeric"],
+    } as OneTouchDirection)).not.toContain("culinary_shape:abstract_primary_ingredient");
+  });
   it("generates exactly three coherent DISH concepts and rejects a generic composed plate", async () => {
     const attempts: number[] = [];
     let prompt = "";

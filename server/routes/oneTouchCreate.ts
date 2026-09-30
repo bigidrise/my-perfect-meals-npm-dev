@@ -182,7 +182,9 @@ export default function createOneTouchRouter() {
           creator: request.creator, reason: safeCompletionReason(result.code), retryable: result.retryable, status,
         });
         stop(status, "ONE_TOUCH_RECIPE_REJECTED",
-          "We couldn't safely complete this selected idea. Please choose another or try again.");
+          result.reasonCode === "abstract_primary_ingredient"
+            ? "This Menu idea's ingredients can no longer be verified. Please generate new ideas."
+            : "We couldn't safely complete this selected idea. Please choose another or try again.");
       }
       // A concurrent Try 3 More or preference change cannot authorize an old choice.
       const latest = await resolveOneTouchAuthority(userId, request, (req as any).id);

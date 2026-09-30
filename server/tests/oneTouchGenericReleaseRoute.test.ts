@@ -67,7 +67,7 @@ jest.mock("../services/safetyProfileService", () => ({
 }));
 jest.mock("../services/protocolEnvelope", () => ({
   loadUserProtocolEnvelope: jest.fn(async () => ({
-    dietaryIdentity: ["low_carb"], hasDiabetes: diabetesEnabled,
+    dietaryIdentity: ["low_carb"], allergies: [], hasDiabetes: diabetesEnabled,
     diabeticGlucoseState: diabetesEnabled ? "normal" : null,
     medicalHardLimits: [], medicalOptimization: [], glp1DailyTolerance: null,
   })),
@@ -124,6 +124,7 @@ jest.mock("../services/mealImageGenerator", () => ({
 }));
 jest.mock("../services/oneTouch/directions", () => ({
   validateOneTouchDirectionSafety: jest.fn(() => []),
+  validateDishConcept: jest.fn(() => []),
   generateOneTouchDirections: jest.fn(async ({ occasion }: { occasion: "lunch" | "snack" }) => ({
     directions: [1, 2, 3].map((n) => ({
       title: n === 1 ? selectedTitle : `${selectedTitle} ${n}`,
@@ -338,7 +339,7 @@ describe("Development Creator Menu selection returns completed cards, not just i
     expect(variety.mock.calls.at(-1)?.[3]).toEqual(["vegan"]);
     expect(variety.mock.calls.at(-1)?.[14]).toEqual(["low_carb"]);
     expect(require("../services/safetyProfileService").enforceSafetyProfile)
-      .toHaveBeenCalledWith("menu-person", expect.any(String), "menu-selected-concept",
+      .toHaveBeenCalledWith("menu-person", expect.objectContaining({ kind: "food_intent", requestedDish: selectedTitle }), "menu-selected-concept",
         expect.objectContaining({ ignoredDietaryRestrictions: ["low_carb"] }));
   });
 

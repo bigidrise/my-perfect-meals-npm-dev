@@ -49,8 +49,8 @@ The identity validator rejects a dish that keeps its name but arrives in a diffe
 
 ## Selected-concept ingredient specificity
 
-**Rule:** A choice card's defining-ingredient list should contain concrete ingredients if selection requires those names to appear in the final structured recipe. Avoid treating abstract roles or parenthetical alternatives as literal ingredient names.
+**Rule:** A choice card's defining-ingredient list must contain concrete ingredients if selection requires those foods in the final structured recipe. Reject abstract roles before offering the card; compare concrete names using only bounded grammatical variants in structured ingredients, not arbitrary substrings or recipe prose.
 
 **Why:** A recipe can preserve the intended dish yet fail literal selected-card matching after both initial generation and targeted repair because an abstract concept phrase cannot naturally appear as a recipe ingredient.
 
-**How to apply:** Make concept-generation output concrete before the user selects a card; do not weaken the dish-identity validator or invent unreviewed equivalences merely to make a selection pass.
+**How to apply:** Make concept-generation output concrete before the user selects a card. A plural-to-singular wording change can still verify the same food, but a flavored product, a missing component, or an unauthorized substitute cannot. Do not weaken the dish-identity validator or invent unreviewed equivalences merely to make a selection pass.
