@@ -1,5 +1,6 @@
 import type { CreateDishIntent } from "../../../shared/createDishIngredientExpansion";
 import type { DishAdaptationDirective } from "../dishAdaptation/types";
+import type { FoodMeaningV1 } from "../../../shared/foodMeaning";
 
 /**
  * Server-owned culinary contract. These are identity requirements, not evidence
@@ -13,10 +14,12 @@ export interface CreateDishContract {
   namedCore: string | null;
   leafVessel: boolean;
   physicalForm: string | null;
+  permittedFormFamilies?: Array<"bowl" | "wrap">;
   definingComponents: string[];
   adaptableComponents: string[];
   conflicts: DishAdaptationDirective["conflicts"];
   cuisine: string | null;
+  conceptKind?: FoodMeaningV1["concept"]["kind"];
 }
 
 const normalize = (text: string) =>
@@ -25,6 +28,7 @@ const normalize = (text: string) =>
 export function resolveCreateDishContract(
   intent: CreateDishIntent,
   directive?: DishAdaptationDirective | null,
+  meaning?: FoodMeaningV1 | null,
 ): CreateDishContract {
   const requestedDish = intent.originalText.trim();
   const canonical = normalize(intent.ingredient.canonicalName);
@@ -51,10 +55,12 @@ export function resolveCreateDishContract(
     namedCore,
     leafVessel,
     physicalForm: directive?.dishForm ?? null,
+    permittedFormFamilies: directive?.permittedFormFamilies,
     definingComponents: directive?.definingComponents ?? [],
     adaptableComponents: directive?.adaptableComponents ?? [],
     conflicts: directive?.conflicts ?? [],
     cuisine: intent.cuisine ?? null,
+    conceptKind: meaning?.concept.kind,
   };
 }
 
@@ -69,8 +75,11 @@ export function buildCreateDishContractPrompt(contract: CreateDishContract): str
     : `Preserve the requested dish "${contract.requestedDish}", not merely its broad family.`;
   return `[CREATE A DISH — RESOLVED DISH CONTRACT]
 ${named}
-Defining ingredient: ${contract.definingIngredient}.
+ ${contract.conceptKind === "prepared_dish"
+   ? `Prepared dish identity: ${contract.requestedDish}. Its name is not itself an ingredient; preserve its defining composition and default form unless an authorized vessel adaptation is specified below.`
+   : `Defining ingredient: ${contract.definingIngredient}.`}
 ${contract.physicalForm ? `Physical form: ${contract.physicalForm}.` : ""}
+${contract.permittedFormFamilies?.length ? `When the person's resolved requirements require a different vessel, a ${contract.permittedFormFamilies.join(" or ")} is permitted only if the finished recipe still has the defining dish structure and passes every food protection. Do not change an explicitly selected form.` : ""}
 ${contract.definingComponents.length ? `Defining components: ${contract.definingComponents.join("; ")}.` : ""}
 ${contract.adaptableComponents.length ? `Adaptable components: ${contract.adaptableComponents.join("; ")}.` : ""}
 ${contract.cuisine ? `Use compatible ${contract.cuisine} seasonings and preparation without replacing the requested dish.` : ""}

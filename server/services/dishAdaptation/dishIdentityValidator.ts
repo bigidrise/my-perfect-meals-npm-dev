@@ -213,6 +213,9 @@ export function validateDishIdentity(
     const primary = detectPrimaryFormFamily(dishForm);
     if (primary) allowedForms.add(primary);
   }
+  for (const family of directive?.permittedFormFamilies ?? []) {
+    allowedForms.add(family);
+  }
   // Form check is active when there are explicit allowed forms OR when a
   // dishForm directive is present (even if it maps to no recognized family).
   const hasFormDirective = !!dishForm;

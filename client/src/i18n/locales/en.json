@@ -773,6 +773,8 @@
     "heading": "Turn your cravings into healthy, macro-balanced meals.",
     "cravingLabel": "What are you craving?",
     "servingsLabel": "Number of Servings",
+    "serving1": "1 serving",
+    "servingN": "{{count}} servings",
     "restrictionsLabel": "Custom Dietary Restrictions",
     "safetyLabel": "Meal Safety",
     "flavorLabel": "Flavor Preference",

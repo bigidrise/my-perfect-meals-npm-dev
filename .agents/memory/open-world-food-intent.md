@@ -8,3 +8,15 @@ description: Governs how unfamiliar natural-language food requests enter Create 
 **Why:** Ordinary composed and regional dishes were rejected before AI or meal governance ran solely because their names were absent from a finite alias list.
 
 **How to apply:** Preserve the original wording. Known catalog matches stay deterministic. Only high-confidence semantic food intent becomes recognized; medium/low confidence becomes clarification, while non-food becomes unsupported with low ingredient-recognition confidence. Catalog absence must not remove the preparation experience: semantic choices use server-created preference IDs and remain creative intent, never governed evidence. Non-food and adversarial input stays blocked. Every accepted request still passes the complete dietary, allergy, clinical, Human Food, dish-identity, and final-result validation stack.
+
+**Rule:** Inferred cuisine is a soft association, not a user-selected cuisine instruction. A prepared dish name establishes dish identity, not evidence that an ingredient with that name belongs in the recipe.
+
+**Why:** Generic requests such as gumbo can otherwise be rejected for not spelling out a model-inferred cuisine, or every generated recipe can be rejected for omitting a nonexistent ingredient named after the dish.
+
+**How to apply:** Carry explicit versus inferred provenance through interpretation and handoffs. Only verified user text or an explicit selection may become a hard cuisine instruction. For prepared dishes, evaluate real structured composition and form without inferring ingredient presence or safety from the title alone.
+
+**Rule:** Do not separately patch the legacy inferred-cuisine handoff just to make plain gumbo work when the FoodMeaning path is intentionally disabled for isolation.
+
+**Why:** The user confirmed that FoodMeaning already solved that interpretation problem; the later legacy failure was expected when its Development gate was turned off to test an unrelated preflight identity correction. Maintaining two competing semantic fixes would obscure which path is authoritative.
+
+**How to apply:** Test person continuity and FoodMeaning separately when needed, then validate them together with the Development gate enabled. Keep Production untouched until separately authorized; do not mistake an isolated legacy-path rejection for a FoodMeaning regression.

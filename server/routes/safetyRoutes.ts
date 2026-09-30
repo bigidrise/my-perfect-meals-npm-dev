@@ -8,7 +8,7 @@
  *   app.use("/api", safetyRouter);
  */
 
-import { Router } from "express";
+import { Router, type Request, type Response, type NextFunction } from "express";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { users } from "../../shared/schema";
@@ -175,7 +175,23 @@ router.post("/safety/verify-pin", requireAuth, async (req: any, res) => {
 // ── SafetyGuard preflight check ───────────────────────────────────────────────
 // Called by the client BEFORE generation for instant feedback (no progress-bar-then-fail UX).
 // Supports authenticated users (DB profile) and guests (request-provided allergies).
-router.post("/safety-check", async (req: any, res) => {
+// Genuine guests can use this endpoint, but a browser expecting its session
+// (or a native client presenting a bearer token) must never be downgraded to
+// the allergy-free guest path. requireAuth is the same session-first resolver
+// used by protected routes, including security-version and idle-time checks.
+function resolvePreflightIdentity(req: Request, res: Response, next: NextFunction) {
+  const expectsAuthentication =
+    Boolean((req as any).session?.userId) ||
+    Boolean(req.headers["x-auth-token"]) ||
+    req.headers["x-safety-auth-intent"] === "authenticated";
+  if (expectsAuthentication) {
+    void requireAuth(req, res, next);
+    return;
+  }
+  next();
+}
+
+router.post("/safety-check", resolvePreflightIdentity, async (req: any, res) => {
   try {
     const { input, builderId = "preflight", guestAllergies } = req.body;
 
@@ -183,24 +199,22 @@ router.post("/safety-check", async (req: any, res) => {
       return res.status(400).json({ error: "input text is required" });
     }
 
-    // Resolve user — prefer requireAuth-set authUser, then x-auth-token header fallback
-    let resolvedUserId: string | undefined = req.authUser?.id;
-    if (!resolvedUserId) {
-      const token = req.headers["x-auth-token"] as string | undefined;
-      if (token) {
-        try {
-          const { findUserByValidAuthToken } = await import("../services/authTokenService");
-          const tokenUser = await findUserByValidAuthToken(token);
-          if (tokenUser) resolvedUserId = tokenUser.id;
-        } catch { /* non-fatal */ }
-      }
-    }
+    const resolvedUserId: string | undefined = req.authUser?.id;
 
     if (resolvedUserId) {
       const safetyCheck = await enforceSafetyProfile(resolvedUserId, { kind: "food_intent", requestedDish: input }, builderId, {
         safetyMode: "STRICT",
         correlationId: (req as any).id,
       });
+      if (process.env.NODE_ENV === "development") {
+        console.log("[SafetyCheck] Authenticated preflight", {
+          correlationId: (req as any).id,
+          subjectUserId: resolvedUserId,
+          identitySource: req.session?.userId ? "session" : "bearer",
+          builderId,
+          result: safetyCheck.result,
+        });
+      }
       if (safetyCheck.result === "ADVISORY" && safetyCheck.reasonCode) {
         const { emitActivityEvent } = await import("../services/coaching/activityEvents");
         emitActivityEvent({

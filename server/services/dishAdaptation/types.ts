@@ -39,6 +39,9 @@ export interface DishAdaptationDirective {
   identityAnchor: string;
   definingComponents: string[];
   adaptableComponents: string[];
+  /** Server-authorized alternate presentation families for this request only.
+   * Never inferred from generated meal text or the client's claimed diet. */
+  permittedFormFamilies?: Array<"bowl" | "wrap">;
   /**
    * Physical structure / presentation format of the dish, e.g.
    * "sliceable baked cake with crust", "stew/broth-based", "sandwich on bread".

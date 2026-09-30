@@ -27,6 +27,10 @@ The identity validator rejects a dish that keeps its name but arrives in a diffe
 **Why:** a model that can't solve a constraint escapes by converting the dish to another format while keeping the name.
 **How to apply:** form is judged from the generated meal's NAME only (descriptions/instructions legitimately mention "mixing bowl", bread, etc.), and a free-form dishForm string contributes only ONE primary allowed family — structural descriptors like "broth-based" must never whitelist a different presentation.
 
+**Rule:** A person-authorized vessel adaptation can preserve a prepared dish even when its default physical form changes; the permission must come from resolved person context and a changeable vessel in the dish contract, never the generated title. The finished recipe must independently prove its defining structure and pass all food protections.
+**Why:** A low-carb burger bowl or lettuce wrap can fulfill a burger request without a bun, while a merely renamed unrelated bowl must still fail. Gluten-free bread is not necessarily low-carb.
+**How to apply:** Keep the default physical-form rejection for other requests. For an authorized adaptation, test structured core and serving-vessel evidence separately; do not relax allergy, clinical, nutrition, or final-release validation. Do not infer permission from a user-selected form or generated name.
+
 ## Candidate-derived identity evidence
 **Rule:** cuisine, flavor, and identity evidence must describe the generated candidate; never copy the requested context into candidate evidence as a fallback.
 
@@ -45,8 +49,8 @@ The identity validator rejects a dish that keeps its name but arrives in a diffe
 
 ## Selected-concept ingredient specificity
 
-**Rule:** A choice card's defining-ingredient list should contain concrete ingredients if selection requires those names to appear in the final structured recipe. Avoid treating abstract roles or parenthetical alternatives as literal ingredient names.
+**Rule:** A choice card's defining-ingredient list must contain concrete ingredients if selection requires those foods in the final structured recipe. Reject abstract roles before offering the card; compare concrete names using only bounded grammatical variants in structured ingredients, not arbitrary substrings or recipe prose.
 
 **Why:** A recipe can preserve the intended dish yet fail literal selected-card matching after both initial generation and targeted repair because an abstract concept phrase cannot naturally appear as a recipe ingredient.
 
-**How to apply:** Make concept-generation output concrete before the user selects a card; do not weaken the dish-identity validator or invent unreviewed equivalences merely to make a selection pass.
+**How to apply:** Make concept-generation output concrete before the user selects a card. A plural-to-singular wording change can still verify the same food, but a flavored product, a missing component, or an unauthorized substitute cannot. Do not weaken the dish-identity validator or invent unreviewed equivalences merely to make a selection pass.

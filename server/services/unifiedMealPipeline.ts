@@ -2116,6 +2116,8 @@ export async function generateCravingMealOptions(
    * still receives the fully augmented cravingInput with all safety directives. */
   classificationInput?: string,
   createDishContract?: import("./createDish/dishContract").CreateDishContract,
+  /** Optional request-local deadline for Create a Dish replacement generation. */
+  refillSignal?: AbortSignal,
 ): Promise<UnifiedMeal[]> {
   const validMealType = normalizeMealType(mealType);
   const cleanClassificationInput = resolveVarietyClassificationInput(
@@ -2419,7 +2421,12 @@ export async function generateCravingMealOptions(
   }
 
   /** One attempt at calling AI and parsing result */
+  let refillModelCalls = 0;
   const attempt = async (stricterMode: boolean, violationHint?: string): Promise<any[]> => {
+    if (refillSignal?.aborted) throw new Error("Create a Dish refill time budget exceeded");
+    if (refillSignal && ++refillModelCalls > 1) {
+      throw new Error("Create a Dish refill model-call budget exceeded");
+    }
     const prompt = isRecipeMode
       ? buildRecipeVarietyPrompt(cravingInput, validMealType, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock, cuisineGroundingBlock, varietyMeasurementSystem, createDishContract)
       : buildVarietyPrompt(cravingInput, validMealType, category, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock, cuisineGroundingBlock, varietyMeasurementSystem, createDishContract);
@@ -2433,6 +2440,7 @@ export async function generateCravingMealOptions(
     const contractBlock = createDishContract
       ? (await import("./createDish/dishContract")).buildCreateDishContractPrompt(createDishContract) + '\n\n'
       : '';
+    if (refillSignal?.aborted) throw new Error("Create a Dish refill time budget exceeded");
     const response = await openai.chat.completions.create({
       // fastMode (Try 3 More / skipImages path): use gpt-4o-mini — it's ~3x
       // faster and still produces solid variety-card suggestions. The initial
@@ -2443,7 +2451,7 @@ export async function generateCravingMealOptions(
       temperature: stricterMode ? 0.6 : 0.85,
       max_tokens: fastMode ? 1500 : 2500,
       response_format: { type: "json_object" },
-    });
+    }, refillSignal ? { signal: refillSignal } : undefined);
     const content = response.choices[0]?.message?.content;
     if (!content) throw new Error("Empty AI response from variety engine");
     return parseVarietyContent(content);

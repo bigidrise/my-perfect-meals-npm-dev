@@ -6097,11 +6097,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      const createDishMeaningV1Enabled =
+        humanFoodCreator === "create_a_dish" &&
+        (await import("./services/createDish/resolveFoodMeaning")).createDishMeaningEnabled();
+      let createDishMeaningV1: import("@shared/foodMeaning").FoodMeaningV1 | null = null;
+      let prevalidatedCreateDishIntent: import("@shared/createDishIngredientExpansion").CreateDishIntent | null = null;
       let effectiveRequestCuisine: string | null =
         typeof cultureOverride === "string" && cultureOverride.trim()
           ? cultureOverride.trim()
           : null;
-      if (humanFoodCreator === "create_a_dish" && rawCreateDishIntent != null) {
+      if (createDishMeaningV1Enabled && rawCreateDishIntent != null) {
+        try {
+          const { resolveCreateDishFoodMeaning } = await import("./services/createDish/resolveFoodMeaning");
+          const resolvedMeaning = await resolveCreateDishFoodMeaning(
+            rawCreateDishIntent, cultureOverride, [],
+          );
+          prevalidatedCreateDishIntent = resolvedMeaning.intent;
+          createDishMeaningV1 = resolvedMeaning.meaning;
+          effectiveRequestCuisine = resolvedMeaning.meaning.cuisine?.source === "semantic_inference"
+            ? null : resolvedMeaning.meaning.cuisine?.value ?? null;
+        } catch (error) {
+          console.warn("[CreateDishMeaning] request could not be resolved", {
+            reason: error instanceof Error ? error.message : "unknown",
+          });
+          return res.status(422).json({
+            status: "unable_to_generate",
+            reasonCode: "create_dish_semantic_classification_unresolved",
+            message: "We couldn't verify what this dish request means. Please clarify the dish or cuisine and try again.",
+          });
+        }
+      } else if (humanFoodCreator === "create_a_dish" && rawCreateDishIntent != null) {
         try {
           const { resolveCreateDishCuisineAuthority } = await import(
             "./services/createDish/createDishIntent"
@@ -6374,7 +6399,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let _dishDirective: import("./services/dishAdaptation/types").DishAdaptationDirective | null = null;
       try {
         _dishDirective = await getDishAdaptationDirective(
-          rawCravingInput || "",
+          createDishMeaningV1?.concept.canonicalName ?? rawCravingInput ?? "",
           _dalGuardrailCtx,
           "first_pass",
         );
@@ -6398,10 +6423,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } = await import(
             "./services/createDish/createDishIntent"
           );
-          validatedCreateDishIntent = await revalidateCreateDishIntent(
-            rawCreateDishIntent,
-            protocolEnvelope.allergies ?? [],
-          );
+          if (prevalidatedCreateDishIntent) {
+            const cuisine = prevalidatedCreateDishIntent.cuisine;
+            validatedCreateDishIntent = {
+              ...await revalidateCreateDishIntent(
+                { ...prevalidatedCreateDishIntent, cuisine: null },
+                protocolEnvelope.allergies ?? [],
+              ),
+              cuisine,
+            };
+          } else {
+            validatedCreateDishIntent = await revalidateCreateDishIntent(
+              rawCreateDishIntent, protocolEnvelope.allergies ?? [],
+            );
+          }
           if (
             effectiveRequestCuisine &&
             validatedCreateDishIntent.cuisine !== effectiveRequestCuisine
@@ -6414,11 +6449,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           enforceRequestedDishIdentity = !isBroadIngredientOnlyCreateDishIntent(
             validatedCreateDishIntent,
           );
-          cravingInput = `${cravingInput}\n\n${buildCreateDishIntentPrompt(validatedCreateDishIntent)}`;
+          cravingInput = `${cravingInput}\n\n${buildCreateDishIntentPrompt(validatedCreateDishIntent, createDishMeaningV1)}`;
           const resolved = validatedCreateDishIntent.resolvedCombination;
           if (resolved.form || resolved.texture || resolved.flavor) {
             _dishDirective = await getDishAdaptationDirective(
-              buildCreateDishIntentDishSubject(validatedCreateDishIntent),
+              createDishMeaningV1?.concept.canonicalName ??
+                buildCreateDishIntentDishSubject(validatedCreateDishIntent),
               _dalGuardrailCtx,
               "first_pass",
             );
@@ -6432,7 +6468,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           }
           const { resolveCreateDishContract } = await import("./services/createDish/dishContract");
-          createDishContract = resolveCreateDishContract(validatedCreateDishIntent, _dishDirective);
+          if (createDishMeaningV1) {
+            const { enrichFoodMeaning } = await import("./services/createDish/resolveFoodMeaning");
+            createDishMeaningV1 = enrichFoodMeaning(createDishMeaningV1, _dishDirective);
+          }
+          createDishContract = resolveCreateDishContract(validatedCreateDishIntent, _dishDirective, createDishMeaningV1);
+          if (createDishMeaningV1?.concept.kind === "prepared_dish") {
+            const { authorizeCreateDishFormAdaptation } = await import("./services/createDish/formAdaptation");
+            const adapted = authorizeCreateDishFormAdaptation(
+              createDishContract, _dishDirective, _resolvedPrimaryDiet,
+              validatedCreateDishIntent.resolvedCombination.selectionSource.form === "user_selected",
+            );
+            createDishContract = adapted.contract;
+            _dishDirective = adapted.directive;
+          }
         } catch (intentError) {
           console.warn("[CreateDishIntent] rejected invalid or tampered intent", intentError);
           return res.status(400).json({
@@ -6476,7 +6525,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cravingInput = `${cravingInput}\n${buildAllergenAdaptPromptBlock(activeCreatorAllergies, rawCravingInput || "")}`;
       }
 
-      const mealOptions = await generateCravingMealOptions(
+      const mealOptions = (await generateCravingMealOptions(
         cravingInput || "something delicious",
         normalizedTargetMealType,
         userId,
@@ -6494,7 +6543,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         _overriddenDietaryIdentities,
         humanFoodCreator === "create_a_dish" ? rawCravingInput : undefined,
         createDishContract,
-      );
+      )) ?? [];
 
       if (humanFoodCreator === "create_a_dish") {
         logCreateDishAcceptance({
@@ -6503,7 +6552,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      if (!mealOptions || mealOptions.length === 0) {
+      if (mealOptions.length === 0 && humanFoodCreator !== "create_a_dish") {
         const hasGlp1    = _cravingGlp1Targets != null;
         const hasAllergy = (protocolEnvelope.allergies || []).length > 0;
         const hasDiet    = bodyDietRestrictions.length > 0;
@@ -6563,7 +6612,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // pipeline call), plus an explicit numeric carb ceiling. The clinical
         // guardrail itself is NOT weakened — retry output is revalidated
         // against the exact same ceiling before being served.
-        if (_bglGatedOptions.length === 0 && mealOptions.length > 0) {
+        if (_bglGatedOptions.length === 0 && mealOptions.length > 0 && humanFoodCreator !== "create_a_dish") {
           mealOptions.forEach((candidate: any) =>
             recordRejectedHumanFoodCandidate(humanFoodExecutionState, candidate)
           );
@@ -6594,7 +6643,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               humanFoodExecutionState,
               _overriddenAvoidances,
               _overriddenDietaryIdentities,
-              humanFoodCreator === "create_a_dish" ? rawCravingInput : undefined,
+              undefined, // This retry runs only for Craving/Sushi, not Create a Dish.
               createDishContract,
             );
             if (_bglRetryOptions && _bglRetryOptions.length > 0) {
@@ -6694,7 +6743,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       });
 
-      if (cleanOptions.length === 0 && _bglGatedOptions.length > 0) {
+      if (cleanOptions.length === 0 && _bglGatedOptions.length > 0 && humanFoodCreator !== "create_a_dish") {
         if (_cravingGlp1Targets) {
           console.error("🚫 [GLP-1/CravingCreator] Protocol filtering removed every clinically validated option; refusing unvalidated emergency fallback.");
           return res.status(422).json({
@@ -6806,7 +6855,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             t => new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
           );
 
-          if (safeAdaptedOptions.length === 0 && scannedOptions.length > 0) {
+          if (safeAdaptedOptions.length === 0 && scannedOptions.length > 0 && humanFoodCreator !== "create_a_dish") {
             scannedOptions.forEach((candidate: any) =>
               recordRejectedHumanFoodCandidate(humanFoodExecutionState, candidate)
             );
@@ -6836,7 +6885,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 humanFoodExecutionState,
                 _overriddenAvoidances,
                 _overriddenDietaryIdentities,
-                humanFoodCreator === "create_a_dish" ? rawCravingInput : undefined,
+                undefined, // Allergen retry excludes Create a Dish above.
                 createDishContract,
               );
               if (retryOptions && retryOptions.length > 0) {
@@ -6887,6 +6936,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         } catch (scanErr) {
           console.error('[ALLERGEN-ADAPT SCAN] Scan error (non-fatal):', scanErr);
+          if (humanFoodCreator === "create_a_dish") {
+            // A failed allergy scan is not evidence of a safe final choice.
+            scannedOptions = [];
+          }
         }
       }
 
@@ -7033,7 +7086,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const finalEnforcement = await enforceFinalCreatorCandidates({
         candidates: scannedOptions,
         validate: runFinalValidation,
-        repair: async (repairInstructions: string[]) => {
+        // For Create a Dish, all additional generation belongs to the single
+        // bounded final-choice process, not this independent repair loop.
+        repair: humanFoodCreator === "create_a_dish" ? undefined : async (repairInstructions: string[]) => {
           try {
           const repairClause = repairInstructions.join(" ");
           const repairOptions = await generateCravingMealOptions(
@@ -7052,7 +7107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             humanFoodExecutionState,
             _overriddenAvoidances,
             _overriddenDietaryIdentities,
-            humanFoodCreator === "create_a_dish" ? rawCravingInput : undefined,
+            undefined, // The final repair callback is only for Craving/Sushi.
             createDishContract,
           );
           const protocolSafeRepairs = filterMealsByProtocol(repairOptions ?? [], _filterEnvelope, {
@@ -7084,7 +7139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Never leak a blocked/review/repairable candidate. If no final candidate
       // passes, return the strongest typed outcome observed.
-      if (finalEnforcement.accepted.length === 0) {
+      if (finalEnforcement.accepted.length === 0 && humanFoodCreator !== "create_a_dish") {
         const strongest = finalEnforcement.validations.find(({ result }) => result.outcome === "blocked")
           ?? finalEnforcement.validations.find(({ result }) => result.outcome === "review_required")
           ?? finalEnforcement.validations.find(({ result }) => result.outcome === "repairable");
@@ -7124,8 +7179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           buildCreateDishIntentRepairInstructions,
         } = await import("./services/createDish/createDishIntent");
         const intentResolution = applyCreateDishIntentWithSoftFallback(
-          scannedOptions,
-          validatedCreateDishIntent,
+          scannedOptions, validatedCreateDishIntent, createDishContract, createDishMeaningV1,
         );
         const { initialEvidence } = intentResolution;
         const initialIntentSurvivors = initialEvidence
@@ -7136,7 +7190,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           candidates: scannedOptions.length,
           survivors: initialIntentSurvivors.length,
           failures: initialEvidence.map(({ evidence }) => evidence.failedDimensions),
-          repairAttempted: initialIntentSurvivors.length === 0,
+          repairAttempted: initialIntentSurvivors.length === 0 && humanFoodCreator !== "create_a_dish",
         });
 
         if (intentResolution.survivors.length > 0) {
@@ -7154,7 +7208,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const failedDimensions = Array.from(new Set(
             initialEvidence.flatMap(({ evidence }) => evidence.failedDimensions),
           ));
-          const requiredCore = createDishContract?.leafVessel
+          const requiredCore = createDishMeaningV1?.concept.kind === "prepared_dish"
+            ? `components and form of ${createDishContract?.requestedDish}`
+            : createDishContract?.leafVessel
             ? "lettuce leaves used as the wrap vessel"
             : createDishContract?.namedCore && createDishContract.namedFamily === "salad"
               ? createDishContract.namedCore
@@ -7162,6 +7218,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           createDishIntentFailureDetail = failedDimensions.includes("ingredient")
             ? `the defining ${requiredCore} in the recipe`
             : `the requested ${failedDimensions.join(", ")} preparation`;
+          if (humanFoodCreator === "create_a_dish") {
+            // The final-choice controller owns the two available replacement
+            // calls; do not spend an uncounted intent-repair call here.
+            scannedOptions = [];
+          } else {
           try {
             const repairInstructions = buildCreateDishIntentRepairInstructions(
               validatedCreateDishIntent,
@@ -7171,7 +7232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const intentRepairOptions = await generateCravingMealOptions(
               `${cravingInput}\n\n[CREATE A DISH INTENT REPAIR — ONE ATTEMPT ONLY]\n` +
               `${repairInstructions}\n` +
-              `${buildCreateDishIntentPrompt(validatedCreateDishIntent)}\n` +
+              `${buildCreateDishIntentPrompt(validatedCreateDishIntent, createDishMeaningV1)}\n` +
               `Repair only those fixed dimensions. Do not change the user's selections or any safety, nutrition, clinical, allergy, avoidance, Cooking Method, or Cuisine requirement.`,
               normalizedTargetMealType,
               userId,
@@ -7212,7 +7273,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             );
             scannedOptions = transformedIntentRepairs.filter((meal: any) =>
               runFinalValidation(meal).outcome === "pass" &&
-              evaluateCreateDishIntentEvidence(meal, validatedCreateDishIntent!).passed
+              evaluateCreateDishIntentEvidence(meal, validatedCreateDishIntent!, createDishContract, createDishMeaningV1).passed
             );
             logCreateDishAcceptance({
               stage: "intent_repair",
@@ -7230,12 +7291,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               outcome: "failed",
             });
           }
+          }
         }
       }
 
       // A bounded intent repair can still leave no candidates. This is not a
       // post-format validation failure (there is no failed meal to inspect).
-      if (scannedOptions.length === 0) {
+      if (scannedOptions.length === 0 && humanFoodCreator !== "create_a_dish") {
         return res.status(422).json({
           status: "unable_to_generate",
           reasonCode: validatedCreateDishIntent
@@ -7251,7 +7313,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Format and optionally scale each option. The response nutrition object
       // represents total recipe nutrition for validatedServings; canonical
       // person-specific validation converts it back to per-serving nutrition.
-      let formattedOptions = scannedOptions.map(meal => {
+      const formatCreatorOption = (meal: any) => {
         const { complianceSection, dietClassification } = buildMealComplianceBundle(
           meal, protocolEnvelope, { isChefAdapted: dietAdapted }
         );
@@ -7301,7 +7363,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         return formatted;
-      });
+      };
+      let formattedOptions = scannedOptions.map(formatCreatorOption);
 
       // Formatting/scaling changes ingredient quantities and nutrition totals.
       // Revalidate that exact final payload before any image work or response.
@@ -7324,7 +7387,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       formattedOptions = postFormatResults
         .filter(({ result }) => result.outcome === "pass")
         .map(({ meal }) => meal);
-      if (formattedOptions.length === 0) {
+      if (formattedOptions.length === 0 && humanFoodCreator !== "create_a_dish") {
         const postFormatFailure =
           postFormatFailures.find(({ result }) => result.outcome === "blocked")
           ?? postFormatFailures.find(({ result }) => result.outcome === "review_required")
@@ -7355,13 +7418,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "./services/createDish/createDishIntent"
         );
         formattedOptions = formattedOptions.filter((meal: any) =>
-          mealHonorsCreateDishIntent(meal, validatedCreateDishIntent!),
+          mealHonorsCreateDishIntent(meal, validatedCreateDishIntent!, createDishContract, createDishMeaningV1),
         );
-        if (formattedOptions.length === 0) {
+        if (formattedOptions.length === 0 && humanFoodCreator !== "create_a_dish") {
           return res.status(422).json({
             status: "unable_to_generate",
             reasonCode: "create_dish_intent_not_preserved",
             message: `We couldn't verify the requested dish and preparation for ${createDishContract?.requestedDish ?? rawCravingInput} after final food validation. Try changing one choice or use Surprise Me.`,
+          });
+        }
+      }
+
+      if (humanFoodCreator === "create_a_dish") {
+        const { fillFinalCreateDishChoices, releaseCreateDishReplacementBatch } = await import("./services/createDish/finalChoices");
+        const { mealHonorsCreateDishIntent } = await import("./services/createDish/createDishIntent");
+        const { scanMealsForAllergenViolations } = await import("./services/allergyGuardrails");
+        // The original and replacement candidates share these request-resolved
+        // authorities. A replacement never reinterprets the dish or relaxes an
+        // explicit selection just because another recipe was rejected.
+        const finalIntent = validatedCreateDishIntent;
+        const finalContract = createDishContract;
+        const finalMeaning = createDishMeaningV1;
+        const passesBglGate = (meal: any): boolean => {
+          if (!protocolEnvelope.hasDiabetes) return true;
+          const state = protocolEnvelope.diabeticGlucoseState;
+          if (state === "low" || state === "low-normal") return true;
+          const carbs = meal.carbs ?? meal.nutrition?.carbs;
+          const ceiling = state === "high-risk" ? 15 : state === "elevated" ? 25 : 35;
+          return carbs != null && Number(carbs) <= ceiling + 10;
+        };
+        const releaseReplacementBatch = async (candidates: any[]): Promise<any[]> => {
+          // These are the same ordered gates the first generation traverses:
+          // clinical carb limit, protocol + dish identity, adaptation allergen
+          // scan, creator transformation, Human Food, culinary intent, then
+          // formatted/served Human Food and culinary intent once more.
+          const released = await releaseCreateDishReplacementBatch(candidates, {
+            clinical: passesBglGate,
+            protocol: (clinical: any[]) => filterMealsByProtocol(clinical, _filterEnvelope, {
+              generatorName: "craving_creator_final_choice",
+              skipAdaptableConflicts: _effectiveSkipAdaptableConflicts,
+              overriddenAllergens: _overriddenAllergens.length ? _overriddenAllergens : undefined,
+              exemptDishNameTerms: _adaptExemptTerms,
+              dishIdentity: {
+                requestedDish: enforceRequestedDishIdentity ? rawCravingInput || "" : "",
+                directive: _dishDirective,
+                results: _identityResults,
+              },
+            }),
+            allergen: (protocolSafe: any[]) =>
+              safetyMode === "ALLERGEN_ADAPT" && protocolEnvelope.allergies.length
+                ? scanMealsForAllergenViolations(protocolSafe, protocolEnvelope.allergies, _adaptExemptTerms).safe
+                : protocolSafe,
+            transform: applyFinalCreatorTransformation,
+            humanFood: (meal: any) => runFinalValidation(meal).outcome === "pass",
+            dishIntent: (meal: any) =>
+              !finalIntent || mealHonorsCreateDishIntent(meal, finalIntent, finalContract, finalMeaning),
+            format: formatCreatorOption,
+            finalFood: (meal: any) => runFinalValidation(meal, validatedServings).outcome === "pass",
+            finalDishIntent: (meal: any) =>
+              !finalIntent || mealHonorsCreateDishIntent(meal, finalIntent, finalContract, finalMeaning),
+          });
+          for (const candidate of candidates) {
+            if (!released.some((meal: any) => meal.name === candidate.name)) {
+              recordRejectedHumanFoodCandidate(humanFoodExecutionState, candidate);
+            }
+          }
+          logCreateDishAcceptance({
+            stage: "final_choice_refill_validation",
+            candidates: candidates.length,
+            survivors: released.length,
+          });
+          return released;
+        };
+
+        // Cap extra work by both the original request clock and a refill-only
+        // allowance. Only already verified options survive an exhausted budget.
+        const choiceResult = await fillFinalCreateDishChoices({
+          initial: formattedOptions,
+          initialCandidates: mealOptions,
+          excludedNames: excludeMeals,
+          maxRefillCalls: 2,
+          deadlineAt: Math.min(startTime + 100_000, Date.now() + 45_000),
+          generate: async (_call, excludedNames, signal) => {
+            const replacements = await generateCravingMealOptions(
+              `${cravingInput}\n\n[CREATE A DISH FINAL CHOICE REFILL] ` +
+              `Produce distinct versions of the same requested dish under the unchanged ` +
+              `person-specific protections and fixed user selections. Previous recipes did ` +
+              `not all pass final food and dish validation. ${buildRejectedCandidatePrompt(humanFoodExecutionState)}`,
+              normalizedTargetMealType,
+              userId,
+              bodyDietRestrictions,
+              excludedNames,
+              true,
+              normalizedGenerationMode,
+              effectiveRequestCuisine ?? undefined,
+              _cravingGlp1Targets,
+              _overriddenAllergens.length > 0 ? _overriddenAllergens : undefined,
+              _dishDirective,
+              skipImages === true,
+              humanFoodExecutionState,
+              _overriddenAvoidances,
+              _overriddenDietaryIdentities,
+              rawCravingInput,
+              finalContract,
+              signal,
+            );
+            return replacements ?? [];
+          },
+          validate: releaseReplacementBatch,
+        });
+        formattedOptions = choiceResult.choices;
+        logCreateDishAcceptance({
+          stage: "final_choices",
+          count: formattedOptions.length,
+          refillCalls: choiceResult.refillCalls,
+          timedOut: choiceResult.timedOut,
+        });
+        if (formattedOptions.length === 0) {
+          return res.status(422).json({
+            status: "unable_to_generate",
+            reasonCode: "create_dish_no_verified_choices",
+            retryable: true,
+            message: "We couldn't verify a version of this dish that meets your food protections and preserves the requested dish. Please try another preparation.",
           });
         }
       }
