@@ -6643,7 +6643,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               humanFoodExecutionState,
               _overriddenAvoidances,
               _overriddenDietaryIdentities,
-              humanFoodCreator === "create_a_dish" ? rawCravingInput : undefined,
+              undefined, // This retry runs only for Craving/Sushi, not Create a Dish.
               createDishContract,
             );
             if (_bglRetryOptions && _bglRetryOptions.length > 0) {
@@ -6668,7 +6668,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.error("🩸 [BGL Gate/CravingCreator] Reformulation retry error:", bglRetryErr);
           }
 
-          if (!_bglRetrySucceeded && humanFoodCreator !== "create_a_dish") {
+          if (!_bglRetrySucceeded) {
             // Both the original pass and the single reformulation failed —
             // block with a plain-language clinical explanation.
             const _bglDishLabel = (rawCravingInput || "").trim() || "this dish";
@@ -6885,7 +6885,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 humanFoodExecutionState,
                 _overriddenAvoidances,
                 _overriddenDietaryIdentities,
-                humanFoodCreator === "create_a_dish" ? rawCravingInput : undefined,
+                undefined, // Allergen retry excludes Create a Dish above.
                 createDishContract,
               );
               if (retryOptions && retryOptions.length > 0) {
@@ -7107,7 +7107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             humanFoodExecutionState,
             _overriddenAvoidances,
             _overriddenDietaryIdentities,
-            humanFoodCreator === "create_a_dish" ? rawCravingInput : undefined,
+            undefined, // The final repair callback is only for Craving/Sushi.
             createDishContract,
           );
           const protocolSafeRepairs = filterMealsByProtocol(repairOptions ?? [], _filterEnvelope, {
