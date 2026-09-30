@@ -23,6 +23,7 @@ export interface DevelopmentProductMatch {
   evidenceStatus: "eligible" | "needs_verification";
   verificationMessage: string;
   needsProfileReview: boolean;
+  policyUnresolved: boolean;
   research: readonly { source: string; result: string }[];
   nutrition: readonly { statement: string; source: string }[];
   allergenInformation: readonly { statement: string; source: string }[];
@@ -112,9 +113,11 @@ function explainCatalogChoice(
     : candidate.facts.some((item) => item.kind === "ingredients")
       ? "the catalog has an ingredient declaration, but no comparable nutrition"
       : "the catalog lacks enough ingredients and nutrition to compare";
+  const dailyFit = lowCarb
+    ? "Serving and today's meals still determine low-carb fit. " : "";
   return status === "eligible"
-    ? `This exact branded option matches ${context}; ${fact}. Check the current package before buying.`
-    : `For ${context}, ${fact}. This is an option to compare, not an approved profile match; check the current package and the review note below.`;
+    ? `For ${context}, ${fact}. ${dailyFit}Check the current package before buying.`
+    : `For ${context}, ${fact}. ${dailyFit}This is a profile-guided comparison, not an allergen or product-policy clearance; see the review note below.`;
 }
 
 function unresolvedReason(id: string, reason: string): string {
@@ -317,20 +320,20 @@ export async function findProductDevelopment(
         ? "Open Food Facts" : "USDA FoodData Central",
       sourceRecordId: candidate.identity.provenance.sourceRecordId,
       evidenceStatus: decision.status === "eligible" ? "eligible" : "needs_verification",
-      needsProfileReview: decision.status !== "eligible" &&
-        unresolvedHard.some((issue) => issue.classification === "hard" || issue.classification === "authority"),
+       needsProfileReview: evaluated.subject!.status !== "resolved",
+       policyUnresolved: decision.status !== "eligible" && unresolvedHard.length > 0,
       research: candidate.research ?? [],
       nutrition: candidate.facts.filter((fact) => fact.kind === "nutrition")
         .map((fact) => ({ statement: fact.statement, source: fact.provenance.source })),
       allergenInformation: candidate.facts.filter((fact) =>
         fact.kind === "declared_allergens" || fact.kind === "precautionary_allergens")
         .map((fact) => ({ statement: fact.statement, source: fact.provenance.source })),
-       profileInsight: explainCatalogChoice(candidate, evaluated.subject!, decision.status as "eligible" | "needs_verification"),
+        profileInsight: explainCatalogChoice(candidate, evaluated.subject!, decision.status as "eligible" | "needs_verification"),
        verificationMessage: decision.status === "eligible"
         ? "Exact barcode record and ingredient/nutrition facts found; no unresolved hard product rule applies to this profile. This is catalog evidence, not a guarantee about today's package."
         : unresolvedHard.length
-          ? `Cannot recommend: ${unresolvedHard.map((issue) =>
-            unresolvedReason(issue.id, issue.reason)).join(" ")} A package label alone may not resolve a missing profile rule.`
+           ? `Product eligibility is not cleared: ${unresolvedHard.map((issue) =>
+             unresolvedReason(issue.id, issue.reason)).join(" ")} Your saved profile was resolved; this is a product-policy gap. A package label alone may not resolve it.`
           : decision.reasons.map((reason) => reason.detail).join(" "),
     }));
   if ((!options.sources || options.interpret) && evaluated.subject) {
