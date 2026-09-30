@@ -118,9 +118,9 @@ interface ProductAdviceResult {
     catalogDate: string | null;
     source: string;
     sourceRecordId: string;
-  evidenceStatus: "eligible" | "needs_verification";
+    evidenceStatus: "eligible" | "needs_verification";
     verificationMessage: string;
-  needsProfileReview?: boolean;
+    needsProfileReview?: boolean;
     research?: { source: string; result: string; phase?: string }[];
     nutrition?: { statement: string; source: string }[];
     allergenInformation?: { statement: string; source: string }[];
@@ -130,6 +130,8 @@ interface ProductAdviceResult {
   catalogSearchAvailable?: boolean;
   excludedReasons?: string[];
 }
+
+type CatalogProductMatch = NonNullable<ProductAdviceResult["catalogMatches"]>[number];
 
 interface SwapSuggestion {
   item: string;
@@ -290,6 +292,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   const { toast } = useToast();
   const { t } = useTranslation("shopping");
   const addItems = useShoppingListStore((s) => s.addItems);
+  const addItem = useShoppingListStore((s) => s.addItem);
   const [, setLocation] = useLocation();
 
   // Scope the session key to the authenticated user so sessions are never shared across accounts.
@@ -598,6 +601,22 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     setProductAddedKeys((prev) => new Set(Array.from(prev).concat(key)));
     toast({ title: t("findProduct.added") });
   }, [productAddedKeys, addItems, toast, t]);
+
+  const handleCatalogAddToList = useCallback((product: CatalogProductMatch) => {
+    const key = `catalog:${product.productKey}`;
+    if (productAddedKeys.has(key)) return;
+    const label = product.name.toLowerCase().startsWith(product.brand.toLowerCase())
+      ? product.name : `${product.brand} ${product.name}`;
+    // The list stores names, not barcode identities. Keep the UPC outside
+    // parentheses: list hydration strips parenthetical text for deduplication.
+    const name = `${label}${product.barcode ? ` · UPC ${product.barcode}` : ""}`;
+    addItem({
+      name, quantity: 1, unit: "", category: "Other",
+      sourceMeals: [t("findProduct.tabFindProduct")],
+    });
+    setProductAddedKeys((prev) => new Set([...prev, key]));
+    toast({ title: t("findProduct.added"), description: name });
+  }, [productAddedKeys, addItem, toast, t]);
 
   const fetchProductAdvice = useCallback(async (shoppingList: ShoppingListItem[]) => {
     if (!shoppingList.length) return;
@@ -1085,7 +1104,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                           ) : null}
                           {product.profileInsight && (
                             <div style={{ color: "#d6d3d1", fontSize: 12, marginTop: 8, lineHeight: 1.45 }}>
-                              Profile context (not a product approval): {product.profileInsight}
+                              {product.evidenceStatus === "eligible" ? "Why this choice: " : "Why compare this choice: "}
+                              {product.profileInsight}
                             </div>
                           )}
                           {product.research?.length ? (
@@ -1102,6 +1122,22 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                             {product.catalogDate ? ` · Source identity date (not formulation date): ${product.catalogDate}` : ""}
                           </div>
                           <div style={{ color: "#fdba74", fontSize: 11, marginTop: 8, lineHeight: 1.4 }}>{product.verificationMessage}</div>
+                          <div style={{ marginTop: 10 }}>
+                            <PillButton
+                              active={productAddedKeys.has(`catalog:${product.productKey}`)}
+                              variant="amber"
+                              onClick={() => handleCatalogAddToList(product)}
+                              disabled={productAddedKeys.has(`catalog:${product.productKey}`)}
+                            >
+                              {productAddedKeys.has(`catalog:${product.productKey}`)
+                                ? t("findProduct.added") : t("findProduct.addToList")}
+                            </PillButton>
+                            {product.evidenceStatus !== "eligible" && (
+                              <div style={{ color: "#fdba74", fontSize: 11, marginTop: 5 }}>
+                                Adding to your list does not clear this product for your profile.
+                              </div>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>

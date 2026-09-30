@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { HumanFoodContext } from "../../../shared/humanFoodContext";
 import type { UserProtocolEnvelope } from "../protocolEnvelope";
+import { buildAnalysisProfile } from "../ingredientScanService";
 
 export interface ProductSubjectRequest {
   actorUserId: string;
@@ -22,6 +23,8 @@ export interface ProductSubjectSnapshot {
   explicitAvoidances: string[];
   dislikes: string[];
   preferences: string[];
+  /** Product Scan's existing subject-owned profile factor labels, for explanation only. */
+  profileFactors: string[];
   medicalHardLimitNames: string[];
   medicalOptimizationNames: string[];
   glp1Active: boolean;
@@ -119,6 +122,10 @@ export async function resolveProductSubjectAuthority(
     gap === "daily_nutrition_state" || gap.startsWith("diabetes."))) {
     issues.push("authoritative_nutrition_or_glucose_unavailable");
   }
+  const profileFactors = buildAnalysisProfile({
+    ...envelope,
+    conditionGuidanceBlocks: envelope.conditionGuidanceBlocks ?? [],
+  });
   const fingerprint = createHash("sha256").update(JSON.stringify({
     subjectId: request.subjectUserId,
     kind: request.subjectKind,
@@ -134,6 +141,7 @@ export async function resolveProductSubjectAuthority(
     glp1: food.safety.glp1MealAuthorityActive,
     pregnancy: envelope.pregnancySupportContext,
     alphaGal: envelope.alphaGalContext,
+    profileFactors,
   })).digest("hex");
   return {
     actorUserId: request.actorUserId,
@@ -148,6 +156,7 @@ export async function resolveProductSubjectAuthority(
     explicitAvoidances: [...food.safety.avoidedFoods],
     dislikes: [...food.safety.dislikedFoods],
     preferences: [...(envelope.preferences ?? [])],
+    profileFactors,
     medicalHardLimitNames: [...envelope.medicalHardLimits],
     medicalOptimizationNames: [...envelope.medicalOptimization],
     glp1Active: food.safety.glp1MealAuthorityActive === true,
