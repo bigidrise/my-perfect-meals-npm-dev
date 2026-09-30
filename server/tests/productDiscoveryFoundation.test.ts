@@ -484,7 +484,7 @@ describe("Phase 2B internal authority and product evidence foundation", () => {
     provider.search = async () => { throw new Error("Must not search"); };
     await expect(findProductDevelopment("owner", "milk", {
       sources: sources({ activeHousehold: "child" }), adapter: provider,
-    })).rejects.toThrow("subject context is unavailable");
+    })).rejects.toThrow("current food profile could not be resolved");
   });
   test("Development decision handoff recommends exact sourced ordinary products and continues past missing facts", async () => {
     const fresh = new Date().toISOString();
@@ -509,6 +509,34 @@ describe("Phase 2B internal authority and product evidence foundation", () => {
     expect(result.catalogMatches[1].verificationMessage)
       .toContain("missing ingredients and nutrition");
     expect(result.catalogMatches[1].needsProfileReview).toBe(false);
+  });
+  test("a fresh context fingerprint on the second healthy profile read does not abort discovery", async () => {
+    const changing = sources();
+    const original = changing.resolveFoodContext;
+    let reads = 0;
+    changing.resolveFoodContext = async (request) => ({
+      ...await original(request), internalFingerprint: `generation-${++reads}`,
+    });
+    const interpret = jest.fn(async (_actor, subject, _candidate, decision) => {
+      expect(subject.fingerprint).toBe(decision.contextFingerprint);
+      return "Same resolved subject used for the decision.";
+    });
+    const result = await findProductDevelopment("owner", "peanut butter", {
+      sources: changing,
+      adapter: adapter([record({
+        observedAt: null, identityObservedAt: new Date().toISOString(),
+        facts: [
+          { kind: "ingredients", originalStatement: "Peanuts", completeness: "unknown" },
+          { kind: "nutrition", target: "fat_g_per_100g",
+            originalStatement: "Fat: 48 g per 100g", completeness: "unknown",
+            nutritionMeasurement: { value: 48, unit: "g", basis: "per_100g" } },
+        ],
+      })]),
+      interpret,
+    });
+    expect(reads).toBe(2);
+    expect(result.catalogMatches[0].evidenceStatus).toBe("eligible");
+    expect(interpret).toHaveBeenCalledTimes(1);
   });
   test("an exact Open Food Facts barcode record can be recommended for an ordinary profile", async () => {
     const fetcher = jest.fn(async (url: URL) => ({

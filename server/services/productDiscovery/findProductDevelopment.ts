@@ -29,6 +29,13 @@ export interface DevelopmentProductMatch {
   profileInsight?: string;
 }
 
+export class ProductSubjectContextUnavailableError extends Error {
+  constructor(message = "Your current food profile could not be resolved for this search.") {
+    super(message);
+    this.name = "ProductSubjectContextUnavailableError";
+  }
+}
+
 function unresolvedReason(id: string, reason: string): string {
   if (id === "dietary_identity:low_carb" || id === "dietary_identity:low carb") {
     return `${id}: Low-carb fit depends on the day's carbohydrate and food-source allocation; catalog carbohydrates alone do not establish it.`;
@@ -167,7 +174,7 @@ export async function findProductDevelopment(
     dateISO,
   }, sources);
   if (initial.status !== "resolved") {
-    throw new Error("Nutrition subject context is unavailable; no products were evaluated.");
+    throw new ProductSubjectContextUnavailableError();
   }
   const intent = buildIntent(food, initial);
   const evaluated = await discoverProductCandidates({
@@ -198,10 +205,16 @@ export async function findProductDevelopment(
     },
   });
   if (evaluated.status === "authority_unresolved") {
-    throw new Error("Nutrition subject context is unavailable; no products were evaluated.");
+    throw new ProductSubjectContextUnavailableError();
   }
-  if (evaluated.subject?.fingerprint !== initial.fingerprint) {
-    throw new Error("Nutrition subject context changed during product discovery.");
+  // HumanFoodContext fingerprints include a fresh generation-chain ID and
+  // resolution timestamp. Two healthy reads of the same profile necessarily
+  // differ. Only compare the search intent, which is the part built from the
+  // initial snapshot; all safety decisions use the later resolved subject.
+  if (!evaluated.subject || JSON.stringify(buildIntent(food, evaluated.subject)) !== JSON.stringify(intent)) {
+    throw new ProductSubjectContextUnavailableError(
+      "Your product search preferences changed during the search. Please try again.",
+    );
   }
   const presentable = evaluated.evaluatedCandidates
     .filter(({ decision }) => decision.status !== "rejected")

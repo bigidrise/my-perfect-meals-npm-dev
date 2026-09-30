@@ -15,7 +15,7 @@ import { classifyNutritionalRole, nutritionalRoleLabel, isRoleCompatible } from 
 import { createHumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
 import { buildHumanFoodPromptBlock } from "../services/humanFoodContext/buildHumanFoodPromptBlock";
 import { validateHumanFoodResult } from "../services/humanFoodContext/validateHumanFoodResult";
-import { findProductDevelopment } from "../services/productDiscovery/findProductDevelopment";
+import { findProductDevelopment, ProductSubjectContextUnavailableError } from "../services/productDiscovery/findProductDevelopment";
 
 const router = express.Router();
 
@@ -684,8 +684,10 @@ router.post("/product-advisor", async (req, res) => {
         });
       } catch (error) {
         console.error("[FindProduct/Development]", error);
-        return res.status(503).json({
-          error: "Product guidance is unavailable because your current profile could not be verified.",
+        return res.status(error instanceof ProductSubjectContextUnavailableError ? 409 : 503).json({
+          error: error instanceof ProductSubjectContextUnavailableError
+            ? error.message
+            : "Product search encountered a temporary error. Please try again.",
           retryable: true,
         });
       }
