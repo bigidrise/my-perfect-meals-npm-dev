@@ -107,6 +107,21 @@ interface ProductAdviceResult {
   advice: IngredientAdvice[];
   profileUsed: string[];
   store?: string;
+  catalogNotice?: string;
+  catalogMatches?: {
+    productKey: string;
+    name: string;
+    brand: string;
+    barcode: string | null;
+    ingredients: string | null;
+    serving: string | null;
+    catalogDate: string | null;
+    source: string;
+    sourceRecordId: string;
+    evidenceStatus: "needs_verification";
+    verificationMessage: string;
+  }[];
+  sourceFailures?: string[];
 }
 
 interface SwapSuggestion {
@@ -325,7 +340,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
   // Same session-restore pattern as the meal result, scoped per user.
   const PRODUCT_SESSION_KEY = useMemo(
-    () => `grocery-coach-product-search:${user?.id ?? "guest"}`,
+    // Do not restore pre-catalog AI brand suggestions as verified products.
+    () => `grocery-coach-product-search:catalog-v1:${user?.id ?? "guest"}`,
     [user?.id]
   );
 
@@ -515,15 +531,17 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     setProductError(null);
     setProductAddedKeys(new Set());
     try {
-      const data = await post("/api/grocery-coach/product-advisor", { ingredients: [query] });
+      const data = await post("/api/grocery-coach/product-advisor", { ingredients: [query], mode: "find_product" });
       if (sessionGenRef.current !== gen) return; // identity changed — discard
       if (data?.error) throw new Error(data.error);
-      if (data?.advice?.length) {
+      if (data?.advice?.length || data?.catalogMatches?.length) {
         setProductSearch({ query, advice: data as ProductAdviceResult, savedAt: Date.now() });
         setProductSearchOwnerKey(PRODUCT_SESSION_KEY); // stamp ownership so persist effect may write
         setProductPhase("result");
       } else {
-        setProductError(t("findProduct.noResults"));
+        setProductError(data?.sourceFailures?.length
+          ? "The product catalog is unavailable right now. Please try again."
+          : t("findProduct.noResults"));
         setProductPhase("idle");
       }
     } catch (e: any) {
@@ -1021,6 +1039,31 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                         <span key={p} style={{ padding: "3px 10px", borderRadius: 999, background: "rgba(234,88,12,0.15)", border: "1px solid rgba(249,115,22,0.25)", color: "#fb923c", fontSize: 11, fontWeight: 600 }}>
                           {p}
                         </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {productSearch.advice.catalogMatches && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      <div style={{ padding: "11px 13px", borderRadius: 10, background: "rgba(251,146,60,0.1)", border: "1px solid rgba(251,146,60,0.28)", color: "#fdba74", fontSize: 12, lineHeight: 1.5 }}>
+                        {productSearch.advice.catalogNotice || "Catalog matches only. Check the current package label before choosing."}
+                      </div>
+                      {productSearch.advice.catalogMatches.map((product) => (
+                        <div key={product.productKey} data-testid="catalog-product-match"
+                          style={{ padding: "12px 14px", borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)" }}>
+                          <div style={{ color: "white", fontWeight: 700, fontSize: 14 }}>{product.brand} · {product.name}</div>
+                          <div style={{ color: "#fb923c", fontSize: 11, fontWeight: 700, marginTop: 5 }}>Catalog match — check the label</div>
+                          <div style={{ color: "rgba(255,255,255,0.62)", fontSize: 12, marginTop: 7, lineHeight: 1.45 }}>
+                            {product.ingredients ? `Catalog ingredients: ${product.ingredients}` : "Ingredient declaration unavailable."}
+                          </div>
+                          <div style={{ color: "rgba(255,255,255,0.48)", fontSize: 11, marginTop: 7, lineHeight: 1.5 }}>
+                            {product.serving ? `Serving: ${product.serving} · ` : ""}
+                            {product.barcode ? `GTIN/UPC: ${product.barcode} · ` : ""}
+                            {product.source} #{product.sourceRecordId}
+                            {product.catalogDate ? ` · Catalog date: ${product.catalogDate}` : ""}
+                          </div>
+                          <div style={{ color: "#fdba74", fontSize: 11, marginTop: 8, lineHeight: 1.4 }}>{product.verificationMessage}</div>
+                        </div>
                       ))}
                     </div>
                   )}

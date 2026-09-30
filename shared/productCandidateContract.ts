@@ -1,6 +1,6 @@
 /**
- * Contract-first product discovery. These types are not connected to live
- * recommendations. A future server-side resolver must build the subject's
+ * Contract-first product discovery. These types do not make a catalog lead
+ * a recommendation. Server-side authority must build the subject's
  * requirements; neither client requests nor model output may supply proofs.
  */
 export const PRODUCT_CANDIDATE_CONTRACT_VERSION = "product-candidate.v1" as const;
@@ -49,6 +49,7 @@ export interface ProductIdentity {
   barcode?: string;
   packageSize?: string;
   market?: string;
+  servingDescription?: string;
   match: "exact_variant" | "uncertain" | "brand_only";
   provenance: ProductEvidenceProvenance;
 }

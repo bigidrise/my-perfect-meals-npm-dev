@@ -1,0 +1,128 @@
+import type { ProductEvidenceAdapter, SourceProductRecord } from "./productEvidenceAdapters";
+
+interface UsdaSearchFood {
+  fdcId: number;
+  description?: string;
+  brandName?: string;
+  brandOwner?: string;
+  gtinUpc?: string;
+  publishedDate?: string;
+  modifiedDate?: string;
+  marketCountry?: string;
+  foodCategory?: string;
+  packageWeight?: string;
+  ingredients?: string;
+  servingSize?: number;
+  servingSizeUnit?: string;
+  householdServingFullText?: string;
+  foodNutrients?: {
+    nutrientId: number;
+    nutrientName: string;
+    unitName: string;
+    value: number;
+  }[];
+}
+const NUTRIENTS: Record<number, { target: string; unit: string }> = {
+  1008: { target: "calories_kcal_per_100g", unit: "kcal" },
+  1003: { target: "protein_g_per_100g", unit: "g" },
+  1004: { target: "fat_g_per_100g", unit: "g" },
+  1005: { target: "carbs_g_per_100g", unit: "g" },
+  1093: { target: "sodium_mg_per_100g", unit: "mg" },
+};
+
+/** USDA DEMO_KEY is public and rate-limited; this provider is Development-only. */
+export function createUsdaBrandedAdapter(fetcher: typeof fetch = fetch): ProductEvidenceAdapter {
+  const records = new Map<string, SourceProductRecord>();
+  const cache = new Map<string, { expiresAt: number; foods: UsdaSearchFood[] }>();
+  return {
+    source: "usda_branded",
+    async search(intent, cursor, limit) {
+      const categoryIndex = cursor === null ? 0 : Number(cursor);
+      if (!Number.isInteger(categoryIndex) || categoryIndex < 0 ||
+          categoryIndex >= intent.searchCategories.length) {
+        throw new Error("Invalid USDA search cursor.");
+      }
+      const category = intent.searchCategories[categoryIndex].category.trim().slice(0, 80);
+      if (!category) throw new Error("A product search category is required.");
+      const cacheKey = `${category.toLowerCase()}:${Math.min(limit, 12)}`;
+      let foods = cache.get(cacheKey);
+      if (!foods || foods.expiresAt < Date.now()) {
+        const url = new URL("https://api.nal.usda.gov/fdc/v1/foods/search");
+        url.searchParams.set("api_key", "DEMO_KEY");
+        url.searchParams.set("query", category);
+        url.searchParams.set("dataType", "Branded");
+        url.searchParams.set("pageSize", String(Math.min(limit, 12)));
+        const response = await fetcher(url, {
+          headers: { Accept: "application/json" },
+          signal: AbortSignal.timeout(10000),
+        });
+        if (!response.ok) throw new Error(`USDA catalog unavailable (${response.status})`);
+        const payload = await response.json() as { foods?: UsdaSearchFood[] };
+        if (!Array.isArray(payload.foods)) throw new Error("USDA search response is invalid.");
+        foods = { foods: payload.foods, expiresAt: Date.now() + 120_000 };
+        cache.set(cacheKey, foods);
+      }
+      const retrievedAt = new Date().toISOString();
+      const references = foods.foods.filter((food) =>
+        Number.isInteger(food.fdcId) && food.fdcId > 0 &&
+        (intent.purpose !== "drink" ||
+          !/\bmilk\b/i.test(intent.requestedFood) ||
+          /milk|dairy alternative|plant.based dairy/i.test(food.foodCategory ?? ""))).map((food) => {
+        const sourceRecordId = String(food.fdcId);
+        const ingredients = food.ingredients?.trim();
+        const servingDescription = [
+          food.householdServingFullText,
+          food.servingSize && food.servingSizeUnit
+            ? `${food.servingSize} ${food.servingSizeUnit}` : null,
+        ].filter(Boolean).join(" · ") || undefined;
+        const facts: SourceProductRecord["facts"][number][] = [];
+        if (ingredients) facts.push({
+          kind: "ingredients",
+          originalStatement: ingredients,
+          // A catalog field is not proof of a complete *current* package label.
+          completeness: "unknown",
+        });
+        for (const nutrient of food.foodNutrients ?? []) {
+          const match = NUTRIENTS[nutrient.nutrientId];
+          if (!match || !Number.isFinite(nutrient.value) ||
+              nutrient.unitName.toLowerCase() !== match.unit) continue;
+          facts.push({
+            kind: "nutrition", target: match.target,
+            originalStatement: `${nutrient.nutrientName}: ${nutrient.value} ${match.unit} per 100g (USDA record)`,
+            completeness: "unknown",
+            nutritionMeasurement: {
+              value: nutrient.value, unit: match.unit, basis: "per_100g",
+            },
+          });
+        }
+        records.set(sourceRecordId, {
+          source: "usda_branded",
+          sourceRecordId,
+          sourceVersion: food.publishedDate,
+          observedAt: food.publishedDate ?? food.modifiedDate ?? null,
+          retrievedAt,
+          name: food.description?.trim() ?? "",
+          brand: (food.brandName || food.brandOwner || "").trim(),
+          variant: [food.description, food.packageWeight].filter(Boolean).join(" · "),
+          packageSize: food.packageWeight,
+          servingDescription,
+          barcode: food.gtinUpc?.trim(),
+          market: food.marketCountry?.trim(),
+          exactVariantMatch: !!food.gtinUpc && !!food.description && !!food.marketCountry,
+          facts,
+        });
+        return { source: "usda_branded" as const, sourceRecordId };
+      });
+      return {
+        references,
+        nextCursor: categoryIndex + 1 < intent.searchCategories.length
+          ? String(categoryIndex + 1) : null,
+      };
+    },
+    async read(reference) {
+      const record = records.get(reference.sourceRecordId);
+      if (!record) throw new Error("USDA record is not in this search snapshot.");
+      return record;
+    },
+  };
+}
