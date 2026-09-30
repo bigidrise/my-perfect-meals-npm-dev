@@ -538,6 +538,94 @@ describe("Phase 2B internal authority and product evidence foundation", () => {
     expect(result.catalogMatches[0].evidenceStatus).toBe("eligible");
     expect(interpret).toHaveBeenCalledTimes(1);
   });
+  test("Development presents distinct brands before same-brand flavors, without approving hard rules", async () => {
+    const fresh = new Date().toISOString();
+    const product = (id: string, brand: string, name: string, carbs = 18) => record({
+      sourceRecordId: id, barcode: `0000000000${id.padStart(3, "0")}`,
+      identityObservedAt: fresh, observedAt: null, brand, name,
+      facts: [
+        { kind: "ingredients", originalStatement: "Peanuts, salt", completeness: "unknown" },
+        { kind: "nutrition", target: "carbs_g_per_100g",
+          originalStatement: `Carbohydrates: ${carbs} g per 100g`, completeness: "unknown",
+          nutritionMeasurement: { value: carbs, unit: "g", basis: "per_100g" } },
+      ],
+    });
+    const result = await findProductDevelopment("owner", "peanut butter", {
+      sources: sources({ diet: ["low_carb"], allergies: ["shellfish"] }),
+      adapter: adapter([
+        product("1", "Peanut Butter & Co", "Peanut Butter", 35),
+        product("2", "Peanut Butter & Co.", "Unsweetened Peanut Butter", 9),
+        product("3", "Peanut Butter & Co Inc.", "Cinnamon Swirl Peanut Butter", 20),
+        product("4", "Creamy peanut butter", "Creamy peanut butter"),
+        product("5", "Pic's", "Crunchy Peanut Butter"),
+        product("6", "Smucker's", "Natural Peanut Butter"),
+      ]),
+    });
+    expect(result.catalogMatches.map(({ brand }) => brand))
+      .toEqual(["Peanut Butter & Co.", "Pic's", "Smucker's"]);
+    expect(result.catalogMatches[0].name).toBe("Unsweetened Peanut Butter");
+    expect(result.catalogMatches.every(({ evidenceStatus, needsProfileReview, profileInsight }) =>
+      evidenceStatus === "needs_verification" && needsProfileReview &&
+      profileInsight?.includes("not an approved profile match"))).toBe(true);
+  });
+  test("Product Scan's profile factor labels come from the same resolved subject used for the choices", async () => {
+    const context = sources();
+    const load = context.loadEnvelope;
+    context.loadEnvelope = async (request) => ({
+      ...(await load(request))!, goalType: "lose", conditionGuidanceBlocks: [],
+    });
+    const result = await findProductDevelopment("owner", "rice", {
+      sources: context,
+      adapter: adapter([record({
+        observedAt: null, identityObservedAt: new Date().toISOString(),
+        facts: [
+          { kind: "ingredients", originalStatement: "Brown rice", completeness: "unknown" },
+          { kind: "nutrition", target: "carbs_g_per_100g",
+            originalStatement: "Carbohydrates: 76 g per 100g", completeness: "unknown",
+            nutritionMeasurement: { value: 76, unit: "g", basis: "per_100g" } },
+        ],
+      })]),
+    });
+    expect(result.profileUsed).toContain("Weight-loss goal");
+    expect(result.catalogMatches[0].profileInsight).toContain("your weight-loss goal");
+  });
+  test("Development can search a second OFF page for distinct branded choices", async () => {
+    const fetcher = jest.fn(async (url: URL) => ({
+      ok: true, status: 200,
+      json: async () => ({ hits: [{
+        code: url.searchParams.get("page") === "2" ? "1234567890123" : "0001234567890",
+        product_name: "Peanut Butter",
+        brands: url.searchParams.get("page") === "2" ? "Second Brand" : "First Brand",
+        countries_tags: ["en:united-states"],
+      }] }),
+    })) as unknown as typeof fetch;
+    const provider = createOpenFoodFactsSearchAdapter(fetcher, 2);
+    const intent = { requestedFood: "peanut butter", purpose: "unknown" as const,
+      searchCategories: [{ category: "peanut butter", preservesPurpose: true,
+        adaptationReasonRequirementIds: [] }] };
+    const first = await provider.search(intent, null, 25);
+    const second = await provider.search(intent, first.nextCursor, 25);
+    expect(first.nextCursor).toBe("2:0");
+    expect(second.nextCursor).toBeNull();
+    expect(first.references[0].sourceRecordId).not.toBe(second.references[0].sourceRecordId);
+    expect(String(fetcher.mock.calls[1][0])).toContain("page=2");
+  });
+  test("a chocolate bar named Dairy Milk is not a milk drink choice", async () => {
+    const fetcher = jest.fn(async () => ({
+      ok: true, status: 200,
+      json: async () => ({ hits: [
+        { code: "1234567890123", product_name: "Dairy Milk", brands: "Cadbury",
+          countries_tags: ["en:united-states"], categories_tags: ["en:chocolates"] },
+        { code: "0001234567890", product_name: "2% Milk", brands: "Hollandia",
+          countries_tags: ["en:united-states"], categories_tags: ["en:milks"] },
+      ] }),
+    })) as unknown as typeof fetch;
+    const provider = createOpenFoodFactsSearchAdapter(fetcher, 1, 8);
+    const page = await provider.search({ requestedFood: "milk", purpose: "drink",
+      searchCategories: [{ category: "milk", preservesPurpose: true,
+        adaptationReasonRequirementIds: [] }] }, null, 25);
+    expect(page.references.map((reference) => reference.sourceRecordId)).toEqual(["0001234567890"]);
+  });
   test("an exact Open Food Facts barcode record can be recommended for an ordinary profile", async () => {
     const fetcher = jest.fn(async (url: URL) => ({
       ok: true, status: 200,
@@ -596,7 +684,8 @@ describe("Phase 2B internal authority and product evidence foundation", () => {
     expect(result.catalogMatches[0].verificationMessage)
       .toContain("dietary_identity:low_carb");
     expect(result.catalogMatches[0].verificationMessage).toContain("explicit_avoidance:shellfish");
-    expect(result.catalogMatches[0].profileInsight).toBeUndefined();
+    expect(result.catalogMatches[0].profileInsight).toContain("For your low-carb pattern");
+    expect(result.catalogMatches[0].profileInsight).toContain("not an approved profile match");
     expect(interpret).not.toHaveBeenCalled();
   });
   test("a declared shellfish trace excludes the exact product for a shellfish allergy", async () => {
@@ -782,7 +871,7 @@ describe("Phase 2B internal authority and product evidence foundation", () => {
     expect(result.catalogMatches[0]).toMatchObject({
       name: "Ragu Unsweetened Sauce", evidenceStatus: "needs_verification",
     });
-    expect(result.catalogMatches[0].profileInsight).toBeUndefined();
+    expect(result.catalogMatches[0].profileInsight).toContain("not an approved profile match");
   });
   test("a conflict discovered only during exact-product enrichment is rejected", async () => {
     const first = record({ name: "Ragu Sauce", sourceRecordId: "ragu-1", facts: [] });

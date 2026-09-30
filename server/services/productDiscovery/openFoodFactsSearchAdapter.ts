@@ -21,13 +21,20 @@ interface OffSearchHit {
  * Bounded Development fallback when USDA search is unavailable. Search hits
  * provide identity leads only; read() must fetch the exact barcode record.
  */
-export function createOpenFoodFactsSearchAdapter(fetcher: typeof fetch = fetch): ProductEvidenceAdapter {
+export function createOpenFoodFactsSearchAdapter(
+  fetcher: typeof fetch = fetch,
+  pagesPerCategory = 1,
+  maxReferencesPerPage = 25,
+): ProductEvidenceAdapter {
   const leads = new Map<string, SourceProductRecord>();
   return {
     source: "open_food_facts",
     async search(intent, cursor, limit) {
-      const index = cursor === null ? 0 : Number(cursor);
-      if (!Number.isInteger(index) || index < 0 || index >= intent.searchCategories.length) {
+      const [passText, categoryText] = cursor?.split(":") ?? ["1", "0"];
+      const pass = Number(passText);
+      const index = Number(categoryText);
+      if (!Number.isInteger(pass) || pass < 1 || pass > pagesPerCategory ||
+          !Number.isInteger(index) || index < 0 || index >= intent.searchCategories.length) {
         throw new Error("Invalid OFF search cursor.");
       }
       const category = intent.searchCategories[index].category.trim().slice(0, 80);
@@ -35,6 +42,7 @@ export function createOpenFoodFactsSearchAdapter(fetcher: typeof fetch = fetch):
       const url = new URL("https://search.openfoodfacts.org/search");
       url.searchParams.set("q", category);
       url.searchParams.set("page_size", "25");
+      url.searchParams.set("page", String(pass));
       const response = await fetcher(url, {
         headers: {
           Accept: "application/json",
@@ -50,7 +58,7 @@ export function createOpenFoodFactsSearchAdapter(fetcher: typeof fetch = fetch):
       const retrievedAt = new Date().toISOString();
       const references: { source: "open_food_facts"; sourceRecordId: string }[] = [];
       for (const hit of payload.hits) {
-        if (references.length >= Math.min(limit, 25)) break;
+        if (references.length >= Math.min(limit, maxReferencesPerPage, 25)) break;
         const code = hit.code?.trim() ?? "";
         const name = (hit.product_name_en || hit.product_name || "").trim();
         const brands = Array.isArray(hit.brands) ? hit.brands : (hit.brands || "").split(",");
@@ -58,11 +66,15 @@ export function createOpenFoodFactsSearchAdapter(fetcher: typeof fetch = fetch):
         const productAndCategories = normalizeOffIdentityText([
           name, ...(hit.categories_tags ?? []),
         ].join(" "));
+        const categoryTags = (hit.categories_tags ?? []).join(" ").toLowerCase();
         const brandText = normalizeOffIdentityText(brands.join(" "));
         if (!canonicalGtin(code) || !name || !brand ||
             !hit.countries_tags?.includes("en:united-states") ||
             !terms.every((term) => productAndCategories.includes(term) ||
               (terms.length > 1 && brandText.includes(term)))) continue;
+        if (intent.purpose === "drink" &&
+            /en:(?:chocolates|candies|confectioneries|ice-creams)\b/.test(categoryTags) &&
+            !/en:(?:beverages|milks|plant-based-milks)\b/.test(categoryTags)) continue;
         const record: SourceProductRecord = {
           source: "open_food_facts", sourceRecordId: code,
           observedAt: null, retrievedAt, market: "United States",
@@ -79,7 +91,9 @@ export function createOpenFoodFactsSearchAdapter(fetcher: typeof fetch = fetch):
       }
       return {
         references,
-        nextCursor: index + 1 < intent.searchCategories.length ? String(index + 1) : null,
+        // Visit all requested categories before a deeper page of any one.
+        nextCursor: index + 1 < intent.searchCategories.length ? `${pass}:${index + 1}`
+          : pass < pagesPerCategory ? `${pass + 1}:0` : null,
       };
     },
     async read(reference) {

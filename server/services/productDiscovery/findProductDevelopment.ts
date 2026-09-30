@@ -36,6 +36,87 @@ export class ProductSubjectContextUnavailableError extends Error {
   }
 }
 
+type EvaluatedProduct = Awaited<ReturnType<typeof discoverProductCandidates>>["evaluatedCandidates"][number];
+
+function brandKey(brand: string, productName: string): string | null {
+  const normalize = (value: string) => value.toLowerCase().normalize("NFKD")
+    .replace(/\b(incorporated|inc|llc|ltd)\b/g, "")
+    .replace(/&/g, " and ").replace(/[^a-z0-9]+/g, " ").trim();
+  const parts = brand.split(",").map(normalize).filter(Boolean);
+  const key = parts.sort((a, b) => a.length - b.length)[0] ?? "";
+  // Catalogs occasionally put the generic product description in "brand".
+  return key && key !== normalize(productName) ? key : null;
+}
+
+function comparableCarbohydrates(candidate: ProductCandidate): number | null {
+  const fact = candidate.facts.find((item) =>
+    item.kind === "nutrition" && item.target === "carbs_g_per_100g" &&
+    item.nutritionMeasurement?.basis === "per_100g" &&
+    item.nutritionMeasurement.unit.toLowerCase() === "g" &&
+    Number.isFinite(item.nutritionMeasurement.value) && item.nutritionMeasurement.value >= 0);
+  return fact?.nutritionMeasurement?.value ?? null;
+}
+
+function selectDistinctProducts(
+  products: readonly EvaluatedProduct[],
+  subject: ProductSubjectSnapshot,
+): EvaluatedProduct[] {
+  const chosen: EvaluatedProduct[] = [];
+  const seenBrands = new Set<string>();
+  const lowCarb = subject.dietaryIdentity.some((diet) => /low.?carb|keto/i.test(diet));
+  for (const distinct of [true, false]) {
+    for (const status of ["eligible", "needs_verification"] as const) {
+      const sameStatus = products.filter(({ decision }) => decision.status === status)
+        .sort((a, b) => {
+          const completeness = (item: EvaluatedProduct) =>
+            Number(item.candidate.facts.some((f) => f.kind === "ingredients")) +
+            Number(item.candidate.facts.some((f) => f.kind === "nutrition"));
+          const evidenceDifference = completeness(b) - completeness(a);
+          if (evidenceDifference) return evidenceDifference;
+          // Relative comparison among like-for-like catalog measurements, not
+          // an intrinsic low-carb cutoff or a substitute for daily allocation.
+          return lowCarb
+            ? (comparableCarbohydrates(a.candidate) ?? Infinity) -
+              (comparableCarbohydrates(b.candidate) ?? Infinity)
+            : 0;
+        });
+      for (const item of sameStatus) {
+        const key = brandKey(item.candidate.identity.brand, item.candidate.identity.name);
+        if (chosen.includes(item) || (distinct && (!key || seenBrands.has(key)))) continue;
+        chosen.push(item);
+        if (key) seenBrands.add(key);
+        if (chosen.length === 3) return chosen;
+      }
+    }
+  }
+  return chosen;
+}
+
+function explainCatalogChoice(
+  candidate: ProductCandidate,
+  subject: ProductSubjectSnapshot,
+  status: "eligible" | "needs_verification",
+): string {
+  const lowCarb = subject.dietaryIdentity.some((diet) => /low.?carb|keto/i.test(diet));
+  const carbohydrate = candidate.facts.find((fact) =>
+    fact.kind === "nutrition" && /carbohydrate|carbs/i.test(fact.statement));
+  const nutrition = carbohydrate ?? candidate.facts.find((fact) => fact.kind === "nutrition");
+  const factor = subject.profileFactors[0] || subject.dietaryIdentity[0] ||
+    subject.medicalOptimizationNames[0];
+  const context = lowCarb ? "your low-carb pattern" : factor ? `your ${factor.toLowerCase()}` : "your food search";
+  const carbohydrateAmount = comparableCarbohydrates(candidate);
+  const fact = lowCarb && carbohydrateAmount !== null
+    ? `the catalog lists about ${carbohydrateAmount.toFixed(1)} g carbohydrate per 100 g`
+    : nutrition
+      ? `the catalog lists ${nutrition.statement}`
+    : candidate.facts.some((item) => item.kind === "ingredients")
+      ? "the catalog has an ingredient declaration, but no comparable nutrition"
+      : "the catalog lacks enough ingredients and nutrition to compare";
+  return status === "eligible"
+    ? `This exact branded option matches ${context}; ${fact}. Check the current package before buying.`
+    : `For ${context}, ${fact}. This is an option to compare, not an approved profile match; check the current package and the review note below.`;
+}
+
 function unresolvedReason(id: string, reason: string): string {
   if (id === "dietary_identity:low_carb" || id === "dietary_identity:low carb") {
     return `${id}: Low-carb fit depends on the day's carbohydrate and food-source allocation; catalog carbohydrates alone do not establish it.`;
@@ -187,11 +268,17 @@ export async function findProductDevelopment(
     registry: DEVELOPMENT_CATALOG_IDENTITY_POLICY,
     adapters: options.adapter
       ? [options.adapter, ...(options.fallbackAdapter ? [options.fallbackAdapter] : [])]
-      : [createUsdaBrandedAdapter(), createOpenFoodFactsSearchAdapter()],
+      : [
+        // A small sample per category prevents one provider's first same-brand
+        // page from consuming the entire search budget before other categories.
+        createOpenFoodFactsSearchAdapter(fetch, intent.searchCategories.length === 1 ? 4 : 1, 8),
+        createUsdaBrandedAdapter(),
+      ],
     evaluatedAt: new Date().toISOString(),
     useCurrentEvaluationTime: true,
-    maxCandidates: 24, maxPages: 4, targetCount: 3,
-    maxEvaluatedCandidates: 12,
+    // Explore beyond the first same-brand variants; keep source requests bounded.
+    maxCandidates: 40, maxPages: 6, targetCount: 9,
+    maxEvaluatedCandidates: 24,
     allowUnresolvedLeads: true,
     knownConflict: knownIngredientConflict,
     minimumEvidence: (candidate) => {
@@ -216,11 +303,7 @@ export async function findProductDevelopment(
       "Your product search preferences changed during the search. Please try again.",
     );
   }
-  const presentable = evaluated.evaluatedCandidates
-    .filter(({ decision }) => decision.status !== "rejected")
-    .sort((a, b) => Number(b.decision.status === "eligible") -
-      Number(a.decision.status === "eligible"))
-    .slice(0, 5);
+  const presentable = selectDistinctProducts(evaluated.evaluatedCandidates, evaluated.subject);
   const unresolvedHard = evaluated.unresolved.filter((issue) => issue.classification !== "support_context");
   const catalogMatches = presentable.map(({ candidate, decision }): DevelopmentProductMatch => ({
       productKey: candidate.identity.key,
@@ -242,7 +325,8 @@ export async function findProductDevelopment(
       allergenInformation: candidate.facts.filter((fact) =>
         fact.kind === "declared_allergens" || fact.kind === "precautionary_allergens")
         .map((fact) => ({ statement: fact.statement, source: fact.provenance.source })),
-      verificationMessage: decision.status === "eligible"
+       profileInsight: explainCatalogChoice(candidate, evaluated.subject!, decision.status as "eligible" | "needs_verification"),
+       verificationMessage: decision.status === "eligible"
         ? "Exact barcode record and ingredient/nutrition facts found; no unresolved hard product rule applies to this profile. This is catalog evidence, not a guarantee about today's package."
         : unresolvedHard.length
           ? `Cannot recommend: ${unresolvedHard.map((issue) =>
@@ -250,10 +334,11 @@ export async function findProductDevelopment(
           : decision.reasons.map((reason) => reason.detail).join(" "),
     }));
   if ((!options.sources || options.interpret) && evaluated.subject) {
-    await Promise.all(presentable.slice(0, 2).map(async ({ candidate, decision }, index) => {
+     await Promise.all(presentable.map(async ({ candidate, decision }, index) => {
       if (decision.status !== "eligible") return;
       catalogMatches[index].profileInsight =
-        await (options.interpret ?? interpretCatalogProduct)(userId, evaluated.subject!, candidate, decision) ?? undefined;
+         await (options.interpret ?? interpretCatalogProduct)(userId, evaluated.subject!, candidate, decision) ??
+           catalogMatches[index].profileInsight;
     }));
   }
   return {
@@ -264,9 +349,10 @@ export async function findProductDevelopment(
     sourceFailures: evaluated.sourceFailures.map((failure) => failure.reason),
     catalogSearchAvailable: evaluated.successfulSearchPages > 0,
     unresolved: evaluated.unresolved.map((issue) => issue.id),
-    profileUsed: [
-      ...initial.dietaryIdentity.map((value) => `Dietary: ${value}`),
-      ...initial.allergies.map((value) => `Allergy: ${value}`),
-    ],
+     profileUsed: [
+       ...evaluated.subject.profileFactors,
+       ...evaluated.subject.allergies.map((value) => `Allergy: ${value}`),
+       ...evaluated.subject.explicitAvoidances.map((value) => `Avoid: ${value}`),
+     ],
   };
 }
