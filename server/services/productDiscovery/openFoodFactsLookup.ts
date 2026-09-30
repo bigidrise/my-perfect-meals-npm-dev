@@ -52,9 +52,35 @@ export async function lookupOpenFoodFactsByBarcode(
   }
 }
 
-function normalized(value: string): string {
+export function normalizeOffIdentityText(value: string): string {
   return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "");
+}
+
+export function offIdentityMatches(
+  lookup: OffBarcodeLookup,
+  record: Pick<SourceProductRecord, "name" | "brand" | "market" | "barcode" | "packageSize">,
+): boolean {
+  if (lookup.status !== "matched" || !lookup.product || !lookup.barcode) return false;
+  const off = lookup.product;
+  const offName = off.product_name_en || off.product_name || "";
+  const brands = (off.brands || "").split(",").map((b) => normalizeOffIdentityText(b.trim())).filter(Boolean);
+  const market = off.countries_tags?.includes("en:united-states") ? "United States" : "";
+  const sameBrand = brands.includes(normalizeOffIdentityText(record.brand));
+  // A matching barcode alone is not enough to merge a contradictory name,
+  // brand, market, or explicitly different package size.
+  const name = normalizeOffIdentityText(record.name);
+  const offNormalizedName = normalizeOffIdentityText(offName);
+  const sameName = !!name && !!offNormalizedName &&
+    (name === offNormalizedName || name.includes(offNormalizedName) ||
+      offNormalizedName.includes(name));
+  const offQuantity = normalizeOffIdentityText(off.quantity ?? "");
+  const size = normalizeOffIdentityText(record.packageSize ?? "");
+  const sameSize = !offQuantity || !size ||
+    size.includes(offQuantity) || offQuantity.includes(size);
+  return sameBrand && sameName && sameSize && !!market &&
+    normalizeOffIdentityText(market) === normalizeOffIdentityText(record.market ?? "") &&
+    canonicalGtin(lookup.barcode) === canonicalGtin(record.barcode ?? "");
 }
 
 export function offEvidenceForExactUsdaProduct(
@@ -63,38 +89,29 @@ export function offEvidenceForExactUsdaProduct(
   if (lookup.status !== "matched" || !lookup.product || !lookup.barcode) {
     return { result: lookup.status, facts: [] };
   }
+  if (!offIdentityMatches(lookup, record)) return { result: "identity_mismatch", facts: [] };
   const off = lookup.product;
-  const offName = off.product_name_en || off.product_name || "";
-  const brands = (off.brands || "").split(",").map((b) => normalized(b.trim())).filter(Boolean);
-  const market = off.countries_tags?.includes("en:united-states") ? "United States" : "";
-  const sameBrand = brands.includes(normalized(record.brand));
-  // A matching barcode alone is not enough to merge a contradictory name,
-  // brand, market, or explicitly different package size.
-  const name = normalized(record.name);
-  const offNormalizedName = normalized(offName);
-  const sameName = !!name && !!offNormalizedName &&
-    (name === offNormalizedName || name.includes(offNormalizedName) ||
-      offNormalizedName.includes(name));
-  const offQuantity = normalized(off.quantity ?? "");
-  const size = normalized(record.packageSize ?? "");
-  const sameSize = !offQuantity || !size ||
-    size.includes(offQuantity) || offQuantity.includes(size);
-  if (!sameBrand || !sameName || !sameSize || !market ||
-      normalized(market) !== normalized(record.market ?? "") ||
-      canonicalGtin(lookup.barcode) !== canonicalGtin(record.barcode ?? "")) {
-    return { result: "identity_mismatch", facts: [] };
-  }
   const primaryIngredients = record.facts.find((fact) => fact.kind === "ingredients")?.originalStatement;
   if (primaryIngredients && off.ingredients_text &&
-      normalized(primaryIngredients) !== normalized(off.ingredients_text)) {
+      normalizeOffIdentityText(primaryIngredients) !== normalizeOffIdentityText(off.ingredients_text)) {
     // A matching GTIN cannot justify combining different formulations.
     return { result: "evidence_conflict", facts: [] };
   }
+  return { result: "matched", facts: offFactsFromExactLookup(lookup, retrievedAt) };
+}
+
+/** Facts only from the exact barcode response, never the search index. */
+export function offFactsFromExactLookup(
+  lookup: OffBarcodeLookup, retrievedAt: string,
+): SourceProductRecord["facts"] {
+  if (lookup.status !== "matched" || !lookup.product || !lookup.barcode ||
+      !lookup.product.countries_tags?.includes("en:united-states")) return [];
+  const off = lookup.product;
   const provenance = {
     source: "open_food_facts" as const,
     sourceRecordId: lookup.barcode,
     barcode: lookup.barcode,
-    market,
+    market: "United States",
     // OFF edit time is not proof of the formulation's observation date.
     observedAt: null,
     retrievedAt,
@@ -141,5 +158,5 @@ export function offEvidenceForExactUsdaProduct(
       supplementalProvenance: provenance,
     });
   }
-  return { result: "matched", facts };
+  return facts;
 }

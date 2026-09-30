@@ -7,6 +7,7 @@ import { UNREVIEWED_PRODUCT_POLICY } from "./ruleEvidenceRegistry";
 import type { ProductSubjectSnapshot, ProductSubjectSources } from "./subjectAuthority";
 import { existingProductSubjectSources } from "./subjectAuthority";
 import { createUsdaBrandedAdapter } from "./usdaBrandedAdapter";
+import { createOpenFoodFactsSearchAdapter } from "./openFoodFactsSearchAdapter";
 import { interpretCatalogProduct } from "./catalogProductInterpretation";
 
 export interface DevelopmentProductMatch {
@@ -17,7 +18,7 @@ export interface DevelopmentProductMatch {
   ingredients: string | null;
   serving: string | null;
   catalogDate: string | null;
-  source: "USDA FoodData Central";
+  source: "USDA FoodData Central" | "Open Food Facts";
   sourceRecordId: string;
   evidenceStatus: "needs_verification";
   verificationMessage: string;
@@ -105,6 +106,7 @@ export async function findProductDevelopment(
   options: {
     sources?: ProductSubjectSources;
     adapter?: ProductEvidenceAdapter;
+    fallbackAdapter?: ProductEvidenceAdapter;
     interpret?: typeof interpretCatalogProduct;
   } = {},
 ): Promise<{
@@ -112,6 +114,7 @@ export async function findProductDevelopment(
   searched: number;
   rejected: number;
   sourceFailures: string[];
+  catalogSearchAvailable: boolean;
   unresolved: string[];
   profileUsed: string[];
 }> {
@@ -155,7 +158,9 @@ export async function findProductDevelopment(
     sources,
     intent,
     registry: UNREVIEWED_PRODUCT_POLICY,
-    adapters: [options.adapter ?? createUsdaBrandedAdapter()],
+    adapters: options.adapter
+      ? [options.adapter, ...(options.fallbackAdapter ? [options.fallbackAdapter] : [])]
+      : [createUsdaBrandedAdapter(), createOpenFoodFactsSearchAdapter()],
     evaluatedAt: new Date().toISOString(),
     maxCandidates: 24, maxPages: 4, targetCount: 3,
     maxEvaluatedCandidates: 5,
@@ -176,7 +181,8 @@ export async function findProductDevelopment(
       ingredients: candidate.facts.find((fact) => fact.kind === "ingredients")?.statement ?? null,
       serving: candidate.identity.servingDescription ?? null,
       catalogDate: candidate.identity.provenance.observedAt || null,
-      source: "USDA FoodData Central",
+      source: candidate.identity.provenance.source === "open_food_facts"
+        ? "Open Food Facts" : "USDA FoodData Central",
       sourceRecordId: candidate.identity.provenance.sourceRecordId,
       evidenceStatus: "needs_verification",
       research: candidate.research ?? [],
@@ -200,6 +206,7 @@ export async function findProductDevelopment(
     searched: evaluated.inspectedCount,
     rejected: evaluated.rejectedCount,
     sourceFailures: evaluated.sourceFailures.map((failure) => failure.reason),
+    catalogSearchAvailable: evaluated.successfulSearchPages > 0,
     unresolved: evaluated.unresolved.map((issue) => issue.id),
     profileUsed: [
       ...initial.dietaryIdentity.map((value) => `Dietary: ${value}`),
