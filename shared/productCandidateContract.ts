@@ -29,6 +29,9 @@ export interface ProductEvidenceProvenance {
   source: ProductEvidenceSource;
   sourceRecordId: string;
   observedAt: string; // ISO timestamp of the evidence, not the evaluation time
+  retrievedAt?: string; // retrieval is not proof of when formulation was observed
+  sourceVersion?: string;
+  market?: string;
   identityKey: string; // exact product/variant, never a brand or food category
   barcode?: string; // when present, must agree with the candidate's barcode
   exactVariantMatch: boolean;
@@ -44,6 +47,8 @@ export interface ProductIdentity {
   brand: string;
   variant: string;
   barcode?: string;
+  packageSize?: string;
+  market?: string;
   match: "exact_variant" | "uncertain" | "brand_only";
   provenance: ProductEvidenceProvenance;
 }
@@ -56,6 +61,13 @@ export interface ProductFact {
   /** The original label/record claim; never an inferred ingredient list. */
   statement: string;
   completeness: "complete" | "partial" | "unknown";
+  /** Preserve the source's numeric measurement, not a fabricated conversion. */
+  nutritionMeasurement?: {
+    value: number;
+    unit: string;
+    basis: "per_100g" | "per_100ml" | "per_serving";
+    servingSize?: string;
+  };
   /** Only for precautionary_allergens; no statement supplied is always unknown. */
   precautionaryStatus?: "explicitly_absent_for_target" | "declared_present" | "unknown";
   provenance: ProductEvidenceProvenance;
