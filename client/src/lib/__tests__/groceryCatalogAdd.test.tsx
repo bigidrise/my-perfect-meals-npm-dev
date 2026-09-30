@@ -54,16 +54,17 @@ beforeEach(() => {
       source: 'Open Food Facts',
       sourceRecordId: '0851087000014',
       evidenceStatus: 'needs_verification',
+      recommendationStatus: 'profile_matched_pick',
       needsProfileReview: false,
       policyUnresolved: true,
-      verificationMessage: 'Current package and daily allocation need review.',
+      verificationMessage: 'Recommendation based on available catalog facts, not a physical-package guarantee.',
       profileInsight: 'Compare its catalog carbohydrates with your day.',
     }],
     catalogSearchAvailable: true,
   });
 });
 
-test('catalog Add puts the exact branded variant on the shopping list once without clearing its review status', async () => {
+test('catalog Add puts the exact branded Profile-Matched Pick on the shopping list without changing its package status', async () => {
   render(<GroceryStoreCoachSheet open={true} onOpenChange={jest.fn()} />);
   fireEvent.click(screen.getByTestId('tab-find-product'));
   fireEvent.change(screen.getByTestId('input-find-product'), { target: { value: 'peanut butter' } });
@@ -71,7 +72,7 @@ test('catalog Add puts the exact branded variant on the shopping list once witho
     fireEvent.click(screen.getByTestId('button-product-search'));
   });
   const card = await screen.findByTestId('catalog-product-match');
-  expect(within(card).getByText('Profile-guided option · product rule not cleared')).toBeInTheDocument();
+  expect(within(card).getByText('Profile-Matched Pick · check current label')).toBeInTheDocument();
   const add = within(card).getByRole('button', { name: 'Add to List' });
   fireEvent.click(add);
   expect(mockAddItem).toHaveBeenCalledWith(expect.objectContaining({

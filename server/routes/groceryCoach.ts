@@ -680,7 +680,7 @@ router.post("/product-advisor", async (req, res) => {
         }
         return res.json({
           advice: [], ...matches,
-          catalogNotice: "Exact barcode records are evaluated against the current subject. Recommendations reflect catalog evidence, not a guarantee about today's package; unresolved profile rules are never approved.",
+          catalogNotice: "Important: My Perfect Meals uses your profile and available product information to identify products that may fit your needs. Ingredients, formulations, manufacturing practices, and allergen information can change. Always review the current product label and allergen statements before purchasing or consuming, especially with a food allergy, intolerance, or medical dietary restriction. My Perfect Meals cannot guarantee a product is free from a specific allergen or ingredient.",
         });
       } catch (error) {
         console.error("[FindProduct/Development]", error);

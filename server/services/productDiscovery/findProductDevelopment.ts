@@ -21,6 +21,8 @@ export interface DevelopmentProductMatch {
   source: "USDA FoodData Central" | "Open Food Facts";
   sourceRecordId: string;
   evidenceStatus: "eligible" | "needs_verification";
+  /** A Development-only catalog recommendation, not the shared engine's eligibility verdict. */
+  recommendationStatus: "profile_matched_pick" | "review";
   verificationMessage: string;
   needsProfileReview: boolean;
   policyUnresolved: boolean;
@@ -38,6 +40,45 @@ export class ProductSubjectContextUnavailableError extends Error {
 }
 
 type EvaluatedProduct = Awaited<ReturnType<typeof discoverProductCandidates>>["evaluatedCandidates"][number];
+
+function recommendationStatus(
+  item: EvaluatedProduct,
+  subject: ProductSubjectSnapshot,
+  unresolved: readonly { id: string; classification: string }[],
+): DevelopmentProductMatch["recommendationStatus"] {
+  const { candidate, decision } = item;
+  const identity = candidate.identity;
+  const source = identity.provenance;
+  const observed = Date.parse(source.observedAt);
+  const now = Date.parse(decision.evaluatedAt);
+  // The shared reducer checks identity only after policy resolution. Repeat its
+  // identity gate here; a context_unavailable decision cannot prove identity.
+  if (subject.status !== "resolved" || decision.status === "rejected" ||
+      !identity.key || !identity.name || !identity.brand || !identity.variant ||
+      identity.match !== "exact_variant" || !identity.barcode ||
+      source.barcode !== identity.barcode || source.identityKey !== identity.key ||
+      !source.exactVariantMatch || !source.sourceRecordId.trim() ||
+      !["usda_branded", "open_food_facts"].includes(source.source) ||
+      !Number.isFinite(observed) || observed > now ||
+      now - observed > 86_400_000 ||
+      !candidate.facts.some((fact) => fact.kind === "ingredients" && fact.statement.trim() &&
+        fact.provenance.identityKey === identity.key) ||
+      !candidate.facts.some((fact) => fact.kind === "nutrition" && fact.statement.trim() &&
+        fact.provenance.identityKey === identity.key) ||
+      decision.reasons.some((reason) => reason.code !== "context_unavailable")) {
+    return "review";
+  }
+  // A missing reviewed package rule for an otherwise assessable allergy or
+  // avoidance does not itself prove a conflict. Do not bypass unresolved
+  // clinical authority, unknown dietary rules, or any other policy gap.
+  const ordinaryDiet = /^(low[_ -]?carb|keto|vegan|vegetarian|pescatarian|dairy[_ -]?free|gluten[_ -]?free|halal|kosher)$/i;
+  if (unresolved.some((issue) => issue.classification !== "support_context" &&
+      !issue.id.startsWith("allergy:") &&
+      !issue.id.startsWith("explicit_avoidance:") &&
+      !(issue.id.startsWith("dietary_identity:") &&
+        ordinaryDiet.test(issue.id.slice("dietary_identity:".length))))) return "review";
+  return "profile_matched_pick";
+}
 
 function brandKey(brand: string, productName: string): string | null {
   const normalize = (value: string) => value.toLowerCase().normalize("NFKD")
@@ -61,13 +102,15 @@ function comparableCarbohydrates(candidate: ProductCandidate): number | null {
 function selectDistinctProducts(
   products: readonly EvaluatedProduct[],
   subject: ProductSubjectSnapshot,
+  unresolved: readonly { id: string; classification: string }[],
 ): EvaluatedProduct[] {
   const chosen: EvaluatedProduct[] = [];
   const seenBrands = new Set<string>();
   const lowCarb = subject.dietaryIdentity.some((diet) => /low.?carb|keto/i.test(diet));
   for (const distinct of [true, false]) {
-    for (const status of ["eligible", "needs_verification"] as const) {
-      const sameStatus = products.filter(({ decision }) => decision.status === status)
+    for (const status of ["profile_matched_pick", "review"] as const) {
+      const sameStatus = products.filter((item) =>
+        recommendationStatus(item, subject, unresolved) === status)
         .sort((a, b) => {
           const completeness = (item: EvaluatedProduct) =>
             Number(item.candidate.facts.some((f) => f.kind === "ingredients")) +
@@ -96,7 +139,7 @@ function selectDistinctProducts(
 function explainCatalogChoice(
   candidate: ProductCandidate,
   subject: ProductSubjectSnapshot,
-  status: "eligible" | "needs_verification",
+  status: DevelopmentProductMatch["recommendationStatus"],
 ): string {
   const lowCarb = subject.dietaryIdentity.some((diet) => /low.?carb|keto/i.test(diet));
   const carbohydrate = candidate.facts.find((fact) =>
@@ -115,8 +158,8 @@ function explainCatalogChoice(
       : "the catalog lacks enough ingredients and nutrition to compare";
   const dailyFit = lowCarb
     ? "Serving and today's meals still determine low-carb fit. " : "";
-  return status === "eligible"
-    ? `For ${context}, ${fact}. ${dailyFit}Check the current package before buying.`
+  return status === "profile_matched_pick"
+    ? `For ${context}, ${fact}. ${dailyFit}Based on the available product information, this is a profile-matched pick; check the current label for allergens and ingredient changes.`
     : `For ${context}, ${fact}. ${dailyFit}This is a profile-guided comparison, not an allergen or product-policy clearance; see the review note below.`;
 }
 
@@ -306,9 +349,12 @@ export async function findProductDevelopment(
       "Your product search preferences changed during the search. Please try again.",
     );
   }
-  const presentable = selectDistinctProducts(evaluated.evaluatedCandidates, evaluated.subject);
+  const presentable = selectDistinctProducts(evaluated.evaluatedCandidates, evaluated.subject, evaluated.unresolved);
   const unresolvedHard = evaluated.unresolved.filter((issue) => issue.classification !== "support_context");
-  const catalogMatches = presentable.map(({ candidate, decision }): DevelopmentProductMatch => ({
+  const catalogMatches = presentable.map((item): DevelopmentProductMatch => {
+    const { candidate, decision } = item;
+    const recommendation = recommendationStatus(item, evaluated.subject!, evaluated.unresolved);
+    return {
       productKey: candidate.identity.key,
       name: candidate.identity.name,
       brand: candidate.identity.brand,
@@ -320,6 +366,7 @@ export async function findProductDevelopment(
         ? "Open Food Facts" : "USDA FoodData Central",
       sourceRecordId: candidate.identity.provenance.sourceRecordId,
       evidenceStatus: decision.status === "eligible" ? "eligible" : "needs_verification",
+       recommendationStatus: recommendation,
        needsProfileReview: evaluated.subject!.status !== "resolved",
        policyUnresolved: decision.status !== "eligible" && unresolvedHard.length > 0,
       research: candidate.research ?? [],
@@ -328,14 +375,15 @@ export async function findProductDevelopment(
       allergenInformation: candidate.facts.filter((fact) =>
         fact.kind === "declared_allergens" || fact.kind === "precautionary_allergens")
         .map((fact) => ({ statement: fact.statement, source: fact.provenance.source })),
-        profileInsight: explainCatalogChoice(candidate, evaluated.subject!, decision.status as "eligible" | "needs_verification"),
-       verificationMessage: decision.status === "eligible"
-        ? "Exact barcode record and ingredient/nutrition facts found; no unresolved hard product rule applies to this profile. This is catalog evidence, not a guarantee about today's package."
+        profileInsight: explainCatalogChoice(candidate, evaluated.subject!, recommendation),
+       verificationMessage: recommendation === "profile_matched_pick"
+         ? "Based on your resolved MPM profile and available catalog information, this appears to fit compared with available options. This is not verification of the physical package or a guarantee of allergen or medical safety."
         : unresolvedHard.length
            ? `Product eligibility is not cleared: ${unresolvedHard.map((issue) =>
              unresolvedReason(issue.id, issue.reason)).join(" ")} Your saved profile was resolved; this is a product-policy gap. A package label alone may not resolve it.`
           : decision.reasons.map((reason) => reason.detail).join(" "),
-    }));
+    };
+  });
   if ((!options.sources || options.interpret) && evaluated.subject) {
      await Promise.all(presentable.map(async ({ candidate, decision }, index) => {
       if (decision.status !== "eligible") return;
