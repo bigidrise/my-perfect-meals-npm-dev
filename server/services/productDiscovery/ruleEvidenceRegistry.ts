@@ -26,6 +26,17 @@ export const UNREVIEWED_PRODUCT_POLICY: ProductRuleEvidenceRegistry = {
   reviewedRules: [],
 };
 
+/**
+ * Development-only catalog identity observation. A fresh exact-GTIN read
+ * verifies the source record's identity, NOT the current package formulation.
+ * Hard rules still require independently reviewed fact policies and evidence.
+ */
+export const DEVELOPMENT_CATALOG_IDENTITY_POLICY: ProductRuleEvidenceRegistry = {
+  version: "development-catalog-identity.v1",
+  identityMaxAgeDays: 1,
+  reviewedRules: [],
+};
+
 export interface UnresolvedProductRule {
   id: string;
   classification: "hard" | "support_context" | "authority";

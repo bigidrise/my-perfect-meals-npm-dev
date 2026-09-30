@@ -680,7 +680,7 @@ router.post("/product-advisor", async (req, res) => {
         }
         return res.json({
           advice: [], ...matches,
-          catalogNotice: "Exact catalog records were researched against available sources. These are not verified personal recommendations where current-package or rule evidence remains unresolved.",
+          catalogNotice: "Exact barcode records are evaluated against the current subject. Recommendations reflect catalog evidence, not a guarantee about today's package; unresolved profile rules are never approved.",
         });
       } catch (error) {
         console.error("[FindProduct/Development]", error);

@@ -96,6 +96,7 @@ export function createOpenFoodFactsSearchAdapter(fetcher: typeof fetch = fetch):
       );
       return {
         ...lead, retrievedAt,
+        identityObservedAt: retrievedAt,
         sourceVersion: Number.isFinite(lookup.product.last_modified_t)
           ? String(lookup.product.last_modified_t) : undefined,
         servingDescription: lookup.product.serving_size,

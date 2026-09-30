@@ -118,8 +118,9 @@ interface ProductAdviceResult {
     catalogDate: string | null;
     source: string;
     sourceRecordId: string;
-    evidenceStatus: "needs_verification";
+  evidenceStatus: "eligible" | "needs_verification";
     verificationMessage: string;
+  needsProfileReview?: boolean;
     research?: { source: string; result: string; phase?: string }[];
     nutrition?: { statement: string; source: string }[];
     allergenInformation?: { statement: string; source: string }[];
@@ -127,6 +128,7 @@ interface ProductAdviceResult {
   }[];
   sourceFailures?: string[];
   catalogSearchAvailable?: boolean;
+  excludedReasons?: string[];
 }
 
 interface SwapSuggestion {
@@ -345,8 +347,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
   // Same session-restore pattern as the meal result, scoped per user.
   const PRODUCT_SESSION_KEY = useMemo(
-    // Do not restore pre-catalog AI brand suggestions as verified products.
-    () => `grocery-coach-product-search:catalog-v2:${user?.id ?? "guest"}`,
+    // Do not restore pre-decision catalog cards with the old blanket label status.
+    () => `grocery-coach-product-search:decision-v3:${user?.id ?? "guest"}`,
     [user?.id]
   );
 
@@ -539,7 +541,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       const data = await post("/api/grocery-coach/product-advisor", { ingredients: [query], mode: "find_product" });
       if (sessionGenRef.current !== gen) return; // identity changed — discard
       if (data?.error) throw new Error(data.error);
-      if (data?.advice?.length || data?.catalogMatches?.length) {
+      if (data?.advice?.length || data?.catalogMatches?.length || data?.excludedReasons?.length) {
         setProductSearch({ query, advice: data as ProductAdviceResult, savedAt: Date.now() });
         setProductSearchOwnerKey(PRODUCT_SESSION_KEY); // stamp ownership so persist effect may write
         setProductPhase("result");
@@ -1051,13 +1053,21 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                   {productSearch.advice.catalogMatches && (
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                       <div style={{ padding: "11px 13px", borderRadius: 10, background: "rgba(251,146,60,0.1)", border: "1px solid rgba(251,146,60,0.28)", color: "#fdba74", fontSize: 12, lineHeight: 1.5 }}>
-                        {productSearch.advice.catalogNotice || "Catalog matches only. Check the current package label before choosing."}
+                        {productSearch.advice.catalogNotice || "Product decisions use sourced catalog evidence; verify important package details before choosing."}
                       </div>
+                      {!!productSearch.advice.excludedReasons?.length && (
+                        <div style={{ color: "#fca5a5", fontSize: 12, lineHeight: 1.5 }}>
+                          {productSearch.advice.excludedReasons.length} product(s) excluded for a known conflict: {productSearch.advice.excludedReasons.join(" ")}
+                        </div>
+                      )}
                       {productSearch.advice.catalogMatches.map((product) => (
                         <div key={product.productKey} data-testid="catalog-product-match"
                           style={{ padding: "12px 14px", borderRadius: 12, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)" }}>
                           <div style={{ color: "white", fontWeight: 700, fontSize: 14 }}>{product.brand} · {product.name}</div>
-                          <div style={{ color: "#fb923c", fontSize: 11, fontWeight: 700, marginTop: 5 }}>Catalog match — check the label</div>
+                          <div style={{ color: product.evidenceStatus === "eligible" ? "#86efac" : "#fb923c", fontSize: 11, fontWeight: 700, marginTop: 5 }}>
+                            {product.evidenceStatus === "eligible" ? "Recommended for You · catalog evidence"
+                              : product.needsProfileReview ? "Needs profile review" : "Check the Label"}
+                          </div>
                           <div style={{ color: "rgba(255,255,255,0.62)", fontSize: 12, marginTop: 7, lineHeight: 1.45 }}>
                             {product.ingredients ? `Catalog ingredients: ${product.ingredients}` : "Ingredient declaration unavailable."}
                           </div>
@@ -1089,7 +1099,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                             {product.serving ? `Serving: ${product.serving} · ` : ""}
                             {product.barcode ? `GTIN/UPC: ${product.barcode} · ` : ""}
                             {product.source} #{product.sourceRecordId}
-                            {product.catalogDate ? ` · Catalog date: ${product.catalogDate}` : ""}
+                            {product.catalogDate ? ` · Source identity date (not formulation date): ${product.catalogDate}` : ""}
                           </div>
                           <div style={{ color: "#fdba74", fontSize: 11, marginTop: 8, lineHeight: 1.4 }}>{product.verificationMessage}</div>
                         </div>

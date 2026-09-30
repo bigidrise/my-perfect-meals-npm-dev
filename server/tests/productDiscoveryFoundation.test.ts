@@ -281,6 +281,13 @@ describe("Phase 2B internal authority and product evidence foundation", () => {
     const product = normalizeProductEvidence(record({ observedAt: null }));
     expect(product.identity.provenance.observedAt).toBe("");
   });
+  test("fresh exact barcode identity does not make old or unknown ingredient facts fresh", () => {
+    const product = normalizeProductEvidence(record({
+      observedAt: null, identityObservedAt: new Date().toISOString(),
+    }));
+    expect(product.identity.provenance.observedAt).not.toBe("");
+    expect(product.facts[0].provenance.observedAt).toBe("");
+  });
   test.each([
     { variant: "" },
     { market: undefined },
@@ -424,7 +431,7 @@ describe("Phase 2B internal authority and product evidence foundation", () => {
       expect.objectContaining({ id: "support:heart support" }),
     ]));
   });
-  test("Development milk search yields real-source leads, never verified recommendations", async () => {
+  test("Development milk search does not approve an old catalog identity", async () => {
     const result = await findProductDevelopment("owner", "milk", {
       sources: sources(),
       adapter: adapter([record({ name: "Whole Milk", facts: [{
@@ -436,7 +443,7 @@ describe("Phase 2B internal authority and product evidence foundation", () => {
       name: "Whole Milk", source: "USDA FoodData Central",
       evidenceStatus: "needs_verification",
     });
-    expect(result.unresolved).toContain("identity:freshness");
+    expect(result.catalogMatches[0].verificationMessage).toContain("Exact, current product and variant identity is unavailable.");
   });
   test("vegan milk intent searches a functional alternative and skips a known dairy conflict", async () => {
     const foods = [
@@ -478,6 +485,111 @@ describe("Phase 2B internal authority and product evidence foundation", () => {
     await expect(findProductDevelopment("owner", "milk", {
       sources: sources({ activeHousehold: "child" }), adapter: provider,
     })).rejects.toThrow("subject context is unavailable");
+  });
+  test("Development decision handoff recommends exact sourced ordinary products and continues past missing facts", async () => {
+    const fresh = new Date().toISOString();
+    const result = await findProductDevelopment("owner", "rice", {
+      sources: sources(),
+      adapter: adapter([
+        record({ sourceRecordId: "incomplete", observedAt: null,
+          identityObservedAt: fresh, facts: [] }),
+        record({ sourceRecordId: "complete", observedAt: null,
+          identityObservedAt: fresh, name: "Brown rice", facts: [
+            { kind: "ingredients", originalStatement: "Brown rice", completeness: "unknown" },
+            { kind: "nutrition", target: "carbs_g_per_100g",
+              originalStatement: "Carbohydrates: 78 g per 100g", completeness: "unknown",
+              nutritionMeasurement: { value: 78, unit: "g", basis: "per_100g" } },
+          ] }),
+      ]),
+    });
+    expect(result.catalogMatches.map((match) => match.evidenceStatus))
+      .toEqual(["eligible", "needs_verification"]);
+    expect(result.catalogMatches[0].verificationMessage)
+      .toContain("no unresolved hard product rule");
+    expect(result.catalogMatches[1].verificationMessage)
+      .toContain("missing ingredients and nutrition");
+    expect(result.catalogMatches[1].needsProfileReview).toBe(false);
+  });
+  test("an exact Open Food Facts barcode record can be recommended for an ordinary profile", async () => {
+    const fetcher = jest.fn(async (url: URL) => ({
+      ok: true, status: 200,
+      json: async () => String(url).includes("search.openfoodfacts.org")
+        ? { hits: [{
+          code: "1234567890123", product_name: "Brown Rice", brands: "Field",
+          countries_tags: ["en:united-states"], quantity: "1 kg",
+        }] }
+        : { status: 1, code: "1234567890123", product: {
+          product_name: "Brown Rice", brands: "Field", quantity: "1 kg",
+          countries_tags: ["en:united-states"], ingredients_text: "Brown rice",
+          nutrition_data_per: "100g", nutriments: { carbohydrates_100g: 78 },
+        } },
+    })) as unknown as typeof fetch;
+    const provider = createOpenFoodFactsSearchAdapter(fetcher);
+    const result = await findProductDevelopment("owner", "rice", {
+      sources: sources(), adapter: provider,
+    });
+    expect(result.catalogMatches).toHaveLength(1);
+    expect(result.catalogMatches[0]).toMatchObject({
+      name: "Brown Rice", source: "Open Food Facts", evidenceStatus: "eligible",
+      barcode: "1234567890123", ingredients: "Brown rice",
+    });
+    expect(result.catalogMatches[0].nutrition.length).toBeGreaterThan(0);
+    expect(fetcher).toHaveBeenCalledTimes(2); // search lead and exact barcode record
+  });
+  test("a hard ingredient conflict disappears and low-carb review never gets conflicting AI praise", async () => {
+    const fresh = new Date().toISOString();
+    const interpret = jest.fn(async () => "Carbohydrates fuel recovery.");
+    const result = await findProductDevelopment("owner", "pasta", {
+      sources: sources({ diet: ["low_carb"], avoided: ["shellfish"],
+        optimization: ["performance"] }),
+      adapter: adapter([
+        record({ sourceRecordId: "conflict", identityObservedAt: fresh,
+          facts: [{ kind: "ingredients", originalStatement: "Wheat, shellfish",
+            completeness: "unknown" }] }),
+        record({ sourceRecordId: "review", identityObservedAt: fresh,
+          name: "Wheat pasta", facts: [
+            { kind: "ingredients", originalStatement: "Wheat semolina", completeness: "unknown" },
+            { kind: "nutrition", target: "carbs_g_per_100g",
+              originalStatement: "Carbohydrates: 70 g per 100g", completeness: "unknown",
+              nutritionMeasurement: { value: 70, unit: "g", basis: "per_100g" } },
+          ] }),
+      ]),
+      interpret,
+    });
+    expect(result.rejected).toBe(1);
+    expect(result.excludedReasons).toEqual([
+      "Ingredient declaration contains an explicitly avoided food: shellfish.",
+    ]);
+    expect(result.catalogMatches).toHaveLength(1);
+    expect(result.catalogMatches[0]).toMatchObject({
+      name: "Wheat pasta", evidenceStatus: "needs_verification",
+      needsProfileReview: true,
+    });
+    expect(result.catalogMatches[0].verificationMessage)
+      .toContain("dietary_identity:low_carb");
+    expect(result.catalogMatches[0].verificationMessage).toContain("explicit_avoidance:shellfish");
+    expect(result.catalogMatches[0].profileInsight).toBeUndefined();
+    expect(interpret).not.toHaveBeenCalled();
+  });
+  test("a declared shellfish trace excludes the exact product for a shellfish allergy", async () => {
+    const result = await findProductDevelopment("owner", "pasta", {
+      sources: sources({ allergies: ["shellfish"] }),
+      adapter: adapter([
+        record({ sourceRecordId: "trace", identityObservedAt: new Date().toISOString(),
+          facts: [
+            { kind: "ingredients", originalStatement: "Wheat semolina", completeness: "unknown" },
+            { kind: "precautionary_allergens", target: "shellfish",
+              originalStatement: "May contain shellfish", completeness: "partial",
+              precautionaryStatus: "declared_present" },
+          ] }),
+        record({ sourceRecordId: "next", name: "Other pasta",
+          facts: [{ kind: "ingredients", originalStatement: "Wheat semolina",
+            completeness: "unknown" }] }),
+      ]),
+    });
+    expect(result.rejected).toBe(1);
+    expect(result.excludedReasons).toContain("Ingredient declaration conflicts with an allergy or intolerance.");
+    expect(result.catalogMatches.map((item) => item.name)).toEqual(["Other pasta"]);
   });
   test("USDA adapter preserves GTIN, date, ingredients, nutrients and original serving", async () => {
     const fetcher = jest.fn(async () => ({
@@ -641,8 +753,8 @@ describe("Phase 2B internal authority and product evidence foundation", () => {
     expect(enrich.mock.calls[0][1].sourceRecordId).toBe("ragu-2");
     expect(result.catalogMatches[0]).toMatchObject({
       name: "Ragu Unsweetened Sauce", evidenceStatus: "needs_verification",
-      profileInsight: "Catalog ingredients show tomato and olive oil.",
     });
+    expect(result.catalogMatches[0].profileInsight).toBeUndefined();
   });
   test("a conflict discovered only during exact-product enrichment is rejected", async () => {
     const first = record({ name: "Ragu Sauce", sourceRecordId: "ragu-1", facts: [] });

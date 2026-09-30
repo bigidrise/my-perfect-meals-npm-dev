@@ -3,12 +3,12 @@ import { scanMealsForAllergenViolations } from "../allergyGuardrails";
 import { findForbiddenIdentityTerm, type SavedGroceryItemSlim } from "../savedGroceryCompliance";
 import { discoverProductCandidates } from "./discoverProductCandidates";
 import type { ProductEvidenceAdapter } from "./productEvidenceAdapters";
-import { UNREVIEWED_PRODUCT_POLICY } from "./ruleEvidenceRegistry";
 import type { ProductSubjectSnapshot, ProductSubjectSources } from "./subjectAuthority";
 import { existingProductSubjectSources } from "./subjectAuthority";
 import { createUsdaBrandedAdapter } from "./usdaBrandedAdapter";
 import { createOpenFoodFactsSearchAdapter } from "./openFoodFactsSearchAdapter";
 import { interpretCatalogProduct } from "./catalogProductInterpretation";
+import { DEVELOPMENT_CATALOG_IDENTITY_POLICY } from "./ruleEvidenceRegistry";
 
 export interface DevelopmentProductMatch {
   productKey: string;
@@ -20,12 +20,26 @@ export interface DevelopmentProductMatch {
   catalogDate: string | null;
   source: "USDA FoodData Central" | "Open Food Facts";
   sourceRecordId: string;
-  evidenceStatus: "needs_verification";
+  evidenceStatus: "eligible" | "needs_verification";
   verificationMessage: string;
+  needsProfileReview: boolean;
   research: readonly { source: string; result: string }[];
   nutrition: readonly { statement: string; source: string }[];
   allergenInformation: readonly { statement: string; source: string }[];
   profileInsight?: string;
+}
+
+function unresolvedReason(id: string, reason: string): string {
+  if (id === "dietary_identity:low_carb" || id === "dietary_identity:low carb") {
+    return `${id}: Low-carb fit depends on the day's carbohydrate and food-source allocation; catalog carbohydrates alone do not establish it.`;
+  }
+  if (id.startsWith("allergy:")) {
+    return `${id}: Catalog declarations cannot establish current-package ingredients and cross-contact absence.`;
+  }
+  if (id.startsWith("explicit_avoidance:")) {
+    return `${id}: A catalog ingredient list cannot prove that the current package omits this food.`;
+  }
+  return `${id}: ${reason}`;
 }
 
 function buildIntent(query: string, subject: ProductSubjectSnapshot): ProductSearchIntent {
@@ -67,7 +81,11 @@ function knownIngredientConflict(
   const declaredAllergens = candidate.facts
     .filter((fact) => fact.kind === "declared_allergens")
     .map((fact) => fact.statement.replace(/\ben:/g, "")).join(", ");
-  if (!ingredients && !declaredAllergens) return null;
+  const declaredTraces = candidate.facts
+    .filter((fact) => fact.kind === "precautionary_allergens" &&
+      fact.precautionaryStatus === "declared_present")
+    .map((fact) => fact.statement.replace(/\ben:/g, "")).join(", ");
+  if (!ingredients && !declaredAllergens && !declaredTraces) return null;
   const positiveDeclarations = [ingredients, declaredAllergens].filter(Boolean);
   const item: SavedGroceryItemSlim = {
     id: candidate.identity.key, productKey: candidate.identity.key,
@@ -83,7 +101,7 @@ function knownIngredientConflict(
     if (forbidden) return `Contains ${forbidden}, conflicting with ${identity}.`;
   }
   const allergen = scanMealsForAllergenViolations(
-    [{ name: "", ingredients: positiveDeclarations }], subject.allergies,
+    [{ name: "", ingredients: [...positiveDeclarations, declaredTraces].filter(Boolean) }], subject.allergies,
   );
   if (allergen.unsafe.length) return "Ingredient declaration conflicts with an allergy or intolerance.";
   for (const avoid of subject.explicitAvoidances) {
@@ -97,8 +115,9 @@ function knownIngredientConflict(
 }
 
 /**
- * Read-only Development integration. No clinical threshold is filled in to
- * make catalog records eligible: matches remain Check the Label leads.
+ * Read-only Development integration. An observed exact catalog identity is
+ * distinct from evidence that today's package contains the same formulation.
+ * Unreviewed hard product rules cannot be turned into approvals.
  */
 export async function findProductDevelopment(
   userId: string,
@@ -113,6 +132,7 @@ export async function findProductDevelopment(
   catalogMatches: DevelopmentProductMatch[];
   searched: number;
   rejected: number;
+  excludedReasons: string[];
   sourceFailures: string[];
   catalogSearchAvailable: boolean;
   unresolved: string[];
@@ -157,23 +177,39 @@ export async function findProductDevelopment(
     },
     sources,
     intent,
-    registry: UNREVIEWED_PRODUCT_POLICY,
+    registry: DEVELOPMENT_CATALOG_IDENTITY_POLICY,
     adapters: options.adapter
       ? [options.adapter, ...(options.fallbackAdapter ? [options.fallbackAdapter] : [])]
       : [createUsdaBrandedAdapter(), createOpenFoodFactsSearchAdapter()],
     evaluatedAt: new Date().toISOString(),
+    useCurrentEvaluationTime: true,
     maxCandidates: 24, maxPages: 4, targetCount: 3,
-    maxEvaluatedCandidates: 5,
+    maxEvaluatedCandidates: 12,
     allowUnresolvedLeads: true,
     knownConflict: knownIngredientConflict,
+    minimumEvidence: (candidate) => {
+      const missing = [
+        !candidate.facts.some((fact) => fact.kind === "ingredients" && fact.statement.trim()) && "ingredients",
+        !candidate.facts.some((fact) => fact.kind === "nutrition" && fact.statement.trim()) && "nutrition",
+      ].filter(Boolean);
+      return missing.length
+        ? `The exact catalog record is missing ${missing.join(" and ")} needed to describe this product. Check the current package label.`
+        : null;
+    },
   });
   if (evaluated.status === "authority_unresolved") {
     throw new Error("Nutrition subject context is unavailable; no products were evaluated.");
   }
+  if (evaluated.subject?.fingerprint !== initial.fingerprint) {
+    throw new Error("Nutrition subject context changed during product discovery.");
+  }
   const presentable = evaluated.evaluatedCandidates
-    .filter(({ decision }) => decision.status === "needs_verification")
+    .filter(({ decision }) => decision.status !== "rejected")
+    .sort((a, b) => Number(b.decision.status === "eligible") -
+      Number(a.decision.status === "eligible"))
     .slice(0, 5);
-  const catalogMatches = presentable.map(({ candidate }): DevelopmentProductMatch => ({
+  const unresolvedHard = evaluated.unresolved.filter((issue) => issue.classification !== "support_context");
+  const catalogMatches = presentable.map(({ candidate, decision }): DevelopmentProductMatch => ({
       productKey: candidate.identity.key,
       name: candidate.identity.name,
       brand: candidate.identity.brand,
@@ -184,27 +220,34 @@ export async function findProductDevelopment(
       source: candidate.identity.provenance.source === "open_food_facts"
         ? "Open Food Facts" : "USDA FoodData Central",
       sourceRecordId: candidate.identity.provenance.sourceRecordId,
-      evidenceStatus: "needs_verification",
+      evidenceStatus: decision.status === "eligible" ? "eligible" : "needs_verification",
+      needsProfileReview: decision.status !== "eligible" &&
+        unresolvedHard.some((issue) => issue.classification === "hard" || issue.classification === "authority"),
       research: candidate.research ?? [],
       nutrition: candidate.facts.filter((fact) => fact.kind === "nutrition")
         .map((fact) => ({ statement: fact.statement, source: fact.provenance.source })),
       allergenInformation: candidate.facts.filter((fact) =>
         fact.kind === "declared_allergens" || fact.kind === "precautionary_allergens")
         .map((fact) => ({ statement: fact.statement, source: fact.provenance.source })),
-      verificationMessage: evaluated.unresolved.some((issue) => issue.id === "identity:freshness")
-        ? "We researched this GTIN, but current formulation and applicable product-policy evidence remain unverified. Check the current package label."
-        : "Material product evidence remains unverified. Check the current package label.",
+      verificationMessage: decision.status === "eligible"
+        ? "Exact barcode record and ingredient/nutrition facts found; no unresolved hard product rule applies to this profile. This is catalog evidence, not a guarantee about today's package."
+        : unresolvedHard.length
+          ? `Cannot recommend: ${unresolvedHard.map((issue) =>
+            unresolvedReason(issue.id, issue.reason)).join(" ")} A package label alone may not resolve a missing profile rule.`
+          : decision.reasons.map((reason) => reason.detail).join(" "),
     }));
-  if (!options.sources || options.interpret) {
-    await Promise.all(presentable.slice(0, 2).map(async ({ candidate }, index) => {
+  if ((!options.sources || options.interpret) && evaluated.subject) {
+    await Promise.all(presentable.slice(0, 2).map(async ({ candidate, decision }, index) => {
+      if (decision.status !== "eligible") return;
       catalogMatches[index].profileInsight =
-        await (options.interpret ?? interpretCatalogProduct)(userId, initial.subjectId, candidate) ?? undefined;
+        await (options.interpret ?? interpretCatalogProduct)(userId, evaluated.subject!, candidate, decision) ?? undefined;
     }));
   }
   return {
     catalogMatches,
     searched: evaluated.inspectedCount,
     rejected: evaluated.rejectedCount,
+    excludedReasons: evaluated.knownConflicts.map((conflict) => conflict.reason),
     sourceFailures: evaluated.sourceFailures.map((failure) => failure.reason),
     catalogSearchAvailable: evaluated.successfulSearchPages > 0,
     unresolved: evaluated.unresolved.map((issue) => issue.id),

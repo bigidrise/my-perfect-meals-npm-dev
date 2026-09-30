@@ -22,6 +22,8 @@ export interface SourceProductRecord {
   sourceRecordId: string;
   sourceVersion?: string;
   observedAt: string | null;
+  /** Time the exact barcode identity was re-observed, not the formulation date. */
+  identityObservedAt?: string;
   retrievedAt: string;
   market?: string;
   name: string;
@@ -129,7 +131,7 @@ export function normalizeProductEvidence(record: SourceProductRecord): ProductCa
     source,
     sourceRecordId: record.sourceRecordId,
     sourceVersion: record.sourceVersion,
-    observedAt: record.observedAt ?? "",
+    observedAt: record.identityObservedAt ?? record.observedAt ?? "",
     retrievedAt: record.retrievedAt,
     market: record.market,
     identityKey: key,
