@@ -528,12 +528,25 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       }
     } catch (e: any) {
       if (sessionGenRef.current !== gen) return;
-      // Surface server-provided messages (e.g. the retryable 503 when clinical
-      // GLP-1 targets are temporarily unavailable) over the generic fallback.
-      const serverMsg = typeof e?.message === "string" && e.message.trim() && !/failed to fetch/i.test(e.message)
-        ? e.message
-        : null;
-      setProductError(serverMsg ?? t("findProduct.errorGeneric"));
+      // ApiError.message contains the entire HTTP response body; never show
+      // that raw JSON in the Coach. A missing product label is not a retryable
+      // outage, while unresolved clinical context still needs its own message.
+      let serverMsg: string | null = null;
+      if (typeof e?.status === "number" && typeof e?.body === "string") {
+        try {
+          const body = JSON.parse(e.body);
+          if (body?.code === "PRODUCT_INGREDIENTS_UNVERIFIED") {
+            serverMsg = t("findProduct.verificationRequired");
+          } else if (typeof body?.error === "string") {
+            serverMsg = body.error;
+          }
+        } catch {
+          // HTML/invalid responses get the generic error, not a raw API dump.
+        }
+      } else if (typeof e?.message === "string" && !/failed to fetch/i.test(e.message)) {
+        serverMsg = e.message;
+      }
+      setProductError(serverMsg || t("findProduct.errorGeneric"));
       setProductPhase("idle");
     }
   }, [productQuery, t, PRODUCT_SESSION_KEY]);

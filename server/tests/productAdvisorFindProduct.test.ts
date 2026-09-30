@@ -16,6 +16,7 @@
 import {
   ProductAdvisorEngine,
   ClinicalContextUnavailableError,
+  ProductIngredientVerificationRequiredError,
   WholeFoodRecommendationUnavailableError,
   buildProtocolContextString,
   sanitizeUsualPicks,
@@ -276,8 +277,7 @@ describe("ProductAdvisorEngine requires label evidence for high-risk protocols",
 
       const error = await engine.buildCartRecommendations("u1", ["oats"]).catch((reason) => reason);
 
-      expect(error).toBeInstanceOf(ClinicalContextUnavailableError);
-      expect(error.message).toMatch(/Protocol verification unavailable/i);
+      expect(error).toBeInstanceOf(ProductIngredientVerificationRequiredError);
       expect(error.message).toMatch(/complete product ingredients/i);
       expect(provider.getCartRecommendations).toHaveBeenCalled();
     },

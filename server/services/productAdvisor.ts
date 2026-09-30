@@ -412,6 +412,15 @@ export class ClinicalContextUnavailableError extends Error {
     this.name = "ClinicalContextUnavailableError";
   }
 }
+
+/** The provider has names, not complete product labels; retrying cannot verify them. */
+export class ProductIngredientVerificationRequiredError extends Error {
+  constructor() {
+    super("Brand names alone cannot verify complete product ingredients for this profile. Use Product Scan to check a specific package's ingredient label.");
+    this.name = "ProductIngredientVerificationRequiredError";
+  }
+}
+
 export class WholeFoodRecommendationUnavailableError extends Error {
   constructor() {
     super("No product recommendations met the user's protocol and Whole-Food Standard. Please choose a different product category or provide a clinically recognized purpose.");
@@ -526,9 +535,7 @@ export class ProductAdvisorEngine {
     const raw = await this.provider.getCartRecommendations(ingredients, protocolContext, store);
     const hasProviderCandidates = raw.advice.some((item) => item.recommended.length > 0);
     if (hasProviderCandidates && requiresVerifiedProductIngredients(ctx)) {
-      throw new ClinicalContextUnavailableError(
-        "Protocol verification unavailable: this profile requires verified, complete product ingredients, but only brand-level recommendations are available.",
-      );
+      throw new ProductIngredientVerificationRequiredError();
     }
     const sanitized = sanitizeUsualPicks(raw, ctx);
     let candidateCount = 0;

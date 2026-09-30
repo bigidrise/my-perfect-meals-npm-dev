@@ -167,7 +167,13 @@ describe('Find a Product mode navigation', () => {
 
   it('surfaces the server 503 clinical-unavailable message instead of a generic error', async () => {
     (post as jest.Mock).mockRejectedValue(
-      new Error('Clinical guidance temporarily unavailable. Please try again.'),
+      {
+        status: 503,
+        body: JSON.stringify({
+          error: 'Clinical guidance temporarily unavailable. Please try again.',
+          retryable: true,
+        }),
+      },
     );
 
     render(<GroceryStoreCoachSheet open={true} onOpenChange={jest.fn()} />);
@@ -183,5 +189,29 @@ describe('Find a Product mode navigation', () => {
         screen.getByText('Clinical guidance temporarily unavailable. Please try again.'),
       ).toBeInTheDocument(),
     );
+    expect(screen.queryByText(/API 503|retryable/)).not.toBeInTheDocument();
+  });
+
+  it('explains unverified products without exposing an HTTP error or recommending a brand', async () => {
+    (post as jest.Mock).mockRejectedValue({
+      status: 422,
+      body: JSON.stringify({
+        code: 'PRODUCT_INGREDIENTS_UNVERIFIED',
+        error: 'Complete product ingredients cannot be verified.',
+        retryable: false,
+      }),
+    });
+
+    render(<GroceryStoreCoachSheet open={true} onOpenChange={jest.fn()} />);
+    fireEvent.click(screen.getByTestId('tab-find-product'));
+    fireEvent.change(await screen.findByTestId('input-find-product'), { target: { value: 'milk' } });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('button-product-search'));
+    });
+
+    // This suite mocks translations to return keys; the real English copy
+    // explains Product Scan rather than exposing the HTTP body.
+    await waitFor(() => expect(screen.getByText('findProduct.verificationRequired')).toBeInTheDocument());
+    expect(screen.queryByText(/API 422|PRODUCT_INGREDIENTS_UNVERIFIED/)).not.toBeInTheDocument();
   });
 });
