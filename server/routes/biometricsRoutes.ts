@@ -774,6 +774,16 @@ router.post('/ingredient-scan-by-barcode', requireAuth, requireActiveAccess, asy
     let productName = "";
     let resolvedFromDb = false;
     try {
+      if (process.env.NODE_ENV === "development") {
+        const { lookupOpenFoodFactsByBarcode } = await import('../services/productDiscovery/openFoodFactsLookup');
+        const lookup = await lookupOpenFoodFactsByBarcode(cleanBarcode);
+        if (lookup.status === "matched") {
+          productName = lookup.product?.product_name_en?.trim() ||
+            lookup.product?.product_name?.trim() || "";
+          resolvedFromDb = !!productName;
+        }
+      }
+      if (!resolvedFromDb) {
       const offUrl = `https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(cleanBarcode)}.json`;
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
@@ -796,6 +806,7 @@ router.post('/ingredient-scan-by-barcode', requireAuth, requireActiveAccess, asy
             resolvedFromDb = true;
           }
         }
+      }
       }
     } catch (lookupErr: any) {
       // Lookup failure leaves the product unresolved; do not analyze the barcode token.

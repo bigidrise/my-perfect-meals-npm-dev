@@ -7,6 +7,7 @@ import { UNREVIEWED_PRODUCT_POLICY } from "./ruleEvidenceRegistry";
 import type { ProductSubjectSnapshot, ProductSubjectSources } from "./subjectAuthority";
 import { existingProductSubjectSources } from "./subjectAuthority";
 import { createUsdaBrandedAdapter } from "./usdaBrandedAdapter";
+import { interpretCatalogProduct } from "./catalogProductInterpretation";
 
 export interface DevelopmentProductMatch {
   productKey: string;
@@ -20,6 +21,10 @@ export interface DevelopmentProductMatch {
   sourceRecordId: string;
   evidenceStatus: "needs_verification";
   verificationMessage: string;
+  research: readonly { source: string; result: string }[];
+  nutrition: readonly { statement: string; source: string }[];
+  allergenInformation: readonly { statement: string; source: string }[];
+  profileInsight?: string;
 }
 
 function buildIntent(query: string, subject: ProductSubjectSnapshot): ProductSearchIntent {
@@ -56,13 +61,18 @@ function knownIngredientConflict(
   candidate: ProductCandidate,
   subject: ProductSubjectSnapshot,
 ): string | null {
-  const ingredients = candidate.facts.find((fact) => fact.kind === "ingredients")?.statement;
-  if (!ingredients) return null;
+  const ingredients = candidate.facts
+    .filter((fact) => fact.kind === "ingredients").map((fact) => fact.statement).join(", ");
+  const declaredAllergens = candidate.facts
+    .filter((fact) => fact.kind === "declared_allergens")
+    .map((fact) => fact.statement.replace(/\ben:/g, "")).join(", ");
+  if (!ingredients && !declaredAllergens) return null;
+  const positiveDeclarations = [ingredients, declaredAllergens].filter(Boolean);
   const item: SavedGroceryItemSlim = {
     id: candidate.identity.key, productKey: candidate.identity.key,
     productName: candidate.identity.name, brand: candidate.identity.brand,
     category: null, nutritionJson: null, savedAt: new Date(0),
-    ingredients: [ingredients],
+    ingredients: positiveDeclarations,
   };
   for (const identity of subject.dietaryIdentity) {
     const forbidden = findForbiddenIdentityTerm(item, identity) ||
@@ -72,12 +82,13 @@ function knownIngredientConflict(
     if (forbidden) return `Contains ${forbidden}, conflicting with ${identity}.`;
   }
   const allergen = scanMealsForAllergenViolations(
-    [{ name: "", ingredients: [ingredients] }], subject.allergies,
+    [{ name: "", ingredients: positiveDeclarations }], subject.allergies,
   );
   if (allergen.unsafe.length) return "Ingredient declaration conflicts with an allergy or intolerance.";
   for (const avoid of subject.explicitAvoidances) {
     const escaped = avoid.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    if (escaped && new RegExp(`(^|[^a-z])${escaped}([^a-z]|$)`, "i").test(ingredients)) {
+    if (escaped && new RegExp(`(^|[^a-z])${escaped}([^a-z]|$)`, "i")
+      .test(positiveDeclarations.join(", "))) {
       return `Ingredient declaration contains an explicitly avoided food: ${avoid}.`;
     }
   }
@@ -91,7 +102,11 @@ function knownIngredientConflict(
 export async function findProductDevelopment(
   userId: string,
   query: string,
-  options: { sources?: ProductSubjectSources; adapter?: ProductEvidenceAdapter } = {},
+  options: {
+    sources?: ProductSubjectSources;
+    adapter?: ProductEvidenceAdapter;
+    interpret?: typeof interpretCatalogProduct;
+  } = {},
 ): Promise<{
   catalogMatches: DevelopmentProductMatch[];
   searched: number;
@@ -143,15 +158,17 @@ export async function findProductDevelopment(
     adapters: [options.adapter ?? createUsdaBrandedAdapter()],
     evaluatedAt: new Date().toISOString(),
     maxCandidates: 24, maxPages: 4, targetCount: 3,
+    maxEvaluatedCandidates: 5,
     allowUnresolvedLeads: true,
     knownConflict: knownIngredientConflict,
   });
   if (evaluated.status === "authority_unresolved") {
     throw new Error("Nutrition subject context is unavailable; no products were evaluated.");
   }
-  const catalogMatches = evaluated.evaluatedCandidates
+  const presentable = evaluated.evaluatedCandidates
     .filter(({ decision }) => decision.status === "needs_verification")
-    .slice(0, 8).map(({ candidate }): DevelopmentProductMatch => ({
+    .slice(0, 5);
+  const catalogMatches = presentable.map(({ candidate }): DevelopmentProductMatch => ({
       productKey: candidate.identity.key,
       name: candidate.identity.name,
       brand: candidate.identity.brand,
@@ -162,8 +179,22 @@ export async function findProductDevelopment(
       source: "USDA FoodData Central",
       sourceRecordId: candidate.identity.provenance.sourceRecordId,
       evidenceStatus: "needs_verification",
-      verificationMessage: "Catalog match only. Check this exact package's current label and your care guidance before choosing it.",
+      research: candidate.research ?? [],
+      nutrition: candidate.facts.filter((fact) => fact.kind === "nutrition")
+        .map((fact) => ({ statement: fact.statement, source: fact.provenance.source })),
+      allergenInformation: candidate.facts.filter((fact) =>
+        fact.kind === "declared_allergens" || fact.kind === "precautionary_allergens")
+        .map((fact) => ({ statement: fact.statement, source: fact.provenance.source })),
+      verificationMessage: evaluated.unresolved.some((issue) => issue.id === "identity:freshness")
+        ? "We researched this GTIN, but current formulation and applicable product-policy evidence remain unverified. Check the current package label."
+        : "Material product evidence remains unverified. Check the current package label.",
     }));
+  if (!options.sources || options.interpret) {
+    await Promise.all(presentable.slice(0, 2).map(async ({ candidate }, index) => {
+      catalogMatches[index].profileInsight =
+        await (options.interpret ?? interpretCatalogProduct)(userId, initial.subjectId, candidate) ?? undefined;
+    }));
+  }
   return {
     catalogMatches,
     searched: evaluated.inspectedCount,

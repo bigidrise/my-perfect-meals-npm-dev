@@ -680,7 +680,7 @@ router.post("/product-advisor", async (req, res) => {
         }
         return res.json({
           advice: [], ...matches,
-          catalogNotice: "Real catalog products to check, not verified personal recommendations. Compare the current package label before choosing one.",
+          catalogNotice: "Exact catalog records were researched against available sources. These are not verified personal recommendations where current-package or rule evidence remains unresolved.",
         });
       } catch (error) {
         console.error("[FindProduct/Development]", error);
