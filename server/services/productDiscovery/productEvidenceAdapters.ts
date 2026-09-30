@@ -8,8 +8,8 @@ import type {
 
 /**
  * Adapter input is an original source record read by a server-owned provider.
- * It is not an AI extraction or user-entered assertion. No network integration
- * is implemented by this architecture; individual providers can be added later.
+ * It is not an AI extraction or user-entered assertion. Provider network
+ * integrations stay behind this interface and retain their source records.
  */
 export interface SourceProductRecord {
   source: ApprovedProductEvidenceSource;
@@ -22,6 +22,7 @@ export interface SourceProductRecord {
   brand: string;
   variant: string;
   packageSize?: string;
+  servingDescription?: string;
   barcode?: string;
   /** Source-asserted match; never infer exactness from a similar title. */
   exactVariantMatch: boolean;
@@ -121,6 +122,7 @@ export function normalizeProductEvidence(record: SourceProductRecord): ProductCa
     identity: {
       key, name: record.name, brand: record.brand, variant: record.variant,
       barcode, market: record.market, packageSize: record.packageSize,
+      servingDescription: record.servingDescription,
       match: exact ? "exact_variant" : "uncertain", provenance,
     },
     facts: record.facts.map((fact, index) => {

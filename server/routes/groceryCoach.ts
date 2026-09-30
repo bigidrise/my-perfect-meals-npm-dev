@@ -15,6 +15,7 @@ import { classifyNutritionalRole, nutritionalRoleLabel, isRoleCompatible } from 
 import { createHumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
 import { buildHumanFoodPromptBlock } from "../services/humanFoodContext/buildHumanFoodPromptBlock";
 import { validateHumanFoodResult } from "../services/humanFoodContext/validateHumanFoodResult";
+import { findProductDevelopment } from "../services/productDiscovery/findProductDevelopment";
 
 const router = express.Router();
 
@@ -660,6 +661,34 @@ router.post("/product-advisor", async (req, res) => {
     const { ingredients, store } = req.body;
     if (!Array.isArray(ingredients) || ingredients.length === 0) {
       return res.status(400).json({ error: "ingredients array is required" });
+    }
+
+    // Only the Find a Product tab in Development uses catalog discovery.
+    // Smart Cart, Replace, Product Scan, and Production retain their paths.
+    if (process.env.NODE_ENV === "development" && req.body.mode === "find_product") {
+      if (ingredients.length !== 1 || typeof ingredients[0] !== "string" ||
+          !ingredients[0].trim() || ingredients[0].trim().length > 80) {
+        return res.status(400).json({ error: "Enter one product category (up to 80 characters)." });
+      }
+      try {
+        const matches = await findProductDevelopment(userId, ingredients[0]);
+        if (!matches.catalogMatches.length && matches.sourceFailures.length) {
+          return res.status(503).json({
+            error: "The product catalog is unavailable right now. Please try again.",
+            retryable: true,
+          });
+        }
+        return res.json({
+          advice: [], ...matches,
+          catalogNotice: "Real catalog products to check, not verified personal recommendations. Compare the current package label before choosing one.",
+        });
+      } catch (error) {
+        console.error("[FindProduct/Development]", error);
+        return res.status(503).json({
+          error: "Product guidance is unavailable because your current profile could not be verified.",
+          retryable: true,
+        });
+      }
     }
 
     const engine = getProductAdvisorEngine();

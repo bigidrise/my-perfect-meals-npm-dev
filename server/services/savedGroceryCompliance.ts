@@ -119,7 +119,7 @@ function itemEvidenceText(item: SavedGroceryItemSlim): string {
   ].filter(Boolean).join(" ");
 }
 
-function findForbiddenIdentityTerm(
+export function findForbiddenIdentityTerm(
   item: SavedGroceryItemSlim,
   identity: string,
 ): string | null {

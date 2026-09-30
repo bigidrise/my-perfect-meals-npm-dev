@@ -49,9 +49,12 @@ export interface ProductDiscoveryResult {
   unresolved: UnresolvedProductRule[];
   qualified: ProductEligibilityDecision[];
   needsVerification: ProductEligibilityDecision[];
+  /** Internal evidence-bound records; never expose a catalog match as a recommendation. */
+  evaluatedCandidates: { candidate: ProductCandidate; decision: ProductEligibilityDecision }[];
   rejectedCount: number;
   inspectedCount: number;
   sourceFailures: { source: string; sourceRecordId?: string; reason: string }[];
+  knownConflicts: { productKey: string; reason: string }[];
 }
 
 export async function discoverProductCandidates(input: {
@@ -61,6 +64,10 @@ export async function discoverProductCandidates(input: {
   registry: ProductRuleEvidenceRegistry;
   adapters: readonly ProductEvidenceAdapter[];
   assessor?: ProductRuleAssessor;
+  /** Development catalog-lead mode: search despite unresolved policy, but never qualify. */
+  allowUnresolvedLeads?: boolean;
+  /** Existing deterministic safety screen may reject known conflicts, never assert a pass. */
+  knownConflict?: (candidate: ProductCandidate, subject: Awaited<ReturnType<typeof resolveProductSubjectAuthority>>) => string | null;
   evaluatedAt: string;
   maxCandidates: number;
   maxPages: number;
@@ -80,12 +87,15 @@ export async function discoverProductCandidates(input: {
     unresolved: policy.unresolved,
     qualified: [],
     needsVerification: [],
+    evaluatedCandidates: [],
     rejectedCount: 0,
     inspectedCount: 0,
     sourceFailures: [],
+    knownConflicts: [],
   };
   // Never search as if an unresolved subject or hard policy were unrestricted.
-  if (!policy.context.resolved || policy.context.policyStatus !== "resolved") return result;
+  if ((!policy.context.resolved || policy.context.policyStatus !== "resolved") &&
+      (!input.allowUnresolvedLeads || !policy.context.resolved)) return result;
   if (!isWellFormedProductSearchIntent(input.intent, policy.context.activeHardRestrictionIds)) {
     throw new Error("Product search intent does not preserve the requested purpose.");
   }
@@ -140,6 +150,12 @@ export async function discoverProductCandidates(input: {
         const signature = productCandidateSignature(candidate);
         if (seen.has(signature)) continue;
         seen.add(signature);
+        const conflict = input.knownConflict?.(candidate, subject);
+        if (conflict) {
+          result.rejectedCount++;
+          result.knownConflicts.push({ productKey: candidate.identity.key, reason: conflict });
+          continue;
+        }
         const assessments: ProductRuleAssessment[] = [];
         for (const requirement of policy.context.hardRequirements) {
           const assessment = await assessor.assess({
@@ -155,6 +171,7 @@ export async function discoverProductCandidates(input: {
           });
         }
         const decision = evaluateProductCandidate(candidate, policy.context, assessments);
+        result.evaluatedCandidates.push({ candidate, decision });
         if (decision.status === "eligible") result.qualified.push(decision);
         else if (decision.status === "needs_verification") result.needsVerification.push(decision);
         else result.rejectedCount++;

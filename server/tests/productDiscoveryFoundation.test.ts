@@ -9,6 +9,8 @@ import { legacyBarcodeIdentityLead, normalizeProductEvidence, type ProductEviden
   "../services/productDiscovery/productEvidenceAdapters";
 import { discoverProductCandidates, type ProductRuleAssessor } from
   "../services/productDiscovery/discoverProductCandidates";
+import { findProductDevelopment } from "../services/productDiscovery/findProductDevelopment";
+import { createUsdaBrandedAdapter } from "../services/productDiscovery/usdaBrandedAdapter";
 
 const NOW = "2026-09-30T12:00:00.000Z";
 const SUBJECT = { actorUserId: "owner", subjectUserId: "owner", subjectKind: "account" as const, dateISO: "2026-09-30" };
@@ -417,5 +419,99 @@ describe("Phase 2B internal authority and product evidence foundation", () => {
     expect(result.unresolved).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: "support:heart support" }),
     ]));
+  });
+  test("Development milk search yields real-source leads, never verified recommendations", async () => {
+    const result = await findProductDevelopment("owner", "milk", {
+      sources: sources(),
+      adapter: adapter([record({ name: "Whole Milk", facts: [{
+        kind: "ingredients", originalStatement: "Milk, vitamin D", completeness: "unknown",
+      }] })]),
+    });
+    expect(result.catalogMatches).toHaveLength(1);
+    expect(result.catalogMatches[0]).toMatchObject({
+      name: "Whole Milk", source: "USDA FoodData Central",
+      evidenceStatus: "needs_verification",
+    });
+    expect(result.unresolved).toContain("identity:freshness");
+  });
+  test("vegan milk intent searches a functional alternative and skips a known dairy conflict", async () => {
+    const foods = [
+      record({ name: "Dairy milk", facts: [{
+        kind: "ingredients", originalStatement: "MILK, VITAMIN D3",
+        completeness: "unknown",
+      }] }),
+      record({
+        sourceRecordId: "oat-1", name: "Oat beverage", variant: "Unsweetened oat beverage",
+        facts: [{ kind: "ingredients", originalStatement: "Water, oats, sea salt", completeness: "unknown" }],
+      }),
+    ];
+    let categories: string[] = [];
+    const provider = adapter(foods);
+    const originalSearch = provider.search;
+    provider.search = async (intent, cursor, limit) => {
+      categories = intent.searchCategories.map((item) => item.category);
+      return originalSearch(intent, cursor, limit);
+    };
+    const result = await findProductDevelopment("owner", "milk", {
+      sources: sources({ diet: ["vegan"] }), adapter: provider,
+    });
+    expect(categories).toContain("oat milk");
+    expect(result.rejected).toBe(1);
+    expect(result.catalogMatches.map((item) => item.name)).toEqual(["Oat beverage"]);
+    expect(result.catalogMatches[0].evidenceStatus).toBe("needs_verification");
+  });
+  test("missing ingredients are shown as unverified rather than fabricated", async () => {
+    const result = await findProductDevelopment("owner", "milk", {
+      sources: sources(), adapter: adapter([record({ facts: [] })]),
+    });
+    expect(result.catalogMatches).toHaveLength(1);
+    expect(result.catalogMatches[0].ingredients).toBeNull();
+    expect(result.catalogMatches[0].evidenceStatus).toBe("needs_verification");
+  });
+  test("active subject ambiguity prevents catalog search even in lead mode", async () => {
+    const provider = adapter([record()]);
+    provider.search = async () => { throw new Error("Must not search"); };
+    await expect(findProductDevelopment("owner", "milk", {
+      sources: sources({ activeHousehold: "child" }), adapter: provider,
+    })).rejects.toThrow("subject context is unavailable");
+  });
+  test("USDA adapter preserves GTIN, date, ingredients, nutrients and original serving", async () => {
+    const fetcher = jest.fn(async () => ({
+      ok: true,
+      json: async () => ({ foods: [{
+        fdcId: 555,
+        description: "Oat milk", brandName: "Real Brand", gtinUpc: "1234567890123",
+        foodCategory: "Plant Based Milk",
+        marketCountry: "United States", packageWeight: "1 L",
+        ingredients: "Water, oats", publishedDate: "2025-01-01",
+        householdServingFullText: "1 cup", servingSize: 240, servingSizeUnit: "ml",
+        foodNutrients: [{ nutrientId: 1005, nutrientName: "Carbohydrate, by difference",
+          unitName: "G", value: 6 }],
+      }] }),
+    })) as unknown as typeof fetch;
+    const provider = createUsdaBrandedAdapter(fetcher);
+    const page = await provider.search(INTENT, null, 8);
+    const normalized = normalizeProductEvidence(await provider.read(page.references[0]));
+    expect(normalized.identity).toMatchObject({
+      barcode: "1234567890123", servingDescription: "1 cup · 240 ml",
+      provenance: { observedAt: "2025-01-01", sourceRecordId: "555" },
+    });
+    expect(normalized.facts).toEqual(expect.arrayContaining([
+      expect.objectContaining({ statement: "Water, oats", completeness: "unknown" }),
+      expect.objectContaining({ target: "carbs_g_per_100g",
+        nutritionMeasurement: { value: 6, unit: "g", basis: "per_100g" } }),
+    ]));
+  });
+  test("drink discovery excludes chocolate and frozen dessert catalog hits", async () => {
+    const fetcher = jest.fn(async () => ({
+      ok: true,
+      json: async () => ({ foods: [
+        { fdcId: 1, description: "Oat milk chocolate", foodCategory: "Chocolate" },
+        { fdcId: 2, description: "Plain oat milk", foodCategory: "Plant Based Milk" },
+      ] }),
+    })) as unknown as typeof fetch;
+    const provider = createUsdaBrandedAdapter(fetcher);
+    const page = await provider.search(INTENT, null, 8);
+    expect(page.references.map((item) => item.sourceRecordId)).toEqual(["2"]);
   });
 });
