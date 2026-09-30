@@ -6473,6 +6473,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             createDishMeaningV1 = enrichFoodMeaning(createDishMeaningV1, _dishDirective);
           }
           createDishContract = resolveCreateDishContract(validatedCreateDishIntent, _dishDirective, createDishMeaningV1);
+          if (createDishMeaningV1?.concept.kind === "prepared_dish") {
+            const { authorizeCreateDishFormAdaptation } = await import("./services/createDish/formAdaptation");
+            const adapted = authorizeCreateDishFormAdaptation(
+              createDishContract, _dishDirective, _resolvedPrimaryDiet,
+              validatedCreateDishIntent.resolvedCombination.selectionSource.form === "user_selected",
+            );
+            createDishContract = adapted.contract;
+            _dishDirective = adapted.directive;
+          }
         } catch (intentError) {
           console.warn("[CreateDishIntent] rejected invalid or tampered intent", intentError);
           return res.status(400).json({
