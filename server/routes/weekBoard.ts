@@ -662,6 +662,22 @@ export default function weekBoardRoutes(app: Express) {
       return res.json({ status: "unavailable" });
     }
 
+    // DEV and Production share Board rows, but not writable image buckets.
+    // A local display repair must not replace Production's canonical reference
+    // with a DEV-only object. The generator cache retains this local variant.
+    if (authority.status === "missing" && authority.reason === "inactive") {
+      console.log(JSON.stringify({
+        event: "board_image_recovery",
+        outcome: "recovered_local_display",
+        mealId: parsed.data.mealId,
+      }));
+      return res.json({
+        status: "recovered",
+        imageUrl: result.imageUrl,
+        mediaAssetId: result.mediaAssetId,
+      });
+    }
+
     const nextBoard = structuredClone(target.row.boardJSON as any);
     const nextMeals = nextBoard.days[parsed.data.dateISO][slot];
     const nextIndex = nextMeals.findIndex((meal: any) => String(meal?.id) === parsed.data.mealId);

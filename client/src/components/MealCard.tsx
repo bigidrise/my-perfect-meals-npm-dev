@@ -281,6 +281,14 @@ export function MealCard({
           imageUrl={imageUrl}
           mealName={title}
           ingredients={(meal as any).ingredients}
+          mediaAssetId={(meal as any).mediaAssetId}
+          boardTarget={weekStartISO && ISO_DATE_RE.test(date) && !proClientId ? {
+            weekStartISO,
+            dateISO: date,
+            slot,
+            mealId: meal.id,
+            builderType,
+          } : undefined}
           height="h-48"
           className="!mb-0 !rounded-none"
         />
