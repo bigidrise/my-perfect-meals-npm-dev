@@ -148,6 +148,20 @@ router.post(
       if (authToken) authHeaders["x-auth-token"] = String(authToken);
       if (req.headers.cookie)
         authHeaders["cookie"] = req.headers.cookie as string;
+      // The outer request already passed the shared CSRF middleware. Its
+      // authenticated loopback must pass the same origin and session-token
+      // checks instead of relying on the forwarded cookie alone.
+      const origin = req.get("origin");
+      if (origin) {
+        authHeaders["origin"] = origin;
+      } else {
+        // Native/API clients can arrive without an Origin; the outer request
+        // was accepted with its API marker (or an explicit bearer credential).
+        authHeaders["x-requested-with"] = "XMLHttpRequest";
+      }
+      if (req.session?.csrfToken) {
+        authHeaders["x-csrf-token"] = req.session.csrfToken;
+      }
 
       const cravingRes = await fetch(
         `${INTERNAL_API_BASE}/api/meals/craving-creator`,

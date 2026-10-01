@@ -126,6 +126,7 @@ jest.mock("../db", () => {
 import { describe, it, expect, beforeEach, beforeAll } from "@jest/globals";
 import request from "supertest";
 import express, { Request, Response, NextFunction } from "express";
+import { csrfProtection } from "../lib/csrfProtection";
 
 // ── Global fetch mock ──────────────────────────────────────────────────────────
 // The route calls fetch() to hit the internal craving-creator. We mock it at
@@ -226,6 +227,84 @@ describe("POST /api/inspiration/capture — text input path", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.extractedDescription).toBe(TEXT_CONTENT);
+  });
+});
+
+describe("Recipe Maker authenticated internal generation", () => {
+  const SESSION_COOKIE = "recipe-session=valid";
+  const CSRF_TOKEN = "csrf-for-authenticated-recipe-session";
+  const EXPECTED_ORIGIN = "http://localhost:5000";
+  let protectedApp: express.Express;
+  let generatorReached: jest.Mock;
+
+  beforeAll(async () => {
+    protectedApp = express();
+    protectedApp.use(express.json());
+    protectedApp.use((req, _res, next) => {
+      if (req.get("cookie") === SESSION_COOKIE) {
+        (req as any).session = { userId: "test-user-inspiration-001", csrfToken: CSRF_TOKEN };
+      }
+      next();
+    });
+    protectedApp.use(csrfProtection);
+    protectedApp.use("/api", (await import("../routes/inspiration")).default);
+    generatorReached = jest.fn((_req, res) => res.json({ meals: [MOCK_MEAL] }));
+    protectedApp.post("/api/meals/craving-creator", (req, res) => {
+      if (!(req as any).session?.userId) return res.sendStatus(401);
+      generatorReached(req, res);
+    });
+  });
+
+  function routeInternalFetchThroughSecurity() {
+    mockFetch.mockImplementation(async (_url, init) => {
+      const inner = await request(protectedApp)
+        .post("/api/meals/craving-creator")
+        .set(init.headers)
+        .send(JSON.parse(init.body));
+      return { ok: inner.ok, status: inner.status, json: async () => inner.body };
+    });
+  }
+
+  beforeEach(() => {
+    generatorReached?.mockClear();
+  });
+
+  it.each([
+    ["trusted browser Origin", { Origin: EXPECTED_ORIGIN }],
+    ["originless API marker", { "x-requested-with": "XMLHttpRequest" }],
+  ])("reaches generation with valid session, CSRF token, and %s", async (_label, entryHeaders) => {
+    routeInternalFetchThroughSecurity();
+    const response = await request(protectedApp)
+      .post("/api/inspiration/capture")
+      .set({
+        Cookie: SESSION_COOKIE,
+        "x-csrf-token": CSRF_TOKEN,
+        ...entryHeaders,
+      })
+      .send({ inputType: "text", content: TEXT_CONTENT, servings: 2 });
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.options).toHaveLength(1);
+    expect(generatorReached).toHaveBeenCalledTimes(1);
+    expect(generatorReached.mock.calls[0][0].body.cravingInput).toContain(TEXT_CONTENT);
+  });
+
+  it("rejects an untrusted external origin before Recipe Maker can call generation", async () => {
+    routeInternalFetchThroughSecurity();
+    const response = await request(protectedApp)
+      .post("/api/inspiration/capture")
+      .set({
+        Cookie: SESSION_COOKIE,
+        "x-csrf-token": CSRF_TOKEN,
+        Origin: "https://attacker.example",
+      })
+      .send({ inputType: "text", content: TEXT_CONTENT });
+
+    expect(response.status).toBe(403);
+    expect(response.body.code).toBe("CSRF_ORIGIN_REJECTED");
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(generatorReached).not.toHaveBeenCalled();
   });
 });
 
