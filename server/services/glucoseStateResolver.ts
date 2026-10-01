@@ -109,10 +109,23 @@ export function resolveGlucoseState(
 
 /** Database-backed resolver for the authenticated user's own settings and latest log. */
 export async function resolveUserGlucoseState(userId: string, now = new Date()): Promise<GlucoseStateResolution> {
+  return (await resolveUserGlucoseStateWithEvidence(userId, now)).glucose;
+}
+
+/** One read of the inputs, including the exact timestamp of the selected source. */
+export async function resolveUserGlucoseStateWithEvidence(userId: string, now = new Date()) {
   const { db } = await import("../db");
   const [[latestLog], [settings]] = await Promise.all([
     db.select().from(glucoseLogs).where(eq(glucoseLogs.userId, userId)).orderBy(desc(glucoseLogs.recordedAt)).limit(1),
     db.select().from(userGlycemicSettings).where(eq(userGlycemicSettings.userId, userId)).limit(1),
   ]);
-  return resolveGlucoseState(latestLog ?? null, settings ?? null, now);
+  const glucose = resolveGlucoseState(latestLog ?? null, settings ?? null, now);
+  const recordedAt = glucose.source === "LOG"
+    ? latestLog?.recordedAt
+    : glucose.source === "SETTINGS" ? settings?.updatedAt : null;
+  return {
+    glucose,
+    settings: settings ?? null,
+    readingRecordedAt: recordedAt ? new Date(recordedAt).toISOString() : null,
+  };
 }

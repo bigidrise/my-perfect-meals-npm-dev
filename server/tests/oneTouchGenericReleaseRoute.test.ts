@@ -16,6 +16,35 @@ jest.mock("../middleware/requireAuth", () => ({
   },
 }));
 jest.mock("../db", () => ({ db: { select: jest.fn() } }));
+jest.mock("../services/diabetesGenerationSnapshot", () => {
+  let attemptNumber = 0;
+  return {
+    resolveDiabetesGenerationAttempt: jest.fn(async (subjectId: string) => {
+      const generatedAt = `2026-01-01T00:00:${String(++attemptNumber).padStart(2, "0")}.000Z`;
+      return {
+        subjectId, resolvedAt: generatedAt,
+        glucose: { state: "HIGH", valueMgdl: 130, context: "PRE_MEAL", activePreferences: [] },
+        context: {
+          hasDiabetes: true, diabetesType: "T2D", hypoHistory: false,
+          latestGlucose: {
+            value: 130, context: "PRE_MEAL", state: "high-risk",
+            recordedAt: new Date("2025-12-31T23:55:00.000Z"), ageMinutes: 5,
+          },
+        }, profile: { type: "T2D" }, settings: null,
+        snapshot: {
+          version: 2, generatedBglMgdl: 130, glucoseContext: "PRE_MEAL", bglBucket: "elevated",
+          protocolTypeLabel: "Elevated Glucose Support", recommendedBglRange: "Above 120 mg/dL",
+          generatedAt, source: "diabetic-builder",
+          readingRecordedAt: "2025-12-31T23:55:00.000Z", readingSource: "LOG",
+          glucoseState: "HIGH", policyVersion: "diabetic-generation-v2",
+        },
+      };
+    }),
+    assertDiabetesAttemptSubject: jest.fn((attempt: { subjectId: string }, subjectId: string) => {
+      if (attempt.subjectId !== subjectId) throw new Error("Diabetes generation subject mismatch");
+    }),
+  };
+});
 jest.mock("../services/oneTouch/history", () => ({
   readOneTouchHistory: jest.fn(async () => ({
     create_a_dish: [], craving_creator: [], workingSets: Object.fromEntries(saved),
@@ -471,4 +500,46 @@ describe("Development Creator Menu selection returns completed cards, not just i
       }
     },
   );
+
+  it("uses one frozen diabetic attempt for selected-concept generation, validation, and meal provenance", async () => {
+    diabetesEnabled = true;
+    context.safety.healthConditions = ["diabetes"];
+    selectedTitle = "Zucchini Noodle Bowl";
+    primaryIngredients = ["zucchini", "chicken"];
+    recipe = {
+      name: selectedTitle, description: "A prepared zucchini bowl.",
+      ingredients: ["zucchini noodles", "chicken breast"].map((name) => ({ name, quantity: "1", unit: "cup" })),
+      instructions: "Cook the ingredients.",
+      calories: 320, protein: 18, starchyCarbs: 0, fibrousCarbs: 10, fat: 20,
+    };
+    const choices = {
+      creator: "craving_creator", servings: 1, cuisine: { mode: "profile" },
+      eatingStyle: { mode: "profile" }, cravingType: "food", cravingFeel: "light",
+    };
+    const concepts = await request(app).post("/api/one-touch-create").send(choices);
+    const chosen = await request(app).post("/api/one-touch-create/choose").send({
+      request: choices, conceptId: concepts.body.concepts[0].id,
+    });
+    expect(chosen.status).toBe(200);
+    const attempts = require("../services/protocolEnvelope").loadUserProtocolEnvelope.mock.calls
+      .map((call: any[]) => call[2]?.diabetesAttempt).filter(Boolean);
+    const chooseAttempt = attempts[2];
+    const envelopeReads = require("../services/protocolEnvelope").loadUserProtocolEnvelope.mock.calls;
+    expect(envelopeReads[0][2]).toEqual({
+      includeDailyNutritionState: false, skipDiabetesGlucose: true,
+    });
+    expect(envelopeReads[4][2]).toEqual({
+      includeDailyNutritionState: false, skipDiabetesGlucose: true,
+    });
+    expect(envelopeReads[5][2]).toEqual({ diabetesAttempt: chooseAttempt });
+    const generationCalls = require("../services/unifiedMealPipeline").generateCravingMealOptions.mock.calls;
+    expect(generationCalls.at(-1)?.[18]).toBe(chooseAttempt);
+    expect(chosen.body.meal.diabeticMemory).toEqual(chooseAttempt.snapshot);
+    expect(chosen.body.meal.diabeticMemory).toMatchObject({ generatedBglMgdl: 130, bglBucket: "elevated" });
+    expect(require("../services/guardrails/validators/diabeticValidator").validateDiabeticMeal)
+      .toHaveBeenCalledWith(expect.any(Object), {
+        glucoseState: chooseAttempt.context.latestGlucose.state,
+      });
+    expect(chooseAttempt.context.latestGlucose.state).toBe("high-risk");
+  });
 });

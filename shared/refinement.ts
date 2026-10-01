@@ -47,6 +47,10 @@ export interface RefinementPreviewRequest {
   componentTarget:   MealComponent;
   /** Natural-language request, e.g. "something lighter" or "a different starch". */
   userInstruction:   string;
+  /** Optional board namespace; omitted requests retain the default board. */
+  builderType?:      string;
+  /** Explicit patient subject for an authorized professional workflow. */
+  proClientId?:      string;
 }
 
 export interface MacroDiff {
@@ -75,6 +79,10 @@ export interface RefinementPreviewResponse {
 
 export interface RefinementConfirmRequest {
   confirmToken: string;
+  /** Board namespace matching the signed preview token. */
+  builderType?: string;
+  /** Explicit patient subject matching the signed preview token. */
+  proClientId?: string;
 }
 
 export interface RefinementConfirmResponse {
@@ -88,6 +96,9 @@ export interface RefinementConfirmResponse {
 
 export interface RefinementRestoreRequest {
   restoreToken: string;
+  /** Optional client-side scope echo; the signed token remains authoritative. */
+  proClientId?: string;
+  builderType?: string;
 }
 
 export interface RefinementRestoreResponse {
@@ -110,6 +121,12 @@ export interface RefinementRestoreResponse {
 export interface ConfirmTokenPayload {
   type:           "refinement_confirm";
   exp:            number;   // unix seconds
+  /** Authenticated acting user (legacy alias: userId). */
+  actorUserId?:   string;
+  /** Meal-board owner; differs from actorUserId only for a verified patient session. */
+  subjectUserId?: string;
+  /** Board namespace, e.g. "diabetic"; empty string is the default board. */
+  builderType?:   string;
   userId:         string;
   weekStartISO:   string;
   dayISO:         string;
@@ -132,6 +149,12 @@ export interface ConfirmTokenPayload {
 export interface RestoreTokenPayload {
   type:          "refinement_restore";
   exp:           number;   // unix seconds
+  /** Authenticated acting user (legacy alias: userId). */
+  actorUserId?:  string;
+  /** Meal-board owner; differs from actorUserId only for a verified patient session. */
+  subjectUserId?: string;
+  /** Board namespace, e.g. "diabetic"; empty string is the default board. */
+  builderType?:  string;
   userId:        string;
   weekStartISO:  string;
   dayISO:        string;

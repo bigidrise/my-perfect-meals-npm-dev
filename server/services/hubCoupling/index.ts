@@ -9,6 +9,7 @@ import type {
   ValidationViolation
 } from './types';
 import type { UnifiedMeal } from '../unifiedMealPipeline';
+import { assertDiabetesAttemptSubject, type DiabetesGenerationAttempt } from '../diabetesGenerationSnapshot';
 
 const hubRegistry = new Map<HubType, HubModule>();
 let hubsRegistered = false;
@@ -89,8 +90,13 @@ export async function ensureHubsRegistered(): Promise<void> {
 export async function resolveHubCoupling(
   hubType: HubType,
   userId: string,
-  mealType: string
+  mealType: string,
+  diabetesAttempt?: DiabetesGenerationAttempt,
 ): Promise<HubCouplingResult | null> {
+  if (diabetesAttempt) {
+    if (hubType !== "diabetic") throw new Error("Diabetes provenance cannot be applied to another hub");
+    assertDiabetesAttemptSubject(diabetesAttempt, userId);
+  }
   const module = hubRegistry.get(hubType);
   if (!module) {
     console.warn(`⚠️ No hub module registered for: ${hubType}`);
@@ -99,10 +105,10 @@ export async function resolveHubCoupling(
 
   try {
     const context = module.getContext 
-      ? await module.getContext(userId) 
+      ? await module.getContext(userId, diabetesAttempt)
       : null;
     
-    const guardrails = await module.getGuardrails(userId);
+    const guardrails = await module.getGuardrails(userId, diabetesAttempt);
     const promptFragment = module.buildPrompt(context, guardrails, mealType);
 
     console.log(`✅ Hub coupling resolved for ${hubType}: context=${!!context}, guardrails loaded`);

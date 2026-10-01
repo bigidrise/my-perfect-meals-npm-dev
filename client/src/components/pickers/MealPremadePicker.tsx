@@ -26,6 +26,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { apiUrl } from '@/lib/resolveApiBase';
 import { X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { projectServerDiabeticMemory } from "@/lib/diabeticMemory";
 import { UniversalDialog } from "@/components/ui/universal-modal";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -849,6 +850,10 @@ export default function MealPremadePicker({
           fat: generatedMeal.fat || 15,
         },
         medicalBadges: generatedMeal.medicalBadges || [],
+        ...projectServerDiabeticMemory(
+          generatedMeal,
+          effectiveDietType === "diabetic",
+        ),
         source: "premade",
         category: category,
       };
