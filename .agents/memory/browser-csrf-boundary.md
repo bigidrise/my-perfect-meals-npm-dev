@@ -11,6 +11,6 @@ Cookie-authenticated mutations require both an exact trusted browser origin and 
 
 Cookie-forwarding internal HTTP requests remain authenticated browser-session writes. They are not exempt merely because the server initiates the second HTTP request: carry the already-validated caller origin and session CSRF token, or use a direct authenticated service call instead. For accepted originless API clients, preserve the API marker and session token. Never make localhost or all internal requests a blanket CSRF exception.
 
-**Why:** Recipe Maker's outer request succeeded, but its cookie-forwarding call to the meal generator omitted the browser security context and was rejected before generation.
+**Why:** Recipe Maker's outer request succeeded, but its cookie-forwarding call to the meal generator omitted the browser security context and was rejected before generation. The user confirmed successful Development use after preserving that context; a shared-policy bypass was neither needed nor approved.
 
 **How to apply:** When adding a server-side loopback to a protected mutation, preserve its verified session security context and test both the successful authenticated call and rejection of an untrusted external origin.
