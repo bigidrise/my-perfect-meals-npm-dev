@@ -158,8 +158,13 @@ export function MealImageSlot({
     recoveryVersion.current += 1;
   }, [imageUrl, savedMealId, mediaAssetId, boardTarget?.weekStartISO, boardTarget?.dateISO, boardTarget?.slot, boardTarget?.mealId]);
 
-  useEffect(() => () => {
-    mounted.current = false;
+  useEffect(() => {
+    // StrictMode replays effect setup after cleanup on the same instance.
+    // Reset this flag so the replay can receive its recovery result.
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
   }, []);
 
   const requestRecovery = async () => {
