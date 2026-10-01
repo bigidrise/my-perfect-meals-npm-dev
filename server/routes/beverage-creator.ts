@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { randomUUID } from "node:crypto";
 import OpenAI from "openai";
 import { getMeasurementPromptBlock, MeasurementSystem } from "../../shared/units";
 import { computeMedicalBadges, computeAlphaGalBadge } from "../services/medicalBadges";
@@ -104,6 +105,36 @@ const FLAVOR_LABELS: Record<string, string> = {
 
 const isDev = process.env.NODE_ENV === "development";
 
+// Beverage-only duplicate protection. Different names or garnish amounts do
+// not turn the same drink into another choice; preparation can distinguish it.
+function isDistinctBeverageChoice(candidate: any, previous: any[]): boolean {
+  const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const identity = (drink: any) => {
+    const ingredients = new Set<string>((drink.ingredients ?? [])
+      .map((item: any) => normalize(String(typeof item === "string" ? item : item?.name ?? "")))
+      .filter((name: string) => name &&
+        !/^(water|ice|ice cubes|cold water|filtered water)$|\bgarnish\b|\b(wedge|twist|sprig)s?\b/.test(name)));
+    const instructions = Array.isArray(drink.instructions)
+      ? drink.instructions.join(" ") : String(drink.instructions ?? "");
+    // Incidental "stir before serving" cannot distinguish two shaken drinks.
+    const method = /\bblend\w*/i.test(instructions) ? "blended"
+      : /\bfreez\w*/i.test(instructions) ? "frozen"
+      : /\b(brew|steep)\w*/i.test(instructions) ? "brewed"
+      : /\b(simmer|boil)\w*/i.test(instructions) ? "heated"
+      : "mixed";
+    return { ingredients, method };
+  };
+  const current = identity(candidate);
+  if (!current.ingredients.size) return previous.length === 0;
+  return previous.every((drink) => {
+    if (normalize(drink.name) === normalize(candidate.name)) return false;
+    const other = identity(drink);
+    const overlap = [...current.ingredients].filter((name) => other.ingredients.has(name)).length;
+    const union = new Set([...current.ingredients, ...other.ingredients]).size;
+    return !union || overlap / union < 0.8 || current.method !== other.method;
+  });
+}
+
 // ── Classify free-text description into a beverage category ──────────────────
 // Used when hasCustomDesc is true so the prompt gets the same category-specific
 // rules as the dropdown path. Never guesses food — defaults to "frozen" for
@@ -128,6 +159,9 @@ beverageCreatorRouter.post("/", async (req, res) => {
   if (isDev) console.log("[BEVERAGE] POST request received");
   let humanFoodRequestScope: HumanFoodRequestScope | undefined;
   try {
+    // Only the two beverage pages explicitly opt in. All other callers keep
+    // the existing response shape, retry policy, and single-result behavior.
+    const threeChoiceMode = req.body?.choiceCount === 3;
     const userId = getAuthUserId(req);
     const {
       beverageCategory,
@@ -968,6 +1002,10 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
       }
     }
 
+    // Run the existing complete recipe pipeline once per candidate within the
+    // same authorized request. Profile/safety resolution and override tokens
+    // above are not repeated, and no HTTP request calls back into this route.
+    async function generateValidatedBeverage(prompt: string): Promise<{ status: number; body: any }> {
     // Three attempts:
     //   Attempt 1 — normal generation
     //   Attempt 2 — appends specific protocol or clinical violation hint
@@ -1009,7 +1047,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
         if (isDev) console.log("[BEVERAGE] Generated response parsed");
       } catch (parseErr) {
         console.error("Beverage Creator JSON parse error:", parseErr);
-        return res.status(500).json({ error: "AI returned invalid JSON for beverage" });
+        return { status: 500, body: { error: "AI returned invalid JSON for beverage" } };
       }
 
       // ── Layer 1: Solid-food fast-fail guard ───────────────────────────────
@@ -1017,11 +1055,11 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
         recordRejectedHumanFoodCandidate(humanFoodExecutionState, meal);
         console.warn(`[BEVERAGE] Generated non-beverage result rejected; requestId=${(req as any).id ?? "unavailable"}`);
         if (attempt >= MAX_BEVERAGE_ATTEMPTS) {
-          return res.status(400).json({
+          return { status: 400, body: {
             error: "INVALID_BEVERAGE",
             message: "The generator produced food instead of a drink. Please try again or use the dropdown.",
             retryable: true,
-          });
+          } };
         }
         beverageScan = { passed: false, message: `Output was food ("${meal.name}"), not a beverage. You MUST generate a ${categoryLabel} drink.` } as any;
         beverageValidation = null;
@@ -1160,19 +1198,19 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
     }
 
     if (finalRejection) {
-      if (!shouldOfferBeverageAlternatives(process.env.NODE_ENV)) {
-        return res.status(400).json({
+      if (threeChoiceMode || !shouldOfferBeverageAlternatives(process.env.NODE_ENV)) {
+        return { status: 400, body: {
           error: finalRejection.error,
           message: finalRejection.message,
           ...(finalRejection.violations && { violations: finalRejection.violations }),
           retryable: true,
-        });
+        } };
       }
       const alternatives = await generateValidatedAlternatives(finalRejection);
-      return res.status(400).json({
+      return { status: 400, body: {
         ...finalRejection,
         alternatives,
-      });
+      } };
     }
 
     // ── Dish Identity Validator (Phase 5) ─────────────────────────────────────
@@ -1186,7 +1224,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
           const conflictSummary = (_beverageDishDirective?.conflicts ?? [])
             .map(c => `${c.component} (${c.guardrail})`)
             .join(", ");
-          return res.status(400).json({
+          return { status: 400, body: {
             error: "DISH_IDENTITY_FAILURE",
             dishIdentityFailure: true,
             message:
@@ -1195,7 +1233,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
               `. Rather than serve you a different drink, we're being upfront: try adjusting your request or your safety settings.`,
             conflicts: _beverageDishDirective?.conflicts ?? [],
             retryable: true,
-          });
+          } };
         }
         console.log(`[BEVERAGE] Dish identity validated; requestId=${(req as any).id ?? "unavailable"}`);
       } catch (e) {
@@ -1207,11 +1245,11 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
     meal.ingredients = normalizedIngredients;
     const liquidValidation = validateLiquidNutritionOutput(meal, activeLiquidProtocol);
     if (liquidValidation.passed === false) {
-      return res.status(400).json({
+      return { status: 400, body: {
         error: "LIQUID_NUTRITION_CONFLICT",
         message: liquidValidation.message,
         retryable: true,
-      });
+      } };
     }
 
     const ingredientNames = normalizedIngredients.map((i: any) =>
@@ -1252,19 +1290,19 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
           rejectionKind: getBeverageRejectionKind(undefined, "macro"),
           protocolName: "GLP-1",
         };
-        if (!shouldOfferBeverageAlternatives(process.env.NODE_ENV)) {
-          return res.status(400).json({
+        if (threeChoiceMode || !shouldOfferBeverageAlternatives(process.env.NODE_ENV)) {
+          return { status: 400, body: {
             error: finalGlp1Rejection.error,
             message: finalGlp1Rejection.message,
             violations: finalGlp1Rejection.violations,
             retryable: true,
-          });
+          } };
         }
         const alternatives = await generateValidatedAlternatives(finalGlp1Rejection);
-        return res.status(400).json({
+        return { status: 400, body: {
           ...finalGlp1Rejection,
           alternatives,
-        });
+        } };
       }
       console.log(`[BEVERAGE] Generated result passed GLP-1 policy; requestId=${(req as any).id ?? "unavailable"}`);
     }
@@ -1287,8 +1325,8 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
       conditions: userConditions,
     };
 
-    const medicalBadges = computeMedicalBadges(constraints, ingredientNames);
-    const alphaGalBadge = computeAlphaGalBadge(
+    let medicalBadges = computeMedicalBadges(constraints, ingredientNames);
+    let alphaGalBadge = computeAlphaGalBadge(
       `${(meal as any).name || ""} ${(meal as any).description || ""}`,
       ingredientNames,
       userConditions
@@ -1297,7 +1335,9 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
     // Generate image server-inline via canonical pipeline (caching + fallback handled internally)
     let imageUrl: string | null = null;
     try {
-      imageUrl = await generateMealImageUnified(meal.name, ingredientNames, "beverage");
+      if (!threeChoiceMode) {
+        imageUrl = await generateMealImageUnified(meal.name, ingredientNames, "beverage");
+      }
     } catch (imgErr) {
       console.warn("[BEVERAGE] Image generation failed:", imgErr);
     }
@@ -1348,7 +1388,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
     if (finalBeverageEnforcement.accepted.length === 0) {
       const validations = finalBeverageEnforcement.validations.map(({ result }) => result);
       const reviewRequired = validations.some(({ outcome }) => outcome === "review_required");
-      return res.status(reviewRequired ? 409 : 422).json({
+      return { status: reviewRequired ? 409 : 422, body: {
         code: reviewRequired
           ? "HUMAN_FOOD_FINAL_REVIEW_REQUIRED"
           : "HUMAN_FOOD_FINAL_VALIDATION_FAILED",
@@ -1357,37 +1397,36 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
         retryable: false,
         findings: validations.flatMap(({ findings }) => findings),
         authoritativeContextFingerprint: humanFoodContext.internalFingerprint,
-      });
+      } };
     }
     meal = finalBeverageEnforcement.accepted[0];
     if (validateFinalBeverageCandidate(meal).outcome !== "pass") {
-      return res.status(422).json({
+      return { status: 422, body: {
         code: "HUMAN_FOOD_FINAL_VALIDATION_FAILED",
         message: "The final beverage response did not pass universal validation.",
         retryable: false,
-      });
+      } };
+    }
+
+    if (threeChoiceMode) {
+      // Transformations/repairs can change the recipe. Batch metadata and
+      // images must use the final accepted beverage, not its initial draft.
+      const finalIngredientNames = (meal.ingredients ?? []).map((item: any) =>
+        String(typeof item === "string" ? item : item.name ?? "").toLowerCase());
+      medicalBadges = computeMedicalBadges(constraints, finalIngredientNames);
+      alphaGalBadge = computeAlphaGalBadge(
+        `${meal.name || ""} ${meal.description || ""}`, finalIngredientNames, userConditions,
+      );
     }
 
     if (isDev) console.log("[BEVERAGE] Sending response (image handled client-side)...");
-
-    // Phase 3B: emit usage event — beverage was generated
-    if (userId && userId !== "1") {
-      emitActivityEvent({
-        ownerUserId: String(userId),
-        eventType: "beverage_generated",
-        eventClass: "usage",
-        sourceFeature: "beverage_creator",
-        metadata: { beverageCategory, flavorFamily, specificDrink },
-      }).catch((err) => console.error("[ActivityEvents]", err.message));
-    }
 
     const { complianceSection: bevCompliance, dietClassification: bevDietClass } =
       buildMealComplianceBundle(meal, beverageEnvelope, { isChefAdapted: dietAdapted });
     if (typeof meal?.name !== "string" || !meal.name.trim()) {
       throw new Error("Final beverage output is empty");
     }
-    await humanFoodRequestScope.completeAuthorization();
-    return res.json({
+    return { status: 200, body: {
       ...meal,
       imageUrl,
       medicalBadges,
@@ -1413,7 +1452,82 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
         servingSize,
         dietaryPreferences,
       },
-    });
+    } };
+    }
+
+    let response: { status: number; body: any };
+    if (!threeChoiceMode) {
+      response = await generateValidatedBeverage(prompt);
+    } else {
+      const choices: any[] = [];
+      let firstFailure: { status: number; body: any } | undefined;
+      // Three bounded candidate slots; each retains the original maximum
+      // three generation attempts plus the original final repair allowance.
+      for (let slot = 0; slot < 3; slot++) {
+        const varietyPrompt =
+          `\n\nBEVERAGE CHOICE ${slot + 1} OF UP TO 3:\n` +
+          `Create one complete beverage using the unchanged recipe schema and serving count above. ` +
+          `Stay within the requested drink identity, format, flavor, performance goal, and every safety rule. ` +
+          `When the request allows it, vary meaningful base ingredients or preparation, not just names, garnishes, or quantities. ` +
+          `Never switch to an unrelated drink to create variety.\n` +
+          (choices.length ? `Already accepted choices (do not repeat): ${JSON.stringify(choices.map((choice) => ({
+            name: choice.name, ingredients: choice.ingredients, instructions: choice.instructions,
+          })))}\n` : "") +
+          buildRejectedCandidatePrompt(humanFoodExecutionState);
+        let candidate: { status: number; body: any };
+        try {
+          candidate = await generateValidatedBeverage(prompt + varietyPrompt);
+        } catch (error) {
+          // A failed candidate must not discard another fully validated recipe.
+          // Authorization completion still runs once, after the entire batch.
+          console.warn(`[BEVERAGE] CHOICE_FAILED; requestId=${(req as any).id ?? "unavailable"}`);
+          candidate = { status: 500, body: { error: "Failed to create beverage" } };
+        }
+        if (candidate.status !== 200) {
+          firstFailure ??= candidate;
+          continue;
+        }
+        if (!isDistinctBeverageChoice(candidate.body, choices)) continue;
+        const choice = { ...candidate.body, id: `beverage-choice-${randomUUID()}` };
+        try {
+          choice.imageUrl = await generateMealImageUnified(
+            choice.name,
+            (choice.ingredients ?? []).map((item: any) =>
+              String(typeof item === "string" ? item : item.name ?? "").toLowerCase()),
+            "beverage",
+          );
+        } catch {
+          choice.imageUrl = null;
+        }
+        choices.push(choice);
+      }
+      response = choices.length
+        ? { status: 200, body: {
+            choices,
+            requestedChoiceCount: 3,
+            ...(choices.length < 3 && {
+              choiceNotice: `Only ${choices.length} distinct beverage${choices.length === 1 ? "" : "s"} passed the existing checks for this request.`,
+            }),
+          } }
+        : firstFailure ?? { status: 422, body: {
+            code: "HUMAN_FOOD_FINAL_VALIDATION_FAILED",
+            message: "No beverage passed universal final validation.",
+            retryable: false,
+          } };
+    }
+    if (response.status === 200) {
+      await humanFoodRequestScope.completeAuthorization();
+      if (userId && userId !== "1") {
+        emitActivityEvent({
+          ownerUserId: String(userId),
+          eventType: "beverage_generated",
+          eventClass: "usage",
+          sourceFeature: "beverage_creator",
+          metadata: { beverageCategory, flavorFamily, specificDrink },
+        }).catch((err) => console.error("[ActivityEvents]", err.message));
+      }
+    }
+    return res.status(response.status).json(response.body);
   } catch (err: any) {
     console.error(`[BEVERAGE] REQUEST_FAILED; requestId=${(req as any).id ?? "unavailable"}`);
     const status = Number.isInteger(err?.status) ? err.status : 500;

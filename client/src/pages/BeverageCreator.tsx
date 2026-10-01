@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
+import BeverageChoiceCards, { readBeverageChoiceResponse, useBeverageChoices } from "@/components/beverage/BeverageChoiceCards";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import MealGenerationProgress from "@/components/MealGenerationProgress";
 import ThinkingDots from "@/components/ThinkingDots";
@@ -155,6 +156,8 @@ export default function BeverageCreator() {
   const { t: tc } = useTranslation("common");
   const quickTour = useQuickTour("beverage-creator");
   const { user } = useAuth();
+  const currentAccountRef = useRef(user?.id);
+  currentAccountRef.current = user?.id;
   const hydrationHandoff = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("hydrationHandoff");
@@ -169,7 +172,7 @@ export default function BeverageCreator() {
   const [customDietary, setCustomDietary] = useState("");
   const [instructionsExpanded, setInstructionsExpanded] = useState(false);
   const [activeStep, setActiveStep] = useState<number | null>(null);
-  const [generatedBeverage, setGeneratedBeverage] = useState<any | null>(() => {
+  const [selectedBeverage, setGeneratedBeverage] = useState<any | null>(() => {
     try {
       const saved = localStorage.getItem("mpm_beverage_creator_result");
       if (!saved) return null;
@@ -181,6 +184,11 @@ export default function BeverageCreator() {
       return null;
     }
   });
+
+  const { choices: beverageChoices, choiceNotice, replaceChoices, clearChoices } =
+    useBeverageChoices("beverage", user?.id, selectedBeverage, setGeneratedBeverage);
+  const generatedBeverage = String(selectedBeverage?.id ?? "").startsWith("beverage-choice-") &&
+    !beverageChoices.some((choice) => choice.id === selectedBeverage.id) ? null : selectedBeverage;
 
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
@@ -302,6 +310,8 @@ export default function BeverageCreator() {
     if (url && !url.startsWith('data:')) return; // Already has an S3 URL — nothing to do
     if (!generatedBeverage.name) return;
 
+    const imageOwner = generatedBeverage;
+    let cancelled = false;
     setBeverageImageLoading(true);
     fetch(apiUrl("/api/meals/generate-image"), {
       method: "POST",
@@ -314,9 +324,16 @@ export default function BeverageCreator() {
       }),
     })
       .then(r => r.json())
-      .then(d => { if (d.imageUrl) setGeneratedBeverage((prev: any) => prev ? { ...prev, imageUrl: d.imageUrl } : prev); })
+      .then(d => {
+        if (!cancelled && d.imageUrl) {
+          setBeverageImageLoading(false);
+          setGeneratedBeverage((prev: any) =>
+            prev === imageOwner ? { ...prev, imageUrl: d.imageUrl } : prev);
+        }
+      })
       .catch(() => {})
-      .finally(() => setBeverageImageLoading(false));
+      .finally(() => { if (!cancelled) setBeverageImageLoading(false); });
+    return () => { cancelled = true; };
   }, [generatedBeverage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -352,6 +369,7 @@ export default function BeverageCreator() {
     `${beverageCategory} ${flavorFamily} ${specificDrink}`.trim();
 
   async function handleGenerateBeverage(skipDietPreflight = false, overrideToken?: string, dietAdaptOverride = false, userDietOverride = false) {
+    const requestAccount = user?.id;
     const hasCustomDesc = customBeverageDescription.trim().length > 0;
 
     if (!hasCustomDesc && !beverageCategory) {
@@ -423,6 +441,7 @@ export default function BeverageCreator() {
         credentials: "include",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({
+          choiceCount: 3,
           beverageCategory,
           flavorFamily,
           specificDrink,
@@ -455,6 +474,7 @@ export default function BeverageCreator() {
       console.log("🍹 [BEVERAGE] API response received:", res.status);
 
       const data = await res.json().catch(() => null);
+      if (currentAccountRef.current !== requestAccount) return;
 
       if (data?.safetyBlocked || data?.safetyAmbiguous) {
         stopProgressTicker();
@@ -496,14 +516,15 @@ export default function BeverageCreator() {
       }
 
       console.log("🍹 [BEVERAGE] Parsed response data:", data);
-      const meal = data.meal || data;
+      const choices = readBeverageChoiceResponse(data);
 
       // 🥗 Scenario A: server flagged diet adaptation — accept result, show soft notice
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
-      if (data.dietAdapted) {
-        setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
+      const adapted = choices.find((choice) => choice.dietAdapted);
+      if (adapted) {
+        setDietAdaptedNotice(adapted.dietNotice || `Adapted for your ${userDiet} diet.`);
         clearDietAlert();
-      } else if (!skipDietPreflight && activeDiet && !mealMatchesDiet(userDiet, meal)) {
+      } else if (!skipDietPreflight && activeDiet && choices.some((choice) => !mealMatchesDiet(userDiet, choice))) {
         // 🥗 Scenario B fallback — only fires on initial generate, never on "let chef adapt" retry
         stopProgressTicker();
         setIsGenerating(false);
@@ -512,12 +533,16 @@ export default function BeverageCreator() {
       }
 
       stopProgressTicker();
-      setGeneratedBeverage(meal);
+      replaceChoices(data);
+      localStorage.removeItem("mpm_beverage_creator_result");
+      setInstructionsExpanded(false);
+      setActiveStep(null);
+      setDietAdaptedNotice(adapted?.dietNotice || null);
       setBeverageImageLoading(false); // Image is returned inline from the server
 
       toast({
-        title: "✨ Drink Created!",
-        description: `${meal.name} is ready for you.`,
+        title: "Drink Choices Created!",
+        description: `${choices.length} drink option${choices.length === 1 ? "" : "s"} ready to compare.`,
       });
     } catch (err: any) {
       console.error("🍹 [BEVERAGE] Generation error:", err);
@@ -842,7 +867,7 @@ export default function BeverageCreator() {
                   <MealGenerationProgress
                     active={isGenerating}
                     context="beverage"
-                    mode="single"
+                    mode="options"
                   />
                 </div>
               ) : safetyChecking ? (
@@ -870,6 +895,7 @@ export default function BeverageCreator() {
                   onUseAlternative={(alternative: BeverageAlternative) => {
                     setProtocolFailure(null);
                     setGenerationFailure(HIDDEN_FAILURE);
+                    clearChoices();
                     setGeneratedBeverage(alternative);
                     setBeverageImageLoading(false);
                     toast({
@@ -906,8 +932,23 @@ export default function BeverageCreator() {
             }}
           />
 
+          <BeverageChoiceCards
+            choices={beverageChoices}
+            selectedId={generatedBeverage?.id}
+            notice={choiceNotice}
+            disabled={isGenerating}
+            onSelect={(choice) => {
+              setGeneratedBeverage(choice);
+              setInstructionsExpanded(false);
+              setActiveStep(null);
+              setBeverageImageLoading(false);
+              setDietAdaptedNotice(choice.dietAdapted ? choice.dietNotice || "Adapted for your diet." : null);
+              clearBeverageStarchAlert();
+            }}
+          />
+
           {generatedBeverage && (
-            <div className="space-y-6">
+            <div key={generatedBeverage.id || generatedBeverage.name} className="space-y-6">
               <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl">
                 <CardContent className="p-6">
                   <div className="mb-4">
@@ -926,6 +967,7 @@ export default function BeverageCreator() {
                       <button
                         onClick={() => {
                           setGeneratedBeverage(null);
+                          clearChoices();
                           localStorage.removeItem("mpm_beverage_creator_result");
                         }}
                         className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
@@ -1166,8 +1208,9 @@ export default function BeverageCreator() {
                           ingredients: generatedBeverage.ingredients,
                         }}
                         onTranslate={(translated) => {
+                          if (currentAccountRef.current !== user?.id) return;
                           setGeneratedBeverage((prev: any) =>
-                            prev
+                            prev && (prev.id ? prev.id === generatedBeverage.id : prev === generatedBeverage)
                               ? {
                                   ...prev,
                                   name: translated.name,

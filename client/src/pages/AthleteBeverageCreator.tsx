@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { usePageTitle } from "@/contexts/PageTitleContext";
+import BeverageChoiceCards, { readBeverageChoiceResponse, useBeverageChoices } from "@/components/beverage/BeverageChoiceCards";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
@@ -165,6 +166,8 @@ export default function AthleteBeverageCreator() {
   const { toast } = useToast();
   const quickTour = useQuickTour("athlete-beverage-creator");
   const { user } = useAuth();
+  const currentAccountRef = useRef(user?.id);
+  currentAccountRef.current = user?.id;
   const { requestUpgrade } = useUpgradeModal();
   const hydrationHandoff = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
@@ -192,7 +195,7 @@ export default function AthleteBeverageCreator() {
   const [customDietary, setCustomDietary] = useState("");
   const [instructionsExpanded, setInstructionsExpanded] = useState(false);
   const [activeStep, setActiveStep] = useState<number | null>(null);
-  const [generatedBeverage, setGeneratedBeverage] = useState<any | null>(() => {
+  const [selectedBeverage, setGeneratedBeverage] = useState<any | null>(() => {
     try {
       const saved = localStorage.getItem("mpm_athlete_beverage_result");
       if (!saved) return null;
@@ -204,6 +207,11 @@ export default function AthleteBeverageCreator() {
       return null;
     }
   });
+
+  const { choices: beverageChoices, choiceNotice, replaceChoices, clearChoices } =
+    useBeverageChoices("athlete", user?.id, selectedBeverage, setGeneratedBeverage);
+  const generatedBeverage = String(selectedBeverage?.id ?? "").startsWith("beverage-choice-") &&
+    !beverageChoices.some((choice) => choice.id === selectedBeverage.id) ? null : selectedBeverage;
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationFailure, setGenerationFailure] = useState<GenerationFailureState>(HIDDEN_FAILURE);
@@ -301,6 +309,7 @@ export default function AthleteBeverageCreator() {
 
 
   async function handleGenerateBeverage(skipDietPreflight = false, overrideToken?: string, dietAdaptOverride = false, userDietOverride = false) {
+    const requestAccount = user?.id;
     const hasCustomDesc = customBeverageDescription.trim().length > 0;
 
     if (!hasCustomDesc && !performanceGoal) {
@@ -356,6 +365,7 @@ export default function AthleteBeverageCreator() {
         credentials: "include",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({
+          choiceCount: 3,
           beverageCategory: drinkType,
           flavorFamily: flavorProfile,
           specificDrink,
@@ -403,6 +413,7 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
       console.log("🍹 [BEVERAGE] API response received:", res.status);
 
       const data = await res.json().catch(() => null);
+      if (currentAccountRef.current !== requestAccount) return;
 
       if (data?.safetyBlocked || data?.safetyAmbiguous) {
         setIsGenerating(false);
@@ -432,14 +443,15 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
       }
 
       console.log("🍹 [BEVERAGE] Parsed response data:", data);
-      const meal = data.meal || data;
+      const choices = readBeverageChoiceResponse(data);
 
       // 🥗 Scenario A: server flagged diet adaptation — accept result, show soft notice
       const userDiet = normalizeDiet(user?.dietaryRestrictions);
-      if (data.dietAdapted) {
-        setDietAdaptedNotice(data.dietNotice || `Adapted for your ${userDiet} diet.`);
+      const adapted = choices.find((choice) => choice.dietAdapted);
+      if (adapted) {
+        setDietAdaptedNotice(adapted.dietNotice || `Adapted for your ${userDiet} diet.`);
         clearDietAlert();
-      } else if (!skipDietPreflight && activeDiet && !mealMatchesDiet(userDiet, meal)) {
+      } else if (!skipDietPreflight && activeDiet && choices.some((choice) => !mealMatchesDiet(userDiet, choice))) {
         // 🥗 Scenario B fallback — only fires on initial generate, never on "let chef adapt" retry
         setIsGenerating(false);
         triggerDietAlert([], `This drink may not fully match your ${userDiet} diet.`);
@@ -447,11 +459,15 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
       }
 
       // imageUrl is returned inline from the server — no separate fetch needed
-      setGeneratedBeverage(meal);
+      replaceChoices(data);
+      localStorage.removeItem("mpm_athlete_beverage_result");
+      setInstructionsExpanded(false);
+      setActiveStep(null);
+      setDietAdaptedNotice(adapted?.dietNotice || null);
 
       toast({
-        title: "✨ Performance Drink Created!",
-        description: `${meal.name} is ready for you.`,
+        title: "Performance Drink Choices Created!",
+        description: `${choices.length} drink option${choices.length === 1 ? "" : "s"} ready to compare.`,
       });
     } catch (err: any) {
       console.error("🍹 [BEVERAGE] Generation error:", err);
@@ -773,7 +789,7 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
                   <MealGenerationProgress
                     active={isGenerating}
                     context="beverage"
-                    mode="single"
+                    mode="options"
                   />
                 </div>
               ) : safetyChecking ? (
@@ -817,8 +833,22 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
             }}
           />
 
+          <BeverageChoiceCards
+            choices={beverageChoices}
+            selectedId={generatedBeverage?.id}
+            notice={choiceNotice}
+            disabled={isGenerating}
+            onSelect={(choice) => {
+              setGeneratedBeverage(choice);
+              setInstructionsExpanded(false);
+              setActiveStep(null);
+              setDietAdaptedNotice(choice.dietAdapted ? choice.dietNotice || "Adapted for your diet." : null);
+              clearBeverageStarchAlert();
+            }}
+          />
+
           {generatedBeverage && (
-            <div className="space-y-6">
+            <div key={generatedBeverage.id || generatedBeverage.name} className="space-y-6">
               <Card className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl">
                 <CardContent className="p-6">
                   <div className="mb-4">
@@ -837,7 +867,8 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
                       <button
                         onClick={() => {
                           setGeneratedBeverage(null);
-                          localStorage.removeItem("mpm_beverage_creator_result");
+                          clearChoices();
+                          localStorage.removeItem("mpm_athlete_beverage_result");
                         }}
                         className="text-sm text-white/70 bg-white/10 px-3 py-1 rounded-lg transition-colors active:scale-[0.98]"
                       >
@@ -1056,8 +1087,9 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
                           ingredients: generatedBeverage.ingredients,
                         }}
                         onTranslate={(translated) => {
+                          if (currentAccountRef.current !== user?.id) return;
                           setGeneratedBeverage((prev: any) =>
-                            prev
+                            prev && (prev.id ? prev.id === generatedBeverage.id : prev === generatedBeverage)
                               ? {
                                   ...prev,
                                   name: translated.name,
