@@ -63,6 +63,7 @@ jest.mock("openai", () => {
 
 // ── Mock: DB (saved grocery query) ────────────────────────────────────────────
 const mockDbRows: any[] = [];
+const mockLoadGenerationProtocolEnvelope = jest.fn();
 jest.mock("../db", () => ({
   db: {
     select: jest.fn(() => {
@@ -140,14 +141,10 @@ jest.mock("../services/protocolEnvelope", () => {
   return {
   buildGuestEnvelope: jest.fn(() => makeEnvelope()),
   loadUserProtocolEnvelope,
-  loadGenerationProtocolEnvelope: jest.fn(async (userId?: string) => {
-    if (!userId) return makeEnvelope({ userId: "guest" });
-    const loaded = await loadUserProtocolEnvelope(userId);
-    if (!loaded) throw new Error("Your food safety information could not be verified. No food was generated; please retry.");
-    return loaded;
-  }),
-  enforceBeforeGenerate: jest.fn(() => ({
-    combined: "No dietary restrictions — apply general healthy eating.",
+  loadGenerationProtocolEnvelope: (...args: any[]) => mockLoadGenerationProtocolEnvelope(...args),
+  enforceBeforeGenerate: jest.fn((envelope: any) => ({
+    combined: envelope?.diabeticGuidance ||
+      "No dietary restrictions — apply general healthy eating.",
     blocks: [],
   })),
   scanGeneratedOutput: jest.fn((_meal: any, _env: any, _ctx: any) => ({
@@ -243,6 +240,18 @@ function resetMocks() {
   }));
   envMock.loadUserProtocolEnvelope.mockReset();
   envMock.loadUserProtocolEnvelope.mockResolvedValue(makeEnvelope());
+  mockLoadGenerationProtocolEnvelope.mockReset().mockImplementation(async (userId?: string, diabetesAttempt?: any) => {
+    if (!userId) return makeEnvelope({ userId: "guest" });
+    const loaded = await envMock.loadUserProtocolEnvelope(userId);
+    if (!loaded) throw new Error("Your food safety information could not be verified. No food was generated; please retry.");
+    if (!diabetesAttempt) return loaded;
+    return {
+      ...loaded,
+      hasDiabetes: true,
+      diabeticGlucoseState: diabetesAttempt.snapshot.glucoseState,
+      diabeticGuidance: `Attempt ${diabetesAttempt.snapshot.generatedBglMgdl} mg/dL: ${diabetesAttempt.snapshot.protocolTypeLabel}`,
+    };
+  });
 }
 
 const BASE_REQUEST = {
@@ -683,6 +692,172 @@ describe("MealRefinementEngine — adjust_macros", () => {
     const result = await engine.refine(BASE_MACRO_REQUEST) as any;
 
     expect(result.macroImpact.fat).toBe(8);
+  });
+});
+
+describe("MealRefinementEngine — diabetic snapshot continuity for component swaps", () => {
+  const diabetesAttempt = {
+    subjectId: "user-abc",
+    resolvedAt: "2026-08-13T12:00:00.000Z",
+    glucose: { state: "IN_RANGE", activePreferences: [] },
+    context: {
+      hasDiabetes: true,
+      diabetesType: "T2D",
+      hypoHistory: false,
+      latestGlucose: {
+        value: 100,
+        context: "PRE_MEAL",
+        state: "in-range",
+        recordedAt: new Date("2026-08-13T11:45:00.000Z"),
+        ageMinutes: 15,
+      },
+    },
+    profile: { type: "T2D", hypoHistory: false },
+    settings: null,
+    snapshot: {
+      version: 2,
+      generatedBglMgdl: 100,
+      glucoseContext: "PRE_MEAL",
+      bglBucket: "in-range",
+      protocolTypeLabel: "Glucose Balance Protocol",
+      recommendedBglRange: "70–120 mg/dL",
+      generatedAt: "2026-08-13T12:00:00.000Z",
+      source: "diabetic-builder",
+      readingRecordedAt: "2026-08-13T11:45:00.000Z",
+      readingSource: "LOG",
+      glucoseState: "IN_RANGE",
+      policyVersion: "diabetic-generation-v2",
+    },
+  } as any;
+
+  const baseComponentRequest = {
+    changeType: "replace_component" as const,
+    userId: "user-abc",
+    existingMeal: {
+      title: "Chicken Bowl",
+      macros: { calories: 420, protein: 35, carbs: 40, fat: 12 },
+      ingredients: [{ name: "chicken", qty: "5 oz" }, { name: "rice", qty: "1/2 cup" }],
+    },
+    componentTarget: "starch" as const,
+    userInstruction: "replace the rice with a lower-carbohydrate grain",
+    mealType: "lunch" as const,
+    diabetesAttempt,
+  };
+
+  beforeEach(() => {
+    resetMocks();
+    useDefaultStrictContext();
+  });
+
+  test("uses the same frozen glucose attempt for prompt construction and validation", async () => {
+    const attemptEnvelope = makeEnvelope({
+      userId: "user-abc",
+      hasDiabetes: true,
+      diabeticGlucoseState: "IN_RANGE",
+      diabeticGuidance: "Attempt 100 mg/dL: Glucose Balance Protocol",
+    });
+    mockLoadGenerationProtocolEnvelope.mockResolvedValue(attemptEnvelope);
+    const openai = jest.requireMock("openai");
+    const instance = new openai.default();
+    instance.chat.completions.create.mockImplementationOnce(async (params: any) => {
+      const systemMsg = (params.messages ?? []).find((message: any) => message.role === "system");
+      if (systemMsg?.content) capturedSystemPrompts.push(systemMsg.content);
+      return {
+        choices: [{
+          message: {
+            content: JSON.stringify({
+            title: "Chicken Bowl",
+            macros: { calories: 410, protein: 36, carbs: 32, fat: 10 },
+            ingredients: [{ name: "chicken" }, { name: "quinoa" }],
+            new_component_fat_grams: 3,
+            }),
+          },
+        }],
+      };
+    });
+
+    const result = await getMealRefinementEngine().refine(baseComponentRequest);
+
+    expect(mockLoadGenerationProtocolEnvelope).toHaveBeenCalledTimes(1);
+    expect(mockLoadGenerationProtocolEnvelope).toHaveBeenCalledWith("user-abc", diabetesAttempt);
+    expect(capturedSystemPrompts).toHaveLength(1);
+    expect(capturedSystemPrompts[0]).toContain("Attempt 100 mg/dL: Glucose Balance Protocol");
+
+    const { scanGeneratedOutput } = jest.requireMock("../services/protocolEnvelope");
+    expect(scanGeneratedOutput).toHaveBeenCalledTimes(1);
+    const validationEnvelope = scanGeneratedOutput.mock.calls[0][1];
+    expect(validationEnvelope).toBe(attemptEnvelope);
+    expect(validationEnvelope.diabeticGuidance).toBe(
+      "Attempt 100 mg/dL: Glucose Balance Protocol",
+    );
+    expect((result as any).updatedMeal).toBeDefined();
+  });
+
+  test("reuses one snapshot-backed envelope for both the initial swap and retry", async () => {
+    const attemptEnvelope = makeEnvelope({
+      userId: "user-abc",
+      hasDiabetes: true,
+      diabeticGlucoseState: "IN_RANGE",
+      diabeticGuidance: "Attempt 100 mg/dL: Glucose Balance Protocol",
+    });
+    mockLoadGenerationProtocolEnvelope.mockResolvedValue(attemptEnvelope);
+    mockGlp1Context = {
+      isActive: true,
+      activationSources: ["medicalConditions"],
+      resolvedTargets: {
+        treatmentPhase: "maintenance",
+        resolvedMealCalories: 500,
+        targetProteinGrams: 20,
+        maximumToleratedFatGrams: 12,
+        minimumProteinFloor: 15,
+      },
+    };
+
+    const firstResponse = JSON.stringify({
+      title: "Chicken Bowl",
+      macros: { calories: 430, protein: 35, carbs: 35, fat: 18 },
+      ingredients: [{ name: "chicken" }, { name: "rice" }],
+      new_component_fat_grams: 4,
+    });
+    const retryResponse = JSON.stringify({
+      title: "Chicken Bowl",
+      macros: { calories: 410, protein: 36, carbs: 34, fat: 9 },
+      ingredients: [{ name: "chicken" }, { name: "quinoa" }],
+      new_component_fat_grams: 3,
+    });
+    const openai = jest.requireMock("openai");
+    const instance = new openai.default();
+    instance.chat.completions.create
+      .mockImplementationOnce(async (params: any) => {
+        const systemMsg = (params.messages ?? []).find((message: any) => message.role === "system");
+        if (systemMsg?.content) capturedSystemPrompts.push(systemMsg.content);
+        return { choices: [{ message: { content: firstResponse } }] };
+      })
+      .mockImplementationOnce(async (params: any) => {
+        const systemMsg = (params.messages ?? []).find((message: any) => message.role === "system");
+        if (systemMsg?.content) capturedSystemPrompts.push(systemMsg.content);
+        return { choices: [{ message: { content: retryResponse } }] };
+      });
+
+    await getMealRefinementEngine().refine(baseComponentRequest);
+
+    expect(mockLoadGenerationProtocolEnvelope).toHaveBeenCalledTimes(1);
+    expect(mockLoadGenerationProtocolEnvelope).toHaveBeenCalledWith("user-abc", diabetesAttempt);
+    expect(capturedSystemPrompts).toHaveLength(2);
+    for (const prompt of capturedSystemPrompts) {
+      expect(prompt).toContain("Attempt 100 mg/dL: Glucose Balance Protocol");
+    }
+    const { scanGeneratedOutput } = jest.requireMock("../services/protocolEnvelope");
+    expect(scanGeneratedOutput).toHaveBeenCalledTimes(1);
+    expect(scanGeneratedOutput.mock.calls[0][1]).toBe(attemptEnvelope);
+  });
+
+  test("rejects an attempt resolved for a different subject before loading generation context", async () => {
+    await expect(getMealRefinementEngine().refine({
+      ...baseComponentRequest,
+      diabetesAttempt: { ...diabetesAttempt, subjectId: "another-user" },
+    })).rejects.toThrow(/subject mismatch/i);
+    expect(mockLoadGenerationProtocolEnvelope).not.toHaveBeenCalled();
   });
 });
 
@@ -1837,6 +2012,57 @@ describe("refineMeal — universal function API", () => {
   // ── SUCCESSFUL REFINEMENT ─────────────────────────────────────────────────
 
   describe("successful refinement", () => {
+    test("executes diabetic saved-grocery filtering with the supplied frozen attempt", async () => {
+      mockResolveGLP1GlobalContext.mockResolvedValueOnce({
+        isActive: false,
+        resolvedTargets: null,
+      });
+      const attempt = {
+        subjectId: "user-abc",
+        context: {
+          latestGlucose: { state: "high-risk" },
+        },
+        snapshot: {
+          generatedBglMgdl: 250,
+          glucoseState: "HIGH_RISK",
+          protocolTypeLabel: "Glucose Balance Protocol",
+        },
+      } as any;
+      const attemptEnvelope = makeEnvelope({
+        userId: "user-abc",
+        hasDiabetes: true,
+        diabeticGlucoseState: "HIGH_RISK",
+      });
+      mockLoadGenerationProtocolEnvelope.mockResolvedValue(attemptEnvelope);
+      mockDbRows.push({
+        id: "saved-grocery-1",
+        productName: "Whole grain crackers",
+        productMeta: { ingredients: ["whole grain"] },
+      });
+      mockCompliantItems = [{ id: "saved-grocery-1", productName: "Whole grain crackers" }];
+
+      const result = await refineMeal({
+        ...REFINE_BASE_REQUEST,
+        diabetesAttempt: attempt,
+      });
+
+      expect(result.updatedMeal).toBeDefined();
+      expect(mockLoadGenerationProtocolEnvelope).toHaveBeenCalledWith(
+        "user-abc",
+        attempt,
+        undefined,
+      );
+      const { filterSavedGroceriesForCompliance } = jest.requireMock("../services/savedGroceryCompliance");
+      expect(filterSavedGroceriesForCompliance).toHaveBeenCalledWith(
+        expect.any(Array),
+        attemptEnvelope,
+        expect.objectContaining({
+          isDiabetic: true,
+          diabeticCarbCeiling: 14,
+        }),
+      );
+    });
+
     test("returns updatedMeal, changesSummary, and protocolNote", async () => {
       mockResolveGLP1GlobalContext.mockResolvedValueOnce({
         isActive: false,

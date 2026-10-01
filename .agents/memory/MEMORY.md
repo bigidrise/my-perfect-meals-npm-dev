@@ -132,3 +132,4 @@
 - [Contextual food reasoning limits](contextual-food-reasoning-limits.md) — model food-source labels can vary even for simple recipes; anchor nonmateriality in bounded role and quantity evidence.
 - [Final Create a Dish choices](final-create-dish-choices.md) — aim for three distinct, fully verified recipes; never count pre-validation candidates or pad with unverified food.
 - [Product evidence authority](product-evidence-authority.md) — no condition name or evidence template creates a clinical product rule; unknown thresholds and catalog freshness stay unresolved.
+- [Diabetic generation provenance](diabetic-generation-provenance.md) — freeze authorized operation evidence; preserve original history and never backfill generation glucose.

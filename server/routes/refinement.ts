@@ -36,6 +36,13 @@ import { lockedDays } from "../../shared/biometricsSchema";
 import { getWeekBoard, upsertWeekBoard, conditionalUpdateWeekBoard } from "../data/weekBoardsRepo";
 import { resolveSlotContext } from "../services/slotContextResolver";
 import { getMealRefinementEngine, MealRefinementRetryableError, refineMeal } from "../services/mealRefinementEngine";
+import {
+  loadGenerationProtocolEnvelope,
+} from "../services/protocolEnvelope";
+import {
+  resolveDiabetesGenerationAttempt,
+} from "../services/diabetesGenerationSnapshot";
+import { authorizeRefinementSubject } from "../services/refinementSubjectAuthorization";
 import { encodeToken, decodeToken, expireInMinutes } from "../lib/refinementToken";
 import { findMealInSlot, replaceMealInBoard } from "./refinement-helpers";
 import type {
@@ -62,14 +69,20 @@ const PreviewBodySchema = z.object({
   slotContext:     SlotContextSchema,
   componentTarget: z.enum(["protein", "starch", "vegetable", "sauce", "side"]),
   userInstruction: z.string().min(1).max(500),
+  proClientId:     z.string().min(1).max(128).optional(),
+  builderType:     z.string().max(80).optional(),
 });
 
 const ConfirmBodySchema = z.object({
   confirmToken: z.string().min(1),
+  proClientId: z.string().min(1).max(128).optional(),
+  builderType: z.string().max(80).optional(),
 });
 
 const RestoreBodySchema = z.object({
   restoreToken: z.string().min(1),
+  proClientId: z.string().min(1).max(128).optional(),
+  builderType: z.string().max(80).optional(),
 });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -92,6 +105,49 @@ function computeMacroDiff(
     carbs:    toNum(refined, "carbs")    - toNum(original, "carbs"),
     fat:      toNum(refined, "fat")      - toNum(original, "fat"),
   };
+}
+
+async function authorizeTokenSubject(
+  req: any,
+  payload: ConfirmTokenPayload | RestoreTokenPayload,
+  authenticatedActorId: string,
+  res: any,
+): Promise<{ subjectUserId: string; builderType: string } | null> {
+  const actorUserId = payload.actorUserId ?? payload.userId;
+  if (actorUserId !== authenticatedActorId || payload.userId !== authenticatedActorId) {
+    res.status(403).json({ error: "Token user does not match authenticated user." });
+    return null;
+  }
+
+  const requestedSubjectId = payload.subjectUserId ?? authenticatedActorId;
+  const subjectUserId = await authorizeRefinementSubject(
+    authenticatedActorId,
+    req.authUser?.professionalRole,
+    requestedSubjectId === authenticatedActorId ? undefined : requestedSubjectId,
+    res,
+  );
+  if (!subjectUserId) return null;
+  return { subjectUserId, builderType: payload.builderType ?? "" };
+}
+
+function assertTokenScope(
+  payload: ConfirmTokenPayload | RestoreTokenPayload,
+  scope: { proClientId?: string; builderType?: string },
+  res: any,
+): boolean {
+  const signedSubjectId = payload.subjectUserId ?? payload.userId;
+  const signedBuilderType = payload.builderType ?? "";
+  if (
+    (scope.proClientId !== undefined && scope.proClientId !== signedSubjectId) ||
+    (scope.builderType !== undefined && scope.builderType !== signedBuilderType)
+  ) {
+    res.status(403).json({
+      error: "The requested patient or builder does not match this refinement token.",
+      code: "TOKEN_SCOPE_MISMATCH",
+    });
+    return false;
+  }
+  return true;
 }
 
 // findMealInSlot and replaceMealInBoard are imported from ./refinement-helpers
@@ -125,10 +181,18 @@ router.post("/preview", async (req, res) => {
     if (!parsed.success) {
       return res.status(400).json({ error: "Invalid request", details: parsed.error.flatten() });
     }
-    const { slotContext, componentTarget, userInstruction } = parsed.data;
+    const { slotContext, componentTarget, userInstruction, proClientId } = parsed.data;
+    const builderType = parsed.data.builderType ?? "";
+    const subjectUserId = await authorizeRefinementSubject(
+      userId,
+      (req as any).authUser?.professionalRole,
+      proClientId,
+      res,
+    );
+    if (!subjectUserId) return;
 
     // ── 0. Locked-day enforcement (server-side) ─────────────────────────────
-    if (await assertDayNotLocked(userId, slotContext.dayISO, res)) return;
+    if (await assertDayNotLocked(subjectUserId, slotContext.dayISO, res)) return;
 
     // ── 1. Resolve slot — loads board, verifies meal exists, GLP-1 fail-closed ──
     // Explicitly construct SlotContext so TypeScript can verify all required
@@ -141,8 +205,23 @@ router.post("/preview", async (req, res) => {
       });
     }
     const typedSlotContext: SlotContext = { weekStartISO, dayISO, slot, mealId };
-    const resolved = await resolveSlotContext(userId, typedSlotContext);
+    const resolved = await resolveSlotContext(subjectUserId, typedSlotContext, builderType);
     const { meal: originalMeal, glp1Targets, glp1Block, mealType, dateISO, boardVersion } = resolved;
+
+    // The requested slot is resolved from the authenticated user's own board.
+    // Use its server-derived protocol eligibility (never client-supplied meal
+    // metadata) before resolving numeric glucose provenance.
+    const eligibilityEnvelope = await loadGenerationProtocolEnvelope(subjectUserId, undefined, {
+      skipDiabetesGlucose: true,
+    });
+    const diabetesAttempt = eligibilityEnvelope.hasDiabetes
+      ? await resolveDiabetesGenerationAttempt(subjectUserId)
+      : null;
+    if (diabetesAttempt && diabetesAttempt.subjectId !== subjectUserId) {
+      return res.status(503).json({
+        error: "Could not verify your diabetic protocol. Please preview the swap again.",
+      });
+    }
 
     // Extract existing meal fields for the engine
     const existingMacros = (originalMeal.nutrition ?? originalMeal.macros ?? {}) as Record<string, unknown>;
@@ -156,7 +235,7 @@ router.post("/preview", async (req, res) => {
     const engine = getMealRefinementEngine();
     const result = await engine.refine({
       changeType:      "replace_component",
-      userId,
+      userId: subjectUserId,
       existingMeal: {
         title:       String(originalMeal.title ?? originalMeal.name ?? ""),
         macros:      existingMacros,
@@ -167,7 +246,9 @@ router.post("/preview", async (req, res) => {
       mealType,
       glp1Targets,
       glp1Block,
-      preferredLanguage: (req as any).authUser?.preferredLanguage,
+      preferredLanguage: eligibilityEnvelope.preferredLanguage ??
+        (req as any).authUser?.preferredLanguage,
+      diabetesAttempt,
     });
 
     const updatedMeal = (result as any).updatedMeal as Record<string, unknown>;
@@ -197,6 +278,10 @@ router.post("/preview", async (req, res) => {
       id:    newMealId,             // new ID so original is distinguishable
       title: String(updatedMeal.title ?? originalMeal.title ?? originalMeal.name ?? ""),
       name:  String(updatedMeal.title ?? originalMeal.name ?? ""),
+      // A confirmed swap is new food content, not the historical meal. The
+      // signed preview token carries this server-minted provenance through
+      // confirm even if glucose readings change in the meantime.
+      diabeticMemory: diabetesAttempt?.snapshot,
     };
 
     // ── 5. Sign confirm token (10 min) ──────────────────────────────────────
@@ -206,6 +291,9 @@ router.post("/preview", async (req, res) => {
       type:           "refinement_confirm",
       exp:            expireInMinutes(10),
       userId,
+      actorUserId:    userId,
+      subjectUserId,
+      builderType,
       weekStartISO:   slotContext.weekStartISO,
       dayISO:         dateISO,
       slot:           slotContext.slot,
@@ -273,19 +361,26 @@ router.post("/confirm", async (req, res) => {
     if (payload.type !== "refinement_confirm") {
       return res.status(400).json({ error: "Wrong token type — expected a confirm token." });
     }
+    if (!assertTokenScope(payload, parsed.data, res)) return;
     if (payload.userId !== userId) {
       return res.status(403).json({ error: "Token user does not match authenticated user." });
     }
 
+    const subject = await authorizeTokenSubject(req, payload, userId, res);
+    if (!subject) return;
+    const {
+      subjectUserId,
+      builderType,
+    } = subject;
     const { weekStartISO, dayISO, slot, originalMealId, newMealId, boardVersion, refinedMeal } = payload;
 
     // ── 1b. Locked-day enforcement on mutation ───────────────────────────────
     // Re-checked here so a token minted while the day was unlocked cannot
     // mutate a board that was subsequently locked in another tab or session.
-    if (await assertDayNotLocked(userId, dayISO, res)) return;
+    if (await assertDayNotLocked(subjectUserId, dayISO, res)) return;
 
     // ── 2. Load board ───────────────────────────────────────────────────────
-    const board = await getWeekBoard(userId, weekStartISO, "");
+    const board = await getWeekBoard(subjectUserId, weekStartISO, builderType);
     if (!board) {
       return res.status(404).json({ error: "Weekly board not found." });
     }
@@ -305,7 +400,9 @@ router.post("/confirm", async (req, res) => {
     // ── 5. Save board with version CAS (concurrent-edit protection) ─────────
     // If another edit happened between preview and confirm, the board version
     // will have advanced and this update will find 0 rows → 409.
-    const { updated } = await conditionalUpdateWeekBoard(userId, weekStartISO, updatedBoard, boardVersion, "");
+    const { updated } = await conditionalUpdateWeekBoard(
+      subjectUserId, weekStartISO, updatedBoard, boardVersion, builderType,
+    );
     if (!updated) {
       return res.status(409).json({
         error: "The board was updated between preview and confirm. Please preview again.",
@@ -317,6 +414,9 @@ router.post("/confirm", async (req, res) => {
       type:          "refinement_restore",
       exp:           expireInMinutes(60),
       userId,
+      actorUserId:   userId,
+      subjectUserId,
+      builderType,
       weekStartISO,
       dayISO,
       slot,
@@ -369,19 +469,23 @@ router.post("/restore", async (req, res) => {
     if (payload.type !== "refinement_restore") {
       return res.status(400).json({ error: "Wrong token type — expected a restore token." });
     }
+    if (!assertTokenScope(payload, parsed.data, res)) return;
     if (payload.userId !== userId) {
       return res.status(403).json({ error: "Token user does not match authenticated user." });
     }
 
+    const subject = await authorizeTokenSubject(req, payload, userId, res);
+    if (!subject) return;
+    const { subjectUserId, builderType } = subject;
     const { weekStartISO, dayISO, slot, newMealId, originalMeal } = payload;
 
     // ── 1b. Locked-day enforcement on mutation ───────────────────────────────
     // Re-checked here so a restore token minted before a day was locked cannot
     // revert a board that the user subsequently locked.
-    if (await assertDayNotLocked(userId, dayISO, res)) return;
+    if (await assertDayNotLocked(subjectUserId, dayISO, res)) return;
 
     // ── 2. Load board + capture version for CAS ─────────────────────────────
-    const board = await getWeekBoard(userId, weekStartISO, "");
+    const board = await getWeekBoard(subjectUserId, weekStartISO, builderType);
     if (!board) {
       return res.status(404).json({ error: "Weekly board not found." });
     }
@@ -401,7 +505,9 @@ router.post("/restore", async (req, res) => {
     // ── 5. Conditional update against boardVersion ───────────────────────────
     // If a concurrent edit bumped the board version, return 409 so the client
     // can reload the board and decide whether to retry the restore.
-    const { updated } = await conditionalUpdateWeekBoard(userId, weekStartISO, updatedBoard, boardVersion, "");
+    const { updated } = await conditionalUpdateWeekBoard(
+      subjectUserId, weekStartISO, updatedBoard, boardVersion, builderType,
+    );
     if (!updated) {
       return res.status(409).json({
         error: "The board was updated concurrently. Please reload the board and try undoing again.",

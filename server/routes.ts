@@ -1682,6 +1682,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }
 
+      // Numeric glucose provenance is created only for the personal diabetic
+      // builder intent, after effectiveUserId has been bound to the verified
+      // session or its authorized ProCare patient. Household food-context
+      // requests deliberately receive no actor glucose snapshot.
+      const diabeticGenerationTypes = new Set(["create-with-chef", "premade", "snack-creator"]);
+      let diabetesAttempt: import("./services/diabetesGenerationSnapshot").DiabetesGenerationAttempt | undefined;
+      if (
+        !householdSubjectId &&
+        diabeticGenerationTypes.has(type) &&
+        effectiveUserId
+      ) {
+        try {
+          const { loadUserProtocolEnvelope } = await import("./services/protocolEnvelope");
+          const diabetesAuthorization = await loadUserProtocolEnvelope(
+            effectiveUserId,
+            undefined,
+            { personalSubject: true },
+          );
+          if (effectiveDietType === "diabetic" && !diabetesAuthorization?.hasDiabetes) {
+            return res.status(403).json({
+              success: false,
+              error: "Diabetic meal generation is available only for a server-confirmed diabetic profile.",
+              source: "diabetes_authorization_error",
+            });
+          }
+          if (diabetesAuthorization?.hasDiabetes) {
+            const { resolveDiabetesGenerationAttempt } = await import("./services/diabetesGenerationSnapshot");
+            diabetesAttempt = await resolveDiabetesGenerationAttempt(effectiveUserId);
+          }
+        } catch (error) {
+          console.error("[DiabeticGeneration] Failed to resolve the authorized glucose snapshot.");
+          return res.status(503).json({
+            success: false,
+            error: "Your current diabetic meal context could not be verified. No meal was generated; please retry.",
+            source: "diabetes_context_error",
+          });
+        }
+      }
+      if (effectiveDietType === "diabetic" && !diabetesAttempt && !householdSubjectId) {
+        return res.status(403).json({
+          success: false,
+          error: "Diabetic meal generation is available only for a server-confirmed diabetic profile.",
+          source: "diabetes_authorization_error",
+        });
+      }
+
+      let diabetesProtocolEnvelope: import("./services/protocolEnvelope").UserProtocolEnvelope | undefined;
+      if (diabetesAttempt) {
+        const { loadUserProtocolEnvelope } = await import("./services/protocolEnvelope");
+        diabetesProtocolEnvelope = await loadUserProtocolEnvelope(
+          effectiveUserId!,
+          undefined,
+          { diabetesAttempt, personalSubject: true },
+        ) ?? undefined;
+        if (!diabetesProtocolEnvelope?.hasDiabetes) {
+          return res.status(503).json({
+            success: false,
+            error: "Your diabetic meal protocol could not be resolved consistently. No meal was generated; please retry.",
+            source: "diabetes_context_error",
+          });
+        }
+      }
+
       let householdProtocolEnvelope: import("./services/protocolEnvelope").UserProtocolEnvelope | undefined;
       if (householdSubjectId) {
         const { loadUserProtocolEnvelope } = await import("./services/protocolEnvelope");
@@ -1707,7 +1770,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mealType,
         input: effectiveInput,
         userId: householdSubjectId ? undefined : effectiveUserId,
-        protocolEnvelope: householdProtocolEnvelope,
+        protocolEnvelope: householdProtocolEnvelope ?? diabetesProtocolEnvelope,
+        diabetesAttempt,
+        // Only this authorized route assigns nutrition-subject scope. Household
+        // generation is deliberately detached from the account owner's ID.
+        diabetesSubjectScope: householdSubjectId ? ("household" as const) : ("personal" as const),
         macroTargets,
         count,
         dietType: effectiveDietType,
@@ -1913,8 +1980,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { validateMealForDiet } = await import("./services/guardrails/index");
         const { validateClinicalMacros } = await import("./services/clinicalMacroGate");
         const { getRequestedDishExemptTerms } = await import("./services/allergyGuardrails");
-        const finalProtocolEnvelope = householdProtocolEnvelope ??
-          (await loadUserProtocolEnvelope(effectiveUserId).catch(() => null)) ?? buildGuestEnvelope();
+        const finalProtocolEnvelope = householdProtocolEnvelope ?? diabetesProtocolEnvelope ??
+          (await loadUserProtocolEnvelope(
+            effectiveUserId,
+            undefined,
+            diabetesAttempt
+              ? { diabetesAttempt, personalSubject: !householdSubjectId }
+              : householdSubjectId
+                ? undefined
+                : { personalSubject: true },
+          ).catch(() => null)) ?? buildGuestEnvelope();
         const requestedDish =
           typeof effectiveInput === "string" && effectiveInput.trim().length <= 120
             ? effectiveInput.trim()
@@ -2083,8 +2158,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // NOTE: pipeline returns BOTH result.meal and result.meals[0] — patch both so all
       // consumers (hook reads meals[0], other readers use meal) get the classification.
       if (result.success && (result.meal || result.meals?.length)) {
-        const envelope = householdProtocolEnvelope ?? (effectiveUserId
-          ? (await loadUserProtocolEnvelope(effectiveUserId).catch(() => null)) ?? buildGuestEnvelope()
+        const envelope = householdProtocolEnvelope ?? diabetesProtocolEnvelope ?? (effectiveUserId
+          ? (await loadUserProtocolEnvelope(
+              effectiveUserId,
+              undefined,
+              diabetesAttempt ? { diabetesAttempt } : undefined,
+            ).catch(() => null)) ?? buildGuestEnvelope()
           : buildGuestEnvelope());
         if (result.meal) {
           const { complianceSection, dietClassification } = buildMealComplianceBundle(result.meal, envelope);
@@ -6185,10 +6264,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const profileProtocolEnvelope = userId
         ? (await loadUserProtocolEnvelope(userId)) ?? buildGuestEnvelope()
         : buildGuestEnvelope();
+      let diabetesAttempt: import("./services/diabetesGenerationSnapshot").DiabetesGenerationAttempt | undefined;
+      let attemptProtocolEnvelope = profileProtocolEnvelope;
+      if (profileProtocolEnvelope.hasDiabetes && userId) {
+        try {
+          const { resolveDiabetesGenerationAttempt } = await import("./services/diabetesGenerationSnapshot");
+          diabetesAttempt = await resolveDiabetesGenerationAttempt(userId);
+          attemptProtocolEnvelope = await loadUserProtocolEnvelope(
+            userId,
+            undefined,
+            { diabetesAttempt },
+          ) ?? profileProtocolEnvelope;
+        } catch {
+          return res.status(503).json({
+            success: false,
+            code: "DIABETES_CONTEXT_UNAVAILABLE",
+            error: "Your diabetic generation context could not be verified. No meal options were generated; please retry.",
+          });
+        }
+      }
       // A delegated choice replaces only the primary dietary preference for
       // this invocation. Never change the saved envelope, allergies, medical
       // limits, avoidances, or the manual Creator's existing behavior.
-      const protocolEnvelope = withOneTouchDiet(profileProtocolEnvelope, delegatedDiet);
+      const protocolEnvelope = withOneTouchDiet(attemptProtocolEnvelope, delegatedDiet);
 
       // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
       let dietAdapted = false;
@@ -6543,6 +6641,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         _overriddenDietaryIdentities,
         humanFoodCreator === "create_a_dish" ? rawCravingInput : undefined,
         createDishContract,
+        undefined,
+        diabetesAttempt,
       )) ?? [];
 
       if (humanFoodCreator === "create_a_dish") {
@@ -6581,22 +6681,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // are passed through regardless of carb count.
       // No glucose reading: falls back to the standard 35g diabetic cap.
       // Non-diabetic users: gate is bypassed entirely.
+      const _attemptBglState = diabetesAttempt
+        ? diabetesAttempt.snapshot.bglBucket === "low" ? "low"
+          : diabetesAttempt.snapshot.bglBucket === "elevated" ? "elevated"
+            : diabetesAttempt.snapshot.bglBucket === "high" ? "high-risk"
+              : diabetesAttempt.snapshot.bglBucket === "unavailable" ? undefined
+                : "in-range"
+        : protocolEnvelope.diabeticGlucoseState;
+      const _bglCarbCeiling =
+        _attemptBglState === "high-risk" ? 15
+        : _attemptBglState === "elevated" ? 25
+        : _attemptBglState === "low" ? 45
+        : 35;
+      const _bglCarbTolerance = 10;
+      const passesDiabeticGlucoseGate = (meal: any): boolean => {
+        if (!diabetesAttempt) return true;
+        if (_attemptBglState === "low" || _attemptBglState === "low-normal") return true;
+        const carbs = meal.carbs ?? meal.nutrition?.carbs ?? null;
+        return carbs != null && Number(carbs) <= _bglCarbCeiling + _bglCarbTolerance;
+      };
       let _bglGatedOptions = [...mealOptions];
       if (protocolEnvelope.hasDiabetes && mealOptions.length > 0) {
-        const _bglState = protocolEnvelope.diabeticGlucoseState;
-        const _bglCarbCeiling =
-          _bglState === "high-risk" ? 15
-          : _bglState === "elevated" ? 25
-          : _bglState === "low"      ? 45  // hypoglycemia — needs carbs, ceiling relaxed
-          : 35;                            // low-normal, in-range, or no reading: 35g cap
-        const BGL_CARB_TOLERANCE = 10;    // match diabeticValidator rounding tolerance
+        const _bglState = _attemptBglState;
         _bglGatedOptions = mealOptions.filter((m: any) => {
           const carbs = m.carbs ?? m.nutrition?.carbs ?? null;
           // Low/low-normal: don't filter down — pass all
           if (_bglState === "low" || _bglState === "low-normal") return true;
           // Unknown carbs at elevated/high-risk: fail-closed
           if (carbs == null) return false;
-          return Number(carbs) <= _bglCarbCeiling + BGL_CARB_TOLERANCE;
+          return Number(carbs) <= _bglCarbCeiling + _bglCarbTolerance;
         });
         if (_bglGatedOptions.length < mealOptions.length) {
           console.warn(
@@ -6616,7 +6729,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           mealOptions.forEach((candidate: any) =>
             recordRejectedHumanFoodCandidate(humanFoodExecutionState, candidate)
           );
-          const _bglEffectiveCeiling = _bglCarbCeiling + BGL_CARB_TOLERANCE;
+          const _bglEffectiveCeiling = _bglCarbCeiling + _bglCarbTolerance;
           console.warn(
             `🩸 [BGL Gate/CravingCreator] All options exceeded ${_bglCarbCeiling}g ceiling — ` +
             `attempting one targeted low-carb reformulation (≤${_bglCarbCeiling}g per serving)`,
@@ -6645,6 +6758,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               _overriddenDietaryIdentities,
               undefined, // This retry runs only for Craving/Sushi, not Create a Dish.
               createDishContract,
+              undefined,
+              diabetesAttempt,
             );
             if (_bglRetryOptions && _bglRetryOptions.length > 0) {
               // Revalidate against the SAME ceiling — the guardrail is never bypassed.
@@ -6887,6 +7002,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 _overriddenDietaryIdentities,
                 undefined, // Allergen retry excludes Create a Dish above.
                 createDishContract,
+                undefined,
+                diabetesAttempt,
               );
               if (retryOptions && retryOptions.length > 0) {
                 const retrySafe = retryOptions.filter(meal => {
@@ -7109,6 +7226,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             _overriddenDietaryIdentities,
             undefined, // The final repair callback is only for Craving/Sushi.
             createDishContract,
+            undefined,
+            diabetesAttempt,
           );
           const protocolSafeRepairs = filterMealsByProtocol(repairOptions ?? [], _filterEnvelope, {
             generatorName: "craving_creator_final_repair",
@@ -7250,6 +7369,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               _overriddenDietaryIdentities,
               rawCravingInput,
               createDishContract,
+              undefined,
+              diabetesAttempt,
             );
             const protocolSafeIntentRepairs = filterMealsByProtocol(
               intentRepairOptions ?? [],
@@ -7441,11 +7562,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const finalMeaning = createDishMeaningV1;
         const passesBglGate = (meal: any): boolean => {
           if (!protocolEnvelope.hasDiabetes) return true;
-          const state = protocolEnvelope.diabeticGlucoseState;
-          if (state === "low" || state === "low-normal") return true;
-          const carbs = meal.carbs ?? meal.nutrition?.carbs;
-          const ceiling = state === "high-risk" ? 15 : state === "elevated" ? 25 : 35;
-          return carbs != null && Number(carbs) <= ceiling + 10;
+          return passesDiabeticGlucoseGate(meal);
         };
         const releaseReplacementBatch = async (candidates: any[]): Promise<any[]> => {
           // These are the same ordered gates the first generation traverses:
@@ -7522,6 +7639,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               rawCravingInput,
               finalContract,
               signal,
+              diabetesAttempt,
             );
             return replacements ?? [];
           },
@@ -7606,6 +7724,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // checked by canonical final validation with the requested serving count,
       // so a second independent food validator here would reinterpret totals.
       // ─────────────────────────────────────────────────────────────────────────────────────
+      const glucoseValidatedOptions = diabetesAttempt
+        ? imagedOptions.filter(passesDiabeticGlucoseGate)
+        : imagedOptions;
+      if (diabetesAttempt && glucoseValidatedOptions.length === 0) {
+        return res.status(422).json({
+          error: "BGL_CLINICAL_BLOCK",
+          reasonCode: "bgl_carb_ceiling",
+          clinicalBlock: true,
+          title: "Your blood glucose needs a different version",
+          message: `Your current diabetic protocol requires meals with ${_bglCarbCeiling}g of carbs or less. We couldn't produce a final option that met this requirement. Please try another craving.`,
+          carbCeiling: _bglCarbCeiling,
+        });
+      }
+      const responseOptions = diabetesAttempt
+        ? glucoseValidatedOptions.map((meal: any) => ({
+            ...meal,
+            diabeticMemory: diabetesAttempt!.snapshot,
+          }))
+        : glucoseValidatedOptions;
 
       console.log("✅ CRAVING ROUTE COMPLETE", Date.now(), `(${Date.now() - startTime}ms)`);
       console.log(`🍽️ Variety engine: ${imagedOptions.map((m: any) => m.name).join(" | ")}`);
@@ -7621,7 +7758,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       recordGeneration('/api/meals/craving-creator', 'ai' as any, Date.now() - startTime);
 
       res.json({
-        meals: imagedOptions,
+        meals: responseOptions,
         generationSource: 'ai',
         outcome: {
           type: dietAdapted ? "REQUEST_ADAPTED" : "REQUEST_FULFILLED",
@@ -7629,8 +7766,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           explanation: dietAdapted ? dietNotice : null,
           requestedDishPreserved:
             enforceRequestedDishIdentity &&
-            imagedOptions.length > 0 &&
-            imagedOptions.every((meal: any) =>
+            responseOptions.length > 0 &&
+            responseOptions.every((meal: any) =>
               _identityResults.some(
                 ({ mealName, result }) =>
                   mealName === meal.name && result.passed,

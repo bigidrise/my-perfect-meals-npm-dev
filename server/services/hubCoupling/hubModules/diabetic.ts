@@ -12,6 +12,7 @@ import { diabetesProfile, Guardrails, DEFAULT_GUARDRAILS } from '../../../../sha
 import { userGlycemicSettings } from '../../../../shared/schema';
 import { eq } from 'drizzle-orm';
 import { resolveUserGlucoseState } from '../../glucoseStateResolver';
+import { assertDiabetesAttemptSubject, type DiabetesGenerationAttempt } from '../../diabetesGenerationSnapshot';
 import {
   classifyGlycemicProduce,
   HYPOGLYCEMIA_PRODUCE_OVERRIDES,
@@ -109,8 +110,9 @@ function buildGlucoseGuidance(data: DiabeticContextData): string {
 export const diabeticHubModule: HubModule = {
   hubType: 'diabetic',
 
-  async getContext(userId: string): Promise<HubContext | null> {
-    const data = await fetchDiabeticContext(userId);
+  async getContext(userId: string, diabetesAttempt?: DiabetesGenerationAttempt): Promise<HubContext | null> {
+    if (diabetesAttempt) assertDiabetesAttemptSubject(diabetesAttempt, userId);
+    const data = diabetesAttempt?.context ?? await fetchDiabeticContext(userId);
     if (!data.hasDiabetes) return null;
     
     return {
@@ -120,8 +122,11 @@ export const diabeticHubModule: HubModule = {
     };
   },
 
-  async getGuardrails(userId: string): Promise<HubGuardrails> {
-    const [profile, glycemicRow, glucose] = await Promise.all([
+  async getGuardrails(userId: string, diabetesAttempt?: DiabetesGenerationAttempt): Promise<HubGuardrails> {
+    if (diabetesAttempt) assertDiabetesAttemptSubject(diabetesAttempt, userId);
+    const [profile, glycemicRow, glucose] = diabetesAttempt
+      ? [diabetesAttempt.profile, diabetesAttempt.settings, diabetesAttempt.glucose] as const
+      : await Promise.all([
       db.query.diabetesProfile.findFirst({
         where: (p, { eq }) => eq(p.userId, userId)
       }),

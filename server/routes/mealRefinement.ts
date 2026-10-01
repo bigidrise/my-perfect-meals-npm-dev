@@ -31,6 +31,8 @@ import {
   scanGeneratedOutput,
   buildGuestEnvelope,
 } from "../services/protocolEnvelope";
+import { resolveDiabetesGenerationAttempt } from "../services/diabetesGenerationSnapshot";
+import type { DiabetesGenerationAttempt } from "../services/diabetesGenerationSnapshot";
 import {
   resolveGLP1GlobalContext,
   buildGLP1RecommendationBlock,
@@ -40,6 +42,7 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { getAuthUserId } from "../utils/getAuthUserId";
+import { authorizeRefinementSubject } from "../services/refinementSubjectAuthorization";
 
 const router = Router();
 
@@ -117,6 +120,19 @@ function buildScanMeal(refined: any) {
     })),
     instructions: refined.instructions,
   };
+}
+
+/** Tighten the ordinary per-meal carb ceiling using the attempt's frozen BGL state. */
+export function getSnapshotBoundDiabeticCarbCeiling(
+  defaultCeiling: number,
+  attempt: DiabetesGenerationAttempt,
+): number {
+  const stateCeiling =
+    attempt.context.latestGlucose?.state === "low" ? 45 :
+    attempt.context.latestGlucose?.state === "in-range" ? 35 :
+    attempt.context.latestGlucose?.state === "high-risk" ? 14 :
+    null;
+  return stateCeiling === null ? defaultCeiling : Math.min(defaultCeiling, stateCeiling);
 }
 
 interface ValidationOutcome {
@@ -239,7 +255,7 @@ function validateRefined(
 
 router.post("/refine", requireAuth, requireActiveAccess, async (req: any, res: any) => {
   try {
-    const { meal, request: refinementRequest, builderType } = req.body;
+    const { meal, request: refinementRequest, builderType, proClientId } = req.body;
 
     if (!meal || typeof meal !== "object") {
       return res.status(400).json({ error: "meal is required" });
@@ -252,21 +268,51 @@ router.post("/refine", requireAuth, requireActiveAccess, async (req: any, res: a
     if (!userId) {
       return res.status(401).json({ error: "Not authenticated" });
     }
+    if (proClientId !== undefined &&
+        (typeof proClientId !== "string" || proClientId.length === 0 || proClientId.length > 128)) {
+      return res.status(400).json({ error: "Invalid ProCare patient ID." });
+    }
+    const subjectUserId = await authorizeRefinementSubject(
+      userId,
+      (req as any).authUser?.professionalRole,
+      proClientId,
+      res,
+    );
+    if (!subjectUserId) return;
 
     // ── 1. Protocol envelope — FAIL-CLOSED ─────────────────────────────────
     // A failed or null load must NEVER silently fall back to the guest
     // envelope — that would bypass the user's allergies and medical restrictions.
     let envelope: ReturnType<typeof buildGuestEnvelope>;
+    let diabetesAttempt: DiabetesGenerationAttempt | null = null;
     let protocolContext = "";
 
     try {
-      const loaded = await loadUserProtocolEnvelope(userId);
-      if (!loaded) {
+      const initialEnvelope = await loadUserProtocolEnvelope(subjectUserId, undefined, {
+        skipDiabetesGlucose: true,
+      });
+      if (!initialEnvelope) {
         return res.status(503).json({
           error: "Could not load your dietary profile. Please try again in a moment.",
         });
       }
-      envelope = loaded;
+      envelope = initialEnvelope;
+
+      // Resolve glucose only for a server-verified diabetic subject. The first
+      // envelope is used only to establish eligibility; the second one is the
+      // sole envelope used for generation and validation and is bound to the
+      // immutable snapshot returned with a successful refinement.
+      if (initialEnvelope.hasDiabetes) {
+        diabetesAttempt = await resolveDiabetesGenerationAttempt(subjectUserId);
+        const attemptEnvelope = await loadUserProtocolEnvelope(subjectUserId, undefined, { diabetesAttempt });
+        if (!attemptEnvelope?.hasDiabetes) {
+          return res.status(503).json({
+            error: "Could not verify your diabetic protocol. Please try again in a moment.",
+          });
+        }
+        envelope = attemptEnvelope;
+      }
+
       try {
         const enforced = enforceBeforeGenerate(envelope, { generatorName: "meal_refinement" });
         protocolContext = enforced.combined;
@@ -292,7 +338,7 @@ router.post("/refine", requireAuth, requireActiveAccess, async (req: any, res: a
     let glp1Block = "";
 
     const todayISO = new Date().toISOString().slice(0, 10);
-    const glp1Ctx = await resolveGLP1GlobalContext(userId, todayISO).catch(() => null);
+      const glp1Ctx = await resolveGLP1GlobalContext(subjectUserId, todayISO).catch(() => null);
 
     if (glp1Ctx === null) {
       return res.status(503).json({
@@ -320,7 +366,7 @@ router.post("/refine", requireAuth, requireActiveAccess, async (req: any, res: a
         const [row] = await db
           .select({ dailyCarbsTarget: users.dailyCarbsTarget })
           .from(users)
-          .where(eq(users.id, userId))
+          .where(eq(users.id, subjectUserId))
           .limit(1);
         const dailyCarbs = row?.dailyCarbsTarget;
         diabeticCarbCeiling = dailyCarbs && dailyCarbs > 0 ? Math.round(dailyCarbs / 3) : 45;
@@ -328,10 +374,21 @@ router.post("/refine", requireAuth, requireActiveAccess, async (req: any, res: a
         // Non-critical — use the conservative 45 g default
         diabeticCarbCeiling = 45;
       }
+
+      // The prompt and both validation passes now derive their glucose-sensitive
+      // ceiling from the exact snapshot used to construct the prompt.
+      if (diabetesAttempt) {
+        diabeticCarbCeiling = getSnapshotBoundDiabeticCarbCeiling(
+          diabeticCarbCeiling,
+          diabetesAttempt,
+        );
+      }
     }
 
     // ── 4. Build prompt ─────────────────────────────────────────────────────
-    const rawLang = (req as any).authUser?.preferredLanguage || "auto";
+    const rawLang = envelope.preferredLanguage ||
+      (req as any).authUser?.preferredLanguage ||
+      "auto";
     const langInstruction = getLanguageInstruction(rawLang);
     const name = meal.name ?? meal.title ?? "Unknown Meal";
     const description = meal.description ?? "";
@@ -497,13 +554,15 @@ Refine this meal per the request. Return only the JSON object.`;
       dietClassification: meal.dietClassification,
       medicalBadges: meal.medicalBadges,
       appliedProtocol: meal.appliedProtocol,
-      diabeticMemory: meal.diabeticMemory,
       entryType: meal.entryType,
       // Apply refined content
       ...refined,
       // Normalize name/title so MealCard always shows the updated name
       name: refinedName,
       title: refinedName,
+      // This is a new meal decision. Never inherit the old meal's glucose
+      // provenance or accept a stamp supplied by the refinement response.
+      ...(diabetesAttempt ? { diabeticMemory: diabetesAttempt.snapshot } : {}),
       // imageUrl is intentionally omitted — parent decides whether to regenerate
       imageUrl: undefined,
     };

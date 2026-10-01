@@ -120,8 +120,6 @@ import { PillButton } from "@/components/ui/pill-button";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
 import { getBuilderProtocolBadges } from "@/lib/nutritionPersonalization";
 
-import { useGlucoseLogs } from "@/hooks/useDiabetes";
-import { buildDiabeticMemory } from "@/lib/diabeticMemory";
 import { useTranslation } from "react-i18next";
 
 // CHICAGO CALENDAR FIX v1.0: All date utilities now imported from midnight.ts
@@ -173,15 +171,6 @@ export default function DiabeticMenuBuilder() {
 
   // Resolve nutrition ONCE. Presentation components receive it as props.
   const nutritionTargets = useBaselineNutrition(effectiveUserId);
-
-  // Diabetic Meal Memory: fetch latest glucose (own user only; ProCare stamp deferred)
-  const { data: glucoseLogsData } = useGlucoseLogs(proClientId ? undefined : user?.id?.toString(), 1);
-  const diabeticMemoryCtx = useMemo(() => {
-    if (proClientId) return null;
-    const latest = glucoseLogsData?.data?.[0];
-    if (!latest?.valueMgdl) return null;
-    return buildDiabeticMemory(latest.valueMgdl, latest.context ?? "RANDOM");
-  }, [glucoseLogsData, proClientId]);
 
   // Thyroid modifier bridge + lab/specialty condition indicator state.
   // Single labs fetch populates both thyroid bridge and all active protocol indicators.
@@ -825,8 +814,6 @@ export default function DiabeticMenuBuilder() {
       if (!activeDayISO) return;
       if (checkLockedDay()) return;
 
-      // Snapshot the BGL context at birth — never updated by future glucose readings.
-      const bglSnapshot = diabeticMemoryCtx ?? undefined;
       const transformedMeal: Meal = {
         id: `ai-meal-${Date.now()}`,
         name: generatedMeal.name,
@@ -845,7 +832,9 @@ export default function DiabeticMenuBuilder() {
           carbs: generatedMeal.carbs || 0,
           fat: generatedMeal.fat || 0,
         },
-        ...(bglSnapshot ? { diabeticMemory: bglSnapshot } : {}),
+        ...(generatedMeal.diabeticMemory
+          ? { diabeticMemory: generatedMeal.diabeticMemory }
+          : {}),
       };
 
       const newMeals = [transformedMeal];
@@ -1411,8 +1400,10 @@ export default function DiabeticMenuBuilder() {
                             date={activeDayISO}
                             slot={key}
                             meal={meal}
+                            weekStartISO={weekStartISO}
                             showStarchBadge={true}
                             builderType="diabetic"
+                            proClientId={proClientId}
                             coachingLine={t("diabeticBuilder.coachingLine")}
                             diabeticMemoryContext={meal.diabeticMemory ?? undefined}
                             data-wt="wmb-meal-card"
@@ -1468,7 +1459,7 @@ export default function DiabeticMenuBuilder() {
                     </div>
                     <div className="space-y-3">
                       {dayLists.snacks.map((meal: Meal) => (
-                        <MealCard key={meal.id} date={activeDayISO} slot="snacks" meal={meal} showStarchBadge={true} builderType="diabetic"
+                        <MealCard key={meal.id} date={activeDayISO} slot="snacks" meal={meal} showStarchBadge={true} builderType="diabetic" proClientId={proClientId} weekStartISO={weekStartISO}
                                 coachingLine={t("diabeticBuilder.coachingLine")}
                                 diabeticMemoryContext={meal.diabeticMemory ?? undefined}
                           onUpdated={(m) => {
@@ -1519,8 +1510,10 @@ export default function DiabeticMenuBuilder() {
                       date={"board"}
                       slot={key}
                       meal={meal}
+                      weekStartISO={weekStartISO}
                       showStarchBadge={true}
                       builderType="diabetic"
+                      proClientId={proClientId}
                       coachingLine={t("diabeticBuilder.coachingLine")}
                       diabeticMemoryContext={meal.diabeticMemory ?? undefined}
                       onUpdated={(m) => {

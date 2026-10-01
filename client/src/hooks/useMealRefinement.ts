@@ -15,6 +15,7 @@
 
 import { useState, useCallback } from "react";
 import { apiRequest } from "@/lib/apiRequest";
+import { mealRefinementContextPayload } from "@/lib/mealRefinementContext";
 import type {
   SlotContext,
   MealComponent,
@@ -50,8 +51,9 @@ const IDLE_STATE: MealRefinementState = {
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
-export function useMealRefinement() {
+export function useMealRefinement(builderType?: string, proClientId?: string) {
   const [state, setState] = useState<MealRefinementState>(IDLE_STATE);
+  const refinementContext = mealRefinementContextPayload(builderType, proClientId);
 
   /** Request a preview of the component swap. */
   const preview = useCallback(async (
@@ -63,7 +65,7 @@ export function useMealRefinement() {
     try {
       const result: RefinementPreviewResponse = await apiRequest(
         "/api/refinement/preview",
-        { method: "POST", body: JSON.stringify({ slotContext, componentTarget, userInstruction }) },
+        { method: "POST", body: JSON.stringify({ slotContext, componentTarget, userInstruction, ...refinementContext }) },
       );
       setState({
         phase:         "previewed",
@@ -75,7 +77,7 @@ export function useMealRefinement() {
       const msg = err?.message ?? "Preview failed. Please try again.";
       setState(s => ({ ...s, phase: "error", error: msg }));
     }
-  }, []);
+  }, [refinementContext.builderType, refinementContext.proClientId]);
 
   /** Confirm the previewed swap — atomically replaces the board slot. */
   const confirm = useCallback(async (
@@ -86,7 +88,7 @@ export function useMealRefinement() {
     try {
       const result: RefinementConfirmResponse = await apiRequest(
         "/api/refinement/confirm",
-        { method: "POST", body: JSON.stringify({ confirmToken }) },
+        { method: "POST", body: JSON.stringify({ confirmToken, ...refinementContext }) },
       );
       setState(s => ({
         ...s,
@@ -98,7 +100,7 @@ export function useMealRefinement() {
       const msg = err?.message ?? "Confirm failed. Please try again.";
       setState(s => ({ ...s, phase: "error", error: msg }));
     }
-  }, []);
+  }, [refinementContext.builderType, refinementContext.proClientId]);
 
   /** Restore the original meal using the restore token from confirm. */
   const restore = useCallback(async (

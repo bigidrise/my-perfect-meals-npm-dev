@@ -1,3 +1,5 @@
+import type { DiabeticGenerationSnapshot } from "@shared/diabeticGenerationSnapshot";
+
 export type BglBucket = "low" | "in-range" | "elevated" | "high";
 
 export interface DiabeticMemoryStamp {
@@ -9,6 +11,23 @@ export interface DiabeticMemoryStamp {
   recommendedBglRange: string;
   generatedAt: string;
   source: "diabetic-builder";
+}
+
+export type { DiabeticGenerationSnapshot } from "@shared/diabeticGenerationSnapshot";
+
+export type DiabeticMemoryContext =
+  | DiabeticMemoryStamp
+  | DiabeticGenerationSnapshot;
+
+export function projectServerDiabeticMemory(
+  meal: { diabeticMemory?: DiabeticMemoryContext | null } | null | undefined,
+  isDiabeticWorkflow: boolean,
+): { diabeticMemory?: DiabeticMemoryContext } {
+  const memory = meal?.diabeticMemory;
+  if (!memory) return {};
+  if (memory.version === 2) return { diabeticMemory: memory };
+  if (memory.version === 1 && isDiabeticWorkflow) return { diabeticMemory: memory };
+  return {};
 }
 
 export function getBglBucket(bgl: number): BglBucket {
