@@ -5,6 +5,7 @@
  * Files that need the engine-API response shape (protein_g / carbs_g / fat_g)
  * keep their own types in their respective modules.
  */
+import type { DiabeticMemoryContext } from "@/lib/diabeticMemory";
 
 export interface DietClassification {
   kosherCategory?: "meat" | "dairy" | "pareve";
@@ -56,15 +57,7 @@ export type Meal = {
   fibrousCarbs?: number;
   dietClassification?: DietClassification | null;
   builderType?: string;
-  diabeticMemory?: {
-    generatedBglMgdl: number;
-    glucoseContext: string;
-    protocolTypeLabel: string;
-    bglBucket: string;
-    recommendedBglRange: string;
-    generatedAt: string;
-    source: string;
-  };
+  diabeticMemory?: DiabeticMemoryContext;
   appliedProtocol?: {
     track: "competition" | "athletic";
     competitionType?: string;

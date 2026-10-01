@@ -78,6 +78,7 @@ import {
   selectCreateDishById,
   shouldApplyCreateDishResponse,
 } from "@/lib/createDishIdentity";
+import type { DiabeticMemoryContext } from "@/lib/diabeticMemory";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { captureAuthoritativeTextValue, commitTextInputValue } from "@/lib/authoritativeTextInput";
 import {
@@ -149,6 +150,7 @@ interface MealData {
   imageUrl?: string;
   dietaryComplianceVerified?: boolean;
   dietClassification?: import("@/components/MealClassificationPill").DietClassification | null;
+  diabeticMemory?: DiabeticMemoryContext;
 }
 
 // ============================================================

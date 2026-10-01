@@ -28,6 +28,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import MealRefinementSheet from "@/components/MealRefinementSheet";
 import { MealRefinementPanel } from "@/components/MealRefinementPanel";
 import { useTranslation } from "react-i18next";
+import type { DiabeticMemoryContext } from "@/lib/diabeticMemory";
 
 // UUID v4 guard — used to validate savedMealId before hitting the translation endpoint
 import type { BoardMealSlot } from "@/lib/mealSlots";
@@ -135,7 +136,7 @@ function MacroPill({ label, value, suffix = "" }: { label: string; value: number
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export function MealCard({
-  date, slot, meal, onUpdated, showStarchBadge = false, coachingLine, builderType, diabeticMemoryContext,
+  date, slot, meal, onUpdated, showStarchBadge = false, coachingLine, builderType, proClientId, diabeticMemoryContext,
   weekStartISO, onRefined,
 }: {
   date: string; // "board" or "YYYY-MM-DD"
@@ -145,7 +146,8 @@ export function MealCard({
   showStarchBadge?: boolean; // Show starch/fiber classification badge on meal boards
   coachingLine?: string; // Optional coaching confirmation line shown below the meal image
   builderType?: string; // Builder identity override — used by medical builders (e.g. "oncology-support")
-  diabeticMemoryContext?: { generatedBglMgdl: number; glucoseContext: string; protocolTypeLabel: string; bglBucket: string; recommendedBglRange: string; generatedAt: string; source: string; };
+  proClientId?: string;
+  diabeticMemoryContext?: DiabeticMemoryContext;
   /**
    * When present (and `date` is a real YYYY-MM-DD, not "board"), shows the
    * component-swap Refine panel. Identifies the weekly board for this meal.
@@ -155,6 +157,7 @@ export function MealCard({
   onRefined?:   () => void;
 }) {
   const { t } = useTranslation("mealCard");
+  const storedDiabeticMemory = diabeticMemoryContext ?? meal.diabeticMemory;
   const { toast } = useToast();
   const { user } = useAuth();
   const [macrosLogged, setMacrosLogged] = React.useState(false);
@@ -307,7 +310,7 @@ export function MealCard({
             <FavoriteButton
               title={title}
               sourceType={builderType ?? meal.builderType ?? "meal-builder"}
-              mealData={{ ...meal, builderType: builderType ?? meal.builderType, ...(diabeticMemoryContext ? { diabeticMemory: diabeticMemoryContext } : {}) }}
+              mealData={{ ...meal, builderType: builderType ?? meal.builderType, ...(storedDiabeticMemory ? { diabeticMemory: storedDiabeticMemory } : {}) }}
               size={20}
             />
           </div>
@@ -320,12 +323,20 @@ export function MealCard({
             <MealClassificationPill dietClassification={meal.dietClassification} />
             <KosherProTip dietClassification={meal.dietClassification} />
           </div>
-          {diabeticMemoryContext && (
+          {storedDiabeticMemory && (
             <div className="mt-2 rounded-lg bg-lime-950/60 border border-lime-700/40 px-3 py-2 text-xs space-y-0.5">
               <div className="text-lime-400 font-semibold tracking-wide uppercase text-[10px]">{t("diabetesProtocol")}</div>
-              <div className="text-white/80">{t("generatedForBGL")} <span className="text-white font-medium">{diabeticMemoryContext.generatedBglMgdl} mg/dL</span></div>
-              <div className="text-white/60">{diabeticMemoryContext.protocolTypeLabel}</div>
-              <div className="text-white/50 text-[10px]">{t("relevantRange")} {diabeticMemoryContext.recommendedBglRange}</div>
+              {storedDiabeticMemory.generatedBglMgdl !== null ? (
+                <div className="text-white/80">{t("generatedForBGL")} <span className="text-white font-medium">{storedDiabeticMemory.generatedBglMgdl} mg/dL</span></div>
+              ) : (
+                <div className="text-white/80">{storedDiabeticMemory.version === 2 && storedDiabeticMemory.glucoseState === "STALE"
+                  ? "No current glucose reading was used"
+                  : "No glucose reading was available"}</div>
+              )}
+              <div className="text-white/60">{storedDiabeticMemory.protocolTypeLabel}</div>
+              {storedDiabeticMemory.recommendedBglRange && (
+                <div className="text-white/50 text-[10px]">{t("relevantRange")} {storedDiabeticMemory.recommendedBglRange}</div>
+              )}
             </div>
           )}
 
@@ -599,6 +610,7 @@ export function MealCard({
       onOpenChange={setRefineOpen}
       meal={meal}
       builderType={builderType ?? meal.builderType}
+      proClientId={proClientId}
       onRefined={(refined) => {
         if (!preRefineMeal) setPreRefineMeal({ ...meal });
         // Normalize name → title so the card header (which renders title || name) updates
@@ -619,6 +631,8 @@ export function MealCard({
         dayISO={date}
         slot={slot as "breakfast" | "lunch" | "dinner" | "snacks"}
         mealId={meal.id}
+        builderType={builderType ?? meal.builderType}
+        proClientId={proClientId}
         onRefined={onRefined}
       />
     )}

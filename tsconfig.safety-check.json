@@ -15,12 +15,16 @@
     "server/services/healthProtocols/resolveHealthProtocolState.ts",
     "server/services/healthProtocols/persistence.ts",
     "server/services/healthProtocols/healthContextControl.ts",
+    "server/services/diabetesGenerationSnapshot.ts",
+    "server/services/glucoseStateResolver.ts",
+    "server/services/protocolEnvelope.ts",
     "server/services/glp1/activationSources.ts",
     "server/db/schema/healthProtocols.ts",
     "scripts/migrate-health-protocols-dev.ts",
     "scripts/backfill-health-protocols-dev.ts",
     "scripts/compare-health-protocols-dev.ts",
-    "shared/healthProtocolState.ts"
+    "shared/healthProtocolState.ts",
+    "shared/diabeticGenerationSnapshot.ts"
   ],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"]
 }

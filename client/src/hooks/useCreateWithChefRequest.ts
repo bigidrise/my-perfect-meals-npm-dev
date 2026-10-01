@@ -3,6 +3,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { handleDefinitiveAuthFailure, SESSION_EXPIRED_MESSAGE } from "@/lib/authRequired";
 import { getAuthHeaders } from "@/lib/auth";
 import type { DiversityContext } from "@/lib/diversityContext";
+import { projectServerDiabeticMemory, type DiabeticMemoryContext } from "@/lib/diabeticMemory";
 
 export type DietType = 
   | 'anti-inflammatory'
@@ -67,6 +68,7 @@ interface Meal {
   medicalBadges?: string[];
   substitutionNotes?: string[];
   dietClassification?: string | null;
+  diabeticMemory?: DiabeticMemoryContext;
 }
 
 interface SafetyOptions {
@@ -251,6 +253,7 @@ export function useCreateWithChefRequest(userId?: string, proClientId?: string, 
         medicalBadges: generatedMeal.medicalBadges || [],
         substitutionNotes: generatedMeal.substitutionNotes || undefined,
         dietClassification: generatedMeal.dietClassification || null,
+        ...projectServerDiabeticMemory(generatedMeal, dietType === "diabetic"),
       };
 
       stopProgressTicker();

@@ -36,12 +36,12 @@ export interface ResolvedSlotContext {
 export async function resolveSlotContext(
   userId:      string,
   slotContext: SlotContext,
+  builderType = "",
 ): Promise<ResolvedSlotContext> {
   const { weekStartISO, dayISO, slot, mealId } = slotContext;
 
   // ── 1. Load weekly board ──────────────────────────────────────────────────
-  // The main board uses builderType = "" (no builder namespace).
-  const board = await getWeekBoard(userId, weekStartISO, "");
+  const board = await getWeekBoard(userId, weekStartISO, builderType);
   if (!board) {
     const err = new Error("Weekly board not found for this week.");
     (err as any).statusCode = 404;

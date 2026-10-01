@@ -19,6 +19,7 @@ import { validateDiabeticMeal } from "../guardrails/validators/diabeticValidator
 import { scaleIngredientQuantity } from "../servingScaling";
 import { generateMealImageUnified, normalizeMealTypeToSourceType } from "../mealImageGenerator";
 import type { GLP1GlobalContext } from "../glp1/resolveGLP1GlobalContext";
+import type { DiabetesGenerationAttempt } from "../diabetesGenerationSnapshot";
 
 type Envelope = Parameters<typeof scanGeneratedOutput>[1];
 
@@ -31,6 +32,8 @@ export interface SelectedConceptHandoff {
   context: HumanFoodContext;
   envelope: Envelope;
   glp1: GLP1GlobalContext;
+  /** Server-resolved generation authority; only present for a confirmed personal diabetes context. */
+  diabetesAttempt?: DiabetesGenerationAttempt;
   /** Profile styles replaced by a server-validated, request-scoped Builder diet. */
   overriddenDietaryIdentities: string[];
 }
@@ -46,6 +49,7 @@ export type SelectedConceptResult =
  */
 export async function completeSelectedConcept(input: SelectedConceptHandoff): Promise<SelectedConceptResult> {
   const { concept, context, envelope } = input;
+  const { diabetesAttempt } = input;
   if (input.creator === "create_a_dish" &&
       validateDishConcept(concept).includes("culinary_shape:abstract_primary_ingredient")) {
     return { ok: false, code: "concept_rejected", reasonCode: "abstract_primary_ingredient" };
@@ -60,8 +64,18 @@ export async function completeSelectedConcept(input: SelectedConceptHandoff): Pr
       validateOneTouchDirectionSafety(concept, context, envelope, input.cuisine).length) {
     return { ok: false, code: "concept_rejected" };
   }
-  if ((envelope.hasDiabetes && !envelope.diabeticGlucoseState) ||
+  if ((envelope.hasDiabetes && !diabetesAttempt) ||
+      (!envelope.hasDiabetes && diabetesAttempt) ||
       (input.glp1.isActive && !input.glp1.resolvedTargets)) {
+    return { ok: false, code: "final_validation_rejected" };
+  }
+  const diabetesAuthorityRequired = context.safety.healthConditions.some((condition) => /diabet/i.test(condition)) ||
+    context.diet.effective.some((diet) => diet.toLowerCase() === "diabetic") ||
+    (envelope.dietaryIdentity ?? []).some((diet) => diet.toLowerCase() === "diabetic");
+  if (diabetesAuthorityRequired && !diabetesAttempt) {
+    return { ok: false, code: "final_validation_rejected" };
+  }
+  if (diabetesAttempt && diabetesAttempt.subjectId !== input.actorUserId) {
     return { ok: false, code: "final_validation_rejected" };
   }
   // A text scan cannot certify specialist numeric/clinical instructions.
@@ -111,11 +125,12 @@ export async function completeSelectedConcept(input: SelectedConceptHandoff): Pr
   const diet = context.diet.effective;
   const cuisine = input.cuisine ?? (context.flavor.cuisine.available ? context.flavor.cuisine.value : concept.cuisine);
   const targets = input.glp1.isActive ? input.glp1.resolvedTargets ?? undefined : undefined;
+  const glucoseState = diabetesAttempt?.context.latestGlucose?.state;
   const generate = (prompt: string) => generateCravingMealOptions(
     prompt, concept.occasion, input.actorUserId, diet, [], false, "auto",
     cuisine ?? undefined, targets, undefined, directive, false,
     undefined, undefined, input.overriddenDietaryIdentities,
-    concept.title,
+    concept.title, undefined, undefined, diabetesAttempt,
   );
   const matches = (meal: UnifiedMeal): boolean => {
     const identity = validateDishIdentity(concept.title, meal, directive);
@@ -145,16 +160,16 @@ export async function completeSelectedConcept(input: SelectedConceptHandoff): Pr
       return accepted;
     });
   const nutrition = (meal: UnifiedMeal) => ({
-    calories: meal.calories, protein: meal.protein, carbs: meal.carbs,
+    calories: meal.calories, protein: meal.protein, carbs: meal.carbs ?? undefined,
     fat: meal.fat, starchyCarbs: meal.starchyCarbs,
   });
   const candidate = (meal: UnifiedMeal): HumanFoodCandidate => {
     const protocol = scanGeneratedOutput(meal, envelope, { generatorName: "menu-selected-final", exemptDishNameTerms });
-    const diabetes = envelope.hasDiabetes && envelope.diabeticGlucoseState
+    const diabetes = diabetesAttempt
       ? validateDiabeticMeal({
           name: meal.name, description: meal.description, ingredients: meal.ingredients,
           instructions: meal.instructions, macros: nutrition(meal),
-        }, { glucoseState: envelope.diabeticGlucoseState }).isValid
+        }, { glucoseState }).isValid
       : undefined;
     const glp1 = input.glp1.isActive && input.glp1.resolvedTargets
       ? validateMealForDiet({
@@ -252,6 +267,7 @@ export async function completeSelectedConcept(input: SelectedConceptHandoff): Pr
   }
   const meal = {
     ...selected, ingredients,
+    ...(diabetesAttempt ? { diabeticMemory: diabetesAttempt.snapshot } : {}),
     calories: selected.calories * input.servings,
     protein: selected.protein * input.servings,
     carbs: selected.carbs! * input.servings,

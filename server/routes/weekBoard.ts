@@ -239,6 +239,7 @@ function normalizeMeal(meal: any, idx: number = 0) {
   m.difficulty = m?.difficulty ? String(m.difficulty) : undefined;
   m.medicalBadges = Array.isArray(m?.medicalBadges) ? m.medicalBadges : undefined;
   m.dietClassification = sanitizeDietClassification(m?.dietClassification);
+  m.diabeticMemory = (m?.diabeticMemory && typeof m.diabeticMemory === 'object') ? m.diabeticMemory : undefined;
 
   return m;
 }

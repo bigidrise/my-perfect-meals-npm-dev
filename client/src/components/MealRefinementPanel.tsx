@@ -95,6 +95,10 @@ interface MealRefinementPanelProps {
   slot:         "breakfast" | "lunch" | "dinner" | "snacks";
   /** meal.id of the meal being refined. */
   mealId:       string;
+  /** Explicit builder namespace for server-side board resolution. */
+  builderType?: string;
+  /** Patient subject when a professional is acting on a client's board. */
+  proClientId?: string;
   /** Called after a successful confirm or restore so the parent can refresh board state. */
   onRefined?:   () => void;
 }
@@ -108,10 +112,12 @@ export function MealRefinementPanel({
   dayISO,
   slot,
   mealId,
+  builderType,
+  proClientId,
   onRefined,
 }: MealRefinementPanelProps) {
   const { toast } = useToast();
-  const { state, preview, confirm, restore, reset } = useMealRefinement();
+  const { state, preview, confirm, restore, reset } = useMealRefinement(builderType, proClientId);
 
   const [open, setOpen]                           = useState(false);
   const [selectedComponent, setSelectedComponent] = useState<MealComponent | null>(null);

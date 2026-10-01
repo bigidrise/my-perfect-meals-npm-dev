@@ -1,4 +1,7 @@
 jest.mock("../services/imageLifecycle", () => ({ processMealImageForSave: jest.fn() }));
+jest.mock("../services/mealImageAuthority", () => ({
+  validateMealImageAuthority: jest.fn(),
+}));
 jest.mock("../services/activityLog", () => ({ logActivityFireAndForget: jest.fn() }));
 jest.mock("../services/pushNotify", () => ({ pushToCoachOfClient: jest.fn() }));
 jest.mock("../services/canonicalWeeklyMealPlanning", () => ({
@@ -9,12 +12,14 @@ jest.mock("../services/canonicalWeeklyMealPlanning", () => ({
 jest.mock("../db", () => ({ db: {} }));
 jest.mock("../db/schema/procare", () => ({ clientLinks: {} }));
 
-import {
+import weekBoardRoutes, {
   deriveBoardScope,
   InaccessibleHouseholdProfileError,
   resolveRequestedBoardNamespace,
   sanitizeDietClassification,
 } from "../routes/weekBoard";
+import express from "express";
+import request from "supertest";
 
 const actor = "11111111-1111-4111-8111-111111111111";
 const profile = "22222222-2222-4222-8222-222222222222";
@@ -64,5 +69,47 @@ describe("weekly board household contracts", () => {
       halalFlags: { alcoholFree: "yes", porkFree: true },
       veganFlags: { plantBased: 1 },
     })).toBeUndefined();
+  });
+
+  it("preserves diabetic memory through board normalization and add-item persistence", async () => {
+    const app = express();
+    app.use(express.json());
+    weekBoardRoutes(app);
+    const diabeticMemory = {
+      generatedBglMgdl: 100,
+      glucoseState: "IN_RANGE",
+      bglBucket: "in-range",
+      readingRecordedAt: "2026-10-01T21:42:00.000Z",
+      generatedAt: "2026-10-01T21:43:00.000Z",
+    };
+
+    const normalized = await request(app)
+      .put("/api/week-board")
+      .send({
+        version: 1,
+        lists: { breakfast: [], lunch: [], dinner: [], snacks: [] },
+        meta: {},
+      });
+    expect(normalized.status).toBe(200);
+
+    const added = await request(app)
+      .post("/api/week-board/add")
+      .send({
+        list: "lunch",
+        meal: {
+          id: "diabetic-meal",
+          title: "Chicken and Broccoli Bowl",
+          ingredients: [{ item: "chicken breast", amount: "5", unit: "oz" }],
+          instructions: ["Cook and serve."],
+          nutrition: { calories: 320, protein: 36, carbs: 6, fat: 10 },
+          diabeticMemory,
+        },
+      });
+
+    expect(added.status).toBe(200);
+    expect(added.body.lists.lunch[0].diabeticMemory).toEqual(diabeticMemory);
+
+    const readBack = await request(app).get("/api/week-board");
+    expect(readBack.body.lists.lunch[0].diabeticMemory).toEqual(diabeticMemory);
   });
 });

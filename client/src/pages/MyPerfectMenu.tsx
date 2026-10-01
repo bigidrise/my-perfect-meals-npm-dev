@@ -123,6 +123,7 @@ function completedMealPayload(meal: any) {
     medicalBadges: meal.medicalBadges || [],
     dietClassification: meal.dietClassification,
     builderType: meal.builderType,
+    ...(meal.diabeticMemory ? { diabeticMemory: meal.diabeticMemory } : {}),
   };
 }
 
@@ -660,7 +661,14 @@ export default function MyPerfectMenu() {
          if (handleDefinitiveAuthFailure(response, payload)) throw new Error(SESSION_EXPIRED_MESSAGE);
          return meal;
        }
-      return payload.meal || meal;
+       return payload.meal
+         ? {
+             ...payload.meal,
+             ...(payload.meal.diabeticMemory || meal.diabeticMemory
+               ? { diabeticMemory: payload.meal.diabeticMemory ?? meal.diabeticMemory }
+               : {}),
+           }
+         : meal;
     } catch {
       return meal;
     }

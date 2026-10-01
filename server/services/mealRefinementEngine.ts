@@ -37,6 +37,8 @@ import {
   type UserProtocolEnvelope,
   type ProtocolScanResult,
 } from "./protocolEnvelope";
+import type { DiabetesGenerationAttempt } from "./diabetesGenerationSnapshot";
+import { assertDiabetesAttemptSubject } from "./diabetesGenerationSnapshot";
 import {
   resolveGLP1GlobalContext,
   buildGLP1RecommendationBlock,
@@ -120,6 +122,8 @@ export interface ReplaceComponentRequest {
   glp1Targets?: import("./glp1/resolveGLP1MealTargets").ResolvedGLP1Targets | null;
   /** Pre-built GLP-1 recommendation block (from slotContextResolver). */
   glp1Block?: string;
+  /** Frozen server-owned context reused by the prompt, retries, and validation. */
+  diabetesAttempt?: DiabetesGenerationAttempt | null;
 }
 
 export type RefinementRequest =
@@ -194,6 +198,15 @@ export function validateGLP1FatCompliance(
   const unverified  = fatGrams === null || !Number.isFinite(fatGrams as number);
   const compliant   = !exceeded && !unverified;
   return { compliant, exceeded, unverified };
+}
+
+function getSnapshotBoundCarbCeiling(attempt: DiabetesGenerationAttempt): number {
+  switch (attempt.context.latestGlucose?.state) {
+    case "low": return 45;
+    case "in-range": return 35;
+    case "high-risk": return 14;
+    default: return 45;
+  }
 }
 
 // ─── OpenAI singleton ─────────────────────────────────────────────────────────
@@ -1104,8 +1117,15 @@ Respond ONLY with valid JSON:
       mealType = "lunch",
     } = req;
 
+    if (req.diabetesAttempt) {
+      assertDiabetesAttemptSubject(req.diabetesAttempt, userId);
+    }
+
     // ── 1. Protocol envelope ────────────────────────────────────────────────
-    const envelope = await loadGenerationProtocolEnvelope(userId);
+    const envelope = await loadGenerationProtocolEnvelope(
+      userId,
+      req.diabetesAttempt ?? undefined,
+    );
     const protocolContext = enforceBeforeGenerate(envelope, { generatorName: "replace_component" }).combined;
 
     // ── 2. GLP-1 context — prefer pre-resolved targets, fall-close on failure ─
@@ -1205,6 +1225,32 @@ Respond ONLY with valid JSON:
 
     // ── 4. First call ───────────────────────────────────────────────────────
     let data = await callLLM();
+    const diabeticCarbCeiling = envelope.hasDiabetes && req.diabetesAttempt
+      ? getSnapshotBoundCarbCeiling(req.diabetesAttempt)
+      : null;
+    const getCarbViolation = (meal: Record<string, unknown>): string | null => {
+      if (diabeticCarbCeiling === null) return null;
+      const macros = meal.macros as Record<string, unknown> | undefined;
+      const carbs = typeof macros?.carbs === "number" && Number.isFinite(macros.carbs)
+        ? macros.carbs
+        : null;
+      if (carbs !== null && carbs <= diabeticCarbCeiling) return null;
+      const glucose = req.diabetesAttempt!.snapshot.generatedBglMgdl;
+      return carbs === null
+        ? `This attempt's glucose was ${glucose ?? "unavailable"} mg/dL. Provide numeric macros.carbs within the verified ${diabeticCarbCeiling}g diabetic limit.`
+        : `This attempt's glucose was ${glucose ?? "unavailable"} mg/dL. ${carbs}g carbs exceeds the verified ${diabeticCarbCeiling}g diabetic limit. Correct the meal and macros.`;
+    };
+    const initialDiabeticCorrection = getCarbViolation(data);
+    if (initialDiabeticCorrection) {
+      data = await callLLM(
+        `\n\nDIABETIC GLUCOSE-SNAPSHOT VALIDATION: ${initialDiabeticCorrection}`,
+      );
+      if (getCarbViolation(data)) {
+        throw new Error(
+          `PROTOCOL_VIOLATION: The component swap did not meet this attempt's frozen diabetic carb limit of ${diabeticCarbCeiling}g.`,
+        );
+      }
+    }
 
     // ── 5. GLP-1 fat ceiling gate — uses the shared validateGLP1FatCompliance ─
     const fatCeiling = glp1Targets?.maximumToleratedFatGrams ?? null;
@@ -1242,6 +1288,12 @@ Respond ONLY with valid JSON:
               ? `GLP-1 fat compliance could not be verified: fat_grams absent from LLM response after retry. Cannot confirm swap.`
               : `GLP-1 fat ceiling exceeded after retry: ${retryFat}g fat (limit ${fatCeiling}g). Choose a lower-fat component or adjust your instruction.`;
           throw new Error(reason);
+        }
+
+        if (getCarbViolation(data)) {
+          throw new Error(
+            `PROTOCOL_VIOLATION: The repaired component swap did not meet this attempt's frozen diabetic carb limit of ${diabeticCarbCeiling}g.`,
+          );
         }
       }
     }
@@ -1300,6 +1352,8 @@ export function getMealRefinementEngine(): MealRefinementEngine {
 export interface MealRefinementRequest {
   /** Authenticated user ID. */
   userId: string;
+  /** Frozen, server-owned diabetic context for this attempt, if applicable. */
+  diabetesAttempt?: DiabetesGenerationAttempt | null;
   /** User's preferred language code (BCP-47). Passed to getLanguageInstruction. */
   preferredLanguage?: string;
   /**
@@ -1565,10 +1619,21 @@ export async function refineMeal(request: MealRefinementRequest): Promise<Refine
     mealType = "lunch",
     generatorName = "meal_refinement",
     preferredLanguage,
+    diabetesAttempt,
   } = request;
 
   // ── 1. Load protocol envelope ─────────────────────────────────────────────
-  const envelope = await loadGenerationProtocolEnvelope(userId);
+  if (diabetesAttempt) assertDiabetesAttemptSubject(diabetesAttempt, userId);
+  const envelope = await loadGenerationProtocolEnvelope(
+    userId,
+    diabetesAttempt ?? undefined,
+    diabetesAttempt ? undefined : { skipDiabetesGlucose: true },
+  );
+  if (diabetesAttempt && !envelope.hasDiabetes) {
+    throw new MealRefinementRetryableError(
+      "Could not verify your diabetic protocol. Please try again.",
+    );
+  }
   const protocolContext = enforceBeforeGenerate(envelope, { generatorName }).combined;
 
   // ── 2. Load GLP-1 context — FAIL CLOSED ──────────────────────────────────
@@ -1631,7 +1696,9 @@ export async function refineMeal(request: MealRefinementRequest): Promise<Refine
         return { ...row, ingredients };
       });
 
-      const diabeticCarbCeiling: number | null = envelope.hasDiabetes ? 45 : null;
+      const diabeticCarbCeiling: number | null = envelope.hasDiabetes
+        ? diabetesAttempt ? getSnapshotBoundCarbCeiling(diabetesAttempt) : 45
+        : null;
 
       const { compliant } = filterSavedGroceriesForCompliance(
         itemsWithIngredients as any,

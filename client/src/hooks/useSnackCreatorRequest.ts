@@ -3,6 +3,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { handleDefinitiveAuthFailure, SESSION_EXPIRED_MESSAGE } from "@/lib/authRequired";
 import { getAuthHeaders } from "@/lib/auth";
 import type { DietClassification } from "@/types/meal";
+import { projectServerDiabeticMemory, type DiabeticMemoryContext } from "@/lib/diabeticMemory";
 
 export type DietType = 
   | 'anti-inflammatory'
@@ -45,6 +46,7 @@ interface Snack {
   };
   medicalBadges?: string[];
   dietClassification?: DietClassification | null;
+  diabeticMemory?: DiabeticMemoryContext;
 }
 
 export interface ExplicitOverride {
@@ -179,6 +181,7 @@ export function useSnackCreatorRequest(userId?: string, householdProfileId?: str
         },
         medicalBadges: generatedSnack.medicalBadges || [],
         dietClassification: generatedSnack.dietClassification || null,
+        ...projectServerDiabeticMemory(generatedSnack, dietType === "diabetic"),
       };
 
       stopProgressTicker();

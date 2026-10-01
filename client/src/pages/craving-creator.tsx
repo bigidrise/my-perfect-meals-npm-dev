@@ -130,6 +130,7 @@ interface MealData {
   imageUrl?: string;
   dietaryComplianceVerified?: boolean;
   dietClassification?: import("@/components/MealClassificationPill").DietClassification | null;
+  diabeticMemory?: DiabeticMemoryContext;
 }
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { setQuickView } from "@/lib/macrosQuickView";
@@ -161,6 +162,7 @@ import {
   type OneTouchCravingType,
   type OneTouchCravingFeel,
 } from "@/lib/oneTouchCreate";
+import type { DiabeticMemoryContext } from "@/lib/diabeticMemory";
 
 // ---- Persist the generated meal so it never "disappears" ----
 const CACHE_KEY = "cravingCreator.cache.v1";

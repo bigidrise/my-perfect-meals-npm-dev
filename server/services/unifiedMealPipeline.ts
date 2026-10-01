@@ -85,6 +85,10 @@ import { isClinicalAdaptationActive } from './clinicalMacroGate';
 import { resolveVarietyClassificationInput } from './createDish/varietyClassificationInput';
 import { classifyFoodIdentity, protectedFoodIdentityLabel } from '../../shared/foodIdentity';
 import { validateDishIdentity } from './dishAdaptation/dishIdentityValidator';
+import {
+  resolveDiabetesGenerationAttempt,
+  type DiabetesGenerationAttempt,
+} from './diabetesGenerationSnapshot';
 
 export class GLP1ComplianceRetryExhaustedError extends Error {
   readonly status = 422;
@@ -231,6 +235,7 @@ export interface UnifiedMeal {
    * Undefined / false means the badge should NOT be shown.
    */
   dietaryComplianceVerified?: boolean;
+  diabeticMemory?: import("../../shared/diabeticGenerationSnapshot").DiabeticGenerationSnapshot;
   /**
    * Candidate-derived food identity evidence. These values describe what the
    * generated recipe actually contains; callers must never backfill them from
@@ -287,6 +292,10 @@ export interface MealGenerationRequest {
 
   userId?: string;
   protocolEnvelope?: UserProtocolEnvelope;
+  /** Server-owned context, added only after authorized subject resolution. */
+  diabetesAttempt?: DiabetesGenerationAttempt;
+  /** Server-owned subject scope. Household requests have no owner glucose authority. */
+  diabetesSubjectScope?: "personal" | "household";
 
   macroTargets?: {
     protein_g?: number;
@@ -416,6 +425,81 @@ export interface MealGenerationResponse {
   blockedTerms?: string[];
   ambiguousTerms?: string[];
   suggestion?: string;
+}
+
+async function getDiabetesAttemptForBuilder(
+  userId: string | undefined,
+  dietType: DietType | undefined,
+  attempt?: DiabetesGenerationAttempt,
+  subjectScope?: MealGenerationRequest["diabetesSubjectScope"],
+): Promise<DiabetesGenerationAttempt | undefined> {
+  if (subjectScope === "household") {
+    if (attempt) throw new ProtocolContextUnavailableError();
+    return undefined;
+  }
+  if (attempt) {
+    if (!userId) throw new ProtocolContextUnavailableError();
+    const { assertDiabetesAttemptSubject } = await import("./diabetesGenerationSnapshot");
+    assertDiabetesAttemptSubject(attempt, userId);
+    return attempt;
+  }
+  if (dietType !== "diabetic") return undefined;
+  if (!userId) throw new ProtocolContextUnavailableError();
+  return resolveDiabetesGenerationAttempt(userId);
+}
+
+/**
+ * Apply the request's diabetes authority to the exact successful candidates
+ * leaving a diabetic-aware generation path. This final check also covers
+ * deterministic recovery results: a fallback is never stamped solely because
+ * the request was diabetic.
+ */
+async function validateAndStampDiabetesResult(
+  result: MealGenerationResponse,
+  userId: string,
+  mealType: string,
+  attempt: DiabetesGenerationAttempt,
+): Promise<MealGenerationResponse> {
+  if (!result.success) return result;
+
+  const { assertDiabetesAttemptSubject } = await import("./diabetesGenerationSnapshot");
+  assertDiabetesAttemptSubject(attempt, userId);
+  await ensureHubsRegistered();
+  const coupling = await resolveHubCoupling("diabetic", userId, mealType, attempt);
+  if (!coupling?.guardrails) {
+    throw new ProtocolContextUnavailableError();
+  }
+
+  const candidates = result.meals?.length ? result.meals : result.meal ? [result.meal] : [];
+  if (candidates.length === 0) {
+    return {
+      success: false,
+      source: "error",
+      error: "No meal passed the diabetic protocol for this generation attempt. Please retry.",
+    };
+  }
+
+  const validated = candidates.filter((meal) => {
+    const validation = validateMealForHub(meal, "diabetic", coupling.guardrails);
+    return !hasHardViolations(validation);
+  }).map((meal) => ({
+    ...meal,
+    diabeticMemory: attempt.snapshot,
+  }));
+
+  if (validated.length === 0) {
+    return {
+      success: false,
+      source: "error",
+      error: "The generated meal did not pass the diabetic protocol for this generation attempt. Please retry.",
+    };
+  }
+
+  return {
+    ...result,
+    meal: result.meal ? validated.find((meal) => meal.id === result.meal?.id) : validated[0],
+    meals: validated,
+  };
 }
 
 /**
@@ -2118,6 +2202,8 @@ export async function generateCravingMealOptions(
   createDishContract?: import("./createDish/dishContract").CreateDishContract,
   /** Optional request-local deadline for Create a Dish replacement generation. */
   refillSignal?: AbortSignal,
+  /** One request-frozen diabetes authority for glucose-aware creator flows. */
+  diabetesAttempt?: DiabetesGenerationAttempt,
 ): Promise<UnifiedMeal[]> {
   const validMealType = normalizeMealType(mealType);
   const cleanClassificationInput = resolveVarietyClassificationInput(
@@ -2222,7 +2308,7 @@ export async function generateCravingMealOptions(
     //   • procedural — preparation, equipment, and forbidden-instruction rules.
     // Both are injected into every generation attempt so Recipe Maker is
     // governed by the same complete Nutrition Life Plan as all other builders.
-    const envelope = await loadGenerationProtocolEnvelope(userId);
+    const envelope = await loadGenerationProtocolEnvelope(userId, diabetesAttempt);
     try {
         const effectiveEnvelope = overriddenDietaryIdentities?.length
           ? (() => {
@@ -3239,12 +3325,17 @@ async function generateBeverageFromDescription(
   preferredLanguage?: string,
   /** Allergens authorized by a valid Safety PIN override for this request only. */
   overriddenAllergens?: string[],
+  diabetesAttempt?: DiabetesGenerationAttempt,
+  protocolEnvelope?: UserProtocolEnvelope,
+  diabetesSubjectScope?: MealGenerationRequest["diabetesSubjectScope"],
 ): Promise<MealGenerationResponse> {
   console.log(`🍹 [CREATE-WITH-CHEF/BEVERAGE] "${beverageCategory}" intent detected — routing to beverage pipeline`);
 
-  const envelope = userId
-    ? await loadGenerationProtocolEnvelope(userId)
-    : buildGuestEnvelope();
+  const envelope = protocolEnvelope ?? (userId
+    ? diabetesSubjectScope === "personal"
+      ? await loadGenerationProtocolEnvelope(userId, diabetesAttempt, { personalSubject: true })
+      : await loadGenerationProtocolEnvelope(userId, diabetesAttempt)
+    : buildGuestEnvelope());
   // PIN allergen override — exclude only the exactly-matching authorized
   // allergen(s) from the PROMPT envelope (exact canonical-key matching via
   // allergenKeysMatch — never substring). The post-gen scan below still runs
@@ -3474,7 +3565,19 @@ export async function generateFromDescriptionUnified(
   overriddenAllergens?: string[],
   humanFoodExecutionState?: import("./humanFoodContext/requestExecutionState").HumanFoodRequestExecutionState,
   protocolEnvelope?: UserProtocolEnvelope,
+  diabetesAttempt?: DiabetesGenerationAttempt,
+  diabetesSubjectScope?: MealGenerationRequest["diabetesSubjectScope"],
 ): Promise<MealGenerationResponse> {
+  if (diabetesSubjectScope === "household") {
+    if (diabetesAttempt || !protocolEnvelope) throw new ProtocolContextUnavailableError();
+    userId = undefined;
+  }
+  const resolvedDiabetesAttempt = await getDiabetesAttemptForBuilder(
+    userId,
+    dietType,
+    diabetesAttempt,
+    diabetesSubjectScope,
+  );
   const validMealType = normalizeMealType(mealType);
   const requestedServings = Math.max(1, Math.min(10, Math.round(servings ?? 1)));
 
@@ -3493,7 +3596,7 @@ export async function generateFromDescriptionUnified(
   // No redirect, no popup — completely seamless.
   const beverageIntent = detectBeverageIntent(description);
   if (beverageIntent) {
-    return generateBeverageFromDescription(
+    const beverageResult = await generateBeverageFromDescription(
       description,
       beverageIntent,
       userId,
@@ -3504,7 +3607,13 @@ export async function generateFromDescriptionUnified(
       glp1Targets,         // patient-specific clinical targets for post-gen validation
       preferredLanguage,   // language instruction so beverage name/description are in user's language
       overriddenAllergens, // Safety-PIN-authorized allergen(s) for this request only
+      resolvedDiabetesAttempt,
+      protocolEnvelope,
+      diabetesSubjectScope,
     );
+    return resolvedDiabetesAttempt && userId
+      ? validateAndStampDiabetesResult(beverageResult, userId, validMealType, resolvedDiabetesAttempt)
+      : beverageResult;
   }
 
   // Auto-detect starchy foods in user's description and force starch if found
@@ -3553,11 +3662,19 @@ export async function generateFromDescriptionUnified(
       
       if (effectiveHubType) {
         try {
-          hubCoupling = await resolveHubCoupling(effectiveHubType, userId, validMealType);
+          hubCoupling = await resolveHubCoupling(
+            effectiveHubType,
+            userId,
+            validMealType,
+            effectiveHubType === "diabetic" ? resolvedDiabetesAttempt : undefined,
+          );
           if (hubCoupling) {
             console.log(`🔌 Hub coupling loaded for ${effectiveHubType}`);
+          } else if (effectiveHubType === "diabetic" && resolvedDiabetesAttempt) {
+            throw new ProtocolContextUnavailableError();
           }
         } catch (err) {
+          if (effectiveHubType === "diabetic" && resolvedDiabetesAttempt) throw err;
           console.warn(`⚠️ Failed to load hub coupling for ${effectiveHubType}, continuing without:`, err);
         }
       }
@@ -3565,7 +3682,9 @@ export async function generateFromDescriptionUnified(
     
     // ── Load protocol envelope (drives all dietary enforcement) ───────────────
     const chefEnvelope = protocolEnvelope ?? (userId
-      ? await loadGenerationProtocolEnvelope(userId)
+      ? diabetesSubjectScope === "personal"
+        ? await loadGenerationProtocolEnvelope(userId, resolvedDiabetesAttempt, { personalSubject: true })
+        : await loadGenerationProtocolEnvelope(userId, resolvedDiabetesAttempt)
       : buildGuestEnvelope());
 
     // Temporary diet override replaces the profile diet for this generation.
@@ -4507,12 +4626,15 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
     
     console.log(`✅ Create With Chef generated complete meal: ${unifiedMeal.name}`);
     
-    return {
+    const result: MealGenerationResponse = {
       success: true,
       meal: unifiedMeal,
       meals: [unifiedMeal],
       source: 'ai'
     };
+    return resolvedDiabetesAttempt && userId
+      ? validateAndStampDiabetesResult(result, userId, validMealType, resolvedDiabetesAttempt)
+      : result;
     
   } catch (error: any) {
     console.error('❌ Create With Chef generation failed:', error);
@@ -4566,7 +4688,9 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
     // ── Post-scan the deterministic fallback (full envelope + PIN override) ──
     // The resilience path must never bypass safety enforcement.
     const _chefFallbackEnvelope = protocolEnvelope ?? (userId
-      ? await loadGenerationProtocolEnvelope(userId)
+      ? diabetesSubjectScope === "personal"
+        ? await loadGenerationProtocolEnvelope(userId, resolvedDiabetesAttempt, { personalSubject: true })
+        : await loadGenerationProtocolEnvelope(userId, resolvedDiabetesAttempt)
       : buildGuestEnvelope());
     const _chefFallbackScan = scanGeneratedOutput(fallbackMeal, _chefFallbackEnvelope, {
       generatorName: 'create_with_chef_fallback',
@@ -4581,12 +4705,15 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       };
     }
 
-    return {
+    const fallbackResult: MealGenerationResponse = {
       success: true,
       meal: fallbackMeal,
       meals: [fallbackMeal],
       source: 'fallback'
     };
+    return resolvedDiabetesAttempt && userId
+      ? validateAndStampDiabetesResult(fallbackResult, userId, validMealType, resolvedDiabetesAttempt)
+      : fallbackResult;
   }
 }
 /**
@@ -4607,7 +4734,19 @@ export async function generateSnackFromCravingUnified(
   overriddenAllergens?: string[],
   protocolEnvelope?: UserProtocolEnvelope,
   generationContext?: string,
+  diabetesAttempt?: DiabetesGenerationAttempt,
+  diabetesSubjectScope?: MealGenerationRequest["diabetesSubjectScope"],
 ): Promise<MealGenerationResponse> {
+  if (diabetesSubjectScope === "household") {
+    if (diabetesAttempt || !protocolEnvelope) throw new ProtocolContextUnavailableError();
+    userId = undefined;
+  }
+  const resolvedDiabetesAttempt = await getDiabetesAttemptForBuilder(
+    userId,
+    dietType,
+    diabetesAttempt,
+    diabetesSubjectScope,
+  );
   // Only the explicit request defines protected food identity. Canonical HFC may
   // adapt ingredients, but soft profile context must never turn an unrelated
   // request into a liked dessert or another saved food.
@@ -4632,11 +4771,19 @@ export async function generateSnackFromCravingUnified(
       
       if (snackEffectiveHubType) {
         try {
-          snackHubCoupling = await resolveHubCoupling(snackEffectiveHubType, userId, 'snack');
+          snackHubCoupling = await resolveHubCoupling(
+            snackEffectiveHubType,
+            userId,
+            'snack',
+            snackEffectiveHubType === "diabetic" ? resolvedDiabetesAttempt : undefined,
+          );
           if (snackHubCoupling) {
             console.log(`🔌 Snack hub coupling loaded for ${snackEffectiveHubType}`);
+          } else if (snackEffectiveHubType === "diabetic" && resolvedDiabetesAttempt) {
+            throw new ProtocolContextUnavailableError();
           }
         } catch (err) {
+          if (snackEffectiveHubType === "diabetic" && resolvedDiabetesAttempt) throw err;
           console.warn(`⚠️ Failed to load hub coupling for snack, continuing without:`, err);
         }
       }
@@ -4644,7 +4791,9 @@ export async function generateSnackFromCravingUnified(
     
     // ── Load protocol envelope (drives all dietary enforcement) ───────────────
     const snackEnvelope = protocolEnvelope ?? (userId
-      ? await loadGenerationProtocolEnvelope(userId)
+      ? diabetesSubjectScope === "personal"
+        ? await loadGenerationProtocolEnvelope(userId, resolvedDiabetesAttempt, { personalSubject: true })
+        : await loadGenerationProtocolEnvelope(userId, resolvedDiabetesAttempt)
       : buildGuestEnvelope());
 
     // PIN allergen override — exclude only the exactly-matching authorized
@@ -5088,12 +5237,15 @@ Create the personalized snack for: "${cravingDescription}"`;
     
     console.log(`✅ Snack Creator generated complete snack: ${unifiedSnack.name}`);
     
-    return {
+    const snackResult: MealGenerationResponse = {
       success: true,
       meal: unifiedSnack,
       meals: [unifiedSnack],
       source: 'ai'
     };
+    return resolvedDiabetesAttempt && userId
+      ? validateAndStampDiabetesResult(snackResult, userId, "snack", resolvedDiabetesAttempt)
+      : snackResult;
     
   } catch (error: any) {
     console.error('❌ Snack Creator generation failed:', error);
@@ -5153,7 +5305,9 @@ Create the personalized snack for: "${cravingDescription}"`;
     // ── Post-scan the deterministic fallback (full envelope + PIN override) ──
     // The resilience path must never bypass safety enforcement.
     const _snackFallbackEnvelope = protocolEnvelope ?? (userId
-      ? await loadGenerationProtocolEnvelope(userId)
+      ? diabetesSubjectScope === "personal"
+        ? await loadGenerationProtocolEnvelope(userId, resolvedDiabetesAttempt, { personalSubject: true })
+        : await loadGenerationProtocolEnvelope(userId, resolvedDiabetesAttempt)
       : buildGuestEnvelope());
     const _snackFallbackScan = scanGeneratedOutput(fallbackSnack, _snackFallbackEnvelope, {
       generatorName: 'snack_creator_fallback',
@@ -5168,12 +5322,15 @@ Create the personalized snack for: "${cravingDescription}"`;
       };
     }
 
-    return {
+    const fallbackResult: MealGenerationResponse = {
       success: true,
       meal: fallbackSnack,
       meals: [fallbackSnack],
       source: 'fallback'
     };
+    return resolvedDiabetesAttempt && userId
+      ? validateAndStampDiabetesResult(fallbackResult, userId, "snack", resolvedDiabetesAttempt)
+      : fallbackResult;
   }
 }
 
@@ -5183,6 +5340,15 @@ Create the personalized snack for: "${cravingDescription}"`;
 export async function generateMealUnified(
   request: MealGenerationRequest
 ): Promise<MealGenerationResponse> {
+  if (request.diabetesSubjectScope === "household") {
+    if (request.diabetesAttempt || !request.protocolEnvelope) {
+      throw new ProtocolContextUnavailableError();
+    }
+    // The household envelope and subject are authoritative. Do not allow an
+    // accidentally retained account ID to activate owner profile or glucose
+    // reads anywhere in the downstream generation path.
+    request = { ...request, userId: undefined };
+  }
   console.log(`🔄 Unified pipeline processing ${request.type} request for ${request.mealType}`);
 
   // 🚨 SAFETY INTELLIGENCE LAYER: Pre-generation enforcement
@@ -5223,6 +5389,21 @@ export async function generateMealUnified(
     console.log(`✅ [SAFETY] Skipping internal check - already verified at route level with override token`);
   }
 
+  const diabetesBuilderTypes = new Set<MealGenerationRequest["type"]>([
+    "create-with-chef",
+    "premade",
+    "snack-creator",
+  ]);
+  const diabetesAttempt = diabetesBuilderTypes.has(request.type) &&
+    (request.dietType === "diabetic" || !!request.diabetesAttempt)
+    ? await getDiabetesAttemptForBuilder(
+        request.userId, request.dietType, request.diabetesAttempt, request.diabetesSubjectScope,
+      )
+    : undefined;
+  if (request.diabetesAttempt && !diabetesAttempt) {
+    throw new Error("Diabetes generation context is not valid for this builder operation");
+  }
+
   // Generate the meal
   let result: MealGenerationResponse;
   switch (request.type) {
@@ -5261,6 +5442,8 @@ export async function generateMealUnified(
         request.overriddenAllergens,
         request.humanFoodExecutionState,
         request.protocolEnvelope,
+        diabetesAttempt,
+        request.diabetesSubjectScope,
       );
       break;
 
@@ -5268,7 +5451,7 @@ export async function generateMealUnified(
       const snackCraving = Array.isArray(request.input) 
         ? request.input.join(', ') 
         : request.input;
-      result = await generateSnackFromCravingUnified(snackCraving, request.userId, request.dietType, request.strictMode === true, request.explicitOverride, request.glp1Targets, request.preferredLanguage, request.overriddenAllergens, request.protocolEnvelope, request.generationContext);
+      result = await generateSnackFromCravingUnified(snackCraving, request.userId, request.dietType, request.strictMode === true, request.explicitOverride, request.glp1Targets, request.preferredLanguage, request.overriddenAllergens, request.protocolEnvelope, request.generationContext, diabetesAttempt, request.diabetesSubjectScope);
       break;
 
     case 'fridge-rescue':
@@ -5277,16 +5460,47 @@ export async function generateMealUnified(
         ? request.input 
         : request.input.split(',').map(s => s.trim());
       const useFallbackOnly = request.type === 'premade';
-      result = await generateFridgeRescueUnified(
-        fridgeItems, 
-        request.mealType, 
-        request.userId,
-        request.macroTargets,
-        request.count || 1,
-        useFallbackOnly,
-        request.preferredLanguage,
-        request.overriddenAllergens
-      );
+      if (request.type === "premade" && diabetesAttempt && request.userId) {
+        const selectedIngredients = fridgeItems.join(", ");
+        result = await generateFromDescriptionUnified(
+          `Create a complete Diabetic AI Premade meal using these selected ingredients and quantities: ${selectedIngredients}. Preserve their identity unless a diabetic protocol rule requires a safer adaptation.`,
+          request.mealType,
+          request.userId,
+          request.dietType ?? "diabetic",
+          request.starchContext,
+          request.nutritionStrategy,
+          request.strictMode === true,
+          request.skipImage === true,
+          request.explicitOverride,
+          request.diversityContext,
+          request.dietPhase,
+          request.remainingMacros,
+          request.builderMode,
+          request.performanceSessionContext,
+          request.generationContext,
+          request.glp1Targets,
+          request.preferredLanguage,
+          request.dietaryRestrictionsOverride,
+          request.servings,
+          request.clinicalGenerationContext,
+          request.overriddenAllergens,
+          request.humanFoodExecutionState,
+          request.protocolEnvelope,
+          diabetesAttempt,
+          request.diabetesSubjectScope,
+        );
+      } else {
+        result = await generateFridgeRescueUnified(
+          fridgeItems,
+          request.mealType,
+          request.userId,
+          request.macroTargets,
+          request.count || 1,
+          useFallbackOnly,
+          request.preferredLanguage,
+          request.overriddenAllergens
+        );
+      }
       break;
 
     default:

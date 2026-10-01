@@ -93,8 +93,26 @@ async function resolveOneTouchAuthority(userId: string, request: OneTouchRequest
   if (context.status === "review_required" || context.status === "blocked") {
     stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", context.notices[0] || "Your food context needs review.");
   }
-  const profileEnvelope = await loadUserProtocolEnvelope(userId);
+  let profileEnvelope = await loadUserProtocolEnvelope(userId, undefined, {
+    includeDailyNutritionState: false,
+    skipDiabetesGlucose: true,
+  });
   if (!profileEnvelope) stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your food protections could not be resolved.");
+  let diabetesAttempt: import("../services/diabetesGenerationSnapshot").DiabetesGenerationAttempt | undefined;
+  if (profileEnvelope.hasDiabetes) {
+    try {
+      const { resolveDiabetesGenerationAttempt } = await import("../services/diabetesGenerationSnapshot");
+      diabetesAttempt = await resolveDiabetesGenerationAttempt(userId);
+      const frozenProfileEnvelope = await loadUserProtocolEnvelope(userId, undefined, { diabetesAttempt });
+      if (!frozenProfileEnvelope?.hasDiabetes) {
+        stop(503, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your diabetic meal context could not be resolved.");
+      }
+      profileEnvelope = frozenProfileEnvelope;
+    } catch (error) {
+      if ((error as any)?.oneTouchStop) throw error;
+      stop(503, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your diabetic meal context could not be resolved.");
+    }
+  }
   const envelope = withOneTouchDiet(profileEnvelope, overrides.dietOverride);
   const glp1 = await resolveGLP1GlobalContext(
     userId, new Date().toISOString().slice(0, 10),
@@ -103,7 +121,7 @@ async function resolveOneTouchAuthority(userId: string, request: OneTouchRequest
   if (glp1.isActive && !glp1.resolvedTargets) stop(503, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your current GLP-1 targets could not be verified.");
   if (profileEnvelope.glp1DailyTolerance?.shouldEscalate) stop(409, "ONE_TOUCH_CONTEXT_UNRESOLVED", "Your current GLP-1 symptoms need a safety check-in first.");
   const contextFingerprint = oneTouchContextFingerprint(request, context, envelope, glp1);
-  return { scope, context, envelope, profileEnvelope, glp1, contextFingerprint, ...overrides };
+  return { scope, context, envelope, profileEnvelope, diabetesAttempt, glp1, contextFingerprint, ...overrides };
 }
 
 export default function createOneTouchRouter() {
@@ -169,6 +187,7 @@ export default function createOneTouchRouter() {
         cuisine: overrides.cuisineOverride ?? (request.cuisine.mode === "surprise" ? selected.cuisine : null),
         context: authority.context,
         envelope: authority.envelope,
+        diabetesAttempt: authority.diabetesAttempt,
         glp1: authority.glp1,
         overriddenDietaryIdentities: overrides.dietOverride
           ? mutableProfileStyles(authority.profileEnvelope)

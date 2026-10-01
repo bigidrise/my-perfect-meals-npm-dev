@@ -1,4 +1,5 @@
 import type { UnifiedMeal } from '../unifiedMealPipeline';
+import type { DiabetesGenerationAttempt } from '../diabetesGenerationSnapshot';
 
 export type HubType = 
   | 'diabetic'
@@ -60,9 +61,9 @@ export interface ValidationResult {
 export interface HubModule {
   hubType: HubType;
   
-  getContext?(userId: string): Promise<HubContext | null>;
+  getContext?(userId: string, diabetesAttempt?: DiabetesGenerationAttempt): Promise<HubContext | null>;
   
-  getGuardrails(userId: string): Promise<HubGuardrails>;
+  getGuardrails(userId: string, diabetesAttempt?: DiabetesGenerationAttempt): Promise<HubGuardrails>;
   
   buildPrompt(
     context: HubContext | null,

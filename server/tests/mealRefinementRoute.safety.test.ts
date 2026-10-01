@@ -22,9 +22,14 @@
 // ── Mocks must be declared before imports ─────────────────────────────────────
 
 // Auth middleware — bypass auth/access for all requests
+let mockProfessionalRole: string | null = null;
 jest.mock("../middleware/requireAuth", () => ({
   requireAuth: (req: any, _res: any, next: any) => {
-    req.authUser = { id: "test-user-refinement", planLookupKey: "mpm_ultimate" };
+    req.authUser = {
+      id: "test-user-refinement",
+      planLookupKey: "mpm_ultimate",
+      professionalRole: mockProfessionalRole,
+    };
     next();
   },
   AuthenticatedRequest: {},
@@ -133,6 +138,10 @@ jest.mock("../services/protocolEnvelope", () => ({
     providerInterventions: [],
     interventionPatientSummary: [],
   }),
+  loadGenerationProtocolEnvelope: jest.fn().mockResolvedValue({
+    userId: "test-user-refinement",
+    hasDiabetes: false,
+  }),
   enforceBeforeGenerate: jest.fn(() => ({ combined: "", blocks: [] })),
   scanGeneratedOutput: jest.fn((_meal: any, _env: any, _ctx: any) => ({
     passed: scanPassed,
@@ -216,6 +225,21 @@ const ORIGINAL_MEAL = {
   difficulty: "Easy",
 };
 
+test("diabetic refine carb validation uses the frozen snapshot state", async () => {
+  const { getSnapshotBoundDiabeticCarbCeiling } = await import("../routes/mealRefinement");
+  const attempt: any = {
+    glucose: { state: "IN_RANGE" },
+    context: { latestGlucose: { state: "in-range" } },
+  };
+  expect(getSnapshotBoundDiabeticCarbCeiling(45, attempt)).toBe(35);
+  expect(getSnapshotBoundDiabeticCarbCeiling(20, attempt)).toBe(20);
+  expect(getSnapshotBoundDiabeticCarbCeiling(45, {
+    glucose: { state: "HIGH" },
+    context: { latestGlucose: { state: "high-risk" } },
+    snapshot: { bglBucket: "elevated" },
+  } as any)).toBe(14);
+});
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe("POST /api/meal-refinement/refine — protocol safety gate", () => {
@@ -232,6 +256,7 @@ describe("POST /api/meal-refinement/refine — protocol safety gate", () => {
     scanViolations = [];
     // Reset GLP-1 context to non-active / resolver available
     mockGlp1Ctx = { isActive: false, resolvedTargets: null };
+    mockProfessionalRole = null;
   });
 
   // ── Test 1: Compliant refinement ────────────────────────────────────────────
@@ -255,6 +280,27 @@ describe("POST /api/meal-refinement/refine — protocol safety gate", () => {
     expect(res.body.meal).toHaveProperty("title");
     expect(res.body.meal.name).toBe(res.body.meal.title);
     expect(res.body).toHaveProperty("refinementApplied", "More protein");
+    const { loadUserProtocolEnvelope } = jest.requireMock("../services/protocolEnvelope");
+    expect(loadUserProtocolEnvelope).toHaveBeenCalledWith(
+      "test-user-refinement",
+      undefined,
+      { skipDiabetesGlucose: true },
+    );
+  });
+
+  it("allows a ProCare professional to refine their own account without patient handoff", async () => {
+    mockProfessionalRole = "physician";
+    const res = await request(app)
+      .post("/api/meal-refinement/refine")
+      .send({ meal: ORIGINAL_MEAL, request: "Lower the carbs" });
+
+    expect(res.status).toBe(200);
+    const { loadUserProtocolEnvelope } = jest.requireMock("../services/protocolEnvelope");
+    expect(loadUserProtocolEnvelope).toHaveBeenCalledWith(
+      "test-user-refinement",
+      undefined,
+      { skipDiabetesGlucose: true },
+    );
   });
 
   // ── Test 2: Ingredient-level allergen violation ─────────────────────────────

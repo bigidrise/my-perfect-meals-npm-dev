@@ -42,6 +42,19 @@ const mockTolerance = jest.fn(async () => ({
   date: "2026-09-26", safetyEscalations: [], nutritionAdaptations: [],
 }));
 const mockDiabeticContext = jest.fn(async () => ({ latestGlucose: null }));
+const mockHouseholdProfile = {
+  id: "household-1",
+  ownerUserId: "protocol-user",
+  displayName: "Household member",
+  dietaryRestrictions: [],
+  allergies: [],
+  healthConditions: ["diabetes"],
+  medicalConditions: [],
+  dislikedFoods: [],
+  avoidedFoods: [],
+  likedFoods: [],
+  preferredSweeteners: [],
+};
 let mockUserMissing = false;
 let mockUserLoadFailure = false;
 let mockSelectCalls = 0;
@@ -55,10 +68,12 @@ jest.mock("../db", () => ({
     select: () => {
       mockSelectCalls++;
       return ({
-      from: () => ({
+      from: (table: any) => ({
         where: () => ({
           limit: async () => {
             if (mockUserLoadFailure) throw new Error("Database unavailable");
+            const tableName = table?.[Symbol.for("drizzle:Name")] ?? table?._?.name;
+            if (tableName === "household_profiles") return [mockHouseholdProfile];
             return mockUserMissing ? [] : [selectedUser];
           },
         }),
@@ -112,6 +127,33 @@ describe("protocol envelope medicalConditions projection", () => {
     selectedUser.healthConditions = [];
     mockTolerance.mockRejectedValueOnce(new Error("tolerance unavailable"));
     await expect(loadGenerationProtocolEnvelope("protocol-user")).rejects.toBeInstanceOf(ProtocolContextUnavailableError);
+  });
+  it("keeps household diabetic guidance qualitative and does not read the owner's glucose", async () => {
+    selectedUser.activeHouseholdProfileId = "household-1";
+    selectedUser.healthConditions = [];
+    mockDiabeticContext.mockClear();
+
+    const envelope = await loadUserProtocolEnvelope("protocol-user", "household-1");
+
+    expect(envelope?.hasDiabetes).toBe(true);
+    expect(envelope?.diabeticGlucoseState).toBeNull();
+    expect(envelope?.diabeticGuidance).toBeNull();
+    expect(mockDiabeticContext).not.toHaveBeenCalled();
+  });
+  it("uses an explicitly authorized personal subject despite an active household profile", async () => {
+    selectedUser.activeHouseholdProfileId = "household-1";
+    selectedUser.healthConditions = ["diabetes"];
+    mockHouseholdProfile.healthConditions = [];
+    mockDiabeticContext.mockClear();
+
+    const envelope = await loadUserProtocolEnvelope(
+      "protocol-user",
+      undefined,
+      { personalSubject: true },
+    );
+
+    expect(envelope?.hasDiabetes).toBe(true);
+    expect(mockDiabeticContext).toHaveBeenCalledWith("protocol-user");
   });
   it("does not promote ambiguous legacy GLP-1 into an Anti-Inflammatory envelope in Development", async () => {
     const previousEnv = process.env.NODE_ENV;
@@ -172,7 +214,9 @@ describe("protocol envelope medicalConditions projection", () => {
   afterEach(() => {
     selectedUser.medicalConditions = ["glp1", "diabetes-type2"];
     selectedUser.healthConditions = ["hypertension"];
+    selectedUser.activeHouseholdProfileId = null;
     selectedUser.selectedMealBuilder = null;
+    mockHouseholdProfile.healthConditions = ["diabetes"];
     selectedUser.specialtyConditions = [];
     selectedUser.alphaGalProfile = null;
     selectedUser.pregnancyStage = null;

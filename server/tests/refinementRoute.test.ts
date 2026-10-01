@@ -78,9 +78,29 @@ jest.mock("../services/mealRefinementEngine", () => ({
   refineMeal: (...a: any[]) => mockRefineMeal(...a),
 }));
 
+const mockLoadGenerationProtocolEnvelope = jest.fn();
+const mockResolveDiabetesGenerationAttempt = jest.fn();
+const mockVerifyPhysicianClientAccess = jest.fn();
+
+jest.mock("../services/protocolEnvelope", () => ({
+  loadGenerationProtocolEnvelope: (...a: any[]) => mockLoadGenerationProtocolEnvelope(...a),
+}));
+
+jest.mock("../services/procareAccessService", () => ({
+  verifyPhysicianClientAccess: (...a: any[]) => mockVerifyPhysicianClientAccess(...a),
+}));
+
+jest.mock("../lib/orgIsolation", () => ({
+  handleOrgIsolationError: jest.fn(() => false),
+}));
+
+jest.mock("../services/diabetesGenerationSnapshot", () => ({
+  resolveDiabetesGenerationAttempt: (...a: any[]) => mockResolveDiabetesGenerationAttempt(...a),
+}));
+
 // ── Imports that depend on mocks ──────────────────────────────────────────────
 
-import { encodeToken } from "../lib/refinementToken";
+import { encodeToken, decodeToken } from "../lib/refinementToken";
 import type { ConfirmTokenPayload, RestoreTokenPayload } from "../../shared/refinement";
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -134,16 +154,41 @@ function makeRestoreToken(overrides: Partial<RestoreTokenPayload> = {}): string 
   } as RestoreTokenPayload);
 }
 
+const DIABETIC_SNAPSHOT_100 = {
+  version: 2 as const,
+  generatedBglMgdl: 100,
+  glucoseContext: "PRE_MEAL",
+  protocolTypeLabel: "Glucose Balance Protocol",
+  bglBucket: "in-range" as const,
+  recommendedBglRange: "70–140 mg/dL",
+  generatedAt: "2026-08-13T12:00:00.000Z",
+  source: "diabetic-builder" as const,
+  readingRecordedAt: "2026-08-13T11:45:00.000Z",
+  readingSource: "LOG" as const,
+  glucoseState: "IN_RANGE" as const,
+  policyVersion: "diabetic-generation-v2" as const,
+};
+
+const DIABETIC_ATTEMPT_100 = {
+  subjectId: USER_A,
+  resolvedAt: DIABETIC_SNAPSHOT_100.generatedAt,
+  glucose: { state: "IN_RANGE" },
+  context: { hasDiabetes: true, diabetesType: "T2D", latestGlucose: null, hypoHistory: false },
+  profile: { type: "T2D", hypoHistory: false },
+  settings: null,
+  snapshot: DIABETIC_SNAPSHOT_100,
+};
+
 // ── Helper: build a minimal Express app with the refinement router ─────────────
 // Auth is simulated by injecting authUser before the route handler runs.
 // requireAuth is NOT mocked — authUserId() reads req.authUser directly.
 
-async function buildApp(authUserId: string | null) {
+async function buildApp(authUserId: string | null, professionalRole: string | null = null) {
   const app = express();
   app.use(express.json());
   // Inject authenticated user (bypasses requireAuth — authUserId() reads req.authUser)
   app.use((req: Request, _res: Response, next: NextFunction) => {
-    if (authUserId) (req as any).authUser = { id: authUserId };
+    if (authUserId) (req as any).authUser = { id: authUserId, professionalRole };
     next();
   });
   const { default: router } = await import("../routes/refinement");
@@ -185,6 +230,12 @@ beforeEach(() => {
   mockResolveSlotContext.mockReset();
   mockEngineRefine.mockReset();
   mockRefineMeal.mockReset();
+  mockLoadGenerationProtocolEnvelope.mockReset().mockResolvedValue({
+    userId: USER_A,
+    hasDiabetes: false,
+  });
+  mockResolveDiabetesGenerationAttempt.mockReset();
+  mockVerifyPhysicianClientAccess.mockReset().mockResolvedValue(true);
   mockDbSelect.mockReset();
   dbNotLocked(); // default: day not locked
 });
@@ -208,6 +259,364 @@ describe("POST /api/refinement/preview — auth + lock", () => {
       .send({ slotContext: { weekStartISO: WEEK, dayISO: DAY, slot: SLOT, mealId: MEAL_ORIGINAL.id }, componentTarget: "starch", userInstruction: "lighter starch" });
     expect(res.status).toBe(423);
     expect(res.body.code).toBe("DAY_LOCKED");
+  });
+
+  it("allows a ProCare professional to refine their own board without a patient handoff", async () => {
+    mockResolveSlotContext.mockResolvedValue({
+      meal: MEAL_ORIGINAL,
+      glp1Targets: null,
+      glp1Block: "",
+      mealType: "breakfast",
+      dateISO: DAY,
+      boardVersion: 1,
+    });
+    mockEngineRefine.mockResolvedValue({
+      updatedMeal: { title: "Updated meal", macros: {}, ingredients: [] },
+      changesSummary: "Updated.",
+      protocolNote: null,
+    });
+    const app = await buildApp(USER_A, "physician");
+    const response = await request(app)
+      .post("/api/refinement/preview")
+      .send({
+        slotContext: { weekStartISO: WEEK, dayISO: DAY, slot: SLOT, mealId: MEAL_ORIGINAL.id },
+        componentTarget: "starch",
+        userInstruction: "a lower-carbohydrate grain",
+      });
+
+    expect(response.status).toBe(200);
+    expect(mockResolveSlotContext).toHaveBeenCalledWith(
+      USER_A,
+      { weekStartISO: WEEK, dayISO: DAY, slot: SLOT, mealId: MEAL_ORIGINAL.id },
+      "",
+    );
+    expect(mockVerifyPhysicianClientAccess).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/refinement/preview — diabetic snapshot continuity", () => {
+  it("denies an unlinked ProCare client before any board or clinical read", async () => {
+    mockVerifyPhysicianClientAccess.mockResolvedValue(false);
+    const app = await buildApp(USER_A, "physician");
+    const response = await request(app)
+      .post("/api/refinement/preview")
+      .send({
+        slotContext: { weekStartISO: WEEK, dayISO: DAY, slot: SLOT, mealId: MEAL_ORIGINAL.id },
+        componentTarget: "starch",
+        userInstruction: "a lower-carb grain",
+        proClientId: USER_B,
+        builderType: "diabetic",
+      });
+
+    expect(response.status).toBe(403);
+    expect(mockVerifyPhysicianClientAccess).toHaveBeenCalledWith(USER_A, USER_B);
+    expect(mockResolveSlotContext).not.toHaveBeenCalled();
+    expect(mockLoadGenerationProtocolEnvelope).not.toHaveBeenCalled();
+    expect(mockResolveDiabetesGenerationAttempt).not.toHaveBeenCalled();
+  });
+
+  it("authorizes, signs, confirms, and persists the patient board in its builder namespace", async () => {
+    const patientMeal = {
+      ...MEAL_ORIGINAL,
+      diabeticMemory: { ...DIABETIC_SNAPSHOT_100, generatedBglMgdl: 80 },
+    };
+    mockResolveSlotContext.mockResolvedValue({
+      meal: patientMeal,
+      glp1Targets: null,
+      glp1Block: "",
+      mealType: "breakfast",
+      dateISO: DAY,
+      boardVersion: 1,
+    });
+    mockLoadGenerationProtocolEnvelope.mockResolvedValue({
+      userId: USER_B,
+      hasDiabetes: true,
+      preferredLanguage: "en",
+    });
+    mockResolveDiabetesGenerationAttempt.mockResolvedValue({
+      ...DIABETIC_ATTEMPT_100,
+      subjectId: USER_B,
+    });
+    mockEngineRefine.mockResolvedValue({
+      updatedMeal: {
+        title: "Chicken and Quinoa Bowl",
+        macros: { calories: 410, protein: 38, carbs: 31, fat: 12 },
+        ingredients: [{ name: "quinoa", qty: "1/2 cup" }],
+      },
+      changesSummary: "Replaced the starch.",
+      protocolNote: null,
+    });
+
+    const app = await buildApp(USER_A, "physician");
+    const preview = await request(app)
+      .post("/api/refinement/preview")
+      .send({
+        slotContext: { weekStartISO: WEEK, dayISO: DAY, slot: SLOT, mealId: MEAL_ORIGINAL.id },
+        componentTarget: "starch",
+        userInstruction: "a lower-carb grain",
+        proClientId: USER_B,
+        builderType: "diabetic",
+      });
+
+    expect(preview.status).toBe(200);
+    expect(mockVerifyPhysicianClientAccess).toHaveBeenCalledWith(USER_A, USER_B);
+    expect(mockResolveSlotContext).toHaveBeenCalledWith(
+      USER_B,
+      { weekStartISO: WEEK, dayISO: DAY, slot: SLOT, mealId: MEAL_ORIGINAL.id },
+      "diabetic",
+    );
+    expect(mockLoadGenerationProtocolEnvelope).toHaveBeenCalledWith(
+      USER_B,
+      undefined,
+      { skipDiabetesGlucose: true },
+    );
+    expect(mockResolveDiabetesGenerationAttempt).toHaveBeenCalledWith(USER_B);
+    expect(mockEngineRefine.mock.calls[0][0].userId).toBe(USER_B);
+
+    const signedPayload = decodeToken<ConfirmTokenPayload>(preview.body.confirmToken);
+    expect(signedPayload.actorUserId).toBe(USER_A);
+    expect(signedPayload.subjectUserId).toBe(USER_B);
+    expect(signedPayload.builderType).toBe("diabetic");
+    expect(signedPayload.refinedMeal.diabeticMemory).toEqual(DIABETIC_SNAPSHOT_100);
+
+    mockGetWeekBoard.mockResolvedValue(makeBoard(1, [patientMeal]));
+    mockConditionalUpdate.mockResolvedValue({ updated: true });
+    const confirm = await request(app)
+      .post("/api/refinement/confirm")
+      .send({
+        confirmToken: preview.body.confirmToken,
+        proClientId: USER_B,
+        builderType: "diabetic",
+      });
+
+    expect(confirm.status).toBe(200);
+    expect(mockVerifyPhysicianClientAccess).toHaveBeenCalledTimes(2);
+    expect(mockVerifyPhysicianClientAccess).toHaveBeenLastCalledWith(USER_A, USER_B);
+    expect(mockResolveDiabetesGenerationAttempt).toHaveBeenCalledTimes(1);
+    expect(mockLoadGenerationProtocolEnvelope).toHaveBeenCalledTimes(1);
+    expect(mockGetWeekBoard).toHaveBeenCalledWith(USER_B, WEEK, "diabetic");
+    expect(mockConditionalUpdate.mock.calls[0][0]).toBe(USER_B);
+    expect(mockConditionalUpdate.mock.calls[0][4]).toBe("diabetic");
+    const saved = mockConditionalUpdate.mock.calls[0][2];
+    expect(saved.days[DAY].breakfast[0].diabeticMemory).toEqual(DIABETIC_SNAPSHOT_100);
+  });
+
+  it("rechecks patient access at confirm before reading the signed patient board", async () => {
+    mockVerifyPhysicianClientAccess.mockResolvedValue(false);
+    const token = makeConfirmToken({
+      actorUserId: USER_A,
+      subjectUserId: USER_B,
+      builderType: "diabetic",
+    });
+    const app = await buildApp(USER_A, "physician");
+    const response = await request(app)
+      .post("/api/refinement/confirm")
+      .send({ confirmToken: token });
+
+    expect(response.status).toBe(403);
+    expect(mockVerifyPhysicianClientAccess).toHaveBeenCalledWith(USER_A, USER_B);
+    expect(mockGetWeekBoard).not.toHaveBeenCalled();
+    expect(mockConditionalUpdate).not.toHaveBeenCalled();
+  });
+
+  it("rejects mismatched patient or builder scope echoes before any board access", async () => {
+    const token = makeConfirmToken({
+      actorUserId: USER_A,
+      subjectUserId: USER_B,
+      builderType: "diabetic",
+    });
+    const app = await buildApp(USER_A, "physician");
+
+    const wrongPatient = await request(app)
+      .post("/api/refinement/confirm")
+      .send({ confirmToken: token, proClientId: "another-patient", builderType: "diabetic" });
+    const wrongBuilder = await request(app)
+      .post("/api/refinement/confirm")
+      .send({ confirmToken: token, proClientId: USER_B, builderType: "glp1" });
+
+    expect(wrongPatient.status).toBe(403);
+    expect(wrongBuilder.status).toBe(403);
+    expect(wrongPatient.body.code).toBe("TOKEN_SCOPE_MISMATCH");
+    expect(wrongBuilder.body.code).toBe("TOKEN_SCOPE_MISMATCH");
+    expect(mockVerifyPhysicianClientAccess).not.toHaveBeenCalled();
+    expect(mockGetWeekBoard).not.toHaveBeenCalled();
+    expect(mockConditionalUpdate).not.toHaveBeenCalled();
+  });
+
+  it("uses and signs the authenticated subject's attempt snapshot instead of an old meal stamp or client claim", async () => {
+    const oldMealSnapshot = { ...DIABETIC_SNAPSHOT_100, generatedBglMgdl: 80 };
+    const originalMeal = {
+      ...MEAL_ORIGINAL,
+      diabeticMemory: oldMealSnapshot,
+    };
+    mockResolveSlotContext.mockResolvedValue({
+      meal: originalMeal,
+      glp1Targets: null,
+      glp1Block: "",
+      mealType: "breakfast",
+      dateISO: DAY,
+      boardVersion: 1,
+    });
+    mockLoadGenerationProtocolEnvelope.mockResolvedValue({
+      userId: USER_A,
+      hasDiabetes: true,
+    });
+    mockResolveDiabetesGenerationAttempt.mockResolvedValue(DIABETIC_ATTEMPT_100);
+    mockEngineRefine.mockResolvedValue({
+      updatedMeal: {
+        title: "Chicken and Quinoa Bowl",
+        macros: { calories: 410, protein: 38, carbs: 31, fat: 12 },
+        ingredients: [{ name: "quinoa", qty: "1/2 cup" }],
+      },
+      changesSummary: "Replaced the starch.",
+      protocolNote: null,
+    });
+
+    const app = await buildApp(USER_A);
+    const response = await request(app)
+      .post("/api/refinement/preview")
+      .send({
+        slotContext: { weekStartISO: WEEK, dayISO: DAY, slot: SLOT, mealId: MEAL_ORIGINAL.id },
+        componentTarget: "starch",
+        userInstruction: "a lower-carb grain",
+        diabeticMemory: { ...DIABETIC_SNAPSHOT_100, generatedBglMgdl: 999 },
+      });
+
+    expect(response.status).toBe(200);
+    expect(mockResolveDiabetesGenerationAttempt).toHaveBeenCalledWith(USER_A);
+    expect(mockEngineRefine).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: USER_A, diabetesAttempt: DIABETIC_ATTEMPT_100 }),
+    );
+    const tokenPayload = decodeToken<ConfirmTokenPayload>(response.body.confirmToken);
+    const storedSnapshot = tokenPayload.refinedMeal.diabeticMemory as typeof DIABETIC_SNAPSHOT_100;
+    expect(storedSnapshot).toEqual(DIABETIC_SNAPSHOT_100);
+    expect(storedSnapshot).not.toEqual(oldMealSnapshot);
+    expect(storedSnapshot.generatedBglMgdl).toBe(100);
+  });
+
+  it("confirms a 100 mg/dL preview after readings change to 115 and preserves the original meal for restore", async () => {
+    const oldMealSnapshot = { ...DIABETIC_SNAPSHOT_100, generatedBglMgdl: 80 };
+    const originalMeal = { ...MEAL_ORIGINAL, diabeticMemory: oldMealSnapshot };
+    mockResolveSlotContext.mockResolvedValue({
+      meal: originalMeal,
+      glp1Targets: null,
+      glp1Block: "",
+      mealType: "breakfast",
+      dateISO: DAY,
+      boardVersion: 1,
+    });
+    mockLoadGenerationProtocolEnvelope.mockResolvedValue({
+      userId: USER_A,
+      hasDiabetes: true,
+    });
+    mockResolveDiabetesGenerationAttempt.mockResolvedValue(DIABETIC_ATTEMPT_100);
+    mockEngineRefine.mockResolvedValue({
+      updatedMeal: {
+        title: "Chicken and Quinoa Bowl",
+        macros: { calories: 410, protein: 38, carbs: 31, fat: 12 },
+        ingredients: [{ name: "quinoa", qty: "1/2 cup" }],
+      },
+      changesSummary: "Replaced the starch.",
+      protocolNote: null,
+    });
+
+    const app = await buildApp(USER_A);
+    const preview = await request(app)
+      .post("/api/refinement/preview")
+      .send({
+        slotContext: { weekStartISO: WEEK, dayISO: DAY, slot: SLOT, mealId: MEAL_ORIGINAL.id },
+        componentTarget: "starch",
+        userInstruction: "a lower-carb grain",
+      });
+    expect(preview.status).toBe(200);
+    expect(mockLoadGenerationProtocolEnvelope).toHaveBeenCalledWith(
+      USER_A,
+      undefined,
+      { skipDiabetesGlucose: true },
+    );
+
+    // Simulate the latest reading changing before confirmation. Confirm must
+    // consume only the authenticated HMAC-signed preview; it never re-resolves
+    // glucose or trusts a replacement snapshot from the client.
+    mockResolveDiabetesGenerationAttempt.mockResolvedValue({
+      ...DIABETIC_ATTEMPT_100,
+      snapshot: { ...DIABETIC_SNAPSHOT_100, generatedBglMgdl: 115 },
+    });
+    mockGetWeekBoard.mockResolvedValue(makeBoard(1, [originalMeal]));
+    mockConditionalUpdate.mockResolvedValue({ updated: true });
+
+    const confirm = await request(app)
+      .post("/api/refinement/confirm")
+      .send({ confirmToken: preview.body.confirmToken });
+
+    expect(confirm.status).toBe(200);
+    expect(mockResolveDiabetesGenerationAttempt).toHaveBeenCalledTimes(1);
+    const writtenBoard = mockConditionalUpdate.mock.calls[0][2];
+    expect(writtenBoard.days[DAY].breakfast[0].diabeticMemory).toEqual(DIABETIC_SNAPSHOT_100);
+    const restorePayload = decodeToken<RestoreTokenPayload>(confirm.body.restoreToken);
+    expect(restorePayload.originalMeal.diabeticMemory).toEqual(oldMealSnapshot);
+  });
+
+  it("rejects a modified signed preview token instead of confirming altered glucose provenance", async () => {
+    const maliciousPayload = makeConfirmToken({
+      refinedMeal: {
+        ...MEAL_REFINED,
+        diabeticMemory: { ...DIABETIC_SNAPSHOT_100, generatedBglMgdl: 999 },
+      },
+    });
+    const [payload, signature] = maliciousPayload.split(".");
+    const tamperedToken = `${payload}.${signature[0] === "A" ? "B" : "A"}${signature.slice(1)}`;
+    const app = await buildApp(USER_A);
+    const response = await request(app)
+      .post("/api/refinement/confirm")
+      .send({ confirmToken: tamperedToken });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toMatch(/signature/i);
+    expect(mockConditionalUpdate).not.toHaveBeenCalled();
+  });
+
+  it("does not add numeric glucose provenance to a subject without a diabetic protocol", async () => {
+    mockResolveSlotContext.mockResolvedValue({
+      meal: MEAL_ORIGINAL,
+      glp1Targets: null,
+      glp1Block: "",
+      mealType: "breakfast",
+      dateISO: DAY,
+      boardVersion: 1,
+    });
+    mockLoadGenerationProtocolEnvelope.mockResolvedValue({
+      userId: USER_A,
+      hasDiabetes: false,
+    });
+    mockEngineRefine.mockResolvedValue({
+      updatedMeal: {
+        title: "Chicken and Quinoa Bowl",
+        macros: { calories: 410, protein: 38, carbs: 31, fat: 12 },
+        ingredients: [{ name: "quinoa", qty: "1/2 cup" }],
+      },
+      changesSummary: "Replaced the starch.",
+      protocolNote: null,
+    });
+
+    const app = await buildApp(USER_A);
+    const response = await request(app)
+      .post("/api/refinement/preview")
+      .send({
+        slotContext: { weekStartISO: WEEK, dayISO: DAY, slot: SLOT, mealId: MEAL_ORIGINAL.id },
+        componentTarget: "starch",
+        userInstruction: "a different grain",
+      });
+
+    expect(response.status).toBe(200);
+    expect(mockLoadGenerationProtocolEnvelope).toHaveBeenCalledWith(
+      USER_A,
+      undefined,
+      { skipDiabetesGlucose: true },
+    );
+    expect(mockResolveDiabetesGenerationAttempt).not.toHaveBeenCalled();
+    const payload = decodeToken<ConfirmTokenPayload>(response.body.confirmToken);
+    expect(payload.refinedMeal).not.toHaveProperty("diabeticMemory");
   });
 });
 

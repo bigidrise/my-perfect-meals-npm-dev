@@ -58,6 +58,8 @@ interface Props {
   meal: any;
   /** Optional builder type hint for the prompt */
   builderType?: string;
+  /** Patient subject when a professional is acting on a client's meal. */
+  proClientId?: string;
   /** Called when the user accepts the refined version */
   onRefined: (refinedMeal: any) => void;
   /**
@@ -81,6 +83,7 @@ export default function MealRefinementSheet({
   onOpenChange,
   meal,
   builderType,
+  proClientId,
   onRefined,
   freeformEndpoint,
   existingMeal,
@@ -133,6 +136,8 @@ export default function MealRefinementSheet({
           existingMeal: existingMeal ?? meal,
           changeInstruction: request,
           mealType: mealType ?? "lunch",
+          builderType,
+          proClientId,
         });
         if (data?.error) throw new Error(data.error);
         // freeform-preview returns { updatedMeal, changesSummary, protocolNote }
@@ -144,6 +149,7 @@ export default function MealRefinementSheet({
           meal,
           request,
           builderType,
+          proClientId,
         });
         if (data?.error) throw new Error(data.error);
         setRefinedMeal(data.meal);
@@ -168,7 +174,7 @@ export default function MealRefinementSheet({
       setError(errorMessage);
       setPhase("idle");
     }
-  }, [meal, builderType, selectedChip, input, freeformEndpoint, existingMeal, mealType]);
+  }, [meal, builderType, proClientId, selectedChip, input, freeformEndpoint, existingMeal, mealType]);
 
   const handleAccept = useCallback(() => {
     if (!refinedMeal) return;
