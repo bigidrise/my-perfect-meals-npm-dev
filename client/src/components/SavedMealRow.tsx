@@ -8,7 +8,7 @@
  * always come from the canonical mealData — never from the translation payload.
  */
 import { useState, useRef, useEffect } from "react";
-import { Heart, ChevronDown, ChevronRight, Activity, Loader2 } from "lucide-react";
+import { Heart, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import { AlertTriangle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
@@ -19,16 +19,7 @@ import { setQuickView } from "@/lib/macrosQuickView";
 import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
 import { useTranslatedMeal } from "@/hooks/useTranslatedMeal";
 import AlphaGalBadge from "@/components/AlphaGalBadge";
-
-function bglRangeLabel(bucket: string): string {
-  switch (bucket) {
-    case "low":      return "< 70 mg/dL";
-    case "in-range": return "70–140 mg/dL";
-    case "elevated": return "141–200 mg/dL";
-    case "high":     return "> 200 mg/dL";
-    default:         return "—";
-  }
-}
+import DiabetesProtocolIndicator from "@/components/DiabetesProtocolIndicator";
 
 interface Props {
   row: any;
@@ -105,20 +96,6 @@ export default function SavedMealRow({
     });
   }
 
-  const isDiabetic       = row.savedFromDiabeticBuilder === true;
-  const bglBucket        = row.bglBucket ?? "";
-  const generatedBglMgdl = row.generatedBglMgdl ?? null;
-  const protocolType     = row.protocolType ?? "";
-  const glucoseContext   = row.glucoseContext ?? "";
-  const rangeLabel       = bglBucket ? bglRangeLabel(bglBucket) : "";
-
-  const bannerAccent =
-    bglBucket === "low"
-      ? { text: "text-sky-400",   border: "border-sky-700/40",   bg: "bg-sky-950/60"   }
-      : bglBucket === "in-range"
-      ? { text: "text-lime-400",  border: "border-lime-700/40",  bg: "bg-lime-950/60"  }
-      : { text: "text-amber-400", border: "border-amber-700/40", bg: "bg-amber-950/60" };
-
   return (
     <div id={`meal-card-${row.id}`} ref={rowRef} className="rounded-xl border border-white/15 bg-white/5 overflow-hidden">
       {/* ── Collapsed header ────────────────────────────────────────────── */}
@@ -141,12 +118,7 @@ export default function SavedMealRow({
           <div className="min-w-0">
             <div className="text-white font-medium truncate">{displayTitle}</div>
             <div className="text-xs text-white/50">{sourceLabel(row.sourceType)}</div>
-            {isDiabetic && generatedBglMgdl !== null && (
-              <div className={`text-xs ${bannerAccent.text} flex items-center gap-1 mt-0.5 opacity-80`}>
-                <Activity className="h-3 w-3 shrink-0" />
-                <span>BGL {generatedBglMgdl} mg/dL</span>
-              </div>
-            )}
+            {!isExpanded && <DiabetesProtocolIndicator memory={d?.diabeticMemory} compact />}
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -188,26 +160,7 @@ export default function SavedMealRow({
             </div>
           )}
 
-          {isDiabetic && generatedBglMgdl !== null && (
-            <div className={`rounded-lg ${bannerAccent.bg} border ${bannerAccent.border} px-3 py-2 text-xs space-y-0.5`}>
-              <div className={`${bannerAccent.text} font-semibold tracking-wide uppercase text-[10px]`}>
-                {t("savedMeals.diabetesProtocol")}
-              </div>
-              <div className="text-white/80">
-                Generated for BGL:{" "}
-                <span className="text-white font-medium">{generatedBglMgdl} mg/dL</span>
-              </div>
-              {protocolType && <div className="text-white/60">{protocolType}</div>}
-              {glucoseContext && protocolType !== glucoseContext && (
-                <div className="text-white/50">{glucoseContext}</div>
-              )}
-              {rangeLabel && (
-                <div className="text-white/50 text-[10px]">
-                  {t("savedMeals.relevantRange")} {rangeLabel}
-                </div>
-              )}
-            </div>
-          )}
+          <DiabetesProtocolIndicator memory={d?.diabeticMemory} />
 
           {/* Translation loading indicator */}
           {isTranslating && (

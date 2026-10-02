@@ -12,3 +12,15 @@ Never backfill, upgrade, or rewrite historical meals to make their provenance ap
 **Why:** The user approved immutable provenance after browser-side stamping could label a meal with a reading different from the one used to generate it. The original generation context cannot be reconstructed reliably from a later reading, and the user expressly excluded historical backfill.
 
 **How to apply:** Authorize the exact nutrition subject before freezing context; do not borrow a professional or household owner's glucose. Preserve the returned snapshot through board normalization, reload, and Favorites instead of reconstructing it from current profile data.
+
+The Diabetes Protocol indicator must display consistently wherever a meal carries valid persisted diabetes protocol/generation provenance. Do not label a meal solely because diabetes support is currently enabled or because it sits on the Diabetic Board. Display is independent of eating occasion, creator, prior cards, page-level notices, and today's glucose.
+
+**Why:** The user clarified that the green indicator must mean this particular meal actually went through the diabetes protocol, not merely that its user has diabetes support enabled.
+
+**How to apply:** Include Diabetic Board, applicable My Perfect Menu results, Create with Chef, Chef's Kitchen, Craving Creator, Create a Dish, diabetic Snack Creator and AI Premades, Favorites, Describe/Refine results, and confirmed Component Swaps. Inventory other meal presentations only when they carry this provenance contract. Minimally centralize the presentation rule and retain the existing green visual standard; do not broaden into unrelated UI redesign. Verify consecutive breakfast/lunch/dinner/snack meals independently display their own indicators, cross-surface preservation, and immunity of historical displays to later glucose readings.
+
+This display requirement belongs to the existing approved diabetic-global correction. The user approved proceeding with implementation and requires a change/test report for review before anything is pushed or published. Do not add unrelated scope.
+
+**Why:** The user confirmed this is exactly the intended scope and explicitly requested the report before release.
+
+**How to apply:** Keep provenance and presentation under the same diabetic integration. Report changed areas, verification, and limitations; wait for release approval rather than pushing or publishing.

@@ -7,6 +7,7 @@ import { formatIngredientWithGrams } from "@/utils/unitConversions";
 import { useTranslation } from "react-i18next";
 import { useTranslatedMeal } from "@/hooks/useTranslatedMeal";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
+import DiabetesProtocolIndicator from "@/components/DiabetesProtocolIndicator";
 // Shopping list functionality removed - import eliminated
 
 // Simple UUID v4 format check
@@ -29,6 +30,7 @@ export interface Meal {
   };
   servings: number;
   imageUrl?: string | null;
+  diabeticMemory?: import("@/lib/diabeticMemory").DiabeticMemoryContext;
   cookingTime?: number;
   difficulty?: 'Easy' | 'Medium' | 'Hard';
   medicalBadges?: string[];
@@ -202,6 +204,7 @@ export default function MealCardFull({
           <h4 className="font-semibold text-lg text-slate-900 dark:text-white line-clamp-2">
             {displayName}
           </h4>
+          <DiabetesProtocolIndicator memory={meal.diabeticMemory} />
           {displayDescription && (
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 line-clamp-2">
               {displayDescription}
