@@ -13,8 +13,14 @@ Never backfill, upgrade, or rewrite historical meals to make their provenance ap
 
 **How to apply:** Authorize the exact nutrition subject before freezing context; do not borrow a professional or household owner's glucose. Preserve the returned snapshot through board normalization, reload, and Favorites instead of reconstructing it from current profile data.
 
-The user expects the Diabetes Protocol label on every meal card across the platform, especially Menu, Create with Chef, and Craving Creator, consistently rather than only once.
+The Diabetes Protocol indicator must display consistently wherever a meal carries valid persisted diabetes protocol/generation provenance. Do not label a meal solely because diabetes support is currently enabled or because it sits on the Diabetic Board. Display is independent of eating occasion, creator, prior cards, page-level notices, and today's glucose.
 
-**Why:** The user explicitly stated this product requirement after observing a label appear on one meal but not subsequent breakfast/lunch meals.
+**Why:** The user clarified that the green indicator must mean this particular meal actually went through the diabetes protocol, not merely that its user has diabetes support enabled.
 
-**How to apply:** Assess label coverage per card, not just per page or session. Correct display and metadata handoffs without inventing historical glucose evidence or rewriting existing meals' snapshots.
+**How to apply:** Include Diabetic Board, applicable My Perfect Menu results, Create with Chef, Chef's Kitchen, Craving Creator, Create a Dish, diabetic Snack Creator and AI Premades, Favorites, Describe/Refine results, and confirmed Component Swaps. Inventory other meal presentations only when they carry this provenance contract. Minimally centralize the presentation rule and retain the existing green visual standard; do not broaden into unrelated UI redesign. Verify consecutive breakfast/lunch/dinner/snack meals independently display their own indicators, cross-surface preservation, and immunity of historical displays to later glucose readings.
+
+This display requirement belongs to the existing approved diabetic-global correction. The user instructed that it not start a separate patch yet and that nothing be published or deployed.
+
+**Why:** The user explicitly supplied these scope boundaries.
+
+**How to apply:** Keep this requirement attached to the diabetic integration; do not treat the scope clarification as authorization for a standalone implementation.
