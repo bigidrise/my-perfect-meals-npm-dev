@@ -22,6 +22,7 @@ import BuilderSourcePill from "@/components/BuilderSourcePill";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import FavoriteButton from "@/components/FavoriteButton";
+import DiabetesProtocolIndicator from "@/components/DiabetesProtocolIndicator";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ProtocolVisibilityPanel from "@/components/ProtocolVisibilityPanel";
 import { useAuth } from "@/contexts/AuthContext";
@@ -157,7 +158,7 @@ export function MealCard({
   onRefined?:   () => void;
 }) {
   const { t } = useTranslation("mealCard");
-  const storedDiabeticMemory = diabeticMemoryContext ?? meal.diabeticMemory;
+  const storedDiabeticMemory = meal.diabeticMemory ?? diabeticMemoryContext;
   const { toast } = useToast();
   const { user } = useAuth();
   const [macrosLogged, setMacrosLogged] = React.useState(false);
@@ -331,22 +332,7 @@ export function MealCard({
             <MealClassificationPill dietClassification={meal.dietClassification} />
             <KosherProTip dietClassification={meal.dietClassification} />
           </div>
-          {storedDiabeticMemory && (
-            <div className="mt-2 rounded-lg bg-lime-950/60 border border-lime-700/40 px-3 py-2 text-xs space-y-0.5">
-              <div className="text-lime-400 font-semibold tracking-wide uppercase text-[10px]">{t("diabetesProtocol")}</div>
-              {storedDiabeticMemory.generatedBglMgdl !== null ? (
-                <div className="text-white/80">{t("generatedForBGL")} <span className="text-white font-medium">{storedDiabeticMemory.generatedBglMgdl} mg/dL</span></div>
-              ) : (
-                <div className="text-white/80">{storedDiabeticMemory.version === 2 && storedDiabeticMemory.glucoseState === "STALE"
-                  ? "No current glucose reading was used"
-                  : "No glucose reading was available"}</div>
-              )}
-              <div className="text-white/60">{storedDiabeticMemory.protocolTypeLabel}</div>
-              {storedDiabeticMemory.recommendedBglRange && (
-                <div className="text-white/50 text-[10px]">{t("relevantRange")} {storedDiabeticMemory.recommendedBglRange}</div>
-              )}
-            </div>
-          )}
+          <DiabetesProtocolIndicator memory={storedDiabeticMemory} />
 
           {meal.appliedProtocol && (
             <div className="mt-2 rounded-lg bg-orange-950/40 border border-orange-500/30 px-3 py-2 text-xs space-y-1.5">

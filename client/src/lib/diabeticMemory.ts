@@ -19,6 +19,35 @@ export type DiabeticMemoryContext =
   | DiabeticMemoryStamp
   | DiabeticGenerationSnapshot;
 
+/** Read stored evidence only. Never infer provenance from profile or builder state. */
+export function getPersistedDiabeticMemory(value: unknown): DiabeticMemoryContext | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const m = value as Record<string, unknown>;
+  const validDate = (date: unknown) =>
+    typeof date === "string" && date.length > 0 && Number.isFinite(Date.parse(date));
+  const hasNumber = typeof m.generatedBglMgdl === "number" &&
+    Number.isFinite(m.generatedBglMgdl) && m.generatedBglMgdl > 0;
+  if (m.source !== "diabetic-builder" || !validDate(m.generatedAt) ||
+      typeof m.protocolTypeLabel !== "string" || !m.protocolTypeLabel.trim() ||
+      typeof m.glucoseContext !== "string" || !m.glucoseContext.trim() ||
+      typeof m.recommendedBglRange !== "string") return null;
+  const numericBucket = ["low", "in-range", "elevated", "high"].includes(String(m.bglBucket));
+  // Preserve complete historical v1 records as-is; do not upgrade them.
+  if (m.version === 1) {
+    return hasNumber && numericBucket ? value as DiabeticMemoryStamp : null;
+  }
+  if (m.version !== 2 || m.policyVersion !== "diabetic-generation-v2") return null;
+  if (m.generatedBglMgdl === null) {
+    return (m.glucoseState === "STALE" || m.glucoseState === "NONE") &&
+      m.bglBucket === "unavailable" && m.readingRecordedAt === null && m.readingSource === null
+      ? value as DiabeticGenerationSnapshot : null;
+  }
+  return hasNumber && numericBucket &&
+    ["LOW", "IN_RANGE", "HIGH"].includes(String(m.glucoseState)) &&
+    validDate(m.readingRecordedAt) && (m.readingSource === "LOG" || m.readingSource === "SETTINGS")
+    ? value as DiabeticGenerationSnapshot : null;
+}
+
 export function projectServerDiabeticMemory(
   meal: { diabeticMemory?: DiabeticMemoryContext | null } | null | undefined,
   isDiabeticWorkflow: boolean,

@@ -13,6 +13,7 @@ export type PickerMealCardData = {
   fats?: number;
   labels?: string[];
   badges: string[];
+  diabeticMemory?: Meal["diabeticMemory"];
 };
 
 export type MealCardSlot = "breakfast" | "lunch" | "dinner" | "snacks";
@@ -32,6 +33,7 @@ export function toMealCardMeal(meal: PickerMealCardData): Meal {
     name: meal.name,
     description: meal.description,
     imageUrl: meal.imageUrl,
+    diabeticMemory: meal.diabeticMemory,
     ingredients: meal.ingredients.map(({ name, amount }) => ({ item: name, amount })),
     instructions: meal.instructions,
     nutrition: {
@@ -71,6 +73,7 @@ export function fromMealCardMeal<T extends PickerMealCardData>(
     name: updatedMeal.title ?? updatedMeal.name ?? currentMeal.name,
     description: updatedMeal.description ?? currentMeal.description,
     imageUrl: updatedMeal.imageUrl ?? currentMeal.imageUrl,
+    diabeticMemory: updatedMeal.diabeticMemory ?? currentMeal.diabeticMemory,
     ingredients,
     instructions,
     calories: updatedMeal.nutrition?.calories ?? currentMeal.calories,

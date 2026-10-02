@@ -19,8 +19,8 @@ The Diabetes Protocol indicator must display consistently wherever a meal carrie
 
 **How to apply:** Include Diabetic Board, applicable My Perfect Menu results, Create with Chef, Chef's Kitchen, Craving Creator, Create a Dish, diabetic Snack Creator and AI Premades, Favorites, Describe/Refine results, and confirmed Component Swaps. Inventory other meal presentations only when they carry this provenance contract. Minimally centralize the presentation rule and retain the existing green visual standard; do not broaden into unrelated UI redesign. Verify consecutive breakfast/lunch/dinner/snack meals independently display their own indicators, cross-surface preservation, and immunity of historical displays to later glucose readings.
 
-This display requirement belongs to the existing approved diabetic-global correction. The user instructed that it not start a separate patch yet and that nothing be published or deployed.
+This display requirement belongs to the existing approved diabetic-global correction. The user approved proceeding with implementation and requires a change/test report for review before anything is pushed or published. Do not add unrelated scope.
 
-**Why:** The user explicitly supplied these scope boundaries.
+**Why:** The user confirmed this is exactly the intended scope and explicitly requested the report before release.
 
-**How to apply:** Keep this requirement attached to the diabetic integration; do not treat the scope clarification as authorization for a standalone implementation.
+**How to apply:** Keep provenance and presentation under the same diabetic integration. Report changed areas, verification, and limitations; wait for release approval rather than pushing or publishing.

@@ -65,6 +65,7 @@ import {
 } from "@/components/copilot/scripts/kitchenStudioScripts";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import FavoriteButton from "@/components/FavoriteButton";
+import DiabetesProtocolIndicator from "@/components/DiabetesProtocolIndicator";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
@@ -117,6 +118,7 @@ interface GeneratedMeal {
   reasoning?: string;
   dietaryComplianceVerified?: boolean;
   dietClassification?: import("@/components/MealClassificationPill").DietClassification | null;
+  diabeticMemory?: import("@/lib/diabeticMemory").DiabeticMemoryContext;
 }
 
 const COOK_METHODS: { label: string; emoji: string }[] = [
@@ -534,6 +536,7 @@ export default function ChefsKitchenPage() {
         servings: meal.servings || servings,
         reasoning: meal.reasoning,
         dietClassification: meal.dietClassification ?? null,
+        diabeticMemory: meal.diabeticMemory,
       };
 
       setGenerationProgress(100);
@@ -900,6 +903,7 @@ export default function ChefsKitchenPage() {
                     </button>
                   </div>
 
+                  <DiabetesProtocolIndicator memory={generatedMeal.diabeticMemory} />
                   <div className="flex flex-wrap items-center gap-2 mb-3">
                     <DietStyleBadge />
                     <MealClassificationPill dietClassification={mealToShow.dietClassification} />

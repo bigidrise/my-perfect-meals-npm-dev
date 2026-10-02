@@ -56,6 +56,7 @@ import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { setQuickView } from "@/lib/macrosQuickView";
 import TrashButton from "@/components/ui/TrashButton";
 import FavoriteButton from "@/components/FavoriteButton";
+import DiabetesProtocolIndicator from "@/components/DiabetesProtocolIndicator";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
@@ -1900,6 +1901,7 @@ export default function CreateDishPage() {
                 <div key={meal.id}>
                   <Card className="bg-black/40 backdrop-blur-lg border border-orange-400/20 shadow-xl rounded-2xl">
                     <CardContent className="p-6">
+                      <DiabetesProtocolIndicator memory={meal.diabeticMemory} />
                       <div className="mb-4">
                         <div className="flex items-center gap-2 mb-2">
                           <ChefHat className="h-5 w-5 text-orange-400 shrink-0" />

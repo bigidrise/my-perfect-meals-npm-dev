@@ -137,6 +137,7 @@ import { setQuickView } from "@/lib/macrosQuickView";
 import TrashButton from "@/components/ui/TrashButton";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import FavoriteButton from "@/components/FavoriteButton";
+import DiabetesProtocolIndicator from "@/components/DiabetesProtocolIndicator";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
@@ -1611,6 +1612,7 @@ export default function CravingCreator() {
                     className="bg-black/30 backdrop-blur-lg border border-white/20 shadow-xl rounded 2xl"
                   >
                     <CardContent className="p-6">
+                      <DiabetesProtocolIndicator memory={meal.diabeticMemory} />
                       <div className="mb-4">
                         <div className="flex items-center gap-2 mb-2">
                           <Sparkles className="h-5 w-5 text-yellow-600 shrink-0" />

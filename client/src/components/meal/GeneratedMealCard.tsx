@@ -14,6 +14,7 @@ import { setQuickView } from "@/lib/macrosQuickView";
 import type { MacroSourceSlug } from "@/lib/macroSourcesConfig";
 import { isFeatureEnabled } from "@/lib/productionGates";
 import FavoriteButton from "@/components/FavoriteButton";
+import DiabetesProtocolIndicator from "@/components/DiabetesProtocolIndicator";
 import DietStyleBadge from "@/components/DietStyleBadge";
 import MealClassificationPill, { type DietClassification } from "@/components/MealClassificationPill";
 import BuilderSourcePill from "@/components/BuilderSourcePill";
@@ -64,6 +65,7 @@ export interface GeneratedMealData {
   dietaryComplianceVerified?: boolean;
   /** Meal-level diet classification from the server (drives secondary pill). */
   dietClassification?: DietClassification | null;
+  diabeticMemory?: import("@/lib/diabeticMemory").DiabeticMemoryContext;
   /** Full compliance section — prep rules, pairing guidance, why-this-complies. */
   complianceSection?: {
     statusLabel: string;
@@ -157,6 +159,7 @@ export default function GeneratedMealCard({
       servings: generatedMeal.servings,
       servingSize: generatedMeal.servingSize,
       medicalBadges: generatedMeal.medicalBadges || [],
+      diabeticMemory: generatedMeal.diabeticMemory,
     };
 
     writeChefHandoffMeal(mealData);
@@ -252,6 +255,7 @@ export default function GeneratedMealCard({
         </button>
       </div>
 
+      <DiabetesProtocolIndicator memory={generatedMeal.diabeticMemory} />
       <div className="flex flex-wrap items-center gap-2">
         <DietStyleBadge />
         <BuilderSourcePill source={source} />
