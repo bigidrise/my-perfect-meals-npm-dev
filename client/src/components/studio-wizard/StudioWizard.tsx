@@ -59,6 +59,7 @@ export interface GeneratedMeal {
   servingSize?: string;
   servings?: number;
   reasoning?: string;
+  diabeticMemory?: import("@/lib/diabeticMemory").DiabeticMemoryContext;
 }
 
 export interface StudioStepConfig {
@@ -481,6 +482,7 @@ export default function StudioWizard({ config }: StudioWizardProps) {
         servingSize: meal.servingSize || `${currentServings} ${currentServings === 1 ? "serving" : "servings"}`,
         servings: meal.servings || currentServings,
         reasoning: meal.reasoning,
+        diabeticMemory: meal.diabeticMemory,
       };
 
       setProgress(100);

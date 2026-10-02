@@ -84,6 +84,25 @@ describe("server-owned diabetes generation snapshot", () => {
     expect(Object.isFrozen(original.glucose.activePreferences)).toBe(true);
   });
 
+  it("resolves independent frozen protocol contexts for breakfast/lunch at 100 and dinner/snack at 115", async () => {
+    const operations = [
+      { mealType: "breakfast", reading: 100, attempt: attempt(100) },
+      { mealType: "lunch", reading: 100, attempt: attempt(100) },
+      { mealType: "dinner", reading: 115, attempt: attempt(115) },
+      { mealType: "snack", reading: 115, attempt: attempt(115) },
+    ];
+    for (const operation of operations) {
+      const coupling = await resolveHubCoupling("diabetic", "patient", operation.mealType, operation.attempt);
+      expect(coupling!.context!.data.latestGlucose.value).toBe(operation.reading);
+      expect(coupling!.promptFragment.userPromptAddition).toContain(`${operation.reading} mg/dL`);
+      expect(operation.attempt.snapshot.generatedBglMgdl).toBe(operation.reading);
+      expect(Object.isFrozen(operation.attempt.snapshot)).toBe(true);
+    }
+    expect(operations.map(({ attempt: operation }) => operation.snapshot.generatedBglMgdl))
+      .toEqual([100, 100, 115, 115]);
+    expect(operations[0].attempt.snapshot).not.toBe(operations[1].attempt.snapshot);
+  });
+
   it("uses a fresh settings fallback with the timestamp of that same source", () => {
     const settings = { bloodGlucose: 100, updatedAt: recordedAt };
     const glucose = resolveGlucoseState({

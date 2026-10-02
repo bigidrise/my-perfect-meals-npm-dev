@@ -15,6 +15,7 @@ type Meal = {
   id: string;
   name: string;
   servings?: number;
+  diabeticMemory?: McfMeal["diabeticMemory"];
   ingredients?: Array<
     | string
     | { name: string; quantity?: number | string; unit?: string; item?: string; amount?: number | string }
@@ -154,6 +155,7 @@ function toMcfMeal(m: Meal): McfMeal {
       fat_g: m.nutrition?.fat ?? 0,
     },
     servings: m.servings ?? 1,
+    diabeticMemory: m.diabeticMemory,
   };
 }
 
