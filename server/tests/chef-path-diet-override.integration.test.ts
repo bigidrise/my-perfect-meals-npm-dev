@@ -34,6 +34,7 @@ import * as path from "path";
 // ── Captured OpenAI call storage ───────────────────────────────────────────────
 // Declared before jest.mock so the factory closure captures by reference.
 const capturedCalls: Array<{ messages: any[]; maxTokens: number }> = [];
+const mockRecipeResponses: string[] = [];
 
 // ── Stable mock LLM response — keto strawberry cake ───────────────────────────
 // Cream cheese + eggs are keto-legal but vegan-illegal.
@@ -76,7 +77,7 @@ jest.mock("openai", () => {
       messages:  params.messages ?? [],
       maxTokens: params.max_tokens ?? 0,
     });
-    return { choices: [{ message: { content: KETO_CAKE_RESPONSE } }] };
+    return { choices: [{ message: { content: mockRecipeResponses.shift() ?? KETO_CAKE_RESPONSE } }] };
   });
 
   const MockOpenAI = jest.fn().mockImplementation(() => ({
@@ -189,6 +190,7 @@ jest.mock("../services/mealImageGenerator", () => ({
 // ── Mock: safetyProfileService ────────────────────────────────────────────────
 jest.mock("../services/safetyProfileService", () => ({
   enforceSafetyProfile:          jest.fn().mockResolvedValue(null),
+  loadSafetyProfile:             jest.fn().mockResolvedValue({ allergies: [], restrictions: [] }),
   validateGeneratedMeal:         jest.fn().mockReturnValue({ safe: true, violations: [] }),
   extractSafetyProfileFromUser:  jest.fn().mockReturnValue({ allergies: [], restrictions: [] }),
 }));
@@ -212,7 +214,8 @@ jest.mock("../services/mealCachePersistent", () => ({
 }));
 
 // ── Imports (after jest.mock hoisting) ────────────────────────────────────────
-import { generateFromDescriptionUnified } from "../services/unifiedMealPipeline";
+import { generateFromDescriptionUnified, generateMealUnified, type MealGenerationRequest } from "../services/unifiedMealPipeline";
+import { scanGeneratedOutput } from "../services/protocolEnvelope";
 
 // ── Source paths for structural tests ─────────────────────────────────────────
 const PIPELINE_SRC = fs.readFileSync(
@@ -315,6 +318,198 @@ describe("A. Structural — routes.ts diet override construction", () => {
 
 beforeEach(() => {
   capturedCalls.length = 0;
+  mockRecipeResponses.length = 0;
+});
+describe("Create With Chef requested-macro handoff", () => {
+  const recipe = (overrides: Record<string, unknown> = {}) => JSON.stringify({
+    ...JSON.parse(KETO_CAKE_RESPONSE),
+    protein: 30,
+    starchyCarbs: 20,
+    fibrousCarbs: 5,
+    ...overrides,
+  });
+  const chefRequest = (macroTargets?: MealGenerationRequest["macroTargets"]): MealGenerationRequest => ({
+    type: "create-with-chef",
+    mealType: "breakfast",
+    input: "Strawberry Cake",
+    userId: "test-user-vegan-001",
+    servings: 2,
+    skipImage: true,
+    safetyAlreadyChecked: true,
+    dietaryRestrictionsOverride: ["keto"],
+    macroTargets,
+  });
+  const prompt = () => capturedCalls[0]?.messages.map(message => message.content).join("\n") ?? "";
+
+  afterEach(() => {
+    (scanGeneratedOutput as jest.Mock).mockReturnValue({
+      passed: true, violations: [], instructionViolations: [], message: "",
+    });
+  });
+
+  it.each([
+    [{ protein_g: 30 }, "protein: approximately 30g"],
+    [{ carbs_g: 25 }, "TOTAL carbohydrates: approximately 25g"],
+    [{ protein_g: 30, carbs_g: 25 }, "TOTAL carbohydrates: approximately 25g"],
+  ])("forwards structured targets through the real unified dispatch: %j", async (targets, instruction) => {
+    mockRecipeResponses.push(recipe());
+    const result = await generateMealUnified(chefRequest(targets));
+    expect(result.success).toBe(true);
+    expect(prompt()).toContain(instruction);
+    expect(prompt()).toContain("PER SERVING");
+    if ("protein_g" in targets) expect(prompt()).toContain("protein: approximately 30g");
+  });
+
+  it("preserves remainingMacros and authoritative context separately from the requested target", async () => {
+    const remainingMacros = Object.freeze({ protein: 99, carbs: 88, fat: 50, calories: 500 });
+    const targets = Object.freeze({ protein_g: 30, carbs_g: 25 });
+    const request = {
+      ...chefRequest(targets),
+      remainingMacros,
+      generationContext: "HUMAN FOOD CONTEXT: preserve saved avoidances and authoritative daily nutrition.",
+    };
+    mockRecipeResponses.push(recipe());
+    expect((await generateMealUnified(request)).success).toBe(true);
+    expect(request.remainingMacros).toBe(remainingMacros);
+    expect(request.remainingMacros).toEqual({ protein: 99, carbs: 88, fat: 50, calories: 500 });
+    expect(targets).toEqual({ protein_g: 30, carbs_g: 25 });
+    expect(prompt()).toContain("protein: approximately 30g");
+    expect(prompt()).toContain(request.generationContext);
+    expect(prompt()).toContain("Dietary identity: keto");
+    expect(ROUTES_SRC).toContain("remainingMacros: effectiveRemainingMacros || undefined");
+    expect(ROUTES_SRC).toContain("effectiveRemainingMacros = chefBudget.remainingMacros");
+  });
+
+  it("retains an at-most limit and rejects an over-limit recipe after bounded retries", async () => {
+    mockRecipeResponses.push(recipe({ fibrousCarbs: 11 }), recipe({ fibrousCarbs: 11 }));
+    const result = await generateMealUnified(chefRequest({
+      carbs_g: 30, relationships: { carbs_g: "at_most" },
+    }));
+    expect(prompt()).toContain("TOTAL carbohydrates: at most 30g (upper limit; never exceed)");
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("31g per serving");
+    expect(capturedCalls).toHaveLength(2);
+  });
+
+  it("retains an at-least protein minimum", async () => {
+    mockRecipeResponses.push(recipe({ protein: 40 }));
+    const result = await generateMealUnified(chefRequest({
+      protein_g: 40, relationships: { protein_g: "at_least" },
+    }));
+    expect(result.success).toBe(true);
+    expect(prompt()).toContain("protein: at least 40g (minimum)");
+  });
+
+  it("retries a missed request inside the existing loop and accepts a matching candidate", async () => {
+    mockRecipeResponses.push(recipe({ protein: 10 }), recipe({ protein: 30 }));
+    const result = await generateMealUnified(chefRequest({ protein_g: 30 }));
+    expect(result.success).toBe(true);
+    expect(result.meal?.protein).toBe(30);
+    expect(capturedCalls).toHaveLength(2);
+    expect(capturedCalls[1].messages.map(message => message.content).join("\n"))
+      .toContain("REQUESTED MEAL MACROS NOT MET");
+  });
+
+  it("does not treat starchy carbohydrate alone as total carbohydrate", async () => {
+    mockRecipeResponses.push(recipe({ starchyCarbs: 25, fibrousCarbs: 15 }),
+      recipe({ starchyCarbs: 25, fibrousCarbs: 15 }));
+    const result = await generateMealUnified(chefRequest({ carbs_g: 25 }));
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("TOTAL carbohydrates is 40g");
+  });
+
+  it("does not bypass an existing protocol rejection even when macros match", async () => {
+    (scanGeneratedOutput as jest.Mock).mockReturnValue({
+      passed: false, violations: ["saved allergy"], instructionViolations: [], message: "Saved allergy conflict.",
+    });
+    mockRecipeResponses.push(recipe(), recipe());
+    const result = await generateMealUnified(chefRequest({ protein_g: 30, carbs_g: 25 }));
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Saved allergy conflict");
+  });
+
+  it("preserves the server-authoritative zero-starch gate", async () => {
+    mockRecipeResponses.push(recipe(), recipe());
+    const result = await generateMealUnified({
+      ...chefRequest({ protein_g: 30, carbs_g: 25 }),
+      starchContext: { forceFiberBased: true, isZeroStarchDay: true } as any,
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("STARCH HARD VIOLATION");
+  });
+
+  it("checks per-serving values without multiplying the request by recipe servings", async () => {
+    mockRecipeResponses.push(recipe());
+    const result = await generateMealUnified({ ...chefRequest({ protein_g: 30, carbs_g: 25 }), servings: 3 });
+    expect(result.success).toBe(true);
+    expect(result.meal?.protein).toBe(30);
+    expect(prompt()).toMatch(/3\s*serving/i);
+  });
+
+  it("preserves a legitimate zero rather than replacing it with the legacy fat default", async () => {
+    mockRecipeResponses.push(recipe({ fat: 0 }));
+    const result = await generateMealUnified(chefRequest({
+      fat_g: 0, relationships: { fat_g: "at_most" },
+    }));
+    expect(result.success).toBe(true);
+    expect(result.meal?.fat).toBe(0);
+  });
+
+  it("does not fabricate a target match from missing provider protein", async () => {
+    const missing = JSON.parse(recipe());
+    delete missing.protein;
+    mockRecipeResponses.push(JSON.stringify(missing), JSON.stringify(missing));
+    const result = await generateMealUnified(chefRequest({ protein_g: 25 }));
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("valid returned nutrition value");
+  });
+
+  it("carries and checks targets on the beverage early-return path", async () => {
+    mockRecipeResponses.push(recipe({ name: "Berry Protein Shake" }));
+    const result = await generateMealUnified({
+      ...chefRequest({ protein_g: 999 }), input: "Make me a protein shake",
+    });
+    expect(prompt()).toContain("protein: approximately 999g");
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("The beverage could not meet your requested meal macros");
+  });
+
+  it("rejects a deterministic fallback that misses the requested target", async () => {
+    mockRecipeResponses.push("invalid provider JSON");
+    const result = await generateMealUnified(chefRequest({ protein_g: 999 }));
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("The fallback could not meet your requested meal macros");
+  });
+
+  it("leaves the prompt unchanged when explicit targets are absent or empty", async () => {
+    await generateMealUnified(chefRequest());
+    const previousPrompt = prompt();
+    capturedCalls.length = 0;
+    await generateMealUnified(chefRequest({}));
+    expect(prompt()).toBe(previousPrompt);
+    expect(prompt()).not.toContain("EXPLICIT REQUESTED PER-MEAL MACROS");
+  });
+
+  it("does not forward Chef-only constraints to Snack Creator", async () => {
+    const request = { ...chefRequest(), type: "snack-creator" as const };
+    const previous = await generateMealUnified(request);
+    capturedCalls.length = 0;
+    const withTargets = await generateMealUnified({
+      ...request, macroTargets: { protein_g: 999, carbs_g: 999 },
+    });
+    expect(withTargets.success).toBe(previous.success);
+    expect(withTargets.error).toBe(previous.error);
+    expect(withTargets.meal?.protein).toBe(previous.meal?.protein);
+    expect(prompt()).not.toContain("EXPLICIT REQUESTED PER-MEAL MACROS");
+  });
+
+  it("keeps legacy creators remapped onto Chef outside this handoff", () => {
+    const construction = ROUTES_SRC.slice(
+      ROUTES_SRC.indexOf("const generationRequest ="),
+      ROUTES_SRC.indexOf("const result = await generateMealUnified(generationRequest)"),
+    );
+    expect(construction).toMatch(/macroTargets:\s*stage2dHumanFoodTypes\.has\(type\)\s*&&\s*type !== "create-with-chef"\s*\?\s*undefined\s*:\s*macroTargets/);
+  });
 });
 
 describe("B. Integration — generateFromDescriptionUnified: vegan profile + keto override", () => {

@@ -12,6 +12,13 @@
  */
 
 import { isRecipeSensitiveDish } from './dishEngineRouter';
+import {
+  resolveRequestedMealMacros,
+  buildRequestedMealMacroPrompt,
+  validateRequestedMealMacros,
+  type RequestedMealMacroTargets,
+  type RequestedMealMacroConstraint,
+} from './requestedMealMacros';
 import { parseGeneratedRecipeSteps } from './recipeInstructions';
 import { getMeasurementPromptBlock, MeasurementSystem } from '../../shared/units';
 import { loadUserProtocolEnvelope, loadGenerationProtocolEnvelope, ProtocolContextUnavailableError, enforceBeforeGenerate, scanGeneratedOutput, filterMealsByProtocol, buildGuestEnvelope, deriveProcedureRules, type UserProtocolEnvelope } from './protocolEnvelope';
@@ -297,12 +304,7 @@ export interface MealGenerationRequest {
   /** Server-owned subject scope. Household requests have no owner glucose authority. */
   diabetesSubjectScope?: "personal" | "household";
 
-  macroTargets?: {
-    protein_g?: number;
-    fibrous_carbs_g?: number;
-    starchy_carbs_g?: number;
-    fat_g?: number;
-  };
+  macroTargets?: RequestedMealMacroTargets;
 
   count?: number; // number of meals to generate (default 1)
 
@@ -3567,7 +3569,19 @@ export async function generateFromDescriptionUnified(
   protocolEnvelope?: UserProtocolEnvelope,
   diabetesAttempt?: DiabetesGenerationAttempt,
   diabetesSubjectScope?: MealGenerationRequest["diabetesSubjectScope"],
+  requestedMacroTargets?: RequestedMealMacroTargets,
 ): Promise<MealGenerationResponse> {
+  let requestedMacros: RequestedMealMacroConstraint[];
+  try {
+    requestedMacros = resolveRequestedMealMacros(requestedMacroTargets);
+  } catch (error) {
+    return {
+      success: false,
+      source: 'error',
+      error: error instanceof Error ? error.message : "Invalid requested meal macros.",
+    };
+  }
+  const requestedMacroPrompt = buildRequestedMealMacroPrompt(requestedMacros);
   if (diabetesSubjectScope === "household") {
     if (diabetesAttempt || !protocolEnvelope) throw new ProtocolContextUnavailableError();
     userId = undefined;
@@ -3597,7 +3611,7 @@ export async function generateFromDescriptionUnified(
   const beverageIntent = detectBeverageIntent(description);
   if (beverageIntent) {
     const beverageResult = await generateBeverageFromDescription(
-      description,
+      requestedMacroPrompt ? `${description}\n\n${requestedMacroPrompt}` : description,
       beverageIntent,
       userId,
       dietType,
@@ -3611,6 +3625,12 @@ export async function generateFromDescriptionUnified(
       protocolEnvelope,
       diabetesSubjectScope,
     );
+    if (beverageResult.success && requestedMacros.length) {
+      const violations = validateRequestedMealMacros(beverageResult.meal ?? {}, requestedMacros);
+      if (violations.length) {
+        return { success: false, source: 'error', error: `The beverage could not meet your requested meal macros. ${violations.join(" ")}` };
+      }
+    }
     return resolvedDiabetesAttempt && userId
       ? validateAndStampDiabetesResult(beverageResult, userId, validMealType, resolvedDiabetesAttempt)
       : beverageResult;
@@ -3853,7 +3873,7 @@ FORMAT: Return as JSON object:
   "substitutionNotes": ["1-sentence explanation per substitution made due to nutrition strategy, e.g. Rice was replaced with cauliflower rice to match your low-starch plan. Omit this field entirely if no substitutions were made."]
 }
 
-Create the recipe for: "${description}"`;
+Create the recipe for: "${description}"${requestedMacroPrompt ? `\n\n${requestedMacroPrompt}` : ""}`;
 
     // Apply diet-specific guardrails — skip dietary rules when strictMode is ON
     // (guardrails inject balance/wholefood rules that add unwanted ingredients).
@@ -4089,11 +4109,11 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
         ingredients: normalizeIngredients(mealData.ingredients || []),
         instructions: parseGeneratedRecipeSteps(mealData.instructions),
         calories: mealData.calories || 400,
-        protein: mealData.protein || 25,
+        protein: requestedMacros.length ? (mealData.protein ?? 25) : (mealData.protein || 25),
         carbs: totalCarbs,
         starchyCarbs,
         fibrousCarbs,
-        fat: mealData.fat || 15,
+        fat: requestedMacros.length ? (mealData.fat ?? 15) : (mealData.fat || 15),
         cookingTime: mealData.cookingTime || '25 minutes',
         difficulty: mealData.difficulty || 'Easy',
         imageUrl: '',
@@ -4553,6 +4573,28 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
         }
       }
 
+      // The provider reports per-serving macros here, before image generation
+      // and any downstream recipe-total formatting. Check its actual values,
+      // not legacy defaults that could fabricate a requested macro match.
+      const requestedMacroViolations = validateRequestedMealMacros({
+        protein: mealData.protein,
+        carbs: tempMeal.carbs,
+        starchyCarbs: mealData.starchyCarbs,
+        fibrousCarbs: mealData.fibrousCarbs,
+        fat: mealData.fat,
+      }, requestedMacros);
+      if (requestedMacroViolations.length) {
+        if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
+          lastFixHint = `REQUESTED MEAL MACROS NOT MET: ${requestedMacroViolations.join(" ")} Regenerate while preserving all existing safety and clinical constraints.`;
+          continue;
+        }
+        return {
+          success: false,
+          source: 'error',
+          error: `We could not meet your requested meal macros within your existing requirements. ${requestedMacroViolations.join(" ")}`,
+        };
+      }
+
       const substitutionNotes = Array.isArray(mealData.substitutionNotes) && mealData.substitutionNotes.length > 0
         ? mealData.substitutionNotes.filter((n: any) => typeof n === 'string' && n.trim().length > 0)
         : undefined;
@@ -4606,11 +4648,11 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       ingredients: normalizeIngredients(finalMealData.ingredients || []),
       instructions: parseGeneratedRecipeSteps(finalMealData.instructions),
       calories: finalMealData.calories || 400,
-      protein: finalMealData.protein || 25,
+      protein: requestedMacros.length ? (finalMealData.protein ?? 25) : (finalMealData.protein || 25),
       carbs: finalMealData.totalCarbs,
       starchyCarbs: finalMealData.starchyCarbs,
       fibrousCarbs: finalMealData.fibrousCarbs,
-      fat: finalMealData.fat || 15,
+      fat: requestedMacros.length ? (finalMealData.fat ?? 15) : (finalMealData.fat || 15),
       cookingTime: finalMealData.cookingTime || '25 minutes',
       difficulty: finalMealData.difficulty || 'Easy',
       imageUrl: imageUrl ?? '',
@@ -4702,6 +4744,15 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
         success: false,
         source: 'error',
         error: 'We could not generate a meal that meets your dietary safety requirements right now. Please try again.',
+      };
+    }
+
+    const requestedFallbackViolations = validateRequestedMealMacros(fallbackMeal, requestedMacros);
+    if (requestedFallbackViolations.length) {
+      return {
+        success: false,
+        source: 'error',
+        error: `The fallback could not meet your requested meal macros. ${requestedFallbackViolations.join(" ")}`,
       };
     }
 
@@ -5444,6 +5495,7 @@ export async function generateMealUnified(
         request.protocolEnvelope,
         diabetesAttempt,
         request.diabetesSubjectScope,
+        request.macroTargets,
       );
       break;
 

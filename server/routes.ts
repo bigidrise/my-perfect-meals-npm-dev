@@ -1775,7 +1775,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Only this authorized route assigns nutrition-subject scope. Household
         // generation is deliberately detached from the account owner's ID.
         diabetesSubjectScope: householdSubjectId ? ("household" as const) : ("personal" as const),
-        macroTargets,
+        // Other legacy creators are mapped onto the Chef implementation above,
+        // but this requested-macro handoff belongs only to Create With Chef.
+        macroTargets: stage2dHumanFoodTypes.has(type) && type !== "create-with-chef"
+          ? undefined
+          : macroTargets,
         count,
         dietType: effectiveDietType,
         dietPhase: dietPhase || undefined,
