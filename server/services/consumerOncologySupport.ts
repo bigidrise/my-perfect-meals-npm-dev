@@ -7,6 +7,25 @@ export class ConsumerOncologyError extends Error {
   constructor(public status: number, public code: string, message: string) { super(message); }
 }
 
+export const SELF_SELECTABLE_SPECIALTY_CONDITIONS = [
+  "renal", "cardiac", "liver-disease", "liver-support", "oncology-support",
+  "thyroid-support", "hormone-optimization", "hashimotos", "hypothyroid",
+  "hyperthyroid", "menopause", "perimenopause", "metabolic-recovery",
+  "pregnancy-support", "alpha-gal-syndrome",
+];
+const RETAINED_SPECIALTY_CONDITIONS = ["therapeutic-support", "performance-nutrition"];
+
+/** Retain established settings; this form cannot newly activate legacy supports. */
+export function resolveConsumerSpecialtyConditions(requested: string[], stored: string[]): string[] {
+  const retained = stored.filter(condition => RETAINED_SPECIALTY_CONDITIONS.includes(condition));
+  const invalid = requested.find(condition =>
+    !SELF_SELECTABLE_SPECIALTY_CONDITIONS.includes(condition) && !retained.includes(condition));
+  if (invalid !== undefined) {
+    throw new ConsumerOncologyError(400, "invalid_specialty_condition", `Invalid condition: ${invalid}`);
+  }
+  return Array.from(new Set([...requested, ...retained]));
+}
+
 export function parseConsumerOncologyInput(input: unknown): string[] | undefined {
   if (input === undefined) return undefined;
   const value = input as { symptoms?: unknown };
@@ -51,15 +70,21 @@ export function consumerOncologyUpdate(previous: typeof users.$inferSelect.oncol
 export async function saveConsumerSpecialtySupport(userId: string, conditions: string[], input: unknown) {
   parseConsumerOncologyInput(input);
   return db.transaction(async tx => {
-    const [record] = await tx.select({ context: users.oncologySupportContext })
+    const [record] = await tx.select({
+      context: users.oncologySupportContext,
+      conditions: users.specialtyConditions,
+      primaryCondition: users.specialtyCondition,
+    })
       .from(users).where(eq(users.id, userId)).limit(1).for("update");
     if (!record) throw new ConsumerOncologyError(404, "user_not_found", "User not found.");
-    const context = consumerOncologyUpdate(record.context, conditions, input, userId);
+    const resolvedConditions = resolveConsumerSpecialtyConditions(
+      conditions, record.conditions ?? (record.primaryCondition ? [record.primaryCondition] : []));
+    const context = consumerOncologyUpdate(record.context, resolvedConditions, input, userId);
     await tx.update(users).set({
-      specialtyCondition: conditions[0] ?? null,
-      specialtyConditions: conditions,
+      specialtyCondition: resolvedConditions[0] ?? null,
+      specialtyConditions: resolvedConditions,
       oncologySupportContext: context,
     }).where(eq(users.id, userId));
-    return context;
+    return { context, conditions: resolvedConditions };
   });
 }
