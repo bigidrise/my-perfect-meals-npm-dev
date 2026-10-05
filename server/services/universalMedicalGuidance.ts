@@ -20,6 +20,8 @@ import { buildTherapeuticGuidanceBlocks } from "./therapeuticGuidance";
 import type { TherapeuticSupportCtx } from "./therapeuticGuidance";
 import { buildLiverDiseasePrompt } from "./guardrails/prompt/liverDiseasePromptBuilder";
 
+import { applyOncologySymptomPriority } from "./guardrails/prompt/oncologySymptomPriority";
+
 export type OncologySymptom =
   | "low_appetite"
   | "nausea"
@@ -315,7 +317,7 @@ function buildOncologyGuidance(
     }
   }
 
-  return lines.join("\n");
+  return applyOncologySymptomPriority(lines.join("\n"), symptoms);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

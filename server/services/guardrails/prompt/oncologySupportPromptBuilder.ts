@@ -13,6 +13,8 @@
  * (oncologySupportValidator.ts) enforces this as a second layer of protection.
  */
 
+import { applyOncologySymptomPriority } from "./oncologySymptomPriority";
+
 export type OncologySupportSymptom =
   | "low_appetite"
   | "nausea"
@@ -282,7 +284,7 @@ export function buildOncologySupportPrompt(context: OncologySupportContext): str
   lines.push("");
   lines.push("--- END CANCER SUPPORT NUTRITION OVERLAY ---");
 
-  return lines.join("\n");
+  return applyOncologySymptomPriority(lines.join("\n"), context.symptoms);
 }
 
 /**
