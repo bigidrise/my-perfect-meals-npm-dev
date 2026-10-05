@@ -16,6 +16,9 @@
  *   - Vegetables present
  */
 
+import type { OncologySymptomSelection } from "../../../../shared/oncologySupportSelection";
+import { activeOncologySymptoms, applyOncologySymptomPriority } from "../prompt/oncologySymptomPriority";
+
 export type OncologyQualityTier = "premium" | "approved" | "improve" | "reject";
 
 export interface OncologyScoreBreakdown {
@@ -158,8 +161,11 @@ export interface ScoredMeal {
 
 // ─── Scorer ──────────────────────────────────────────────────────────────────
 
-export function scoreOncologyMealQuality(meal: ScoredMeal): OncologyQualityResult {
+export function scoreOncologyMealQuality(meal: ScoredMeal, symptoms: readonly OncologySymptomSelection[] = []): OncologyQualityResult {
   const text = ingredientText(meal);
+  const activeSymptoms = activeOncologySymptoms(symptoms);
+  const digestiveTolerance = activeSymptoms.includes("gi_sensitivity");
+  const gentleFlavor = digestiveTolerance || activeSymptoms.includes("mouth_sensitivity") || activeSymptoms.includes("nausea");
 
   // 1. Clean Protein (0–20)
   let cleanProtein = 0;
@@ -171,7 +177,7 @@ export function scoreOncologyMealQuality(meal: ScoredMeal): OncologyQualityResul
   // IMPORTANT: Only FIBER_ANCHOR_STRONG (quinoa/oats/lentils/beans/sweet potato/grains)
   // scores here. Leafy greens and light vegetables do NOT satisfy the fiber anchor gate.
   // They contribute to vegetable score below, never to fiber score.
-  const hasStrongFiberAnchor = contains(text, FIBER_ANCHOR_STRONG);
+  const hasStrongFiberAnchor = digestiveTolerance || contains(text, FIBER_ANCHOR_STRONG);
   let fiberAnchor = 0;
   if (hasStrongFiberAnchor) fiberAnchor = 20;
   // Note: deliberately no "else if FIBER_ANCHOR_LIGHT" — greens ≠ fiber anchor
@@ -187,6 +193,9 @@ export function scoreOncologyMealQuality(meal: ScoredMeal): OncologyQualityResul
   let healthyFats = 0;
   if (contains(text, HEALTHY_FATS_PREMIUM)) healthyFats = 15;
   else if (contains(text, HEALTHY_FATS_NEUTRAL)) healthyFats = 8;
+  // Existing nausea/GI guidance limits greasy/high-fat foods. Quality must not
+  // force an extra fat source merely to recover points.
+  if (digestiveTolerance || activeSymptoms.includes("nausea")) healthyFats = 15;
 
   // 5. Processing Level (0–15)
   let processingLevel = 15;
@@ -201,7 +210,7 @@ export function scoreOncologyMealQuality(meal: ScoredMeal): OncologyQualityResul
   }
 
   // 6. Therapeutic Boosters (0–10)
-  const hasTherapeuticBooster = contains(text, THERAPEUTIC_BOOSTERS);
+  const hasTherapeuticBooster = gentleFlavor || contains(text, THERAPEUTIC_BOOSTERS);
   const therapeuticBoosters = hasTherapeuticBooster ? 10 : 0;
 
   // ── Green-tier protein flag ───────────────────────────────────────────────
@@ -242,7 +251,9 @@ export function scoreOncologyMealQuality(meal: ScoredMeal): OncologyQualityResul
   // A meal built on all-purpose flour or granulated sugar is a standard dessert,
   // not a clinical-quality Cancer Support transformation. The AI must be forced to
   // rebuild using oats, almond flour, protein powder, or naturally sweet ingredients.
-  const hasRefinedCarbPrimary = contains(text, REFINED_CARB_PRIMARY);
+  const hasRefinedCarbPrimary = contains(text, digestiveTolerance
+    ? REFINED_CARB_PRIMARY.filter(ingredient => ingredient !== "white rice")
+    : REFINED_CARB_PRIMARY);
   const hasAddedSugarHigh = contains(text, ADDED_SUGAR_HIGH);
   if (hasRefinedCarbPrimary || hasAddedSugarHigh) {
     cappedTotal = Math.min(cappedTotal, 69);
@@ -295,7 +306,7 @@ export function scoreOncologyMealQuality(meal: ScoredMeal): OncologyQualityResul
       );
     }
 
-    if (!hasFiber || fiberAnchor < 20) {
+    if (!digestiveTolerance && (!hasFiber || fiberAnchor < 20)) {
       hints.push(
         "FIBER ANCHOR: Include a real fiber source — quinoa, oats, lentils, chickpeas, sweet potato, brown rice, farro, or berries. " +
           "Leafy greens alone are insufficient."
@@ -308,13 +319,13 @@ export function scoreOncologyMealQuality(meal: ScoredMeal): OncologyQualityResul
       );
     }
 
-    if (healthyFats < 8) {
+    if (!digestiveTolerance && !activeSymptoms.includes("nausea") && healthyFats < 8) {
       hints.push(
         "FATS: Use olive oil, avocado, tahini, walnuts, or almonds as the fat source."
       );
     }
 
-    if (therapeuticBoosters === 0) {
+    if (!gentleFlavor && therapeuticBoosters === 0) {
       hints.push(
         "BOOSTERS: Add therapeutic ingredients — garlic, turmeric, ginger, lemon, or fresh herbs."
       );
@@ -330,7 +341,7 @@ export function scoreOncologyMealQuality(meal: ScoredMeal): OncologyQualityResul
       );
     }
 
-    regenerationHint = hints.join(" ");
+    regenerationHint = applyOncologySymptomPriority(hints.join(" "), activeSymptoms);
   }
 
   const scoreLabel =

@@ -551,6 +551,8 @@ export interface UserProtocolEnvelope {
    * Empty array when no conditions are active.
    */
   conditionGuidanceBlocks: string[];
+  /** Subject-resolved context for Development oncology tolerance checks only. */
+  oncologySupportContext?: import("./guardrails/prompt/oncologySupportPromptBuilder").OncologySupportContext | null;
 
   /**
    * User's preferred language — BCP-47 base code ("es", "fr", "zh", etc.)
@@ -1550,6 +1552,10 @@ export async function loadUserProtocolEnvelope(
       hasDiabetes,
       diabeticGlucoseState,
       conditionGuidanceBlocks,
+      ...(process.env.NODE_ENV === "development" && !process.env.REPLIT_DEPLOYMENT &&
+          process.env.VITE_IS_PRODUCTION_PROJECT !== "true"
+        ? { oncologySupportContext: user.oncologySupportContext ?? null }
+        : {}),
       glp1DailyTolerance,
       thyroidSupport,
       thyroidMedication,

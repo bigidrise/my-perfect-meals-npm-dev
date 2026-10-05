@@ -85,6 +85,7 @@ import { validateThyroidSupportMeal } from './guardrails/validators/thyroidSuppo
 import { filterByStarchStructure, validateStarchStructure, buildStarchFixHint } from './guardrails/validators/vegetarianMacroValidator';
 import { scoreOncologyMealQuality } from './guardrails/validators/oncologyQualityScorer';
 import { scoreOncologySnackQuality } from './guardrails/validators/oncologySnackScorer';
+import { applyOncologySymptomPriority, oncologySymptomPriorityEnabled } from './guardrails/prompt/oncologySymptomPriority';
 import { generateMealImageUnified } from './mealImageGenerator';
 import { normalizeMealName, culturalNameTransform } from './mealNameNormalizer';
 import { estimateCaloriesFromIngredients, checkIngredientSanity } from './calorieEstimator';
@@ -3792,12 +3793,18 @@ export async function generateFromDescriptionUnified(
     let oncologyCtx: OncologySupportContext | null = null;
     let oncologyPromptSection = "";
     const descriptionMentionsOncology = /oncolog|cancer[\s\-]?support|cancer[\s\-]?protocol/i.test(description || "");
-    const oncologyTriggered = dietType === 'oncology-support' || descriptionMentionsOncology;
+    const oncologyTriggered = dietType === 'oncology-support' || descriptionMentionsOncology ||
+      (oncologySymptomPriorityEnabled() && !!chefEnvelope.oncologySupportContext?.enabled);
     if (isOncologySupportEnabled() && oncologyTriggered && userId) {
       try {
-        const [oncologyUser] = await db.select({ oncologySupportContext: users.oncologySupportContext })
-          .from(users).where(eq(users.id, userId)).limit(1);
-        const rawCtx = oncologyUser?.oncologySupportContext as OncologySupportContext | null ?? null;
+        // Development uses the already-authorized nutrition subject, never a
+        // second actor lookup that could overwrite a delegated client's symptoms.
+        let rawCtx = chefEnvelope.oncologySupportContext as OncologySupportContext | null ?? null;
+        if (!oncologySymptomPriorityEnabled()) {
+          const [oncologyUser] = await db.select({ oncologySupportContext: users.oncologySupportContext })
+            .from(users).where(eq(users.id, userId)).limit(1);
+          rawCtx = oncologyUser?.oncologySupportContext as OncologySupportContext | null ?? null;
+        }
         if (rawCtx?.enabled) {
           oncologyCtx = rawCtx;
           oncologyPromptSection = buildOncologySupportPrompt(rawCtx);
@@ -4497,11 +4504,12 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       }
 
       // ── Oncology hard-block post-gen scan ────────────────────────────────
-      if (dietType === 'oncology-support') {
+      if (dietType === 'oncology-support' || (oncologySymptomPriorityEnabled() && oncologyCtx?.enabled)) {
         const oncologyValidation = validateOncologyMealSafety({
           name: tempMeal.name,
           ingredients: tempMeal.ingredients,
-        });
+          ...(oncologySymptomPriorityEnabled() ? { description: tempMeal.description, instructions: tempMeal.instructions } : {}),
+        }, oncologyCtx?.symptoms);
         if (!oncologyValidation.isValid) {
           console.warn(`🚨 [ONCOLOGY GUARD] Blocked ingredient detected (attempt ${attemptCount}): ${oncologyValidation.violations.join(', ')}`);
           if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
@@ -4525,7 +4533,7 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
           name: tempMeal.name,
           description: mealData.description,
           ingredients: tempMeal.ingredients,
-        });
+        }, oncologyCtx?.symptoms);
 
         console.log(`📊 [ONCOLOGY QUALITY] Score: ${qualityScore.total}/100 (${qualityScore.tier}) — ${qualityScore.scoreLabel}`);
 
@@ -4559,6 +4567,7 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
               "This template guarantees protein ≥20g, real fiber, anti-inflammatory vegetables, and therapeutic boosters. " +
               `User's original request was: "${description}". Adapt the template to match the spirit of the request while keeping all five quality pillars.`;
           }
+          lastFixHint = applyOncologySymptomPriority(lastFixHint, oncologyCtx?.symptoms);
           console.warn(`🔄 [ONCOLOGY QUALITY] Score ${qualityScore.total}/100 — attempt ${attemptCount} escalation triggered`);
           continue;
         }
