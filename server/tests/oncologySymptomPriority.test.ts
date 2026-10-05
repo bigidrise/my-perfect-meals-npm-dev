@@ -89,6 +89,7 @@ describe("Development oncology tolerance precedence", () => {
     expect(validateOncologyMealSafety({ name: "Eggs", ingredients: ["eggs", "lemon"] }, ["mouth_sensitivity"]).isValid).toBe(true);
   });
   it("is also disabled in deployments and the Production workspace", () => {
+    delete process.env.VITE_ONCOLOGY_DEVELOPMENT_REVIEW_ENABLED;
     process.env.REPLIT_DEPLOYMENT = "1";
     expect(buildOncologySupportPrompt(context(["gi_sensitivity"]))).not.toContain("ONCOLOGY TOLERANCE PRIORITY");
     delete process.env.REPLIT_DEPLOYMENT;

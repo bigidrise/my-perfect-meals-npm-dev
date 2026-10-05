@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { ArrowRight, ArrowLeft, Shield, Eye, EyeOff, Check } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { OncologySymptomSelector, useConsumerOncologySelection } from "@/components/OncologySymptomSelector";
+import { oncologyDevelopmentReviewEnabled } from "@/lib/oncologyDevelopmentGate";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { useToast } from "@/hooks/use-toast";
@@ -156,7 +157,7 @@ export default function OnboardingV3() {
   const [, setLocation] = useLocation();
   const { refreshUser, user } = useAuth();
   const oncologySelection = useConsumerOncologySelection(user?.oncologySupportContext);
-  const oncologyDevelopment = import.meta.env.DEV && import.meta.env.VITE_IS_PRODUCTION_PROJECT !== "true";
+  const oncologyDevelopment = oncologyDevelopmentReviewEnabled();
   const { toast } = useToast();
   const { t } = useTranslation("onboarding");
 

@@ -51,6 +51,7 @@ import { ClinicalDirectiveReviewPanel } from "@/components/pro/ClinicalDirective
 import { ProHydrationControls } from "@/components/pro/ProHydrationControls";
 import { resolveVerifiedProClientUserId } from "@/lib/proClientIdentity";
 import { ONCOLOGY_SYMPTOM_OPTIONS, type OncologySupportSelection } from "@shared/oncologySupportSelection";
+import { oncologyDevelopmentReviewEnabled } from "@/lib/oncologyDevelopmentGate";
 import { loadOncologySupportSelection, saveOncologySupportSelection } from "@/lib/oncologySupportSelectionClient";
 
 
@@ -95,7 +96,7 @@ export default function ClinicianClientDashboard() {
   const [macros, setMacros] = useState<Targets>(() => proStore.getTargets(clientId));
   const [ctx, setCtx] = useState<ClinicalContext>(() => proStore.getContext(clientId));
   const [isDirty, setIsDirty] = useState(false);
-  const oncologyDevelopment = import.meta.env.DEV && import.meta.env.VITE_IS_PRODUCTION_PROJECT !== "true";
+  const oncologyDevelopment = oncologyDevelopmentReviewEnabled();
   const [oncologySelection, setOncologySelection] = useState<{
     subjectId: string; value: OncologySupportSelection;
   } | null>(null);

@@ -10,6 +10,7 @@ import { SafetyPinSettings } from "@/components/SafetyPinSettings";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { OncologySymptomSelector, useConsumerOncologySelection } from "@/components/OncologySymptomSelector";
+import { oncologyDevelopmentReviewEnabled } from "@/lib/oncologyDevelopmentGate";
 import { useGlycemicSettings } from "@/hooks/useGlycemicSettings";
 import { LOW_RANGE_OPTIONS, MID_RANGE_OPTIONS, HIGH_RANGE_OPTIONS } from "@/types/glycemic";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -188,7 +189,7 @@ export default function EditProfilePage() {
   const [, setLocation] = useLocation();
   const { user, refreshUser } = useAuth();
   const oncologySelection = useConsumerOncologySelection(user?.oncologySupportContext);
-  const oncologyDevelopment = import.meta.env.DEV && import.meta.env.VITE_IS_PRODUCTION_PROJECT !== "true";
+  const oncologyDevelopment = oncologyDevelopmentReviewEnabled();
   const { toast } = useToast();
   const { t } = useTranslation("editProfile");
   const { isOpen, open, setLastResponse } = useCopilot();

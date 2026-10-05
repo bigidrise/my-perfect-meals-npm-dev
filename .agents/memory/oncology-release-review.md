@@ -20,3 +20,9 @@ Verify actual oncology Development eligibility before declaring signed-in testin
 **Why:** The Development runtime was running successfully while the combined oncology eligibility gate was inactive.
 
 **How to apply:** Keep Production guards intact and distinguish successful code/tests from runtime activation. Confirm the workspace's Development configuration before changing eligibility.
+
+An explicit oncology-only review switch may override broad project classification only within a non-published Development runtime. Keep that switch Development-scoped; do not alter the broad project marker to enable oncology.
+
+**Why:** The user authorized Development review while prohibiting Production changes. Changing a project-wide marker could affect unrelated features; a narrow opt-in avoids that scope expansion.
+
+**How to apply:** Production builds and deployment runtimes must stay blocked regardless of the review switch. Keep client/server eligibility consistent and verify that the review switch is absent from Production configuration.
