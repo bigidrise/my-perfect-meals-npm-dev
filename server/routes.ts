@@ -1,4 +1,6 @@
 import fs from "fs";
+import { ConsumerOncologyError, saveConsumerSpecialtySupport } from "./services/consumerOncologySupport";
+import { oncologySymptomPriorityEnabled } from "./services/guardrails/prompt/oncologySymptomPriority";
 import path from "path";
 import { fileURLToPath } from "url";
 import { validateProfilePayload } from "./guards/profileFieldGuard";
@@ -4579,10 +4581,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const authReq = req as AuthenticatedRequest;
       const userId = authReq.authUser.id;
       const ALLOWED = ["renal", "cardiac", "liver-disease", "liver-support", "oncology-support", "thyroid-support", "hormone-optimization", "hashimotos", "hypothyroid", "hyperthyroid", "menopause", "perimenopause", "metabolic-recovery", "pregnancy-support", "alpha-gal-syndrome"];
-      const { condition, conditions } = req.body;
+      const { condition, conditions, oncologySupport } = req.body;
+      if (oncologySupport !== undefined && !oncologySymptomPriorityEnabled()) {
+        return res.status(400).json({ error: "Consumer oncology symptom editing is available in Development only." });
+      }
 
       // ── Tier 1: Physician lock ────────────────────────────────────────────
-      const physicianLocked = await getPhysicianLockStatus(userId);
+      const physicianLocked = await getPhysicianLockStatus(userId, oncologySymptomPriorityEnabled());
       if (physicianLocked) {
         return res.status(403).json({
           error: "physician_locked",
@@ -4625,6 +4630,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Merge: preserve any lab-driven conditions even if user omitted them
         const merged = Array.from(new Set([...conditions, ...labDriven]));
         const primaryCondition = merged.length > 0 ? merged[0] : null;
+        if (oncologySymptomPriorityEnabled()) {
+          const context = await saveConsumerSpecialtySupport(userId, merged, oncologySupport);
+          return res.json({ ok: true, specialtyConditions: merged, specialtyCondition: primaryCondition, oncologySupportContext: context });
+        }
         await db.update(users).set({
           specialtyCondition: primaryCondition,
           specialtyConditions: merged,
@@ -4660,6 +4669,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Merge single-condition with lab-driven set
       const baseArray = condition ? [condition] : [];
       const newArray = Array.from(new Set([...baseArray, ...labDriven]));
+      if (oncologySymptomPriorityEnabled()) {
+        const context = await saveConsumerSpecialtySupport(userId, newArray, oncologySupport);
+        return res.json({ ok: true, specialtyCondition: newArray[0] ?? null, specialtyConditions: newArray, oncologySupportContext: context });
+      }
       await db.update(users).set({
         specialtyCondition: condition ?? null,
         specialtyConditions: newArray,
@@ -4667,6 +4680,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[specialty-condition] User ${userId} updated`);
       res.json({ ok: true, specialtyCondition: condition ?? null, specialtyConditions: newArray });
     } catch (error: any) {
+      if (error instanceof ConsumerOncologyError) {
+        return res.status(error.status).json({ error: error.code, message: error.message });
+      }
       console.error("[specialty-condition PATCH]", error);
       res.status(500).json({ error: "Failed to save specialty condition" });
     }

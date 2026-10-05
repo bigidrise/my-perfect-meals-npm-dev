@@ -2,6 +2,9 @@ import { and, asc, eq, gte, isNotNull, isNull, lte, or } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { db } from "../../db";
+import { getActiveNutritionContext } from "../nutritionContext/getActiveNutritionContext";
+import { oncologySymptomPriorityEnabled } from "../guardrails/prompt/oncologySymptomPriority";
+import { adaptHydrationOption } from "../guardrails/prompt/oncologyRecommendationContext";
 import { waterLogs } from "@shared/schema";
 import { assignedHydrationLocalDate, hydrationCalendarWindow, shiftLocalDate } from "./hydrationDay";
 import { resolveHydrationCenterState, type HydrationCenterState } from "./hydrationCenterService";
@@ -167,10 +170,12 @@ export async function getHydrationHubState(input: {
   }
 
   const centerStartedAt = performance.now();
+  let nutritionContext: Awaited<ReturnType<typeof getActiveNutritionContext>> | undefined;
   const centerState = await resolveHydrationCenterState({
     ...input,
     preloadedRows: todayRows,
     preloadedLiquidProtocol: liquidProtocol,
+    onNutritionContextResolved: context => { nutritionContext = context; },
   });
   const centerMs = performance.now() - centerStartedAt;
   const result = {
@@ -208,10 +213,10 @@ export async function getHydrationHubState(input: {
         : null,
       barriers: (barrierResult.rows as Array<{ barrierCode: string; note: string | null }>).map((row) => ({ barrierCode: row.barrierCode, note: row.note })),
     },
-    interventions: (interventionResult.rows as Array<Record<string, unknown>>).map((row) => ({
+    interventions: (interventionResult.rows as Array<Record<string, unknown>>).map((row) => adaptHydrationOption({
       ...row,
       createdAt: new Date(row.createdAt as string).toISOString(),
-    })),
+    }, nutritionContext?.envelope)),
     outcomeCounts: Object.fromEntries((eventResult.rows as Array<{ eventType: string; count: number }>).map((row) => [row.eventType, Number(row.count)])),
     liquidProtocol,
   };
@@ -301,6 +306,8 @@ export async function createHydrationHelp(input: {
     (error as Error & { code?: string }).code = "HYDRATION_HUB_CONSENT_REQUIRED";
     throw error;
   }
+  const nutritionContext = oncologySymptomPriorityEnabled()
+    ? await getActiveNutritionContext(input.userId) : undefined;
   const selected = input.barriers.length ? input.barriers : ["forgetting" as const];
   const options = selected.flatMap((barrierCode) => (OPTIONS[barrierCode] || []).map((option) => ({ barrierCode, ...option }))).slice(0, 6);
   const created = [];
@@ -322,7 +329,9 @@ export async function createHydrationHelp(input: {
     `);
     created.push(row);
   }
-  return created;
+  // Persist generic options only. Reproject current tolerance at response/read
+  // time so changing or disabling symptoms cannot leave stale stored guidance.
+  return created.map(option => adaptHydrationOption(option, nutritionContext?.envelope));
 }
 
 export async function recordHydrationInterventionEvent(input: {

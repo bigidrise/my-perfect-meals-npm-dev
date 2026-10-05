@@ -53,6 +53,7 @@ export async function resolveHydrationCenterState(input: {
   now?: Date;
   preloadedRows?: Array<typeof waterLogs.$inferSelect>;
   preloadedLiquidProtocol?: HydrationProtocolRecord | null;
+  onNutritionContextResolved?: (context: Awaited<ReturnType<typeof getActiveNutritionContext>>) => void;
 }): Promise<HydrationCenterState> {
   const startedAt = performance.now();
   const now = input.now ?? new Date();
@@ -115,6 +116,7 @@ export async function resolveHydrationCenterState(input: {
       return result;
     })(),
   ]);
+  input.onNutritionContextResolved?.(nutritionContext);
   const eligibility = evaluateHydrationPlanningEligibility({
     subjectUserId: input.subjectUserId,
     localDate: input.localDate,

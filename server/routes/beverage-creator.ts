@@ -55,6 +55,10 @@ import type {
   HumanFoodValidationFinding,
 } from "../../shared/humanFoodValidation";
 import type { HumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
+import { oncologyBeverageCategoryRules, withOncologyBeverageProof } from "../services/guardrails/prompt/oncologyRecommendationContext";
+
+const scanBeverageOutput: typeof scanGeneratedOutput = (meal, envelope, options) =>
+  withOncologyBeverageProof(scanGeneratedOutput(meal, envelope, options), meal, envelope);
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -412,7 +416,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
       ? activeRestrictions.map((d: string) => d.replace(/-/g, " ")).join(", ")
       : "none specified";
 
-    const categorySpecificRules = (() => {
+    const categorySpecificRules = oncologyBeverageCategoryRules((() => {
       switch (effectiveCategory) {
         case "cocktail":
           return `\n🍸 COCKTAIL-SPECIFIC RULES:
@@ -474,7 +478,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
         default:
           return "";
       }
-    })();
+    })(), beverageEnvelope);
 
     const softOverrideBlock = userDietOverride === true
       ? `\n[USER DIET SOFT OVERRIDE: The user has explicitly chosen to make this beverage despite their dietary preference. You MUST create the specifically requested drink. Keep the serving size realistic. Do NOT add additional non-compliant ingredients beyond what is inherent to this beverage type.]\n`
@@ -747,7 +751,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
         field.available && field.value && text.includes(field.value.toLowerCase())
           ? field.value
           : undefined;
-      const protocolProof = scanGeneratedOutput(candidate, beverageEnvelope, {
+      const protocolProof = scanBeverageOutput(candidate, beverageEnvelope, {
         generatorName: "beverage_creator_final_evidence",
         skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
         overriddenAllergens: _overriddenBeverageAllergens.length
@@ -913,7 +917,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
             continue;
           }
 
-          const candidateScan = scanGeneratedOutput(candidate, beverageEnvelope, {
+          const candidateScan = scanBeverageOutput(candidate, beverageEnvelope, {
             generatorName: "beverage_creator_alternative",
             skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
             overriddenAllergens: _overriddenBeverageAllergens.length > 0
@@ -1067,7 +1071,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
       }
 
       // ── Layer 2: Post-gen protocol scan (dietary restriction compliance) ──
-      beverageScan = scanGeneratedOutput(meal, beverageEnvelope, {
+      beverageScan = scanBeverageOutput(meal, beverageEnvelope, {
         generatorName: 'beverage_creator',
         skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
         overriddenAllergens: _overriddenBeverageAllergens.length > 0 ? _overriddenBeverageAllergens : undefined,

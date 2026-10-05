@@ -163,6 +163,13 @@ export default function HydrationCenter() {
     initialLoadStarted.current = true;
     void load();
   }, [load]);
+  useEffect(() => {
+    // Profile support changes invalidate derived practical options, not intake
+    // history or clinician directives. The server reprojects current context.
+    const refresh = () => { void load(); };
+    window.addEventListener("mpm:conditionsUpdated", refresh);
+    return () => window.removeEventListener("mpm:conditionsUpdated", refresh);
+  }, [load]);
 
   const addFluid = async (amount: number, unit: "oz" | "ml") => {
     if (!Number.isFinite(amount) || amount <= 0) return;

@@ -282,7 +282,9 @@ function buildOncologyGuidance(
   highProtein: boolean
 ): string {
   const lines: string[] = [
-    `🎗️ CANCER SUPPORT NUTRITION PROTOCOL — MANDATORY (physician-assigned):`,
+    process.env.NODE_ENV === "development" && !process.env.REPLIT_DEPLOYMENT && process.env.VITE_IS_PRODUCTION_PROJECT !== "true"
+      ? `🎗️ CANCER SUPPORT NUTRITION PROTOCOL — MANDATORY (nutrition support; follow any care-team instructions):`
+      : `🎗️ CANCER SUPPORT NUTRITION PROTOCOL — MANDATORY (physician-assigned):`,
     `SAFETY RULE: Generate practical, nourishing meals only. Do NOT use clinical language, treatment claims, cure language, or any implication of medical decision-making. This is nutrition support only.`,
     ``,
     `HARD-BLOCKED INGREDIENTS (never include in any form):`,
