@@ -8,6 +8,7 @@ let mockRepairResponse: any;
 let mockScanOverride: ((candidate: any) => boolean | undefined) | undefined;
 let mockLiquidValidation: ((candidate: any) => boolean) | undefined;
 let mockGlp1Active = false;
+let mockOncologyContext: any;
 let mockGlp1Valid = true;
 let mockTransform: ((candidate: any) => any) | undefined;
 const mockCapturedPrompts: string[] = [];
@@ -78,6 +79,7 @@ jest.mock("../services/nutritionContext/getActiveNutritionContext", () => ({
       allergies: [],
       avoidances: [],
       healthConditions: [],
+      oncologySupportContext: mockOncologyContext,
     },
     combinedBlock: "",
     builder: null,
@@ -269,6 +271,7 @@ beforeEach(() => {
   mockScanOverride = undefined;
   mockLiquidValidation = undefined;
   mockGlp1Active = false;
+  mockOncologyContext = undefined;
   mockGlp1Valid = true;
   mockTransform = undefined;
 
@@ -352,6 +355,65 @@ beforeEach(() => {
 }
 
 describe("beverage creator three-choice route", () => {
+  test("active mouth sensitivity rejects acidic generation/repair and OFF stops applying stored symptoms", async () => {
+    const originalNode = process.env.NODE_ENV;
+    process.env.NODE_ENV = "development";
+    delete process.env.REPLIT_DEPLOYMENT;
+    delete process.env.VITE_IS_PRODUCTION_PROJECT;
+    try {
+      mockOncologyContext = { enabled: true, symptoms: ["mouth_sensitivity"], emphasis: { highProteinNutrientDensity: true }, source: "self" };
+      const safe = (_prompt: string, count: number, label: string) => makeCandidate("Gentle Banana Drink", ["banana", "water"], count, label);
+      mockRepairResponse = makeCandidate("Gentle Banana Repair", ["banana", "water"], 1, "1 drink");
+      mockDefaultResponse = safe;
+      mockChoiceResponses.push(
+        (_prompt: string, count: number, label: string) => makeCandidate("Acidic First Attempt", ["lemon juice"], count, label),
+        (_prompt: string, count: number, label: string) => makeCandidate("Gentle Pear Drink", ["pear", "water"], count, label),
+        (_prompt: string, count: number, label: string) => makeCandidate("Gentle Oat Drink", ["well-cooked oatmeal", "water"], count, label),
+      );
+      const active = await postBeverage({ choiceCount: 3 });
+      expect(active.status).toBe(200);
+      // Slot one deliberately remains invalid through its bounded retries.
+      // Return the two verified choices, never pad with the acidic candidate.
+      expect(active.body.choices).toHaveLength(2);
+      expect(JSON.stringify(active.body.choices)).not.toMatch(/lemon juice/);
+      expect(mockCapturedPrompts.join("\n")).toMatch(/Mouth sensitivity|mouth sensitivity/);
+
+      mockOncologyContext.enabled = false;
+      mockChoiceResponses.length = 0;
+      mockChoiceResponses.push(
+        (_prompt: string, count: number, label: string) => makeCandidate("Ordinary Lemon Drink", ["lemon juice", "water"], count, label),
+        (_prompt: string, count: number, label: string) => makeCandidate("Ordinary Lime Drink", ["lime juice", "water"], count, label),
+        (_prompt: string, count: number, label: string) => makeCandidate("Ordinary Orange Drink", ["orange juice", "water"], count, label),
+      );
+      mockDefaultResponse = (_prompt: string, count: number, label: string) => makeCandidate("Ordinary Lemon Drink", ["lemon juice"], count, label);
+      const off = await postBeverage({ choiceCount: 3 });
+      expect(off.status).toBe(200);
+      expect(JSON.stringify(off.body.choices)).toMatch(/lemon juice/);
+    } finally { process.env.NODE_ENV = originalNode; }
+  });
+  test("fatigue rechecks active preparation evidence through the actual route retry loop", async () => {
+    const originalNode = process.env.NODE_ENV;
+    process.env.NODE_ENV = "development";
+    delete process.env.REPLIT_DEPLOYMENT;
+    delete process.env.VITE_IS_PRODUCTION_PROJECT;
+    try {
+      mockOncologyContext = { enabled: true, symptoms: ["fatigue_low_prep"], emphasis: { highProteinNutrientDensity: true }, source: "self" };
+      const easy = (_prompt: string, count: number, label: string) => ({ ...makeCandidate("Easy Banana Drink", ["banana", "water"], count, label), activePrepMinutes: 3 });
+      mockDefaultResponse = easy;
+      mockRepairResponse = easy("", 1, "1 drink");
+      mockChoiceResponses.push(
+        (_prompt: string, count: number, label: string) => ({ ...makeCandidate("Complex First Attempt", ["banana", "water"], count, label), activePrepMinutes: 25 }),
+        (_prompt: string, count: number, label: string) => ({ ...makeCandidate("Easy Pear Drink", ["pear", "water"], count, label), activePrepMinutes: 3 }),
+        (_prompt: string, count: number, label: string) => ({ ...makeCandidate("Easy Oat Drink", ["well-cooked oatmeal", "water"], count, label), activePrepMinutes: 3 }),
+      );
+      const response = await postBeverage({ choiceCount: 3 });
+      expect(response.status).toBe(200);
+      expect(response.body.choices).toHaveLength(2);
+      expect(response.body.choices.some((choice: any) => choice.name === "Complex First Attempt")).toBe(false);
+      expect(response.body.choices.every((choice: any) => choice.activePrepMinutes === 3)).toBe(true);
+      expect(mockCapturedPrompts.join("\n")).toMatch(/active preparation|activePrepMinutes/);
+    } finally { process.env.NODE_ENV = originalNode; }
+  });
   test("choiceCount 3 returns three independently validated, materially different drinks", async () => {
     mockChoiceResponses.push(
       (_prompt: string, count: number, label: string) => makeCandidate("Lime Mint Cooler", ["lime juice", "mint", "soda water"], count, label),

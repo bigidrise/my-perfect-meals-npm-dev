@@ -4,14 +4,20 @@ export async function persistOnboardingHealthInformation(input: {
   medicalConditions: string[];
   specialtyConditions: string[];
   thyroidType: "hypothyroid" | "hyperthyroid" | "hashimotos" | null;
+  oncologySupport?: { symptoms: string[] };
+  refreshUser?: () => Promise<unknown>;
+  skipUnchangedOwnedSpecialty?: boolean;
   saveMedical: (conditions: string[]) => Promise<void>;
   patch: (path: string, body: object) => Promise<{ ok: boolean }>;
 }): Promise<void> {
   await input.saveMedical(input.medicalConditions);
+  if (input.skipUnchangedOwnedSpecialty) return;
   const specialty = await input.patch("/api/user/specialty-condition", {
     conditions: input.specialtyConditions,
+    ...(input.oncologySupport !== undefined ? { oncologySupport: input.oncologySupport } : {}),
   });
   if (!specialty.ok) throw new Error("Could not save your health information. Please try again.");
+  if (input.oncologySupport !== undefined) await input.refreshUser?.();
 
   if (input.specialtyConditions.includes("thyroid-support")) {
     const thyroid = await input.patch("/api/user/thyroid-type", { thyroidType: input.thyroidType });

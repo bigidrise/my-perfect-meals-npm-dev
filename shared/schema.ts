@@ -469,8 +469,9 @@ export const users = pgTable("users", {
   flavorPreference: text("flavor_preference"), // bold-spicy, comfort, mediterranean, balanced, unsure
   heatPreference: text("heat_preference"), // none, mild, medium, hot, very-hot, unsure
   sweetenerPreferences: text("sweetener_preferences").array(),
-  // Cancer Support Nutrition — physician-assigned clinical overlay (oncology_support_v1)
-  // null = feature not active for this user. Only writable by verified studio owners via ProCare.
+  // Canonical Cancer Support Nutrition context (oncology_support_v1).
+  // ProCare owns clinician records; Development-only consumer saves may edit
+  // self-owned records. Disabling preserves answers; enabled governs activation.
   oncologySupportContext: jsonb("oncology_support_context").$type<{
     enabled: boolean;
     symptoms: Array<"low_appetite" | "nausea" | "mouth_sensitivity" | "fatigue_low_prep" | "gi_sensitivity">;

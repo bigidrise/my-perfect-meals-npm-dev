@@ -137,7 +137,9 @@ export function buildOncologySupportPrompt(context: OncologySupportContext): str
     "--- CANCER SUPPORT NUTRITION OVERLAY ---",
     "",
     "This meal plan is being generated for a user receiving Cancer Support Nutrition guidance.",
-    "This is a nutrition support tool only, assigned by their care provider.",
+    process.env.NODE_ENV === "development" && !process.env.REPLIT_DEPLOYMENT && process.env.VITE_IS_PRODUCTION_PROJECT !== "true"
+      ? "This is nutrition support only. Follow any instructions from the person's care team; do not assume a provider assignment."
+      : "This is a nutrition support tool only, assigned by their care provider.",
     "",
     MANDATORY_SAFETY_DISCLAIMER,
     "",

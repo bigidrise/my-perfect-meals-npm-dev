@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { ArrowRight, ArrowLeft, Shield, Eye, EyeOff, Check } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { OncologySymptomSelector, useConsumerOncologySelection } from "@/components/OncologySymptomSelector";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { useToast } from "@/hooks/use-toast";
@@ -154,6 +155,8 @@ function getRecommendedBuilder(conditions: string[]): string {
 export default function OnboardingV3() {
   const [, setLocation] = useLocation();
   const { refreshUser, user } = useAuth();
+  const oncologySelection = useConsumerOncologySelection(user?.oncologySupportContext);
+  const oncologyDevelopment = import.meta.env.DEV && import.meta.env.VITE_IS_PRODUCTION_PROJECT !== "true";
   const { toast } = useToast();
   const { t } = useTranslation("onboarding");
 
@@ -384,6 +387,11 @@ export default function OnboardingV3() {
           }
           await persistOnboardingHealthInformation({
             medicalConditions, specialtyConditions, thyroidType,
+            ...(oncologyDevelopment ? {
+              oncologySupport: oncologySelection.payload(), refreshUser,
+              skipUnchangedOwnedSpecialty: oncologySelection.readOnly &&
+                JSON.stringify([...specialtyConditions].sort()) === JSON.stringify([...(user?.specialtyConditions ?? (user?.specialtyCondition ? [user.specialtyCondition] : []))].sort()),
+            } : {}),
             saveMedical: (conditions) => saveProfile({ medicalConditions: conditions }, "medical_conditions"),
             patch: (path, body) => fetchWithTimeout(apiUrl(path), {
               method: "PATCH",
@@ -391,6 +399,7 @@ export default function OnboardingV3() {
               body: JSON.stringify(body),
             }),
           });
+          if (oncologyDevelopment) window.dispatchEvent(new CustomEvent("mpm:conditionsUpdated"));
           break;
         case 4: {
           const intent = oncologyIntroAnswer === "yes" ? oncologySupportIntentChoice : null;
@@ -815,13 +824,14 @@ export default function OnboardingV3() {
                   <PillButton
                     key={opt.value}
                     active={specialtyConditions.includes(opt.value)}
-                    onClick={() =>
+                    onClick={() => {
+                      if (oncologyDevelopment && oncologySelection.readOnly && opt.value === "oncology-support") return;
                       setSpecialtyConditions((prev) =>
                         prev.includes(opt.value)
                           ? prev.filter((c) => c !== opt.value)
                           : [...prev, opt.value]
-                      )
-                    }
+                      );
+                    }}
                   >
                     {opt.label}
                   </PillButton>
@@ -896,6 +906,10 @@ export default function OnboardingV3() {
                     </div>
                   </div>
                 </div>
+              )}
+              {oncologyDevelopment && (specialtyConditions.includes("oncology-support") || (oncologySelection.readOnly && oncologySelection.enabled)) && (
+                <OncologySymptomSelector symptoms={oncologySelection.symptoms} onChange={oncologySelection.setSymptoms}
+                  readOnly={oncologySelection.readOnly} error={oncologySelection.error} />
               )}
               <ConsumerHealthContextSection>
                 {PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED && import.meta.env.DEV && user?.id && (
