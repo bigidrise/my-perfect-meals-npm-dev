@@ -134,3 +134,4 @@
 - [Product evidence authority](product-evidence-authority.md) — no condition name or evidence template creates a clinical product rule; unknown thresholds and catalog freshness stay unresolved.
 - [Diabetic generation provenance](diabetic-generation-provenance.md) — freeze authorized operation evidence; preserve original history and never backfill generation glucose.
 - [Oncology release review](oncology-release-review.md) — symptom support needs authenticated Development review before release; references do not imply clinical validation.
+- [Oncology symptom visibility](oncology-symptom-entry-visibility.md) — use an activation overlay and a below-button review entry; above-button symptom content was easy to miss.

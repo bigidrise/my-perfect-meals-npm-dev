@@ -9,7 +9,8 @@ import { PregnancySupportSetupModal } from "@/components/PregnancySupportSetupMo
 import { SafetyPinSettings } from "@/components/SafetyPinSettings";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { OncologySymptomSelector, useConsumerOncologySelection } from "@/components/OncologySymptomSelector";
+import { useConsumerOncologySelection } from "@/components/OncologySymptomSelector";
+import { OncologySymptomDialog, OncologySymptomSummary } from "@/components/OncologySymptomDialog";
 import { oncologyDevelopmentReviewEnabled } from "@/lib/oncologyDevelopmentGate";
 import { useGlycemicSettings } from "@/hooks/useGlycemicSettings";
 import { LOW_RANGE_OPTIONS, MID_RANGE_OPTIONS, HIGH_RANGE_OPTIONS } from "@/types/glycemic";
@@ -190,6 +191,7 @@ export default function EditProfilePage() {
   const { user, refreshUser } = useAuth();
   const oncologySelection = useConsumerOncologySelection(user?.oncologySupportContext);
   const oncologyDevelopment = oncologyDevelopmentReviewEnabled();
+  const [oncologySymptomsOpen, setOncologySymptomsOpen] = useState(false);
   const { toast } = useToast();
   const { t } = useTranslation("editProfile");
   const { isOpen, open, setLastResponse } = useCopilot();
@@ -1271,10 +1273,6 @@ export default function EditProfilePage() {
                   <span className="text-sky-300 font-semibold text-sm">Specialty Health Protocol</span>
                 </div>
 
-                {oncologyDevelopment && (specialtyConditions.includes("oncology-support") || (oncologySelection.readOnly && oncologySelection.enabled)) && (
-                  <OncologySymptomSelector symptoms={oncologySelection.symptoms} onChange={oncologySelection.setSymptoms}
-                    readOnly={oncologySelection.readOnly} error={oncologySelection.error} />
-                )}
                 {/* ── Physician-set oncology protocol banner ─────────────────── */}
                 {physicianOncologyActive && (
                   <div className={`mb-3 rounded-xl border p-3 ${physicianOncologyLocked ? "border-amber-500/40 bg-amber-950/30" : "border-rose-500/40 bg-rose-950/20"}`}>
@@ -1386,7 +1384,13 @@ export default function EditProfilePage() {
                         disabled={saving}
                           onClick={() => {
                           if (locked) return;
-                          if ((physicianOncologyLocked || (oncologyDevelopment && oncologySelection.readOnly)) && opt.value === "oncology-support") return;
+                          if ((physicianOncologyLocked || (oncologyDevelopment && oncologySelection.readOnly)) && opt.value === "oncology-support") {
+                            if (oncologyDevelopment) setOncologySymptomsOpen(true);
+                            return;
+                          }
+                          if (oncologyDevelopment && opt.value === "oncology-support") {
+                            setOncologySymptomsOpen(!specialtyConditions.includes(opt.value));
+                          }
                             if (opt.value === "pregnancy-support") {
                               if (specialtyConditions.includes(opt.value)) {
                                 setSpecialtyConditions((prev) => prev.filter((c) => c !== opt.value));
@@ -1518,6 +1522,16 @@ export default function EditProfilePage() {
                       </div>
                     </div>
                   </div>
+                )}
+                {oncologyDevelopment && (specialtyConditions.includes("oncology-support") || (oncologySelection.readOnly && oncologySelection.enabled)) && (
+                  <>
+                    <OncologySymptomSummary symptoms={oncologySelection.symptoms} onReview={() => setOncologySymptomsOpen(true)}
+                      readOnly={oncologySelection.readOnly} error={oncologySelection.error} />
+                    <OncologySymptomDialog open={oncologySymptomsOpen} onOpenChange={setOncologySymptomsOpen}
+                      symptoms={oncologySelection.symptoms} onChange={oncologySelection.setSymptoms}
+                      readOnly={oncologySelection.readOnly} error={oncologySelection.error}
+                      saveHint="Save your profile to save these choices." />
+                  </>
                 )}
                 {specialtyConditions.includes("oncology-support") && !physicianOncologyActive && (
                   <div className="mt-3 rounded-xl border border-rose-500/40 bg-rose-950/30 p-3">

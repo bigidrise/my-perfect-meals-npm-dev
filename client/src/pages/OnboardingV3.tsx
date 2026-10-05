@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { ArrowRight, ArrowLeft, Shield, Eye, EyeOff, Check } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { OncologySymptomSelector, useConsumerOncologySelection } from "@/components/OncologySymptomSelector";
+import { useConsumerOncologySelection } from "@/components/OncologySymptomSelector";
+import { OncologySymptomDialog, OncologySymptomSummary } from "@/components/OncologySymptomDialog";
 import { oncologyDevelopmentReviewEnabled } from "@/lib/oncologyDevelopmentGate";
 import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -158,6 +159,7 @@ export default function OnboardingV3() {
   const { refreshUser, user } = useAuth();
   const oncologySelection = useConsumerOncologySelection(user?.oncologySupportContext);
   const oncologyDevelopment = oncologyDevelopmentReviewEnabled();
+  const [oncologySymptomsOpen, setOncologySymptomsOpen] = useState(false);
   const { toast } = useToast();
   const { t } = useTranslation("onboarding");
 
@@ -826,7 +828,13 @@ export default function OnboardingV3() {
                     key={opt.value}
                     active={specialtyConditions.includes(opt.value)}
                     onClick={() => {
-                      if (oncologyDevelopment && oncologySelection.readOnly && opt.value === "oncology-support") return;
+                      if (oncologyDevelopment && opt.value === "oncology-support") {
+                        if (oncologySelection.readOnly) {
+                          setOncologySymptomsOpen(true);
+                          return;
+                        }
+                        setOncologySymptomsOpen(!specialtyConditions.includes(opt.value));
+                      }
                       setSpecialtyConditions((prev) =>
                         prev.includes(opt.value)
                           ? prev.filter((c) => c !== opt.value)
@@ -895,6 +903,16 @@ export default function OnboardingV3() {
                   </div>
                 </div>
               )}
+              {oncologyDevelopment && (specialtyConditions.includes("oncology-support") || (oncologySelection.readOnly && oncologySelection.enabled)) && (
+                <>
+                  <OncologySymptomSummary symptoms={oncologySelection.symptoms} onReview={() => setOncologySymptomsOpen(true)}
+                    readOnly={oncologySelection.readOnly} error={oncologySelection.error} />
+                  <OncologySymptomDialog open={oncologySymptomsOpen} onOpenChange={setOncologySymptomsOpen}
+                    symptoms={oncologySelection.symptoms} onChange={oncologySelection.setSymptoms}
+                    readOnly={oncologySelection.readOnly} error={oncologySelection.error}
+                    saveHint="Continue onboarding to save these choices." />
+                </>
+              )}
               {specialtyConditions.includes("oncology-support") && (
                 <div className="mt-3 rounded-xl border border-rose-500/40 bg-rose-950/30 p-3">
                   <div className="flex items-start gap-2">
@@ -907,10 +925,6 @@ export default function OnboardingV3() {
                     </div>
                   </div>
                 </div>
-              )}
-              {oncologyDevelopment && (specialtyConditions.includes("oncology-support") || (oncologySelection.readOnly && oncologySelection.enabled)) && (
-                <OncologySymptomSelector symptoms={oncologySelection.symptoms} onChange={oncologySelection.setSymptoms}
-                  readOnly={oncologySelection.readOnly} error={oncologySelection.error} />
               )}
               <ConsumerHealthContextSection>
                 {PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED && import.meta.env.DEV && user?.id && (
