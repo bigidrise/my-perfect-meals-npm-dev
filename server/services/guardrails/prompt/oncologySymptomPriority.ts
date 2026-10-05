@@ -1,10 +1,14 @@
 import type { OncologySymptomSelection } from "../../../../shared/oncologySupportSelection";
+import { oncologyDevelopmentReviewAllowed } from "../../../../shared/oncologyDevelopmentGate";
 
 /** Deliberately inactive in every published/production runtime until separately approved. */
 export function oncologySymptomPriorityEnabled(): boolean {
-  return process.env.NODE_ENV === "development" &&
-    !process.env.REPLIT_DEPLOYMENT &&
-    process.env.VITE_IS_PRODUCTION_PROJECT !== "true";
+  return oncologyDevelopmentReviewAllowed({
+    developmentRuntime: process.env.NODE_ENV === "development",
+    publishedRuntime: Boolean(process.env.REPLIT_DEPLOYMENT),
+    productionProject: process.env.VITE_IS_PRODUCTION_PROJECT === "true",
+    explicitDevelopmentReview: process.env.VITE_ONCOLOGY_DEVELOPMENT_REVIEW_ENABLED === "true",
+  });
 }
 
 export function activeOncologySymptoms(symptoms: readonly OncologySymptomSelection[] = []): readonly OncologySymptomSelection[] {

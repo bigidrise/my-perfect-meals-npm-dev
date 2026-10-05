@@ -71,6 +71,7 @@ test.each(["production", "test"])("no Production or non-Development behavior cha
   expect(oncologyBeverageViolations({ ...gentle, ingredients: [{ name: "lemon juice" }] }, context(["mouth_sensitivity"]))).toEqual([]);
 });
 test("published and Production-project Development runtimes are also excluded", () => {
+  delete process.env.VITE_ONCOLOGY_DEVELOPMENT_REVIEW_ENABLED;
   process.env.REPLIT_DEPLOYMENT = "1";
   expect(recommendationOncologySymptoms(context(["nausea"]))).toEqual([]);
   delete process.env.REPLIT_DEPLOYMENT;
