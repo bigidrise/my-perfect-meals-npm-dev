@@ -64,6 +64,7 @@ import {
   type DiabetesGenerationAttempt,
 } from "./diabetesGenerationSnapshot";
 import { buildUniversalConditionGuidance } from "./universalMedicalGuidance";
+import { projectOncologyRecommendationContext } from "./guardrails/prompt/oncologyRecommendationContext";
 import { readDevelopmentPersonalFoodSupports } from "./healthProtocols/developmentFoodSupports";
 import { resolveCurrentGLP1MealAuthority, currentGLP1AuthorityEnabled } from "./glp1/currentMealAuthority";
 import { scanClinicalFoodSafety } from "./healthProtocols/clinicalOutputChecks";
@@ -1552,10 +1553,7 @@ export async function loadUserProtocolEnvelope(
       hasDiabetes,
       diabeticGlucoseState,
       conditionGuidanceBlocks,
-      ...(process.env.NODE_ENV === "development" && !process.env.REPLIT_DEPLOYMENT &&
-          process.env.VITE_IS_PRODUCTION_PROJECT !== "true"
-        ? { oncologySupportContext: user.oncologySupportContext ?? null }
-        : {}),
+      ...projectOncologyRecommendationContext(user.oncologySupportContext),
       glp1DailyTolerance,
       thyroidSupport,
       thyroidMedication,

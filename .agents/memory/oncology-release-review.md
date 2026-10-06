@@ -26,3 +26,9 @@ An explicit oncology-only review switch may override broad project classificatio
 **Why:** The user authorized Development review while prohibiting Production changes. Changing a project-wide marker could affect unrelated features; a narrow opt-in avoids that scope expansion.
 
 **How to apply:** Production builds and deployment runtimes must stay blocked regardless of the review switch. Keep client/server eligibility consistent and verify that the review switch is absent from Production configuration.
+
+Authoritative oncology context projections must use the same eligibility gate as persistence, guidance, and validators. Avoid independent copies of Development/project-classification checks.
+
+**Why:** An older projection check discarded a correctly saved active symptom during an authorized Development review. Tests that supplied prebuilt envelopes concealed the missing handoff.
+
+**How to apply:** Verify the actual record-to-envelope projection under the narrow review opt-in, including broad Production classification, while keeping Production and published runtimes closed. Final Beverage checks must enforce active tolerance guidance independently of primary-diet or numeric-clinical evidence requirements.
