@@ -55,7 +55,7 @@ import type {
   HumanFoodValidationFinding,
 } from "../../shared/humanFoodValidation";
 import type { HumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
-import { oncologyBeverageCategoryRules, withOncologyBeverageProof } from "../services/guardrails/prompt/oncologyRecommendationContext";
+import { oncologyBeverageCategoryRules, oncologyBeverageViolations, withOncologyBeverageProof } from "../services/guardrails/prompt/oncologyRecommendationContext";
 
 const scanBeverageOutput: typeof scanGeneratedOutput = (meal, envelope, options) =>
   withOncologyBeverageProof(scanGeneratedOutput(meal, envelope, options), meal, envelope);
@@ -836,13 +836,16 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
         String(candidate?.category ?? "").toLowerCase() === requestedBeverageCategory;
       const servingMatches = candidate?.servingSize === serving.label;
       const liquidProof = validateLiquidNutritionOutput(candidate, activeLiquidProtocol);
-      if (finiteNutrition && scalingMatches && categoryMatches && servingMatches && liquidProof.passed) return result;
+      // Symptom guidance is independent of a primary diet or numeric clinical
+      // directive. Recheck it directly after transformations and repairs.
+      const oncologyViolations = oncologyBeverageViolations(candidate, beverageEnvelope);
+      if (finiteNutrition && scalingMatches && categoryMatches && servingMatches && liquidProof.passed && !oncologyViolations.length) return result;
       const preserveOutcome: HumanFoodFinalValidationResult["outcome"] = !liquidProof.passed
         ? "blocked"
         : result.outcome === "blocked" || result.outcome === "review_required"
           ? result.outcome
           : "repairable";
-      const liquidFinding: HumanFoodValidationFinding = "message" in liquidProof
+      const liquidFinding: HumanFoodValidationFinding = !liquidProof.passed && "message" in liquidProof
         ? {
             dimension: "nutrition",
             outcome: "blocked",
@@ -853,12 +856,16 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
         : {
             dimension: "nutrition",
             outcome: "repairable",
-            code: !finiteNutrition
+            code: oncologyViolations.length
+              ? "oncology_beverage_conflict"
+              : !finiteNutrition
               ? "final_nutrition_invalid"
               : !categoryMatches
                 ? "final_category_mismatch"
                 : "final_serving_mismatch",
-            message: "Final beverage structure or scaling could not be verified.",
+            message: oncologyViolations.length
+              ? oncologyViolations.join(" ")
+              : "Final beverage structure or scaling could not be verified.",
             assurance: "structured_evidence",
             repairHint: `Return finite nutrition, category "${requestedBeverageCategory}", and servingSize "${serving.label}".`,
           };

@@ -41,6 +41,11 @@ test("mouth sensitivity rejects citrus even after a nominally passing protocol s
   expect(withOncologyBeverageProof({ passed: true }, gentle, context(["mouth_sensitivity"])).passed).toBe(true);
   expect(oncologyBeverageViolations({ ...gentle, ingredients: [{ name: "fresh orange" }] }, context(["mouth_sensitivity"]))).not.toEqual([]);
 });
+test.each(["orange", "lemon", "pineapple"])("the reported acidic ingredient %s cannot survive an active mouth-sensitivity check", ingredient => {
+  const drink = { ...gentle, ingredients: [{ name: ingredient }] };
+  expect(withOncologyBeverageProof({ passed: true }, drink, context(["mouth_sensitivity"])).passed).toBe(false);
+  expect(withOncologyBeverageProof({ passed: true }, drink, context([])).passed).toBe(true);
+});
 test("nausea/GI reject explicit heavy or rough preparations, not all creamy drinks or fiber", () => {
   expect(oncologyBeverageViolations({ ...gentle, ingredients: [{ name: "heavy whipping cream" }] }, context(["nausea"]))).not.toEqual([]);
   expect(oncologyBeverageViolations({ ...gentle, ingredients: [{ name: "whole chia seeds" }] }, context(["gi_sensitivity"]))).not.toEqual([]);

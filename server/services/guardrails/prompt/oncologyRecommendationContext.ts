@@ -5,6 +5,13 @@ import { validateOncologyMealSafety } from "../validators/oncologySupportValidat
 
 type Context = Pick<UserProtocolEnvelope, "oncologySupportContext">;
 
+/** Carry the authorized subject's record using the same gate as its consumers. */
+export function projectOncologyRecommendationContext(
+  record: Context["oncologySupportContext"],
+): Context {
+  return oncologySymptomPriorityEnabled() ? { oncologySupportContext: record ?? null } : {};
+}
+
 /** A projection of the existing record, never another settings store. */
 export function recommendationOncologySymptoms(context?: Context): readonly OncologySymptomSelection[] {
   if (!oncologySymptomPriorityEnabled() || !context?.oncologySupportContext?.enabled) return [];
@@ -47,6 +54,9 @@ export function oncologyBeverageCategoryRules(rules: string, context: Context): 
   }
   return applyOncologySymptomPriority(result, symptoms) +
     "\nBEVERAGE TOLERANCE: " + oncologyPracticalGuidance(context) +
+    "\nREQUEST ADAPTATION: Active symptom guidance takes precedence over conflicting requested ingredients or flavors. " +
+    "When practical, preserve the drink format and refreshing intent while substituting only the conflicting ingredients with compatible mild options. " +
+    "Do not repeat a conflicting ingredient merely because the user explicitly requested it. " +
     "\nA requested pitcher or party batch may contain multiple small servings; never present the whole batch as one person's serving. " +
     "Report activePrepMinutes as a number. Explain any symptom-driven flavor, ingredient or portion adaptation briefly in the description. " +
     "Do not infer a fluid target, electrolyte dose, supplement, treatment benefit or medical prescription.";
@@ -68,9 +78,9 @@ export function oncologyBeverageViolations(meal: any, context: Context): string[
   // Whole-fruit aliases implement the existing citrus avoidance rule, not a
   // new food restriction. The shared validator already handles juice/lemon.
   if (symptoms.includes("mouth_sensitivity") &&
-      /\b(oranges?|mandarins?|tangerines?|clementines?|grapefruits?|lemons?|limes?)\b/i.test(ingredients) &&
+      /\b(oranges?|mandarins?|tangerines?|clementines?|grapefruits?|lemons?|limes?|pineapples?)\b/i.test(ingredients) &&
       !violations.some(violation => violation.includes("mouth sensitivity"))) {
-    violations.push("Citrus ingredients conflict with the existing mouth-sensitivity guidance.");
+    violations.push("Acidic/citrus ingredients conflict with the existing mouth-sensitivity guidance.");
   }
   if ((symptoms.includes("nausea") || symptoms.includes("gi_sensitivity")) &&
       (/\b(heavy (?:whipping )?cream|deep.fried|greasy|extra.rich)\b/i.test(ingredients) ||
