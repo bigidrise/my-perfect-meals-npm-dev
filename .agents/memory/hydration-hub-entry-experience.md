@@ -14,3 +14,9 @@ Hydration Center should be a prominent consumer Dashboard feature, not treated a
 **Why:** The user considers its full support experience too valuable to remain buried in Biometrics and approved a compact Dashboard entry rather than duplicating the entire interface.
 
 **How to apply:** Preserve the full-page Center and its access rules. Keep basic tracking and Biometrics access intact unless the user separately authorizes their relocation.
+
+Barrier selection must not make Everyday beverage creation appear unavailable.
+
+**Why:** The user expected drink creation while using Temperature or Forgetting strategies and interpreted the absence of a Create card as loss of access.
+
+**How to apply:** Keep a direct signed Creator entry near the practical options, independent of which barriers produce recipe cards. Distinguish saving setup from requesting options in loading feedback; saving must not imply that options were requested.

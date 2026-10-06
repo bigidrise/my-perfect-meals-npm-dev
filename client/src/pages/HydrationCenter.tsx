@@ -14,6 +14,7 @@ import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import HydrationFourDoorPanels from "@/components/HydrationFourDoorPanels";
 import HydrationHubGuide from "@/components/HydrationHubGuide";
 import HydrationInterventionCards from "@/components/HydrationInterventionCards";
+import HydrationEverydayCreatorButton from "@/components/HydrationEverydayCreatorButton";
 import { useToast } from "@/hooks/use-toast";
 import {
   addHydrationWater,
@@ -114,7 +115,8 @@ export default function HydrationCenter() {
   const initialLoadStarted = useRef(false);
   const pageStartedAt = useRef(performance.now());
   const [state, setState] = useState<HydrationCenterState | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"fluid" | "setup" | "options" | "reset" | null>(null);
+  const saving = pendingAction !== null;
   const [error, setError] = useState("");
   const [customAmount, setCustomAmount] = useState("");
   const [customUnit, setCustomUnit] = useState<"oz" | "ml">("oz");
@@ -172,7 +174,7 @@ export default function HydrationCenter() {
 
   const addFluid = async (amount: number, unit: "oz" | "ml") => {
     if (!Number.isFinite(amount) || amount <= 0) return;
-    setSaving(true);
+    setPendingAction("fluid");
     try {
       await addHydrationWater({ amount, unit, beverageClass });
       setCustomAmount("");
@@ -180,7 +182,7 @@ export default function HydrationCenter() {
       toast({ title: "Fluid logged", description: `${amount} ${unit} of ${BEVERAGES.find(([value]) => value === beverageClass)?.[1].toLowerCase() || "fluid"} was added.` });
     } catch (saveError) {
       toast({ title: "Could not log fluid", description: saveError instanceof Error ? saveError.message.replace(/^\d+:\s*/, "") : "Please try again.", variant: "destructive" });
-    } finally { setSaving(false); }
+    } finally { setPendingAction(null); }
   };
 
   const toggleBarrier = (code: HydrationBarrierCode) => {
@@ -192,7 +194,7 @@ export default function HydrationCenter() {
       toast({ title: "Consent is required", description: "Choose consent to save optional preferences and barriers.", variant: "destructive" });
       return;
     }
-    setSaving(true);
+    setPendingAction("setup");
     try {
       await saveHydrationHubPreferences({ consented: true, preferences });
       await saveHydrationHubBarriers({
@@ -205,11 +207,11 @@ export default function HydrationCenter() {
       toast({ title: "Hydration setup saved", description: "You can reset or opt out at any time." });
     } catch (saveError) {
       toast({ title: "Could not save setup", description: saveError instanceof Error ? saveError.message : "Please try again.", variant: "destructive" });
-    } finally { setSaving(false); }
+    } finally { setPendingAction(null); }
   };
 
   const optOut = async () => {
-    setSaving(true);
+    setPendingAction("reset");
     try {
       await saveHydrationHubPreferences({ consented: false, optedOut: true, preferences: {} });
       await saveHydrationHubBarriers({ barriers: [] });
@@ -219,7 +221,7 @@ export default function HydrationCenter() {
       initializedSetup.current = false;
       await load();
       toast({ title: "Hydration setup cleared", description: "Fluid history was not deleted." });
-    } finally { setSaving(false); }
+    } finally { setPendingAction(null); }
   };
 
   const getHelp = async () => {
@@ -227,14 +229,14 @@ export default function HydrationCenter() {
       toast({ title: "Choose and save a barrier first", description: "Practical options use only the preferences you consent to share." });
       return;
     }
-    setSaving(true);
+    setPendingAction("options");
     try {
       const result = await createHydrationHelp({ barriers: selectedBarriers, preferences });
       setHelpOptions(result.options);
       await load();
     } catch (helpError) {
       toast({ title: "Could not create options", description: helpError instanceof Error ? helpError.message : "Please try again.", variant: "destructive" });
-    } finally { setSaving(false); }
+    } finally { setPendingAction(null); }
   };
 
   const projections = state?.projections;
@@ -330,7 +332,7 @@ export default function HydrationCenter() {
               <select value={beverageClass} onChange={(event) => { if (isHydrationBeverageClass(event.target.value)) setBeverageClass(event.target.value); }} className="mt-1 w-full rounded-md border border-white/10 bg-slate-900 px-3 py-2.5 text-sm text-white" data-testid="hydration-beverage-class">{BEVERAGES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
               <div className="mt-3 grid grid-cols-2 gap-2">{[8, 12, 16, 24].map((ounces) => <Button key={ounces} disabled={saving} onClick={() => void addFluid(ounces, "oz")} className="border border-sky-300/20 bg-sky-500/15 text-sky-50 hover:bg-sky-500/25" data-testid={`hydration-add-${ounces}oz`}>+{ounces} oz</Button>)}</div>
               <div className="mt-3 flex gap-2"><Input inputMode="decimal" value={customAmount} onChange={(event) => setCustomAmount(event.target.value)} placeholder="Custom amount" className="border-white/10 bg-white/5 text-white" data-testid="hydration-custom-amount" /><select value={customUnit} onChange={(event) => setCustomUnit(event.target.value as "oz" | "ml")} className="rounded-md border border-white/10 bg-slate-900 px-3 text-sm text-white"><option value="oz">oz</option><option value="ml">mL</option></select></div>
-              <Button disabled={saving || Number(customAmount) <= 0} onClick={() => void addFluid(Number(customAmount), customUnit)} className="mt-2 w-full bg-sky-500 text-white hover:bg-sky-400 hover:text-white" data-testid="hydration-add-custom">{saving ? "Saving…" : "Add to today"}</Button>
+              <Button disabled={saving || Number(customAmount) <= 0} onClick={() => void addFluid(Number(customAmount), customUnit)} className="mt-2 w-full bg-sky-500 text-white hover:bg-sky-400 hover:text-white" data-testid="hydration-add-custom">{pendingAction === "fluid" ? "Saving…" : "Add to today"}</Button>
               <p className="mt-3 text-xs leading-relaxed text-white">Fluid contribution is tracked separately from calories, sugar, sodium, and other nutrition.</p>
             </CardContent></Card>
           </section>
@@ -345,12 +347,15 @@ export default function HydrationCenter() {
                 {PREFERENCE_CONTROLS.map(({ key, label, values }) => <label key={key} className="text-[11px] text-white">{label}<select value={preferences[key]} onChange={(event) => setPreferences((current) => ({ ...current, [key]: event.target.value }))} className="mt-1 w-full rounded-md border border-white/30 bg-slate-900 px-2 py-2 text-xs text-white">{values.map((value) => <option key={value} value={value}>{value.replaceAll("_", " ")}</option>)}</select></label>)}
               </div>
               <label className="mt-4 flex items-start gap-2 rounded-xl border border-white/30 bg-white/[.03] p-3 text-xs text-white"><input type="checkbox" checked={consented} onChange={(event) => setConsented(event.target.checked)} className="mt-0.5" /><span>I consent to saving these optional preferences and barriers for My Perfect Hydration Center suggestions.</span></label>
-              <div className="mt-3 flex gap-2"><Button disabled={saving} onClick={() => void saveSetup()} className="flex-1 bg-violet-500 hover:bg-violet-400">Save setup</Button><Button disabled={saving} onClick={() => void optOut()} variant="outline" className="border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white"><RotateCcw className="mr-1.5 h-4 w-4" />Reset & opt out</Button></div>
+              <div className="mt-3 flex gap-2"><Button disabled={saving} aria-busy={pendingAction === "setup"} onClick={() => void saveSetup()} className="flex-1 bg-violet-500 hover:bg-violet-400">{pendingAction === "setup" ? "Saving setup…" : "Save setup"}</Button><Button disabled={saving} onClick={() => void optOut()} variant="outline" className="border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white"><RotateCcw className="mr-1.5 h-4 w-4" />Reset & opt out</Button></div>
             </CardContent></Card>
 
             <Card className="border-white/10 bg-slate-950/45 text-white backdrop-blur-xl"><CardContent className="p-5">
-              <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><Lightbulb className="h-5 w-5 text-amber-300" /><h2 className="font-semibold text-white">Help Me Get It In</h2></div><Button size="sm" disabled={saving} onClick={() => void getHelp()} className="bg-amber-400 text-slate-950 hover:bg-amber-300 hover:text-slate-950"><Sparkles className="mr-1.5 h-4 w-4" />Get options</Button></div>
+              <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><Lightbulb className="h-5 w-5 text-amber-300" /><h2 className="font-semibold text-white">Help Me Get It In</h2></div><Button size="sm" disabled={saving} aria-busy={pendingAction === "options"} onClick={() => void getHelp()} className="bg-amber-400 text-slate-950 hover:bg-amber-300 hover:text-slate-950"><Sparkles className="mr-1.5 h-4 w-4" />{pendingAction === "options" ? "Getting options…" : "Get options"}</Button></div>
               <p className="mt-2 text-sm text-white">Small, nonnumeric strategies based on the barrier you chose.</p>
+              {pendingAction === "setup" && <p role="status" className="mt-2 text-xs text-white/80">Saving setup. Get options will be available when saving finishes.</p>}
+              <HydrationEverydayCreatorButton navigate={navigate} testId="hydration-options-creator" className="mt-3 h-auto min-h-10 w-full whitespace-normal bg-sky-400 text-slate-950 hover:bg-sky-300 sm:w-auto" />
+              <p className="mt-2 text-xs text-white/80">You can create a drink with any barrier—or without choosing one.</p>
               <HydrationInterventionCards options={options} preferences={preferences} barrierLabel={barrierLabel} navigate={navigate} reload={load} />
             </CardContent></Card>
           </section>
