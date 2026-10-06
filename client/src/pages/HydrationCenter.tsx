@@ -13,13 +13,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import HydrationFourDoorPanels from "@/components/HydrationFourDoorPanels";
 import HydrationHubGuide from "@/components/HydrationHubGuide";
+import HydrationInterventionCards from "@/components/HydrationInterventionCards";
 import { useToast } from "@/hooks/use-toast";
 import {
   addHydrationWater,
   createHydrationHelp,
-  createHydrationHandoff,
   getHydrationHubState,
-  recordHydrationInterventionEvent,
   saveHydrationHubBarriers,
   saveHydrationHubPreferences,
   type HydrationBarrierCode,
@@ -238,27 +237,6 @@ export default function HydrationCenter() {
     } finally { setSaving(false); }
   };
 
-  const chooseIntervention = async (option: Intervention) => {
-    await recordHydrationInterventionEvent(option.id, "accepted");
-    if (option.destinationType === "beverage_creator") {
-      await recordHydrationInterventionEvent(option.id, "opened", { destination: "beverage_creator" });
-      const handoff = await createHydrationHandoff({
-        door: "everyday",
-        description: [
-          `Practical Hydration support for barrier: ${option.barrierCode}`,
-          `Flavor preference: ${preferences.flavor || "no preference"}`,
-          option.description,
-        ].join(". "),
-      });
-      const params = new URLSearchParams({ hydrationHandoff: handoff.token });
-      navigate(`/lifestyle/beverage-creator?${params.toString()}`);
-      return;
-    }
-    await recordHydrationInterventionEvent(option.id, "completed");
-    toast({ title: "Saved as something to try", description: "Come back to My Perfect Hydration Center and tell us what worked." });
-    await load();
-  };
-
   const projections = state?.projections;
   const today = projections?.today || { totalFluidsMl: state?.totalLoggedMl || 0, plainWaterMl: state?.totalLoggedMl || 0, beverageMix: [] };
   const policy = state?.numericPolicy;
@@ -373,7 +351,7 @@ export default function HydrationCenter() {
             <Card className="border-white/10 bg-slate-950/45 text-white backdrop-blur-xl"><CardContent className="p-5">
               <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><Lightbulb className="h-5 w-5 text-amber-300" /><h2 className="font-semibold text-white">Help Me Get It In</h2></div><Button size="sm" disabled={saving} onClick={() => void getHelp()} className="bg-amber-400 text-slate-950 hover:bg-amber-300 hover:text-slate-950"><Sparkles className="mr-1.5 h-4 w-4" />Get options</Button></div>
               <p className="mt-2 text-sm text-white">Small, nonnumeric strategies based on the barrier you chose.</p>
-              <div className="mt-4 space-y-2">{options.length ? options.map((option) => <div key={option.id} className="rounded-xl border border-white/30 bg-white/[.04] p-3 text-white"><div className="flex items-start justify-between gap-3"><div><Badge variant="outline" className="mb-2 border-white/30 text-[10px] text-white">{barrierLabel(option.barrierCode)}</Badge><h3 className="text-sm font-semibold text-white">{option.title}</h3><p className="mt-1 text-xs leading-relaxed text-white">{option.description}</p></div><Button size="sm" onClick={() => void chooseIntervention(option)} className="shrink-0 bg-white/10 text-white hover:bg-white/20">{option.destinationType === "beverage_creator" ? "Create" : "Try it"}</Button></div></div>) : <div className="rounded-xl border border-dashed border-slate-300/45 bg-slate-400/15 p-6 text-center text-sm text-slate-200">Save a barrier, then ask for practical options.</div>}</div>
+              <HydrationInterventionCards options={options} preferences={preferences} barrierLabel={barrierLabel} navigate={navigate} reload={load} />
             </CardContent></Card>
           </section>
 
