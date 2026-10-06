@@ -55,6 +55,7 @@ import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { BugReportButton } from "@/components/BugReportButton";
 import { ComplianceCard } from "@/components/dashboard/ComplianceCard";
+import HydrationDashboardCard from "@/components/dashboard/HydrationDashboardCard";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import {
@@ -1598,6 +1599,15 @@ export default function DashboardNew() {
                  </div>
                </CardContent>
            </Card>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+          className="mb-4"
+        >
+          <HydrationDashboardCard />
         </motion.div>
 
         <motion.div
