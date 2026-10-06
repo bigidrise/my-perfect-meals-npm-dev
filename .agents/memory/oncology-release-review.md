@@ -32,3 +32,9 @@ Authoritative oncology context projections must use the same eligibility gate as
 **Why:** An older projection check discarded a correctly saved active symptom during an authorized Development review. Tests that supplied prebuilt envelopes concealed the missing handoff.
 
 **How to apply:** Verify the actual record-to-envelope projection under the narrow review opt-in, including broad Production classification, while keeping Production and published runtimes closed. Final Beverage checks must enforce active tolerance guidance independently of primary-diet or numeric-clinical evidence requirements.
+
+For symptom review, establish request-specific backend provenance and enforcement, not just a selected UI control or plausible adapted output.
+
+**Why:** The user explicitly requires evidence that saved `oncologySupportContext.symptoms` was active on the actual successful request and caused the adaptations before calling the creator a genuine pass.
+
+**How to apply:** Correlate the exact request and returned choices with symptom-specific validator rejections and retries, and trace their context back to the authenticated subject's saved record. Distinguish causal enforcement evidence from unlogged model reasoning; do not infer rejection reasons from the number of returned choices alone.
