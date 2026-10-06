@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import HydrationEverydayCreatorButton from "@/components/HydrationEverydayCreatorButton";
 import {
   activateHydrationLiquidProtocol,
   createHydrationLiquidProtocol,
@@ -131,7 +132,6 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
     state?.liquidProtocol ?? null,
   );
   const [protocolSaving, setProtocolSaving] = useState(false);
-  const [creatorOpening, setCreatorOpening] = useState(false);
   const [activationConfirmed, setActivationConfirmed] = useState(false);
 
   useEffect(() => {
@@ -175,30 +175,6 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
         description: error instanceof Error ? error.message.replace(/^\d+:\s*/, "") : "Please try again.",
         variant: "destructive",
       });
-    }
-  };
-
-  const openEverydayCreator = async () => {
-    setCreatorOpening(true);
-    try {
-      const handoff = await createHydrationHandoff({
-        door: "everyday",
-        description:
-          "Create a practical Everyday Hydration beverage. Preserve all saved dietary and safety constraints and do not invent a medical fluid target.",
-      });
-      const params = new URLSearchParams({ hydrationHandoff: handoff.token });
-      navigate(`/lifestyle/beverage-creator?${params.toString()}`);
-    } catch (error) {
-      toast({
-        title: "Could not open the Creator",
-        description:
-          error instanceof Error
-            ? error.message.replace(/^\d+:\s*/, "")
-            : "Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setCreatorOpening(false);
     }
   };
 
@@ -311,14 +287,7 @@ export default function HydrationFourDoorPanels({ state, navigate, onReload }: P
               <p className="mt-1 text-sm leading-relaxed text-white">
                 Log a fluid, save optional preferences, or ask for a practical barrier-based option. These tools never create a personal target.
               </p>
-              <Button
-                onClick={() => void openEverydayCreator()}
-                disabled={creatorOpening}
-                className="mt-4 bg-sky-400 text-slate-950 hover:bg-sky-300"
-                data-testid="everyday-hydration-creator"
-              >
-                {creatorOpening ? "Opening Creator…" : "Create a Hydration Beverage"}
-              </Button>
+              <HydrationEverydayCreatorButton navigate={navigate} />
             </div>
           </CardContent>
         </Card>
