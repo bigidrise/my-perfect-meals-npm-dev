@@ -55,6 +55,10 @@ import type {
   HumanFoodValidationFinding,
 } from "../../shared/humanFoodValidation";
 import type { HumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
+import { oncologyBeverageCategoryRules, oncologyBeverageViolations, withOncologyBeverageProof } from "../services/guardrails/prompt/oncologyRecommendationContext";
+
+const scanBeverageOutput: typeof scanGeneratedOutput = (meal, envelope, options) =>
+  withOncologyBeverageProof(scanGeneratedOutput(meal, envelope, options), meal, envelope);
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -412,7 +416,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
       ? activeRestrictions.map((d: string) => d.replace(/-/g, " ")).join(", ")
       : "none specified";
 
-    const categorySpecificRules = (() => {
+    const categorySpecificRules = oncologyBeverageCategoryRules((() => {
       switch (effectiveCategory) {
         case "cocktail":
           return `\n🍸 COCKTAIL-SPECIFIC RULES:
@@ -474,7 +478,7 @@ beverageCreatorRouter.post("/", async (req, res) => {
         default:
           return "";
       }
-    })();
+    })(), beverageEnvelope);
 
     const softOverrideBlock = userDietOverride === true
       ? `\n[USER DIET SOFT OVERRIDE: The user has explicitly chosen to make this beverage despite their dietary preference. You MUST create the specifically requested drink. Keep the serving size realistic. Do NOT add additional non-compliant ingredients beyond what is inherent to this beverage type.]\n`
@@ -747,7 +751,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
         field.available && field.value && text.includes(field.value.toLowerCase())
           ? field.value
           : undefined;
-      const protocolProof = scanGeneratedOutput(candidate, beverageEnvelope, {
+      const protocolProof = scanBeverageOutput(candidate, beverageEnvelope, {
         generatorName: "beverage_creator_final_evidence",
         skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
         overriddenAllergens: _overriddenBeverageAllergens.length
@@ -832,13 +836,16 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
         String(candidate?.category ?? "").toLowerCase() === requestedBeverageCategory;
       const servingMatches = candidate?.servingSize === serving.label;
       const liquidProof = validateLiquidNutritionOutput(candidate, activeLiquidProtocol);
-      if (finiteNutrition && scalingMatches && categoryMatches && servingMatches && liquidProof.passed) return result;
+      // Symptom guidance is independent of a primary diet or numeric clinical
+      // directive. Recheck it directly after transformations and repairs.
+      const oncologyViolations = oncologyBeverageViolations(candidate, beverageEnvelope);
+      if (finiteNutrition && scalingMatches && categoryMatches && servingMatches && liquidProof.passed && !oncologyViolations.length) return result;
       const preserveOutcome: HumanFoodFinalValidationResult["outcome"] = !liquidProof.passed
         ? "blocked"
         : result.outcome === "blocked" || result.outcome === "review_required"
           ? result.outcome
           : "repairable";
-      const liquidFinding: HumanFoodValidationFinding = "message" in liquidProof
+      const liquidFinding: HumanFoodValidationFinding = !liquidProof.passed && "message" in liquidProof
         ? {
             dimension: "nutrition",
             outcome: "blocked",
@@ -849,12 +856,16 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
         : {
             dimension: "nutrition",
             outcome: "repairable",
-            code: !finiteNutrition
+            code: oncologyViolations.length
+              ? "oncology_beverage_conflict"
+              : !finiteNutrition
               ? "final_nutrition_invalid"
               : !categoryMatches
                 ? "final_category_mismatch"
                 : "final_serving_mismatch",
-            message: "Final beverage structure or scaling could not be verified.",
+            message: oncologyViolations.length
+              ? oncologyViolations.join(" ")
+              : "Final beverage structure or scaling could not be verified.",
             assurance: "structured_evidence",
             repairHint: `Return finite nutrition, category "${requestedBeverageCategory}", and servingSize "${serving.label}".`,
           };
@@ -913,7 +924,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
             continue;
           }
 
-          const candidateScan = scanGeneratedOutput(candidate, beverageEnvelope, {
+          const candidateScan = scanBeverageOutput(candidate, beverageEnvelope, {
             generatorName: "beverage_creator_alternative",
             skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
             overriddenAllergens: _overriddenBeverageAllergens.length > 0
@@ -1067,7 +1078,7 @@ ${getMeasurementPromptBlock((beverageMeasurementSystem) as MeasurementSystem)}
       }
 
       // ── Layer 2: Post-gen protocol scan (dietary restriction compliance) ──
-      beverageScan = scanGeneratedOutput(meal, beverageEnvelope, {
+      beverageScan = scanBeverageOutput(meal, beverageEnvelope, {
         generatorName: 'beverage_creator',
         skipAdaptableConflicts: dietAdaptOverride === true || userDietOverride === true,
         overriddenAllergens: _overriddenBeverageAllergens.length > 0 ? _overriddenBeverageAllergens : undefined,

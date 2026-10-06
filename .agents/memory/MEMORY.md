@@ -133,3 +133,6 @@
 - [Final Create a Dish choices](final-create-dish-choices.md) — aim for three distinct, fully verified recipes; never count pre-validation candidates or pad with unverified food.
 - [Product evidence authority](product-evidence-authority.md) — no condition name or evidence template creates a clinical product rule; unknown thresholds and catalog freshness stay unresolved.
 - [Diabetic generation provenance](diabetic-generation-provenance.md) — freeze authorized operation evidence; preserve original history and never backfill generation glucose.
+- [Oncology release review](oncology-release-review.md) — symptom support needs authenticated Development review before release; references do not imply clinical validation.
+- [Oncology symptom visibility](oncology-symptom-entry-visibility.md) — use an activation overlay and a below-button review entry; above-button symptom content was easy to miss.
+- [Saved support compatibility](saved-support-compatibility.md) — retain established support flags during unrelated health edits without allowing new legacy activation.

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { useLocation, useRoute } from "wouter";
@@ -50,6 +50,9 @@ import ClinicalInterventionPanel from "@/components/pro/ClinicalInterventionPane
 import { ClinicalDirectiveReviewPanel } from "@/components/pro/ClinicalDirectiveReviewPanel";
 import { ProHydrationControls } from "@/components/pro/ProHydrationControls";
 import { resolveVerifiedProClientUserId } from "@/lib/proClientIdentity";
+import { ONCOLOGY_SYMPTOM_OPTIONS, type OncologySupportSelection } from "@shared/oncologySupportSelection";
+import { oncologyDevelopmentReviewEnabled } from "@/lib/oncologyDevelopmentGate";
+import { loadOncologySupportSelection, saveOncologySupportSelection } from "@/lib/oncologySupportSelectionClient";
 
 
 export default function ClinicianClientDashboard() {
@@ -93,6 +96,15 @@ export default function ClinicianClientDashboard() {
   const [macros, setMacros] = useState<Targets>(() => proStore.getTargets(clientId));
   const [ctx, setCtx] = useState<ClinicalContext>(() => proStore.getContext(clientId));
   const [isDirty, setIsDirty] = useState(false);
+  const oncologyDevelopment = oncologyDevelopmentReviewEnabled();
+  const [oncologySelection, setOncologySelection] = useState<{
+    subjectId: string; value: OncologySupportSelection;
+  } | null>(null);
+  const [oncologyLoadError, setOncologyLoadError] = useState(false);
+  const [oncologySaving, setOncologySaving] = useState(false);
+  const oncologySaveClient = useRef(clientId);
+  const oncologySaveInFlight = useRef(false);
+  oncologySaveClient.current = clientId;
   const updateMacros = (next: Targets) => { setMacros(next); setIsDirty(true); };
   const updateCtx = (next: ClinicalContext) => { setCtx(next); setIsDirty(true); };
   const PHYSICIAN_BUILDER_KEYS = getBuilderKeys("physician");
@@ -139,6 +151,23 @@ export default function ClinicianClientDashboard() {
 
   // Must be defined BEFORE any useEffect that references it in deps or body.
   const resolvedClientUserId = resolveVerifiedProClientUserId(client, clientId);
+
+  useEffect(() => {
+    if (!oncologyDevelopment) return;
+    const controller = new AbortController();
+    setOncologySelection(null);
+    setOncologyLoadError(false);
+    if (resolvedClientUserId) {
+      loadOncologySupportSelection(resolvedClientUserId, apiRequest, controller.signal)
+        .then(value => {
+          if (controller.signal.aborted) return;
+          setOncologySelection({ subjectId: resolvedClientUserId, value });
+          setMacros(prev => ({ ...prev, flags: { ...prev.flags, oncologySupport: value.enabled } }));
+        })
+        .catch(() => { if (!controller.signal.aborted) setOncologyLoadError(true); });
+    }
+    return () => controller.abort();
+  }, [resolvedClientUserId, oncologyDevelopment]);
 
   useEffect(() => {
     setMacros(proStore.getTargets(clientId));
@@ -235,7 +264,7 @@ export default function ClinicianClientDashboard() {
       })
       .catch(() => {});
     // Load physician-assigned oncology support state from DB
-    fetch(apiUrl(`/api/pro/oncology-support/${uid}`), {
+    if (!oncologyDevelopment) fetch(apiUrl(`/api/pro/oncology-support/${uid}`), {
       headers: { ...getAuthHeaders() },
       credentials: "include",
     })
@@ -264,6 +293,17 @@ export default function ClinicianClientDashboard() {
   }, [clientId]);
 
   const saveTargets = async () => {
+    const savingClientId = clientId;
+    if (oncologyDevelopment && (oncologySaveInFlight.current || !resolvedClientUserId ||
+        oncologySelection?.subjectId !== resolvedClientUserId || oncologyLoadError)) {
+      toast({ title: "Oncology configuration unavailable", description: "Wait for the current client's configuration to load successfully before saving.", variant: "destructive" });
+      return;
+    }
+    if (oncologyDevelopment) {
+      oncologySaveInFlight.current = true;
+      setOncologySaving(true);
+    }
+    try {
     proStore.setTargets(clientId, macros);
     const _uid = client?.clientUserId || client?.userId || clientId;
     ensureClientMapping(_uid, clientId);
@@ -314,7 +354,16 @@ export default function ClinicianClientDashboard() {
     // Persist oncology support flag to DB whenever save is triggered
     if (dbUserId) {
       try {
-        await fetch(apiUrl(`/api/pro/oncology-support/${dbUserId}`), {
+        if (oncologyDevelopment && oncologySelection) {
+          if (oncologySaveClient.current !== savingClientId) return;
+          setOncologySaving(true);
+          const value = await saveOncologySupportSelection(dbUserId, {
+            ...oncologySelection.value,
+            enabled: !!macros.flags?.oncologySupport,
+          }, apiRequest);
+          if (oncologySaveClient.current !== savingClientId) return;
+          setOncologySelection({ subjectId: dbUserId, value });
+        } else await fetch(apiUrl(`/api/pro/oncology-support/${dbUserId}`), {
           method: "PUT",
           headers: { "Content-Type": "application/json", ...getAuthHeaders() },
           credentials: "include",
@@ -328,6 +377,10 @@ export default function ClinicianClientDashboard() {
         });
       } catch (e) {
         console.error("Failed to sync oncology support to database:", e);
+        if (oncologyDevelopment) {
+          toast({ title: "Oncology support was not saved", description: "Your changes remain unsaved. Check your clinical access and try again.", variant: "destructive" });
+          return;
+        }
       }
     }
 
@@ -356,6 +409,12 @@ export default function ClinicianClientDashboard() {
       title: t("pro.clinicianDashboard.saved"),
       description: "Macro targets updated successfully.",
     });
+    } finally {
+      if (oncologyDevelopment) {
+        oncologySaveInFlight.current = false;
+        setOncologySaving(false);
+      }
+    }
   };
 
   const saveContext = () => {
@@ -764,6 +823,7 @@ export default function ClinicianClientDashboard() {
                     return (
                       <button
                         type="button"
+                        disabled={oncologyDevelopment && (oncologySelection?.subjectId !== resolvedClientUserId || oncologySaving || oncologyLoadError)}
                         onClick={() => updateMacros({ ...macros, flags: { ...macros.flags, oncologySupport: !isOn } })}
                         className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 active:scale-[0.97] border ${
                           isOn
@@ -794,6 +854,40 @@ export default function ClinicianClientDashboard() {
                     );
                   })()}
                 </div>
+                {oncologyDevelopment && (
+                  <fieldset className="mt-3 space-y-2" disabled={!macros.flags?.oncologySupport || oncologySaving || oncologyLoadError || oncologySelection?.subjectId !== resolvedClientUserId}>
+                    <legend className="text-sm text-white/80 mb-2">Oncology symptom guidance</legend>
+                    {oncologyLoadError && <p role="alert" className="text-sm text-red-300">Could not load this client's oncology configuration. Reload before saving.</p>}
+                    {!oncologySelection && !oncologyLoadError && <p className="text-xs text-white/60">Loading oncology configuration…</p>}
+                    {ONCOLOGY_SYMPTOM_OPTIONS.map(option => (
+                      <label key={option.value} className="flex items-center gap-2 text-sm text-white/80">
+                        <input type="checkbox" checked={!!oncologySelection && oncologySelection.subjectId === resolvedClientUserId && oncologySelection.value.symptoms.includes(option.value)}
+                          onChange={event => {
+                            const checked = event.target.checked;
+                            setOncologySelection(current => current && current.subjectId === resolvedClientUserId ? {
+                              ...current, value: { ...current.value, symptoms: checked
+                                ? [...current.value.symptoms, option.value]
+                                : current.value.symptoms.filter(s => s !== option.value) },
+                            } : current);
+                            setIsDirty(true);
+                          }} />
+                        {option.label}
+                      </label>
+                    ))}
+                    <label className="flex items-center gap-2 text-sm text-white/80">
+                      <input type="checkbox" checked={!!oncologySelection && oncologySelection.subjectId === resolvedClientUserId && oncologySelection.value.emphasis.highProteinNutrientDensity}
+                        onChange={event => {
+                          const checked = event.target.checked;
+                          setOncologySelection(current => current && current.subjectId === resolvedClientUserId ? {
+                            ...current, value: { ...current.value, emphasis: { highProteinNutrientDensity: checked } },
+                          } : current);
+                          setIsDirty(true);
+                        }} />
+                      Emphasize protein and nutrient density
+                    </label>
+                    <p className="text-xs text-white/50">Save Targets &amp; Directives to apply. Disabling support preserves these selections without activating them.</p>
+                  </fieldset>
+                )}
                 <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1.5">
                   {!!(macros.flags as Record<string, boolean> | undefined)?.oncologySupport && (
                     <span className="text-xs text-rose-300/80">Oncology overlay active — save to persist</span>
@@ -879,7 +973,7 @@ export default function ClinicianClientDashboard() {
               </p>
             )}
             <div className="col-span-full flex gap-2">
-              <Button onClick={saveTargets} className={`border border-white/20 text-white font-medium px-8 py-3 shadow-2xl transition-all duration-300 active:scale-[0.98] flex-1 ${isDirty ? "bg-lime-600 ring-2 ring-orange-400 shadow-[0_0_16px_rgba(251,146,60,0.55)] animate-pulse" : "bg-lime-600"}`}>
+              <Button onClick={saveTargets} disabled={oncologyDevelopment && (oncologySaving || oncologyLoadError || oncologySelection?.subjectId !== resolvedClientUserId)} className={`border border-white/20 text-white font-medium px-8 py-3 shadow-2xl transition-all duration-300 active:scale-[0.98] flex-1 ${isDirty ? "bg-lime-600 ring-2 ring-orange-400 shadow-[0_0_16px_rgba(251,146,60,0.55)] animate-pulse" : "bg-lime-600"}`}>
                 {t("pro.clinicianDashboard.save")}
               </Button>
               <Button

@@ -64,6 +64,7 @@ import {
   type DiabetesGenerationAttempt,
 } from "./diabetesGenerationSnapshot";
 import { buildUniversalConditionGuidance } from "./universalMedicalGuidance";
+import { projectOncologyRecommendationContext } from "./guardrails/prompt/oncologyRecommendationContext";
 import { readDevelopmentPersonalFoodSupports } from "./healthProtocols/developmentFoodSupports";
 import { resolveCurrentGLP1MealAuthority, currentGLP1AuthorityEnabled } from "./glp1/currentMealAuthority";
 import { scanClinicalFoodSafety } from "./healthProtocols/clinicalOutputChecks";
@@ -551,6 +552,8 @@ export interface UserProtocolEnvelope {
    * Empty array when no conditions are active.
    */
   conditionGuidanceBlocks: string[];
+  /** Subject-resolved context for Development oncology tolerance checks only. */
+  oncologySupportContext?: import("./guardrails/prompt/oncologySupportPromptBuilder").OncologySupportContext | null;
 
   /**
    * User's preferred language — BCP-47 base code ("es", "fr", "zh", etc.)
@@ -1550,6 +1553,7 @@ export async function loadUserProtocolEnvelope(
       hasDiabetes,
       diabeticGlucoseState,
       conditionGuidanceBlocks,
+      ...projectOncologyRecommendationContext(user.oncologySupportContext),
       glp1DailyTolerance,
       thyroidSupport,
       thyroidMedication,

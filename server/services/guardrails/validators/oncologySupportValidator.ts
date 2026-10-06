@@ -13,6 +13,8 @@
 
 import type { ValidationResult } from "../types";
 import { ONCOLOGY_HARD_BLOCKED_INGREDIENTS } from "../prompt/oncologySupportPromptBuilder";
+import type { OncologySymptomSelection } from "../../../../shared/oncologySupportSelection";
+import { activeOncologySymptoms } from "../prompt/oncologySymptomPriority";
 
 interface MealToValidate {
   name: string;
@@ -92,7 +94,7 @@ function findBlockedIngredient(ingredientName: string): string | null {
  * @param meal - The generated meal object to validate
  * @returns ValidationResult with violations listed if invalid
  */
-export function validateOncologyMealSafety(meal: MealToValidate): ValidationResult {
+export function validateOncologyMealSafety(meal: MealToValidate, symptoms: readonly OncologySymptomSelection[] = []): ValidationResult {
   const violations: string[] = [];
   const warnings: string[] = [];
 
@@ -119,6 +121,15 @@ export function validateOncologyMealSafety(meal: MealToValidate): ValidationResu
 
   // --- Check 2: Hard-blocked ingredients in ingredient list ---
   const ingredientNames = extractIngredientNames(meal);
+  // Enforce the existing mouth-sensitivity acid avoidance rule, not a new
+  // medical threshold. Other protocols and the original hard-block scan remain.
+  if (activeOncologySymptoms(symptoms).includes("mouth_sensitivity")) {
+    for (const ingredient of ingredientNames) {
+      if (/\b(lemon|lime|grapefruit|orange juice|citrus|vinegar|tomato sauce|tomato paste)\b/i.test(ingredient)) {
+        violations.push(`Ingredient conflicts with active mouth sensitivity: "${ingredient}"`);
+      }
+    }
+  }
   for (const ingredientName of ingredientNames) {
     const blocked = findBlockedIngredient(ingredientName);
     if (blocked) {

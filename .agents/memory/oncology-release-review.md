@@ -1,0 +1,40 @@
+---
+name: Oncology release review
+description: Release and scope constraints for symptom-personalized oncology nutrition support.
+---
+
+Symptom-personalized oncology changes require an authenticated Development review before any Production promotion or publication. Do not treat mocked handoff tests or the app's public reference list as clinical validation or platform-wide clearance.
+
+**Why:** The user explicitly required Development-only corrections followed by an authenticated review before marketing symptom-personalized support. The oncology references support educational context, not organizational endorsement or certification of individual meal rules.
+
+**How to apply:** Keep release approval separate from implementation completion. Do not add breast-cancer-specific rules or medication recommendations without a separately approved scope. Report any remaining creator-specific inconsistencies instead of claiming every tool has verified symptom behavior.
+
+Consumer symptom editing is self-managed only. Physician-owned selections remain consumer-read-only even if a historical lock bit is clear, until a separate ownership policy is approved.
+
+**Why:** The user approved consumer symptom entry while explicitly preserving clinician ownership, not a new patient/clinician co-editing model.
+
+**How to apply:** Preserve clinician-owned records and server-owned metadata; do not infer editing permission from an unlocked historical record.
+
+Verify actual oncology Development eligibility before declaring signed-in testing ready. A Development workflow and a visible DEV badge do not establish that all project/deployment safety guards permit the feature.
+
+**Why:** The Development runtime was running successfully while the combined oncology eligibility gate was inactive.
+
+**How to apply:** Keep Production guards intact and distinguish successful code/tests from runtime activation. Confirm the workspace's Development configuration before changing eligibility.
+
+An explicit oncology-only review switch may override broad project classification only within a non-published Development runtime. Keep that switch Development-scoped; do not alter the broad project marker to enable oncology.
+
+**Why:** The user authorized Development review while prohibiting Production changes. Changing a project-wide marker could affect unrelated features; a narrow opt-in avoids that scope expansion.
+
+**How to apply:** Production builds and deployment runtimes must stay blocked regardless of the review switch. Keep client/server eligibility consistent and verify that the review switch is absent from Production configuration.
+
+Authoritative oncology context projections must use the same eligibility gate as persistence, guidance, and validators. Avoid independent copies of Development/project-classification checks.
+
+**Why:** An older projection check discarded a correctly saved active symptom during an authorized Development review. Tests that supplied prebuilt envelopes concealed the missing handoff.
+
+**How to apply:** Verify the actual record-to-envelope projection under the narrow review opt-in, including broad Production classification, while keeping Production and published runtimes closed. Final Beverage checks must enforce active tolerance guidance independently of primary-diet or numeric-clinical evidence requirements.
+
+For symptom review, establish request-specific backend provenance and enforcement, not just a selected UI control or plausible adapted output.
+
+**Why:** The user explicitly requires evidence that saved `oncologySupportContext.symptoms` was active on the actual successful request and caused the adaptations before calling the creator a genuine pass.
+
+**How to apply:** Correlate the exact request and returned choices with symptom-specific validator rejections and retries, and trace their context back to the authenticated subject's saved record. Distinguish causal enforcement evidence from unlogged model reasoning; do not infer rejection reasons from the number of returned choices alone.
