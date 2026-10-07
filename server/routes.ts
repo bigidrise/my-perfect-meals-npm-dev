@@ -96,6 +96,7 @@ import pushNotificationsRouter from './routes/pushNotifications';
 import remindersRouter from './routes/reminders';
 import mealPlanReplaceRouter from './routes/meal-plan-replace';
 import authSessionRouter from './routes/auth.session';
+import professionalOnboardingRouter from "./routes/professionalOnboardingRoutes";
 import trialRouter from './routes/trial';
 import mfaRoutes from './routes/auth.mfa';
 import { requireMfa } from './middleware/requireMfa';
@@ -879,6 +880,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/stripe", stripeRouter);
 
   app.use(authSessionRouter);
+  app.use("/api/professional-onboarding", professionalOnboardingRouter);
   app.use("/api/auth/mfa", mfaRoutes);
   app.use(alcoholLogRouter);
   app.use('/api/vitals/bp', vitalsBpRouter);

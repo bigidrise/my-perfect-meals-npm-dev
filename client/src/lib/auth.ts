@@ -432,8 +432,8 @@ export function getProCareSignupData(): ProCareSignupData | null {
     credentialBody: localStorage.getItem("procare_credential_body") || undefined,
     credentialNumber: localStorage.getItem("procare_credential_number") || undefined,
     credentialYear: localStorage.getItem("procare_credential_year") || undefined,
-    attestationText: "Accepted via legal document system",
-    attestedAt: new Date().toISOString(),
+    attestationText: "Professional request information only; no legal acceptance recorded.",
+    attestedAt: "",
     procareEntryPath: entryPath,
   };
 }

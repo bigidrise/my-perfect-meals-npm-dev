@@ -3,7 +3,7 @@ import { useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, ShieldCheck, FileCheck, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getProCareSignupData, upgradeToProCare, clearProCareSignupData, getAuthHeaders } from "@/lib/auth";
+import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { LEGAL_DOCUMENTS } from "../../../../shared/legalDocuments";
 import ProfessionalLegalModal from "@/components/pro/ProfessionalLegalModal";
@@ -12,6 +12,8 @@ import {
   clearProfessionalLegalRecovery,
   readProfessionalLegalRecovery,
 } from "@/lib/professionalLegalRecovery";
+import { isCanonicalPractitionerRole } from "@shared/professionalRoles";
+import ProfessionalRequestReview from "./ProfessionalRequestReview";
 
 type ProfessionalCategory = "certified" | "experienced" | "non_certified";
 
@@ -30,6 +32,15 @@ const CATEGORY_LABELS: Record<ProfessionalCategory, string> = {
 };
 
 export default function ProCareAttestation() {
+  const { user } = useAuth();
+  return user?.isProCare && isCanonicalPractitionerRole(user.professionalRole)
+    ? <EstablishedProfessionalLegalContinuation />
+    : <ProfessionalRequestReview />;
+}
+
+// Preserve the existing actual legal-only continuation. An application never
+// invokes this path or writes legal evidence.
+function EstablishedProfessionalLegalContinuation() {
   const [, setLocation] = useLocation();
   const search = useSearch();
   const { user, refreshUser } = useAuth();
@@ -103,33 +114,6 @@ export default function ProCareAttestation() {
     return data.allAccepted === true;
   };
 
-  const performUpgrade = async () => {
-    setUpgrading(true);
-    setError(null);
-    try {
-      const procareData = getProCareSignupData();
-      if (!procareData) {
-        setError("Missing professional information. Please go back and complete the identity step.");
-        setUpgrading(false);
-        return;
-      }
-      await upgradeToProCare(procareData);
-      clearProCareSignupData();
-      await refreshUser();
-      localStorage.setItem("coachMode", "self");
-      const returnTo = recovery?.returnTo || "/pro-launchpad";
-      clearProfessionalLegalRecovery();
-      setLocation(returnTo);
-    } catch (err: any) {
-      if (err.message?.includes("LEGAL_REACCEPT_REQUIRED") || err.message?.includes("legal documents")) {
-        setShowProfessionalModal(true);
-      } else {
-        setError(err.message || "Failed to upgrade account. Please try again.");
-      }
-      setUpgrading(false);
-    }
-  };
-
   const finishExistingRecovery = async () => {
     await refreshUser();
     const returnTo = recovery?.returnTo ||
@@ -156,11 +140,7 @@ export default function ProCareAttestation() {
           return;
         }
 
-        if (isExistingProfessionalRecovery) {
-          await finishExistingRecovery();
-        } else {
-          await performUpgrade();
-        }
+        await finishExistingRecovery();
       } catch (err: any) {
         setError(err.message || "Failed to process attestation. Please try again.");
         setUpgrading(false);
@@ -172,11 +152,7 @@ export default function ProCareAttestation() {
 
   const handleProfessionalDocsAccepted = async () => {
     setShowProfessionalModal(false);
-    if (isExistingProfessionalRecovery) {
-      await finishExistingRecovery();
-    } else {
-      await performUpgrade();
-    }
+    await finishExistingRecovery();
   };
 
   return (

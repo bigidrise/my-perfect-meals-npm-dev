@@ -803,6 +803,12 @@ setTimeout(() => {
 
 // LMS boot migrations — idempotent CREATE/ALTER for LMS tables
 setTimeout(async () => {
+  // This legacy block also grandfather-updates accounts and backfills Studios.
+  // Stage 1's Development verification must not mutate shared account history.
+  if (process.env.SKIP_DEVELOPMENT_ACCOUNT_MAINTENANCE === "true") {
+    console.log("[development] Legacy account/bootstrap maintenance explicitly skipped.");
+    return;
+  }
   try {
     const { db } = await import("./db");
     const { sql } = await import('drizzle-orm');
