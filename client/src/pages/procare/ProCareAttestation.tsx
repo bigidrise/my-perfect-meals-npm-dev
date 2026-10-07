@@ -14,6 +14,8 @@ import {
 } from "@/lib/professionalLegalRecovery";
 import { isCanonicalPractitionerRole } from "@shared/professionalRoles";
 import ProfessionalRequestReview from "./ProfessionalRequestReview";
+import { useProfessionalOnboarding } from "@/hooks/useProfessionalOnboarding";
+import { professionalRequestsEnabled } from "@/lib/professionalOnboarding";
 
 type ProfessionalCategory = "certified" | "experienced" | "non_certified";
 
@@ -33,7 +35,16 @@ const CATEGORY_LABELS: Record<ProfessionalCategory, string> = {
 
 export default function ProCareAttestation() {
   const { user } = useAuth();
-  return user?.isProCare && isCanonicalPractitionerRole(user.professionalRole)
+  const requestStatus = useProfessionalOnboarding(user?.id);
+  const search = useSearch();
+  const explicitLegal = new URLSearchParams(search).get("legalOnly") === "true";
+  const established = user?.isProCare && isCanonicalPractitionerRole(user.professionalRole);
+  if (established && professionalRequestsEnabled && !explicitLegal) {
+    if (requestStatus.isLoading) return <p role="status">Loading professional request status…</p>;
+    if (requestStatus.error) return <div role="alert">Unable to load request status. <Button onClick={() => void requestStatus.refetch()}>Retry</Button></div>;
+    if (requestStatus.data?.request) return <ProfessionalRequestReview />;
+  }
+  return established
     ? <EstablishedProfessionalLegalContinuation />
     : <ProfessionalRequestReview />;
 }

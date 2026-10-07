@@ -38,11 +38,37 @@ export type ProfessionalDraftFields = z.infer<typeof professionalDraftFields>;
 export interface ProfessionalIdentityRequest extends Required<ProfessionalDraftFields> {
   id: string;
   ownerUserId: string;
-  state: "draft" | "submitted";
+  state: "draft" | "submitted" | "approved" | "rejected" | "needs_correction";
   revision: number;
   createdAt: string;
   updatedAt: string;
   submittedAt: string | null;
+  decisionReason?: string | null;
+  decidedAt?: string | null;
+}
+
+export const professionalIdentityDecision = z.object({
+  revision: z.number().int().min(0),
+  reviewedStateHash: z.string().regex(/^[a-f0-9]{64}$/),
+  decision: z.enum(["approve", "reject", "needs_correction"]),
+  approvedRole: z.enum(CANONICAL_PRACTITIONER_ROLES).optional(),
+  reason: z.string().trim().min(5).max(1000),
+  recovery: z.boolean().default(false),
+  identityOnlyAcknowledged: z.literal(true),
+  sharedDataAcknowledged: z.literal(true),
+}).strict();
+export type ProfessionalIdentityDecision = z.infer<typeof professionalIdentityDecision>;
+export type ProfessionalLifecycleEvent = "draft_created" | "draft_updated" | "request_submitted" | "correction_resumed";
+
+export interface ProfessionalReadinessCheck {
+  status: "ready" | "blocked" | "unavailable" | "not_applicable" | "not_evaluated";
+  code: string;
+}
+export interface ProfessionalReadiness {
+  scope: "account";
+  accountPrerequisitesReady: boolean;
+  clientAccessEvaluated: false;
+  checks: Record<"identity" | "credentials" | "training" | "agreements" | "entitlement" | "mfa" | "organizationLocation" | "relationshipConsent", ProfessionalReadinessCheck>;
 }
 export interface ProfessionalOnboardingStatus {
   accountId: string;

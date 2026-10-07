@@ -1,4 +1,4 @@
-import type { ProfessionalDraftFields, ProfessionalIdentityRequest, ProfessionalOnboardingStatus } from "@shared/professionalOnboarding";
+import type { ProfessionalDraftFields, ProfessionalIdentityRequest, ProfessionalOnboardingStatus, ProfessionalLifecycleEvent } from "@shared/professionalOnboarding";
 import { completeProfessionalDraft } from "@shared/professionalOnboarding";
 
 export class ProfessionalRequestError extends Error {
@@ -10,7 +10,7 @@ export interface ProfessionalRequestTransaction {
   request(userId: string): Promise<ProfessionalIdentityRequest | null>;
   create(userId: string): Promise<ProfessionalIdentityRequest>;
   save(row: ProfessionalIdentityRequest): Promise<ProfessionalIdentityRequest>;
-  event(row: ProfessionalIdentityRequest, kind: "draft_created" | "draft_updated" | "request_submitted", changedFields: string[]): Promise<void>;
+  event(row: ProfessionalIdentityRequest, kind: ProfessionalLifecycleEvent, changedFields: string[]): Promise<void>;
 }
 export interface ProfessionalRequestRepository {
   transaction<T>(work: (tx: ProfessionalRequestTransaction) => Promise<T>): Promise<T>;
@@ -36,12 +36,16 @@ export function createProfessionalOnboardingService(repository: ProfessionalRequ
         row = await tx.create(userId);
         await tx.event(row, "draft_created", []);
       }
+      if (row?.state === "needs_correction" && action === "resume") {
+        row = await tx.save({ ...row, state: "draft", submittedAt: null, revision: row.revision + 1 });
+        await tx.event(row, "correction_resumed", ["state"]);
+      }
       if (action === "update" || action === "submit") {
         if (!row || (input?.requestId && row.id !== input.requestId)) {
           throw new ProfessionalRequestError(404, "REQUEST_NOT_FOUND", "Your onboarding request was not found.");
         }
-        if (row.state === "submitted") {
-          if (action === "update") throw new ProfessionalRequestError(409, "REQUEST_ALREADY_SUBMITTED", "Submitted requests cannot be edited in this stage.");
+        if (row.state !== "draft") {
+          if (action === "update") throw new ProfessionalRequestError(409, "REQUEST_ALREADY_SUBMITTED", "This request is read-only. Resume a request needing correction before editing.");
           return { accountId: userId, currentAuthorizedRole: account.professionalRole, request: row, decisionAvailable: false };
         }
         if (input?.revision !== row.revision) {

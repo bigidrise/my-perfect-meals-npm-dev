@@ -4,6 +4,8 @@ import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAut
 import { updateProfessionalDraft, submitProfessionalDraft, type ProfessionalDraftFields } from "@shared/professionalOnboarding";
 import { createProfessionalOnboardingService, ProfessionalRequestError, type ProfessionalRequestRepository } from "../services/professionalOnboardingService";
 import { professionalOnboardingRepository } from "../services/professionalOnboardingRepository";
+import { getProfessionalIdentityReadiness } from "../services/professionalIdentityReadiness";
+import { isMfaVerifiedForUser } from "../lib/sessionSecurity";
 
 export function createProfessionalOnboardingRouter(repository: ProfessionalRequestRepository) {
   const router = Router();
@@ -41,6 +43,14 @@ export function createProfessionalOnboardingRouter(repository: ProfessionalReque
     };
   }
   router.get("/", handler("status"));
+  router.get("/readiness", async (req, res) => {
+    try {
+      const id = (req as AuthenticatedRequest).authUser.id;
+      res.json(await getProfessionalIdentityReadiness(id, isMfaVerifiedForUser(req, id) || (req as any).bearerMfaVerified === true));
+    } catch {
+      res.status(503).json({ code: "READINESS_UNAVAILABLE", error: "Professional readiness could not be established. No access is granted." });
+    }
+  });
   router.post("/draft", handler("resume"));
   router.patch("/draft", handler("update"));
   router.post("/submit", handler("submit"));

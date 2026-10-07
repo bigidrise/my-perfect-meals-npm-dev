@@ -1092,6 +1092,7 @@ export default function Router() {
         <Route path="/procare-info" component={ProCareInfoPage} />
         <Route path="/personal-guidance-info" component={PersonalGuidanceInfoPage} />
         <Route path="/admin-moderation" component={AdminModerationPage} />
+        <Route path="/admin/professional-requests" component={lazy(() => import("@/pages/admin/ProfessionalIdentityRequests"))} />
         <Route path="/admin/chef-kitchens" component={ChefKitchensAdmin} />
         <Route path="/admin/pilots" component={lazy(() => import("@/pages/PilotProgramAdmin"))} />
         <Route path="/kitchens" component={SignatureKitchenHubPage} />
