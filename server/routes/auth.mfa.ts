@@ -80,7 +80,7 @@ async function buildLoginResponse(user: any, req: any) {
     email: user.email,
     username: user.username,
     authToken: user.authToken,
-    isProCare: user.isProCare || false,
+    isProCare: user.isProCare || !!inviteResult.membership,
     professionalRole: user.professionalRole || null,
     role: user.role || "client",
     selectedMealBuilder: user.selectedMealBuilder || null,

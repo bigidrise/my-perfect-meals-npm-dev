@@ -1,288 +1,54 @@
+import { and, eq, gt, isNull, sql } from "drizzle-orm";
 import { db } from "../db";
 import { studioInvites, studioMemberships, studios } from "../db/schema/studio";
-import { careInvite, careTeamMember } from "../db/schema/careTeam";
-import { users } from "@shared/schema";
-import { eq, and, isNull, gt, desc } from "drizzle-orm";
-import { logClientActivity } from "./activityLog";
-import { activateProCareClient, ActivationError } from "./procareActivation";
-import { checkLegalAcceptance } from "./legalCheck";
-import { resolveEmailIdentityForUser } from "./emailIdentityService";
+import { careInvite } from "../db/schema/careTeam";
+import { normalizeEmailIdentity, resolveEmailIdentityForUser } from "./emailIdentityService";
+import { acceptStoredCareInvitation, type StoredCareInvitation } from "./careInvitationAcceptance";
 
 export interface StudioMembershipInfo {
-  studioId: string;
-  studioName?: string;
-  studioType?: string;
-  membershipId: string;
-  ownerUserId?: string;
+  studioId: string; studioName?: string; studioType?: string; membershipId: string; ownerUserId?: string;
 }
-
-export interface AutoAcceptResult {
-  accepted: boolean;
-  membership?: StudioMembershipInfo;
-}
-
-export async function lookupExistingMembership(
-  userId: string
-): Promise<StudioMembershipInfo | null> {
+export interface AutoAcceptResult { accepted: boolean; membership?: StudioMembershipInfo }
+export async function lookupExistingMembership(userId: string): Promise<StudioMembershipInfo | null> {
   try {
-    const [existing] = await db
-      .select({
-        membershipId: studioMemberships.id,
-        studioId: studioMemberships.studioId,
-        studioName: studios.name,
-        studioType: studios.type,
-        ownerUserId: studios.ownerUserId,
-      })
-      .from(studioMemberships)
-      .innerJoin(studios, eq(studios.id, studioMemberships.studioId))
-      .where(
-        and(
-          eq(studioMemberships.clientUserId, userId),
-          eq(studioMemberships.status, "active"),
-          eq(studioMemberships.isArchived, false)
-        )
-      );
-
-    if (!existing) return null;
-
-    return {
-      studioId: existing.studioId,
-      studioName: existing.studioName ?? undefined,
-      studioType: existing.studioType ?? undefined,
-      membershipId: existing.membershipId,
-      ownerUserId: existing.ownerUserId ?? undefined,
+    const [row] = await db.select({
+      membershipId: studioMemberships.id, studioId: studioMemberships.studioId,
+      studioName: studios.name, studioType: studios.type, ownerUserId: studios.ownerUserId,
+    }).from(studioMemberships).innerJoin(studios, eq(studios.id, studioMemberships.studioId))
+      .where(and(eq(studioMemberships.clientUserId, userId), eq(studioMemberships.status, "active"), eq(studioMemberships.isArchived, false)));
+    return row ?? null;
+  } catch (error) { console.error("[StudioMembership] Lookup failed", error); return null; }
+}
+export async function autoAcceptPendingInvites(userId: string, _email: string): Promise<AutoAcceptResult> {
+  try {
+    // The login payload is not email or practitioner authority.
+    const identity = await resolveEmailIdentityForUser(userId);
+    if (!("user" in identity) || identity.status !== "unique" || identity.candidates.length !== 1) return { accepted: false };
+    const email = normalizeEmailIdentity(identity.user.email);
+    const care = await db.select().from(careInvite).where(and(
+      sql`lower(trim(${careInvite.email})) = ${email}`, eq(careInvite.accepted, false),
+      isNull(careInvite.revokedAt), gt(careInvite.expiresAt, new Date()), isNull(careInvite.urlToken))).limit(2);
+    const studio = await db.select().from(studioInvites).where(and(
+      sql`lower(trim(${studioInvites.email})) = ${email}`, isNull(studioInvites.acceptedAt),
+      isNull(studioInvites.revokedAt), gt(studioInvites.expiresAt, new Date()), isNull(studioInvites.urlToken))).limit(2);
+    const candidates: StoredCareInvitation[] = [
+      ...care.map(row => ({ source: "care_invite" as const, row })),
+      ...studio.map(row => ({ source: "studio_invite" as const, row })),
+    ];
+    // Never silently select a provider from competing invitations. URL-token
+    // invitations always retain their explicit /join/studio confirmation step.
+    if (candidates.length !== 1) return { accepted: false };
+    const result = await acceptStoredCareInvitation(candidates[0], userId);
+    // An accepting provider connected the INVITING CLIENT. Do not describe that
+    // patient's membership as the provider's personal login membership.
+    return result.ownerUserId === userId ? { accepted: true } : {
+      accepted: true, membership: {
+        studioId: result.studioId, studioName: result.studioName, studioType: result.studioType,
+        membershipId: result.membershipId, ownerUserId: result.ownerUserId,
+      },
     };
   } catch (error) {
-    console.error("❌ [StudioMembership] Error looking up membership:", error);
-    return null;
-  }
-}
-
-export async function autoAcceptPendingInvites(
-  userId: string,
-  email: string
-): Promise<AutoAcceptResult> {
-  try {
-    const normalizedEmail = email.toLowerCase().trim();
-    const identity = await resolveEmailIdentityForUser(userId);
-    if (identity.candidates.length > 1) {
-      console.warn(`⚠️ [InviteAutoAccept] Skipping invite auto-accept for ambiguous email identity on user ${userId}`);
-      return { accepted: false };
-    }
-
-    const existingMembership = await lookupExistingMembership(userId);
-    if (existingMembership) {
-      console.log(`⚠️ [InviteAutoAccept] User already has a studio membership`);
-      return { accepted: false, membership: existingMembership };
-    }
-
-    const pendingCareInvites = await db
-      .select()
-      .from(careInvite)
-      .where(
-        and(
-          eq(careInvite.email, normalizedEmail),
-          eq(careInvite.accepted, false),
-          gt(careInvite.expiresAt, new Date()),
-          // Token-bearing invites require explicit acceptance on /join/studio.
-          // Auto-accepting them at login would silently connect the client
-          // before they ever see the confirmation screen.
-          isNull(careInvite.urlToken)
-        )
-      )
-      .orderBy(desc(careInvite.createdAt));
-
-    if (pendingCareInvites.length > 0) {
-      const invite = pendingCareInvites[0];
-      const trainerUserId = invite.userId;
-
-      // Physician connections require patient legal acceptance before auto-activation.
-      // Auto-accept at login is not sufficient justification to bypass the legal gate.
-      const [inviterProfile] = await db
-        .select({ professionalRole: users.professionalRole })
-        .from(users)
-        .where(eq(users.id, trainerUserId));
-
-      if (inviterProfile?.professionalRole === "physician") {
-        const legalCheck = await checkLegalAcceptance(userId, "patient_physician");
-        if (!legalCheck.allAccepted) {
-          console.log(
-            `⚠️ [InviteAutoAccept] Skipping physician auto-accept for user ${userId} — ` +
-            `patient_physician legal acceptance required (missing: ${legalCheck.missing.join(", ")}). ` +
-            `Client must use the normal connect flow to accept the required documents.`
-          );
-          return { accepted: false };
-        }
-      }
-
-      let activation;
-      try {
-        activation = await activateProCareClient(userId, trainerUserId, "care_team_invite", undefined, invite.organizationId ? {
-            organizationId: invite.organizationId,
-            locationId: invite.locationId,
-            sourceBusinessId: invite.sourceBusinessId,
-            partnerRecordId: invite.partnerRecordId,
-          } : null);
-      } catch (err) {
-        if (err instanceof ActivationError) {
-          console.error(`❌ [InviteAutoAccept] Activation failed (${err.code}): ${err.message}`);
-          return { accepted: false };
-        }
-        throw err;
-      }
-
-      for (const ci of pendingCareInvites) {
-        await db
-          .update(careInvite)
-          .set({ accepted: true })
-          .where(eq(careInvite.id, ci.id));
-      }
-
-      await db
-        .update(careTeamMember)
-        .set({
-          proUserId: userId,
-          status: "active",
-          updatedAt: new Date(),
-          ...(invite.organizationId ? {
-            organizationId: invite.organizationId,
-            locationId: invite.locationId,
-            sourceBusinessId: invite.sourceBusinessId,
-            partnerRecordId: invite.partnerRecordId,
-          } : {}),
-        })
-        .where(
-          and(
-            eq(careTeamMember.userId, trainerUserId),
-            eq(careTeamMember.email, normalizedEmail)
-          )
-        );
-
-      await logClientActivity(
-        activation.studioId,
-        userId,
-        trainerUserId,
-        "membership_created",
-        "membership",
-        activation.membershipId,
-        { autoAccepted: true, source: "care_team_invite" }
-      );
-
-      console.log(`✅ [InviteAutoAccept] Auto-accepted care team invite for user ${userId}`);
-
-      return {
-        accepted: true,
-        membership: {
-          studioId: activation.studioId,
-          studioName: activation.studioName,
-          studioType: activation.studioType,
-          membershipId: activation.membershipId,
-          ownerUserId: trainerUserId,
-        },
-      };
-    }
-
-    const pendingStudioInvites = await db
-      .select()
-      .from(studioInvites)
-      .where(
-        and(
-          eq(studioInvites.email, normalizedEmail),
-          isNull(studioInvites.acceptedAt),
-          gt(studioInvites.expiresAt, new Date()),
-          // Token-bearing invites require explicit acceptance on /join/studio.
-          isNull(studioInvites.urlToken)
-        )
-      )
-      .orderBy(desc(studioInvites.createdAt));
-
-    if (pendingStudioInvites.length > 0) {
-      const invite = pendingStudioInvites[0];
-
-      const [studio] = await db
-        .select()
-        .from(studios)
-        .where(eq(studios.id, invite.studioId));
-
-      if (!studio) {
-        console.error(`❌ [InviteAutoAccept] Studio ${invite.studioId} not found for invite ${invite.id}`);
-        return { accepted: false };
-      }
-
-      // Clinic (physician) studios require patient legal acceptance before auto-activation.
-      if (studio.type === "clinic") {
-        const legalCheck = await checkLegalAcceptance(userId, "patient_physician");
-        if (!legalCheck.allAccepted) {
-          console.log(
-            `⚠️ [InviteAutoAccept] Skipping clinic studio auto-accept for user ${userId} — ` +
-            `patient_physician legal acceptance required (missing: ${legalCheck.missing.join(", ")}). ` +
-            `Client must use the normal connect flow to accept the required documents.`
-          );
-          return { accepted: false };
-        }
-      }
-
-      let activation;
-      try {
-        activation = await activateProCareClient(userId, studio.ownerUserId, "studio_invite", undefined, {
-          organizationId: invite.organizationId,
-          locationId: invite.locationId,
-          sourceBusinessId: invite.sourceBusinessId,
-          partnerRecordId: invite.partnerRecordId,
-        });
-      } catch (err) {
-        if (err instanceof ActivationError) {
-          console.error(`❌ [InviteAutoAccept] Activation failed (${err.code}): ${err.message}`);
-          return { accepted: false };
-        }
-        throw err;
-      }
-
-      for (const si of pendingStudioInvites) {
-        await db
-          .update(studioInvites)
-          .set({ acceptedAt: new Date() })
-          .where(eq(studioInvites.id, si.id));
-      }
-
-      if (studio.type === "clinic" && studio.ownerUserId) {
-        await db
-          .insert(careTeamMember)
-          .values({
-            userId: studio.ownerUserId,
-            proUserId: userId,
-            name: invite.email.split("@")[0],
-            email: invite.email,
-            role: "patient",
-            status: "active",
-            permissions: { canViewMacros: true, canAddMeals: false, canEditPlan: true },
-            ...(invite.organizationId ? {
-              organizationId: invite.organizationId,
-              locationId: invite.locationId,
-              sourceBusinessId: invite.sourceBusinessId,
-              partnerRecordId: invite.partnerRecordId,
-            } : {}),
-          })
-          .onConflictDoNothing();
-      }
-
-      console.log(`✅ [InviteAutoAccept] Auto-accepted studio invite for user ${userId}`);
-
-      return {
-        accepted: true,
-        membership: {
-          studioId: activation.studioId,
-          studioName: activation.studioName,
-          studioType: activation.studioType,
-          membershipId: activation.membershipId,
-          ownerUserId: studio.ownerUserId,
-        },
-      };
-    }
-
-    return { accepted: false };
-  } catch (error) {
-    console.error("❌ [InviteAutoAccept] Error auto-accepting invite:", error);
+    console.warn("[InviteAutoAccept] Pending invitation requires explicit resolution", (error as any)?.code ?? "SERVER_ERROR");
     return { accepted: false };
   }
 }

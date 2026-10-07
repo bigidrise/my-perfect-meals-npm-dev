@@ -16,6 +16,12 @@ export interface DemoGrant {
   acknowledgedAt: string | null; acknowledgmentVersion: string | null;
   identityRequestId: string | null;
 }
+export interface DemoCareInvitation {
+  id: string; providerUserId: string; clientUserId: string; workspaceId: string;
+  code: string; token: string; expiresAt: string; revokedAt: string | null;
+  state: "pending" | "accepted" | "revoked"; acceptedAt: string | null;
+  classification: "synthetic";
+}
 export interface DemoPatient {
   id: string; workspaceId: string; classification: "synthetic" | "live" | null;
   label: string; scenario: string;
@@ -23,6 +29,7 @@ export interface DemoPatient {
   messages: { id: string; author: string; text: string }[];
   media: { id: string; name: string; contentType: "text/plain"; content: string }[];
   plan: DemoPlan | null; revision: number;
+  connectionInvitation?: DemoCareInvitation;
 }
 export interface DemoWorkspace { id: string; label: string; classification: "synthetic" | "live" | null }
 export interface DemoContext {

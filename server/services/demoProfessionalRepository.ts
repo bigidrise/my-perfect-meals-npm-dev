@@ -72,6 +72,14 @@ export const demoProfessionalRepository: DemoRepository = {
         if (!result[0]) throw new ProfessionalRequestError(409, "DEMO_PATIENT_CHANGED", "Synthetic patient changed; reload.");
         return patient(result[0]);
       },
+      async saveInvitation(record, invitation) {
+        const result = await rows<PatientRow>(tx, sql`UPDATE demo_professional_patients
+          SET data=jsonb_set(data,'{connectionInvitation}',${JSON.stringify(invitation)}::jsonb), revision=revision+1
+          WHERE id=${record.id} AND workspace_id=${record.workspaceId} AND classification='synthetic' AND revision=${record.revision}
+          RETURNING ${patientColumns}`);
+        if (!result[0]) throw new ProfessionalRequestError(409, "DEMO_PATIENT_CHANGED", "Synthetic patient changed; reload.");
+        return patient(result[0]);
+      },
       async invalidateSessions(account) {
         const changed = await rows(tx, sql`UPDATE users SET auth_security_version=auth_security_version+1,
           auth_token=NULL,auth_token_created_at=NULL,auth_token_mfa_verified_at=NULL

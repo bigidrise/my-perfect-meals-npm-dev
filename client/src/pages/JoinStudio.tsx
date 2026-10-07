@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
+import { acceptCareInvitationToken, readCareInvitationMetadata } from "@/lib/careInvitationClient";
+import ClientLegalModal from "@/components/pro/ClientLegalModal";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -23,7 +25,7 @@ type PageState =
   | { kind: "loading" }
   | { kind: "preview"; metadata: InviteMetadata; token: string }
   | { kind: "joining" }
-  | { kind: "success"; studioName: string }
+  | { kind: "success"; studioName: string; providerIsCurrentUser?: boolean }
   | { kind: "email_mismatch"; maskedEmail: string }
   | { kind: "expired" }
   | { kind: "already_accepted" }
@@ -35,10 +37,11 @@ type PageState =
 export default function JoinStudio() {
   const [, setLocation] = useLocation();
   const search = useSearch();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, refreshUser } = useAuth();
   const { requestUpgrade } = useUpgradeModal();
   const { t } = useTranslation();
   const [state, setState] = useState<PageState>({ kind: "loading" });
+  const [legalFlow, setLegalFlow] = useState<"client" | "patient_physician" | null>(null);
 
   // Step 1 — resolve the token from URL or sessionStorage
   const urlToken = new URLSearchParams(search).get("token");
@@ -68,9 +71,7 @@ export default function JoinStudio() {
     // Step 3 — fetch metadata
     (async () => {
       try {
-        const res = await fetch(`/api/procare-invite/token/${encodeURIComponent(token)}`, {
-          credentials: "include",
-        });
+        const res = await readCareInvitationMetadata(token);
         if (res.status === 404) {
           setState({ kind: "error", message: t("joinStudio.errorNotFound") });
           return;
@@ -93,22 +94,26 @@ export default function JoinStudio() {
         setState({ kind: "error", message: t("joinStudio.errorLoadDetailsNetwork") });
       }
     })();
-  }, [authLoading, user, token, setLocation]);
+  }, [authLoading, user?.id, token, setLocation]);
 
   async function handleJoin() {
     if (state.kind !== "preview") return;
     setState({ kind: "joining" });
     try {
-      const res = await fetch(`/api/procare-invite/token/${encodeURIComponent(state.token)}/accept`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      });
+      const res = await acceptCareInvitationToken(state.token);
       const data = await res.json();
 
       if (res.ok) {
         sessionStorage.removeItem(PENDING_TOKEN_KEY);
-        setState({ kind: "success", studioName: data.membership?.studioName ?? state.metadata.studioName });
+        void refreshUser().catch(() => {});
+        setState({ kind: "success", studioName: data.membership?.studioName ?? state.metadata.studioName,
+          providerIsCurrentUser: data.membership?.ownerUserId === user?.id });
+        return;
+      }
+      if (data.code === "LEGAL_REACCEPT_REQUIRED" && data.legalForCurrentUser === true &&
+          (data.flow === "client" || data.flow === "patient_physician")) {
+        setState(state);
+        setLegalFlow(data.flow);
         return;
       }
 
@@ -132,7 +137,7 @@ export default function JoinStudio() {
           setState({ kind: "coach_not_subscribed" });
           break;
         default:
-          setState({ kind: "error", message: t("joinStudio.errorGenericFallback") });
+          setState({ kind: "error", message: data.message || t("joinStudio.errorGenericFallback") });
       }
     } catch {
       setState({ kind: "error", message: t("joinStudio.errorConnectionIssue") });
@@ -163,6 +168,9 @@ export default function JoinStudio() {
 
         <Card className="bg-gray-900 border-gray-800 shadow-2xl text-white">
           <CardHeader className="pb-2">
+            <ClientLegalModal open={!!legalFlow} flow={legalFlow ?? "client"}
+              onCancel={() => setLegalFlow(null)}
+              onAccepted={() => { setLegalFlow(null); void handleJoin(); }} />
             {/* Header varies by state */}
           </CardHeader>
           <CardContent className="pt-0">

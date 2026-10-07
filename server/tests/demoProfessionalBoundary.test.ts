@@ -38,6 +38,7 @@ function fixture() {
       academyComplete:async()=>state.academy, approvedIdentityRequest:async()=>state.approved,
       createDataset:async(workspace,patient)=>{state.workspace=workspace;state.patient=patient;},
       saveGrant:async grant=>{state.grant={...grant};}, savePlan:async(record,plan)=>(state.patient={...record,plan,revision:record.revision+1}),
+      saveInvitation:async(record,connectionInvitation)=>(state.patient={...record,connectionInvitation,revision:record.revision+1}),
       invalidateSessions:async account=>{state.accounts.find(row=>row.id===account.id)!.authSecurityVersion++;},
       event:async(grant,actor,kind,metadata)=>{if(state.failEvent)throw new Error("event failure");state.events.push({grantId:grant.id,actor,kind,metadata});},
     };
@@ -51,6 +52,48 @@ function fixture() {
   return {state:()=>state,service,proof,preparation};
 }
 describe("Stage 3 isolated demo authorization — no shared accounts",()=>{
+  test.each(["code","token"] as const)("authorized demo → synthetic client accepts by %s and persists an isolated connection", async kind => {
+    const f=fixture(), s=f.state();
+    const invitation=await f.service.invite("demo-actor",s.workspace.id,s.patient.id);
+    const key=kind==="code"?invitation.code:invitation.token;
+    const result=await f.service.acceptInvitation("demo-actor",s.workspace.id,s.patient.id,key);
+    expect(result).toMatchObject({providerUserId:"demo-actor",clientUserId:s.patient.id,workspaceId:s.workspace.id,state:"accepted",classification:"synthetic"});
+    const revision=f.state().patient.revision;
+    expect(await f.service.acceptInvitation("demo-actor",s.workspace.id,s.patient.id,key)).toEqual(result);
+    expect(f.state().patient.revision).toBe(revision);
+    expect(await f.service.invitation("demo-actor",s.workspace.id,s.patient.id)).toEqual(result);
+    expect(f.state().events).toEqual([]);
+    expect(f.state().grant).toEqual(s.grant);
+  });
+  test("live → synthetic and demo → live invitation attempts are denied", async()=>{
+    const f=fixture(),s=f.state();
+    await expect(f.service.invite("live-actor",s.workspace.id,s.patient.id)).rejects.toMatchObject({code:"DEMO_AUTHORITY_REQUIRED"});
+    await expect(f.service.invite("demo-actor",s.workspace.id,"live-client")).rejects.toMatchObject({code:"DEMO_DATA_SCOPE_DENIED"});
+    expect(f.state().patient.connectionInvitation).toBeUndefined();
+  });
+  test("wrong synthetic recipient/workspace and wrong invitation key cannot connect", async()=>{
+    const f=fixture(),s=f.state();
+    await f.service.invite("demo-actor",s.workspace.id,s.patient.id);
+    await expect(f.service.acceptInvitation("demo-actor",s.workspace.id,"wrong-patient","wrong")).rejects.toMatchObject({code:"DEMO_DATA_SCOPE_DENIED"});
+    await expect(f.service.acceptInvitation("demo-actor","wrong-workspace",s.patient.id,"wrong")).rejects.toMatchObject({code:"DEMO_DATA_SCOPE_DENIED"});
+    await expect(f.service.acceptInvitation("demo-actor",s.workspace.id,s.patient.id,"wrong")).rejects.toMatchObject({code:"DEMO_INVITATION_NOT_FOUND"});
+    expect(f.state().patient.connectionInvitation!.state).toBe("pending");
+  });
+  test.each(["expired","revoked"] as const)("an %s synthetic invitation is not reusable", async kind=>{
+    const f=fixture(),s=f.state();
+    const invitation=await f.service.invite("demo-actor",s.workspace.id,s.patient.id);
+    if(kind==="expired")f.state().patient.connectionInvitation!.expiresAt="2000-01-01T00:00:00.000Z";
+    else f.state().patient.connectionInvitation!.revokedAt=now.toISOString();
+    await expect(f.service.acceptInvitation("demo-actor",s.workspace.id,s.patient.id,invitation.code)).rejects.toMatchObject({code:kind==="expired"?"EXPIRED":"REVOKED"});
+    expect(f.state().patient.connectionInvitation!.state).toBe("pending");
+  });
+  test("grant revocation blocks an already issued synthetic code without changing live authority",async()=>{
+    const f=fixture(),s=f.state();
+    const invitation=await f.service.invite("demo-actor",s.workspace.id,s.patient.id);
+    f.state().grant!.state="revoked";
+    await expect(f.service.acceptInvitation("demo-actor",s.workspace.id,s.patient.id,invitation.code)).rejects.toMatchObject({code:"DEMO_GRANT_INACTIVE"});
+    expect(f.state().independent).toEqual(s.independent);
+  });
   test("explicit active physician grant reads synthetic patient/glucose and truthful readiness",async()=>{
     const f=fixture(),s=f.state();
     const context=await f.service.context("demo-actor");

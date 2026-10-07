@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import DemoCareInvitation from "@/components/pro/DemoCareInvitation";
 import {
   acknowledgeDemoOnly,
   exportDemoPatient,
@@ -408,7 +409,8 @@ export default function DemoPhysicianWorkspace() {
           />
 
           <section className="min-w-0" aria-live="polite">
-            <DemoSyntheticPatientView
+      {context && patient && <DemoCareInvitation key={`${context.workspace.id}:${patient.id}`} workspaceId={context.workspace.id} patientId={patient.id} />}
+      <DemoSyntheticPatientView
               selectedSummary={selectedSummary} patient={patient} detailLoading={detailLoading} detailError={detailError}
               onRetryDetail={() => setDetailRetry(value => value + 1)}
               canReadClinical={canReadClinical}

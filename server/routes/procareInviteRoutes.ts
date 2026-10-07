@@ -4,12 +4,13 @@
  * GET  /api/procare-invite/token/:token   — public, returns invite preview metadata
  * POST /api/procare-invite/token/:token/accept — authenticated, accepts the invite
  *
- * These routes are mounted without ProCare-professional middleware because the
- * CLIENT (not the trainer) calls them. The service enforces subscription gates.
+ * Either party may be the recipient. Consumer access is checked for the actual
+ * client, and privileged recipients retain the normal MFA requirement.
  */
 
 import { Router } from "express";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
+import { requireMfa } from "../middleware/requireMfa";
 import { getInviteMetadata, acceptInviteByToken, type AcceptError } from "../services/procareInviteService";
 
 const router = Router();
@@ -34,7 +35,7 @@ router.get("/token/:token", async (req, res) => {
 });
 
 // ── POST /token/:token/accept — authenticated, accepts the invite ─────────────
-router.post("/token/:token/accept", requireAuth, async (req, res) => {
+router.post("/token/:token/accept", requireAuth, requireMfa, async (req, res) => {
   try {
     const { token } = req.params;
     const authUser = (req as AuthenticatedRequest).authUser;
@@ -55,6 +56,12 @@ router.post("/token/:token/accept", requireAuth, async (req, res) => {
     // narrowing doesn't fire. We've already returned in the ok:true branch above,
     // so a cast here is safe and correct at runtime.
     const err = (result as { ok: false; error: AcceptError }).error;
+    // Canonical acceptance failures include their exact status and legal/setup
+    // details. Preserve them rather than treating new safety outcomes as success.
+    if ("status" in err) {
+      const failure = err as AcceptError & { status: number; message?: string };
+      return res.status(failure.status).json({ ...failure, error: failure.code });
+    }
     switch (err.code) {
       case "NOT_FOUND":
         return res.status(404).json({ error: "Invitation not found or has expired." });

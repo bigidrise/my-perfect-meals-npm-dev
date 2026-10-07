@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { findCareInvitation, acceptStoredCareInvitation, invitationFailure, resolveInvitationAttribution } from "../services/careInvitationAcceptance";
 import { db } from "../db";
 import { 
   studios, studioBilling, studioMemberships, studioInvites, 
@@ -342,7 +343,7 @@ router.post("/:studioId/invite", async (req, res) => {
         : null;
     let attribution;
     try {
-      attribution = await resolveProviderStudioAttribution(userId, studio, selectedWorkspace);
+      attribution = await resolveInvitationAttribution(userId, studio, selectedWorkspace);
     } catch (error) {
       if (error instanceof WorkspaceContextError) {
         return res.status(error.status).json({ error: error.message, code: error.code });
@@ -358,10 +359,9 @@ router.post("/:studioId/invite", async (req, res) => {
       .insert(studioInvites)
       .values({
         studioId,
-        organizationId: attribution.organizationId,
-        locationId: attribution.locationId,
-        sourceBusinessId: attribution.sourceBusinessId,
-        partnerRecordId: attribution.partnerRecordId,
+        providerUserId: userId,
+        clientUserId: emailCandidates.length === 1 ? emailCandidates[0].id : null,
+        ...(attribution ?? {}),
         email: email.toLowerCase().trim(),
         inviteCode,
         urlToken,
@@ -409,112 +409,14 @@ router.post("/connect", async (req, res) => {
     if (!code && !token) {
       return res.status(400).json({ error: "code or token is required" });
     }
-
-    const [invite] = await db
-      .select()
-      .from(studioInvites)
-      .where(
-        token
-          ? eq(studioInvites.urlToken, token)
-          : eq(studioInvites.inviteCode, code)
-      );
-
-    if (!invite) {
-      return res.status(404).json({ error: "Invalid invite code" });
-    }
-
-    // Codes and email links are both account-bound. A code is not safe to
-    // redeem merely because it was manually typed or forwarded.
-    const identity = await resolveEmailIdentityForUser(userId);
-    if (identity.candidates.length > 1) {
-      return res.status(409).json({
-        error: "EMAIL_IDENTITY_REVIEW_REQUIRED",
-        message: "This email address is linked to multiple legacy accounts. An administrator must review the account before this invitation can be accepted.",
-      });
-    }
-    if (
-      identity.status !== "unique" ||
-      normalizeEmailIdentity(identity.user.email) !== normalizeEmailIdentity(invite.email)
-    ) {
-      return res.status(403).json({
-        error: "This invitation was sent to a different email address. Please sign in with the account that received the invitation.",
-      });
-    }
-
-    if (new Date() > invite.expiresAt) {
-      return res.status(400).json({ error: "Invite code has expired" });
-    }
-
-    if (invite.acceptedAt) {
-      return res.status(400).json({ error: "Invite code already used" });
-    }
-
-    const [studio] = await db
-      .select()
-      .from(studios)
-      .where(eq(studios.id, invite.studioId));
-
-    if (!studio) {
-      return res.status(404).json({ error: "Studio not found" });
-    }
-
-    const legalFlow = studio.type === "clinic" ? "patient_physician" : "client";
-    const consentCheck = await checkLegalAcceptance(userId, legalFlow);
-    if (!consentCheck.allAccepted) {
-      return res.status(409).json({
-        code: "LEGAL_REACCEPT_REQUIRED",
-        missing: consentCheck.missing,
-        flow: legalFlow,
-        error: "Please accept all required legal documents before connecting.",
-      });
-    }
-
-    let activation;
+    const canonicalInvite = await findCareInvitation(token ? "token" : "code", String(token || code));
+    if (!canonicalInvite || canonicalInvite.source !== "studio_invite") return res.status(404).json({ error: "Invalid invite code" });
     try {
-      if (invite.organizationId && invite.locationId) {
-        await validateBp1Attribution({
-          organizationId: invite.organizationId,
-          locationId: invite.locationId,
-          sourceBusinessId: invite.sourceBusinessId,
-          partnerRecordId: invite.partnerRecordId,
-        });
-      }
-      activation = await activateProCareClient(userId, studio.ownerUserId, "studio_invite", undefined, {
-        organizationId: invite.organizationId,
-        locationId: invite.locationId,
-        sourceBusinessId: invite.sourceBusinessId,
-        partnerRecordId: invite.partnerRecordId,
-      });
-    } catch (err) {
-      if (err instanceof ActivationError) {
-        if (err.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL") {
-          return res.status(409).json({ error: err.code, message: err.message });
-        }
-        if (err.code === "SELF_ACTIVATION") {
-          return res.status(400).json({ error: "You cannot connect to your own studio." });
-        }
-        if (err.code === "ATTRIBUTION_CONFLICT") {
-          return res.status(409).json({ error: err.message, code: err.code });
-        }
-        if (err.code === "INVALID_WORKSPACE_SELECTION") {
-          return res.status(409).json({ error: err.message, code: err.code });
-        }
-      }
-      if (err instanceof WorkspaceContextError) {
-        return res.status(err.status).json({ error: err.message, code: err.code });
-      }
-      throw err;
-    }
-
-    await db
-      .update(studioInvites)
-      .set({ acceptedAt: new Date() })
-      .where(eq(studioInvites.id, invite.id));
-
-    res.json({
-      membership: { id: activation.membershipId, studioId: activation.studioId },
-      studioName: activation.studioName,
-    });
+      const result = await acceptStoredCareInvitation(canonicalInvite, userId);
+      return res.json({ membership: { id: result.membershipId, studioId: result.studioId },
+        studio: { id: result.studioId, name: result.studioName, type: result.studioType },
+        member: result.member, success: true });
+    } catch (error) { return invitationFailure(res, error); }
   } catch (error) {
     console.error("Error connecting to studio:", error);
     res.status(500).json({ error: "Failed to connect to studio" });

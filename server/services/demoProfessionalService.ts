@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { DEMO_ACKNOWLEDGMENT_VERSION, type DemoCapability, type DemoContext, type DemoGrant, type DemoGrantActivation, type DemoGrantPreparation, type DemoPatient, type DemoPlan, type DemoWorkspace } from "@shared/demoProfessional";
 import { identitySnapshotHash, type IdentityAccountSnapshot, type IdentityReviewerProof } from "./professionalIdentityDecisionService";
 import { ProfessionalRequestError } from "./professionalOnboardingService";
+import { assertInvitationDataset, assertInvitationWindow, resolveCareInvitationParties, CareInvitationError } from "./careInvitationPolicy";
+import type { DemoCareInvitation } from "@shared/demoProfessional";
 
 export interface DemoTransaction {
   accounts(ids: string[]): Promise<IdentityAccountSnapshot[]>;
@@ -14,6 +16,7 @@ export interface DemoTransaction {
   createDataset(workspace: DemoWorkspace, patient: DemoPatient): Promise<void>;
   saveGrant(grant: DemoGrant): Promise<void>;
   savePlan(patient: DemoPatient, plan: DemoPlan): Promise<DemoPatient>;
+  saveInvitation(patient: DemoPatient, invitation: DemoCareInvitation): Promise<DemoPatient>;
   invalidateSessions(account: IdentityAccountSnapshot): Promise<void>;
   event(grant: DemoGrant, actorId: string, kind: string, metadata: Record<string, unknown>): Promise<void>;
 }
@@ -67,6 +70,50 @@ export function createDemoProfessionalService(repository: DemoRepository, clock 
     return { ...authority, patient: record! };
   }
   return {
+    async invitation(userId: string, workspaceId: string, patientId: string) {
+      return repository.transaction(async tx => {
+        const { patient: record } = await patient(tx, userId, workspaceId, patientId, "patient.read");
+        return record.connectionInvitation ?? null;
+      });
+    },
+    async invite(userId: string, workspaceId: string, patientId: string) {
+      return repository.transaction(async tx => {
+        const { account, grant, patient: record } = await patient(tx, userId, workspaceId, patientId, "clinical.write");
+        const parties = resolveCareInvitationParties(account, { id: record.id, professionalRole: null });
+        assertInvitationDataset({ domain: "synthetic", workspaceId: grant.workspaceId },
+          { domain: record.classification === "synthetic" ? "synthetic" : "live", workspaceId: record.workspaceId });
+        if (record.connectionInvitation?.state === "accepted") return record.connectionInvitation;
+        const invitation: DemoCareInvitation = {
+          id: randomUUID(), providerUserId: parties.provider.id, clientUserId: parties.client.id, workspaceId,
+          code: `DM-${randomUUID().slice(0, 8).toUpperCase()}`, token: `demo_${randomUUID()}`,
+          expiresAt: new Date(Math.min(clock().getTime() + 14 * 86400000, Date.parse(grant.expiresAt))).toISOString(),
+          revokedAt: null, state: "pending", acceptedAt: null, classification: "synthetic",
+        };
+        await tx.saveInvitation(record, invitation);
+        return invitation;
+      });
+    },
+    async acceptInvitation(userId: string, workspaceId: string, patientId: string, key: string) {
+      return repository.transaction(async tx => {
+        const { account, grant, patient: record } = await patient(tx, userId, workspaceId, patientId, "clinical.write");
+        assertInvitationDataset({ domain: "synthetic", workspaceId: grant.workspaceId },
+          { domain: record.classification === "synthetic" ? "synthetic" : "live", workspaceId: record.workspaceId });
+        const invitation = record.connectionInvitation;
+        if (!invitation || (key !== invitation.code && key !== invitation.token)) deny("DEMO_INVITATION_NOT_FOUND");
+        resolveCareInvitationParties(account, { id: record.id, professionalRole: null }, invitation!);
+        if (invitation!.workspaceId !== workspaceId || invitation!.classification !== "synthetic") deny("DEMO_DATA_SCOPE_DENIED");
+        try { assertInvitationWindow(invitation!, clock()); }
+        catch (error) {
+          if (error instanceof CareInvitationError) throw new ProfessionalRequestError(error.status, error.code, error.message);
+          throw error;
+        }
+        if (invitation!.state === "revoked") deny("DEMO_INVITATION_REVOKED");
+        if (invitation!.state === "accepted") return invitation!;
+        const next: DemoCareInvitation = { ...invitation!, state: "accepted", acceptedAt: clock().toISOString() };
+        await tx.saveInvitation(record, next);
+        return next;
+      });
+    },
     async prepare(proof: IdentityReviewerProof, input: DemoGrantPreparation) {
       return repository.transaction(async tx => {
         if (proof.id === input.targetUserId) deny("DEMO_SELF_GRANT_FORBIDDEN");

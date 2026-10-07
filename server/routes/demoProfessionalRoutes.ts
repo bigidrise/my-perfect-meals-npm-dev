@@ -7,6 +7,7 @@ import type { IdentityReviewerProof } from "../services/professionalIdentityDeci
 import { createDemoProfessionalService } from "../services/demoProfessionalService";
 import { demoProfessionalRepository, readDemoRestriction, readDemoGrantHistory } from "../services/demoProfessionalRepository";
 import { ProfessionalRequestError } from "../services/professionalOnboardingService";
+import { CareInvitationError } from "../services/careInvitationPolicy";
 
 export const demoProfessionalRouter = Router();
 export const demoProfessionalAdminRouter = Router();
@@ -18,6 +19,7 @@ function development(req: Request, res: Response, next: () => void) {
   next();
 }
 function failure(res: Response, error: unknown) {
+  if (error instanceof CareInvitationError) return res.status(error.status).json({ code: error.code, error: error.message });
   if (error instanceof ProfessionalRequestError) return res.status(error.status).json({ code: error.code, error: error.message });
   return res.status(503).json({ code: "DEMO_STORAGE_UNAVAILABLE", error: "Demo storage is unavailable. No successful change is confirmed; reload before retrying." });
 }
@@ -26,6 +28,21 @@ function ids(req: Request) {
   for (const key of ["workspaceId","patientId","mediaId"]) if (req.params[key] && !z.string().uuid().safeParse(req.params[key]).success) throw new ProfessionalRequestError(400, "DEMO_INVALID_ID", "A valid synthetic record ID is required.");
 }
 demoProfessionalRouter.use(development, requireAuth);
+demoProfessionalRouter.get("/workspaces/:workspaceId/patients/:patientId/invitation", async (req, res) => {
+  try { ids(req); res.json({ invitation: await service.invitation(user(req), req.params.workspaceId, req.params.patientId) }); }
+  catch (error) { failure(res, error); }
+});
+demoProfessionalRouter.post("/workspaces/:workspaceId/patients/:patientId/invitation", async (req, res) => {
+  if (!z.object({}).strict().safeParse(req.body ?? {}).success) return res.status(400).json({ code: "DEMO_INVALID_INVITATION" });
+  try { ids(req); res.json({ invitation: await service.invite(user(req), req.params.workspaceId, req.params.patientId), delivery: "synthetic_simulation_only" }); }
+  catch (error) { failure(res, error); }
+});
+demoProfessionalRouter.post("/workspaces/:workspaceId/patients/:patientId/invitation/accept", async (req, res) => {
+  const input = z.object({ key: z.string().trim().min(1).max(128) }).strict().safeParse(req.body);
+  if (!input.success) return res.status(400).json({ code: "DEMO_INVALID_INVITATION" });
+  try { ids(req); res.json({ invitation: await service.acceptInvitation(user(req), req.params.workspaceId, req.params.patientId, input.data.key), synthetic: true }); }
+  catch (error) { failure(res, error); }
+});
 demoProfessionalRouter.get("/context", async (req, res) => {
   try { res.json(await service.context(user(req))); } catch (error) { failure(res,error); }
 });

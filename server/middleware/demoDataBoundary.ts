@@ -16,6 +16,8 @@ function demoEndpoint(method: string, path: string) {
   if (method === "GET" && path === "/api/demo-professional/context") return true;
   if (method === "POST" && path === "/api/demo-professional/acknowledgment") return true;
   const patient = "/api/demo-professional/workspaces/[a-f0-9-]{36}/patients";
+  if (["GET", "POST"].includes(method) &&
+      new RegExp(`^${patient}/[a-f0-9-]{36}/invitation${method === "POST" ? "(?:/accept)?" : ""}$`).test(path)) return true;
   if (method === "GET" && new RegExp(`^${patient}(?:/[a-f0-9-]{36}(?:/(?:messages|media|export)|/media/[a-f0-9-]{36})?)?$`).test(path)) return true;
   return method === "PUT" && new RegExp(`^${patient}/[a-f0-9-]{36}/plan$`).test(path);
 }
