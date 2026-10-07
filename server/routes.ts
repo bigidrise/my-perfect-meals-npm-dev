@@ -97,6 +97,7 @@ import remindersRouter from './routes/reminders';
 import mealPlanReplaceRouter from './routes/meal-plan-replace';
 import authSessionRouter from './routes/auth.session';
 import professionalOnboardingRouter from "./routes/professionalOnboardingRoutes";
+import professionalIdentityReviewRouter from "./routes/professionalIdentityReviewRoutes";
 import trialRouter from './routes/trial';
 import mfaRoutes from './routes/auth.mfa';
 import { requireMfa } from './middleware/requireMfa';
@@ -881,6 +882,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.use(authSessionRouter);
   app.use("/api/professional-onboarding", professionalOnboardingRouter);
+  app.use("/api/admin/professional-requests", professionalIdentityReviewRouter);
   app.use("/api/auth/mfa", mfaRoutes);
   app.use(alcoholLogRouter);
   app.use('/api/vitals/bp', vitalsBpRouter);

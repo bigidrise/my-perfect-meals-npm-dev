@@ -1221,6 +1221,15 @@ export default function AdminDashboard() {
         </div>
 
         {/* Chef Kitchens link */}
+        {import.meta.env.DEV && <Card
+          className="bg-black/40 border border-orange-500/20 rounded-2xl cursor-pointer"
+          onClick={() => setLocation("/admin/professional-requests")}
+        >
+          <CardContent className="p-4">
+            <p className="text-sm font-semibold text-white">Professional identity requests</p>
+            <p className="text-xs text-white/40 mt-1">MFA-protected review — identity decisions do not verify credentials or grant access.</p>
+          </CardContent>
+        </Card>}
         <Card
           className="bg-black/40 border border-orange-500/20 rounded-2xl cursor-pointer hover:border-orange-500/40 transition-colors"
           onClick={() => setLocation("/admin/chef-kitchens")}

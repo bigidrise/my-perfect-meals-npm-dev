@@ -8,7 +8,8 @@ type DatabaseTransaction = { execute(query: SQL): Promise<unknown> };
 const columns = sql.raw(`id, owner_user_id AS "ownerUserId", requested_role AS "requestedRole",
   professional_category AS "professionalCategory", credential_type AS "credentialType",
   credential_body AS "credentialBody", credential_number AS "credentialNumber", credential_year AS "credentialYear",
-  state, revision, created_at AS "createdAt", updated_at AS "updatedAt", submitted_at AS "submittedAt"`);
+  state, revision, created_at AS "createdAt", updated_at AS "updatedAt", submitted_at AS "submittedAt",
+  decision_reason AS "decisionReason", decided_at AS "decidedAt"`);
 async function rows<T>(tx: DatabaseTransaction, query: SQL): Promise<T[]> {
   return (await tx.execute(query) as { rows: T[] }).rows;
 }

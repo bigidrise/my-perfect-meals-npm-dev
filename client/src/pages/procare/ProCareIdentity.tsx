@@ -124,7 +124,7 @@ export default function ProCareIdentity() {
     if (!user || !professionalRequestsEnabled || onboarding.isLoading || onboarding.error) return;
     if (!onboarding.data?.request) {
       void onboarding.resume().catch(cause => setSaveError(cause.message));
-    } else if (onboarding.data.request.state === "submitted") {
+    } else if (onboarding.data.request.state !== "draft") {
       setLocation("/procare-attestation");
     } else {
       hydrate(onboarding.data.request);

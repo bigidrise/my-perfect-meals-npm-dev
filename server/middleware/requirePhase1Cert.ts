@@ -89,7 +89,11 @@ export async function requirePhase1Cert(
       .limit(1);
 
     // Non-professional users (regular users, clients) pass through unaffected
-    if (!userRow?.professionalRole) {
+    if (!userRow) {
+      res.status(401).json({ error: "Authentication required", code: "AUTH_REQUIRED" });
+      return;
+    }
+    if (!userRow.professionalRole) {
       next();
       return;
     }
@@ -118,7 +122,6 @@ export async function requirePhase1Cert(
     next();
   } catch (err) {
     console.error("[requirePhase1Cert] Error checking certification:", err);
-    // Fail open on DB errors so certified professionals are not locked out
-    next();
+    res.status(503).json({ code: "ACADEMY_EVIDENCE_UNAVAILABLE", error: "Training evidence could not be verified. Please retry." });
   }
 }
