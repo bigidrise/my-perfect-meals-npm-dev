@@ -40,3 +40,9 @@ Verified service billing evidence and paid access must change together for every
 **Why:** A status-only snapshot could report payment trouble while the same workspace remained authorized; a late terminal event could miss an already-cleared current binding; locally timed backfills could supersede fresher webhook truth.
 
 **How to apply:** Attach snapshot writes to accepted entitlement transactions and keep failed writes retryable. For terminal history, verify existing provenance instead of inferring from metadata. Never let a backfill timestamp outrank a webhook's event watermark.
+
+Test/live exclusion requires verified Stripe account identity as well as object mode. A live-key 404 mentioning a similar test object is not enough to exclude an ownership collision, and a test credential for another Stripe account cannot establish ownership.
+
+**Why:** During release review, the installed connector provided working test-mode access but belonged to a different account from the application's configured live credential. The disputed objects were inaccessible through that connector.
+
+**How to apply:** Verify the exact account, subscription/customer pair, mode, and ownership evidence before proposing a mode boundary. Preserve fail-closed reconciliation for live, unknown, mixed-mode, and unverified records; never bypass it solely by runtime environment or a missing-object response.

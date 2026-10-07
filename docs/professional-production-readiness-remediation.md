@@ -40,7 +40,7 @@ rollback-only transactions. No public account, grant or billing fixtures are
 created. Checks found zero surviving fixture schemas and zero rows in the
 professional request/event, demo grant/event and new erasure-audit tables.
 
-## 2. Six type defects — fixed; reviewed baseline deliberately unchanged
+## 2. Six type defects — fixed; approved location-only baseline cleanup complete
 
 - Complete validated Care Team attribution uses `Bp1Attribution`, not nullable
   `ProCareAttribution` and not a cast.
@@ -59,8 +59,12 @@ the files, diagnostic codes, messages and multiplicities are identical.
 
 Exactly eight diagnostics moved: one in JoinStudio, four in craving-creator,
 and three in EditProfilePage. No remaining diagnostic was added or removed.
-The baseline file was not updated. A deliberate, separately approved
-location-only baseline update is still required for the release gate to pass.
+Final cleanup independently reran both diagnostic sets and compared complete
+messages, including continuations and duplicate multiplicities. Every moved
+location mapped through unchanged source lines from the reviewed snapshot.
+Following explicit approval, only `diagnosticsSha256` was updated to the current
+fingerprint. Count, compiler command, description, validator and TypeScript
+configuration remain unchanged. No diagnostic was hidden, suppressed or removed.
 
 ## 3. Stripe ownership — unresolved, no correction executed
 
@@ -75,8 +79,17 @@ Read-only evidence:
   that a similar object exists in test mode but the request used a live key.
 - Consequently subscription/customer metadata and Stripe invoice history for
   this pair could not be obtained with that credential.
-- The existing Stripe connector yielded no usable SDK credential. It was not
-  reinstalled, reconfigured, or used to request any billing mutation.
+- The configured application's account is `acct_1SABpVAf3dfji9GP`; a read-only
+  balance retrieval confirms its available SDK credential is live-mode.
+- The installed connector has no SDK client, but its authenticated proxy works.
+  Read-only account/balance requests identify account `acct_1UAtRx9rs0xKGxI8`
+  and confirm test-mode access. This is a different Stripe account.
+- Through that connector, retrieving both disputed objects returns 404
+  `resource_missing`. It cannot establish their ownership in the application's
+  account. The connector was not reinstalled or reconfigured.
+- The environment secret inventory contains the configured live key, but no
+  separately named test secret or restricted test key. No secret values were
+  printed or exported.
 - No matching local stripe_billing_events history was found for the subscription.
 
 **Classification: ambiguous.** Authoritative test-mode subscription/customer
@@ -91,6 +104,28 @@ preservation of the Business record, rejection of a personal claim on Business
 identities, repeat reconciliation, and known versus unexpected startup failure.
 Existing verified billing-status tests confirm organization billing remains
 distinct from personal/Studio entitlement.
+
+### Exact missing access
+
+Read-only **test-mode authorization for Stripe account `acct_1SABpVAf3dfji9GP`**,
+permitting retrieval of subscription `sub_1TtXRyAf3dfji9GPAi7oDvDA`, customer
+`cus_UtK6YytusHNcMx`, their ownership metadata, and related billing history
+(invoices/events). A test credential for another account is insufficient.
+
+### Test/live exclusion assessment
+
+No safe exclusion has been demonstrated, and none was implemented. The current
+registry keys identities by type/value, without verified Stripe account/mode
+provenance. The existing runtime guard prevents Development from owning live
+billing writes; it does not partition legacy database ownership reconciliation.
+Skipping reconciliation by environment, inferred SKU, a matching owner, or a
+live-key 404 could hide a real collision. Authoritative object/account/mode
+evidence and a fail-closed, regression-tested boundary would be required first.
+
+The final cleanup reran the existing ownership integration and entitlement
+pipeline suites: **26 tests passed**. They preserve same-owner cross-scope
+rejection and verify the existing live-runtime write boundary, not a newly
+implemented historical-record exclusion.
 
 ## Individually reported verification
 
@@ -109,13 +144,22 @@ distinct from personal/Studio entitlement.
 | Oncology clinician handoff and Low Carb regressions | PASS |
 | ProCare invitation expiry regressions | PASS |
 | Root strict TypeScript | FAIL — 133 reviewed legacy diagnostics; six targeted defects resolved |
-| Release type gate | FAIL — location-only fingerprint difference; baseline unchanged |
+| Release type gate | PASS — approved current fingerprint, 133 diagnostics retained |
 | Strict safety typecheck, including new erasure service/migration | PASS |
 | Client Production build | PASS |
 | Server Production build | PASS |
-| Full release-check command | BLOCKED at the release type gate; later checks intentionally do not run past that failure |
+| Full release-check command | PASS with warnings — exit 0; 11 passed, 2 warned, 0 failed |
 | Development startup | PASS — serving on port 5000; known Stripe ownership review warning remains |
 | Development health/auth boundary | PASS — health OK; unauthenticated account deletion denied with 403 |
+
+Final full release checks targeted the Development preview only. Health, OpenAI
+configuration, S3 configuration, authentication, body composition, shopping list
+and Weekly Board checks all passed. Both meal POST probes returned 403 and were
+reported as warnings because the script expects 401/400/200. A direct read of
+the response confirmed `CSRF_ORIGIN_REJECTED` ("Request origin is not allowed"):
+these unsigned probes omit Origin, so the browser CSRF boundary rejects them.
+No release-check acceptance criteria were changed and no authenticated
+generation claim is made.
 
 The signed-out screenshot showed a boot spinner, not an authenticated UI
 verification. No unrelated UI investigation or browser invitation testing was
@@ -127,9 +171,10 @@ reruns; no product invitation or billing behavior was changed to satisfy tests.
 
 ## Remaining concrete blockers only
 
-1. Separately approve the reviewed location-only TypeScript baseline update.
-2. Obtain authoritative test-mode Stripe ownership evidence, then separately
-   approve any proven-necessary shared billing correction. The conflict remains.
+1. Obtain the exact account-specific read-only test-mode access described above
+   and establish authoritative ownership. The historical cross-scope conflict
+   remains unresolved; neither a correction nor a safe exclusion is justified
+   with currently available evidence.
 
 Stop here. No promotion, account activation or shared billing correction is
 authorized by this report.
