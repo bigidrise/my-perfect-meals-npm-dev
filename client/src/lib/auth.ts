@@ -159,6 +159,8 @@ export interface User {
   // ProCare Professional fields
 
   professionalRole?: AccountProfessionalRole | null;
+  /** Server-resolved restriction; never an authorization grant from client state. */
+  operatingStatus?: "demo_only" | null;
 
   professionalCategory?: "certified" | "experienced" | "non_certified" | null;
 
@@ -345,6 +347,7 @@ export interface CachedUser {
   builderSwitchUnlimited?: boolean;
   onboardingCompletedAt?: string | null;
   professionalRole?: User["professionalRole"];
+  operatingStatus?: User["operatingStatus"];
   procareTrainingCompleted?: boolean;
   phase2GateEnabled?: boolean;
   proCareEligible?: boolean;
@@ -363,7 +366,7 @@ export function toCachedUser(user: User): CachedUser {
   const {
     id, email, entitlements, planLookupKey, selectedMealBuilder,
     isTester, isSandbox, accessTier, role, isProCare, activeBoard,
-    builderSwitchUnlimited, onboardingCompletedAt, professionalRole,
+    builderSwitchUnlimited, onboardingCompletedAt, professionalRole, operatingStatus,
     procareTrainingCompleted, phase2GateEnabled, proCareEligible,
     monetizationEligible, isAdmin, mfaEnabled, trialEndsAt, isTrialActive,
     daysRemaining, trialTier,
@@ -371,7 +374,7 @@ export function toCachedUser(user: User): CachedUser {
   return {
     id, email, entitlements, planLookupKey, selectedMealBuilder,
     isTester, isSandbox, accessTier, role, isProCare, activeBoard,
-    builderSwitchUnlimited, onboardingCompletedAt, professionalRole,
+    builderSwitchUnlimited, onboardingCompletedAt, professionalRole, operatingStatus,
     procareTrainingCompleted, phase2GateEnabled, proCareEligible,
     monetizationEligible, isAdmin, mfaEnabled, trialEndsAt, isTrialActive,
     daysRemaining, trialTier,

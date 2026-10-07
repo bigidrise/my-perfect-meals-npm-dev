@@ -95,6 +95,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           credentialYear: userData.credentialYear || null,
           attestationText: userData.attestationText || null,
           professionalRole: userData.professionalRole || null,
+          operatingStatus: userData.operatingStatus === "demo_only" ? "demo_only" : null,
           procareEntryPath: userData.procareEntryPath || null,
           attestedAt: userData.attestedAt || null,
           procareTrainingCompleted: userData.procareTrainingCompleted || false,
