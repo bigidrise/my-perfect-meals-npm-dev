@@ -1079,6 +1079,10 @@ async function initializeApp() {
 
     app.use(session(sessionConfig));
     registerCsrfProtection(app);
+    // Defense is required in every runtime sharing accounts; demo feature
+    // endpoints themselves remain Development-only.
+    const { demoDataBoundary } = await import("./middleware/demoDataBoundaryRuntime");
+    app.use(demoDataBoundary);
 
     // Cache control for macros
     app.use((req, res, next) => {

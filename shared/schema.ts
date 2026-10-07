@@ -1,4 +1,5 @@
 // shared/schema/index.ts
+export * from "../server/db/schema/demoProfessional";
 /*
 ⚠️ PROFILE DATA CONTRACT
 

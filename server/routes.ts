@@ -371,6 +371,9 @@ function scanRecommendationOutput(output: any, envelope: any, generatorName: str
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  const { demoProfessionalRouter, demoProfessionalAdminRouter } = await import("./routes/demoProfessionalRoutes");
+  app.use("/api/demo-professional", demoProfessionalRouter);
+  app.use("/api/admin/demo-professional", demoProfessionalAdminRouter);
   console.log("🔧 registerRoutes called - starting route registration");
   app.use("/api/foods-i-enjoy", foodsIEnjoyRouter);
   app.use("/api/nutrition-priorities", nutritionPrioritiesRouter);

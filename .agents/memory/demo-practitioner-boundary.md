@@ -15,4 +15,12 @@ The user limited the remaining work to controlled identity decisions, the demo/l
 
 **Why:** The user explicitly said this was expanding too much and repeatedly instructed staying in scope and finishing rather than adding audits.
 
-**How to apply:** Do not expand RN/PA/nutritionist/coach coverage or redesign occupations. Investigate blinking only if it persists after this work. Credential retention/erasure remains a scoped must-resolve-before-Production item. Do not repair the demonstration account before the demo isolation boundary exists.
+**How to apply:** Do not expand RN/PA/nutritionist/coach coverage or redesign occupations. Investigate blinking only if it persists after this work. Credential retention/erasure remains a scoped must-resolve-before-Production item. Stage 3 is Development implementation and reporting only: even after isolation tests pass, Dr. Test's actual transition needs separate user approval. Stop after Stage 3; invitations belong to the separately requested final functional stage.
+
+## Truthful demo presentation
+
+Do not add fabricated consumer-trial, commercial, training, credential, or real-clinical-readiness fields merely to make a restricted demo persona render. Keep its presentation separate from normal consumer/live-client contexts.
+
+**Why:** Demo authority must remain independent of the real account's commercial and professional evidence; normal application chrome can assume a fuller live profile than a truthful restricted bootstrap supplies.
+
+**How to apply:** Use a dedicated isolated shell and verify it separately. Passing backend authorization tests is not proof that the demo browser journey works; do not activate a shared account while that acceptance is blocked.

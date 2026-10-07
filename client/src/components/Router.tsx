@@ -528,6 +528,7 @@ const CareTeam = lazy(() => import("@/pages/CareTeam"));
 const PhysicianCareTeam = lazy(() => import("@/pages/care-team/PhysicianCareTeam"));
 const TrainerCareTeam = lazy(() => import("@/pages/care-team/TrainerCareTeam"));
 const PhysicianPortal = lazy(() => import("@/pages/pro/PhysicianPortal"));
+const DemoPhysicianWorkspace = lazy(() => import("@/pages/pro/DemoPhysicianWorkspace"));
 const MorePage = lazy(() => import("@/pages/More"));
 const TipsStrategiesPage = lazy(() => import("@/pages/TipsStrategiesPage"));
 const ProPortal = lazy(() => import("@/pages/ProPortal"));
@@ -879,6 +880,7 @@ export default function Router() {
 
   // Pages where BottomNav should NOT appear (pre-login/onboarding pages only)
   const hideBottomNavRoutes = [
+    "/demo-physician",
     "/",
     "/auth",
     "/welcome",
@@ -918,7 +920,9 @@ export default function Router() {
     "/business/join",
   ];
 
+  const { user, loading } = useAuth();
   const shouldShowBottomNav =
+    user?.operatingStatus !== "demo_only" &&
     !hideBottomNavRoutes.includes(location) &&
     !location.startsWith("/join/clinic") &&
     !location.startsWith("/join/business-offer") &&
@@ -927,8 +931,6 @@ export default function Router() {
     location !== "/business/dashboard" &&
     location !== "/business-organizations" &&
     location !== "/org-success-center";
-
-  const { user, loading } = useAuth();
 
   const isClinicianUser =
     user?.role === "coach" ||
@@ -951,6 +953,7 @@ export default function Router() {
 
   // Routes that DON'T require onboarding or macro completion
   const ungatedRoutes = [
+    "/demo-physician",
     // Dev-only responsive regression harnesses — never gated in development
     ...(import.meta.env.DEV
       ? ["/test-modal-bounds", "/__modal-test__", "/__sheet-test__", "/rewardful/connect/confirm"]
@@ -1043,6 +1046,16 @@ export default function Router() {
     }
   }, [location, user, loading, isProfessionalUser]);
 
+  useEffect(() => {
+    if (!loading && user?.operatingStatus === "demo_only" && !["/demo-physician", "/auth", "/welcome"].includes(location)) {
+      setLocation("/demo-physician");
+    }
+  }, [loading, user?.operatingStatus, location, setLocation]);
+
+  // Do not mount/cache-render a live professional page while redirecting.
+  if (!loading && user?.operatingStatus === "demo_only" && !["/auth", "/welcome"].includes(location)) {
+    return <Suspense fallback={<p role="status">Loading isolated demo workspace…</p>}><DemoPhysicianWorkspace /></Suspense>;
+  }
   return (
     <>
       <ScrollRestorer />
@@ -1093,6 +1106,7 @@ export default function Router() {
         <Route path="/personal-guidance-info" component={PersonalGuidanceInfoPage} />
         <Route path="/admin-moderation" component={AdminModerationPage} />
         <Route path="/admin/professional-requests" component={lazy(() => import("@/pages/admin/ProfessionalIdentityRequests"))} />
+        {import.meta.env.DEV && <Route path="/demo-physician" component={DemoPhysicianWorkspace} />}
         <Route path="/admin/chef-kitchens" component={ChefKitchensAdmin} />
         <Route path="/admin/pilots" component={lazy(() => import("@/pages/PilotProgramAdmin"))} />
         <Route path="/kitchens" component={SignatureKitchenHubPage} />
