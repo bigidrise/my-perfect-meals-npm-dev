@@ -136,3 +136,4 @@
 - [Oncology release review](oncology-release-review.md) — symptom support needs authenticated Development review before release; references do not imply clinical validation.
 - [Oncology symptom visibility](oncology-symptom-entry-visibility.md) — use an activation overlay and a below-button review entry; above-button symptom content was easy to miss.
 - [Saved support compatibility](saved-support-compatibility.md) — retain established support flags during unrelated health edits without allowing new legacy activation.
+- [Care Team invitation parties](care-team-invitation-parties.md) — either party may invite; resolve the client and professional before applying person-specific gates.
