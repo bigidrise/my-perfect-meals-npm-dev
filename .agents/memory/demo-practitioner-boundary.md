@@ -9,6 +9,14 @@ Demo practitioners use a canonical practitioner persona with a separate `demo_on
 
 **How to apply:** Keep demo operation separate from credential verification, commercial entitlement, Academy evidence, legal acceptance, memberships, relationships, and consent. Install the server-enforced synthetic-data boundary before any demo-persona transition; do not simulate verification by passing true into real-clinical authorization.
 
+## Shared-account activation prerequisite
+
+Before any approved demo-persona transition, verify that every deployed application able to authenticate the shared account enforces the demo-only boundary. If the currently running Production application could expose real/live professional capability, or its protections cannot be verified, do not activate the account.
+
+**Why:** The user explicitly made deployed Production enforcement a prerequisite to demo activation because Development and Production share Neon.
+
+**How to apply:** Verify the deployed runtime, not merely local production-entrypoint code or a generic unauthenticated rejection. Keep the identity, grant preparation, and session-changing lifecycle writes untouched until this gate passes. Do not publish Production as an unapproved workaround.
+
 ## Hard finish line for this correction project
 
 The user limited the remaining work to controlled identity decisions, the demo/live-data boundary, and invitation completion. The finish line is a Development demo physician inviting a synthetic patient, acceptance creating the correct Care Team connection, and demonstration of the intended physician workflow with no real-patient access or invented real-world verification, followed by passing regressions. Then stop and prepare the separately approved Production promotion.
