@@ -1,4 +1,5 @@
 import { getTierForLookupKey, type PlanTier } from "./planFeatures";
+import { practitionerRelationshipType } from "./professionalRoles";
 
 export type ConsumerProCareRequiredTier = "pro" | "clinical";
 export type ConsumerProCareAccessCode =
@@ -22,13 +23,6 @@ export type ConsumerProCareAccessDecision =
       message: string;
     };
 
-const COACHING_PROVIDER_ROLES = new Set(["coach", "trainer"]);
-const CLINICAL_PROVIDER_ROLES = new Set([
-  "physician",
-  "dietitian",
-  "nurse_practitioner",
-]);
-
 export function evaluateConsumerProCareAccess({
   accessTier,
   planLookupKey,
@@ -46,11 +40,7 @@ export function evaluateConsumerProCareAccess({
       ? "ultimate"
       : "free";
 
-  const relationshipType = COACHING_PROVIDER_ROLES.has(providerRole ?? "")
-    ? "coaching"
-    : CLINICAL_PROVIDER_ROLES.has(providerRole ?? "")
-      ? "clinical"
-      : "unsupported";
+  const relationshipType = practitionerRelationshipType(providerRole);
 
   if (relationshipType === "unsupported") {
     return {

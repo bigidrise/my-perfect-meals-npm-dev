@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { users } from "@shared/schema";
+import { CANONICAL_PRACTITIONER_ROLES, isCanonicalPractitionerRole } from "@shared/professionalRoles";
 import { db } from "../db";
 import { logAudit } from "../lib/auditLog";
 import { checkLegalAcceptance } from "./legalCheck";
@@ -7,17 +8,12 @@ import { providerHasProCareStudioAccess } from "./procareProviderAccess";
 import { ensureStudioForTrainer, type EnsuredStudio } from "./studioBridge";
 import { getAcademyProgression } from "./academyProgression";
 
-export const STUDIO_PROVIDER_ROLES = [
-  "trainer",
-  "physician",
-  "dietitian",
-  "nurse_practitioner",
-] as const;
+export const STUDIO_PROVIDER_ROLES = CANONICAL_PRACTITIONER_ROLES;
 
 export function isStudioProviderRole(
   role: string | null | undefined,
 ): role is (typeof STUDIO_PROVIDER_ROLES)[number] {
-  return !!role && (STUDIO_PROVIDER_ROLES as readonly string[]).includes(role);
+  return isCanonicalPractitionerRole(role);
 }
 
 export type ProviderStudioReadinessCode =

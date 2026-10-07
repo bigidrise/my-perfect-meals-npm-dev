@@ -1,4 +1,5 @@
 // client/src/lib/auth.ts
+import type { AccountProfessionalRole, CanonicalPractitionerRole } from "@shared/professionalRoles";
 import { apiUrl } from '@/lib/resolveApiBase';
 import { Capacitor } from '@capacitor/core';
 import { clearNutritionCache } from '../hooks/nutritionStateCache';
@@ -157,7 +158,7 @@ export interface User {
   narrationSpeedPreference?: "0.75" | "1.0" | "1.25" | "1.5";
   // ProCare Professional fields
 
-  professionalRole?: "trainer" | "physician" | "dietitian" | "nurse_practitioner" | "business" | null;
+  professionalRole?: AccountProfessionalRole | null;
 
   professionalCategory?: "certified" | "experienced" | "non_certified" | null;
 
@@ -406,7 +407,7 @@ export function getAuthHeaders(): Record<string, string> {
 
 // API-based authentication with database persistence
 export interface ProCareSignupData {
-  professionalRole: "trainer" | "physician";
+  professionalRole: CanonicalPractitionerRole;
   professionalCategory: "certified" | "experienced" | "non_certified";
   credentialType?: string;
   credentialBody?: string;

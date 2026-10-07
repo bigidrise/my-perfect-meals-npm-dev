@@ -1,4 +1,5 @@
 import express from "express";
+import { CLINICAL_PRACTITIONER_ROLES, isCanonicalPractitionerRole, type CanonicalPractitionerRole } from "@shared/professionalRoles";
 import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
@@ -523,7 +524,7 @@ const clinicianGate = [
 ] as const;
 
 function requireHydrationProfessionalRole(
-  allowed: readonly string[],
+  allowed: readonly CanonicalPractitionerRole[],
 ): express.RequestHandler {
   return async (req, res, next) => {
     const userId = (req as AuthenticatedRequest).authUser?.id;
@@ -533,7 +534,7 @@ function requireHydrationProfessionalRole(
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
-    if (!provider?.professionalRole || !allowed.includes(provider.professionalRole)) {
+    if (!isCanonicalPractitionerRole(provider?.professionalRole) || !allowed.includes(provider.professionalRole)) {
       return res.status(403).json({
         error: "This Hydration control is not available for your professional role",
       });
@@ -544,7 +545,7 @@ function requireHydrationProfessionalRole(
 
 const clinicalHydrationGate = [
   ...clinicianGate,
-  requireHydrationProfessionalRole(["physician", "dietitian", "nurse_practitioner"]),
+  requireHydrationProfessionalRole(CLINICAL_PRACTITIONER_ROLES),
 ] as const;
 
 const trainerHydrationGate = [

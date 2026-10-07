@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { db } from "../db";
 import { users } from "@shared/schema";
+import { CANONICAL_PRACTITIONER_ROLES, type AccountProfessionalRole } from "@shared/professionalRoles";
 import { eq } from "drizzle-orm";
 import { resolveAccessTier, type AccessTier } from "../lib/accessTier";
 import { loadOrgContext } from "../lib/orgContext";
@@ -20,12 +21,9 @@ const IDLE_TIMEOUT_MS: Record<string, number> = {
   client: 60 * 60 * 1000, // 60 minutes
 };
 
-const CLINICAL_PROFESSIONAL_ROLES = new Set([
-  "physician",
-  "trainer",
-  "dietitian",
-  "nurse_practitioner",
-]);
+// Preserve the existing timeout membership, including trainers. Do not
+// substitute the narrower clinical-provider subset into this security policy.
+const CLINICAL_PROFESSIONAL_ROLES = new Set<string>(CANONICAL_PRACTITIONER_ROLES);
 
 const IDLE_TIMEOUT_FALLBACK_MS = 60 * 60 * 1000; // 60 minutes for unknown roles
 
@@ -38,7 +36,7 @@ export interface AuthenticatedUser {
    * Set for ProCare professionals whose system role is "client".
    * Drives MFA enforcement and idle-timeout tier for clinical professionals.
    */
-  professionalRole: "physician" | "trainer" | "dietitian" | "nurse_practitioner" | null;
+  professionalRole: AccountProfessionalRole | null;
   plan: string;
   entitlements: string[];
   planLookupKey: string | null;

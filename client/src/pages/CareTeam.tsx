@@ -40,6 +40,7 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { ProRole } from "@/lib/proData";
+import { careTeamRoleDisplayKey } from "@shared/professionalRoles";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 // Types
@@ -557,7 +558,7 @@ function PermToggle({
 }
 
 function roleBadge(role: ProRole, map: Record<ProRole, { text: string; className: string }>) {
-  const r = map[role];
+  const r = map[careTeamRoleDisplayKey(role) as ProRole];
   return <Badge className={`${r.className} border`}>{r.text}</Badge>;
 }
 

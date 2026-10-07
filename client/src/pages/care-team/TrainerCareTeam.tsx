@@ -25,6 +25,7 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { ProRole } from "@/lib/proData";
+import { careTeamRoleDisplayKey } from "@shared/professionalRoles";
 import { useAuth } from "@/contexts/AuthContext";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { PillButton } from "@/components/ui/pill-button";
@@ -459,6 +460,6 @@ function roleBadge(role: ProRole) {
       className: "bg-lime-600/20 text-lime-300 border-lime-400/40",
     },
   };
-  const r = map[role];
+  const r = map[careTeamRoleDisplayKey(role) as ProRole];
   return <Badge className={`${r.className} border`}>{r.text}</Badge>;
 }
