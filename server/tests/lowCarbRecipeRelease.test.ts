@@ -18,6 +18,11 @@ const candidate = (names: string[], starchyCarbs = 0, carbs = 12): HumanFoodCand
 });
 
 describe("generic Low Carb recipe release is not positive source proof", () => {
+  it.each([undefined, NaN, Infinity])("unknown/nonfinite starch stays evidence-unavailable: %s", starchyCarbs => {
+    const meal=candidate(["chicken breast","cauliflower"]);
+    meal.nutrition!.starchyCarbs=starchyCarbs;
+    expect(assessLowCarbRecipeRelease(meal,context)).toBe("evidence_unavailable");
+  });
   it("accepts bounded generic-product uncertainty without certifying a product label", () => {
     expect(assessLowCarbRecipeRelease(candidate(["unsweetened almond milk", "cauliflower"]), context))
       .toBe("no_known_conflict");

@@ -24,7 +24,9 @@
     "scripts/backfill-health-protocols-dev.ts",
     "scripts/compare-health-protocols-dev.ts",
     "shared/healthProtocolState.ts",
-    "shared/diabeticGenerationSnapshot.ts"
+    "shared/diabeticGenerationSnapshot.ts",
+    "server/db/migrations/runProfessionalErasureMigration.ts",
+    "server/services/professionalAccountErasure.ts"
   ],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"]
 }

@@ -162,6 +162,9 @@ describe("organization access is distinct from billing", () => {
         businessId: business.id,
         canManageRenewal: true,
         canReconnect: false,
+        addonBusinessId: null,
+        canDisconnectAddon: false,
+        canReconnectAddon: false,
       });
     expect(business.status).toBe("active");
   });

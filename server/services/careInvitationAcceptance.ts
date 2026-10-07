@@ -11,7 +11,7 @@ import { checkLegalAcceptance } from "./legalCheck";
 import { ensureProviderStudioReady } from "./procareStudioReadiness";
 import { activateProCareClient, ActivationError, type ProCareAttribution } from "./procareActivation";
 import { normalizeEmailIdentity, resolveEmailIdentityForUser } from "./emailIdentityService";
-import { resolveProviderStudioAttribution, validateBp1Attribution } from "./bp1OrganizationAttributionService";
+import { resolveProviderStudioAttribution, validateBp1Attribution, type Bp1Attribution } from "./bp1OrganizationAttributionService";
 import { discoverAuthorizedWorkspaces } from "./organizationWorkspaceService";
 import { CareInvitationError, assertInvitationWindow, resolveCareInvitationParties } from "./careInvitationPolicy";
 
@@ -33,7 +33,7 @@ export async function findCareInvitation(kind: "code" | "token", value: string):
 
 /** Standalone Studios remain legitimate; an explicit Organization selection never falls back. */
 export async function resolveInvitationAttribution(providerId: string, studio: typeof studios.$inferSelect,
-  selected: { organizationId: string; locationId: string } | null = null): Promise<ProCareAttribution | null> {
+  selected: { organizationId: string; locationId: string } | null = null): Promise<Bp1Attribution | null> {
   if (!studio.orgId && !selected && !(await discoverAuthorizedWorkspaces(providerId)).length) return null;
   return resolveProviderStudioAttribution(providerId, studio, selected);
 }
@@ -45,7 +45,7 @@ export async function assertLiveParties(providerId: string, clientId: string) {
     .where(sql`${demoProfessionalPatients.id}::text = ${providerId} OR ${demoProfessionalPatients.id}::text = ${clientId}`).limit(1);
   if (restriction || synthetic) throw new CareInvitationError("INVITATION_DATASET_MISMATCH");
 }
-function attributionOf(row: any): ProCareAttribution | null {
+function attributionOf(row: any): Bp1Attribution | null {
   const fields = ["organizationId", "locationId", "sourceBusinessId", "partnerRecordId"] as const;
   if (!fields.some(field => row[field] != null)) return null;
   if (!row.organizationId || !row.locationId) throw new CareInvitationError("ATTRIBUTION_INVALID", 409);

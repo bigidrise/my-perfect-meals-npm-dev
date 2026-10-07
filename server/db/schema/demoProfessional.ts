@@ -15,7 +15,7 @@ export const demoProfessionalGrants = pgTable("demo_professional_grants", {
   workspaceId:uuid("workspace_id").notNull().references(()=>demoProfessionalWorkspaces.id),
   persona:text("persona").notNull(), operatingStatus:text("operating_status").notNull(), state:text("state").notNull(),
   revision:integer("revision").notNull(), capabilities:jsonb("capabilities").$type<DemoCapability[]>().notNull(),
-  expiresAt:timestamp("expires_at",{withTimezone:true}).notNull(), approverId:text("approver_id").notNull(), reason:text("reason").notNull(),
+  expiresAt:timestamp("expires_at",{withTimezone:true}).notNull(), approverId:text("approver_id"), reason:text("reason").notNull(),
   trainingBasis:text("training_basis").notNull(), trainingWaiverReason:text("training_waiver_reason"),
   acknowledgedAt:timestamp("acknowledged_at",{withTimezone:true}), acknowledgmentVersion:text("acknowledgment_version"),
   identityRequestId:uuid("identity_request_id"), createdAt:timestamp("created_at",{withTimezone:true}).defaultNow().notNull(),
@@ -23,6 +23,6 @@ export const demoProfessionalGrants = pgTable("demo_professional_grants", {
 });
 export const demoProfessionalEvents = pgTable("demo_professional_events", {
   id:uuid("id").primaryKey(), grantId:uuid("grant_id").notNull().references(()=>demoProfessionalGrants.id),
-  actorUserId:text("actor_user_id").notNull(), eventType:text("event_type").notNull(), metadata:jsonb("metadata").notNull(),
+  actorUserId:text("actor_user_id"), eventType:text("event_type").notNull(), metadata:jsonb("metadata").notNull(),
   createdAt:timestamp("created_at",{withTimezone:true}).defaultNow().notNull(),
 });

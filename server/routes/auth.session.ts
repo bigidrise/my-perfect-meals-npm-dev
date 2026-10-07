@@ -566,9 +566,9 @@ router.delete("/api/auth/delete-account", requireAuth, async (req, res) => {
 
   try {
     console.log(`🗑️ Account deletion requested for user ID: ${userId}`);
+    const { eraseAccount } = await import("../services/professionalAccountErasure");
+    await eraseAccount(userId);
     logAudit({ actor: userId, action: "AUTH_ACCOUNT_DELETED", resourceType: "auth", route: "/api/auth/delete-account", ip: getClientIp(req as any) });
-
-    await db.delete(users).where(eq(users.id, userId));
 
     console.log(`✅ Account deleted successfully, user ID: ${userId}`);
 
