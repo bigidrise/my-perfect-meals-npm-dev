@@ -102,7 +102,9 @@ function buildAuthUser(user: any): Omit<AuthenticatedUser, "sponsoredByBusinessI
   };
 }
 
-async function buildAuthUserWithEffectiveAccess(user: any): Promise<AuthenticatedUser> {
+// Also used for a server-resolved relationship subject who is not the current
+// actor. Callers must load that user from the database, never from request input.
+export async function buildAuthUserWithEffectiveAccess(user: any): Promise<AuthenticatedUser> {
   const base = buildAuthUser(user);
 
   try {

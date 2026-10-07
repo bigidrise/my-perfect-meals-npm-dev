@@ -7,7 +7,7 @@ import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { sendCareTeamInvite } from "../services/emailService";
 import { activateProCareClient, deactivateProCareClient, ActivationError } from "../services/procareActivation";
-import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
+import { requireAuth, AuthenticatedRequest, buildAuthUserWithEffectiveAccess } from "../middleware/requireAuth";
 import { evaluateConsumerProCareAccess } from "@shared/procareConsumerAccess";
 import { requireEmailService } from "../middleware/requireEmailService";
 import { checkLegalAcceptance } from "../services/legalCheck";
@@ -197,6 +197,10 @@ router.post("/connect", requireAuth, async (req, res) => {
       ? await db.select().from(careAccessCode).where(eq(careAccessCode.code, trimmedCode))
       : [null];
 
+    if (!invite && !accessCodeRow) {
+      return res.status(400).json({ error: "Invalid code" });
+    }
+
     // An email-delivered invite may be redeemed only by the one verified
     // account that owns its address. Legacy case-variant rows are deliberately
     // paused for admin review rather than letting a forwarded code choose one.
@@ -217,12 +221,26 @@ router.post("/connect", requireAuth, async (req, res) => {
         });
       }
     }
-    const proUserId = invite ? invite.userId : accessCodeRow!.proUserId;
+    // Invitations can originate from either party. Resolve identities from
+    // persisted users before applying any provider or consumer checks.
+    const [inviter] = invite
+      ? await db.select().from(users).where(eq(users.id, invite.userId))
+      : [null];
+    if (invite && !inviter) {
+      return res.status(400).json({ error: "Invitation creator not found" });
+    }
+    const inviterIsPro = !!invite && isStudioProviderRole(inviter?.professionalRole);
+    const clientUserId = invite && !inviterIsPro ? invite.userId : userId;
+    const proUserId = invite
+      ? inviterIsPro ? invite.userId : userId
+      : accessCodeRow!.proUserId;
 
     // Resolve provider access from their effective plan. A sponsored Clinical
     // Business professional has no personal ProCare plan key, so reading only
     // users.planLookupKey would incorrectly reject a valid provider.
-    // Client Clinical access is resolved from req.authUser (via buildAuthUserWithEffectiveAccess).
+    // The accepting actor is the client only for provider-originated invites
+    // and access codes. Client-originated invites require the inviter's current
+    // effective access, not the accepting professional's subscription.
     const [pro] = await db
       .select({
         id: users.id,
@@ -240,7 +258,9 @@ router.post("/connect", requireAuth, async (req, res) => {
     // ── Subscription gates ────────────────────────────────────────────────────
     // Consumer eligibility is role-aware: Pro+ may connect to a coach/trainer;
     // physician and other clinical relationships remain Clinical-only.
-    const authUser = (req as AuthenticatedRequest).authUser;
+    const authUser = clientUserId === userId
+      ? (req as AuthenticatedRequest).authUser
+      : await buildAuthUserWithEffectiveAccess(inviter);
     const eligibility = evaluateConsumerProCareAccess({
       accessTier: authUser.accessTier,
       planLookupKey: authUser.planLookupKey,
@@ -270,7 +290,7 @@ router.post("/connect", requireAuth, async (req, res) => {
     const isPhysician = pro?.professionalRole === "physician";
     const legalFlow = isPhysician ? "patient_physician" : "client";
 
-    const clientCheck = await checkLegalAcceptance(userId, legalFlow);
+    const clientCheck = await checkLegalAcceptance(clientUserId, legalFlow);
     if (!clientCheck.allAccepted) {
       return res.status(409).json({
         code: "LEGAL_REACCEPT_REQUIRED",
@@ -288,15 +308,6 @@ router.post("/connect", requireAuth, async (req, res) => {
         return res.status(400).json({ error: "Invite expired" });
       }
 
-      const [inviter] = await db
-        .select({ professionalRole: users.professionalRole })
-        .from(users)
-        .where(eq(users.id, invite.userId));
-      const inviterIsPro = isStudioProviderRole(inviter?.professionalRole);
-
-      const patientId = inviterIsPro ? userId : invite.userId;
-      const resolvedProId = inviterIsPro ? invite.userId : userId;
-
       let activation;
       try {
         if (invite.organizationId && invite.locationId) {
@@ -307,7 +318,7 @@ router.post("/connect", requireAuth, async (req, res) => {
             partnerRecordId: invite.partnerRecordId,
           });
         }
-        activation = await activateProCareClient(patientId, resolvedProId, "care_team_connect_code", undefined, {
+        activation = await activateProCareClient(clientUserId, proUserId, "care_team_connect_code", undefined, {
           organizationId: invite.organizationId,
           locationId: invite.locationId,
           sourceBusinessId: invite.sourceBusinessId,
@@ -346,8 +357,8 @@ router.post("/connect", requireAuth, async (req, res) => {
           const [newMember] = await db
             .insert(careTeamMember)
             .values({
-              userId: patientId,
-              proUserId: resolvedProId,
+              userId: clientUserId,
+              proUserId,
               name: existingMember.name,
               email: existingMember.email,
               role: existingMember.role,
@@ -366,7 +377,7 @@ router.post("/connect", requireAuth, async (req, res) => {
         } else {
           const [updatedMember] = await db
             .update(careTeamMember)
-            .set({ proUserId: resolvedProId, status: "active", updatedAt: new Date() })
+            .set({ proUserId, status: "active", updatedAt: new Date() })
             .where(eq(careTeamMember.id, existingMember.id))
             .returning();
           finalMember = updatedMember;
@@ -375,8 +386,8 @@ router.post("/connect", requireAuth, async (req, res) => {
         const [newMember] = await db
           .insert(careTeamMember)
           .values({
-            userId: patientId,
-            proUserId: resolvedProId,
+            userId: clientUserId,
+            proUserId,
             name: invite.email.split("@")[0],
             email: invite.email,
             role: invite.role,
@@ -399,7 +410,7 @@ router.post("/connect", requireAuth, async (req, res) => {
         .set({ accepted: true })
         .where(eq(careInvite.id, invite.id));
 
-      await db.update(users).set({ role: "client" }).where(eq(users.id, patientId));
+      await db.update(users).set({ role: "client" }).where(eq(users.id, clientUserId));
 
       return res.json({
         member: finalMember,
@@ -418,7 +429,7 @@ router.post("/connect", requireAuth, async (req, res) => {
 
       let activation;
       try {
-        activation = await activateProCareClient(userId, accessCodeRow.proUserId, "care_team_access_code");
+        activation = await activateProCareClient(clientUserId, proUserId, "care_team_access_code");
       } catch (err) {
         if (err instanceof ActivationError) {
           if (err.code === "CLIENT_ALREADY_HAS_ACTIVE_PROFESSIONAL") {
@@ -439,8 +450,8 @@ router.post("/connect", requireAuth, async (req, res) => {
         .from(careTeamMember)
         .where(
           and(
-            eq(careTeamMember.userId, userId),
-            eq(careTeamMember.proUserId, accessCodeRow.proUserId)
+            eq(careTeamMember.userId, clientUserId),
+            eq(careTeamMember.proUserId, proUserId)
           )
         );
 
@@ -458,8 +469,8 @@ router.post("/connect", requireAuth, async (req, res) => {
         const [inserted] = await db
           .insert(careTeamMember)
           .values({
-            userId,
-            proUserId: accessCodeRow.proUserId,
+            userId: clientUserId,
+            proUserId,
             name: `Linked-${trimmedCode.slice(-4)}`,
             role: "other",
             status: "active",
@@ -474,7 +485,7 @@ router.post("/connect", requireAuth, async (req, res) => {
         console.log(`✅ [CareTeam Connect] Created careTeamMember for ${userId} → ${accessCodeRow.proUserId}`);
       }
 
-      await db.update(users).set({ role: "client" }).where(eq(users.id, userId));
+      await db.update(users).set({ role: "client" }).where(eq(users.id, clientUserId));
 
       return res.json({
         member,
