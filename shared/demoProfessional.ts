@@ -11,7 +11,7 @@ export type DemoPlan = z.infer<typeof demoPlanInput>;
 export interface DemoGrant {
   id: string; userId: string; workspaceId: string; persona: "physician"; operatingStatus: "demo_only";
   state: "prepared" | "active" | "revoked"; revision: number; capabilities: DemoCapability[];
-  expiresAt: string; approverId: string; reason: string;
+  expiresAt: string; approverId: string | null; reason: string;
   trainingBasis: "academy_evidence" | "demo_only_waiver"; trainingWaiverReason: string | null;
   acknowledgedAt: string | null; acknowledgmentVersion: string | null;
   identityRequestId: string | null;

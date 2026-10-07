@@ -22,8 +22,9 @@ export function assessLowCarbRecipeRelease(
   decisions: readonly ContextualSourceDecision[] = [],
 ): LowCarbRecipeRelease {
   const source = evaluateLowCarbSourceEvidence(candidate.ingredients, candidate.nutrition, decisions);
+  const starchyCarbs = candidate.nutrition?.starchyCarbs;
   if (!source.ingredientsComplete || !source.nutritionValuesFinite ||
-      candidate.nutrition?.starchyCarbs == null) return "evidence_unavailable";
+      typeof starchyCarbs !== "number" || !Number.isFinite(starchyCarbs)) return "evidence_unavailable";
 
   // A known sugar is a repair target even when another ingredient also lacks
   // evidence. Never let uncertainty conceal an identified conflict.
@@ -55,7 +56,7 @@ export function assessLowCarbRecipeRelease(
       macros.fat! > remaining.fat) return "repair_required";
 
   const hasStarch = source.ingredientEvidence.some((entry) => entry.category === "starchy_concentrated");
-  if (hasStarch !== (macros.starchyCarbs > 0)) return "repair_required";
+  if (hasStarch !== (starchyCarbs > 0)) return "repair_required";
   if (hasStarch && context.nutrition?.activeConstraints?.consumedStarchExhausted) {
     return "repair_required";
   }

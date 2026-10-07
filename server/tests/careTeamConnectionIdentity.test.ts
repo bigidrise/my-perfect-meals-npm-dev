@@ -3,7 +3,8 @@ import request from "supertest";
 import { getTableColumns } from "drizzle-orm";
 import { users } from "@shared/schema";
 import { careInvite, careAccessCode, careTeamMember } from "../db/schema/careTeam";
-import { studios } from "../db/schema/studio";
+import { studios, studioMemberships } from "../db/schema/studio";
+import { clientLinks } from "../db/schema/procare";
 import router from "../routes/careTeamRoutes";
 
 // No database connection or external service is used by this suite.
@@ -26,11 +27,13 @@ jest.mock("drizzle-orm", () => ({
   ...jest.requireActual("drizzle-orm"),
   eq: (column: unknown, value: unknown) => ({ column, value }),
   and: (...conditions: unknown[]) => ({ conditions }),
+  or: (...alternatives: unknown[]) => ({ alternatives }),
 }));
 
 function matches(table: object, row: Row, clause: any): boolean {
   if (!clause) return true;
   if (clause.conditions) return clause.conditions.every((part: any) => matches(table, row, part));
+  if (clause.alternatives) return clause.alternatives.some((part: any) => matches(table, row, part));
   const key = Object.entries(getTableColumns(table as any)).find(([, column]) => column === clause.column)?.[0];
   if (!key) throw new Error("Unrecognized query column");
   return row[key] === clause.value;
@@ -43,6 +46,7 @@ function selectQuery() {
     from(value: object) { table = value; return query; },
     where(value: any) { clause = value; return query; },
     limit() { return query; },
+    for() { return query; },
     then(resolve: any, reject: any) {
       return Promise.resolve((mockRows.get(table) || []).filter(row => matches(table, row, clause))).then(resolve, reject);
     },
@@ -126,7 +130,10 @@ jest.mock("../services/bp1OrganizationAttributionService", () => ({
   resolveProviderStudioAttribution: (...args: unknown[]) => mockResolveAttribution(...args),
   validateBp1Attribution: (...args: unknown[]) => mockValidateAttribution(...args),
 }));
-jest.mock("../services/organizationWorkspaceService", () => ({ WorkspaceContextError: class extends Error {} }));
+jest.mock("../services/organizationWorkspaceService", () => ({
+  WorkspaceContextError: class extends Error {},
+  discoverAuthorizedWorkspaces: async () => [],
+}));
 
 const app = express();
 app.use(express.json());
@@ -140,6 +147,7 @@ function arrange(direction: "client_invites" | "professional_invites") {
   invitation.userId = direction === "client_invites" ? client.id : professional.id;
   invitation.email = direction === "client_invites" ? professional.email : client.email;
   mockActor = direction === "client_invites" ? professional : client;
+  mockRows.get(studios)![0].type = professional.professionalRole === "physician" ? "clinic" : "studio";
 }
 function connect(body: Row = { code: "TEST-CODE" }) {
   return request(app).post("/api/care-team/connect").send(body);
@@ -160,17 +168,27 @@ beforeEach(() => {
   mockRows.set(careInvite, [invitation]);
   mockRows.set(careAccessCode, []);
   mockRows.set(careTeamMember, []);
-  mockRows.set(studios, [{ id: "studio", ownerUserId: professional.id }]);
+  mockRows.set(studios, [{ id: "studio", name: "Test clinic", ownerUserId: professional.id, status: "active", type: "clinic", orgId: null }]);
   mockActor = client;
   mockBuildAccess.mockReset().mockImplementation(async user => ({ ...user }));
   mockProviderAccess.mockReset().mockResolvedValue(true);
   mockLegal.mockReset().mockResolvedValue({ allAccepted: true, missing: [] });
   mockValidateAttribution.mockReset().mockResolvedValue(undefined);
-  mockActivate.mockReset().mockResolvedValue({ studioId: "studio", studioName: "Test clinic", membershipId: "membership" });
-  mockReadiness.mockReset().mockResolvedValue({ ok: true });
+  // Stage 4 commits its locked invitation checks inside activation's transaction.
+  // Invoke that callback rather than skipping it with a resolved-value mock.
+  mockActivate.mockReset().mockImplementation(async (_client, _provider, _source, callback, scope) => {
+    const activation = { studioId: "studio", studioName: "Test clinic", membershipId: "membership", clientLinkId: "link" };
+    mockRows.set(studioMemberships, [{ id: "membership", studioId: "studio", clientUserId: client.id, status: "active", isArchived: false, ...(scope ?? {}) }]);
+    mockRows.set(clientLinks, [{ id: "link", clientUserId: client.id, proUserId: professional.id, active: true, ...(scope ?? {}) }]);
+    if (callback) await callback(jest.requireMock("../db").db, activation);
+    return activation;
+  });
+  mockReadiness.mockReset().mockImplementation(async id => (await mockProviderAccess(mockRows.get(users)!.find(row => row.id === id)))
+    ? { ok: true } : { ok: false, code: "COACH_NOT_SUBSCRIBED" });
   mockEmailCandidates.mockReset().mockResolvedValue([]);
   mockSendInvite.mockReset().mockResolvedValue(undefined);
-  mockResolveAttribution.mockReset().mockResolvedValue(null);
+  mockResolveAttribution.mockReset().mockImplementation(async (_id, _studio, scope) => scope
+    ? { ...scope, sourceBusinessId: invitation.sourceBusinessId, partnerRecordId: invitation.partnerRecordId } : null);
 });
 
 test.each(["client_invites", "professional_invites"] as const)("%s: gates and creates the relationship using the actual identities", async direction => {
@@ -179,21 +197,23 @@ test.each(["client_invites", "professional_invites"] as const)("%s: gates and cr
   expect(res.status).toBe(200);
   expect(mockProviderAccess).toHaveBeenCalledWith(expect.objectContaining({ id: professional.id, professionalRole: "physician" }));
   expect(mockLegal).toHaveBeenCalledWith(client.id, "patient_physician");
-  expect(mockActivate).toHaveBeenCalledWith(client.id, professional.id, "care_team_connect_code", undefined, expect.any(Object));
+  expect(mockActivate).toHaveBeenCalledWith(client.id, professional.id, "invitation_care_invite", expect.any(Function), null);
   expect(res.body.member).toMatchObject({ userId: client.id, proUserId: professional.id, status: "active" });
   expect(invitation.accepted).toBe(true);
-  const roleWrite = mockWrites.find(write => write.table === users);
-  expect(roleWrite?.where.value).toBe(client.id);
-  if (direction === "client_invites") expect(mockBuildAccess).toHaveBeenCalledWith(client);
-  else expect(mockBuildAccess).not.toHaveBeenCalled();
+  // Activation is mocked; the invitation transaction itself must not rewrite
+  // either participant's identity, and resolves effective access for the client.
+  expect(mockWrites.some(write => write.table === users)).toBe(false);
+  expect(professional.professionalRole).toBe("physician");
+  expect(client.professionalRole).toBeNull();
+  expect(mockBuildAccess).toHaveBeenCalledWith(client);
 });
 
-test("client-created pending care member is activated rather than duplicated", async () => {
+test("client-created pending placeholder becomes exactly one identity-bound active relationship", async () => {
   arrange("client_invites");
   mockRows.set(careTeamMember, [{ id: "pending-member", userId: client.id, email: professional.email, status: "pending", permissions }]);
   const res = await connect();
   expect(res.status).toBe(200);
-  expect(res.body.member).toMatchObject({ id: "pending-member", userId: client.id, proUserId: professional.id, status: "active" });
+  expect(res.body.member).toMatchObject({ userId: client.id, proUserId: professional.id, status: "active" });
   expect(mockRows.get(careTeamMember)).toHaveLength(1);
 });
 
@@ -212,7 +232,7 @@ test("client-created invitation uses effective access instead of the client's ra
   mockBuildAccess.mockResolvedValueOnce({ ...client, planLookupKey: "mpm_ultimate_monthly", accessTier: "PAID_FULL" });
   arrange("client_invites");
   expect((await connect()).status).toBe(200);
-  expect(mockActivate).toHaveBeenCalledWith(client.id, professional.id, "care_team_connect_code", undefined, expect.any(Object));
+  expect(mockActivate).toHaveBeenCalledWith(client.id, professional.id, "invitation_care_invite", expect.any(Function), null);
 });
 
 test.each(["client_invites", "professional_invites"] as const)("%s: provider subscription failures still block activation", async direction => {
@@ -248,7 +268,9 @@ test("an actually unsupported professional still returns UNSUPPORTED_PROVIDER_RO
 test.each(["client_invites", "professional_invites"] as const)("%s: expired invitations do not activate or write anything", async direction => {
   arrange(direction);
   invitation.expiresAt = new Date(Date.now() - 60_000);
-  expect((await connect()).status).toBe(400);
+  const result = await connect();
+  expect(result.status).toBe(410);
+  expect(result.body.code).toBe("EXPIRED");
   expect(mockActivate).not.toHaveBeenCalled();
   expect(mockWrites).toHaveLength(0);
 });
@@ -279,7 +301,7 @@ test("organization attribution is validated and passed through unchanged", async
   expect((await connect()).status).toBe(200);
   const attribution = { organizationId: "organization", locationId: "location", sourceBusinessId: "business", partnerRecordId: "partner" };
   expect(mockValidateAttribution).toHaveBeenCalledWith(attribution);
-  expect(mockActivate).toHaveBeenCalledWith(client.id, professional.id, "care_team_connect_code", undefined, attribution);
+  expect(mockActivate).toHaveBeenCalledWith(client.id, professional.id, "invitation_care_invite", expect.any(Function), attribution);
 });
 
 test("access-code acceptance keeps its established client/professional direction", async () => {
@@ -404,6 +426,7 @@ test("a requested physician category never changes a trainer recipient's identit
   arrange("client_invites");
   invitation.role = "physician";
   professional.professionalRole = "trainer";
+  mockRows.get(studios)![0].type = "studio";
   client.planLookupKey = "mpm_premium_monthly";
   mockRows.set(careTeamMember, [{
     id: "pending-member", userId: client.id, email: professional.email,
