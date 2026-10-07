@@ -2,8 +2,10 @@
 
 ## Status
 
-Implemented in Development. **Stage 3 is not fully accepted: browser validation
-is blocked before the isolated workspace loads.** Stop here; do not start Stage 4.
+Implemented in Development. Subsequent fixture-based UI checks reached the
+isolated workspace and a narrow auth/startup correction was made. **Final browser
+acceptance is not claimed; the user elected to perform the remaining testing.**
+See `docs/phase3-stage3-validation-blocker.md`. Stop here; do not start Stage 4.
 
 Dr. Test was not modified. No existing user/account, Clinic, organization,
 membership, relationship, credential, training, agreement, or subscription was
