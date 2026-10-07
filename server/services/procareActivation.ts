@@ -3,7 +3,7 @@ import { studios, studioMemberships } from "../db/schema/studio";
 import { clientLinks } from "../db/schema/procare";
 import { careTeamMember } from "../db/schema/careTeam";
 import { users } from "@shared/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { logClientActivity } from "./activityLog";
 import { checkLegalAcceptance } from "./legalCheck";
 import { ensureStudioForTrainer } from "./studioBridge";
@@ -112,6 +112,9 @@ export async function activateProCareClient(
   const workspace = studio.type === "clinic" ? "clinician" : "trainer";
 
   const result = await db.transaction(async (tx) => {
+    // Serialize relationship writes for one client, including concurrent code,
+    // email-link and login acceptance. No invitation can switch another request's link.
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${"procare-client:" + clientUserId}))`);
     // Look for an existing membership for this exact client+studio pair first (reconnect path)
     const [sameStudioMembership] = await tx
       .select()
