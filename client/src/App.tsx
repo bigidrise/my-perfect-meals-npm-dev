@@ -74,7 +74,10 @@ function UpdateBannerMount() {
 // Demo grants are not consumer trials, paid plans, live client boards, or
 // real-clinical readiness. Never mount that chrome over the isolated workspace.
 function DemoOperatingShell({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  // Do not mount a consumer shell (and its stateful global widgets) temporarily
+  // while a cookie-backed professional's operating status is still unresolved.
+  if (loading) return <div role="status" className="flex min-h-[100dvh] items-center justify-center bg-black text-white">Loading your account…</div>;
   if (user?.operatingStatus !== "demo_only") return <>{children}</>;
   return (
     <PageTitleProvider>

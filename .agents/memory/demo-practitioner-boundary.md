@@ -24,3 +24,11 @@ Do not add fabricated consumer-trial, commercial, training, credential, or real-
 **Why:** Demo authority must remain independent of the real account's commercial and professional evidence; normal application chrome can assume a fuller live profile than a truthful restricted bootstrap supplies.
 
 **How to apply:** Use a dedicated isolated shell and verify it separately. Passing backend authorization tests is not proof that the demo browser journey works; do not activate a shared account while that acceptance is blocked.
+
+## Validation authority and error evidence
+
+Keep grants and grant events at zero until the user authorizes account setup. Locally intercepted synthetic UI sessions are not proof of actual authenticated-server acceptance.
+
+**Why:** The user explicitly wanted zero grants/events while the browser path was being established, and reserved Dr. Test setup for later approval.
+
+**How to apply:** Report fixture UI evidence separately from server security tests and real signed-in acceptance. For update loops, inspect the thrown update/ref chain and full React component stack rather than attributing the cause to a named parent modal.
