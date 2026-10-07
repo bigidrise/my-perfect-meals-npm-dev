@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db } from "../db";
 import { trialAccessInvites, users } from "@shared/schema";
+import { isCanonicalPractitionerRole, isClinicalPractitionerRole } from "@shared/professionalRoles";
 import { eq, sql, and, or, isNotNull, gt, isNull } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -219,17 +220,15 @@ router.post("/api/auth/signup", async (req, res) => {
     }
 
     if (professionalSetupRequested) {
-      const validRoles = ["trainer", "physician", "dietitian", "nurse_practitioner"];
       const validCategories = ["certified", "experienced", "non_certified"];
-      const licensedRoles = ["physician", "dietitian", "nurse_practitioner"];
-      if (!procare.professionalRole || !validRoles.includes(procare.professionalRole)) {
+      if (!isCanonicalPractitionerRole(procare.professionalRole)) {
         return res.status(400).json({ error: "Invalid professional role" });
       }
       if (!validCategories.includes(procare.professionalCategory)) {
         return res.status(400).json({ error: "Invalid professional category" });
       }
       // Licensed roles (physician / dietitian / NP-PA) must supply license number + state
-      if (licensedRoles.includes(procare.professionalRole) && procare.professionalCategory === "certified") {
+      if (isClinicalPractitionerRole(procare.professionalRole) && procare.professionalCategory === "certified") {
         if (!procare.credentialNumber?.trim()) {
           return res.status(400).json({ error: "License number is required for licensed professionals" });
         }

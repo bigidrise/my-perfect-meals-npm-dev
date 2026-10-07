@@ -9,6 +9,11 @@ import { sendCareTeamInvite } from "../services/emailService";
 import { activateProCareClient, deactivateProCareClient, ActivationError } from "../services/procareActivation";
 import { requireAuth, AuthenticatedRequest, buildAuthUserWithEffectiveAccess } from "../middleware/requireAuth";
 import { evaluateConsumerProCareAccess } from "@shared/procareConsumerAccess";
+import {
+  isCanonicalPractitionerRole,
+  requiresProfessionalRoleReview,
+  resolveCareTeamRequestedRole,
+} from "@shared/professionalRoles";
 import { requireEmailService } from "../middleware/requireEmailService";
 import { checkLegalAcceptance } from "../services/legalCheck";
 import { providerHasProCareStudioAccess } from "../services/procareProviderAccess";
@@ -81,6 +86,24 @@ router.post("/invite", requireAuth, requireEmailService, requireMfa, async (req,
       return res.status(400).json({ error: msg });
     }
 
+    // Aliases are dropdown metadata, never a way to reinterpret a persisted
+    // provider account. Unknown occupations need review, not client fallback.
+    if (requiresProfessionalRoleReview(callerUser?.professionalRole)) {
+      return res.status(409).json({
+        code: "PROFESSIONAL_ROLE_REVIEW_REQUIRED",
+        error: "Your stored professional identity requires review before sending a Care Team invitation.",
+      });
+    }
+    const invitationRole = isCanonicalPractitionerRole(callerUser?.professionalRole)
+      ? callerUser.professionalRole
+      : resolveCareTeamRequestedRole(role);
+    if (!invitationRole) {
+      return res.status(400).json({
+        code: "UNSUPPORTED_REQUESTED_PROVIDER_ROLE",
+        error: "Choose a supported practitioner category. This role cannot be safely mapped to an authorized professional identity.",
+      });
+    }
+
     // A provider invite must always have a canonical Studio ready before the
     // invitation is persisted. This prevents an account from signing up into
     // an orphaned provider relationship when a legacy provider has no Studio.
@@ -121,7 +144,7 @@ router.post("/invite", requireAuth, requireEmailService, requireMfa, async (req,
       }
     }
 
-    console.log(`📧 Care Team invite request - role: ${role}`);
+    console.log(`📧 Care Team invite request - role: ${invitationRole}`);
 
     const inviteCode = `MP-${nanoid(4).toUpperCase()}-${nanoid(3).toUpperCase()}`;
     const urlToken = nanoid(32);
@@ -135,7 +158,7 @@ router.post("/invite", requireAuth, requireEmailService, requireMfa, async (req,
           userId,
           name: email.split("@")[0],
           email,
-          role,
+          role: invitationRole,
           status: "pending",
           permissions,
         })
@@ -148,7 +171,7 @@ router.post("/invite", requireAuth, requireEmailService, requireMfa, async (req,
     await db.insert(careInvite).values({
       userId,
       email,
-      role,
+      role: invitationRole,
       permissions,
       inviteCode,
       urlToken,
@@ -166,10 +189,10 @@ router.post("/invite", requireAuth, requireEmailService, requireMfa, async (req,
       patientName: "Your client",
       inviteCode,
       urlToken,
-      role,
+      role: invitationRole,
     });
 
-    res.json({ member: member ?? { email, role, status: "pending" } });
+    res.json({ member: member ?? { email, role: invitationRole, status: "pending" } });
   } catch (error) {
     console.error("❌ Error sending invite:", error);
     res.status(500).json({ error: "Failed to send invite" });
@@ -228,6 +251,12 @@ router.post("/connect", requireAuth, async (req, res) => {
       : [null];
     if (invite && !inviter) {
       return res.status(400).json({ error: "Invitation creator not found" });
+    }
+    if (invite && requiresProfessionalRoleReview(inviter?.professionalRole)) {
+      return res.status(409).json({
+        code: "PROFESSIONAL_ROLE_REVIEW_REQUIRED",
+        error: "The invitation creator's stored professional identity requires review before connecting.",
+      });
     }
     const inviterIsPro = !!invite && isStudioProviderRole(inviter?.professionalRole);
     const clientUserId = invite && !inviterIsPro ? invite.userId : userId;
@@ -359,9 +388,11 @@ router.post("/connect", requireAuth, async (req, res) => {
             .values({
               userId: clientUserId,
               proUserId,
+              // Active relationship labels use the provider identity validated
+              // above, never the legacy invitation's requested/display category.
+              role: pro.professionalRole!,
               name: existingMember.name,
               email: existingMember.email,
-              role: existingMember.role,
               status: "active",
               permissions: existingMember.permissions,
             ...(invite.organizationId ? {
@@ -377,7 +408,7 @@ router.post("/connect", requireAuth, async (req, res) => {
         } else {
           const [updatedMember] = await db
             .update(careTeamMember)
-            .set({ proUserId, status: "active", updatedAt: new Date() })
+            .set({ proUserId, role: pro.professionalRole!, status: "active", updatedAt: new Date() })
             .where(eq(careTeamMember.id, existingMember.id))
             .returning();
           finalMember = updatedMember;
@@ -390,7 +421,7 @@ router.post("/connect", requireAuth, async (req, res) => {
             proUserId,
             name: invite.email.split("@")[0],
             email: invite.email,
-            role: invite.role,
+            role: pro.professionalRole!,
             status: "active",
             permissions: invite.permissions,
             ...(invite.organizationId ? {

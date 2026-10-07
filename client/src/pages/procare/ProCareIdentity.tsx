@@ -12,12 +12,13 @@ import {
   Check,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { CLINICAL_PRACTITIONER_ROLES, type CanonicalPractitionerRole } from "@shared/professionalRoles";
 
-type ProfessionalRole = "trainer" | "physician" | "dietitian" | "nurse_practitioner" | null;
+type ProfessionalRole = CanonicalPractitionerRole | null;
 type ProfessionalCategory = "certified" | "experienced" | "non_certified";
 
 // Roles that REQUIRE a license number + state to continue
-const LICENSED_ROLES: ProfessionalRole[] = ["physician", "dietitian", "nurse_practitioner"];
+const LICENSED_ROLES: readonly ProfessionalRole[] = CLINICAL_PRACTITIONER_ROLES;
 
 const TRAINER_CERT_BODIES = [
   "NASM",
