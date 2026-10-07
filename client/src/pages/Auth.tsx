@@ -13,6 +13,7 @@ import { hasActivePaidSubscription, isProOrAbove } from "@/lib/subscriptionCheck
 import { MfaChallengeModal } from "@/components/MfaChallengeModal";
 import { MfaSetupSection } from "@/components/MfaSetupSection";
 import { createProfessionalLegalRecoveryUrl } from "@/lib/professionalLegalRecovery";
+import { saveNewAccountProfessionalDraft, professionalRequestsEnabled } from "@/lib/professionalOnboarding";
 
 export default function Auth() {
   const [, setLocation] = useLocation();
@@ -176,10 +177,7 @@ export default function Auth() {
 
     if (options.professionalSetupPending) {
       try { await refreshUser(); } catch { /* non-fatal */ }
-      setLocation(createProfessionalLegalRecoveryUrl(
-        urlReturnTo || "/professional-dashboard",
-        "professional-workspace",
-      ));
+      setLocation("/procare-attestation");
       return;
     }
 
@@ -251,8 +249,8 @@ export default function Auth() {
           procareData = {
             professionalRole: urlRole,
             professionalCategory: "certified",
-            attestationText: "Direct signup via welcome flow",
-            attestedAt: new Date().toISOString(),
+            attestationText: "Professional request information only; no legal acceptance recorded.",
+            attestedAt: "",
             procareEntryPath: urlRole,
           };
         }
@@ -268,6 +266,24 @@ export default function Auth() {
           clinicPilotToken,
           businessOfferToken,
         );
+        if (professionalSetupPending && procareData && professionalRequestsEnabled) {
+          try {
+            await saveNewAccountProfessionalDraft(u.id, {
+              requestedRole: procareData.professionalRole,
+              professionalCategory: procareData.professionalCategory,
+              credentialType: procareData.credentialType ?? null,
+              credentialBody: procareData.credentialBody ?? null,
+              credentialNumber: procareData.credentialNumber ?? null,
+              credentialYear: procareData.credentialYear ?? null,
+            });
+          } catch {
+            // Account creation succeeded; do not retry signup or pretend the
+            // request saved. The identity page offers an explicit buffer import.
+            setUser(u);
+            setLocation("/procare-identity");
+            return;
+          }
+        }
         await proceedAfterLogin(u, { professionalSetupPending });
         return;
       } else {

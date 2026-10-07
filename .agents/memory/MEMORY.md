@@ -138,3 +138,4 @@
 - [Saved support compatibility](saved-support-compatibility.md) — retain established support flags during unrelated health edits without allowing new legacy activation.
 - [Care Team invitation parties](care-team-invitation-parties.md) — either party may invite; resolve the client and professional before applying person-specific gates.
 - [Organization and practitioner identity](organization-practitioner-identity.md) — ownership never replaces occupation; Business-only identities are legitimate and cannot be inferred into practitioners.
+- [Demo practitioner boundary](demo-practitioner-boundary.md) — approved canonical persona plus demo-only status; synthetic data only, never fabricated clinical verification.

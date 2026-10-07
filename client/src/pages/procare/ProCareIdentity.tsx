@@ -13,6 +13,10 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { CLINICAL_PRACTITIONER_ROLES, type CanonicalPractitionerRole } from "@shared/professionalRoles";
+import { useAuth } from "@/contexts/AuthContext";
+import { useProfessionalOnboarding } from "@/hooks/useProfessionalOnboarding";
+import { readLocalProfessionalDraft, professionalRequestsEnabled } from "@/lib/professionalOnboarding";
+import { clearProCareSignupData } from "@/lib/auth";
 
 type ProfessionalRole = CanonicalPractitionerRole | null;
 type ProfessionalCategory = "certified" | "experienced" | "non_certified";
@@ -81,8 +85,13 @@ const OPTIONS: IdentityOption[] = [
 export default function ProCareIdentity() {
   const [, setLocation] = useLocation();
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const onboarding = useProfessionalOnboarding(user?.id);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const formAccount = useRef(user?.id);
   const [role, setRole] = useState<ProfessionalRole>(
-    (localStorage.getItem("procare_role") as ProfessionalRole) || null
+    user ? null : readLocalProfessionalDraft()?.requestedRole || null
   );
   const [selected, setSelected] = useState<ProfessionalCategory | null>(null);
 
@@ -97,6 +106,36 @@ export default function ProCareIdentity() {
   const [licenseNumber, setLicenseNumber] = useState("");
   const [licenseState, setLicenseState]   = useState("");
   const [credentialType, setCredentialType] = useState(""); // e.g. MD, DO, RD, RDN, NP, PA
+
+  function hydrate(fields: NonNullable<ReturnType<typeof readLocalProfessionalDraft>>) {
+    setRole(fields.requestedRole ?? null);
+    setSelected(fields.professionalCategory ?? null);
+    setCertBody(fields.credentialBody ?? ""); setCertNumber(fields.credentialNumber ?? "");
+    setCertYear(fields.credentialYear ?? "");
+    setLicenseNumber(fields.credentialNumber ?? ""); setLicenseState(fields.credentialBody ?? "");
+    setCredentialType(fields.credentialType ?? "");
+  }
+  useEffect(() => {
+    if (formAccount.current !== user?.id) {
+      formAccount.current = user?.id;
+      setRole(null); setSelected(null); setCertBody(""); setCertNumber(""); setCertYear("");
+      setLicenseNumber(""); setLicenseState(""); setCredentialType(""); setSaveError("");
+    }
+    if (!user || !professionalRequestsEnabled || onboarding.isLoading || onboarding.error) return;
+    if (!onboarding.data?.request) {
+      void onboarding.resume().catch(cause => setSaveError(cause.message));
+    } else if (onboarding.data.request.state === "submitted") {
+      setLocation("/procare-attestation");
+    } else {
+      hydrate(onboarding.data.request);
+    }
+  }, [user?.id, onboarding.data?.request?.id, onboarding.data?.request?.revision, onboarding.isLoading, onboarding.error]);
+  useEffect(() => {
+    if (!user) {
+      const fields = readLocalProfessionalDraft();
+      if (fields) hydrate(fields);
+    }
+  }, [user?.id]);
 
   const isLicensedRole = LICENSED_ROLES.includes(role);
 
@@ -130,9 +169,30 @@ export default function ProCareIdentity() {
     return true; // trainer certified path: all fields optional
   })();
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!canContinue || !selected || !role) return;
+    setSaveError("");
+    if (user) {
+      const request = onboarding.data?.request;
+      if (!request || saving) return;
+      setSaving(true);
+      try {
+        await onboarding.save({
+          requestedRole: role, professionalCategory: selected,
+          credentialNumber: selected === "certified" ? (isLicensedRole ? licenseNumber : certNumber).trim() || null : null,
+          credentialBody: selected === "certified" ? (isLicensedRole ? licenseState : certBody).trim() || null : null,
+          credentialType: isLicensedRole ? credentialType.trim() || null : null,
+          credentialYear: !isLicensedRole && selected === "certified" ? certYear.trim() || null : null,
+        }, request.revision, request.id);
+        clearProCareSignupData();
+        setLocation("/procare-rewards");
+      } catch (cause) { setSaveError(cause instanceof Error ? cause.message : "Unable to save your draft."); }
+      finally { setSaving(false); }
+      return;
+    }
 
+    // Anonymous buffer only; clear old credential values before replacing it.
+    clearProCareSignupData();
     localStorage.setItem("procare_role", role);
     localStorage.setItem("procare_category", selected);
 
@@ -379,11 +439,16 @@ export default function ProCareIdentity() {
 
       </div>
 
+      {(saveError || onboarding.error) && <div role="alert" className="px-4 pb-24 text-red-300">{saveError || (onboarding.error instanceof Error ? onboarding.error.message : "Unable to load your saved draft.")}<Button variant="outline" onClick={() => { setSaveError(""); void onboarding.refetch(); }}>Reload draft</Button></div>}
+      {user && !onboarding.data?.request?.requestedRole && readLocalProfessionalDraft() && <Button variant="outline" onClick={() => {
+        const fields = readLocalProfessionalDraft();
+        if (fields) hydrate(fields);
+      }}>Use locally entered information</Button>}
       {/* Fixed Bottom CTA */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/95 to-transparent">
         <Button
           onClick={handleContinue}
-          disabled={!canContinue}
+          disabled={!canContinue || saving || (!!user && (onboarding.isLoading || !!onboarding.error || !onboarding.data?.request)) || !professionalRequestsEnabled}
           className="w-full h-14 text-md font-semibold rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg transition-all duration-200 flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-40"
         >
           {t("procare.identity.continueButton")}
