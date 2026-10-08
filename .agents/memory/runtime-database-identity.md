@@ -20,3 +20,9 @@ Development and Production are separate Replit workspaces. Publishing this Devel
 **Why:** An incorrect suggestion to publish Development during an urgent billing incident would not have delivered the repair action to the separate Production workspace.
 
 **How to apply:** Inspect branch and release scope before proposing a GitHub promotion; never describe this workspace's Publish action or deployment URL as the live Production release. The shared Neon data can be inspected read-only here, but Production runtime failures require evidence from the Production workspace.
+
+The user identifies `https://my-perfect-meals-npm-dev-1.replit.app` as the Development workspace's public URL, not the separate Production app.
+
+**Why:** The user clarified this distinction after initially calling a screenshot from that URL a Production issue.
+
+**How to apply:** Distinguish the published Development app from the Development preview and the separate Production workspace. Verify current deployment metadata rather than inferring workspace scope from a public `.replit.app` URL.
