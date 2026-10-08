@@ -40,3 +40,11 @@ Keep grants and grant events at zero until the user authorizes account setup. Lo
 **Why:** The user explicitly wanted zero grants/events while the browser path was being established, and reserved Dr. Test setup for later approval.
 
 **How to apply:** Report fixture UI evidence separately from server security tests and real signed-in acceptance. For update loops, inspect the thrown update/ref chain and full React component stack rather than attributing the cause to a named parent modal.
+
+## Permanent founder physician Studio
+
+The founder wants permanent physician demonstration access to the existing Studio/Clinic, with the full physician interface operating on synthetic patients. No Academy exam, medical credential verification, ordinary professional onboarding, professional agreements, or paid subscription should be required for demo-only use. Never mark those real-world requirements as completed.
+
+**Why:** The user needs dependable physician Studio access for testing and business demonstrations; the product is already public. Temporary access fixes and recurring setup requirements do not meet this purpose.
+
+**How to apply:** Reuse the owned Clinic and preserve its organization/business relationships and existing records. Keep the physician interface isolated from live clinical APIs and use demo-backed data and simulated invitations. Do not replace the Clinic with another Studio or treat ownership as clinical authority. Account/grant changes and Production publishing still require separate authorization and verified shared-runtime isolation. Investigate demonstrated access regressions and protect the established access paths without claiming all customers are affected or expanding into unrelated audits.
