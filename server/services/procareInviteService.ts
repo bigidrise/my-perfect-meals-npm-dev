@@ -7,6 +7,7 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { studios } from "../db/schema/studio";
 import { isCanonicalPractitionerRole } from "@shared/professionalRoles";
+import { resolveInvitationProviderContext } from "./invitationProviderContext";
 import { findEmailIdentityCandidates } from "./emailIdentityService";
 import { findCareInvitation, acceptStoredCareInvitation } from "./careInvitationAcceptance";
 import { CareInvitationError } from "./careInvitationPolicy";
@@ -48,17 +49,18 @@ export async function resolveInviteByToken(token: string): Promise<InviteResolut
   if (!creator) return null;
   const candidates = !isCanonicalPractitionerRole(creator.professionalRole)
     ? await findEmailIdentityCandidates(row.email) : [];
-  const providerId = row.providerUserId ??
+  const providerId = row.providerUserId ?? studio?.ownerUserId ??
     (isCanonicalPractitionerRole(creator.professionalRole) ? creator.id : candidates.length === 1 ? candidates[0].id : "");
   const [provider] = providerId
     ? await db.select().from(users).where(eq(users.id, providerId)).limit(1) : [null];
   if (!studio && provider) [studio] = await db.select().from(studios).where(eq(studios.ownerUserId, provider.id)).limit(1);
   const type = provider?.professionalRole === "physician" ? "clinic" : "studio";
+  const providerContext = provider ? await resolveInvitationProviderContext(provider) : null;
   const proName = provider ? [provider.firstName, provider.lastName].filter(Boolean).join(" ") || provider.email : "Your professional";
   return {
     source: invite.source, inviteId: row.id, invitedEmail: row.email,
     proUserId: providerId, studioId: studio?.id ?? null, studioName: studio?.name ?? `${proName}'s ${type === "clinic" ? "Clinic" : "Studio"}`,
-    proName, studioType: type, providerRole: provider?.professionalRole ?? null, expiresAt: row.expiresAt,
+    proName, studioType: type, providerRole: providerContext?.relationshipRole ?? provider?.professionalRole ?? null, expiresAt: row.expiresAt,
     alreadyAccepted: invite.source === "care_invite" ? row.accepted : !!row.acceptedAt,
     inviteCode: row.inviteCode, urlToken: token, revokedAt: row.revokedAt,
     organizationId: row.organizationId ?? null, locationId: row.locationId ?? null,

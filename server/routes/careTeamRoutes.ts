@@ -28,6 +28,7 @@ import { resolveProviderStudioAttribution, validateBp1Attribution } from "../ser
 import { WorkspaceContextError } from "../services/organizationWorkspaceService";
 import { createProCareInvitationExpiry } from "../lib/procareInvitationExpiry";
 import { findCareInvitation, acceptStoredCareInvitation, invitationFailure, resolveInvitationAttribution, assertLiveParties } from "../services/careInvitationAcceptance";
+import { resolveInvitationProviderContext } from "../services/invitationProviderContext";
 
 const router = Router();
 
@@ -72,11 +73,13 @@ router.post("/invite", requireAuth, requireEmailService, requireMfa, async (req,
 
     // Fetch caller info once — used for both self-invite check and pro detection
     const [callerUser] = await db
-      .select({ email: users.email, professionalRole: users.professionalRole })
+      .select({ id: users.id, email: users.email, professionalRole: users.professionalRole })
       .from(users)
       .where(eq(users.id, userId));
 
-    const callerIsPro = isStudioProviderRole(callerUser?.professionalRole);
+    if (!callerUser) return res.status(404).json({ error: "Account not found" });
+    const callerContext = await resolveInvitationProviderContext(callerUser);
+    const callerIsPro = !!callerContext;
 
     // Block self-invites — caller cannot invite their own email address
     if (callerUser?.email && callerUser.email.trim().toLowerCase() === email) {
@@ -95,8 +98,8 @@ router.post("/invite", requireAuth, requireEmailService, requireMfa, async (req,
         error: "Your stored professional identity requires review before sending a Care Team invitation.",
       });
     }
-    const invitationRole = isCanonicalPractitionerRole(callerUser?.professionalRole)
-      ? callerUser.professionalRole
+    const invitationRole = callerContext
+      ? callerContext.relationshipRole
       : resolveCareTeamRequestedRole(role);
     if (!invitationRole) {
       return res.status(400).json({
@@ -171,7 +174,9 @@ router.post("/invite", requireAuth, requireEmailService, requireMfa, async (req,
 
     await db.insert(careInvite).values({
       userId,
-      ...(callerIsPro ? { providerUserId: userId } : { clientUserId: userId }),
+      ...(callerIsPro
+        ? { providerUserId: userId, clientUserId: emailCandidates[0]?.id ?? null }
+        : { clientUserId: userId, providerUserId: emailCandidates[0]?.id ?? null }),
       email,
       role: invitationRole,
       permissions,
@@ -196,6 +201,9 @@ router.post("/invite", requireAuth, requireEmailService, requireMfa, async (req,
 
     res.json({ member: member ?? { email, role: invitationRole, status: "pending" } });
   } catch (error) {
+    if (error instanceof Error && "code" in error && "status" in error) {
+      return invitationFailure(res, error);
+    }
     console.error("❌ Error sending invite:", error);
     res.status(500).json({ error: "Failed to send invite" });
   }
@@ -301,10 +309,11 @@ router.post("/connect", requireAuth, requireMfa, async (req, res) => {
     const authUser = clientUserId === userId
       ? (req as AuthenticatedRequest).authUser
       : await buildAuthUserWithEffectiveAccess(inviter);
+    const accessCodeProviderContext = pro ? await resolveInvitationProviderContext(pro) : null;
     const eligibility = evaluateConsumerProCareAccess({
       accessTier: authUser.accessTier,
       planLookupKey: authUser.planLookupKey,
-      providerRole: pro?.professionalRole,
+      providerRole: accessCodeProviderContext?.relationshipRole ?? pro?.professionalRole,
       isInternalAccount: authUser.isFounder || authUser.isSandbox || authUser.isTester,
     });
 
@@ -405,7 +414,7 @@ router.post("/connect", requireAuth, requireMfa, async (req, res) => {
               proUserId,
               // Active relationship labels use the provider identity validated
               // above, never the legacy invitation's requested/display category.
-              role: pro.professionalRole!,
+              role: accessCodeProviderContext?.relationshipRole ?? pro.professionalRole!,
               name: existingMember.name,
               email: existingMember.email,
               status: "active",
@@ -423,7 +432,7 @@ router.post("/connect", requireAuth, requireMfa, async (req, res) => {
         } else {
           const [updatedMember] = await db
             .update(careTeamMember)
-            .set({ proUserId, role: pro.professionalRole!, status: "active", updatedAt: new Date() })
+            .set({ proUserId, role: accessCodeProviderContext?.relationshipRole ?? pro.professionalRole!, status: "active", updatedAt: new Date() })
             .where(eq(careTeamMember.id, existingMember.id))
             .returning();
           finalMember = updatedMember;
@@ -436,7 +445,7 @@ router.post("/connect", requireAuth, requireMfa, async (req, res) => {
             proUserId,
             name: invite.email.split("@")[0],
             email: invite.email,
-            role: pro.professionalRole!,
+            role: accessCodeProviderContext?.relationshipRole ?? pro.professionalRole!,
             status: "active",
             permissions: invite.permissions,
             ...(invite.organizationId ? {
@@ -517,7 +526,7 @@ router.post("/connect", requireAuth, requireMfa, async (req, res) => {
             userId: clientUserId,
             proUserId,
             name: `Linked-${trimmedCode.slice(-4)}`,
-            role: pro.professionalRole!,
+            role: accessCodeProviderContext?.relationshipRole ?? pro.professionalRole!,
             status: "active",
             permissions: {
               canViewMacros: true,
@@ -542,6 +551,9 @@ router.post("/connect", requireAuth, requireMfa, async (req, res) => {
     }
   } catch (error) {
     console.error("❌ Error connecting with code:", error);
+    if (error instanceof Error && "code" in error && "status" in error) {
+      return invitationFailure(res, error);
+    }
     res.status(500).json({ error: "Failed to connect" });
   }
 });

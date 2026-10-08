@@ -34,7 +34,9 @@ export function requiresProfessionalRoleReview(value: unknown): boolean {
 }
 
 export function practitionerRelationshipType(value: unknown): "coaching" | "clinical" | "unsupported" {
-  if (value === "trainer") return "coaching";
+  // A server-verified Studio operating context is nonclinical, not an occupation.
+  // It is never accepted by isCanonicalPractitionerRole or stored on users.
+  if (value === "trainer" || value === "studio_operator") return "coaching";
   if (isClinicalPractitionerRole(value)) return "clinical";
   return "unsupported";
 }

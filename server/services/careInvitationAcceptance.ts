@@ -15,6 +15,9 @@ import { resolveProviderStudioAttribution, validateBp1Attribution, type Bp1Attri
 import { discoverAuthorizedWorkspaces } from "./organizationWorkspaceService";
 import { CareInvitationError, assertInvitationWindow, resolveCareInvitationParties } from "./careInvitationPolicy";
 import { isDevelopmentFounderDemoAccount } from "../config/developmentFounderPhysicianDemo";
+import { isCanonicalPractitionerRole } from "@shared/professionalRoles";
+import { resolveInvitationProviderContext } from "./invitationProviderContext";
+import { providerHasProCareStudioAccess } from "./procareProviderAccess";
 
 export type InvitationSource = "care_invite" | "studio_invite";
 export interface StoredCareInvitation {
@@ -83,7 +86,27 @@ export async function acceptStoredCareInvitation(invite: StoredCareInvitation, a
   }
   const [creator] = await db.select().from(users).where(eq(users.id, creatorId)).limit(1);
   if (!creator || !recipient) throw new CareInvitationError("INVITATION_PARTY_NOT_FOUND", 404);
-  const { provider, client } = resolveCareInvitationParties(creator, recipient, row);
+  // Resolve only the intended provider; being a client must not require that
+  // client's own unrelated professional workspace to be ready.
+  const intendedProvider = row.providerUserId === recipient.id || row.clientUserId === creator.id
+    ? recipient : creator;
+  const candidate = row.providerUserId || row.clientUserId
+    ? intendedProvider
+    : (creator.professionalRole === "business" ? creator
+      : isCanonicalPractitionerRole(creator.professionalRole) ? creator : recipient);
+  const candidateContext = await resolveInvitationProviderContext(candidate);
+  // A known legacy business sender/client inversion is never silently repaired.
+  const creatorContext = creator.professionalRole === "business" && row.clientUserId === creator.id
+    && !row.providerUserId ? await resolveInvitationProviderContext(creator) : null;
+  const contexts = new Map([candidateContext, creatorContext].filter(
+    (value): value is NonNullable<typeof value> => value !== null,
+  ).map(value => [value.userId, value]));
+  const verifiedBinding = invitedStudio ? {
+    ...row, providerUserId: row.providerUserId ?? invitedStudio.ownerUserId,
+  } : row;
+  const { provider, client } = resolveCareInvitationParties(creator, recipient, verifiedBinding, contexts);
+  const providerContext = contexts.get(provider.id);
+  const relationshipRole = providerContext?.relationshipRole ?? provider.professionalRole;
   // Studio ownership selects a workspace, never grants its owner a practitioner identity.
   if (invitedStudio && invitedStudio.ownerUserId !== provider.id) throw new CareInvitationError("STUDIO_PROVIDER_MISMATCH", 409);
   await assertLiveParties(provider.id, client.id);
@@ -91,7 +114,7 @@ export async function acceptStoredCareInvitation(invite: StoredCareInvitation, a
   const clientAccess = await buildAuthUserWithEffectiveAccess(clientAccount);
   const eligibility = evaluateConsumerProCareAccess({
     accessTier: clientAccess.accessTier, planLookupKey: clientAccess.planLookupKey,
-    providerRole: provider.professionalRole,
+    providerRole: relationshipRole,
     isInternalAccount: clientAccess.isFounder || clientAccess.isSandbox || clientAccess.isTester,
   });
   if (!eligibility.allowed && "code" in eligibility) {
@@ -108,6 +131,7 @@ export async function acceptStoredCareInvitation(invite: StoredCareInvitation, a
     { flow: ready.flow, missing: ready.missing });
   const [studio] = await db.select().from(studios).where(eq(studios.ownerUserId, provider.id)).limit(1);
   if (!studio || studio.status !== "active" || (invitedStudio && invitedStudio.id !== studio.id) ||
+      (providerContext?.studioId && providerContext.studioId !== studio.id) ||
       studio.type !== (provider.professionalRole === "physician" ? "clinic" : "studio")) {
     throw new CareInvitationError("STUDIO_PROVIDER_MISMATCH", 409);
   }
@@ -177,10 +201,14 @@ export async function acceptStoredCareInvitation(invite: StoredCareInvitation, a
             normalizeEmailIdentity(currentAccounts.find((account: any) => account.id === actorId)?.email) !== normalizeEmailIdentity(row.email)) {
           throw new CareInvitationError("INVITATION_PARTIES_CHANGED", 409);
         }
+        if (relationshipRole === "studio_operator" &&
+            !(await providerHasProCareStudioAccess(currentProvider))) {
+          throw new CareInvitationError("PROCARE_ACCESS_REQUIRED");
+        }
         const [existing] = await memberQuery(tx);
         if (existing && !sameScope(existing, scope)) throw new CareInvitationError("ATTRIBUTION_INVALID", 409);
         const values = {
-          userId: client.id, proUserId: provider.id, role: provider.professionalRole!,
+          userId: client.id, proUserId: provider.id, role: relationshipRole!,
           name: [currentProvider.firstName, currentProvider.lastName].filter(Boolean).join(" ") || currentProvider.email,
           email: currentProvider.email, status: "active",
           permissions: row.permissions ?? { canViewMacros: true, canAddMeals: false, canEditPlan: false },
