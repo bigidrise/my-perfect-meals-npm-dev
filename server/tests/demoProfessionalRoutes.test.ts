@@ -106,6 +106,7 @@ describe("Production synthetic API journey — all data is in-memory fixtures",(
     expect((await request(app).get(root+"/context").set(headers)).body.acknowledgmentRequired).toBe(false);
     expect((await request(app).get(`${root}/workspaces/${workspaceId}/patients/${patientId}`).set(headers)).body.plan).toEqual({nutritionFocus:"balanced_meals",followupDays:7});
     expect((await request(app).get(`${root}/workspaces/${workspaceId}/patients/${patientId}/invitation`).set(headers)).body.invitation.state).toBe("accepted");
+    expect((await request(app).get(`${root}/workspaces/${workspaceId}/patients/${patientId}/export`).set(headers)).status).toBe(403);
   });
   test("Production denies real data, messages, exports, organizations, injected subjects and revoked access",async()=>{
     for(const path of ["/api/clinical/records/real","/api/care-team","/api/messages/real","/api/exports/real","/api/business/other-org","/objects/private-file"]){

@@ -73,7 +73,11 @@ export async function runDemoProfessionalMigration(database: Database) {
       CREATE OR REPLACE FUNCTION preserve_demo_grant_scope() RETURNS trigger LANGUAGE plpgsql AS $$
         BEGIN
           IF OLD.user_id <> NEW.user_id OR OLD.workspace_id <> NEW.workspace_id OR
-             OLD.persona <> NEW.persona OR OLD.operating_status <> NEW.operating_status THEN
+             OLD.persona <> NEW.persona OR OLD.operating_status <> NEW.operating_status OR
+             OLD.expires_at IS DISTINCT FROM NEW.expires_at OR OLD.capabilities IS DISTINCT FROM NEW.capabilities OR
+             OLD.approver_id IS DISTINCT FROM NEW.approver_id OR OLD.reason IS DISTINCT FROM NEW.reason OR
+             OLD.training_basis IS DISTINCT FROM NEW.training_basis OR
+             OLD.training_waiver_reason IS DISTINCT FROM NEW.training_waiver_reason THEN
             RAISE EXCEPTION 'Demo grant authority scope cannot change';
           END IF;
           IF OLD.state = 'revoked' AND NEW.state <> 'revoked' THEN

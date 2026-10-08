@@ -25,6 +25,19 @@ export async function runFounderDemoGrantMigration(database: Database) {
           ));
         END IF;
       END $$;
+      ALTER TABLE demo_professional_grants DROP CONSTRAINT IF EXISTS demo_professional_grants_check3;
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint
+          WHERE conrelid='demo_professional_grants'::regclass
+            AND conname='demo_professional_founder_activation') THEN
+          ALTER TABLE demo_professional_grants ADD CONSTRAINT demo_professional_founder_activation
+          CHECK (state <> 'active' OR identity_request_id IS NOT NULL OR (
+            user_id='${scope.userId}' AND expires_at IS NULL AND approver_id IS NOT NULL
+            AND approver_id<>user_id AND training_basis='demo_only_waiver'
+            AND training_waiver_reason IS NOT NULL AND length(trim(training_waiver_reason))>=5
+          ));
+        END IF;
+      END $$;
       CREATE OR REPLACE FUNCTION preserve_demo_grant_scope() RETURNS trigger LANGUAGE plpgsql AS $$
         BEGIN
           IF OLD.user_id <> NEW.user_id OR OLD.workspace_id <> NEW.workspace_id OR

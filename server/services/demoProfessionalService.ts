@@ -19,6 +19,7 @@ export interface DemoTransaction {
   savePlan(patient: DemoPatient, plan: DemoPlan): Promise<DemoPatient>;
   saveInvitation(patient: DemoPatient, invitation: DemoCareInvitation): Promise<DemoPatient>;
   invalidateSessions(account: IdentityAccountSnapshot): Promise<void>;
+  recoverFounderIdentity?(account: IdentityAccountSnapshot): Promise<void>;
   event(grant: DemoGrant, actorId: string, kind: string, metadata: Record<string, unknown>): Promise<void>;
   clinic?(): Promise<NonNullable<DemoContext["clinic"]>>;
   ownedClinic?(userId: string, clinicId: string): Promise<NonNullable<DemoContext["clinic"]> | null>;
@@ -71,6 +72,7 @@ export function createDemoProfessionalService(repository: DemoRepository, clock 
       if (!clinic || clinic.id !== grant.clinicId) deny("DEMO_CLINIC_OWNERSHIP_REQUIRED");
     }
     live(grant!, clock());
+    if (capability === "export" && isPermanentFounderDemoGrant(grant)) deny("DEMO_EXPORT_DENIED", "Exports are unavailable for the founder-only demonstration.");
     if (workspaceId && workspaceId !== grant!.workspaceId) deny("DEMO_DATA_SCOPE_DENIED");
     if (capability && !grant!.capabilities.includes(capability)) deny("DEMO_CAPABILITY_DENIED");
     if (acknowledgment && (!grant!.acknowledgedAt || grant!.acknowledgmentVersion !== DEMO_ACKNOWLEDGMENT_VERSION)) deny("DEMO_ACKNOWLEDGMENT_REQUIRED");
@@ -141,6 +143,7 @@ export function createDemoProfessionalService(repository: DemoRepository, clock 
         const permanent = input.lifetime === "permanent_founder";
         let clinic: NonNullable<DemoContext["clinic"]> | null = null;
         if (permanent) {
+          if (input.capabilities.includes("export")) deny("DEMO_EXPORT_DENIED", "Founder demonstration grants cannot include export authority.");
           if (!isFounderPhysicianDemoScope(target.id, DEVELOPMENT_FOUNDER_PHYSICIAN_DEMO.clinicId)
             || input.founderAuthorizationAcknowledged !== true || input.expiresAt !== null
             || !input.demoTrainingWaiverReason || !input.identityOnlyAcknowledged || !input.sharedDataAcknowledged) deny("DEMO_FOUNDER_AUTHORIZATION_REQUIRED");
@@ -176,16 +179,33 @@ export function createDemoProfessionalService(repository: DemoRepository, clock 
         const target = accounts.find(row => row.id === targetUserId);
         const grant = await tx.grant(targetUserId);
         if (!target || !grant || grant.state !== "prepared" || grant.revision !== input.revision || identitySnapshotHash(target) !== input.reviewedStateHash) throw new ProfessionalRequestError(409, "DEMO_TARGET_CHANGED", "Grant or reviewed identity changed.");
-        if (target.professionalRole !== "physician" || !await tx.approvedIdentityRequest(targetUserId, input.identityRequestId)) deny("DEMO_CONTROLLED_IDENTITY_REQUIRED");
+        const founderRecovery = grant.authority === "founder_admin" && input.founderIdentityRecoveryAcknowledged === true
+          && input.identityRequestId === null;
         if (grant.authority === "founder_admin") {
           if (!isPermanentFounderDemoGrant(grant) || !isFounderPhysicianDemoScope(targetUserId, grant.clinicId)
             || !(await tx.ownedClinic?.(targetUserId, grant.clinicId!))) deny("DEMO_CLINIC_OWNERSHIP_REQUIRED");
         }
+        if (founderRecovery) {
+          if (target.professionalRole !== "business" || !tx.recoverFounderIdentity
+            || !input.identityOnlyAcknowledged || !input.sharedDataAcknowledged) deny("DEMO_CONTROLLED_IDENTITY_REQUIRED");
+        } else if (target.professionalRole !== "physician" || !input.identityRequestId
+          || !(await tx.approvedIdentityRequest(targetUserId, input.identityRequestId))) {
+          deny("DEMO_CONTROLLED_IDENTITY_REQUIRED");
+        }
         const workspace = await tx.workspace(grant.workspaceId); synthetic(workspace, grant.workspaceId);
         live({ ...grant, state: "active" }, clock());
-        const next: DemoGrant = { ...grant, state: "active", revision: grant.revision + 1, identityRequestId: input.identityRequestId };
-        await tx.saveGrant(next); await tx.invalidateSessions(target);
-        await tx.event(next, proof.id, "demo_activated", { reason: input.reason, identityRequestId: input.identityRequestId, reviewedStateHash: input.reviewedStateHash, authority: grant.authority ?? "temporary_admin", lifetime: grant.lifetime ?? "temporary", clinicId: grant.clinicId ?? null, reviewerAuthority: "authenticated_admin_with_current_mfa", reviewerSecurityVersion: proof.securityVersion });
+        const previousIdentity = target.professionalRole;
+        if (founderRecovery) await tx.recoverFounderIdentity!(target);
+        const next: DemoGrant = { ...grant, state: "active", revision: grant.revision + 1, identityRequestId: input.identityRequestId ?? null };
+        await tx.saveGrant(next);
+        if (!founderRecovery) await tx.invalidateSessions(target);
+        await tx.event(next, proof.id, "demo_activated", { reason: input.reason, identityRequestId: input.identityRequestId ?? null,
+          founderDemoOnlyIdentityRecovery: founderRecovery, previousIdentity,
+          approvedDemoPersona: "physician", realCredentialVerification: false, academyCompletionGranted: false,
+          professionalAgreementsGranted: false, paidSubscriptionGranted: false,
+          reviewedStateHash: input.reviewedStateHash, authority: grant.authority ?? "temporary_admin",
+          lifetime: grant.lifetime ?? "temporary", clinicId: grant.clinicId ?? null,
+          reviewerAuthority: "authenticated_admin_with_current_mfa", reviewerSecurityVersion: proof.securityVersion });
         return next;
       });
     },
@@ -203,7 +223,9 @@ export function createDemoProfessionalService(repository: DemoRepository, clock 
     async context(userId: string): Promise<DemoContext> {
       return repository.transaction(async tx => {
         const { grant, workspace, clinic } = await authorized(tx, userId, undefined, undefined, false);
-        return { operatingStatus: "demo_only", persona: "physician", grant, workspace,
+        const visibleGrant = isPermanentFounderDemoGrant(grant)
+          ? { ...grant, capabilities: grant.capabilities.filter(capability => capability !== "export") } : grant;
+        return { operatingStatus: "demo_only", persona: "physician", grant: visibleGrant, workspace,
           ...(clinic ? { clinic } : tx.clinic ? { clinic: await tx.clinic() } : {}),
           acknowledgmentRequired: !grant.acknowledgedAt || grant.acknowledgmentVersion !== DEMO_ACKNOWLEDGMENT_VERSION,
           realClinicalReadiness: false, credentialVerificationGranted: false, academyCompletionGranted: false,

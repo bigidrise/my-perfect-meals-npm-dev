@@ -68,6 +68,9 @@ export const demoGrantPreparationInput = z.object({
   identityOnlyAcknowledged: z.literal(true), sharedDataAcknowledged: z.literal(true),
 }).strict().superRefine((input, ctx) => {
   if (input.lifetime === "permanent_founder") {
+    if (input.capabilities.includes("export")) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Founder-only demonstration access does not authorize exports." });
+    }
     if (input.expiresAt !== null || input.founderAuthorizationAcknowledged !== true || !input.demoTrainingWaiverReason) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Permanent founder access requires explicit authorization, a demo-only waiver, and no expiry." });
     }
@@ -77,10 +80,18 @@ export const demoGrantPreparationInput = z.object({
 });
 export type DemoGrantPreparation = z.infer<typeof demoGrantPreparationInput>;
 export const demoGrantActivationInput = z.object({
-  revision: z.number().int().min(1), identityRequestId: z.string().uuid(),
+  revision: z.number().int().min(1), identityRequestId: z.string().uuid().nullable().optional(),
   reviewedStateHash: z.string().regex(/^[a-f0-9]{64}$/), reason: z.string().trim().min(5).max(1000),
   identityOnlyAcknowledged: z.literal(true), sharedDataAcknowledged: z.literal(true),
-}).strict();
+  founderIdentityRecoveryAcknowledged: z.literal(true).optional(),
+}).strict().superRefine((input, ctx) => {
+  if (input.founderIdentityRecoveryAcknowledged === true && input.identityRequestId !== null) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Founder-only demo recovery must not claim a normal approved physician identity request." });
+  }
+  if (input.founderIdentityRecoveryAcknowledged !== true && !input.identityRequestId) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Normal demo activation requires a genuinely approved physician identity request." });
+  }
+});
 export type DemoGrantActivation = z.infer<typeof demoGrantActivationInput>;
 export const demoGrantRevocationInput = z.object({
   revision: z.number().int().min(1), reason: z.string().trim().min(5).max(1000),
