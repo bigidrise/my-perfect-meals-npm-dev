@@ -313,3 +313,17 @@ mtime_ms = 1791347158303
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/de3810f0-9a8a-4e86-846a-2b2fc5a6b13e/9ca505c2-1512-49a8-88eb-083afdbfecfe"
 storage_version_token = "1791347169236712"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "xGqqz9JI8itIZdEneahKT"
+uri = "file://.local/reports/physician-test-studio-restoration.md"
+type = "text"
+title = "Physician Test Studio — Restoration Findings"
+description = "Verified account and Clinic state, remaining demo-access gaps, Production activation prerequisite, and focused restoration and regression procedure. No shared records changed."
+logical_id = "975d437d-8025-44bd-a48d-dc608b5596e5"
+content_hash = "sha256:2662d938ffce1a06f0bc8276ad5b2cbbac0feeec51f03fbddb00251dfe9510c9"
+size = 7501
+mtime_ms = 1791425461195
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/975d437d-8025-44bd-a48d-dc608b5596e5/f7486862-a876-46bd-a7af-9dbeba2b44dc"
+storage_version_token = "1791425480816293"
+content_type = "text/markdown"
