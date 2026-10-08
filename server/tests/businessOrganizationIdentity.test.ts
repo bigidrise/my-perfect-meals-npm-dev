@@ -7,7 +7,9 @@ import request from "supertest";
 import { getTableColumns, SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { users } from "@shared/schema";
-import { businesses, businessMembers } from "../db/schema/business";
+import { businesses, businessMembers, businessInvitations } from "../db/schema/business";
+import { organizationLocations, organizationMemberships, locationMemberships } from "../db/schema/workspaces";
+import { buildWorkspaceAvailability } from "../services/workspaceAvailabilityService";
 import businessRouter from "../routes/businessRoutes";
 
 type Row = Record<string, any>;
@@ -23,6 +25,7 @@ let account: Row;
 jest.mock("drizzle-orm", () => ({
   ...jest.requireActual("drizzle-orm"),
   eq: (column: unknown, value: unknown) => ({ kind: "eq", column, value }),
+  ne: (column: unknown, value: unknown) => ({ kind: "ne", column, value }),
   isNull: (column: unknown) => ({ kind: "null", column }),
   and: (...conditions: unknown[]) => ({ kind: "and", conditions }),
   or: (...conditions: unknown[]) => ({ kind: "or", conditions }),
@@ -42,7 +45,7 @@ function matches(table: object, row: Row, clause: any): boolean {
     if (new PgDialect().sqlToQuery(value).sql !== "''") throw new Error("Unexpected SQL comparison");
     value = "";
   }
-  return row[key] === value;
+  return clause.kind === "ne" ? row[key] !== value : row[key] === value;
 }
 
 function selectQuery() {
@@ -86,6 +89,7 @@ function writeQuery(table: object, kind: "insert" | "update") {
     set(value: Row) { values = value; return query; },
     where(value: any) { clause = value; return query; },
     returning() { return query; },
+    onConflictDoUpdate() { return query; },
     then(resolve: any, reject: any) {
       // Promise boundary preserves database-style rejection semantics.
       return Promise.resolve().then(run).then(resolve, reject);
@@ -99,7 +103,17 @@ jest.mock("../db", () => {
     select: () => selectQuery(),
     insert: (table: object) => writeQuery(table, "insert"),
     update: (table: object) => writeQuery(table, "update"),
-    execute: jest.fn().mockResolvedValue({ rows: [] }),
+    execute: jest.fn(async (statement: SQL) => {
+      const query = new PgDialect().sqlToQuery(statement);
+      if (/UPDATE users SET professional_role = 'business'/i.test(query.sql)) {
+        const target = (mockRows.get(users) || []).find(row => row.id === query.params[0]);
+        const guarded = query.sql.includes("professional_role IS NULL OR professional_role = ''");
+        const eligible = target && (!guarded || target.professionalRole == null || target.professionalRole === "");
+        if (eligible) target.professionalRole = "business";
+        mockWrites.push({ table: users, values: { professionalRole: "business" }, matches: eligible ? 1 : 0 });
+      }
+      return { rows: [] };
+    }),
   };
   db.transaction = (callback: any) => callback(db);
   return { db };
@@ -131,9 +145,16 @@ jest.mock("../services/organizationalPilotAuthorizationService", () => ({
 }));
 jest.mock("../services/organizationalPilotInvitationService", () => ({
   PilotInvitationError: class extends Error {},
+  findOrganizationalPilotInvitation: jest.fn().mockResolvedValue(null),
 }));
 jest.mock("../services/emailService", () => ({ sendBusinessInviteEmail: jest.fn() }));
-jest.mock("../services/emailIdentityService", () => ({ normalizeEmailIdentity: jest.fn() }));
+jest.mock("../services/emailIdentityService", () => ({
+  normalizeEmailIdentity: (email: string) => email.trim().toLowerCase(),
+  resolveEmailIdentityForUser: async (id: string) => {
+    const user = (mockRows.get(users) || []).find(row => row.id === id);
+    return { status: user ? "unique" : "missing", user, candidates: user ? [user] : [] };
+  },
+}));
 jest.mock("../services/organizationInvitationBatchService", () => ({ MAX_ORGANIZATION_INVITATION_BATCH: 100 }));
 jest.mock("../services/bp1OrganizationAttributionService", () => ({}));
 jest.mock("../lib/auditLog", () => ({ logAudit: jest.fn(), getClientIp: jest.fn() }));
@@ -220,6 +241,72 @@ test.each(practitionerCases)("%s preserves established %s identity and owner aut
     { table: users, values: { professionalRole: "business" }, matches: 0 },
   ]);
   expect(mockProviderActivation).not.toHaveBeenCalled();
+  expectAuthorizedWorkspaceChoices(role);
+});
+
+function expectAuthorizedWorkspaceChoices(role: string) {
+  // Readiness/entitlement are pre-existing fixture evidence, not privileges
+  // granted by organization ownership. The real resolver is unchanged.
+  const organizations = [{
+    id: "organization", name: "Fixture Organization", role: "owner", relationshipType: "internal_staff",
+    locations: [{ id: "location", name: "Fixture Location", role: "owner", isDefault: true }],
+  }];
+  const choices = buildWorkspaceAvailability({
+    onboardingCompletedAt: "2026-10-01", professionalRole: account.professionalRole,
+    organizations, studioEntitled: true, existingStudioStatus: "active", studioReady: true,
+  });
+  expect(choices).toMatchObject({
+    personal: { available: true, destination: "/dashboard" },
+    organization: { available: true, destination: "/business-dashboard" },
+    studio: { available: true, destination: role === "physician" ? "/pro/physician-clients" : "/pro/clients", readiness: "ready" },
+  });
+  const before = structuredClone(account);
+  for (const studioReady of [false, true]) {
+    const unavailable = buildWorkspaceAvailability({
+      onboardingCompletedAt: "2026-10-01", professionalRole: account.professionalRole,
+      organizations, studioEntitled: false, existingStudioStatus: "active", studioReady,
+    });
+    expect(unavailable.studio.available).toBe(false);
+    expect(unavailable.organization.available).toBe(true);
+    expect(unavailable.personal.available).toBe(true);
+  }
+  const notReady = buildWorkspaceAvailability({
+    onboardingCompletedAt: "2026-10-01", professionalRole: account.professionalRole,
+    organizations, studioEntitled: true, existingStudioStatus: "active", studioReady: false,
+  });
+  expect(notReady.studio.available).toBe(false);
+  expect(account).toEqual(before);
+}
+
+test.each(["physician", "trainer", "dietitian", "nurse_practitioner"].flatMap(role =>
+  ["/api/business/invite/accept", "/api/business/invite/fixture-token/accept"].map(path => [role, path] as const),
+))("%s joining through %s preserves identity, qualifications and authorized Studio choices", async (role, path) => {
+  account.professionalRole = role;
+  account.email = "member@example.invalid";
+  mockActor = { id: account.id, email: account.email, professionalRole: null };
+  mockRows.set(businesses, [existingBusiness({
+    ownerUserId: "another-owner", organizationId: "organization", plan: "clinical_business_monthly", seatLimit: 5,
+  })]);
+  mockRows.set(businessInvitations, [{
+    id: "fixture-invitation", token: "fixture-token", email: account.email,
+    businessId: "existing-business", sourceBusinessId: "existing-business",
+    organizationId: "organization", locationId: "location", role: "admin",
+    relationshipType: "internal_staff", status: "pending", invitationType: "team_member",
+    expiresAt: new Date(Date.now() + 86400000),
+  }]);
+  mockRows.set(organizationLocations, [{ id: "location", organizationId: "organization", status: "active" }]);
+  mockRows.set(organizationMemberships, []);
+  mockRows.set(locationMemberships, []);
+  const before = structuredClone(account);
+  const response = await request(app).post(path).send({ token: "fixture-token" });
+  expect(response.status).toBe(200);
+  expect(account).toEqual(before);
+  expect(mockRows.get(businessMembers)).toEqual([expect.objectContaining({
+    businessId: "existing-business", userId: account.id, role: "admin", status: "active",
+  })]);
+  expect(mockRows.get(businessInvitations)![0].status).toBe("accepted");
+  expect(mockProviderActivation).not.toHaveBeenCalled();
+  expectAuthorizedWorkspaceChoices(role);
 });
 
 test.each(branches)("%s preserves a legitimate Business-only owner without granting practitioner identity", async branch => {
