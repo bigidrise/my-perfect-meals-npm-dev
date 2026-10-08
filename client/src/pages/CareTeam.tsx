@@ -40,7 +40,11 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { ProRole } from "@/lib/proData";
+import { careTeamRoleDisplayKey } from "@shared/professionalRoles";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { useAuth } from "@/contexts/AuthContext";
+import ClientLegalModal from "@/components/pro/ClientLegalModal";
+import { connectCareInvitationCode } from "@/lib/careInvitationClient";
 
 // Types
 type Permissions = {
@@ -70,6 +74,15 @@ const DEFAULT_PERMS: Record<ProRole, Permissions> = {
 };
 
 export default function CareTeamPage() {
+  const { user, refreshUser } = useAuth();
+  function recordConnection(response: any) {
+    // A provider accepting a client's invitation must not display the client's
+    // Care Team member as a connection belonging to the provider's own profile.
+    if (response.member?.id && response.member.userId === user?.id) {
+      setMembers(previous => [response.member, ...previous.filter(member => member.id !== response.member.id)]);
+    }
+    void refreshUser().catch(() => {});
+  }
   const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const quickTour = useQuickTour("care-team");
@@ -136,6 +149,16 @@ export default function CareTeamPage() {
   const [perms, setPerms] = useState<Permissions>(DEFAULT_PERMS["trainer"]);
   const [accessCode, setAccessCode] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [legalFlow, setLegalFlow] = useState<"client" | "patient_physician" | null>(null);
+  const [pendingCode, setPendingCode] = useState("");
+  function connectionFailure(error: any, code: string) {
+    const failure = error?.invitation;
+    if (failure?.code === "LEGAL_REACCEPT_REQUIRED" && failure.legalForCurrentUser === true &&
+        (failure.flow === "client" || failure.flow === "patient_physician")) {
+      setPendingCode(code); setLegalFlow(failure.flow); return;
+    }
+    setError(error?.message ?? t("careTeam.errors.invalidInvitationCode"));
+  }
 
   // Load existing connections AND check for invite code in URL
   useEffect(() => {
@@ -151,18 +174,22 @@ export default function CareTeamPage() {
         const codeFromUrl = urlParams.get("code");
 
         if (codeFromUrl && mounted) {
+          // Consume the URL action once, including failures. A legal/access
+          // failure remains manually retryable without POSTing on every remount.
+          setAccessCode(codeFromUrl);
+          const cleanUrl = new URL(window.location.href);
+          cleanUrl.searchParams.delete("code");
+          window.history.replaceState({}, "", cleanUrl.pathname + cleanUrl.search);
           // Auto-accept invitation from URL
           try {
-            const response = await apiRequest("/api/care-team/connect", {
-              method: "POST",
-              body: JSON.stringify({ code: codeFromUrl }),
-            });
-            setMembers((prev) => [response.member, ...prev]);
+            const response = await connectCareInvitationCode(codeFromUrl);
+            if (!mounted) return;
+            recordConnection(response);
             alert(t("careTeam.toast.invitationAccepted"));
             // Clear the code from URL
             window.history.replaceState({}, "", "/care-team");
           } catch (e: any) {
-            setError(e?.message ?? t("careTeam.errors.invalidInvitationCode"));
+            if (mounted) connectionFailure(e, codeFromUrl);
           }
         }
       } catch (e: any) {
@@ -202,7 +229,7 @@ export default function CareTeamPage() {
         method: "POST",
         body: JSON.stringify({ email: invEmail, role, permissions: perms }),
       });
-      setMembers((prev) => [response.member, ...prev]);
+      if (response.member?.id) setMembers((prev) => [response.member, ...prev.filter(member => member.id !== response.member.id)]);
       setInvEmail("");
       setError(null);
       alert(`${t("careTeam.toast.invitationSent", { email: invEmail })}`);
@@ -213,23 +240,21 @@ export default function CareTeamPage() {
     }
   }
 
-  async function connectWithCode() {
+  async function connectWithCode(codeOverride?: string) {
+    const submittedCode = codeOverride ?? accessCode;
     setError(null);
-    if (!accessCode.trim()) {
+    if (!submittedCode.trim()) {
       setError(t("careTeam.errors.providerCodeRequired"));
       return;
     }
     try {
       setLoading(true);
-      const response = await apiRequest("/api/care-team/connect", {
-        method: "POST",
-        body: JSON.stringify({ code: accessCode }),
-      });
-      setMembers((prev) => [response.member, ...prev]);
+      const response = await connectCareInvitationCode(submittedCode);
+      recordConnection(response);
       setAccessCode("");
       alert(t("careTeam.toast.providerConnected"));
     } catch (e: any) {
-      setError(e?.message ?? t("careTeam.errors.invalidProviderCode"));
+      connectionFailure(e, submittedCode);
     } finally {
       setLoading(false);
     }
@@ -408,7 +433,7 @@ export default function CareTeamPage() {
               </div>
               <Button
                 disabled={loading}
-                onClick={connectWithCode}
+                onClick={() => connectWithCode()}
                 className="w-full bg-lime-600 hover:bg-lime-600 text-white"
                 data-testid="button-submit-code"
               >
@@ -472,6 +497,9 @@ export default function CareTeamPage() {
       </div>
 
       {/* Quick Tour Modal */}
+      <ClientLegalModal open={!!legalFlow} flow={legalFlow ?? "client"}
+        onCancel={() => setLegalFlow(null)}
+        onAccepted={() => { setLegalFlow(null); void connectWithCode(pendingCode); }} />
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
@@ -557,7 +585,7 @@ function PermToggle({
 }
 
 function roleBadge(role: ProRole, map: Record<ProRole, { text: string; className: string }>) {
-  const r = map[role];
+  const r = map[careTeamRoleDisplayKey(role) as ProRole];
   return <Badge className={`${r.className} border`}>{r.text}</Badge>;
 }
 

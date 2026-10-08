@@ -3,12 +3,13 @@ import { db } from "../db";
 import { users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { AuthenticatedRequest } from "./requireAuth";
+import { getAcademyProgression } from "../services/academyProgression";
 
 /**
  * requirePhase2Training — ProCare Studio gate (Phase 2 ProCare Training)
  *
  * Blocks ProCare Studio and client-management API routes until the professional
- * has completed Phase 2 ProCare Training (users.procare_training_completed = true).
+ * has completed ProCare training according to authoritative Academy evidence.
  *
  * Gate is skipped for:
  * - Unauthenticated users (requireAuth handles that)
@@ -17,12 +18,7 @@ import { AuthenticatedRequest } from "./requireAuth";
  *
  * Must be used alongside requirePhase1Cert (or after it) for full Studio gating.
  *
- * Launch sequence:
- *  1. Deploy — grandfather migration auto-runs, setting procareTrainingCompleted=true
- *     for all professionals with a completed Phase 1 cert.
- *  2. Ship Phase 2 training content.
- *  3. Set PHASE2_GATE_ENABLED=true — only professionals who haven't taken Phase 2
- *     (i.e., anyone who joined after the migration ran) will be blocked.
+ * Historical account booleans do not establish Academy evidence.
  */
 export async function requirePhase2Training(
   req: Request,
@@ -59,12 +55,17 @@ export async function requirePhase2Training(
       .limit(1);
 
     // Non-professional users (regular users, clients) pass through unaffected
-    if (!userRow?.professionalRole) {
+    if (!userRow) {
+      res.status(401).json({ error: "Authentication required", code: "AUTH_REQUIRED" });
+      return;
+    }
+    if (!userRow.professionalRole) {
       next();
       return;
     }
 
-    if (!userRow?.procareTrainingCompleted) {
+    const progression = await getAcademyProgression(authUser.id);
+    if (!progression.proCare.complete) {
       res.status(403).json({
         error: "PHASE2_TRAINING_REQUIRED",
         message:
@@ -77,7 +78,6 @@ export async function requirePhase2Training(
     next();
   } catch (err) {
     console.error("[requirePhase2Training] Error checking training status:", err);
-    // Fail open on DB errors so certified professionals are not locked out
-    next();
+    res.status(503).json({ code: "ACADEMY_EVIDENCE_UNAVAILABLE", error: "Training evidence could not be verified. Please retry." });
   }
 }

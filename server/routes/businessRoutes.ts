@@ -2818,7 +2818,11 @@ router.post("/create-org", requireAuth, async (req, res) => {
           role: "owner",
           status: "active",
         });
-        await tx.update(users).set({ professionalRole: "business" } as any).where(eq(users.id as any, userId));
+        // Organization authority belongs to memberships, not practitioner identity.
+        await tx.update(users).set({ professionalRole: "business" } as any).where(and(
+          eq(users.id as any, userId),
+          or(isNull(users.professionalRole), eq(users.professionalRole, sql`''`)),
+        ));
         return { business, created: true };
       });
 
@@ -2862,7 +2866,10 @@ router.post("/create-org", requireAuth, async (req, res) => {
       if (!ownerMember) {
         await db.insert(businessMembers).values({ businessId: existing.id, userId, role: "owner", status: "active" });
       }
-      await db.update(users).set({ professionalRole: "business" } as any).where(eq(users.id as any, userId));
+      await db.update(users).set({ professionalRole: "business" } as any).where(and(
+        eq(users.id as any, userId),
+        or(isNull(users.professionalRole), eq(users.professionalRole, sql`''`)),
+      ));
       let effective = existing;
       if (
         existing.status === "pending_billing" &&
@@ -2921,8 +2928,11 @@ router.post("/create-org", requireAuth, async (req, res) => {
           status: "active",
         });
 
-        // Ensure professionalRole is "business" on the user record
-        await tx.update(users).set({ professionalRole: "business" } as any).where(eq(users.id as any, userId));
+        // Initialize Business-only identity without replacing an established role.
+        await tx.update(users).set({ professionalRole: "business" } as any).where(and(
+          eq(users.id as any, userId),
+          or(isNull(users.professionalRole), eq(users.professionalRole, sql`''`)),
+        ));
 
         return biz;
       });

@@ -3,7 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { OrgProvider } from "@/contexts/OrgContext";
 import { FontSizeProvider } from "@/contexts/FontSizeContext";
 import { NarrationSpeedProvider } from "@/contexts/NarrationSpeedContext";
@@ -69,6 +69,23 @@ function MacroTargetSyncMount() {
 function UpdateBannerMount() {
   const { hasUpdate, releaseNotes, releaseId } = useUpdateState();
   return <UpdateBanner show={hasUpdate} releaseNotes={releaseNotes} releaseId={releaseId} />;
+}
+
+// Demo grants are not consumer trials, paid plans, live client boards, or
+// real-clinical readiness. Never mount that chrome over the isolated workspace.
+function DemoOperatingShell({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  // Do not mount a consumer shell (and its stateful global widgets) temporarily
+  // while a cookie-backed professional's operating status is still unresolved.
+  if (loading) return <div role="status" className="flex min-h-[100dvh] items-center justify-center bg-black text-white">Loading your account…</div>;
+  if (user?.operatingStatus !== "demo_only") return <>{children}</>;
+  return (
+    <PageTitleProvider>
+      <RootViewport><Router /></RootViewport>
+      <IdleTimeoutModal />
+      <Toaster />
+    </PageTitleProvider>
+  );
 }
 
 export default function App() {
@@ -180,6 +197,7 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <AuthProvider>
+            <DemoOperatingShell>
             <CanonicalTimezonePrompt />
             <OrgProvider>
             <HouseholdProvider>
@@ -217,6 +235,7 @@ export default function App() {
             </FontSizeProvider>
             </HouseholdProvider>
             </OrgProvider>
+            </DemoOperatingShell>
           </AuthProvider>
         </TooltipProvider>
       </QueryClientProvider>

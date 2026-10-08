@@ -1,6 +1,7 @@
 import { readOncologySupportSelection, type OncologySupportSelection } from "../../../shared/oncologySupportSelection";
 
-type Request = (path: string, init?: RequestInit) => Promise<any>;
+// These helpers send JSON strings, not arbitrary browser BodyInit values.
+type Request = (path: string, init?: { method?: string; body?: string; signal?: AbortSignal }) => Promise<any>;
 
 /** Inject the authenticated request wrapper; also exercised against the real router in tests. */
 export async function loadOncologySupportSelection(subjectId: string, request: Request, signal?: AbortSignal) {

@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import WelcomeGate from "./WelcomeGate";
 import { Route } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
+import { IS_DEVELOPMENT } from "@/lib/developmentAuthRoutes";
 import { isGuestMode, isGuestAllowedRoute } from "@/lib/guestMode";
 import { hasActivePaidSubscription, isProOrAbove } from "@/lib/subscriptionCheck";
 import { isExactPublicMarketingRoute } from "@/lib/publicRoutePolicy";
@@ -23,7 +24,7 @@ const PROFESSIONAL_ROUTE_PREFIXES = [
 const PUBLIC_ROUTES = ["/welcome", "/auth", "/forgot-password", "/reset-password", "/pilot/activate", "/join/clinic", "/join/business-offer", "/guest-builder", "/guest-suite", "/guest", "/pricing", "/privacy", "/privacy-policy", "/terms", "/terms-of-service", "/affiliates", "/founders", "/procare-welcome", "/trainer-welcome", "/physician-welcome", "/procare-identity", "/procare-rewards", "/procare-attestation", "/consumer-welcome", "/more", "/delete-account", "/procare-info", "/family-info", "/personal-guidance-info", "/partners", "/business/start", "/business/setup", "/business/join", "/business-dashboard", "/business/dashboard", "/business-center", "/checkout/success", "/billing/success", "/org-success-center", "/m"];
 
 function isPublicAppRoute(path: string): boolean {
-  const devRoutes = import.meta.env.DEV
+  const devRoutes = IS_DEVELOPMENT
     ? ["/test-modal-bounds", "/__modal-test__", "/__sheet-test__", "/rewardful/connect/confirm"]
     : [];
   return (
@@ -115,7 +116,7 @@ export default function AppRouter({ children }: AppRouterProps) {
   }
 
   useEffect(() => {
-    const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
+    const isAuthenticated = !!user && !user.id.startsWith("guest-");
     const welcomeGateDoneThisSession = sessionStorage.getItem("mpm.welcomeGateDone") === "true";
     const skipWelcomeGate = localStorage.getItem("mpm.skipWelcomeGate") === "true";
 
@@ -123,7 +124,7 @@ export default function AppRouter({ children }: AppRouterProps) {
       return;
     }
 
-    if (loading && isAuthenticated && !isPublicRoute) {
+    if (loading && !isPublicRoute) {
       return;
     }
 
@@ -223,7 +224,7 @@ export default function AppRouter({ children }: AppRouterProps) {
   }
   if (
     location.startsWith("/join/business-offer") ||
-    (import.meta.env.DEV && location.startsWith("/rewardful/connect/confirm"))
+    (IS_DEVELOPMENT && location.startsWith("/rewardful/connect/confirm"))
   ) {
     return <>{children}</>;
   }

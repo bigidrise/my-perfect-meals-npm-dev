@@ -1,23 +1,21 @@
 import { and, eq } from "drizzle-orm";
 import { users } from "@shared/schema";
+import { CANONICAL_PRACTITIONER_ROLES, isCanonicalPractitionerRole } from "@shared/professionalRoles";
 import { db } from "../db";
 import { logAudit } from "../lib/auditLog";
 import { checkLegalAcceptance } from "./legalCheck";
 import { providerHasProCareStudioAccess } from "./procareProviderAccess";
 import { ensureStudioForTrainer, type EnsuredStudio } from "./studioBridge";
 import { getAcademyProgression } from "./academyProgression";
+import { isClinicalPractitionerRole } from "@shared/professionalRoles";
+import { identityRequiresIndependentCredentialReview } from "./professionalIdentityCredentialBoundary";
 
-export const STUDIO_PROVIDER_ROLES = [
-  "trainer",
-  "physician",
-  "dietitian",
-  "nurse_practitioner",
-] as const;
+export const STUDIO_PROVIDER_ROLES = CANONICAL_PRACTITIONER_ROLES;
 
 export function isStudioProviderRole(
   role: string | null | undefined,
 ): role is (typeof STUDIO_PROVIDER_ROLES)[number] {
-  return !!role && (STUDIO_PROVIDER_ROLES as readonly string[]).includes(role);
+  return isCanonicalPractitionerRole(role);
 }
 
 export type ProviderStudioReadinessCode =
@@ -26,7 +24,9 @@ export type ProviderStudioReadinessCode =
   | "PROCARE_ACCESS_REQUIRED"
   | "PHASE1_CERT_REQUIRED"
   | "PHASE2_TRAINING_REQUIRED"
-  | "LEGAL_REACCEPT_REQUIRED";
+  | "LEGAL_REACCEPT_REQUIRED"
+  | "INDEPENDENT_CREDENTIAL_VERIFICATION_REQUIRED";
+// Credential evidence for a changed licensed identity is never inherited.
 
 export interface ProviderStudioReadiness {
   ok: boolean;
@@ -87,6 +87,9 @@ export async function getProviderStudioReadiness(
       message: "An active ProCare provider subscription is required before inviting clients.",
     };
   }
+  if (isClinicalPractitionerRole(provider.professionalRole) && await identityRequiresIndependentCredentialReview(providerUserId)) {
+    return { ok: false, code: "INDEPENDENT_CREDENTIAL_VERIFICATION_REQUIRED", message: "The approved licensed identity requires independent credential verification; old Studio verification does not verify this identity." };
+  }
 
   const progression = await getAcademyProgression(providerUserId);
   if (!progression.phase1.complete) {
@@ -98,7 +101,7 @@ export async function getProviderStudioReadiness(
   }
 
   const requireTraining = options.requireTraining ?? process.env.PHASE2_GATE_ENABLED === "true";
-  if (requireTraining && !provider.procareTrainingCompleted) {
+  if (requireTraining && !progression.proCare.complete) {
     return {
       ok: false,
       code: "PHASE2_TRAINING_REQUIRED",

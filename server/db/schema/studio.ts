@@ -106,6 +106,10 @@ export const studioInvites = pgTable("studio_invites", {
   urlToken: text("url_token").unique(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+  acceptedByUserId: text("accepted_by_user_id"),
+  providerUserId: text("provider_user_id"),
+  clientUserId: text("client_user_id"),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
   studioIdx: index("idx_studio_invites_studio").on(table.studioId),

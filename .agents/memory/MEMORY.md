@@ -136,3 +136,8 @@
 - [Oncology release review](oncology-release-review.md) — symptom support needs authenticated Development review before release; references do not imply clinical validation.
 - [Oncology symptom visibility](oncology-symptom-entry-visibility.md) — use an activation overlay and a below-button review entry; above-button symptom content was easy to miss.
 - [Saved support compatibility](saved-support-compatibility.md) — retain established support flags during unrelated health edits without allowing new legacy activation.
+- [Care Team invitation parties](care-team-invitation-parties.md) — either party may invite; resolve the client and professional before applying person-specific gates.
+- [Organization and practitioner identity](organization-practitioner-identity.md) — ownership never replaces occupation; Business-only identities are legitimate and cannot be inferred into practitioners.
+- [Demo practitioner boundary](demo-practitioner-boundary.md) — approved canonical persona plus demo-only status; synthetic data only, never fabricated clinical verification.
+- [Professional erasure policy](professional-erasure-policy.md) — minimize personal lifecycle data; reviewer erasure preserves other applications; no six-year retention assumption.
+- [Migration CLI lifecycle](migration-cli-lifecycle.md) — one-off commands must own their connection; the application DB keepalive can outlive a closed pool.

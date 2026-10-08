@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { db } from "../db";
 import { trialAccessInvites, users } from "@shared/schema";
+import { isCanonicalPractitionerRole, isClinicalPractitionerRole } from "@shared/professionalRoles";
 import { eq, sql, and, or, isNotNull, gt, isNull } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -219,17 +220,15 @@ router.post("/api/auth/signup", async (req, res) => {
     }
 
     if (professionalSetupRequested) {
-      const validRoles = ["trainer", "physician", "dietitian", "nurse_practitioner"];
       const validCategories = ["certified", "experienced", "non_certified"];
-      const licensedRoles = ["physician", "dietitian", "nurse_practitioner"];
-      if (!procare.professionalRole || !validRoles.includes(procare.professionalRole)) {
+      if (!isCanonicalPractitionerRole(procare.professionalRole)) {
         return res.status(400).json({ error: "Invalid professional role" });
       }
       if (!validCategories.includes(procare.professionalCategory)) {
         return res.status(400).json({ error: "Invalid professional category" });
       }
       // Licensed roles (physician / dietitian / NP-PA) must supply license number + state
-      if (licensedRoles.includes(procare.professionalRole) && procare.professionalCategory === "certified") {
+      if (isClinicalPractitionerRole(procare.professionalRole) && procare.professionalCategory === "certified") {
         if (!procare.credentialNumber?.trim()) {
           return res.status(400).json({ error: "License number is required for licensed professionals" });
         }
@@ -336,7 +335,7 @@ router.post("/api/auth/signup", async (req, res) => {
       username: newUser.username,
       authToken: issuedCredential?.authToken ?? null,
       mfaEnrollmentRequired: privilegedSignup,
-      isProCare: newUser.isProCare || false,
+      isProCare: newUser.isProCare || !!inviteResult.membership,
       professionalRole: newUser.professionalRole || null,
       role: newUser.role || "client",
       isTester: newUser.isTester || false,
@@ -478,7 +477,7 @@ router.post("/api/auth/login", async (req, res) => {
       email: user.email,
       username: user.username,
       authToken,
-      isProCare: user.isProCare || false,
+      isProCare: user.isProCare || !!inviteResult.membership,
       professionalRole: user.professionalRole || null,
       role: user.role || "client",
       selectedMealBuilder: user.selectedMealBuilder || null,
@@ -567,9 +566,9 @@ router.delete("/api/auth/delete-account", requireAuth, async (req, res) => {
 
   try {
     console.log(`🗑️ Account deletion requested for user ID: ${userId}`);
+    const { eraseAccount } = await import("../services/professionalAccountErasure");
+    await eraseAccount(userId);
     logAudit({ actor: userId, action: "AUTH_ACCOUNT_DELETED", resourceType: "auth", route: "/api/auth/delete-account", ip: getClientIp(req as any) });
-
-    await db.delete(users).where(eq(users.id, userId));
 
     console.log(`✅ Account deleted successfully, user ID: ${userId}`);
 

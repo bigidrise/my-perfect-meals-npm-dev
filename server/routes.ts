@@ -96,6 +96,8 @@ import pushNotificationsRouter from './routes/pushNotifications';
 import remindersRouter from './routes/reminders';
 import mealPlanReplaceRouter from './routes/meal-plan-replace';
 import authSessionRouter from './routes/auth.session';
+import professionalOnboardingRouter from "./routes/professionalOnboardingRoutes";
+import professionalIdentityReviewRouter from "./routes/professionalIdentityReviewRoutes";
 import trialRouter from './routes/trial';
 import mfaRoutes from './routes/auth.mfa';
 import { requireMfa } from './middleware/requireMfa';
@@ -369,6 +371,9 @@ function scanRecommendationOutput(output: any, envelope: any, generatorName: str
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  const { demoProfessionalRouter, demoProfessionalAdminRouter } = await import("./routes/demoProfessionalRoutes");
+  app.use("/api/demo-professional", demoProfessionalRouter);
+  app.use("/api/admin/demo-professional", demoProfessionalAdminRouter);
   console.log("🔧 registerRoutes called - starting route registration");
   app.use("/api/foods-i-enjoy", foodsIEnjoyRouter);
   app.use("/api/nutrition-priorities", nutritionPrioritiesRouter);
@@ -879,6 +884,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/stripe", stripeRouter);
 
   app.use(authSessionRouter);
+  app.use("/api/professional-onboarding", professionalOnboardingRouter);
+  app.use("/api/admin/professional-requests", professionalIdentityReviewRouter);
   app.use("/api/auth/mfa", mfaRoutes);
   app.use(alcoholLogRouter);
   app.use('/api/vitals/bp', vitalsBpRouter);

@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from "express";
 import type { AuthenticatedRequest } from "./requireAuth";
 import { canAccessProCareStudio, isProCarePlanKey } from "@shared/planFeatures";
 import { readIndependentStudioAccess } from "../services/independentStudioAccess";
+import { isClinicalPractitionerRole } from "@shared/professionalRoles";
+import { identityRequiresIndependentCredentialReview } from "../services/professionalIdentityCredentialBoundary";
 
 /**
  * requireProCareAccess — gates routes that require an active ProCare subscription.
@@ -33,7 +35,15 @@ export function requireProCareAccess(
     return;
   }
 
-  return readIndependentStudioAccess(authReq.authUser.id).then((independent) => {
+  return Promise.resolve().then(async () => {
+    if (isClinicalPractitionerRole(authReq.authUser.professionalRole) &&
+        await identityRequiresIndependentCredentialReview(authReq.authUser.id)) {
+      res.status(403).json({ code: "INDEPENDENT_CREDENTIAL_VERIFICATION_REQUIRED", error: "Approved identity does not verify clinical credentials." });
+      return null;
+    }
+    return readIndependentStudioAccess(authReq.authUser.id);
+  }).then((independent) => {
+    if (!independent) return;
     // Disconnecting an owned legacy Studio closes its workspace even when the
     // owner also holds Personal, pilot, or internal professional authority.
     // It must not revoke those authorities or alter their underlying records.

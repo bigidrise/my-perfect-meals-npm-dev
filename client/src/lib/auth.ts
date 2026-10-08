@@ -1,4 +1,5 @@
 // client/src/lib/auth.ts
+import type { AccountProfessionalRole, CanonicalPractitionerRole } from "@shared/professionalRoles";
 import { apiUrl } from '@/lib/resolveApiBase';
 import { Capacitor } from '@capacitor/core';
 import { clearNutritionCache } from '../hooks/nutritionStateCache';
@@ -157,7 +158,9 @@ export interface User {
   narrationSpeedPreference?: "0.75" | "1.0" | "1.25" | "1.5";
   // ProCare Professional fields
 
-  professionalRole?: "trainer" | "physician" | "dietitian" | "nurse_practitioner" | "business" | null;
+  professionalRole?: AccountProfessionalRole | null;
+  /** Server-resolved restriction; never an authorization grant from client state. */
+  operatingStatus?: "demo_only" | null;
 
   professionalCategory?: "certified" | "experienced" | "non_certified" | null;
 
@@ -344,6 +347,7 @@ export interface CachedUser {
   builderSwitchUnlimited?: boolean;
   onboardingCompletedAt?: string | null;
   professionalRole?: User["professionalRole"];
+  operatingStatus?: User["operatingStatus"];
   procareTrainingCompleted?: boolean;
   phase2GateEnabled?: boolean;
   proCareEligible?: boolean;
@@ -362,7 +366,7 @@ export function toCachedUser(user: User): CachedUser {
   const {
     id, email, entitlements, planLookupKey, selectedMealBuilder,
     isTester, isSandbox, accessTier, role, isProCare, activeBoard,
-    builderSwitchUnlimited, onboardingCompletedAt, professionalRole,
+    builderSwitchUnlimited, onboardingCompletedAt, professionalRole, operatingStatus,
     procareTrainingCompleted, phase2GateEnabled, proCareEligible,
     monetizationEligible, isAdmin, mfaEnabled, trialEndsAt, isTrialActive,
     daysRemaining, trialTier,
@@ -370,7 +374,7 @@ export function toCachedUser(user: User): CachedUser {
   return {
     id, email, entitlements, planLookupKey, selectedMealBuilder,
     isTester, isSandbox, accessTier, role, isProCare, activeBoard,
-    builderSwitchUnlimited, onboardingCompletedAt, professionalRole,
+    builderSwitchUnlimited, onboardingCompletedAt, professionalRole, operatingStatus,
     procareTrainingCompleted, phase2GateEnabled, proCareEligible,
     monetizationEligible, isAdmin, mfaEnabled, trialEndsAt, isTrialActive,
     daysRemaining, trialTier,
@@ -406,7 +410,7 @@ export function getAuthHeaders(): Record<string, string> {
 
 // API-based authentication with database persistence
 export interface ProCareSignupData {
-  professionalRole: "trainer" | "physician";
+  professionalRole: CanonicalPractitionerRole;
   professionalCategory: "certified" | "experienced" | "non_certified";
   credentialType?: string;
   credentialBody?: string;
@@ -431,8 +435,8 @@ export function getProCareSignupData(): ProCareSignupData | null {
     credentialBody: localStorage.getItem("procare_credential_body") || undefined,
     credentialNumber: localStorage.getItem("procare_credential_number") || undefined,
     credentialYear: localStorage.getItem("procare_credential_year") || undefined,
-    attestationText: "Accepted via legal document system",
-    attestedAt: new Date().toISOString(),
+    attestationText: "Professional request information only; no legal acceptance recorded.",
+    attestedAt: "",
     procareEntryPath: entryPath,
   };
 }

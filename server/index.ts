@@ -27,6 +27,7 @@ import { logger } from "./middleware/logger";
 import { createApiRateLimit } from "./middleware/rateLimit";
 import { errorHandler } from "./middleware/errorHandler";
 import { requireAuth } from "./middleware/requireAuth";
+import { demoDataBoundary } from "./middleware/demoDataBoundaryRuntime";
 import { requireActiveAccess } from "./middleware/requireActiveAccess";
 import { requireProAccess } from "./middleware/requireProAccess";
 import healthRouter from "./routes/health.routes";
@@ -276,6 +277,8 @@ app.use(session({
   }
 }));
 registerCsrfProtection(app);
+// Before all data routes, including routers that use their own session auth.
+app.use(demoDataBoundary);
 
 // Disable caching on macros and studio endpoints to prevent stale 304s
 app.use((req, res, next) => {
@@ -803,6 +806,12 @@ setTimeout(() => {
 
 // LMS boot migrations — idempotent CREATE/ALTER for LMS tables
 setTimeout(async () => {
+  // This legacy block also grandfather-updates accounts and backfills Studios.
+  // Stage 1's Development verification must not mutate shared account history.
+  if (process.env.SKIP_DEVELOPMENT_ACCOUNT_MAINTENANCE === "true") {
+    console.log("[development] Legacy account/bootstrap maintenance explicitly skipped.");
+    return;
+  }
   try {
     const { db } = await import("./db");
     const { sql } = await import('drizzle-orm');

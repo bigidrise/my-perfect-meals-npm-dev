@@ -1,4 +1,5 @@
 // shared/schema/index.ts
+export * from "../server/db/schema/demoProfessional";
 /*
 ⚠️ PROFILE DATA CONTRACT
 
@@ -25,6 +26,7 @@ This prevents silent data corruption.
 */
 import { pgTable, varchar, boolean, serial, integer, timestamp, jsonb, index, uniqueIndex, pgEnum, uuid, text, decimal, real, time, date, numeric, unique, check, primaryKey } from "drizzle-orm/pg-core";
 import { sql, relations } from "drizzle-orm";
+import type { AccountProfessionalRole } from "./professionalRoles";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod"
 
@@ -448,7 +450,7 @@ export const users = pgTable("users", {
   // Language Preference — "auto" = use device language (navigator.language), explicit BCP-47 = user override
   preferredLanguage: text("preferred_language").default("auto"),
   // ProCare Professional Onboarding - Phase 1
-  professionalRole: text("professional_role").$type<"trainer"|"physician"|"dietitian"|"nurse_practitioner"|"business">(),
+  professionalRole: text("professional_role").$type<AccountProfessionalRole>(),
   professionalCategory: text("professional_category").$type<"certified"|"experienced"|"non_certified">(),
   credentialType: text("credential_type"), // e.g. "Personal Trainer", "Physician", "Dietitian"
   credentialBody: text("credential_body"), // e.g. "NASM", "ACE", license state

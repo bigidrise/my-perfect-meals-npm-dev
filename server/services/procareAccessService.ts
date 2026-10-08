@@ -25,6 +25,7 @@ import { eq, and } from "drizzle-orm";
 import { clientLinks } from "../db/schema/procare";
 import { studioMemberships, studios } from "../db/schema/studio";
 import { assertSameOrg } from "../lib/orgIsolation";
+import { identityRequiresIndependentCredentialReview } from "./professionalIdentityCredentialBoundary";
 
 /**
  * Returns true when `physicianId` has an active ProCare relationship with
@@ -43,6 +44,7 @@ export async function verifyPhysicianClientAccess(
   // 0. Org isolation — must be checked before any data access.
   //    Throws OrgIsolationError if the two users belong to different orgs.
   await assertSameOrg(physicianId, clientId);
+  if (await identityRequiresIndependentCredentialReview(physicianId)) return false;
 
   // 1. Direct clientLink — the primary ProCare relationship table.
   const links = await db

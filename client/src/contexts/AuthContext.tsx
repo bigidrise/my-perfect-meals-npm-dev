@@ -16,6 +16,7 @@ import { setUserContext, clearUserContext } from "@/lib/sentry";
 import { clearNutritionCache } from "@/hooks/nutritionStateCache";
 import { isExactPublicMarketingRoute } from "@/lib/publicRoutePolicy";
 import { createSingleFlight } from "@/lib/singleFlight";
+import { DEVELOPMENT_AUTH_PUBLIC_PATHS } from "@/lib/developmentAuthRoutes";
 
 interface AuthContextType {
   user: User | null;
@@ -95,6 +96,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           credentialYear: userData.credentialYear || null,
           attestationText: userData.attestationText || null,
           professionalRole: userData.professionalRole || null,
+          operatingStatus: userData.operatingStatus === "demo_only" ? "demo_only" : null,
           procareEntryPath: userData.procareEntryPath || null,
           attestedAt: userData.attestedAt || null,
           procareTrainingCompleted: userData.procareTrainingCompleted || false,
@@ -345,16 +347,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     const initializeAuth = async () => {
-      const currentUser = getCurrentUser();
+      let currentUser = getCurrentUser();
       const appleReviewFullAccess =
         localStorage.getItem("appleReviewFullAccess") === "true";
 
-      // Browser sessions are carried by the httpOnly cookie, so the cached
-      // routing user (not a local bearer token) determines whether to probe.
+      // The routing cache is not the session. A valid httpOnly cookie survives
+      // localStorage clearing; recover only from the authenticated profile API.
+      let restoredFromServer = false;
+      if (!currentUser && !appleReviewFullAccess && !isGuestMode()) {
+        try {
+          currentUser = await refreshUser();
+          restoredFromServer = !!currentUser;
+        } catch {
+          // No cached identity to trust on a network/storage failure.
+          console.warn("⚠️ [AuthContext] Initial session could not be restored");
+        }
+      }
+
       if (currentUser && !currentUser.id.startsWith("guest-")) {
         setUser(currentUser);
         try {
-          const freshUser = await refreshUser();
+          const freshUser = restoredFromServer ? currentUser : await refreshUser();
           if (!freshUser) {
             // null = definitive 401/403: token is revoked — sign out
             console.log("⚠️ [AuthContext] Token rejected by server — signing out");
@@ -437,7 +450,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           "/partners",
           "/join/clinic",
           "/join/studio",
-          ...(import.meta.env.DEV ? ["/__modal-test__", "/__sheet-test__", "/rewardful/connect/confirm"] : []),
+          ...DEVELOPMENT_AUTH_PUBLIC_PATHS,
         ];
         const isPublicPath =
           isExactPublicMarketingRoute(window.location.pathname) ||

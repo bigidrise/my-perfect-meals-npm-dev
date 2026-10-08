@@ -1,6 +1,8 @@
 import { Resend } from 'resend';
 import { PROCARE_INVITATION_VALIDITY_DAYS } from "../lib/procareInvitationExpiry";
 
+import { isClinicalPractitionerRole, resolveCareTeamRequestedRole } from "@shared/professionalRoles";
+
 const EMAIL_FROM = 'My Perfect Meals <noreply@mail.myperfectmeals.com>';
 
 /** Development Business pilot review email. Deliberately contains no client or PHI detail. */
@@ -457,16 +459,17 @@ export async function sendCareTeamInvite({
     return null;
   }
 
-  const isClinic = ['doctor', 'physician', 'pa', 'np', 'rn'].includes(role);
-  const proLabel = isClinic ? 'doctor' : 'trainer';
+  const canonicalRole = resolveCareTeamRequestedRole(role);
+  const isClinic = isClinicalPractitionerRole(canonicalRole);
+  const proLabel = canonicalRole === "physician"
+    ? "doctor"
+    : canonicalRole?.replace(/_/g, " ") ?? "professional";
   const spaceLabel = isClinic ? 'clinic' : 'studio';
   const spaceTitle = isClinic ? 'Clinic' : 'Studio';
-  const subjectLine = isClinic
-    ? "You've been invited to your doctor's My Perfect Meals ProCare Clinic"
-    : "You've been invited to your trainer's My Perfect Meals ProCare Studio";
+  const subjectLine = `You've been invited to your ${proLabel}'s My Perfect Meals ProCare ${spaceTitle}`;
   const bodyText = isClinic
-    ? 'Your doctor uses My Perfect Meals ProCare to guide your nutrition, health goals, and care plan.'
-    : 'Your trainer uses My Perfect Meals ProCare to guide your nutrition, meal planning, and progress.';
+    ? `Your ${proLabel} uses My Perfect Meals ProCare to guide your nutrition, health goals, and care plan.`
+    : `Your ${proLabel} uses My Perfect Meals ProCare to guide your nutrition, meal planning, and progress.`;
 
   const APP_URL = process.env.PUBLIC_APP_URL || 'https://app.myperfectmeals.ai';
   // Deep link carries the token so the client never has to type the code.
