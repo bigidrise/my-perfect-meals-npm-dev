@@ -2,7 +2,6 @@
  * Investigation reproductions: fictional providers and in-memory DB only.
  * No application corrections, shared-account writes or invitation emails.
  */
-import { execFileSync } from "node:child_process";
 
 let mockProvider: any;
 let mockStudios: any[];
@@ -81,27 +80,6 @@ test("canonical provisioning repairs an interrupted billing insert on retry with
   const recovered = await ensureStudioForTrainer(mockProvider.id);
   expect(recovered?.studioId).toBe("fixture-clinic");
   expect(mockStudios).toHaveLength(1); expect(mockBilling).toHaveLength(1);
-});
-test("confirmed manual-creation defect: billing interruption leaves a Clinic and retries return already-exists", async () => {
-  // Exercise the exact committed handler, not a rewritten approximation.
-  const source = execFileSync("git", ["show", "HEAD:server/routes/studioRoutes.ts"], { encoding: "utf8" });
-  const start = source.indexOf('router.post("/", async (req, res) => {');
-  const end = source.indexOf("\n});", start);
-  let handler: any;
-  new Function("router", "getUserId", "getProviderStudioReadiness", "db", "studios", "studioBilling", "eq",
-    source.slice(start, end + 4))(
-      { post: (_path: string, fn: any) => { handler = fn; } },
-      async () => mockProvider.id, async () => ({ ok: true }), mockDatabase, studios, studioBilling, () => null,
-    );
-  const response = () => ({ statusCode: 200, body: null as any,
-    status(code: number) { this.statusCode = code; return this; }, json(body: any) { this.body = body; return this; } });
-  mockFailBilling = true;
-  const first = response(); await handler({ body: { name: "Fictional Clinic", type: "clinic" } }, first);
-  expect(first.statusCode).toBe(500);
-  expect(mockStudios).toHaveLength(1); expect(mockBilling).toHaveLength(0);
-  const retry = response(); await handler({ body: { name: "Fictional Clinic", type: "clinic" } }, retry);
-  expect(retry.statusCode).toBe(400); expect(retry.body.error).toBe("You already have a studio");
-  expect(mockBilling).toHaveLength(0);
 });
 test("pilot expiration blocks commercial capability but does not delete Clinic ownership", async () => {
   await ensureProviderStudioReady(mockProvider.id);

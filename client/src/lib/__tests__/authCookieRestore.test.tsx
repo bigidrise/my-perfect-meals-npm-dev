@@ -74,3 +74,21 @@ test("cached demo routing metadata is refreshed from server without repeated upd
   view.rerender(<AuthProvider><Identity /></AuthProvider>);
   await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
 });
+
+test("refresh and a new cookie-backed session preserve canonical physician identity without demo metadata", async () => {
+  const physician = { id: "fictional-physician", role: "coach", professionalRole: "physician",
+    isProCare: true, organizationId: "fictional-owned-organization" };
+  (fetch as jest.Mock).mockImplementation(async () => ({ ok: true, json: async () => ({ ...physician }) }));
+  for (let session = 0; session < 2; session++) {
+    mockCachedUser = null;
+    localStorage.clear();
+    const view = render(<AuthProvider><Identity /></AuthProvider>);
+    await screen.findByText("fictional-physician:ordinary");
+    // Organization authority belongs to OrgContext; the auth cache deliberately
+    // retains identity fields rather than the legacy organizationId field.
+    expect(mockCachedUser).toMatchObject({ id: physician.id, role: "coach", professionalRole: "physician", isProCare: true });
+    expect(mockCachedUser.operatingStatus).toBeNull();
+    view.unmount();
+  }
+  expect(fetch).toHaveBeenCalledTimes(2);
+});

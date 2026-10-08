@@ -26,7 +26,8 @@
     "shared/healthProtocolState.ts",
     "shared/diabeticGenerationSnapshot.ts",
     "server/db/migrations/runProfessionalErasureMigration.ts",
-    "server/services/professionalAccountErasure.ts"
+    "server/services/professionalAccountErasure.ts",
+    "server/services/manualStudioProvisioning.ts"
   ],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"]
 }
