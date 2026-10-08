@@ -40,7 +40,18 @@
     "client/src/pages/admin/ProfessionalIdentityRequests.tsx",
     "server/types/express-session.d.ts",
     "server/types/vendor-shims.d.ts",
-    "server/lib/professionalReviewSpa.ts"
+    "server/lib/professionalReviewSpa.ts",
+    "shared/demoProfessional.ts",
+    "server/services/demoProfessionalService.ts",
+    "server/services/demoProfessionalRepository.ts",
+    "server/services/demoGrantRecord.ts",
+    "server/routes/demoProfessionalRoutes.ts",
+    "server/middleware/demoDataBoundary.ts",
+    "server/middleware/demoDataBoundaryRuntime.ts",
+    "server/db/schema/demoProfessional.ts",
+    "server/db/migrations/runFounderDemoGrantMigration.ts",
+    "scripts/install-founder-demo-grants.ts",
+    "client/src/components/pro/DemoSyntheticPatientView.tsx"
   ],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"]
 }

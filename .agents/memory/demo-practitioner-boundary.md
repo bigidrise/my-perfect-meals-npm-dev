@@ -43,6 +43,12 @@ Keep grants and grant events at zero until the user authorizes account setup. Lo
 
 ## Permanent founder physician Studio
 
+Only the founder-controlled physician dummy account needs this permanent demonstration access. It must be available whenever the founder wants to demonstrate the platform or check whether it works. Do not extend this exception to other accounts.
+
+**Why:** The user explicitly repeated that this is the only account needed like this.
+
+**How to apply:** Keep permanent authorization scoped to the existing designated account and Clinic; leave real physicians and their onboarding unchanged.
+
 The founder wants permanent physician demonstration access to the existing Studio/Clinic, with the full physician interface operating on synthetic patients. No Academy exam, medical credential verification, ordinary professional onboarding, professional agreements, or paid subscription should be required for demo-only use. Never mark those real-world requirements as completed.
 
 **Why:** The user needs dependable physician Studio access for testing and business demonstrations; the product is already public. Temporary access fixes and recurring setup requirements do not meet this purpose.
