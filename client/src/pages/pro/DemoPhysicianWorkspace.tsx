@@ -17,7 +17,7 @@ import {
   readDemoMedia,
   saveDemoPlan,
 } from "@/lib/demoProfessional";
-import { DEMO_ACKNOWLEDGMENT_VERSION, isDemoGrantCurrent, type DemoCapability, type DemoContext, type DemoPlan } from "@shared/demoProfessional";
+import { DEMO_ACKNOWLEDGMENT_VERSION, isDemoGrantCurrent, isPermanentFounderDemoGrant, type DemoCapability, type DemoContext, type DemoPlan } from "@shared/demoProfessional";
 import DemoSyntheticPatientView, {
   DemoBlockedScreen,
 } from "@/components/pro/DemoSyntheticPatientView";
@@ -534,7 +534,7 @@ export default function DemoPhysicianWorkspace({ fallback }: { fallback?: ReactN
         {(["patient.read", "clinical.read", "clinical.write", "messages.read", "media.read", "export"] as DemoCapability[]).map(capability => (
           <span key={capability} className={`rounded-full border px-2 py-1 ${capabilitySet.has(capability) ? "border-emerald-200/30 bg-emerald-200/10 text-emerald-100" : "border-white/15 bg-black/10"}`}>{capability}</span>
         ))}
-        <span className="ml-auto">Grant revision {context.grant.revision}</span>
+        <span className="ml-auto">{isPermanentFounderDemoGrant(context.grant) ? "Permanent founder demo · revocable · " : ""}Grant revision {context.grant.revision}</span>
       </div>
       <div className="mt-3 flex flex-col justify-between gap-3 border-t border-white/10 pt-3 sm:flex-row sm:items-center">
         <div className="min-w-0">

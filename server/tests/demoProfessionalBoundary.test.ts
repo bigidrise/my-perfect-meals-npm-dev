@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { createDemoDataBoundary } from "../middleware/demoDataBoundary";
 import { createDemoProfessionalService, type DemoRepository, type DemoTransaction } from "../services/demoProfessionalService";
 import { identitySnapshotHash, type IdentityAccountSnapshot } from "../services/professionalIdentityDecisionService";
-import { DEMO_CAPABILITIES, DEMO_ACKNOWLEDGMENT_VERSION, demoGrantPreparationInput, demoPlanInput, isDemoGrantCurrent, type DemoGrant, type DemoPatient } from "@shared/demoProfessional";
+import { DEMO_CAPABILITIES, DEMO_ACKNOWLEDGMENT_VERSION, demoGrantPreparationInput, demoGrantActivationInput, demoPlanInput, isDemoGrantCurrent, type DemoGrant, type DemoPatient } from "@shared/demoProfessional";
 import { DEVELOPMENT_FOUNDER_PHYSICIAN_DEMO as founder } from "../config/developmentFounderPhysicianDemo";
 import { normalizeDemoGrantRecord } from "../services/demoGrantRecord";
 
@@ -44,6 +44,11 @@ function fixture(targetId = "demo-actor") {
       saveGrant:async grant=>{state.grant={...grant};}, savePlan:async(record,plan)=>(state.patient={...record,plan,revision:record.revision+1}),
       saveInvitation:async(record,connectionInvitation)=>(state.patient={...record,connectionInvitation,revision:record.revision+1}),
       invalidateSessions:async account=>{state.accounts.find(row=>row.id===account.id)!.authSecurityVersion++;},
+      recoverFounderIdentity:async account=>{
+        if(account.id!==founder.userId||account.professionalRole!=="business")throw new Error("Invalid founder recovery.");
+        const stored=state.accounts.find(row=>row.id===account.id)!;
+        stored.professionalRole="physician";stored.authSecurityVersion++;
+      },
       event:async(grant,actor,kind,metadata)=>{if(state.failEvent)throw new Error("event failure");state.events.push({grantId:grant.id,actor,kind,metadata});},
     };
     try {return await work(tx);}catch(error){state=before;throw error;}finally{unlock();}
@@ -216,10 +221,67 @@ describe("Permanent founder grant — fixture-only, no shared activation", () =>
   function permanentFixture(targetId = founder.userId) {
     const f = fixture(targetId);
     f.state().grant = null;
-    const input = { ...f.preparation(), expiresAt: null, lifetime: "permanent_founder" as const,
+    const input = { ...f.preparation(), capabilities:f.preparation().capabilities.filter(capability=>capability!=="export"), expiresAt: null, lifetime: "permanent_founder" as const,
       founderAuthorizationAcknowledged: true as const };
     return { ...f, input };
   }
+  async function preparedBusinessFounder() {
+    const f=permanentFixture();
+    f.state().accounts[1].professionalRole="business";
+    f.state().approved=false;
+    f.input.reviewedStateHash=identitySnapshotHash(f.state().accounts[1]);
+    const grant=await f.service.prepare(f.proof,f.input);
+    const activation={revision:grant.revision,identityRequestId:null,
+      reviewedStateHash:identitySnapshotHash(f.state().accounts[1]),reason:"Explicit founder-only synthetic physician identity recovery.",
+      identityOnlyAcknowledged:true as const,sharedDataAcknowledged:true as const,
+      founderIdentityRecoveryAcknowledged:true as const};
+    return {...f,activation};
+  }
+  test("existing Business founder recovers a canonical demo persona without normal onboarding or fabricated evidence",async()=>{
+    const f=await preparedBusinessFounder(),before=JSON.stringify(f.state().independent);
+    expect(demoGrantActivationInput.safeParse(f.activation).success).toBe(true);
+    const grant=await f.service.activate(f.proof,founder.userId,f.activation);
+    expect(grant).toMatchObject({state:"active",expiresAt:null,identityRequestId:null,authority:"founder_admin",clinicId:founder.clinicId});
+    expect(f.state().accounts[1]).toMatchObject({professionalRole:"physician",authSecurityVersion:9,isProCare:false});
+    expect(JSON.stringify(f.state().independent)).toBe(before);
+    expect(f.state().events).toContainEqual(expect.objectContaining({kind:"demo_activated",actor:"reviewer",
+      metadata:expect.objectContaining({previousIdentity:"business",founderDemoOnlyIdentityRecovery:true,
+        realCredentialVerification:false,academyCompletionGranted:false,professionalAgreementsGranted:false,paidSubscriptionGranted:false,
+        reviewerAuthority:"authenticated_admin_with_current_mfa"})}));
+    expect(await f.service.context(founder.userId)).toMatchObject({clinic:{id:founder.clinicId},paidSubscriptionGranted:false,
+      credentialVerificationGranted:false,academyCompletionGranted:false,realAgreementsGranted:false});
+    await f.service.acknowledge(founder.userId);
+    expect(await f.service.list(founder.userId,f.state().workspace.id)).toHaveLength(1);
+    await expect(f.service.export(founder.userId,f.state().workspace.id,f.state().patient.id))
+      .rejects.toMatchObject({code:"DEMO_EXPORT_DENIED"});
+    await f.service.revoke(f.proof,founder.userId,f.state().grant!.revision,"Revoke the founder's synthetic-only authorization.");
+    await expect(f.service.context(founder.userId)).rejects.toMatchObject({code:"DEMO_GRANT_INACTIVE"});
+  });
+  test.each(["missing-explicit-recovery","missing-consent","stale-review","stale-mfa","not-admin","lost-clinic","audit-failure"])
+    ("founder identity recovery rejects %s with no partial role, grant or unrelated state change",async condition=>{
+      const f=await preparedBusinessFounder();
+      if(condition==="missing-explicit-recovery")delete (f.activation as any).founderIdentityRecoveryAcknowledged;
+      if(condition==="missing-consent")delete (f.activation as any).sharedDataAcknowledged;
+      if(condition==="stale-review")f.activation.reviewedStateHash="a".repeat(64);
+      if(condition==="stale-mfa")f.proof.securityVersion--;
+      if(condition==="not-admin")f.state().accounts[0].isAdmin=false;
+      if(condition==="lost-clinic")f.state().clinicOwned=false;
+      if(condition==="audit-failure")f.state().failEvent=true;
+      const before=JSON.stringify(f.state());
+      await expect(f.service.activate(f.proof,founder.userId,f.activation)).rejects.toBeDefined();
+      expect(JSON.stringify(f.state())).toBe(before);
+    });
+  test("founder waiver cannot replace normal identity authorization for an ordinary account or dated grant",async()=>{
+    const f=fixture();f.state().grant!.state="prepared";f.state().accounts[1].professionalRole="business";f.state().approved=false;
+    const input={revision:f.state().grant!.revision,identityRequestId:null,reviewedStateHash:identitySnapshotHash(f.state().accounts[1]),
+      reason:"Attempt unauthorized founder bypass.",identityOnlyAcknowledged:true as const,sharedDataAcknowledged:true as const,
+      founderIdentityRecoveryAcknowledged:true as const};
+    const before=JSON.stringify(f.state());
+    await expect(f.service.activate(f.proof,"demo-actor",input)).rejects.toMatchObject({code:"DEMO_CONTROLLED_IDENTITY_REQUIRED"});
+    expect(JSON.stringify(f.state())).toBe(before);
+    expect(demoGrantActivationInput.safeParse({...input,founderIdentityRecoveryAcknowledged:undefined}).success).toBe(false);
+    expect(demoGrantActivationInput.safeParse({...input,identityRequestId:"37e010aa-c441-4881-bf2a-3f402654cd12"}).success).toBe(false);
+  });
   test("MFA admin authorizes the exact existing Clinic with an audited demo-only waiver", async () => {
     const f = permanentFixture(), before = JSON.stringify(f.state().independent);
     f.state().academy = true; // Real education evidence is neither required nor fabricated.

@@ -7,7 +7,7 @@ import { getAcademyProgression } from "./academyProgression";
 import { identityAccountColumns } from "./professionalIdentityDecisionRepository";
 import type { IdentityAccountSnapshot } from "./professionalIdentityDecisionService";
 import { ProfessionalRequestError } from "./professionalOnboardingService";
-import { isDevelopmentFounderDemoAccount } from "../config/developmentFounderPhysicianDemo";
+import { isDevelopmentFounderDemoAccount, DEVELOPMENT_FOUNDER_PHYSICIAN_DEMO as founder } from "../config/developmentFounderPhysicianDemo";
 import { developmentFounderDemoRepository, readDevelopmentFounderDemoGrant } from "./developmentFounderDemoRepository";
 import { normalizeDemoGrantRecord as normalizeGrant } from "./demoGrantRecord";
 type Executor = { execute(query: SQL): Promise<unknown> };
@@ -92,6 +92,14 @@ export const demoProfessionalRepository: DemoRepository = {
           auth_token=NULL,auth_token_created_at=NULL,auth_token_mfa_verified_at=NULL
           WHERE id=${account.id} AND auth_security_version=${account.authSecurityVersion} RETURNING id`);
         if (!changed.length) throw new ProfessionalRequestError(409, "DEMO_TARGET_CHANGED", "Target security state changed.");
+      },
+      async recoverFounderIdentity(account) {
+        const changed = await rows(tx, sql`UPDATE users
+          SET professional_role='physician', auth_security_version=auth_security_version+1,
+            auth_token=NULL,auth_token_created_at=NULL,auth_token_mfa_verified_at=NULL
+          WHERE id=${account.id} AND id=${founder.userId} AND professional_role='business'
+            AND auth_security_version=${account.authSecurityVersion} RETURNING id`);
+        if (!changed.length) throw new ProfessionalRequestError(409, "DEMO_TARGET_CHANGED", "Target identity or security version changed; reload.");
       },
       async event(grant, actorId, kind, metadata) {
         await tx.execute(sql`INSERT INTO demo_professional_events(id,grant_id,actor_user_id,event_type,metadata)
