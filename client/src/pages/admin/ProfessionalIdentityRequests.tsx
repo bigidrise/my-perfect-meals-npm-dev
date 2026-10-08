@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
+import ProfessionalCredentialReview from "@/components/admin/ProfessionalCredentialReview";
 import {
   getProfessionalReviewDetail,
   getProfessionalReviewQueue,
@@ -18,6 +19,8 @@ const roleLabels: Record<string, string> = {
   dietitian: "Dietitian",
   nurse_practitioner: "Nurse practitioner",
 };
+
+const licensedCredentialRoles = new Set(["physician", "dietitian", "nurse_practitioner"]);
 
 const categoryLabels: Record<string, string> = {
   certified: "Certified / licensed information",
@@ -162,6 +165,18 @@ export default function ProfessionalIdentityRequests() {
     }
   }
 
+  async function refreshAfterCredentialSave(requestId: string) {
+    const targetSequence = detailSequence.current;
+    const detailRefresh = getProfessionalReviewDetail(requestId).then(refreshed => {
+      if (detailSequence.current === targetSequence && selectedId === requestId) setDetail(refreshed);
+    }).catch(error => {
+      if (detailSequence.current === targetSequence && selectedId === requestId) {
+        setDetailError(`Credential decision saved; refreshed request detail unavailable. ${errorMessage(error)}`);
+      }
+    });
+    await Promise.all([detailRefresh, reloadQueue()]);
+  }
+
   useEffect(() => {
     if (!authorized || !professionalRequestsEnabled) return;
     void reloadQueue();
@@ -267,7 +282,7 @@ export default function ProfessionalIdentityRequests() {
               <p className="mt-2 max-w-2xl text-sm leading-6 text-[#58675f]">Review the submitted claim, the account’s current identity, and readiness as distinct records.</p>
             </div>
             <span className="rounded-full border border-[#c8d4cb] bg-[#f8faf7] px-3 py-1.5 text-xs font-semibold text-[#53685b]">
-              Admin review · max 50 submitted
+              Admin review · submissions and approved credential reviews
             </span>
           </div>
         </header>
@@ -293,10 +308,10 @@ export default function ProfessionalIdentityRequests() {
           </section>
         ) : (
           <div className="grid items-start gap-5 lg:grid-cols-[330px_minmax(0,1fr)]">
-            <aside className="overflow-hidden rounded-2xl border border-[#d2dbd4] bg-[#f8faf7] shadow-[0_12px_30px_rgba(39,62,48,0.06)]" aria-label="Submitted requests">
+            <aside className="overflow-hidden rounded-2xl border border-[#d2dbd4] bg-[#f8faf7] shadow-[0_12px_30px_rgba(39,62,48,0.06)]" aria-label="Professional requests">
               <div className="flex items-center justify-between border-b border-[#dfe6e0] px-4 py-4">
                 <div>
-                  <h2 className="font-semibold">Submitted queue</h2>
+                  <h2 className="font-semibold">Review queue</h2>
                   <p className="mt-0.5 text-xs text-[#738078]">{requests.length} {requests.length === 1 ? "request" : "requests"}</p>
                 </div>
                 <button type="button" onClick={() => void reloadQueue()} disabled={queueLoading} className="rounded-lg border border-[#ccd8cf] px-3 py-2 text-xs font-semibold text-[#385542] hover:bg-[#eaf0eb] disabled:opacity-50">
@@ -317,8 +332,8 @@ export default function ProfessionalIdentityRequests() {
               ) : requests.length === 0 && !queueError ? (
                 <div className="px-5 py-10 text-center">
                   <span className="mx-auto grid h-10 w-10 place-items-center rounded-full border border-[#cdd9d0] text-sm font-serif text-[#53705d]" aria-hidden="true">—</span>
-                  <h3 className="mt-3 font-semibold">No submitted requests</h3>
-                  <p className="mt-1 text-sm leading-5 text-[#748078]">New submissions will appear here for review.</p>
+                  <h3 className="mt-3 font-semibold">No requests to review</h3>
+                  <p className="mt-1 text-sm leading-5 text-[#748078]">New submissions and approved credential reviews will appear here.</p>
                 </div>
               ) : (
                 <ul className="max-h-[70vh] divide-y divide-[#e2e8e3] overflow-y-auto">
@@ -351,7 +366,7 @@ export default function ProfessionalIdentityRequests() {
                 <div className="grid min-h-80 place-items-center rounded-2xl border border-dashed border-[#bdcbc0] bg-[#f7f9f6] p-8 text-center">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#718276]">Review one record at a time</p>
-                    <h2 className="mt-2 text-2xl font-semibold">Choose a submitted request</h2>
+                    <h2 className="mt-2 text-2xl font-semibold">Choose a request to review</h2>
                     <p className="mt-2 max-w-md text-sm leading-6 text-[#65736a]">The review panel keeps claimed information, existing account identity, and readiness visibly separate.</p>
                   </div>
                 </div>
@@ -505,6 +520,13 @@ export default function ProfessionalIdentityRequests() {
                       </aside>
                     </div>
                   </div>
+                  {selectedRequest.state === "approved" && licensedCredentialRoles.has(selectedRequest.requestedRole ?? "") && (
+                    <ProfessionalCredentialReview
+                      key={selectedRequest.id}
+                      requestId={selectedRequest.id}
+                      onSaved={() => void refreshAfterCredentialSave(selectedRequest.id)}
+                    />
+                  )}
                 </>
               ) : null}
             </section>

@@ -25,7 +25,7 @@ export const professionalIdentityEvents = pgTable("professional_identity_events"
   id: uuid("id").primaryKey(),
   requestId: uuid("request_id").notNull().references(() => professionalIdentityRequests.id),
   actorUserId: text("actor_user_id").notNull(),
-  eventType: text("event_type").$type<"draft_created" | "draft_updated" | "request_submitted" | "correction_resumed" | "identity_approved" | "identity_rejected" | "identity_correction_requested">().notNull(),
+  eventType: text("event_type").$type<"draft_created" | "draft_updated" | "request_submitted" | "correction_resumed" | "identity_approved" | "identity_rejected" | "identity_correction_requested" | "credentials_verified" | "credentials_rejected" | "credentials_pending">().notNull(),
   requestRevision: integer("request_revision").notNull(),
   metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

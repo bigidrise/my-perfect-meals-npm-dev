@@ -6,7 +6,7 @@ import type { IdentityAccountSnapshot, IdentityDecisionRepository } from "./prof
 import { ProfessionalRequestError } from "./professionalOnboardingService";
 
 type Transaction = { execute(query: SQL): Promise<unknown> };
-const requestColumns = sql.raw(`id, owner_user_id AS "ownerUserId", requested_role AS "requestedRole",
+export const requestColumns = sql.raw(`id, owner_user_id AS "ownerUserId", requested_role AS "requestedRole",
   professional_category AS "professionalCategory", credential_type AS "credentialType",
   credential_body AS "credentialBody", credential_number AS "credentialNumber", credential_year AS "credentialYear",
   state, revision, created_at AS "createdAt", updated_at AS "updatedAt", submitted_at AS "submittedAt",
@@ -58,7 +58,8 @@ export const identityDecisionRepository: IdentityDecisionRepository = {
 
 export async function listProfessionalReviewRequests() {
   return rows<ProfessionalIdentityRequest>(db, sql`SELECT ${requestColumns} FROM professional_identity_requests
-    WHERE state = 'submitted' ORDER BY submitted_at, id LIMIT 50`);
+    WHERE state = 'submitted' OR (state = 'approved' AND requested_role IN ('physician','dietitian','nurse_practitioner'))
+    ORDER BY (state = 'submitted') DESC, updated_at DESC, id LIMIT 50`);
 }
 export async function readProfessionalReviewRequest(id: string) {
   const request = (await rows<ProfessionalIdentityRequest>(db, sql`SELECT ${requestColumns} FROM professional_identity_requests WHERE id = ${id}`))[0];

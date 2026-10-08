@@ -27,7 +27,20 @@
     "shared/diabeticGenerationSnapshot.ts",
     "server/db/migrations/runProfessionalErasureMigration.ts",
     "server/services/professionalAccountErasure.ts",
-    "server/services/manualStudioProvisioning.ts"
+    "server/services/manualStudioProvisioning.ts",
+    "shared/professionalCredentialReview.ts",
+    "server/services/professionalCredentialReviewService.ts",
+    "server/services/professionalCredentialReviewRepository.ts",
+    "server/services/professionalIdentityCredentialBoundary.ts",
+    "server/services/professionalIdentityReadiness.ts",
+    "server/routes/professionalIdentityReviewRoutes.ts",
+    "server/db/migrations/runProfessionalCredentialMigration.ts",
+    "scripts/install-professional-credential-review.ts",
+    "client/src/components/admin/ProfessionalCredentialReview.tsx",
+    "client/src/pages/admin/ProfessionalIdentityRequests.tsx",
+    "server/types/express-session.d.ts",
+    "server/types/vendor-shims.d.ts",
+    "server/lib/professionalReviewSpa.ts"
   ],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"]
 }
