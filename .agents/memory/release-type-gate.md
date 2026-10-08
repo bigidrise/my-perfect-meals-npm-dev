@@ -20,6 +20,14 @@ description: Policy for the release-check type-validation layers — safety slic
 
 ## AI smoke-test gate (section 7 of release-check.sh)
 
+### Temporary evidence lifetime
+
+Temporary compiler-comparison files may disappear when the execution environment is recreated between tool calls, even when earlier background completion notices remain available.
+
+**Why:** Separate capture/read attempts lost the reviewed diagnostic evidence during an environment continuation.
+
+**How to apply:** Capture both compiler outputs, verify the reviewed fingerprint, and compare full messages and multiplicities within one command. Return the comparison before proceeding; do not approve a baseline from a truncated failure preview.
+
 Sends an unauthenticated POST to `/api/meals/generate`. Correct response is 401 (gate reachable and auth-protected). Accepts 401/400/200 — timing-based checks are wrong here because unauthenticated probes return immediately.
 
 ## Locked-day target snapshot rule
