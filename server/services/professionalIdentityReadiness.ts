@@ -6,7 +6,7 @@ import { db } from "../db";
 import { getAcademyProgression } from "./academyProgression";
 import { checkLegalAcceptance } from "./legalCheck";
 import { providerHasProCareStudioAccess } from "./procareProviderAccess";
-import { identityRequiresIndependentCredentialReview } from "./professionalIdentityCredentialBoundary";
+import { getCurrentCredentialReview } from "./professionalIdentityCredentialBoundary";
 import { requiresPrivilegedMfa } from "../lib/privilegedMfaPolicy";
 import { ProfessionalRequestError } from "./professionalOnboardingService";
 
@@ -64,7 +64,8 @@ const accountFields = {
 export const getProfessionalIdentityReadiness = createProfessionalReadinessService({
   account: async id => (await db.select(accountFields).from(users).where(eq(users.id, id)).limit(1))[0] ?? null,
   async credentials(account) {
-    if (await identityRequiresIndependentCredentialReview(account.id)) return false;
+    const review = await getCurrentCredentialReview(account.id);
+    if (review?.required) return review.status === "verified";
     const [studio] = await db.select({ verification: studios.verificationStatus }).from(studios).where(eq(studios.ownerUserId, account.id)).limit(1);
     if (studio?.verification !== "verified") return false;
     // Reuse the existing clinical-evidence rule; do not invent NP verification.

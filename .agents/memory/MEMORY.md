@@ -141,3 +141,4 @@
 - [Demo practitioner boundary](demo-practitioner-boundary.md) — approved canonical persona plus demo-only status; synthetic data only, never fabricated clinical verification.
 - [Professional erasure policy](professional-erasure-policy.md) — minimize personal lifecycle data; reviewer erasure preserves other applications; no six-year retention assumption.
 - [Migration CLI lifecycle](migration-cli-lifecycle.md) — one-off commands must own their connection; the application DB keepalive can outlive a closed pool.
+- [Professional credential clearance](professional-credential-clearance.md) — bind genuine MFA-reviewed evidence to current identity; activation, pilots and demos remain separate.
