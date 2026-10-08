@@ -11,7 +11,10 @@ export type DemoPlan = z.infer<typeof demoPlanInput>;
 export interface DemoGrant {
   id: string; userId: string; workspaceId: string; persona: "physician"; operatingStatus: "demo_only";
   state: "prepared" | "active" | "revoked"; revision: number; capabilities: DemoCapability[];
-  expiresAt: string; approverId: string | null; reason: string;
+  expiresAt: string | null; approverId: string | null; reason: string;
+  /** Issued only by the unpublished Development overlay, never client input. */
+  authority?: "development_founder";
+  lifetime?: "permanent_founder";
   trainingBasis: "academy_evidence" | "demo_only_waiver"; trainingWaiverReason: string | null;
   acknowledgedAt: string | null; acknowledgmentVersion: string | null;
   identityRequestId: string | null;
@@ -37,6 +40,17 @@ export interface DemoContext {
   workspace: DemoWorkspace; acknowledgmentRequired: boolean;
   realClinicalReadiness: false; credentialVerificationGranted: false;
   academyCompletionGranted: false; realAgreementsGranted: false; paidSubscriptionGranted: false;
+  clinic?: { id: string; name: string; type: "clinic"; syntheticOnly: true };
+}
+export function isPermanentFounderDemoGrant(grant: DemoGrant): boolean {
+  return grant.authority === "development_founder" && grant.lifetime === "permanent_founder"
+    && grant.expiresAt === null && !!grant.approverId && grant.trainingBasis === "demo_only_waiver";
+}
+export function isDemoGrantCurrent(grant: DemoGrant, now = Date.now()): boolean {
+  if (grant.state !== "active" || grant.persona !== "physician" || grant.operatingStatus !== "demo_only") return false;
+  if (isPermanentFounderDemoGrant(grant)) return true;
+  return typeof grant.expiresAt === "string" && Number.isFinite(Date.parse(grant.expiresAt))
+    && Date.parse(grant.expiresAt) > now;
 }
 export const demoGrantPreparationInput = z.object({
   targetUserId: z.string().min(1).max(150),

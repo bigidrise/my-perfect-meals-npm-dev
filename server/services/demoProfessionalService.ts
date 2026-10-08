@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { DEMO_ACKNOWLEDGMENT_VERSION, type DemoCapability, type DemoContext, type DemoGrant, type DemoGrantActivation, type DemoGrantPreparation, type DemoPatient, type DemoPlan, type DemoWorkspace } from "@shared/demoProfessional";
+import { DEMO_ACKNOWLEDGMENT_VERSION, isDemoGrantCurrent, isPermanentFounderDemoGrant, type DemoCapability, type DemoContext, type DemoGrant, type DemoGrantActivation, type DemoGrantPreparation, type DemoPatient, type DemoPlan, type DemoWorkspace } from "@shared/demoProfessional";
 import { identitySnapshotHash, type IdentityAccountSnapshot, type IdentityReviewerProof } from "./professionalIdentityDecisionService";
 import { ProfessionalRequestError } from "./professionalOnboardingService";
 import { assertInvitationDataset, assertInvitationWindow, resolveCareInvitationParties, CareInvitationError } from "./careInvitationPolicy";
 import type { DemoCareInvitation } from "@shared/demoProfessional";
+import { isDevelopmentFounderDemoAccount } from "../config/developmentFounderPhysicianDemo";
 
 export interface DemoTransaction {
   accounts(ids: string[]): Promise<IdentityAccountSnapshot[]>;
@@ -19,6 +20,7 @@ export interface DemoTransaction {
   saveInvitation(patient: DemoPatient, invitation: DemoCareInvitation): Promise<DemoPatient>;
   invalidateSessions(account: IdentityAccountSnapshot): Promise<void>;
   event(grant: DemoGrant, actorId: string, kind: string, metadata: Record<string, unknown>): Promise<void>;
+  clinic?(): Promise<NonNullable<DemoContext["clinic"]>>;
 }
 export interface DemoRepository { transaction<T>(work: (tx: DemoTransaction) => Promise<T>): Promise<T> }
 const deny = (code: string, message = "Demo-only access is limited to the explicitly authorized synthetic dataset.") => {
@@ -26,7 +28,7 @@ const deny = (code: string, message = "Demo-only access is limited to the explic
 };
 function live(grant: DemoGrant, now: Date) {
   if (grant.operatingStatus !== "demo_only" || grant.persona !== "physician" || grant.state !== "active") deny("DEMO_GRANT_INACTIVE");
-  if (!Number.isFinite(Date.parse(grant.expiresAt)) || Date.parse(grant.expiresAt) <= now.getTime()) deny("DEMO_GRANT_EXPIRED");
+  if (!isDemoGrantCurrent(grant, now.getTime())) deny("DEMO_GRANT_EXPIRED");
 }
 function synthetic(record: DemoWorkspace | DemoPatient | null, workspaceId: string) {
   if (!record || record.classification !== "synthetic" ||
@@ -36,7 +38,7 @@ function reviewer(accounts: IdentityAccountSnapshot[], proof: IdentityReviewerPr
   const actor = accounts.find(row => row.id === proof.id);
   if (!actor?.isAdmin || !actor.mfaEnabled || proof.mfaVerified !== true || actor.authSecurityVersion !== proof.securityVersion) deny("DEMO_REVIEWER_REQUIRED", "A current MFA-verified administrative reviewer is required.");
 }
-function syntheticPatient(workspaceId: string): DemoPatient {
+export function syntheticPatient(workspaceId: string): DemoPatient {
   return {
     id: randomUUID(), workspaceId, classification: "synthetic", label: "Synthetic Patient 001",
     scenario: "Fictional adult with type 2 diabetes; simulated meal-planning follow-up. Not a real person.",
@@ -54,7 +56,11 @@ export function createDemoProfessionalService(repository: DemoRepository, clock 
     // Account then grant lock order matches administration. No cached entitlement.
     const [account] = await tx.accounts([userId]);
     const grant = await tx.grant(userId);
-    if (!account || account.professionalRole !== "physician" || !grant) deny("DEMO_AUTHORITY_REQUIRED");
+    // The Development repository validates exact Clinic ownership and issues
+    // explicit founder authority independently of the stored Business identity.
+    if (!account || !grant || account.id !== userId || grant.userId !== userId
+      || (isPermanentFounderDemoGrant(grant) && !isDevelopmentFounderDemoAccount(userId))
+      || (account.professionalRole !== "physician" && !isPermanentFounderDemoGrant(grant))) deny("DEMO_AUTHORITY_REQUIRED");
     live(grant!, clock());
     if (workspaceId && workspaceId !== grant!.workspaceId) deny("DEMO_DATA_SCOPE_DENIED");
     if (capability && !grant!.capabilities.includes(capability)) deny("DEMO_CAPABILITY_DENIED");
@@ -79,14 +85,15 @@ export function createDemoProfessionalService(repository: DemoRepository, clock 
     async invite(userId: string, workspaceId: string, patientId: string) {
       return repository.transaction(async tx => {
         const { account, grant, patient: record } = await patient(tx, userId, workspaceId, patientId, "clinical.write");
-        const parties = resolveCareInvitationParties(account, { id: record.id, professionalRole: null });
+        const parties = resolveCareInvitationParties({ ...account, professionalRole: grant.persona }, { id: record.id, professionalRole: null });
         assertInvitationDataset({ domain: "synthetic", workspaceId: grant.workspaceId },
           { domain: record.classification === "synthetic" ? "synthetic" : "live", workspaceId: record.workspaceId });
         if (record.connectionInvitation?.state === "accepted") return record.connectionInvitation;
         const invitation: DemoCareInvitation = {
           id: randomUUID(), providerUserId: parties.provider.id, clientUserId: parties.client.id, workspaceId,
           code: `DM-${randomUUID().slice(0, 8).toUpperCase()}`, token: `demo_${randomUUID()}`,
-          expiresAt: new Date(Math.min(clock().getTime() + 14 * 86400000, Date.parse(grant.expiresAt))).toISOString(),
+          expiresAt: new Date(Math.min(clock().getTime() + 14 * 86400000,
+            grant.expiresAt === null ? Infinity : Date.parse(grant.expiresAt))).toISOString(),
           revokedAt: null, state: "pending", acceptedAt: null, classification: "synthetic",
         };
         await tx.saveInvitation(record, invitation);
@@ -100,7 +107,7 @@ export function createDemoProfessionalService(repository: DemoRepository, clock 
           { domain: record.classification === "synthetic" ? "synthetic" : "live", workspaceId: record.workspaceId });
         const invitation = record.connectionInvitation;
         if (!invitation || (key !== invitation.code && key !== invitation.token)) deny("DEMO_INVITATION_NOT_FOUND");
-        resolveCareInvitationParties(account, { id: record.id, professionalRole: null }, invitation!);
+        resolveCareInvitationParties({ ...account, professionalRole: grant.persona }, { id: record.id, professionalRole: null }, invitation!);
         if (invitation!.workspaceId !== workspaceId || invitation!.classification !== "synthetic") deny("DEMO_DATA_SCOPE_DENIED");
         try { assertInvitationWindow(invitation!, clock()); }
         catch (error) {
@@ -173,6 +180,7 @@ export function createDemoProfessionalService(repository: DemoRepository, clock 
       return repository.transaction(async tx => {
         const { grant, workspace } = await authorized(tx, userId, undefined, undefined, false);
         return { operatingStatus: "demo_only", persona: "physician", grant, workspace,
+          ...(tx.clinic ? { clinic: await tx.clinic() } : {}),
           acknowledgmentRequired: !grant.acknowledgedAt || grant.acknowledgmentVersion !== DEMO_ACKNOWLEDGMENT_VERSION,
           realClinicalReadiness: false, credentialVerificationGranted: false, academyCompletionGranted: false,
           realAgreementsGranted: false, paidSubscriptionGranted: false };
