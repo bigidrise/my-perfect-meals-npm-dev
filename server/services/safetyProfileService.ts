@@ -5,7 +5,7 @@
 import { db } from "../db";
 import { users } from "../../shared/schema";
 import { eq } from "drizzle-orm";
-import { ALLERGEN_EXPANSION, RESTRICTION_EXPANSION, ADAPTABLE_DISH_NAME_TERMS, classifyAllergyConflict, hasAffirmativeFoodTerm, AllergyConflict } from "./allergyGuardrails";
+import { ALLERGEN_EXPANSION, RESTRICTION_EXPANSION, ADAPTABLE_DISH_NAME_TERMS, classifyAllergyConflict, hasAffirmativeFoodTerm, AllergyConflict, foodMeaningDietaryText } from "./allergyGuardrails";
 import { SafetyMode, claimOverrideToken, commitOverrideToken, rollbackOverrideToken, logSafetyOverride } from "./safetyPinService";
 import { maskFoodIntentDietaryCompounds } from "@shared/semanticDietaryIngredients";
 
@@ -388,6 +388,15 @@ function findMatchedTerms(text: string, termBank: Set<string>): string[] {
   return Array.from(new Set(matches));
 }
 
+function findDietMatchedTerms(text: string, profile: SafetyProfile): string[] {
+  return Array.from(new Set(profile.dietaryRestrictions.flatMap(restriction =>
+    findMatchedTerms(
+      foodMeaningDietaryText(text, restriction),
+      buildDietTermBank({ ...profile, dietaryRestrictions: [restriction] }),
+    ),
+  )));
+}
+
 function findMatchedCategories(terms: string[], profile: SafetyProfile): string[] {
   const categories: string[] = [];
   
@@ -668,11 +677,9 @@ export async function enforceSafetyProfile(
     const activeDietaryRestrictions = profile.dietaryRestrictions
       .map(normalize)
       .filter(diet => !ignoredDietaryRestrictions.has(diet));
-    const dietTermBank = buildDietTermBank({
-      ...profile,
-      dietaryRestrictions: activeDietaryRestrictions,
+    const dietMatches = findDietMatchedTerms(evidenceText, {
+      ...profile, dietaryRestrictions: activeDietaryRestrictions,
     });
-    const dietMatches = findMatchedTerms(evidenceText, dietTermBank);
 
     if (dietMatches.length > 0) {
       const primaryDiet = activeDietaryRestrictions[0];
@@ -764,8 +771,7 @@ export function enforceSafetyProfileSync(
 
   // === PATH 3: DIET CHECK — soft adaptation, AI handles generation ===
   if (profile.dietaryRestrictions.length > 0) {
-    const dietTermBank = buildDietTermBank(profile);
-    const dietMatches = findMatchedTerms(evidenceText, dietTermBank);
+    const dietMatches = findDietMatchedTerms(evidenceText, profile);
 
     if (dietMatches.length > 0) {
       const primaryDiet = profile.dietaryRestrictions[0];

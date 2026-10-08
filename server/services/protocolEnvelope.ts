@@ -2083,6 +2083,16 @@ The user has marked these as foods they do not eat: ${avoidList}
   }
 
   // ── TIER 7: Preferences ───────────────────────────────────────────────────
+  if (process.env.NODE_ENV === "development" &&
+      [...envelope.avoidances, ...envelope.dietaryIdentity].some(rule =>
+        ["pork", "no pork", "no red meat", "kosher", "halal", "kosher-halal"].includes(rule.trim().toLowerCase()))) {
+    layers.avoidances += `\nFOOD IDENTITY — PROTEIN SOURCE:
+For an explicitly species-qualified processed meat, evaluate the named species, not the product-format word (bacon, ham, sausage, salami, pepperoni, chorizo).
+Pork rules forbid pork-origin components, including mixed ingredients, fats and casings; they do not automatically forbid every processed-meat format.
+If the source is unspecified, clarify or use an explicitly source-qualified compliant substitute. State the source in the ingredient list.
+This does not override an avoidance of the product itself, any other dietary rule, allergy, clinical limit, or required kosher/halal certification.`;
+  }
+
   if (envelope.preferences.length > 0) {
     const prefList = envelope.preferences.join(", ");
     layers.preferences = `\n✅ PREFERENCES (apply last, only within all constraints above):
