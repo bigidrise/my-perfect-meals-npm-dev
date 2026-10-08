@@ -29,7 +29,7 @@ export const demoDataBoundary = createDemoDataBoundary({
   },
   restriction: readDemoRestriction,
   async developmentProfile(req, actor, grant) {
-    if (!isDevelopmentFounderDemoAccount(actor.id)) return null;
+    if (grant.authority !== "development_founder" || !isDevelopmentFounderDemoAccount(actor.id)) return null;
     const profile = req.method === "GET" ? await developmentFounderDemoStore.profile()
       : await developmentFounderDemoStore.updateProfile(req.body ?? {});
     return {

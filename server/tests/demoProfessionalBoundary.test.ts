@@ -4,11 +4,13 @@ import { readFileSync } from "node:fs";
 import { createDemoDataBoundary } from "../middleware/demoDataBoundary";
 import { createDemoProfessionalService, type DemoRepository, type DemoTransaction } from "../services/demoProfessionalService";
 import { identitySnapshotHash, type IdentityAccountSnapshot } from "../services/professionalIdentityDecisionService";
-import { DEMO_CAPABILITIES, DEMO_ACKNOWLEDGMENT_VERSION, demoGrantPreparationInput, demoPlanInput, type DemoGrant, type DemoPatient } from "@shared/demoProfessional";
+import { DEMO_CAPABILITIES, DEMO_ACKNOWLEDGMENT_VERSION, demoGrantPreparationInput, demoPlanInput, isDemoGrantCurrent, type DemoGrant, type DemoPatient } from "@shared/demoProfessional";
+import { DEVELOPMENT_FOUNDER_PHYSICIAN_DEMO as founder } from "../config/developmentFounderPhysicianDemo";
+import { normalizeDemoGrantRecord } from "../services/demoGrantRecord";
 
 const now = new Date("2026-10-07T18:00:00.000Z");
-function fixture() {
-  const target: IdentityAccountSnapshot = { id:"demo-actor", professionalRole:"physician", authSecurityVersion:7,
+function fixture(targetId = "demo-actor") {
+  const target: IdentityAccountSnapshot = { id:targetId, professionalRole:"physician", authSecurityVersion:7,
     professionalCategory:"non_certified", credentialBody:null, credentialNumber:null, credentialType:null, credentialYear:null,
     isProCare:false, organizationId:"preserved-clinic-org", isAdmin:false, mfaEnabled:true };
   let state = {
@@ -24,7 +26,7 @@ function fixture() {
       glucose:[{id:"reading",value:118,unit:"mg/dL",context:"FASTED",recordedAt:now.toISOString()}],
       messages:[{id:"message",author:"Synthetic patient",text:"Demo message"}],
       media:[{id:"37e010aa-c441-4881-bf2a-3f402654cd15",name:"synthetic.txt",contentType:"text/plain",content:"SYNTHETIC ONLY"}],plan:null} as DemoPatient,
-    events:[] as unknown[], academy:false, approved:true, failEvent:false,
+    events:[] as unknown[], academy:false, approved:true, failEvent:false, clinicOwned:true,
     independent:{credentials:"unchanged",verification:"unverified",academy:[],agreements:[],billing:"unchanged",ownership:["clinic"],memberships:["org"],relationships:["preserved"],history:["business"]},
   };
   let tail = Promise.resolve();
@@ -36,6 +38,8 @@ function fixture() {
       workspace:async id=>state.workspace.id===id?state.workspace:null, patients:async()=>[state.patient],
       patient:async (workspaceId,id)=>state.patient.id===id&&state.patient.workspaceId===workspaceId?state.patient:null,
       academyComplete:async()=>state.academy, approvedIdentityRequest:async()=>state.approved,
+      ownedClinic:async(userId,clinicId)=>state.clinicOwned && userId===founder.userId && clinicId===founder.clinicId
+        ? {id:clinicId,name:"Existing fixture Clinic",type:"clinic",syntheticOnly:true}:null,
       createDataset:async(workspace,patient)=>{state.workspace=workspace;state.patient=patient;},
       saveGrant:async grant=>{state.grant={...grant};}, savePlan:async(record,plan)=>(state.patient={...record,plan,revision:record.revision+1}),
       saveInvitation:async(record,connectionInvitation)=>(state.patient={...record,connectionInvitation,revision:record.revision+1}),
@@ -205,6 +209,97 @@ describe("Stage 3 isolated demo authorization — no shared accounts",()=>{
   test("client flags/free-form patient data cannot define authority or clinical writes",()=>{
     const f=fixture();expect(demoGrantPreparationInput.safeParse({...f.preparation(),demo:true,verified:true}).success).toBe(false);
     expect(demoPlanInput.safeParse({nutritionFocus:"balanced_meals",followupDays:7,userId:"real-patient",notes:"real clinical data"}).success).toBe(false);
+  });
+});
+
+describe("Permanent founder grant — fixture-only, no shared activation", () => {
+  function permanentFixture(targetId = founder.userId) {
+    const f = fixture(targetId);
+    f.state().grant = null;
+    const input = { ...f.preparation(), expiresAt: null, lifetime: "permanent_founder" as const,
+      founderAuthorizationAcknowledged: true as const };
+    return { ...f, input };
+  }
+  test("MFA admin authorizes the exact existing Clinic with an audited demo-only waiver", async () => {
+    const f = permanentFixture(), before = JSON.stringify(f.state().independent);
+    f.state().academy = true; // Real education evidence is neither required nor fabricated.
+    const grant = await f.service.prepare(f.proof, f.input);
+    expect(grant).toMatchObject({ authority:"founder_admin", lifetime:"permanent_founder", expiresAt:null,
+      clinicId:founder.clinicId, state:"prepared", trainingBasis:"demo_only_waiver" });
+    expect(f.state().events).toEqual([expect.objectContaining({ kind:"demo_prepared", actor:"reviewer",
+      metadata:expect.objectContaining({ founderAuthorizationAcknowledged:true, authority:"founder_admin",
+        lifetime:"permanent_founder", clinicId:founder.clinicId, reviewerAuthority:"authenticated_admin_with_current_mfa" }) })]);
+    expect(JSON.stringify(f.state().independent)).toBe(before);
+  });
+  test.each(["wrong-target","missing-consent","missing-waiver","lost-clinic","stale-mfa","no-mfa","non-admin"])("permanent grant rejects %s atomically", async condition => {
+    const f = permanentFixture(condition==="wrong-target" ? "other-physician" : founder.userId);
+    if(condition==="missing-consent") delete (f.input as any).founderAuthorizationAcknowledged;
+    if(condition==="missing-waiver") delete (f.input as any).demoTrainingWaiverReason;
+    if(condition==="lost-clinic") f.state().clinicOwned=false;
+    if(condition==="stale-mfa") f.proof.securityVersion--;
+    if(condition==="no-mfa") f.state().accounts[0].mfaEnabled=false;
+    if(condition==="non-admin") f.state().accounts[0].isAdmin=false;
+    const before=JSON.stringify(f.state());
+    await expect(f.service.prepare(f.proof,f.input)).rejects.toMatchObject({status:403});
+    expect(JSON.stringify(f.state())).toBe(before);
+  });
+  test("ordinary NULL and over-30-day grants stay invalid; founder consent is explicit", async () => {
+    const f=fixture(); f.state().grant=null;
+    for (const expiresAt of [null,"2026-12-07T18:00:00.000Z"]) {
+      await expect(f.service.prepare(f.proof,{...f.preparation(),expiresAt})).rejects.toMatchObject({code:"DEMO_EXPIRY_INVALID"});
+    }
+    expect(demoGrantPreparationInput.safeParse({...permanentFixture().input,founderAuthorizationAcknowledged:undefined}).success).toBe(false);
+    expect(demoGrantPreparationInput.safeParse(permanentFixture().input).success).toBe(true);
+    expect(demoGrantPreparationInput.safeParse({...f.preparation(),expiresAt:null}).success).toBe(false);
+  });
+  test("failed permanent approval audit rolls back all fixture changes", async () => {
+    const f=permanentFixture(); f.state().failEvent=true; const before=JSON.stringify(f.state());
+    await expect(f.service.prepare(f.proof,f.input)).rejects.toThrow("event failure");
+    expect(JSON.stringify(f.state())).toBe(before);
+  });
+  test("non-expiring grant remains synthetic, reopens, invites, and revokes without real completions", async () => {
+    const f=permanentFixture(); const grant=await f.service.prepare(f.proof,f.input);
+    const input={revision:grant.revision,identityRequestId:"37e010aa-c441-4881-bf2a-3f402654cd12",
+      reviewedStateHash:identitySnapshotHash(f.state().accounts[1]),reason:"Activate fixture-only founder demonstration.",
+      identityOnlyAcknowledged:true as const,sharedDataAcknowledged:true as const};
+    await f.service.activate(f.proof,founder.userId,input);
+    expect(await f.service.context(founder.userId)).toMatchObject({clinic:{id:founder.clinicId},
+      realClinicalReadiness:false,credentialVerificationGranted:false,academyCompletionGranted:false,
+      realAgreementsGranted:false,paidSubscriptionGranted:false});
+    await f.service.acknowledge(founder.userId);
+    const s=f.state(), patient=s.patient;
+    const invitation=await f.service.invite(founder.userId,s.workspace.id,patient.id);
+    expect(Date.parse(invitation.expiresAt)-now.getTime()).toBe(14*86400000);
+    await f.service.acceptInvitation(founder.userId,s.workspace.id,patient.id,invitation.code);
+    expect(isDemoGrantCurrent(s.grant!,new Date("2040-01-01").getTime())).toBe(true);
+    expect(s.independent.academy).toEqual([]); expect(s.independent.billing).toBe("unchanged");
+    await f.service.revoke(f.proof,founder.userId,s.grant!.revision,"Revoke fixture founder authority.");
+    await expect(f.service.context(founder.userId)).rejects.toMatchObject({code:"DEMO_GRANT_INACTIVE"});
+  });
+  test("prepared founder grant does not bypass controlled identity approval or active Clinic ownership", async () => {
+    const f=permanentFixture(); const grant=await f.service.prepare(f.proof,f.input);
+    f.state().accounts[1].professionalRole="business";
+    const input={revision:grant.revision,identityRequestId:"37e010aa-c441-4881-bf2a-3f402654cd12",
+      reviewedStateHash:identitySnapshotHash(f.state().accounts[1]),reason:"Fixture identity transition.",
+      identityOnlyAcknowledged:true as const,sharedDataAcknowledged:true as const};
+    await expect(f.service.activate(f.proof,founder.userId,input)).rejects.toMatchObject({code:"DEMO_CONTROLLED_IDENTITY_REQUIRED"});
+    f.state().accounts[1].professionalRole="physician"; f.state().clinicOwned=false;
+    input.reviewedStateHash=identitySnapshotHash(f.state().accounts[1]);
+    await expect(f.service.activate(f.proof,founder.userId,input)).rejects.toMatchObject({code:"DEMO_CLINIC_OWNERSHIP_REQUIRED"});
+  });
+  test("NULL expiry and client-shaped permanent markers cannot manufacture persisted authority", () => {
+    const row={...fixture().state().grant!,userId:founder.userId,expiresAt:null,
+      authority:"founder_admin" as const,lifetime:"permanent_founder" as const,clinicId:founder.clinicId};
+    expect(isDemoGrantCurrent(normalizeDemoGrantRecord(row)!)).toBe(false);
+    const audit={authority:"founder_admin",lifetime:"permanent_founder",clinicId:founder.clinicId,
+      founderAuthorizationAcknowledged:true,reviewerAuthority:"authenticated_admin_with_current_mfa",
+      reviewerSecurityVersion:7,grantRevision:1};
+    expect(isDemoGrantCurrent(normalizeDemoGrantRecord({...row,authorization:audit})!)).toBe(true);
+    for (const authorization of [{...audit,founderAuthorizationAcknowledged:false},{...audit,clinicId:"wrong-clinic"},
+      {...audit,reviewerSecurityVersion:null},{...audit,reviewerAuthority:"client_claim"}]) {
+      expect(isDemoGrantCurrent(normalizeDemoGrantRecord({...row,authorization})!)).toBe(false);
+    }
+    expect(isDemoGrantCurrent(normalizeDemoGrantRecord({...row,userId:"other-physician",authorization:audit})!)).toBe(false);
   });
 });
 

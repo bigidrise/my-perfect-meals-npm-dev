@@ -1,4 +1,4 @@
-import type { DemoCapability, DemoContext, DemoPatient, DemoPlan } from "@shared/demoProfessional";
+import { isPermanentFounderDemoGrant, type DemoCapability, type DemoContext, type DemoPatient, type DemoPlan } from "@shared/demoProfessional";
 
 type PatientSummary = Pick<DemoPatient, "id" | "label" | "scenario">;
 type PatientDetail = Pick<DemoPatient, "id" | "label" | "scenario" | "glucose" | "plan" | "revision">;
@@ -70,7 +70,7 @@ export function DemoPhysicianHeader({ context, acknowledged, ackBusy, ackError, 
             )}
           </div>
           <div className="flex shrink-0 flex-col gap-2 md:items-end">
-            <span className="rounded-full border border-[#d8bda9] bg-[#fcf5ef] px-3 py-1.5 text-xs font-semibold text-[#704631]">Expires {formatDate(context.grant.expiresAt)}</span>
+            <span className="rounded-full border border-[#d8bda9] bg-[#fcf5ef] px-3 py-1.5 text-xs font-semibold text-[#704631]">{isPermanentFounderDemoGrant(context.grant) ? "Permanent founder demo · revocable" : `Expires ${formatDate(context.grant.expiresAt)}`}</span>
             {acknowledged ? (
               <span className="text-xs font-semibold text-[#476b4f]">Demo-only acknowledgment recorded</span>
             ) : (

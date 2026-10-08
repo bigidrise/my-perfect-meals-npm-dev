@@ -17,3 +17,9 @@ export function developmentFounderDemoEnabled(): boolean {
 export function isDevelopmentFounderDemoAccount(userId: string): boolean {
   return developmentFounderDemoEnabled() && userId === DEVELOPMENT_FOUNDER_PHYSICIAN_DEMO.userId;
 }
+
+/** Scope only, not an entitlement. Production additionally requires an audited DB grant. */
+export function isFounderPhysicianDemoScope(userId: string, clinicId: string | undefined): boolean {
+  return userId === DEVELOPMENT_FOUNDER_PHYSICIAN_DEMO.userId
+    && clinicId === DEVELOPMENT_FOUNDER_PHYSICIAN_DEMO.clinicId;
+}

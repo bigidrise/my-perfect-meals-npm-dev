@@ -55,7 +55,8 @@ export function createDemoDataBoundary(deps: DemoBoundaryDependencies) {
           professionalRole: actor.professionalRole, isProCare: actor.isProCare, planLookupKey: actor.planLookupKey,
           operatingStatus: "demo_only", demoGrantState: grant.state,
           // Intentionally no real profile/health/credential/Studio payload.
-          preferredLanguage: "auto",
+          firstName: actor.firstName ?? "", lastName: actor.lastName ?? "",
+          preferredLanguage: "auto", demoPersona: "physician",
         });
       }
       if (demoEndpoint(req.method, path)) return next();
