@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 const FULL_SCREEN_ROUTES = [
   "/welcome",
   "/auth",
+  "/login",
   "/onboarding",
   "/onboarding-v2",
   "/onboarding-legacy",

@@ -926,6 +926,7 @@ export default function Router() {
     "/demo-physician",
     "/",
     "/auth",
+    "/login",
     "/welcome",
     "/guest-builder",
     "/guest-suite",
@@ -1146,6 +1147,7 @@ export default function Router() {
         <Route path="/guest-suite" component={GuestBuilder} />
         <Route path="/home" component={Home} />
         <Route path="/auth" component={Auth} />
+        <Route path="/login" component={Auth} />
         <Route path="/join/clinic" component={lazy(() => import("@/pages/ClinicPilotJoinPage"))} />
         <Route path="/join/business-offer" component={BusinessOfferJoinPage} />
         <Route path="/forgot-password" component={ForgotPassword} />
