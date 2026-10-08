@@ -20,3 +20,9 @@ description: Governs how unfamiliar natural-language food requests enter Create 
 **Why:** The user confirmed that FoodMeaning already solved that interpretation problem; the later legacy failure was expected when its Development gate was turned off to test an unrelated preflight identity correction. Maintaining two competing semantic fixes would obscure which path is authoritative.
 
 **How to apply:** Test person continuity and FoodMeaning separately when needed, then validate them together with the Development gate enabled. Keep Production untouched until separately authorized; do not mistake an isolated legacy-path rejection for a FoodMeaning regression.
+
+**Rule:** A named protein source and a processed-food format are different facts. Apply species restrictions to the source-qualified FoodMeaning identity, while keeping direct product avoidances and allergy evidence independent.
+
+**Why:** The user reported turkey bacon being rejected as pork and explicitly required an identity-based correction, not a turkey-bacon whitelist or a second classification system.
+
+**How to apply:** Reuse FoodMeaning for explicit compound identities before species matching. Unknown sources require clarification or a compliant substitution, not invented pork-free evidence. Never globally erase format words from allergy scans or product-specific avoidances; separately listed pork, fats, casings, and other restricted ingredients remain enforceable.
