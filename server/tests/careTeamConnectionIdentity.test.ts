@@ -215,6 +215,12 @@ test("client-created pending placeholder becomes exactly one identity-bound acti
   expect(res.status).toBe(200);
   expect(res.body.member).toMatchObject({ userId: client.id, proUserId: professional.id, status: "active" });
   expect(mockRows.get(careTeamMember)).toHaveLength(1);
+  // The canonical transaction replaces the pending UI placeholder. Preserve
+  // the incoming regression's no-duplication/row-identity intent on its receipt.
+  const memberId = res.body.member.id;
+  expect(mockRows.get(careTeamMember)![0].id).toBe(memberId);
+  expect((await connect()).body.member.id).toBe(memberId);
+  expect(mockRows.get(careTeamMember)).toHaveLength(1);
 });
 
 test.each(["client_invites", "professional_invites"] as const)("%s: the professional's Clinical plan cannot substitute for client eligibility", async direction => {
@@ -292,8 +298,8 @@ test("accepting the same invitation stays bound to the exact existing relationsh
   expect(mockActivate.mock.calls.every(call => call[0] === client.id && call[1] === professional.id)).toBe(true);
 });
 
-test("organization attribution is validated and passed through unchanged", async () => {
-  arrange("client_invites");
+test.each(["client_invites", "professional_invites"] as const)("%s: organization attribution is validated and passed through unchanged", async direction => {
+  arrange(direction);
   invitation.organizationId = "organization";
   invitation.locationId = "location";
   invitation.sourceBusinessId = "business";
