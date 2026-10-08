@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { lazy, Suspense, useState, useEffect, useRef, useCallback } from "react";
+import type { ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
@@ -10,15 +11,8 @@ import { Button } from "@/components/ui/button";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
-import PendingActivationQueue from "@/components/pro/PendingActivationQueue";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  proStore,
-  ClientProfile,
-  ProRole,
-  WorkspaceType,
-  BuilderType,
-} from "@/lib/proData";
+import type { ClientProfile, ProRole, WorkspaceType, BuilderType } from "@/lib/proData";
 import {
   ArrowLeft,
   Archive,
@@ -33,10 +27,11 @@ import {
   Link2Off,
 } from "lucide-react";
 import TrashButton from "@/components/ui/TrashButton";
-import ProClientFolderModal from "@/components/pro/ProClientFolderModal";
-import { InformationModal } from "@/components/ui/universal-modal";
-import CheckInAlertPreferences from "@/components/pro/CheckInAlertPreferences";
-import CheckInOverviewPanel from "@/components/pro/CheckInOverviewPanel";
+const PendingActivationQueue = lazy(() => import("@/components/pro/PendingActivationQueue"));
+const ProClientFolderModal = lazy(() => import("@/components/pro/ProClientFolderModal"));
+const CheckInAlertPreferences = lazy(() => import("@/components/pro/CheckInAlertPreferences"));
+const CheckInOverviewPanel = lazy(() => import("@/components/pro/CheckInOverviewPanel"));
+const InformationModal = lazy(() => import("@/components/ui/universal-modal").then(module => ({ default: module.InformationModal })));
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { resolveClinicalProtocolLabel } from "@shared/clinical/clinicalModeResolver";
 import type { ProfessionalGlucoseClientSummary } from "@shared/professionalGlucose";
@@ -55,21 +50,33 @@ interface AggregatedMessage {
   clientName: string;
   createdAt: string;
   isUnread: boolean;
+  contentType?: string;
 }
 
 interface ProClientsProps {
   workspace?: WorkspaceType;
+  syntheticSource?: {
+    patients: Array<{ id: string; label: string; scenario: string }>;
+    selectedPatientId: string;
+    loading: boolean;
+    error: string;
+    onRefresh: () => void;
+    onSelect: (patientId: string) => void;
+    patientDetail: ReactNode;
+    boundaryNotice: ReactNode;
+  };
 }
 
-export default function ProClients({ workspace }: ProClientsProps = {}) {
+export default function ProClients({ workspace, syntheticSource }: ProClientsProps = {}) {
   const { t } = useTranslation("pro");
   const resolvedWorkspace = workspace || "trainer";
   const isPhysician = resolvedWorkspace === "clinician";
 
   const [, setLocation] = useLocation();
   const [clients, setClients] = useState<ClientProfile[]>(() =>
-    proStore.listClients(resolvedWorkspace),
+    [],
   );
+  const proStoreRef = useRef<(typeof import("@/lib/proData"))["proStore"] | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [dbSynced, setDbSynced] = useState(false);
   const [folderClient, setFolderClient] = useState<ClientProfile | null>(null);
@@ -136,20 +143,30 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
   }, []);
 
   useEffect(() => {
-    syncDbClients();
+    if (syntheticSource) return;
+    let active = true;
+    void import("@/lib/proData").then(({ proStore }) => {
+      if (!active) return;
+      proStoreRef.current = proStore;
+      setClients([...proStore.listClients(resolvedWorkspace)]);
+      void syncDbClients();
+    });
     fetchUnreadSummary();
     const interval = setInterval(fetchUnreadSummary, 30000);
-    return () => clearInterval(interval);
-  }, [fetchUnreadSummary]);
+    return () => { active = false; clearInterval(interval); };
+  }, [fetchUnreadSummary, syntheticSource, resolvedWorkspace]);
 
   useEffect(() => {
+    if (syntheticSource) return;
     if (showInbox) {
       fetchInboxMessages();
     }
-  }, [showInbox, fetchInboxMessages]);
+  }, [showInbox, fetchInboxMessages, syntheticSource]);
 
   async function syncDbClients() {
     try {
+      const { proStore } = await import("@/lib/proData");
+      proStoreRef.current = proStore;
       const headers: Record<string, string> = { ...getAuthHeaders() };
 
       const studioRes = await fetch(apiUrl("/api/studios/my-studio"), { headers });
@@ -312,6 +329,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
   }
 
   const archiveClient = async (id: string) => {
+    const { proStore } = await import("@/lib/proData");
     proStore.archiveClient(id);
     setClients([...proStore.listClients(resolvedWorkspace)]);
     const client = proStore.getClient(id);
@@ -323,6 +341,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
   };
 
   const restoreClient = async (id: string) => {
+    const { proStore } = await import("@/lib/proData");
     proStore.restoreClient(id);
     setClients([...proStore.listClients(resolvedWorkspace)]);
     const client = proStore.getClient(id);
@@ -333,7 +352,8 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
     }
   };
 
-  const deleteClient = (id: string, _name: string) => {
+  const deleteClient = async (id: string, _name: string) => {
+    const { proStore } = await import("@/lib/proData");
     proStore.deleteClient(id);
     setClients([...proStore.listClients(resolvedWorkspace)]);
   };
@@ -343,6 +363,10 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
   };
 
   const openFolder = async (c: ClientProfile) => {
+    if (syntheticSource) {
+      syntheticSource.onSelect(c.id);
+      return;
+    }
     if (isMobile) {
       setMobileGateOpen(true);
       return;
@@ -369,6 +393,8 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                   studioId: studio.id,
                   dbBacked: true,
                 };
+                const { proStore } = await import("@/lib/proData");
+                proStoreRef.current = proStore;
                 proStore.upsertClient(c);
                 setClients([...proStore.listClients(resolvedWorkspace)]);
               }
@@ -406,7 +432,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
     if (!raw) return null;
     const isAntiInflammatory = raw === 'anti_inflammatory' || raw === 'anti-inflammatory';
     if (isAntiInflammatory) {
-      const targets = proStore.getTargets(c.id);
+      const targets = proStoreRef.current?.getTargets(c.id);
       return resolveClinicalProtocolLabel(targets?.flags);
     }
     return (
@@ -464,6 +490,16 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
       description: t("clients.tour.step3Desc"),
     },
   ];
+  const visibleClients: ClientProfile[] = syntheticSource
+    ? syntheticSource.patients.map(patient => ({
+        id: patient.id,
+        name: patient.label,
+        notes: patient.scenario,
+        role: "doctor",
+        workspace: "clinician",
+        archived: false,
+      }))
+    : clients;
 
   return (
     <motion.div
@@ -488,7 +524,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
           </button>
           <h1 className="text-lg font-bold text-white flex-1 truncate min-w-0">{portalTitle}</h1>
           <div className="flex-shrink-0 flex items-center gap-2">
-            <CheckInAlertPreferences />
+            {!syntheticSource && <Suspense fallback={null}><CheckInAlertPreferences /></Suspense>}
             <QuickTourButton onClick={quickTour.openTour} />
           </div>
         </div>
@@ -499,11 +535,12 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
         className="max-w-6xl mx-auto px-6 space-y-6"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
-        <PendingActivationQueue onActivated={() => syncDbClients()} />
+        {syntheticSource?.boundaryNotice}
+        {!syntheticSource && <Suspense fallback={null}><PendingActivationQueue onActivated={() => syncDbClients()} /></Suspense>}
 
-        <CheckInOverviewPanel />
+        {!syntheticSource && <Suspense fallback={null}><CheckInOverviewPanel /></Suspense>}
 
-        {totalUnread > 0 && (
+        {!syntheticSource && totalUnread > 0 && (
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -529,7 +566,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
         )}
 
         <AnimatePresence>
-          {showInbox && (
+          {!syntheticSource && showInbox && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
@@ -577,7 +614,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                               </span>
                             </div>
                             <p className="text-xs text-white/60 truncate mt-0.5">
-                              {msg.contentType === "voice" ? "🎤 Voice message" : msg.body}
+                              {msg.contentType === "voice" ? "Voice message" : msg.body}
                             </p>
                           </div>
                         </div>
@@ -590,7 +627,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
           )}
         </AnimatePresence>
 
-        <div className="flex justify-end mb-2">
+        {!syntheticSource && <div className="flex justify-end mb-2">
           <Button
             onClick={() => setShowArchived(!showArchived)}
             variant="outline"
@@ -599,21 +636,26 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
           >
             {showArchived ? t("clients.hideArchived") : t("clients.showArchived")}
           </Button>
-        </div>
+        </div>}
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {clients.filter((c) => (showArchived ? c.archived : !c.archived))
+          {(syntheticSource ? visibleClients : visibleClients.filter((c) => (showArchived ? c.archived : !c.archived)))
             .length === 0 ? (
             <div className="text-white">
-              {showArchived
+              {syntheticSource?.loading ? "Loading synthetic patients…" : syntheticSource?.error
+                ? "Synthetic patient list unavailable."
+                : showArchived
                 ? `No archived ${entityLabel}s.`
                 : `No active ${entityLabel}s yet. Add one above.`}
+              {syntheticSource?.error && <p role="alert" className="mt-2 text-sm text-orange-100">{syntheticSource.error}</p>}
+              {syntheticSource && <Button onClick={syntheticSource.onRefresh} variant="outline" size="sm" className="mt-3 bg-white/10 border-white/20 text-white">Retry synthetic list</Button>}
             </div>
           ) : (
-            clients
+            visibleClients
               .filter((c) => (showArchived ? c.archived : !c.archived))
               .map((c) => {
-                const clientUnread = c.clientUserId ? (unreadMap[c.clientUserId] || 0) : 0;
+                const clientUnread = !syntheticSource && c.clientUserId ? (unreadMap[c.clientUserId] || 0) : 0;
+                const syntheticPatient = syntheticSource?.patients.find(patient => patient.id === c.id);
                 return (
                   <Card
                     key={c.id}
@@ -635,7 +677,7 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                         )}
                       </div>
 
-                       {isPhysician && c.clientUserId && glucoseSummaries[c.clientUserId] && (
+                        {isPhysician && !syntheticSource && c.clientUserId && glucoseSummaries[c.clientUserId] && (
                          <div className="rounded-lg border border-orange-500/25 bg-orange-500/10 px-3 py-2">
                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                              <span className="text-sm font-bold text-white">
@@ -660,7 +702,17 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                        )}
 
                       <div className="flex items-center gap-2">
-                        {c.archived ? (
+                        {syntheticSource ? (
+                          <Button
+                            onClick={() => syntheticSource.onSelect(c.id)}
+                            size="sm"
+                            className={`text-white active:scale-[0.98] ${syntheticSource.selectedPatientId === c.id ? "bg-orange-600" : "bg-purple-600"}`}
+                            data-testid="button-open-client"
+                          >
+                            <FolderOpen className="h-4 w-4 mr-1" />
+                            {syntheticSource.selectedPatientId === c.id ? "Viewing" : "Open"}
+                          </Button>
+                        ) : c.archived ? (
                           <>
                             <Button
                               onClick={() => restoreClient(c.id)}
@@ -738,12 +790,23 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
                           )}
                         </div>
                       )}
+                      {syntheticSource && syntheticPatient && (
+                        <div className="border-t border-white/10 pt-2 text-xs leading-5 text-white/65">
+                          <span className="mr-2 rounded-full border border-emerald-200/40 bg-emerald-300/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-100">Synthetic</span>
+                          {syntheticPatient.scenario}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 );
               })
           )}
         </div>
+        {syntheticSource && (
+          <section className="mt-6" aria-label="Synthetic patient detail">
+            {syntheticSource.patientDetail}
+          </section>
+        )}
       </div>
 
       <AnimatePresence>
@@ -767,22 +830,23 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
         )}
       </AnimatePresence>
 
-      <InformationModal
+      {!syntheticSource && <Suspense fallback={null}><InformationModal
         open={mobileGateOpen}
         onOpenChange={setMobileGateOpen}
         title={t("clients.desktopRequired")}
         description="Client folders are designed for desktop or tablet view. Please use a wider screen, switch to desktop view, or rotate your device to landscape to open this folder."
-      />
+        children={null}
+      /></Suspense>}
 
-      <QuickTourModal
+      {!syntheticSource && <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
         title={t("clients.tourTitle")}
         steps={PRO_CLIENTS_TOUR_STEPS}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
-      />
+      />}
 
-      <ProClientFolderModal
+      {!syntheticSource && <Suspense fallback={null}><ProClientFolderModal
         client={folderClient}
         open={folderOpen}
         onOpenChange={(open) => {
@@ -793,9 +857,9 @@ export default function ProClients({ workspace }: ProClientsProps = {}) {
         }}
         onNavigate={setLocation}
         isPhysician={isPhysician}
-      />
+      /></Suspense>}
 
-      {archivePendingClient && (
+      {!syntheticSource && archivePendingClient && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
           <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 max-w-sm w-full flex flex-col gap-4 shadow-2xl">
             <div className="flex items-center gap-3">

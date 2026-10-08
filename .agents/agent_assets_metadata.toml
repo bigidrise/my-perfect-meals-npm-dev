@@ -327,3 +327,17 @@ mtime_ms = 1791425461195
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/975d437d-8025-44bd-a48d-dc608b5596e5/f7486862-a876-46bd-a7af-9dbeba2b44dc"
 storage_version_token = "1791425480816293"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "y1SOfO-W-h9GpP8QRS1gE"
+uri = "file://.local/reports/physician-pilot-root-cause-investigation.html"
+type = "html"
+title = "Physician Pilot: Root-Cause Investigation"
+description = "Confirmed access mismatch, reproduced provisioning defect, clinical readiness gates, regression evidence, and explicit Production verification limits."
+logical_id = "bbef6ab3-27aa-46a6-af4e-3f762d5872c9"
+content_hash = "sha256:b6c4fbe33ad46f36db8bd8daab38a4bd6e7a459ca61ff59b4e79af85e62c9cb9"
+size = 23704
+mtime_ms = 1791427459614
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/bbef6ab3-27aa-46a6-af4e-3f762d5872c9/0bbd272b-52e3-418b-9d4c-7678157ac4b5"
+storage_version_token = "1791427544838091"
+content_type = "text/html"

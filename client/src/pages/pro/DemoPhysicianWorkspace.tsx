@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLocation } from "wouter";
 import DemoCareInvitation from "@/components/pro/DemoCareInvitation";
+import ProClients from "@/pages/pro/ProClients";
+import { apiRequest } from "@/lib/queryClient";
+import { logout } from "@/lib/auth";
 import {
   acknowledgeDemoOnly,
   exportDemoPatient,
@@ -12,11 +17,9 @@ import {
   readDemoMedia,
   saveDemoPlan,
 } from "@/lib/demoProfessional";
-import { DEMO_ACKNOWLEDGMENT_VERSION, type DemoCapability, type DemoContext, type DemoPlan } from "@shared/demoProfessional";
+import { DEMO_ACKNOWLEDGMENT_VERSION, isDemoGrantCurrent, type DemoCapability, type DemoContext, type DemoPlan } from "@shared/demoProfessional";
 import DemoSyntheticPatientView, {
   DemoBlockedScreen,
-  DemoPhysicianHeader,
-  DemoSyntheticPatientList,
 } from "@/components/pro/DemoSyntheticPatientView";
 
 type PatientSummary = { id: string; label: string; scenario: string };
@@ -24,13 +27,20 @@ type PatientDetail = Awaited<ReturnType<typeof getDemoPatient>>;
 type DemoMessage = Awaited<ReturnType<typeof getDemoMessages>>["messages"][number];
 type MediaItem = Awaited<ReturnType<typeof getDemoMedia>>["media"][number];
 type MediaContent = Awaited<ReturnType<typeof readDemoMedia>>;
-
+type DemoProfile = {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  professionalRole: string | null;
+  preferredLanguage: string;
+};
 function messageOf(error: unknown) {
   if (error instanceof Error) return error.message;
   return typeof error === "string" ? error : "The request could not be completed. Please try again.";
 }
 
-function isUsableContext(context: DemoContext | null): context is DemoContext {
+function isUsableContext(context: DemoContext | null, accountId: string): context is DemoContext {
   if (!context) return false;
   const grant = context.grant;
   return context.operatingStatus === "demo_only" &&
@@ -38,8 +48,10 @@ function isUsableContext(context: DemoContext | null): context is DemoContext {
     grant.persona === "physician" &&
     grant.operatingStatus === "demo_only" &&
     grant.state === "active" &&
-    new Date(grant.expiresAt).getTime() > Date.now() &&
+    grant.userId === accountId &&
+    isDemoGrantCurrent(grant) &&
     context.workspace.classification === "synthetic" &&
+    (!context.clinic || (context.clinic.type === "clinic" && context.clinic.syntheticOnly === true)) &&
     context.realClinicalReadiness === false &&
     context.credentialVerificationGranted === false &&
     context.academyCompletionGranted === false &&
@@ -47,10 +59,12 @@ function isUsableContext(context: DemoContext | null): context is DemoContext {
     context.paidSubscriptionGranted === false;
 }
 
-export default function DemoPhysicianWorkspace() {
-  const { user, loading: authLoading } = useAuth();
+export default function DemoPhysicianWorkspace({ fallback }: { fallback?: ReactNode }) {
+  const { user, loading: authLoading, refreshUser, setUser } = useAuth();
+  const [, setLocation] = useLocation();
   const accountId = user?.id ?? "";
   const [context, setContext] = useState<DemoContext | null>(null);
+  const [loadedAccountId, setLoadedAccountId] = useState("");
   const [contextLoading, setContextLoading] = useState(true);
   const [contextError, setContextError] = useState("");
   const [expiryPulse, setExpiryPulse] = useState(0);
@@ -78,12 +92,26 @@ export default function DemoPhysicianWorkspace() {
   const [exportBusy, setExportBusy] = useState(false);
   const [exportError, setExportError] = useState("");
   const [exportDone, setExportDone] = useState(false);
+  const [storedProfile, setStoredProfile] = useState<DemoProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState("");
+  const [profileEditing, setProfileEditing] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaveError, setProfileSaveError] = useState("");
+  const [profileSaved, setProfileSaved] = useState(false);
+  const [editFirstName, setEditFirstName] = useState("");
+  const [editLastName, setEditLastName] = useState("");
+  const [editLanguage, setEditLanguage] = useState("auto");
 
   const contextEpoch = useRef(0);
   const detailEpoch = useRef(0);
+  const profileEpoch = useRef(0);
   const accountRef = useRef(accountId);
   const capabilitySet = useMemo(() => new Set<DemoCapability>(context?.grant.capabilities ?? []), [context]);
-  const contextReady = isUsableContext(context);
+  const contextReady = isUsableContext(context, accountId);
+  const founderAuthority = context?.grant.authority === "development_founder" &&
+    context.grant.lifetime === "permanent_founder" &&
+    context.grant.userId === accountId;
   const canUseDemo = Boolean(contextReady && acknowledged);
   const canReadPatients = canUseDemo && capabilitySet.has("patient.read");
   const canReadClinical = canUseDemo && capabilitySet.has("clinical.read");
@@ -99,7 +127,9 @@ export default function DemoPhysicianWorkspace() {
 
   const clearWorkspace = useCallback(() => {
     detailEpoch.current += 1;
+    profileEpoch.current += 1;
     setContext(null);
+    setLoadedAccountId("");
     setContextError("");
     setContextLoading(true);
     setAcknowledged(false);
@@ -126,6 +156,16 @@ export default function DemoPhysicianWorkspace() {
     setExportBusy(false);
     setExportError("");
     setExportDone(false);
+    setStoredProfile(null);
+    setProfileLoading(false);
+    setProfileError("");
+    setProfileEditing(false);
+    setProfileSaving(false);
+    setProfileSaveError("");
+    setProfileSaved(false);
+    setEditFirstName("");
+    setEditLastName("");
+    setEditLanguage("auto");
   }, []);
 
   const loadContext = useCallback(async (epoch: number) => {
@@ -134,21 +174,24 @@ export default function DemoPhysicianWorkspace() {
     try {
       const result = await getDemoContext();
       if (contextEpoch.current !== epoch) return;
-      setContext(result);
+      const founderContext = result;
+      setContext(founderContext);
+      setLoadedAccountId(accountId);
       setAcknowledged(Boolean(
-        !result.acknowledgmentRequired &&
-        result.grant.acknowledgedAt &&
-        result.grant.acknowledgmentVersion === DEMO_ACKNOWLEDGMENT_VERSION
+        !founderContext.acknowledgmentRequired &&
+        founderContext.grant.acknowledgedAt &&
+        founderContext.grant.acknowledgmentVersion === DEMO_ACKNOWLEDGMENT_VERSION
       ));
     } catch (error) {
       if (contextEpoch.current === epoch) {
         setContext(null);
+        setLoadedAccountId(accountId);
         setContextError(messageOf(error));
       }
     } finally {
       if (contextEpoch.current === epoch) setContextLoading(false);
     }
-  }, []);
+  }, [accountId]);
 
   useEffect(() => {
     accountRef.current = accountId;
@@ -166,6 +209,7 @@ export default function DemoPhysicianWorkspace() {
 
   useEffect(() => {
     if (!context) return;
+    if (context.grant.expiresAt === null) return;
     const delay = new Date(context.grant.expiresAt).getTime() - Date.now();
     if (!Number.isFinite(delay) || delay <= 0) {
       setExpiryPulse(value => value + 1);
@@ -174,6 +218,29 @@ export default function DemoPhysicianWorkspace() {
     const timer = window.setTimeout(() => setExpiryPulse(value => value + 1), Math.min(delay + 20, 2_147_000_000));
     return () => window.clearTimeout(timer);
   }, [context]);
+
+  useEffect(() => {
+    if (!contextReady || !accountId) return;
+    const epoch = ++profileEpoch.current;
+    let active = true;
+    setProfileLoading(true);
+    setProfileError("");
+    apiRequest<DemoProfile>("/api/user/profile")
+      .then(profile => {
+        if (!active || profileEpoch.current !== epoch || accountRef.current !== accountId || profile.id !== accountId) return;
+        setStoredProfile(profile);
+        setEditFirstName(profile.firstName || "");
+        setEditLastName(profile.lastName || "");
+        setEditLanguage(profile.preferredLanguage || "auto");
+      })
+      .catch(error => {
+        if (active && profileEpoch.current === epoch && accountRef.current === accountId) setProfileError(messageOf(error));
+      })
+      .finally(() => {
+        if (active && profileEpoch.current === epoch && accountRef.current === accountId) setProfileLoading(false);
+      });
+    return () => { active = false; profileEpoch.current += 1; };
+  }, [accountId, contextReady]);
 
   const refreshPatients = useCallback(async () => {
     if (!canReadPatients || !context || accountRef.current !== accountId) return;
@@ -268,6 +335,56 @@ export default function DemoPhysicianWorkspace() {
     }
   }
 
+  async function saveProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!storedProfile || profileSaving || accountRef.current !== accountId) return;
+    const firstName = editFirstName.trim();
+    const lastName = editLastName.trim();
+    if (firstName.length > 80 || lastName.length > 80) {
+      setProfileSaveError("Names must be 80 characters or fewer.");
+      return;
+    }
+    const epoch = profileEpoch.current;
+    setProfileSaving(true);
+    setProfileSaveError("");
+    setProfileSaved(false);
+    try {
+      await apiRequest("/api/user/profile", {
+        method: "PATCH",
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          preferredLanguage: editLanguage,
+        }),
+      });
+      const updated = await apiRequest<DemoProfile>("/api/user/profile");
+      if (profileEpoch.current !== epoch || accountRef.current !== accountId || updated.id !== accountId) return;
+      setStoredProfile(updated);
+      setEditFirstName(updated.firstName || "");
+      setEditLastName(updated.lastName || "");
+      setEditLanguage(updated.preferredLanguage || "auto");
+      setProfileEditing(false);
+      setProfileSaved(true);
+      try {
+        await refreshUser();
+      } catch {
+        // The successful Development-local profile save remains authoritative for this screen.
+      }
+    } catch (error) {
+      if (profileEpoch.current === epoch && accountRef.current === accountId) {
+        setProfileSaveError(messageOf(error));
+      }
+    } finally {
+      if (profileEpoch.current === epoch && accountRef.current === accountId) setProfileSaving(false);
+    }
+  }
+
+  function signOut() {
+    logout();
+    setUser(null);
+    setLocation("/welcome");
+  }
+
   async function savePlan() {
     if (!canWriteClinical || !context || !patient || planBusy) return;
     const days = Number(followupDays);
@@ -343,7 +460,7 @@ export default function DemoPhysicianWorkspace() {
     if (!context) return "";
     const grant = context.grant;
     if (grant.state !== "active") return grant.state === "revoked" ? "This demonstration grant has been revoked." : "This demonstration grant is prepared but not active.";
-    if (new Date(grant.expiresAt).getTime() <= Date.now()) return "This demonstration grant has expired.";
+    if (!isDemoGrantCurrent(grant)) return "This demonstration grant has expired or is invalid.";
     if (context.workspace.classification !== "synthetic") return "The authorized workspace is not classified as synthetic. Access is blocked.";
     if (context.persona !== "physician" || grant.persona !== "physician") return "The server context is not authorized for the physician demonstration.";
     if (context.realClinicalReadiness !== false || context.credentialVerificationGranted !== false || context.academyCompletionGranted !== false || context.realAgreementsGranted !== false || context.paidSubscriptionGranted !== false) {
@@ -352,7 +469,7 @@ export default function DemoPhysicianWorkspace() {
     return "";
   }, [context, expiryPulse]);
 
-  if (authLoading || contextLoading) {
+  if (authLoading || contextLoading || loadedAccountId !== accountId) {
     return (
       <main className="min-h-[100dvh] bg-[#f1f3eb] px-4 py-8 text-[#283c32] sm:px-8">
         <div className="mx-auto max-w-7xl">
@@ -366,11 +483,15 @@ export default function DemoPhysicianWorkspace() {
     );
   }
 
+  if ((contextError || !contextReady) && fallback && user?.operatingStatus !== "demo_only" && !founderAuthority) {
+    return <>{fallback}</>;
+  }
+
   if (contextError || !contextReady) {
     const blockedTitle = contextError ? "Demonstration context unavailable" : "Demonstration access is blocked";
     const blockedText = contextError || blockedReason || "The server has not authorized an active synthetic physician demonstration.";
     return (
-      <DemoBlockedScreen
+          <DemoBlockedScreen
         title={blockedTitle}
         message={blockedText}
         onRetry={() => {
@@ -388,63 +509,180 @@ export default function DemoPhysicianWorkspace() {
     );
   }
 
-  return (
-    <main className="min-h-[100dvh] bg-[#f1f3eb] text-[#283c32]">
-      <div className="mx-auto max-w-[1500px] px-4 py-5 sm:px-7 sm:py-8">
-        <DemoPhysicianHeader
-          context={context} acknowledged={acknowledged} ackBusy={ackBusy} ackError={ackError}
-          capabilities={capabilitySet}
-          onAcknowledge={() => void acknowledge()}
-        />
-
-        <div className="mt-5 grid items-start gap-5 lg:grid-cols-[310px_minmax(0,1fr)]">
-          <DemoSyntheticPatientList
-            patients={patients}
-            canReadPatients={canReadPatients}
-            patientsLoading={patientsLoading}
-            patientsError={patientsError}
-            selectedId={selectedId}
-            onRefresh={() => void refreshPatients()}
-            onSelect={selectPatient}
-          />
-
-          <section className="min-w-0" aria-live="polite">
+  const boundaryNotice = (
+    <section className="rounded-xl border border-orange-300/40 bg-orange-950/30 px-4 py-4 text-white" aria-label="Synthetic-only acknowledgment">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div className="max-w-4xl">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange-200">Synthetic-only demonstration · physician persona</p>
+          <p className="mt-1 text-sm leading-6 text-white/75">This is the Clinic workspace for a server-authorized, fictional patient environment. This acknowledgment is separate from normal professional agreements. Do not enter real patient information.</p>
+          <p className="mt-1 text-xs leading-5 text-white/60">Live archive, unlink, and invitation actions are unavailable here. Care Team invitation creation and acceptance are simulated; messages are demo-provided and read-only.</p>
+          <p className="mt-1 text-xs text-white/55">Account identity and physician demonstration persona are separate. No professional verification or clinical readiness is implied.</p>
+          {ackError && <p className="mt-2 text-sm text-red-200" role="alert">{ackError}</p>}
+        </div>
+        <div className="flex shrink-0 flex-col gap-2 sm:items-end">
+          <span className="rounded-full border border-white/20 bg-black/15 px-3 py-1.5 text-xs text-white/75">{context.clinic?.name || context.workspace.label} · synthetic workspace</span>
+          {acknowledged ? (
+            <span role="status" className="text-xs font-semibold text-emerald-200">Synthetic-only acknowledgment recorded</span>
+          ) : (
+            <button type="button" onClick={() => void acknowledge()} disabled={ackBusy} className="rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-500 disabled:cursor-wait disabled:opacity-60">
+              {ackBusy ? "Recording…" : "Acknowledge synthetic-only use"}
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2 border-t border-white/10 pt-3 text-[10px] text-white/65">
+        {(["patient.read", "clinical.read", "clinical.write", "messages.read", "media.read", "export"] as DemoCapability[]).map(capability => (
+          <span key={capability} className={`rounded-full border px-2 py-1 ${capabilitySet.has(capability) ? "border-emerald-200/30 bg-emerald-200/10 text-emerald-100" : "border-white/15 bg-black/10"}`}>{capability}</span>
+        ))}
+        <span className="ml-auto">Grant revision {context.grant.revision}</span>
+      </div>
+      <div className="mt-3 flex flex-col justify-between gap-3 border-t border-white/10 pt-3 sm:flex-row sm:items-center">
+        <div className="min-w-0">
+          {profileLoading ? (
+            <div className="h-4 w-56 animate-pulse rounded bg-white/10" aria-label="Loading stored account profile" />
+          ) : storedProfile ? (
+            <>
+              <p className="break-words text-xs font-semibold text-white/85">
+                Account: {[storedProfile.firstName, storedProfile.lastName].filter(Boolean).join(" ") || storedProfile.email}
+                {storedProfile.email && storedProfile.firstName && storedProfile.lastName ? ` · ${storedProfile.email}` : ""}
+              </p>
+              <p className="mt-1 text-[11px] text-white/55">
+                Stored role: {storedProfile.professionalRole || "not set"} · Demonstration persona: physician
+              </p>
+            </>
+          ) : (
+            <p className="text-xs text-orange-100" role={profileError ? "alert" : undefined}>
+              {profileError ? `Stored account profile unavailable: ${profileError}` : "Stored account profile is not available."}
+            </p>
+          )}
+          {profileSaved && <p className="mt-1 text-xs text-emerald-200" role="status">Development-local name and language preferences saved.</p>}
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setProfileSaveError("");
+              setProfileSaved(false);
+              setProfileEditing(value => !value);
+              if (!profileEditing && storedProfile) {
+                setEditFirstName(storedProfile.firstName || "");
+                setEditLastName(storedProfile.lastName || "");
+                setEditLanguage(storedProfile.preferredLanguage || "auto");
+              }
+            }}
+            disabled={!storedProfile || profileLoading || profileSaving}
+            className="rounded-lg border border-white/25 px-3 py-2 text-xs font-semibold text-white/85 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            {profileEditing ? "Close profile editor" : "Edit name & language"}
+          </button>
+          <button type="button" onClick={signOut} className="rounded-lg border border-orange-200/35 bg-orange-200/10 px-3 py-2 text-xs font-semibold text-orange-100 hover:bg-orange-200/20">
+            Sign out
+          </button>
+        </div>
+      </div>
+      {profileEditing && (
+        <form onSubmit={event => void saveProfile(event)} className="mt-3 grid gap-3 rounded-xl border border-white/15 bg-black/15 p-3 sm:grid-cols-3">
+          <label className="text-xs font-semibold text-white/75">
+            First name
+            <input
+              value={editFirstName}
+              onChange={event => setEditFirstName(event.target.value)}
+              maxLength={80}
+              autoComplete="given-name"
+              className="mt-1.5 min-h-10 w-full rounded-lg border border-white/20 bg-[#211b18] px-3 text-sm text-white outline-none focus:border-orange-200/70"
+            />
+          </label>
+          <label className="text-xs font-semibold text-white/75">
+            Last name
+            <input
+              value={editLastName}
+              onChange={event => setEditLastName(event.target.value)}
+              maxLength={80}
+              autoComplete="family-name"
+              className="mt-1.5 min-h-10 w-full rounded-lg border border-white/20 bg-[#211b18] px-3 text-sm text-white outline-none focus:border-orange-200/70"
+            />
+          </label>
+          <label className="text-xs font-semibold text-white/75">
+            Preferred language
+            <select value={editLanguage} onChange={event => setEditLanguage(event.target.value)} className="mt-1.5 min-h-10 w-full rounded-lg border border-white/20 bg-[#211b18] px-3 text-sm text-white outline-none focus:border-orange-200/70">
+              <option value="auto">Automatic</option>
+              <option value="en">English</option>
+              <option value="es">Español</option>
+              <option value="fr">Français</option>
+              <option value="de">Deutsch</option>
+              <option value="it">Italiano</option>
+              <option value="pt">Português</option>
+              <option value="zh">中文</option>
+              <option value="ja">日本語</option>
+              <option value="ko">한국어</option>
+              <option value="hi">हिन्दी</option>
+              <option value="ru">Русский</option>
+              <option value="vi">Tiếng Việt</option>
+              <option value="tl">Filipino</option>
+              <option value="ar">العربية</option>
+            </select>
+          </label>
+          <div className="flex flex-wrap items-center gap-2 sm:col-span-3">
+            <button type="submit" disabled={profileSaving || !storedProfile} className="rounded-lg bg-orange-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-orange-500 disabled:cursor-wait disabled:opacity-55">
+              {profileSaving ? "Saving profile…" : "Save Development-local profile"}
+            </button>
+            <span className="text-[11px] text-white/50">Only first name, last name, and language are editable here. Clinical and professional fields remain unchanged.</span>
+            {profileSaveError && <p className="w-full text-xs text-red-200" role="alert">{profileSaveError}</p>}
+          </div>
+        </form>
+      )}
+      {!acknowledged && <p className="mt-3 text-xs text-orange-100" role="status">Acknowledge this demonstration boundary before opening any synthetic patient folder.</p>}
+    </section>
+  );
+  const patientDetail = (
+    <div className="space-y-4">
       {context && patient && <DemoCareInvitation key={`${context.workspace.id}:${patient.id}`} workspaceId={context.workspace.id} patientId={patient.id} />}
       <DemoSyntheticPatientView
-              selectedSummary={selectedSummary} patient={patient} detailLoading={detailLoading} detailError={detailError}
-              onRetryDetail={() => setDetailRetry(value => value + 1)}
-              canReadClinical={canReadClinical}
-              canWriteClinical={canWriteClinical}
-              canReadMessages={canReadMessages}
-              canReadMedia={canReadMedia}
-              canExport={canExport}
-              planFocus={planFocus}
-              onPlanFocusChange={value => { setPlanFocus(value); setPlanSaved(false); }}
-              followupDays={followupDays}
-              onFollowupDaysChange={value => { setFollowupDays(value); setPlanSaved(false); }}
-              planDirty={planDirty}
-              planBusy={planBusy}
-              planError={planError}
-              planSaved={planSaved}
-              onSavePlan={() => void savePlan()}
-              messages={messages}
-              media={media}
-              onOpenMedia={item => void openMedia(item)}
-              mediaBusyId={mediaBusyId}
-              mediaError={mediaError}
-              readingMedia={readingMedia}
-              onCloseMedia={() => setReadingMedia(null)}
-              exportBusy={exportBusy}
-              exportError={exportError}
-              exportDone={exportDone}
-              onExport={() => void exportPatient()}
-            />
-          </section>
-        </div>
-        <footer className="mt-8 border-t border-[#d4ddd1] pt-4 text-center text-[11px] leading-5 text-[#829083]">
-          MPM demonstration environment · server-authorized, synthetic-only, revocable · never a substitute for verified professional access
-        </footer>
-      </div>
-    </main>
+        selectedSummary={selectedSummary} patient={patient} detailLoading={detailLoading} detailError={detailError}
+        onRetryDetail={() => setDetailRetry(value => value + 1)}
+        canReadClinical={canReadClinical}
+        canWriteClinical={canWriteClinical}
+        canReadMessages={canReadMessages}
+        canReadMedia={canReadMedia}
+        canExport={canExport}
+        planFocus={planFocus}
+        onPlanFocusChange={value => { setPlanFocus(value); setPlanSaved(false); }}
+        followupDays={followupDays}
+        onFollowupDaysChange={value => { setFollowupDays(value); setPlanSaved(false); }}
+        planDirty={planDirty}
+        planBusy={planBusy}
+        planError={planError}
+        planSaved={planSaved}
+        onSavePlan={() => void savePlan()}
+        messages={messages}
+        media={media}
+        onOpenMedia={item => void openMedia(item)}
+        mediaBusyId={mediaBusyId}
+        mediaError={mediaError}
+        readingMedia={readingMedia}
+        onCloseMedia={() => setReadingMedia(null)}
+        exportBusy={exportBusy}
+        exportError={exportError}
+        exportDone={exportDone}
+        onExport={() => void exportPatient()}
+      />
+    </div>
+  );
+  return (
+    <ProClients
+      workspace="clinician"
+      syntheticSource={{
+        patients,
+        selectedPatientId: selectedId,
+        loading: patientsLoading,
+        error: patientsError,
+        onRefresh: () => void refreshPatients(),
+        onSelect: id => {
+          if (canUseDemo) selectPatient(id);
+        },
+        patientDetail,
+        boundaryNotice,
+      }}
+    />
   );
 }

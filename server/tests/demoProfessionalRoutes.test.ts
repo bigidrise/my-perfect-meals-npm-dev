@@ -4,6 +4,7 @@ jest.mock("../middleware/requireAuth",()=>({requireAuth:(req:any,_res:any,next:a
 jest.mock("../middleware/requireProfessionalIdentityReviewer",()=>({requireProfessionalIdentityReviewer:(req:any,_res:any,next:any)=>{req.identityReviewer={id:"synthetic-reviewer",securityVersion:1,mfaVerified:true};next();}}));
 jest.mock("../services/demoProfessionalRepository",()=>({
   demoProfessionalRepository:{transaction:async(work:any)=>work({accounts:async()=>[{id:"synthetic-actor",professionalRole:"physician"}],grant:async()=>null})},
+  demoRepositoryForActor:()=>({transaction:async(work:any)=>work({accounts:async()=>[{id:"synthetic-actor",professionalRole:"physician"}],grant:async()=>null})}),
   readDemoRestriction:async()=>null,readDemoGrantHistory:async()=>[],
 }));
 import {demoProfessionalRouter,demoProfessionalAdminRouter} from "../routes/demoProfessionalRoutes";

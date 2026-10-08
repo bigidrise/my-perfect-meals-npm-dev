@@ -7,6 +7,8 @@ import { getAcademyProgression } from "./academyProgression";
 import { identityAccountColumns } from "./professionalIdentityDecisionRepository";
 import type { IdentityAccountSnapshot } from "./professionalIdentityDecisionService";
 import { ProfessionalRequestError } from "./professionalOnboardingService";
+import { isDevelopmentFounderDemoAccount } from "../config/developmentFounderPhysicianDemo";
+import { developmentFounderDemoRepository, readDevelopmentFounderDemoGrant } from "./developmentFounderDemoRepository";
 type Executor = { execute(query: SQL): Promise<unknown> };
 async function rows<T>(tx: Executor, query: SQL): Promise<T[]> { return (await tx.execute(query) as { rows: T[] }).rows; }
 const grantColumns = sql.raw(`id, user_id AS "userId", workspace_id AS "workspaceId", persona,
@@ -14,7 +16,9 @@ const grantColumns = sql.raw(`id, user_id AS "userId", workspace_id AS "workspac
   approver_id AS "approverId", reason, training_basis AS "trainingBasis", training_waiver_reason AS "trainingWaiverReason",
   acknowledged_at AS "acknowledgedAt", acknowledgment_version AS "acknowledgmentVersion", identity_request_id AS "identityRequestId"`);
 function normalizeGrant(row: DemoGrant | undefined): DemoGrant | null {
-  return row ? { ...row, expiresAt: new Date(row.expiresAt).toISOString(), acknowledgedAt: row.acknowledgedAt ? new Date(row.acknowledgedAt).toISOString() : null } : null;
+  // Shared DB grants remain temporary. Never interpret a NULL DB expiry as a
+  // permanent founder entitlement; that authority exists only in local storage.
+  return row ? { ...row, expiresAt: row.expiresAt ? new Date(row.expiresAt).toISOString() : null, acknowledgedAt: row.acknowledgedAt ? new Date(row.acknowledgedAt).toISOString() : null } : null;
 }
 type PatientRow = { id: string; workspaceId: string; classification: DemoPatient["classification"]; label: string; data: Omit<DemoPatient, "id" | "workspaceId" | "classification" | "label" | "revision">; revision: number };
 const patientColumns = sql.raw(`id, workspace_id AS "workspaceId", classification, label, data, revision`);
@@ -97,7 +101,12 @@ export const demoProfessionalRepository: DemoRepository = {
   }),
 };
 export async function readDemoRestriction(userId: string) {
+  if (isDevelopmentFounderDemoAccount(userId)) return readDevelopmentFounderDemoGrant(userId);
   return normalizeGrant((await rows<DemoGrant>(db, sql`SELECT ${grantColumns} FROM demo_professional_grants WHERE user_id=${userId}`))[0]);
+}
+/** Select server-owned authority; never let request flags choose a repository. */
+export function demoRepositoryForActor(userId: string): DemoRepository {
+  return isDevelopmentFounderDemoAccount(userId) ? developmentFounderDemoRepository : demoProfessionalRepository;
 }
 export async function readDemoGrantHistory(userId: string) {
   return rows(db, sql`SELECT event.id,event.actor_user_id AS "actorUserId",event.event_type AS "eventType",event.metadata,event.created_at AS "createdAt"

@@ -48,3 +48,11 @@ The founder wants permanent physician demonstration access to the existing Studi
 **Why:** The user needs dependable physician Studio access for testing and business demonstrations; the product is already public. Temporary access fixes and recurring setup requirements do not meet this purpose.
 
 **How to apply:** Reuse the owned Clinic and preserve its organization/business relationships and existing records. Keep the physician interface isolated from live clinical APIs and use demo-backed data and simulated invitations. Do not replace the Clinic with another Studio or treat ownership as clinical authority. Account/grant changes and Production publishing still require separate authorization and verified shared-runtime isolation. Investigate demonstrated access regressions and protect the established access paths without claiming all customers are affected or expanding into unrelated audits.
+
+## Real physician pilot evidence
+
+Founder-demo acceptance is not evidence that real physician pilot onboarding works. A 30-day Clinical pilot does not waive genuine physician credential, legal, education, or other clinical authorization requirements.
+
+**Why:** The user explicitly requires the actual physician onboarding journey to be investigated separately from restoring the founder's synthetic demonstration access.
+
+**How to apply:** Separate commercial entitlement, clinical readiness, fixture results, and acceptance on the identified Production release. Never present Development tests or synthetic demo access as proof of a complete Production physician-to-client journey.
