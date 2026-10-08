@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { users } from "@shared/schema";
 import { CANONICAL_PRACTITIONER_ROLES, isCanonicalPractitionerRole } from "@shared/professionalRoles";
 import { db } from "../db";
+import { studios } from "../db/schema/studio";
 import { logAudit } from "../lib/auditLog";
 import { checkLegalAcceptance } from "./legalCheck";
 import { providerHasProCareStudioAccess } from "./procareProviderAccess";
@@ -40,6 +41,13 @@ export interface ProviderStudioProvisionResult extends ProviderStudioReadiness {
   studio?: EnsuredStudio;
 }
 
+/** Ownership is only one prerequisite; access, training and legal gates still apply. */
+export async function readOwnedBusinessStudio(providerUserId: string) {
+  const [studio] = await db.select().from(studios)
+    .where(eq(studios.ownerUserId, providerUserId)).limit(1);
+  return studio ?? null;
+}
+
 /**
  * The single eligibility rule for a professional-owned Studio. Keep this
  * separate from client acceptance: a client may redeem an existing invite,
@@ -71,8 +79,12 @@ export async function getProviderStudioReadiness(
     return { ok: false, code: "PROVIDER_NOT_FOUND", message: "Provider account was not found." };
   }
 
+  const businessStudio = provider.professionalRole === "business"
+    ? await readOwnedBusinessStudio(providerUserId) : null;
+  const businessOperator = provider.professionalRole === "business"
+    && businessStudio?.status === "active" && businessStudio.type === "studio";
   if ((!provider.isProCare && options.requireSubscription !== false) ||
-      !isStudioProviderRole(provider.professionalRole)) {
+      (!isStudioProviderRole(provider.professionalRole) && !businessOperator)) {
     return {
       ok: false,
       code: "PROVIDER_ROLE_REQUIRED",
@@ -135,6 +147,17 @@ export async function ensureProviderStudioReady(
   const readiness = await getProviderStudioReadiness(providerUserId, options);
   if (!readiness.ok) return readiness;
 
+  const [account] = await db.select({ professionalRole: users.professionalRole })
+    .from(users).where(eq(users.id, providerUserId)).limit(1);
+  if (account?.professionalRole === "business") {
+    const existing = await readOwnedBusinessStudio(providerUserId);
+    if (!existing || existing.status !== "active" || existing.type !== "studio") {
+      return { ok: false, code: "PROVIDER_ROLE_REQUIRED" };
+    }
+    // Never provision or repair a Studio/billing record as an operator grant.
+    return { ok: true, studio: { studioId: existing.id, studioName: existing.name,
+      studioType: existing.type, created: false } };
+  }
   const studio = await ensureStudioForTrainer(providerUserId);
   if (!studio) {
     return {

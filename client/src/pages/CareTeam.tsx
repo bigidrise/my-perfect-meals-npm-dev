@@ -153,6 +153,10 @@ export default function CareTeamPage() {
   const [pendingCode, setPendingCode] = useState("");
   function connectionFailure(error: any, code: string) {
     const failure = error?.invitation;
+    if (failure?.code === "INVITATION_REISSUE_REQUIRED") {
+      setError(failure.message ?? "Ask the Studio owner to send a new client invitation. This invitation cannot safely be reused.");
+      return;
+    }
     if (failure?.code === "LEGAL_REACCEPT_REQUIRED" && failure.legalForCurrentUser === true &&
         (failure.flow === "client" || failure.flow === "patient_physician")) {
       setPendingCode(code); setLegalFlow(failure.flow); return;
@@ -585,6 +589,9 @@ function PermToggle({
 }
 
 function roleBadge(role: ProRole, map: Record<ProRole, { text: string; className: string }>) {
+  if ((role as string) === "studio_operator") {
+    return <Badge className="bg-orange-600/20 text-orange-300 border-orange-400/40 border">Studio Provider</Badge>;
+  }
   const r = map[careTeamRoleDisplayKey(role) as ProRole];
   return <Badge className={`${r.className} border`}>{r.text}</Badge>;
 }

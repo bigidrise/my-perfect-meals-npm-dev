@@ -1,6 +1,11 @@
 {
   "extends": "./tsconfig.json",
   "include": [
+    "server/services/invitationProviderContext.ts",
+    "server/services/careInvitationPolicy.ts",
+    "server/services/careInvitationAcceptance.ts",
+    "server/services/procareStudioReadiness.ts",
+    "server/services/procareInviteService.ts",
     "client/src/components/BirthdayGreeting.tsx",
     "client/src/components/MealCard.tsx",
     "client/src/pages/WeeklyMealBoard.tsx",

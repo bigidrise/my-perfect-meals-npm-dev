@@ -108,6 +108,8 @@ jest.mock("../services/procareProviderAccess", () => ({
 }));
 jest.mock("../services/legalCheck", () => ({ checkLegalAcceptance: (...args: unknown[]) => mockLegal(...args) }));
 jest.mock("../services/procareStudioReadiness", () => ({
+  readOwnedBusinessStudio: async (id: string) => (mockRows.get(studios) || []).find(row => row.ownerUserId === id) ?? null,
+  getProviderStudioReadiness: (...args: unknown[]) => mockReadiness(...args),
   isStudioProviderRole: (role: unknown) => ["trainer", "physician", "dietitian", "nurse_practitioner"].includes(role as string),
   ensureProviderStudioReady: (...args: unknown[]) => mockReadiness(...args),
 }));
@@ -262,13 +264,77 @@ test.each(["client_invites", "professional_invites"] as const)("%s: missing clie
   expect(mockWrites).toHaveLength(0);
 });
 
-test("an actually unsupported professional still returns UNSUPPORTED_PROVIDER_ROLE", async () => {
+test("a Business account without an authorized Studio still returns UNSUPPORTED_PROVIDER_ROLE", async () => {
   professional.professionalRole = "business";
   arrange("client_invites");
+  mockRows.set(studios, []);
   const res = await connect();
   expect(res.status).toBe(403);
   expect(res.body.code).toBe("UNSUPPORTED_PROVIDER_ROLE");
   expect(mockActivate).not.toHaveBeenCalled();
+});
+
+test("a Business Studio owner creates an explicitly provider-bound invitation and connects without changing identity", async () => {
+  professional.professionalRole = "business";
+  arrange("professional_invites");
+  mockActor = professional;
+  mockEmailCandidates.mockResolvedValue([client]);
+  const identities = JSON.stringify(mockRows.get(users));
+  const sent = await request(app).post("/api/care-team/invite").send({ email: client.email, role: "trainer", permissions });
+  expect(sent.status).toBe(200);
+  const created = mockWrites.find(write => write.table === careInvite)!.values;
+  expect(created).toMatchObject({ providerUserId: professional.id, clientUserId: client.id, role: "studio_operator" });
+  expect(mockWrites.filter(write => write.table === careTeamMember)).toHaveLength(0);
+  mockActor = client;
+  const accepted = await connect({ code: created.inviteCode });
+  expect(accepted.status).toBe(200);
+  expect(accepted.body.member).toMatchObject({ userId: client.id, proUserId: professional.id, role: "studio_operator" });
+  expect(JSON.stringify(mockRows.get(users))).toBe(identities);
+  const again = await connect({ code: created.inviteCode });
+  expect(again.status).toBe(200);
+  expect(JSON.stringify(mockRows.get(users))).toBe(identities);
+  expect(mockWrites.some(write => write.table === users || write.table === studios)).toBe(false);
+});
+
+test("a malformed Business Studio invitation requires reissue and never reverses or activates its parties", async () => {
+  professional.professionalRole = "business";
+  arrange("professional_invites");
+  invitation.clientUserId = professional.id;
+  invitation.providerUserId = null;
+  const identities = JSON.stringify(mockRows.get(users));
+  const response = await connect();
+  expect(response.status).toBe(409);
+  expect(response.body).toMatchObject({ code: "INVITATION_REISSUE_REQUIRED", reissueRequired: true });
+  expect(mockActivate).not.toHaveBeenCalled();
+  expect(mockWrites).toHaveLength(0);
+  expect(JSON.stringify(mockRows.get(users))).toBe(identities);
+});
+
+test("a business-only caller can invite a provider as a client but gains no provider privileges", async () => {
+  client.professionalRole = "business";
+  mockActor = client;
+  mockEmailCandidates.mockResolvedValue([professional]);
+  const sent = await request(app).post("/api/care-team/invite").send({ email: professional.email, role: "physician", permissions });
+  expect(sent.status).toBe(200);
+  const created = mockWrites.find(write => write.table === careInvite)!.values;
+  expect(created).toMatchObject({ clientUserId: client.id, providerUserId: professional.id, role: "physician" });
+  mockActor = professional;
+  expect((await connect({ code: created.inviteCode })).status).toBe(200);
+  expect(client.professionalRole).toBe("business");
+});
+
+test("a reusable provider code applies the same authorized nonclinical Business Studio context", async () => {
+  professional.professionalRole = "business";
+  arrange("professional_invites");
+  mockRows.set(careInvite, []);
+  mockRows.set(careAccessCode, [{
+    id: "access-fixture", proUserId: professional.id, code: "TEST-CODE",
+    expiresAt: new Date(Date.now() + 60_000),
+  }]);
+  const response = await connect();
+  expect(response.status).toBe(200);
+  expect(response.body.member).toMatchObject({ userId: client.id, proUserId: professional.id, role: "studio_operator" });
+  expect(professional.professionalRole).toBe("business");
 });
 
 test.each(["client_invites", "professional_invites"] as const)("%s: expired invitations do not activate or write anything", async direction => {
