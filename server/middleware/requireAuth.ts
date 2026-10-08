@@ -37,6 +37,7 @@ export interface AuthenticatedUser {
    * Drives MFA enforcement and idle-timeout tier for clinical professionals.
    */
   professionalRole: AccountProfessionalRole | null;
+  isProCare?: boolean;
   plan: string;
   entitlements: string[];
   planLookupKey: string | null;
@@ -85,6 +86,7 @@ function buildAuthUser(user: any): Omit<AuthenticatedUser, "sponsoredByBusinessI
     username: user.username,
     role: (user.role as "admin" | "coach" | "client") ?? "client",
     professionalRole: (user.professionalRole as AuthenticatedUser["professionalRole"]) ?? null,
+    isProCare: user.isProCare === true,
     plan: user.plan,
     entitlements: user.entitlements || [],
     planLookupKey: user.planLookupKey || null,

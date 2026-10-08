@@ -2,6 +2,22 @@ import type { Request, Response } from "express";
 
 export const SESSION_COOKIE_NAME = "connect.sid";
 
+export function sessionCookieSecurity(
+  nodeEnv = process.env.NODE_ENV,
+  embeddedDevelopment = Boolean(process.env.REPLIT_DEV_DOMAIN),
+) {
+  const isProduction = nodeEnv === "production";
+  const iframePreview = !isProduction && embeddedDevelopment;
+  return {
+    httpOnly: true,
+    secure: isProduction || iframePreview,
+    sameSite: isProduction || iframePreview ? "none" as const : "lax" as const,
+    // The preview is embedded on another site. CHIPS keeps its cookie scoped
+    // to that embedding site even when ordinary third-party cookies are blocked.
+    ...(iframePreview ? { partitioned: true } : {}),
+  };
+}
+
 export function regenerateSession(req: Request): Promise<void> {
   if (!req.session || typeof req.session.regenerate !== "function") {
     return Promise.reject(new Error("Session middleware is unavailable"));
@@ -35,12 +51,9 @@ export function destroySession(req: Request): Promise<void> {
 }
 
 export function clearSessionCookie(res: Response): void {
-  const isProduction = process.env.NODE_ENV === "production";
   res.clearCookie(SESSION_COOKIE_NAME, {
     path: "/",
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? "none" : "lax",
+    ...sessionCookieSecurity(),
   });
 }
 

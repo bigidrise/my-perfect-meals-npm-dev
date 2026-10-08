@@ -295,11 +295,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const PROBE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
     const handleVisibilityResumed = async () => {
+      // MFA login has only a pending challenge, not a full authenticated
+      // session. Do not treat that expected state as an expired login.
+      if (["/auth", "/login", "/welcome"].includes(window.location.pathname)) return;
       if (Date.now() - lastProbeTime < PROBE_INTERVAL_MS) return;
       lastProbeTime = Date.now();
       try {
         const res = await fetch(apiUrl("/api/auth/session"), {
           headers: { ...getAuthHeaders() },
+          credentials: "include",
         });
         if (res.status === 401) {
           console.warn("⚠️ [AuthContext] Session probe on resume → 401 — signing out");
@@ -310,7 +314,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           clearAuthToken();
           clearUserContext();
           clearNutritionCache();
-          window.location.href = "/login";
+          window.location.href = "/auth";
         }
       } catch {
         // Network error on probe — app may be offline, keep session
@@ -339,7 +343,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         event instanceof CustomEvent && event.detail?.reason === "session_expired"
           ? "session_expired"
           : null;
-      window.location.href = reason ? `/login?reason=${reason}` : "/login";
+      window.location.href = reason ? `/auth?reason=${reason}` : "/auth";
     };
     window.addEventListener("mpm:polling-auth-rejected", handlePollingAuthRejected);
     return () => window.removeEventListener("mpm:polling-auth-rejected", handlePollingAuthRejected);
@@ -378,8 +382,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
             clearAuthToken();
             clearUserContext();
             clearNutritionCache();
-            if (window.location.pathname !== "/login" && window.location.pathname !== "/welcome") {
-              window.location.href = "/login";
+            if (window.location.pathname !== "/auth" && window.location.pathname !== "/login" && window.location.pathname !== "/welcome") {
+              window.location.href = "/auth";
             }
           }
         } catch {

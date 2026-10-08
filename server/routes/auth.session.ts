@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { registerSessionProbeRoutes } from "./authSessionProbe";
 import { db } from "../db";
 import { trialAccessInvites, users } from "@shared/schema";
 import { isCanonicalPractitionerRole, isClinicalPractitionerRole } from "@shared/professionalRoles";
@@ -504,35 +505,7 @@ router.post("/api/auth/login", async (req, res) => {
  * GET /api/auth/session
  * Validates auth token and returns user data if authenticated.
  */
-router.get("/api/auth/session", async (req: any, res) => {
-  const token = req.headers["x-auth-token"] as string;
-  
-  if (!token) {
-    return res.status(401).json({ error: "Missing auth token" });
-  }
-  
-  try {
-    const user = await findUserByValidAuthToken(token);
-    
-    if (!user) {
-      return res.status(401).json({ error: "Invalid auth token" });
-    }
-    res.json({
-      userId: user.id,
-      id: user.id,
-      email: user.email,
-      username: user.username,
-      isTester: user.isTester || false,
-      isFounder: user.isFounder || false,
-      planLookupKey: user.planLookupKey || null,
-      role: user.role || "client",
-      isProCare: user.isProCare || false,
-    });
-  } catch (error) {
-    console.error("Session validation error:", error);
-    res.status(500).json({ error: "Session validation failed" });
-  }
-});
+registerSessionProbeRoutes(router);
 
 /**
  * POST /api/auth/logout
