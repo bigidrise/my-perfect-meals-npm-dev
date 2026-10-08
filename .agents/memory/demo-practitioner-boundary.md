@@ -40,3 +40,31 @@ Keep grants and grant events at zero until the user authorizes account setup. Lo
 **Why:** The user explicitly wanted zero grants/events while the browser path was being established, and reserved Dr. Test setup for later approval.
 
 **How to apply:** Report fixture UI evidence separately from server security tests and real signed-in acceptance. For update loops, inspect the thrown update/ref chain and full React component stack rather than attributing the cause to a named parent modal.
+
+## Permanent founder physician Studio
+
+Only the founder-controlled physician dummy account needs this permanent demonstration access. It must be available whenever the founder wants to demonstrate the platform or check whether it works. Do not extend this exception to other accounts.
+
+**Why:** The user explicitly repeated that this is the only account needed like this.
+
+**How to apply:** Keep permanent authorization scoped to the existing designated account and Clinic; leave real physicians and their onboarding unchanged.
+
+The founder wants permanent physician demonstration access to the existing Studio/Clinic, with the full physician interface operating on synthetic patients. No Academy exam, medical credential verification, ordinary professional onboarding, professional agreements, or paid subscription should be required for demo-only use. Never mark those real-world requirements as completed.
+
+**Why:** The user needs dependable physician Studio access for testing and business demonstrations; the product is already public. Temporary access fixes and recurring setup requirements do not meet this purpose.
+
+**How to apply:** Reuse the owned Clinic and preserve its organization/business relationships and existing records. Keep the physician interface isolated from live clinical APIs and use demo-backed data and simulated invitations. Do not replace the Clinic with another Studio or treat ownership as clinical authority. Account/grant changes and Production publishing still require separate authorization and verified shared-runtime isolation. Investigate demonstrated access regressions and protect the established access paths without claiming all customers are affected or expanding into unrelated audits.
+
+Shared-account activation requires both live-data isolation and a usable permanent founder demo experience in the intended runtime. A protective release that only denies live APIs is not sufficient evidence that activation restores the requested Studio.
+
+**Why:** Isolation and demonstration availability are separate acceptance conditions; restricting a shared account must not leave it without the promised demo workspace or require recurring temporary grants.
+
+**How to apply:** Verify the deployed release rather than Development source alone. Distinguish protective middleware from enabled synthetic demo routes and permanent founder authority before activating the account.
+
+## Real physician pilot evidence
+
+Founder-demo acceptance is not evidence that real physician pilot onboarding works. A 30-day Clinical pilot does not waive genuine physician credential, legal, education, or other clinical authorization requirements.
+
+**Why:** The user explicitly requires the actual physician onboarding journey to be investigated separately from restoring the founder's synthetic demonstration access.
+
+**How to apply:** Separate commercial entitlement, clinical readiness, fixture results, and acceptance on the identified Production release. Never present Development tests or synthetic demo access as proof of a complete Production physician-to-client journey.

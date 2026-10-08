@@ -7,6 +7,24 @@
  * qualified plant compound. The food category "ice cream" is also not proof
  * that dairy cream is present in a raw dish request.
  */
+import { resolveExplicitProteinFoodMeanings } from "./foodMeaning";
+
+/**
+ * A source restriction evaluates the species of an explicitly qualified
+ * product. Other terms (including separately listed pork or pork fat) remain
+ * visible. Do not use this view for allergies or direct product avoidances.
+ */
+export function proteinSourceIngredientText(value: string): string {
+  const identities = resolveExplicitProteinFoodMeanings(value);
+  let result = "";
+  let offset = 0;
+  for (const identity of identities) {
+    result += value.slice(offset, identity.start) + identity.proteinSource;
+    offset = identity.end;
+  }
+  return result + value.slice(offset);
+}
+
 export function maskNonAnimalDietaryCompounds(value: string): string {
   const plantSources =
     "(?:almond|banana|cashew|cocoa|coconut|flax|hazelnut|hemp|macadamia|nut|oat|pea|peanut|pistachio|pumpkin|quinoa|rice|seed|sesame|soy|sunflower|tiger[ -]?nut|walnut)";

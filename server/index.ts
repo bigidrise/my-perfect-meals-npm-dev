@@ -55,6 +55,7 @@ import wmc2LogRouter from "./routes/wmc2Log";
 import wmc2TelemetryRouter from "./routes/wmc2Telemetry";
 import wmc2EnhancedRouter from "./routes/wmc2Enhanced";
 import qaRouter from "./routes/qa";
+import { professionalReviewSpa } from "./lib/professionalReviewSpa";
 import mealEngineRouter from "./routes/mealEngine.routes";
 import weeklyPlanRoutes from "./routes/weeklyPlan.routes";
 import macroCalculatorRoutes from "./routes/macroCalculatorRoutes";
@@ -198,9 +199,9 @@ app.use((req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Trust proxy MUST be set before any middleware that uses req.ip
-// Railway uses 1 proxy hop - trust exactly 1 in production, none in dev
+// Replit's HTTPS preview also terminates TLS at one proxy hop.
 const isProd = process.env.NODE_ENV === "production";
-app.set('trust proxy', isProd ? 1 : false);
+app.set('trust proxy', isProd || Boolean(process.env.REPLIT_DEV_DOMAIN) ? 1 : false);
 
 // Create rate limiter ONCE at app initialization (after trust proxy is set)
 const apiRateLimit = createApiRateLimit();
@@ -265,15 +266,14 @@ if (process.env.NODE_ENV === "production") {
 }
 
 // Session middleware for authentication
+import { sessionCookieSecurity } from "./lib/sessionSecurity";
 app.use(session({
   secret: process.env.SESSION_SECRET || 'mpm-session-secret-dev-only',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
+    ...sessionCookieSecurity(),
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   }
 }));
 registerCsrfProtection(app);
@@ -442,7 +442,7 @@ app.use("/api", waterLogsRouter);
 app.use("/api", wmc2LogRouter);
 app.use("/api", wmc2TelemetryRouter);
 app.use("/api", wmc2EnhancedRouter);
-app.use("/admin", qaRouter);
+app.use("/admin", professionalReviewSpa(qaRouter));
 app.use("/api", mealEngineRouter);
 app.use("/api", weeklyPlanRoutes);
 app.use("/api", macroCalculatorRoutes);

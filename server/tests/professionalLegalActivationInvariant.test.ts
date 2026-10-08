@@ -65,7 +65,9 @@ describe("professional legal activation invariant", () => {
       "utf8",
     );
 
-    expect(studioRoutes.match(/flow: readiness\.flow/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(studioRoutes.match(/flow: readiness\.flow/g)?.length).toBeGreaterThanOrEqual(1);
+    expect(studioRoutes).toContain("flow: error.readiness.flow");
+    expect(studioRoutes).toContain("missing: error.readiness.missing");
     expect(careTeamRoutes).toContain("flow: provisioned.flow");
     expect(careTeamRoutes).toContain("missing: provisioned.missing");
   });

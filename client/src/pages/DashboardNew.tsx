@@ -198,9 +198,9 @@ export default function DashboardNew() {
       });
       if (!res.ok) {
         if (res.status === 401) {
-          // Token was invalidated — stop polling and signal auth context to sign out
-          console.warn("⚠️ [DashboardNew] Tablet poll got 401 — dispatching auth-rejected");
-          window.dispatchEvent(new CustomEvent("mpm:polling-auth-rejected"));
+          // This is a role/relationship-scoped inbox, not a session probe.
+          // Its denial must not sign a Studio owner out of Personal Space.
+          setTabletError("Client messages are unavailable for this account");
           return;
         }
         if (res.status === 403) {

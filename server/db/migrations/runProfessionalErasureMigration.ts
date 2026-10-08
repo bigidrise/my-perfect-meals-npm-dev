@@ -33,11 +33,20 @@ export async function runProfessionalErasureMigration(database: Database, schema
         id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
         event_type text NOT NULL CHECK (event_type IN (
           'identity_approved','identity_rejected','identity_correction_requested',
-          'demo_prepared','demo_activated','demo_revoked')),
-        outcome text NOT NULL CHECK (outcome IN ('approved','rejected','needs_correction','prepared','active','revoked')),
+          'demo_prepared','demo_activated','demo_revoked','credentials_verified','credentials_rejected','credentials_pending')),
+        outcome text NOT NULL CHECK (outcome IN ('approved','rejected','needs_correction','prepared','active','revoked','verified','pending')),
         occurred_at timestamptz NOT NULL,
         transition_facts jsonb NOT NULL
       );
+      ALTER TABLE professional_lifecycle_erasure_audit
+        DROP CONSTRAINT IF EXISTS professional_lifecycle_erasure_audit_event_type_check,
+        DROP CONSTRAINT IF EXISTS professional_lifecycle_erasure_audit_outcome_check;
+      ALTER TABLE professional_lifecycle_erasure_audit
+        ADD CONSTRAINT professional_lifecycle_erasure_audit_event_type_check CHECK (event_type IN
+          ('identity_approved','identity_rejected','identity_correction_requested','demo_prepared','demo_activated','demo_revoked',
+           'credentials_verified','credentials_rejected','credentials_pending')),
+        ADD CONSTRAINT professional_lifecycle_erasure_audit_outcome_check CHECK (outcome IN
+          ('approved','rejected','needs_correction','prepared','active','revoked','verified','pending'));
 
       CREATE OR REPLACE FUNCTION professional_erasure_transition_facts(input jsonb)
       RETURNS jsonb LANGUAGE sql IMMUTABLE SET search_path = "${schemaName}", pg_catalog AS $$
@@ -115,11 +124,13 @@ export async function runProfessionalErasureMigration(database: Database, schema
         INSERT INTO professional_lifecycle_erasure_audit(event_type,outcome,occurred_at,transition_facts)
           SELECT e.event_type,
             CASE e.event_type WHEN 'identity_approved' THEN 'approved' WHEN 'identity_rejected' THEN 'rejected'
-              ELSE 'needs_correction' END,
+              WHEN 'credentials_verified' THEN 'verified' WHEN 'credentials_rejected' THEN 'rejected'
+              WHEN 'credentials_pending' THEN 'pending' ELSE 'needs_correction' END,
             e.created_at,professional_erasure_transition_facts(e.metadata)
           FROM professional_identity_events e JOIN professional_identity_requests r ON r.id=e.request_id
           WHERE r.owner_user_id=OLD.id AND e.event_type IN
-            ('identity_approved','identity_rejected','identity_correction_requested');
+            ('identity_approved','identity_rejected','identity_correction_requested',
+             'credentials_verified','credentials_rejected','credentials_pending');
         INSERT INTO professional_lifecycle_erasure_audit(event_type,outcome,occurred_at,transition_facts)
           SELECT e.event_type,CASE e.event_type WHEN 'demo_prepared' THEN 'prepared'
             WHEN 'demo_activated' THEN 'active' ELSE 'revoked' END,

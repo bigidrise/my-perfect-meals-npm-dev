@@ -28,6 +28,7 @@ function isPublicAppRoute(path: string): boolean {
     ? ["/test-modal-bounds", "/__modal-test__", "/__sheet-test__", "/rewardful/connect/confirm"]
     : [];
   return (
+    path === "/login" ||
     isExactPublicMarketingRoute(path) ||
     [...PUBLIC_ROUTES, ...devRoutes].some(
       route => path === route || path.startsWith(route + "/"),
@@ -68,6 +69,7 @@ export default function AppRouter({ children }: AppRouterProps) {
   const shouldShowBottomNav = useMemo(() => {
     const hideOnRoutes = [
       "/auth",
+      "/login",
       "/welcome",
       "/onboarding",
       "/forgot-password",

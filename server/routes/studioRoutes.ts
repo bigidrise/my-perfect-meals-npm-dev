@@ -18,6 +18,7 @@ import { AuthenticatedRequest } from "../middleware/requireAuth";
 import { assertSameOrg, handleOrgIsolationError } from "../lib/orgIsolation";
 import { logAudit, getClientIp } from "../lib/auditLog";
 import { getProviderStudioReadiness } from "../services/procareStudioReadiness";
+import { provisionManualStudio, ManualStudioProvisioningError } from "../services/manualStudioProvisioning";
 import {
   findEmailIdentityCandidates,
   normalizeEmailIdentity,
@@ -77,46 +78,21 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "Studio name is required" });
     }
 
-    const readiness = await getProviderStudioReadiness(userId);
-    if (!readiness.ok) {
-      return res.status(403).json({
-        error: readiness.message,
-        code: readiness.code,
-        flow: readiness.flow,
-        missing: readiness.missing,
-        setupRequired: true,
-      });
-    }
-
-    const [existing] = await db
-      .select()
-      .from(studios)
-      .where(eq(studios.ownerUserId, userId));
-
-    if (existing) {
-      return res.status(400).json({ error: "You already have a studio" });
-    }
-
-    const [studio] = await db
-      .insert(studios)
-      .values({
-        ownerUserId: userId,
-        name,
-        type: type || "studio",
-        contactEmail,
-        contactPhone,
-        status: "active",
-      })
-      .returning();
-
-    await db.insert(studioBilling).values({
-      studioId: studio.id,
-      planCode: type === "clinic" ? "clinic_69" : "studio_59",
-      status: "trialing",
-    });
+    const studio = await provisionManualStudio(userId, { name, type, contactEmail, contactPhone });
 
     res.json({ studio });
   } catch (error) {
+    if (error instanceof ManualStudioProvisioningError) {
+      return res.status(error.status).json({
+        error: error.message,
+        code: error.code,
+        ...(error.readiness ? {
+          flow: error.readiness.flow,
+          missing: error.readiness.missing,
+          setupRequired: true,
+        } : {}),
+      });
+    }
     console.error("Error creating studio:", error);
     res.status(500).json({ error: "Failed to create studio" });
   }

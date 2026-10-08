@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { DEMO_ACKNOWLEDGMENT_VERSION, type DemoCapability, type DemoContext, type DemoGrant, type DemoGrantActivation, type DemoGrantPreparation, type DemoPatient, type DemoPlan, type DemoWorkspace } from "@shared/demoProfessional";
+import { DEMO_ACKNOWLEDGMENT_VERSION, isDemoGrantCurrent, isPermanentFounderDemoGrant, type DemoCapability, type DemoContext, type DemoGrant, type DemoGrantActivation, type DemoGrantPreparation, type DemoPatient, type DemoPlan, type DemoWorkspace } from "@shared/demoProfessional";
 import { identitySnapshotHash, type IdentityAccountSnapshot, type IdentityReviewerProof } from "./professionalIdentityDecisionService";
 import { ProfessionalRequestError } from "./professionalOnboardingService";
 import { assertInvitationDataset, assertInvitationWindow, resolveCareInvitationParties, CareInvitationError } from "./careInvitationPolicy";
 import type { DemoCareInvitation } from "@shared/demoProfessional";
+import { DEVELOPMENT_FOUNDER_PHYSICIAN_DEMO, isDevelopmentFounderDemoAccount, isFounderPhysicianDemoScope } from "../config/developmentFounderPhysicianDemo";
 
 export interface DemoTransaction {
   accounts(ids: string[]): Promise<IdentityAccountSnapshot[]>;
@@ -18,15 +19,18 @@ export interface DemoTransaction {
   savePlan(patient: DemoPatient, plan: DemoPlan): Promise<DemoPatient>;
   saveInvitation(patient: DemoPatient, invitation: DemoCareInvitation): Promise<DemoPatient>;
   invalidateSessions(account: IdentityAccountSnapshot): Promise<void>;
+  recoverFounderIdentity?(account: IdentityAccountSnapshot): Promise<void>;
   event(grant: DemoGrant, actorId: string, kind: string, metadata: Record<string, unknown>): Promise<void>;
+  clinic?(): Promise<NonNullable<DemoContext["clinic"]>>;
+  ownedClinic?(userId: string, clinicId: string): Promise<NonNullable<DemoContext["clinic"]> | null>;
 }
 export interface DemoRepository { transaction<T>(work: (tx: DemoTransaction) => Promise<T>): Promise<T> }
-const deny = (code: string, message = "Demo-only access is limited to the explicitly authorized synthetic dataset.") => {
+function deny(code: string, message = "Demo-only access is limited to the explicitly authorized synthetic dataset."): never {
   throw new ProfessionalRequestError(403, code, message);
-};
+}
 function live(grant: DemoGrant, now: Date) {
   if (grant.operatingStatus !== "demo_only" || grant.persona !== "physician" || grant.state !== "active") deny("DEMO_GRANT_INACTIVE");
-  if (!Number.isFinite(Date.parse(grant.expiresAt)) || Date.parse(grant.expiresAt) <= now.getTime()) deny("DEMO_GRANT_EXPIRED");
+  if (!isDemoGrantCurrent(grant, now.getTime())) deny("DEMO_GRANT_EXPIRED");
 }
 function synthetic(record: DemoWorkspace | DemoPatient | null, workspaceId: string) {
   if (!record || record.classification !== "synthetic" ||
@@ -36,7 +40,7 @@ function reviewer(accounts: IdentityAccountSnapshot[], proof: IdentityReviewerPr
   const actor = accounts.find(row => row.id === proof.id);
   if (!actor?.isAdmin || !actor.mfaEnabled || proof.mfaVerified !== true || actor.authSecurityVersion !== proof.securityVersion) deny("DEMO_REVIEWER_REQUIRED", "A current MFA-verified administrative reviewer is required.");
 }
-function syntheticPatient(workspaceId: string): DemoPatient {
+export function syntheticPatient(workspaceId: string): DemoPatient {
   return {
     id: randomUUID(), workspaceId, classification: "synthetic", label: "Synthetic Patient 001",
     scenario: "Fictional adult with type 2 diabetes; simulated meal-planning follow-up. Not a real person.",
@@ -54,14 +58,27 @@ export function createDemoProfessionalService(repository: DemoRepository, clock 
     // Account then grant lock order matches administration. No cached entitlement.
     const [account] = await tx.accounts([userId]);
     const grant = await tx.grant(userId);
-    if (!account || account.professionalRole !== "physician" || !grant) deny("DEMO_AUTHORITY_REQUIRED");
+    // The Development repository validates exact Clinic ownership and issues
+    // explicit founder authority independently of the stored Business identity.
+    if (!account || !grant || account.id !== userId || grant.userId !== userId
+      || (grant.authority === "development_founder" && !isDevelopmentFounderDemoAccount(userId))
+      || (grant.authority === "founder_admin" && (!isPermanentFounderDemoGrant(grant) || !isFounderPhysicianDemoScope(userId, grant.clinicId)))
+      || (account.professionalRole !== "physician" && !isPermanentFounderDemoGrant(grant))) deny("DEMO_AUTHORITY_REQUIRED");
+    // A persisted founder grant does not override canonical identity or Clinic ownership.
+    let clinic: NonNullable<DemoContext["clinic"]> | null = null;
+    if (grant.authority === "founder_admin") {
+      if (account.professionalRole !== "physician") deny("DEMO_CONTROLLED_IDENTITY_REQUIRED");
+      clinic = await tx.ownedClinic?.(userId, grant.clinicId!) ?? null;
+      if (!clinic || clinic.id !== grant.clinicId) deny("DEMO_CLINIC_OWNERSHIP_REQUIRED");
+    }
     live(grant!, clock());
+    if (capability === "export" && isPermanentFounderDemoGrant(grant)) deny("DEMO_EXPORT_DENIED", "Exports are unavailable for the founder-only demonstration.");
     if (workspaceId && workspaceId !== grant!.workspaceId) deny("DEMO_DATA_SCOPE_DENIED");
     if (capability && !grant!.capabilities.includes(capability)) deny("DEMO_CAPABILITY_DENIED");
     if (acknowledgment && (!grant!.acknowledgedAt || grant!.acknowledgmentVersion !== DEMO_ACKNOWLEDGMENT_VERSION)) deny("DEMO_ACKNOWLEDGMENT_REQUIRED");
     const workspace = await tx.workspace(grant!.workspaceId);
     synthetic(workspace, grant!.workspaceId);
-    return { account: account!, grant: grant!, workspace: workspace! };
+    return { account: account!, grant: grant!, workspace: workspace!, clinic };
   }
   async function patient(tx: DemoTransaction, userId: string, workspaceId: string, patientId: string, capability: DemoCapability) {
     const authority = await authorized(tx, userId, capability, workspaceId);
@@ -79,14 +96,15 @@ export function createDemoProfessionalService(repository: DemoRepository, clock 
     async invite(userId: string, workspaceId: string, patientId: string) {
       return repository.transaction(async tx => {
         const { account, grant, patient: record } = await patient(tx, userId, workspaceId, patientId, "clinical.write");
-        const parties = resolveCareInvitationParties(account, { id: record.id, professionalRole: null });
+        const parties = resolveCareInvitationParties({ ...account, professionalRole: grant.persona }, { id: record.id, professionalRole: null });
         assertInvitationDataset({ domain: "synthetic", workspaceId: grant.workspaceId },
           { domain: record.classification === "synthetic" ? "synthetic" : "live", workspaceId: record.workspaceId });
         if (record.connectionInvitation?.state === "accepted") return record.connectionInvitation;
         const invitation: DemoCareInvitation = {
           id: randomUUID(), providerUserId: parties.provider.id, clientUserId: parties.client.id, workspaceId,
           code: `DM-${randomUUID().slice(0, 8).toUpperCase()}`, token: `demo_${randomUUID()}`,
-          expiresAt: new Date(Math.min(clock().getTime() + 14 * 86400000, Date.parse(grant.expiresAt))).toISOString(),
+          expiresAt: new Date(Math.min(clock().getTime() + 14 * 86400000,
+            grant.expiresAt === null ? Infinity : Date.parse(grant.expiresAt))).toISOString(),
           revokedAt: null, state: "pending", acceptedAt: null, classification: "synthetic",
         };
         await tx.saveInvitation(record, invitation);
@@ -100,7 +118,7 @@ export function createDemoProfessionalService(repository: DemoRepository, clock 
           { domain: record.classification === "synthetic" ? "synthetic" : "live", workspaceId: record.workspaceId });
         const invitation = record.connectionInvitation;
         if (!invitation || (key !== invitation.code && key !== invitation.token)) deny("DEMO_INVITATION_NOT_FOUND");
-        resolveCareInvitationParties(account, { id: record.id, professionalRole: null }, invitation!);
+        resolveCareInvitationParties({ ...account, professionalRole: grant.persona }, { id: record.id, professionalRole: null }, invitation!);
         if (invitation!.workspaceId !== workspaceId || invitation!.classification !== "synthetic") deny("DEMO_DATA_SCOPE_DENIED");
         try { assertInvitationWindow(invitation!, clock()); }
         catch (error) {
@@ -122,14 +140,26 @@ export function createDemoProfessionalService(repository: DemoRepository, clock 
         const target = accounts.find(row => row.id === input.targetUserId);
         if (!target || identitySnapshotHash(target) !== input.reviewedStateHash) throw new ProfessionalRequestError(409, "DEMO_TARGET_CHANGED", "Reload the target identity before preparing a grant.");
         if (await tx.grant(target.id)) throw new ProfessionalRequestError(409, "DEMO_GRANT_ALREADY_EXISTS", "Existing demo restriction/grant must not be overwritten.");
-        const now = clock().getTime(), expires = Date.parse(input.expiresAt);
-        if (!Number.isFinite(expires) || expires <= now || expires > now + 30 * 86400000) throw new ProfessionalRequestError(400, "DEMO_EXPIRY_INVALID", "Explicit expiry must be within the next 30 days.");
-        const academy = await tx.academyComplete(target.id);
+        const permanent = input.lifetime === "permanent_founder";
+        let clinic: NonNullable<DemoContext["clinic"]> | null = null;
+        if (permanent) {
+          if (input.capabilities.includes("export")) deny("DEMO_EXPORT_DENIED", "Founder demonstration grants cannot include export authority.");
+          if (!isFounderPhysicianDemoScope(target.id, DEVELOPMENT_FOUNDER_PHYSICIAN_DEMO.clinicId)
+            || input.founderAuthorizationAcknowledged !== true || input.expiresAt !== null
+            || !input.demoTrainingWaiverReason || !input.identityOnlyAcknowledged || !input.sharedDataAcknowledged) deny("DEMO_FOUNDER_AUTHORIZATION_REQUIRED");
+          clinic = await tx.ownedClinic?.(target.id, DEVELOPMENT_FOUNDER_PHYSICIAN_DEMO.clinicId) ?? null;
+          if (!clinic || clinic.id !== DEVELOPMENT_FOUNDER_PHYSICIAN_DEMO.clinicId) deny("DEMO_CLINIC_OWNERSHIP_REQUIRED");
+        } else {
+          const now = clock().getTime(), expires = input.expiresAt === null ? NaN : Date.parse(input.expiresAt);
+          if (!Number.isFinite(expires) || expires <= now || expires > now + 30 * 86400000 || input.founderAuthorizationAcknowledged !== undefined) throw new ProfessionalRequestError(400, "DEMO_EXPIRY_INVALID", "Explicit expiry must be within the next 30 days.");
+        }
+        const academy = permanent ? false : await tx.academyComplete(target.id);
         if (!academy && !input.demoTrainingWaiverReason) deny("DEMO_TRAINING_BASIS_REQUIRED", "Genuine Academy evidence or an explicit demo-only waiver is required.");
         const workspace: DemoWorkspace = { id: randomUUID(), label: "Isolated physician demonstration", classification: "synthetic" };
         const grant: DemoGrant = {
           id: randomUUID(), userId: target.id, workspaceId: workspace.id, persona: "physician", operatingStatus: "demo_only",
-          state: "prepared", revision: 1, capabilities: [...new Set(input.capabilities)], expiresAt: new Date(expires).toISOString(),
+          state: "prepared", revision: 1, capabilities: [...new Set(input.capabilities)], expiresAt: permanent ? null : new Date(input.expiresAt!).toISOString(),
+          ...(permanent ? { authority: "founder_admin" as const, lifetime: "permanent_founder" as const, clinicId: clinic!.id } : {}),
           approverId: proof.id, reason: input.reason, trainingBasis: academy ? "academy_evidence" : "demo_only_waiver",
           trainingWaiverReason: academy ? null : input.demoTrainingWaiverReason!,
           acknowledgedAt: null, acknowledgmentVersion: null, identityRequestId: null,
@@ -137,7 +167,7 @@ export function createDemoProfessionalService(repository: DemoRepository, clock 
         await tx.createDataset(workspace, syntheticPatient(workspace.id));
         await tx.saveGrant(grant);
         await tx.invalidateSessions(target);
-        await tx.event(grant, proof.id, "demo_prepared", { reason: input.reason, previousIdentity: target.professionalRole, reviewedStateHash: input.reviewedStateHash, trainingBasis: grant.trainingBasis, trainingWaiverReason: grant.trainingWaiverReason, reviewerAuthority: "authenticated_admin_with_current_mfa", reviewerSecurityVersion: proof.securityVersion });
+        await tx.event(grant, proof.id, "demo_prepared", { reason: input.reason, previousIdentity: target.professionalRole, reviewedStateHash: input.reviewedStateHash, trainingBasis: grant.trainingBasis, trainingWaiverReason: grant.trainingWaiverReason, authority: grant.authority ?? "temporary_admin", lifetime: grant.lifetime ?? "temporary", clinicId: grant.clinicId ?? null, founderAuthorizationAcknowledged: permanent, reviewerAuthority: "authenticated_admin_with_current_mfa", reviewerSecurityVersion: proof.securityVersion });
         return grant;
       });
     },
@@ -149,12 +179,33 @@ export function createDemoProfessionalService(repository: DemoRepository, clock 
         const target = accounts.find(row => row.id === targetUserId);
         const grant = await tx.grant(targetUserId);
         if (!target || !grant || grant.state !== "prepared" || grant.revision !== input.revision || identitySnapshotHash(target) !== input.reviewedStateHash) throw new ProfessionalRequestError(409, "DEMO_TARGET_CHANGED", "Grant or reviewed identity changed.");
-        if (target.professionalRole !== "physician" || !await tx.approvedIdentityRequest(targetUserId, input.identityRequestId)) deny("DEMO_CONTROLLED_IDENTITY_REQUIRED");
+        const founderRecovery = grant.authority === "founder_admin" && input.founderIdentityRecoveryAcknowledged === true
+          && input.identityRequestId === null;
+        if (grant.authority === "founder_admin") {
+          if (!isPermanentFounderDemoGrant(grant) || !isFounderPhysicianDemoScope(targetUserId, grant.clinicId)
+            || !(await tx.ownedClinic?.(targetUserId, grant.clinicId!))) deny("DEMO_CLINIC_OWNERSHIP_REQUIRED");
+        }
+        if (founderRecovery) {
+          if (target.professionalRole !== "business" || !tx.recoverFounderIdentity
+            || !input.identityOnlyAcknowledged || !input.sharedDataAcknowledged) deny("DEMO_CONTROLLED_IDENTITY_REQUIRED");
+        } else if (target.professionalRole !== "physician" || !input.identityRequestId
+          || !(await tx.approvedIdentityRequest(targetUserId, input.identityRequestId))) {
+          deny("DEMO_CONTROLLED_IDENTITY_REQUIRED");
+        }
         const workspace = await tx.workspace(grant.workspaceId); synthetic(workspace, grant.workspaceId);
         live({ ...grant, state: "active" }, clock());
-        const next: DemoGrant = { ...grant, state: "active", revision: grant.revision + 1, identityRequestId: input.identityRequestId };
-        await tx.saveGrant(next); await tx.invalidateSessions(target);
-        await tx.event(next, proof.id, "demo_activated", { reason: input.reason, identityRequestId: input.identityRequestId, reviewedStateHash: input.reviewedStateHash, reviewerAuthority: "authenticated_admin_with_current_mfa", reviewerSecurityVersion: proof.securityVersion });
+        const previousIdentity = target.professionalRole;
+        if (founderRecovery) await tx.recoverFounderIdentity!(target);
+        const next: DemoGrant = { ...grant, state: "active", revision: grant.revision + 1, identityRequestId: input.identityRequestId ?? null };
+        await tx.saveGrant(next);
+        if (!founderRecovery) await tx.invalidateSessions(target);
+        await tx.event(next, proof.id, "demo_activated", { reason: input.reason, identityRequestId: input.identityRequestId ?? null,
+          founderDemoOnlyIdentityRecovery: founderRecovery, previousIdentity,
+          approvedDemoPersona: "physician", realCredentialVerification: false, academyCompletionGranted: false,
+          professionalAgreementsGranted: false, paidSubscriptionGranted: false,
+          reviewedStateHash: input.reviewedStateHash, authority: grant.authority ?? "temporary_admin",
+          lifetime: grant.lifetime ?? "temporary", clinicId: grant.clinicId ?? null,
+          reviewerAuthority: "authenticated_admin_with_current_mfa", reviewerSecurityVersion: proof.securityVersion });
         return next;
       });
     },
@@ -171,8 +222,11 @@ export function createDemoProfessionalService(repository: DemoRepository, clock 
     },
     async context(userId: string): Promise<DemoContext> {
       return repository.transaction(async tx => {
-        const { grant, workspace } = await authorized(tx, userId, undefined, undefined, false);
-        return { operatingStatus: "demo_only", persona: "physician", grant, workspace,
+        const { grant, workspace, clinic } = await authorized(tx, userId, undefined, undefined, false);
+        const visibleGrant = isPermanentFounderDemoGrant(grant)
+          ? { ...grant, capabilities: grant.capabilities.filter(capability => capability !== "export") } : grant;
+        return { operatingStatus: "demo_only", persona: "physician", grant: visibleGrant, workspace,
+          ...(clinic ? { clinic } : tx.clinic ? { clinic: await tx.clinic() } : {}),
           acknowledgmentRequired: !grant.acknowledgedAt || grant.acknowledgmentVersion !== DEMO_ACKNOWLEDGMENT_VERSION,
           realClinicalReadiness: false, credentialVerificationGranted: false, academyCompletionGranted: false,
           realAgreementsGranted: false, paidSubscriptionGranted: false };

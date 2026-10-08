@@ -11,6 +11,7 @@ test("review/status UI uses the real JSON-returning API helper contract", async 
   for (const [name, args] of [
     ["getProfessionalReviewQueue", []], ["getProfessionalReviewDetail", ["synthetic-request"]],
     ["saveProfessionalIdentityDecision", ["synthetic-request", { revision: 2, decision: "approve" }]], ["getOwnProfessionalReadiness", []],
+    ["getCredentialReview", ["synthetic-request"]], ["saveCredentialDecision", ["synthetic-request", { revision: 3, decision: "pending" }]],
   ] as const) {
     expect(await exports[name](...args)).toBe(fixture);
   }
@@ -18,4 +19,6 @@ test("review/status UI uses the real JSON-returning API helper contract", async 
   expect(calls[1]).toEqual(["/api/admin/professional-requests/synthetic-request"]);
   expect(calls[2]).toEqual(["/api/admin/professional-requests/synthetic-request/decision", { method: "POST", body: JSON.stringify({ revision: 2, decision: "approve" }) }]);
   expect(calls[3]).toEqual(["/api/professional-onboarding/readiness"]);
+  expect(calls[4]).toEqual(["/api/admin/professional-requests/synthetic-request/credentials"]);
+  expect(calls[5]).toEqual(["/api/admin/professional-requests/synthetic-request/credentials", { method: "POST", body: JSON.stringify({ revision: 3, decision: "pending" }) }]);
 });

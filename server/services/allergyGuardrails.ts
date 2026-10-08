@@ -1,7 +1,7 @@
 // server/services/allergyGuardrails.ts
 // CRITICAL SAFETY SYSTEM: Allergy and dietary restriction enforcement
 // This module provides hard-block enforcement for allergies across ALL meal generators
-import { maskNonAnimalDietaryCompounds } from "@shared/semanticDietaryIngredients";
+import { maskNonAnimalDietaryCompounds, proteinSourceIngredientText } from "@shared/semanticDietaryIngredients";
 
 export interface UserSafetyProfile {
   allergies: string[];
@@ -113,6 +113,15 @@ export function normalizeForDietaryScan(text: string): string {
   const milkMasked = maskPlantMilks(lowered);
   const butterMasked = maskNutButters(milkMasked);
   return butterMasked;
+}
+
+/** Development-only FoodMeaning integration; Production keeps its current policy. */
+export function foodMeaningDietaryText(text: string, rule: string): string {
+  const sourceRule = ["pork", "no pork", "no red meat", "kosher", "halal", "kosher-halal"]
+    .includes(rule.trim().toLowerCase());
+  return process.env.NODE_ENV === "development" && sourceRule
+    ? proteinSourceIngredientText(text)
+    : text;
 }
 
 
@@ -924,7 +933,7 @@ export function violatesDietaryConstraints(
   if (!diet) return { violates: false, reasons: [] };
 
   const forbidden = RESTRICTION_EXPANSION[diet] || [];
-  const lower = text.toLowerCase();
+  const lower = foodMeaningDietaryText(text, diet).toLowerCase();
   // Mask plant milks and nut butters before bare-word checks
   const milkMasked = maskPlantMilks(lower);
   const butterMasked = maskNutButters(lower);
@@ -1956,9 +1965,10 @@ export function scanForHiddenDietaryViolations(
 
   // ── Kosher hidden term scan ───────────────────────────────────────────────
   if (isKosher) {
+    const kosherText = foodMeaningDietaryText(lower, "kosher");
     for (const { term, reason } of KOSHER_HIDDEN_TERMS) {
       const esc = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      if (new RegExp(`\\b${esc}\\b`, "i").test(lower)) {
+      if (new RegExp(`\\b${esc}\\b`, "i").test(kosherText)) {
         violations.push({ term, category: "kosher", reason });
       }
     }
@@ -1975,9 +1985,10 @@ export function scanForHiddenDietaryViolations(
 
   // ── Halal hidden term scan ────────────────────────────────────────────────
   if (isHalal) {
+    const halalText = foodMeaningDietaryText(lower, "halal");
     for (const { term, reason } of HALAL_HIDDEN_TERMS) {
       const esc = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      if (new RegExp(`\\b${esc}\\b`, "i").test(lower)) {
+      if (new RegExp(`\\b${esc}\\b`, "i").test(halalText)) {
         // Avoid duplicate if already caught by kosher
         if (!violations.find(v => v.term === term)) {
           violations.push({ term, category: "halal", reason });
@@ -2002,14 +2013,20 @@ export function scanForHiddenDietaryViolations(
     }
 
     const expanded = AVOIDANCE_EXPANSION[key] || [key];
+    // A direct "bacon"/"sausage" avoidance still scans the original product;
+    // only source-based rules use FoodMeaning's named protein identity.
+    const avoidanceText = foodMeaningDietaryText(lower, key);
     for (const term of expanded) {
       const esc = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      if (new RegExp(`\\b${esc}\\b`, "i").test(lower)) {
+      if (new RegExp(`\\b${esc}\\b`, "i").test(avoidanceText)) {
         if (!violations.find(v => v.term === term)) {
           violations.push({
             term,
             category: key,
-            reason: `"${term}" is in the user's foods-to-avoid list (${key})`
+            reason: process.env.NODE_ENV === "development" && key === "pork" &&
+              /^(bacon|sausage|salami|pepperoni|chorizo|ham)$/.test(term)
+              ? `"${term}" has no specified meat source. Specify a permitted non-pork source or substitute a compliant ingredient; do not assume it is pork-free.`
+              : `"${term}" is in the user's foods-to-avoid list (${key})`
           });
         }
       }

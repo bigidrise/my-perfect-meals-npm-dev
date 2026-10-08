@@ -7,15 +7,19 @@ import { getAcademyProgression } from "./academyProgression";
 import { identityAccountColumns } from "./professionalIdentityDecisionRepository";
 import type { IdentityAccountSnapshot } from "./professionalIdentityDecisionService";
 import { ProfessionalRequestError } from "./professionalOnboardingService";
+import { isDevelopmentFounderDemoAccount, DEVELOPMENT_FOUNDER_PHYSICIAN_DEMO as founder } from "../config/developmentFounderPhysicianDemo";
+import { developmentFounderDemoRepository, readDevelopmentFounderDemoGrant } from "./developmentFounderDemoRepository";
+import { normalizeDemoGrantRecord as normalizeGrant } from "./demoGrantRecord";
 type Executor = { execute(query: SQL): Promise<unknown> };
 async function rows<T>(tx: Executor, query: SQL): Promise<T[]> { return (await tx.execute(query) as { rows: T[] }).rows; }
 const grantColumns = sql.raw(`id, user_id AS "userId", workspace_id AS "workspaceId", persona,
   operating_status AS "operatingStatus", state, revision, capabilities, expires_at AS "expiresAt",
   approver_id AS "approverId", reason, training_basis AS "trainingBasis", training_waiver_reason AS "trainingWaiverReason",
-  acknowledged_at AS "acknowledgedAt", acknowledgment_version AS "acknowledgmentVersion", identity_request_id AS "identityRequestId"`);
-function normalizeGrant(row: DemoGrant | undefined): DemoGrant | null {
-  return row ? { ...row, expiresAt: new Date(row.expiresAt).toISOString(), acknowledgedAt: row.acknowledgedAt ? new Date(row.acknowledgedAt).toISOString() : null } : null;
-}
+  acknowledged_at AS "acknowledgedAt", acknowledgment_version AS "acknowledgmentVersion", identity_request_id AS "identityRequestId",
+  (SELECT event.metadata FROM demo_professional_events event
+    WHERE event.grant_id=demo_professional_grants.id AND event.event_type='demo_prepared'
+      AND event.actor_user_id=demo_professional_grants.approver_id
+    ORDER BY event.created_at,event.id LIMIT 1) AS authorization`);
 type PatientRow = { id: string; workspaceId: string; classification: DemoPatient["classification"]; label: string; data: Omit<DemoPatient, "id" | "workspaceId" | "classification" | "label" | "revision">; revision: number };
 const patientColumns = sql.raw(`id, workspace_id AS "workspaceId", classification, label, data, revision`);
 function patient(row: PatientRow): DemoPatient { return { ...row.data, id: row.id, workspaceId: row.workspaceId, classification: row.classification, label: row.label, revision: row.revision }; }
@@ -30,6 +34,9 @@ export const demoProfessionalRepository: DemoRepository = {
         return result;
       },
       grant: async userId => normalizeGrant((await rows<DemoGrant>(tx, sql`SELECT ${grantColumns} FROM demo_professional_grants WHERE user_id=${userId} FOR UPDATE`))[0]),
+      ownedClinic: async (userId, clinicId) => (await rows<NonNullable<import("@shared/demoProfessional").DemoContext["clinic"]>>(tx,
+        sql`SELECT id,name,'clinic' AS type,true AS "syntheticOnly" FROM studios
+          WHERE id=${clinicId} AND owner_user_id=${userId} AND type='clinic' AND status='active' FOR SHARE`))[0] ?? null,
       workspace: async id => (await rows<DemoWorkspace>(tx, sql`SELECT id,label,classification FROM demo_professional_workspaces WHERE id=${id}`))[0] ?? null,
       patients: async workspaceId => (await rows<PatientRow>(tx, sql`SELECT ${patientColumns} FROM demo_professional_patients
         WHERE workspace_id=${workspaceId} AND classification='synthetic' ORDER BY id`)).map(patient),
@@ -86,6 +93,14 @@ export const demoProfessionalRepository: DemoRepository = {
           WHERE id=${account.id} AND auth_security_version=${account.authSecurityVersion} RETURNING id`);
         if (!changed.length) throw new ProfessionalRequestError(409, "DEMO_TARGET_CHANGED", "Target security state changed.");
       },
+      async recoverFounderIdentity(account) {
+        const changed = await rows(tx, sql`UPDATE users
+          SET professional_role='physician', auth_security_version=auth_security_version+1,
+            auth_token=NULL,auth_token_created_at=NULL,auth_token_mfa_verified_at=NULL
+          WHERE id=${account.id} AND id=${founder.userId} AND professional_role='business'
+            AND auth_security_version=${account.authSecurityVersion} RETURNING id`);
+        if (!changed.length) throw new ProfessionalRequestError(409, "DEMO_TARGET_CHANGED", "Target identity or security version changed; reload.");
+      },
       async event(grant, actorId, kind, metadata) {
         await tx.execute(sql`INSERT INTO demo_professional_events(id,grant_id,actor_user_id,event_type,metadata)
           VALUES(${randomUUID()},${grant.id},${actorId},${kind},${JSON.stringify({
@@ -97,7 +112,14 @@ export const demoProfessionalRepository: DemoRepository = {
   }),
 };
 export async function readDemoRestriction(userId: string) {
-  return normalizeGrant((await rows<DemoGrant>(db, sql`SELECT ${grantColumns} FROM demo_professional_grants WHERE user_id=${userId}`))[0]);
+  const persisted = normalizeGrant((await rows<DemoGrant>(db, sql`SELECT ${grantColumns} FROM demo_professional_grants WHERE user_id=${userId}`))[0]);
+  // A prepared/revoked shared restriction must never be replaced by the local overlay.
+  return persisted ?? (isDevelopmentFounderDemoAccount(userId) ? readDevelopmentFounderDemoGrant(userId) : null);
+}
+/** Select server-owned authority; never let request flags choose a repository. */
+export async function demoRepositoryForActor(userId: string): Promise<DemoRepository> {
+  const grant = await readDemoRestriction(userId);
+  return grant?.authority === "development_founder" ? developmentFounderDemoRepository : demoProfessionalRepository;
 }
 export async function readDemoGrantHistory(userId: string) {
   return rows(db, sql`SELECT event.id,event.actor_user_id AS "actorUserId",event.event_type AS "eventType",event.metadata,event.created_at AS "createdAt"

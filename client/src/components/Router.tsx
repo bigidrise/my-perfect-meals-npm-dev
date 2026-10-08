@@ -31,6 +31,8 @@ import {
   createProfessionalLegalRecoveryUrl,
   type ProfessionalLegalRecoveryAction,
 } from "@/lib/professionalLegalRecovery";
+import { getDemoContext } from "@/lib/demoProfessional";
+import { isDemoGrantCurrent } from "@shared/demoProfessional";
 
 // DEV-ONLY: responsive modal bounds test harness.
 // Static import (no lazy) so the module is compiled into the main bundle and
@@ -713,6 +715,13 @@ const SafeAntiInflammatoryMenuBuilder = withPageErrorBoundary(AntiInflammatoryMe
 const GuardedProPortal = () => <ProCareStudioGuard component={SafeProPortal} />;
 const GuardedProClients = () => <ProCareStudioGuard component={SafeProClients} />;
 const GuardedProClientsPhysician = () => <ProCareStudioGuard component={SafeProClientsPhysician} />;
+function DevelopmentFounderClinicEntry({ component: Component }: { component: React.ComponentType }) {
+  return <DemoPhysicianWorkspace fallback={<Component />} />;
+}
+const DevelopmentFounderPhysicianClientsRoute = () => <DevelopmentFounderClinicEntry component={GuardedProClientsPhysician} />;
+const DevelopmentFounderPhysicianCareTeamRoute = () => <DevelopmentFounderClinicEntry component={GuardedPhysicianCareTeam} />;
+const DevelopmentFounderClinicClientsRoute = () => <DevelopmentFounderClinicEntry component={GuardedProClients} />;
+const DemoPhysicianWorkspaceRoute = () => <DemoPhysicianWorkspace />;
 const GuardedWorkspaceShell = () => <ProCareStudioGuard component={SafeWorkspaceShell} />;
 const GuardedProClientDashboard = () => <ProCareStudioGuard component={SafeProClientDashboard} />;
 const GuardedProClientNutritionPlan = () => <ProCareStudioGuard component={SafeProClientNutritionPlan} />;
@@ -848,9 +857,43 @@ function LegacyProCareTrainingRedirect() {
 
 export default function Router() {
   const [location, setLocation] = useLocation();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const guardRedirectedRef = useRef(false);
   const isDesktopView = useIsDesktop();
+  const [founderProbe, setFounderProbe] = useState<{ accountId: string; authority: boolean } | null>(null);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV || authLoading) return;
+    const accountId = user?.id ?? "";
+    if (!accountId) {
+      setFounderProbe({ accountId: "", authority: false });
+      return;
+    }
+    let active = true;
+    setFounderProbe(null);
+    getDemoContext().then(result => {
+      if (!active) return;
+      const grant = result.grant;
+      const current = isDemoGrantCurrent(grant);
+      setFounderProbe({
+        accountId,
+        authority: grant.userId === accountId &&
+          grant.authority === "development_founder" &&
+          grant.lifetime === "permanent_founder" &&
+          grant.expiresAt === null &&
+          current,
+      });
+    }).catch(() => {
+      if (active) setFounderProbe({ accountId, authority: false });
+    });
+    return () => { active = false; };
+  }, [authLoading, user?.id]);
+
+  const founderIsCurrentAccount = Boolean(user?.id && founderProbe?.accountId === user.id);
+  const isFounderDevelopmentSession = import.meta.env.DEV && founderIsCurrentAccount && founderProbe?.authority === true;
+  const authRoutes = ["/auth", "/welcome", "/login", "/signup", "/forgot-password", "/reset-password", "/logout", "/signout", "/auth/logout"];
+  const isAuthRoute = authRoutes.includes(location);
 
   useEffect(() => {
     const handleProfessionalLegalRequired = (event: Event) => {
@@ -883,6 +926,7 @@ export default function Router() {
     "/demo-physician",
     "/",
     "/auth",
+    "/login",
     "/welcome",
     "/guest-builder",
     "/guest-suite",
@@ -920,7 +964,7 @@ export default function Router() {
     "/business/join",
   ];
 
-  const { user, loading } = useAuth();
+  const loading = authLoading;
   const shouldShowBottomNav =
     user?.operatingStatus !== "demo_only" &&
     !hideBottomNavRoutes.includes(location) &&
@@ -1047,13 +1091,35 @@ export default function Router() {
   }, [location, user, loading, isProfessionalUser]);
 
   useEffect(() => {
-    if (!loading && user?.operatingStatus === "demo_only" && !["/demo-physician", "/auth", "/welcome"].includes(location)) {
-      setLocation("/demo-physician");
+    if (!authLoading && user?.operatingStatus === "demo_only" &&
+      !["/auth", "/welcome", "/logout", "/signout", "/auth/logout"].includes(location) &&
+      location !== "/pro/physician-clients") {
+      setLocation("/pro/physician-clients");
     }
-  }, [loading, user?.operatingStatus, location, setLocation]);
+  }, [authLoading, user?.operatingStatus, location, setLocation]);
+
+  useEffect(() => {
+    if (isFounderDevelopmentSession && !isAuthRoute && location !== "/pro/physician-clients") {
+      setLocation("/pro/physician-clients");
+    }
+  }, [isFounderDevelopmentSession, isAuthRoute, location, setLocation]);
+
+  if (
+    import.meta.env.DEV &&
+    user &&
+    !authLoading &&
+    !isAuthRoute &&
+    (!founderProbe || founderProbe.accountId !== user.id)
+  ) {
+    return <div className="min-h-[100dvh] grid place-items-center bg-[#201c19] text-white/75 text-sm">Resolving secure workspace…</div>;
+  }
+
+  if (isFounderDevelopmentSession && !isAuthRoute) {
+    return <Suspense fallback={<p role="status">Loading physician Clinic…</p>}><DemoPhysicianWorkspace /></Suspense>;
+  }
 
   // Do not mount/cache-render a live professional page while redirecting.
-  if (!loading && user?.operatingStatus === "demo_only" && !["/auth", "/welcome"].includes(location)) {
+  if (!authLoading && user?.operatingStatus === "demo_only" && !isAuthRoute) {
     return <Suspense fallback={<p role="status">Loading isolated demo workspace…</p>}><DemoPhysicianWorkspace /></Suspense>;
   }
   return (
@@ -1081,6 +1147,7 @@ export default function Router() {
         <Route path="/guest-suite" component={GuestBuilder} />
         <Route path="/home" component={Home} />
         <Route path="/auth" component={Auth} />
+        <Route path="/login" component={Auth} />
         <Route path="/join/clinic" component={lazy(() => import("@/pages/ClinicPilotJoinPage"))} />
         <Route path="/join/business-offer" component={BusinessOfferJoinPage} />
         <Route path="/forgot-password" component={ForgotPassword} />
@@ -1106,7 +1173,7 @@ export default function Router() {
         <Route path="/personal-guidance-info" component={PersonalGuidanceInfoPage} />
         <Route path="/admin-moderation" component={AdminModerationPage} />
         <Route path="/admin/professional-requests" component={lazy(() => import("@/pages/admin/ProfessionalIdentityRequests"))} />
-        {import.meta.env.DEV && <Route path="/demo-physician" component={DemoPhysicianWorkspace} />}
+        {import.meta.env.DEV && <Route path="/demo-physician" component={DemoPhysicianWorkspaceRoute} />}
         <Route path="/admin/chef-kitchens" component={ChefKitchensAdmin} />
         <Route path="/admin/pilots" component={lazy(() => import("@/pages/PilotProgramAdmin"))} />
         <Route path="/kitchens" component={SignatureKitchenHubPage} />
@@ -1282,12 +1349,12 @@ export default function Router() {
         <Route path="/tips" component={SafeTips} />
         <Route path="/pro/physician" component={PhysicianPortal} />
         <Route path="/care-team" component={GuardedCareTeam} />
-        <Route path="/care-team/physician" component={GuardedPhysicianCareTeam} />
+        <Route path="/care-team/physician" component={import.meta.env.DEV ? DevelopmentFounderPhysicianCareTeamRoute : GuardedPhysicianCareTeam} />
         <Route path="/care-team/trainer" component={GuardedTrainerCareTeam} />
         <Route path="/pro-portal" component={GuardedProPortal} />
         <Route path="/pro" component={() => { const [, go] = useLocation(); useEffect(() => { go("/pro-portal"); }, []); return null; }} />
-        <Route path="/pro/clients" component={GuardedProClients} />
-        <Route path="/pro/physician-clients" component={GuardedProClientsPhysician} />
+        <Route path="/pro/clients" component={import.meta.env.DEV ? DevelopmentFounderClinicClientsRoute : GuardedProClients} />
+        <Route path="/pro/physician-clients" component={import.meta.env.DEV ? DevelopmentFounderPhysicianClientsRoute : GuardedProClientsPhysician} />
         <Route path="/pro/workspace/:clientId" component={GuardedWorkspaceShell} />
         <Route path="/pro/clients/:id" component={GuardedProClientDashboard} />
         <Route path="/pro/clients/:id/nutrition-life-plan" component={GuardedProClientNutritionPlan} />

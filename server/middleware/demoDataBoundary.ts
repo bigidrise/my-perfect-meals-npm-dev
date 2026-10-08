@@ -4,10 +4,12 @@ import type { DemoGrant } from "@shared/demoProfessional";
 export interface DemoBoundaryActor {
   id: string; username: string; email: string; role: string; professionalRole: string | null;
   isProCare: boolean | null; planLookupKey: string | null;
+  firstName?: string | null; lastName?: string | null;
 }
 export interface DemoBoundaryDependencies {
   actor(req: Request): Promise<DemoBoundaryActor | null>;
   restriction(userId: string): Promise<DemoGrant | null>;
+  developmentProfile?(req: Request, actor: DemoBoundaryActor, grant: DemoGrant): Promise<Record<string, unknown> | null>;
 }
 function normalizedPath(req: Request) {
   return decodeURIComponent((req.originalUrl || req.url).split("?")[0]).replace(/\/+/g, "/").toLowerCase();
@@ -43,13 +45,18 @@ export function createDemoDataBoundary(deps: DemoBoundaryDependencies) {
       if (!actor) return next(); // Existing anonymous/signed-callback authorization is unchanged.
       const grant = await deps.restriction(actor.id);
       if (!grant) return next();
+      if (path === "/api/user/profile" && ["GET", "POST", "PUT", "PATCH"].includes(req.method) && deps.developmentProfile) {
+        const profile = await deps.developmentProfile(req, actor, grant);
+        if (profile) return res.json(profile);
+      }
       // Prepared/revoked/expired grants stay restrictive. No fallback to live.
       if (path === "/api/user/profile" && req.method === "GET") {
         return res.json({ id: actor.id, username: actor.username, email: actor.email, role: actor.role,
           professionalRole: actor.professionalRole, isProCare: actor.isProCare, planLookupKey: actor.planLookupKey,
           operatingStatus: "demo_only", demoGrantState: grant.state,
           // Intentionally no real profile/health/credential/Studio payload.
-          preferredLanguage: "auto",
+          firstName: actor.firstName ?? "", lastName: actor.lastName ?? "",
+          preferredLanguage: "auto", demoPersona: "physician",
         });
       }
       if (demoEndpoint(req.method, path)) return next();
@@ -57,6 +64,9 @@ export function createDemoDataBoundary(deps: DemoBoundaryDependencies) {
     } catch (error) {
       if ((error as { code?: string })?.code === "AUTH_REAUTHENTICATION_REQUIRED") {
         return res.status(401).json({ code: "AUTH_REAUTHENTICATION_REQUIRED", error: "Sign in again." });
+      }
+      if ((error as { code?: string })?.code === "DEMO_PROFILE_FIELD_DENIED") {
+        return res.status(400).json({ code: "DEMO_PROFILE_FIELD_DENIED", error: "Only your Development display name and language may be edited here; clinical, role and entitlement fields remain protected." });
       }
       return res.status(503).json({ code: "DEMO_BOUNDARY_UNAVAILABLE", error: "Data scope could not be verified. Access is blocked; retry later." });
     }

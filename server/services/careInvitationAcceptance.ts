@@ -14,6 +14,7 @@ import { normalizeEmailIdentity, resolveEmailIdentityForUser } from "./emailIden
 import { resolveProviderStudioAttribution, validateBp1Attribution, type Bp1Attribution } from "./bp1OrganizationAttributionService";
 import { discoverAuthorizedWorkspaces } from "./organizationWorkspaceService";
 import { CareInvitationError, assertInvitationWindow, resolveCareInvitationParties } from "./careInvitationPolicy";
+import { isDevelopmentFounderDemoAccount } from "../config/developmentFounderPhysicianDemo";
 
 export type InvitationSource = "care_invite" | "studio_invite";
 export interface StoredCareInvitation {
@@ -39,6 +40,9 @@ export async function resolveInvitationAttribution(providerId: string, studio: t
 }
 
 export async function assertLiveParties(providerId: string, clientId: string) {
+  if (isDevelopmentFounderDemoAccount(providerId) || isDevelopmentFounderDemoAccount(clientId)) {
+    throw new CareInvitationError("INVITATION_DATASET_MISMATCH");
+  }
   const [restriction] = await db.select({ id: demoProfessionalGrants.id }).from(demoProfessionalGrants)
     .where(or(eq(demoProfessionalGrants.userId, providerId), eq(demoProfessionalGrants.userId, clientId))).limit(1);
   const [synthetic] = await db.select({ id: demoProfessionalPatients.id }).from(demoProfessionalPatients)

@@ -22,6 +22,7 @@ export async function runProfessionalDecisionMigration(database: Database) {
     await tx.execute(sql.raw(`ALTER TABLE professional_identity_events
       ADD CONSTRAINT professional_identity_events_event_type_check CHECK (event_type IN
         ('draft_created','draft_updated','request_submitted','correction_resumed',
-         'identity_approved','identity_rejected','identity_correction_requested'))`));
+         'identity_approved','identity_rejected','identity_correction_requested',
+         'credentials_verified','credentials_rejected','credentials_pending'))`));
   });
 }
