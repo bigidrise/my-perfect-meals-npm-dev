@@ -1,8 +1,6 @@
 import crypto from "crypto";
 import OpenAI from "openai";
-import { db } from "../db";
-import { savedMeals as savedMealsTable } from "@shared/schema";
-import { eq, and } from "drizzle-orm";
+import { saveGroceryCardOnce } from "./groceryCoachCardSave";
 import {
   loadUserProtocolEnvelope,
   enforceBeforeGenerate,
@@ -304,36 +302,15 @@ Write cooking instructions.`,
   // ── 10. Idempotent save ────────────────────────────────────────────────────
   const hash = mealSignature(meal.name, sourceType, macros);
 
-  const existing = await db
-    .select({ id: savedMealsTable.id })
-    .from(savedMealsTable)
-    .where(
-      and(
-        eq(savedMealsTable.userId, String(userId)),
-        eq(savedMealsTable.signatureHash, hash)
-      )
-    )
-    .limit(1);
-
-  let savedId: string;
-  if (existing.length > 0) {
-    savedId = existing[0].id;
-    console.log(`[MealCardFinalizer] Idempotent hit — returning existing card ${savedId}`);
-  } else {
-    const [row] = await db
-      .insert(savedMealsTable)
-      .values({
-        userId: String(userId),
-        title: meal.name,
-        sourceType,
-        signatureHash: hash,
-        mealData,
-        ...(finalMediaAssetId ? { mediaAssetId: finalMediaAssetId } : {}),
-      })
-      .returning({ id: savedMealsTable.id });
-    savedId = row.id;
-    console.log(`[MealCardFinalizer] ✅ Saved meal card ${savedId} for user ${userId}`);
-  }
+  const savedId = await saveGroceryCardOnce({
+    userId: String(userId),
+    title: meal.name,
+    sourceType,
+    signatureHash: hash,
+    mealData,
+    ...(finalMediaAssetId ? { mediaAssetId: finalMediaAssetId } : {}),
+  });
+  console.log(`[MealCardFinalizer] Saved or recovered meal card ${savedId}`);
 
   return {
     id: savedId,

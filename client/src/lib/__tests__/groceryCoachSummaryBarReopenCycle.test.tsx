@@ -170,6 +170,82 @@ beforeEach(() => {
   (post as jest.Mock).mockResolvedValue({});
 });
 
+describe('Meal-card continuity and recovery', () => {
+  const card = { id: 'card-1', imageUrl: null, title: 'Herb Chicken', destination: '/saved-meals?mealId=card-1' };
+  const cardCalls = () => (post as jest.Mock).mock.calls.filter(([url]) => url === '/api/grocery-coach/finalize-card');
+
+  it('preserves the ready Favorite link through closing, reopening, and remounting', async () => {
+    localStorage.setItem(SESSION_KEY, makeSession({ cardPhase: 'ready', mealCard: card }));
+    const view = render(<GroceryStoreCoachSheet open={true} onOpenChange={jest.fn()} />);
+    await screen.findByRole('button', { name: 'View Meal Card' });
+    view.rerender(<GroceryStoreCoachSheet open={false} onOpenChange={jest.fn()} />);
+    expect(JSON.parse(localStorage.getItem(SESSION_KEY)!).mealCard.id).toBe(card.id);
+    view.rerender(<GroceryStoreCoachSheet open={true} onOpenChange={jest.fn()} />);
+    await screen.findByRole('button', { name: 'View Meal Card' });
+    view.unmount();
+    render(<GroceryStoreCoachSheet open={true} onOpenChange={jest.fn()} />);
+    await screen.findByRole('button', { name: 'View Meal Card' });
+    expect(cardCalls()).toHaveLength(0);
+  });
+
+  it.each([undefined, 'generating', 'failed'])('offers safe recovery for a restored %s card state', async cardPhase => {
+    localStorage.setItem(SESSION_KEY, makeSession({ cardPhase }));
+    render(<GroceryStoreCoachSheet open={true} onOpenChange={jest.fn()} />);
+    await screen.findByRole('button', { name: 'Create or Recover Meal Card' });
+    expect(cardCalls()).toHaveLength(0);
+  });
+
+  it('keeps an in-flight save on close/reopen and persists the returned reference', async () => {
+    localStorage.setItem(SESSION_KEY, makeSession());
+    let finish!: (value: unknown) => void;
+    (post as jest.Mock).mockImplementation((url: string) =>
+      url === '/api/grocery-coach/finalize-card'
+        ? new Promise(resolve => { finish = resolve; })
+        : Promise.resolve({}),
+    );
+    const view = render(<GroceryStoreCoachSheet open={true} onOpenChange={jest.fn()} />);
+    const recover = await screen.findByRole('button', { name: 'Create or Recover Meal Card' });
+    act(() => { recover.click(); recover.click(); });
+    expect(cardCalls()).toHaveLength(1);
+    view.rerender(<GroceryStoreCoachSheet open={false} onOpenChange={jest.fn()} />);
+    view.rerender(<GroceryStoreCoachSheet open={true} onOpenChange={jest.fn()} />);
+    expect(screen.getByText('Creating your personalized recipe card…')).toBeInTheDocument();
+    await act(async () => finish({ status: 'ready', ...card }));
+    await screen.findByRole('button', { name: 'View Meal Card' });
+    expect(JSON.parse(localStorage.getItem(SESSION_KEY)!).mealCard.id).toBe(card.id);
+    expect(cardCalls()).toHaveLength(1);
+  });
+
+  it('still creates a card automatically for a fresh recommendation', async () => {
+    (post as jest.Mock).mockImplementation((url: string) => Promise.resolve(
+      url === '/api/grocery-coach/recommend' ? BASE_RESULT :
+      url === '/api/grocery-coach/finalize-card' ? { status: 'ready', ...card } : {},
+    ));
+    render(<GroceryStoreCoachSheet open={true} onOpenChange={jest.fn()} />);
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, { target: { value: 'Herb chicken dinner' } });
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
+    await screen.findByRole('button', { name: 'View Meal Card' });
+    expect(cardCalls()).toHaveLength(1);
+    expect(cardCalls()[0][1].recommendation.meal.name).toBe(BASE_RESULT.meal.name);
+  });
+
+  it('does not revive a card after the user explicitly starts a new session', async () => {
+    localStorage.setItem(SESSION_KEY, makeSession());
+    let finish!: (value: unknown) => void;
+    (post as jest.Mock).mockImplementation((url: string) =>
+      url === '/api/grocery-coach/finalize-card'
+        ? new Promise(resolve => { finish = resolve; }) : Promise.resolve({}),
+    );
+    render(<GroceryStoreCoachSheet open={true} onOpenChange={jest.fn()} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Create or Recover Meal Card' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    await act(async () => finish({ status: 'ready', ...card }));
+    expect(screen.queryByRole('button', { name: 'View Meal Card' })).not.toBeInTheDocument();
+    expect(localStorage.getItem(SESSION_KEY)).toBeNull();
+  });
+});
+
 afterEach(() => {
   localStorage.clear();
 });
