@@ -123,7 +123,7 @@ describe("Recipe Maker culinary occasion", () => {
 });
 
 describe("Recipe Maker bounded recovery and errors", () => {
-  it("keeps compliant desserts within GLP-1 limits without bypassing pastry restrictions", () => {
+  it("allows recognizable adapted pastries while still enforcing GLP-1 fat limits", () => {
     const targets = resolveGLP1MealTargets({
       dailyCalorieTarget: 1800, dailyProteinTarget: 100,
       dailyFatTarget: 60, dailyCarbsTarget: 180, isActive: true,
@@ -153,8 +153,8 @@ describe("Recipe Maker bounded recovery and errors", () => {
       ingredients: [...dessert.ingredients, { name: "thin phyllo pastry" }],
     };
     const pastryResult = validateMealForDiet(pastry as any, "glp1", undefined, true, targets);
-    expect(pastryResult.isValid).toBe(false);
-    expect(pastryResult.violations.join(" ")).toMatch(/pastry/i);
+    expect(pastryResult.isValid).toBe(true);
+    expect(pastryResult.warnings?.join(" ")).toMatch(/per-serving nutrition/i);
   });
 
   it("explains the actual failed GLP-1 requirement without quoting the image", () => {
