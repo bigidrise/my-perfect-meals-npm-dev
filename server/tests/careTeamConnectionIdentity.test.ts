@@ -134,7 +134,7 @@ jest.mock("../services/bp1OrganizationAttributionService", () => ({
 }));
 jest.mock("../services/organizationWorkspaceService", () => ({
   WorkspaceContextError: class extends Error {},
-  discoverAuthorizedWorkspaces: async () => [],
+  discoverAuthorizedWorkspaces: jest.fn(async () => []),
 }));
 
 const app = express();
@@ -157,6 +157,8 @@ function connect(body: Row = { code: "TEST-CODE" }) {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  jest.requireMock("../services/organizationWorkspaceService").discoverAuthorizedWorkspaces
+    .mockReset().mockResolvedValue([]);
   mockRows.clear();
   mockWrites.length = 0;
   client = { id: "client", email: "client@example.invalid", professionalRole: null, planLookupKey: "mpm_ultimate_monthly", accessTier: "PAID_FULL" };
@@ -308,6 +310,25 @@ test("a malformed Business Studio invitation requires reissue and never reverses
   expect(mockActivate).not.toHaveBeenCalled();
   expect(mockWrites).toHaveLength(0);
   expect(JSON.stringify(mockRows.get(users))).toBe(identities);
+});
+
+test("standalone Business Studio invitations do not inherit unrelated Organization memberships", async () => {
+  professional.professionalRole = "business";
+  arrange("professional_invites");
+  mockActor = professional;
+  mockEmailCandidates.mockResolvedValue([client]);
+  const discovery = jest.requireMock("../services/organizationWorkspaceService").discoverAuthorizedWorkspaces;
+  discovery.mockResolvedValue([{ id: "unrelated-org-a" }, { id: "unrelated-org-b" }]);
+  const sent = await request(app).post("/api/care-team/invite").send({ email: client.email, role: "trainer", permissions });
+  expect(sent.status).toBe(200);
+  expect(discovery).not.toHaveBeenCalled();
+  expect(mockResolveAttribution).not.toHaveBeenCalled();
+  const created = mockWrites.find(write => write.table === careInvite)!.values;
+  expect(created.organizationId).toBeUndefined();
+  expect(created.locationId).toBeUndefined();
+  mockActor = client;
+  expect((await connect({ code: created.inviteCode })).status).toBe(200);
+  expect(mockActivate).toHaveBeenCalledWith(client.id, professional.id, "invitation_care_invite", expect.any(Function), null);
 });
 
 test("a business-only caller can invite a provider as a client but gains no provider privileges", async () => {
