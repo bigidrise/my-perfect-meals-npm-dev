@@ -849,12 +849,6 @@ Respond ONLY with valid JSON:
         if (typeof rawCal !== "number" || !Number.isFinite(rawCal) || rawCal < 0) {
           return "GLP-1 protocol requires a numeric calorie estimate — the response did not provide one.";
         }
-        if (rawCal > glp1Targets.resolvedMealCalories * 1.25) {
-          return (
-            `GLP-1 calorie ceiling exceeded: ${Math.round(rawCal)} kcal ` +
-            `(limit ~${glp1Targets.resolvedMealCalories} kcal). Please request a lighter adjustment.`
-          );
-        }
       }
       return null;
     };
@@ -1495,18 +1489,9 @@ function validateMeal(
     );
   }
 
-  // ── Diabetic starch gate ──────────────────────────────────────────────────
-  const starchGateTriggered = Boolean(
-    envelope.hasDiabetes && ndeScan.starchBudgetViolation?.detected,
-  );
-  if (starchGateTriggered) {
-    const starchTerms = ndeScan.starchBudgetViolation?.terms ?? [];
-    corrections.push(
-      `DIABETIC STARCH GATE: The meal contains starchy ingredients (${starchTerms.join(", ") || "see above"}) ` +
-      `that exceed the diabetic starch budget. Replace starchy components with non-starchy vegetables, ` +
-      `lean proteins, or legumes. Keep total carbs well within the diabetic meal limit.`,
-    );
-  }
+  // Consumed daily starch is tracking guidance, not a refinement rejection.
+  // The independent glucose protocol is still included in ndeScan.passed.
+  const starchGateTriggered = false;
 
   // ── GLP-1 macro gate ─────────────────────────────────────────────────────
   let glp1Issues: ValidationResult["glp1Issues"] = null;
@@ -1516,7 +1501,7 @@ function validateMeal(
     // Absent/non-finite macros = cannot verify GLP-1 compliance = treat as violation.
     const absentMacros = macros.fat === null || macros.calories === null;
     const fatViolation = !absentMacros && macros.fat! > glp1Targets.maximumToleratedFatGrams;
-    const calViolation = !absentMacros && macros.calories! > glp1Targets.resolvedMealCalories * 1.25;
+    const calViolation = false; // Daily-derived calorie guidance cannot fail refinement.
     const protFloor =
       macros.protein !== null && macros.protein < glp1Targets.minimumProteinFloor * 0.75;
 
@@ -1526,15 +1511,14 @@ function validateMeal(
       corrections.push(
         `GLP-1 MACRO REQUIRED: You must include a "macros" object with numeric calories, protein, fat, and carbs. ` +
         `GLP-1 compliance cannot be verified without it. ` +
-        `Targets: ≤${glp1Targets.maximumToleratedFatGrams}g fat, ≤${glp1Targets.resolvedMealCalories} kcal.`,
+        `Independent fat restriction: ≤${glp1Targets.maximumToleratedFatGrams}g. Calories are guidance only.`,
       );
     } else if (fatViolation || calViolation) {
       corrections.push(
         `GLP-1 MACRO CORRECTION: ` +
         `${fatViolation ? `Fat ${macros.fat}g exceeds limit ${glp1Targets.maximumToleratedFatGrams}g. ` : ""}` +
-        `${calViolation ? `Calories ${Math.round(macros.calories!)} exceeds limit ${glp1Targets.resolvedMealCalories} kcal. ` : ""}` +
         `Use lean proteins and non-oily methods. ` +
-        `Fat MUST be ≤${glp1Targets.maximumToleratedFatGrams}g and calories ≤${glp1Targets.resolvedMealCalories} kcal.`,
+        `Fat MUST be ≤${glp1Targets.maximumToleratedFatGrams}g. Report honest calories even when above daily guidance.`,
       );
     }
   }

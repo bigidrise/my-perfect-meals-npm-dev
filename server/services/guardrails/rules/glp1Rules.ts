@@ -32,14 +32,18 @@
  *   PMID_36614945 and AND_GLP1_NUTRITION. The 15g floor is a conservative
  *   engineering default when no macro target exists. Rule: glp1_protein_priority.
  *
- * Ingredient blocks (raw cruciferous, legumes, carbonation, fried foods,
- * high-fat dairy, concentrated sugars): Each category is governed by an
+ * Remaining ingredient blocks (raw cruciferous, legumes, carbonation, fried foods):
+ * Each category is governed by an
  * approved rule in the registry. See ruleRegistry.ts for per-category sources.
+ * Dessert names and common baking fats/sweeteners are composition-sensitive
+ * guidance, not universal exclusions. Their per-serving nutrition must still
+ * pass the resolved allowance and every independent safety restriction.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 export interface GLP1Rules {
   blockedIngredients: string[];
+  compositionSensitiveIngredients: string[];
   preferredIngredients: string[];
   blockedCategories: string[];
   preferredCategories: string[];
@@ -58,11 +62,9 @@ export interface GLP1Rules {
 
 export const glp1Rules: GLP1Rules = {
   blockedIngredients: [
-    // Heavy fats
-    'butter', 'cream', 'heavy cream', 'whipping cream', 'sour cream',
-    'cream cheese', 'mascarpone', 'brie', 'camembert',
+    // Other existing ingredient safeguards are unchanged by the dessert review.
+    'brie', 'camembert',
     'mayonnaise', 'mayo', 'aioli',
-    'lard', 'shortening', 'margarine',
     
     // Fried foods
     'fried chicken', 'fried fish', 'french fries', 'fries',
@@ -88,15 +90,6 @@ export const glp1Rules: GLP1Rules = {
     'dried beans', 'kidney beans', 'black beans', 'pinto beans',
     'chickpeas', 'lentils', 'split peas',
     
-    // Ultra-sweet foods
-    'honey', 'maple syrup', 'agave', 'molasses',
-    'corn syrup', 'high fructose corn syrup',
-    'cake', 'cookies', 'brownies', 'pie', 'pastry',
-    'donut', 'doughnut', 'muffin', 'croissant',
-    'ice cream', 'gelato', 'frozen yogurt',
-    'candy', 'chocolate bar', 'caramel',
-    'pancakes', 'waffles', 'french toast',
-    
     // Concentrated sugars and processed fruit — whole fresh fruit is allowed in portions
     'dried fruit', 'raisins', 'dates', 'figs', 'dried mango', 'dried banana chips',
     'fruit juice', 'orange juice', 'apple juice', 'grape juice', 'mango juice',
@@ -111,10 +104,19 @@ export const glp1Rules: GLP1Rules = {
     'bearnaise', 'ranch dressing', 'caesar dressing',
     'blue cheese dressing', 'thousand island',
     
-    // Large portion indicators
-    'giant', 'loaded', 'stuffed', 'double', 'triple',
-    'super-sized', 'family size', 'jumbo', 'mega',
+    // Existing beverage safeguards
     'thick smoothie', 'protein shake gallon',
+  ],
+
+  // Presence alone does not establish incompatibility. Evaluate actual fat,
+  // sugar contribution, portions, and tolerability without changing dish identity.
+  compositionSensitiveIngredients: [
+    'butter', 'cream', 'cream cheese', 'mascarpone', 'lard', 'shortening', 'margarine',
+    'sugar', 'icing', 'frosting', 'honey', 'maple syrup', 'agave', 'molasses',
+    'corn syrup', 'high fructose corn syrup',
+    'cake', 'cookie', 'brownie', 'pie', 'pastry', 'donut', 'doughnut',
+    'muffin', 'croissant', 'ice cream', 'gelato', 'frozen yogurt',
+    'candy', 'chocolate bar', 'caramel', 'pancake', 'waffle', 'french toast',
   ],
 
   preferredIngredients: [
@@ -156,12 +158,10 @@ export const glp1Rules: GLP1Rules = {
   blockedCategories: [
     'fried foods',
     'heavy cream sauces',
-    'high-fat desserts',
     'large portion meals',
     'carbonated beverages',
     'greasy foods',
     'ultra-processed foods',
-    'added sugars and syrups',
     'concentrated fruit products',
     'tough meats',
   ],
@@ -223,9 +223,17 @@ All meals MUST follow these strict guidelines:
 
 PORTION SIZE: Small portions ONLY. Never large, heavy, or high-volume meals.
 TEXTURE: Soft, gentle, easy-to-digest textures. Well-cooked vegetables.
-PROTEIN: High protein content (minimum 15g per meal) from lean sources.
-FAT: Very low fat (maximum 12g per meal). No heavy creams, oils, or fatty meats.
+PROTEIN: Prioritize lean protein and use the resolved occasion-specific targets supplied below.
+FAT: Moderate total fat per serving within the supplied allowance; adapt rich ingredients rather than banning an ingredient name.
 DIGESTION: Focus on easy-to-digest foods. Avoid raw cruciferous vegetables.
+
+REQUESTED FOOD IDENTITY:
+- Desserts and pastries, including Napoleon/mille-feuille, are eligible for a recognizable smaller-portion or lower-fat adaptation.
+- Evaluate actual ingredient quantities, per-serving fat, added sugar, protein, and individual symptom/tolerability context.
+- Butter, cream, sugar, pastry, cake, and descriptions such as creamy or crispy are not universal prohibitions.
+- Moderate added sugar; do not invent a universal sugar threshold or substitute an unrelated protein bowl.
+- Applicable allergies, dietary exclusions, verified clinician directives, and independently configured hard limits remain mandatory.
+- Do not guarantee acceptance when the final recipe fails its real requirements.
 
 ABSOLUTELY FORBIDDEN:
 - Fried foods of any kind
@@ -233,7 +241,6 @@ ABSOLUTELY FORBIDDEN:
 - High-fat meats (bacon, sausage, ribeye)
 - Large portions or high-volume meals
 - Carbonated beverages
-- Added sugars, syrups, honey, agave, candy, pastries, donuts, cake, ice cream
 - Dried fruit, fruit juice, and concentrated fruit products (high sugar density)
 - Raw cruciferous vegetables (raw broccoli, raw cabbage)
 - Large amounts of beans or lentils

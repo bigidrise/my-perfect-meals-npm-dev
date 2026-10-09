@@ -6,19 +6,6 @@ export function describeChefFoodProfileFailure(
   violations: readonly string[],
   context: HumanFoodContext,
 ): string {
-  const remaining = context.nutrition?.projectedRemaining ?? context.nutrition?.remaining;
-  const exceeded = [
-    ["starchy_carb_budget_exceeded", "starchy carbohydrate", context.nutrition?.starch?.consumed?.remainingGrams, "g"],
-    ["consumed_starch_budget_exhausted", "starchy carbohydrate", 0, "g"],
-  ] as const;
-  const limits = exceeded
-    .filter(([code]) => violations.includes(code))
-    .map(([, label, amount, unit]) =>
-      `${label}${amount == null ? "" : ` (${amount}${unit} remaining)`}`,
-    );
-  if (limits.length) {
-    return `Chef couldn't fit this recipe within the day's remaining ${limits.join(" and ")} allowance. No meal was added. Review the day's planned or logged meals, or request a lighter version.`;
-  }
   if (violations.some((code) => code.startsWith("verified_"))) {
     return "Chef couldn't verify the recipe's nutrition within the active food profile. No meal was added.";
   }
@@ -35,7 +22,8 @@ export function validateChefCandidate(
   // null/blank/negative values are unavailable, not a verified zero. Delegate
   // the resulting missing-value findings and all actual limits to the shared check.
   const numeric = (value: unknown): number => {
-    if (value == null || (typeof value === "string" && !value.trim())) return NaN;
+    if (value == null || typeof value === "boolean" ||
+        (typeof value === "string" && !value.trim())) return NaN;
     const number = Number(value);
     return Number.isFinite(number) && number >= 0 ? number : NaN;
   };
@@ -57,10 +45,10 @@ export function validateChefCandidate(
     repairHint: [
       `CANONICAL FOOD PROFILE CHECK FAILED: ${validation.violations.join(", ")}.`,
       remaining
-        ? `Ordinary daily goals remaining (${remaining.calories} kcal, ${remaining.carbs}g total carbohydrate, ${remaining.fat}g fat) are guidance, not rejection limits. Preserve strict starchy-carbohydrate allowances and independent clinical and explicitly requested limits.`
+        ? `Ordinary daily goals remaining (${remaining.calories} kcal, ${remaining.carbs}g total carbohydrate, ${remaining.fat}g fat) and all daily starch allowances are guidance, not rejection limits. Preserve independent clinical and explicitly requested restrictions.`
         : "Numeric targets remain unavailable; do not fabricate a numeric ceiling.",
       "Preserve the requested dish, cuisine and all allergy, avoidance, dietary and clinical requirements.",
-      "Adapt ingredients and preparation only for failed hard requirements; ordinary calorie/fat/protein/total-carbohydrate overages alone do not require shrinking or replacing the requested dish.",
+      "Adapt ingredients and preparation only for failed hard requirements; ordinary macro overages, including starch, do not require shrinking or replacing the requested dish.",
       "Do not merely lower the reported nutrition: change the actual recipe and report honest, complete per-serving nutrition.",
     ].join(" "),
   };
@@ -71,11 +59,19 @@ export function buildChefMacroGoalNotice(candidate: any, context: HumanFoodConte
   const state = context.nutrition;
   if (!state || state.prescription.source === "fallback" ||
       !Number.isFinite(servings) || servings < 1) return undefined;
-  const projections = (["fat", "protein"] as const).map(macro => {
-    const target = state.prescription[macro === "fat" ? "fatTarget" : "proteinTarget"];
-    const before = state.consumed[macro] + state.planned[macro];
+  const targetKeys = {
+    calories: "caloriesTarget", protein: "proteinTarget", fat: "fatTarget",
+    carbs: "carbsTarget", starchyCarbs: "starchyCarbsTarget", fibrousCarbs: "fibrousCarbsTarget",
+  } as const;
+  const projections = (Object.keys(targetKeys) as Array<keyof typeof targetKeys>).map(macro => {
+    const target = state.prescription[targetKeys[macro]];
+    // Planned reservations don't retain a fibrous-carbohydrate total. Do not
+    // fabricate it from total carbs or assume missing evidence means zero.
+    const before = macro === "fibrousCarbs"
+      ? state.planned.reservationCount === 0 ? state.consumed.fibrousCarbs : NaN
+      : state.consumed[macro] + state.planned[macro];
     const value = candidate?.nutrition?.[macro] ?? candidate?.[macro];
-    const recipe = value == null || (typeof value === "string" && !value.trim())
+    const recipe = value == null || typeof value === "boolean" || (typeof value === "string" && !value.trim())
       ? NaN
       : Number(value) / servings;
     const projected = before + recipe;
@@ -92,7 +88,7 @@ export function buildChefMacroGoalNotice(candidate: any, context: HumanFoodConte
     dateISO: state.date,
     projections,
     message: projections.map(item =>
-      `One serving contains ${display(item.recipe)}g ${item.macro}. If added to this day's plan, ${item.macro} would total ${display(item.projected)}g against the ${display(item.target)}g goal (${display(item.overage)}g over).`,
-    ).join(" ") + " This is macro tracking guidance, not a safety warning.",
+      `One serving contains ${display(item.recipe)}${item.macro === "calories" ? " kcal" : "g"} ${item.macro}. If added to this day's plan, ${item.macro} would total ${display(item.projected)} against the ${display(item.target)} goal (${display(item.overage)} over).`,
+    ).join(" ") + " This is planning guidance, not a safety warning. Keep the original meal, or request an optional portion adjustment.",
   };
 }

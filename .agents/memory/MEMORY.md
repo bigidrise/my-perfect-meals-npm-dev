@@ -147,3 +147,4 @@
 - [Recipe carbohydrate categories](recipe-carb-category-boundary.md) — preserve explicit source estimates; dietary fiber and unknown carbohydrate remain distinct.
 - [Interrupted edit integrity](interrupted-edit-integrity.md) — check every affected file after a disconnected multi-file edit, including reported successes.
 - [Page paywall return policy](page-paywall-return-policy.md) — denied pages need an accessible parent behind the modal; action-level prompts stay on their current page.
+- [Recipe Maker product expectation](recipe-maker-product-expectation.md) — reliable, identity-preserving recipes; category recognition alone does not prove clinical compliance.

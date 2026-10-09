@@ -121,13 +121,6 @@ router.post("/recommend", async (req, res) => {
           );
           return false;
         }
-        if (typeof cal === "number" && cal > t.resolvedMealCalories * 1.25) {
-          // 25 % headroom for estimate imprecision
-          console.warn(
-            `[BUFFET/GLP-1] Filtered plate "${rec.meal?.name}" — cal ${cal} > ceiling ${t.resolvedMealCalories * 1.25}`
-          );
-          return false;
-        }
         return true;
       });
       if (filtered.length === 0 && before > 0) {

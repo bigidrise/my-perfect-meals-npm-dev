@@ -36,6 +36,7 @@
 
 import type { GLP1Guardrails } from '../../../shared/glp1-schema';
 import { DEFAULT_GLP1_GUARDRAILS } from '../../../shared/glp1-schema';
+import { glp1Rules } from '../guardrails/rules/glp1Rules';
 import {
   assertRuleApproved,
   getRuleValue,
@@ -54,6 +55,36 @@ const BASELINE_SNACK_CALORIES = 150;
 const BASELINE_PROTEIN_TARGET = 25;
 const BASELINE_PROTEIN_FLOOR = 15;
 const BASELINE_FAT_CEILING = 15;
+
+// Retain the existing snack allocation and caps; the resolver owns the reduction.
+// These are operational defaults, not newly established clinical thresholds.
+function resolveSnackFatCeiling(mealCeiling: number, baseline = false): number {
+  return Math.min(mealCeiling * 0.4, baseline ? 5 : 8);
+}
+
+/**
+ * Read the allowance for the validation/generation occasion. Snack-resolved
+ * targets already include their reduction. Meal-resolved targets (e.g. a weekly
+ * plan) need one snack allocation when used for a snack.
+ */
+export function getGLP1FatCeiling(
+  targets?: ResolvedGLP1Targets,
+  isSnack = false,
+): number {
+  if (!targets) return isSnack ? 5 : glp1Rules.portionGuidelines.maxFatGrams;
+  const ceiling = targets.maximumToleratedFatGrams;
+  if (!Number.isFinite(ceiling) || ceiling < 0) {
+    throw new Error("GLP-1 fat allowance must be a finite nonnegative number.");
+  }
+  // Keep the existing meal fallback cap; never discard a tighter allowance.
+  // This correction does not expand unrelated baseline meal acceptance.
+  if (!isSnack && targets.usedBaseline) {
+    return Math.min(glp1Rules.portionGuidelines.maxFatGrams, ceiling);
+  }
+  return isSnack && targets.mealType !== 'snack'
+    ? resolveSnackFatCeiling(ceiling, targets.usedBaseline)
+    : ceiling;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // INPUT TYPES
@@ -365,19 +396,23 @@ export function resolveGLP1MealTargets(
   let maximumToleratedFatGrams: number;
 
   if (dailyFatTarget === 0) {
-    targetFatGrams = Math.round(guardrailFatCeiling * 0.8);
-    maximumToleratedFatGrams = guardrailFatCeiling;
+    maximumToleratedFatGrams = meal.mealType === 'snack'
+      ? resolveSnackFatCeiling(guardrailFatCeiling, true)
+      : guardrailFatCeiling;
+    targetFatGrams = Math.round(maximumToleratedFatGrams * 0.8);
     usedBaseline = true;
     reasons.push(`No daily fat target set — using guardrail ceiling (${guardrailFatCeiling}g fat max/meal)`);
   } else {
     const fatPerMeal = remainingFat / plannedMealsRemaining;
 
     if (meal.mealType === 'snack') {
-      maximumToleratedFatGrams = Math.min(guardrailFatCeiling * 0.4, 8);
+      maximumToleratedFatGrams = resolveSnackFatCeiling(guardrailFatCeiling);
       targetFatGrams = Math.round(maximumToleratedFatGrams * 0.7);
     } else {
-      maximumToleratedFatGrams = clamp(Math.min(fatPerMeal, guardrailFatCeiling), 7, guardrailFatCeiling);
-      targetFatGrams = Math.round(maximumToleratedFatGrams * 0.8);
+      // Remaining Macro Calculator fat guides portions but cannot establish
+      // a medical restriction. Only the independent tolerability guardrail can.
+      maximumToleratedFatGrams = guardrailFatCeiling;
+      targetFatGrams = Math.round(Math.min(fatPerMeal, maximumToleratedFatGrams * 0.8));
     }
 
     // Intro phase: stricter fat limits — values read from registry
@@ -390,7 +425,7 @@ export function resolveGLP1MealTargets(
       targetFatGrams = Math.min(targetFatGrams, introTarget);
       reasons.push(`Intro phase: fat ceiling reduced to ${introCeiling}g ceiling / ${introTarget}g target (registry: glp1_intro_fat_ceiling + glp1_intro_fat_target — pending RD review)`);
     }
-    reasons.push(`Fat: ${remainingFat}g remaining ÷ ${plannedMealsRemaining} meals = max ${maximumToleratedFatGrams}g`);
+    reasons.push(`Fat guidance: ${remainingFat}g remaining ÷ ${plannedMealsRemaining} meals; independent tolerability ceiling ${maximumToleratedFatGrams}g`);
   }
 
   // ─────────────────────────────────────────────────────────────────────────

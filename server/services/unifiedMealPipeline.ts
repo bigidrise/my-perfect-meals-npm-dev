@@ -31,6 +31,7 @@ import { generateFridgeRescueMeals } from './fridgeRescueGenerator';
 import { applyGuardrails, validateMealForDiet, getSystemPromptForDiet, DietType, BuilderMode } from './guardrails';
 import { buildGLP1ConstraintOverlay } from './guardrails/prompt/glp1PromptBuilder';
 import type { ResolvedGLP1Targets } from './glp1/resolveGLP1MealTargets';
+import { getGLP1FatCeiling } from './glp1/resolveGLP1MealTargets';
 import { normalizeIngredients as normalizeIngredientsToUS } from './ingredientNormalizer';
 import { 
   resolveHubCoupling, 
@@ -427,6 +428,7 @@ export interface MealGenerationResponse {
   /** Internal proof that the legacy person-fed check ran before image generation. */
   chefPersonFedValidated?: true;
   foodProfileViolations?: string[];
+  requestedMacroNotice?: string;
   macroGoalNotice?: ReturnType<typeof import("./humanFoodContext/chefCandidateValidation").buildChefMacroGoalNotice>;
   // Safety Profile enforcement fields
   safetyBlocked?: boolean;
@@ -603,38 +605,14 @@ function buildStarchGuidance(
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack',
   starchContext?: StarchContext
 ): string {
-  const placement = determineStarchPlacement(mealType, starchContext);
-
-  if (placement.shouldIncludeStarch) {
-    const gramTarget = starchContext?.gramsPerRemainingStarchMeal;
-    const remaining  = starchContext?.starchyCarbsRemaining;
-    const slotsLeft  = starchContext?.starchMealsAllowed !== undefined
-      ? Math.max(0, starchContext.starchMealsAllowed - (starchContext.existingMeals?.filter(m => m.hasStarch).length ?? 0))
-      : undefined;
-
-    let gramLine = '';
-    if (gramTarget !== undefined && gramTarget > 0) {
-      gramLine = `\n- Target approximately ${gramTarget}g of starchy carbs for this meal`;
-      if (remaining !== undefined) {
-        gramLine += ` (${remaining}g remaining across ${slotsLeft ?? 'remaining'} starch meal${slotsLeft !== 1 ? 's' : ''} today)`;
-      }
-    }
-
-    return `
-🍚 STARCH GUIDANCE: This meal MAY include starchy carbs (rice, pasta, bread, potatoes, beans, oats).
-Include starchy carbs as the primary carb source for this meal.${gramLine}`;
-  } else {
-    const reason = placement.reason === 'zero_starch_day'
-      ? 'This is a zero-starch day (rest day or clinical protocol).'
-      : 'All starch slots are used for today.';
-
-    return `
-🥦 STARCH GUIDANCE: This meal should be FIBER-BASED (no starchy carbs). ${reason}
-- DO NOT include: rice, pasta, bread, potatoes, beans, corn, oats, crackers, tortillas
-- DO include: vegetables (broccoli, spinach, peppers, zucchini, cauliflower), salads, leafy greens
-- Focus on: protein + vegetables + healthy fats
-- This creates a "protein + veggies" meal that keeps the user's starch slot available for another meal.`;
-  }
+  if (!starchContext) return "";
+  return `DAILY STARCH PLANNING GUIDANCE (${mealType}): ${
+    starchContext.starchyCarbsRemaining ?? "unknown"
+  }g remaining; suggested allocation ${
+    starchContext.gramsPerRemainingStarchMeal ?? "unknown"
+  }g. These are NOT generation ceilings, floors, ingredient bans, or clinical authority.
+Preserve the requested dish with dietary and safety adaptations, even when daily starch is exhausted.
+Report honest starch nutrition; show an overage and offer an optional adjustment rather than rejecting or silently replacing food.`;
 }
 
 /**
@@ -2445,34 +2423,40 @@ export async function generateCravingMealOptions(
   // Placed after all other diet blocks so GLP-1 overrides rather than merges.
   if (glp1Targets) {
     const t = glp1Targets;
+    // The resolver owns snack allocation. Prompts and validation consume the
+    // same allowance without applying a second reduction or rounding it upward.
+    const promptFatCeiling = getGLP1FatCeiling(t, validMealType === "snack");
     const glp1PromptBlock = [
       ``,
       `═══ GLP-1 MEDICATION PROTOCOL — HARD CONSTRAINTS (ALL OPTIONS) ═══`,
       `This user is on GLP-1 medication. All ${3} options MUST comply with these clinical rules.`,
       `Treatment phase: ${t.treatmentPhase ?? "active"}`,
       ``,
-      `MACRO CEILINGS (per meal — hard limits, not guidelines):`,
-      `• Calories: ≤ ${t.resolvedMealCalories} kcal`,
-      `• Fat: ≤ ${t.maximumToleratedFatGrams} g  — FRIED, CREAMY, BUTTERY dishes are FORBIDDEN`,
+      `MACRO CEILINGS (per ${validMealType === "snack" ? "snack" : "meal"} — hard limits, not guidelines):`,
+      `• Calories: ≤ ${validMealType === "snack" ? t.resolvedSnackCalories : t.resolvedMealCalories} kcal`,
+      `• Fat: ≤ ${promptFatCeiling} g — evaluate actual quantities and per-serving composition, not creamy/buttery/crispy names`,
       `• Protein: ≥ ${t.targetProteinGrams} g  — lean protein MUST anchor every option`,
       ``,
-      `FORBIDDEN PREPARATIONS: fried, deep-fried, breaded, cream sauces, butter-based sauces,`,
-      `heavy cheese, full-fat dairy, high-fat dressings, or any preparation that pushes fat > ${t.maximumToleratedFatGrams}g.`,
+      `Avoid fried or deep-fried preparation and any recipe that pushes fat > ${promptFatCeiling}g.`,
+      `Pastry, butter, cream, and sugar are not universal exclusions. Consider portion size, added sugar, protein, and individual tolerability.`,
+      `Keep a requested Napoleon/mille-feuille recognizable: layered pastry and filling, not an unrelated protein bowl.`,
       ``,
       `PORTION RULE: GLP-1 medications reduce appetite and slow gastric emptying.`,
-      `Keep portions small (1-1.5 cups total plate volume). Do NOT generate large, heavy plates.`,
+      validMealType === "snack"
+        ? `Keep this a small snack or dessert in its requested format, not a dinner plate with extra sides.`
+        : `Keep portions small (1-1.5 cups total plate volume). Do NOT generate large, heavy plates.`,
       ``,
       `STARCH RULE: Starchy sides (rice, pasta, bread, potato) are OPTIONAL and must appear as`,
       `controlled portions (≤ ¼ cup / 2 oz). Non-starchy vegetables are PREFERRED as volume.`,
       ``,
       `CONCEPT TRANSFORMATION RULE (critical):`,
-      `If the requested dish CANNOT naturally achieve ≥${t.targetProteinGrams}g protein and ≤${t.maximumToleratedFatGrams}g fat`,
+      `If the requested dish CANNOT naturally achieve ≥${t.targetProteinGrams}g protein and ≤${promptFatCeiling}g fat`,
       `in its traditional form (e.g. apple pie, cream pie, pasta carbonara, cheesecake),`,
-      `you MUST transform the CONCEPT — not just swap one ingredient.`,
-      `Preserve the FLAVOR PROFILE. Rebuild the dish around a protein anchor.`,
+      `you MUST adapt ingredients and portions while preserving the requested dish's recognizable format.`,
+      `Preserve the FLAVOR PROFILE and DISH IDENTITY. Incorporate lean protein into the filling or other defining components.`,
       `Correct transformation examples:`,
-      `  • "Apple Pie" → "Spiced Apple Protein Bowl" (Greek yogurt base, cinnamon apples, almond crumble)`,
-      `  • "Chocolate Cream Pie" → "Chocolate Protein Mousse Cup" (cottage cheese, cocoa, protein powder)`,
+      `  • "Apple Pie" → a small apple pie with a thin compliant crust and a lean protein-supporting filling`,
+      `  • "Chocolate Cream Pie" → a small chocolate cream pie with a compliant crust and lean cocoa filling`,
       `  • "Pasta Carbonara" → "Zucchini Carbonara with Turkey & Egg White Sauce"`,
       `  • "Cheesecake" → "Lemon Protein Cheesecake Cups" (cottage cheese, protein powder, lemon zest)`,
       `Name the dish to reflect the transformation — never name it after the original if it isn't that dish.`,
@@ -2679,6 +2663,8 @@ export async function generateCravingMealOptions(
   // fields — relabeling macros without changing ingredients is clinically wrong.
   // Validator module errors also exclude the option (fail closed).
   if (glp1Targets) {
+    const glp1Violations = new Set<string>();
+    let glp1ValidationUnavailable = false;
     try {
       const { validateMealForDiet } = await import("./guardrails/index");
       const isSnack = validMealType === "snack";
@@ -2695,16 +2681,19 @@ export async function generateCravingMealOptions(
             protein:  (opt as any).protein  ?? (opt as any).nutrition?.protein,
             fat:      (opt as any).fat      ?? (opt as any).nutrition?.fat,
             carbs:    (opt as any).carbs    ?? (opt as any).nutrition?.carbs,
+            addedSugar: (opt as any).addedSugar ?? (opt as any).nutrition?.addedSugar,
           };
           const vr = validateMealForDiet(
-            { name: (opt as any).name, ingredients: ingList, macros },
+            { name: (opt as any).name, ingredients: ingList, instructions: (opt as any).instructions, macros },
             "glp1", undefined, isSnack, glp1Targets!,
           );
           if (!vr.isValid) {
+            vr.violations.forEach((violation) => glp1Violations.add(String(violation)));
             console.warn(`💊 [VARIETY ENGINE] Excluding "${(opt as any).name}" — GLP-1 violations:`, vr.violations);
           }
           return vr.isValid;
         } catch {
+          glp1ValidationUnavailable = true;
           console.warn(`⚠️ [VARIETY ENGINE] Validator error for "${(opt as any).name}" — excluding (fail closed)`);
           return false;
         }
@@ -2717,8 +2706,7 @@ export async function generateCravingMealOptions(
       // When ALL options fail post-validation the normal dish concept is
       // fundamentally incompatible with the targets (e.g. apple pie at 15g fat
       // ceiling / 80g protein).  Rather than surfacing a hard error, retry once
-      // with an explicit CONCEPT TRANSFORMATION hint so the AI rebuilds around
-      // the flavor profile instead of the dish structure.
+      // with an explicit adaptation hint that preserves the requested dish.
       if (finalOptions.length === 0 && beforeCount > 0) {
         console.warn(`💊 [VARIETY ENGINE] All options eliminated by GLP-1 — attempting concept-transformation retry`);
         try {
@@ -2732,22 +2720,23 @@ export async function generateCravingMealOptions(
             ? (await import("./humanFoodContext/requestExecutionState"))
                 .buildRejectedCandidatePrompt(humanFoodExecutionState)
             : "";
+          const retryFatCeiling = getGLP1FatCeiling(glp1Targets!, validMealType === "snack");
           const transformHint = [
             `CRITICAL — CLINICAL ADAPTATION REQUIRED:`,
             `Every previous option failed GLP-1 compliance. The traditional form of this dish`,
-            `cannot meet ≥${glp1Targets!.targetProteinGrams}g protein / ≤${glp1Targets!.maximumToleratedFatGrams}g fat.`,
+            `cannot meet ≥${glp1Targets!.targetProteinGrams}g protein / ≤${retryFatCeiling}g fat.`,
             ``,
             `You MUST adapt the requested dish while keeping it recognizable — never replace it with an unrelated generic meal:`,
             `  • Desserts/pastries → a smaller, leaner version of the same dessert or pastry with a protein-supporting filling`,
             `  • Cream sauces → cottage cheese or silken-tofu base with the same aromatics`,
             `  • Buttery crusts → a thinner compliant crust or reduced-fat crumble that preserves the requested format`,
-            `  • Sugary fillings → fresh/roasted fruit sweetened only with cinnamon or vanilla`,
+            `  • Sugary fillings → moderate added sugar or use a lighter compatible filling without losing the requested identity`,
             `  • Sushi, gumbo, noodles, and other named dishes must remain visibly and textually recognizable as that dish`,
             ``,
             `Preserve the original craving, cuisine, dietary identity, allergy exclusions, seasoning and flavor profile,`,
             `daily nutrition limits, starch constraints, and named-dish identity carried in the original request.`,
             rejectedCandidatePrompt,
-            `Every option MUST have ≥${glp1Targets!.targetProteinGrams}g protein and ≤${glp1Targets!.maximumToleratedFatGrams}g fat. No exceptions.`,
+            `Every option MUST have ≥${glp1Targets!.targetProteinGrams}g protein and ≤${retryFatCeiling}g fat. No exceptions.`,
           ].join('\n');
 
           const retryRaw = await attempt(true, transformHint);
@@ -2765,16 +2754,18 @@ export async function generateCravingMealOptions(
                 protein:  (opt as any).protein  ?? (opt as any).nutrition?.protein,
                 fat:      (opt as any).fat      ?? (opt as any).nutrition?.fat,
                 carbs:    (opt as any).carbs    ?? (opt as any).nutrition?.carbs,
+                addedSugar: (opt as any).addedSugar ?? (opt as any).nutrition?.addedSugar,
               };
               const vr = validateForRetry(
-                { name: (opt as any).name, ingredients: ingList, macros },
+                { name: (opt as any).name, ingredients: ingList, instructions: (opt as any).instructions, macros },
                 "glp1", undefined, isSnackRetry, glp1Targets!,
               );
               if (!vr.isValid) {
+                vr.violations.forEach((violation) => glp1Violations.add(String(violation)));
                 console.warn(`💊 [VARIETY ENGINE/Transform] Still failing "${(opt as any).name}":`, vr.violations);
               }
               return vr.isValid;
-            } catch { return false; }
+            } catch { glp1ValidationUnavailable = true; return false; }
           });
           console.log(`💊 [VARIETY ENGINE] Concept-transformation retry: ${retryValid.length}/3 options passed GLP-1`);
           if (retryValid.length > 0) finalOptions = retryValid;
@@ -2786,6 +2777,23 @@ export async function generateCravingMealOptions(
       // Fail closed: module load error — clear all options rather than serving unvalidated meals.
       console.warn("⚠️ [VARIETY ENGINE] GLP-1 validation module error — clearing all options (fail closed):", err);
       finalOptions = [];
+      glp1ValidationUnavailable = true;
+    }
+    if (finalOptions.length === 0 && glp1ValidationUnavailable) {
+      throw Object.assign(new Error("We couldn't verify the GLP-1 requirements. Please try again shortly."), {
+        status: 503,
+        code: "glp1_validation_unavailable",
+        retryable: true,
+      });
+    }
+    if (finalOptions.length === 0 && glp1Violations.size > 0) {
+      // The existing, bounded concept-preserving retry has already run.
+      // Retain its actual failed requirements instead of an empty-array hint.
+      throw new GLP1ComplianceRetryExhaustedError(
+        validMealType === "snack" ? "snack" : "meal",
+        [...glp1Violations],
+        2,
+      );
     }
   }
 
@@ -3377,9 +3385,7 @@ async function generateBeverageFromDescription(
     ? `\nThis drink is for the user's ${slotHint} slot — adjust flavor profile, caffeine level, and macros appropriately for ${slotHint}.`
     : '';
 
-  // Server-resolved ordinary goals guide choices; starch and medical rules
-  // remain hard constraints independently.
-  const noStarch = starchContext?.forceFiberBased || starchContext?.isZeroStarchDay;
+  // Daily goals, including starch, are optional planning guidance.
   const macroCeiling = remainingMacros
     ? [
         remainingMacros.calories != null ? `- CALORIES remaining goal: ${remainingMacros.calories} kcal` : '',
@@ -3390,11 +3396,9 @@ async function generateBeverageFromDescription(
     : '';
 
   const budgetBlock = [
-    noStarch
-      ? 'STARCH CONSTRAINT: This meal slot has no starch allowance remaining. Do NOT include oats, rice, banana, dates, or any starchy ingredient that would meaningfully raise the drink\'s starchy-carb content. Use berries, low-carb vegetables, or other fibrous ingredients instead.'
-      : '',
+    buildStarchGuidance(normalizeMealType(slotHint ?? "snack"), starchContext),
     macroCeiling
-      ? `ORDINARY MACRO GOALS (guidance, not rejection ceilings):\n${macroCeiling}\nAllow ordinary goal overages, preserve the requested drink, and report honest nutrition. Strict starch allowances and independently active clinical restrictions still apply.`
+      ? `ORDINARY MACRO GOALS (guidance, not rejection ceilings):\n${macroCeiling}\nAllow all daily goal overages, including starch. Preserve the requested drink and report honest nutrition. Independently established clinical restrictions still apply.`
       : '',
   ].filter(Boolean).join('\n\n');
 
@@ -3607,14 +3611,7 @@ export async function generateFromDescriptionUnified(
   const validMealType = normalizeMealType(mealType);
   const requestedServings = Math.max(1, Math.min(10, Math.round(servings ?? 1)));
 
-  // ── Starch enforcement — applied BEFORE any pipeline early returns ───────
-  // The server budget resolver (routes.ts) patches starchContext with
-  // forceFiberBased:true / isZeroStarchDay:true when starch slots are exhausted.
-  // We re-apply the constraint here so it survives every early-return branch
-  // (beverage, legacy paths, etc.) and cannot be bypassed at the pipeline level.
-  if (starchContext?.forceFiberBased || starchContext?.isZeroStarchDay) {
-    starchContext = { ...starchContext, forceStarch: false };
-  }
+  // Daily starch state is optional planning guidance, not an ingredient ban.
 
   // ── INTENT DETECTION: Is the user asking for a drink? ────────────────────
   // User intent takes absolute priority over slot context.
@@ -4028,11 +4025,10 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       diabeticActive: diabeticClinicalActive,
       glp1Active: glp1ClinicalActive,
     } = isClinicalAdaptationActive(clinicalGenerationContext, dietType, !!glp1Targets);
-    const clinicalFatCeiling = chefFoodContext && glp1Targets
-      ? glp1Targets.maximumToleratedFatGrams
-      : remainingMacros?.fat;
+    const clinicalFatCeiling = glp1Targets?.maximumToleratedFatGrams;
     const MAX_REGENERATION_ATTEMPTS = clinicalAdaptationActive ? 4 : 2;
     let finalMealData: any = null;
+    let requestedMacroNotice: string | undefined;
     let attemptCount = 0;
     let lastFixHint: string | null = null;
     let previousRejectedCandidate: UnifiedMeal | null = null;
@@ -4082,9 +4078,8 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       // identity, flavors, and protein.
       if (clinicalAdaptationActive && isLastAttempt && attemptCount > 1) {
         const ceilingLines: string[] = [];
-        if (diabeticClinicalActive && remainingMacros?.carbs != null) {
-          ceilingLines.push(`- Total carbohydrates MUST be ≤ ${remainingMacros.carbs}g for this meal (hard clinical ceiling).`);
-        }
+        // Remaining daily carbs are not clinical authority. The independent
+        // diabetes protocol remains responsible for glucose safety.
         if (glp1Targets) {
           ceilingLines.push(`- Total fat MUST be ≤ ${glp1Targets.maximumToleratedFatGrams}g, calories ~${glp1Targets.resolvedMealCalories} kcal (hard clinical ceiling).`);
         } else if (glp1ClinicalActive && clinicalFatCeiling != null) {
@@ -4295,38 +4290,8 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
         }
       }
 
-      // ── Diabetic carb ceiling enforcement (in-loop) ───────────────────────
-      // Mirrors the route-level clinical macro gate (clinicalMacroGate.ts) so
-      // carb-heavy dishes get adapted DURING generation instead of being
-      // hard-rejected by the gate after the loop returns. Same 10g tolerance.
-      if (diabeticClinicalActive && remainingMacros?.carbs != null) {
-        const DIABETIC_CARB_TOLERANCE = 10; // matches clinicalMacroGate CARB_TOLERANCE
-        const carbCeiling = remainingMacros.carbs;
-        const mealCarbs =
-          typeof tempMeal.carbs === 'number' && isFinite(tempMeal.carbs) ? tempMeal.carbs : null;
-        if (mealCarbs === null || mealCarbs > carbCeiling + DIABETIC_CARB_TOLERANCE) {
-          if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
-            lastFixHint =
-              mealCarbs === null
-                ? `MISSING NUTRITION DATA: You must report accurate total carbohydrates for this meal. ` +
-                  `Regenerate with complete, honest macros. Total carbs MUST be ≤ ${carbCeiling}g.`
-                : `DIABETIC CARB CEILING VIOLATION: This meal contains ${mealCarbs}g total carbs but the ` +
-                  `clinical maximum for this meal is ${carbCeiling}g. ADAPT the dish — do not abandon it: ` +
-                  `replace white rice/pasta/bread bases with cauliflower rice or zucchini noodles, remove ` +
-                  `roux and sugary sauces, shrink starchy portions, and bulk with non-starchy vegetables. ` +
-                  `Keep the dish's identity and protein. Total carbs MUST be ≤ ${carbCeiling}g.`;
-            console.warn(
-              `🩸 [DIABETIC CARB GATE] ${mealCarbs === null ? 'unknown carbs' : `${mealCarbs}g > ${carbCeiling}g ceiling`} ` +
-              `(attempt ${attemptCount}) — regenerating with adaptation hint`
-            );
-            continue;
-          }
-          console.error(
-            `❌ [DIABETIC CARB GATE] Carb ceiling unresolvable after ${attemptCount} attempts ` +
-            `(${mealCarbs ?? 'unknown'}g vs ${carbCeiling}g) — route clinical gate will decide`
-          );
-        }
-      }
+      // Remaining daily macros cannot trigger repair/retry. Genuine diabetes
+      // safety is checked against the frozen protocol, not this budget.
 
       // POST-GENERATION dietary validation (vegan / vegetarian / pescatarian)
       // Order: validate → substitute (max 1 pass) → re-validate → regenerate (max 1 retry)
@@ -4417,69 +4382,7 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
         };
       }
 
-      // ── Hard starch numeric gate ──────────────────────────────────────────
-      // Post-generation validation: compare the meal's actual starchyCarbs (g)
-      // against the server-authoritative per-meal ceiling from the budget resolver.
-      // This is the advisor-mandated hard ceiling (not the soft annotation in
-      // scanGeneratedOutput). Starchy carbs are the only hard-block macro —
-      // protein and fibrous veg overages are acceptable.
-      //
-      // Tolerance: ±3g for AI rounding. After MAX_REGENERATION_ATTEMPTS, serve
-      // as-is but log the failure — prefer a slightly over-budget meal over a
-      // broken UX. GLP-1 fat ceiling is enforced the same way in nutritionBudget.ts.
-      {
-        const STARCH_TOLERANCE_G = 3;
-        const generatedStarchyG: number = (tempMeal as any).starchyCarbs ?? 0;
-        const isZeroStarchCtx =
-          starchContext?.isZeroStarchDay || starchContext?.forceFiberBased;
-
-        if (isZeroStarchCtx && generatedStarchyG > STARCH_TOLERANCE_G) {
-          // Case 1 — zero-starch day / all slots exhausted
-          console.warn(
-            `🥔 [STARCH HARD GATE] Zero-starch violation: "${(tempMeal as any).name}" ` +
-            `produced ${generatedStarchyG}g (attempt ${attemptCount})`
-          );
-          if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
-            lastFixHint =
-              `STARCH HARD VIOLATION: Today's starchy-carb budget is fully exhausted. ` +
-              `This meal must contain ZERO starchy carbohydrates. ` +
-              `Strictly forbidden: rice, pasta, bread, oats, potatoes, sweet potatoes, ` +
-              `beans, lentils, corn, peas, quinoa, couscous, tortillas, crackers, or any grain. ` +
-              `Build the meal exclusively from lean protein + non-starchy vegetables ` +
-              `(leafy greens, broccoli, cauliflower, asparagus, zucchini, bell peppers, ` +
-              `mushrooms, cucumbers, tomatoes). Re-generate fully compliant.`;
-            continue;
-          }
-          console.error(
-            `❌ [STARCH HARD GATE] Could not eliminate starch after ${attemptCount} attempts — serving as-is`
-          );
-        } else if (
-          !isZeroStarchCtx &&
-          starchContext?.gramsPerRemainingStarchMeal != null &&
-          generatedStarchyG >
-            starchContext.gramsPerRemainingStarchMeal + STARCH_TOLERANCE_G
-        ) {
-          // Case 2 — per-meal ceiling exceeded
-          const ceiling = starchContext.gramsPerRemainingStarchMeal;
-          console.warn(
-            `🥔 [STARCH HARD GATE] Per-meal ceiling exceeded: "${(tempMeal as any).name}" ` +
-            `generated ${generatedStarchyG}g vs ${ceiling}g ceiling (attempt ${attemptCount})`
-          );
-          if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
-            lastFixHint =
-              `STARCH BUDGET VIOLATION: This meal contains ${generatedStarchyG}g of starchy ` +
-              `carbohydrates. The maximum allowed for this meal is ${ceiling}g. ` +
-              `Reduce starchy portions (rice, potato, bread, pasta, oats) so total starchy ` +
-              `carbs ≤ ${ceiling}g, or replace starchy sides with non-starchy vegetables ` +
-              `(broccoli, cauliflower, leafy greens, asparagus, zucchini). ` +
-              `Keep the protein target intact. Re-generate fully compliant.`;
-            continue;
-          }
-          console.error(
-            `❌ [STARCH HARD GATE] Could not reduce starch to ${ceiling}g after ${attemptCount} attempts — serving as-is`
-          );
-        }
-      }
+      // Report daily starch overages; never regenerate solely to erase them.
 
       // ── Thyroid support post-gen scan (additive modifier) ────────────────
       // Runs independently of oncology. Hard violations (kelp supplements, alcohol,
@@ -4611,11 +4514,16 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
           lastFixHint = `REQUESTED MEAL MACROS NOT MET: ${requestedMacroViolations.join(" ")} Regenerate while preserving all existing safety and clinical constraints.`;
           continue;
         }
-        return {
-          success: false,
-          source: 'error',
-          error: `We could not meet your requested meal macros within your existing requirements. ${requestedMacroViolations.join(" ")}`,
-        };
+        if (requestedMacroViolations.some(violation => violation.includes("could not be checked"))) {
+          return {
+            success: false,
+            source: "error",
+            error: `Chef could not verify the requested nutrient estimates. ${requestedMacroViolations.join(" ")} No missing values were treated as zero.`,
+          };
+        }
+        // A verified, safe recipe may be retained with honest request-matching
+        // feedback. This never waives the ingredient/clinical checks below.
+        requestedMacroNotice = `Chef could not reliably match every requested recipe target. ${requestedMacroViolations.join(" ")} These are estimates, not certified exact values. Keep this recipe or request another adjustment.`;
       }
 
       const substitutionNotes = Array.isArray(mealData.substitutionNotes) && mealData.substitutionNotes.length > 0
@@ -4733,6 +4641,7 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       meal: unifiedMeal,
       meals: [unifiedMeal],
       source: 'ai',
+      requestedMacroNotice,
       ...(chefFoodContext ? { chefPersonFedValidated: true as const } : {}),
     };
     return resolvedDiabetesAttempt && userId
@@ -5169,7 +5078,7 @@ Create the personalized snack for: "${cravingDescription}"`;
               `GLP-1 MACRO VIOLATION — regenerate with smaller, leaner snack:\n` +
               glp1MacroCheck.violations.join('; ') + '\n' +
               `Target: ~${glp1Targets.resolvedSnackCalories} kcal, ` +
-              `max ${Math.round(glp1Targets.maximumToleratedFatGrams * 0.4)}g fat, ` +
+              `max ${getGLP1FatCeiling(glp1Targets, true)}g fat, ` +
               `min ${Math.round(glp1Targets.minimumProteinFloor * 0.5)}g protein.`;
             console.warn(
               `⚠️ [GLP-1] Snack macro ceiling exceeded (attempt ${snackAttemptCount}): ` +
@@ -5634,101 +5543,8 @@ export async function generateMealUnified(
       };
   }
 
-  // ── Hard starch numeric gate — ALL builder types ─────────────────────────
-  // This gate fires for every generation type that was given a starchContext.
-  // For create-with-chef the gate also fires inside generateFromDescriptionUnified
-  // with retry logic (preferred path); this is the safety net that catches any
-  // slip-through AND the ONLY gate for craving, fridge-rescue, snack-creator, etc.
-  //
-  // Uses the same tolerance (±3 g) and ceiling logic as the inner gate.
-  // • Single-meal result: reject (return error) so the client can retry with the hint.
-  // • Multi-meal result: filter violating meals; reject entirely if none survive.
-  // The hint always includes the actual ceiling grams so the AI knows what to target.
-  if (request.starchContext && result.success) {
-    const _GATE_TOLERANCE_G = 3;
-    const _ctx = request.starchContext;
-    const _isZeroStarch = _ctx.isZeroStarchDay || _ctx.forceFiberBased;
-
-    const _checkStarch = (meal: UnifiedMeal): { violated: boolean; hint: string } => {
-      const _generatedG: number = (meal as any).starchyCarbs ?? 0;
-
-      if (_isZeroStarch && _generatedG > _GATE_TOLERANCE_G) {
-        return {
-          violated: true,
-          hint:
-            `STARCH HARD VIOLATION (${request.type}): Today's starchy-carb budget is fully exhausted. ` +
-            `This meal must contain ZERO starchy carbohydrates. ` +
-            `Strictly forbidden: rice, pasta, bread, oats, potatoes, sweet potatoes, ` +
-            `beans, lentils, corn, peas, quinoa, couscous, tortillas, crackers, or any grain. ` +
-            `Build the meal exclusively from lean protein + non-starchy vegetables ` +
-            `(leafy greens, broccoli, cauliflower, asparagus, zucchini, bell peppers, ` +
-            `mushrooms, cucumbers, tomatoes). Re-generate fully compliant.`,
-        };
-      }
-
-      if (
-        !_isZeroStarch &&
-        _ctx.gramsPerRemainingStarchMeal != null &&
-        _generatedG > _ctx.gramsPerRemainingStarchMeal + _GATE_TOLERANCE_G
-      ) {
-        const _ceiling = _ctx.gramsPerRemainingStarchMeal;
-        return {
-          violated: true,
-          hint:
-            `STARCH BUDGET VIOLATION (${request.type}): This meal contains ${_generatedG}g of starchy ` +
-            `carbohydrates but the maximum allowed for this meal is ${_ceiling}g. ` +
-            `Reduce starchy portions (rice, potato, bread, pasta, oats) so total starchy ` +
-            `carbs ≤ ${_ceiling}g, or replace starchy sides with non-starchy vegetables ` +
-            `(broccoli, cauliflower, leafy greens, asparagus, zucchini). ` +
-            `Keep the protein target intact. Re-generate fully compliant.`,
-        };
-      }
-
-      return { violated: false, hint: '' };
-    };
-
-    // Single-meal result
-    if (result.meal) {
-      const _check = _checkStarch(result.meal);
-      if (_check.violated) {
-        console.warn(
-          `🥔 [STARCH HARD GATE/${request.type}] Violation on "${result.meal.name}" ` +
-          `(starchyCarbs=${(result.meal as any).starchyCarbs ?? 0}g) — rejecting.`
-        );
-        return { success: false, source: 'error', error: _check.hint };
-      }
-    }
-
-    // Multi-meal result (fridge-rescue, craving batch, etc.)
-    if (result.meals?.length) {
-      const _before = result.meals.length;
-      const _passing: UnifiedMeal[] = [];
-      for (const _m of result.meals) {
-        const _check = _checkStarch(_m);
-        if (_check.violated) {
-          console.warn(
-            `🥔 [STARCH HARD GATE/${request.type}] Filtered "${_m.name}" ` +
-            `(starchyCarbs=${(_m as any).starchyCarbs ?? 0}g > budget)`
-          );
-        } else {
-          _passing.push(_m);
-        }
-      }
-      result.meals = _passing;
-      if (_passing.length < _before) {
-        console.warn(
-          `🥔 [STARCH HARD GATE/${request.type}] Filtered ${_before - _passing.length}/${_before} meals — over starch budget`
-        );
-      }
-      if (_passing.length === 0) {
-        return {
-          success: false,
-          source: 'error',
-          error: `All generated meals exceeded the starchy carb budget for this meal slot. Please try again.`,
-        };
-      }
-    }
-  }
+  // All generation types may exceed ordinary daily targets. The safety checks
+  // below still inspect actual ingredients and independently established rules.
 
   // A completed precheck never substitutes for inspection of the actual recipe.
   if (request.userId && result.success) {

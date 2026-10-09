@@ -16,6 +16,7 @@
 import { glp1Rules } from '../rules/glp1Rules';
 import type { ValidationResult } from '../types';
 import type { ResolvedGLP1Targets } from '../../glp1/resolveGLP1MealTargets';
+import { getGLP1FatCeiling } from '../../glp1/resolveGLP1MealTargets';
 
 interface GLP1Meal {
   name: string;
@@ -26,6 +27,7 @@ interface GLP1Meal {
     protein?: number;
     fat?: number;
     carbs?: number;
+    addedSugar?: number;
   };
 }
 
@@ -53,6 +55,16 @@ export function validateGLP1Meal(
     }
   }
 
+  const compositionSensitive = ingredientNames.filter(ing =>
+    glp1Rules.compositionSensitiveIngredients.some(term => ing.includes(term)));
+  if (compositionSensitive.length > 0) {
+    warnings.push(
+      `Evaluate rich/sweet ingredients by their quantities and per-serving nutrition, ` +
+      `not their names: ${compositionSensitive.join(', ')}. Favor a smaller portion, ` +
+      `moderate added sugar, and consider individual symptom tolerability.`,
+    );
+  }
+
   // ── Forbidden cooking method check ────────────────────────────────────────
   if (meal.instructions) {
     const instructionText = Array.isArray(meal.instructions)
@@ -75,7 +87,7 @@ export function validateGLP1Meal(
   ];
   for (const term of nameForbiddenTerms) {
     if (mealNameLower.includes(term)) {
-      violations.push(`Meal name suggests GLP-1 incompatible dish: "${term}" found in "${meal.name}"`);
+      warnings.push(`Review actual preparation and per-serving composition for "${term}" in "${meal.name}"; the name alone is not a restriction.`);
     }
   }
 
@@ -83,12 +95,14 @@ export function validateGLP1Meal(
   const portionIndicators = ['large', 'big', 'huge', 'mega', 'super', 'jumbo', 'family'];
   for (const indicator of portionIndicators) {
     if (mealNameLower.includes(indicator)) {
-      violations.push(`Large portion indicator "${indicator}" not appropriate for GLP-1`);
+      warnings.push(`Review the actual individual portion for "${indicator}" in the name; a multi-serving recipe is not itself a large individual portion.`);
     }
   }
 
   // ── Macro validation ──────────────────────────────────────────────────────
-  if (meal.macros) {
+  if (!meal.macros) {
+    violations.push('Required macro evidence absent for GLP-1 validation; per-serving nutrition must be verified.');
+  } else {
     // Fail-closed: absent or non-finite required macro fields are treated as a
     // validation failure rather than silently bypassing numeric checks.
     // This prevents a malformed or partial model response from passing validation
@@ -96,7 +110,7 @@ export function validateGLP1Meal(
     const requiredMacroFields = ['calories', 'protein', 'fat'] as const;
     const missingFields = requiredMacroFields.filter(f => {
       const v = meal.macros![f];
-      return v === undefined || v === null || !Number.isFinite(v);
+      return v === undefined || v === null || !Number.isFinite(v) || v < 0;
     });
     if (missingFields.length > 0) {
       violations.push(
@@ -105,14 +119,20 @@ export function validateGLP1Meal(
       );
     }
 
+    if (meal.macros.addedSugar !== undefined) {
+      if (!Number.isFinite(meal.macros.addedSugar) || meal.macros.addedSugar < 0) {
+        violations.push('Added-sugar evidence must be finite and nonnegative when supplied.');
+      } else if (meal.macros.addedSugar > 0) {
+        warnings.push(`Added sugar: ${meal.macros.addedSugar}g per serving; moderate portions and honor applicable individual restrictions.`);
+      }
+    }
+
     if (isSnack) {
       // Snack limits — use resolved targets if available
       const snackCalLimit = resolvedTargets && !resolvedTargets.usedBaseline
         ? resolvedTargets.resolvedSnackCalories
         : 150;
-      const snackFatLimit = resolvedTargets && !resolvedTargets.usedBaseline
-        ? Math.round(resolvedTargets.maximumToleratedFatGrams * 0.4)
-        : 5;
+      const snackFatLimit = getGLP1FatCeiling(resolvedTargets, true);
       const snackProteinFloor = resolvedTargets && !resolvedTargets.usedBaseline
         ? Math.max(resolvedTargets.minimumProteinFloor * 0.5, 8)
         : 8;
@@ -133,13 +153,13 @@ export function validateGLP1Meal(
       const resolvedProteinTarget = resolvedTargets.targetProteinGrams;
       const proteinFloor = resolvedTargets.minimumProteinFloor;
 
-      // Calories: soft warning at +10%, hard failure at +25% of resolved target
+      // Daily-derived calories are guidance, never a clinical generation cap.
       if (meal.macros.calories) {
         const softLimit = Math.round(resolvedCalTarget * 1.10);
         const hardLimit = Math.round(resolvedCalTarget * 1.25);
         if (meal.macros.calories > hardLimit) {
-          violations.push(
-            `Calories (${meal.macros.calories} kcal) exceed patient hard limit (${hardLimit} kcal / ${resolvedCalTarget} kcal target +25%)`
+          warnings.push(
+            `Calories (${meal.macros.calories} kcal) exceed planning guidance (${resolvedCalTarget} kcal); keep the recipe or request an optional portion adjustment`
           );
         } else if (meal.macros.calories > softLimit) {
           warnings.push(
@@ -175,7 +195,8 @@ export function validateGLP1Meal(
       // ── Static baseline validation (fallback) ─────────────────────────────
       const staticLimits = {
         maxCalories: glp1Rules.portionGuidelines.maxCalories,
-        maxFat: glp1Rules.portionGuidelines.maxFatGrams,
+        // Partial baseline resolution must not discard an explicit fat allowance.
+        maxFat: getGLP1FatCeiling(resolvedTargets),
         minProtein: glp1Rules.portionGuidelines.minProteinGrams,
       };
 
@@ -210,8 +231,8 @@ export function validateGLP1Snack(
     .filter(Boolean);
 
   const forbiddenSnackTerms = [
-    'candy', 'chip', 'chips', 'pastry', 'cookie', 'brownie',
-    'thick smoothie', 'milkshake', 'ice cream',
+    'chip', 'chips',
+    'thick smoothie', 'milkshake',
   ];
 
   for (const ing of ingredientNames) {

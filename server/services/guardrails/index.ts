@@ -85,11 +85,11 @@ function buildMacroBudgetBlock(
 
   switch (builderMode) {
     case 'targeted':
-      return `\n\nUser remaining macro goals:\n${lines.join('\n')}\n\nMODE: TARGETED GUIDANCE\nAim toward these goals without refusing or shrinking the requested meal solely for ordinary calorie, fat, protein, or total-carbohydrate overages. Report honest nutrition. Strict starch allowances and independently active clinical or explicitly requested limits remain authoritative.`;
+      return `\n\nUser remaining macro goals:\n${lines.join('\n')}\n\nMODE: TARGETED GUIDANCE\nUse all daily targets, including starch, as optional planning guidance, never rejection ceilings or floors. Preserve the requested dish and report honest nutrition. Independently established clinical or explicitly requested restrictions remain authoritative.`;
     case 'lifestyle':
       return `\n\nUser remaining macros:\n${lines.join('\n')}\n\nMODE: AWARENESS\nAim to stay within these values. If the user's request naturally exceeds them, still generate a balanced, realistic, high-quality meal. Do not restrict food choices based on these numbers.`;
     case 'hybrid':
-      return `\n\nUser remaining macro goals:\n${lines.join('\n')}\n\nMODE: PERFORMANCE GUIDANCE\nUse these goals to personalize a realistic meal, not as rejection ceilings. Prioritize protein and report honest nutrition even when ordinary goals are exceeded. Strict starch allowances and independent clinical or explicitly requested limits still apply.`;
+      return `\n\nUser remaining macro goals:\n${lines.join('\n')}\n\nMODE: PERFORMANCE GUIDANCE\nUse all daily targets, including starch, as optional planning guidance, never rejection ceilings or floors. Prioritize protein and report honest nutrition even when goals are exceeded. Independent clinical or explicitly requested restrictions still apply.`;
     default:
       return '';
   }

@@ -34,6 +34,46 @@ export interface RequestedMealMacroConstraint {
 // This tolerance applies ONLY to approximate requests, never one-sided limits.
 export const REQUESTED_MACRO_APPROXIMATION_G = 5;
 
+/** Only explicit nutrient amounts in the original user text; never profile data.
+ * Ingredient weights and relative refinements are deliberately not inferred.
+ */
+export function extractRequestedMealMacroTargets(text: string): RequestedMealMacroTargets | undefined {
+  const targets: RequestedMealMacroTargets = {};
+  const names = [
+    ["starchy_carbs_g", "starchy carbohydrates|starchy carbs|starch"],
+    ["fibrous_carbs_g", "fibrous carbohydrates|fibrous carbs"],
+    ["carbs_g", "total carbohydrates|total carbs"],
+    ["protein_g", "protein"],
+    ["fat_g", "fat"],
+  ] as const;
+  for (const [field, name] of names) {
+    const after = new RegExp(`(?:(at most|no more than|at least|approximately|about)\\s+)?(\\d+(?:\\.\\d+)?)\\s*(?:grams?|g)\\s+(?:of\\s+)?(?:${name})\\b(?!\\s+(?:powder|flour|ingredient))`, "i");
+    const before = new RegExp(`(?:keep|limit|target|aim for)\\s+(?:the\\s+)?(?:${name})\\s+(?:at|to|under|of)\\s+(\\d+(?:\\.\\d+)?)\\s*(?:grams?|g)\\b`, "i");
+    // A daily-budget mention is not a recipe-design instruction. In "I have
+    // 10g left, but make this with 20g starch", only the latter clause qualifies.
+    const clause = text.split(/[,;!?]|\bbut\b/i).find(part =>
+      !/\b(?:remaining|left|daily|budget|per day|for today)\b/i.test(part) &&
+      (after.test(part) || before.test(part)),
+    );
+    if (!clause) continue;
+    const a = clause.match(after);
+    const b = clause.match(before);
+    if (!a && !b) continue;
+    const match = a ?? b!;
+    // "Reduce starch by 10g" is a delta, not a 10g absolute target.
+    if (/\b(?:reduce|decrease|increase|add|remove)\b.{0,30}\bby\s*$/i.test(clause.slice(0, match.index))) continue;
+    const value = Number(a ? a[2] : b![1]);
+    if (!Number.isFinite(value) || value < 0) continue;
+    targets[field] = value;
+    const relationship = a?.[1]?.toLowerCase();
+    targets.relationships ??= {};
+    targets.relationships[field] = relationship === "at least" ? "at_least"
+      : relationship === "at most" || relationship === "no more than" || (b && /\bunder\b/i.test(b[0]))
+        ? "at_most" : "approximately";
+  }
+  return Object.keys(targets).length ? targets : undefined;
+}
+
 export function resolveRequestedMealMacros(input?: RequestedMealMacroTargets): RequestedMealMacroConstraint[] {
   if (input == null) return [];
   if (typeof input !== "object" || Array.isArray(input)) {
@@ -82,6 +122,8 @@ export function buildRequestedMealMacroPrompt(targets: RequestedMealMacroConstra
     "Allergies, avoidances, dietary identity, authoritative MPM context and clinical/safety restrictions remain authoritative. Never bypass them to meet a request.",
     "Total carbohydrates include both starchy and fibrous carbohydrates. Neither category alone nor dietary fiber is total carbohydrate.",
     "Report honest nutrition estimates for the actual recipe; do not change reported values merely to pass these requests.",
+    "Nutrient grams are NOT ingredient weight: 15g starchy carbohydrates does not mean 15g potatoes or rice. Calculate each ingredient's estimated nutrient contribution for the specified serving, adjust real portions, then recompute nutrition.",
+    "Treat these as recipe-design instructions independent of daily targets. If reliable matching is not possible, explain the actual estimated result and uncertainty; never falsely claim exact compliance.",
   ].join("\n");
 }
 

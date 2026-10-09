@@ -9,6 +9,7 @@
 
 import { glp1Rules, getGLP1SystemPrompt } from '../rules/glp1Rules';
 import type { ResolvedGLP1Targets } from '../../glp1/resolveGLP1MealTargets';
+import { getGLP1FatCeiling } from '../../glp1/resolveGLP1MealTargets';
 
 export interface GLP1PromptContext {
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -36,9 +37,9 @@ export function buildGLP1Prompt(
     const proteinTarget = resolvedTargets.targetProteinGrams;
     const proteinFloor = resolvedTargets.minimumProteinFloor;
 
-    calorieNote = `~${cal} kcal (patient-specific target — daily budget ${resolvedTargets.remainingCalories} kcal ÷ ${resolvedTargets.plannedMealsRemaining} remaining meals)`;
+    calorieNote = `~${cal} kcal (optional daily planning guidance, NOT a generation ceiling — daily budget ${resolvedTargets.remainingCalories} kcal ÷ ${resolvedTargets.plannedMealsRemaining} remaining meals)`;
     fatNote = `${fatMax}g maximum (patient-specific tolerance; aim for ~${resolvedTargets.targetFatGrams}g — high fat is the primary nausea trigger regardless of gram count)`;
-    proteinNote = `${proteinTarget}g target / ${proteinFloor}g hard floor (patient-specific from daily budget of ${resolvedTargets.remainingProtein}g remaining)`;
+    proteinNote = `${proteinTarget}g optional daily planning target / ${proteinFloor}g independent protocol floor (never infer a hard floor from the daily budget of ${resolvedTargets.remainingProtein}g remaining)`;
 
     if (resolvedTargets.resolutionReasons.length > 0) {
       const reasonList = resolvedTargets.resolutionReasons.map(r => `  • ${r}`).join('\n');
@@ -132,7 +133,7 @@ function getMealTypeGuidelines(mealType: string): string {
       return `SNACK GUIDELINES FOR GLP-1:
 - Very small, light snacks only
 - Protein-focused for satiety
-- Avoid chips, cookies, candy, heavy nuts
+- Moderate rich/sweet ingredients using actual portions and nutrition; do not reject a requested dessert by name
 - Good options: Greek yogurt (plain), berries, cottage cheese, rice cake with lean protein
 - Single-serving size maximum`;
 
@@ -161,8 +162,9 @@ Use these GLP-1-friendly alternatives instead:
 ${glp1Rules.preferredIngredients.slice(0, 10).join(', ')}`;
   }
 
-  return `USER SELECTED INGREDIENTS (approved for GLP-1):
-${selectedIngredients.join(', ')}`;
+  return `USER SELECTED INGREDIENTS (not yet nutritionally verified):
+${selectedIngredients.join(', ')}
+Evaluate quantities, per-serving fat, added sugar, protein, and individual tolerability. Preserve recognizable requested desserts while adapting portions or composition.`;
 }
 
 export function buildGLP1SnackPrompt(
@@ -174,9 +176,7 @@ export function buildGLP1SnackPrompt(
   const snackCal = resolvedTargets && !resolvedTargets.usedBaseline
     ? resolvedTargets.resolvedSnackCalories
     : 150;
-  const snackFat = resolvedTargets && !resolvedTargets.usedBaseline
-    ? Math.round(resolvedTargets.maximumToleratedFatGrams * 0.4)
-    : 5;
+  const snackFat = getGLP1FatCeiling(resolvedTargets, true);
   const snackProtein = resolvedTargets && !resolvedTargets.usedBaseline
     ? Math.max(resolvedTargets.minimumProteinFloor * 0.5, 8)
     : 8;
@@ -191,7 +191,7 @@ SNACK CREATION FOR GLP-1 USER:
 ${craving ? `User craving: "${craving}"` : 'Create a light, healthy GLP-1 snack'}
 ${targetNote}
 
-APPROVED GLP-1 SNACK OPTIONS:
+SUGGESTED GLP-1 SNACK OPTIONS (not an exclusive list):
 - Plain Greek yogurt (small serving)
 - Fresh berries (small handful)
 - Cottage cheese (2–3 tablespoons)
@@ -200,8 +200,9 @@ APPROVED GLP-1 SNACK OPTIONS:
 - Cucumber slices with light dip
 - Hard-boiled egg white
 
-FORBIDDEN FOR GLP-1 SNACKS:
-- Candy, chips, pastries
+SNACK ADAPTATION GUIDANCE:
+- Requested desserts and pastries may be adapted while preserving their identity
+- Evaluate actual portions, total fat, added sugar, protein, and individual tolerability
 - Heavy nuts in large amounts
 - Sweetened yogurt
 - Thick smoothies
@@ -257,12 +258,13 @@ export function buildGLP1ConstraintOverlay(
       ` (stacked on primary diet${appetiteNote}${trainingNote}):\n` +
       `These constraints are clinically required and override any conflicting guidance above.\n` +
       `- Calorie target: ~${calTarget} kcal (personalized from patient's daily budget)\n` +
-      `- Fat ceiling: ${t.maximumToleratedFatGrams}g maximum / ${t.targetFatGrams}g target` +
+      `- Fat ceiling: ${getGLP1FatCeiling(t, mealType === 'snack')}g maximum / ${t.targetFatGrams}g target` +
       ` (high fat is the primary nausea trigger — enforce strictly)\n` +
       `- Protein priority: ${t.targetProteinGrams}g target / ${t.minimumProteinFloor}g hard floor\n` +
       `- Portion: SMALL to MODERATE — no large or restaurant-style portions\n` +
       `- Cooking: avoid fried, battered, breaded, or high-fat preparations; prefer baked, steamed, grilled, poached, or sautéed with minimal oil\n` +
       `- No carbonated drinks, heavy sauces, or high-fat condiments regardless of diet category\n` +
+      `- Dessert names are not prohibitions; adapt portions and composition while preserving requested identity, and verify actual nutrition and all independent safety restrictions.\n` +
       (t.activeConstraints.length > 0
         ? `- Additional stacked protocols: ${t.activeConstraints.join(', ')}\n`
         : '')
@@ -274,7 +276,7 @@ export function buildGLP1ConstraintOverlay(
     `\n\n💊 GLP-1 MEDICAL PROTOCOL — MANDATORY CONSTRAINTS (stacked on primary diet):\n` +
     `These constraints are clinically required and override any conflicting guidance above.\n` +
     `- Calorie target: ~${glp1Rules.portionGuidelines.maxCalories} kcal maximum per meal\n` +
-    `- Fat ceiling: ${glp1Rules.portionGuidelines.maxFatGrams}g maximum (high fat is the primary nausea trigger)\n` +
+    `- Fat ceiling: ${getGLP1FatCeiling(t, mealType === 'snack')}g maximum (existing operational allowance, not a newly validated clinical threshold)\n` +
     `- Protein priority: minimum ${glp1Rules.portionGuidelines.minProteinGrams}g per meal\n` +
     `- Portion: SMALL to MODERATE — no large or restaurant-style portions\n` +
     `- Cooking: avoid fried, battered, breaded, or high-fat preparations; prefer baked, steamed, grilled, or poached\n` +

@@ -432,18 +432,15 @@ describe("unifiedMealPipeline.ts — starch enforcement applied before beverage 
     "utf-8",
   );
 
-  it("applies forceStarch:false enforcement before the beverageIntent early return", () => {
-    // The enforcement block must appear before detectBeverageIntent / beverageIntent check
-    const enforceIdx = pipelineSrc.indexOf("forceFiberBased || starchContext?.isZeroStarchDay");
+  it("detects drinks without converting daily starch exhaustion into ingredient bans", () => {
     const beverageIdx = pipelineSrc.indexOf("const beverageIntent = detectBeverageIntent");
-    expect(enforceIdx).toBeGreaterThan(-1);
     expect(beverageIdx).toBeGreaterThan(-1);
-    expect(enforceIdx).toBeLessThan(beverageIdx);
+    expect(pipelineSrc).not.toContain("forceFiberBased || starchContext?.isZeroStarchDay");
+    expect(pipelineSrc).toContain("buildStarchGuidance(normalizeMealType(slotHint");
   });
 
-  it("strips forceStarch before beverage branch when forceFiberBased is set", () => {
-    // Must set forceStarch: false when forceFiberBased is true
-    expect(pipelineSrc).toMatch(/forceStarch\s*:\s*false/);
+  it("does not force zero starch into the beverage branch because daily starch is exhausted", () => {
+    expect(pipelineSrc).not.toMatch(/forceStarch\s*:\s*false/);
   });
 
   it("passes starchContext and remainingMacros to generateBeverageFromDescription", () => {
@@ -456,10 +453,9 @@ describe("unifiedMealPipeline.ts — starch enforcement applied before beverage 
     expect(callBlock).toMatch(/remainingMacros/);
   });
 
-  it("injects STARCH CONSTRAINT into beverage prompt when forceFiberBased is true", () => {
-    // The beverage prompt builder must emit a no-starch instruction when the slot is exhausted
-    expect(pipelineSrc).toMatch(/STARCH CONSTRAINT/);
-    expect(pipelineSrc).toMatch(/forceFiberBased.*isZeroStarchDay|isZeroStarchDay.*forceFiberBased/);
+  it("uses starch tracking guidance rather than ingredient bans in the beverage prompt", () => {
+    expect(pipelineSrc).not.toMatch(/STARCH CONSTRAINT/);
+    expect(pipelineSrc).toContain("DAILY STARCH PLANNING GUIDANCE");
   });
 
   it("uses AI-returned starchyCarbs instead of hard-coding zero", () => {
@@ -570,30 +566,26 @@ describe("routes.ts — starch gate fires unconditionally for all builder types"
     expect(routesSrc).not.toMatch(/resolveChefBudget[\s\S]{0,200}starchContext\s*!=?\s*null/);
   });
 
-  it("fail-closed catch block does not branch on builder type", () => {
-    // Old code: `if (type === 'create-with-chef') { return 503 } else { warn + continue }`
-    // New code: always return 503, no type branch inside the catch block.
-    // Find the BudgetResolver catch block and assert no type branch before the 503.
-    const catchStart = routesSrc.indexOf("[BudgetResolver] Resolution failed");
+  it("does not block any Builder when optional daily planning guidance is unavailable", () => {
+    const catchStart = routesSrc.indexOf("[BudgetResolver] Planning guidance unavailable");
     expect(catchStart).toBeGreaterThan(-1);
     // The block around the error log must not contain a create-with-chef type check
     const catchBlock = routesSrc.slice(
       routesSrc.lastIndexOf("} catch (err) {", catchStart),
-      routesSrc.indexOf("source: \"budget_error\"", catchStart) + 30,
+      routesSrc.indexOf("// ── Server-side GLP-1", catchStart),
     );
     expect(catchBlock).not.toMatch(/type\s*===\s*['"]create-with-chef['"]/);
+    expect(catchBlock).not.toMatch(/status\(503\)/);
   });
 
-  it("returns budget_error source on resolver failure for direct builder (structural)", () => {
-    // The 503 response object's source field must be present in the catch block.
-    // This confirms the fail-closed path emits the standard error envelope shape.
-    const catchStart = routesSrc.indexOf("[BudgetResolver] Resolution failed");
+  it("drops unavailable daily guidance without trusting client budgets", () => {
+    const catchStart = routesSrc.indexOf("[BudgetResolver] Planning guidance unavailable");
     const catchBlock = routesSrc.slice(
       routesSrc.lastIndexOf("} catch (err) {", catchStart),
-      routesSrc.indexOf("source: \"budget_error\"", catchStart) + 30,
+      routesSrc.indexOf("// ── Server-side GLP-1", catchStart),
     );
-    expect(catchBlock).toMatch(/source:\s*["']budget_error["']/);
-    expect(catchBlock).toMatch(/status\(503\)/);
+    expect(catchBlock).toMatch(/effectiveRemainingMacros\s*=\s*undefined/);
+    expect(catchBlock).toMatch(/effectiveStarchContext\s*=\s*undefined/);
   });
 });
 

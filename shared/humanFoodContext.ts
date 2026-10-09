@@ -19,6 +19,25 @@ export type HumanFoodCreator =
   | "my_perfect_beginning"
   | "my_perfect_menu";
 
+export type FoodExecutionContext = "standalone" | "meal_planning";
+
+/** Entry-point defaults, never inferred from a person's profile or targets. */
+export const FOOD_EXECUTION_CONTEXT: Record<HumanFoodCreator, FoodExecutionContext> = {
+  weekly_meal_plan: "meal_planning",
+  my_perfect_menu: "meal_planning",
+  my_perfect_beginning: "meal_planning",
+  meal_refinement: "meal_planning",
+  grocery_coach: "standalone",
+  fridge_rescue: "standalone",
+  buffet: "standalone",
+  recipe_maker: "standalone",
+  create_a_dish: "standalone",
+  craving_creator: "standalone",
+  dessert_creator: "standalone",
+  beverage_creator: "standalone",
+  sushi_creator: "standalone",
+};
+
 export type HumanFoodResolutionStatus =
   | "resolved"
   | "resolved_with_gaps"
@@ -144,6 +163,8 @@ export interface HumanFoodContext {
   version: typeof HUMAN_FOOD_CONTEXT_VERSION;
   status: HumanFoodResolutionStatus;
   creator: HumanFoodCreator;
+  /** Daily numbers are optional planning guidance, never generation permission. */
+  executionContext?: FoodExecutionContext;
   actorUserId: string;
   subjectUserId: string;
   generationChainId: string;

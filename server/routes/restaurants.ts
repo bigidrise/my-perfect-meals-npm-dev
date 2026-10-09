@@ -339,10 +339,6 @@ router.post("/guide", async (req, res) => {
             console.warn(`[Guide/AI/GLP-1] Filtered "${rec.name}" — fat ${fat}g > ceiling ${t.maximumToleratedFatGrams}g`);
             return false;
           }
-          if (Number.isFinite(cal) && cal > t.resolvedMealCalories * 1.25) {
-            console.warn(`[Guide/AI/GLP-1] Filtered "${rec.name}" — cal ${cal} > ceiling ${Math.round(t.resolvedMealCalories * 1.25)}`);
-            return false;
-          }
           return true;
         });
         if (filteredAiRecs.length < aiRecs.length) {
@@ -495,10 +491,6 @@ router.post("/guide", async (req, res) => {
         const cal = Number(rec.calories);
         if (Number.isFinite(fat) && fat > t.maximumToleratedFatGrams) {
           console.warn(`[Guide/GLP-1] Filtered "${rec.name}" — fat ${fat}g > ceiling ${t.maximumToleratedFatGrams}g`);
-          return false;
-        }
-        if (Number.isFinite(cal) && cal > t.resolvedMealCalories * 1.25) {
-          console.warn(`[Guide/GLP-1] Filtered "${rec.name}" — cal ${cal} > ceiling ${Math.round(t.resolvedMealCalories * 1.25)}`);
           return false;
         }
         return true;

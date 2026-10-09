@@ -547,20 +547,27 @@ describe("Menu-owned one-recipe completion (not connected to the manual Creators
     expect(generateMenuRecipe).toHaveBeenCalledTimes(3);
   });
 
-  it("fails after bounded repair when the requested Low Carb recipe exceeds the resolved remaining budget", async () => {
+  it("accepts a compliant Low Carb recipe above ordinary calorie, total-carbohydrate, and fat goals", async () => {
     (createHumanFoodRequestScope as jest.Mock).mockImplementation(() => ({
       resolve: async () => resolvedLowCarbContext(["low_carb"], {
-        calories: 300, protein: 120, carbs: 20, fat: 15,
+        calories: 300, protein: 120, carbs: 5, fat: 15,
       }),
       executionState: { rejectedCandidateSignatures: [] },
     }));
     (generateMenuRecipe as jest.Mock).mockResolvedValue(buffaloCasseroleDraft);
 
     expect(await completeMenuRecipe({ ...input, approvedConcept: buffaloCasseroleConcept })).toMatchObject({
-      ok: false, code: "diet_hfc_rejected",
+      ok: true, card: { name: "Buffalo Chicken Cauliflower Casserole" },
     });
-    expect(generateMenuRecipe).toHaveBeenCalledTimes(3);
-    expect(generateMealImageUnified).not.toHaveBeenCalled();
+    expect(generateMenuRecipe).toHaveBeenCalledTimes(1);
+    expect(generateMealImageUnified).toHaveBeenCalledTimes(1);
+    const checked = (validateHumanFoodCandidate as jest.Mock).mock.calls.map(([candidate]) => candidate);
+    expect(checked).toHaveLength(2);
+    for (const candidate of checked) {
+      expect(candidate.nutrition).toMatchObject({
+        calories: 420, carbs: 10, fat: 26, starchyCarbs: 0,
+      });
+    }
   });
 
   it("does not positively verify a sweetened sauce when bounded repair cannot remove added sugar", async () => {

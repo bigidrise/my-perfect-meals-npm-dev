@@ -266,8 +266,9 @@ export function CreateWithChefModal({
         description: [
           t("createWithChef.mealCreatedDesc", { name: finalMeal.name }),
           meal.macroGoalNotice?.message,
+          meal.requestedMacroNotice,
         ].filter(Boolean).join(" "),
-        duration: meal.macroGoalNotice ? 16000 : undefined,
+        duration: meal.macroGoalNotice || meal.requestedMacroNotice ? 16000 : undefined,
       });
       onMealGenerated(finalMeal, mealType);
       onOpenChange(false);
