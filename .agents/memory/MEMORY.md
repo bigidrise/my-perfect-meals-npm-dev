@@ -146,3 +146,4 @@
 - [Focused Jest execution](focused-jest-execution.md) — use isolated test transpilation and a separate type gate to avoid loading the entire project twice.
 - [Recipe carbohydrate categories](recipe-carb-category-boundary.md) — preserve explicit source estimates; dietary fiber and unknown carbohydrate remain distinct.
 - [Interrupted edit integrity](interrupted-edit-integrity.md) — check every affected file after a disconnected multi-file edit, including reported successes.
+- [Page paywall return policy](page-paywall-return-policy.md) — denied pages need an accessible parent behind the modal; action-level prompts stay on their current page.

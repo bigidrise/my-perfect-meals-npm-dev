@@ -26,6 +26,7 @@ import { hasActivePaidSubscription, isProOrAbove, isClinicalOrAbove, isActualPro
 import { apiRequest } from "@/lib/queryClient";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
+import { openRouteUpgrade } from "@/lib/routeUpgrade";
 import { purchasedPlanIncludesFeature } from "@/lib/entitlements";
 import {
   createProfessionalLegalRecoveryUrl,
@@ -102,9 +103,11 @@ function BuilderAccessGuard({ builderKey, component: Component }: { builderKey: 
 
   useEffect(() => {
     if (isBlocked) {
-      requestUpgrade({ requiredTier: "essential", featureName: getFeatureNameFromPath(location) });
+      openRouteUpgrade(location, setLocation, () =>
+        requestUpgrade({ requiredTier: "essential", featureName: getFeatureNameFromPath(location) }),
+      );
     }
-  }, [isBlocked, location]);
+  }, [isBlocked, location, setLocation, requestUpgrade]);
 
   if (!user || isBlocked) return null;
   if (user.id === COACHING_ADMIN_USER_ID || (user as any).builderSwitchUnlimited) return <Component />;
@@ -122,15 +125,17 @@ function BuilderAccessGuard({ builderKey, component: Component }: { builderKey: 
 
 function PaywallGuard({ component: Component }: { component: React.ComponentType }) {
   const { user } = useAuth();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { requestUpgrade } = useUpgradeModal();
   const isBlocked = !!user && !hasActivePaidSubscription(user);
 
   useEffect(() => {
     if (isBlocked) {
-      requestUpgrade({ requiredTier: "essential", featureName: getFeatureNameFromPath(location) });
+      openRouteUpgrade(location, setLocation, () =>
+        requestUpgrade({ requiredTier: "essential", featureName: getFeatureNameFromPath(location) }),
+      );
     }
-  }, [isBlocked, location]);
+  }, [isBlocked, location, setLocation, requestUpgrade]);
 
   if (!user || isBlocked) return null;
   return <Component />;
@@ -138,15 +143,17 @@ function PaywallGuard({ component: Component }: { component: React.ComponentType
 
 function ProGuard({ component: Component }: { component: React.ComponentType }) {
   const { user } = useAuth();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { requestUpgrade } = useUpgradeModal();
   const isBlocked = !!user && !isProOrAbove(user);
 
   useEffect(() => {
     if (isBlocked) {
-      requestUpgrade({ requiredTier: "pro", featureName: getFeatureNameFromPath(location) });
+      openRouteUpgrade(location, setLocation, () =>
+        requestUpgrade({ requiredTier: "pro", featureName: getFeatureNameFromPath(location) }),
+      );
     }
-  }, [isBlocked, location]);
+  }, [isBlocked, location, setLocation, requestUpgrade]);
 
   if (!user || isBlocked) return null;
   return <Component />;
@@ -154,15 +161,17 @@ function ProGuard({ component: Component }: { component: React.ComponentType }) 
 
 function MealBuildersGuard({ component: Component }: { component: React.ComponentType }) {
   const { user } = useAuth();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { requestUpgrade } = useUpgradeModal();
   const isBlocked = !!user && !canAccessMealBuilders(user);
 
   useEffect(() => {
     if (isBlocked) {
-      requestUpgrade({ requiredTier: "meal-builders", featureName: "Meal Builder Exchange" });
+      openRouteUpgrade(location, setLocation, () =>
+        requestUpgrade({ requiredTier: "meal-builders", featureName: "Meal Builder Exchange" }),
+      );
     }
-  }, [isBlocked, location]);
+  }, [isBlocked, location, setLocation, requestUpgrade]);
 
   if (!user || isBlocked) return null;
   return <Component />;
@@ -170,15 +179,17 @@ function MealBuildersGuard({ component: Component }: { component: React.Componen
 
 function ActualProGuard({ component: Component }: { component: React.ComponentType }) {
   const { user } = useAuth();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { requestUpgrade } = useUpgradeModal();
   const isBlocked = !!user && !isActualProPlanOrAbove(user);
 
   useEffect(() => {
     if (isBlocked) {
-      requestUpgrade({ requiredTier: "pro", featureName: getFeatureNameFromPath(location) });
+      openRouteUpgrade(location, setLocation, () =>
+        requestUpgrade({ requiredTier: "pro", featureName: getFeatureNameFromPath(location) }),
+      );
     }
-  }, [isBlocked, location]);
+  }, [isBlocked, location, setLocation, requestUpgrade]);
 
   if (!user || isBlocked) return null;
   return <Component />;
@@ -186,15 +197,17 @@ function ActualProGuard({ component: Component }: { component: React.ComponentTy
 
 function ClinicalGuard({ component: Component }: { component: React.ComponentType }) {
   const { user } = useAuth();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { requestUpgrade } = useUpgradeModal();
   const isBlocked = !!user && !isClinicalOrAbove(user);
 
   useEffect(() => {
     if (isBlocked) {
-      requestUpgrade({ requiredTier: "clinical", featureName: getFeatureNameFromPath(location) });
+      openRouteUpgrade(location, setLocation, () =>
+        requestUpgrade({ requiredTier: "clinical", featureName: getFeatureNameFromPath(location) }),
+      );
     }
-  }, [isBlocked, location]);
+  }, [isBlocked, location, setLocation, requestUpgrade]);
 
   if (!user || isBlocked) return null;
   return <Component />;
