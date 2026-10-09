@@ -11,6 +11,7 @@ import { computeNdeSummary } from "./inspiration-nde-helper";
 import { computeAlphaGalBadge } from "../services/medicalBadges";
 import { processMealImageForSave } from "../services/imageLifecycle";
 import { generateMealImageUnified } from "../services/mealImageGenerator";
+import { resolveRecipeMakerIntent, recipeMakerFailure, RecipeMakerIntentError } from "../services/recipeMakerIntent";
 
 const router = Router();
 
@@ -140,6 +141,8 @@ router.post(
         proteinPriority: String(proteinPriority),
         prepStyle: String(prepStyle),
       });
+      const recipeIntent = await resolveRecipeMakerIntent(openai, mealDescription);
+      const categorizedInput = `${recipeIntent.dishName}\n${enrichedInput}\n[Recipe Maker culinary occasion: ${recipeIntent.foodCategory}. Preserve this dish and format; adapt ingredients and portions only within all active food protections.]`;
 
       // Step 3 — Generate via the unified craving-creator pipeline
       // No logic duplication: we call the same endpoint that powers the full app.
@@ -169,11 +172,11 @@ router.post(
           method: "POST",
           headers: { "Content-Type": "application/json", ...authHeaders },
           body: JSON.stringify({
-            cravingInput: enrichedInput,
-            targetMealType: "dinner",
+            cravingInput: categorizedInput,
+            targetMealType: recipeIntent.targetMealType,
             servings: validatedServings,
             strictMode: healthMode === "healthier",
-            generationMode: "meal",
+            generationMode: recipeIntent.generationMode,
             ...(cuisineOverride && typeof cuisineOverride === "string" && cuisineOverride.trim()
               ? { cultureOverride: cuisineOverride.trim() }
               : {}),
@@ -190,19 +193,13 @@ router.post(
 
       if (!cravingRes.ok) {
         const errData = await cravingRes.json().catch(() => ({}));
-        console.error("[inspiration] craving-creator call failed:", errData);
-        // Surface the craving-creator's user-facing message (constraint_conflict,
-        // safety_block, etc.) instead of swallowing it into a generic 500.
-        const userMessage: string =
-          (errData as any).message ||
-          (errData as any).error ||
-          "We couldn't create a meal for this request. Try a different dish or adjust your settings.";
-        const reasonCode: string | undefined = (errData as any).reasonCode;
-        return res.status(422).json({
-          error: userMessage,
-          reasonCode,
-          suggestedActions: (errData as any).suggestedActions ?? [],
+        const failure = recipeMakerFailure(errData, cravingRes.status);
+        console.error("[inspiration] generation rejected:", {
+          status: cravingRes.status,
+          reasonCode: failure.reasonCode,
+          reasonCodes: failure.reasonCodes,
         });
+        return res.status(cravingRes.status).json(failure);
       }
 
       const cravingData: any = await cravingRes.json();
@@ -299,9 +296,13 @@ router.post(
         mealData,            // first option — backward compat for clients reading result.mealData
         options: mealOptions, // all personalized options for the 3-card selector
         extractedDescription: mealDescription,
+        foodCategory: recipeIntent.foodCategory,
         ...(ndeSummary && { ndeSummary }),
       });
     } catch (error: any) {
+      if (error instanceof RecipeMakerIntentError) {
+        return res.status(error.status).json({ error: error.message, reasonCode: error.code });
+      }
       console.error("[inspiration] capture error:", error);
       res.status(500).json({
         error: "Failed to create your personalized meal. Please try again.",
