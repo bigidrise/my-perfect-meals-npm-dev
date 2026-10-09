@@ -20,3 +20,9 @@ Do not use the legacy managed-account `isProCare` flag as a prerequisite for an 
 **Why:** An active business-owned Studio can legitimately coexist with that flag being false. Requiring it prevented the identity-separated invitation fix from working; setting it would mutate the account rather than resolve Studio authority.
 
 **How to apply:** Keep actual provider-access, training, agreement and active-Studio checks authoritative. Preserve canonical practitioner setup gates and do not flip the flag as a repair.
+
+A standalone Studio does not inherit Organization or Location scope from its owner's unrelated memberships.
+
+**Why:** Multi-organization business owners were blocked from standalone Studio invitations by an unrelated workspace-selection requirement. Automatic attribution could also attach personal Studio clients to the wrong organization.
+
+**How to apply:** Invitation attribution requires either an actual Studio-to-Organization binding or an explicit Organization/Location selection. With neither, retain standalone scope; with either, retain full workspace authorization checks and never silently fall back.
