@@ -306,6 +306,8 @@ export interface MealGenerationRequest {
   diabetesSubjectScope?: "personal" | "household";
 
   macroTargets?: RequestedMealMacroTargets;
+  /** Frozen, server-resolved person-fed context. Never accepted from request JSON. */
+  chefFoodContext?: import("../../shared/humanFoodContext").HumanFoodContext;
 
   count?: number; // number of meals to generate (default 1)
 
@@ -422,6 +424,10 @@ export interface MealGenerationResponse {
   meals?: UnifiedMeal[];
   source: 'ai' | 'catalog' | 'fallback' | 'error';
   error?: string;
+  /** Internal proof that the legacy person-fed check ran before image generation. */
+  chefPersonFedValidated?: true;
+  foodProfileViolations?: string[];
+  macroGoalNotice?: ReturnType<typeof import("./humanFoodContext/chefCandidateValidation").buildChefMacroGoalNotice>;
   // Safety Profile enforcement fields
   safetyBlocked?: boolean;
   safetyAmbiguous?: boolean;
@@ -3371,15 +3377,15 @@ async function generateBeverageFromDescription(
     ? `\nThis drink is for the user's ${slotHint} slot — adjust flavor profile, caffeine level, and macros appropriately for ${slotHint}.`
     : '';
 
-  // Build server-authoritative nutrition enforcement block.
-  // These constraints come from the server budget resolver — they are not client hints.
+  // Server-resolved ordinary goals guide choices; starch and medical rules
+  // remain hard constraints independently.
   const noStarch = starchContext?.forceFiberBased || starchContext?.isZeroStarchDay;
   const macroCeiling = remainingMacros
     ? [
-        remainingMacros.calories != null ? `- CALORIES: do not exceed ${remainingMacros.calories} kcal` : '',
-        remainingMacros.protein  != null ? `- PROTEIN: do not exceed ${remainingMacros.protein}g` : '',
-        remainingMacros.carbs    != null ? `- TOTAL CARBS: do not exceed ${remainingMacros.carbs}g` : '',
-        remainingMacros.fat      != null ? `- FAT: do not exceed ${remainingMacros.fat}g` : '',
+        remainingMacros.calories != null ? `- CALORIES remaining goal: ${remainingMacros.calories} kcal` : '',
+        remainingMacros.protein  != null ? `- PROTEIN remaining goal: ${remainingMacros.protein}g` : '',
+        remainingMacros.carbs    != null ? `- TOTAL CARBS remaining goal: ${remainingMacros.carbs}g` : '',
+        remainingMacros.fat      != null ? `- FAT remaining goal: ${remainingMacros.fat}g` : '',
       ].filter(Boolean).join('\n')
     : '';
 
@@ -3388,7 +3394,7 @@ async function generateBeverageFromDescription(
       ? 'STARCH CONSTRAINT: This meal slot has no starch allowance remaining. Do NOT include oats, rice, banana, dates, or any starchy ingredient that would meaningfully raise the drink\'s starchy-carb content. Use berries, low-carb vegetables, or other fibrous ingredients instead.'
       : '',
     macroCeiling
-      ? `MACRO BUDGET (server-enforced — must not be exceeded):\n${macroCeiling}`
+      ? `ORDINARY MACRO GOALS (guidance, not rejection ceilings):\n${macroCeiling}\nAllow ordinary goal overages, preserve the requested drink, and report honest nutrition. Strict starch allowances and independently active clinical restrictions still apply.`
       : '',
   ].filter(Boolean).join('\n\n');
 
@@ -3571,6 +3577,7 @@ export async function generateFromDescriptionUnified(
   diabetesAttempt?: DiabetesGenerationAttempt,
   diabetesSubjectScope?: MealGenerationRequest["diabetesSubjectScope"],
   requestedMacroTargets?: RequestedMealMacroTargets,
+  chefFoodContext?: import("../../shared/humanFoodContext").HumanFoodContext,
 ): Promise<MealGenerationResponse> {
   let requestedMacros: RequestedMealMacroConstraint[];
   try {
@@ -3583,6 +3590,10 @@ export async function generateFromDescriptionUnified(
     };
   }
   const requestedMacroPrompt = buildRequestedMealMacroPrompt(requestedMacros);
+  // Ordinary daily macro goals must not reappear as hard ceilings in a
+  // secondary guardrail or the beverage branch. Explicit recipe targets and
+  // independently resolved clinical restrictions are still handled separately.
+  const chefGuardrailBudget = remainingMacros;
   if (diabetesSubjectScope === "household") {
     if (diabetesAttempt || !protocolEnvelope) throw new ProtocolContextUnavailableError();
     userId = undefined;
@@ -3618,7 +3629,7 @@ export async function generateFromDescriptionUnified(
       dietType,
       mealType,
       starchContext,       // server-authoritative starch constraints (forceStarch already cleared above)
-      remainingMacros,     // server-authoritative macro budget
+      chefGuardrailBudget, // ordinary goals; starch/clinical authority is separate
       glp1Targets,         // patient-specific clinical targets for post-gen validation
       preferredLanguage,   // language instruction so beverage name/description are in user's language
       overriddenAllergens, // Safety-PIN-authorized allergen(s) for this request only
@@ -3896,7 +3907,7 @@ Create the recipe for: "${description}"${requestedMacroPrompt ? `\n\n${requested
         dietType || null,
         validMealType,
         dietPhase as any,
-        remainingMacros,
+        chefGuardrailBudget,
         builderMode,
         undefined,    // dailyProteinTarget — not used here
         glp1Targets   // personalized GLP-1 targets from canonical resolver
@@ -4017,6 +4028,9 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       diabeticActive: diabeticClinicalActive,
       glp1Active: glp1ClinicalActive,
     } = isClinicalAdaptationActive(clinicalGenerationContext, dietType, !!glp1Targets);
+    const clinicalFatCeiling = chefFoodContext && glp1Targets
+      ? glp1Targets.maximumToleratedFatGrams
+      : remainingMacros?.fat;
     const MAX_REGENERATION_ATTEMPTS = clinicalAdaptationActive ? 4 : 2;
     let finalMealData: any = null;
     let attemptCount = 0;
@@ -4073,8 +4087,8 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
         }
         if (glp1Targets) {
           ceilingLines.push(`- Total fat MUST be ≤ ${glp1Targets.maximumToleratedFatGrams}g, calories ~${glp1Targets.resolvedMealCalories} kcal (hard clinical ceiling).`);
-        } else if (glp1ClinicalActive && remainingMacros?.fat != null) {
-          ceilingLines.push(`- Total fat MUST be ≤ ${remainingMacros.fat}g for this meal (hard clinical ceiling).`);
+        } else if (glp1ClinicalActive && clinicalFatCeiling != null) {
+          ceilingLines.push(`- Total fat MUST be ≤ ${clinicalFatCeiling}g for this meal (hard clinical ceiling).`);
         }
         currentMessages.push({
           role: 'user',
@@ -4607,6 +4621,39 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       const substitutionNotes = Array.isArray(mealData.substitutionNotes) && mealData.substitutionNotes.length > 0
         ? mealData.substitutionNotes.filter((n: any) => typeof n === 'string' && n.trim().length > 0)
         : undefined;
+      // Apply the SAME canonical person-fed check inside the bounded repair loop,
+      // not only after a recipe and image have already been produced. Use raw
+      // provider nutrition so legacy defaults cannot fabricate verified values.
+      if (chefFoodContext) {
+        const { validateChefCandidate } = await import("./humanFoodContext/chefCandidateValidation");
+        const validation = validateChefCandidate({
+          ...tempMeal,
+          nutrition: {
+            calories: mealData.calories,
+            protein: mealData.protein,
+            carbs: totalCarbs,
+            fat: mealData.fat,
+            starchyCarbs,
+          },
+        }, chefFoodContext);
+        if (!validation.valid) {
+          console.warn("[CREATE-WITH-CHEF] Canonical candidate rejected before image generation", {
+            attempt: attemptCount,
+            violations: validation.violations,
+          });
+          if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
+            lastFixHint = validation.repairHint;
+            previousRejectedCandidate = tempMeal;
+            continue;
+          }
+          return {
+            success: false,
+            source: "error",
+            error: validation.error,
+            foodProfileViolations: validation.violations,
+          };
+        }
+      }
       // IMPORTANT: use tempMeal.ingredients (not mealData.ingredients) so that any
       // dietary substitutions applied during validation are persisted to the response.
       finalMealData = { ...mealData, ingredients: tempMeal.ingredients, starchyCarbs, fibrousCarbs, totalCarbs, substitutionNotes, qualityStatus: (tempMeal as any).qualityStatus ?? undefined };
@@ -4656,12 +4703,16 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       description: finalMealData.description,
       ingredients: normalizeIngredients(finalMealData.ingredients || []),
       instructions: parseGeneratedRecipeSteps(finalMealData.instructions),
-      calories: finalMealData.calories || 400,
-      protein: requestedMacros.length ? (finalMealData.protein ?? 25) : (finalMealData.protein || 25),
+      calories: chefFoodContext ? Number(finalMealData.calories) : (finalMealData.calories || 400),
+      protein: chefFoodContext
+        ? finalMealData.protein == null || String(finalMealData.protein).trim() === ""
+          ? NaN
+          : Number(finalMealData.protein)
+        : requestedMacros.length ? (finalMealData.protein ?? 25) : (finalMealData.protein || 25),
       carbs: finalMealData.totalCarbs,
       starchyCarbs: finalMealData.starchyCarbs,
       fibrousCarbs: finalMealData.fibrousCarbs,
-      fat: requestedMacros.length ? (finalMealData.fat ?? 15) : (finalMealData.fat || 15),
+      fat: chefFoodContext ? Number(finalMealData.fat) : requestedMacros.length ? (finalMealData.fat ?? 15) : (finalMealData.fat || 15),
       cookingTime: finalMealData.cookingTime || '25 minutes',
       difficulty: finalMealData.difficulty || 'Easy',
       imageUrl: imageUrl ?? '',
@@ -4681,7 +4732,8 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       success: true,
       meal: unifiedMeal,
       meals: [unifiedMeal],
-      source: 'ai'
+      source: 'ai',
+      ...(chefFoodContext ? { chefPersonFedValidated: true as const } : {}),
     };
     return resolvedDiabetesAttempt && userId
       ? validateAndStampDiabetesResult(result, userId, validMealType, resolvedDiabetesAttempt)
@@ -4689,6 +4741,15 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
     
   } catch (error: any) {
     console.error('❌ Create With Chef generation failed:', error);
+    // A canonical request must never turn a verification/provider exception
+    // into an unrelated, unverified template. Preserve fail-closed behavior.
+    if (chefFoodContext) {
+      return {
+        success: false,
+        source: "error",
+        error: "Chef couldn't complete recipe verification safely. No meal was added. Please try again.",
+      };
+    }
     
     // Fallback to deterministic template
     const fallback = glp1Targets
@@ -5505,6 +5566,7 @@ export async function generateMealUnified(
         diabetesAttempt,
         request.diabetesSubjectScope,
         request.macroTargets,
+        request.chefFoodContext,
       );
       break;
 

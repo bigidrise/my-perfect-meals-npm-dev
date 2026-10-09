@@ -9,6 +9,7 @@ import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import MacroBridgeButton from "@/components/biometrics/MacroBridgeButton";
+import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
 import TrashButton from "@/components/ui/TrashButton";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
 import MealCardActions from "@/components/MealCardActions";
@@ -214,12 +215,13 @@ export function MealCard({
   const displayDescription = translatedContent.description ?? (meal as any).description;
   const displayIngredients = translatedContent.ingredients ?? meal.ingredients;
   const displayInstructions = translatedContent.instructions ?? meal.instructions;
-  const kcal = meal.nutrition?.calories ?? 0;
-  const protein = meal.nutrition?.protein ?? 0;
-  const carbs = meal.nutrition?.carbs ?? 0;
-  const fat = meal.nutrition?.fat ?? 0;
-  const storedStarchy = meal.starchyCarbs ?? meal.nutrition?.starchyCarbs;
-  const storedFibrous = meal.fibrousCarbs ?? meal.nutrition?.fibrousCarbs;
+  const oneServing = mealMacroSnapshot(meal);
+  const kcal = Math.round(oneServing.calories);
+  const protein = Math.round(oneServing.protein);
+  const carbs = Math.round(oneServing.carbs);
+  const fat = Math.round(oneServing.fat);
+  const storedStarchy = oneServing.starchyCarbs;
+  const storedFibrous = oneServing.fibrousCarbs;
   const hasSplit = typeof storedStarchy === "number" && typeof storedFibrous === "number";
   const { starchyCarbs, fibrousCarbs } = hasSplit
     ? { starchyCarbs: storedStarchy!, fibrousCarbs: storedFibrous! }
@@ -245,7 +247,7 @@ export function MealCard({
         fat,
         starchyCarbs: hasGenuineSplit ? starchyCarbs : null,
         fibrousCarbs: hasGenuineSplit ? fibrousCarbs : null,
-        servings: meal.servings || 1,
+        servings: 1,
         source: "weekly-meal-board"
       };
 
@@ -571,7 +573,7 @@ export function MealCard({
                 calories: kcal || 0,
                 dateISO: date,
                 mealSlot: macroMealSlot,
-                servings: meal.servings || 1,
+                servings: 1,
               }}
               label={t("addToMacros", { defaultValue: "Add to Macros", ns: "savedMeals" })}
             />

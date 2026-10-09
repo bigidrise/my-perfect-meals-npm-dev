@@ -20,6 +20,8 @@ import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
 import { useTranslatedMeal } from "@/hooks/useTranslatedMeal";
 import AlphaGalBadge from "@/components/AlphaGalBadge";
 import DiabetesProtocolIndicator from "@/components/DiabetesProtocolIndicator";
+import { GroceryCoachMacroTiles } from "./shopping/GroceryCoachMacroTiles";
+import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
 
 interface Props {
   row: any;
@@ -65,6 +67,7 @@ export default function SavedMealRow({
   );
 
   const d = row.mealData as any;
+  const perServingNutrition = mealMacroSnapshot(d);
 
   // ── Nutrition always from canonical record ─────────────────────────────
   const calories = d?.nutrition?.calories || d?.calories || 0;
@@ -123,7 +126,7 @@ export default function SavedMealRow({
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Heart className="h-4 w-4 text-red-500 shrink-0" fill="currentColor" />
-          <span className="text-xs text-white/40">{calories} {t("savedMeals.cal")}</span>
+          <span className="text-xs text-white/40">{Math.round(perServingNutrition.calories)} {t("savedMeals.cal")} / serving</span>
           {isExpanded
             ? <ChevronDown className="h-4 w-4 text-white/40" />
             : <ChevronRight className="h-4 w-4 text-white/40" />}
@@ -176,24 +179,11 @@ export default function SavedMealRow({
           )}
 
           {/* Macro strip — always from canonical record */}
-          <div className="grid grid-cols-4 gap-2 text-center">
-            <div className="bg-black/30 border border-white/15 p-2 rounded-lg">
-              <div className="text-xs text-white/50">{t("savedMeals.cal")}</div>
-              <div className="text-white font-bold">{Math.round(calories)}</div>
-            </div>
-            <div className="bg-black/30 border border-white/15 p-2 rounded-lg">
-              <div className="text-xs text-white/50">{t("savedMeals.protein")}</div>
-              <div className="text-white font-bold">{Math.round(protein)}g</div>
-            </div>
-            <div className="bg-black/30 border border-white/15 p-2 rounded-lg">
-              <div className="text-xs text-white/50">{t("savedMeals.carbs")}</div>
-              <div className="text-white font-bold">{Math.round(carbs)}g</div>
-            </div>
-            <div className="bg-black/30 border border-white/15 p-2 rounded-lg">
-              <div className="text-xs text-white/50">{t("savedMeals.fat")}</div>
-              <div className="text-white font-bold">{Math.round(fat)}g</div>
-            </div>
-          </div>
+          <GroceryCoachMacroTiles macros={perServingNutrition} servings={perServingNutrition.servings} labels={{
+            Calories: t("savedMeals.cal"), Protein: t("savedMeals.protein"), Fat: t("savedMeals.fat"),
+            "Starchy Carbs": t("biometrics.starchyCarbs"),
+            "Fibrous Carbs": t("biometrics.fibrousCarbs"),
+          }} />
 
           {/* Ingredients — item/notes from translation, amounts from canonical */}
           {d?.ingredients && d.ingredients.length > 0 && (

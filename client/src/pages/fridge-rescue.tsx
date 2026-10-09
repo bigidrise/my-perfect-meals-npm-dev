@@ -57,6 +57,7 @@ import {
 import { hasAccess, getCurrentUserPlan, FEATURE_KEYS } from "@/features/access";
 import { FeaturePlaceholder } from "@/components/FeaturePlaceholder";
 import MacroBridgeButton from "@/components/biometrics/MacroBridgeButton";
+import { creatorMealNutrition } from "@/lib/mealMacroSnapshot";
 import TrashButton from "@/components/ui/TrashButton";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
@@ -121,6 +122,7 @@ interface StructuredIngredient {
 
 interface MealData {
   id: string;
+  servings?: number;
   name: string;
   description: string;
   ingredients: StructuredIngredient[];
@@ -549,7 +551,13 @@ const FridgeRescuePage = () => {
         clearDietAlert();
       } else if (!dietOverrideEnabled && !skipPreflight && activeDiet) {
         // 🥗 Scenario B fallback — only fires on initial generate when using onboarding diet
-        const compliantMeals = filterMealsByDiet(userDiet, mealsArray, (m) => m);
+        const compliantMeals = filterMealsByDiet<MealData>(userDiet, mealsArray, (m) => ({
+          name: m.name,
+          description: m.description,
+          ingredients: m.ingredients.map((ingredient: any) =>
+            typeof ingredient === "string" ? ingredient : ingredient.name ?? ingredient.item ?? "",
+          ),
+        }));
         if (compliantMeals.length === 0) {
           stopProgressTicker();
           setIsLoading(false);
@@ -560,6 +568,9 @@ const FridgeRescuePage = () => {
       }
 
       console.log("✅ Setting meals:", mealsArray.length);
+      mealsArray = mealsArray.map((meal: MealData) => ({
+        ...meal, servings: meal.servings ?? servings,
+      }));
       stopProgressTicker();
       setMeals(mealsArray);
       hydrateImages(mealsArray);
@@ -1231,7 +1242,7 @@ const FridgeRescuePage = () => {
                         <FavoriteButton
                           title={meal.name}
                           sourceType="fridge-rescue"
-                          mealData={meal}
+                          mealData={{ ...meal, servings: meal.servings ?? servings }}
                         />
                       </div>
                       {/* Refine Meal button */}
@@ -1281,27 +1292,31 @@ const FridgeRescuePage = () => {
                     </CardHeader>
 
                     <CardContent className="space-y-4 flex-1 flex flex-col">
+                      <p className="text-xs text-white/70 text-center">
+                        Nutrition per serving • Recipe makes {meal.servings ?? servings} servings
+                      </p>
                       {/* Nutrition Grid */}
                       <div className="grid grid-cols-4 gap-2 text-center">
                         <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
                           <div className="text-sm font-bold text-green-400">
-                            {meal.calories}
+                            {Math.round(creatorMealNutrition(meal, servings).calories)}
                           </div>
                           <div className="text-xs text-white/70">Cal</div>
                         </div>
                         <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
                           <div className="text-sm font-bold text-blue-400">
-                            {meal.protein}g
+                            {Math.round(creatorMealNutrition(meal, servings).protein)}g
                           </div>
                           <div className="text-xs text-white/70">Protein</div>
                         </div>
                         <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
-                          <div className="text-sm font-bold text-orange-400">{meal.carbs}g</div>
+                          <div className="text-sm font-bold text-orange-400">{Math.round(creatorMealNutrition(meal, servings).carbs)}g</div>
                           <div className="text-xs text-white/70">Carbs</div>
                           {(() => {
-                            const totalCarbs = meal.carbs || 0;
-                            const { starchyCarbs, fibrousCarbs } = (typeof meal.starchyCarbs === "number" && typeof meal.fibrousCarbs === "number")
-                              ? { starchyCarbs: meal.starchyCarbs, fibrousCarbs: meal.fibrousCarbs }
+                            const totalCarbs = creatorMealNutrition(meal, servings).carbs;
+                            const oneServing = creatorMealNutrition(meal, servings);
+                            const { starchyCarbs, fibrousCarbs } = (typeof oneServing.starchyCarbs === "number" && typeof oneServing.fibrousCarbs === "number")
+                              ? { starchyCarbs: oneServing.starchyCarbs, fibrousCarbs: oneServing.fibrousCarbs }
                               : deriveSplitCarbs(meal.ingredients ?? [], totalCarbs);
                             if (!totalCarbs && !starchyCarbs && !fibrousCarbs) return null;
                             return (
@@ -1315,7 +1330,7 @@ const FridgeRescuePage = () => {
                         </div>
                         <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
                           <div className="text-sm font-bold text-purple-400">
-                            {meal.fat}g
+                            {Math.round(creatorMealNutrition(meal, servings).fat)}g
                           </div>
                           <div className="text-xs text-white/70">Fat</div>
                         </div>
@@ -1534,10 +1549,8 @@ const FridgeRescuePage = () => {
                         <MacroBridgeButton
                           data-testid="fridge-add-to-shopping"
                           meal={{
-                            protein: meal.protein || 0,
-                            carbs: meal.carbs || 0,
-                            fat: meal.fat || 0,
-                            calories: meal.calories || 0,
+                            ...creatorMealNutrition(meal, servings),
+                            servings: 1,
                           }}
                           source="fridge-rescue"
                         />

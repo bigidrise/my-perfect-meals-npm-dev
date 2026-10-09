@@ -252,7 +252,7 @@ export function CreateWithChefModal({
         });
         if (finalizeRes.ok) {
           const fd = await finalizeRes.json();
-          if (fd.meal?.imageUrl) finalMeal = fd.meal;
+          if (fd.meal?.imageUrl) finalMeal = { ...fd.meal, macroGoalNotice: meal.macroGoalNotice };
         }
       } catch {
         // Network or DALL-E failure — proceed without imageUrl.
@@ -263,7 +263,11 @@ export function CreateWithChefModal({
 
       toast({
         title: t("createWithChef.mealCreatedTitle"),
-        description: t("createWithChef.mealCreatedDesc", { name: finalMeal.name }),
+        description: [
+          t("createWithChef.mealCreatedDesc", { name: finalMeal.name }),
+          meal.macroGoalNotice?.message,
+        ].filter(Boolean).join(" "),
+        duration: meal.macroGoalNotice ? 16000 : undefined,
       });
       onMealGenerated(finalMeal, mealType);
       onOpenChange(false);

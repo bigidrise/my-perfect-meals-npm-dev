@@ -1,4 +1,4 @@
-import type { HumanFoodContext } from "../../../shared/humanFoodContext";
+import type { HumanFoodContext, HumanFoodMacroGoalOptions } from "../../../shared/humanFoodContext";
 import { buildLowCarbSourceGuidance } from "../../../shared/carbSourcePolicy";
 import { buildNutritionPriorityPromptProjection } from "../nutritionPriorityPromptProjection";
 
@@ -6,7 +6,10 @@ function line(label: string, value: string | null | undefined): string | null {
   return value ? `- ${label}: ${value}` : null;
 }
 
-export function buildHumanFoodPromptBlock(context: HumanFoodContext): string {
+export function buildHumanFoodPromptBlock(
+  context: HumanFoodContext,
+  options: HumanFoodMacroGoalOptions = {},
+): string {
   const flavor = context.flavor;
   const nutrition = context.nutrition;
   const hasCanonicalNumericTargets = nutrition?.prescription?.source !== "fallback";
@@ -85,12 +88,12 @@ export function buildHumanFoodPromptBlock(context: HumanFoodContext): string {
       ? `- Canonical nutrition authority: ${nutrition.authority ?? "nutritionStateService"}; status ${nutrition.resolution?.status ?? "resolved"}; generation context ${nutrition.activeConstraints.generationContext}.`
       : null,
     projected
-      ? `- HARD PER-CANDIDATE NUTRITION CEILINGS from the canonical projected remaining allocation: no candidate may exceed ${projected.calories} kcal, ${projected.carbs}g total carbohydrate, or ${projected.fat}g fat.`
+      ? `- Ordinary daily goals remaining: ${projected.calories} kcal, ${projected.carbs}g total carbohydrate, ${projected.fat}g fat, and ${projected.protein}g protein. These are personalization and tracking guidance, NOT meal-blocking ceilings. Do not reject, shrink, or replace a requested meal solely for exceeding ordinary calorie, fat, protein, or total-carbohydrate goals. Preserve the requested dish and report honest nutrition so overages can be tracked. Starchy-carbohydrate allowances remain strict. Explicitly configured limits and applicable clinical restrictions still apply independently; never infer them from ordinary macro goals.`
       : nutrition
         ? "- Canonical numeric calorie and macro targets are unavailable. Use a standard meal portion; do not interpret unavailable targets as a zero-calorie budget."
       : null,
     consumedStarch
-      ? `- Consumed-starch authority: ${consumedStarch.remainingGrams}g and ${consumedStarch.mealsRemaining} confirmed starch meal slot(s) remain; exhausted=${consumedStarch.exhausted}. Planned meals may create a projected conflict but cannot change consumed exhaustion.`
+      ? `- STRICT starchy-carbohydrate authority: ${consumedStarch.remainingGrams}g and ${consumedStarch.mealsRemaining} confirmed starch meal slot(s) remain; exhausted=${consumedStarch.exhausted}. Do not exceed the verified remaining starchy-carbohydrate grams. Planned meals may create a projected conflict but cannot change consumed exhaustion.`
       : null,
     nutrition?.activeConstraints.projectedStarchConflict
       ? "- Projected starch conflict is active: avoid adding another starchy allocation unless an authorized workflow explicitly replaces a reservation."

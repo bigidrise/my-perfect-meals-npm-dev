@@ -12,8 +12,11 @@ jest.mock("../services/legalCheck", () => ({
   checkLegalAcceptance: jest.fn(async () => ({ allAccepted: mockLegal, missing: mockLegal ? [] : ["patient_clinical_data_consent"] })),
 }));
 jest.mock("../services/procareStudioReadiness", () => ({
+  readOwnedBusinessStudio: async (id: string) => records.studios.find(row => row.ownerUserId === id) ?? null,
+  getProviderStudioReadiness: jest.fn(async () => ({ ok: mockReady, code: "LEGAL_REACCEPT_REQUIRED" })),
   ensureProviderStudioReady: jest.fn(async () => ({ ok: mockReady, code: "LEGAL_REACCEPT_REQUIRED" })),
 }));
+jest.mock("../services/procareProviderAccess", () => ({ providerHasProCareStudioAccess: jest.fn(async () => mockReady) }));
 jest.mock("../services/studioBridge", () => ({
   ensureStudioForTrainer: jest.fn(async (id: string) => {
     const studio = records.studios.find(row => row.ownerUserId === id);
@@ -39,7 +42,7 @@ jest.mock("../services/emailIdentityService", () => ({
   }),
   findEmailIdentityCandidates: jest.fn(async (email: string) => records.users.filter(row => row.email.toLowerCase() === email.toLowerCase())),
 }));
-import { acceptStoredCareInvitation, findCareInvitation } from "../services/careInvitationAcceptance";
+import { acceptStoredCareInvitation, findCareInvitation, resolveInvitationAttribution } from "../services/careInvitationAcceptance";
 import { acceptInviteByToken, getInviteMetadata } from "../services/procareInviteService";
 import { autoAcceptPendingInvites } from "../services/inviteAutoAccept";
 
@@ -80,6 +83,36 @@ function expectCorrectRelationship() {
 }
 test("professional → client by code uses actual provider identity, not the requested trainer label", async () => {
   await byCode(); expectCorrectRelationship();
+});
+
+test.each(["bound", "explicit"] as const)("%s Organization scope still requires validated Organization and Location selection", async kind => {
+  const resolver = jest.requireMock("../services/bp1OrganizationAttributionService").resolveProviderStudioAttribution;
+  const selected = kind === "explicit" ? { organizationId: "selected-org", locationId: "selected-location" } : null;
+  const studio = { ...records.studios[0], orgId: kind === "bound" ? "bound-org" : null };
+  resolver.mockRejectedValueOnce(Object.assign(new Error("Select an Organization and Location before continuing."), {
+    code: "WORKSPACE_SELECTION_REQUIRED", status: 409,
+  }));
+  await expect(resolveInvitationAttribution("provider", studio, selected))
+    .rejects.toMatchObject({ code: "WORKSPACE_SELECTION_REQUIRED", status: 409 });
+  expect(resolver).toHaveBeenLastCalledWith("provider", studio, selected);
+});
+
+test.each(["code", "token", "studio"] as const)("authorized Business Studio acceptance by %s retains both account identities", async path => {
+  if (path === "studio") fixture("studio");
+  records.users[0].professionalRole = "business";
+  records.studios[0].type = "studio";
+  const table = path === "studio" ? records.studio_invites : records.care_invite;
+  table[0].providerUserId = "provider";
+  table[0].clientUserId = "client";
+  const identities = JSON.stringify(records.users);
+  if (path === "token") {
+    expect((await acceptInviteByToken("link-token", "client")).ok).toBe(true);
+  } else await byCode();
+  expect(records.care_team_member[0]).toMatchObject({ proUserId: "provider", userId: "client", role: "studio_operator" });
+  expect(records.studio_memberships[0]).toMatchObject({ studioId: "clinic", clientUserId: "client", status: "active" });
+  // Activation can maintain the client's ordinary relationship state, never occupations.
+  expect(records.users.map(row => row.professionalRole)).toEqual(JSON.parse(identities).map((row: any) => row.professionalRole));
+  expect(records.users[0].professionalRole).toBe(JSON.parse(identities)[0].professionalRole);
 });
 test("a trainer's canonical coaching relationship accepts Pro without requiring physician agreements", async () => {
   records.users[0].professionalRole = "trainer"; records.studios[0].type = "studio";

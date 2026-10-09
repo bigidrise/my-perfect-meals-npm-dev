@@ -216,6 +216,9 @@ jest.mock("../services/mealCachePersistent", () => ({
 // ── Imports (after jest.mock hoisting) ────────────────────────────────────────
 import { generateFromDescriptionUnified, generateMealUnified, type MealGenerationRequest } from "../services/unifiedMealPipeline";
 import { scanGeneratedOutput } from "../services/protocolEnvelope";
+import { generateMealImageUnified } from "../services/mealImageGenerator";
+import type { HumanFoodContext } from "../../shared/humanFoodContext";
+import { buildChefMacroGoalNotice } from "../services/humanFoodContext/chefCandidateValidation";
 
 // ── Source paths for structural tests ─────────────────────────────────────────
 const PIPELINE_SRC = fs.readFileSync(
@@ -320,6 +323,164 @@ beforeEach(() => {
   capturedCalls.length = 0;
   mockRecipeResponses.length = 0;
 });
+describe("Create With Chef ordinary fat guidance and hard-rule repair before images", () => {
+  const context = (fat = 13): HumanFoodContext => Object.freeze({
+    safety: { allergies: [], avoidedFoods: [], dislikedFoods: [] },
+    authorization: { status: "none", waivers: [] },
+    nutrition: {
+      date: "2026-10-08",
+      prescription: { source: "user_default", fatTarget: 48, proteinTarget: 100 },
+      consumed: { fat: 35, protein: 70 },
+      planned: { fat: 0, protein: 0 },
+      projectedRemaining: { calories: 500, carbs: 40, fat },
+      activeConstraints: { consumedStarchExhausted: false },
+    },
+  }) as unknown as HumanFoodContext;
+  const recipe = (fat: unknown) => JSON.stringify({
+    ...JSON.parse(KETO_CAKE_RESPONSE),
+    name: "Grilled Chicken Tacos",
+    ingredients: [
+      { name: "chicken breast", quantity: "5", unit: "oz" },
+      { name: "cabbage", quantity: "1", unit: "cup" },
+      { name: "olive oil", quantity: "1", unit: "tsp" },
+    ],
+    fat,
+  });
+  const request = (foodContext = context()): MealGenerationRequest => ({
+    type: "create-with-chef",
+    mealType: "dinner",
+    input: "Tacos.",
+    userId: "test-user-vegan-001",
+    servings: 1,
+    skipImage: false,
+    safetyAlreadyChecked: true,
+    dietaryRestrictionsOverride: ["keto"],
+    remainingMacros: { calories: 500, carbs: 40, fat: 4, protein: 10 },
+    builderMode: "STRICT",
+    chefFoodContext: foodContext,
+  });
+  beforeEach(() => (generateMealImageUnified as jest.Mock).mockClear());
+
+  it("keeps a requested over-fat dinner without shrinking it or retrying an ordinary goal", async () => {
+    const foodContext = context();
+    const snapshot = JSON.stringify(foodContext);
+    mockRecipeResponses.push(recipe(24));
+    const result = await generateMealUnified({ ...request(foodContext), dietType: "low-carb" });
+    expect(result.success).toBe(true);
+    expect(result.meal?.fat).toBe(24);
+    expect(result.meal?.name).toBe("Grilled Chicken Tacos");
+    expect(result.chefPersonFedValidated).toBe(true);
+    expect(capturedCalls).toHaveLength(1);
+    const prompt = capturedCalls[0].messages.map(message => message.content).join("\n");
+    expect(prompt).not.toContain("Hard ceiling — no exceptions");
+    expect(JSON.stringify(foodContext)).toBe(snapshot);
+    expect(generateMealImageUnified).toHaveBeenCalledTimes(1);
+  });
+
+  it("allows ordinary total carbohydrate overages when no actual starch or clinical limit fails", async () => {
+    const tooManyCarbs = JSON.stringify({ ...JSON.parse(recipe(24)), starchyCarbs: 45 });
+    mockRecipeResponses.push(tooManyCarbs, tooManyCarbs);
+    const result = await generateMealUnified(request());
+    expect(result.success).toBe(true);
+    expect(result.foodProfileViolations).toBeUndefined();
+    expect(capturedCalls).toHaveLength(1);
+    expect(generateMealImageUnified).toHaveBeenCalledTimes(1);
+    expect(result.chefPersonFedValidated).toBe(true);
+  });
+
+  it("allows an ordinary fat overage even when the clamped remaining value is zero", async () => {
+    mockRecipeResponses.push(recipe(22));
+    const result = await generateMealUnified(request(context(0)));
+    expect(result.success).toBe(true);
+    expect(result.meal?.fat).toBe(22);
+    expect(capturedCalls).toHaveLength(1);
+  });
+
+  it("preserves an explicitly requested upper fat limit", async () => {
+    mockRecipeResponses.push(recipe(24), recipe(24));
+    const result = await generateMealUnified({
+      ...request(), macroTargets: { fat_g: 13, relationships: { fat_g: "at_most" } },
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("requested meal macros");
+    expect(generateMealImageUnified).not.toHaveBeenCalled();
+  });
+
+  it("forecasts a 9g overage from actual recipe totals without changing consumption or targets", () => {
+    const foodContext = context();
+    const before = JSON.stringify(foodContext);
+    const notice = buildChefMacroGoalNotice({ fat: 22, protein: 8 }, foodContext);
+    expect(notice?.basis).toBe("planned_forecast");
+    expect(notice?.projections[0]).toMatchObject({
+      macro: "fat", target: 48, before: 35, recipe: 22, projected: 57, overage: 9,
+    });
+    expect(notice?.message).toContain("9g over");
+    expect(JSON.stringify(foodContext)).toBe(before);
+  });
+
+  it("includes an existing overage rather than subtracting from a clamped zero", () => {
+    const foodContext = context(0);
+    foodContext.nutrition!.consumed.fat = 60;
+    const notice = buildChefMacroGoalNotice({ fat: 22, protein: 8 }, foodContext);
+    expect(notice?.projections[0].overage).toBe(34);
+  });
+
+  it("forecasts the person-fed portion rather than counting every serving in a recipe", () => {
+    const notice = buildChefMacroGoalNotice({ fat: 44, protein: 16 }, context(), 2);
+    expect(notice?.projections[0]).toMatchObject({ recipe: 22, projected: 57, overage: 9 });
+  });
+
+  it("tracks a protein overage without treating it as a maximum", () => {
+    const notice = buildChefMacroGoalNotice({ fat: 5, protein: 40 }, context());
+    expect(notice?.projections).toEqual([
+      expect.objectContaining({ macro: "protein", projected: 110, overage: 10 }),
+    ]);
+  });
+
+  it.each([0, 13])("preserves a verified %jg fat value without adding the legacy 15g default", async fat => {
+    mockRecipeResponses.push(recipe(fat));
+    const result = await generateMealUnified(request());
+    expect(result.success).toBe(true);
+    expect(result.meal?.fat).toBe(fat);
+    expect(capturedCalls).toHaveLength(1);
+  });
+
+  it.each([undefined, null, "", -1])("does not certify unavailable/invalid fat as zero: %j", async fat => {
+    mockRecipeResponses.push(recipe(fat), recipe(fat));
+    const result = await generateMealUnified(request());
+    expect(result.success).toBe(false);
+    expect(result.foodProfileViolations).toContain("verified_fat_missing");
+    expect(result.error).toContain("couldn't verify");
+    expect(generateMealImageUnified).not.toHaveBeenCalled();
+  });
+
+  it("retains the ingredient exclusions during numeric repair", async () => {
+    const foodContext = {
+      ...context(),
+      safety: { allergies: ["chicken"], avoidedFoods: [], dislikedFoods: [] },
+    } as HumanFoodContext;
+    mockRecipeResponses.push(recipe(10), recipe(10));
+    const result = await generateMealUnified(request(foodContext));
+    expect(result.success).toBe(false);
+    expect(result.foodProfileViolations).toContain("forbidden_ingredient:chicken");
+    expect(generateMealImageUnified).not.toHaveBeenCalled();
+  });
+
+  it("checks per-serving provider nutrition rather than multiplying by requested servings", async () => {
+    mockRecipeResponses.push(JSON.stringify({
+      ...JSON.parse(recipe(10)),
+      ingredients: [
+        { name: "chicken breast", quantity: "15", unit: "oz" },
+        { name: "cabbage", quantity: "3", unit: "cup" },
+        { name: "olive oil", quantity: "1", unit: "tbsp" },
+      ],
+    }));
+    const result = await generateMealUnified({ ...request(), servings: 3 });
+    expect(result.success).toBe(true);
+    expect(result.meal?.fat).toBe(10);
+  });
+});
+
 describe("Create With Chef requested-macro handoff", () => {
   const recipe = (overrides: Record<string, unknown> = {}) => JSON.stringify({
     ...JSON.parse(KETO_CAKE_RESPONSE),

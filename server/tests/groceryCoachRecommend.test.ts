@@ -311,7 +311,7 @@ function makeValidCoachResult(overrides: Record<string, any> = {}): object {
       "Low fat fits your protocol.",
       "Quick to prepare.",
     ],
-    macros: { calories: 380, protein: 35, carbs: 20, fat: 9 },
+    macros: { calories: 380, protein: 35, carbs: 20, fat: 9, starchyCarbs: 14, fibrousCarbs: 6 },
     ownedIngredients: [],
     shoppingList: [
       { item: "Salmon fillet", quantity: "6", unit: "oz", category: "Meat" },
@@ -411,6 +411,24 @@ describe("POST /api/grocery-coach/recommend — protocol scan + GLP-1 validation
 
   beforeEach(() => {
     resetAll();
+  });
+
+  it("returns recipe-based fibrous carbs and requests the breakdown in generation", async () => {
+    openAIResponseQueue.push(() => makeValidCoachResult());
+    const res = await request(app).post("/api/grocery-coach/recommend").send(BASE_BODY);
+    expect(res.status).toBe(200);
+    expect(res.body.macros).toMatchObject({ carbs: 20, starchyCarbs: 14, fibrousCarbs: 6 });
+    expect(capturedCalls[0].systemContent).toContain("NOT dietary fiber grams");
+    expect(capturedCalls[0].systemContent).toContain("actual ingredient quantities");
+  });
+
+  it.each([undefined, 30])("returns unknown, not a guessed split, for missing or excessive fibrous carbs (%s)", async fibrousCarbs => {
+    openAIResponseQueue.push(() => makeValidCoachResult({
+      macros: { calories: 380, protein: 35, carbs: 20, fat: 9, fibrousCarbs },
+    }));
+    const res = await request(app).post("/api/grocery-coach/recommend").send(BASE_BODY);
+    expect(res.status).toBe(200);
+    expect(res.body.macros.fibrousCarbs).toBeNull();
   });
 
   // ── 1. Allergen blocking (real constraint enforcement) ─────────────────────

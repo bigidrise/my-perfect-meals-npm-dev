@@ -1,5 +1,5 @@
 import { currentGLP1AuthorityEnabled } from "../glp1/currentMealAuthority";
-import type { HumanFoodContext } from "../../../shared/humanFoodContext";
+import type { HumanFoodContext, HumanFoodMacroGoalOptions } from "../../../shared/humanFoodContext";
 import {
   HUMAN_FOOD_VALIDATOR_VERSION,
   type HumanFoodCandidate,
@@ -32,7 +32,7 @@ import {
   type HumanFoodRequestExecutionState,
 } from "./requestExecutionState";
 
-export interface HumanFoodFinalValidationOptions {
+export interface HumanFoodFinalValidationOptions extends HumanFoodMacroGoalOptions {
   requestedDish?: string;
   requestedCategory?: string;
   dishDirective?: DishAdaptationDirective | null;
@@ -410,9 +410,6 @@ export function validateHumanFoodCandidate(
   }
 
   const nutrition = candidate.nutrition;
-  const remaining = context.nutrition?.prescription?.source === "fallback"
-    ? null
-    : context.nutrition?.projectedRemaining ?? context.nutrition?.remaining;
   if (context.nutrition) {
     if (evidence.nutritionEvidence === "unknown") add(findings, {
       dimension: "nutrition", outcome: "review_required", code: "nutrition_evidence_unknown",
@@ -429,24 +426,26 @@ export function validateHumanFoodCandidate(
       });
     }
   }
-  for (const macro of ["calories", "carbs", "fat"] as const) {
-    if (remaining && nutrition?.[macro] != null && nutrition[macro]! > remaining[macro]) add(findings, {
-      dimension: "nutrition",
-      outcome: remaining[macro] > 0 ? "repairable" : "blocked",
-      code: `projected_${macro}_budget_exceeded`,
-      message: `The candidate exceeds the canonical remaining ${macro} budget.`,
-      assurance: "deterministic",
-    });
-  }
-  if (context.nutrition?.activeConstraints.consumedStarchExhausted) {
+  // Ordinary daily goals never establish a clinical limit.
+  const starchRemaining = context.nutrition?.starch?.consumed?.remainingGrams;
+  const hasStarchBudget = typeof starchRemaining === "number" &&
+    Number.isFinite(starchRemaining) && starchRemaining >= 0;
+  const starchExhausted = context.nutrition?.activeConstraints.consumedStarchExhausted;
+  if (starchExhausted || hasStarchBudget) {
     if (nutrition?.starchyCarbs == null) add(findings, {
       dimension: "starch", outcome: "review_required", code: "starch_evidence_missing",
-      message: "Starch is exhausted and verified starchy-carbohydrate evidence is missing.",
+      message: "Verified starchy-carbohydrate evidence is required to check the remaining starch allowance.",
       assurance: "structured_evidence",
     });
-    else if (nutrition.starchyCarbs > 0) add(findings, {
+    else if (starchExhausted && nutrition.starchyCarbs > 0) add(findings, {
       dimension: "starch", outcome: "blocked", code: "consumed_starch_budget_exhausted",
       message: "The candidate uses starch after the canonical starch budget is exhausted.",
+      assurance: "deterministic",
+    });
+    else if (hasStarchBudget && nutrition.starchyCarbs > starchRemaining) add(findings, {
+      dimension: "starch", outcome: starchRemaining > 0 ? "repairable" : "blocked",
+      code: "starchy_carb_budget_exceeded",
+      message: "The candidate exceeds the canonical remaining starchy-carbohydrate allowance.",
       assurance: "deterministic",
     });
   }

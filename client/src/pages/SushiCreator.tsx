@@ -84,6 +84,7 @@ interface StructuredIngredient {
 }
 
 interface MealData {
+  servings?: number;
   id: string;
   name: string;
   description: string;
@@ -117,6 +118,7 @@ interface MealData {
 }
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { setQuickView } from "@/lib/macrosQuickView";
+import { creatorMealNutrition as getMealNutrition } from "@/lib/mealMacroSnapshot";
 import TrashButton from "@/components/ui/TrashButton";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import FavoriteButton from "@/components/FavoriteButton";
@@ -166,17 +168,6 @@ function clearCravingCache() {
 }
 
 // Utility to normalize macros shape from either meal.nutrition or top-level fields
-function getMealNutrition(meal: any) {
-  const n = meal?.nutrition || {};
-  return {
-    calories: Number(n.calories ?? meal.calories ?? 0),
-    protein_g: Number(n.protein ?? n.protein_g ?? meal.protein ?? 0),
-    carbs_g: Number(n.carbs ?? n.carbs_g ?? meal.carbs ?? 0),
-    fat_g: Number(n.fat ?? n.fat_g ?? meal.fat ?? 0),
-    starchyCarbs: Number(n.starchyCarbs ?? meal.starchyCarbs ?? 0),
-    fibrousCarbs: Number(n.fibrousCarbs ?? meal.fibrousCarbs ?? 0),
-  };
-}
 
 const CRAVING_TOUR_STEPS: TourStep[] = [
   {
@@ -328,7 +319,7 @@ export default function SushiCreator() {
     const mealForDisplay = meal.imageUrl?.startsWith('/') || meal.imageUrl?.startsWith('data:')
       ? { ...meal, imageUrl: undefined }
       : meal;
-    setGeneratedMeals([mealForDisplay]);
+    setGeneratedMeals([{ ...mealForDisplay, servings: mealForDisplay.servings ?? servings }]);
     setIsPlatingMeal(false);
     saveCravingCache({
       generatedMeal: mealForDisplay,
@@ -648,7 +639,7 @@ export default function SushiCreator() {
       const mealForDisplay = meal.imageUrl?.startsWith('/') || meal.imageUrl?.startsWith('data:')
         ? { ...meal, imageUrl: undefined }
         : meal;
-      setGeneratedMeals([mealForDisplay]);
+      setGeneratedMeals([{ ...mealForDisplay, servings: mealForDisplay.servings ?? servings }]);
 
       if (!meal?.name) {
         console.error("❌ Missing meal.name before sushi image hydration:", meal);
@@ -1300,7 +1291,7 @@ export default function SushiCreator() {
                           <FavoriteButton
                             title={meal.name}
                             sourceType="sushi-creator"
-                            mealData={meal}
+                            mealData={{ ...meal, servings: meal.servings ?? servings }}
                           />
                           <button
                             onClick={() => {
@@ -1386,7 +1377,7 @@ export default function SushiCreator() {
                         <div className="mb-3 p-2 bg-black/40 backdrop-blur-md rounded-lg border border-white/20">
                           <div className="text-xs text-white text-center">
                             <strong>
-                              Total nutrition below is for {servings} servings.
+                              Recipe makes {meal.servings ?? servings} servings. Nutrition below is for one serving.
                             </strong>
                             <br />
                             Per serving:{" "}
@@ -1413,28 +1404,30 @@ export default function SushiCreator() {
                         </div>
                       )}
 
+                      <p className="text-xs text-white/60 text-center mb-2">Nutrition per serving</p>
                       <div className="grid grid-cols-4 gap-4 mb-4 text-center">
                         <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
                           <div className="text-lg font-bold text-white">
-                            {meal.nutrition?.calories || meal.calories || 0}
+                            {Math.round(getMealNutrition(meal, servings).calories)}
                           </div>
                           <div className="text-xs text-white">Calories</div>
                         </div>
                         <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
                           <div className="text-lg font-bold text-white">
-                            {meal.nutrition?.protein || meal.protein || 0}g
+                            {Math.round(getMealNutrition(meal, servings).protein_g)}g
                           </div>
                           <div className="text-xs text-white">Protein</div>
                         </div>
                         <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
                           <div className="text-lg font-bold text-white">
-                            {meal.nutrition?.carbs || meal.carbs || 0}g
+                            {Math.round(getMealNutrition(meal, servings).carbs_g)}g
                           </div>
                           <div className="text-xs text-white">Carbs</div>
                           {(() => {
-                            const totalCarbs = meal.nutrition?.carbs || meal.carbs || 0;
-                            const storedS = meal.nutrition?.starchyCarbs ?? meal.starchyCarbs;
-                            const storedF = meal.nutrition?.fibrousCarbs ?? meal.fibrousCarbs;
+                            const oneServing = getMealNutrition(meal, servings);
+                            const totalCarbs = oneServing.carbs_g;
+                            const storedS = oneServing.starchyCarbs;
+                            const storedF = oneServing.fibrousCarbs;
                             const { starchyCarbs, fibrousCarbs } = (typeof storedS === "number" && typeof storedF === "number")
                               ? { starchyCarbs: storedS, fibrousCarbs: storedF }
                               : deriveSplitCarbs(meal.ingredients ?? [], totalCarbs);
@@ -1450,7 +1443,7 @@ export default function SushiCreator() {
                         </div>
                         <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
                           <div className="text-lg font-bold text-white">
-                            {meal.nutrition?.fat || meal.fat || 0}g
+                            {Math.round(getMealNutrition(meal, servings).fat_g)}g
                           </div>
                           <div className="text-xs text-white">Fat</div>
                         </div>
@@ -1602,12 +1595,12 @@ export default function SushiCreator() {
                         {/* Row 1: Add to Macros (full width) */}
                         <GlassButton
                           onClick={() => {
-                            const macros = getMealNutrition(meal);
+                            const macros = getMealNutrition(meal, servings);
                             setQuickView({
                               protein: Math.round(macros.protein_g),
                               carbs: Math.round(macros.carbs_g),
-                              starchyCarbs: Math.round(macros.starchyCarbs),
-                              fibrousCarbs: Math.round(macros.fibrousCarbs),
+                              starchyCarbs: macros.starchyCarbs == null ? undefined : Math.round(macros.starchyCarbs),
+                              fibrousCarbs: macros.fibrousCarbs == null ? undefined : Math.round(macros.fibrousCarbs),
                               fat: Math.round(macros.fat_g),
                               calories: Math.round(macros.calories),
                               dateISO: new Date().toISOString().slice(0, 10),

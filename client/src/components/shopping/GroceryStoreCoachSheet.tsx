@@ -35,6 +35,8 @@ import { PillButton } from "@/components/ui/pill-button";
 import { get, post } from "@/lib/api";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
 import type { UniversalIngredient } from "@/stores/shoppingListStore";
+import { GroceryCoachMacroTiles, type GroceryCoachMacros } from "./GroceryCoachMacroTiles";
+import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
 
 type Phase = "idle" | "loading" | "result";
 
@@ -48,7 +50,7 @@ interface ShoppingListItem {
 interface CoachResult {
   meal: { name: string; description: string; prepTime: string; servings: number };
   reasoning: string[];
-  macros: { calories: number; protein: number; carbs: number; fat: number };
+  macros: GroceryCoachMacros;
   ownedIngredients: Array<{ item: string; quantity: string; unit: string }>;
   shoppingList: ShoppingListItem[];
   followUpSuggestions: string[];
@@ -378,6 +380,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   // discards the response if the token no longer matches — preventing in-flight
   // requests initiated for user A from landing in user B's session.
   const sessionGenRef = useRef(0);
+  const cardRequestSequence = useRef(0);
+  const cardInFlight = useRef<{ key: string; generation: number; sequence: number } | null>(null);
 
   // ── Session persistence ──────────────────────────────────────────────────────
   // Restore from localStorage whenever SESSION_KEY changes (user login / account switch).
@@ -386,6 +390,10 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   // prior account's result under the new user's key.
   useEffect(() => {
     sessionGenRef.current += 1; // invalidate all in-flight async requests for the old key
+    cardRequestSequence.current += 1;
+    cardInFlight.current = null;
+    setCardPhase("idle");
+    setMealCard(null);
     setResultOwnerKey(null); // ← clear before state so save effect detects transition
     setResult(null);
     setPreRefinedResult(null);
@@ -402,6 +410,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         conversation?: ConversationMessage[];
         productAdvice?: ProductAdviceResult;
         pickedBrandsEntries?: Array<[string, BrandRecommendation]>;
+        cardPhase?: CardPhase;
+        mealCard?: MealCardRef;
         savedAt?: number;
       };
       // Expire after 24 h
@@ -411,6 +421,14 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       }
       if (session.result) {
         setResult(session.result);
+        if (session.cardPhase === "ready" && session.mealCard?.id) {
+          setMealCard(session.mealCard);
+          setCardPhase("ready");
+        } else {
+          // A reload may have interrupted a save, or this is a legacy session
+          // without a card reference. Recovery must not assume nothing was saved.
+          setCardPhase("failed");
+        }
         if (session.preRefinedResult) setPreRefinedResult(session.preRefinedResult);
         if (session.pickedBrandsEntries?.length) {
           setPickedBrands(new Map(session.pickedBrandsEntries));
@@ -448,6 +466,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       try {
         localStorage.setItem(SESSION_KEY, JSON.stringify({
           result,
+          cardPhase,
+          mealCard: mealCard ?? undefined,
           preRefinedResult: preRefinedResult ?? undefined,
           conversation,
           productAdvice: productAdvice ?? undefined,
@@ -456,7 +476,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         }));
       } catch {}
     }
-  }, [result, preRefinedResult, conversation, productAdvice, pickedBrands, SESSION_KEY, resultOwnerKey]);
+  }, [result, cardPhase, mealCard, preRefinedResult, conversation, productAdvice, pickedBrands, SESSION_KEY, resultOwnerKey]);
 
   useEffect(() => {
     if (!open) {
@@ -467,8 +487,6 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       setAddedToList(false);
       setListExpanded(true);
       setCartExpanded(true);
-      setCardPhase("idle");
-      setMealCard(null);
       // productAdvice preserved intentionally — Smart Cart repopulates on reopen.
       setAdvisorLoading(false);
       // pickedBrands intentionally preserved — picks survive sheet close/reopen
@@ -788,9 +806,30 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     } catch (err: any) {
       if (sessionGenRef.current !== gen) return; // identity changed — suppress error UI
       setPhase("idle");
+      let errorMessage = err?.message || "Please try again.";
+      if (err?.status === 422) {
+        errorMessage = "This meal could not be verified against your current nutrition and safety settings. Try a different meal.";
+        try {
+          const details = JSON.parse(err.body);
+          const explanations: Record<string, string> = {
+            projected_calorie_budget_exceeded: "This serving exceeds the calories remaining for today.",
+            projected_carb_budget_exceeded: "This serving exceeds the carbohydrates remaining for today.",
+            projected_fat_budget_exceeded: "This serving exceeds the fat allowance remaining for today.",
+            consumed_starch_budget_exhausted: "Today's starchy carbohydrate allowance is already used up.",
+            starchy_carb_budget_exceeded: "This serving exceeds the starchy carbohydrate allowance remaining for today.",
+            verified_starchy_carbs_missing: "The coach could not verify this meal's starchy carbohydrate content.",
+          };
+          const messages = Array.isArray(details.findings)
+            ? details.findings.map((finding: string) => explanations[finding] ??
+                (finding.startsWith("forbidden_ingredient:") ? "This meal includes an ingredient your current profile does not allow." : null)).filter(Boolean)
+            : [];
+          if (messages.length) errorMessage = [...new Set(messages)].join(" ");
+          else if (typeof details.error === "string" && !/^[A-Z_]+$/.test(details.error)) errorMessage = details.error;
+        } catch { /* Keep the safe, readable fallback for malformed error responses. */ }
+      }
       toast({
-        title: "Coach unavailable",
-        description: err?.message || "Please try again.",
+        title: err?.status === 422 ? "Meal needs adjustment" : "Coach unavailable",
+        description: errorMessage,
         variant: "destructive",
       });
       setConversation(newConvo.slice(0, -1));
@@ -798,6 +837,9 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   }, [conversation, servingCount, toast, fetchProductAdvice]);
 
   const handleNewSession = useCallback(() => {
+    sessionGenRef.current += 1;
+    cardRequestSequence.current += 1;
+    cardInFlight.current = null;
     try { localStorage.removeItem(SESSION_KEY); } catch {}
     setPhase("idle");
     setResult(null);
@@ -855,11 +897,17 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
   const finalizeCard = useCallback(async (coachResult: CoachResult) => {
     const gen = sessionGenRef.current; // capture before first await
+    const key = JSON.stringify(coachResult);
+    if (cardInFlight.current?.key === key && cardInFlight.current.generation === gen) return;
+    const sequence = ++cardRequestSequence.current;
+    cardInFlight.current = { key, generation: gen, sequence };
+    setCardPhase("generating");
+    setMealCard(null);
     try {
       const data = await post("/api/grocery-coach/finalize-card", {
         recommendation: coachResult,
       });
-      if (sessionGenRef.current !== gen) return; // identity changed — discard
+      if (sessionGenRef.current !== gen || cardRequestSequence.current !== sequence) return;
       if (data?.status === "ready" && data?.id) {
         setMealCard({
           id: data.id,
@@ -872,7 +920,11 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         setCardPhase("failed");
       }
     } catch {
-      if (sessionGenRef.current === gen) setCardPhase("failed");
+      if (sessionGenRef.current === gen && cardRequestSequence.current === sequence) {
+        setCardPhase("failed");
+      }
+    } finally {
+      if (cardInFlight.current?.sequence === sequence) cardInFlight.current = null;
     }
   }, []);
 
@@ -1492,14 +1544,6 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                       </button>
                     </div>
                   )}
-                  {/* Refine Meal button */}
-                  <button
-                    onClick={() => setRefineOpen(true)}
-                    style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "10px 0", borderRadius: 10, background: "rgba(139,92,246,0.18)", border: "1px solid rgba(139,92,246,0.4)", color: "#c4b5fd", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
-                  >
-                    <Wand2 style={{ width: 14, height: 14 }} />
-                    Refine Meal
-                  </button>
                 </div>
 
                 {/* ── Card generation status ── */}
@@ -1529,38 +1573,37 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                   </div>
                 )}
 
-                {cardPhase === "failed" && result && (
+                {(cardPhase === "failed" || cardPhase === "idle") && result && (
                   <div style={{ borderRadius: 12, background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.2)", padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                       <AlertTriangle style={{ width: 16, height: 16, color: "#f87171", flexShrink: 0, marginTop: 1 }} />
                       <span style={{ color: "rgba(255,255,255,0.65)", fontSize: 13, lineHeight: 1.45 }}>
-                        Your recommendation is ready, but the full recipe card could not be saved. Tap below to try again.
+                        Your recommendation is ready. Recover its saved meal card or finish creating it. An existing Favorite will be reused, not duplicated.
                       </span>
                     </div>
                     <button
                       onClick={() => { setCardPhase("generating"); finalizeCard(result); }}
-                      style={{ alignSelf: "flex-start", padding: "7px 14px", borderRadius: 8, background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+                      style={{ width: "100%", padding: "12px 14px", borderRadius: 8, background: "rgba(249,115,22,0.18)", border: "1px solid rgba(249,115,22,0.4)", color: "#fb923c", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
                     >
-                      Try Again
+                      Create or Recover Meal Card
                     </button>
                   </div>
                 )}
 
+                {/* Refinement remains secondary to creating/recovering the card. */}
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <button
+                    onClick={() => setRefineOpen(true)}
+                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: 8, background: "transparent", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.65)", fontSize: 12, cursor: "pointer" }}
+                  >
+                    <Wand2 style={{ width: 12, height: 12 }} />
+                    Refine Meal
+                  </button>
+                </div>
+
                 {/* Macros */}
                 {result.macros && (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                    {[
-                      { label: "Calories", value: result.macros.calories, unit: "" },
-                      { label: "Protein",  value: result.macros.protein,  unit: "g" },
-                      { label: "Carbs",    value: result.macros.carbs,    unit: "g" },
-                      { label: "Fat",      value: result.macros.fat,      unit: "g" },
-                    ].map(({ label, value, unit }) => (
-                      <div key={label} style={{ borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", padding: 12, textAlign: "center" }}>
-                        <div style={{ color: "white", fontWeight: 700, fontSize: 18, lineHeight: 1 }}>{value ?? "—"}{unit}</div>
-                        <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, marginTop: 4, fontWeight: 500 }}>{label}</div>
-                      </div>
-                    ))}
-                  </div>
+                  <GroceryCoachMacroTiles macros={mealMacroSnapshot(result)} servings={mealMacroSnapshot(result).servings} />
                 )}
 
                 {/* Why This Fits You */}

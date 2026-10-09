@@ -142,3 +142,7 @@
 - [Professional erasure policy](professional-erasure-policy.md) — minimize personal lifecycle data; reviewer erasure preserves other applications; no six-year retention assumption.
 - [Migration CLI lifecycle](migration-cli-lifecycle.md) — one-off commands must own their connection; the application DB keepalive can outlive a closed pool.
 - [Professional credential clearance](professional-credential-clearance.md) — bind genuine MFA-reviewed evidence to current identity; activation, pilots and demos remain separate.
+- [Grocery Coach meal-card workflow](grocery-coach-meal-card-workflow.md) — automatic Favorites creation and card continuity on reopen; recovery must not duplicate saves.
+- [Focused Jest execution](focused-jest-execution.md) — use isolated test transpilation and a separate type gate to avoid loading the entire project twice.
+- [Recipe carbohydrate categories](recipe-carb-category-boundary.md) — preserve explicit source estimates; dietary fiber and unknown carbohydrate remain distinct.
+- [Interrupted edit integrity](interrupted-edit-integrity.md) — check every affected file after a disconnected multi-file edit, including reported successes.

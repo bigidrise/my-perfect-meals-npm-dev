@@ -27,6 +27,7 @@ import OpenAI from "openai";
 import { db } from "../db";
 import { getLanguageInstruction } from "../utils/languageInstruction";
 import { userSavedGroceryItems } from "@shared/schema";
+import { GROCERY_COACH_CARB_PROMPT } from "@shared/groceryCoachCarbs";
 import { eq } from "drizzle-orm";
 import {
   loadUserProtocolEnvelope,
@@ -1724,6 +1725,7 @@ ${savedGroceriesBlock ? `\n\n${savedGroceriesBlock}` : ""}
 
 EXISTING MEAL (modify this):
 ${existingMealJson}
+${Array.isArray(existingMeal.shoppingList) && existingMeal.meal ? GROCERY_COACH_CARB_PROMPT : ""}
 
 MODIFICATION RULES:
 1. PRESERVE IDENTITY: Keep the meal recognizable. Only change what the instruction requires.
