@@ -16,7 +16,7 @@ import { createHumanFoodRequestScope } from "../services/humanFoodContext/reques
 import { buildHumanFoodPromptBlock } from "../services/humanFoodContext/buildHumanFoodPromptBlock";
 import { validateHumanFoodResult } from "../services/humanFoodContext/validateHumanFoodResult";
 import { findProductDevelopment, ProductSubjectContextUnavailableError } from "../services/productDiscovery/findProductDevelopment";
-import { GROCERY_COACH_CARB_PROMPT, groceryCoachCarbBreakdown } from "@shared/groceryCoachCarbs";
+import { GROCERY_COACH_CARB_PROMPT, groceryCoachCarbBreakdown, groceryCoachPerServingMacros } from "@shared/groceryCoachCarbs";
 
 const router = express.Router();
 
@@ -429,7 +429,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     // ── GLP-1 post-gen macro validation ──────────────────────────────────────
     if (groceryGlp1Targets) {
       const t = groceryGlp1Targets;
-      const mac = result.macros ?? {};
+      const mac = groceryCoachPerServingMacros(result.macros ?? {}, result.meal?.servings ?? finalServingCount);
       const fat      = Number(mac.fat);
       const cal = Number(mac.calories);
       const prot = Number(mac.protein);
@@ -443,7 +443,8 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
           `${fat}g fat (limit is ${t.maximumToleratedFatGrams}g) and ${Math.round(cal)} calories ` +
           `(limit is ~${t.resolvedMealCalories} kcal). Recommend a lower-fat alternative meal ` +
           `using lean proteins and non-oily cooking methods. ` +
-          `Fat must be ≤ ${t.maximumToleratedFatGrams}g and calories ≤ ${t.resolvedMealCalories} kcal.`;
+          `Per serving, fat must be ≤ ${t.maximumToleratedFatGrams}g and calories ≤ ${t.resolvedMealCalories} kcal. ` +
+          `Return total-recipe macros across all meal.servings, not per-serving macros.`;
         try {
           const glp1RetryCompletion = await getOpenAI().chat.completions.create({
             model: "gpt-4o-mini",
@@ -460,8 +461,9 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
           const glp1RetryResult = JSON.parse(glp1RetryRaw);
           const glp1RetryInvalid = invalidReason(glp1RetryResult);
           if (!glp1RetryInvalid) {
-            const retryFat = Number(glp1RetryResult.macros?.fat);
-            const retryCal = Number(glp1RetryResult.macros?.calories);
+            const retryMacros = groceryCoachPerServingMacros(glp1RetryResult.macros ?? {}, glp1RetryResult.meal?.servings ?? finalServingCount);
+            const retryFat = Number(retryMacros.fat);
+            const retryCal = Number(retryMacros.calories);
             if (
               (!Number.isFinite(retryFat) || retryFat <= t.maximumToleratedFatGrams) &&
               (!Number.isFinite(retryCal) || retryCal <= t.resolvedMealCalories * 1.25)
@@ -535,7 +537,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
           ...(candidate.shoppingList ?? []).map((item: any) => ({ name: item.item })),
           ...(candidate.ownedIngredients ?? []).map((item: any) => ({ name: item.item })),
         ],
-        nutrition: candidate.macros,
+        nutrition: groceryCoachPerServingMacros(candidate.macros, candidate.meal?.servings ?? finalServingCount),
       }, humanFoodContext);
       const buildMealForScan = (r: any) => ({
         name: r.meal?.name ?? "Grocery Coach Recommendation",
@@ -594,6 +596,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
             if (retryScan.passed) {
               const canonicalValidation = passesCanonicalFinalValidation(retryResult);
               if (!canonicalValidation.valid) {
+                console.warn("[GroceryCoach] Final validation rejected retry:", canonicalValidation.violations);
                 return res.status(422).json({ error: "HUMAN_FOOD_FINAL_VALIDATION_FAILED", findings: canonicalValidation.violations });
               }
               retryPassed = true;
@@ -632,9 +635,10 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
         ...(result.shoppingList ?? []).map((item: any) => ({ name: item.item })),
         ...(result.ownedIngredients ?? []).map((item: any) => ({ name: item.item })),
       ],
-      nutrition: result.macros,
+      nutrition: groceryCoachPerServingMacros(result.macros, result.meal?.servings ?? finalServingCount),
     }, humanFoodContext);
     if (!canonicalValidation.valid) {
+      console.warn("[GroceryCoach] Final validation rejected recommendation:", canonicalValidation.violations);
       return res.status(422).json({ error: "HUMAN_FOOD_FINAL_VALIDATION_FAILED", findings: canonicalValidation.violations });
     }
     if (!result.meal?.name || (!(result.shoppingList?.length) && !(result.ownedIngredients?.length))) {
