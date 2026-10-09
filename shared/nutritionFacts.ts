@@ -49,11 +49,13 @@ export interface MacroLogInput {
   fiber?: number | null;
   /** Starchy carbohydrates, if known */
   starchyCarbs?: number | null;
+  /** Explicit recipe carbohydrate split; distinct from dietary fiber. */
+  fibrousCarbs?: number | null;
   /** Feature identifier, e.g. "restaurant_guide", "buffet", "meal_card" */
   source: string;
   /** Human-readable meal name for display in history */
   title?: string;
-  mealType?: "breakfast" | "lunch" | "dinner" | "snack";
+  mealType?: "breakfast" | "lunch" | "dinner" | "snack" | "manual";
   /** ISO date string (YYYY-MM-DD). Defaults to today server-side if omitted. */
   dateIso?: string;
   mealId?: string;

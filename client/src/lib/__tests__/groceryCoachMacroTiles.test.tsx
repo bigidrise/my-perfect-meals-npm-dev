@@ -11,7 +11,7 @@ it("shows five distinct tiles, using the recipe's fibrous carbs rather than diet
   const grid = screen.getByTestId("grocery-coach-macro-grid");
   expect(grid.children).toHaveLength(5);
   expect(within(screen.getByText("Fibrous Carbs").parentElement!).getByText("12g")).toBeInTheDocument();
-  expect(screen.getByText("Total Carbs")).toBeInTheDocument();
+  expect(screen.getByText("Starchy Carbs")).toBeInTheDocument();
   expect(screen.getByText("Fat")).toBeInTheDocument();
 });
 it("keeps two shrinkable columns on mobile and gives fibrous carbs a full row", () => {
@@ -24,7 +24,7 @@ it("preserves an explicit zero and does not invent values for older meals", () =
   expect(within(screen.getByText("Fibrous Carbs").parentElement!).getByText("0g")).toBeInTheDocument();
   view.rerender(<GroceryCoachMacroTiles macros={{ ...macros, fibrousCarbs: undefined }} />);
   expect(within(screen.getByText("Fibrous Carbs").parentElement!).getByText("—")).toBeInTheDocument();
-  expect(screen.getByText(/breakdown unavailable/)).toBeInTheDocument();
+  expect(screen.getByText(/breakdown partly unavailable/)).toBeInTheDocument();
 });
 it.each([
   { fibrousCarbs: -1 },

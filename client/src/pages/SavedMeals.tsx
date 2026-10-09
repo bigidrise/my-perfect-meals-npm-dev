@@ -8,6 +8,7 @@ import { setQuickView } from "@/lib/macrosQuickView";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
 import SavedMealRow from "@/components/SavedMealRow";
+import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
 
 export default function SavedMeals() {
   const [, setLocation] = useLocation();
@@ -118,18 +119,16 @@ export default function SavedMeals() {
 
   const handleAddToMacros = (row: any) => {
     const d = row.mealData || row;
-    const protein = d.nutrition?.protein || d.protein || 0;
-    const carbs   = d.nutrition?.carbs   || d.carbs   || 0;
-    const fat     = d.nutrition?.fat     || d.fat     || 0;
-    const starchyCarbs  = d.nutrition?.starchyCarbs  || d.starchyCarbs  || 0;
-    const fibrousCarbs  = d.nutrition?.fibrousCarbs  || d.fibrousCarbs  || 0;
-    const calories = d.nutrition?.calories || d.calories || (protein * 4 + carbs * 4 + fat * 9);
+    const { protein, carbs, fat, starchyCarbs, fibrousCarbs, calories } = mealMacroSnapshot(d);
 
     setQuickView({
+      title: row.title,
+      mealId: row.id,
+      source: "saved_meal",
       protein: Math.round(protein),
       carbs: Math.round(carbs),
-      starchyCarbs: Math.round(starchyCarbs),
-      fibrousCarbs: Math.round(fibrousCarbs),
+      starchyCarbs: starchyCarbs == null ? undefined : starchyCarbs,
+      fibrousCarbs: fibrousCarbs == null ? undefined : fibrousCarbs,
       fat: Math.round(fat),
       calories: Math.round(calories),
       dateISO: new Date().toISOString().slice(0, 10),

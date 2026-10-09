@@ -1,6 +1,7 @@
 /** Recipe estimates, not dietary fiber or a prescribed daily carb ratio. */
 export const GROCERY_COACH_CARB_PROMPT = `
 CARBOHYDRATE BREAKDOWN:
+All macros are totals for the complete recipe, across all meal.servings, not per-serving values. Keep meal.servings consistent with the ingredient quantities and requested serving count; the UI divides recipe totals to display and log one serving.
 Include macros.starchyCarbs and macros.fibrousCarbs (grams, number or null).
 Estimate these from the actual ingredient quantities, on the SAME serving basis as macros.carbs.
 Fibrous carbs are carbohydrate grams from non-starchy vegetables (such as spinach, broccoli, asparagus, zucchini, and cauliflower rice), NOT dietary fiber grams. Fruit is not fibrous carbs in this app.

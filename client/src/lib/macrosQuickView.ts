@@ -11,9 +11,15 @@ export interface QuickView {
   dateISO: string;
   mealSlot: "breakfast" | "lunch" | "dinner" | "snacks" | null;
   expiresAt: number; // timestamp when this data expires
+  title?: string;
+  mealId?: string;
+  source?: string;
 }
 
 interface QuickViewInput {
+  title?: string;
+  mealId?: string;
+  source?: string;
   protein: number;
   carbs: number;
   starchyCarbs?: number;
