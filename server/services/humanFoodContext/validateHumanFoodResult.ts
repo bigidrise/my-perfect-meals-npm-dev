@@ -23,8 +23,10 @@ function ingredientText(result: unknown): string {
 }
 
 function finiteNumber(value: unknown): number | null {
+  if (value == null || typeof value === "boolean" ||
+      (typeof value === "string" && !value.trim())) return null;
   const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : null;
+  return Number.isFinite(numeric) && numeric >= 0 ? numeric : null;
 }
 
 export function validateHumanFoodResult(
@@ -79,27 +81,13 @@ export function validateHumanFoodResult(
   const calories = finiteNumber(nutrition.calories ?? nutrition.kcal);
   const carbs = finiteNumber(nutrition.carbs ?? nutrition.carbs_g);
   const fat = finiteNumber(nutrition.fat ?? nutrition.fat_g);
-  const starchyCarbs = finiteNumber(nutrition.starchyCarbs ?? nutrition.starchy_carbs);
   const requireNutrition = options.requireNutrition !== false;
-  if (requireNutrition && context.nutrition && calories == null) violations.push("verified_calories_missing");
-  if (requireNutrition && context.nutrition && carbs == null) violations.push("verified_carbs_missing");
-  if (requireNutrition && context.nutrition && fat == null) violations.push("verified_fat_missing");
+  if (requireNutrition && calories == null) violations.push("verified_calories_missing");
+  if (requireNutrition && carbs == null) violations.push("verified_carbs_missing");
+  if (requireNutrition && fat == null) violations.push("verified_fat_missing");
   // Daily macro goals are tracking guidance, not safety limits. Clinical and
   // explicitly requested restrictions are enforced by their own authorities.
-  const consumedStarch = context.nutrition?.starch?.consumed;
-  const starchRemaining = consumedStarch?.remainingGrams;
-  const hasStarchBudget = typeof starchRemaining === "number" &&
-    Number.isFinite(starchRemaining) && starchRemaining >= 0;
-  const starchExhausted = context.nutrition?.activeConstraints.consumedStarchExhausted;
-  if (requireNutrition && (starchExhausted || hasStarchBudget)) {
-    if (starchyCarbs == null) {
-      violations.push("verified_starchy_carbs_missing");
-    } else if (starchExhausted && starchyCarbs > 0) {
-      violations.push("consumed_starch_budget_exhausted");
-    } else if (hasStarchBudget && starchyCarbs > starchRemaining) {
-      violations.push("starchy_carb_budget_exceeded");
-    }
-  }
+  // Consumed/projected starch is tracking evidence, not a food safety rule.
 
   return { valid: violations.length === 0, violations };
 }

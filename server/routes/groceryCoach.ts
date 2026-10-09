@@ -434,16 +434,14 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
       const cal = Number(mac.calories);
       const prot = Number(mac.protein);
       const fatViolation = Number.isFinite(fat) && fat > t.maximumToleratedFatGrams;
-      const calViolation = Number.isFinite(cal) && cal > t.resolvedMealCalories * 1.25;
       const protFloorViolation = Number.isFinite(prot) && prot < t.minimumProteinFloor * 0.75;
-      if (fatViolation || calViolation) {
+      if (fatViolation) {
         console.warn(`[GroceryCoach/GLP-1] Macro violation — fat:${fat}g cal:${cal} — retrying`);
         const glp1MacroFix =
           `\n\nCRITICAL GLP-1 MACRO CORRECTION: Your previous recommendation had ` +
-          `${fat}g fat (limit is ${t.maximumToleratedFatGrams}g) and ${Math.round(cal)} calories ` +
-          `(limit is ~${t.resolvedMealCalories} kcal). Recommend a lower-fat alternative meal ` +
+          `${fat}g fat (independent tolerability limit is ${t.maximumToleratedFatGrams}g). Adapt the requested meal ` +
           `using lean proteins and non-oily cooking methods. ` +
-          `Per serving, fat must be ≤ ${t.maximumToleratedFatGrams}g and calories ≤ ${t.resolvedMealCalories} kcal. ` +
+          `Per serving, fat must be ≤ ${t.maximumToleratedFatGrams}g. Calories are planning guidance, not a rejection limit. ` +
           `Return total-recipe macros across all meal.servings, not per-serving macros.`;
         try {
           const glp1RetryCompletion = await getOpenAI().chat.completions.create({
@@ -465,8 +463,8 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
             const retryFat = Number(retryMacros.fat);
             const retryCal = Number(retryMacros.calories);
             if (
-              (!Number.isFinite(retryFat) || retryFat <= t.maximumToleratedFatGrams) &&
-              (!Number.isFinite(retryCal) || retryCal <= t.resolvedMealCalories * 1.25)
+              Number.isFinite(retryFat) && retryFat <= t.maximumToleratedFatGrams &&
+              Number.isFinite(retryCal) && retryCal >= 0
             ) {
               console.log(`✅ [GroceryCoach/GLP-1] Retry passed — fat:${retryFat}g cal:${retryCal}`);
               Object.assign(result, glp1RetryResult);
@@ -930,7 +928,7 @@ router.post("/swap-ingredient", async (req, res) => {
                 const carbs = toN(nut.carbs ?? nut.total_carbohydrates ?? nut.carbGrams);
                 if (glp1Targets) {
                   if (fat === null || fat > glp1Targets.maximumToleratedFatGrams) savedOk = false;
-                  if (savedOk && kcal !== null && kcal > glp1Targets.resolvedMealCalories) savedOk = false;
+                  // Daily-derived calories never disqualify a saved food.
                 } else if (hasDiabetes) {
                   if (carbs === null || carbs > 45) savedOk = false;
                 }

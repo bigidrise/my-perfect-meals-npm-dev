@@ -109,7 +109,7 @@ export function validateProCareMeal(
       }
       
       if (meal.macros.calories && meal.macros.calories > caloriesTarget * 1.2) {
-        macroViolations.push(`Calories (${meal.macros.calories}) significantly exceeds target (${caloriesTarget})`);
+        warnings.push(`Calories (${meal.macros.calories}) exceed planning target (${caloriesTarget}); an optional adjustment may be offered`);
       }
     }
   }

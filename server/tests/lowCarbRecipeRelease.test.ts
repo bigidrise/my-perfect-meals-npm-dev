@@ -42,17 +42,17 @@ describe("generic Low Carb recipe release is not positive source proof", () => {
     }
   });
 
-  it("checks named starch against estimate and exhausted allocation without demanding an entire-day ratio", () => {
+  it("checks honest starch evidence without making daily exhaustion a repair requirement", () => {
     expect(assessLowCarbRecipeRelease(candidate(["brown rice", "broccoli"], 9), context))
       .toBe("no_known_conflict");
     expect(assessLowCarbRecipeRelease(candidate(["brown rice", "broccoli"], 0), context))
       .toBe("repair_required");
     expect(assessLowCarbRecipeRelease(candidate(["brown rice"], 9), {
       ...context, nutrition: { ...context.nutrition!, activeConstraints: { consumedStarchExhausted: true } },
-    } as HumanFoodContext)).toBe("repair_required");
+    } as HumanFoodContext)).toBe("no_known_conflict");
   });
 
-  it("requires complete schema, valid estimates, subject authority and an available budget", () => {
+  it("requires complete schema, valid estimates and subject authority, not an available budget", () => {
     expect(assessLowCarbRecipeRelease(candidate([""]), context)).toBe("evidence_unavailable");
     expect(assessLowCarbRecipeRelease(candidate(["unsweetened almond milk"], 0, NaN), context))
       .toBe("evidence_unavailable");

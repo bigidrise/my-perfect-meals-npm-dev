@@ -153,13 +153,13 @@ export function validateGLP1Meal(
       const resolvedProteinTarget = resolvedTargets.targetProteinGrams;
       const proteinFloor = resolvedTargets.minimumProteinFloor;
 
-      // Calories: soft warning at +10%, hard failure at +25% of resolved target
+      // Daily-derived calories are guidance, never a clinical generation cap.
       if (meal.macros.calories) {
         const softLimit = Math.round(resolvedCalTarget * 1.10);
         const hardLimit = Math.round(resolvedCalTarget * 1.25);
         if (meal.macros.calories > hardLimit) {
-          violations.push(
-            `Calories (${meal.macros.calories} kcal) exceed patient hard limit (${hardLimit} kcal / ${resolvedCalTarget} kcal target +25%)`
+          warnings.push(
+            `Calories (${meal.macros.calories} kcal) exceed planning guidance (${resolvedCalTarget} kcal); keep the recipe or request an optional portion adjustment`
           );
         } else if (meal.macros.calories > softLimit) {
           warnings.push(

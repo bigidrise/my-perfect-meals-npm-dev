@@ -409,13 +409,10 @@ export function resolveGLP1MealTargets(
       maximumToleratedFatGrams = resolveSnackFatCeiling(guardrailFatCeiling);
       targetFatGrams = Math.round(maximumToleratedFatGrams * 0.7);
     } else {
-      // The engineering floor must never raise a tighter configured ceiling.
-      maximumToleratedFatGrams = clamp(
-        Math.min(fatPerMeal, guardrailFatCeiling),
-        Math.min(7, guardrailFatCeiling),
-        guardrailFatCeiling,
-      );
-      targetFatGrams = Math.round(maximumToleratedFatGrams * 0.8);
+      // Remaining Macro Calculator fat guides portions but cannot establish
+      // a medical restriction. Only the independent tolerability guardrail can.
+      maximumToleratedFatGrams = guardrailFatCeiling;
+      targetFatGrams = Math.round(Math.min(fatPerMeal, maximumToleratedFatGrams * 0.8));
     }
 
     // Intro phase: stricter fat limits — values read from registry
@@ -428,7 +425,7 @@ export function resolveGLP1MealTargets(
       targetFatGrams = Math.min(targetFatGrams, introTarget);
       reasons.push(`Intro phase: fat ceiling reduced to ${introCeiling}g ceiling / ${introTarget}g target (registry: glp1_intro_fat_ceiling + glp1_intro_fat_target — pending RD review)`);
     }
-    reasons.push(`Fat: ${remainingFat}g remaining ÷ ${plannedMealsRemaining} meals = max ${maximumToleratedFatGrams}g`);
+    reasons.push(`Fat guidance: ${remainingFat}g remaining ÷ ${plannedMealsRemaining} meals; independent tolerability ceiling ${maximumToleratedFatGrams}g`);
   }
 
   // ─────────────────────────────────────────────────────────────────────────

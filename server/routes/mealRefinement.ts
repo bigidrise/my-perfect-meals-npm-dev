@@ -179,12 +179,7 @@ function validateRefined(
     if (calories === null) {
       glp1Block = true;
       corrections.push(
-        `You MUST include a numeric calories value ≤ ${glp1Targets.resolvedMealCalories} kcal in the nutrition output`,
-      );
-    } else if (calories > glp1Targets.resolvedMealCalories * 1.25) {
-      glp1Block = true;
-      corrections.push(
-        `Calories are ${Math.round(calories)} — they MUST be ≤ ${glp1Targets.resolvedMealCalories} kcal`,
+        "You MUST include an honest numeric calorie value in the nutrition output; daily calorie targets are not limits",
       );
     }
   }

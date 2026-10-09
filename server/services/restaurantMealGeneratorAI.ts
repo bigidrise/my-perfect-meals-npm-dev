@@ -118,7 +118,7 @@ export function buildRemainingMacrosBlock(
   • Protein: ${Math.round(remaining.protein)}g
   • Carbs: ${Math.round(remaining.carbs)}g
   • Fat: ${Math.round(remaining.fat)}g${starchLine}
-If starch meals remaining is 0 or starchy carbs remaining is very low, prefer non-starchy sides (salad, vegetables) and suggest skipping/reducing starchy items (bun, fries, rice) — but keep the user's requested protein as-is.`;
+Daily numbers, including exhausted starch, never eliminate options or silently change the requested food, its sides, or its portions. Preserve the requested dish with independently required dietary/safety adaptations, report honest nutrition, and offer lower-starch portions or sides only as optional guidance.`;
 }
 // ────────────────────────────────────────────────────────────────────────────
 

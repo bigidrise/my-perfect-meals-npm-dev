@@ -341,3 +341,17 @@ mtime_ms = 1791427459614
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/bbef6ab3-27aa-46a6-af4e-3f762d5872c9/0bbd272b-52e3-418b-9d4c-7678157ac4b5"
 storage_version_token = "1791427544838091"
 content_type = "text/html"
+
+[[outputs]]
+id = "fbs6dzK-_3QTUg0OZDbpS"
+uri = "file://reports/food-generation-autonomy-development.html"
+type = "html"
+title = "Development food-generation autonomy report"
+description = "Exact changed files, 317 passing tests, release validation, clinical authority questions, and verification limits."
+logical_id = "255c4f14-2112-462a-967d-b54b4fb8e25a"
+content_hash = "sha256:d2c430e6ab897efcd869f54b39408627b4ba8c03d53445f48cd284f945b8b597"
+size = 9360
+mtime_ms = 1791584145942
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/255c4f14-2112-462a-967d-b54b4fb8e25a/122538b8-eb0c-40c1-a23c-020da60df270"
+storage_version_token = "1791584160575075"
+content_type = "text/html"

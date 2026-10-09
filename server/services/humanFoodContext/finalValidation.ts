@@ -410,14 +410,14 @@ export function validateHumanFoodCandidate(
   }
 
   const nutrition = candidate.nutrition;
-  if (context.nutrition) {
+  if (context.nutrition || context.executionContext) {
     if (evidence.nutritionEvidence === "unknown") add(findings, {
       dimension: "nutrition", outcome: "review_required", code: "nutrition_evidence_unknown",
       message: "Canonical nutrition limits cannot be checked against unknown nutrition evidence.",
       assurance: "structured_evidence",
     });
     for (const macro of ["calories", "carbs", "fat"] as const) {
-      if (nutrition?.[macro] == null) add(findings, {
+      if (nutrition?.[macro] == null || !Number.isFinite(nutrition[macro]) || nutrition[macro]! < 0) add(findings, {
         dimension: "nutrition",
         outcome: "review_required",
         code: `verified_${macro}_missing`,
@@ -427,28 +427,7 @@ export function validateHumanFoodCandidate(
     }
   }
   // Ordinary daily goals never establish a clinical limit.
-  const starchRemaining = context.nutrition?.starch?.consumed?.remainingGrams;
-  const hasStarchBudget = typeof starchRemaining === "number" &&
-    Number.isFinite(starchRemaining) && starchRemaining >= 0;
-  const starchExhausted = context.nutrition?.activeConstraints.consumedStarchExhausted;
-  if (starchExhausted || hasStarchBudget) {
-    if (nutrition?.starchyCarbs == null) add(findings, {
-      dimension: "starch", outcome: "review_required", code: "starch_evidence_missing",
-      message: "Verified starchy-carbohydrate evidence is required to check the remaining starch allowance.",
-      assurance: "structured_evidence",
-    });
-    else if (starchExhausted && nutrition.starchyCarbs > 0) add(findings, {
-      dimension: "starch", outcome: "blocked", code: "consumed_starch_budget_exhausted",
-      message: "The candidate uses starch after the canonical starch budget is exhausted.",
-      assurance: "deterministic",
-    });
-    else if (hasStarchBudget && nutrition.starchyCarbs > starchRemaining) add(findings, {
-      dimension: "starch", outcome: starchRemaining > 0 ? "repairable" : "blocked",
-      code: "starchy_carb_budget_exceeded",
-      message: "The candidate exceeds the canonical remaining starchy-carbohydrate allowance.",
-      assurance: "deterministic",
-    });
-  }
+  // Daily starch overages belong to planning/tracking, not final release gates.
 
   const conditions = context.safety.healthConditions.map(normalize);
   const glp1Active = currentGLP1AuthorityEnabled()

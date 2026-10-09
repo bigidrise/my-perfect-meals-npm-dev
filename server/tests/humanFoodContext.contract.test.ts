@@ -128,7 +128,7 @@ assert.match(prompt, /Cuisine: Vietnamese/);
 assert.match(prompt, /Effective diet: vegetarian/);
 assert.match(prompt, /Hard allergy exclusions: peanut/);
 assert.match(prompt, /Canonical nutrition authority: nutritionStateService/);
-assert.match(prompt, /STRICT starchy-carbohydrate authority: 0g/);
+assert.match(prompt, /Daily starch tracking guidance: 0g/);
 assert.doesNotMatch(prompt, /internal-only/);
 
 assert.deepEqual(
@@ -147,7 +147,7 @@ assert.equal(
     ingredients: [{ name: "rice" }],
     nutrition: { calories: 600, carbs: 45, fat: 25, starchyCarbs: 20 },
   }, context).valid,
-  false,
+  true,
 );
 const authorizedAvoidanceContext: HumanFoodContext = {
   ...context,

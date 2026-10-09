@@ -88,15 +88,15 @@ export function buildHumanFoodPromptBlock(
       ? `- Canonical nutrition authority: ${nutrition.authority ?? "nutritionStateService"}; status ${nutrition.resolution?.status ?? "resolved"}; generation context ${nutrition.activeConstraints.generationContext}.`
       : null,
     projected
-      ? `- Ordinary daily goals remaining: ${projected.calories} kcal, ${projected.carbs}g total carbohydrate, ${projected.fat}g fat, and ${projected.protein}g protein. These are personalization and tracking guidance, NOT meal-blocking ceilings. Do not reject, shrink, or replace a requested meal solely for exceeding ordinary calorie, fat, protein, or total-carbohydrate goals. Preserve the requested dish and report honest nutrition so overages can be tracked. Starchy-carbohydrate allowances remain strict. Explicitly configured limits and applicable clinical restrictions still apply independently; never infer them from ordinary macro goals.`
+      ? `- Ordinary daily goals remaining: ${projected.calories} kcal, ${projected.carbs}g total carbohydrate, ${projected.fat}g fat, and ${projected.protein}g protein. All daily goals, including starch, are optional planning and tracking guidance, NOT meal-blocking ceilings or floors. Never reject, shrink, repair, or replace requested food solely for a daily overage. Preserve dish identity and report honest nutrition. Independently established dietary and clinical restrictions still apply; never infer them from these numbers.`
       : nutrition
         ? "- Canonical numeric calorie and macro targets are unavailable. Use a standard meal portion; do not interpret unavailable targets as a zero-calorie budget."
       : null,
     consumedStarch
-      ? `- STRICT starchy-carbohydrate authority: ${consumedStarch.remainingGrams}g and ${consumedStarch.mealsRemaining} confirmed starch meal slot(s) remain; exhausted=${consumedStarch.exhausted}. Do not exceed the verified remaining starchy-carbohydrate grams. Planned meals may create a projected conflict but cannot change consumed exhaustion.`
+      ? `- Daily starch tracking guidance: ${consumedStarch.remainingGrams}g and ${consumedStarch.mealsRemaining} starch meal slot(s) remain; exhausted=${consumedStarch.exhausted}. Even when exhausted, generate the requested appropriately personalized food. Show projected overages and offer an optional adjustment; never treat this as permission to create food.`
       : null,
     nutrition?.activeConstraints.projectedStarchConflict
-      ? "- Projected starch conflict is active: avoid adding another starchy allocation unless an authorized workflow explicitly replaces a reservation."
+      ? "- A projected starch overage exists. Explain it as optional planning guidance; do not block generation or silently alter the requested recipe."
       : null,
     "- Clinical adaptation may change ingredients, amounts, and technique, but must not silently erase the requested cuisine or named dish identity.",
   ].filter(Boolean);

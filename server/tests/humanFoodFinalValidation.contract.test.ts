@@ -4,7 +4,6 @@ import { validateHumanFoodCandidate } from "../services/humanFoodContext/finalVa
 import { validateHumanFoodResult } from "../services/humanFoodContext/validateHumanFoodResult";
 import { buildHumanFoodPromptBlock } from "../services/humanFoodContext/buildHumanFoodPromptBlock";
 import { validateClinicalMacros } from "../services/clinicalMacroGate";
-import { buildHumanFoodPromptBlock } from "../services/humanFoodContext/buildHumanFoodPromptBlock";
 import { createHumanFoodRequestExecutionState } from "../services/humanFoodContext/requestExecutionState";
 
 function preference(value: string | null = null) {
@@ -109,7 +108,7 @@ describe("Chef ordinary fat goal classification", () => {
   it("uses the same goal-versus-limit distinction in the actual prompt", () => {
     const prompt = buildHumanFoodPromptBlock(subject(), { ordinaryFatAsGuidance: true });
     expect(prompt).toContain("NOT meal-blocking ceilings");
-    expect(prompt).toContain("Explicitly configured limits and applicable clinical restrictions");
+    expect(prompt).toContain("Independently established dietary and clinical restrictions");
     expect(prompt).toContain("500 kcal, 40g total carbohydrate");
     expect(buildHumanFoodPromptBlock(subject())).toContain("13g fat");
   });
@@ -1028,7 +1027,7 @@ describe("universal Human Food final-validation contract", () => {
     expect(result.findings.some((finding) => finding.code === `allergy:${allergy}`)).toBe(true);
   });
 
-  it("uses canonical exhausted-starch state for sushi", () => {
+  it("uses exhausted starch as tracking guidance, not a sushi generation block", () => {
     const starchContext = context({
       nutrition: {
         activeConstraints: { consumedStarchExhausted: true },
@@ -1050,8 +1049,8 @@ describe("universal Human Food final-validation contract", () => {
       evidence: generatedEvidence(),
     }, starchContext, { requestedDish: "sushi", requestedCategory: "sushi" });
 
-    expect(riceSushi.outcome).toBe("blocked");
-    expect(riceSushi.findings.some((finding) => finding.code === "consumed_starch_budget_exhausted")).toBe(true);
+    expect(riceSushi.outcome).toBe("pass");
+    expect(riceSushi.findings.some((finding) => finding.code === "consumed_starch_budget_exhausted")).toBe(false);
     expect(sashimi.outcome).toBe("pass");
   });
 

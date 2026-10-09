@@ -260,10 +260,6 @@ router.post('/meal-finder', async (req, res) => {
           console.warn(`[MEAL-FINDER/GLP-1] Filtered "${r.meal?.name}" — fat ${fat}g > ceiling ${t.maximumToleratedFatGrams}g`);
           return false;
         }
-        if (Number.isFinite(cal) && cal > t.resolvedMealCalories * 1.25) {
-          console.warn(`[MEAL-FINDER/GLP-1] Filtered "${r.meal?.name}" — cal ${cal} > ceiling ${Math.round(t.resolvedMealCalories * 1.25)}`);
-          return false;
-        }
         return true;
       });
       if (glpFilteredResults.length < results.length) {

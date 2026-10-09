@@ -97,8 +97,8 @@ ${lines.join('\n')}
 Use these goals to personalize a realistic meal, not as rejection ceilings.
 ${proteinExample}
 Do not refuse, shrink, or replace a requested meal solely for ordinary macro overages.
-Report honest nutrition. Strict starchy-carbohydrate allowances and independent
-clinical or explicitly requested restrictions still apply.
+Report honest nutrition. Daily starch allowances are also guidance, never rejection
+limits. Independent clinical or explicitly requested restrictions still apply.
 `;
 }
 

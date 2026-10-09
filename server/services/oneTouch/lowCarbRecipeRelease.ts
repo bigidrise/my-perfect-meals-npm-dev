@@ -40,24 +40,14 @@ export function assessLowCarbRecipeRelease(
     classifyNutritionalRole(entry.ingredient) === "starchy_carb"
   )) return "evidence_unavailable";
 
-  const remaining = context.nutrition?.prescription?.source === "fallback"
-    ? null : context.nutrition?.projectedRemaining ?? context.nutrition?.remaining;
-  if (context.status !== "resolved" ||
+  if ((context.status !== "resolved" && context.status !== "resolved_with_gaps") ||
       (context.nutrition?.subject?.userId &&
-       context.nutrition.subject.userId !== context.subjectUserId) ||
-      !remaining || !["calories", "carbs", "fat"].every((key) => {
-        const value = remaining[key as "calories" | "carbs" | "fat"];
-        return typeof value === "number" && Number.isFinite(value) && value >= 0;
-      })) return "evidence_unavailable";
+       context.nutrition.subject.userId !== context.subjectUserId)) return "evidence_unavailable";
 
   const hasStarch = source.ingredientEvidence.some((entry) => entry.category === "starchy_concentrated");
   if (hasStarch !== (starchyCarbs > 0)) return "repair_required";
-  if (hasStarch && context.nutrition?.activeConstraints?.consumedStarchExhausted) {
-    return "repair_required";
-  }
-  const starchRemaining = context.nutrition?.starch?.consumed?.remainingGrams;
-  if (typeof starchRemaining === "number" && Number.isFinite(starchRemaining) &&
-      starchRemaining >= 0 && starchyCarbs > starchRemaining) return "repair_required";
+  // Source compatibility remains dietary evidence. A daily allocation or its
+  // exhaustion cannot turn a compatible recipe into a repair requirement.
 
   // Positive starch can be considered at the day-planning level; it cannot
   // prove that day's ratio from this recipe alone.
