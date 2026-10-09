@@ -49,6 +49,7 @@ import PerformanceNutritionSetupForm from "@/components/performance/PerformanceN
 import { getTodayISOSafe } from "@/utils/midnight";
 import { BouncingDots } from "@/components/ui/bouncing-dots";
 import type { MyPerfectMenuSnackType } from "@shared/myPerfectMenu";
+import { getMyPerfectMenuSlotGuidance, getMyPerfectMenuSlotInstruction } from "@/lib/myPerfectMenuSlotGuidance";
 
 type IdeaType = "breakfast" | "lunch" | "dinner" | "snack";
 
@@ -527,6 +528,7 @@ export default function MyPerfectMenu() {
 
   const startPerformanceIdeas = async () => {
     if (!ideaType || !performanceDate || !performanceSlot || !builderContext) return;
+    if (getMyPerfectMenuSlotGuidance(ideaType, performanceSlot)) return;
     const destination: MealPlanDestination = {
       dateISO: performanceDate,
       slot: performanceSlot,
@@ -605,6 +607,13 @@ export default function MyPerfectMenu() {
     }
     setSelectedConcept(concept);
     if (builderContext?.key === "performance_competition" && performanceDestination) {
+      // Changing idea categories can leave a previously chosen destination.
+      // Return to the existing slot selector rather than dispatching a mismatch.
+      if (getMyPerfectMenuSlotGuidance(concept.ideaType, performanceDestination.slot)) {
+        setPerformanceDestination(null);
+        setPendingIdeaType(concept.ideaType);
+        return;
+      }
       void generateForDestination(performanceDestination, concept);
       return;
     }
@@ -1003,6 +1012,11 @@ export default function MyPerfectMenu() {
                )}
             </div>
 
+            <div className="mt-4 rounded-2xl border border-violet-300/20 bg-violet-950/20 p-4">
+              <p className="text-sm font-bold text-violet-100">{getMyPerfectMenuSlotInstruction(ideaType)?.title}</p>
+              <p className="mt-1 text-sm leading-relaxed text-white/75">{getMyPerfectMenuSlotInstruction(ideaType)?.message}</p>
+            </div>
+
             {!loadingContext && concepts.length > 0 && (
               <div className="mt-4 rounded-2xl border border-violet-300/20 bg-violet-950/20 p-4">
                 <p className="text-sm font-bold text-violet-100">Want to explore more than one?</p>
@@ -1044,6 +1058,12 @@ export default function MyPerfectMenu() {
                      </select>
                    </label>
                  </div>
+                  {getMyPerfectMenuSlotGuidance(ideaType, performanceSlot) && (
+                    <div role="status" aria-live="polite" className="mt-3 text-sm text-violet-100">
+                      <p className="font-semibold">{getMyPerfectMenuSlotGuidance(ideaType, performanceSlot)!.title}</p>
+                      <p className="mt-1">{getMyPerfectMenuSlotGuidance(ideaType, performanceSlot)!.message}</p>
+                    </div>
+                  )}
                   <button type="button" disabled={!performanceDate || !performanceSlot} onClick={() => void startPerformanceIdeas()} className="mt-4 min-h-11 rounded-xl bg-orange-600 px-4 text-sm font-black text-white disabled:opacity-40">
                    Use this Performance prescription
                  </button>
@@ -1208,6 +1228,7 @@ export default function MyPerfectMenu() {
           open={pickerOpen}
           onOpenChange={setPickerOpen}
           title={selectedConcept.title}
+          menuIdeaType={selectedConcept.ideaType}
           busy={savingMeal}
           builderKey={builderContext?.key}
           householdProfileId={subjectUserId}

@@ -16,3 +16,9 @@ Treat the embedded workspace preview and the top-level published Development app
 **Why:** The user reported successful MFA on published Development but a lost pending challenge in the workspace iframe. A top-level login result therefore does not establish that the iframe password-to-MFA transition works.
 
 **How to apply:** Check challenge-cookie continuity in the embedded context without disabling MFA or CSRF. Distinguish isolated transport fixtures from a completed real-account MFA login, and state any verification limitation.
+
+For a small front-end-only correction, isolated browser rendering of the real component with mocked read-only responses can verify responsive layout and UI handoffs without creating accounts or writing shared data. It does not certify authenticated generation or real board persistence.
+
+**Why:** A fresh app screenshot captured only startup, while real-component browser checks could exercise destination guidance at desktop and mobile sizes without using the user's session.
+
+**How to apply:** Report component-level browser checks separately from signed-in end-to-end results. Never describe a callback fixture as proof that a real meal was generated or stored.

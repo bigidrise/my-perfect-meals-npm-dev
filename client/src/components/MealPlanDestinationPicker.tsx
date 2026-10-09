@@ -7,6 +7,7 @@ import { getAuthHeaders } from "@/lib/auth";
 import { getActiveBuilderNs } from "@/lib/activeBuilderNs";
 import { formatDateDisplay, getTodayISOSafe, getWeekStartFromDate } from "@/utils/midnight";
 import { getRolling14Days, getRolling7Days } from "@/utils/dateRange";
+import { getMyPerfectMenuSlotGuidance, getMyPerfectMenuSlotInstruction, isMyPerfectMenuSuggestedSlot } from "@/lib/myPerfectMenuSlotGuidance";
 import {
   MY_PERFECT_MENU_BUILDERS,
   type MyPerfectMenuBuilderKey,
@@ -48,6 +49,8 @@ interface MealPlanDestinationPickerProps {
   busyContent?: ReactNode;
   builderKey?: MyPerfectMenuBuilderKey;
   householdProfileId?: string;
+  /** Opt-in Menu guidance only; other callers retain their existing behavior. */
+  menuIdeaType?: string;
   onSelect: (destination: MealPlanDestination) => void | Promise<void>;
 }
 
@@ -60,6 +63,7 @@ export function MealPlanDestinationPicker({
   busyContent,
   builderKey,
   householdProfileId,
+  menuIdeaType,
   onSelect,
 }: MealPlanDestinationPickerProps) {
   const todayISO = getTodayISOSafe(TZ);
@@ -68,6 +72,8 @@ export function MealPlanDestinationPicker({
   const [selectedDate, setSelectedDate] = useState(todayISO);
   const [selectedSlot, setSelectedSlot] = useState<MealPlanSlot | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [slotGuidance, setSlotGuidance] = useState<ReturnType<typeof getMyPerfectMenuSlotGuidance>>();
+  const slotGuidanceRef = useRef<HTMLDivElement>(null);
   const [boardDays, setBoardDays] = useState<Record<string, any> | null>(null);
   const [boardLoading, setBoardLoading] = useState(false);
   const [boardError, setBoardError] = useState<string | null>(null);
@@ -120,17 +126,28 @@ export function MealPlanDestinationPicker({
     setSelectedDate(todayISO);
     setSelectedSlot(null);
     setConfirming(false);
+    setSlotGuidance(undefined);
     fetchWeek(todayISO);
-  }, [open, todayISO, fetchWeek]);
+  }, [open, todayISO, fetchWeek, menuIdeaType]);
 
   useEffect(() => {
     if (open) fetchWeek(selectedDate);
   }, [open, selectedDate, fetchWeek]);
 
+  useEffect(() => {
+    if (slotGuidance) slotGuidanceRef.current?.scrollIntoView?.({ block: "nearest" });
+  }, [slotGuidance]);
+
   const existingMeal = selectedSlot ? boardDays?.[selectedDate]?.[selectedSlot]?.[0] : null;
 
   const selectSlot = (slot: MealPlanSlot) => {
     if (busy || boardLoading || boardError) return;
+    const guidance = getMyPerfectMenuSlotGuidance(menuIdeaType, slot);
+    if (guidance) {
+      setSlotGuidance({ ...guidance });
+      return;
+    }
+    setSlotGuidance(undefined);
     setSelectedSlot(slot);
     const occupied = slot !== "snacks" && (boardDays?.[selectedDate]?.[slot]?.length ?? 0) > 0;
     if (occupied) {
@@ -146,7 +163,7 @@ export function MealPlanDestinationPicker({
 
   return (
     <Drawer open={open} onOpenChange={(next) => !busy && onOpenChange(next)}>
-      <DrawerContent className="border-t border-white/20 bg-black/95">
+      <DrawerContent className="max-h-[95dvh] overflow-y-auto border-t border-white/20 bg-black/95">
         {busy && busyContent ? (
           <div className="px-5 pb-10 pt-6">
             <DrawerHeader className="pb-2 text-center">
@@ -184,6 +201,11 @@ export function MealPlanDestinationPicker({
             <DrawerHeader className="pb-0 text-center">
               <DrawerTitle className="text-lg text-white">Add to Plan</DrawerTitle>
               <p className="mt-1 truncate px-4 text-sm text-white/60">{title}</p>
+              {getMyPerfectMenuSlotInstruction(menuIdeaType) && (
+                <p className="mt-2 px-4 text-sm text-violet-100">
+                  {getMyPerfectMenuSlotInstruction(menuIdeaType)?.pickerMessage}
+                </p>
+              )}
             </DrawerHeader>
             <div className="px-4 pb-2 pt-4">
               <p className="mb-2 text-xs uppercase tracking-widest text-white/40">Day</p>
@@ -196,7 +218,7 @@ export function MealPlanDestinationPicker({
                       type="button"
                       key={dateISO}
                       disabled={busy}
-                      onClick={() => { setSelectedDate(dateISO); setSelectedSlot(null); }}
+                      onClick={() => { setSelectedDate(dateISO); setSelectedSlot(null); setSlotGuidance(undefined); }}
                       className={`flex min-h-16 min-w-0 flex-col items-center justify-center rounded-xl border px-1 transition-all ${
                         active ? "border-violet-500 bg-violet-600 text-white" : "border-white/15 bg-white/5 text-white/80"
                       }`}
@@ -218,7 +240,7 @@ export function MealPlanDestinationPicker({
                       type="button"
                       key={dateISO}
                       disabled={busy}
-                      onClick={() => { setSelectedDate(dateISO); setSelectedSlot(null); }}
+                      onClick={() => { setSelectedDate(dateISO); setSelectedSlot(null); setSlotGuidance(undefined); }}
                       className={`flex h-14 w-12 flex-shrink-0 flex-col items-center justify-center rounded-xl border transition-all ${
                         active ? "border-violet-600 bg-violet-600 text-white" : "border-white/15 bg-white/5 text-white/70"
                       }`}
@@ -234,6 +256,12 @@ export function MealPlanDestinationPicker({
             </div>
             <div className="px-4 pb-8 pt-3">
               <p className="mb-2 text-xs uppercase tracking-widest text-white/40">Meal</p>
+              {slotGuidance && (
+                <div ref={slotGuidanceRef} role="status" aria-live="polite" className="mb-3 rounded-xl border border-violet-300/30 bg-violet-950/40 p-3 text-sm text-violet-100">
+                  <p className="font-semibold">{slotGuidance.title}</p>
+                  <p className="mt-1">{slotGuidance.message}</p>
+                </div>
+              )}
               {boardError && (
                 <div className="mb-3 rounded-xl border border-red-300/25 bg-red-950/40 p-3 text-sm text-red-100">
                   <p>{boardError}</p>
@@ -246,17 +274,25 @@ export function MealPlanDestinationPicker({
                 {SLOT_OPTIONS.map((option) => {
                   const existing = boardDays?.[selectedDate]?.[option.value]?.[0];
                   const occupied = option.value !== "snacks" && Boolean(existing);
+                  const suggested = isMyPerfectMenuSuggestedSlot(menuIdeaType, option.value);
                   return (
                     <button
                       type="button"
                       key={option.value}
                       disabled={busy || boardLoading || Boolean(boardError)}
                       onClick={() => selectSlot(option.value)}
-                      className="flex w-full items-center gap-3 rounded-xl border border-white/15 bg-white/5 px-4 py-3 transition-all hover:bg-white/10 disabled:opacity-60"
+                      className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 transition-all hover:bg-white/10 disabled:opacity-60 ${
+                        suggested
+                          ? "border-violet-400 bg-violet-900/20 shadow-[0_0_12px_rgba(167,139,250,0.2)]"
+                          : "border-white/15 bg-white/5"
+                      }`}
                     >
                       <span className="text-2xl">{option.emoji}</span>
                       <div className="min-w-0 flex-1 text-left">
-                        <p className="text-sm font-medium text-white">{option.label}</p>
+                         <p className="flex flex-wrap items-center gap-x-2 text-sm font-medium text-white">
+                           <span>{option.label}</span>
+                           {suggested && <span className="text-xs font-semibold text-violet-200">Suggested slot</span>}
+                         </p>
                         {occupied && <p className="truncate text-xs text-white/40">{existing?.title || existing?.name}</p>}
                       </div>
                       <span className={`text-xs font-medium ${occupied ? "text-amber-400/80" : "text-violet-300"}`}>
