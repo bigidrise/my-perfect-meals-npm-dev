@@ -20,6 +20,14 @@ description: Policy for the release-check type-validation layers — safety slic
 
 ## AI smoke-test gate (section 7 of release-check.sh)
 
+## Interrupted-check lock boundary
+
+An interrupted release-type check can leave a temporary lock after its compiler process has ended.
+
+**Why:** The lock prevented a later check even though no owning check or compiler was running.
+
+**How to apply:** Verify the owning processes are absent before removing only the stale temporary lock. Never clear a running check's lock or change the reviewed diagnostic baseline merely to get past a failed gate.
+
 ### Temporary evidence lifetime
 
 Temporary compiler-comparison files may disappear when the execution environment is recreated between tool calls, even when earlier background completion notices remain available.

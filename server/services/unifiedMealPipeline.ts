@@ -31,6 +31,7 @@ import { generateFridgeRescueMeals } from './fridgeRescueGenerator';
 import { applyGuardrails, validateMealForDiet, getSystemPromptForDiet, DietType, BuilderMode } from './guardrails';
 import { buildGLP1ConstraintOverlay } from './guardrails/prompt/glp1PromptBuilder';
 import type { ResolvedGLP1Targets } from './glp1/resolveGLP1MealTargets';
+import { getGLP1FatCeiling } from './glp1/resolveGLP1MealTargets';
 import { normalizeIngredients as normalizeIngredientsToUS } from './ingredientNormalizer';
 import { 
   resolveHubCoupling, 
@@ -2445,11 +2446,9 @@ export async function generateCravingMealOptions(
   // Placed after all other diet blocks so GLP-1 overrides rather than merges.
   if (glp1Targets) {
     const t = glp1Targets;
-    // Guidance mirrors the existing snack validator; final validation remains
-    // authoritative. A snack must not be prompted with the larger meal ceiling.
-    const promptFatCeiling = validMealType === "snack"
-      ? t.usedBaseline ? 5 : Math.round(t.maximumToleratedFatGrams * 0.4)
-      : t.maximumToleratedFatGrams;
+    // The resolver owns snack allocation. Prompts and validation consume the
+    // same allowance without applying a second reduction or rounding it upward.
+    const promptFatCeiling = getGLP1FatCeiling(t, validMealType === "snack");
     const glp1PromptBlock = [
       ``,
       `═══ GLP-1 MEDICATION PROTOCOL — HARD CONSTRAINTS (ALL OPTIONS) ═══`,
@@ -2458,11 +2457,12 @@ export async function generateCravingMealOptions(
       ``,
       `MACRO CEILINGS (per ${validMealType === "snack" ? "snack" : "meal"} — hard limits, not guidelines):`,
       `• Calories: ≤ ${validMealType === "snack" ? t.resolvedSnackCalories : t.resolvedMealCalories} kcal`,
-      `• Fat: ≤ ${promptFatCeiling} g  — FRIED, CREAMY, BUTTERY dishes are FORBIDDEN`,
+      `• Fat: ≤ ${promptFatCeiling} g — evaluate actual quantities and per-serving composition, not creamy/buttery/crispy names`,
       `• Protein: ≥ ${t.targetProteinGrams} g  — lean protein MUST anchor every option`,
       ``,
-      `FORBIDDEN PREPARATIONS: fried, deep-fried, breaded, cream sauces, butter-based sauces,`,
-      `heavy cheese, full-fat dairy, high-fat dressings, or any preparation that pushes fat > ${promptFatCeiling}g.`,
+      `Avoid fried or deep-fried preparation and any recipe that pushes fat > ${promptFatCeiling}g.`,
+      `Pastry, butter, cream, and sugar are not universal exclusions. Consider portion size, added sugar, protein, and individual tolerability.`,
+      `Keep a requested Napoleon/mille-feuille recognizable: layered pastry and filling, not an unrelated protein bowl.`,
       ``,
       `PORTION RULE: GLP-1 medications reduce appetite and slow gastric emptying.`,
       validMealType === "snack"
@@ -2704,9 +2704,10 @@ export async function generateCravingMealOptions(
             protein:  (opt as any).protein  ?? (opt as any).nutrition?.protein,
             fat:      (opt as any).fat      ?? (opt as any).nutrition?.fat,
             carbs:    (opt as any).carbs    ?? (opt as any).nutrition?.carbs,
+            addedSugar: (opt as any).addedSugar ?? (opt as any).nutrition?.addedSugar,
           };
           const vr = validateMealForDiet(
-            { name: (opt as any).name, ingredients: ingList, macros },
+            { name: (opt as any).name, ingredients: ingList, instructions: (opt as any).instructions, macros },
             "glp1", undefined, isSnack, glp1Targets!,
           );
           if (!vr.isValid) {
@@ -2742,9 +2743,7 @@ export async function generateCravingMealOptions(
             ? (await import("./humanFoodContext/requestExecutionState"))
                 .buildRejectedCandidatePrompt(humanFoodExecutionState)
             : "";
-          const retryFatCeiling = validMealType === "snack"
-            ? glp1Targets!.usedBaseline ? 5 : Math.round(glp1Targets!.maximumToleratedFatGrams * 0.4)
-            : glp1Targets!.maximumToleratedFatGrams;
+          const retryFatCeiling = getGLP1FatCeiling(glp1Targets!, validMealType === "snack");
           const transformHint = [
             `CRITICAL — CLINICAL ADAPTATION REQUIRED:`,
             `Every previous option failed GLP-1 compliance. The traditional form of this dish`,
@@ -2754,7 +2753,7 @@ export async function generateCravingMealOptions(
             `  • Desserts/pastries → a smaller, leaner version of the same dessert or pastry with a protein-supporting filling`,
             `  • Cream sauces → cottage cheese or silken-tofu base with the same aromatics`,
             `  • Buttery crusts → a thinner compliant crust or reduced-fat crumble that preserves the requested format`,
-            `  • Sugary fillings → fresh/roasted fruit sweetened only with cinnamon or vanilla`,
+            `  • Sugary fillings → moderate added sugar or use a lighter compatible filling without losing the requested identity`,
             `  • Sushi, gumbo, noodles, and other named dishes must remain visibly and textually recognizable as that dish`,
             ``,
             `Preserve the original craving, cuisine, dietary identity, allergy exclusions, seasoning and flavor profile,`,
@@ -2778,9 +2777,10 @@ export async function generateCravingMealOptions(
                 protein:  (opt as any).protein  ?? (opt as any).nutrition?.protein,
                 fat:      (opt as any).fat      ?? (opt as any).nutrition?.fat,
                 carbs:    (opt as any).carbs    ?? (opt as any).nutrition?.carbs,
+                addedSugar: (opt as any).addedSugar ?? (opt as any).nutrition?.addedSugar,
               };
               const vr = validateForRetry(
-                { name: (opt as any).name, ingredients: ingList, macros },
+                { name: (opt as any).name, ingredients: ingList, instructions: (opt as any).instructions, macros },
                 "glp1", undefined, isSnackRetry, glp1Targets!,
               );
               if (!vr.isValid) {
@@ -5200,7 +5200,7 @@ Create the personalized snack for: "${cravingDescription}"`;
               `GLP-1 MACRO VIOLATION — regenerate with smaller, leaner snack:\n` +
               glp1MacroCheck.violations.join('; ') + '\n' +
               `Target: ~${glp1Targets.resolvedSnackCalories} kcal, ` +
-              `max ${Math.round(glp1Targets.maximumToleratedFatGrams * 0.4)}g fat, ` +
+              `max ${getGLP1FatCeiling(glp1Targets, true)}g fat, ` +
               `min ${Math.round(glp1Targets.minimumProteinFloor * 0.5)}g protein.`;
             console.warn(
               `⚠️ [GLP-1] Snack macro ceiling exceeded (attempt ${snackAttemptCount}): ` +

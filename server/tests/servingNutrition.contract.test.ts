@@ -98,7 +98,7 @@ describe("Create a Dish serving nutrition contract", () => {
     }).outcome).toBe("pass");
   });
 
-  it("still rejects a genuine per-serving nutrition violation", () => {
+  it("treats ordinary calorie, total-carbohydrate, and fat overages as guidance", () => {
     const result = validateHumanFoodCandidate(candidateFor(3, {
       calories: 800,
       protein: 25,
@@ -109,11 +109,31 @@ describe("Create a Dish serving nutrition contract", () => {
       requestedDish: "Mediterranean pasta",
       requestedCategory: "dinner",
     });
+    expect(result.outcome).toBe("pass");
+    for (const code of [
+      "projected_calories_budget_exceeded", "projected_carbs_budget_exceeded",
+      "projected_fat_budget_exceeded",
+    ]) expect(result.findings.map(f => f.code)).not.toContain(code);
+  });
+
+  it.each([1, 3])("still enforces an explicit starch allowance per serving for %i serving(s)", servings => {
+    const restricted = {
+      ...context,
+      nutrition: { ...context.nutrition!, starch: { consumed: { remainingGrams: 20 } } },
+    } as unknown as HumanFoodContext;
+    const result = validateHumanFoodCandidate(candidateFor(servings), restricted);
     expect(result.outcome).toBe("repairable");
-    expect(result.findings).toEqual(expect.arrayContaining([
-      expect.objectContaining({ code: "projected_calories_budget_exceeded" }),
-      expect.objectContaining({ code: "projected_carbs_budget_exceeded" }),
-      expect.objectContaining({ code: "projected_fat_budget_exceeded" }),
-    ]));
+    expect(result.findings).toContainEqual(expect.objectContaining({ code: "starchy_carb_budget_exceeded" }));
+  });
+
+  it("does not waive a genuine active clinical restriction for ordinary macro overages", () => {
+    const result = validateHumanFoodCandidate({
+      ...candidateFor(3),
+      evidence: { ...candidateFor(3).evidence, clinicalDirectivesCompliant: false },
+    }, {
+      ...context, safety: { ...context.safety, healthConditions: ["clinician-directed restriction"] },
+    });
+    expect(result.outcome).toBe("blocked");
+    expect(result.findings).toContainEqual(expect.objectContaining({ code: "clinical_directive_noncompliant" }));
   });
 });
