@@ -8,3 +8,9 @@ The first production image check must use one identical, known-good object path 
 **Why:** A prior production incident showed a disconnected/empty storage binding, while a later direct test succeeded after the resource was reattached. Treat historical 503 findings as time-bound and recheck the exact current object before changing image architecture.
 
 **How to apply:** Compare the authenticated production saved-meal response, `saved_meals.meal_data.imageUrl`, `media_assets` URLs/status, and browser GET status against the same development record. If the exact object succeeds in both environments, investigate production row/URL divergence before storage code.
+
+When exact images deliver successfully and reopening a builder restores them, investigate the display lifecycle before regenerating images or rewriting shared media references. Recovery ownership and decoded-image visibility are separate concerns.
+
+**Why:** Studio images disappeared while the client's images remained visible; the published server delivered both original objects successfully. Metadata refreshes could hide retained, already-loaded images without another browser load event.
+
+**How to apply:** Preserve visibility for an unchanged decoded image while still invalidating obsolete owner-scoped recovery requests. Check cached-image completion as well as load events; never weaken recovery authorization to repair a display reset.

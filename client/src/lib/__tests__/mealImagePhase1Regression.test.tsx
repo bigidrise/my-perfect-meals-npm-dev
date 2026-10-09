@@ -28,6 +28,14 @@ jest.mock("@/lib/api", () => ({
   post: jest.fn(),
 }));
 
+// ChefFlowImage uses a translated unavailable label. Keep this isolated suite's
+// English-text assertions independent of the shared key-only translation stub.
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string) => key === "imageStates.unavailable" ? "Image unavailable" : key,
+  }),
+}));
+
 const ROOT = path.resolve(__dirname, "../../../..");
 const mockGet = get as jest.MockedFunction<typeof get>;
 const mockPost = post as jest.MockedFunction<typeof post>;
@@ -135,6 +143,74 @@ describe("MealImageSlot — successful image path unchanged", () => {
     expect(img).toHaveAttribute("src", url);
     fireEvent.load(img);
     expect(img).toHaveClass("opacity-100");
+  });
+
+  it.each(["asset", "saved meal", "board target"] as const)(
+    "keeps a loaded image visible when %s metadata refreshes without changing its URL",
+    (metadata) => {
+      const url = "/public-objects/meal-images/loaded-omelet.png";
+      const { container, rerender } = render(
+        <MealImageSlot imageUrl={url} mealName="Spinach Omelet" />,
+      );
+      const img = container.querySelector("img")!;
+      fireEvent.load(img);
+      expect(img).toHaveClass("opacity-100");
+
+      const refreshed = metadata === "asset" ? { mediaAssetId: "asset-omelet" }
+        : metadata === "saved meal" ? { savedMealId: "saved-omelet" }
+        : { boardTarget: {
+          weekStartISO: "2026-10-05", dateISO: "2026-10-08", slot: "breakfast", mealId: "omelet",
+        } };
+      rerender(<MealImageSlot imageUrl={url} mealName="Spinach Omelet" {...refreshed} />);
+
+      // A metadata update does not replace the DOM image or fire another load.
+      expect(container.querySelector("img")).toBe(img);
+      expect(img).toHaveClass("opacity-100");
+      expect(container.querySelector(".animate-pulse")).toBeNull();
+    },
+  );
+
+  it("hides an old loaded image until a different URL successfully loads", () => {
+    const { container, rerender } = render(
+      <MealImageSlot imageUrl="/public-objects/meal-images/old.png" mealName="Old Meal" />,
+    );
+    fireEvent.load(container.querySelector("img")!);
+    rerender(
+      <MealImageSlot imageUrl="/public-objects/meal-images/new.png" mealName="New Meal" />,
+    );
+    const img = container.querySelector("img")!;
+    expect(img).toHaveClass("opacity-0");
+    fireEvent.load(img);
+    expect(img).toHaveClass("opacity-100");
+  });
+
+  it("reveals an already decoded cached image without waiting for another load event", () => {
+    const complete = jest.spyOn(HTMLImageElement.prototype, "complete", "get").mockReturnValue(true);
+    const width = jest.spyOn(HTMLImageElement.prototype, "naturalWidth", "get").mockReturnValue(640);
+    try {
+      const { container } = render(
+        <MealImageSlot imageUrl="/public-objects/meal-images/cached.png" mealName="Cached Meal" />,
+      );
+      expect(container.querySelector("img")).toHaveClass("opacity-100");
+      expect(container.querySelector(".animate-pulse")).toBeNull();
+    } finally {
+      complete.mockRestore();
+      width.mockRestore();
+    }
+  });
+
+  it("does not reveal a complete image that has no decoded pixels", () => {
+    const complete = jest.spyOn(HTMLImageElement.prototype, "complete", "get").mockReturnValue(true);
+    const width = jest.spyOn(HTMLImageElement.prototype, "naturalWidth", "get").mockReturnValue(0);
+    try {
+      const { container } = render(
+        <MealImageSlot imageUrl="/public-objects/meal-images/not-decoded.png" mealName="Pending Meal" />,
+      );
+      expect(container.querySelector("img")).toHaveClass("opacity-0");
+    } finally {
+      complete.mockRestore();
+      width.mockRestore();
+    }
   });
 });
 
