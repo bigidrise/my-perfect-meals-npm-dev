@@ -806,9 +806,29 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     } catch (err: any) {
       if (sessionGenRef.current !== gen) return; // identity changed — suppress error UI
       setPhase("idle");
+      let errorMessage = err?.message || "Please try again.";
+      if (err?.status === 422) {
+        errorMessage = "This meal could not be verified against your current nutrition and safety settings. Try a different meal.";
+        try {
+          const details = JSON.parse(err.body);
+          const explanations: Record<string, string> = {
+            projected_calorie_budget_exceeded: "This serving exceeds the calories remaining for today.",
+            projected_carb_budget_exceeded: "This serving exceeds the carbohydrates remaining for today.",
+            projected_fat_budget_exceeded: "This serving exceeds the fat allowance remaining for today.",
+            consumed_starch_budget_exhausted: "Today's starchy carbohydrate allowance is already used up.",
+            verified_starchy_carbs_missing: "The coach could not verify this meal's starchy carbohydrate content.",
+          };
+          const messages = Array.isArray(details.findings)
+            ? details.findings.map((finding: string) => explanations[finding] ??
+                (finding.startsWith("forbidden_ingredient:") ? "This meal includes an ingredient your current profile does not allow." : null)).filter(Boolean)
+            : [];
+          if (messages.length) errorMessage = [...new Set(messages)].join(" ");
+          else if (typeof details.error === "string" && !/^[A-Z_]+$/.test(details.error)) errorMessage = details.error;
+        } catch { /* Keep the safe, readable fallback for malformed error responses. */ }
+      }
       toast({
-        title: "Coach unavailable",
-        description: err?.message || "Please try again.",
+        title: err?.status === 422 ? "Meal needs adjustment" : "Coach unavailable",
+        description: errorMessage,
         variant: "destructive",
       });
       setConversation(newConvo.slice(0, -1));

@@ -25,3 +25,16 @@ export function groceryCoachCarbBreakdown(macros: {
   }
   return { starchyCarbs, fibrousCarbs };
 }
+
+/** Personal nutrition limits apply to one serving, not an entire shared recipe. */
+export function groceryCoachPerServingMacros(macros: Record<string, any>, servings: unknown) {
+  const count = Number(servings);
+  const divisor = Number.isFinite(count) && count >= 1 ? count : 1;
+  const nutrition = { ...macros };
+  for (const field of ["calories", "protein", "carbs", "fat", "starchyCarbs", "fibrousCarbs"]) {
+    if (typeof nutrition[field] === "number" && Number.isFinite(nutrition[field])) {
+      nutrition[field] /= divisor;
+    }
+  }
+  return nutrition;
+}
