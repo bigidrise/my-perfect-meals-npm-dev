@@ -372,22 +372,20 @@ describe("Create With Chef ordinary fat guidance and hard-rule repair before ima
     expect(result.chefPersonFedValidated).toBe(true);
     expect(capturedCalls).toHaveLength(1);
     const prompt = capturedCalls[0].messages.map(message => message.content).join("\n");
-    expect(prompt).not.toContain("- Fat remaining today:");
-    expect(prompt).not.toContain("- Protein remaining today:");
+    expect(prompt).not.toContain("Hard ceiling — no exceptions");
     expect(JSON.stringify(foodContext)).toBe(snapshot);
     expect(generateMealImageUnified).toHaveBeenCalledTimes(1);
   });
 
-  it("still repairs and fails closed for the unchanged carbohydrate ceiling", async () => {
+  it("allows ordinary total carbohydrate overages when no actual starch or clinical limit fails", async () => {
     const tooManyCarbs = JSON.stringify({ ...JSON.parse(recipe(24)), starchyCarbs: 45 });
     mockRecipeResponses.push(tooManyCarbs, tooManyCarbs);
     const result = await generateMealUnified(request());
-    expect(result.success).toBe(false);
-    expect(result.foodProfileViolations).toEqual(["projected_carb_budget_exceeded"]);
-    expect(result.error).toContain("carbohydrate (40g remaining)");
-    expect(capturedCalls).toHaveLength(2);
-    expect(generateMealImageUnified).not.toHaveBeenCalled();
-    expect(result.chefPersonFedValidated).toBeUndefined();
+    expect(result.success).toBe(true);
+    expect(result.foodProfileViolations).toBeUndefined();
+    expect(capturedCalls).toHaveLength(1);
+    expect(generateMealImageUnified).toHaveBeenCalledTimes(1);
+    expect(result.chefPersonFedValidated).toBe(true);
   });
 
   it("allows an ordinary fat overage even when the clamped remaining value is zero", async () => {

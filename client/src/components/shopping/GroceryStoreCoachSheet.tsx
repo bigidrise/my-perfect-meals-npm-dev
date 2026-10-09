@@ -816,6 +816,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
             projected_carb_budget_exceeded: "This serving exceeds the carbohydrates remaining for today.",
             projected_fat_budget_exceeded: "This serving exceeds the fat allowance remaining for today.",
             consumed_starch_budget_exhausted: "Today's starchy carbohydrate allowance is already used up.",
+            starchy_carb_budget_exceeded: "This serving exceeds the starchy carbohydrate allowance remaining for today.",
             verified_starchy_carbs_missing: "The coach could not verify this meal's starchy carbohydrate content.",
           };
           const messages = Array.isArray(details.findings)

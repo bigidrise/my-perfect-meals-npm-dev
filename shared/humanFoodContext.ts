@@ -133,8 +133,10 @@ export interface DiabetesFoodPreferenceContext {
   };
 }
 
-/** Server-owned, action-scoped distinction; never a waiver of medical rules. */
+/** Compatibility options; ordinary daily goals are now guidance for all creators.
+ * Never a waiver of medical, explicit-request, or starchy-carbohydrate rules. */
 export interface HumanFoodMacroGoalOptions {
+  /** @deprecated Ordinary fat is guidance by default across all creators. */
   ordinaryFatAsGuidance?: boolean;
 }
 

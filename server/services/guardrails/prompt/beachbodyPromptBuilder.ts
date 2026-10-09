@@ -5,14 +5,9 @@
  * Each phase has different macro priorities and ingredient guidance.
  *
  * When remainingMacros is provided:
- * - NORMAL mode:  values become targets to maximize without exceeding ("aim for X, don't exceed X")
- * - TIGHT mode:   if calories < MIN_VIABLE_CALORIES or protein < MIN_VIABLE_PROTEIN,
- *                 switches to "best possible fit" — scales down to smallest viable clean meal
+ * Remaining ordinary macros are personalization guidance, never hard ceilings.
+ * Independent phase, starch, and clinical requirements are preserved.
  */
-
-/** Below these thresholds remaining macros are too tight for a full hard ceiling — use fit mode */
-const MIN_VIABLE_CALORIES = 300;
-const MIN_VIABLE_PROTEIN = 25;
 
 import type { GuardrailRequest, BeachBodyPhase } from '../types';
 import { getBeachBodyRules, BEACHBODY_COOKING_METHODS } from '../rules/beachbodyRules';
@@ -66,17 +61,7 @@ Include precise macros (protein, carbs, fat, calories) and portion sizes.
 }
 
 /**
- * Builds the remaining macro constraint block.
- *
- * NORMAL mode (budget is viable):
- *   The AI should AIM for the remaining values and not exceed them.
- *   Framed as a target to maximize, not just a ceiling.
- *   e.g. "50g protein remaining → aim for 42–50g, not 25g."
- *
- * TIGHT mode (budget is below minimum viable thresholds):
- *   Hard ceilings would make an impossible constraint — switch to
- *   "best possible fit": generate the smallest clean meal that respects
- *   the budget without requiring the full phase minimums.
+ * Builds tracking guidance without converting daily goals into hard limits.
  */
 function buildRemainingMacroBlock(request: GuardrailRequest): string {
   const rm = request.remainingMacros;
@@ -90,12 +75,6 @@ function buildRemainingMacroBlock(request: GuardrailRequest): string {
   );
   if (!hasAny) return '';
 
-  // Detect tight budget — switch to best-possible-fit mode to avoid impossible constraints
-  const isTight = (
-    (rm.calories !== undefined && rm.calories > 0 && rm.calories < MIN_VIABLE_CALORIES) ||
-    (rm.protein !== undefined && rm.protein > 0 && rm.protein < MIN_VIABLE_PROTEIN)
-  );
-
   const lines: string[] = [];
   if (rm.calories !== undefined && rm.calories > 0) lines.push(`- Calories remaining today: ${Math.round(rm.calories)} kcal`);
   if (rm.protein !== undefined && rm.protein > 0) lines.push(`- Protein remaining today: ${Math.round(rm.protein)}g`);
@@ -104,20 +83,7 @@ function buildRemainingMacroBlock(request: GuardrailRequest): string {
 
   if (lines.length === 0) return '';
 
-  if (isTight) {
-    return `
-REMAINING MACRO BUDGET (TIGHT — scale down to fit):
-${lines.join('\n')}
-The user's remaining budget is tight. Generate the SMALLEST viable clean meal that:
-- Does NOT exceed the remaining values above
-- Still provides meaningful nutrition (prioritize protein above all else)
-- Is appropriate as a light meal or snack — NOT a full portion
-- Respects BeachBody clean eating rules even at small scale
-Do not generate a full-sized meal. Scale all portions down proportionally to fit the budget.
-`;
-  }
-
-  // Normal mode: target-maximization framing — aim for the budget, don't exceed it
+  // Protein supports personalization without capping ordinary calories or fat.
   const proteinTarget = rm.protein !== undefined ? rm.protein : null;
   const proteinAimLow = proteinTarget !== null ? Math.round(proteinTarget * 0.85) : null;
   const proteinAimHigh = proteinTarget !== null ? Math.round(proteinTarget) : null;
@@ -126,13 +92,13 @@ Do not generate a full-sized meal. Scale all portions down proportionally to fit
     : '';
 
   return `
-REMAINING MACRO BUDGET (optimize toward this target):
+REMAINING ORDINARY MACRO GOALS (guidance only):
 ${lines.join('\n')}
-This is your allocation for this meal — maximize usage without exceeding any value.
-Do NOT generate a meal that uses only half the budget when more is available.
+Use these goals to personalize a realistic meal, not as rejection ceilings.
 ${proteinExample}
-Portions should fill most of the remaining allowance, not just meet minimums.
-Do NOT exceed any value above.
+Do not refuse, shrink, or replace a requested meal solely for ordinary macro overages.
+Report honest nutrition. Strict starchy-carbohydrate allowances and independent
+clinical or explicitly requested restrictions still apply.
 `;
 }
 

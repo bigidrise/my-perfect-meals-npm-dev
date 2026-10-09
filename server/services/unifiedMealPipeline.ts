@@ -3377,15 +3377,15 @@ async function generateBeverageFromDescription(
     ? `\nThis drink is for the user's ${slotHint} slot — adjust flavor profile, caffeine level, and macros appropriately for ${slotHint}.`
     : '';
 
-  // Build server-authoritative nutrition enforcement block.
-  // These constraints come from the server budget resolver — they are not client hints.
+  // Server-resolved ordinary goals guide choices; starch and medical rules
+  // remain hard constraints independently.
   const noStarch = starchContext?.forceFiberBased || starchContext?.isZeroStarchDay;
   const macroCeiling = remainingMacros
     ? [
-        remainingMacros.calories != null ? `- CALORIES: do not exceed ${remainingMacros.calories} kcal` : '',
-        remainingMacros.protein  != null ? `- PROTEIN: do not exceed ${remainingMacros.protein}g` : '',
-        remainingMacros.carbs    != null ? `- TOTAL CARBS: do not exceed ${remainingMacros.carbs}g` : '',
-        remainingMacros.fat      != null ? `- FAT: do not exceed ${remainingMacros.fat}g` : '',
+        remainingMacros.calories != null ? `- CALORIES remaining goal: ${remainingMacros.calories} kcal` : '',
+        remainingMacros.protein  != null ? `- PROTEIN remaining goal: ${remainingMacros.protein}g` : '',
+        remainingMacros.carbs    != null ? `- TOTAL CARBS remaining goal: ${remainingMacros.carbs}g` : '',
+        remainingMacros.fat      != null ? `- FAT remaining goal: ${remainingMacros.fat}g` : '',
       ].filter(Boolean).join('\n')
     : '';
 
@@ -3394,7 +3394,7 @@ async function generateBeverageFromDescription(
       ? 'STARCH CONSTRAINT: This meal slot has no starch allowance remaining. Do NOT include oats, rice, banana, dates, or any starchy ingredient that would meaningfully raise the drink\'s starchy-carb content. Use berries, low-carb vegetables, or other fibrous ingredients instead.'
       : '',
     macroCeiling
-      ? `MACRO BUDGET (server-enforced — must not be exceeded):\n${macroCeiling}`
+      ? `ORDINARY MACRO GOALS (guidance, not rejection ceilings):\n${macroCeiling}\nAllow ordinary goal overages, preserve the requested drink, and report honest nutrition. Strict starch allowances and independently active clinical restrictions still apply.`
       : '',
   ].filter(Boolean).join('\n\n');
 
@@ -3590,12 +3590,10 @@ export async function generateFromDescriptionUnified(
     };
   }
   const requestedMacroPrompt = buildRequestedMealMacroPrompt(requestedMacros);
-  // Ordinary daily fat/protein goals must not reappear as hard ceilings in a
+  // Ordinary daily macro goals must not reappear as hard ceilings in a
   // secondary guardrail or the beverage branch. Explicit recipe targets and
   // independently resolved clinical restrictions are still handled separately.
-  const chefGuardrailBudget = chefFoodContext && remainingMacros
-    ? { calories: remainingMacros.calories, carbs: remainingMacros.carbs }
-    : remainingMacros;
+  const chefGuardrailBudget = remainingMacros;
   if (diabetesSubjectScope === "household") {
     if (diabetesAttempt || !protocolEnvelope) throw new ProtocolContextUnavailableError();
     userId = undefined;
@@ -3631,7 +3629,7 @@ export async function generateFromDescriptionUnified(
       dietType,
       mealType,
       starchContext,       // server-authoritative starch constraints (forceStarch already cleared above)
-      chefGuardrailBudget, // calorie/carb ceilings; ordinary fat/protein are guidance
+      chefGuardrailBudget, // ordinary goals; starch/clinical authority is separate
       glp1Targets,         // patient-specific clinical targets for post-gen validation
       preferredLanguage,   // language instruction so beverage name/description are in user's language
       overriddenAllergens, // Safety-PIN-authorized allergen(s) for this request only

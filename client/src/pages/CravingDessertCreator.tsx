@@ -58,6 +58,8 @@ import { KeepItSimpleToggle } from "@/components/KeepItSimpleToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import FavoriteButton from "@/components/FavoriteButton";
+import { creatorMealNutrition } from "@/lib/mealMacroSnapshot";
+import { setQuickView } from "@/lib/macrosQuickView";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
@@ -191,7 +193,6 @@ export default function DessertCreator() {
   const [customDietary, setCustomDietary] = useState("");
   const [cakeStyle, setCakeStyle] = useState("classic");
   const [cakeType, setCakeType] = useState("");
-  const [showPerSlice, setShowPerSlice] = useState(true);
   const [instructionsExpanded, setInstructionsExpanded] = useState(false);
   const [activeStep, setActiveStep] = useState<number | null>(null);
   const [generatedDessert, setGeneratedDessert] = useState<any | null>(() => {
@@ -543,13 +544,7 @@ export default function DessertCreator() {
   }
 
   function getNutrition(meal: any) {
-    const n = meal?.nutrition || {};
-    return {
-      calories: Number(n.calories ?? meal.calories ?? 0),
-      protein: Number(n.protein ?? meal.protein ?? 0),
-      carbs: Number(n.carbs ?? meal.carbs ?? 0),
-      fat: Number(n.fat ?? meal.fat ?? 0),
-    };
+    return creatorMealNutrition(meal, meal.totalSlices || 1);
   }
 
   return (
@@ -1023,7 +1018,7 @@ export default function DessertCreator() {
                       <FavoriteButton
                         title={generatedDessert.name}
                         sourceType="dessert-creator"
-                        mealData={generatedDessert}
+                        mealData={{ ...generatedDessert, servings: generatedDessert.totalSlices || 1 }}
                       />
                       <button
                         onClick={() => {
@@ -1096,45 +1091,14 @@ export default function DessertCreator() {
                     description={generatedDessert.description}
                   />
 
-                  {generatedDessert.perSliceNutrition && (
-                    <div className="mb-4 flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => setShowPerSlice(true)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          showPerSlice
-                            ? "bg-orange-600 text-white"
-                            : "bg-white/10 text-white/70 hover:bg-white/20"
-                        }`}
-                      >
-                        Per Slice
-                      </button>
-                      <button
-                        onClick={() => setShowPerSlice(false)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          !showPerSlice
-                            ? "bg-orange-600 text-white"
-                            : "bg-white/10 text-white/70 hover:bg-white/20"
-                        }`}
-                      >
-                        Whole Cake
-                      </button>
-                    </div>
-                  )}
-
-                  {generatedDessert.perSliceNutrition && showPerSlice && (
-                    <p className="text-xs text-center text-white/60 mb-2">
-                      Per slice (
-                      {generatedDessert.perSliceNutrition.sliceSize || "1 oz"})
-                    </p>
-                  )}
+                  <p className="text-xs text-center text-white/60 mb-2">
+                    Nutrition per serving • Recipe makes {generatedDessert.totalSlices || 1} servings
+                  </p>
 
                   <div className="grid grid-cols-4 gap-4 mb-4 text-center">
                     {(["calories", "protein", "carbs", "fat"] as const).map(
                       (key) => {
-                        const nutritionSource =
-                          generatedDessert.perSliceNutrition && showPerSlice
-                            ? generatedDessert.perSliceNutrition
-                            : getNutrition(generatedDessert);
+                        const nutritionSource = getNutrition(generatedDessert);
                         const value = Number(nutritionSource[key] ?? 0);
                         return (
                           <div
@@ -1244,6 +1208,13 @@ export default function DessertCreator() {
                     {/* Row 1: Add to Macros (full width) */}
                     <GlassButton
                       onClick={() => {
+                        setQuickView({
+                          ...getNutrition(generatedDessert),
+                          dateISO: new Date().toISOString().slice(0, 10),
+                          mealSlot: "snacks",
+                          source: "dessert-creator",
+                          title: generatedDessert.name,
+                        });
                         // Phase 4A: confirmed consumption event
                         import("@/lib/coachEvents").then(({ emitCoachEvent }) =>
                           emitCoachEvent({

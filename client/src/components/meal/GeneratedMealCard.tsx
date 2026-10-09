@@ -11,6 +11,7 @@ import TranslateToggle from "@/components/TranslateToggle";
 import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
 import { generateMedicalBadges, getUserMedicalProfile } from "@/utils/medicalPersonalization";
 import { setQuickView } from "@/lib/macrosQuickView";
+import { creatorMealNutrition } from "@/lib/mealMacroSnapshot";
 import type { MacroSourceSlug } from "@/lib/macroSourcesConfig";
 import { isFeatureEnabled } from "@/lib/productionGates";
 import FavoriteButton from "@/components/FavoriteButton";
@@ -169,7 +170,7 @@ export default function GeneratedMealCard({
     setLocation("/lifestyle/chefs-kitchen");
   };
 
-  const s = Math.max(1, Math.round(servings ?? 1));
+  const s = Math.max(1, Math.round(generatedMeal.servings ?? servings ?? 1));
 
   // Derive coaching confirmation line from builder source + meal flags
   const coachingLine = (() => {
@@ -178,26 +179,20 @@ export default function GeneratedMealCard({
     return getClinicalCoachingLine(`${src} ${flagsList}`);
   })();
 
-  const totalProtein = generatedMeal.nutrition?.protein || generatedMeal.protein || 0;
-  const totalCarbs = generatedMeal.nutrition?.carbs || generatedMeal.carbs || 0;
-  const totalFat = generatedMeal.nutrition?.fat || generatedMeal.fat || 0;
-  const totalStarchyCarbs = generatedMeal.nutrition?.starchyCarbs || generatedMeal.starchyCarbs || 0;
-  const totalFibrousCarbs = generatedMeal.nutrition?.fibrousCarbs || generatedMeal.fibrousCarbs || 0;
-  const totalCalories = generatedMeal.nutrition?.calories || generatedMeal.calories || (totalProtein * 4 + totalCarbs * 4 + totalFat * 9);
-
-  const perServingCalories = Math.round(totalCalories / s);
-  const perServingProtein = Math.round(totalProtein / s);
-  const perServingCarbs = Math.round(totalCarbs / s);
-  const perServingFat = Math.round(totalFat / s);
-  const perServingStarchyCarbs = Math.round(totalStarchyCarbs / s);
-  const perServingFibrousCarbs = Math.round(totalFibrousCarbs / s);
+  const oneServing = creatorMealNutrition(generatedMeal, s);
+  const perServingCalories = Math.round(oneServing.calories);
+  const perServingProtein = Math.round(oneServing.protein);
+  const perServingCarbs = Math.round(oneServing.carbs);
+  const perServingFat = Math.round(oneServing.fat);
+  const perServingStarchyCarbs = Math.round(oneServing.starchyCarbs ?? 0);
+  const perServingFibrousCarbs = Math.round(oneServing.fibrousCarbs ?? 0);
 
   const handleAddToMacros = () => {
     setQuickView({
       protein: perServingProtein,
       carbs: perServingCarbs,
-      starchyCarbs: Math.round(totalStarchyCarbs / s),
-      fibrousCarbs: Math.round(totalFibrousCarbs / s),
+      starchyCarbs: oneServing.starchyCarbs == null ? undefined : Math.round(oneServing.starchyCarbs),
+      fibrousCarbs: oneServing.fibrousCarbs == null ? undefined : Math.round(oneServing.fibrousCarbs),
       fat: perServingFat,
       calories: perServingCalories,
       dateISO: new Date().toISOString().slice(0, 10),
@@ -243,7 +238,7 @@ export default function GeneratedMealCard({
           <FavoriteButton
             title={generatedMeal.name}
             sourceType={source || "meal-builder"}
-            mealData={generatedMeal}
+            mealData={{ ...generatedMeal, servings: generatedMeal.servings ?? s }}
             size={22}
           />
         </div>
@@ -306,9 +301,7 @@ export default function GeneratedMealCard({
       </div>
 
       {/* 4. Macros Grid - Per Serving */}
-      {s > 1 && (
-        <p className="text-xs text-white/60 text-center">Macros shown per serving</p>
-      )}
+      <p className="text-xs text-white/60 text-center">Nutrition per serving • Recipe makes {s} servings</p>
       <div className="grid grid-cols-4 gap-4 text-center">
         <div className="bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-md">
           <div className="text-lg font-bold text-white">

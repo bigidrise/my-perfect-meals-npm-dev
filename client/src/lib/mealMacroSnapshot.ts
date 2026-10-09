@@ -18,12 +18,28 @@ export function mealMacroSnapshot(meal: any) {
   const protein = amount(nutrition.protein ?? nutrition.protein_g ?? meal?.protein) ?? 0;
   const fat = amount(nutrition.fat ?? nutrition.fat_g ?? meal?.fat) ?? 0;
   const calories = amount(nutrition.calories ?? meal?.calories) ?? protein * 4 + carbs * 4 + fat * 9;
-  const servings = Math.max(1, amount(meal?.servings ?? meal?.meal?.servings ?? meal?.servingCount) ?? 1);
+  const servings = Math.max(1, amount(meal?.servings ?? meal?.meal?.servings ?? meal?.servingCount ?? meal?.totalSlices) ?? 1);
   const split = groceryCoachCarbBreakdown({ carbs, starchyCarbs: starchy, fibrousCarbs: fibrous });
   return {
     calories: calories / servings, protein: protein / servings, carbs: carbs / servings, fat: fat / servings,
     starchyCarbs: split.starchyCarbs === null ? null : split.starchyCarbs / servings,
     fibrousCarbs: split.fibrousCarbs === null ? null : split.fibrousCarbs / servings,
     servings,
+  };
+}
+
+/** Creator cards and their macro handoffs use the same one-serving snapshot. */
+export function creatorMealNutrition(meal: any, recipeServings = 1) {
+  const snapshot = mealMacroSnapshot({
+    ...meal,
+    servings: meal?.servings ?? meal?.servingCount ?? meal?.totalSlices ?? recipeServings,
+  });
+  return {
+    ...snapshot,
+    protein_g: snapshot.protein,
+    carbs_g: snapshot.carbs,
+    fat_g: snapshot.fat,
+    starchyCarbs: snapshot.starchyCarbs ?? undefined,
+    fibrousCarbs: snapshot.fibrousCarbs ?? undefined,
   };
 }
