@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Development food-generation autonomy report</title>
+<style>
+body{font:16px/1.6 system-ui,sans-serif;color:#182234;background:#f4f6f8;margin:0}
+main{max-width:980px;margin:32px auto;padding:32px;background:#fff;border:1px solid #dce2e9;border-radius:12px}
+h1{font-size:28px;line-height:1.25}h2{margin-top:32px;font-size:21px}h3{font-size:17px}
+code{font-size:13px;overflow-wrap:anywhere}li{margin:7px 0}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;vertical-align:top;border:1px solid #dce2e9;padding:10px}
+.pass{background:#e8f5ee;padding:16px;border-radius:8px}.note{background:#fff5df;padding:16px;border-radius:8px}
+@media(max-width:640px){main{margin:0;padding:20px;border:0;border-radius:0}table{font-size:14px}}
+</style>
+</head>
+<body><main>
+<h1>Food-generation autonomy: Development report</h1>
+<p>October 9, 2026. Development only. No GitHub push, publication, subscription changes, Stripe changes, or intentional shared client/account-data changes were performed.</p>
+<div class="pass"><strong>Final automated results:</strong> 317 Jest tests passed across 13 suites; zero failures. Development release validation passed all 13 checks, with zero warnings and zero failures. Root TypeScript diagnostics match the unchanged reviewed baseline of 121 diagnostics; this is not a claim that the entire project is free of historical type errors.</div>
+<h2>Product separation implemented</h2>
+<table>
+<tr><th>Experience</th><th>Macro authority</th></tr>
+<tr><td>Standalone food tools</td><td>Daily remaining allowances no longer establish generation permission in the corrected shared context and validation paths. Preserve requested food, dietary identity, ingredients and independent safety requirements.</td></tr>
+<tr><td>My Perfect Menu / Builders / Weekly planning</td><td>Daily targets remain planning guidance, not rejection ceilings or floors. Chef-linked planning forecasts show available calorie, protein, carbohydrate, fat and starch overages without changing the saved targets or counting generation as consumption.</td></tr>
+<tr><td>Create with Chef</td><td>Explicit recipe targets remain separate from daily targets. English requests such as “keep the starchy carbohydrates at 15 grams” and “no more than 15 grams … per serving” are extracted from original user text. Ingredient weights, daily-budget mentions and relative refinements are not converted into absolute nutrient targets.</td></tr>
+</table>
+<p>Chef prompts distinguish nutrient grams from food weight and request actual portion adjustments and recomputation. Existing bounded retries remain. If an otherwise safety-verified recipe misses an explicit target, the response and creation notice disclose its estimated mismatch rather than falsely certifying compliance. Missing requested nutrient evidence remains a verification failure, not a fabricated zero.</p>
+<h2>Shared corrections</h2>
+<ul>
+<li>Removed daily starch rejection from both shared validators, Low Carb recipe-release budget checks, unified generation filtering/retries and meal-refinement starch correction.</li>
+<li>Removed daily-derived calorie rejection from GLP-1 and ProCare checks and affected grocery, restaurant, discovery, buffet and refinement paths.</li>
+<li>GLP-1 remaining fat no longer tightens independently resolved fat tolerability. Diabetic route validation no longer uses the smaller of remaining daily carbohydrates and its existing fixed protocol cap.</li>
+<li>Corrected shared macro prompts, beverage prompts and carb-cycle prompt wrappers so daily allocations do not become ingredient bans or hard limits.</li>
+<li>Optional daily-planning resolution failure no longer blocks generation. Independent safety resolution remains separate.</li>
+<li>Forecasts do not invent planned fibrous-carbohydrate totals: current reservation totals do not retain that category, so unsupported projections are omitted.</li>
+</ul>
+<h2>Verification and limitations</h2>
+<ul>
+<li>Regression contracts cover zero remaining starch, 50g target / 60g starch food, daily overages across creator-context defaults, recipe-name retention, shellfish-free candidate validation, Vegan/Keto requirements, independent clinical checks, GLP-1 fat authority, carb-cycle guidance and explicit recipe-target parsing.</li>
+<li>A mocked consumption-route regression confirms actual 800 kcal and 60g starch are stored without clamping to the supplied 500 kcal / 50g daily targets. Tests did not write these values to shared accounts.</li>
+<li>Missing, blank, boolean, negative and nonfinite required numeric evidence is rejected by the corrected validation paths. This is not certification that every legacy optional-nutrient default throughout the application has been eliminated.</li>
+<li>The standalone Human Food Context assertion script completed successfully; its initial direct invocation remained alive because of imported database lifecycle work and was stopped by the shell timeout.</li>
+<li>Earlier failures reflected obsolete strict-starch/budget-error expectations and one introduced forecast typing error; they were corrected. Final tests and release validation have no failures. The reviewed type baseline was not relaxed or changed.</li>
+<li>The Development workflow was restarted and served the release probes. Browser logs show the app mounted and returned the expected unauthenticated profile response.</li>
+<li>No signed-in all-surface walkthrough or live AI generation was performed. Candidate-contract fixtures do not prove real model outputs will always retain dish identity, safely adapt recipes or achieve requested nutritional estimates. Release generation probes verified authentication, not recipe quality.</li>
+</ul>
+<div class="note"><strong>App-wide certification:</strong> the shared and audited active paths were corrected, and no ordinary daily-budget rejection is intentionally retained in those paths. I am not certifying every standalone Creator and Builder end-to-end from these tests alone. Unknown composition, unresolved dietary/clinical evidence and impossible safe adaptations may still require review or block a result for reasons independent of daily targets.</div>
+<h2>Clinical authority retained for review</h2>
+<p>Existing fixed Diabetes carbohydrate caps, GLP-1 fat tolerability/protein floors and other established diet/clinical safeguards were not indiscriminately removed. Their independence from daily targets was preserved where corrected; their genuine patient-specific medical authority is not established by this engineering test run. Review their provenance before approving a Production release. A condition label, medication status or ordinary daily prescription must not manufacture clinical authority.</p>
+<h2>Exact runtime application files changed</h2>
+<ul>
+<li><code>shared/humanFoodContext.ts</code></li>
+<li><code>client/src/components/CreateWithChefModal.tsx</code></li>
+<li><code>client/src/hooks/useCreateWithChefRequest.ts</code></li>
+<li><code>server/routes.ts</code></li>
+<li><code>server/routes/buffet.ts</code></li>
+<li><code>server/routes/groceryCoach.ts</code></li>
+<li><code>server/routes/mealFinder.ts</code></li>
+<li><code>server/routes/mealRefinement.ts</code></li>
+<li><code>server/routes/restaurants.ts</code></li>
+<li><code>server/services/glp1/resolveGLP1MealTargets.ts</code></li>
+<li><code>server/services/guardrails/index.ts</code></li>
+<li><code>server/services/guardrails/prompt/beachbodyPromptBuilder.ts</code></li>
+<li><code>server/services/guardrails/prompt/glp1PromptBuilder.ts</code></li>
+<li><code>server/services/guardrails/validators/glp1Validator.ts</code></li>
+<li><code>server/services/guardrails/validators/procareValidator.ts</code></li>
+<li><code>server/services/humanFoodContext/buildHumanFoodPromptBlock.ts</code></li>
+<li><code>server/services/humanFoodContext/chefCandidateValidation.ts</code></li>
+<li><code>server/services/humanFoodContext/finalValidation.ts</code></li>
+<li><code>server/services/humanFoodContext/resolveHumanFoodContext.ts</code></li>
+<li><code>server/services/humanFoodContext/validateHumanFoodResult.ts</code></li>
+<li><code>server/services/mealRefinementEngine.ts</code></li>
+<li><code>server/services/oneTouch/lowCarbRecipeRelease.ts</code></li>
+<li><code>server/services/protocolEnvelope.ts</code></li>
+<li><code>server/services/requestedMealMacros.ts</code></li>
+<li><code>server/services/restaurantMealGeneratorAI.ts</code></li>
+<li><code>server/services/unifiedMealPipeline.ts</code></li>
+</ul>
+<h3>Tests changed or added</h3>
+<ul>
+<li><code>server/tests/chefBudgetEnforcement.test.ts</code></li>
+<li><code>server/tests/foodGenerationAutonomy.test.ts</code> — added</li>
+<li><code>server/tests/humanFoodContext.contract.test.ts</code></li>
+<li><code>server/tests/humanFoodFinalValidation.contract.test.ts</code></li>
+<li><code>server/tests/lowCarbRecipeRelease.test.ts</code></li>
+<li><code>server/tests/macroLoggingAutonomy.test.ts</code> — added</li>
+<li><code>server/tests/requestedMealMacros.test.ts</code></li>
+</ul>
+<p>Product-policy memory was updated in <code>.agents/memory/nutrition-enforcement-classes.md</code>. This report is <code>reports/food-generation-autonomy-development.html</code>.</p>
+</main></body></html>

@@ -37,9 +37,9 @@ export function buildGLP1Prompt(
     const proteinTarget = resolvedTargets.targetProteinGrams;
     const proteinFloor = resolvedTargets.minimumProteinFloor;
 
-    calorieNote = `~${cal} kcal (patient-specific target — daily budget ${resolvedTargets.remainingCalories} kcal ÷ ${resolvedTargets.plannedMealsRemaining} remaining meals)`;
+    calorieNote = `~${cal} kcal (optional daily planning guidance, NOT a generation ceiling — daily budget ${resolvedTargets.remainingCalories} kcal ÷ ${resolvedTargets.plannedMealsRemaining} remaining meals)`;
     fatNote = `${fatMax}g maximum (patient-specific tolerance; aim for ~${resolvedTargets.targetFatGrams}g — high fat is the primary nausea trigger regardless of gram count)`;
-    proteinNote = `${proteinTarget}g target / ${proteinFloor}g hard floor (patient-specific from daily budget of ${resolvedTargets.remainingProtein}g remaining)`;
+    proteinNote = `${proteinTarget}g optional daily planning target / ${proteinFloor}g independent protocol floor (never infer a hard floor from the daily budget of ${resolvedTargets.remainingProtein}g remaining)`;
 
     if (resolvedTargets.resolutionReasons.length > 0) {
       const reasonList = resolvedTargets.resolutionReasons.map(r => `  • ${r}`).join('\n');

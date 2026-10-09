@@ -1991,14 +1991,14 @@ ${proceduralParts.join("\n")}`;
     }
   }
 
-  // ── CARB CYCLE HARD CONSTRAINT (appended to performanceIntent layer) ──────
+  // ── CARB CYCLE DAILY PLANNING GUIDANCE ───────────────────────────────────
   if (envelope.carbCycleContext) {
     const cc = envelope.carbCycleContext;
     const phaseLabel = cc.isRefeedDay ? "REFEED DAY — STARCH LOAD" : "LOW-STARCH DAY";
     const ccDirective = cc.isRefeedDay
-      ? `STARCH ALLOCATION: ${cc.carbBudgetG}g. This is a metabolic refeed. Increase starchy carbohydrates (rice, oats, potatoes, sweet potato, cream of rice) to meet the allocation. Fibrous vegetables (broccoli, spinach, zucchini, asparagus, greens) are UNRESTRICTED — do NOT reduce them. Protein target is unchanged.`
-      : `STARCH ALLOCATION: ${cc.carbBudgetG}g. This is a starch-restriction day. Keep all starchy carb sources (rice, oats, bread, pasta, potatoes, corn, beans) at or below ${cc.carbBudgetG}g total. Fibrous vegetables (broccoli, spinach, zucchini, asparagus, greens) are UNRESTRICTED and should fill volume. Protein and healthy fats are the priority.`;
-    layers.performanceIntent += `\n\n⚡ STARCH RESPONSE PROTOCOL — HARD CONSTRAINT (${phaseLabel}):\n${ccDirective}\nThis limit applies to STARCH ONLY. It does not restrict fibrous vegetables. It operates alongside existing macro constraints.`;
+      ? `DAILY STARCH GUIDANCE: ${cc.carbBudgetG}g on this refeed day. Recommend appropriate portions of starchy carbohydrates without forcing an allocation. Preserve the requested dish and report actual estimated nutrition. Daily allocations never block or require replacing food. Fibrous vegetables remain unrestricted; protein guidance is unchanged.`
+      : `DAILY STARCH GUIDANCE: ${cc.carbBudgetG}g on this lower-starch day. Prefer smaller starch portions when planning, but never reject, shrink, or replace requested food solely to meet this daily allocation. Preserve the dish, report honest nutrition, and offer optional adjustment. Fibrous vegetables remain unrestricted; protein and healthy fats remain priorities.`;
+    layers.performanceIntent += `\n\nCARB CYCLE PLANNING GUIDANCE (${phaseLabel}):\n${ccDirective}\nThis daily allocation is guidance, not a recipe ceiling or floor. Independent safety and explicit recipe-design requests remain authoritative.`;
   }
 
   // ── PERFORMANCE DEMAND LAYER (Tier 5b — fires unconditionally for all performance-nutrition users) ──

@@ -1344,6 +1344,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           actorUserId: authUserId,
           subjectUserId: householdSubjectId ?? effectiveUserId,
           creator: "recipe_maker",
+          executionContext: "meal_planning",
           correlationId: (req as any).id,
           dateISO: requestedDateISO,
           dietOverride: resolveRequestDietOverride(dietOverride, dietType),
@@ -1596,17 +1597,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `starch=${chefBudget.starchAllowed} gramsPerMeal=${chefBudget.gramsPerRemainingStarchMeal ?? 'n/a'}`,
           );
         } catch (err) {
-          // Fail-closed for ALL builder types: starch-slot and clinical constraints
-          // cannot be enforced without a server-authoritative DailyNutritionState.
-          // Proceeding with untrusted client context would allow starchy meals to be
-          // generated despite exhausted slots — the exact bypass this block was added
-          // to prevent. No fallback path is safe here.
-          console.error("[BudgetResolver] Resolution failed — blocking generation:", err);
-          return res.status(503).json({
-            success: false,
-            error: "Nutrition budget could not be resolved. Please try again.",
-            source: "budget_error",
-          });
+          // Daily planning guidance is optional. Never trust client budget values
+          // when its source is unavailable; independent safety still resolves below.
+          console.warn("[BudgetResolver] Planning guidance unavailable:", err);
+          effectiveRemainingMacros = undefined;
+          effectiveStarchContext = undefined;
         }
       }
 
@@ -1790,7 +1785,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // but this requested-macro handoff belongs only to Create With Chef.
         macroTargets: stage2dHumanFoodTypes.has(type) && type !== "create-with-chef"
           ? undefined
-          : macroTargets,
+          : macroTargets ?? (type === "create-with-chef" && typeof input === "string"
+            ? (await import("./services/requestedMealMacros")).extractRequestedMealMacroTargets(input)
+            : undefined),
         count,
         dietType: effectiveDietType,
         dietPhase: dietPhase || undefined,
@@ -1918,10 +1915,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // budget (e.g. 130g) if their prescription isn't DB-flagged as clinical.
         const DIABETIC_HARD_CAB_CAP = 35;
         const isDiabeticGate = gateContext === "diabetic";
-        const carbCeiling = isDiabeticGate
-          ? Math.min(effectiveRemainingMacros.carbs, DIABETIC_HARD_CAB_CAP)
-          : effectiveRemainingMacros.carbs;
-        if (type === "create-with-chef" && gateContext === "glp1" &&
+        const carbCeiling = DIABETIC_HARD_CAB_CAP;
+        // Preserve this independent protocol cap pending clinical review;
+        // never tighten it with remaining daily Macro Calculator carbs.
+        if (gateContext === "glp1" &&
             (!serverGlp1Targets ||
              !Number.isFinite(serverGlp1Targets.maximumToleratedFatGrams) ||
              serverGlp1Targets.maximumToleratedFatGrams < 0)) {
@@ -1931,9 +1928,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             code: "CLINICAL_FAT_AUTHORITY_UNAVAILABLE",
           });
         }
-        const fatCeiling = type === "create-with-chef" && serverGlp1Targets
+        const fatCeiling = serverGlp1Targets
           ? serverGlp1Targets.maximumToleratedFatGrams
-          : effectiveRemainingMacros.fat;
+          : 0; // No GLP-1 authority uses this value; missing active authority fails above.
 
         const mealsToValidate: any[] = [
           ...(result.meal  ? [result.meal]   : []),

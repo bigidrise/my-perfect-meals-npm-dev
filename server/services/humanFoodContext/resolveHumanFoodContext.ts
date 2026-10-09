@@ -32,6 +32,7 @@ export interface ResolveHumanFoodContextInput {
   actorUserId: string;
   subjectUserId: string;
   creator: HumanFoodCreator;
+  executionContext?: import("../../../shared/humanFoodContext").FoodExecutionContext;
   correlationId?: string | null;
   /**
    * User-local calendar date for this resolution. Weekly planning must supply
@@ -313,7 +314,9 @@ export async function resolveHumanFoodContext(
   );
   let status: HumanFoodContext["status"] = "resolved";
 
-  if (!isExplicitHouseholdSubject) try {
+  const { FOOD_EXECUTION_CONTEXT } = await import("../../../shared/humanFoodContext");
+  const executionContext = input.executionContext ?? FOOD_EXECUTION_CONTEXT[input.creator];
+  if (!isExplicitHouseholdSubject && executionContext === "meal_planning") try {
     const dateISO = input.dateISO ?? localDate(profile.timezone);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) {
       throw new Error("dateISO must be a YYYY-MM-DD user-local calendar date");
@@ -328,9 +331,9 @@ export async function resolveHumanFoodContext(
         errorMessage: error instanceof Error ? error.message : String(error),
       });
     }
-    status = "review_required";
+    status = "resolved_with_gaps";
     gaps.push("daily_nutrition_state");
-    notices.push("Daily nutrition context could not be resolved safely.");
+    notices.push("Daily planning guidance is unavailable. This does not prohibit food generation.");
   }
 
   if (!isExplicitHouseholdSubject) try {
@@ -430,6 +433,7 @@ export async function resolveHumanFoodContext(
     version: HUMAN_FOOD_CONTEXT_VERSION,
     status,
     creator: input.creator,
+    executionContext,
     actorUserId: input.actorUserId,
     subjectUserId: input.subjectUserId,
     generationChainId: randomUUID(),
