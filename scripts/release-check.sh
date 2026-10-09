@@ -16,12 +16,66 @@ PASSED=0
 FAILED=0
 WARNED=0
 
-BASE_URL=${1:-"http://localhost:5000"}
+# Prefer the configured Development preview; an explicit target still takes
+# precedence. Derive its exact browser origin rather than hardcoding a domain.
+BASE_URL=${1:-${REPLIT_DEV_DOMAIN:+https://${REPLIT_DEV_DOMAIN}}}
+BASE_URL=${BASE_URL:-"http://localhost:5000"}
+BASE_URL=${BASE_URL%/}
+if ! SMOKE_ORIGIN=$(node -e '
+  try {
+    const url = new URL(process.argv[1]);
+    if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) {
+      throw new Error("Expected an HTTP(S) target without credentials");
+    }
+    process.stdout.write(url.origin);
+  } catch {
+    console.error("Invalid release-check target URL");
+    process.exit(1);
+  }
+' "$BASE_URL"); then
+  exit 1
+fi
 
 pass()   { echo -e "${GREEN}  ✅ PASS${NC}  $1"; PASSED=$((PASSED + 1)); }
 fail()   { echo -e "${RED}  ❌ FAIL${NC}  $1"; FAILED=$((FAILED + 1)); }
 warn()   { echo -e "${YELLOW}  ⚠️  WARN${NC}  $1"; WARNED=$((WARNED + 1)); }
 header() { echo ""; echo -e "${CYAN}━━━ $1 ━━━${NC}"; }
+
+# No cookies, bearer credentials, or CSRF bypass are supplied. A trusted Origin
+# should reach authentication; a CSRF rejection must never count as that success.
+probe_unauthenticated_post() {
+  local label="$1" payload="$2" response status body code
+  if ! response=$(curl -sS --max-time 8 \
+    -w $'\n%{http_code}' \
+    -X POST "${BASE_URL}/api/meals/generate" \
+    -H "Content-Type: application/json" \
+    -H "Origin: ${SMOKE_ORIGIN}" \
+    -d "$payload" 2>/dev/null); then
+    fail "${label} probe transport failed or timed out"
+    return
+  fi
+  status=${response##*$'\n'}
+  body=${response%$'\n'*}
+  if ! code=$(printf '%s' "$body" | node -e '
+    try {
+      const response = JSON.parse(require("node:fs").readFileSync(0, "utf8"));
+      if (!response || typeof response.code !== "string") process.exit(1);
+      process.stdout.write(response.code);
+    } catch {
+      process.exit(1);
+    }
+  '); then
+    fail "${label} returned an invalid or uncoded JSON response (HTTP ${status})"
+    return
+  fi
+  if [ "$status" = "401" ] && [ "$code" = "AUTH_REQUIRED" ]; then
+    pass "${label} reached authentication (401 AUTH_REQUIRED)"
+  elif [[ "$code" == CSRF_* ]]; then
+    fail "${label} was rejected by CSRF, not authentication (HTTP ${status}, ${code})"
+  else
+    fail "${label} returned unexpected authentication response (HTTP ${status}, ${code})"
+  fi
+}
 
 echo ""
 echo "╔══════════════════════════════════════════════╗"
@@ -117,19 +171,7 @@ fi
 
 # ──────────────────────────────────────────────────
 header "4. Meal Generation Endpoint"
-MEAL_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 8 \
-  -X POST "${BASE_URL}/api/meals/generate" \
-  -H "Content-Type: application/json" \
-  -d '{"type":"health-check"}' \
-  2>/dev/null || echo "000")
-
-if [ "$MEAL_STATUS" = "400" ] || [ "$MEAL_STATUS" = "401" ] || [ "$MEAL_STATUS" = "200" ]; then
-  pass "Meal generation endpoint reachable (status: $MEAL_STATUS)"
-elif [ "$MEAL_STATUS" = "404" ]; then
-  fail "Meal generation endpoint not found — route may be missing"
-else
-  warn "Meal generation returned unexpected status: $MEAL_STATUS"
-fi
+probe_unauthenticated_post "Meal generation endpoint" '{"type":"health-check"}'
 
 # ──────────────────────────────────────────────────
 header "5. Shopping List Route"
@@ -163,21 +205,7 @@ header "7. AI Generation Smoke Test"
 # probe returning 401 is the correct gate behaviour and confirms the route is
 # registered and protected; it is NOT a timing failure.  Full AI quality testing
 # requires a real session and is validated separately (see npm run validate).
-AI_GATE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 8 \
-  -X POST "${BASE_URL}/api/meals/generate" \
-  -H "Content-Type: application/json" \
-  -d '{"type":"create-with-chef","input":"health-probe"}' \
-  2>/dev/null || echo "000")
-
-if [ "$AI_GATE_STATUS" = "401" ] || [ "$AI_GATE_STATUS" = "400" ] || [ "$AI_GATE_STATUS" = "200" ]; then
-  pass "AI generation gate reachable and protected (status: $AI_GATE_STATUS)"
-elif [ "$AI_GATE_STATUS" = "404" ]; then
-  fail "AI generation route not found — likely missing mount in routes.ts"
-elif [ "$AI_GATE_STATUS" = "000" ]; then
-  fail "AI generation probe timed out — server may be unresponsive"
-else
-  warn "AI generation gate returned unexpected status: $AI_GATE_STATUS"
-fi
+probe_unauthenticated_post "AI generation gate" '{"type":"create-with-chef","input":"health-probe"}'
 
 # ──────────────────────────────────────────────────
 echo ""
