@@ -129,7 +129,9 @@ export function MealImageSlot({
   className = "",
 }: MealImageSlotProps) {
   const { t } = useTranslation();
-  const [revealed, setRevealed] = useState(false);
+  // Visibility belongs to the successfully loaded URL, not changing meal metadata.
+  const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
   // true = image load failed; show neutral unavailable state, never another food
   const [failed, setFailed] = useState(false);
   const [recoveryState, setRecoveryState] = useState<"idle" | "restoring">("idle");
@@ -142,21 +144,30 @@ export function MealImageSlot({
   const resolvedType = sourceType ?? detectTypeFromName(mealName);
   const label = TYPE_LABELS[resolvedType];
   const renderedUrl = withImageDeliveryRetry(recoveredUrl ?? imageUrl ?? "", retryNonce);
+  const revealed = !!renderedUrl && loadedUrl === renderedUrl;
   const boardRecoveryKey = boardTarget && imageUrl
     ? `${boardTarget.weekStartISO}|${boardTarget.dateISO}|${boardTarget.slot}|${boardTarget.mealId}|${imageUrl}`
     : null;
 
   useEffect(() => {
-    // A new server-supplied URL starts a new display lifecycle. This is distinct
-    // from the one replacement URL generated for an onError in this component.
+    // Reset recovery authority on URL or owner changes. Do not hide an already
+    // loaded, unchanged URL: the retained DOM image will not fire onLoad again.
     recoveryAttempted.current = false;
     setRecoveredUrl(null);
     setFailed(false);
-    setRevealed(false);
     setRecoveryState("idle");
     setRetryNonce(0);
     recoveryVersion.current += 1;
   }, [imageUrl, savedMealId, mediaAssetId, boardTarget?.weekStartISO, boardTarget?.dateISO, boardTarget?.slot, boardTarget?.mealId]);
+
+  useEffect(() => {
+    const image = imageRef.current;
+    // Cached images may finish before the load handler runs. A failed request
+    // can also be complete, so require decoded pixels for the exact current URL.
+    if (image?.getAttribute("src") === renderedUrl && image.complete && image.naturalWidth > 0) {
+      setLoadedUrl(renderedUrl);
+    }
+  }, [renderedUrl, isLoading, failed, recoveryState]);
 
   useEffect(() => {
     // StrictMode replays effect setup after cleanup on the same instance.
@@ -202,7 +213,6 @@ export function MealImageSlot({
           setRetryNonce(recovery.status === "retry" ? 1 : 0);
           setRecoveryState("idle");
           setFailed(false);
-          setRevealed(false);
           return;
         }
         if (boardRecoveryKey) terminalBoardRecoveryFailures.add(boardRecoveryKey);
@@ -219,7 +229,6 @@ export function MealImageSlot({
           setRetryNonce(1);
           setRecoveryState("idle");
           setFailed(false);
-          setRevealed(false);
         }
         return;
       }
@@ -240,7 +249,6 @@ export function MealImageSlot({
           setRetryNonce(delivery.status === "retry" ? 1 : 0);
           setRecoveryState("idle");
           setFailed(false);
-          setRevealed(false);
           return;
         }
         if (delivery.status !== "unavailable" || delivery.reason !== "missing") {
@@ -286,7 +294,6 @@ export function MealImageSlot({
             setRecoveredUrl(recovery.imageUrl);
             setRecoveryState("idle");
             setFailed(false);
-            setRevealed(false);
             return;
           }
           if (recovery.status === "failed" || attempt >= 119) {
@@ -360,15 +367,16 @@ export function MealImageSlot({
         />
       )}
       <img
+        ref={imageRef}
         src={renderedUrl}
         alt={mealName}
         className={`w-full ${height} object-cover transition-opacity duration-300 ${revealed ? "opacity-100" : "opacity-0"}`}
-        onLoad={() => setRevealed(true)}
+        onLoad={(event) => setLoadedUrl(event.currentTarget.getAttribute("src"))}
         onError={() => {
           // Delivery failed: Object Storage URLs get one background recovery
           // attempt. All other delivery failures remain neutral unavailable.
           // NEVER substitute another food photograph.
-          setRevealed(false);
+          setLoadedUrl(null);
           void requestRecovery();
         }}
       />
