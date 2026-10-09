@@ -14,3 +14,9 @@ A business owner with an authorized, active professional Studio must be able to 
 **Why:** The user required a permanent correction after Studio invitations were classified as client-originated because business owners were not canonical practitioners. Changing the business account into a trainer or physician would repeat the identity-design problem.
 
 **How to apply:** Resolve current ownership, active nonclinical Studio, provider access, training and agreements independently. Bind invitation direction explicitly and revalidate it during acceptance. Legacy ambiguous or backwards invitations require safe reissue, not silent reversal. Business ownership alone never grants Studio or patient-access privileges.
+
+Do not use the legacy managed-account `isProCare` flag as a prerequisite for an independently authorized business Studio operator.
+
+**Why:** An active business-owned Studio can legitimately coexist with that flag being false. Requiring it prevented the identity-separated invitation fix from working; setting it would mutate the account rather than resolve Studio authority.
+
+**How to apply:** Keep actual provider-access, training, agreement and active-Studio checks authoritative. Preserve canonical practitioner setup gates and do not flip the flag as a repair.

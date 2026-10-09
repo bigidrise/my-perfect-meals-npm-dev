@@ -83,7 +83,9 @@ export async function getProviderStudioReadiness(
     ? await readOwnedBusinessStudio(providerUserId) : null;
   const businessOperator = provider.professionalRole === "business"
     && businessStudio?.status === "active" && businessStudio.type === "studio";
-  if ((!provider.isProCare && options.requireSubscription !== false) ||
+  // A business operator's independent Studio authority is not the legacy
+  // managed-account flag. Actual provider access is checked separately below.
+  if ((!businessOperator && !provider.isProCare && options.requireSubscription !== false) ||
       (!isStudioProviderRole(provider.professionalRole) && !businessOperator)) {
     return {
       ok: false,
