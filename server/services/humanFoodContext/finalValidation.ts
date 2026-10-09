@@ -1,5 +1,5 @@
 import { currentGLP1AuthorityEnabled } from "../glp1/currentMealAuthority";
-import type { HumanFoodContext } from "../../../shared/humanFoodContext";
+import type { HumanFoodContext, HumanFoodMacroGoalOptions } from "../../../shared/humanFoodContext";
 import {
   HUMAN_FOOD_VALIDATOR_VERSION,
   type HumanFoodCandidate,
@@ -32,7 +32,7 @@ import {
   type HumanFoodRequestExecutionState,
 } from "./requestExecutionState";
 
-export interface HumanFoodFinalValidationOptions {
+export interface HumanFoodFinalValidationOptions extends HumanFoodMacroGoalOptions {
   requestedDish?: string;
   requestedCategory?: string;
   dishDirective?: DishAdaptationDirective | null;
@@ -430,7 +430,8 @@ export function validateHumanFoodCandidate(
     }
   }
   for (const macro of ["calories", "carbs", "fat"] as const) {
-    if (remaining && nutrition?.[macro] != null && nutrition[macro]! > remaining[macro]) add(findings, {
+    if (!(macro === "fat" && options.ordinaryFatAsGuidance) &&
+        remaining && nutrition?.[macro] != null && nutrition[macro]! > remaining[macro]) add(findings, {
       dimension: "nutrition",
       outcome: remaining[macro] > 0 ? "repairable" : "blocked",
       code: `projected_${macro}_budget_exceeded`,

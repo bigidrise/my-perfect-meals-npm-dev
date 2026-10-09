@@ -427,6 +427,7 @@ export interface MealGenerationResponse {
   /** Internal proof that the legacy person-fed check ran before image generation. */
   chefPersonFedValidated?: true;
   foodProfileViolations?: string[];
+  macroGoalNotice?: ReturnType<typeof import("./humanFoodContext/chefCandidateValidation").buildChefMacroGoalNotice>;
   // Safety Profile enforcement fields
   safetyBlocked?: boolean;
   safetyAmbiguous?: boolean;
@@ -3589,6 +3590,12 @@ export async function generateFromDescriptionUnified(
     };
   }
   const requestedMacroPrompt = buildRequestedMealMacroPrompt(requestedMacros);
+  // Ordinary daily fat/protein goals must not reappear as hard ceilings in a
+  // secondary guardrail or the beverage branch. Explicit recipe targets and
+  // independently resolved clinical restrictions are still handled separately.
+  const chefGuardrailBudget = chefFoodContext && remainingMacros
+    ? { calories: remainingMacros.calories, carbs: remainingMacros.carbs }
+    : remainingMacros;
   if (diabetesSubjectScope === "household") {
     if (diabetesAttempt || !protocolEnvelope) throw new ProtocolContextUnavailableError();
     userId = undefined;
@@ -3624,7 +3631,7 @@ export async function generateFromDescriptionUnified(
       dietType,
       mealType,
       starchContext,       // server-authoritative starch constraints (forceStarch already cleared above)
-      remainingMacros,     // server-authoritative macro budget
+      chefGuardrailBudget, // calorie/carb ceilings; ordinary fat/protein are guidance
       glp1Targets,         // patient-specific clinical targets for post-gen validation
       preferredLanguage,   // language instruction so beverage name/description are in user's language
       overriddenAllergens, // Safety-PIN-authorized allergen(s) for this request only
@@ -3902,7 +3909,7 @@ Create the recipe for: "${description}"${requestedMacroPrompt ? `\n\n${requested
         dietType || null,
         validMealType,
         dietPhase as any,
-        remainingMacros,
+        chefGuardrailBudget,
         builderMode,
         undefined,    // dailyProteinTarget — not used here
         glp1Targets   // personalized GLP-1 targets from canonical resolver
@@ -4023,6 +4030,9 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       diabeticActive: diabeticClinicalActive,
       glp1Active: glp1ClinicalActive,
     } = isClinicalAdaptationActive(clinicalGenerationContext, dietType, !!glp1Targets);
+    const clinicalFatCeiling = chefFoodContext && glp1Targets
+      ? glp1Targets.maximumToleratedFatGrams
+      : remainingMacros?.fat;
     const MAX_REGENERATION_ATTEMPTS = clinicalAdaptationActive ? 4 : 2;
     let finalMealData: any = null;
     let attemptCount = 0;
@@ -4079,8 +4089,8 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
         }
         if (glp1Targets) {
           ceilingLines.push(`- Total fat MUST be ≤ ${glp1Targets.maximumToleratedFatGrams}g, calories ~${glp1Targets.resolvedMealCalories} kcal (hard clinical ceiling).`);
-        } else if (glp1ClinicalActive && remainingMacros?.fat != null) {
-          ceilingLines.push(`- Total fat MUST be ≤ ${remainingMacros.fat}g for this meal (hard clinical ceiling).`);
+        } else if (glp1ClinicalActive && clinicalFatCeiling != null) {
+          ceilingLines.push(`- Total fat MUST be ≤ ${clinicalFatCeiling}g for this meal (hard clinical ceiling).`);
         }
         currentMessages.push({
           role: 'user',
@@ -4696,7 +4706,11 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       ingredients: normalizeIngredients(finalMealData.ingredients || []),
       instructions: parseGeneratedRecipeSteps(finalMealData.instructions),
       calories: chefFoodContext ? Number(finalMealData.calories) : (finalMealData.calories || 400),
-      protein: requestedMacros.length ? (finalMealData.protein ?? 25) : (finalMealData.protein || 25),
+      protein: chefFoodContext
+        ? finalMealData.protein == null || String(finalMealData.protein).trim() === ""
+          ? NaN
+          : Number(finalMealData.protein)
+        : requestedMacros.length ? (finalMealData.protein ?? 25) : (finalMealData.protein || 25),
       carbs: finalMealData.totalCarbs,
       starchyCarbs: finalMealData.starchyCarbs,
       fibrousCarbs: finalMealData.fibrousCarbs,

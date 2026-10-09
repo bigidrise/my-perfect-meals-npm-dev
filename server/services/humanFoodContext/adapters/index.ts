@@ -1,4 +1,4 @@
-import type { HumanFoodContext, HumanFoodCreator } from "../../../../shared/humanFoodContext";
+import type { HumanFoodContext, HumanFoodCreator, HumanFoodMacroGoalOptions } from "../../../../shared/humanFoodContext";
 import { buildHumanFoodPromptBlock } from "../buildHumanFoodPromptBlock";
 import { validateHumanFoodResult } from "../validateHumanFoodResult";
 import type { HumanFoodRequestExecutionState } from "../requestExecutionState";
@@ -24,10 +24,11 @@ export function buildCreatorHumanFoodPrompt(
   creator: HumanFoodCreator,
   context: HumanFoodContext,
   executionState?: HumanFoodRequestExecutionState,
+  goalOptions: HumanFoodMacroGoalOptions = {},
 ): string {
   const rejected = executionState ? buildRejectedCandidatePrompt(executionState) : "";
   return [
-    buildHumanFoodPromptBlock(context),
+    buildHumanFoodPromptBlock(context, goalOptions),
     `- Creator rule: ${CREATOR_DIRECTIVES[creator]}`,
     rejected ? `- ${rejected}` : "",
   ].filter(Boolean).join("\n");

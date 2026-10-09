@@ -48,7 +48,7 @@ export function validateChefCandidate(
       carbs: numeric(nutrition.carbs ?? nutrition.carbs_g),
       fat: numeric(nutrition.fat ?? nutrition.fat_g),
     },
-  }, context);
+  }, context, { ordinaryFatAsGuidance: true });
   const remaining = context.nutrition?.prescription?.source === "fallback"
     ? null
     : context.nutrition?.projectedRemaining ?? context.nutrition?.remaining;
@@ -58,12 +58,42 @@ export function validateChefCandidate(
     repairHint: [
       `CANONICAL FOOD PROFILE CHECK FAILED: ${validation.violations.join(", ")}.`,
       remaining
-        ? `The exact per-serving ceilings remain ${remaining.calories} kcal, ${remaining.carbs}g total carbohydrate, and ${remaining.fat}g fat. Do not exceed any of them.`
+        ? `The exact per-serving calorie and carbohydrate ceilings remain ${remaining.calories} kcal and ${remaining.carbs}g total carbohydrate. Ordinary daily fat remaining (${remaining.fat}g) is guidance, not a rejection limit. Preserve independent clinical and explicitly requested limits.`
         : "Numeric targets remain unavailable; do not fabricate a numeric ceiling.",
       "Preserve the requested dish, cuisine and all allergy, avoidance, dietary and clinical requirements.",
-      "Adapt ingredient amounts and preparation to the exact canonical nutrition ceilings already provided.",
-      "For excess fat, reduce added oil, butter, cheese and creamy sauces; use a leaner preparation without silently replacing the requested dish.",
+      "Adapt ingredients and preparation only for failed hard requirements; ordinary fat/protein overages alone do not require shrinking or replacing the requested dish.",
       "Do not merely lower the reported nutrition: change the actual recipe and report honest, complete per-serving nutrition.",
     ].join(" "),
+  };
+}
+
+/** Forecast only: generating a meal never writes consumption or changes targets. */
+export function buildChefMacroGoalNotice(candidate: any, context: HumanFoodContext, servings = 1) {
+  const state = context.nutrition;
+  if (!state || state.prescription.source === "fallback" ||
+      !Number.isFinite(servings) || servings < 1) return undefined;
+  const projections = (["fat", "protein"] as const).map(macro => {
+    const target = state.prescription[macro === "fat" ? "fatTarget" : "proteinTarget"];
+    const before = state.consumed[macro] + state.planned[macro];
+    const value = candidate?.nutrition?.[macro] ?? candidate?.[macro];
+    const recipe = value == null || (typeof value === "string" && !value.trim())
+      ? NaN
+      : Number(value) / servings;
+    const projected = before + recipe;
+    return { macro, target, before, recipe, projected, overage: Math.max(0, projected - target) };
+  }).filter(item =>
+    [item.target, item.before, item.recipe, item.projected].every(Number.isFinite) &&
+    item.target >= 0 && item.recipe >= 0 &&
+    item.overage > 0,
+  );
+  if (!projections.length) return undefined;
+  const display = (value: number) => Math.round(value * 10) / 10;
+  return {
+    basis: "planned_forecast" as const,
+    dateISO: state.date,
+    projections,
+    message: projections.map(item =>
+      `One serving contains ${display(item.recipe)}g ${item.macro}. If added to this day's plan, ${item.macro} would total ${display(item.projected)}g against the ${display(item.target)}g goal (${display(item.overage)}g over).`,
+    ).join(" ") + " This is macro tracking guidance, not a safety warning.",
   };
 }

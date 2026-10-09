@@ -1,4 +1,4 @@
-import type { HumanFoodContext } from "../../../shared/humanFoodContext";
+import type { HumanFoodContext, HumanFoodMacroGoalOptions } from "../../../shared/humanFoodContext";
 import { buildLowCarbSourceGuidance } from "../../../shared/carbSourcePolicy";
 import { buildNutritionPriorityPromptProjection } from "../nutritionPriorityPromptProjection";
 
@@ -6,7 +6,10 @@ function line(label: string, value: string | null | undefined): string | null {
   return value ? `- ${label}: ${value}` : null;
 }
 
-export function buildHumanFoodPromptBlock(context: HumanFoodContext): string {
+export function buildHumanFoodPromptBlock(
+  context: HumanFoodContext,
+  options: HumanFoodMacroGoalOptions = {},
+): string {
   const flavor = context.flavor;
   const nutrition = context.nutrition;
   const hasCanonicalNumericTargets = nutrition?.prescription?.source !== "fallback";
@@ -85,7 +88,9 @@ export function buildHumanFoodPromptBlock(context: HumanFoodContext): string {
       ? `- Canonical nutrition authority: ${nutrition.authority ?? "nutritionStateService"}; status ${nutrition.resolution?.status ?? "resolved"}; generation context ${nutrition.activeConstraints.generationContext}.`
       : null,
     projected
-      ? `- HARD PER-CANDIDATE NUTRITION CEILINGS from the canonical projected remaining allocation: no candidate may exceed ${projected.calories} kcal, ${projected.carbs}g total carbohydrate, or ${projected.fat}g fat.`
+      ? options.ordinaryFatAsGuidance
+        ? `- HARD PER-CANDIDATE calorie and carbohydrate ceilings from the canonical projected remaining allocation: no candidate may exceed ${projected.calories} kcal or ${projected.carbs}g total carbohydrate. Ordinary daily fat remaining is ${projected.fat}g: use it as personalization guidance, NOT a meal-blocking ceiling. Ordinary protein targets are also guidance. Preserve the requested dish, report honest nutrition, and allow ordinary fat/protein overages to be tracked. Explicitly configured limits and applicable clinical fat restrictions still apply independently.`
+        : `- HARD PER-CANDIDATE NUTRITION CEILINGS from the canonical projected remaining allocation: no candidate may exceed ${projected.calories} kcal, ${projected.carbs}g total carbohydrate, or ${projected.fat}g fat.`
       : nutrition
         ? "- Canonical numeric calorie and macro targets are unavailable. Use a standard meal portion; do not interpret unavailable targets as a zero-calorie budget."
       : null,

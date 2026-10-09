@@ -133,6 +133,11 @@ export interface DiabetesFoodPreferenceContext {
   };
 }
 
+/** Server-owned, action-scoped distinction; never a waiver of medical rules. */
+export interface HumanFoodMacroGoalOptions {
+  ordinaryFatAsGuidance?: boolean;
+}
+
 export interface HumanFoodContext {
   version: typeof HUMAN_FOOD_CONTEXT_VERSION;
   status: HumanFoodResolutionStatus;
