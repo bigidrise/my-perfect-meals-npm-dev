@@ -1,6 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
-import { apiUrl } from "@/lib/resolveApiBase";
-import { getAuthHeaders } from "@/lib/auth";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { apiRequest } from "@/lib/apiRequest";
 import { Loader2, TrendingDown, TrendingUp, Minus, RefreshCw } from "lucide-react";
 
@@ -12,6 +10,8 @@ interface MacroTotals {
   kcal: number;
   protein: number;
   carbs: number;
+  starchyCarbs: number | null;
+  fibrousCarbs: number | null;
   fat: number;
 }
 
@@ -19,6 +19,8 @@ interface DbMacroTargets {
   calories: number;
   protein_g: number;
   carbs_g: number;
+  starchyCarbs_g: number | null;
+  fibrousCarbs_g: number | null;
   fat_g: number;
   hasTargets: boolean;
 }
@@ -37,6 +39,12 @@ function todayRange() {
   const end = new Date(start);
   end.setDate(end.getDate() + 1);
   return { start: start.toISOString(), end: end.toISOString() };
+}
+
+function optionalGrams(value: unknown): number | null {
+  if (value == null || value === "" || (typeof value !== "number" && typeof value !== "string")) return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.round(number) : null;
 }
 
 function DeltaBadge({ delta }: { delta: number }) {
@@ -58,9 +66,15 @@ export default function StudioMetricsSnapshot({ clientId }: StudioMetricsSnapsho
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [loadedClientId, setLoadedClientId] = useState<string | null>(null);
+  const requestSequence = useRef(0);
+  const currentClientId = useRef(clientId);
+  currentClientId.current = clientId;
 
   const fetchData = useCallback(async (isManual = false) => {
     if (!clientId) return;
+    const sequence = ++requestSequence.current;
+    const isCurrent = () => sequence === requestSequence.current && currentClientId.current === clientId;
     if (isManual) setRefreshing(true);
     else setLoading(true);
     setError(null);
@@ -72,19 +86,26 @@ export default function StudioMetricsSnapshot({ clientId }: StudioMetricsSnapsho
         apiRequest(`/api/users/${clientId}/macro-targets`),
       ]);
 
+      if (!isCurrent()) return;
       if (macroResult.status === 'fulfilled') {
         const data = macroResult.value;
         setTodayMacros({
           kcal: Math.round(Number(data.kcal || 0)),
           protein: Math.round(Number(data.protein || 0)),
           carbs: Math.round(Number(data.carbs || 0)),
+          starchyCarbs: optionalGrams(data.starchyCarbs),
+          fibrousCarbs: optionalGrams(data.fibrousCarbs),
           fat: Math.round(Number(data.fat || 0)),
         });
+      } else {
+        setTodayMacros(null);
       }
 
       if (bodyCompResult.status === 'fulfilled') {
         const data = bodyCompResult.value;
-        if (data?.entry) setBodyComp(data.entry);
+        setBodyComp(data?.entry ?? null);
+      } else {
+        setBodyComp(null);
       }
 
       if (targetsResult.status === 'fulfilled') {
@@ -93,25 +114,45 @@ export default function StudioMetricsSnapshot({ clientId }: StudioMetricsSnapsho
           calories: Math.round(Number(data.calories || 0)),
           protein_g: Math.round(Number(data.protein_g || 0)),
           carbs_g: Math.round(Number(data.carbs_g || 0)),
+          starchyCarbs_g: optionalGrams(data.starchyCarbs_g),
+          fibrousCarbs_g: optionalGrams(data.fibrousCarbs_g),
           fat_g: Math.round(Number(data.fat_g || 0)),
           hasTargets: !!data.hasTargets,
         });
+      } else {
+        setDbTargets(null);
       }
 
-      setLastRefreshed(new Date());
+      setLoadedClientId(clientId);
+      if (macroResult.status === "rejected" || targetsResult.status === "rejected") {
+        setLastRefreshed(null);
+        setError("Unable to load current nutrition metrics. Please retry.");
+      } else {
+        setLastRefreshed(new Date());
+      }
     } catch {
-      setError("Failed to load metrics");
+      if (!isCurrent()) return;
+      setTodayMacros(null);
+      setDbTargets(null);
+      setBodyComp(null);
+      setLoadedClientId(clientId);
+      setLastRefreshed(null);
+      setError("Failed to load metrics. Please retry.");
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (isCurrent()) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, [clientId]);
 
   useEffect(() => {
     fetchData();
+    return () => { requestSequence.current += 1; };
   }, [fetchData]);
 
-  if (loading) {
+  if (!clientId) return null;
+  if (loading || loadedClientId !== clientId || (refreshing && (!todayMacros || !dbTargets))) {
     return (
       <div className="flex items-center justify-center py-6">
         <Loader2 className="w-4 h-4 animate-spin text-white/40" />
@@ -120,7 +161,14 @@ export default function StudioMetricsSnapshot({ clientId }: StudioMetricsSnapsho
   }
 
   if (error) {
-    return <p className="text-xs text-red-400 py-2">{error}</p>;
+    return (
+      <div className="text-xs py-2">
+        <p role="alert" className="text-red-400">{error}</p>
+        <button onClick={() => fetchData(true)} disabled={refreshing} className="mt-2 text-white/70 underline disabled:opacity-40">
+          {refreshing ? "Retrying…" : "Retry"}
+        </button>
+      </div>
+    );
   }
 
   const hasTargets = dbTargets?.hasTargets ?? false;
@@ -130,10 +178,12 @@ export default function StudioMetricsSnapshot({ clientId }: StudioMetricsSnapsho
   const targetFat = hasTargets ? (dbTargets?.fat_g ?? 0) : 0;
 
   const rows = [
-    { label: "Calories", target: targetCal, logged: todayMacros?.kcal ?? 0, unit: "" },
-    { label: "Protein", target: targetProtein, logged: todayMacros?.protein ?? 0, unit: "g" },
-    { label: "Carbs", target: targetCarbs, logged: todayMacros?.carbs ?? 0, unit: "g" },
-    { label: "Fat", target: targetFat, logged: todayMacros?.fat ?? 0, unit: "g" },
+    { label: "Calories", target: targetCal, logged: todayMacros?.kcal ?? null, unit: "", color: "text-white" },
+    { label: "Protein", target: targetProtein, logged: todayMacros?.protein ?? null, unit: "g", color: "text-blue-300" },
+    { label: "Total Carbs", target: targetCarbs, logged: todayMacros?.carbs ?? null, unit: "g", color: "text-orange-300" },
+    { label: "Starchy Carbs", target: dbTargets?.starchyCarbs_g ?? null, logged: todayMacros?.starchyCarbs ?? null, unit: "g", color: "text-orange-300" },
+    { label: "Fibrous Carbs", target: dbTargets?.fibrousCarbs_g ?? null, logged: todayMacros?.fibrousCarbs ?? null, unit: "g", color: "text-emerald-300" },
+    { label: "Fat", target: targetFat, logged: todayMacros?.fat ?? null, unit: "g", color: "text-yellow-300" },
   ];
 
   return (
@@ -145,23 +195,13 @@ export default function StudioMetricsSnapshot({ clientId }: StudioMetricsSnapsho
             No macro targets set yet
           </p>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
-            <div>
-              <p className="text-sm font-bold text-white">{targetCal}</p>
-              <p className="text-[10px] text-white/40">Cal</p>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-blue-300">{targetProtein}g</p>
-              <p className="text-[10px] text-white/40">Protein</p>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-orange-300">{targetCarbs}g</p>
-              <p className="text-[10px] text-white/40">Carbs</p>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-yellow-300">{targetFat}g</p>
-              <p className="text-[10px] text-white/40">Fat</p>
-            </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-center">
+            {rows.map(row => (
+              <div key={row.label}>
+                <p className={`text-sm font-bold ${row.color}`}>{row.target == null ? "—" : `${row.target}${row.unit}`}</p>
+                <p className="text-[10px] text-white/40">{row.label}</p>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -171,6 +211,7 @@ export default function StudioMetricsSnapshot({ clientId }: StudioMetricsSnapsho
           <h4 className="text-xs font-medium text-white/60">Today's Logged vs Target</h4>
           <button
             onClick={() => fetchData(true)}
+            aria-label="Refresh nutrition metrics"
             disabled={refreshing}
             className="flex items-center gap-1 text-[10px] text-white/40 hover:text-white/70 transition-colors disabled:opacity-40"
           >
@@ -191,22 +232,30 @@ export default function StudioMetricsSnapshot({ clientId }: StudioMetricsSnapsho
           </thead>
           <tbody>
             {rows.map((row) => {
-              const delta = row.logged - row.target;
+              const delta = hasTargets && row.logged != null && row.target != null ? row.logged - row.target : null;
               return (
                 <tr key={row.label} className="border-t border-white/5">
                   <td className="py-1.5 text-white/70">{row.label}</td>
                   <td className="py-1.5 text-right text-white/50">
-                    {hasTargets ? `${row.target}${row.unit}` : "—"}
+                    {hasTargets && row.target != null ? `${row.target}${row.unit}` : "—"}
                   </td>
-                  <td className="py-1.5 text-right text-white">{row.logged}{row.unit}</td>
+                  <td className="py-1.5 text-right text-white">{row.logged == null ? "—" : `${row.logged}${row.unit}`}</td>
                   <td className="py-1.5 text-right">
-                    {hasTargets ? <DeltaBadge delta={delta} /> : <Minus className="w-3 h-3 text-white/20" />}
+                    {delta != null ? <DeltaBadge delta={delta} /> : <Minus className="w-3 h-3 text-white/20" />}
                   </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
+        {todayMacros && (
+          todayMacros.starchyCarbs == null || todayMacros.fibrousCarbs == null ||
+          todayMacros.carbs > todayMacros.starchyCarbs + todayMacros.fibrousCarbs + 1
+        ) && (
+          <p className="text-[10px] text-white/50 mt-1.5">
+            Some logged carbs have no starchy/fibrous classification. Total Carbs includes all logged carbs.
+          </p>
+        )}
         {todayMacros && todayMacros.kcal === 0 && todayMacros.protein === 0 && (
           <p className="text-[10px] text-white/30 mt-1.5 text-center italic">
             No macros logged by client today

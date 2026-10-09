@@ -9,6 +9,7 @@ import {
 } from "./protocolEnvelope";
 import { generateMealImageUnified } from "./mealImageGenerator";
 import { processMealImageForSave } from "./imageLifecycle";
+import { groceryCoachCarbBreakdown } from "@shared/groceryCoachCarbs";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -22,7 +23,7 @@ export interface IngredientItem {
 export interface FinalizeInput {
   recommendation: {
     meal: { name: string; description: string; prepTime: string; servings: number };
-    macros: { calories: number; protein: number; carbs: number; fat: number };
+    macros: { calories: number; protein: number; carbs: number; fat: number; starchyCarbs?: number | null; fibrousCarbs?: number | null };
     ownedIngredients?: IngredientItem[];
     shoppingList?: IngredientItem[];
     reasoning?: string[];
@@ -288,6 +289,7 @@ Write cooking instructions.`,
       protein: macros.protein,
       carbs: macros.carbs,
       fat: macros.fat,
+      ...groceryCoachCarbBreakdown(macros),
     },
     servings: meal.servings,
     prepTime: meal.prepTime,

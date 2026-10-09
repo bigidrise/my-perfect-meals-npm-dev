@@ -16,6 +16,7 @@ import { createHumanFoodRequestScope } from "../services/humanFoodContext/reques
 import { buildHumanFoodPromptBlock } from "../services/humanFoodContext/buildHumanFoodPromptBlock";
 import { validateHumanFoodResult } from "../services/humanFoodContext/validateHumanFoodResult";
 import { findProductDevelopment, ProductSubjectContextUnavailableError } from "../services/productDiscovery/findProductDevelopment";
+import { GROCERY_COACH_CARB_PROMPT, groceryCoachCarbBreakdown } from "@shared/groceryCoachCarbs";
 
 const router = express.Router();
 
@@ -315,6 +316,7 @@ COACHING RULES:
 - Be concise, warm, and coach-like — not clinical, not robotic.
 - Each follow-up suggestion chip must be a short actionable phrase (3–5 words max).
 
+${GROCERY_COACH_CARB_PROMPT}
 Respond ONLY with valid JSON matching this exact schema (no markdown, no extra text):
 {
   "meal": {
@@ -328,6 +330,8 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     "calories": number,
     "protein": number,
     "carbs": number,
+    "starchyCarbs": number or null,
+    "fibrousCarbs": number or null,
     "fat": number
   },
   "ownedIngredients": [
@@ -596,7 +600,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
               console.log(`✅ [GroceryCoach] Retry passed protocol scan.`);
               if (userId) saveToHistory(userId, retryResult?.meal ? { ...retryResult.meal, varietyMetadata: retryResult.varietyMetadata } : null);
               await humanFoodScope.completeAuthorization();
-              return res.json({ ...retryResult, servingCount: finalServingCount });
+              return res.json({ ...retryResult, macros: { ...retryResult.macros, ...groceryCoachCarbBreakdown(retryResult.macros) }, servingCount: finalServingCount });
             }
             retryScanViolations = retryScan.violations
               .map((v: any) => v.reason || v.message || String(v))
@@ -639,7 +643,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     if (userId) saveToHistory(userId, result?.meal ? { ...result.meal, varietyMetadata: result.varietyMetadata } : null);
 
     await humanFoodScope.completeAuthorization();
-    return res.json({ ...result, servingCount: finalServingCount });
+    return res.json({ ...result, macros: { ...result.macros, ...groceryCoachCarbBreakdown(result.macros) }, servingCount: finalServingCount });
   } catch (err: any) {
     console.error("[GroceryCoach] Error:", err?.message);
     if (err instanceof ProtocolContextUnavailableError) {

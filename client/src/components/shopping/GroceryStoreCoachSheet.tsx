@@ -35,6 +35,7 @@ import { PillButton } from "@/components/ui/pill-button";
 import { get, post } from "@/lib/api";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
 import type { UniversalIngredient } from "@/stores/shoppingListStore";
+import { GroceryCoachMacroTiles, type GroceryCoachMacros } from "./GroceryCoachMacroTiles";
 
 type Phase = "idle" | "loading" | "result";
 
@@ -48,7 +49,7 @@ interface ShoppingListItem {
 interface CoachResult {
   meal: { name: string; description: string; prepTime: string; servings: number };
   reasoning: string[];
-  macros: { calories: number; protein: number; carbs: number; fat: number };
+  macros: GroceryCoachMacros;
   ownedIngredients: Array<{ item: string; quantity: string; unit: string }>;
   shoppingList: ShoppingListItem[];
   followUpSuggestions: string[];
@@ -1580,19 +1581,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
                 {/* Macros */}
                 {result.macros && (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                    {[
-                      { label: "Calories", value: result.macros.calories, unit: "" },
-                      { label: "Protein",  value: result.macros.protein,  unit: "g" },
-                      { label: "Carbs",    value: result.macros.carbs,    unit: "g" },
-                      { label: "Fat",      value: result.macros.fat,      unit: "g" },
-                    ].map(({ label, value, unit }) => (
-                      <div key={label} style={{ borderRadius: 12, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", padding: 12, textAlign: "center" }}>
-                        <div style={{ color: "white", fontWeight: 700, fontSize: 18, lineHeight: 1 }}>{value ?? "—"}{unit}</div>
-                        <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, marginTop: 4, fontWeight: 500 }}>{label}</div>
-                      </div>
-                    ))}
-                  </div>
+                  <GroceryCoachMacroTiles macros={result.macros} />
                 )}
 
                 {/* Why This Fits You */}
