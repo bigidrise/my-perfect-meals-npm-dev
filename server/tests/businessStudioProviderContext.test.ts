@@ -50,6 +50,23 @@ test("a Business account without a Studio has no provider authority", async () =
     .toThrow("UNSUPPORTED_PROVIDER_ROLE");
 });
 
+test("authorized independent Business Studio access does not require or change the legacy managed-account flag", async () => {
+  records.users[0].isProCare = false;
+  const before = JSON.stringify(records);
+  expect(await resolveInvitationProviderContext(owner)).toMatchObject({
+    userId: owner.id, studioId: "studio-fixture", relationshipRole: "studio_operator",
+  });
+  expect((await ensureProviderStudioReady(owner.id)).ok).toBe(true);
+  expect(JSON.stringify(records)).toBe(before);
+});
+
+test("an unset managed-account flag does not bypass actual provider access", async () => {
+  records.users[0].isProCare = false;
+  mockAccess = false;
+  await expect(resolveInvitationProviderContext(owner)).rejects.toMatchObject({ code: "PROCARE_ACCESS_REQUIRED" });
+  expect(records.users[0].isProCare).toBe(false);
+});
+
 test.each(["paused", "inactive"])("a %s Studio cannot authorize its owner", async status => {
   records.studios[0].status = status;
   await expect(resolveInvitationProviderContext(owner)).rejects.toMatchObject({ code: "PROVIDER_ROLE_REQUIRED" });
