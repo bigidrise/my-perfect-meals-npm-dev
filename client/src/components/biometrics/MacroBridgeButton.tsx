@@ -8,6 +8,7 @@ import {
 import { canLogMealToMacros, markMealLogged } from "@/lib/macroLogGuard";
 import type { MacroSourceSlug } from "@/lib/macroSourcesConfig";
 import { Check, Loader2 } from "lucide-react";
+import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
 
 export type MacroSource = {
   protein: number;
@@ -38,15 +39,15 @@ export default function MacroBridgeButton({
   const { toast } = useToast();
   const [status, setStatus] = useState<"idle" | "loading" | "logged">("idle");
 
-  const s = Math.max(1, Math.round(meal.servings ?? 1));
-  const p = Math.max(0, Math.round((meal.protein || 0) * s));
-  const c = Math.max(0, Math.round((meal.carbs || 0) * s));
-  const f = Math.max(0, Math.round((meal.fat || 0) * s));
-  const cal = Math.max(0, Math.round(meal.calories ?? p * 4 + c * 4 + f * 9));
+  const snapshot = mealMacroSnapshot(meal);
+  const p = Math.round(snapshot.protein);
+  const c = Math.round(snapshot.carbs);
+  const f = Math.round(snapshot.fat);
+  const cal = Math.round(snapshot.calories);
   // Send null when no genuine starchy/fibrous split is available so the server's
   // fallback classifier can run (treats all carbs as starchy when split is unknown).
-  const sc = meal.starchyCarbs != null ? Math.max(0, Math.round(meal.starchyCarbs * s)) : null;
-  const fc = meal.fibrousCarbs != null ? Math.max(0, Math.round(meal.fibrousCarbs * s)) : null;
+  const sc = snapshot.starchyCarbs == null ? null : Math.round(snapshot.starchyCarbs);
+  const fc = snapshot.fibrousCarbs == null ? null : Math.round(snapshot.fibrousCarbs);
 
   const userId = user?.id ?? "";
   const fingerprint = buildFingerprint(p, c, f, cal);

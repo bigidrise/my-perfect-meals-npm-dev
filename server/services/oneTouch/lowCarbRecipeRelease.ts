@@ -50,16 +50,14 @@ export function assessLowCarbRecipeRelease(
         return typeof value === "number" && Number.isFinite(value) && value >= 0;
       })) return "evidence_unavailable";
 
-  const macros = candidate.nutrition!;
-  if (macros.calories! > remaining.calories ||
-      macros.carbs! > remaining.carbs ||
-      macros.fat! > remaining.fat) return "repair_required";
-
   const hasStarch = source.ingredientEvidence.some((entry) => entry.category === "starchy_concentrated");
   if (hasStarch !== (starchyCarbs > 0)) return "repair_required";
   if (hasStarch && context.nutrition?.activeConstraints?.consumedStarchExhausted) {
     return "repair_required";
   }
+  const starchRemaining = context.nutrition?.starch?.consumed?.remainingGrams;
+  if (typeof starchRemaining === "number" && Number.isFinite(starchRemaining) &&
+      starchRemaining >= 0 && starchyCarbs > starchRemaining) return "repair_required";
 
   // Positive starch can be considered at the day-planning level; it cannot
   // prove that day's ratio from this recipe alone.

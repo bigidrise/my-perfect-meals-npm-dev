@@ -51,6 +51,7 @@ import { FlavorToggle } from "@/components/FlavorToggle";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
 import { setQuickView } from "@/lib/macrosQuickView";
+import { creatorMealNutrition } from "@/lib/mealMacroSnapshot";
 import {
   extractTimerSeconds,
   formatTimeRemaining,
@@ -892,7 +893,7 @@ export default function ChefsKitchenPage() {
                       <FavoriteButton
                         title={generatedMeal.name}
                         sourceType="chefs-kitchen"
-                        mealData={generatedMeal}
+                        mealData={{ ...generatedMeal, servings: generatedMeal.servings ?? servings }}
                       />
                     </div>
                     <button
@@ -953,7 +954,7 @@ export default function ChefsKitchenPage() {
                     const s = Math.max(1, Math.round(servings ?? 1));
                     return (
                       <>
-                        {s > 1 && <p className="text-xs text-white/60 text-center">Macros shown per serving</p>}
+                        <p className="text-xs text-white/60 text-center">Nutrition per serving • Recipe makes {s} servings</p>
                         <div className="grid grid-cols-4 gap-4 text-center">
                           {[
                             { label: "Calories", value: Math.round((mealToShow.calories || 0) / s), unit: "" },
@@ -1058,14 +1059,14 @@ export default function ChefsKitchenPage() {
                   <div className="space-y-2">
                     <button
                       onClick={() => {
-                        const s = Math.max(1, Math.round(servings ?? 1));
+                        const oneServing = creatorMealNutrition(generatedMeal, servings);
                         setQuickView({
-                          protein: Math.round((generatedMeal.protein || 0) / s),
-                          carbs: Math.round((generatedMeal.carbs || 0) / s),
-                          starchyCarbs: 0,
-                          fibrousCarbs: 0,
-                          fat: Math.round((generatedMeal.fat || 0) / s),
-                          calories: Math.round((generatedMeal.calories || 0) / s),
+                          protein: Math.round(oneServing.protein),
+                          carbs: Math.round(oneServing.carbs),
+                          starchyCarbs: oneServing.starchyCarbs == null ? undefined : Math.round(oneServing.starchyCarbs),
+                          fibrousCarbs: oneServing.fibrousCarbs == null ? undefined : Math.round(oneServing.fibrousCarbs),
+                          fat: Math.round(oneServing.fat),
+                          calories: Math.round(oneServing.calories),
                           dateISO: new Date().toISOString().slice(0, 10),
                           mealSlot: "snacks",
                         });

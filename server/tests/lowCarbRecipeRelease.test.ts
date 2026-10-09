@@ -57,7 +57,7 @@ describe("generic Low Carb recipe release is not positive source proof", () => {
     expect(assessLowCarbRecipeRelease(candidate(["unsweetened almond milk"], 0, NaN), context))
       .toBe("evidence_unavailable");
     expect(assessLowCarbRecipeRelease(candidate(["unsweetened almond milk"], 0, 60), context))
-      .toBe("repair_required");
+      .toBe("no_known_conflict");
     expect(assessLowCarbRecipeRelease(candidate(["unsweetened almond milk"]), {
       ...context, subjectUserId: "someone-else",
     })).toBe("evidence_unavailable");

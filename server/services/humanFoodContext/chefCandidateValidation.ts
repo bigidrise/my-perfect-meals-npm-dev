@@ -8,9 +8,8 @@ export function describeChefFoodProfileFailure(
 ): string {
   const remaining = context.nutrition?.projectedRemaining ?? context.nutrition?.remaining;
   const exceeded = [
-    ["projected_calorie_budget_exceeded", "calorie", remaining?.calories, "kcal"],
-    ["projected_carb_budget_exceeded", "carbohydrate", remaining?.carbs, "g"],
-    ["projected_fat_budget_exceeded", "fat", remaining?.fat, "g"],
+    ["starchy_carb_budget_exceeded", "starchy carbohydrate", context.nutrition?.starch?.consumed?.remainingGrams, "g"],
+    ["consumed_starch_budget_exhausted", "starchy carbohydrate", 0, "g"],
   ] as const;
   const limits = exceeded
     .filter(([code]) => violations.includes(code))
@@ -58,10 +57,10 @@ export function validateChefCandidate(
     repairHint: [
       `CANONICAL FOOD PROFILE CHECK FAILED: ${validation.violations.join(", ")}.`,
       remaining
-        ? `The exact per-serving calorie and carbohydrate ceilings remain ${remaining.calories} kcal and ${remaining.carbs}g total carbohydrate. Ordinary daily fat remaining (${remaining.fat}g) is guidance, not a rejection limit. Preserve independent clinical and explicitly requested limits.`
+        ? `Ordinary daily goals remaining (${remaining.calories} kcal, ${remaining.carbs}g total carbohydrate, ${remaining.fat}g fat) are guidance, not rejection limits. Preserve strict starchy-carbohydrate allowances and independent clinical and explicitly requested limits.`
         : "Numeric targets remain unavailable; do not fabricate a numeric ceiling.",
       "Preserve the requested dish, cuisine and all allergy, avoidance, dietary and clinical requirements.",
-      "Adapt ingredients and preparation only for failed hard requirements; ordinary fat/protein overages alone do not require shrinking or replacing the requested dish.",
+      "Adapt ingredients and preparation only for failed hard requirements; ordinary calorie/fat/protein/total-carbohydrate overages alone do not require shrinking or replacing the requested dish.",
       "Do not merely lower the reported nutrition: change the actual recipe and report honest, complete per-serving nutrition.",
     ].join(" "),
   };

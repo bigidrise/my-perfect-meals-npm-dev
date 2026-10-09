@@ -350,12 +350,8 @@ export function assessLowCarbRecipeCompatibility(
     return { ...source, status: "review_required",
       issues: [...source.issues, "A current resolved subject-owned macro allocation is required."] };
   }
-  if (candidate.nutrition!.calories! > remaining.calories ||
-      candidate.nutrition!.carbs! > remaining.carbs ||
-      candidate.nutrition!.fat! > remaining.fat) {
-    return { ...source, status: "adaptation_required",
-      issues: [...source.issues, "Adapt the portion or components to the current remaining nutrition allocation."] };
-  }
+  // A daily macro goal overage is not a Low Carb source conflict. Starch
+  // composition and day-level starch authority remain independently required.
   const starchy = source.ingredientEvidence.some((item) => item.category === "starchy_concentrated");
   if (starchy) {
     return { ...source, status: "review_required",

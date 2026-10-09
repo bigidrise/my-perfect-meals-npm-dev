@@ -14,3 +14,9 @@ Recipe-total Grocery Coach nutrition must be converted to one serving before bot
 **Why:** Explicit total-recipe generation exposed a comparison against personal remaining allowances that could reject a compliant multi-serving meal with HTTP 422.
 
 **How to apply:** Keep saved/returned nutrition as recipe totals, normalize only at personal validation boundaries, and retain privacy-limited failed-check codes in logs.
+
+Grocery Coach is not a meal builder. The selected serving count scales the cooking ingredients, but the meal card and Favorites show nutrition explicitly for one serving. Add to Macros always logs exactly one serving for the user, regardless of how many servings the recipe makes.
+
+**Why:** The user explicitly clarified that a recipe may cook three, four, or six servings while only one serving is acknowledged by personal macro tracking.
+
+**How to apply:** Preserve the recipe's full ingredient quantities and serving count through Favorites. Clearly distinguish “recipe makes N servings” from “nutrition per serving.” Normalize recipe totals exactly once; never log the whole recipe merely because multiple servings were selected.

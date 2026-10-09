@@ -76,9 +76,6 @@ export function validateHumanFoodResult(
     ));
   }
   const nutrition = object?.nutrition ?? object ?? {};
-  const remaining = context.nutrition?.prescription?.source === "fallback"
-    ? null
-    : context.nutrition?.projectedRemaining ?? context.nutrition?.remaining;
   const calories = finiteNumber(nutrition.calories ?? nutrition.kcal);
   const carbs = finiteNumber(nutrition.carbs ?? nutrition.carbs_g);
   const fat = finiteNumber(nutrition.fat ?? nutrition.fat_g);
@@ -87,20 +84,20 @@ export function validateHumanFoodResult(
   if (requireNutrition && context.nutrition && calories == null) violations.push("verified_calories_missing");
   if (requireNutrition && context.nutrition && carbs == null) violations.push("verified_carbs_missing");
   if (requireNutrition && context.nutrition && fat == null) violations.push("verified_fat_missing");
-  if (remaining && calories != null && calories > remaining.calories) {
-    violations.push("projected_calorie_budget_exceeded");
-  }
-  if (remaining && carbs != null && carbs > remaining.carbs) {
-    violations.push("projected_carb_budget_exceeded");
-  }
-  if (!options.ordinaryFatAsGuidance && remaining && fat != null && fat > remaining.fat) {
-    violations.push("projected_fat_budget_exceeded");
-  }
-  if (requireNutrition && context.nutrition?.activeConstraints.consumedStarchExhausted) {
+  // Daily macro goals are tracking guidance, not safety limits. Clinical and
+  // explicitly requested restrictions are enforced by their own authorities.
+  const consumedStarch = context.nutrition?.starch?.consumed;
+  const starchRemaining = consumedStarch?.remainingGrams;
+  const hasStarchBudget = typeof starchRemaining === "number" &&
+    Number.isFinite(starchRemaining) && starchRemaining >= 0;
+  const starchExhausted = context.nutrition?.activeConstraints.consumedStarchExhausted;
+  if (requireNutrition && (starchExhausted || hasStarchBudget)) {
     if (starchyCarbs == null) {
       violations.push("verified_starchy_carbs_missing");
-    } else if (starchyCarbs > 0) {
+    } else if (starchExhausted && starchyCarbs > 0) {
       violations.push("consumed_starch_budget_exhausted");
+    } else if (hasStarchBudget && starchyCarbs > starchRemaining) {
+      violations.push("starchy_carb_budget_exceeded");
     }
   }
 
