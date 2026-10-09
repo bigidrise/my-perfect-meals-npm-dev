@@ -2445,34 +2445,41 @@ export async function generateCravingMealOptions(
   // Placed after all other diet blocks so GLP-1 overrides rather than merges.
   if (glp1Targets) {
     const t = glp1Targets;
+    // Guidance mirrors the existing snack validator; final validation remains
+    // authoritative. A snack must not be prompted with the larger meal ceiling.
+    const promptFatCeiling = validMealType === "snack"
+      ? t.usedBaseline ? 5 : Math.round(t.maximumToleratedFatGrams * 0.4)
+      : t.maximumToleratedFatGrams;
     const glp1PromptBlock = [
       ``,
       `═══ GLP-1 MEDICATION PROTOCOL — HARD CONSTRAINTS (ALL OPTIONS) ═══`,
       `This user is on GLP-1 medication. All ${3} options MUST comply with these clinical rules.`,
       `Treatment phase: ${t.treatmentPhase ?? "active"}`,
       ``,
-      `MACRO CEILINGS (per meal — hard limits, not guidelines):`,
-      `• Calories: ≤ ${t.resolvedMealCalories} kcal`,
-      `• Fat: ≤ ${t.maximumToleratedFatGrams} g  — FRIED, CREAMY, BUTTERY dishes are FORBIDDEN`,
+      `MACRO CEILINGS (per ${validMealType === "snack" ? "snack" : "meal"} — hard limits, not guidelines):`,
+      `• Calories: ≤ ${validMealType === "snack" ? t.resolvedSnackCalories : t.resolvedMealCalories} kcal`,
+      `• Fat: ≤ ${promptFatCeiling} g  — FRIED, CREAMY, BUTTERY dishes are FORBIDDEN`,
       `• Protein: ≥ ${t.targetProteinGrams} g  — lean protein MUST anchor every option`,
       ``,
       `FORBIDDEN PREPARATIONS: fried, deep-fried, breaded, cream sauces, butter-based sauces,`,
-      `heavy cheese, full-fat dairy, high-fat dressings, or any preparation that pushes fat > ${t.maximumToleratedFatGrams}g.`,
+      `heavy cheese, full-fat dairy, high-fat dressings, or any preparation that pushes fat > ${promptFatCeiling}g.`,
       ``,
       `PORTION RULE: GLP-1 medications reduce appetite and slow gastric emptying.`,
-      `Keep portions small (1-1.5 cups total plate volume). Do NOT generate large, heavy plates.`,
+      validMealType === "snack"
+        ? `Keep this a small snack or dessert in its requested format, not a dinner plate with extra sides.`
+        : `Keep portions small (1-1.5 cups total plate volume). Do NOT generate large, heavy plates.`,
       ``,
       `STARCH RULE: Starchy sides (rice, pasta, bread, potato) are OPTIONAL and must appear as`,
       `controlled portions (≤ ¼ cup / 2 oz). Non-starchy vegetables are PREFERRED as volume.`,
       ``,
       `CONCEPT TRANSFORMATION RULE (critical):`,
-      `If the requested dish CANNOT naturally achieve ≥${t.targetProteinGrams}g protein and ≤${t.maximumToleratedFatGrams}g fat`,
+      `If the requested dish CANNOT naturally achieve ≥${t.targetProteinGrams}g protein and ≤${promptFatCeiling}g fat`,
       `in its traditional form (e.g. apple pie, cream pie, pasta carbonara, cheesecake),`,
-      `you MUST transform the CONCEPT — not just swap one ingredient.`,
-      `Preserve the FLAVOR PROFILE. Rebuild the dish around a protein anchor.`,
+      `you MUST adapt ingredients and portions while preserving the requested dish's recognizable format.`,
+      `Preserve the FLAVOR PROFILE and DISH IDENTITY. Incorporate lean protein into the filling or other defining components.`,
       `Correct transformation examples:`,
-      `  • "Apple Pie" → "Spiced Apple Protein Bowl" (Greek yogurt base, cinnamon apples, almond crumble)`,
-      `  • "Chocolate Cream Pie" → "Chocolate Protein Mousse Cup" (cottage cheese, cocoa, protein powder)`,
+      `  • "Apple Pie" → a small apple pie with a thin compliant crust and a lean protein-supporting filling`,
+      `  • "Chocolate Cream Pie" → a small chocolate cream pie with a compliant crust and lean cocoa filling`,
       `  • "Pasta Carbonara" → "Zucchini Carbonara with Turkey & Egg White Sauce"`,
       `  • "Cheesecake" → "Lemon Protein Cheesecake Cups" (cottage cheese, protein powder, lemon zest)`,
       `Name the dish to reflect the transformation — never name it after the original if it isn't that dish.`,
@@ -2679,6 +2686,8 @@ export async function generateCravingMealOptions(
   // fields — relabeling macros without changing ingredients is clinically wrong.
   // Validator module errors also exclude the option (fail closed).
   if (glp1Targets) {
+    const glp1Violations = new Set<string>();
+    let glp1ValidationUnavailable = false;
     try {
       const { validateMealForDiet } = await import("./guardrails/index");
       const isSnack = validMealType === "snack";
@@ -2701,10 +2710,12 @@ export async function generateCravingMealOptions(
             "glp1", undefined, isSnack, glp1Targets!,
           );
           if (!vr.isValid) {
+            vr.violations.forEach((violation) => glp1Violations.add(String(violation)));
             console.warn(`💊 [VARIETY ENGINE] Excluding "${(opt as any).name}" — GLP-1 violations:`, vr.violations);
           }
           return vr.isValid;
         } catch {
+          glp1ValidationUnavailable = true;
           console.warn(`⚠️ [VARIETY ENGINE] Validator error for "${(opt as any).name}" — excluding (fail closed)`);
           return false;
         }
@@ -2717,8 +2728,7 @@ export async function generateCravingMealOptions(
       // When ALL options fail post-validation the normal dish concept is
       // fundamentally incompatible with the targets (e.g. apple pie at 15g fat
       // ceiling / 80g protein).  Rather than surfacing a hard error, retry once
-      // with an explicit CONCEPT TRANSFORMATION hint so the AI rebuilds around
-      // the flavor profile instead of the dish structure.
+      // with an explicit adaptation hint that preserves the requested dish.
       if (finalOptions.length === 0 && beforeCount > 0) {
         console.warn(`💊 [VARIETY ENGINE] All options eliminated by GLP-1 — attempting concept-transformation retry`);
         try {
@@ -2732,10 +2742,13 @@ export async function generateCravingMealOptions(
             ? (await import("./humanFoodContext/requestExecutionState"))
                 .buildRejectedCandidatePrompt(humanFoodExecutionState)
             : "";
+          const retryFatCeiling = validMealType === "snack"
+            ? glp1Targets!.usedBaseline ? 5 : Math.round(glp1Targets!.maximumToleratedFatGrams * 0.4)
+            : glp1Targets!.maximumToleratedFatGrams;
           const transformHint = [
             `CRITICAL — CLINICAL ADAPTATION REQUIRED:`,
             `Every previous option failed GLP-1 compliance. The traditional form of this dish`,
-            `cannot meet ≥${glp1Targets!.targetProteinGrams}g protein / ≤${glp1Targets!.maximumToleratedFatGrams}g fat.`,
+            `cannot meet ≥${glp1Targets!.targetProteinGrams}g protein / ≤${retryFatCeiling}g fat.`,
             ``,
             `You MUST adapt the requested dish while keeping it recognizable — never replace it with an unrelated generic meal:`,
             `  • Desserts/pastries → a smaller, leaner version of the same dessert or pastry with a protein-supporting filling`,
@@ -2747,7 +2760,7 @@ export async function generateCravingMealOptions(
             `Preserve the original craving, cuisine, dietary identity, allergy exclusions, seasoning and flavor profile,`,
             `daily nutrition limits, starch constraints, and named-dish identity carried in the original request.`,
             rejectedCandidatePrompt,
-            `Every option MUST have ≥${glp1Targets!.targetProteinGrams}g protein and ≤${glp1Targets!.maximumToleratedFatGrams}g fat. No exceptions.`,
+            `Every option MUST have ≥${glp1Targets!.targetProteinGrams}g protein and ≤${retryFatCeiling}g fat. No exceptions.`,
           ].join('\n');
 
           const retryRaw = await attempt(true, transformHint);
@@ -2771,10 +2784,11 @@ export async function generateCravingMealOptions(
                 "glp1", undefined, isSnackRetry, glp1Targets!,
               );
               if (!vr.isValid) {
+                vr.violations.forEach((violation) => glp1Violations.add(String(violation)));
                 console.warn(`💊 [VARIETY ENGINE/Transform] Still failing "${(opt as any).name}":`, vr.violations);
               }
               return vr.isValid;
-            } catch { return false; }
+            } catch { glp1ValidationUnavailable = true; return false; }
           });
           console.log(`💊 [VARIETY ENGINE] Concept-transformation retry: ${retryValid.length}/3 options passed GLP-1`);
           if (retryValid.length > 0) finalOptions = retryValid;
@@ -2786,6 +2800,23 @@ export async function generateCravingMealOptions(
       // Fail closed: module load error — clear all options rather than serving unvalidated meals.
       console.warn("⚠️ [VARIETY ENGINE] GLP-1 validation module error — clearing all options (fail closed):", err);
       finalOptions = [];
+      glp1ValidationUnavailable = true;
+    }
+    if (finalOptions.length === 0 && glp1ValidationUnavailable) {
+      throw Object.assign(new Error("We couldn't verify the GLP-1 requirements. Please try again shortly."), {
+        status: 503,
+        code: "glp1_validation_unavailable",
+        retryable: true,
+      });
+    }
+    if (finalOptions.length === 0 && glp1Violations.size > 0) {
+      // The existing, bounded concept-preserving retry has already run.
+      // Retain its actual failed requirements instead of an empty-array hint.
+      throw new GLP1ComplianceRetryExhaustedError(
+        validMealType === "snack" ? "snack" : "meal",
+        [...glp1Violations],
+        2,
+      );
     }
   }
 

@@ -162,6 +162,11 @@ beforeAll(async () => {
 beforeEach(() => {
   mockFetch.mockReset();
   mockOpenAICreate.mockReset();
+  mockOpenAICreate.mockResolvedValue({
+    choices: [{ message: { content: JSON.stringify({
+      dishName: "Thai Basil Chicken", foodCategory: "dinner", confidence: "high",
+    }) } }],
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -170,8 +175,7 @@ beforeEach(() => {
 
 describe("POST /api/inspiration/capture — text input path", () => {
   it("returns 200 with a non-empty extractedDescription equal to the submitted content", async () => {
-    // OpenAI should NOT be called for text input
-    mockOpenAICreate.mockRejectedValue(new Error("should not be called"));
+    // Text now uses a schema-bound culinary-occasion check, but no vision call.
 
     // Internal craving-creator returns a valid meal
     mockFetch.mockResolvedValue(makeCravingResponse([MOCK_MEAL]));
@@ -319,7 +323,7 @@ describe("POST /api/inspiration/capture — image input path", () => {
 
   it("returns 200 with a non-empty extractedDescription equal to the vision model output", async () => {
     // OpenAI vision returns the extracted text
-    mockOpenAICreate.mockResolvedValue({
+    mockOpenAICreate.mockResolvedValueOnce({
       choices: [{ message: { content: IMAGE_EXTRACTED_TEXT } }],
     });
 
@@ -346,7 +350,7 @@ describe("POST /api/inspiration/capture — image input path", () => {
   });
 
   it("uses inputType 'upload' as well as 'camera' for the image path", async () => {
-    mockOpenAICreate.mockResolvedValue({
+    mockOpenAICreate.mockResolvedValueOnce({
       choices: [{ message: { content: IMAGE_EXTRACTED_TEXT } }],
     });
     mockFetch.mockResolvedValue(makeCravingResponse([MOCK_MEAL]));
@@ -363,7 +367,7 @@ describe("POST /api/inspiration/capture — image input path", () => {
   });
 
   it("includes extractedDescription alongside mealData and options for the image path", async () => {
-    mockOpenAICreate.mockResolvedValue({
+    mockOpenAICreate.mockResolvedValueOnce({
       choices: [{ message: { content: IMAGE_EXTRACTED_TEXT } }],
     });
     mockFetch.mockResolvedValue(makeCravingResponse([MOCK_MEAL]));
@@ -380,7 +384,7 @@ describe("POST /api/inspiration/capture — image input path", () => {
 
   it("falls back to the content field when vision model returns empty string", async () => {
     // Vision model returns blank — server falls back to req.body.content
-    mockOpenAICreate.mockResolvedValue({
+    mockOpenAICreate.mockResolvedValueOnce({
       choices: [{ message: { content: "" } }],
     });
     mockFetch.mockResolvedValue(makeCravingResponse([MOCK_MEAL]));
@@ -403,6 +407,53 @@ describe("POST /api/inspiration/capture — image input path", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // Suite 3 — Structural source check (regression guard)
 // ─────────────────────────────────────────────────────────────────────────────
+
+describe("Recipe Maker category and failure handoff", () => {
+  it("hands a photographed Napoleon to the snack/recipe path and keeps its source", async () => {
+    const source = "Mille-feuille (Napoleon), a French layered pastry with cream filling.";
+    mockOpenAICreate
+      .mockResolvedValueOnce({ choices: [{ message: { content: source } }] })
+      .mockResolvedValueOnce({ choices: [{ message: { content: JSON.stringify({
+        dishName: "Mille-feuille (Napoleon)", foodCategory: "dessert", confidence: "high",
+      }) } }] });
+    mockFetch.mockResolvedValue(makeCravingResponse([MOCK_MEAL]));
+    const response = await request(app).post("/api/inspiration/capture").send({
+      inputType: "upload", imageBase64: "data:image/png;base64,test", servings: 2,
+    });
+    expect(response.status).toBe(200);
+    const innerRequest = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(innerRequest).toMatchObject({
+      targetMealType: "snack", generationMode: "recipe", servings: 2,
+    });
+    expect(innerRequest.cravingInput).toContain("Preserve this dish and format");
+    expect(response.body.extractedDescription).toBe(source);
+    expect(response.body.foodCategory).toBe("dessert");
+  });
+
+  it("preserves validation status and concise actual findings", async () => {
+    mockFetch.mockResolvedValue({
+      ok: false, status: 409,
+      json: async () => ({
+        code: "HUMAN_FOOD_FINAL_REVIEW_REQUIRED",
+        findings: [{ code: "starch_evidence_missing" }],
+        message: "The final formatted food did not pass universal validation.",
+      }),
+    });
+    const response = await request(app).post("/api/inspiration/capture")
+      .send({ inputType: "text", content: "Oat breakfast" });
+    expect(response.status).toBe(409);
+    expect(response.body.reasonCodes).toEqual(["starch_evidence_missing"]);
+    expect(response.body.error).toContain("verified starch information");
+  });
+
+  it("does not generate food when category interpretation is unavailable", async () => {
+    mockOpenAICreate.mockRejectedValue(new Error("model unavailable"));
+    const response = await request(app).post("/api/inspiration/capture")
+      .send({ inputType: "text", content: "Napoleon pastry" });
+    expect(response.status).toBe(503);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+});
 
 describe("inspiration.ts structural — extractedDescription always emitted", () => {
   const fs   = require("fs");

@@ -7505,6 +7505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Format and optionally scale each option. The response nutrition object
       // represents total recipe nutrition for validatedServings; canonical
       // person-specific validation converts it back to per-serving nutrition.
+      const { formatCreatorNutrition } = await import("./services/humanFoodContext/formatCreatorNutrition");
       const formatCreatorOption = (meal: any) => {
         const { complianceSection, dietClassification } = buildMealComplianceBundle(
           meal, protocolEnvelope, { isChefAdapted: dietAdapted }
@@ -7515,12 +7516,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           description: meal.description,
           ingredients: meal.ingredients,
           instructions: meal.instructions,
-          nutrition: {
-            calories: meal.calories,
-            protein: meal.protein,
-            carbs: meal.carbs,
-            fat: meal.fat
-          },
+          nutrition: formatCreatorNutrition(meal, validatedServings),
           medicalBadges: meal.medicalBadges || [],
           imageUrl: meal.imageUrl,
           evidence: meal.evidence,
@@ -7535,10 +7531,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })(),
         };
         if (validatedServings > 1) {
-          formatted.nutrition.calories *= validatedServings;
-          formatted.nutrition.protein *= validatedServings;
-          formatted.nutrition.carbs *= validatedServings;
-          formatted.nutrition.fat *= validatedServings;
           if (Array.isArray(formatted.ingredients)) {
             formatted.ingredients = formatted.ingredients.map((ing: any) => {
               if (ing.quantity !== undefined) {
@@ -7863,6 +7855,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: "unable_to_generate",
           reasonCode: error.code || "human_food_context_error",
           message: error.message,
+          ...(Array.isArray(error.violations) ? { violations: error.violations } : {}),
+          ...(error.retryable === true ? { retryable: true } : {}),
         });
       }
       // Classify known transient failures into a typed response the client can act on.

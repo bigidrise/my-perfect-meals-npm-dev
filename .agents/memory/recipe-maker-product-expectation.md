@@ -8,3 +8,15 @@ The user stated: “Recipe Maker needs to make recipes no matter what,” includ
 **Why:** The user stated this requirement after two failed Recipe Maker attempts.
 
 **How to apply:** Use this as the product expectation when assessing Recipe Maker generation and recovery behavior.
+
+The user also requires preserving the requested food identity while adapting ingredients and portions to the selected nutrition plan, without weakening applicable medical, allergy, or dietary restrictions.
+
+**Why:** The user supplied this direction for the Recipe Maker correction.
+
+**How to apply:** Do not replace a named pastry with a generic protein bowl merely to produce an option. Report a genuine unresolved restriction rather than claiming every food can be generated.
+
+Category recognition and numeric compliance alone do not prove that a recipe passes its complete clinical validation.
+
+**Why:** A low-fat pastry fixture still failed an established ingredient rule. A mocked category handoff would have missed that limitation.
+
+**How to apply:** Test representative ingredients with the actual clinical validator and negative controls. Do not rename ingredients or mock acceptance just to make a recovery test pass.
