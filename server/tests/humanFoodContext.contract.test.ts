@@ -128,7 +128,7 @@ assert.match(prompt, /Cuisine: Vietnamese/);
 assert.match(prompt, /Effective diet: vegetarian/);
 assert.match(prompt, /Hard allergy exclusions: peanut/);
 assert.match(prompt, /Canonical nutrition authority: nutritionStateService/);
-assert.match(prompt, /Consumed-starch authority: 0g/);
+assert.match(prompt, /STRICT starchy-carbohydrate authority: 0g/);
 assert.doesNotMatch(prompt, /internal-only/);
 
 assert.deepEqual(

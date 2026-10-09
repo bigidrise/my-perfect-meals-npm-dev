@@ -217,15 +217,38 @@ const scanGeneratedOutputMock = jest.fn(
   },
 );
 
-jest.mock("../services/protocolEnvelope", () => ({
-  buildGuestEnvelope: jest.fn(() => makeEnvelope()),
-  loadUserProtocolEnvelope: jest.fn().mockImplementation(async () => activeEnvelope),
+jest.mock("../services/protocolEnvelope", () => {
+  class ProtocolContextUnavailableError extends Error {
+    readonly status = 503;
+    readonly code = "PROTOCOL_CONTEXT_UNRESOLVED";
+    constructor() {
+      super("Your food safety information could not be verified. No food was generated; please retry.");
+      this.name = "ProtocolContextUnavailableError";
+    }
+  }
+  const loadUserProtocolEnvelope = jest.fn().mockImplementation(async () => activeEnvelope);
+  const buildGuestEnvelope = jest.fn(() => makeEnvelope());
+  return {
+  ProtocolContextUnavailableError,
+  loadGenerationProtocolEnvelope: jest.fn(async (userId?: string | null) => {
+    if (!userId) return buildGuestEnvelope();
+    try {
+      const envelope = await loadUserProtocolEnvelope(userId);
+      if (!envelope) throw new ProtocolContextUnavailableError();
+      return envelope;
+    } catch {
+      throw new ProtocolContextUnavailableError();
+    }
+  }),
+  buildGuestEnvelope,
+  loadUserProtocolEnvelope,
   enforceBeforeGenerate: jest.fn(() => ({
     combined: "No dietary restrictions — apply general healthy eating.",
     blocks: [],
   })),
   scanGeneratedOutput: (...args: any[]) => scanGeneratedOutputMock(...args),
-}));
+  };
+});
 
 // This suite verifies Grocery Coach's protocol scan, GLP-1 validation, and
 // conversation behavior. Canonical HFC resolution has its own contract suites;
