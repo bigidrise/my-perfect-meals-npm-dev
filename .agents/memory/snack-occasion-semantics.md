@@ -18,3 +18,9 @@ For My Perfect Menu, the user confirmed an explicit Food Snack / Dessert Snack c
 **Why:** The ordinary snack occasion does not enforce dessert identity, and a correct dessert concept can still become an unrelated food at recipe completion if its identity is not carried through.
 
 **How to apply:** Treat the user's choice as authoritative request intent, separate from sweet/savory taste. Preserve the current safety checks and reject a finished recipe whose food identity no longer matches the selected concept.
+
+My Perfect Menu's slot guidance reflects its current completion flow, not a nutritional prohibition on eating snacks or desserts as meals. Use the explicitly selected category, never the recipe name; unknown categories retain existing behavior. Keep unsupported rows visible and give guidance before generation.
+
+**Why:** The user explicitly separated this small destination usability correction from food autonomy and nutrition enforcement. Supporting snacks in other destinations later is an intentional product change, not a reason to invent new food restrictions now.
+
+**How to apply:** Keep destination guidance in the UI. Do not alter generation, dietary rules, or assignment APIs to implement the highlighting.
