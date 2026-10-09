@@ -1375,7 +1375,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             message: humanFoodContext.notices[0] || "Required food context could not be resolved safely.",
           });
         }
-        const contextBlock = buildCreatorHumanFoodPrompt("recipe_maker", humanFoodContext);
+        const contextBlock = buildCreatorHumanFoodPrompt("recipe_maker", humanFoodContext, undefined, {
+          ordinaryFatAsGuidance: type === "create-with-chef",
+        });
         // `generationContext` was destructured before HFC resolution. Updating only
         // req.body here left the local value stale, so the unified generator never
         // received the canonical block. Keep the local value authoritative because
@@ -1848,7 +1850,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (result.success && humanFoodContext && !result.chefPersonFedValidated) {
         const { validateHumanFoodResult } = await import("./services/humanFoodContext/validateHumanFoodResult");
         const candidate = result.meal ?? result.meals?.[0];
-        const canonicalValidation = validateHumanFoodResult(candidate, humanFoodContext);
+        const canonicalValidation = validateHumanFoodResult(candidate, humanFoodContext, {
+          ordinaryFatAsGuidance: type === "create-with-chef",
+        });
         if (!canonicalValidation.valid) {
           console.warn("[UnifiedGeneration] Canonical person-fed validation rejected result", {
             householdSubjectId,
@@ -1917,7 +1921,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const carbCeiling = isDiabeticGate
           ? Math.min(effectiveRemainingMacros.carbs, DIABETIC_HARD_CAB_CAP)
           : effectiveRemainingMacros.carbs;
-        const fatCeiling  = effectiveRemainingMacros.fat;
+        if (type === "create-with-chef" && gateContext === "glp1" &&
+            (!serverGlp1Targets ||
+             !Number.isFinite(serverGlp1Targets.maximumToleratedFatGrams) ||
+             serverGlp1Targets.maximumToleratedFatGrams < 0)) {
+          return res.status(503).json({
+            success: false,
+            error: "The active clinical fat restriction could not be resolved safely. Please try again.",
+            code: "CLINICAL_FAT_AUTHORITY_UNAVAILABLE",
+          });
+        }
+        const fatCeiling = type === "create-with-chef" && serverGlp1Targets
+          ? serverGlp1Targets.maximumToleratedFatGrams
+          : effectiveRemainingMacros.fat;
 
         const mealsToValidate: any[] = [
           ...(result.meal  ? [result.meal]   : []),
@@ -2033,7 +2049,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ? budgetGenerationContext
             : (effectiveDietType ?? "standard");
         const carbCeiling = effectiveRemainingMacros?.carbs ?? Number.POSITIVE_INFINITY;
-        const fatCeiling = effectiveRemainingMacros?.fat ?? Number.POSITIVE_INFINITY;
+        const fatCeiling = type === "create-with-chef" && serverGlp1Targets
+          ? serverGlp1Targets.maximumToleratedFatGrams
+          : effectiveRemainingMacros?.fat ?? Number.POSITIVE_INFINITY;
 
         const toHumanFoodCandidate = (meal: any) => {
           const candidateText = [
@@ -2122,6 +2140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             requestedDish,
             requestedCategory,
             executionState: humanFoodExecutionState,
+            ordinaryFatAsGuidance: type === "create-with-chef",
           });
         const initialCandidates: any[] =
           result.meals?.length ? result.meals : result.meal ? [result.meal] : [];
@@ -2177,6 +2196,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         result.meals = acceptedWithEvidence;
         result.meal = acceptedWithEvidence[0];
+      }
+
+      if (type === "create-with-chef" && result.success && result.meal && humanFoodContext) {
+        const { buildChefMacroGoalNotice } = await import("./services/humanFoodContext/chefCandidateValidation");
+        result.macroGoalNotice = buildChefMacroGoalNotice(
+          result.meal,
+          humanFoodContext,
+          Number((result.meal as any).servings ?? req.body.servings ?? 1),
+        );
       }
 
       // ── Compliance bundle: attach complianceSection + dietClassification ──

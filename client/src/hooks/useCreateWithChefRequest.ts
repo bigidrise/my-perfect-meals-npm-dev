@@ -67,6 +67,7 @@ interface Meal {
   };
   medicalBadges?: string[];
   substitutionNotes?: string[];
+  macroGoalNotice?: { message: string; basis: "planned_forecast"; dateISO?: string };
   dietClassification?: string | null;
   diabeticMemory?: DiabeticMemoryContext;
 }
@@ -252,6 +253,7 @@ export function useCreateWithChefRequest(userId?: string, proClientId?: string, 
         },
         medicalBadges: generatedMeal.medicalBadges || [],
         substitutionNotes: generatedMeal.substitutionNotes || undefined,
+        macroGoalNotice: data.macroGoalNotice || undefined,
         dietClassification: generatedMeal.dietClassification || null,
         ...projectServerDiabeticMemory(generatedMeal, dietType === "diabetic"),
       };

@@ -1,4 +1,4 @@
-import type { HumanFoodContext } from "../../../shared/humanFoodContext";
+import type { HumanFoodContext, HumanFoodMacroGoalOptions } from "../../../shared/humanFoodContext";
 import { validateGlycemicProduce } from "../glycemicProduceValidator";
 
 export interface HumanFoodValidationResult {
@@ -30,7 +30,7 @@ function finiteNumber(value: unknown): number | null {
 export function validateHumanFoodResult(
   result: unknown,
   context: HumanFoodContext,
-  options: { requireNutrition?: boolean } = {},
+  options: { requireNutrition?: boolean } & HumanFoodMacroGoalOptions = {},
 ): HumanFoodValidationResult {
   const violations: string[] = [];
   const text = ingredientText(result);
@@ -93,7 +93,7 @@ export function validateHumanFoodResult(
   if (remaining && carbs != null && carbs > remaining.carbs) {
     violations.push("projected_carb_budget_exceeded");
   }
-  if (remaining && fat != null && fat > remaining.fat) {
+  if (!options.ordinaryFatAsGuidance && remaining && fat != null && fat > remaining.fat) {
     violations.push("projected_fat_budget_exceeded");
   }
   if (requireNutrition && context.nutrition?.activeConstraints.consumedStarchExhausted) {

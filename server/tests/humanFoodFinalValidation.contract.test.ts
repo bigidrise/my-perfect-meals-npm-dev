@@ -3,6 +3,8 @@ import type { HumanFoodCandidate } from "../../shared/humanFoodValidation";
 import { validateHumanFoodCandidate } from "../services/humanFoodContext/finalValidation";
 import { validateHumanFoodResult } from "../services/humanFoodContext/validateHumanFoodResult";
 import { buildHumanFoodPromptBlock } from "../services/humanFoodContext/buildHumanFoodPromptBlock";
+import { validateClinicalMacros } from "../services/clinicalMacroGate";
+import { buildHumanFoodPromptBlock } from "../services/humanFoodContext/buildHumanFoodPromptBlock";
 import { createHumanFoodRequestExecutionState } from "../services/humanFoodContext/requestExecutionState";
 
 function preference(value: string | null = null) {
@@ -74,6 +76,61 @@ function generatedEvidence(overrides: HumanFoodCandidate["evidence"] = {}) {
     ...overrides,
   };
 }
+
+describe("Chef ordinary fat goal classification", () => {
+  const subject = () => context({
+    nutrition: {
+      prescription: { source: "user_default" },
+      projectedRemaining: { calories: 500, carbs: 40, fat: 13 },
+      activeConstraints: { consumedStarchExhausted: false },
+    } as unknown as NonNullable<HumanFoodContext["nutrition"]>,
+  });
+  const dinner = () => ({
+    name: "Chicken tacos",
+    ingredients: [{ name: "chicken breast" }, { name: "cabbage" }, { name: "olive oil" }],
+    instructions: ["Grill chicken and serve with cabbage."],
+    nutrition: { calories: 300, protein: 35, carbs: 6, fat: 22, starchyCarbs: 0 },
+    evidence: generatedEvidence(),
+  });
+  it("softens only ordinary fat for the opted-in Chef action, not every food surface", () => {
+    const existing = validateHumanFoodCandidate(dinner(), subject());
+    expect(existing.findings.some(f => f.code === "projected_fat_budget_exceeded")).toBe(true);
+    const chef = validateHumanFoodCandidate(dinner(), subject(), { ordinaryFatAsGuidance: true });
+    expect(chef.findings.some(f => f.code === "projected_fat_budget_exceeded")).toBe(false);
+  });
+  it("keeps calorie and carbohydrate findings under the same opt-in", () => {
+    const candidate = dinner();
+    candidate.nutrition.calories = 600;
+    candidate.nutrition.carbs = 50;
+    const result = validateHumanFoodCandidate(candidate, subject(), { ordinaryFatAsGuidance: true });
+    expect(result.findings.some(f => f.code === "projected_calories_budget_exceeded")).toBe(true);
+    expect(result.findings.some(f => f.code === "projected_carbs_budget_exceeded")).toBe(true);
+  });
+  it("uses the same goal-versus-limit distinction in the actual prompt", () => {
+    const prompt = buildHumanFoodPromptBlock(subject(), { ordinaryFatAsGuidance: true });
+    expect(prompt).toContain("NOT a meal-blocking ceiling");
+    expect(prompt).toContain("Explicitly configured limits and applicable clinical fat restrictions");
+    expect(prompt).toContain("500 kcal or 40g total carbohydrate");
+    expect(buildHumanFoodPromptBlock(subject())).toContain("or 13g fat");
+  });
+  it("keeps the independent clinical fat check even when ordinary fat is guidance", () => {
+    expect(validateHumanFoodResult(dinner(), subject(), { ordinaryFatAsGuidance: true }).valid).toBe(true);
+    expect(validateClinicalMacros("glp1", 35, 15, 6, 22).passed).toBe(false);
+  });
+  it("does not waive a failed clinical directive proof", () => {
+    const candidate = dinner();
+    const protectedCandidate = {
+      ...candidate,
+      evidence: { ...candidate.evidence, clinicalDirectivesCompliant: false },
+    };
+    const protectedSubject = subject();
+    protectedSubject.safety.healthConditions = ["clinician-directed restriction"];
+    const result = validateHumanFoodCandidate(protectedCandidate, protectedSubject, {
+      ordinaryFatAsGuidance: true,
+    });
+    expect(result.findings.some(f => f.dimension === "clinical" && f.outcome === "blocked")).toBe(true);
+  });
+});
 
 describe("Development GLP-1 final evidence gate", () => {
   const oldEnv = process.env.NODE_ENV;

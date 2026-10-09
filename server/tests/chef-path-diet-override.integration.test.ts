@@ -218,6 +218,7 @@ import { generateFromDescriptionUnified, generateMealUnified, type MealGeneratio
 import { scanGeneratedOutput } from "../services/protocolEnvelope";
 import { generateMealImageUnified } from "../services/mealImageGenerator";
 import type { HumanFoodContext } from "../../shared/humanFoodContext";
+import { buildChefMacroGoalNotice } from "../services/humanFoodContext/chefCandidateValidation";
 
 // ── Source paths for structural tests ─────────────────────────────────────────
 const PIPELINE_SRC = fs.readFileSync(
@@ -322,12 +323,15 @@ beforeEach(() => {
   capturedCalls.length = 0;
   mockRecipeResponses.length = 0;
 });
-describe("Create With Chef canonical budget repair before images", () => {
+describe("Create With Chef ordinary fat guidance and hard-rule repair before images", () => {
   const context = (fat = 13): HumanFoodContext => Object.freeze({
     safety: { allergies: [], avoidedFoods: [], dislikedFoods: [] },
     authorization: { status: "none", waivers: [] },
     nutrition: {
-      prescription: { source: "macro_calculator" },
+      date: "2026-10-08",
+      prescription: { source: "user_default", fatTarget: 48, proteinTarget: 100 },
+      consumed: { fat: 35, protein: 70 },
+      planned: { fat: 0, protein: 0 },
       projectedRemaining: { calories: 500, carbs: 40, fat },
       activeConstraints: { consumedStarchExhausted: false },
     },
@@ -351,36 +355,88 @@ describe("Create With Chef canonical budget repair before images", () => {
     skipImage: false,
     safetyAlreadyChecked: true,
     dietaryRestrictionsOverride: ["keto"],
+    remainingMacros: { calories: 500, carbs: 40, fat: 4, protein: 10 },
+    builderMode: "STRICT",
     chefFoodContext: foodContext,
   });
   beforeEach(() => (generateMealImageUnified as jest.Mock).mockClear());
 
-  it("repairs an over-fat candidate with the same context before generating an image", async () => {
+  it("keeps a requested over-fat dinner without shrinking it or retrying an ordinary goal", async () => {
     const foodContext = context();
     const snapshot = JSON.stringify(foodContext);
-    mockRecipeResponses.push(recipe(24), recipe(10));
-    const result = await generateMealUnified(request(foodContext));
+    mockRecipeResponses.push(recipe(24));
+    const result = await generateMealUnified({ ...request(foodContext), dietType: "low-carb" });
     expect(result.success).toBe(true);
-    expect(result.meal?.fat).toBe(10);
+    expect(result.meal?.fat).toBe(24);
     expect(result.meal?.name).toBe("Grilled Chicken Tacos");
     expect(result.chefPersonFedValidated).toBe(true);
-    expect(capturedCalls).toHaveLength(2);
-    const repair = capturedCalls[1].messages.map(message => message.content).join("\n");
-    expect(repair).toContain("projected_fat_budget_exceeded");
-    expect(repair).toContain("Do not merely lower the reported nutrition");
+    expect(capturedCalls).toHaveLength(1);
+    const prompt = capturedCalls[0].messages.map(message => message.content).join("\n");
+    expect(prompt).not.toContain("- Fat remaining today:");
+    expect(prompt).not.toContain("- Protein remaining today:");
     expect(JSON.stringify(foodContext)).toBe(snapshot);
     expect(generateMealImageUnified).toHaveBeenCalledTimes(1);
   });
 
-  it("fails closed after bounded repair and explains the actual remaining fat limit", async () => {
-    mockRecipeResponses.push(recipe(24), recipe(20));
+  it("still repairs and fails closed for the unchanged carbohydrate ceiling", async () => {
+    const tooManyCarbs = JSON.stringify({ ...JSON.parse(recipe(24)), starchyCarbs: 45 });
+    mockRecipeResponses.push(tooManyCarbs, tooManyCarbs);
     const result = await generateMealUnified(request());
     expect(result.success).toBe(false);
-    expect(result.foodProfileViolations).toEqual(["projected_fat_budget_exceeded"]);
-    expect(result.error).toContain("fat (13g remaining)");
+    expect(result.foodProfileViolations).toEqual(["projected_carb_budget_exceeded"]);
+    expect(result.error).toContain("carbohydrate (40g remaining)");
     expect(capturedCalls).toHaveLength(2);
     expect(generateMealImageUnified).not.toHaveBeenCalled();
     expect(result.chefPersonFedValidated).toBeUndefined();
+  });
+
+  it("allows an ordinary fat overage even when the clamped remaining value is zero", async () => {
+    mockRecipeResponses.push(recipe(22));
+    const result = await generateMealUnified(request(context(0)));
+    expect(result.success).toBe(true);
+    expect(result.meal?.fat).toBe(22);
+    expect(capturedCalls).toHaveLength(1);
+  });
+
+  it("preserves an explicitly requested upper fat limit", async () => {
+    mockRecipeResponses.push(recipe(24), recipe(24));
+    const result = await generateMealUnified({
+      ...request(), macroTargets: { fat_g: 13, relationships: { fat_g: "at_most" } },
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("requested meal macros");
+    expect(generateMealImageUnified).not.toHaveBeenCalled();
+  });
+
+  it("forecasts a 9g overage from actual recipe totals without changing consumption or targets", () => {
+    const foodContext = context();
+    const before = JSON.stringify(foodContext);
+    const notice = buildChefMacroGoalNotice({ fat: 22, protein: 8 }, foodContext);
+    expect(notice?.basis).toBe("planned_forecast");
+    expect(notice?.projections[0]).toMatchObject({
+      macro: "fat", target: 48, before: 35, recipe: 22, projected: 57, overage: 9,
+    });
+    expect(notice?.message).toContain("9g over");
+    expect(JSON.stringify(foodContext)).toBe(before);
+  });
+
+  it("includes an existing overage rather than subtracting from a clamped zero", () => {
+    const foodContext = context(0);
+    foodContext.nutrition!.consumed.fat = 60;
+    const notice = buildChefMacroGoalNotice({ fat: 22, protein: 8 }, foodContext);
+    expect(notice?.projections[0].overage).toBe(34);
+  });
+
+  it("forecasts the person-fed portion rather than counting every serving in a recipe", () => {
+    const notice = buildChefMacroGoalNotice({ fat: 44, protein: 16 }, context(), 2);
+    expect(notice?.projections[0]).toMatchObject({ recipe: 22, projected: 57, overage: 9 });
+  });
+
+  it("tracks a protein overage without treating it as a maximum", () => {
+    const notice = buildChefMacroGoalNotice({ fat: 5, protein: 40 }, context());
+    expect(notice?.projections).toEqual([
+      expect.objectContaining({ macro: "protein", projected: 110, overage: 10 }),
+    ]);
   });
 
   it.each([0, 13])("preserves a verified %jg fat value without adding the legacy 15g default", async fat => {
