@@ -306,6 +306,8 @@ export interface MealGenerationRequest {
   diabetesSubjectScope?: "personal" | "household";
 
   macroTargets?: RequestedMealMacroTargets;
+  /** Frozen, server-resolved person-fed context. Never accepted from request JSON. */
+  chefFoodContext?: import("../../shared/humanFoodContext").HumanFoodContext;
 
   count?: number; // number of meals to generate (default 1)
 
@@ -422,6 +424,9 @@ export interface MealGenerationResponse {
   meals?: UnifiedMeal[];
   source: 'ai' | 'catalog' | 'fallback' | 'error';
   error?: string;
+  /** Internal proof that the legacy person-fed check ran before image generation. */
+  chefPersonFedValidated?: true;
+  foodProfileViolations?: string[];
   // Safety Profile enforcement fields
   safetyBlocked?: boolean;
   safetyAmbiguous?: boolean;
@@ -3571,6 +3576,7 @@ export async function generateFromDescriptionUnified(
   diabetesAttempt?: DiabetesGenerationAttempt,
   diabetesSubjectScope?: MealGenerationRequest["diabetesSubjectScope"],
   requestedMacroTargets?: RequestedMealMacroTargets,
+  chefFoodContext?: import("../../shared/humanFoodContext").HumanFoodContext,
 ): Promise<MealGenerationResponse> {
   let requestedMacros: RequestedMealMacroConstraint[];
   try {
@@ -4607,6 +4613,39 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       const substitutionNotes = Array.isArray(mealData.substitutionNotes) && mealData.substitutionNotes.length > 0
         ? mealData.substitutionNotes.filter((n: any) => typeof n === 'string' && n.trim().length > 0)
         : undefined;
+      // Apply the SAME canonical person-fed check inside the bounded repair loop,
+      // not only after a recipe and image have already been produced. Use raw
+      // provider nutrition so legacy defaults cannot fabricate verified values.
+      if (chefFoodContext) {
+        const { validateChefCandidate } = await import("./humanFoodContext/chefCandidateValidation");
+        const validation = validateChefCandidate({
+          ...tempMeal,
+          nutrition: {
+            calories: mealData.calories,
+            protein: mealData.protein,
+            carbs: totalCarbs,
+            fat: mealData.fat,
+            starchyCarbs,
+          },
+        }, chefFoodContext);
+        if (!validation.valid) {
+          console.warn("[CREATE-WITH-CHEF] Canonical candidate rejected before image generation", {
+            attempt: attemptCount,
+            violations: validation.violations,
+          });
+          if (attemptCount < MAX_REGENERATION_ATTEMPTS) {
+            lastFixHint = validation.repairHint;
+            previousRejectedCandidate = tempMeal;
+            continue;
+          }
+          return {
+            success: false,
+            source: "error",
+            error: validation.error,
+            foodProfileViolations: validation.violations,
+          };
+        }
+      }
       // IMPORTANT: use tempMeal.ingredients (not mealData.ingredients) so that any
       // dietary substitutions applied during validation are persisted to the response.
       finalMealData = { ...mealData, ingredients: tempMeal.ingredients, starchyCarbs, fibrousCarbs, totalCarbs, substitutionNotes, qualityStatus: (tempMeal as any).qualityStatus ?? undefined };
@@ -4656,12 +4695,12 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       description: finalMealData.description,
       ingredients: normalizeIngredients(finalMealData.ingredients || []),
       instructions: parseGeneratedRecipeSteps(finalMealData.instructions),
-      calories: finalMealData.calories || 400,
+      calories: chefFoodContext ? Number(finalMealData.calories) : (finalMealData.calories || 400),
       protein: requestedMacros.length ? (finalMealData.protein ?? 25) : (finalMealData.protein || 25),
       carbs: finalMealData.totalCarbs,
       starchyCarbs: finalMealData.starchyCarbs,
       fibrousCarbs: finalMealData.fibrousCarbs,
-      fat: requestedMacros.length ? (finalMealData.fat ?? 15) : (finalMealData.fat || 15),
+      fat: chefFoodContext ? Number(finalMealData.fat) : requestedMacros.length ? (finalMealData.fat ?? 15) : (finalMealData.fat || 15),
       cookingTime: finalMealData.cookingTime || '25 minutes',
       difficulty: finalMealData.difficulty || 'Easy',
       imageUrl: imageUrl ?? '',
@@ -4681,7 +4720,8 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
       success: true,
       meal: unifiedMeal,
       meals: [unifiedMeal],
-      source: 'ai'
+      source: 'ai',
+      ...(chefFoodContext ? { chefPersonFedValidated: true as const } : {}),
     };
     return resolvedDiabetesAttempt && userId
       ? validateAndStampDiabetesResult(result, userId, validMealType, resolvedDiabetesAttempt)
@@ -4689,6 +4729,15 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
     
   } catch (error: any) {
     console.error('❌ Create With Chef generation failed:', error);
+    // A canonical request must never turn a verification/provider exception
+    // into an unrelated, unverified template. Preserve fail-closed behavior.
+    if (chefFoodContext) {
+      return {
+        success: false,
+        source: "error",
+        error: "Chef couldn't complete recipe verification safely. No meal was added. Please try again.",
+      };
+    }
     
     // Fallback to deterministic template
     const fallback = glp1Targets
@@ -5505,6 +5554,7 @@ export async function generateMealUnified(
         diabetesAttempt,
         request.diabetesSubjectScope,
         request.macroTargets,
+        request.chefFoodContext,
       );
       break;
 

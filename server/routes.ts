@@ -1811,6 +1811,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         preferredLanguage: (req as any).authUser?.preferredLanguage,
         correlationId: (req as any).id,
         humanFoodExecutionState,
+        chefFoodContext: type === "create-with-chef" ? humanFoodContext ?? undefined : undefined,
         // Temporary diet override — replaces profile diet for one generation.
         // Source priority: explicit dietOverride field > dietType query param.
         // Using dietType as the source means the existing Create a Dish UI (which sends
@@ -1844,7 +1845,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       const result = await generateMealUnified(generationRequest);
 
-      if (result.success && humanFoodContext) {
+      if (result.success && humanFoodContext && !result.chefPersonFedValidated) {
         const { validateHumanFoodResult } = await import("./services/humanFoodContext/validateHumanFoodResult");
         const candidate = result.meal ?? result.meals?.[0];
         const canonicalValidation = validateHumanFoodResult(candidate, humanFoodContext);
@@ -1855,12 +1856,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           return res.status(422).json({
             success: false,
-            error: "We couldn't create a meal that fits the active food profile. Please try again.",
+            error: type === "create-with-chef"
+              ? (await import("./services/humanFoodContext/chefCandidateValidation"))
+                  .describeChefFoodProfileFailure(canonicalValidation.violations, humanFoodContext)
+              : "We couldn't create a meal that fits the active food profile. Please try again.",
             source: "human_food_validation",
+            violations: canonicalValidation.violations,
           });
         }
       }
 
+      if (!result.success && result.foodProfileViolations?.length) {
+        return res.status(422).json({
+          ...result,
+          code: "FOOD_PROFILE_RECIPE_REJECTED",
+          source: "human_food_validation",
+        });
+      }
+      // The pre-image proof is internal, not a client-supplied capability.
+      delete result.chefPersonFedValidated;
       const durationMs = Date.now() - startTime;
       recordGeneration('/api/meals/generate', result.source as any, durationMs);
 

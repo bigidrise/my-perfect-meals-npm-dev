@@ -216,6 +216,8 @@ jest.mock("../services/mealCachePersistent", () => ({
 // ── Imports (after jest.mock hoisting) ────────────────────────────────────────
 import { generateFromDescriptionUnified, generateMealUnified, type MealGenerationRequest } from "../services/unifiedMealPipeline";
 import { scanGeneratedOutput } from "../services/protocolEnvelope";
+import { generateMealImageUnified } from "../services/mealImageGenerator";
+import type { HumanFoodContext } from "../../shared/humanFoodContext";
 
 // ── Source paths for structural tests ─────────────────────────────────────────
 const PIPELINE_SRC = fs.readFileSync(
@@ -320,6 +322,111 @@ beforeEach(() => {
   capturedCalls.length = 0;
   mockRecipeResponses.length = 0;
 });
+describe("Create With Chef canonical budget repair before images", () => {
+  const context = (fat = 13): HumanFoodContext => Object.freeze({
+    safety: { allergies: [], avoidedFoods: [], dislikedFoods: [] },
+    authorization: { status: "none", waivers: [] },
+    nutrition: {
+      prescription: { source: "macro_calculator" },
+      projectedRemaining: { calories: 500, carbs: 40, fat },
+      activeConstraints: { consumedStarchExhausted: false },
+    },
+  }) as unknown as HumanFoodContext;
+  const recipe = (fat: unknown) => JSON.stringify({
+    ...JSON.parse(KETO_CAKE_RESPONSE),
+    name: "Grilled Chicken Tacos",
+    ingredients: [
+      { name: "chicken breast", quantity: "5", unit: "oz" },
+      { name: "cabbage", quantity: "1", unit: "cup" },
+      { name: "olive oil", quantity: "1", unit: "tsp" },
+    ],
+    fat,
+  });
+  const request = (foodContext = context()): MealGenerationRequest => ({
+    type: "create-with-chef",
+    mealType: "dinner",
+    input: "Tacos.",
+    userId: "test-user-vegan-001",
+    servings: 1,
+    skipImage: false,
+    safetyAlreadyChecked: true,
+    dietaryRestrictionsOverride: ["keto"],
+    chefFoodContext: foodContext,
+  });
+  beforeEach(() => (generateMealImageUnified as jest.Mock).mockClear());
+
+  it("repairs an over-fat candidate with the same context before generating an image", async () => {
+    const foodContext = context();
+    const snapshot = JSON.stringify(foodContext);
+    mockRecipeResponses.push(recipe(24), recipe(10));
+    const result = await generateMealUnified(request(foodContext));
+    expect(result.success).toBe(true);
+    expect(result.meal?.fat).toBe(10);
+    expect(result.meal?.name).toBe("Grilled Chicken Tacos");
+    expect(result.chefPersonFedValidated).toBe(true);
+    expect(capturedCalls).toHaveLength(2);
+    const repair = capturedCalls[1].messages.map(message => message.content).join("\n");
+    expect(repair).toContain("projected_fat_budget_exceeded");
+    expect(repair).toContain("Do not merely lower the reported nutrition");
+    expect(JSON.stringify(foodContext)).toBe(snapshot);
+    expect(generateMealImageUnified).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails closed after bounded repair and explains the actual remaining fat limit", async () => {
+    mockRecipeResponses.push(recipe(24), recipe(20));
+    const result = await generateMealUnified(request());
+    expect(result.success).toBe(false);
+    expect(result.foodProfileViolations).toEqual(["projected_fat_budget_exceeded"]);
+    expect(result.error).toContain("fat (13g remaining)");
+    expect(capturedCalls).toHaveLength(2);
+    expect(generateMealImageUnified).not.toHaveBeenCalled();
+    expect(result.chefPersonFedValidated).toBeUndefined();
+  });
+
+  it.each([0, 13])("preserves a verified %jg fat value without adding the legacy 15g default", async fat => {
+    mockRecipeResponses.push(recipe(fat));
+    const result = await generateMealUnified(request());
+    expect(result.success).toBe(true);
+    expect(result.meal?.fat).toBe(fat);
+    expect(capturedCalls).toHaveLength(1);
+  });
+
+  it.each([undefined, null, "", -1])("does not certify unavailable/invalid fat as zero: %j", async fat => {
+    mockRecipeResponses.push(recipe(fat), recipe(fat));
+    const result = await generateMealUnified(request());
+    expect(result.success).toBe(false);
+    expect(result.foodProfileViolations).toContain("verified_fat_missing");
+    expect(result.error).toContain("couldn't verify");
+    expect(generateMealImageUnified).not.toHaveBeenCalled();
+  });
+
+  it("retains the ingredient exclusions during numeric repair", async () => {
+    const foodContext = {
+      ...context(),
+      safety: { allergies: ["chicken"], avoidedFoods: [], dislikedFoods: [] },
+    } as HumanFoodContext;
+    mockRecipeResponses.push(recipe(10), recipe(10));
+    const result = await generateMealUnified(request(foodContext));
+    expect(result.success).toBe(false);
+    expect(result.foodProfileViolations).toContain("forbidden_ingredient:chicken");
+    expect(generateMealImageUnified).not.toHaveBeenCalled();
+  });
+
+  it("checks per-serving provider nutrition rather than multiplying by requested servings", async () => {
+    mockRecipeResponses.push(JSON.stringify({
+      ...JSON.parse(recipe(10)),
+      ingredients: [
+        { name: "chicken breast", quantity: "15", unit: "oz" },
+        { name: "cabbage", quantity: "3", unit: "cup" },
+        { name: "olive oil", quantity: "1", unit: "tbsp" },
+      ],
+    }));
+    const result = await generateMealUnified({ ...request(), servings: 3 });
+    expect(result.success).toBe(true);
+    expect(result.meal?.fat).toBe(10);
+  });
+});
+
 describe("Create With Chef requested-macro handoff", () => {
   const recipe = (overrides: Record<string, unknown> = {}) => JSON.stringify({
     ...JSON.parse(KETO_CAKE_RESPONSE),
