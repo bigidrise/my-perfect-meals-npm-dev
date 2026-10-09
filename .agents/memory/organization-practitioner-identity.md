@@ -11,7 +11,7 @@ An organization owner who is a physician is still a physician. Organization owne
 
 A business owner with an authorized, active professional Studio must be able to invite and accept clients without changing their stored professional role from business. Existing nonclinical Studio operating authority is not a trainer occupation or a clinical credential.
 
-**Why:** The user required a permanent correction after Studio invitations were classified as client-originated because business owners were not canonical practitioners. Changing the business account into a trainer or physician would repeat the identity-design problem.
+**Why:** The user required a permanent correction after Studio invitations were classified as client-originated because business owners were not canonical practitioners, and later confirmed the corrected invitation worked. Changing the business account into a trainer or physician would repeat the identity-design problem.
 
 **How to apply:** Resolve current ownership, active nonclinical Studio, provider access, training and agreements independently. Bind invitation direction explicitly and revalidate it during acceptance. Legacy ambiguous or backwards invitations require safe reissue, not silent reversal. Business ownership alone never grants Studio or patient-access privileges.
 
