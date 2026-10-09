@@ -6,7 +6,7 @@
  * /api/biometrics/log directly for macro logging purposes.
  *
  * Route: POST /api/macros/log (canonical, starchy/fibrous-aware)
- * fibrousCarbs is derived server-side from fiber — do not send it separately.
+ * Explicit recipe carb splits are preserved; dietary fiber remains separate.
  */
 
 import type { MacroLogInput } from "@shared/nutritionFacts";
@@ -24,6 +24,7 @@ export async function logMacros(input: MacroLogInput): Promise<void> {
     carbs: input.carbohydrates,
     fat: input.fat,
     starchyCarbs: input.starchyCarbs ?? null,
+    fibrousCarbs: input.fibrousCarbs ?? null,
     // fiber → server derives fibrousCarbs from it
     fiber: input.fiber ?? null,
     source: input.source,

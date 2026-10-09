@@ -57,6 +57,7 @@ import { readDraft, clearDraft } from "@/lib/macrosDraft";
 import { startQueueAutoFlush, queueOrPost } from "@/lib/queue";
 import { normalizeMacros } from "@/lib/macroNormalize";
 import { getQuickView, clearQuickView, QuickView } from "@/lib/macrosQuickView";
+import { logMacros } from "@/lib/logMacros";
 import { parseBiometricsParams, BIOMETRICS_SOURCES, SECTION_IDS } from "@/lib/biometricsNavigation";
 import { getMacroTargets, MacroTargets } from "@/lib/dailyLimits";
 import { getResolvedTargets } from "@/lib/macroResolver";
@@ -612,6 +613,8 @@ export default function MyBiometrics() {
   // Quick View panel state (non-auto-logging preview from meal cards)
   // SAFE: Start with null, load from storage in useEffect
   const [qv, setQv] = useState<QuickView | null>(null);
+  const [macroSaving, setMacroSaving] = useState(false);
+  const macroSaveInFlight = useRef(false);
   const [highlightQv, setHighlightQv] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [showNextActionModal, setShowNextActionModal] = useState(false);
@@ -688,8 +691,8 @@ export default function MyBiometrics() {
         setC(String(stored.carbs));
         setF(String(stored.fat));
         setK(String(stored.calories));
-        if (stored.starchyCarbs) setSc(String(stored.starchyCarbs));
-        if (stored.fibrousCarbs) setFc(String(stored.fibrousCarbs));
+        setSc(stored.starchyCarbs == null ? "" : String(stored.starchyCarbs));
+        setFc(stored.fibrousCarbs == null ? "" : String(stored.fibrousCarbs));
         setQv(stored);
         clearQuickView();
       }
@@ -757,13 +760,17 @@ export default function MyBiometrics() {
     if (hasReturn) setShowNextActionModal(true);
   };
 
-  const addMacros = () => {
+  const addMacros = async () => {
+    if (macroSaveInFlight.current) return;
     let P = Number(p || 0),
       F = Number(f || 0);
     const SC = Number(sc || 0); // starchyCarbs
     const FC = Number(fc || 0); // fibrousCarbs
-    // Total carbs always derived from starchy + fibrous split
-    let C = SC + FC;
+    // Keep the saved meal's total, including any unclassified carbohydrate.
+    // Once the user edits its split, manual entry owns the new total.
+    const unchangedPreview = qv && Number(p) === qv.protein && Number(f) === qv.fat &&
+      SC === (qv.starchyCarbs ?? 0) && FC === (qv.fibrousCarbs ?? 0);
+    let C = unchangedPreview ? qv.carbs : SC + FC;
 
     // If nothing entered, do nothing (silent)
     if (![P, C, F, Number(k || 0)].some(Boolean)) return;
@@ -778,6 +785,30 @@ export default function MyBiometrics() {
 
     // Derive calories if blank
     const K = k.trim() ? Number(k) : Math.round(kcalFrom(P, C, F));
+
+    if (userId) {
+      macroSaveInFlight.current = true;
+      setMacroSaving(true);
+      try {
+        await logMacros({
+          calories: K, protein: P, carbohydrates: C, fat: F,
+          starchyCarbs: unchangedPreview && qv.starchyCarbs == null ? null : SC,
+          fibrousCarbs: unchangedPreview && qv.fibrousCarbs == null ? null : FC,
+          source: unchangedPreview ? qv.source ?? "meal_card" : "manual",
+          title: unchangedPreview ? qv.title : undefined,
+          mealId: unchangedPreview ? qv.mealId : undefined,
+          mealType: qv?.mealSlot === "snacks" ? "snack" : qv?.mealSlot ?? "manual",
+          dateIso: new Date().toISOString(),
+        });
+      } catch {
+        toast({ title: "Macros not saved", description: "Your entry couldn't be saved. It is still here so you can retry.", variant: "destructive" });
+        setMacroSaving(false);
+        macroSaveInFlight.current = false;
+        return;
+      }
+      setMacroSaving(false);
+      macroSaveInFlight.current = false;
+    }
 
     setMacroRows((prev) => {
       const idx = prev.findIndex((r) => r.day === today);
@@ -804,6 +835,12 @@ export default function MyBiometrics() {
     setK("");
     setSc("");
     setFc("");
+    setQv(null);
+    clearQuickView();
+
+    // The awaited write is committed now. Refresh authoritative totals,
+    // including the server's conservative classification of unknown splits.
+    if (userId) window.dispatchEvent(new Event("macros:updated"));
 
     // Dispatch "done" event after successfully adding macros (500ms debounce)
     setTimeout(() => {
@@ -813,48 +850,6 @@ export default function MyBiometrics() {
       window.dispatchEvent(event);
     }, 500);
 
-    if (userId) {
-      fetch(apiUrl("/api/macros/log"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        credentials: "include",
-        body: JSON.stringify({
-          loggedAt: new Date().toISOString(),
-          mealType: "manual",
-          protein: P,
-          carbs: C,
-          fat: F,
-          kcal: K,
-          starchyCarbs: SC,
-          fibrousCarbs: FC,
-          source: "manual",
-        }),
-      })
-        .then(async (r) => {
-          if (r.ok) {
-            // Do NOT dispatch "macros:updated" here. The optimistic setMacroRows
-            // update is already applied and correct. Dispatching the event triggers
-            // an immediate server refetch that races with the just-committed write
-            // and can overwrite the graph display with pre-write stale data.
-          } else {
-            const body = await r.json().catch(() => ({}));
-            console.error("[MACROS/LOG] write failed", r.status, body);
-            toast({
-              title: "Macros not saved",
-              description: "Your entry was added locally but couldn't be saved to your account. Check your connection and try again.",
-              variant: "destructive",
-            });
-          }
-        })
-        .catch((err) => {
-          console.error("[MACROS/LOG] network error", err);
-          toast({
-            title: "Macros not saved",
-            description: "Network error — your entry wasn't persisted. Please try again.",
-            variant: "destructive",
-          });
-        });
-    }
   };
 
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -2258,8 +2253,9 @@ export default function MyBiometrics() {
               <PillButton
                 data-testid="biometrics-add-button"
                 onClick={addMacros}
+                disabled={macroSaving}
               >
-                Add
+                {macroSaving ? "Saving…" : "Add"}
               </PillButton>
               <PillButton
                 onClick={resetToday}

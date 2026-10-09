@@ -36,6 +36,7 @@ import { get, post } from "@/lib/api";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
 import type { UniversalIngredient } from "@/stores/shoppingListStore";
 import { GroceryCoachMacroTiles, type GroceryCoachMacros } from "./GroceryCoachMacroTiles";
+import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
 
 type Phase = "idle" | "loading" | "result";
 
@@ -1581,7 +1582,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
                 {/* Macros */}
                 {result.macros && (
-                  <GroceryCoachMacroTiles macros={result.macros} />
+                  <GroceryCoachMacroTiles macros={mealMacroSnapshot(result)} servings={mealMacroSnapshot(result).servings} />
                 )}
 
                 {/* Why This Fits You */}
