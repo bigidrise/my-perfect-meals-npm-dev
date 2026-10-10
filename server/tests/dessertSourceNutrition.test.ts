@@ -80,6 +80,34 @@ describe("Source-backed Dessert nutrition", () => {
     expect(fetcher).toHaveBeenCalledTimes(2);
     expect(String(fetcher.mock.calls[0][0])).toContain("SR+Legacy%2CFoundation");
   });
+  it.each([
+    ["dedicated", "alternate", "dedicated"],
+    ["", "alternate", "alternate"],
+    ["", "", "DEMO_KEY"],
+  ])("resolves source credentials without exposing them in nutrition (%s)", async (primary, alternate, expected) => {
+    const previousPrimary = process.env.USDA_FDC_API_KEY;
+    const previousAlternate = process.env.USDA_API_KEY;
+    try {
+      process.env.USDA_FDC_API_KEY = primary;
+      process.env.USDA_API_KEY = alternate;
+      let lookup: typeof lookupUsdaIngredient;
+      jest.isolateModules(() => {
+        lookup = require("../services/productDiscovery/usdaIngredientAdapter").lookupUsdaIngredient;
+      });
+      const fetcher = jest.fn()
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ foods: [{ fdcId: 167749, description: "Lemon peel, raw", dataType: "SR Legacy" }] }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => record() });
+      const result = await lookup!("lemon zest", fetcher);
+      expect(new URL(String(fetcher.mock.calls[0][0])).searchParams.get("api_key")).toBe(expected);
+      expect(new URL(String(fetcher.mock.calls[1][0])).searchParams.get("api_key")).toBe(expected);
+      expect(JSON.stringify(result)).not.toContain(expected);
+    } finally {
+      if (previousPrimary === undefined) delete process.env.USDA_FDC_API_KEY;
+      else process.env.USDA_FDC_API_KEY = previousPrimary;
+      if (previousAlternate === undefined) delete process.env.USDA_API_KEY;
+      else process.env.USDA_API_KEY = previousAlternate;
+    }
+  });
   it("has no AI estimation call and keeps original quantities before display normalization", () => {
     const helper = readFileSync("server/services/dessertNutrition.ts", "utf8");
     const route = readFileSync("server/routes/dessert-creator.ts", "utf8");

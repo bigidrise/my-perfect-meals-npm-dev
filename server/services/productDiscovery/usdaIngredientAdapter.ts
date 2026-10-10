@@ -105,7 +105,7 @@ export async function lookupUsdaIngredient(name: string, fetcher: typeof fetch =
   const request = (async () => {
     // The existing public demo credential supports Development exploration only.
     // No credential is exposed in the meal response or logged.
-    const apiKey = process.env.USDA_FDC_API_KEY || "DEMO_KEY";
+    const apiKey = process.env.USDA_FDC_API_KEY || process.env.USDA_API_KEY || "DEMO_KEY";
     const search = new URL("https://api.nal.usda.gov/fdc/v1/foods/search");
     search.searchParams.set("api_key", apiKey);
     search.searchParams.set("query", description);
