@@ -11,11 +11,12 @@ const transpile = (source, file) => ts.transpileModule(source, {
   fileName: file,
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, esModuleInterop: true },
 }).outputText;
-const policyModule = { exports: {} };
-vm.runInNewContext(transpile(read("server/bootstrap/developmentStartupMaintenance.ts"), "policy.ts"), {
-  module: policyModule, exports: policyModule.exports, process: { env: {} },
-});
-const policy = policyModule.exports.startupMaintenanceEnabled;
+const policyCode = transpile(read("server/bootstrap/developmentStartupMaintenance.ts"), "policy.ts");
+function freshPolicy(env = {}) {
+  const module = { exports: {} };
+  vm.runInNewContext(policyCode, { module, exports: module.exports, process: { env } });
+  return module.exports;
+}
 const dev = { NODE_ENV: "development", DEVELOPMENT_SAFE_RESTART: "true" };
 let checks = 0;
 function check(name, fn) {
@@ -23,20 +24,44 @@ function check(name, fn) {
   checks++;
   console.log(`PASS: ${name}`);
 }
-check("explicit Development opt-in suppresses startup maintenance", () => assert.equal(policy(dev), false));
-check("ordinary Development retains maintenance", () => assert.equal(policy({ NODE_ENV: "development" }), true));
-check("Production cannot opt out", () => assert.equal(policy({ ...dev, NODE_ENV: "production" }), true));
-check("a deployed process cannot opt out even with Development NODE_ENV", () =>
-  assert.equal(policy({ ...dev, REPLIT_DEPLOYMENT: "1" }), true));
-check("Production-project marker cannot opt out", () =>
-  assert.equal(policy({ ...dev, VITE_IS_PRODUCTION_PROJECT: "true" }), true));
-check("alternate Production-project marker spellings cannot opt out", () => {
-  assert.equal(policy({ ...dev, VITE_IS_PRODUCTION_PROJECT: "TRUE" }), true);
-  assert.equal(policy({ ...dev, VITE_IS_PRODUCTION_PROJECT: "1" }), true);
+check("explicit Development opt-in suppresses startup maintenance after initialization", () => {
+  const policy = freshPolicy(dev);
+  policy.initializeDevelopmentStartupMaintenance(dev);
+  assert.equal(policy.startupMaintenanceEnabled(), false);
 });
-check("test and missing NODE_ENV cannot opt out", () => {
-  assert.equal(policy({ ...dev, NODE_ENV: "test" }), true);
-  assert.equal(policy({ DEVELOPMENT_SAFE_RESTART: "true" }), true);
+check("ordinary Development retains maintenance", () =>
+  assert.equal(freshPolicy().startupMaintenanceEnabled({ NODE_ENV: "development" }), true));
+check("Production cannot opt out", () =>
+  assert.equal(freshPolicy().startupMaintenanceEnabled({ ...dev, NODE_ENV: "production" }), true));
+check("a deployed process cannot opt out even with Development NODE_ENV", () =>
+  assert.equal(freshPolicy().startupMaintenanceEnabled({ ...dev, REPLIT_DEPLOYMENT: "1" }), true));
+check("regression: client Production branding cannot silently enable Development writers", () => {
+  for (const marker of ["true", "TRUE", "1"]) {
+    const env = { ...dev, VITE_IS_PRODUCTION_PROJECT: marker };
+    const policy = freshPolicy(env);
+    policy.initializeDevelopmentStartupMaintenance(env);
+    assert.equal(policy.startupMaintenanceEnabled(), false);
+  }
+});
+check("safe opt-in without explicit Development refuses startup instead of enabling writers", () => {
+  assert.throws(() => freshPolicy().initializeDevelopmentStartupMaintenance({ ...dev, NODE_ENV: "test" }));
+  assert.throws(() => freshPolicy().initializeDevelopmentStartupMaintenance({ DEVELOPMENT_SAFE_RESTART: "true" }));
+});
+check("direct index launch cannot bypass bootstrap initialization", () =>
+  assert.throws(() => freshPolicy(dev).startupMaintenanceEnabled(), /not initialized/));
+check("ambiguous flag refuses Development startup", () =>
+  assert.throws(() => freshPolicy().initializeDevelopmentStartupMaintenance({ ...dev, DEVELOPMENT_SAFE_RESTART: "TRUE" }), /ambiguous/));
+check("Development bootstrap rejects Production and deployed runtimes", () => {
+  assert.throws(() => freshPolicy().initializeDevelopmentStartupMaintenance({ ...dev, NODE_ENV: "production" }));
+  assert.throws(() => freshPolicy().initializeDevelopmentStartupMaintenance({ ...dev, REPLIT_DEPLOYMENT: "1" }));
+});
+check("initialized safe mode is immutable even if later configuration changes", () => {
+  const env = { ...dev };
+  const policy = freshPolicy(env);
+  policy.initializeDevelopmentStartupMaintenance(env);
+  env.DEVELOPMENT_SAFE_RESTART = "false";
+  assert.equal(policy.startupMaintenanceEnabled(), false);
+  assert.throws(() => policy.initializeDevelopmentStartupMaintenance(env), /cannot be changed/);
 });
 
 function guarded(node) {
@@ -173,19 +198,109 @@ function audit(file) {
   }
   descend(ast);
 }
-audit("server/index.ts");
+audit("server/devBootstrap.ts");
 console.log(`IMPORT AUDIT: ${seen.size} local modules inspected (parse-only).`);
 console.log([...new Set(sites)].join("\n"));
 console.log([...new Set(constructionSites)].join("\n"));
+
+function freshBootstrap(env, netModule) {
+  const policy = freshPolicy(env);
+  const module = { exports: {} };
+  vm.runInNewContext(transpile(read("server/bootstrap/developmentStartup.ts"), "bootstrap.ts"), {
+    module, exports: module.exports,
+    require: spec => {
+      if (spec === "node:net") return netModule ?? { createServer: () => { throw Error("A real socket must not be opened by offline tests"); } };
+      if (spec === "./developmentStartupMaintenance") return policy;
+      throw Error(`Unexpected bootstrap dependency: ${spec}`);
+    },
+  });
+  return { policy, bootstrap: module.exports };
+}
+
+async function verifyPreImportBootstrap() {
+  const manifest = JSON.parse(read("package.json"));
+  check("both Development npm commands use the pre-import bootstrap", () => {
+    assert.match(manifest.scripts.dev, /server\/devBootstrap\.ts$/);
+    assert.match(manifest.scripts["dev:server"], /server\/devBootstrap\.ts$/);
+  });
+  check("bootstrap has no static application, DB, worker or route imports", () => {
+    const imports = parse("server/devBootstrap.ts").statements.filter(ts.isImportDeclaration)
+      .map(node => node.moduleSpecifier.text);
+    assert.deepEqual(imports, ["dotenv", "./bootstrap/developmentStartup"]);
+    assert.match(read("server/devBootstrap.ts"), /loadApplication: \(\) => import\("\.\/index"\)/);
+  });
+  const env = { ...dev, VITE_IS_PRODUCTION_PROJECT: "true" };
+  const { policy, bootstrap } = freshBootstrap(env);
+  const events = [];
+  await bootstrap.runDevelopmentStartup({
+    env,
+    checkPort: async port => {
+      assert.equal(port, 5000);
+      assert.equal(policy.startupMaintenanceEnabled(), false);
+      events.push("port");
+    },
+    loadApplication: async () => {
+      // Model an import-time worker that asks the real initialized policy.
+      assert.equal(policy.startupMaintenanceEnabled(), false);
+      events.push("import");
+    },
+  });
+  check("safe policy is initialized before port preflight and import-time worker evaluation", () =>
+    assert.deepEqual(events, ["port", "import"]));
+  for (const failure of ["occupied port", "Production", "deployed", "invalid flag", "invalid port"]) {
+    const testEnv = { ...env };
+    if (failure === "Production") testEnv.NODE_ENV = "production";
+    if (failure === "deployed") testEnv.REPLIT_DEPLOYMENT = "1";
+    if (failure === "invalid flag") testEnv.DEVELOPMENT_SAFE_RESTART = "invalid";
+    if (failure === "invalid port") testEnv.PORT = "not-a-port";
+    const current = freshBootstrap(testEnv);
+    let imported = false;
+    await assert.rejects(() => current.bootstrap.runDevelopmentStartup({
+      env: testEnv,
+      checkPort: async () => { throw Error("occupied"); },
+      loadApplication: async () => { imported = true; },
+    }));
+    check(`${failure} aborts before any application import`, () => assert.equal(imported, false));
+  }
+  // Exercise the actual preflight implementation with a fake net.Server:
+  // no sockets, process signals, app imports, providers or database connections.
+  for (const occupied of [true, false]) {
+    const events = [];
+    const handlers = new Map();
+    const probe = {
+      once: (name, handler) => { handlers.set(name, handler); return probe; },
+      listen: options => {
+        assert.equal(options.port, 5000);
+        assert.equal(options.exclusive, true);
+        events.push("probe");
+        queueMicrotask(() => occupied
+          ? handlers.get("error")({ code: "EADDRINUSE" })
+          : handlers.get("listening")());
+        return probe;
+      },
+      close: callback => { events.push("close"); callback(); },
+    };
+    const current = freshBootstrap(env, { createServer: () => probe });
+    const attempt = current.bootstrap.runDevelopmentStartup({
+      env, loadApplication: async () => { events.push("import"); },
+    });
+    if (occupied) await assert.rejects(attempt, /occupied.*application was not imported/);
+    else await attempt;
+    check(`real preflight logic with ${occupied ? "occupied" : "free"} fake port`, () =>
+      assert.deepEqual(events, occupied ? ["probe"] : ["probe", "close", "import"]));
+  }
+}
 
 async function simulateSafeBoot() {
   const timers = [];
   const calls = [];
   const fakeProcess = {
-    env: { ...dev, SKIP_DEVELOPMENT_ACCOUNT_MAINTENANCE: "true" },
+    env: { ...dev, VITE_IS_PRODUCTION_PROJECT: "true", SKIP_DEVELOPMENT_ACCOUNT_MAINTENANCE: "true" },
     version: "synthetic", on: () => {},
     exit: code => { throw Error(`Unexpected exit ${code}`); },
   };
+  const realPolicy = freshPolicy(fakeProcess.env);
+  realPolicy.initializeDevelopmentStartupMaintenance(fakeProcess.env);
   const noop = () => {};
   const app = {
     use: noop, get: noop, post: noop, options: noop, set: noop, disable: noop,
@@ -197,7 +312,7 @@ async function simulateSafeBoot() {
   const moduleCache = new Map();
   function mockedRequire(spec) {
     if (spec.includes("developmentStartupMaintenance")) {
-      return { startupMaintenanceEnabled: () => policy(fakeProcess.env) };
+      return realPolicy;
     }
     if (spec === "express") return express;
     if (spec === "path") return { __esModule: true, default: path, ...path };
@@ -242,6 +357,9 @@ async function simulateSafeBoot() {
     }
   });
 }
-simulateSafeBoot().then(() => {
+(async () => {
+  await verifyPreImportBootstrap();
+  await simulateSafeBoot();
+})().then(() => {
   console.log(`RESULT: ${checks} isolated checks passed; ${guardedTimers} guarded timers and ${guardedWriters} guarded writer calls inspected.`);
 }).catch(error => { console.error(error); process.exitCode = 1; });
