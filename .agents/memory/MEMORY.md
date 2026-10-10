@@ -149,3 +149,4 @@
 - [Page paywall return policy](page-paywall-return-policy.md) — denied pages need an accessible parent behind the modal; action-level prompts stay on their current page.
 - [Recipe Maker product expectation](recipe-maker-product-expectation.md) — reliable, identity-preserving recipes; category recognition alone does not prove clinical compliance.
 - [Dessert Creator product boundary](dessert-creator-product-boundary.md) — Craving is for smaller meals; Dessert is for larger recipes such as whole pies and pans of brownies.
+- [Craving quality standard](craving-quality-standard.md) — preserve adapted food identity without rigid ingredients, routine extra AI checks, or overrejecting legitimate variations.

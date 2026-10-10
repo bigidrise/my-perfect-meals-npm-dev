@@ -8,3 +8,9 @@ Run focused Jest checks with isolated transpilation and perform TypeScript check
 **Why:** Disabling Jest diagnostics does not prevent ts-jest from loading the large TypeScript project. A focused run exhausted a 768 MB heap before executing tests; isolated transpilation completed the same checks quickly.
 
 **How to apply:** Enable ts-jest's isolated compilation mode for the test invocation, without changing the app's TypeScript configuration. Keep the separate release type gate. On the current Jest setup, the invocation-level override `--globals='{"ts-jest":{"isolatedModules":true}}'` works, though ts-jest warns that this configuration form is deprecated.
+
+Stream or save verification output while commands run, rather than buffering subprocess output and writing it only after completion.
+
+**Why:** A parent timeout can discard all buffered child output, hiding which phase stalled and making a tooling timeout look like an application failure.
+
+**How to apply:** Capture output as it arrives and check build/test phases separately when investigating a timeout. Do not treat a narrow passing check as proof that the full application is verified.
