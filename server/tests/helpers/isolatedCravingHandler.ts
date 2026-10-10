@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
 import { buildCravingCategoryPrompt } from "../../../shared/cravingCategories";
+import { resolveCravingSelection } from "../../services/craving/categorySelection";
 
 // No routes/index/db/provider imports. Execute the unchanged source expression,
 // not a hand-written handler. Every dynamic import is confined to this allowlist.
@@ -121,6 +122,7 @@ export function isolatedCravingHarness(savedRouteSource?: string) {
     },
     fetch: () => { throw new Error("ISOLATION: network denied"); },
     buildCravingCategoryPrompt,
+    resolveCravingSelection,
     loadUserProtocolEnvelope: async () => envelope,
     buildGuestEnvelope: () => { throw new Error("Unexpected guest fallback"); },
     enforceSafetyProfile: safety,
