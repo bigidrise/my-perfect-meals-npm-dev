@@ -21,6 +21,12 @@ Do not treat a skipped migration as a successful schema prerequisite for a destr
 
 **How to apply:** Separate mutation jobs from readiness checks and preserve explicit schema assurance before starting dependent workers.
 
+Development-only safe startup must suppress automatic launch sites, not globally block database writes or bypass request security. Deployment and Production markers must override a Development suppression flag.
+
+**Why:** Shared Neon requires stopping automatic maintenance without breaking authentication, interactive recipe generation, or clinical enforcement. Static imports can launch workers before the entrypoint body runs.
+
+**How to apply:** Audit import-time workers, singleton initialization, deferred jobs and awaited startup work together. Keep read-only prerequisites fail-closed, and distinguish offline startup simulation from an approved real restart.
+
 Request-wiring verification need not wait for a migration-free application startup.
 
 **Why:** Startup mutations are unrelated to checking how a saved handler consumes a request; isolated fixtures can verify that contract without changing startup protections.

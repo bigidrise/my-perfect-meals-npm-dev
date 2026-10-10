@@ -114,6 +114,9 @@ import coachingRouter from "./routes/coaching";
 import productCodesRouter from "./routes/product-codes";
 import stripeWebhookRouter from "./routes/stripeWebhook";
 import { markStripeBillingReady } from "./services/stripeBillingReadiness";
+import { startupMaintenanceEnabled } from "./bootstrap/developmentStartupMaintenance";
+import { warmupService } from "./services/warmupService";
+import { reminderService } from "./reminderService";
 import builderPlansRouter from "./routes/builderPlans";
 
 import iosVerifyRouter from "./routes/iosVerify";
@@ -707,7 +710,17 @@ import kitchenLibraryRouter from "./routes/kitchenLibrary";
 app.use("/api/kitchens", requireAuth, kitchenLibraryRouter);
 
 // Initialize SMS worker (side-effect import)
-import "./workers/smsWorker";
+// Read-only health warmup remains available in safe-restart mode.
+setTimeout(() => {
+  warmupService.start();
+}, 2000);
+
+// No imports, timers, migrations, seeds, recovery or background writers in
+// this block are launched when the explicit Development-only guard is active.
+if (startupMaintenanceEnabled()) {
+void import("./workers/smsWorker").catch((err) => {
+  console.error("[startup] SMS worker initialization failed:", err);
+});
 
 // Development-only pilot delivery wake-up. The database outbox and leases are
 // authoritative; this timer is only a bounded, unref'd nudge and is absent in
@@ -787,15 +800,6 @@ const initTrialReminderLazy = async () => {
   }
 };
 setTimeout(initTrialReminderLazy, 7000);
-
-// Import and start warmup service
-import { warmupService } from "./services/warmupService";
-import { reminderService } from "./reminderService";
-
-// Start warmup service after server is ready
-setTimeout(() => {
-  warmupService.start();
-}, 2000);
 
 // Load existing reminders after database is stable
 setTimeout(() => {
@@ -1586,6 +1590,8 @@ setTimeout(async () => {
   }
 }, 5000);
 
+} // Automatic startup maintenance; disabled only by Development safe restart.
+
 // Twilio webhooks for STOP/HELP/delivery status
 app.post("/twilio/status", express.urlencoded({ extended: false }), async (req, res) => {
   // Message status updates: req.body.MessageSid, MessageStatus
@@ -1647,7 +1653,7 @@ const PORT = Number(process.env.PORT) || 5000;
 async function start() {
   // Clinic entitlement reads can occur during startup backfills, so its
   // development schema must exist before any service or route starts querying.
-  if (process.env.NODE_ENV !== "production") {
+  if (process.env.NODE_ENV !== "production" && startupMaintenanceEnabled()) {
     const { runClinicPilotDevelopmentMigration } = await import(
       "./db/migrations/runClinicPilotDevelopmentMigration"
     );
@@ -1655,7 +1661,7 @@ async function start() {
   }
 
   // Seed default organizations on every boot (idempotent)
-  try {
+  if (startupMaintenanceEnabled()) try {
     const { seedDefaultOrganizations } = await import("./lib/orgSeeder");
     await seedDefaultOrganizations();
   } catch (err) {
@@ -1722,7 +1728,7 @@ async function start() {
     const { runOrganizationWorkspaceMigration } = await import("./db/migrations/runOrganizationWorkspaceMigration");
     await runOrganizationWorkspaceMigration(dbWorkspace);
   });
-  {
+  if (startupMaintenanceEnabled()) {
     const { pool } = await import("./db");
     const { runBoundedStartupMigration } = await import("./bootstrap/runBoundedStartupMigration");
     const { runOrganizationOwnerAttachmentMigration } = await import("./db/migrations/runOrganizationOwnerAttachmentMigration");
@@ -1845,7 +1851,7 @@ async function start() {
 
   // Saved Grocery shopping identity is required by route selects/inserts.
   // Complete it before any route can serve requests.
-  {
+  if (startupMaintenanceEnabled()) {
     const { runSavedGroceryShoppingIdentityMigration } = await import(
       "./db/migrations/runSavedGroceryShoppingIdentityMigration"
     );
@@ -1854,6 +1860,7 @@ async function start() {
   }
 
   // 🎯 CRITICAL: API routes FIRST to prevent Vite middleware interference
+  if (startupMaintenanceEnabled()) {
   const { db: dbRouteMigrations } = await import("./db");
   const { runFoodsIEnjoyMigration } = await import("./db/migrations/runFoodsIEnjoyMigration");
   await runFoodsIEnjoyMigration(dbRouteMigrations);
@@ -1861,6 +1868,7 @@ async function start() {
   await runMyPerfectMenuMigration(dbRouteMigrations);
   const { runClinicPilotDevelopmentMigration } = await import("./db/migrations/runClinicPilotDevelopmentMigration");
   await runClinicPilotDevelopmentMigration();
+  }
   await registerRoutes(app);
 
   // API guard: any /api/* that slipped past routers -> JSON 404 (prevents SPA override)
@@ -1878,7 +1886,7 @@ async function start() {
   // Dev-only: verify image upload pipeline from within server process context.
   // Runs 3 s after boot so the sidecar is fully ready. NOT an HTTP endpoint.
   // See server/services/storageStartupDiagnostic.ts — remove after storage is proven.
-  if (process.env.NODE_ENV !== "production") {
+  if (process.env.NODE_ENV !== "production" && startupMaintenanceEnabled()) {
     setTimeout(async () => {
       try {
         const { runStorageStartupDiagnostic } = await import("./services/storageStartupDiagnostic");
@@ -1910,6 +1918,7 @@ async function start() {
 }
 
 // Reminder System v2 — start the per-minute scheduler
+if (startupMaintenanceEnabled()) {
 import('./services/reminderScheduler').then(({ startReminderScheduler }) => {
   startReminderScheduler();
 }).catch((err) => console.error('[index] Failed to start reminder scheduler:', err));
@@ -2055,6 +2064,8 @@ setTimeout(async () => {
   }
 }, 5800);
 
+} // Deferred migrations and reminder scheduler.
+
 // ── Shared retry helper for coaching boot migrations ──────────────────────────
 // A transient DB connection timeout on any coaching migration would leave
 // the engine in a partially-migrated state with no recovery path without
@@ -2062,6 +2073,10 @@ setTimeout(async () => {
 // MAX_BOOT_ATTEMPTS attempts, 5 s apart, logging progress at each step.
 const MAX_BOOT_ATTEMPTS = 3;
 async function withBootRetry(label: string, fn: () => Promise<void>): Promise<void> {
+  if (!startupMaintenanceEnabled()) {
+    console.log(`[development-safe-restart] Skipped startup maintenance: ${label}`);
+    return;
+  }
   for (let attempt = 1; attempt <= MAX_BOOT_ATTEMPTS; attempt++) {
     try {
       await fn();
@@ -2078,6 +2093,7 @@ async function withBootRetry(label: string, fn: () => Promise<void>): Promise<vo
 }
 
 // ── Coaching Engine boot migration (9 tables) ─────────────────────────────────
+if (startupMaintenanceEnabled()) {
 setTimeout(async () => {
   await withBootRetry("Coaching Engine boot migration", async () => {
     const { db } = await import("./db");
@@ -2124,12 +2140,6 @@ setTimeout(async () => {
     console.error("❌ Coach followup cron init failed:", err.message);
   }
 }, 10000);
-
-// Global process error handlers for stability
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('🚨 Unhandled Rejection at:', promise, 'reason:', reason);
-  // Don't exit - log and continue for stability
-});
 
 // ── Grocery Coach recommendation history (variety memory) ─────────────────────
 // Non-critical — variety enforcement degrades gracefully if this migration fails.
@@ -2186,6 +2196,13 @@ setTimeout(async () => {
   }
 }, 7000);
 
+} // Coaching, recommendation-history and refinement maintenance.
+
+// Global process error handlers stay active in safe-restart mode.
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🚨 Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 process.on('uncaughtException', (error) => {
   console.error('🚨 Uncaught Exception:', error);
   // Log but don't exit in development for better stability
@@ -2193,6 +2210,10 @@ process.on('uncaughtException', (error) => {
     process.exit(1);
   }
 });
+
+if (!startupMaintenanceEnabled()) {
+  console.log("[development-safe-restart] Automatic migrations, seeding, recovery and background maintenance are disabled; read-only readiness checks and request security remain active.");
+}
 
 start().catch((err) => {
   console.error("[server] failed to start:", err);
