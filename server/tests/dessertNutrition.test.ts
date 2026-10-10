@@ -9,10 +9,10 @@ import {
 
 // Explicit synthetic ingredient-composition fixtures, not clinical assessments.
 const foods = {
-  "almond flour": { calories: 600, protein: 21, carbs: 20, fat: 54, starchyCarbs: 3 },
+  "almond flour": { calories: 600, protein: 21, carbs: 20, fat: 54, starchyCarbs: 0 },
   "coconut oil": { calories: 892, protein: 0, carbs: 0, fat: 100, starchyCarbs: 0 },
-  "honey": { calories: 304, protein: 0.3, carbs: 82, fat: 0, starchyCarbs: 0 },
-  "cinnamon": { calories: 247, protein: 4, carbs: 81, fat: 1.2, starchyCarbs: 20 },
+  "honey": { calories: 304, protein: 0.3, carbs: 82, fat: 0, starchyCarbs: 82 },
+  "cinnamon": { calories: 247, protein: 4, carbs: 81, fat: 1.2, starchyCarbs: 0 },
   "apple": { calories: 52, protein: 0.3, carbs: 14, fat: 0.2, starchyCarbs: 0.1 },
   "cocoa": { calories: 228, protein: 20, carbs: 58, fat: 14, starchyCarbs: 7 },
 };
@@ -36,7 +36,7 @@ function recipe(name: string, servings: number, names = ["almond flour", "coconu
 }
 
 describe("Dessert ingredient-derived nutrition", () => {
-  it.each([1, 6, 12])("repairs Greek No-Bake Cinnamon Almond Bars for %i servings using quantities", async (servings) => {
+  it.each([1, 6, 12, 24])("repairs Greek No-Bake Cinnamon Almond Bars for %i servings using quantities", async (servings) => {
     const original = recipe("Greek No-Bake Cinnamon Almond Bars", servings);
     expect(dessertNutritionDiscrepancies(original, servings)).toContain("perServingNutrition.starchyCarbs");
     const result = await prepareDessertNutrition(original, servings, estimate);
