@@ -1,3 +1,4 @@
+import { jest } from "@jest/globals";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
