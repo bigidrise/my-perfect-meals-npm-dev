@@ -24,13 +24,14 @@ interface UsdaSearchFood {
     value: number;
   }[];
 }
-const NUTRIENTS: Record<number, { target: string; unit: string }> = {
+export const USDA_NUTRIENT_FIELDS: Record<number, { target: string; unit: string }> = {
   1008: { target: "calories_kcal_per_100g", unit: "kcal" },
   1003: { target: "protein_g_per_100g", unit: "g" },
   1004: { target: "fat_g_per_100g", unit: "g" },
   1005: { target: "carbs_g_per_100g", unit: "g" },
   1093: { target: "sodium_mg_per_100g", unit: "mg" },
 };
+const NUTRIENTS = USDA_NUTRIENT_FIELDS;
 
 /** USDA DEMO_KEY is public and rate-limited; this provider is Development-only. */
 export function createUsdaBrandedAdapter(fetcher: typeof fetch = fetch): ProductEvidenceAdapter {

@@ -27,6 +27,8 @@ import { getAuthUserId } from "../utils/getAuthUserId";
 import type { HumanFoodFinalValidationResult } from "../../shared/humanFoodValidation";
 import type { HumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
 import { DESSERT_CATEGORY_LABELS } from "@shared/foodIdentity";
+import { normalizeDessertRecipeNutrition, dessertNutritionDiscrepancies, DessertNutritionError } from "../services/dessertNutrition";
+import { resolveDessertYield } from "@shared/dessertYields";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -40,17 +42,6 @@ function getOpenAI(): OpenAI {
 }
 
 const dessertCreatorRouter = Router();
-
-const SERVING_MULTIPLIERS: Record<string, { count: number; label: string; tiers?: number }> = {
-  single: { count: 1, label: "1 serving" },
-  two: { count: 2, label: "2 servings" },
-  family: { count: 6, label: "6 servings (family-style)" },
-  batch: { count: 12, label: "12 servings (batch)" },
-  "small-wedding": { count: 40, label: "Small Wedding (30–50 guests)", tiers: 2 },
-  "medium-wedding": { count: 88, label: "Medium Wedding (75–100 guests)", tiers: 3 },
-  "large-wedding": { count: 135, label: "Large Wedding (120–150 guests)", tiers: 3 },
-  "extra-large-wedding": { count: 200, label: "Large Event (200+ guests)", tiers: 4 },
-};
 
 const CATEGORY_LABELS = DESSERT_CATEGORY_LABELS;
 
@@ -291,7 +282,8 @@ dessertCreatorRouter.post("/", async (req, res) => {
       console.log(`[DESSERT] Neutral flavor policy applied; requestId=${(req as any).id ?? "unavailable"}`);
     }
 
-    const serving = SERVING_MULTIPLIERS[servingSize] || SERVING_MULTIPLIERS.single;
+    const serving = resolveDessertYield(servingSize, dessertCategory, cakeType === "wedding-cake");
+    if (!serving) return res.status(400).json({ error: "Choose a valid recipe yield for this dessert." });
     const categoryLabel = CATEGORY_LABELS[dessertCategory] || dessertCategory;
     const flavorLabel = FLAVOR_LABELS[flavorFamily] || flavorFamily;
     const cakeStyleLabel = cakeStyle ? CAKE_STYLE_LABELS[cakeStyle] || cakeStyle : null;
@@ -464,6 +456,10 @@ ${hasCustomDescription ? `- PRIMARY DESCRIPTION (highest priority): "${customDes
 - Specific dessert requested: "${specificDessert || "Create your own unique version"}"`}
 - Dietary requirements: "${dietaryRules}"
 - Number of servings: ${serving.count}
+- Complete recipe yield: ${serving.label}. Ingredients and pan dimensions must make this entire dessert, not one eating portion.
+- Return exact measured amounts, preferably grams for every ingredient (including zest, spices, salt and eggs). Do not use ranges, pinches, or "to taste". Display units are converted afterwards.
+- nutrition is the estimated TOTAL for these complete recipe ingredients and this entire yield. Include every nutrient field as a finite nonnegative number. Do not multiply an already whole-recipe estimate by the serving count.
+- perServingNutrition is derived by the server from those totals divided by ${serving.count}; it is not a second independent estimate.
 ${cakeRulesBlock}
 GENERATION RULES:
 1. If a specific dessert is named (e.g., "key lime pie"), create a HEALTHY version of that exact dessert.
@@ -543,9 +539,24 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
       }
     }
 
-    // Normalize ingredients to U.S. measurements (oz, cups, tbsp, tsp)
-    const normalizedIngredients = normalizeIngredients(meal.ingredients || []);
+    // Keep the full recipe and normalize its estimates before display conversion.
+    const originalIngredients = Array.isArray(meal.ingredients) ? meal.ingredients.map((row: any) => ({ ...row })) : [];
+    const nutritionDiscrepancies = dessertNutritionDiscrepancies(meal, serving.count);
+    if (nutritionDiscrepancies.length) {
+      console.warn("[DESSERT] Nutrition discrepancy", {
+        requestId: (req as any).id,
+        fields: nutritionDiscrepancies,
+      });
+    }
+    meal = normalizeDessertRecipeNutrition({
+      ...meal, ingredients: originalIngredients, recipeIngredientQuantities: originalIngredients,
+    }, serving.count);
+    const normalizedIngredients = normalizeIngredients(originalIngredients);
     meal.ingredients = normalizedIngredients;
+    if (dessertCategory === "cake") {
+      meal.totalSlices = serving.count;
+      meal.perSliceNutrition = { ...meal.perServingNutrition, sliceSize: "1 slice" };
+    }
 
     const ingredientNames = normalizedIngredients.map((i: any) =>
       String(i.name ?? "").toLowerCase()
@@ -591,6 +602,13 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
     if (userId && userId !== "1") {
       meal = await applyCreatorTransformation(meal, dessertCreatorSystem!, "dessert");
     }
+    // Transformations may change totals; derive portions again without scaling
+    // the whole-recipe totals or ingredient quantities a second time.
+    meal = normalizeDessertRecipeNutrition(meal, serving.count);
+    if (dessertCategory === "cake") {
+      meal.totalSlices = serving.count;
+      meal.perSliceNutrition = { ...meal.perServingNutrition, sliceSize: "1 slice" };
+    }
 
     // Universal final gate: validate the exact transformed dessert, permit one
     // same-context repair, then validate the exact object returned to the client.
@@ -624,7 +642,9 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
           ? _overriddenDessertAllergens
           : undefined,
       });
-      const nutrition = candidate?.nutrition ?? {};
+      // Clinical meal checks apply to one eating portion, not the entire pan.
+      // The unchanged final gate separately verifies totals, portions and exact yield.
+      const personalNutrition = candidate?.perServingNutrition ?? {};
       const glp1Proof = dessertGlp1Targets
         ? validateDessertForGlp1({
             name: String(candidate?.name ?? ""),
@@ -632,10 +652,10 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
               name: String(typeof item === "string" ? item : item?.name ?? item?.item ?? ""),
             })),
             macros: {
-              calories: Number(nutrition.calories),
-              protein: Number(nutrition.protein),
-              carbs: Number(nutrition.carbs),
-              fat: Number(nutrition.fat),
+              calories: Number(personalNutrition.calories),
+              protein: Number(personalNutrition.protein),
+              carbs: Number(personalNutrition.carbs),
+              fat: Number(personalNutrition.fat),
             },
           }, null, undefined, true, dessertGlp1Targets).isValid
         : undefined;
@@ -647,10 +667,10 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
             name: String(candidate?.name ?? ""),
             ingredients: candidate?.ingredients ?? [],
             macros: {
-              calories: Number(nutrition.calories),
-              protein: Number(nutrition.protein),
-              carbs: Number(nutrition.carbs),
-              fat: Number(nutrition.fat),
+              calories: Number(personalNutrition.calories),
+              protein: Number(personalNutrition.protein),
+              carbs: Number(personalNutrition.carbs),
+              fat: Number(personalNutrition.fat),
             },
           } as any).isValid
         : undefined;
@@ -658,11 +678,11 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
         ...candidate,
         category: candidate?.category,
         nutrition: {
-          calories: Number(nutrition.calories),
-          protein: Number(nutrition.protein),
-          carbs: Number(nutrition.carbs),
-          fat: Number(nutrition.fat),
-          starchyCarbs: Number(nutrition.starchyCarbs),
+          calories: Number(personalNutrition.calories),
+          protein: Number(personalNutrition.protein),
+          carbs: Number(personalNutrition.carbs),
+          fat: Number(personalNutrition.fat),
+          starchyCarbs: Number(personalNutrition.starchyCarbs),
         },
         evidence: {
           sourceType: "generated_recipe" as const,
@@ -752,9 +772,19 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
           response_format: { type: "json_object" },
         });
         let repaired = JSON.parse(repairCompletion.choices[0]?.message?.content || "{}");
-        repaired.ingredients = normalizeIngredients(repaired.ingredients || []);
+        const repairedOriginalIngredients = Array.isArray(repaired.ingredients)
+          ? repaired.ingredients.map((row: any) => ({ ...row })) : [];
         if (dessertCreatorSystem) {
           repaired = await applyCreatorTransformation(repaired, dessertCreatorSystem, "dessert");
+        }
+        repaired = normalizeDessertRecipeNutrition({
+          ...repaired, ingredients: repairedOriginalIngredients, recipeIngredientQuantities: repairedOriginalIngredients,
+        },
+          serving.count);
+        repaired.ingredients = normalizeIngredients(repairedOriginalIngredients);
+        if (dessertCategory === "cake") {
+          repaired.totalSlices = serving.count;
+          repaired.perSliceNutrition = { ...repaired.perServingNutrition, sliceSize: "1 slice" };
         }
         return [repaired];
       },
@@ -823,6 +853,12 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
       },
     });
   } catch (err: any) {
+    if (err instanceof DessertNutritionError) {
+      console.warn("[DESSERT] Recipe nutrition invalid", {
+        requestId: (req as any).id,
+        fields: err.fields,
+      });
+    }
     console.error("Dessert Creator Error:", err);
     const status = Number.isInteger(err?.status) ? err.status : 500;
     return res.status(status).json({

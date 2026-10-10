@@ -9,6 +9,24 @@ Development and production use the same external Neon database; this project doe
 
 **How to apply:** Treat the arrangement as settled project context. Do not initiate database investigation or changes unless a future request explicitly requires them.
 
+A normal application restart is not necessarily migration-free. Account-maintenance suppression covers only part of boot mutations, not the entire startup sequence.
+
+**Why:** The Development entrypoint schedules migration hooks on startup; restarting it can conflict with an explicit no-migrations request.
+
+**How to apply:** Use a verified migration-free launch path, or obtain approval for a Development-only startup skip before restarting under that constraint.
+
+Do not treat a skipped migration as a successful schema prerequisite for a destructive worker, and do not remove read-only readiness checks along with migration writes.
+
+**Why:** Studio purge initialization couples migration success to worker startup; a naive skip can weaken its safety gate.
+
+**How to apply:** Separate mutation jobs from readiness checks and preserve explicit schema assurance before starting dependent workers.
+
+Request-wiring verification need not wait for a migration-free application startup.
+
+**Why:** Startup mutations are unrelated to checking how a saved handler consumes a request; isolated fixtures can verify that contract without changing startup protections.
+
+**How to apply:** Execute the saved handler and route binding with allowlisted fixture dependencies. Clearly distinguish wiring checks from real authentication, database-backed policy, and model compliance.
+
 For explicitly approved additive, Development-only clinical storage, "Development-only" gates the migration command and application access, not the physical schema: new tables exist on shared Neon while food reads remain unchanged. Do not substitute a requirement for a separate Development database after that approval.
 
 **Why:** Requiring independent branch isolation contradicted the confirmed shared-database arrangement and delayed an approved additive migration.

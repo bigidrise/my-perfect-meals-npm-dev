@@ -147,6 +147,8 @@ import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
+import { CREATOR_DIET_OPTIONS } from "@/utils/getEffectiveDietPreference";
+import { CRAVING_CATEGORIES, CRAVING_EXTRA_DIET_OPTIONS } from "@shared/cravingCategories";
 import { safeLocalStorageSet, safeLocalStorageGetArray } from "@/lib/safeLocalStorage";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { captureAuthoritativeTextValue, commitTextInputValue } from "@/lib/authoritativeTextInput";
@@ -267,7 +269,7 @@ export default function CravingCreator() {
       sessionStorage.setItem('cc_recent_meals', JSON.stringify(updated));
     } catch {}
   };
-  const [selectedDiet, setSelectedDiet] = useState<string>("");
+  const [cravingCategory, setCravingCategory] = useState("");
   const [servings, setServings] = useState<number>(1); // NEW: Serving size support (1-10)
   const [isDeclinedMeal, setIsDeclinedMeal] = useState(false);
   const [declinedMealDate, setDeclinedMealDate] = useState("");
@@ -662,8 +664,9 @@ export default function CravingCreator() {
   }, [cravingInput, starchDecision, checkStarch]);
 
   const handleGenerateMeal = async (skipPreflight = false, dietAdaptOverride = false) => {
-    const submittedCravingInput = await captureAuthoritativeTextValue(cravingInputRef.current, cravingInput, 300);
-    if (submittedCravingInput !== cravingInput) setCravingInput(submittedCravingInput);
+    const visibleCravingInput = await captureAuthoritativeTextValue(cravingInputRef.current, cravingInput, 300);
+    if (visibleCravingInput !== cravingInput) setCravingInput(visibleCravingInput);
+    const submittedCravingInput = visibleCravingInput.trim() || (cravingCategory ? "something delicious" : "");
     const userDietOverride = continueAnywayRef.current;
     continueAnywayRef.current = false;
     console.log("🔥 handleGenerateMeal called - craving:", submittedCravingInput);
@@ -674,7 +677,7 @@ export default function CravingCreator() {
       console.log("❌ Empty craving input - showing toast");
       toast({
         title: "Missing Information",
-        description: "Please describe what you're craving first!",
+        description: "Please describe your craving or choose a category first!",
         variant: "destructive",
       });
       return;
@@ -719,7 +722,7 @@ export default function CravingCreator() {
     console.log("✅ Starting generation with:", {
       cravingInput: submittedCravingInput,
       servings,
-      selectedDiet,
+      cravingCategory,
       safetyEnabled,
       hasOverrideToken: !!overrideToken,
     });
@@ -734,9 +737,10 @@ export default function CravingCreator() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           cravingInput: submittedCravingInput,
+          cravingCategory: cravingCategory || undefined,
           dietaryRestrictions: dietOverrideEnabled && dietOverrideValue
             ? dietOverrideValue
-            : (selectedDiet || dietaryRestrictions),
+            : dietaryRestrictions,
           // Explicit signal: this is a REPLACEMENT of the profile diet, not a merge.
           // The server uses this to prevent the profile's vegan/keto from conflicting
           // with the user's temporary builder selection.
@@ -925,12 +929,11 @@ export default function CravingCreator() {
     }
   };
 
-  // helper to clear diet selection
-  const clearDiet = () => {
-    setSelectedDiet("");
+  const clearCategory = () => {
+    setCravingCategory("");
     toast({
-      title: "Preference cleared",
-      description: "No dietary preference selected.",
+      title: "Category cleared",
+      description: "No craving category selected.",
     });
   };
 
@@ -1216,6 +1219,10 @@ export default function CravingCreator() {
                     dietOverrideValue={dietOverrideValue}
                     onDietToggle={setDietOverrideEnabled}
                     onDietChange={setDietOverrideValue}
+                    dietOptions={[
+                      ...CREATOR_DIET_OPTIONS,
+                      ...CRAVING_EXTRA_DIET_OPTIONS.filter(extra => !CREATOR_DIET_OPTIONS.some(option => option.value === extra.value)),
+                    ]}
                     cuisineOverrideEnabled={cuisineOverrideEnabled}
                     cuisineOverrideValue={cuisineOverrideValue}
                     onCuisineToggle={setCuisineOverrideEnabled}
@@ -1246,47 +1253,39 @@ export default function CravingCreator() {
                     </div>
                   </div>
 
-                  {/* Dietary Preferences with clear support */}
+                  {/* Optional food family; dietary choices remain in the top control. */}
                   <div>
-                    <label className="block text-md mb-1 text-white">
-                      Dietary Preferences (Optional)
+                    <label id="craving-category-label" className="block text-md mb-1 text-white">
+                      Craving Category (Optional)
                     </label>
 
                     <div className="flex items-center gap-2">
                       <Select
-                        data-wt="cc-dietary-flags"
-                        value={selectedDiet || "__none__"}
+                        data-wt="cc-craving-category"
+                        value={cravingCategory || "__none__"}
                         onValueChange={(v) =>
-                          setSelectedDiet(v === "__none__" ? "" : v)
+                          setCravingCategory(v === "__none__" ? "" : v)
                         }
                       >
-                        <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
-                          <SelectValue placeholder="Select dietary preferences" />
+                        <SelectTrigger data-testid="craving-category-selector" aria-labelledby="craving-category-label" className="w-full text-sm bg-black text-white border-white/30">
+                          <SelectValue placeholder="No category selected" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="__none__">
-                            No preference (Clear)
+                            No category selected
                           </SelectItem>
-                          <SelectItem value="keto">Keto/Low Carb</SelectItem>
-                          <SelectItem value="paleo">Paleo</SelectItem>
-                          <SelectItem value="vegan">Vegan</SelectItem>
-                          <SelectItem value="vegetarian">Vegetarian</SelectItem>
-                          <SelectItem value="gluten-free">
-                            Gluten-Free
-                          </SelectItem>
-                          <SelectItem value="dairy-free">Dairy-Free</SelectItem>
-                          <SelectItem value="mediterranean">
-                            Mediterranean
-                          </SelectItem>
+                          {CRAVING_CATEGORIES.map(category => (
+                            <SelectItem key={category.value} value={category.value}>{category.label}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
 
                       <GlassButton
-                        data-wt="cc-clear-flags-button"
-                        onClick={clearDiet}
-                        disabled={!selectedDiet}
+                        data-wt="cc-clear-category-button"
+                        onClick={clearCategory}
+                        disabled={!cravingCategory}
                         className="shrink-0 px-3 py-1 text-sm"
-                        title="Clear dietary preference"
+                        title="Clear craving category"
                       >
                         Clear
                       </GlassButton>
@@ -1321,7 +1320,7 @@ export default function CravingCreator() {
                     </Select>
                   </div>
 
-                  {!selectedDiet && (
+                  {!(dietOverrideEnabled && dietOverrideValue) && (
                     <div>
                       <label className="block text-md font-medium mb-1 text-white">
                         Custom Dietary Restrictions
