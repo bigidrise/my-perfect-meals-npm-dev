@@ -1,11 +1,6 @@
 // UI guidance for the current Menu destination flow, not a nutrition rule.
 const REGULAR_MEAL_SLOTS = ["breakfast", "lunch", "dinner", "meal4", "meal5", "meal6"];
 
-export const SNACK_SLOT_GUIDANCE = {
-  title: "This belongs in your Snack slot",
-  message: "This is a snack. Please select the highlighted Snack slot.",
-};
-
 const MEAL_CATEGORIES = ["breakfast", "lunch", "dinner"];
 const MEAL_SLOT_GUIDANCE = {
   title: "Choose a meal slot",
@@ -16,7 +11,7 @@ export function getMyPerfectMenuSlotGuidance(
   ideaType: string | null | undefined,
   slot: string | null | undefined,
 ) {
-  if (ideaType === "snack" && slot && REGULAR_MEAL_SLOTS.includes(slot)) return SNACK_SLOT_GUIDANCE;
+  // Meal 1–6 accept every food category. Highlights are recommendations only.
   if (ideaType && MEAL_CATEGORIES.includes(ideaType) && slot === "snacks") return MEAL_SLOT_GUIDANCE;
   return undefined;
 }
@@ -29,8 +24,8 @@ export function isMyPerfectMenuSuggestedSlot(ideaType: string | null | undefined
 export function getMyPerfectMenuSlotInstruction(ideaType: string | null | undefined) {
   if (ideaType === "snack") return {
         title: "Where to add your snack",
-        message: "Snacks and dessert snacks belong in your Snack slot. Select Snack when adding your choice to My Perfect Menu.",
-        pickerMessage: "Choose the highlighted Snack slot to add your snack.",
+        message: "Snack is the recommended slot for snacks and dessert snacks. You can also choose any Meal 1–6 slot.",
+        pickerMessage: "Snack is recommended. You can also choose any Meal 1–6 slot.",
       };
   if (ideaType && MEAL_CATEGORIES.includes(ideaType)) return {
         title: "Where to add your meal",
