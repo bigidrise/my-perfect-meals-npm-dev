@@ -15,7 +15,120 @@ import {
   scanGeneratedOutput,
 } from "../services/protocolEnvelope";
 
+const homemadeShake = {
+  name: "Banana protein shake",
+  description: "A homemade protein shake with ordinary ingredients.",
+  ingredients: ["plain Greek yogurt", "milk", "banana", "oats", "peanut butter"],
+  instructions: ["Blend the ingredients.", "Pour the protein shake into a glass."],
+};
+
 describe("Whole-Food Standard", () => {
+  test.each(["Banana protein shake", "Banana yogurt smoothie"])(
+    "allows the same homemade ingredients named %s through the real protocol scan",
+    name => {
+      const meal = { ...homemadeShake, name };
+      const result = scanGeneratedOutput(meal, buildGuestEnvelope(), {
+        generatorName: "create_with_chef_beverage",
+      });
+      expect(result.passed).toBe(true);
+      expect(result.wholeFoodDecision?.shouldBlock).toBe(false);
+      expect(result.wholeFoodDecision?.classification).toBe("appropriate");
+      expect(result.wholeFoodDecision?.matchedTerms).not.toContain("protein shake");
+    },
+  );
+
+  test("does not invent a processed product classification from a shake name alone", () => {
+    const decision = evaluateWholeFoodCandidate({ name: "Banana protein shake" });
+    expect(decision.classification).toBe("uncertain");
+    expect(decision.shouldBlock).toBe(false);
+  });
+
+  test.each([
+    { ingredients: ["bottled protein shake", "banana"] },
+    { ingredients: [{ name: "bottled protein shake" }, { name: "banana" }] },
+    { ingredients: [{ item: "bottled protein shake" }, { item: "banana" }] },
+    { ingredientLabel: ["protein shake concentrate"] },
+    { isPackagedProduct: true },
+  ])("retains documented-purpose requirements for product evidence %j", evidence => {
+    const meal = { ...homemadeShake, ...evidence };
+    for (const context of [
+      {},
+      { purposes: ["performance" as const] },
+      { purposes: ["clinical" as const], purposefulNeed: "general clinical support" },
+    ]) {
+      const decision = evaluateWholeFoodCandidate(meal, context);
+      expect(decision.shouldBlock).toBe(true);
+      expect(decision.matchedTerms).toContain("protein shake");
+    }
+    const justified = evaluateWholeFoodCandidate(meal, {
+      purposes: ["performance"], purposefulNeed: "active performance fueling",
+    });
+    expect(justified.shouldBlock).toBe(false);
+    expect(justified.classification).toBe("purposeful_exception");
+  });
+
+  test("still rejects a shake containing a non-exemptable processed product", () => {
+    const meal = { ...homemadeShake, ingredients: [...homemadeShake.ingredients, "candy bar"] };
+    const envelope = buildGuestEnvelope();
+    envelope.performanceOverlay = "competition_prep";
+    const result = scanGeneratedOutput(meal, envelope, {
+      generatorName: "create_with_chef_beverage",
+    });
+    expect(result.passed).toBe(false);
+    expect(result.primaryViolation?.category).toBe("whole-food-standard");
+    expect(result.wholeFoodDecision?.matchedTerms).toContain("candy bar");
+  });
+
+  test.each(["Banana protein shake", "Banana yogurt smoothie"])(
+    "retains processed shake ingredient rules through the protocol scan even when named %s",
+    name => {
+      const meal = { ...homemadeShake, name, ingredients: ["bottled protein shake", "banana"] };
+      const envelope = buildGuestEnvelope();
+      const blocked = scanGeneratedOutput(meal, envelope, {
+        generatorName: "create_with_chef_beverage",
+      });
+      expect(blocked.passed).toBe(false);
+      expect(blocked.primaryViolation?.category).toBe("whole-food-standard");
+      envelope.performanceOverlay = "performance";
+      const justified = scanGeneratedOutput(meal, envelope, {
+        generatorName: "create_with_chef_beverage",
+      });
+      expect(justified.passed).toBe(true);
+      expect(justified.wholeFoodDecision?.classification).toBe("purposeful_exception");
+    },
+  );
+
+  test("retains additive restrictions without granting a title-based purpose exception", () => {
+    const decision = evaluateWholeFoodCandidate({
+      ...homemadeShake,
+      ingredients: [...homemadeShake.ingredients, "artificial flavor", "maltodextrin"],
+    }, { purposes: ["performance"], purposefulNeed: "active performance fueling" });
+    expect(decision.shouldBlock).toBe(true);
+    expect(decision.reasonCode).toBe("UPF_ADDITIVE_PATTERN");
+  });
+
+  test.each(["dairy", "peanuts"])("still enforces %s allergy on a homemade shake", allergy => {
+    const envelope = buildGuestEnvelope();
+    envelope.allergies = [allergy];
+    const result = scanGeneratedOutput(homemadeShake, envelope, {
+      generatorName: "create_with_chef_beverage",
+    });
+    expect(result.wholeFoodDecision?.shouldBlock).toBe(false);
+    expect(result.passed).toBe(false);
+    expect(result.violations.some(v => v.category.startsWith("allergy:"))).toBe(true);
+  });
+
+  test("still enforces a vegan dietary restriction on a dairy-containing homemade shake", () => {
+    const envelope = buildGuestEnvelope();
+    envelope.dietaryIdentity = ["vegan"];
+    const result = scanGeneratedOutput(homemadeShake, envelope, {
+      generatorName: "create_with_chef_beverage",
+    });
+    expect(result.wholeFoodDecision?.shouldBlock).toBe(false);
+    expect(result.passed).toBe(false);
+    expect(result.violations.some(v => /vegan/.test(v.category))).toBe(true);
+  });
+
   test("prefers meals anchored by recognizable whole foods", () => {
     const decision = evaluateWholeFoodCandidate({
       name: "Salmon and quinoa plate",

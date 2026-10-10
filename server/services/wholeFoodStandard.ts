@@ -150,6 +150,16 @@ export function evaluateWholeFoodCandidate(
 ): WholeFoodDecision {
   const text = normalizeCandidate(candidate);
   const purposes = new Set(context.purposes ?? []);
+  // A recipe's shake identity is not evidence of a processed nutrition product.
+  // Retain product rules when a shake is an ingredient, appears in label evidence,
+  // or the caller explicitly identifies the candidate as a packaged product.
+  const proteinShakeProductEvidence = candidate.isPackagedProduct === true ||
+    normalizeCandidate({
+      ingredients: candidate.ingredients,
+      ingredientLabel: candidate.ingredientLabel,
+    }).includes("protein shake");
+  const matchesProduct = (term: string) =>
+    text.includes(term) && (term !== "protein shake" || proteinShakeProductEvidence);
 
   const productMatches = matched(text, NON_EXEMPTABLE_UPF_PRODUCT_TERMS);
   if (productMatches.length > 0) {
@@ -168,7 +178,7 @@ export function evaluateWholeFoodCandidate(
 
   const additiveMatches = matched(text, UPF_ADDITIVE_TERMS);
   const purposefulProduct = PURPOSEFUL_PRODUCT_TERMS.find((product) =>
-    text.includes(product.term),
+    matchesProduct(product.term),
   );
   const exceptionPurpose = purposefulProduct?.purposes.find((purpose) =>
     purposes.has(purpose),
@@ -203,7 +213,7 @@ export function evaluateWholeFoodCandidate(
     };
   }
 
-  const contextualProductMatches = matched(text, CONTEXTUAL_UPF_PRODUCT_TERMS);
+  const contextualProductMatches = CONTEXTUAL_UPF_PRODUCT_TERMS.filter(matchesProduct);
   if (contextualProductMatches.length > 0 || (candidate.isPackagedProduct && additiveMatches.length > 0)) {
     const shouldBlock = context.practicalAlternativeAvailable !== false;
     return {
