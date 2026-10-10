@@ -18,3 +18,9 @@ For My Perfect Menu, the user confirmed an explicit Food Snack / Dessert Snack c
 **Why:** The ordinary snack occasion does not enforce dessert identity, and a correct dessert concept can still become an unrelated food at recipe completion if its identity is not carried through.
 
 **How to apply:** Treat the user's choice as authoritative request intent, separate from sweet/savory taste. Preserve the current safety checks and reject a finished recipe whose food identity no longer matches the selected concept.
+
+My Perfect Menu's Meal 1–6 are universal food destinations, including snacks, dessert snacks, shakes, smoothies, desserts, and food/beverage combinations. Snack remains designated for Food Snack and Dessert Snack ideas. Purple highlights recommend Snack for snack ideas and Meal 1–6 for regular meal ideas; they never make a snack invalid in Meal 1–6. Use the explicitly selected category, never the recipe name; unknown categories retain existing behavior.
+
+**Why:** The user explicitly corrected the earlier snack-to-meal blocking: all foods must be allowed in Meal 1–6 without expanding Snack to general meals. This supersedes the earlier destination restriction and stays separate from nutrition enforcement.
+
+**How to apply:** Keep destination guidance in the UI. Do not alter generation, dietary rules, or assignment APIs to implement the highlighting.

@@ -10,3 +10,9 @@ For product-finding surfaces, the user's requested food category is the search b
 **Why:** Prompt instructions alone are bypassable, broad purpose flags can leak exceptions, and wholesome dish names can overstate certainty when formulation or preparation is unknown. Category-level refusal also prevents safer in-category adaptation and misrepresents unverified brand knowledge as product evidence.
 
 **How to apply:** Every active human food, beverage, restaurant, grocery, nutrition-product, catalog, cache, fallback, and assistant recommendation path needs central pre-selection guidance plus deterministic output validation. Find-a-product results preserve category, clearly label missing evidence, and require label/scan confirmation before authoritative medical grading or saved-product approval. Keep the coverage matrix clean before making platform-wide claims; companion/pet nutrition remains outside this human policy.
+
+Homemade protein-shake identity is not processed-product evidence. A recipe's name, description, or preparation prose must not alone activate processed-shake restrictions or grant a product-purpose exception. Preserve established product, additive, allergy, dietary, and clinical rules when actual composition or packaged-product evidence supports them.
+
+**Why:** The user explicitly requires ordinary homemade shakes and smoothies to remain available; the same yogurt, milk, banana, oats, and peanut-butter recipe was blocked solely when called a protein shake.
+
+**How to apply:** Keep recipe identity separate from product evidence. Change only the targeted classification boundary, not prompts, meal destinations, or clinical authority.
