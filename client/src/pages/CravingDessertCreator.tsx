@@ -68,6 +68,7 @@ import { safeLocalStorageSet } from "@/lib/safeLocalStorage";
 import { GenerationFailureBanner, HIDDEN_FAILURE, type GenerationFailureState } from "@/components/GenerationFailureBanner";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { captureAuthoritativeTextValue, commitTextInputValue } from "@/lib/authoritativeTextInput";
+import { dessertRecipeServings, dessertFavoritePayload, dessertFailureCopy } from "@/lib/dessertResult";
 
 const DESSERT_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -418,6 +419,8 @@ export default function DessertCreator() {
       hasOverrideToken: !!overrideToken,
     });
 
+    let responseStatus: number | undefined;
+    let responseData: any;
     try {
       setGenerationFailure(HIDDEN_FAILURE);
       console.log("🍨 [DESSERT] Calling API...");
@@ -465,6 +468,8 @@ export default function DessertCreator() {
       console.log("🍨 [DESSERT] API response received:", res.status);
 
       const data = await res.json().catch(() => null);
+      responseStatus = res.status;
+      responseData = data;
 
       if (data?.safetyBlocked || data?.safetyAmbiguous) {
         stopProgressTicker();
@@ -529,14 +534,7 @@ export default function DessertCreator() {
           variant: "warning",
         });
       } else {
-        setGenerationFailure({
-          show: true,
-          message: "Something went wrong creating your dessert. Please try again.",
-          suggestedActions: [
-            "Try Again — we'll generate a fresh version",
-            "Simplify the description or adjust the dessert category",
-          ],
-        });
+        setGenerationFailure(dessertFailureCopy(responseStatus, responseData));
       }
     } finally {
       setIsGenerating(false);
@@ -544,7 +542,7 @@ export default function DessertCreator() {
   }
 
   function getNutrition(meal: any) {
-    return creatorMealNutrition(meal, meal.totalSlices || 1);
+    return creatorMealNutrition(meal, dessertRecipeServings(meal));
   }
 
   return (
@@ -1018,7 +1016,7 @@ export default function DessertCreator() {
                       <FavoriteButton
                         title={generatedDessert.name}
                         sourceType="dessert-creator"
-                        mealData={{ ...generatedDessert, servings: generatedDessert.totalSlices || 1 }}
+                        mealData={dessertFavoritePayload(generatedDessert)}
                       />
                       <button
                         onClick={() => {
@@ -1086,13 +1084,13 @@ export default function DessertCreator() {
                   </div>
 
                   <ServingInstructionsBlock
-                    servings={generatedDessert.totalSlices || 1}
+                    servings={dessertRecipeServings(generatedDessert)}
                     mealName={generatedDessert.name}
                     description={generatedDessert.description}
                   />
 
                   <p className="text-xs text-center text-white/60 mb-2">
-                    Nutrition per serving • Recipe makes {generatedDessert.totalSlices || 1} servings
+                    Nutrition per serving • Recipe makes {dessertRecipeServings(generatedDessert)} servings
                   </p>
 
                   <div className="grid grid-cols-4 gap-4 mb-4 text-center">
