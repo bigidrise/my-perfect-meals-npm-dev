@@ -567,3 +567,71 @@ describe("Craving category context in the existing generation pipeline", () => {
     expect(prompt).toContain("explicit craving description takes priority");
   });
 });
+
+describe("Craving category generation, selection and refill — mocked Chef, actual pipeline", () => {
+  const { resolveCravingSelection } = require("../services/craving/categorySelection");
+  const meal = (name: string, instructions: string[], ingredients: string[]) => ({
+    name, description: name, ingredients: ingredients.map(name => ({ name, quantity: 1, unit: "oz" })),
+    instructions, calories: 400, protein: 35, carbs: 12, fat: 22, starchyCarbs: 5, fibrousCarbs: 7,
+  });
+  async function generate(category: string, cuisine: string, method: string, diet: string[]) {
+    return generateCravingMealOptions(
+      "something delicious", "dinner", undefined, diet, [], false, "meal", cuisine,
+      undefined, undefined, undefined, false, undefined, undefined, undefined,
+      "something delicious", undefined, undefined, undefined,
+      resolveCravingSelection(category, method, "something delicious"),
+    );
+  }
+  function serveBatches(batches: any[][]) {
+    let generation = 0;
+    mockCreate.mockReset();
+    mockCreate.mockImplementation(async params => {
+      if (params.messages[0].content.includes("[CRAVING SELECTION VERIFICATION]")) {
+        const { candidates, alreadyAccepted } = JSON.parse(params.messages[1].content);
+        return { choices: [{ message: { content: JSON.stringify({
+          decisions: candidates.map((candidate: any) => {
+            const steps = candidate.instructions.join(" ").toLowerCase();
+            const isWrong = steps.includes("stir-fry") || steps.includes("wrong method");
+            return {
+              index: candidate.index, categoryMatch: !isWrong, cookingMethodMatch: !isWrong,
+              distinct: !alreadyAccepted.some((accepted: any) => accepted.name === candidate.name),
+              reason: isWrong ? "Preparation is an unrelated stir-fry or wrong method." : "Ingredients and preparation preserve the selected format.",
+            };
+          }),
+        }) } }] };
+      }
+      const batch = batches[Math.min(generation++, batches.length - 1)];
+      return { choices: [{ message: { content: JSON.stringify({ options: batch }) } }] };
+    });
+  }
+  it("Keto + Indian + Burgers & Sandwiches returns actual distinct burgers/sandwiches, not stir-fries", async () => {
+    const wrong = meal("Indian keto burger", ["Stir-fry chicken and vegetables in a wok."], ["chicken", "zucchini"]);
+    const valid = [
+      meal("Tandoori chicken burger", ["Grill the shaped chicken patty; assemble on a low-carb bun with mint slaw."], ["chicken", "low-carb bun", "mint", "cabbage"]),
+      meal("Paneer tikka sandwich", ["Grill paneer slices and peppers; stack between low-carb bread with chutney."], ["paneer", "low-carb bread", "bell pepper", "cilantro"]),
+      meal("Lamb keema burger", ["Grill lamb keema patties; assemble in a keto bun with charred onion relish."], ["lamb", "keto bun", "onion", "yogurt"]),
+    ];
+    serveBatches([[wrong, wrong, wrong], valid]);
+    const options = await generate("burgers-sandwiches", "Indian", "Grill", ["keto"]);
+    expect(options.map(option => option.instructions)).toEqual(valid.map(option => option.instructions));
+    expect(options).toHaveLength(3);
+    expect(options.every(option => !option.instructions.join(" ").includes("Stir-fry"))).toBe(true);
+    const prompt = mockCreate.mock.calls.find(([params]) => !params.messages[0].content.includes("VERIFICATION"))![0].messages[0].content;
+    expect(prompt).toContain("KETO");
+    expect(prompt).toContain("Indian");
+    expect(prompt).toContain("SELECTED COOKING METHOD: Grill");
+    expect(prompt).not.toContain('Core dish to stay within: "delicious"');
+  });
+  it("Mexican + BBQ & Grilled rejects titled stir-fries and refills within the selected preparation", async () => {
+    const chicken = meal("Pollo asado", ["Marinate chicken with lime and achiote; grill until safely cooked."], ["chicken", "lime", "achiote"]);
+    const steak = meal("Carne asada", ["Grill marinated skirt steak; rest, slice and serve with pico de gallo."], ["skirt steak", "tomato", "cilantro"]);
+    const fish = meal("Mexican grilled fish", ["Grill the fish on a cedar plank; serve with charred tomatillo salsa."], ["cod", "tomatillo", "serrano"]);
+    const wrong = meal("Mexican grilled favorite", ["Stir-fry chicken and peppers in a wok."], ["chicken", "bell pepper"]);
+    serveBatches([[chicken, steak, wrong], [fish]]);
+    const options = await generate("bbq-grilled", "Mexican", "Grill", []);
+    expect(options).toHaveLength(3);
+    expect(options.map(option => option.instructions)).toEqual([chicken, steak, fish].map(option => option.instructions));
+    const reviews = mockCreate.mock.calls.filter(([params]) => params.messages[0].content.includes("VERIFICATION"));
+    expect(reviews).toHaveLength(0);
+  });
+});

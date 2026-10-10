@@ -1,4 +1,4 @@
-/** Optional culinary guidance, never dietary identities or meal destinations. */
+/** Optional selections; choosing one establishes culinary intent, not a diet or destination. */
 export const CRAVING_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
   { value: "burgers-sandwiches", label: "Burgers & Sandwiches" },
@@ -23,16 +23,36 @@ export const CRAVING_EXTRA_DIET_OPTIONS = [
   { value: "mediterranean", label: "Mediterranean" },
 ];
 
+export type CravingCategoryValue = typeof CRAVING_CATEGORIES[number]["value"];
+
+export const CRAVING_CATEGORY_IDENTITIES: Record<CravingCategoryValue, string> = {
+  surprise: "Choose varied appropriate dish forms; do not force one food family.",
+  "burgers-sandwiches": "Recognizable burgers and sandwiches, with patties/fillings and an assembled bun, bread or suitable dietary-adapted vessel. Not loose stir-fries or generic bowls.",
+  "pizza-flatbreads": "Recognizable pizza or topped flatbread, with an actual base and toppings, including appropriate dietary-adapted bases.",
+  "fried-crispy": "Foods whose defining experience is fried or crisp/crunchy preparation; use compatible lighter, baked or air-fried adaptations when needed.",
+  "mexican-tex-mex": "Recognizable Mexican/Tex-Mex dish forms and preparations, not an unrelated dish merely renamed Mexican. Combine an explicit other cuisine through an honest compatible fusion.",
+  "pasta-noodles": "Pasta or noodle dishes whose central structure is noodles, including suitable low-carb or other dietary-adapted noodles.",
+  "comfort-food": "Recognizable comforting home-style dishes with distinct forms/preparations, rather than three generic protein-and-vegetable plates.",
+  breakfast: "Recognizable breakfast foods and preparations; vary the actual dish experience, not just the protein.",
+  asian: "Recognizable Asian dish forms and preparations. Vary forms, techniques and components rather than returning three interchangeable stir-fries.",
+  seafood: "Seafood-centered dishes or recognizable safe seafood-style adaptations when diet/allergies require them. Never introduce a prohibited seafood ingredient.",
+  "bbq-grilled": "Recognizable grilled, smoked or barbecue preparations, supported by actual cooking steps/components. Not stir-fries with a BBQ title.",
+  "snacks-finger-foods": "Recognizable snack or hand-held/finger-food formats; do not silently substitute full generic meal plates.",
+  sweet: "An individual sweet treat or small craving, not a whole dessert or batch by default. Preserve a recognizable sweet food experience with safe substitutions.",
+  "shakes-smoothies": "Actual drinkable shakes or smoothies with blending/liquid preparation, not solid bowls with a smoothie title. They can be meals or snacks.",
+  "something-else": "Honor the open-ended food request without imposing an unrelated category; choose varied appropriate foods when no dish is named.",
+};
+
 export function buildCravingCategoryPrompt(value: unknown): string {
   const category = CRAVING_CATEGORIES.find(option => option.value === value);
   if (!category) return "";
   return [
     `[OPTIONAL CRAVING CATEGORY: ${category.label}]`,
-    "Use this only as soft guidance for the kind of food to suggest. The explicit craving description takes priority if it conflicts; ignore the category rather than replacing the requested food.",
-    "Preserve the selected diet, cuisine, cooking method, serving count and meal/snack destination. This category is not a dietary restriction, cuisine requirement, rejection rule or meal-slot assignment.",
-    category.value === "surprise" || category.value === "something-else"
-      ? "Choose a suitable food style when the user has not named a food; otherwise honor their request."
-      : "Prefer this food family only when compatible with the user's explicit request and existing requirements.",
+    "The explicit craving description takes priority if clearly incompatible; otherwise every option MUST preserve the selected food family's recognizable identity. A blank craving makes the selected category the dish-identity authority.",
+    "Preserve the selected diet, cuisine, cooking method, serving count and meal/snack destination. This category is not a dietary restriction, clinical rule or meal-slot assignment.",
+    CRAVING_CATEGORY_IDENTITIES[category.value],
+    "Adapt ingredients, vessels, preparation and portions under mandatory safety restrictions; never silently replace the selected food experience with unrelated generic meals.",
+    "Create three meaningfully different dishes within this intent. Changing only the protein, name or seasoning does not create a distinct recipe.",
     category.value === "sweet"
       ? "For Sweet Cravings, suggest an individual sweet treat or small craving, not a whole dessert or batch by default."
       : "",
