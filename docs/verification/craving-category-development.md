@@ -81,5 +81,67 @@ Its underlying cause is not yet established; this is not proof of a new
 customer-facing allergy regression, nor proof that real overrides work.
 
 Live communication with the updated backend, signed-in dropdown interactions,
-desktop/mobile rendering, and actual selection behavior remain unverified
-because safe restart isolation was not confirmed.
+and desktop/mobile rendering remain unverified because Development was not
+restarted. Saved-code request mapping has now been verified in isolation below.
+
+## Subsequent isolated verification — no startup changes
+
+Added `server/tests/cravingCategory.handler.test.ts` and
+`server/tests/helpers/isolatedCravingHandler.ts`. The harness parses the saved
+TypeScript source, executes the original handler expression and its actual
+`app.post("/api/meals/craving-creator", cravingCreatorHandler)` registration,
+and dispatches synthetic requests through that registration.
+
+It does not import the route module, app entrypoint, database, or AI SDK.
+Dynamic imports are restricted to an explicit fixture-module allowlist; unknown
+imports fail the test. The handler's database dependency is an in-memory fixture.
+No listener is started, real environment credentials are not passed to the
+handler sandbox, and the generator is a function returning synthetic data.
+
+The isolated handler and category contract suites pass **56/56 tests**:
+
+- All 15 categories travel from the actual client JSON expression into the
+  registered handler and its generator prompt. Explicit text stays the clean
+  classification input.
+- Diet override and cuisine reach the request-context resolver and generation
+  arguments. Snack destination normalization remains intact.
+- Dairy-Free and Mediterranean are retained in Craving's upper selector and
+  reach generation; custom restriction text is still forwarded to the resolver.
+  This verifies mapping, not real resolver acceptance of arbitrary free text.
+- Omitted, empty and unsupported categories produce identical generation
+  arguments without category guidance.
+- The actual serving formatter receives the selected count, applies its
+  existing 1–10 clamp, sets the serving label and calls nutrition formatting
+  with that count. Nutrition calculations and quantity-scaling dependencies
+  are fixtures, not independent proof of real generated recipe quantities.
+- Missing actor identity, a reported allergy block, unresolved clinical context,
+  and active GLP-1 without resolved targets stop generation.
+- Diet replacement leaves the fixture's allergy list and saved diet unchanged.
+  Existing final protocol, allergen and clinical validation calls remain in the
+  untouched handler source.
+
+A separate in-process comparison executed the pre-category handler from the
+previously archived revision with the same fixtures and omitted-category body.
+It produced exactly the same generation arguments as the saved current handler.
+
+### Confirmed cooking-method mapping gap
+
+The client sends the selected value as `cookMethod`, but this handler does not
+consume it, put it in request context, or forward it to generation. The isolated
+test confirms `air-fryer` reaches the JSON body but not generation arguments.
+The pre-category handler comparison used that same body and also ignored the
+field: this gap predates the category change. No generation code was modified
+to repair it during this verification-only request.
+
+### Remaining live verification
+
+The harness intentionally stops normal generation at an empty fixture result
+and tests serving formatting separately. It does not prove model compliance,
+real allergy/PIN or clinical policy decisions, final returned-meal validation,
+image generation, persistence, or the full application's middleware.
+
+An approved restart is still needed to activate the saved backend and check
+actual authenticated browser/network behavior and dropdown rendering. Real
+generation would additionally require approval for AI calls. No startup change,
+migration-skip flag, restart, database connection, migration, AI request,
+Production modification, push, merge, or publish was performed.

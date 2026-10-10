@@ -21,6 +21,12 @@ Do not treat a skipped migration as a successful schema prerequisite for a destr
 
 **How to apply:** Separate mutation jobs from readiness checks and preserve explicit schema assurance before starting dependent workers.
 
+Request-wiring verification need not wait for a migration-free application startup.
+
+**Why:** Startup mutations are unrelated to checking how a saved handler consumes a request; isolated fixtures can verify that contract without changing startup protections.
+
+**How to apply:** Execute the saved handler and route binding with allowlisted fixture dependencies. Clearly distinguish wiring checks from real authentication, database-backed policy, and model compliance.
+
 For explicitly approved additive, Development-only clinical storage, "Development-only" gates the migration command and application access, not the physical schema: new tables exist on shared Neon while food reads remain unchanged. Do not substitute a requirement for a separate Development database after that approval.
 
 **Why:** Requiring independent branch isolation contradicted the confirmed shared-database arrangement and delayed an approved additive migration.
