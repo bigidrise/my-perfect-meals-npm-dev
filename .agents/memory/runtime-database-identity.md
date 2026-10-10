@@ -33,6 +33,12 @@ Do not attribute cumulative database mutation counters or current schema presenc
 
 **How to apply:** Separate confirmed invocation, observed current data, and proven changes. Request the failed process's redacted logs when they are not captured by the managed workflow; do not claim no changes from aggregate counters alone.
 
+Signal delivery alone does not establish that the Development server stopped gracefully.
+
+**Why:** An observed SIGTERM was intercepted by notification cleanup while both HTTP and Vite listeners remained open beyond the shutdown wait.
+
+**How to apply:** Confirm process exit and release of both ports before launching a replacement. Do not assume a shutdown hook terminates the server, or substitute forced termination without approval.
+
 Request-wiring verification need not wait for a migration-free application startup.
 
 **Why:** Startup mutations are unrelated to checking how a saved handler consumes a request; isolated fixtures can verify that contract without changing startup protections.
