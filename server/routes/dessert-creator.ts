@@ -27,6 +27,7 @@ import { getAuthUserId } from "../utils/getAuthUserId";
 import type { HumanFoodFinalValidationResult } from "../../shared/humanFoodValidation";
 import type { HumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
 import { DESSERT_CATEGORY_LABELS } from "@shared/foodIdentity";
+import { prepareDessertNutrition, estimateDessertIngredientNutrition, dessertNutritionDiscrepancies, DessertNutritionError } from "../services/dessertNutrition";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -546,6 +547,15 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
     // Normalize ingredients to U.S. measurements (oz, cups, tbsp, tsp)
     const normalizedIngredients = normalizeIngredients(meal.ingredients || []);
     meal.ingredients = normalizedIngredients;
+    const nutritionDiscrepancies = dessertNutritionDiscrepancies(meal, serving.count);
+    if (nutritionDiscrepancies.length) {
+      console.warn("[DESSERT] Nutrition discrepancy", {
+        requestId: (req as any).id,
+        fields: nutritionDiscrepancies,
+      });
+      meal = await prepareDessertNutrition(meal, serving.count, (ingredients) =>
+        estimateDessertIngredientNutrition(ingredients, getOpenAI()));
+    }
 
     const ingredientNames = normalizedIngredients.map((i: any) =>
       String(i.name ?? "").toLowerCase()
@@ -756,6 +766,10 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
         if (dessertCreatorSystem) {
           repaired = await applyCreatorTransformation(repaired, dessertCreatorSystem, "dessert");
         }
+        if (dessertNutritionDiscrepancies(repaired, serving.count).length) {
+          repaired = await prepareDessertNutrition(repaired, serving.count, (ingredients) =>
+            estimateDessertIngredientNutrition(ingredients, getOpenAI()));
+        }
         return [repaired];
       },
     });
@@ -823,6 +837,12 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
       },
     });
   } catch (err: any) {
+    if (err instanceof DessertNutritionError) {
+      console.warn("[DESSERT] Ingredient nutrition unavailable", {
+        requestId: (req as any).id,
+        fields: err.fields,
+      });
+    }
     console.error("Dessert Creator Error:", err);
     const status = Number.isInteger(err?.status) ? err.status : 500;
     return res.status(status).json({
