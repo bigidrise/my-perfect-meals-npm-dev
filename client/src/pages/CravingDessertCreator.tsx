@@ -69,6 +69,7 @@ import { GenerationFailureBanner, HIDDEN_FAILURE, type GenerationFailureState } 
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { captureAuthoritativeTextValue, commitTextInputValue } from "@/lib/authoritativeTextInput";
 import { dessertRecipeServings, dessertFavoritePayload, dessertFailureCopy } from "@/lib/dessertResult";
+import { dessertYieldOptions, LEGACY_DESSERT_YIELDS } from "@shared/dessertYields";
 
 const DESSERT_CATEGORIES = [
   { value: "surprise", label: "Surprise Me!" },
@@ -86,6 +87,10 @@ const DESSERT_CATEGORIES = [
   { value: "cupcakes", label: "Cupcakes" },
 ];
 
+const WEDDING_SERVING_SIZES = Object.values(LEGACY_DESSERT_YIELDS)
+  .filter((option) => option.tiers)
+  .map(({ value, label }) => ({ value, label }));
+
 const FLAVOR_FAMILIES = [
   { value: "no-preference", label: "No Preference" },
   { value: "apple", label: "Apple" },
@@ -101,20 +106,6 @@ const FLAVOR_FAMILIES = [
   { value: "cinnamon-spice", label: "Cinnamon / Spice" },
   { value: "coffee", label: "Coffee" },
   { value: "caramel", label: "Caramel" },
-];
-
-const SERVING_SIZES = [
-  { value: "single", label: "Single portion" },
-  { value: "two", label: "Two portions" },
-  { value: "family", label: "Group (4–6 portions)" },
-  { value: "batch", label: "Batch (8–12 portions)" },
-];
-
-const WEDDING_SERVING_SIZES = [
-  { value: "small-wedding", label: "Small Wedding (30–50 guests)" },
-  { value: "medium-wedding", label: "Medium Wedding (75–100 guests)" },
-  { value: "large-wedding", label: "Large Wedding (120–150 guests)" },
-  { value: "extra-large-wedding", label: "Large Event (200+ guests)" },
 ];
 
 const DIETARY_OPTIONS = [
@@ -189,12 +180,13 @@ export default function DessertCreator() {
   const [flavorFamily, setFlavorFamily] = useState("");
   const [specificDessert, setSpecificDessert] = useState("");
   const specificDessertRef = useRef<HTMLInputElement>(null);
-  const [servingSize, setServingSize] = useState("single");
+  const [servingSize, setServingSize] = useState("individual-1");
   const [dietaryPreference, setDietaryPreference] = useState("");
   const [customDietary, setCustomDietary] = useState("");
   const [cakeStyle, setCakeStyle] = useState("classic");
   const [cakeType, setCakeType] = useState("");
   const [instructionsExpanded, setInstructionsExpanded] = useState(false);
+  const [showRecipeTotalNutrition, setShowRecipeTotalNutrition] = useState(false);
   const [activeStep, setActiveStep] = useState<number | null>(null);
   const [generatedDessert, setGeneratedDessert] = useState<any | null>(() => {
     try {
@@ -317,12 +309,18 @@ export default function DessertCreator() {
   // Image is now returned inline from the server — no client-side re-fetch needed.
 
   useEffect(() => {
-    if (cakeType === "wedding-cake") {
-      setServingSize("medium-wedding");
-    } else if (servingSize.includes("wedding")) {
-      setServingSize("single");
+    const options =
+      dessertCategory === "cake" && cakeType === "wedding-cake"
+        ? WEDDING_SERVING_SIZES
+        : dessertYieldOptions(dessertCategory || "surprise");
+    if (!options.some((option) => option.value === servingSize)) {
+      setServingSize(
+        dessertCategory === "cake" && cakeType === "wedding-cake"
+          ? "medium-wedding"
+          : options[0]?.value ?? "individual-1",
+      );
     }
-  }, [cakeType]);
+  }, [cakeType, dessertCategory, servingSize]);
 
   const startProgressTicker = () => {
     if (tickerRef.current) return;
@@ -542,7 +540,39 @@ export default function DessertCreator() {
   }
 
   function getNutrition(meal: any) {
-    return creatorMealNutrition(meal, dessertRecipeServings(meal));
+    if (meal?.perServingNutrition) {
+      return creatorMealNutrition(
+        { ...meal, nutrition: meal.perServingNutrition, servings: 1 },
+        1,
+      );
+    }
+    const servings = dessertRecipeServings(meal);
+    return creatorMealNutrition({ ...meal, servings }, servings);
+  }
+
+  function nutritionValue(source: any, key: "calories" | "protein" | "carbs" | "fat") {
+    const aliases: Record<typeof key, string[]> = {
+      calories: ["calories", "kcal"],
+      protein: ["protein", "protein_g"],
+      carbs: ["carbs", "carbohydrates", "carbs_g"],
+      fat: ["fat", "fat_g"],
+    };
+    const raw = aliases[key].map((alias) => source?.[alias]).find((value) => value != null);
+    const value = Number(raw ?? 0);
+    return Number.isFinite(value) ? Math.round(value * 10) / 10 : 0;
+  }
+
+  function handleCategoryChange(category: string) {
+    setDessertCategory(category);
+    const options =
+      category === "cake" && cakeType === "wedding-cake"
+        ? WEDDING_SERVING_SIZES
+        : dessertYieldOptions(category || "surprise");
+    setServingSize(
+      category === "cake" && cakeType === "wedding-cake"
+        ? "medium-wedding"
+        : options[0]?.value ?? "individual-1",
+    );
   }
 
   return (
@@ -717,7 +747,7 @@ export default function DessertCreator() {
                 </label>
                 <Select
                   value={dessertCategory}
-                  onValueChange={setDessertCategory}
+                  onValueChange={handleCategoryChange}
                 >
                   <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
                     <SelectValue placeholder="Select dessert type" />
@@ -845,16 +875,19 @@ export default function DessertCreator() {
 
               <div>
                 <label className="block text-md font-medium text-white mb-1">
-                  Serving Size <span className="text-orange-400">*</span>
+                  Recipe yield <span className="text-orange-400">*</span>
                 </label>
+                <p className="text-xs text-white/60 mb-2">
+                  How much the recipe makes, not how much one person eats.
+                </p>
                 <Select value={servingSize} onValueChange={setServingSize}>
                   <SelectTrigger className="w-full text-sm bg-black text-white border-white/30">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {(cakeType === "wedding-cake"
+                    {(dessertCategory === "cake" && cakeType === "wedding-cake"
                       ? WEDDING_SERVING_SIZES
-                      : SERVING_SIZES
+                      : dessertYieldOptions(dessertCategory || "surprise")
                     ).map((size) => (
                       <SelectItem key={size.value} value={size.value}>
                         {size.label}
@@ -1071,15 +1104,15 @@ export default function DessertCreator() {
                   )}
 
                   <div className="mb-4 p-3 bg-black/40 backdrop-blur-md border border-white/20 rounded-lg">
-                    <div className="flex items-center gap-2 text-sm text-white">
+                    <div className="flex items-start gap-2 text-sm text-white">
                       <Users className="h-4 w-4 text-white" />
-                      <span className="font-medium">Serving Size:</span>{" "}
-                      {generatedDessert.servingSize}
-                      {generatedDessert.totalSlices && (
-                        <span className="text-white/70">
-                          ({generatedDessert.totalSlices} slices)
+                      <div>
+                        <span className="font-medium">Recipe yield:</span>{" "}
+                        {generatedDessert.servingSize || `${dessertRecipeServings(generatedDessert)} servings`}
+                        <span className="block text-xs text-white/65 mt-1">
+                          Makes {dessertRecipeServings(generatedDessert)} servings; nutrition below is for one serving.
                         </span>
-                      )}
+                      </div>
                     </div>
                   </div>
 
@@ -1089,15 +1122,29 @@ export default function DessertCreator() {
                     description={generatedDessert.description}
                   />
 
-                  <p className="text-xs text-center text-white/60 mb-2">
-                    Nutrition per serving • Recipe makes {dessertRecipeServings(generatedDessert)} servings
-                  </p>
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <p className="text-xs text-white/70">
+                      {showRecipeTotalNutrition ? "Nutrition for the whole recipe" : "Nutrition per slice, piece, or serving"}
+                    </p>
+                    {generatedDessert.nutrition && (
+                      <button
+                        type="button"
+                        onClick={() => setShowRecipeTotalNutrition((current) => !current)}
+                        aria-pressed={showRecipeTotalNutrition}
+                        className="text-xs text-orange-300 hover:text-orange-200 underline underline-offset-2"
+                      >
+                        {showRecipeTotalNutrition ? "Show per serving" : "Show recipe total"}
+                      </button>
+                    )}
+                  </div>
 
-                  <div className="grid grid-cols-4 gap-4 mb-4 text-center">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 text-center">
                     {(["calories", "protein", "carbs", "fat"] as const).map(
                       (key) => {
-                        const nutritionSource = getNutrition(generatedDessert);
-                        const value = Number(nutritionSource[key] ?? 0);
+                        const nutritionSource = showRecipeTotalNutrition
+                          ? generatedDessert.nutrition
+                          : generatedDessert.perServingNutrition || getNutrition(generatedDessert);
+                        const value = nutritionValue(nutritionSource, key);
                         return (
                           <div
                             key={key}
