@@ -12,6 +12,7 @@
  */
 
 import { isRecipeSensitiveDish } from './dishEngineRouter';
+import { buildCravingSelectionPrompt, filterCravingSelectionCandidates, type CravingSelection } from "./craving/categorySelection";
 import {
   resolveRequestedMealMacros,
   buildRequestedMealMacroPrompt,
@@ -1908,6 +1909,7 @@ function buildVarietyPrompt(
   cuisineGroundingBlock: string = '',
   measurementSystem: MeasurementSystem = 'imperial',
   createDishContract?: import("./createDish/dishContract").CreateDishContract,
+  cravingSelection?: CravingSelection,
 ): string {
   const hasHardCreateDishIntent = cravingInput.includes(
     "[CREATE A DISH — HARD CULINARY INTENT]",
@@ -1941,7 +1943,9 @@ function buildVarietyPrompt(
     : createDishContract?.leafVessel
       ? `ALL 3 options MUST be lettuce wraps: use actual lettuce leaves as the vessel enclosing the filling, not a tortilla with lettuce garnish.`
       : FORMAT_LOCK_DISHES[dishFamily];
-  const dessertNote = category === "dessert"
+  const dessertNote = cravingSelection
+    ? `\n${buildCravingSelectionPrompt(cravingSelection)}`
+    : category === "dessert"
     ? `\nCATEGORY LOCK: This is a DESSERT request. ALL 3 options must be desserts. Never generate savory meals, wraps, salads, or non-dessert items.`
     : category === "beverage"
     ? `\nCATEGORY LOCK: This is a BEVERAGE request. ALL 3 options must be drinks. Never generate solid food.`
@@ -1949,7 +1953,7 @@ function buildVarietyPrompt(
     ? `\nCATEGORY LOCK — DISH FORMAT ENFORCED: ${formatLockText}`
     : `\nCATEGORY LOCK: This is a ${category.toUpperCase()} request. Stay within this food category.`;
 
-  return `You are a precision chef AI. Your ONLY job is to generate 3 distinct variations of the same dish type.
+  return `You are a precision chef AI. Your ONLY job is to generate 3 ${cravingSelection ? "meaningfully distinct dishes satisfying the selected culinary intent" : "distinct variations of the same dish type"}.
 ${allergyBlock ? allergyBlock + '\n' : ''}${avoidanceBlock ? avoidanceBlock + '\n' : ''}${cuisineGroundingBlock}
 ═══════════════════════════════════════
 HIERARCHY (follow in this EXACT order):
@@ -1963,8 +1967,10 @@ HIERARCHY (follow in this EXACT order):
 3. DISH FAMILY LOCK (non-negotiable)
    The user asked for: "${cravingInput}"
    Treat that request as the food to satisfy, not as inspiration for a different balanced meal.
-    Core dish to stay within: "${createDishContract?.requestedDish ?? dishFamily}" (broad family: "${dishFamily}")
-   ALL 3 options must be variations of "${dishFamily}"${hasHardCreateDishIntent ? " while preserving every fixed Create a Dish form/cut, texture, and flavor requirement" : " — different preparations, textures, flavors, or proteins"}.
+    ${cravingSelection
+      ? `Preserve ${cravingSelection.explicitCraving ? `the explicit food "${cravingSelection.explicitCraving}" and compatible category intent` : "the selected category's food experience, with different suitable dish forms/preparations"}. Neither diet nor cuisine permits substituting unrelated generic meals. Protein-only swaps do NOT count as distinct options.`
+      : `Core dish to stay within: "${createDishContract?.requestedDish ?? dishFamily}" (broad family: "${dishFamily}")
+    ALL 3 options must be variations of "${dishFamily}"${hasHardCreateDishIntent ? " while preserving every fixed Create a Dish form/cut, texture, and flavor requirement" : " — different preparations, textures, flavors, or proteins"}.`}
    Example: "soup" → Chicken Noodle Soup, Lentil Tomato Soup, Creamy Broccoli Soup.
    Example: "cheesecake" → Classic Baked Cheesecake, No-Bake Cheesecake, Cheesecake Parfait.
    NEVER drift to a completely different dish type. A rice plate is not a soup. A grilled protein is not a salad.
@@ -2191,14 +2197,19 @@ export async function generateCravingMealOptions(
   refillSignal?: AbortSignal,
   /** One request-frozen diabetes authority for glucose-aware creator flows. */
   diabetesAttempt?: DiabetesGenerationAttempt,
+  /** Craving-only request authority, retained for every attempt and refill. */
+  cravingSelection?: CravingSelection,
 ): Promise<UnifiedMeal[]> {
   const validMealType = normalizeMealType(mealType);
   const cleanClassificationInput = resolveVarietyClassificationInput(
     cravingInput,
     classificationInput,
   );
-  const category = inferCravingCategory(cleanClassificationInput, validMealType);
-  const dishFamily = extractDishFamily(cleanClassificationInput);
+  const classificationText = cravingSelection?.explicitCraving ?? cleanClassificationInput;
+  const category = !classificationText && cravingSelection?.category === "sweet" ? "dessert"
+    : !classificationText && cravingSelection?.category === "shakes-smoothies" ? "beverage"
+    : inferCravingCategory(classificationText, validMealType);
+  const dishFamily = cravingSelection && !classificationText ? "" : extractDishFamily(classificationText);
   console.log(`🎲 [VARIETY ENGINE] category=${category}; dish=${dishFamily}; classificationSource=${classificationInput ? "clean" : "generation"}`);
 
   // Fix B: Fetch dietary restrictions, allergies, AND health conditions from the user profile
@@ -2485,7 +2496,7 @@ export async function generateCravingMealOptions(
   // 'recipe' → force culinary-ratio engine (for pro/debug use).
   // 'meal' → force nutrition-first engine.
   const isRecipeMode = generationMode === 'recipe'
-    || (generationMode === 'auto' && isRecipeSensitiveDish(cravingInput));
+    || (generationMode === 'auto' && isRecipeSensitiveDish(cravingSelection ? classificationText : cravingInput));
   if (isRecipeMode) {
     const trigger = generationMode === 'recipe' ? 'explicit' : 'auto-detected';
     console.log(`🍳 [RECIPE MODE] Using culinary-ratio prompt for "${cravingInput}" (${trigger})`);
@@ -2501,16 +2512,18 @@ export async function generateCravingMealOptions(
 
   /** One attempt at calling AI and parsing result */
   let refillModelCalls = 0;
-  const attempt = async (stricterMode: boolean, violationHint?: string): Promise<any[]> => {
+  const attempt = async (stricterMode: boolean, violationHint?: string, accepted: any[] = []): Promise<any[]> => {
     if (refillSignal?.aborted) throw new Error("Create a Dish refill time budget exceeded");
     if (refillSignal && ++refillModelCalls > 1) {
       throw new Error("Create a Dish refill model-call budget exceeded");
     }
     const prompt = isRecipeMode
       ? buildRecipeVarietyPrompt(cravingInput, validMealType, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock, cuisineGroundingBlock, varietyMeasurementSystem, createDishContract)
-      : buildVarietyPrompt(cravingInput, validMealType, category, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock, cuisineGroundingBlock, varietyMeasurementSystem, createDishContract);
+      : buildVarietyPrompt(cravingInput, validMealType, category, dishFamily, dietBlock, dietRestrictions, excludeClause, allergyBlock, strictMode, avoidanceBlock, cuisineGroundingBlock, varietyMeasurementSystem, createDishContract, cravingSelection);
     const stricter = stricterMode
-      ? `\n\nSECOND ATTEMPT — STRICT MODE: The previous response drifted from the dish family. You MUST generate 3 options that are clearly recognizable variations of "${dishFamily}". No exceptions.`
+      ? cravingSelection
+        ? "\n\nSECOND ATTEMPT — STRICT MODE: Honor the unchanged selected category, actual cooking method and meaningful variety; do not substitute unrelated dishes. Mandatory safety protections remain active."
+        : `\n\nSECOND ATTEMPT — STRICT MODE: The previous response drifted from the dish family. You MUST generate 3 options that are clearly recognizable variations of "${dishFamily}". No exceptions.`
       : "";
     const hintAddendum = violationHint ? `\n\n${violationHint}` : "";
     // Dish Adaptation Layer: identity anchor + explicit guardrail adaptations
@@ -2519,6 +2532,7 @@ export async function generateCravingMealOptions(
     const contractBlock = createDishContract
       ? (await import("./createDish/dishContract")).buildCreateDishContractPrompt(createDishContract) + '\n\n'
       : '';
+    const selectionBlock = cravingSelection ? buildCravingSelectionPrompt(cravingSelection) + '\n\n' : '';
     if (refillSignal?.aborted) throw new Error("Create a Dish refill time budget exceeded");
     const response = await openai.chat.completions.create({
       // fastMode (Try 3 More / skipImages path): use gpt-4o-mini — it's ~3x
@@ -2526,14 +2540,17 @@ export async function generateCravingMealOptions(
       // image-scan already anchored the dish concept, so full gpt-4o quality
       // isn't needed for subsequent swipes.
       model: fastMode ? "gpt-4o-mini" : "gpt-4o",
-      messages: [{ role: "user", content: contractBlock + dalBlock + (specialtyMedicalBlock ? specialtyMedicalBlock + '\n\n' : '') + (proceduralBlock ? proceduralBlock + '\n\n' : '') + prompt + stricter + hintAddendum }],
+      messages: [{ role: "user", content: contractBlock + dalBlock + selectionBlock + (specialtyMedicalBlock ? specialtyMedicalBlock + '\n\n' : '') + (proceduralBlock ? proceduralBlock + '\n\n' : '') + prompt + stricter + hintAddendum }],
       temperature: stricterMode ? 0.6 : 0.85,
       max_tokens: fastMode ? 1500 : 2500,
       response_format: { type: "json_object" },
     }, refillSignal ? { signal: refillSignal } : undefined);
     const content = response.choices[0]?.message?.content;
     if (!content) throw new Error("Empty AI response from variety engine");
-    return parseVarietyContent(content);
+    const parsed = parseVarietyContent(content);
+    return cravingSelection
+      ? filterCravingSelectionCandidates(openai, parsed, cravingSelection, accepted, refillSignal)
+      : parsed;
   };
 
   let rawOptions: any[];
@@ -2561,6 +2578,7 @@ export async function generateCravingMealOptions(
 
   // If majority fail validation, regenerate once with stricter, targeted prompt
   if (valid.length < 2) {
+    const previousRawOptions = rawOptions;
     console.warn(`[VARIETY ENGINE] Only ${valid.length}/3 options passed validation — regenerating with strict prompt`);
 
     // Build targeted hints for known violation types — each covers a distinct failure mode
@@ -2588,6 +2606,9 @@ export async function generateCravingMealOptions(
       // Use the better result
       if (strictValid.length >= valid.length) {
         rawOptions = rawOptions.slice(0, 3);
+      } else if (cravingSelection) {
+        // A failed refill must not discard already verified category choices.
+        rawOptions = previousRawOptions;
       }
     } catch (retryErr) {
       console.error("[VARIETY ENGINE] Strict retry also failed:", retryErr);
@@ -2615,12 +2636,12 @@ export async function generateCravingMealOptions(
   // attempt to fill the missing slots.  Best-effort: if the retry also returns
   // excluded names or fails, the surviving options (1-2) are returned as-is.
   // The caller (route) returns a 422 only when rawFiltered is entirely empty.
-  if (excludeMeals && excludeMeals.length > 0 && rawFiltered.length < 3) {
+  if ((cravingSelection || (excludeMeals && excludeMeals.length > 0)) && rawFiltered.length < 3) {
     const missing = 3 - rawFiltered.length;
     console.warn(`[VARIETY ENGINE] excludeMeals: only ${rawFiltered.length}/3 options survive — retrying to fill ${missing} slot(s)`);
     try {
-      const retryRaw = await attempt(false);
-      const retryFiltered = filterExcludedMealNames(retryRaw, excludeMeals);
+      const retryRaw = await attempt(false, undefined, rawFiltered);
+      const retryFiltered = filterExcludedMealNames(retryRaw, excludeMeals ?? []);
       for (const opt of retryFiltered) {
         if (rawFiltered.length >= 3) break;
         // De-duplicate against already accepted options
@@ -2803,6 +2824,14 @@ export async function generateCravingMealOptions(
     if (cuisineOverride) meal.name = culturalNameTransform(meal.name, cuisineOverride);
     return meal;
   });
+}
+
+/** Recheck the actual final/scaled recipes, including fallback and refill output.
+ * Reuses the Chef client; safety clearance remains owned by the existing route gates. */
+export async function verifyCravingMealOptions<T extends { name?: string; ingredients?: unknown[]; instructions?: unknown }>(
+  meals: T[], selection: CravingSelection, accepted: T[] = [], signal?: AbortSignal,
+): Promise<T[]> {
+  return filterCravingSelectionCandidates(getOpenAI(), meals, selection, accepted, signal);
 }
 
 /**

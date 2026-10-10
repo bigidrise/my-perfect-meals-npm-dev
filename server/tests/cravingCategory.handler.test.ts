@@ -73,12 +73,22 @@ describe("saved active Craving handler — isolated, no DB/startup/model", () =>
     },
   );
 
-  it("records the existing cooking-method gap instead of claiming generator support", async () => {
+  it("forwards normalized explicit cooking-method authority to the generator", async () => {
     const h = isolatedCravingHarness();
     await h.request(clientPayload({ cookMethod: "air-fryer" }));
     expect(clientPayload({ cookMethod: "air-fryer" }).cookMethod).toBe("air-fryer");
-    expect(h.generate.mock.calls[0].flat().join(" ")).not.toContain("air-fryer");
+    expect(h.generate.mock.calls[0][19]).toMatchObject({ cookingMethod: "Air Fryer", explicitCraving: "chicken bowl" });
     expect(h.scope.mock.calls[0][0]).not.toHaveProperty("cookMethod");
+  });
+
+  it.each(CRAVING_CATEGORIES)("supports blank craving with $label as request-local authority", async category => {
+    const h = isolatedCravingHarness();
+    const response = await h.request(clientPayload({ cravingCategory: category.value, submittedCravingInput: "something delicious" }));
+    expect(response.statusCode).toBe(422);
+    expect(h.generate.mock.calls[0][19]).toEqual({
+      category: category.value, cookingMethod: "Air Fryer", explicitCraving: "",
+    });
+    expect(response.body.reasonCode).toBe("craving_selection_unfulfilled");
   });
 
   it("rejects missing actor authentication before any scope or generation work", async () => {
