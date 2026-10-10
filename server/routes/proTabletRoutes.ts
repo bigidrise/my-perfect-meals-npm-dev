@@ -75,7 +75,9 @@ import {
 } from "../services/tabletVoiceService";
 import { getStudioVideoTranscriptionFailureMetadata } from "../services/studioVideoTranscriptionDiagnostics";
 
-startVoiceJobWorker();
+import { startupMaintenanceEnabled } from "../bootstrap/developmentStartupMaintenance";
+
+if (startupMaintenanceEnabled()) startVoiceJobWorker();
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 import { studioVideoUpload } from "../middleware/studioVideoUpload";
