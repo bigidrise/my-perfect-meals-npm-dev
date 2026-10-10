@@ -21,11 +21,17 @@ Do not treat a skipped migration as a successful schema prerequisite for a destr
 
 **How to apply:** Separate mutation jobs from readiness checks and preserve explicit schema assurance before starting dependent workers.
 
-Development-only safe startup must suppress automatic launch sites, not globally block database writes or bypass request security. Deployment and Production markers must override a Development suppression flag.
+Development-only safe startup must suppress automatic launch sites, not globally block database writes or bypass request security. Authoritative server Production/deployment markers override suppression; inherited client branding does not establish runtime identity.
 
-**Why:** Shared Neon requires stopping automatic maintenance without breaking authentication, interactive recipe generation, or clinical enforcement. Static imports can launch workers before the entrypoint body runs.
+**Why:** Shared Neon requires stopping automatic maintenance without breaking authentication, interactive recipe generation, or clinical enforcement. A safe-start opt-in was silently ignored because Development inherited client Production branding; tests with minimal synthetic environments missed it. Static imports can launch workers before the entrypoint body runs.
 
-**How to apply:** Audit import-time workers, singleton initialization, deferred jobs and awaited startup work together. Keep read-only prerequisites fail-closed, and distinguish offline startup simulation from an approved real restart.
+**How to apply:** Initialize an immutable decision before importing the application. An ambiguous or uninitialized safe opt-in must abort, never fall back to normal maintenance. Audit import-time workers, singleton initialization, deferred jobs and awaited startup work together. Keep read-only prerequisites fail-closed; test inherited branding and occupied ports without loading database dependencies.
+
+Do not attribute cumulative database mutation counters or current schema presence to a single failed startup without a before-state or operation-specific evidence.
+
+**Why:** Concurrent applications share Neon, some account mutations have no modified timestamp, and PostgreSQL commit timestamp tracking may be disabled. A clean recent timestamp query cannot exclude updates, deletes, or DDL.
+
+**How to apply:** Separate confirmed invocation, observed current data, and proven changes. Request the failed process's redacted logs when they are not captured by the managed workflow; do not claim no changes from aggregate counters alone.
 
 Request-wiring verification need not wait for a migration-free application startup.
 
