@@ -7,6 +7,7 @@ interface DietCuisineControlRowProps {
   dietOverrideValue: string;
   onDietToggle: (enabled: boolean) => void;
   onDietChange: (diet: string) => void;
+  dietOptions?: ReadonlyArray<{ value: string; label: string }>;
   cuisineOverrideEnabled: boolean;
   cuisineOverrideValue: string;
   onCuisineToggle: (enabled: boolean) => void;
@@ -27,6 +28,7 @@ export function DietCuisineControlRow({
   dietOverrideValue,
   onDietToggle,
   onDietChange,
+  dietOptions,
   cuisineOverrideEnabled,
   cuisineOverrideValue,
   onCuisineToggle,
@@ -41,6 +43,7 @@ export function DietCuisineControlRow({
           overrideDiet={dietOverrideValue}
           onToggle={onDietToggle}
           onDietChange={onDietChange}
+          dietOptions={dietOptions}
         />
       </div>
       <div className="flex-1 min-w-0">

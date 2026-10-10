@@ -17,7 +17,7 @@ export function dessertFailureCopy(status?: number, data?: any) {
   if (nutritionFailure) return {
     show: true,
     message: "We couldn't verify the nutrition for this dessert and its serving count, so we haven't shown the recipe. Your dessert request and dietary choices are unchanged.",
-    suggestedActions: ["Specify plain ingredients and exact measurements, preferably grams. Nutrition sources may also be temporarily unavailable."],
+    suggestedActions: ["Try again, or report this dessert request if the problem continues. Changing your measurements is not necessarily required."],
   };
   if (status === 401 || status === 403) return {
     show: true,

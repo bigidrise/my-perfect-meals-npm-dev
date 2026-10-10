@@ -1,6 +1,7 @@
 import {
   lookupUsdaIngredient, type IngredientComposition,
 } from "./productDiscovery/usdaIngredientAdapter";
+import { toPerServingNutrition } from "./humanFoodContext/servingNutrition";
 
 export const DESSERT_NUTRIENTS = ["calories", "protein", "carbs", "fat", "starchyCarbs"] as const;
 type Nutrient = typeof DESSERT_NUTRIENTS[number];
@@ -32,8 +33,62 @@ export class DessertNutritionError extends Error {
   readonly status = 422;
   readonly code = "DESSERT_NUTRITION_UNVERIFIED";
   constructor(readonly fields: string[]) {
-    super("Dessert nutrition could not be verified from the ingredient quantities.");
+    super("Dessert nutrition could not be verified for the recipe and serving count.");
   }
+}
+
+/**
+ * Dessert generation supplies whole-recipe estimates. Derive eating-portion
+ * values using the existing Creator serving contract, not a second estimator.
+ * Missing/invalid totals remain failures; never borrow an independently
+ * generated portion vector or fill absent nutrients with zeros.
+ */
+export function normalizeDessertRecipeNutrition<T extends Record<string, any>>(
+  candidate: T, servings: number,
+): Omit<T, "nutritionProvenance" | "nutrition" | "perServingNutrition" | "servings"> & {
+  servings: number; nutrition: Nutrition; perServingNutrition: Nutrition; recipeIngredientQuantities: any[];
+} {
+  if (!Number.isInteger(servings) || servings < 1 || candidate.servings !== servings) {
+    throw new DessertNutritionError(["servings"]);
+  }
+  if (!Array.isArray(candidate.ingredients) || candidate.ingredients.length === 0) {
+    throw new DessertNutritionError(["ingredients"]);
+  }
+  const recipeIngredientQuantities = Array.isArray(candidate.recipeIngredientQuantities)
+    ? candidate.recipeIngredientQuantities : candidate.ingredients;
+  if (recipeIngredientQuantities.length !== candidate.ingredients.length) {
+    throw new DessertNutritionError(["ingredients"]);
+  }
+  for (const [index, row] of candidate.ingredients.entries()) {
+    const name = row?.name ?? row?.item;
+    const sourceRow = recipeIngredientQuantities[index];
+    const amount = sourceRow?.amount ?? sourceRow?.quantity;
+    if (typeof name !== "string" || !name.trim() ||
+        !["string", "number"].includes(typeof amount) || dessertQuantity(String(amount)) === null) {
+      throw new DessertNutritionError([`ingredients.${index}.quantity`]);
+    }
+  }
+  const nutrition = {} as Nutrition;
+  for (const key of DESSERT_NUTRIENTS) {
+    const value = candidate.nutrition?.[key];
+    if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+      throw new DessertNutritionError([`nutrition.${key}`]);
+    }
+    nutrition[key] = value;
+  }
+  if (nutrition.starchyCarbs > nutrition.carbs) {
+    throw new DessertNutritionError(["nutrition.starchyCarbs"]);
+  }
+  const perServingNutrition = toPerServingNutrition({ nutrition }, servings) as Nutrition;
+  // The generated estimates are not USDA-verified composition evidence.
+  const {
+    nutritionProvenance: _unusedProvenance, nutrition: _unusedTotals,
+    perServingNutrition: _unusedPortions, servings: _unusedServings, ...recipe
+  } = candidate;
+  return {
+    ...recipe, servings, nutrition, perServingNutrition,
+    recipeIngredientQuantities: recipeIngredientQuantities.map((row: any) => ({ ...row })),
+  };
 }
 
 /** Diagnostic field names only: no recipe, profile, or ingredient logging. */

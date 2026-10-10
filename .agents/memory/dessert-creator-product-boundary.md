@@ -14,3 +14,9 @@ Prefer reusing the working Creator recipe/nutrition system over maintaining two 
 **Why:** The user explicitly stated this preference for Craving Creator and Dessert Creator.
 
 **How to apply:** Compare the active working pipeline and its serving-aware nutrition utilities before adding Dessert-only dependencies. Preserve Dessert-specific whole-recipe sizing; working generation is not proof of independently verified nutrition accuracy.
+
+Do not reintroduce mandatory USDA matching or add an independent nutrition estimator as part of Dessert serving-size repairs.
+
+**Why:** The user approved removing the new ingredient-matching gate after legitimate recipe generation began failing, while explicitly preserving all food-safety protections.
+
+**How to apply:** Keep structured recipe estimates distinct from verified composition evidence. Unknown nutrition stays unknown, and serving arithmetic must not invent missing nutrients or remove clinical validation.

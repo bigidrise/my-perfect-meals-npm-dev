@@ -115,6 +115,8 @@ jest.mock("../storage", () => ({ storage: {} }));
 
 // ── Mock: protocolEnvelope ────────────────────────────────────────────────────
 jest.mock("../services/protocolEnvelope", () => ({
+  loadGenerationProtocolEnvelope: jest.fn(async (...args: any[]) =>
+    jest.requireMock("../services/protocolEnvelope").loadUserProtocolEnvelope(...args)),
   loadUserProtocolEnvelope: jest.fn().mockResolvedValue({
     dietaryIdentity: [],
     allergies: [],
@@ -137,6 +139,7 @@ import {
   filterExcludedMealNames,
   normalizeForExclusion,
 } from "../services/unifiedMealPipeline";
+import { buildCravingCategoryPrompt } from "../../shared/cravingCategories";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. normalizeForExclusion — punctuation normalisation helper
@@ -543,5 +546,24 @@ describe("inspiration.ts structural — excludedOptionNames forwarded as exclude
   it("always runs image generation for all options including Try 3 More", () => {
     // The image generation block must NOT be inside a conditional on skipImages
     expect(inspSrc).not.toMatch(/if\s*\(!?\s*skipImages\)/);
+  });
+});
+
+describe("Craving category context in the existing generation pipeline", () => {
+  it("sends soft sweet-category guidance alongside an explicit chicken request without reclassifying it as Dessert", async () => {
+    mockCreate.mockReset();
+    mockCreate.mockResolvedValue({ choices: [{ message: { content: FIRST_CALL_ALL_EXCLUDED } }] });
+    const explicitCraving = "chicken bowl";
+    const options = await generateCravingMealOptions(
+      `${explicitCraving}\n\n${buildCravingCategoryPrompt("sweet")}`,
+      "dinner", "test-user-exclude-001", [], undefined, false, "auto",
+      undefined, undefined, undefined, undefined, false, undefined,
+      undefined, undefined, explicitCraving,
+    );
+    expect(options).toHaveLength(3);
+    const prompt = mockCreate.mock.calls.map(([params]) => params.messages.map((message: any) => message.content).join("\n")).join("\n");
+    expect(prompt).toContain("OPTIONAL CRAVING CATEGORY: Sweet Cravings");
+    expect(prompt).toContain("chicken bowl");
+    expect(prompt).toContain("explicit craving description takes priority");
   });
 });
