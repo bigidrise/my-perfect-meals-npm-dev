@@ -13,6 +13,7 @@ interface DietOverrideControlProps {
   overrideDiet: string;
   onToggle: (enabled: boolean) => void;
   onDietChange: (diet: string) => void;
+  dietOptions?: ReadonlyArray<{ value: string; label: string }>;
   className?: string;
 }
 
@@ -30,6 +31,7 @@ export function DietOverrideControl({
   overrideDiet,
   onToggle,
   onDietChange,
+  dietOptions = CREATOR_DIET_OPTIONS,
   className = "",
 }: DietOverrideControlProps) {
   return (
@@ -58,7 +60,7 @@ export function DietOverrideControl({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="__none__">No specific preference</SelectItem>
-            {CREATOR_DIET_OPTIONS.map((opt) => (
+            {dietOptions.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
               </SelectItem>

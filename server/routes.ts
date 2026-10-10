@@ -1,4 +1,5 @@
 import fs from "fs";
+import { buildCravingCategoryPrompt } from "../shared/cravingCategories";
 import { ConsumerOncologyError, saveConsumerSpecialtySupport, SELF_SELECTABLE_SPECIALTY_CONDITIONS } from "./services/consumerOncologySupport";
 import { oncologySymptomPriorityEnabled } from "./services/guardrails/prompt/oncologySymptomPriority";
 import path from "path";
@@ -6144,6 +6145,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           : requestedCreator === "sushi_creator"
             ? "sushi_creator"
             : "craving_creator";
+      // This optional hint is Craving-only; it never enters safety/diet/slot resolution.
+      const cravingCategoryPrompt = humanFoodCreator === "craving_creator"
+        ? buildCravingCategoryPrompt(req.body.cravingCategory) : "";
+      if (humanFoodCreator === "craving_creator" && req.body.cravingCategory && !cravingCategoryPrompt) {
+        console.warn("[CravingCreator] Unsupported optional category ignored; existing food request preserved.");
+      }
       const logCreateDishAcceptance = (details: Record<string, unknown>) => {
         if (
           process.env.NODE_ENV === "development" &&
@@ -6321,6 +6328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       cravingInput = `${cravingInput || ""}\n\n${buildCreatorHumanFoodPrompt(humanFoodCreator, humanFoodContext, humanFoodExecutionState)}`.trim();
+      if (cravingCategoryPrompt) cravingInput += `\n\n${cravingCategoryPrompt}`;
       if (_overriddenAvoidances.length > 0) {
         cravingInput += `\n\n[ACKNOWLEDGED ADVISORY OVERRIDE: Include the explicitly requested ${_overriddenAvoidances.join(", ")}. This overrides only the matching saved avoidance for this request. All allergies, dietary identities, clinical limits, and other protections remain active.]`;
       }
@@ -6707,7 +6715,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         humanFoodExecutionState,
         _overriddenAvoidances,
         _overriddenDietaryIdentities,
-        humanFoodCreator === "create_a_dish" ? rawCravingInput : undefined,
+        humanFoodCreator === "create_a_dish" || cravingCategoryPrompt ? rawCravingInput : undefined,
         createDishContract,
         undefined,
         diabetesAttempt,

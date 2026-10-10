@@ -112,7 +112,8 @@ describe("Source-backed Dessert nutrition", () => {
     const helper = readFileSync("server/services/dessertNutrition.ts", "utf8");
     const route = readFileSync("server/routes/dessert-creator.ts", "utf8");
     expect(helper).not.toContain("chat.completions");
-    expect(route.indexOf("ingredients: originalIngredients")).toBeLessThan(route.indexOf("normalizeIngredients(originalIngredients)"));
+    expect(route.indexOf("meal = normalizeDessertRecipeNutrition")).toBeLessThan(route.indexOf("normalizeIngredients(originalIngredients)"));
+    expect(route).not.toContain("estimateDessertIngredientNutrition");
     expect(route).toContain("Number(personalNutrition.carbs)");
     expect(route).toContain("Number(personalNutrition.fat)");
   });

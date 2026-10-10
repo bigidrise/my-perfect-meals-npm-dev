@@ -27,7 +27,7 @@ import { getAuthUserId } from "../utils/getAuthUserId";
 import type { HumanFoodFinalValidationResult } from "../../shared/humanFoodValidation";
 import type { HumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
 import { DESSERT_CATEGORY_LABELS } from "@shared/foodIdentity";
-import { prepareDessertNutrition, estimateDessertIngredientNutrition, dessertNutritionDiscrepancies, DessertNutritionError } from "../services/dessertNutrition";
+import { normalizeDessertRecipeNutrition, dessertNutritionDiscrepancies, DessertNutritionError } from "../services/dessertNutrition";
 import { resolveDessertYield } from "@shared/dessertYields";
 
 let _openai: OpenAI | null = null;
@@ -458,6 +458,8 @@ ${hasCustomDescription ? `- PRIMARY DESCRIPTION (highest priority): "${customDes
 - Number of servings: ${serving.count}
 - Complete recipe yield: ${serving.label}. Ingredients and pan dimensions must make this entire dessert, not one eating portion.
 - Return exact measured amounts, preferably grams for every ingredient (including zest, spices, salt and eggs). Do not use ranges, pinches, or "to taste". Display units are converted afterwards.
+- nutrition is the estimated TOTAL for these complete recipe ingredients and this entire yield. Include every nutrient field as a finite nonnegative number. Do not multiply an already whole-recipe estimate by the serving count.
+- perServingNutrition is derived by the server from those totals divided by ${serving.count}; it is not a second independent estimate.
 ${cakeRulesBlock}
 GENERATION RULES:
 1. If a specific dessert is named (e.g., "key lime pie"), create a HEALTHY version of that exact dessert.
@@ -537,7 +539,7 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
       }
     }
 
-    // Calculate on original quantities; display rounding must never become nutrition input.
+    // Keep the full recipe and normalize its estimates before display conversion.
     const originalIngredients = Array.isArray(meal.ingredients) ? meal.ingredients.map((row: any) => ({ ...row })) : [];
     const nutritionDiscrepancies = dessertNutritionDiscrepancies(meal, serving.count);
     if (nutritionDiscrepancies.length) {
@@ -546,8 +548,9 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
         fields: nutritionDiscrepancies,
       });
     }
-    meal = await prepareDessertNutrition({ ...meal, ingredients: originalIngredients }, serving.count,
-      estimateDessertIngredientNutrition);
+    meal = normalizeDessertRecipeNutrition({
+      ...meal, ingredients: originalIngredients, recipeIngredientQuantities: originalIngredients,
+    }, serving.count);
     const normalizedIngredients = normalizeIngredients(originalIngredients);
     meal.ingredients = normalizedIngredients;
     if (dessertCategory === "cake") {
@@ -599,6 +602,13 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
     if (userId && userId !== "1") {
       meal = await applyCreatorTransformation(meal, dessertCreatorSystem!, "dessert");
     }
+    // Transformations may change totals; derive portions again without scaling
+    // the whole-recipe totals or ingredient quantities a second time.
+    meal = normalizeDessertRecipeNutrition(meal, serving.count);
+    if (dessertCategory === "cake") {
+      meal.totalSlices = serving.count;
+      meal.perSliceNutrition = { ...meal.perServingNutrition, sliceSize: "1 slice" };
+    }
 
     // Universal final gate: validate the exact transformed dessert, permit one
     // same-context repair, then validate the exact object returned to the client.
@@ -632,7 +642,6 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
           ? _overriddenDessertAllergens
           : undefined,
       });
-      const nutrition = candidate?.nutrition ?? {};
       // Clinical meal checks apply to one eating portion, not the entire pan.
       // The unchanged final gate separately verifies totals, portions and exact yield.
       const personalNutrition = candidate?.perServingNutrition ?? {};
@@ -669,11 +678,11 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
         ...candidate,
         category: candidate?.category,
         nutrition: {
-          calories: Number(nutrition.calories),
-          protein: Number(nutrition.protein),
-          carbs: Number(nutrition.carbs),
-          fat: Number(nutrition.fat),
-          starchyCarbs: Number(nutrition.starchyCarbs),
+          calories: Number(personalNutrition.calories),
+          protein: Number(personalNutrition.protein),
+          carbs: Number(personalNutrition.carbs),
+          fat: Number(personalNutrition.fat),
+          starchyCarbs: Number(personalNutrition.starchyCarbs),
         },
         evidence: {
           sourceType: "generated_recipe" as const,
@@ -768,8 +777,10 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
         if (dessertCreatorSystem) {
           repaired = await applyCreatorTransformation(repaired, dessertCreatorSystem, "dessert");
         }
-        repaired = await prepareDessertNutrition({ ...repaired, ingredients: repairedOriginalIngredients },
-          serving.count, estimateDessertIngredientNutrition);
+        repaired = normalizeDessertRecipeNutrition({
+          ...repaired, ingredients: repairedOriginalIngredients, recipeIngredientQuantities: repairedOriginalIngredients,
+        },
+          serving.count);
         repaired.ingredients = normalizeIngredients(repairedOriginalIngredients);
         if (dessertCategory === "cake") {
           repaired.totalSlices = serving.count;
@@ -843,7 +854,7 @@ ${getMeasurementPromptBlock((dessertMeasurementSystem) as MeasurementSystem)}
     });
   } catch (err: any) {
     if (err instanceof DessertNutritionError) {
-      console.warn("[DESSERT] Ingredient nutrition unavailable", {
+      console.warn("[DESSERT] Recipe nutrition invalid", {
         requestId: (req as any).id,
         fields: err.fields,
       });
