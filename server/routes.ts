@@ -7637,6 +7637,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (humanFoodCreator === "create_a_dish" || cravingSelection) {
         const { fillFinalCreateDishChoices, releaseCreateDishReplacementBatch } = await import("./services/createDish/finalChoices");
+        const cravingRecipeSignature = cravingSelection
+          ? (await import("./services/craving/categorySelection")).cravingRecipeSignature : undefined;
         const { mealHonorsCreateDishIntent } = await import("./services/createDish/createDishIntent");
         const { scanMealsForAllergenViolations } = await import("./services/allergyGuardrails");
         // The original and replacement candidates share these request-resolved
@@ -7650,7 +7652,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (!protocolEnvelope.hasDiabetes) return true;
           return passesDiabeticGlucoseGate(meal);
         };
-        const releaseReplacementBatch = async (candidates: any[]): Promise<any[]> => {
+        const releaseReplacementBatch = async (candidates: any[], signal?: AbortSignal): Promise<any[]> => {
           // These are the same ordered gates the first generation traverses:
           // clinical carb limit, protocol + dish identity, adaptation allergen
           // scan, creator transformation, Human Food, culinary intent, then
@@ -7692,7 +7694,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             survivors: released.length,
           });
           if (!cravingSelection) return released;
-          const categoryVerified = await verifyCravingMealOptions(released, cravingSelection, cravingAcceptedChoices);
+          const categoryVerified = await verifyCravingMealOptions(released, cravingSelection, cravingAcceptedChoices, signal);
           cravingAcceptedChoices.push(...categoryVerified);
           return categoryVerified;
         };
@@ -7701,6 +7703,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // allowance. Only already verified options survive an exhausted budget.
         const choiceResult = await fillFinalCreateDishChoices({
           initial: formattedOptions,
+          signature: cravingSelection ? cravingRecipeSignature : undefined,
           initialCandidates: mealOptions,
           excludedNames: excludeMeals,
           maxRefillCalls: 2,

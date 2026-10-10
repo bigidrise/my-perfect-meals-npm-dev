@@ -632,6 +632,6 @@ describe("Craving category generation, selection and refill — mocked Chef, act
     expect(options).toHaveLength(3);
     expect(options.map(option => option.instructions)).toEqual([chicken, steak, fish].map(option => option.instructions));
     const reviews = mockCreate.mock.calls.filter(([params]) => params.messages[0].content.includes("VERIFICATION"));
-    expect(JSON.parse(reviews[1][0].messages[1].content).alreadyAccepted).toHaveLength(2);
+    expect(reviews).toHaveLength(0);
   });
 });

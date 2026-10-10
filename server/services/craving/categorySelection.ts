@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { CRAVING_CATEGORIES, buildCravingCategoryPrompt, type CravingCategoryValue } from "../../../shared/cravingCategories";
+import { categoryEvidence, cookingEvidence, culinaryEvidenceKey, cravingRecipeSignature, hasCulinaryEvidence } from "./recipeEvidence";
+export { cravingRecipeSignature } from "./recipeEvidence";
 
 export interface CravingSelection {
   category?: CravingCategoryValue;
@@ -27,7 +29,7 @@ export function resolveCravingSelection(category: unknown, cookingMethod: unknow
   return {
     category: selected, cookingMethod: method,
     // Legacy clients use this placeholder for category-only submissions.
-    explicitCraving: selected && /^something delicious$/i.test(text) ? "" : text,
+    explicitCraving: /^something delicious$/i.test(text) ? "" : text,
   };
 }
 
@@ -57,15 +59,17 @@ interface ChefClient {
   chat: { completions: { create: (...args: any[]) => Promise<any> } };
 }
 
-const reviewSchema = z.object({
-  decisions: z.array(z.object({
+const decisionSchema = z.object({
     index: z.number().int().nonnegative(),
     categoryMatch: z.boolean(),
     cookingMethodMatch: z.boolean(),
     distinct: z.boolean(),
     reason: z.string().min(1).max(500),
-  })).max(3),
 });
+const reviewSchema = z.object({ decisions: z.array(z.unknown()).max(20) });
+
+// Request-local object identity: no user/profile persistence or cross-request cache.
+const reviewedEvidence = new WeakMap<CravingSelection, Map<string, { category: boolean; method: boolean }>>();
 
 function recipeEvidence(recipe: Recipe, index: number) {
   return {
@@ -76,24 +80,9 @@ function recipeEvidence(recipe: Recipe, index: number) {
   };
 }
 
-function hasRecipeEvidence(recipe: Recipe): boolean {
-  const ingredients = recipe.ingredients?.some(ingredient =>
-    typeof ingredient === "string" ? Boolean(ingredient.trim())
-      : Boolean(ingredient && typeof ingredient === "object" &&
-        ((ingredient as any).name || (ingredient as any).item)),
-  );
-  const instructions = typeof recipe.instructions === "string"
-    ? Boolean(recipe.instructions.trim())
-    : Array.isArray(recipe.instructions) && recipe.instructions.some(step =>
-      typeof step === "string" ? Boolean(step.trim())
-        : Boolean(step && typeof step === "object" && (step.instruction || step.text || step.description)),
-    );
-  return Boolean(ingredients && instructions);
-}
-
-/** One common semantic check for all categories, using the existing Chef client.
- * This is culinary release evidence only: it cannot grant safety/clinical clearance.
- * Missing, duplicate, malformed or unavailable decisions fail closed. */
+/** Local evidence first; one batched Chef review only for unresolved recipes.
+ * Culinary evidence never grants safety/clinical clearance. Malformed decisions
+ * leave their own indices unresolved, not independently valid candidates. */
 export async function filterCravingSelectionCandidates<T extends Recipe>(
   client: ChefClient,
   candidates: T[],
@@ -103,6 +92,46 @@ export async function filterCravingSelectionCandidates<T extends Recipe>(
 ): Promise<T[]> {
   const batch = candidates.slice(0, 3);
   if (!batch.length) return [];
+  let cache = reviewedEvidence.get(selection);
+  if (!cache) reviewedEvidence.set(selection, cache = new Map());
+  const evidenceKey = (recipe: Recipe) => JSON.stringify([
+    selection.category, selection.cookingMethod, selection.explicitCraving, culinaryEvidenceKey(recipe),
+  ]);
+  const acceptedSignatures = new Set(accepted.map(cravingRecipeSignature).filter(Boolean));
+  const allowed = new Set<number>();
+  const unresolved: number[] = [];
+  const locallyRejected = new Set<number>();
+  for (const [index, recipe] of batch.entries()) {
+    const signature = cravingRecipeSignature(recipe);
+    if (!hasCulinaryEvidence(recipe) || !signature || acceptedSignatures.has(signature)) {
+      locallyRejected.add(index);
+      continue;
+    }
+    const key = evidenceKey(recipe);
+    const remembered = cache.get(key);
+    const category = remembered ? (remembered.category ? "match" : "mismatch")
+      : categoryEvidence(recipe, selection.category, selection.explicitCraving);
+    const method = remembered ? (remembered.method ? "match" : "mismatch")
+      : cookingEvidence(recipe, selection.cookingMethod);
+    if (category === "mismatch" || method === "mismatch") locallyRejected.add(index);
+    else if (category === "match" && method === "match") {
+      allowed.add(index);
+      cache.set(key, { category: true, method: true });
+    } else unresolved.push(index);
+  }
+  const localSignatures = new Set([...allowed].map(index => cravingRecipeSignature(batch[index])));
+  const ambiguous = unresolved.filter(index => !localSignatures.has(cravingRecipeSignature(batch[index])));
+  const release = () => {
+    const signatures = new Set(acceptedSignatures);
+    return batch.filter((recipe, index) => {
+      if (locallyRejected.has(index) || !allowed.has(index)) return false;
+      const signature = cravingRecipeSignature(recipe)!;
+      if (signatures.has(signature)) return false;
+      signatures.add(signature);
+      return true;
+    });
+  };
+  if (!ambiguous.length) return release();
   try {
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
@@ -123,23 +152,34 @@ export async function filterCravingSelectionCandidates<T extends Recipe>(
           'Return JSON {"decisions":[{"index":0,"categoryMatch":true,"cookingMethodMatch":true,"distinct":true,"reason":"specific recipe evidence"}]} with exactly one decision per candidate index.',
         ].join("\n") },
         { role: "user", content: JSON.stringify({
-          candidates: batch.map(recipeEvidence),
-          alreadyAccepted: accepted.slice(0, 3).map(recipeEvidence),
+          candidates: ambiguous.map(index => recipeEvidence(batch[index], index)),
+          alreadyAccepted: [...accepted, ...batch.filter((_recipe, index) => allowed.has(index))]
+            .slice(0, 6).map(recipeEvidence),
         }) },
       ],
     }, { ...(signal ? { signal } : {}), timeout: 15_000 });
     const content = response.choices?.[0]?.message?.content;
     const parsed = reviewSchema.safeParse(JSON.parse(content || "null"));
-    if (!parsed.success || parsed.data.decisions.length !== batch.length) return [];
-    const decisions = parsed.data.decisions;
-    if (new Set(decisions.map(row => row.index)).size !== batch.length ||
-      decisions.some(row => row.index >= batch.length)) return [];
-    return batch.filter((_recipe, index) => {
-      const row = decisions.find(decision => decision.index === index)!;
-      return hasRecipeEvidence(batch[index]) && row.categoryMatch && row.cookingMethodMatch && row.distinct;
-    });
+    if (parsed.success) {
+      for (const index of ambiguous) {
+        // Even a malformed duplicate invalidates this index, but not its neighbors.
+        const rows = parsed.data.decisions.filter(row =>
+          row && typeof row === "object" && (row as any).index === index);
+        if (rows.length !== 1) continue;
+        const decision = decisionSchema.safeParse(rows[0]);
+        if (!decision.success) continue;
+        const row = decision.data;
+        // Positive identity alone must not revive a reviewer-rejected duplicate
+        // on a later pass. Its novelty remains unresolved for that later batch.
+        if (row.categoryMatch && row.cookingMethodMatch && !row.distinct) continue;
+        cache.set(evidenceKey(batch[index]), {
+          category: row.categoryMatch, method: row.cookingMethodMatch,
+        });
+        if (row.categoryMatch && row.cookingMethodMatch && row.distinct) allowed.add(index);
+      }
+    }
   } catch {
-    console.warn("[CravingSelection] Culinary verification unavailable; no unverified candidates released.");
-    return [];
+    console.warn("[CravingSelection] Ambiguous culinary verification unavailable; retaining local matches only.");
   }
+  return release();
 }

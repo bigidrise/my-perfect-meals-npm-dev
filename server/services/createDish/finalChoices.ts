@@ -65,7 +65,9 @@ export async function fillFinalCreateDishChoices<T extends ChoiceCandidate>(inpu
   deadlineAt: number;
   maxRefillCalls: number;
   generate: (call: number, excludedNames: string[], signal: AbortSignal) => Promise<ChoiceCandidate[]>;
-  validate: (candidates: ChoiceCandidate[]) => Promise<T[]>;
+  validate: (candidates: ChoiceCandidate[], signal?: AbortSignal) => Promise<T[]>;
+  /** Optional caller-owned quality signature; existing Create a Dish default stays unchanged. */
+  signature?: (candidate: T) => string | null;
   now?: () => number;
 }): Promise<FinalChoiceResult<T>> {
   const now = input.now ?? Date.now;
@@ -82,7 +84,7 @@ export async function fillFinalCreateDishChoices<T extends ChoiceCandidate>(inpu
   function add(candidate: T): void {
     if (choices.length >= 3) return;
     const name = normalize(candidate.name ?? "");
-    const signature = recipeSignature(candidate);
+    const signature = (input.signature ?? recipeSignature)(candidate);
     if (!name || !signature || names.has(name) || signatures.has(signature)) return;
     names.add(name);
     excludedOriginalNames.add(candidate.name!.trim());
@@ -127,7 +129,7 @@ export async function fillFinalCreateDishChoices<T extends ChoiceCandidate>(inpu
         timedOut = true;
         break;
       }
-      const validated = await Promise.race([input.validate(candidates), deadline]);
+      const validated = await Promise.race([input.validate(candidates, controller.signal), deadline]);
       if (controller.signal.aborted || now() >= input.deadlineAt) {
         timedOut = true;
         break;
