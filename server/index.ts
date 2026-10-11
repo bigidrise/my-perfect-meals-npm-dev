@@ -108,6 +108,7 @@ import abTestingMealPlansRouter from "./routes/mealPlans";
 import { templateRouter } from "./routes/mealTemplates";
 import { userMealPrefsRouter } from "./routes/userMealPrefs";
 import stripeRouter from "./routes/stripe";
+import { developmentStripeIsolationMiddleware } from "./middleware/developmentStripeIsolation";
 import stripeCheckoutRouter from "./routes/stripeCheckout";
 import studioStripeRouter from "./routes/studioStripeRoutes";
 import coachingRouter from "./routes/coaching";
@@ -244,6 +245,9 @@ app.get("/api/health", (_req, res) => {
 // ---------- Production Middleware ----------
 app.use(requestId);
 app.use(logger);
+
+// Block Development billing before ANY webhook processing or API handler.
+app.use(developmentStripeIsolationMiddleware);
 
 // Stripe webhook MUST come BEFORE express.json() to preserve raw body for signature verification
 // IMPORTANT: Use specific path /api/stripe/webhook to avoid intercepting other /api/stripe/* routes

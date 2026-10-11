@@ -397,3 +397,17 @@ mtime_ms = 1791685663739
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/1b858b3f-3ba5-4dd9-b5f9-d52375d53228/ab11f0b8-6020-477d-bebb-9fc397e9cee0"
 storage_version_token = "1791685709240474"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "zs9Xi3eHJVVeY4PVBCtD4"
+uri = "file://docs/business-pilot-development-stripe-isolation-report.md"
+type = "text"
+title = "Development Stripe Isolation — Verification Report"
+description = "Changed files, 163 passing tests, safe-start audit, coverage, risks and the separate restart approval boundary."
+logical_id = "9d325541-142e-4a7c-8bbf-0bb72027624f"
+content_hash = "sha256:6c0015f7ddeeb5820487db6de6641fbb7d54b2f981c2b114cf1a25d268aaecf1"
+size = 7267
+mtime_ms = 1791688858505
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/9d325541-142e-4a7c-8bbf-0bb72027624f/a03db2fc-8f2a-470c-843c-facf038207db"
+storage_version_token = "1791688871440469"
+content_type = "text/markdown"

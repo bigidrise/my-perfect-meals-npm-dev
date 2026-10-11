@@ -1,5 +1,5 @@
 import express from "express";
-import Stripe from "stripe";
+import Stripe from "../services/isolatedStripeClient";
 import { db } from "../db";
 import { users } from "../../shared/schema";
 import { eq } from "drizzle-orm";

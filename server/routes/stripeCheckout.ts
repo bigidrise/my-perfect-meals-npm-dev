@@ -1,5 +1,5 @@
 import { Router } from "express";
-import Stripe from "stripe";
+import Stripe from "../services/isolatedStripeClient";
 import type { LookupKey } from "../../client/src/data/planSkus";
 import { requireAuth } from "../middleware/requireAuth";
 import { getTrustedCheckoutPlan } from "../services/stripePlanCatalog";

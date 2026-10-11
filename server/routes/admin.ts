@@ -1,5 +1,5 @@
 import { Router } from "express";
-import Stripe from "stripe";
+import Stripe from "../services/isolatedStripeClient";
 import { isMfaVerifiedForUser } from "../lib/sessionSecurity";
 import { getClientIp, logAudit } from "../lib/auditLog";
 import { db, pool } from "../db";
