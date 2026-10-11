@@ -5,7 +5,7 @@ import { deleteDevelopmentBusinessRecords } from "../services/developmentBusines
 import { BusinessPilotActivationError, FOUNDER_ACTIVATION_WORKFLOW } from "../services/businessPilotActivationPolicy";
 import { getProviderStudioReadiness } from "../services/procareStudioReadiness";
 import { randomBytes, randomUUID } from "crypto";
-import Stripe from "stripe";
+import Stripe from "../services/isolatedStripeClient";
 import { db } from "../db";
 import { eq, and, ne, sql, isNull, gt, or, inArray } from "drizzle-orm";
 import {

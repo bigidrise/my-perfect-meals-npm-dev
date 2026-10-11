@@ -1,5 +1,5 @@
 import { Router } from "express";
-import Stripe from "stripe";
+import Stripe from "../services/isolatedStripeClient";
 import { ensureStudioForTrainer } from "../services/studioBridge";
 import { getProviderStudioReadiness } from "../services/procareStudioReadiness";
 import { randomUUID } from "node:crypto";

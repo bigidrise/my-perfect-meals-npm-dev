@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import Stripe from "stripe";
+import Stripe from "../services/isolatedStripeClient";
 import { db } from "../db";
 import { clientNotes, studioMemberships, coachingInvites } from "../db/schema/studio";
 import { users } from "../../shared/schema";

@@ -28,6 +28,9 @@ jest.mock("../services/verifiedServiceBillingWriter", () => ({
 jest.mock("../services/stripePlanCatalog", () => ({
   planFromSubscription: jest.fn(),
 }));
+// The route imports db even though every operation in this fixture is delegated
+// to mocked services. Never let this isolated webhook test construct a live pool.
+jest.mock("../db", () => ({ db: {} }));
 
 const secret = "whsec_adverse_snapshot_fixture";
 const signer = new Stripe("sk_test_adverse_snapshot_fixture");
