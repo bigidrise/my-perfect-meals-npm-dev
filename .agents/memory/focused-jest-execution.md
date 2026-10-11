@@ -14,3 +14,9 @@ Stream or save verification output while commands run, rather than buffering sub
 **Why:** A parent timeout can discard all buffered child output, hiding which phase stalled and making a tooling timeout look like an application failure.
 
 **How to apply:** Capture output as it arrives and check build/test phases separately when investigating a timeout. Do not treat a narrow passing check as proof that the full application is verified.
+
+Avoid full-root compiler-host or filesystem-overlay comparisons as a quick way to prove a diagnostic mismatch predates a narrow change.
+
+**Why:** Both comparison approaches stalled beyond multi-minute timeouts in this project, yielding no baseline proof.
+
+**How to apply:** Inspect the complete current compiler output and keep an unexplained release fingerprint mismatch explicitly unresolved rather than repeatedly compiling synthetic before/after programs.
