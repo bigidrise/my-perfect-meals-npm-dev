@@ -152,3 +152,4 @@
 - [Craving quality standard](craving-quality-standard.md) — preserve adapted food identity without rigid ingredients, routine extra AI checks, or overrejecting legitimate variations.
 - [Pilot erasure and receipt retention](pilot-erasure-and-receipt-retention.md) — operational capabilities and financial consent have different erasure purposes; no receipt retention period was established.
 - [Neon preflight default privileges](neon-preflight-default-privileges.md) — scope default ACL checks to the actual creator, schema, and object type; provider defaults need not apply.
+- [PostgreSQL catalog array decoding](postgres-catalog-array-decoding.md) — cast catalog identifier arrays to text[] for node-postgres; name[] may arrive as raw strings.

@@ -383,3 +383,17 @@ mtime_ms = 1791684476998
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/39b56c1f-300f-47c9-938c-0f542fbe128d/4000c9bb-b2c0-4d31-8df6-2c092798bbfa"
 storage_version_token = "1791684503084032"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "5PjY5ALviCpUqDTmhJmld"
+uri = "file://docs/business-pilot-controlled-schema-installation-report.md"
+type = "text"
+title = "Business Pilot — Installation Committed and Verified"
+description = "The unchanged approved shared-Neon migration committed once. Read-only verification passed; activation remains disabled and end-to-end testing awaits separate approval."
+logical_id = "1b858b3f-3ba5-4dd9-b5f9-d52375d53228"
+content_hash = "sha256:9865e25372dd64f3dca6b2b471b5f22fc70575ae8906208a56e7fad4778588cc"
+size = 4407
+mtime_ms = 1791685663739
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/1b858b3f-3ba5-4dd9-b5f9-d52375d53228/ab11f0b8-6020-477d-bebb-9fc397e9cee0"
+storage_version_token = "1791685709240474"
+content_type = "text/markdown"

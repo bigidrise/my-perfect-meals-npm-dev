@@ -3,6 +3,10 @@
 This report supersedes the original report's schema/deletion description. This
 is source review, not permission to apply shared-Neon DDL or enable activation.
 
+**Later installation status:** The unchanged migration was subsequently committed
+and verified under separate approval. See
+`docs/business-pilot-controlled-schema-installation-report.md`. Activation remains disabled.
+
 ## Corrected expiration contract
 
 The review SQL requires an activated user, a non-null start, a non-null end,
