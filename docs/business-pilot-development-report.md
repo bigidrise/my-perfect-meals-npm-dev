@@ -7,9 +7,10 @@ Development source implementation and isolated automated testing are complete. T
 **Subsequent safety corrections:** See `docs/business-pilot-source-safety-corrections.md`.
 The review SQL now requires finite, non-null 720-hour activation dates and uses
 account-owned capability deletion, nullable receipt identity references, and a
-preserved Organization-consumption marker. The shared migration remains unapplied.
+preserved Organization-consumption marker. The shared migration was subsequently
+installed under separate approval; see `docs/business-pilot-controlled-schema-installation-report.md`.
 
-No migrations, shared-Neon writes, live Stripe subscriptions/charges/payment records, application restarts, publication, or GitHub pushes were performed by the Agent. Tests ran with database and Stripe credentials removed from the child process and database operations mocked. No real invitation was issued.
+During the original source-only phase, no migrations, shared-Neon writes, live Stripe subscriptions/charges/payment records, application restarts, publication, or GitHub pushes were performed by the Agent. Tests ran with database and Stripe credentials removed from the child process and database operations mocked. No real invitation was issued.
 
 The running backend was not restarted and therefore must not be assumed to have loaded the new routes. New activation and billing-review functionality requires both `BUSINESS_PILOT_ACTIVATION_ENABLED=true` and `BUSINESS_PILOT_ACTIVATION_SCHEMA_APPROVED=true`. Neither switch was changed.
 
