@@ -355,3 +355,17 @@ mtime_ms = 1791584145942
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/255c4f14-2112-462a-967d-b54b4fb8e25a/122538b8-eb0c-40c1-a23c-020da60df270"
 storage_version_token = "1791584160575075"
 content_type = "text/html"
+
+[[outputs]]
+id = "nLR4WyslVq_y2-YpREF4n"
+uri = "file://docs/business-pilot-development-report.md"
+type = "text"
+title = "Business Pilot — Development Report"
+description = "Implementation, changed files, 131 isolated test results, approval gates, and exact founder/physician/patient steps. Not approval for live activation."
+logical_id = "7e5bcf45-ca88-4fb5-a35c-39d99df70a36"
+content_hash = "sha256:7682093dfd6d55bc7205bcf2d681f14e87ce2e1a6237593907bd15defacc5791"
+size = 11399
+mtime_ms = 1791682622234
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/7e5bcf45-ca88-4fb5-a35c-39d99df70a36/b85b70cf-62f1-45a3-8f60-a39a17de99d0"
+storage_version_token = "1791682662652614"
+content_type = "text/markdown"

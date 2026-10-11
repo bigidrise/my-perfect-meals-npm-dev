@@ -68,6 +68,7 @@ export interface User {
 
   isTester?: boolean;
   isSandbox?: boolean;
+  isFounder?: boolean;
 
   accessTier?: AccessTier;
 

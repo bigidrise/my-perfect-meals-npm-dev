@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import FounderPilotInvitation from "@/components/business/FounderPilotInvitation";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -208,6 +209,7 @@ export default function PilotProgramAdmin() {
         </button>
         <p className="text-sm font-semibold uppercase tracking-wider text-violet-300">Pilot administration</p>
         <h1 className="mt-2 text-3xl font-bold">Organization Pilots</h1>
+        {user?.isFounder && <FounderPilotInvitation />}
         <p className="mt-2 text-white/65">Authorize organizations first, then manage participants after the organization is set up.</p>
 
         <section className="mt-7 rounded-2xl border border-violet-400/25 bg-violet-500/10 p-6">

@@ -43,6 +43,8 @@ import {
 } from "lucide-react";
 import { FeatureUpgradeModal } from "@/components/modals/FeatureUpgradeModal";
 import OrganizationInvitationsAccess from "@/components/business/OrganizationInvitationsAccess";
+import OrganizationPaidContinuation from "@/components/business/OrganizationPaidContinuation";
+import BusinessPilotWindowNotice from "@/components/business/BusinessPilotWindowNotice";
 import RewardfulPayoutGuidance from "@/components/business/RewardfulPayoutGuidance";
 import GuidedBusinessPilot from "@/components/business/GuidedBusinessPilot";
 
@@ -1045,9 +1047,7 @@ export default function BusinessDashboard() {
               This organization's 30-day Business pilot has ended. Its organization, locations, memberships, and data are preserved.
             </p>
           </div>
-          <div className="rounded-xl border border-orange-500/25 bg-orange-500/10 px-4 py-3 text-sm text-orange-100">
-            Commercial options will be presented here once the applicable arrangement is defined.
-          </div>
+          <OrganizationPaidContinuation businessId={business.id} />
           <button
             className="w-full py-2 rounded-xl bg-white/10 text-white/60 text-sm"
             onClick={() => setLocation("/business-organizations")}
@@ -1213,6 +1213,7 @@ export default function BusinessDashboard() {
         )}
 
         <div id="organization-invitations-access">
+          <BusinessPilotWindowNotice />
           <OrganizationInvitationsAccess
             businessId={ownerData.business.id}
             businessName={ownerData.business.name}

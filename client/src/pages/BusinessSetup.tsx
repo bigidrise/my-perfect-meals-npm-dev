@@ -12,6 +12,7 @@ import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAuthHeaders } from "@/lib/auth";
+import BusinessPilotWindowNotice from "@/components/business/BusinessPilotWindowNotice";
 import { Building2, Users, ChevronRight, Loader2, CheckCircle } from "lucide-react";
 
 export default function BusinessSetup() {
@@ -280,6 +281,7 @@ export default function BusinessSetup() {
             </p>
           </div>
 
+          <BusinessPilotWindowNotice />
           {/* Price preview */}
             {false && creationAccess !== "loading" && (
             <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 flex items-center justify-between">

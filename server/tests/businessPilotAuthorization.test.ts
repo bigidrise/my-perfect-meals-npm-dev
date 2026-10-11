@@ -85,11 +85,11 @@ describe("BP1 Business Pilot authorization server core", () => {
     expect(service).not.toContain("insert(businessMembers)");
   });
 
-  test("BP authorization is not user-level access and cannot elevate general access or ProCare", () => {
+  test("an unactivated BP authorization is not access; explicit activation remains consumer-only", () => {
     expect(accessTier).not.toContain("businessPilotAccess");
-    expect(effectiveAccess).not.toContain("businessPilot");
+    expect(effectiveAccess).toContain("getActiveBusinessPilotClinicalAccess(user.id)");
     expect(effectiveAccess).not.toContain("accessProvenance");
-    expect(requireAuth).not.toContain("businessPilot");
+    expect(requireAuth).toContain("hasTemporaryClinicalAccess: effective.temporaryClinicalAccess");
     expect(auth).not.toContain("businessPilotAccess");
     expect(auth).not.toContain("businessPilotAuthorizationId");
   });

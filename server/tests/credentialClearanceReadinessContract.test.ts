@@ -12,6 +12,12 @@ jest.mock("../services/studioBridge", () => ({ ensureStudioForTrainer: jest.fn()
 jest.mock("../lib/auditLog", () => ({ logAudit: jest.fn() }));
 import { getProviderStudioReadiness } from "../services/procareStudioReadiness";
 beforeEach(() => { mockActive = mockEntitled = mockPhase1 = mockTraining = mockLegal = mockCleared = true; });
+test("Organization invitation readiness does not invent a paid Studio requirement", async () => {
+  mockEntitled = false;
+  expect(await getProviderStudioReadiness("fictional-clinician", { requireSubscription: false })).toEqual({ ok: true });
+  mockCleared = false;
+  expect(await getProviderStudioReadiness("fictional-clinician", { requireSubscription: false })).toMatchObject({ ok: false });
+});
 test("current independent clearance permits readiness only when all existing gates are ready", async () => {
   expect(await getProviderStudioReadiness("fictional-clinician", { requireTraining: true })).toEqual({ ok: true });
 });

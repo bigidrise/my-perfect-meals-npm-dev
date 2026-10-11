@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { registerSessionProbeRoutes } from "./authSessionProbe";
 import { db } from "../db";
+import { businessInvitations } from "../db/schema/business";
 import { trialAccessInvites, users } from "@shared/schema";
 import { isCanonicalPractitionerRole, isClinicalPractitionerRole } from "@shared/professionalRoles";
 import { eq, sql, and, or, isNotNull, gt, isNull } from "drizzle-orm";
@@ -151,6 +152,15 @@ router.post("/api/auth/signup", async (req, res) => {
       pilotInvite.expiresAt > new Date(),
     );
     const isPilotClientSignup = isValidPilotSignup && pilotInvite?.populationType === "client";
+    const [standardClientInvite] = !pilotInvite && inviteToken
+      ? await db.select({ id: businessInvitations.id }).from(businessInvitations).where(and(
+          eq(businessInvitations.token, inviteToken),
+          eq(businessInvitations.invitationType, "client"),
+          eq(businessInvitations.status, "pending"),
+          gt(businessInvitations.expiresAt, new Date()),
+        )).limit(1)
+      : [];
+    const isPatientSignup = isPilotClientSignup || Boolean(standardClientInvite);
     const pilotAuthorizationToken = typeof req.body.pilotAuthorizationToken === "string"
       ? req.body.pilotAuthorizationToken
       : null;
@@ -184,7 +194,7 @@ router.post("/api/auth/signup", async (req, res) => {
       && !isValidPilotSignup
       && !isValidPilotAuthorizationSignup
       && !businessPilotAuthorization
-      && !isBusinessAccount;
+      && (!isBusinessAccount || isPatientSignup);
     const trialNow = isNormalConsumer ? new Date() : null;
     const pendingPreRegistrationAccess = isNormalConsumer
       ? await findPendingPreRegistrationAccess(email)
@@ -210,7 +220,7 @@ router.post("/api/auth/signup", async (req, res) => {
 
     // Business / Organization account — not a ProCare practitioner.
     // Gets professionalRole="business" only; no isProCare, no role=coach, no plan override.
-    if (isBusinessAccount && !isPilotClientSignup) {
+    if (isBusinessAccount && !isPatientSignup) {
       userValues.professionalRole = "business";
     }
 

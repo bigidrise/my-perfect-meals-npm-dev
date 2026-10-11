@@ -20,6 +20,7 @@ import { getActivePilotProCareGrant, getPilotClientSponsorshipState } from "./pi
 import { getActivePilotFullAccess } from "./pilotProgramAccess";
 import { getActiveClinicTrialEntitlement, getActiveProfessionalTemporaryAccess } from "./clinicPilotEnrollmentService";
 import { getActiveBusinessOfferEntitlement } from "./businessOfferLinkService";
+import { getActiveBusinessPilotClinicalAccess } from "./businessPilotActivationService";
 import {
   getTierForLookupKey,
   getEntitlementsForTier,
@@ -28,6 +29,9 @@ import {
 } from "../../shared/planFeatures";
 
 export interface EffectiveAccess {
+  /** Personal product access only; never a credential or Studio entitlement. */
+  temporaryClinicalAccess?: boolean;
+  businessPilotClinicalAccessEndsAt?: Date | string | null;
   planLookupKey: string | null;
   entitlements: string[];
   tier: PlanTier;
@@ -81,6 +85,8 @@ export async function computeEffectiveAccess(
   const clinicTrial = await getActiveClinicTrialEntitlement(user.id);
   const professionalTemporaryAccess = await getActiveProfessionalTemporaryAccess(user.id);
   const businessOfferAccess = await getActiveBusinessOfferEntitlement(user.id);
+  const founderClinical = await getActiveBusinessPilotClinicalAccess(user.id);
+  const temporaryClinicalAccess = Boolean(clinicTrial || professionalTemporaryAccess || businessOfferAccess || founderClinical);
   const pilotClientSponsorship = user.trialAccessType === "client"
     ? await getPilotClientSponsorshipState(user.id)
     : { linked: false, active: false };
@@ -154,10 +160,12 @@ export async function computeEffectiveAccess(
         ? (user.trialEndsAt instanceof Date ? user.trialEndsAt : new Date(user.trialEndsAt))
         : null;
       const hasActiveTrial = !effectiveLookupKey && trialEnd != null && trialEnd > new Date();
-      const tier: PlanTier = (hasActiveTrial || pilotGrant || pilotFullAccess || professionalTemporaryAccess || businessOfferAccess || (clinicTrial && getTierForLookupKey(effectiveLookupKey) === "free"))
+      const tier: PlanTier = (hasActiveTrial || pilotGrant || pilotFullAccess || temporaryClinicalAccess)
         ? TRIAL_UNLOCKS_TIER
         : getTierForLookupKey(effectiveLookupKey);
       return {
+        temporaryClinicalAccess,
+        businessPilotClinicalAccessEndsAt: founderClinical?.endsAt ?? null,
         planLookupKey: effectiveLookupKey,
         entitlements: getEntitlementsForTier(tier) as string[],
         tier,
@@ -174,11 +182,13 @@ export async function computeEffectiveAccess(
       };
     }
     const baseMembershipTier = getTierForLookupKey(membership.plan);
-    const effectiveMembershipTier: PlanTier = (pilotFullAccess || professionalTemporaryAccess || businessOfferAccess)
+    const effectiveMembershipTier: PlanTier = (pilotFullAccess || temporaryClinicalAccess)
       ? TRIAL_UNLOCKS_TIER
       : baseMembershipTier;
     const isOrganizationalPilotBusiness = membership.plan === "organizational_pilot";
     return {
+      temporaryClinicalAccess,
+      businessPilotClinicalAccessEndsAt: founderClinical?.endsAt ?? null,
       planLookupKey: membership.plan,
       entitlements: getEntitlementsForTier(effectiveMembershipTier) as string[],
       tier: effectiveMembershipTier,
@@ -214,11 +224,13 @@ export async function computeEffectiveAccess(
     && trialEnd != null
     && trialEnd > now
     && (!pilotClientSponsorship.linked || pilotClientSponsorship.active);
-  const effectiveTier: PlanTier = (hasActiveTrial || pilotGrant || pilotFullAccess || professionalTemporaryAccess || businessOfferAccess || (clinicTrial && baseTier === "free"))
+  const effectiveTier: PlanTier = (hasActiveTrial || pilotGrant || pilotFullAccess || temporaryClinicalAccess)
     ? TRIAL_UNLOCKS_TIER
     : baseTier;
 
   return {
+    temporaryClinicalAccess,
+    businessPilotClinicalAccessEndsAt: founderClinical?.endsAt ?? null,
     planLookupKey: effectiveLookupKey,
     entitlements: getEntitlementsForTier(effectiveTier) as string[],
     tier: effectiveTier,

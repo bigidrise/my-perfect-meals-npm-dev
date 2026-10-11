@@ -47,6 +47,8 @@ export function requireProAccess(
   }
 
   if (pilotFullAccess) return next();
+  // Server-resolved temporary consumer access; professional gates remain separate.
+  if (authReq.authUser.temporaryClinicalAccess) return next();
 
   // No planLookupKey with PAID_FULL = internal account (founder, etc.) — grant access
   if (!planLookupKey) return next();
