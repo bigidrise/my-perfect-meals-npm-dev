@@ -18,6 +18,14 @@ description: Policy for the release-check type-validation layers — safety slic
 
 **Safety slice:** Add any new safety-sensitive surface to `tsconfig.safety-check.json` before relying on the release check for that surface.
 
+## Diagnostic display-order drift
+
+Literal-union ordering inside a compiler error message can change even when the diagnosed source and semantic error are unchanged.
+
+**Why:** A reviewed-source snapshot reconstructed the reviewed diagnostic fingerprint, while the current output differed in the ordering of two literal union members in an unchanged legacy fixture, separately from a genuine additional type error.
+
+**How to apply:** Compare complete diagnostic output and source history when attributing a fingerprint delta. Distinguish the real additional error from message-format drift, but keep the raw gate and baseline intact. Do not edit unrelated legacy behavior merely to force a particular diagnostic display order.
+
 ## AI smoke-test gate (section 7 of release-check.sh)
 
 ## Interrupted-check lock boundary

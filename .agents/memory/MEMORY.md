@@ -29,6 +29,7 @@
 - [Savory-side image recovery](savory-side-image-recovery.md) — ambiguous savory sides get bounded plated guidance and one strictly validated recovery attempt.
 - [Override propagation](override-propagation-pattern.md) — successful allergy PIN overrides must reach every post-generation validation path.
 - [Release type gate](release-type-gate.md) — use the layered release check so newly introduced type errors cannot hide in debt.
+- [Process environment types](process-environment-type-contracts.md) — named-key Pick and Partial Pick can reject an index-signature-only environment dictionary.
 - [Drizzle schema migration fallback](drizzle-kit-push-instability.md) — use small idempotent SQL migrations when schema-pull tooling is unreliable.
 - [Drizzle array columns](ace-drizzle-array-rule.md) — SQL templates expand arrays; use explicit per-value conditions for membership queries.
 - [PostgreSQL parameter gaps](postgres-parameter-gaps.md) — mocked writes can pass while live updates fail if SQL leaves unused leading placeholders.

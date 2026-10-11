@@ -17,7 +17,7 @@ test("the document exception cannot enable a mutation", async () => {
   expect((await request(app).post("/admin/professional-requests")).status).toBe(404); expect(qa).toHaveBeenCalled();
 });
 
-function pilotApp(env: Pick<NodeJS.ProcessEnv, "NODE_ENV" | "REPLIT_DEPLOYMENT">) {
+function pilotApp(env: Parameters<typeof professionalReviewSpa>[1]) {
   const isolated = express();
   isolated.use("/admin", professionalReviewSpa(qa, env));
   isolated.get("/admin/pilots", (_req, res) => res.send("generic SPA document; no private data"));
