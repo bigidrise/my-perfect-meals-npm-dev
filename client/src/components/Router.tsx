@@ -975,6 +975,7 @@ export default function Router() {
     "/business/start",
     "/business/setup",
     "/business/join",
+    "/activate/business-pilot",
   ];
 
   const loading = authLoading;
@@ -1030,6 +1031,7 @@ export default function Router() {
     "/home",
     "/business/join",
     "/join/clinic",
+    "/activate/business-pilot",
     "/business/start",
     "/business-dashboard",
     "/business/setup",
@@ -1173,6 +1175,7 @@ export default function Router() {
         <Route path="/onboarding/extended" component={ExtendedOnboarding} />
         <Route path="/checkout/success" component={CheckoutSuccess} />
         <Route path="/billing/success" component={CheckoutSuccess} />
+        <Route path="/activate/business-pilot" component={lazy(() => import("@/pages/BusinessPilotActivation"))} />
         <Route path="/business/start" component={lazy(() => import("@/pages/BusinessStart"))} />
         <Route path="/business/setup" component={lazy(() => import("@/pages/BusinessSetup"))} />
         <Route path="/business/dashboard" component={lazy(() => import("@/pages/BusinessDashboard"))} />

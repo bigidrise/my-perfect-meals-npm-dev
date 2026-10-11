@@ -1,5 +1,7 @@
 import { readFileSync } from "fs";
 import { join } from "path";
+jest.mock("../db", () => ({ db: {} }));
+
 import {
   assertOrganizationalPilotMirror,
   BusinessPilotClockConflictError,

@@ -16,7 +16,7 @@ import { updateUserSubscription } from "../services/subscriptionService";
 import { claimStripeIdentityOwnership } from "../services/stripeIdentityOwnershipService";
 import { db } from "../db";
 import { users } from "@shared/schema";
-import { and, eq, isNotNull, isNull, or } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
 import { stripeBillingEvents, stripeIdentityOwners } from "../db/schema/stripeBilling";
 import { studios, studioBilling } from "../db/schema/studio";
 import { serviceBillingSnapshots } from "../db/schema/serviceBillingSnapshots";
@@ -25,6 +25,18 @@ import { getBusinessOfferCheckoutAttribution } from "../services/businessOfferLi
 import { validateRewardfulReferralForAffiliate } from "../services/rewardfulApi";
 import { getExpiredOrganizationForReconnect } from "../services/organizationBillingLifecycleService";
 import { resolveServiceBillingStatus } from "../services/serviceBillingStatus";
+import {
+  businessPilotActivationEnabled, assertOrganizationChargeAllowed,
+  validateOrganizationBillingConsent, BusinessPilotActivationError,
+  ORGANIZATION_BILLING_TERMS_VERSION,
+} from "../services/businessPilotActivationPolicy";
+import { organizationQuoteFromPrice, recordOrganizationCheckoutConsent } from "../services/organizationCheckoutConsent";
+
+function pilotBillingError(error: unknown, res: any) {
+  if (!(error instanceof BusinessPilotActivationError)) return false;
+  res.status(error.statusCode).json({ error: error.message, code: error.code });
+  return true;
+}
 
 const router = Router();
 
@@ -485,6 +497,33 @@ router.post("/reconcile-checkout", requireAuth, async (req: any, res) => {
  * Price ID is resolved through the same server-owned trusted catalog used by
  * consumer checkout.
  */
+router.get("/checkout/business/quote", requireAuth, async (req: any, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  if (!businessPilotActivationEnabled()) return res.status(503).json({ error: "Paid continuation awaits release approval." });
+  const deployed = process.env.REPLIT_DEPLOYMENT === "1" || process.env.REPLIT_DEPLOYMENT === "true";
+  if (!stripe || (!deployed && getStripeKeyMode(stripeKey) !== "TEST")) {
+    return res.status(503).json({ error: "Billing review is unavailable in this environment." });
+  }
+  try {
+    const result: any = await db.execute(sql`
+      SELECT commercial_access_mode, commercial_access_ends_at FROM businesses
+      WHERE id = ${req.query.businessId} AND owner_user_id = ${req.authUser.id}`);
+    const [business] = result.rows ?? result;
+    if (!business) return res.status(403).json({ error: "Organization owner access required." });
+    assertOrganizationChargeAllowed({
+      commercialAccessMode: business.commercial_access_mode,
+      commercialAccessEndsAt: business.commercial_access_ends_at,
+    });
+    const plan = getTrustedCheckoutPlan("clinical_business_monthly");
+    if (!plan) return res.status(503).json({ error: "Organization subscription price is not configured." });
+    const quote = organizationQuoteFromPrice(await stripe.prices.retrieve(plan.priceId), plan.priceId);
+    return res.json(quote);
+  } catch (error) {
+    if (pilotBillingError(error, res)) return;
+    return res.status(503).json({ error: "Could not verify the subscription price. No checkout was started." });
+  }
+});
+
 router.post("/checkout/business", requireAuth, async (req, res) => {
   if (!stripe) {
     return res.status(503).json({
@@ -555,6 +594,20 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
         error: "Please complete organization setup before starting checkout.",
       });
     }
+    const consentRequired = businessPilotActivationEnabled()
+      && (ownedBusiness.commercialAccessMode === "onboarding_pilot" || req.body?.billingConsent != null);
+    try {
+      assertOrganizationChargeAllowed(ownedBusiness);
+      if (consentRequired) {
+        validateOrganizationBillingConsent(req.body?.billingConsent, trustedBusinessPlan.priceId);
+      }
+    } catch (error) {
+      if (pilotBillingError(error, res)) return;
+      throw error;
+    }
+    const billingQuote = consentRequired
+      ? organizationQuoteFromPrice(await stripe.prices.retrieve(trustedBusinessPlan.priceId), trustedBusinessPlan.priceId)
+      : null;
 
     if (ownedBusiness.stripeCustomerId || ownedBusiness.stripeSubscriptionId) {
       let previousIdentity;
@@ -642,6 +695,7 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
       }
 
       const reconnectMetadata = {
+        ...(billingQuote ? { billingTermsVersion: ORGANIZATION_BILLING_TERMS_VERSION } : {}),
         userId,
         businessId: reservedBusiness.id,
         checkoutReservationId: reservedBusiness.reservationId!,
@@ -650,6 +704,9 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
         seatCount: String(requestedSeats),
         context: "business_reconnect",
       };
+      if (billingQuote) await recordOrganizationCheckoutConsent(
+        reservedBusiness.reservationId!, reservedBusiness.id, userId, billingQuote,
+      );
       const session = await stripe.checkout.sessions.create({
         mode: "subscription",
         customer: previousIdentity.stripeCustomerId,
@@ -776,6 +833,9 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
       // idempotency key remains authoritative for any replacement attempt.
     }
 
+    if (billingQuote) await recordOrganizationCheckoutConsent(
+      reservedBusiness.reservationId!, reservedBusiness.id, userId, billingQuote,
+    );
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       line_items: [
@@ -787,6 +847,7 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
       success_url: `${appUrl}/business-dashboard?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/business/setup`,
       metadata: {
+        ...(billingQuote ? { billingTermsVersion: ORGANIZATION_BILLING_TERMS_VERSION } : {}),
         userId,
         businessId: reservedBusiness.id,
         checkoutReservationId: reservedBusiness.reservationId,
@@ -797,6 +858,7 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
       },
       subscription_data: {
         metadata: {
+          ...(billingQuote ? { billingTermsVersion: ORGANIZATION_BILLING_TERMS_VERSION } : {}),
           userId,
           businessId: reservedBusiness.id,
           checkoutReservationId: reservedBusiness.reservationId,

@@ -16,3 +16,9 @@ For founder-issued Business Pilot activation, the first 30 days are complimentar
 **Why:** The user specified this billing and access boundary for the founder-issued activation journey.
 
 **How to apply:** Never infer payment consent from pilot activation, organization creation, or an existing payment method. Preserve independent entitlement records even if a newly approved experience coordinates their displayed dates.
+
+The approved founder-issued workflow starts the physician's complimentary personal Clinical window at invitation activation. A newly created organization shares that exact original expiration, even when created later. Each patient retains their independently accepted 7/14/30-day window.
+
+**Why:** The user explicitly approved coordinated physician/organization dates and rejected granting a fresh month on delayed organization creation.
+
+**How to apply:** This coordination is specific to founder activation, not a replacement for universal organization onboarding or patient entitlement clocks. Keep existing paid organizations unchanged. Development implementation approval does not authorize shared-Neon mutations, migrations, application restarts, live Stripe activity, publishing, or Production changes; those require separate approval and the workflow requires end-to-end verification before real physicians.
