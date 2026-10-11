@@ -369,3 +369,17 @@ mtime_ms = 1791682622234
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/7e5bcf45-ca88-4fb5-a35c-39d99df70a36/b85b70cf-62f1-45a3-8f60-a39a17de99d0"
 storage_version_token = "1791682662652614"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "pkydGASHLRPl9HNxReERu"
+uri = "file://docs/business-pilot-source-safety-corrections.md"
+type = "text"
+title = "Business Pilot — Safety Corrections Report"
+description = "Source-only expiration and erasure corrections, changed files, 176 isolated checks, retention limitations, and separate-approval recommendation. Shared Neon remains unchanged by this work."
+logical_id = "39b56c1f-300f-47c9-938c-0f542fbe128d"
+content_hash = "sha256:2f8c8adc6f16f84439d9c140dd74dbc050e15adc7d6486a55011bda0bdf7172c"
+size = 6612
+mtime_ms = 1791684476998
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/39b56c1f-300f-47c9-938c-0f542fbe128d/4000c9bb-b2c0-4d31-8df6-2c092798bbfa"
+storage_version_token = "1791684503084032"
+content_type = "text/markdown"

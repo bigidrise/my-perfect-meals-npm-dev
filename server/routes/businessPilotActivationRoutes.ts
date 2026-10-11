@@ -42,6 +42,7 @@ router.get("/status", requireAuth, handle(async (req: any, res: any) => {
   res.json(grant ? {
     startedAt: grant.personal_access_started_at, endsAt: grant.personal_access_ends_at,
     businessId: grant.business_id, status: grant.status,
+    organizationConsumed: grant.organization_consumed,
   } : null);
 }));
 export default router;
