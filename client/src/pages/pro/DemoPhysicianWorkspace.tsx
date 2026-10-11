@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
+import { developmentStudioLoadingEnabled } from "@/lib/developmentStudioLoading";
+import { currentStudioNavigation } from "@/lib/studioTransition";
+import { StudioTransitionPanel } from "@/components/pro/DevelopmentStudioGuard";
 import DemoCareInvitation from "@/components/pro/DemoCareInvitation";
 import ProClients from "@/pages/pro/ProClients";
 import { apiRequest } from "@/lib/queryClient";
@@ -61,7 +64,12 @@ function isUsableContext(context: DemoContext | null, accountId: string): contex
 
 export default function DemoPhysicianWorkspace({ fallback }: { fallback?: ReactNode }) {
   const { user, loading: authLoading, refreshUser, setUser } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+  const locationRef = useRef(location);
+  locationRef.current = location;
+  useEffect(() => {
+    currentStudioNavigation(location)?.selectCode("demo");
+  }, [location]);
   const accountId = user?.id ?? "";
   const [context, setContext] = useState<DemoContext | null>(null);
   const [loadedAccountId, setLoadedAccountId] = useState("");
@@ -171,10 +179,13 @@ export default function DemoPhysicianWorkspace({ fallback }: { fallback?: ReactN
   const loadContext = useCallback(async (epoch: number) => {
     setContextLoading(true);
     setContextError("");
+    const timing = currentStudioNavigation(locationRef.current);
+    timing?.start("workspace");
     try {
       const result = await getDemoContext();
       if (contextEpoch.current !== epoch) return;
       const founderContext = result;
+      timing?.finish("workspace", isUsableContext(founderContext, accountId) ? "verified" : "denied");
       setContext(founderContext);
       setLoadedAccountId(accountId);
       setAcknowledged(Boolean(
@@ -183,6 +194,7 @@ export default function DemoPhysicianWorkspace({ fallback }: { fallback?: ReactN
         founderContext.grant.acknowledgmentVersion === DEMO_ACKNOWLEDGMENT_VERSION
       ));
     } catch (error) {
+      timing?.finish("workspace", "error");
       if (contextEpoch.current === epoch) {
         setContext(null);
         setLoadedAccountId(accountId);
@@ -469,7 +481,22 @@ export default function DemoPhysicianWorkspace({ fallback }: { fallback?: ReactN
     return "";
   }, [context, expiryPulse]);
 
+  useEffect(() => {
+    if (!developmentStudioLoadingEnabled || authLoading || contextLoading ||
+      !contextReady || loadedAccountId !== accountId || !acknowledged) return;
+    const timing = currentStudioNavigation(location);
+    // Demo authorization/acknowledgment stays separate from practitioner clearance.
+    timing?.finish("workspace", "verified");
+    timing?.finish("agreements", "not-required");
+    timing?.finish("certification", "not-required");
+    timing?.finish("authorized-page", "ready");
+    timing?.finish("navigation", "ready");
+  }, [authLoading, contextLoading, contextReady, loadedAccountId, accountId, acknowledged, location]);
+
   if (authLoading || contextLoading || loadedAccountId !== accountId) {
+    if (developmentStudioLoadingEnabled) {
+      return <StudioTransitionPanel title="Opening your Clinic workspace" detail="Verifying workspace access and preparing the page…" />;
+    }
     return (
       <main className="min-h-[100dvh] bg-[#f1f3eb] px-4 py-8 text-[#283c32] sm:px-8">
         <div className="mx-auto max-w-7xl">

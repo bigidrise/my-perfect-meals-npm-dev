@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { BUILDER_MAP, type BuilderKey } from "@/lib/builderMap";
 const GeneralNutritionBuilder = lazy(() => import("@/pages/pro/GeneralNutritionBuilder"));
@@ -35,6 +35,9 @@ import {
 import { getDemoContext } from "@/lib/demoProfessional";
 import { isDemoGrantCurrent } from "@shared/demoProfessional";
 import { isDevelopmentFounderPilotRoute } from "@/lib/developmentFounderPilotRoute";
+import { developmentStudioLoadingEnabled } from "@/lib/developmentStudioLoading";
+import { beginStudioNavigation, isStudioTransitionRoute, preloadStudioPage, preloadStudioDemoPage } from "@/lib/studioTransition";
+import { DevelopmentStudioGuard, StudioTransitionPanel } from "@/components/pro/DevelopmentStudioGuard";
 
 const PilotProgramAdmin = lazy(() => import("@/pages/PilotProgramAdmin"));
 
@@ -218,7 +221,14 @@ function ClinicalGuard({ component: Component }: { component: React.ComponentTyp
 
 const PROCARE_CERT_POLL_MS = 5 * 60 * 1000; // 5 minutes
 
-function ProCareStudioGuard({ component: Component }: { component: React.ComponentType }) {
+function ProCareStudioGuard({ component }: { component: React.ComponentType }) {
+  const [location] = useLocation();
+  return developmentStudioLoadingEnabled && isStudioTransitionRoute(location)
+    ? <DevelopmentStudioGuard component={component} />
+    : <LegacyProCareStudioGuard component={component} />;
+}
+
+function LegacyProCareStudioGuard({ component: Component }: { component: React.ComponentType }) {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
   const [studioAccess, setStudioAccess] = useState<"checking" | "available" | "disconnected" | "error">("checking");
@@ -878,6 +888,15 @@ export default function Router() {
   const guardRedirectedRef = useRef(false);
   const isDesktopView = useIsDesktop();
   const [founderProbe, setFounderProbe] = useState<{ accountId: string; authority: boolean } | null>(null);
+  const studioTiming = useMemo(() => beginStudioNavigation(location), [location, user?.id]);
+  useEffect(() => {
+    if (!studioTiming) return;
+    // Code only; neither page is mounted and no protected page data is prefetched.
+    preloadStudioPage(location).then(() => studioTiming.codeLoaded("professional", "ready"))
+      .catch(() => studioTiming.codeLoaded("professional", "error"));
+    preloadStudioDemoPage(location).then(() => studioTiming.codeLoaded("demo", "ready"))
+      .catch(() => studioTiming.codeLoaded("demo", "error"));
+  }, [location, studioTiming]);
 
   useEffect(() => {
     if (!import.meta.env.DEV || authLoading) return;
@@ -1132,23 +1151,32 @@ export default function Router() {
     !isAuthRoute &&
     (!founderProbe || founderProbe.accountId !== user.id)
   ) {
+    if (isStudioTransitionRoute(location)) {
+      return <StudioTransitionPanel title="Opening your Studio workspace" detail="Resolving secure workspace access…" />;
+    }
     return <div className="min-h-[100dvh] grid place-items-center bg-[#201c19] text-white/75 text-sm">Resolving secure workspace…</div>;
   }
 
   if (isFounderDevelopmentSession && !isAuthRoute && !isFounderPilotRoute) {
-    return <Suspense fallback={<p role="status">Loading physician Clinic…</p>}><DemoPhysicianWorkspace /></Suspense>;
+    return <Suspense fallback={developmentStudioLoadingEnabled
+      ? <StudioTransitionPanel title="Opening your Clinic workspace" detail="Preparing the page…" />
+      : <p role="status">Loading physician Clinic…</p>}><DemoPhysicianWorkspace /></Suspense>;
   }
 
   // Do not mount/cache-render a live professional page while redirecting.
   if (!authLoading && user?.operatingStatus === "demo_only" && !isAuthRoute && !isFounderPilotRoute) {
-    return <Suspense fallback={<p role="status">Loading isolated demo workspace…</p>}><DemoPhysicianWorkspace /></Suspense>;
+    return <Suspense fallback={developmentStudioLoadingEnabled
+      ? <StudioTransitionPanel title="Opening your Clinic workspace" detail="Preparing the page…" />
+      : <p role="status">Loading isolated demo workspace…</p>}><DemoPhysicianWorkspace /></Suspense>;
   }
   return (
     <>
       <ScrollRestorer />
       <Suspense
         fallback={
-          <div className="min-h-screen flex items-center justify-center bg-black text-white/60 text-sm">
+          developmentStudioLoadingEnabled && isStudioTransitionRoute(location)
+          ? <StudioTransitionPanel title="Opening your Studio workspace" detail="Preparing the page…" />
+          : <div className="min-h-screen flex items-center justify-center bg-black text-white/60 text-sm">
             Loading...
           </div>
         }
