@@ -60,6 +60,46 @@ test.each([
   expect(sessionStorage.getItem(BUSINESS_PILOT_TOKEN_KEY)).toBe(token);
 });
 
+test.each([
+  ["Create an Account", "signup"], ["Sign In to My Existing Account", "login"],
+])("missing invitation token does not disable normal auth via %s", (label, mode) => {
+  window.history.replaceState({}, "", BUSINESS_PILOT_PATH);
+  render(<BusinessPilotActivation />);
+  expect(screen.getByRole("alert")).toHaveTextContent("reopen your original invitation link");
+  const button = screen.getByRole("button", { name: label });
+  expect(button).toBeEnabled();
+  fireEvent.click(button);
+  expect(mockNavigate).toHaveBeenCalledWith(`/auth?mode=${mode}&returnTo=%2Factivate%2Fbusiness-pilot`);
+  expect(fetchMock).not.toHaveBeenCalled();
+  expect(sessionStorage.getItem(BUSINESS_PILOT_TOKEN_KEY)).toBeNull();
+});
+
+test("reopening the invitation on the same page captures its new fragment", () => {
+  window.history.replaceState({}, "", BUSINESS_PILOT_PATH);
+  render(<BusinessPilotActivation />);
+  expect(screen.getByRole("alert")).toHaveTextContent("Invitation token is missing");
+  window.history.replaceState({}, "", `${BUSINESS_PILOT_PATH}#token=${token}`);
+  fireEvent(window, new Event("hashchange"));
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(window.location.hash).toBe("");
+  expect(sessionStorage.getItem(BUSINESS_PILOT_TOKEN_KEY)).toBe(token);
+  fireEvent.click(screen.getByRole("button", { name: "Sign In to My Existing Account" }));
+  expect(mockNavigate).toHaveBeenCalledWith("/auth?mode=login&returnTo=%2Factivate%2Fbusiness-pilot");
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
+test("an invalid reopened fragment clears the old token without blocking normal auth", () => {
+  render(<BusinessPilotActivation />);
+  window.history.replaceState({}, "", `${BUSINESS_PILOT_PATH}#token=invalid`);
+  fireEvent(window, new Event("hashchange"));
+  expect(sessionStorage.getItem(BUSINESS_PILOT_TOKEN_KEY)).toBeNull();
+  expect(window.location.hash).toBe("");
+  expect(screen.getByRole("alert")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Sign In to My Existing Account" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Create an Account" })).toBeEnabled();
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
 test.each(["existing-member", "new-member"])("%s explicitly activates the same pilot after auth", async id => {
   mockUser = { id, email: "physician@example.invalid" };
   mockRefresh.mockResolvedValue(mockUser);
