@@ -10,18 +10,20 @@ import {
 
 type InvitationDetails = { available?: boolean; activated?: boolean; endsAt?: string };
 
+function readInvitationEntrance() {
+  try {
+    return { token: captureBusinessPilotInvitation(sessionStorage, window.location, window.history), error: "" };
+  } catch {
+    return { token: null, error: "Unable to preserve this invitation. Check the link and allow session storage." };
+  }
+}
+
 export default function DevelopmentBusinessPilotActivation() {
   const { user, loading, refreshUser } = useAuth();
   const [, navigate] = useLocation();
   const actor = useRef(user?.id);
   actor.current = user?.id;
-  const [entrance] = useState(() => {
-    try {
-      return { token: captureBusinessPilotInvitation(sessionStorage, window.location, window.history), error: "" };
-    } catch {
-      return { token: null, error: "Unable to preserve this invitation. Check the link and allow session storage." };
-    }
-  });
+  const [entrance, setEntrance] = useState(readInvitationEntrance);
   const [error, setError] = useState(entrance.error);
   const [details, setDetails] = useState<InvitationDetails | null>(null);
   const [activatedFor, setActivatedFor] = useState<string | null>(null);
@@ -29,6 +31,26 @@ export default function DevelopmentBusinessPilotActivation() {
   const [inspectVersion, setInspectVersion] = useState(0);
   const token = entrance.token;
   const activated = !!user && activatedFor === user.id;
+
+  useEffect(() => {
+    // Reopening an invitation on this same path can be a fragment-only
+    // navigation: React does not remount the page or rerun its initializer.
+    const captureReopenedInvitation = () => {
+      if (busy || !new URLSearchParams(window.location.hash.slice(1)).has("token")) return;
+      const next = readInvitationEntrance();
+      setEntrance(next);
+      setError(next.error);
+      setDetails(null);
+      setActivatedFor(null);
+    };
+    window.addEventListener("hashchange", captureReopenedInvitation);
+    window.addEventListener("pageshow", captureReopenedInvitation);
+    captureReopenedInvitation();
+    return () => {
+      window.removeEventListener("hashchange", captureReopenedInvitation);
+      window.removeEventListener("pageshow", captureReopenedInvitation);
+    };
+  }, [busy]);
 
   useEffect(() => {
     let current = true;
@@ -85,7 +107,7 @@ export default function DevelopmentBusinessPilotActivation() {
       <p>Your 30 days begin only when you successfully activate—not when you open this link or register.</p>
       <p className="text-sm text-white/70">Your Organization shares the original pilot expiration. Professional readiness, credentials, MFA and client consent remain separate.</p>
       {details?.endsAt && <p>Pilot ends {new Date(details.endsAt).toLocaleString()}.</p>}
-      {(error || !token) && <p role="alert">{error || "Invitation token is missing. Open your original invitation link."}</p>}
+      {(error || !token) && <p role="alert">{error || "Invitation token is missing. You can sign in or register, then reopen your original invitation link to activate. No pilot has started."}</p>}
       {loading ? <p role="status">Checking your sign-in…</p> : activated ? <>
         <button className="w-full rounded-xl bg-orange-600 p-3" onClick={() => {
           clearBusinessPilotOrganizationEntry(sessionStorage);
@@ -96,9 +118,9 @@ export default function DevelopmentBusinessPilotActivation() {
           navigate("/more");
         }}>More → Start Your Organization</button>
       </> : !user ? <>
-        <button disabled={!token} className="w-full rounded-xl bg-orange-600 p-3 disabled:opacity-50"
+        <button className="w-full rounded-xl bg-orange-600 p-3"
           onClick={() => navigate(businessPilotAuthDestination("login"))}>Sign In to My Existing Account</button>
-        <button disabled={!token} className="w-full rounded-xl bg-white/10 p-3 disabled:opacity-50"
+        <button className="w-full rounded-xl bg-white/10 p-3"
           onClick={() => navigate(businessPilotAuthDestination("signup"))}>Create an Account</button>
       </> : <>
         <p>Signed in as {user.email}. Use the email that received this invitation.</p>
