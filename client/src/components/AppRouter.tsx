@@ -10,6 +10,7 @@ import { isExactPublicMarketingRoute } from "@/lib/publicRoutePolicy";
 import AppLayout from "@/layout/AppLayout";
 import BusinessWorkspaceLayout from "@/layout/BusinessWorkspaceLayout";
 import { isInAuthenticatedBusinessWorkspace } from "@/lib/businessWorkspaceRouting";
+import { isBusinessPilotOrganizationEntry } from "@/lib/businessPilotEntrance";
 
 interface AppRouterProps {
   children: React.ReactNode;
@@ -28,6 +29,7 @@ function isPublicAppRoute(path: string): boolean {
     ? ["/test-modal-bounds", "/__modal-test__", "/__sheet-test__", "/rewardful/connect/confirm"]
     : [];
   return (
+    (IS_DEVELOPMENT && path === "/activate/business-pilot") ||
     path === "/login" ||
     isExactPublicMarketingRoute(path) ||
     [...PUBLIC_ROUTES, ...devRoutes].some(
@@ -207,6 +209,8 @@ export default function AppRouter({ children }: AppRouterProps) {
 
   if (
     showWelcomeGate &&
+    !(IS_DEVELOPMENT && location === "/activate/business-pilot") &&
+    !isBusinessPilotOrganizationEntry(sessionStorage, IS_DEVELOPMENT, location, user?.id) &&
     !location.startsWith("/join/clinic") &&
     !location.startsWith("/join/business-offer")
   ) {

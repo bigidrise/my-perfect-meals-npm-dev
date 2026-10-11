@@ -4,6 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 
 let mockCachedUser: any = null;
+let mockDevelopmentPublicPaths: string[] = [];
 jest.mock("@/lib/auth", () => ({
   getCurrentUser: () => mockCachedUser,
   getAuthHeaders: () => ({}),
@@ -21,7 +22,9 @@ jest.mock("@/lib/guestMode", () => ({
   getGuestSession: () => null,
 }));
 jest.mock("@/hooks/nutritionStateCache", () => ({ clearNutritionCache: jest.fn() }));
-jest.mock("@/lib/developmentAuthRoutes", () => ({ DEVELOPMENT_AUTH_PUBLIC_PATHS: [] }));
+jest.mock("@/lib/developmentAuthRoutes", () => ({
+  get DEVELOPMENT_AUTH_PUBLIC_PATHS() { return mockDevelopmentPublicPaths; },
+}));
 
 function Identity() {
   const { user, loading } = useAuth();
@@ -30,6 +33,7 @@ function Identity() {
 
 beforeEach(() => {
   mockCachedUser = null;
+  mockDevelopmentPublicPaths = [];
   localStorage.clear();
   window.history.replaceState({}, "", "/welcome");
   jest.clearAllMocks();
@@ -55,6 +59,24 @@ test("a 401 with no routing cache does not manufacture an authenticated identity
   await screen.findByText("anonymous");
   expect(mockCachedUser).toBeNull();
   expect(window.location.pathname).toBe("/welcome");
+});
+
+test.each([false, true])("Development pilot entrance stays public after a rejected session (cached=%s)", async cached => {
+  mockDevelopmentPublicPaths = ["/activate/business-pilot"];
+  window.history.replaceState({}, "", "/activate/business-pilot");
+  if (cached) {
+    mockCachedUser = { id: "expired-synthetic-member", email: "physician@example.invalid" };
+    localStorage.setItem("mpm_auth_token", "expired-synthetic-session");
+  }
+  (fetch as jest.Mock).mockResolvedValue({ ok: false, status: 401 });
+  const errors = jest.spyOn(console, "error").mockImplementation(() => {});
+  try {
+    render(<AuthProvider><Identity /></AuthProvider>);
+    await screen.findByText("anonymous");
+    expect(window.location.pathname).toBe("/activate/business-pilot");
+    expect(errors.mock.calls.some(args => args.some(value => String(value).includes("navigation")))).toBe(false);
+    expect(localStorage.getItem("mpm_current_user")).toBeNull();
+  } finally { errors.mockRestore(); }
 });
 
 test("a transient server failure with no cache stays anonymous", async () => {

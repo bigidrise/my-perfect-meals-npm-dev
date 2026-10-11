@@ -382,7 +382,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
             clearAuthToken();
             clearUserContext();
             clearNutritionCache();
-            if (window.location.pathname !== "/auth" && window.location.pathname !== "/login" && window.location.pathname !== "/welcome") {
+            if (window.location.pathname !== "/auth" && window.location.pathname !== "/login" && window.location.pathname !== "/welcome" &&
+                !DEVELOPMENT_AUTH_PUBLIC_PATHS.includes(window.location.pathname)) {
               window.location.href = "/auth";
             }
           }

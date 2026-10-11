@@ -15,6 +15,8 @@ import { MfaChallengeModal } from "@/components/MfaChallengeModal";
 import { MfaSetupSection } from "@/components/MfaSetupSection";
 import { createProfessionalLegalRecoveryUrl } from "@/lib/professionalLegalRecovery";
 import { saveNewAccountProfessionalDraft, professionalRequestsEnabled } from "@/lib/professionalOnboarding";
+import { IS_DEVELOPMENT } from "@/lib/developmentAuthRoutes";
+import { pendingBusinessPilotReturn } from "@/lib/businessPilotEntrance";
 
 export default function Auth() {
   const [, setLocation] = useLocation();
@@ -116,6 +118,15 @@ export default function Auth() {
     setUser(u);
     localStorage.setItem("isAuthenticated", "true");
     sessionStorage.removeItem("mpm.welcomeGateDone");
+
+    // Both account journeys (including MFA completion) return to the same
+    // explicit activation action. Never redeem merely because auth succeeded.
+    const pilotReturn = pendingBusinessPilotReturn(sessionStorage, IS_DEVELOPMENT, urlReturnTo);
+    if (pilotReturn && !clinicPilotToken && !businessOfferToken && !urlInvite && !pilotAuthorizationToken) {
+      await refreshUser();
+      setLocation(pilotReturn);
+      return;
+    }
 
     if (clinicPilotToken) {
       const result = await fetch("/api/clinic-pilot/enroll", {
