@@ -5,7 +5,7 @@ import type { RequestHandler } from "express";
 // or the approved Development-only founder pilot document.
 export function professionalReviewSpa(
   qa: RequestHandler,
-  env: Pick<NodeJS.ProcessEnv, "NODE_ENV" | "REPLIT_DEPLOYMENT"> = process.env,
+  env: NodeJS.ProcessEnv = process.env,
 ): RequestHandler {
   const developmentPilotDocument = env.NODE_ENV === "development" && !env.REPLIT_DEPLOYMENT;
   return (req, res, next) => {
