@@ -19,6 +19,7 @@ import { FEATURES } from "@/utils/features";
 import ComingSoon from "@/pages/ComingSoon";
 import StudioBottomNav from "@/components/pro/StudioBottomNav";
 import { OrganizationQuickStartReturn } from "@/components/business/OrganizationQuickStartReturn";
+import { isBusinessPilotOrganizationEntry } from "@/lib/businessPilotEntrance";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
 import { useToast } from "@/hooks/use-toast";
@@ -1075,6 +1076,9 @@ export default function Router() {
   // Onboarding + Macro route guards with toast feedback
   useEffect(() => {
     if (loading || !user || isUngatedRoute || isMacroRoute || isFounderPilotRoute) return;
+    // Only a short-lived, account-bound More navigation continuation skips
+    // personal onboarding. Every Organization API retains its existing gates.
+    if (isBusinessPilotOrganizationEntry(sessionStorage, import.meta.env.DEV, location, user.id)) return;
     if (user.id.startsWith("guest-") || user.isTester) return;
     if (guardRedirectedRef.current) return;
 

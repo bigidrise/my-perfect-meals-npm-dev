@@ -17,6 +17,8 @@ import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { proStore } from "@/lib/proData";
 import { clearResolvedTargetsCache } from "@/lib/macroResolver";
+import { IS_DEVELOPMENT } from "@/lib/developmentAuthRoutes";
+import { isBusinessPilotOrganizationEntry } from "@/lib/businessPilotEntrance";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ClientLegalModal from "@/components/pro/ClientLegalModal";
@@ -606,6 +608,9 @@ export default function MorePage() {
 
             <StudioAccessCard userId={user?.id} />
             <OrganizationAccessCard userId={user?.id} />
+            {isBusinessPilotOrganizationEntry(sessionStorage, IS_DEVELOPMENT, "/more", user?.id) && (
+              <Button onClick={() => setLocation("/business/setup")}>Start Your Organization</Button>
+            )}
 
             {/* Provider Connection Card */}
             {connectionStatus?.connected && connectionStatus.provider ? (

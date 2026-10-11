@@ -2,9 +2,15 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAuthHeaders } from "@/lib/auth";
+import { IS_DEVELOPMENT } from "@/lib/developmentAuthRoutes";
+import DevelopmentBusinessPilotActivation from "@/components/business/DevelopmentBusinessPilotActivation";
 
 const KEY = "mpm.founderBusinessPilotToken";
 export default function BusinessPilotActivation() {
+  return IS_DEVELOPMENT ? <DevelopmentBusinessPilotActivation /> : <ExistingBusinessPilotActivation />;
+}
+
+function ExistingBusinessPilotActivation() {
   const { user, refreshUser } = useAuth();
   const [, navigate] = useLocation();
   const [token] = useState(() => {
