@@ -34,6 +34,9 @@ import {
 } from "@/lib/professionalLegalRecovery";
 import { getDemoContext } from "@/lib/demoProfessional";
 import { isDemoGrantCurrent } from "@shared/demoProfessional";
+import { isDevelopmentFounderPilotRoute } from "@/lib/developmentFounderPilotRoute";
+
+const PilotProgramAdmin = lazy(() => import("@/pages/PilotProgramAdmin"));
 
 // DEV-ONLY: responsive modal bounds test harness.
 // Static import (no lazy) so the module is compiled into the main bundle and
@@ -905,6 +908,9 @@ export default function Router() {
 
   const founderIsCurrentAccount = Boolean(user?.id && founderProbe?.accountId === user.id);
   const isFounderDevelopmentSession = import.meta.env.DEV && founderIsCurrentAccount && founderProbe?.authority === true;
+  const isFounderPilotRoute = isDevelopmentFounderPilotRoute(
+    import.meta.env.DEV, isFounderDevelopmentSession, location,
+  );
   const authRoutes = ["/auth", "/welcome", "/login", "/signup", "/forgot-password", "/reset-password", "/logout", "/signout", "/auth/logout"];
   const isAuthRoute = authRoutes.includes(location);
 
@@ -1049,7 +1055,7 @@ export default function Router() {
 
   // Onboarding + Macro route guards with toast feedback
   useEffect(() => {
-    if (loading || !user || isUngatedRoute || isMacroRoute) return;
+    if (loading || !user || isUngatedRoute || isMacroRoute || isFounderPilotRoute) return;
     if (user.id.startsWith("guest-") || user.isTester) return;
     if (guardRedirectedRef.current) return;
 
@@ -1103,21 +1109,21 @@ export default function Router() {
       setTimeout(() => { guardRedirectedRef.current = false; }, 1000);
       return;
     }
-  }, [location, user, loading, isProfessionalUser]);
+  }, [location, user, loading, isProfessionalUser, isFounderPilotRoute]);
 
   useEffect(() => {
-    if (!authLoading && user?.operatingStatus === "demo_only" &&
+    if (!authLoading && user?.operatingStatus === "demo_only" && !isFounderPilotRoute &&
       !["/auth", "/welcome", "/logout", "/signout", "/auth/logout"].includes(location) &&
       location !== "/pro/physician-clients") {
       setLocation("/pro/physician-clients");
     }
-  }, [authLoading, user?.operatingStatus, location, setLocation]);
+  }, [authLoading, user?.operatingStatus, location, setLocation, isFounderPilotRoute]);
 
   useEffect(() => {
-    if (isFounderDevelopmentSession && !isAuthRoute && location !== "/pro/physician-clients") {
+    if (isFounderDevelopmentSession && !isAuthRoute && !isFounderPilotRoute && location !== "/pro/physician-clients") {
       setLocation("/pro/physician-clients");
     }
-  }, [isFounderDevelopmentSession, isAuthRoute, location, setLocation]);
+  }, [isFounderDevelopmentSession, isAuthRoute, location, setLocation, isFounderPilotRoute]);
 
   if (
     import.meta.env.DEV &&
@@ -1129,12 +1135,12 @@ export default function Router() {
     return <div className="min-h-[100dvh] grid place-items-center bg-[#201c19] text-white/75 text-sm">Resolving secure workspace…</div>;
   }
 
-  if (isFounderDevelopmentSession && !isAuthRoute) {
+  if (isFounderDevelopmentSession && !isAuthRoute && !isFounderPilotRoute) {
     return <Suspense fallback={<p role="status">Loading physician Clinic…</p>}><DemoPhysicianWorkspace /></Suspense>;
   }
 
   // Do not mount/cache-render a live professional page while redirecting.
-  if (!authLoading && user?.operatingStatus === "demo_only" && !isAuthRoute) {
+  if (!authLoading && user?.operatingStatus === "demo_only" && !isAuthRoute && !isFounderPilotRoute) {
     return <Suspense fallback={<p role="status">Loading isolated demo workspace…</p>}><DemoPhysicianWorkspace /></Suspense>;
   }
   return (
@@ -1191,7 +1197,9 @@ export default function Router() {
         <Route path="/admin/professional-requests" component={lazy(() => import("@/pages/admin/ProfessionalIdentityRequests"))} />
         {import.meta.env.DEV && <Route path="/demo-physician" component={DemoPhysicianWorkspaceRoute} />}
         <Route path="/admin/chef-kitchens" component={ChefKitchensAdmin} />
-        <Route path="/admin/pilots" component={lazy(() => import("@/pages/PilotProgramAdmin"))} />
+        <Route path="/admin/pilots">
+          <PilotProgramAdmin showDevelopmentMfaStatus={isFounderPilotRoute} />
+        </Route>
         <Route path="/kitchens" component={SignatureKitchenHubPage} />
         <Route path="/kitchen/:slug" component={SignatureKitchenPage} />
         <Route path="/consumer-welcome" component={ConsumerWelcome} />
