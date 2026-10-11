@@ -4,9 +4,10 @@ import {
   assertOrganizationChargeAllowed, businessPilotActivationEnabled,
   clinicalPilotWindow, ORGANIZATION_BILLING_TERMS_VERSION,
   requirePilotClaim, validateOrganizationBillingConsent,
+  validateClinicalPilotWindow,
 } from "../services/businessPilotActivationPolicy";
 import {
-  activateBusinessPilotLink, founderOrganizationWindow, getActiveBusinessPilotClinicalAccess,
+  activateBusinessPilotLink, founderOrganizationWindow, getActiveBusinessPilotClinicalAccess, bindFounderOrganization,
   issueBusinessPilotLink,
 } from "../services/businessPilotActivationService";
 import { computeEffectiveAccess } from "../services/effectiveAccess";
@@ -147,8 +148,72 @@ test("delayed organization creation inherits the original window", async () => {
 });
 
 test("an attached invitation cannot gift a second organization a new pilot", async () => {
-  db.execute.mockResolvedValueOnce({ rows: [{ ...grant(), business_id: "business-fixture" }] });
+  db.execute.mockResolvedValueOnce({ rows: [{
+    ...grant(), business_id: "business-fixture", activated_user_id: "user-fixture",
+    personal_access_started_at: now, personal_access_ends_at: clinicalPilotWindow(now).endsAt,
+  }] });
   await expect(founderOrganizationWindow(db, "user-fixture")).rejects.toMatchObject({ code: "PILOT_ORGANIZATION_ALREADY_ATTACHED" });
+});
+
+test.each([null, undefined, "", "not-a-date", "infinity", "-infinity", Infinity, -Infinity, new Date(NaN)])(
+  "missing or non-finite window timestamp %p is rejected on either side", value => {
+    expect(() => validateClinicalPilotWindow(value, clinicalPilotWindow(now).endsAt)).toThrow();
+    expect(() => validateClinicalPilotWindow(now, value)).toThrow();
+  },
+);
+
+test.each([-1, 1, 3600000])("a window offset by %i milliseconds is rejected", delta => {
+  expect(() => validateClinicalPilotWindow(now, new Date(clinicalPilotWindow(now).endsAt.getTime() + delta))).toThrow();
+});
+
+test("invalid activation clock is rejected before any database work", async () => {
+  jest.setSystemTime(new Date(8640000000000000));
+  await expect(issueBusinessPilotLink("physician@example.test", "founder-fixture")).rejects.toMatchObject({ code: "PILOT_WINDOW_INVALID" });
+  expect(db.transaction).not.toHaveBeenCalled();
+});
+
+test.each([null, "infinity", new Date(NaN), new Date("2026-12-02T12:00:00Z")])(
+  "corrupt replay expiration %p does not reset the original activation", async endsAt => {
+    db.execute.mockResolvedValueOnce({ rows: [{
+      ...grant(), activated_user_id: "user-fixture", status: "active",
+      personal_access_started_at: now, personal_access_ends_at: endsAt,
+    }] }).mockResolvedValueOnce({ rows: [{ email: "physician@example.test" }] });
+    await expect(activateBusinessPilotLink(token, "user-fixture")).rejects.toMatchObject({ code: "PILOT_WINDOW_INVALID" });
+    expect(db.execute).toHaveBeenCalledTimes(2);
+  },
+);
+
+test("infinite invitation deadline cannot be used to activate", async () => {
+  db.execute.mockResolvedValueOnce({ rows: [{ ...grant(), invitation_expires_at: Infinity }] })
+    .mockResolvedValueOnce({ rows: [{ email: "physician@example.test" }] });
+  await expect(activateBusinessPilotLink(token, "user-fixture")).rejects.toMatchObject({ code: "PILOT_WINDOW_INVALID" });
+  expect(db.execute).toHaveBeenCalledTimes(2);
+});
+
+test("persisted infinite personal access is rejected instead of becoming indefinite", async () => {
+  db.execute.mockResolvedValueOnce({ rows: [{
+    ...grant(), status: "active", personal_access_started_at: Infinity, personal_access_ends_at: Infinity,
+  }] });
+  await expect(getActiveBusinessPilotClinicalAccess("user-fixture")).rejects.toMatchObject({ code: "PILOT_WINDOW_INVALID" });
+});
+
+test("business cleanup does not permit consuming the same invitation again", async () => {
+  db.execute.mockResolvedValueOnce({ rows: [{
+    ...grant(), organization_consumed: true, business_id: null,
+    personal_access_started_at: now, personal_access_ends_at: clinicalPilotWindow(now).endsAt,
+  }] });
+  await expect(founderOrganizationWindow(db, "user-fixture")).rejects.toMatchObject({ code: "PILOT_ORGANIZATION_ALREADY_ATTACHED" });
+});
+
+test("binding records consumption atomically and fails closed on an already-consumed reservation", async () => {
+  await expect(bindFounderOrganization(db, "authorization-fixture", "business-fixture")).rejects.toMatchObject({
+    code: "PILOT_ORGANIZATION_ALREADY_ATTACHED",
+  });
+  const query = dialect.sqlToQuery(db.execute.mock.calls[0][0]);
+  expect(query.sql).toContain("organization_consumed = true");
+  expect(query.sql).toContain("organization_consumed = false");
+  db.execute.mockResolvedValueOnce({ rows: [{ authorization_id: "authorization-fixture" }] });
+  await expect(bindFounderOrganization(db, "authorization-fixture", "business-fixture")).resolves.toBeUndefined();
 });
 
 test("legacy signup binding without activation cannot start an organization clock", async () => {

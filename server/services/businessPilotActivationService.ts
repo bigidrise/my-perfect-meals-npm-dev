@@ -5,6 +5,7 @@ import { createBusinessPilotAuthorization } from "./businessPilotAuthorizationSe
 import {
   businessPilotActivationEnabled, BusinessPilotActivationError,
   clinicalPilotWindow, requirePilotClaim, FOUNDER_ACTIVATION_WORKFLOW,
+  finitePilotTimestamp, validateClinicalPilotWindow,
 } from "./businessPilotActivationPolicy";
 
 const rows = (result: any): any[] => result.rows ?? result;
@@ -21,7 +22,7 @@ function validToken(token: unknown): token is string {
 export async function issueBusinessPilotLink(email: string, issuerId: string) {
   enabled();
   const token = randomBytes(32).toString("hex");
-  const invitationExpiresAt = new Date(Date.now() + 14 * 86400000);
+  const invitationExpiresAt = finitePilotTimestamp(new Date(Date.now() + 14 * 86400000));
   const authorization = await db.transaction(async (tx) => {
     const created = await createBusinessPilotAuthorization({
       authorizedEmail: email, createdByUserId: issuerId,
@@ -43,14 +44,16 @@ export async function inspectBusinessPilotLink(token: unknown) {
   enabled();
   if (!validToken(token)) throw new BusinessPilotActivationError("Invitation not found.", "PILOT_NOT_FOUND", 404);
   const [row] = rows(await db.execute(sql`SELECT a.status, l.invitation_expires_at,
-    l.activated_user_id, l.personal_access_ends_at
+    l.activated_user_id, l.personal_access_started_at, l.personal_access_ends_at
     FROM business_pilot_activation_links l
     JOIN business_pilot_authorizations a ON a.id = l.authorization_id
     WHERE l.token_hash = ${digest(token)}`));
   if (!row) throw new BusinessPilotActivationError("Invitation not found.", "PILOT_NOT_FOUND", 404);
+  const invitationExpiresAt = finitePilotTimestamp(row.invitation_expires_at);
+  if (row.activated_user_id) validateClinicalPilotWindow(row.personal_access_started_at, row.personal_access_ends_at);
   return {
     available: row.status !== "revoked" && !row.activated_user_id
-      && new Date(row.invitation_expires_at) > new Date(),
+      && invitationExpiresAt > new Date(),
     activated: Boolean(row.activated_user_id),
     endsAt: row.personal_access_ends_at,
     durationDays: 30,
@@ -75,10 +78,13 @@ export async function activateBusinessPilotLink(token: unknown, userId: string) 
       invitationExpiresAt: new Date(row.invitation_expires_at),
       activatedUserId: row.activated_user_id ?? row.claimed_user_id, userId,
     }, now);
-    if (row.activated_user_id) return {
-      authorizationId: row.authorization_id, startedAt: row.personal_access_started_at,
-      endsAt: row.personal_access_ends_at, alreadyActivated: true,
-    };
+    if (row.activated_user_id) {
+      const originalWindow = validateClinicalPilotWindow(row.personal_access_started_at, row.personal_access_ends_at);
+      return { authorizationId: row.authorization_id, ...originalWindow, alreadyActivated: true };
+    }
+    if (row.personal_access_started_at != null || row.personal_access_ends_at != null) {
+      throw new BusinessPilotActivationError("Pilot activation state could not be verified.", "PILOT_WINDOW_INVALID", 503);
+    }
     // A legacy signup binding alone is not activation and never bypasses the invitation deadline.
     if (new Date(row.invitation_expires_at) <= now) {
       throw new BusinessPilotActivationError("Invitation expired.", "PILOT_INVITATION_EXPIRED", 410);
@@ -103,6 +109,7 @@ export async function getBusinessPilotActivation(userId: string, executor: any =
     WHERE l.activated_user_id = ${userId}
     ORDER BY l.personal_access_started_at DESC LIMIT 1
     ${lock ? sql`FOR UPDATE OF l, a` : sql``}`));
+  if (row) validateClinicalPilotWindow(row.personal_access_started_at, row.personal_access_ends_at);
   return row ?? null;
 }
 
@@ -129,8 +136,8 @@ export async function founderOrganizationWindow(tx: any, userId: string) {
     );
     return null;
   }
-  if (grant.business_id) throw new BusinessPilotActivationError(
-    "This invitation already funds an Organization. Open it from the Organization Hub.",
+  if (grant.business_id || grant.organization_consumed) throw new BusinessPilotActivationError(
+    "This invitation already funded an Organization and cannot fund another. Your personal pilot keeps its original expiration.",
     "PILOT_ORGANIZATION_ALREADY_ATTACHED",
   );
   // Expired/revoked grants never fall back to a newly gifted 30-day window.
@@ -144,6 +151,12 @@ export async function founderOrganizationWindow(tx: any, userId: string) {
 }
 
 export async function bindFounderOrganization(tx: any, authorizationId: string, businessId: string) {
-  await tx.execute(sql`UPDATE business_pilot_activation_links SET business_id = ${businessId}
-    WHERE authorization_id = ${authorizationId} AND business_id IS NULL`);
+  const result = await tx.execute(sql`UPDATE business_pilot_activation_links
+    SET business_id = ${businessId}, organization_consumed = true
+    WHERE authorization_id = ${authorizationId} AND business_id IS NULL
+      AND organization_consumed = false AND activated_user_id IS NOT NULL
+    RETURNING authorization_id`);
+  if (!rows(result).length) throw new BusinessPilotActivationError(
+    "This invitation's Organization reservation could not be verified.", "PILOT_ORGANIZATION_ALREADY_ATTACHED",
+  );
 }

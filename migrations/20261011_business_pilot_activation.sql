@@ -4,29 +4,42 @@ SET LOCAL lock_timeout = '2s';
 SET LOCAL statement_timeout = '15s';
 
 -- Companion table avoids adding columns to existing SELECT * projections before release.
-CREATE TABLE IF NOT EXISTS business_pilot_activation_links (
-  authorization_id uuid PRIMARY KEY REFERENCES business_pilot_authorizations(id) ON DELETE RESTRICT,
+CREATE TABLE IF NOT EXISTS public.business_pilot_activation_links (
+  authorization_id uuid PRIMARY KEY REFERENCES public.business_pilot_authorizations(id) ON DELETE RESTRICT,
   token_hash text NOT NULL UNIQUE CHECK (length(token_hash) = 64),
-  invitation_expires_at timestamptz NOT NULL,
-  activated_user_id varchar(255) REFERENCES users(id) ON DELETE RESTRICT,
+  invitation_expires_at timestamptz NOT NULL CHECK (isfinite(invitation_expires_at)),
+  -- An activation capability belongs to its account, not to billing history.
+  -- Erasure deletes this capability/hash; the retained authorization cannot redeem it.
+  activated_user_id varchar REFERENCES public.users(id) ON DELETE CASCADE,
   personal_access_started_at timestamptz,
   personal_access_ends_at timestamptz,
-  business_id uuid UNIQUE REFERENCES businesses(id) ON DELETE RESTRICT,
+  -- Business cleanup must not remove the user's independent personal window.
+  business_id uuid UNIQUE REFERENCES public.businesses(id) ON DELETE SET NULL,
+  organization_consumed boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now(),
-  CHECK (
+  CONSTRAINT business_pilot_activation_window_check CHECK (
     (activated_user_id IS NULL AND personal_access_started_at IS NULL AND personal_access_ends_at IS NULL)
     OR
     (activated_user_id IS NOT NULL AND personal_access_started_at IS NOT NULL
+      AND personal_access_ends_at IS NOT NULL
+      AND isfinite(personal_access_started_at) AND isfinite(personal_access_ends_at)
       AND personal_access_ends_at = personal_access_started_at + interval '720 hours')
+  ),
+  CONSTRAINT business_pilot_activation_organization_check CHECK (
+    (business_id IS NULL OR organization_consumed)
+    AND (NOT organization_consumed OR activated_user_id IS NOT NULL)
   )
 );
 CREATE INDEX IF NOT EXISTS business_pilot_activation_user_idx
-  ON business_pilot_activation_links(activated_user_id);
+  ON public.business_pilot_activation_links(activated_user_id);
 
-CREATE TABLE IF NOT EXISTS organization_checkout_consents (
+-- Keep the minimal financial consent snapshot, not an erased person's identity.
+-- These nullable references are never sufficient to authorize receipt reuse.
+-- No retention duration is invented here; deletion scheduling needs its own policy.
+CREATE TABLE IF NOT EXISTS public.organization_checkout_consents (
   reservation_id text PRIMARY KEY,
-  business_id uuid NOT NULL REFERENCES businesses(id) ON DELETE RESTRICT,
-  actor_user_id varchar(255) NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  business_id uuid REFERENCES public.businesses(id) ON DELETE SET NULL,
+  actor_user_id varchar REFERENCES public.users(id) ON DELETE SET NULL,
   price_id text NOT NULL,
   unit_amount integer NOT NULL CHECK (unit_amount >= 0),
   currency text NOT NULL,

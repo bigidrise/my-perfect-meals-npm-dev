@@ -1,6 +1,7 @@
 import { Router } from "express";
 import businessPilotActivationRoutes from "./businessPilotActivationRoutes";
 import { bindFounderOrganization, founderOrganizationWindow, getBusinessPilotActivation } from "../services/businessPilotActivationService";
+import { deleteDevelopmentBusinessRecords } from "../services/developmentBusinessCleanup";
 import { BusinessPilotActivationError, FOUNDER_ACTIVATION_WORKFLOW } from "../services/businessPilotActivationPolicy";
 import { getProviderStudioReadiness } from "../services/procareStudioReadiness";
 import { randomBytes, randomUUID } from "crypto";
@@ -3194,9 +3195,7 @@ router.delete("/dev-seed", requireAuth, async (req, res) => {
     const [biz] = await db.select().from(businesses).where(eq(businesses.ownerUserId, userId)).limit(1);
     if (!biz) return res.json({ success: true, message: "Nothing to delete." });
 
-    await db.execute(sql`DELETE FROM business_invitations WHERE business_id = ${biz.id}`);
-    await db.execute(sql`DELETE FROM business_members WHERE business_id = ${biz.id}`);
-    await db.execute(sql`DELETE FROM businesses WHERE id = ${biz.id}`);
+    await deleteDevelopmentBusinessRecords(db, biz.id);
 
     console.log(`[dev-seed] Wiped test business ${biz.id} for user ${userId}`);
     return res.json({ success: true });

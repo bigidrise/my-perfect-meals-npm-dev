@@ -15,7 +15,8 @@ export default function BusinessPilotWindowNotice() {
   if (!pilot) return null;
   return <aside className="my-4 rounded-xl border border-orange-500/30 p-4 text-sm text-orange-100">
     Your personal Clinical pilot ends {new Date(pilot.endsAt).toLocaleString()}.
-    {!pilot.businessId && " The new Organization you create shares this original end date; setup does not restart the 30 days."}
+    {!pilot.businessId && !pilot.organizationConsumed && " The new Organization you create shares this original end date; setup does not restart the 30 days."}
+    {!pilot.businessId && pilot.organizationConsumed && " Your former Organization used this invitation. Removing it does not restart either pilot or fund another Organization."}
     {pilot.businessId && " Your linked Organization uses the same initial pilot end date. Paid continuation and personal access remain separate."}
     {" Patients keep their own invitation trial dates. No automatic charge."}
   </aside>;
