@@ -84,6 +84,7 @@
 - [One-action food choice](one-action-food-choice.md) — profiles set defaults; an informed explicit choice governs one food action without changing the profile.
 - [Macro replacement boundary](macro-replacement-boundary.md) — recalculation is preview-only; saved targets remain authoritative until a final confirmed save succeeds.
 - [Business invitation identity](business-invitation-identity.md) — one email-bound invitation connects existing or new accounts through the same acceptance path.
+- [Physician pilot invitation experience](physician-pilot-invitation-experience.md) — one emailed link preserves auth context; personal and organization paths share the physician clock, not client clocks.
 - [Organization-owned Rewardful identity](organization-rewardful-identity.md) — Rewardful identities belong to exact organizations; never infer them from an operator’s user ID or email.
 - [Multi-organization membership](multi-organization-membership.md) — one account can manage multiple isolated organizations through explicit workspace selection.
 - [Business Suite commercial boundary](business-suite-commercial-boundary.md) — $44.99 is flat at quantity 1; invitations never grant permanent sponsored professional access.
