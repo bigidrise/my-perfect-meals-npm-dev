@@ -2,11 +2,13 @@
 
 ## Approved scope
 
-The compact card sits in `DashboardNew.tsx`, after the introductory hero and
+Change 4's compact card sits in `DashboardNew.tsx`, after the introductory hero and
 before Nutrition Personalization Summary. It is a control center, not a
 walkthrough. No explanatory modals, automatic navigation, database/schema changes,
 nutrition changes, access/subscription changes, or Production activation are added.
-Explanatory modals still require separate approval.
+The subsequently approved manual explanation layer is documented in
+`guided-journey-explanations.md`. Automatic launch and workflow connections still
+require separate approval.
 
 ## Evidence and eligibility
 
@@ -47,8 +49,9 @@ The effect lifecycle also handles Development React StrictMode.
 * **Pause / Resume Guidance** update the existing account-scoped preferences.
 * **Disable / Enable Automatic Guidance** change only that presentation choice;
   enabling does not silently resume a paused journey.
-* **Restart Guidance** records replay intent. The card explicitly says explanatory
-  modals are not enabled yet. It neither navigates nor clears saved work.
+* **Restart Guidance** originally recorded replay intent only. The subsequently
+  approved explanation layer opens manual replay after fresh checks. It still
+  never clears saved work or automatically navigates.
 * **Retry** repeats an unavailable/blocked progress read, without assuming success.
 
 The compact native Guidance controls disclosure is keyboard accessible and
@@ -64,7 +67,8 @@ nonpersistent choices; browser preferences are local-device, not cross-device.
 3. Ambiguous targets, failed reads, and bounded-history uncertainty require a
    successful authoritative read, not a new repair/recalculation workflow.
 4. Professional, Organization, and household guidance require their own adapters.
-5. Restart can request replay; actual explanatory modals are not implemented here.
+5. Manual explanations now have their separately approved presentation layer.
+   Automatic progression and workflow-specific guidance are not implemented.
 6. The existing project-wide TypeScript baseline mismatch still requires review
    before Production. This change neither repairs unrelated diagnostics nor
    refreshes the baseline.

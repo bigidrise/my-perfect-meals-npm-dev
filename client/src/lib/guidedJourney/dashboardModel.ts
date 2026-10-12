@@ -42,7 +42,7 @@ export function manualJourneyDestination(snapshot: JourneySnapshot): string | nu
 export function gettingStartedCardModel(
   snapshot: JourneySnapshot | null,
   preferences: GuidancePreferenceResult | null,
-  options: { loading: boolean; busy: boolean; error: boolean; destinationAllowed: boolean },
+  options: { loading: boolean; busy: boolean; error: boolean; destinationAllowed: boolean; sessionPaused?: boolean },
 ): GettingStartedCardModel {
   let statusText = options.loading ? "Checking your progress…" : options.busy
     ? "Checking your current access…" : "Continue your setup when you're ready.";
@@ -74,7 +74,7 @@ export function gettingStartedCardModel(
     canRetry: !options.loading && !options.busy
       && (options.error || snapshot?.status === "blocked" || (!options.destinationAllowed && snapshot?.status !== "complete")),
     controlsReady: !!preferences && preferences.issue !== "disposed" && !options.busy,
-    paused: state?.mode === "paused",
+    paused: state?.mode === "paused" || options.sessionPaused === true,
     automaticDisabled: state?.automaticExplanationsEnabled === false,
     replayRequested: state?.replayRequested === true,
     preferenceNotice,

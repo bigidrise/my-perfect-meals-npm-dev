@@ -7,6 +7,9 @@ interface GettingStartedCardViewProps {
   onPauseResume: () => void;
   onToggleAutomatic: () => void;
   onRestart: () => void;
+  onExplain?: () => void;
+  canExplain?: boolean;
+  presentationNotice?: string | null;
 }
 
 const stateLabels: Record<string, string> = {
@@ -23,6 +26,9 @@ export function GettingStartedCardView({
   onPauseResume,
   onToggleAutomatic,
   onRestart,
+  onExplain,
+  canExplain = false,
+  presentationNotice,
 }: GettingStartedCardViewProps) {
   return (
     <section
@@ -47,7 +53,7 @@ export function GettingStartedCardView({
 
         {model.replayRequested && (
           <p className="rounded-lg border border-orange-300/20 bg-orange-300/5 px-3 py-2 text-sm leading-relaxed text-orange-100">
-            Replay requested. Explanations are not enabled yet; your saved work is unchanged.
+            Replay requested. Open an explanation to review your journey; your saved work is unchanged.
           </p>
         )}
 
@@ -65,6 +71,9 @@ export function GettingStartedCardView({
           <p className="rounded-lg border border-amber-300/25 bg-amber-300/5 px-3 py-2 text-sm leading-relaxed text-amber-100">
             {model.preferenceNotice}
           </p>
+        )}
+        {presentationNotice && (
+          <p role="status" className="text-sm leading-relaxed text-amber-200">{presentationNotice}</p>
         )}
 
         {model.stages.length > 0 && (
@@ -108,6 +117,13 @@ export function GettingStartedCardView({
         )}
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          {onExplain && (
+            <button type="button" data-testid="guided-journey-explain" onClick={onExplain}
+              disabled={!canExplain}
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-orange-300/40 px-4 py-2.5 text-sm font-semibold text-orange-200 hover:bg-orange-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 disabled:cursor-not-allowed disabled:opacity-45">
+              Show Explanation
+            </button>
+          )}
           <button
             type="button"
             data-testid="guided-journey-continue"

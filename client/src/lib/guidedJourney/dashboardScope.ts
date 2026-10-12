@@ -39,6 +39,10 @@ export function journeyDestinationAllowed(
   const route = manualJourneyDestination(snapshot);
   if (!route) return false;
   if (route !== "/general-nutrition-builder/build") return true;
+  return journeyMealBuilderAllowed(account);
+}
+
+export function journeyMealBuilderAllowed(account: JourneyDashboardAccount): boolean {
   // Match the existing BuilderAccessGuard; additionally decline a conflicting
   // professional assignment rather than adding an unapproved Builder adapter.
   const assigned = account.studioMembership?.assignedBuilder;

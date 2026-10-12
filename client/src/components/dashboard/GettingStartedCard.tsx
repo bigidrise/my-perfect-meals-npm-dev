@@ -7,6 +7,7 @@ import {
   isPersonalJourneyDashboard, journeyDashboardContextKey,
 } from "@/lib/guidedJourney/dashboardScope";
 import { GettingStartedCardView } from "./GettingStartedCardView";
+import { GuidedJourneyExplanation } from "@/components/guided/GuidedJourneyExplanation";
 
 function currentWorkspace(): string | null {
   try { return localStorage.getItem("mpm_active_space"); } catch { return "unknown"; }
@@ -34,7 +35,15 @@ export function GettingStartedCard() {
       <GettingStartedCardView model={journey.model}
         onContinue={() => { void journey.continueSetup(); }}
         onRetry={journey.retry} onPauseResume={journey.pauseResume}
-        onToggleAutomatic={journey.toggleAutomatic} onRestart={journey.restart} />
+        onToggleAutomatic={journey.toggleAutomatic} onRestart={journey.restart}
+        onExplain={() => { void journey.openExplanation(); }} canExplain={journey.canExplain}
+        presentationNotice={journey.presentationNotice} />
+      {journey.explanation && (
+        <GuidedJourneyExplanation open model={journey.explanation} busy={journey.model.busy}
+          onPrimary={() => { void journey.explanationPrimary(); }}
+          onSecondary={journey.explanationSecondary} onClose={journey.dismissExplanation}
+          onRestoreFocus={journey.restoreExplanationFocus} />
+      )}
     </div>
   );
 }
