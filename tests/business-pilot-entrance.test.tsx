@@ -50,6 +50,33 @@ test("anonymous invitation is public in Development and neither preview nor acti
   expect(sessionStorage.getItem(BUSINESS_PILOT_TOKEN_KEY)).toBe(token);
 });
 
+test("the reusable partner link captures public campaign context and opens normal authentication", () => {
+  window.history.replaceState({}, "", `${BUSINESS_PILOT_PATH}#token=business-partners`);
+  render(<AppRouter><BusinessPilotActivation /></AppRouter>);
+  expect(screen.getByText(/This reusable link welcomes every business partner/)).toBeInTheDocument();
+  expect(sessionStorage.getItem(BUSINESS_PILOT_TOKEN_KEY)).toBe("business-partners");
+  fireEvent.click(screen.getByRole("button", { name: "Create an Account" }));
+  expect(mockNavigate).toHaveBeenCalledWith("/auth?mode=signup&returnTo=%2Factivate%2Fbusiness-pilot");
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
+test("any signed-in partner explicitly claims the reusable link without invited-email instructions", async () => {
+  window.history.replaceState({}, "", `${BUSINESS_PILOT_PATH}#token=business-partners`);
+  mockUser = { id: "independent-partner", email: "any-partner@example.invalid" };
+  mockRefresh.mockResolvedValue(mockUser);
+  fetchMock.mockImplementation((url: string) => response(url.endsWith("/inspect")
+    ? { available: true, reusable: true }
+    : { endsAt: "2099-11-01T12:00:00Z" }));
+  render(<BusinessPilotActivation />);
+  expect(screen.queryByText(/Use the email that received/)).not.toBeInTheDocument();
+  const button = screen.getByRole("button", { name: "Activate My Complimentary Pilot" });
+  await waitFor(() => expect(button).toBeEnabled());
+  fireEvent.click(button);
+  await screen.findByRole("button", { name: "More → Start Your Organization" });
+  expect(JSON.parse(fetchMock.mock.calls.find(([url]) => url.endsWith("/claim"))[1].body))
+    .toEqual({ token: "business-partners" });
+});
+
 test.each([
   ["Create an Account", "signup"], ["Sign In to My Existing Account", "login"],
 ])("one invitation enters normal auth via %s", (label, mode) => {

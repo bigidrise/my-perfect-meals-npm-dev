@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAuthHeaders } from "@/lib/auth";
+import { BUSINESS_PARTNER_PILOT_TOKEN } from "@shared/businessPartnerPilot";
 import {
   businessPilotAuthDestination, captureBusinessPilotInvitation,
   clearBusinessPilotInvitation, clearBusinessPilotOrganizationEntry,
@@ -30,6 +31,7 @@ export default function DevelopmentBusinessPilotActivation() {
   const [busy, setBusy] = useState(false);
   const [inspectVersion, setInspectVersion] = useState(0);
   const token = entrance.token;
+  const reusable = token === BUSINESS_PARTNER_PILOT_TOKEN;
   const activated = !!user && activatedFor === user.id;
 
   useEffect(() => {
@@ -103,6 +105,7 @@ export default function DevelopmentBusinessPilotActivation() {
   return <main className="min-h-screen bg-gray-950 p-6 text-white">
     <section className="mx-auto max-w-lg space-y-5 rounded-2xl border border-orange-500/30 p-6">
       <h1 className="text-2xl font-bold">Your 30-Day Business Pilot</h1>
+      {reusable && <p>This reusable link welcomes every business partner. Each account activates its own 30-day pilot; using it does not use up the link.</p>}
       <p>Use your existing account or create one here. Your complimentary Clinical access requires no payment.</p>
       <p>Your 30 days begin only when you successfully activate—not when you open this link or register.</p>
       <p className="text-sm text-white/70">Your Organization shares the original pilot expiration. Professional readiness, credentials, MFA and client consent remain separate.</p>
@@ -123,13 +126,13 @@ export default function DevelopmentBusinessPilotActivation() {
         <button className="w-full rounded-xl bg-white/10 p-3"
           onClick={() => navigate(businessPilotAuthDestination("signup"))}>Create an Account</button>
       </> : <>
-        <p>Signed in as {user.email}. Use the email that received this invitation.</p>
+        <p>Signed in as {user.email}. {reusable ? "Activate your own business partner pilot." : "Use the email that received this invitation."}</p>
         <button disabled={busy || !token || !details || (!details.available && !details.activated)}
           className="w-full rounded-xl bg-orange-600 p-3 disabled:opacity-50" onClick={activate}>
           {busy ? "Activating…" : "Activate My Complimentary Pilot"}
         </button>
         {error && <button disabled={busy} onClick={() => setInspectVersion(v => v + 1)}>Retry Invitation Check</button>}
-        {error && <button onClick={() => navigate(businessPilotAuthDestination("login"))}>Sign In with the Invited Email</button>}
+        {error && <button onClick={() => navigate(businessPilotAuthDestination("login"))}>{reusable ? "Sign In to Another Account" : "Sign In with the Invited Email"}</button>}
       </>}
       <p className="text-sm text-white/60">No automatic charge. Personal Clinical and Organization subscriptions remain separate purchases after the pilot.</p>
     </section>
