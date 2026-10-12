@@ -44,8 +44,8 @@ Review the project-wide type baseline before Production, without folding
 unrelated diagnostic repairs into these Development changes.
 
 The Dashboard card is the control center, not the walkthrough: show saved
-progress and let users continue manually. Explanatory modals need separate
-approval. Manual setup must preserve a deliberate guidance pause and automatic-off
+progress and let users continue manually. Manual explanations require separate
+approval from automatic launch and workflow connections. Manual setup must preserve a deliberate guidance pause and automatic-off
 choice; only explicit Resume resumes guidance.
 
 **Why:** The user explicitly distinguished the card from explanatory modals and
@@ -55,3 +55,16 @@ required gaps to be reported rather than filled through an unapproved expansion.
 Recheck current account and authoritative progress before an existing destination;
 retain native onboarding redirects and Builder assignments. Do not introduce
 repair workflows or substitute unsupported Builders to make the card advance.
+
+Manual explanations and replay are not a finished Guided Journey or evidence of
+Production readiness. Presentation must yield to existing critical interactions;
+unknown native/headless arbitration gaps must be reported, not filled through
+unapproved changes to those workflows.
+
+**Why:** The user approved explanation presentation only, explicitly distinguishing
+it from later onboarding/target completion connections and the supported Builder
+connection. They require a gap report rather than broad critical-workflow changes.
+
+**How to apply:** Keep launch manual until separately approved. Replay never resets
+operational work, enables disabled automatic guidance, or turns modal events into
+completion. Preserve all native actions, redirects and authorization checks.

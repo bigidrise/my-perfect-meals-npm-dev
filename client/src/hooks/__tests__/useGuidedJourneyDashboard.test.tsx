@@ -120,7 +120,7 @@ test.each([
   await act(async () => { await result.current.continueSetup(); });
   expect(options.navigate).toHaveBeenCalledWith(destination);
 });
-test("Pause, Resume, Disable and Restart alter preferences only; replay never clears progress", async () => {
+test("Pause, Resume and Disable are local; Restart requests explanations without clearing progress", async () => {
   request.mockResolvedValue(await snapshot({ configured: true, saved: true }));
   const options = input();
   render(<Harness options={options} />);
@@ -134,13 +134,13 @@ test("Pause, Resume, Disable and Restart alter preferences only; replay never cl
   expect(screen.getByText(/Automatic guidance is off/)).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Resume Guidance" }));
   expect(screen.getByText(/Automatic guidance is off/)).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Restart Guidance" }));
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Restart Guidance" })); });
   expect(screen.getByText(/Replay requested/)).toBeTruthy();
   expect(screen.getAllByText("Completed")).toHaveLength(3);
   expect(createGuidancePreferenceStore({ accountId: account.id }).read().preferences)
     .toMatchObject({ automaticExplanationsEnabled: false, replayRequested: true });
   expect(options.navigate).not.toHaveBeenCalled();
-  expect(request).toHaveBeenCalledTimes(1);
+  expect(request).toHaveBeenCalledTimes(2);
   expect(screen.queryByRole("dialog")).toBeNull();
 });
 test("paused and disabled settings survive unmount/reload and manual Continue preserves off", async () => {

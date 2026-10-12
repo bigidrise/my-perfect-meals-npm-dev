@@ -50,6 +50,8 @@ export interface UniversalDialogProps extends Omit<BaseModalProps, "children" | 
   showCloseButton?: boolean
   /** Forwarded to Radix DialogContent's onOpenAutoFocus */
   onOpenAutoFocus?: (e: Event) => void
+  /** Optional focus return for dialogs opened without a Radix Trigger. */
+  onCloseAutoFocus?: (e: Event) => void
   children?: React.ReactNode
 }
 
@@ -64,6 +66,7 @@ export function UniversalDialog({
   rawLayout = false,
   showCloseButton = true,
   onOpenAutoFocus,
+  onCloseAutoFocus,
   children,
 }: UniversalDialogProps) {
   return (
@@ -75,6 +78,7 @@ export function UniversalDialog({
         )}
         showCloseButton={showCloseButton}
         onOpenAutoFocus={onOpenAutoFocus}
+        onCloseAutoFocus={onCloseAutoFocus}
       >
         {rawLayout ? (
           children
