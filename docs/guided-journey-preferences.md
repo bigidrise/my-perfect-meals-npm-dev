@@ -1,7 +1,8 @@
 # Change 3 — Development guidance preferences
 
-This change adds a preference library only. No application screen imports it,
-no automatic explanations are enabled, and no Dashboard card or modal is added.
+The original preference change added a library only. The separately approved
+Development Dashboard card now imports it; see `guided-journey-dashboard-card.md`.
+No automatic explanations or explanatory modals are enabled.
 It uses local storage, not new database tables, HTTP writes, or progress records.
 
 ## API and scope
@@ -30,8 +31,8 @@ store.apply("restart_explanations");
 store.dispose(); // on logout/account change
 ```
 
-This example is not wired into authentication or UI yet; those connections
-belong to the separately approved next change. Do not pass email addresses,
+The Dashboard card now creates/disposes this store for the signed-in personal
+context. Do not pass email addresses,
 tokens, selected household IDs, or organization IDs as personal account IDs.
 
 ## Behavior
@@ -101,4 +102,4 @@ This change does not repair unrelated diagnostics or refresh that baseline.
 
 Verification result: 35 preference checks passed after the 71 backend safeguard
 checks. A strict focused TypeScript check of the preference library and core
-engine passed. The preference library remains unimported by live application UI.
+engine passed. The separately approved card integration has its own verification.

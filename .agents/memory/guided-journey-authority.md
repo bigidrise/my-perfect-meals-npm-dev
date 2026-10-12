@@ -42,3 +42,16 @@ Replay changes explanations only, preserves a disabled-automatic choice, and
 never resets saved work. Clearly state device-local persistence limitations.
 Review the project-wide type baseline before Production, without folding
 unrelated diagnostic repairs into these Development changes.
+
+The Dashboard card is the control center, not the walkthrough: show saved
+progress and let users continue manually. Explanatory modals need separate
+approval. Manual setup must preserve a deliberate guidance pause and automatic-off
+choice; only explicit Resume resumes guidance.
+
+**Why:** The user explicitly distinguished the card from explanatory modals and
+required gaps to be reported rather than filled through an unapproved expansion.
+
+**How to apply:** Unknown evidence/eligibility never authorizes navigation.
+Recheck current account and authoritative progress before an existing destination;
+retain native onboarding redirects and Builder assignments. Do not introduce
+repair workflows or substitute unsupported Builders to make the card advance.

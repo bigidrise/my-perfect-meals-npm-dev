@@ -3,11 +3,13 @@
 ## Approved boundary
 
 The foundation implements the engine and completion detection. There are no new
-modals, Dashboard controls, automatic navigation, onboarding
+modals, automatic navigation, onboarding
 changes, nutrition changes, entitlement changes, database writes, or migrations.
 Professional and organization journey types are reserved, not implemented.
-Change 3 subsequently added a separate, unwired local preference library; see
+Change 3 subsequently added a separate local preference library; see
 `docs/guided-journey-preferences.md`. Preferences never change completion evidence.
+The subsequently approved Dashboard card now reads these contracts and local
+preferences in Development only; see `docs/guided-journey-dashboard-card.md`.
 
 ## Inspection
 
@@ -72,7 +74,8 @@ select General Nutrition or authorize a Builder switch.
 
 The endpoint is explicitly personal. A future UI must suspend/replace it when
 workspace or subject changes and reject stale responses using the returned scope.
-No UI request, polling, or session integration is enabled in this foundation.
+The foundation itself does not poll or initiate navigation. The separately
+approved Dashboard card reads on mount and rechecks before manual continuation.
 
 ## Verification
 
@@ -90,7 +93,7 @@ Builders/subjects, changing access, concurrent actor inspections, authentication
 runtime gating, and absence of mutation routes. Fixtures are not evidence of a
 live authenticated user's database state.
 
-Before adding screens, separately approve modal coordination and the compact
-Dashboard entry. Local presentation preferences are implemented separately
-but remain unwired. Other Builder adapters require
+Modal coordination and explanatory walkthroughs still require separate approval.
+The Development Dashboard entry now uses local presentation preferences.
+Other Builder adapters require
 their own authority and board contracts; do not simply reuse General's namespace.
