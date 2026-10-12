@@ -7,6 +7,7 @@ import { fetchPersonalJourneyProgress } from "@/lib/guidedJourney/progress";
 import { gettingStartedCardModel, manualJourneyDestination } from "@/lib/guidedJourney/dashboardModel";
 import { journeyDestinationAllowed, type JourneyDashboardAccount } from "@/lib/guidedJourney/dashboardScope";
 import { explanationJourneyAllowed, explanationModel, explanationStages } from "@/lib/guidedJourney/explanation";
+import { confirmWorkflowSave, observeWorkflowSaves, workflowHandoff } from "@/lib/guidedJourney/workflow";
 import {
   guidanceInteractionBlocked, observeGuidanceInteractions, guidancePausedForSession,
   pauseGuidanceForSession, resumeGuidanceForSession,
@@ -20,6 +21,7 @@ interface Input {
   isCurrentContextPersonal: () => boolean;
   refreshAccount: () => Promise<JourneyDashboardAccount | null>;
   navigate: (route: string) => void;
+  workflowBusy?: boolean;
 }
 interface State {
   key: string;
@@ -77,6 +79,8 @@ export function useGuidedJourneyDashboard(input: Input) {
     try {
       const snapshot = await fetchPersonalJourneyProgress(session.accountId, abort.signal);
       if (!current(session) || session.request !== request) return null;
+      await confirmWorkflowSave(snapshot, session.accountId, abort.signal);
+      if (!current(session) || session.request !== request) return null;
       setState({ key: session.key, snapshot, preferences: session.store.read(),
         loading: false, busy: session.busy, error: false });
       if (!explanationJourneyAllowed(snapshot, inputRef.current.account)) {
@@ -103,9 +107,13 @@ export function useGuidedJourneyDashboard(input: Input) {
       live: true, busy: false, request: 0, abort: null, presentationRequest: 0,
     };
     sessionRef.current = session;
+    const stopObserving = observeWorkflowSaves(accountId => {
+      if (accountId === session.accountId && current(session)) void load(session);
+    });
     void load(session);
     return () => {
       session.live = false;
+      stopObserving();
       session.abort?.abort();
       session.store.dispose();
       if (sessionRef.current === session) sessionRef.current = null;
@@ -124,7 +132,7 @@ export function useGuidedJourneyDashboard(input: Input) {
   async function continueSetup(expectedStage?: JourneyStepId) {
     const session = sessionRef.current;
     const previous = stateRef.current;
-    if (!session || !current(session) || session.busy || !previous
+    if (!session || !current(session) || session.busy || inputRef.current.workflowBusy || !previous
       || previous.key !== session.key || previous.loading || !previous.snapshot
       || !journeyDestinationAllowed(previous.snapshot, inputRef.current.account)) return;
     session.busy = true; // Synchronous lock: rapid double-clicks cannot navigate twice.
@@ -171,10 +179,10 @@ export function useGuidedJourneyDashboard(input: Input) {
     pauseGuidanceForSession(session.accountId);
     setExplanation(null);
   }
-  async function openExplanation(replay = false) {
+  async function openExplanation(replay = false, handoff = false) {
     const session = sessionRef.current;
     const previous = stateRef.current;
-    if (!session || !current(session) || session.busy || !previous?.snapshot
+    if (!session || !current(session) || session.busy || inputRef.current.workflowBusy || !previous?.snapshot
       || previous.key !== session.key
       || !explanationJourneyAllowed(previous.snapshot, inputRef.current.account)) return;
     if (guidanceInteractionBlocked()) {
@@ -196,13 +204,24 @@ export function useGuidedJourneyDashboard(input: Input) {
         setPresentationNotice({ generation, message: "Finish the current interaction, then open the explanation again." });
         return;
       }
-      const isReplay = replay || session.store.read().preferences.replayRequested;
+      if (handoff) {
+        const offer = workflowHandoff(snapshot, account);
+        if (!offer) return;
+        if (offer.destination === "dashboard") {
+          setExplanation(null);
+          inputRef.current.navigate("/dashboard");
+          return;
+        }
+      }
+      const isReplay = !handoff && (replay || session.store.read().preferences.replayRequested);
       const stageId = isReplay || snapshot.status === "complete"
         ? explanationStages(snapshot)[0]?.id : snapshot.nextStep;
       if (stageId) setExplanation({ generation, snapshot, stageId, replay: isReplay || snapshot.status === "complete" });
     } catch {
       if (current(session)) {
         setExplanation(null);
+        setState({ key: session.key, snapshot: null, preferences: session.store.read(),
+          loading: false, busy: true, error: true });
         setPresentationNotice({ generation, message: "We couldn't verify your account. Retry before opening an explanation." });
       }
     } finally {
@@ -239,7 +258,18 @@ export function useGuidedJourneyDashboard(input: Input) {
   }
   const active = input.eligible && state?.key === input.contextKey ? state : null;
   const destinationAllowed = !!active?.snapshot && journeyDestinationAllowed(active.snapshot, input.account);
+  const handoff = !active?.loading && !active?.error && !active?.busy && !input.workflowBusy
+    ? workflowHandoff(active?.snapshot ?? null, input.account) : null;
   return {
+    handoff,
+    async nextStep() {
+      const session = sessionRef.current;
+      const latest = stateRef.current;
+      if (!session || !current(session) || !handoff || session.busy || inputRef.current.workflowBusy
+        || latest?.loading || latest?.error
+        || !workflowHandoff(latest?.snapshot ?? null, inputRef.current.account)) return;
+      return openExplanation(false, true);
+    },
     visible: input.eligible && active?.snapshot?.status !== "not_applicable",
     model: gettingStartedCardModel(active?.snapshot ?? null, active?.preferences ?? null, {
       loading: !active || active.loading, busy: active?.busy ?? false,
@@ -253,10 +283,10 @@ export function useGuidedJourneyDashboard(input: Input) {
     presentationNotice: presentationNotice?.generation === generation ? presentationNotice.message : null,
     openExplanation() { return openExplanation(); },
     dismissExplanation,
-    restoreExplanationFocus() {
+    restoreExplanationFocus(selector = '[data-testid="guided-journey-explain"]') {
       const session = sessionRef.current;
       if (session && current(session) && !guidanceInteractionBlocked()) {
-        document.querySelector<HTMLButtonElement>('[data-testid="guided-journey-explain"]')?.focus();
+        document.querySelector<HTMLButtonElement>(selector)?.focus();
       }
     },
     explanationSecondary,

@@ -22,6 +22,13 @@ export function isPersonalJourneyDashboard(
     && !account.id.startsWith("guest-") && !["anon", "anonymous"].includes(account.id)
     && account.id !== "00000000-0000-0000-0000-000000000001";
 }
+
+export function isPersonalJourneyWorkflow(
+  account: JourneyDashboardAccount | null, context: JourneyDashboardContext,
+): boolean {
+  return ["/onboarding", "/macro-counter"].includes(context.path.split("?")[0])
+    && isPersonalJourneyDashboard(account, { ...context, path: "/dashboard" });
+}
 /** Include authority-affecting fields so changed accounts/access hide stale state immediately. */
 export function journeyDashboardContextKey(
   account: JourneyDashboardAccount | null, context: JourneyDashboardContext,

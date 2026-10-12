@@ -110,6 +110,10 @@ import {
 } from "@/lib/dailyLimits";
 import ReadOnlyNote from "@/components/ReadOnlyNote";
 import { useAuth } from "@/contexts/AuthContext";
+import { useHousehold } from "@/contexts/HouseholdContext";
+import { IS_DEVELOPMENT } from "@/lib/developmentAuthRoutes";
+import { beginWorkflowSave, personalWorkflowSaveEnabled } from "@/lib/guidedJourney/workflow";
+import { GuidedWorkflowNextStep } from "@/components/guided/GuidedWorkflowNextStep";
 import { getAuthHeaders } from "@/lib/auth";
 import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
 import { apiRequest } from "@/lib/queryClient";
@@ -739,6 +743,7 @@ export default function MacroCounter() {
   const { toast } = useToast();
   const { t } = useTranslation("macroCalc");
   const { user, refreshUser } = useAuth();
+  const { activeProfileId: guidedHouseholdProfileId } = useHousehold();
   const [isSaving, setIsSaving] = useState(false);
   const [isApplyingOverlay, setIsApplyingOverlay] = useState(false);
   const [overlayApplied, setOverlayApplied] = useState(false);
@@ -1483,7 +1488,16 @@ export default function MacroCounter() {
     options?: { successTitle?: string; onComplete?: () => void },
   ): Promise<void> => {
     // Step 1: Macro prescription — fatal; stop if this fails.
-    await setMacroTargets(targets, user?.id);
+    const guidedSave = beginWorkflowSave(user?.id, "nutrition_targets",
+      personalWorkflowSaveEnabled(IS_DEVELOPMENT, user, guidedHouseholdProfileId, isProSession),
+      { calories: targets.calories, protein_g: targets.protein_g, carbs_g: targets.carbs_g, fat_g: targets.fat_g });
+    try {
+      await setMacroTargets(targets, user?.id);
+      guidedSave.saved();
+    } catch (error) {
+      guidedSave.failed();
+      throw error;
+    }
 
     // Step 2: Starch preferences — non-blocking ancillary write.
     if (user?.id && !user.id.startsWith("guest-")) {
@@ -1667,6 +1681,8 @@ export default function MacroCounter() {
           className="max-w-5xl mx-auto space-y-6 px-4"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
+          <GuidedWorkflowNextStep busy={isSaving} professionalSession={isProSession}
+            summaryVisible={guidedStep === "done" && !!results} />
           {/* Scientific Sources - Apple App Store Compliance (must be visible immediately) */}
           {(guidedStep === "entry" || guidedStep === "goal") && (
             <div className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-blue-400/30 rounded-xl p-4">

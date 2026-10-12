@@ -7,6 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { ArrowRight, ArrowLeft, Shield, Eye, EyeOff, Check } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useHousehold } from "@/contexts/HouseholdContext";
+import { IS_DEVELOPMENT } from "@/lib/developmentAuthRoutes";
+import { beginWorkflowSave, personalWorkflowSaveEnabled } from "@/lib/guidedJourney/workflow";
+import { GuidedWorkflowNextStep } from "@/components/guided/GuidedWorkflowNextStep";
 import { useConsumerOncologySelection } from "@/components/OncologySymptomSelector";
 import { OncologySymptomDialog, OncologySymptomSummary } from "@/components/OncologySymptomDialog";
 import { oncologyDevelopmentReviewEnabled } from "@/lib/oncologyDevelopmentGate";
@@ -157,6 +161,7 @@ function getRecommendedBuilder(conditions: string[]): string {
 export default function OnboardingV3() {
   const [, setLocation] = useLocation();
   const { refreshUser, user } = useAuth();
+  const { activeProfileId: guidedHouseholdProfileId } = useHousehold();
   const oncologySelection = useConsumerOncologySelection(user?.oncologySupportContext);
   const oncologyDevelopment = oncologyDevelopmentReviewEnabled();
   const [oncologySymptomsOpen, setOncologySymptomsOpen] = useState(false);
@@ -555,6 +560,8 @@ export default function OnboardingV3() {
       localStorage.removeItem(RESUME_STEP_KEY);
       localStorage.removeItem(RESUME_FLOW_VERSION_KEY);
       await refreshUser();
+      beginWorkflowSave(user?.id, "get_to_know_you",
+        personalWorkflowSaveEnabled(IS_DEVELOPMENT, user, guidedHouseholdProfileId)).saved();
 
       // Show trial welcome modal if the server confirmed a trial was stamped
       if (completionData.trialEndsAt) {
@@ -1461,6 +1468,7 @@ export default function OnboardingV3() {
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
+      <GuidedWorkflowNextStep busy={saving} />
       {/* Trial welcome modal — shown immediately after onboarding completes */}
       {showTrialModal && (() => {
         // Priority for trialStartedAt:

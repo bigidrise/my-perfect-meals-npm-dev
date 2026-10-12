@@ -2,7 +2,11 @@
 
 ## Boundary
 
-This is the approved manual explanation/presentation layer, not a finished Guided
+This document records the Change 5 layer. Subsequently approved manual
+onboarding/target handoffs are documented in `guided-journey-workflow-handoffs.md`;
+automatic launch and Builder completion guidance remain separate.
+
+At Change 5 delivery this was the approved manual explanation/presentation layer, not a finished Guided
 Journey. Existing onboarding, calculator and Builder actions remain authoritative.
 There is no automatic launch, completion monitoring, automatic next-step
 presentation, new meal generation, or workflow-specific walkthrough. Those
