@@ -2,6 +2,8 @@ import { createHash, randomBytes } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { db } from "../db";
 import { createBusinessPilotAuthorization } from "./businessPilotAuthorizationService";
+import { BUSINESS_PARTNER_PILOT_TOKEN } from "../../shared/businessPartnerPilot";
+import { inspectBusinessPartnerPilot, activateBusinessPartnerPilot } from "./businessPartnerPilotService";
 import {
   businessPilotActivationEnabled, BusinessPilotActivationError,
   clinicalPilotWindow, requirePilotClaim, FOUNDER_ACTIVATION_WORKFLOW,
@@ -42,6 +44,7 @@ export async function issueBusinessPilotLink(email: string, issuerId: string) {
 
 export async function inspectBusinessPilotLink(token: unknown) {
   enabled();
+  if (token === BUSINESS_PARTNER_PILOT_TOKEN) return inspectBusinessPartnerPilot();
   if (!validToken(token)) throw new BusinessPilotActivationError("Invitation not found.", "PILOT_NOT_FOUND", 404);
   const [row] = rows(await db.execute(sql`SELECT a.status, l.invitation_expires_at,
     l.activated_user_id, l.personal_access_started_at, l.personal_access_ends_at
@@ -62,6 +65,7 @@ export async function inspectBusinessPilotLink(token: unknown) {
 
 export async function activateBusinessPilotLink(token: unknown, userId: string) {
   enabled();
+  if (token === BUSINESS_PARTNER_PILOT_TOKEN) return activateBusinessPartnerPilot(userId);
   if (!validToken(token)) throw new BusinessPilotActivationError("Invitation not found.", "PILOT_NOT_FOUND", 404);
   return db.transaction(async (tx) => {
     const [row] = rows(await tx.execute(sql`SELECT l.*, a.normalized_authorized_email,

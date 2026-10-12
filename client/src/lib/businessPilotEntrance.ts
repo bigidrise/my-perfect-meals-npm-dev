@@ -1,11 +1,12 @@
 // Navigation state only. These values never grant access or replace server checks.
+import { BUSINESS_PARTNER_PILOT_TOKEN } from "@shared/businessPartnerPilot";
 export const BUSINESS_PILOT_PATH = "/activate/business-pilot";
 export const BUSINESS_PILOT_TOKEN_KEY = "mpm.founderBusinessPilotToken";
 const RETURN_KEY = "mpm.founderBusinessPilotReturnTo";
 const ORGANIZATION_ENTRY_KEY = "mpm.businessPilotOrganizationEntry";
 type EntranceStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 const validToken = (value: string | null): value is string =>
-  value !== null && /^[a-f0-9]{64}$/.test(value);
+  value !== null && (value === BUSINESS_PARTNER_PILOT_TOKEN || /^[a-f0-9]{64}$/.test(value));
 
 export function captureBusinessPilotInvitation(
   storage: EntranceStorage,
