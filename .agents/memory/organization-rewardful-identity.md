@@ -1,9 +1,18 @@
 ---
 name: Organization-owned Rewardful identity
-description: Ownership, reconciliation, and delegated-access rules for organization Partner & Revenue accounts.
+description: Ownership, paid-activation, reconciliation, and delegated-access rules for organization Partner & Revenue accounts.
 ---
 
 Rewardful affiliate identity, referral data, setup state, and Partner & Revenue history belong to the permanent organization UUID.
+
+Organizations cannot activate their Rewardful account or receive their 50/50
+referral benefits during the 30-day free trial. Those benefits become available
+only after the trial and qualifying paid activation.
+
+**Why:** The user stated this as the established Rewardful rule.
+
+**How to apply:** Preserve this boundary when adding Organization guidance or
+Partner & Revenue activation; guidance must never grant those benefits itself.
 
 Organization attribution must be inherited through every client acquisition path: active workspace or exact Studio organization binding → invitation → acceptance → client relationship → future paid conversion. Bulk rows share the server-resolved workspace identity. Providers and coordinators never re-enter referral codes per invitation.
 
