@@ -21,6 +21,7 @@ import path from "path";
 
 // ⬇️ Your existing helpers (keep these imports as-is)
 import { registerRoutes } from "./routes";
+import { createGuidedJourneyRouter, guidedJourneyDevelopmentEnabled } from "./routes/guidedJourney";
 import { setupVite, serveStatic, log } from "./vite";
 import { requestId } from "./middleware/requestId";
 import { logger } from "./middleware/logger";
@@ -522,6 +523,11 @@ app.use("/api/biometrics/labs", clinicalLabsRouter);
 
 // Manual Macros System - Quick add custom macro entries
 app.use("/api", manualMacrosRouter);
+
+// Inspection only. Never mounted by the Production entrypoint.
+if (guidedJourneyDevelopmentEnabled()) {
+  app.use("/api/guided-journey", createGuidedJourneyRouter());
+}
 
 // Meal Templates System - Library browsing for meal replacement
 app.use("/api/meal-templates", templateRouter);

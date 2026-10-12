@@ -149,3 +149,4 @@
 - [PostgreSQL catalog array decoding](postgres-catalog-array-decoding.md) — cast catalog identifier arrays to text[] for node-postgres; name[] may arrive as raw strings.
 - [Drizzle billing insert defaults](drizzle-billing-insert-defaults.md) — billing-column names alone cannot distinguish free inserts from paid writes; test actual Drizzle SQL.
 - [Reusable business partner pilot](reusable-business-partner-pilot.md) — one shared link, independent per-account pilot clocks; forwarding restrictions are explicitly deferred.
+- [Guided Journey authority](guided-journey-authority.md) — explain existing tasks and verify saved work; guidance never owns navigation, access, or nutrition decisions.
