@@ -8,6 +8,7 @@ import { gettingStartedCardModel, manualJourneyDestination } from "@/lib/guidedJ
 import { journeyDestinationAllowed, type JourneyDashboardAccount } from "@/lib/guidedJourney/dashboardScope";
 import { explanationJourneyAllowed, explanationModel, explanationStages } from "@/lib/guidedJourney/explanation";
 import { confirmWorkflowSave, observeWorkflowSaves, workflowHandoff } from "@/lib/guidedJourney/workflow";
+import type { ConfirmedBoardPlan } from "@/lib/guidedJourney/mealBoard";
 import {
   guidanceInteractionBlocked, observeGuidanceInteractions, guidancePausedForSession,
   pauseGuidanceForSession, resumeGuidanceForSession,
@@ -22,14 +23,21 @@ interface Input {
   refreshAccount: () => Promise<JourneyDashboardAccount | null>;
   navigate: (route: string) => void;
   workflowBusy?: boolean;
+  mealBoard?: {
+    pending: boolean; failed: boolean; revision: number; localSignature: string;
+    confirm: (snapshot: JourneySnapshot, signal: AbortSignal) => Promise<ConfirmedBoardPlan | null>;
+    retry: () => void;
+  };
 }
 interface State {
+  generation: object;
   key: string;
   snapshot: JourneySnapshot | null;
   preferences: GuidancePreferenceResult | null;
   loading: boolean;
   busy: boolean;
   error: boolean;
+  confirmedPlan?: ConfirmedBoardPlan | null;
 }
 interface Session {
   key: string;
@@ -47,10 +55,14 @@ interface Explanation {
   snapshot: JourneySnapshot;
   stageId: JourneyStepId;
   replay: boolean;
+  completionPlan?: ConfirmedBoardPlan;
+  builderIntro?: boolean;
 }
 
 export function useGuidedJourneyDashboard(input: Input) {
   const generation = useMemo(() => ({}), [input.contextKey, input.eligible]);
+  const liveGeneration = useRef(generation);
+  liveGeneration.current = generation;
   const inputRef = useRef(input);
   inputRef.current = input;
   const sessionRef = useRef<Session | null>(null);
@@ -64,7 +76,7 @@ export function useGuidedJourneyDashboard(input: Input) {
 
   function current(session: Session): boolean {
     const now = inputRef.current;
-    return session.live && session.generation === generation
+    return session.live && session.generation === generation && session.generation === liveGeneration.current
       && sessionRef.current === session && now.contextKey === session.key
       && now.account?.id === session.accountId && now.eligible && now.isCurrentContextPersonal();
   }
@@ -74,16 +86,21 @@ export function useGuidedJourneyDashboard(input: Input) {
     const abort = new AbortController();
     session.abort = abort;
     const request = ++session.request;
-    setState({ key: session.key, snapshot: null, preferences: session.store.read(),
+    setState({ generation: session.generation, key: session.key, snapshot: null, preferences: session.store.read(),
       loading: true, busy: session.busy, error: false });
     try {
       const snapshot = await fetchPersonalJourneyProgress(session.accountId, abort.signal);
       if (!current(session) || session.request !== request) return null;
       await confirmWorkflowSave(snapshot, session.accountId, abort.signal);
+      const confirmedPlan = inputRef.current.mealBoard && !inputRef.current.mealBoard.pending && !inputRef.current.mealBoard.failed
+        ? await inputRef.current.mealBoard.confirm(snapshot, abort.signal) : null;
       if (!current(session) || session.request !== request) return null;
-      setState({ key: session.key, snapshot, preferences: session.store.read(),
-        loading: false, busy: session.busy, error: false });
-      if (!explanationJourneyAllowed(snapshot, inputRef.current.account)) {
+      setState({ generation: session.generation, key: session.key, snapshot, preferences: session.store.read(),
+        loading: false, busy: session.busy, error: false, confirmedPlan });
+      const shownPlan = explanationRef.current?.completionPlan;
+      if (!explanationJourneyAllowed(snapshot, inputRef.current.account)
+        || (shownPlan && (!confirmedPlan || shownPlan.weekStartISO !== confirmedPlan.weekStartISO
+          || (inputRef.current.mealBoard?.localSignature && inputRef.current.mealBoard.localSignature !== confirmedPlan.signature)))) {
         if (explanationRef.current?.generation === session.generation) pauseGuidanceForSession(session.accountId);
         setExplanation(null);
       } else setExplanation(previous => previous?.generation === session.generation ? { ...previous, snapshot } : previous);
@@ -92,7 +109,7 @@ export function useGuidedJourneyDashboard(input: Input) {
       if (current(session) && session.request === request) {
         if (explanationRef.current?.generation === session.generation) pauseGuidanceForSession(session.accountId);
         setExplanation(null);
-        setState({ key: session.key, snapshot: null, preferences: session.store.read(),
+        setState({ generation: session.generation, key: session.key, snapshot: null, preferences: session.store.read(),
           loading: false, busy: session.busy, error: true });
       }
       return null;
@@ -122,6 +139,17 @@ export function useGuidedJourneyDashboard(input: Input) {
     // session object (not just a string) also prevents account A → B → A races.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [input.contextKey, input.eligible, generation]);
+
+  useEffect(() => {
+    const session = sessionRef.current;
+    if (input.mealBoard?.revision && session && current(session)) void load(session);
+    // Native receipts only wake fresh reads; they are never completion authority.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input.mealBoard?.revision]);
+  useEffect(() => {
+    if ((input.mealBoard?.pending || input.mealBoard?.failed) && explanationRef.current) dismissExplanation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input.mealBoard?.pending, input.mealBoard?.failed]);
 
   function preference(command: GuidancePreferenceCommand) {
     const session = sessionRef.current;
@@ -162,6 +190,7 @@ export function useGuidedJourneyDashboard(input: Input) {
         if (explanationRef.current?.generation === session.generation) pauseGuidanceForSession(session.accountId);
         setExplanation(null);
         setState({
+          generation: session.generation,
           key: session.key, snapshot: null, preferences: session.store.read(),
           loading: false, busy: true, error: true,
         });
@@ -220,7 +249,7 @@ export function useGuidedJourneyDashboard(input: Input) {
     } catch {
       if (current(session)) {
         setExplanation(null);
-        setState({ key: session.key, snapshot: null, preferences: session.store.read(),
+        setState({ generation: session.generation, key: session.key, snapshot: null, preferences: session.store.read(),
           loading: false, busy: true, error: true });
         setPresentationNotice({ generation, message: "We couldn't verify your account. Retry before opening an explanation." });
       }
@@ -229,7 +258,84 @@ export function useGuidedJourneyDashboard(input: Input) {
       if (current(session)) setState(value => value?.key === session.key ? { ...value, busy: false } : value);
     }
   }
-  const validExplanation = input.eligible && explanation?.generation === generation ? explanation : null;
+  async function openBoardExplanation() {
+    const session = sessionRef.current;
+    if (!inputRef.current.mealBoard || !session || !current(session) || session.busy
+      || inputRef.current.workflowBusy) return;
+    if (guidanceInteractionBlocked()) {
+      setPresentationNotice({ generation, message: "Finish the current interaction, then open the explanation again." });
+      return;
+    }
+    session.busy = true;
+    const request = ++session.presentationRequest;
+    setState(value => value?.key === session.key ? { ...value, busy: true } : value);
+    setPresentationNotice(null);
+    try {
+      const account = await inputRef.current.refreshAccount();
+      if (!current(session) || session.presentationRequest !== request) return;
+      if (!account || account.id !== session.accountId) throw new Error("Account could not be verified.");
+      const snapshot = await load(session);
+      if (!snapshot || !current(session) || request !== session.presentationRequest
+        || guidanceInteractionBlocked() || !explanationJourneyAllowed(snapshot, account)) return;
+      // load's state commits asynchronously; re-confirm under this exact live scope.
+      const proof = await inputRef.current.mealBoard.confirm(snapshot, session.abort!.signal);
+      if (!current(session) || request !== session.presentationRequest || guidanceInteractionBlocked()
+        || inputRef.current.mealBoard.pending || inputRef.current.mealBoard.failed) return;
+      const local = inputRef.current.mealBoard.localSignature;
+      const completionPlan = proof && (!local || local === proof.signature) ? proof : undefined;
+      if (!completionPlan && snapshot.steps[2].evidence.state !== "incomplete") return;
+      setExplanation({ generation, snapshot, stageId: "saved_meal_plan", replay: false,
+        completionPlan, builderIntro: !completionPlan });
+    } catch {
+      if (current(session)) {
+        setExplanation(null);
+        setState(value => value?.key === session.key ? { ...value, snapshot: null, confirmedPlan: null, error: true, loading: false } : value);
+      }
+    } finally {
+      session.busy = false;
+      if (current(session)) setState(value => value?.key === session.key ? { ...value, busy: false } : value);
+    }
+  }
+  async function boardExplanationAction(dashboard = false) {
+    const view = explanationRef.current, session = sessionRef.current;
+    if (!view || !session || !current(session) || session.busy || inputRef.current.workflowBusy
+      || view.generation !== generation || guidanceInteractionBlocked()) return;
+    session.busy = true;
+    const request = session.presentationRequest;
+    setState(value => value?.key === session.key ? { ...value, busy: true } : value);
+    try {
+      const account = await inputRef.current.refreshAccount();
+      const snapshot = current(session) ? await load(session) : null;
+      if (!account || account.id !== session.accountId || !snapshot || !current(session)
+        || request !== session.presentationRequest || guidanceInteractionBlocked()
+        || !explanationJourneyAllowed(snapshot, account)) return;
+      if (view.completionPlan) {
+        const proof = await inputRef.current.mealBoard!.confirm(snapshot, session.abort!.signal);
+        const local = inputRef.current.mealBoard!.localSignature;
+        if (!proof || proof.weekStartISO !== view.completionPlan.weekStartISO
+          || (local && local !== proof.signature) || !current(session)
+          || request !== session.presentationRequest || guidanceInteractionBlocked()
+          || inputRef.current.mealBoard!.pending || inputRef.current.mealBoard!.failed) return;
+        setExplanation(null);
+        inputRef.current.navigate(dashboard ? "/dashboard"
+          : `/general-nutrition-builder/build?week=${encodeURIComponent(proof.weekStartISO)}&view=week`);
+      } else if (view.builderIntro && snapshot.steps[2].evidence.state === "incomplete") {
+        setExplanation(null); // Already in the Builder; do not restart or redirect it.
+        document.querySelector<HTMLElement>('[data-guided-board-content]')?.scrollIntoView({ block: "start" });
+      }
+    } catch {
+      if (current(session)) {
+        setExplanation(null);
+        setState(value => value?.key === session.key ? { ...value, confirmedPlan: null, snapshot: null, error: true, loading: false } : value);
+        setPresentationNotice({ generation, message: "Saved plan could not be verified. Retry before continuing." });
+      }
+    } finally {
+      session.busy = false;
+      if (current(session)) setState(value => value?.key === session.key ? { ...value, busy: false } : value);
+    }
+  }
+  const validExplanation = input.eligible && !input.mealBoard?.pending && !input.mealBoard?.failed
+    && explanation?.generation === generation ? explanation : null;
   useEffect(() => {
     if (!validExplanation) return;
     return observeGuidanceInteractions(() => {
@@ -246,6 +352,7 @@ export function useGuidedJourneyDashboard(input: Input) {
     const session = sessionRef.current;
     const view = explanationRef.current;
     if (!session || !current(session) || session.busy || view?.generation !== generation) return;
+    if (view.completionPlan) { void boardExplanationAction(true); return; }
     if (!view.replay) { dismissExplanation(); return; }
     if (guidanceInteractionBlocked()) { dismissExplanation(); return; }
     const steps = explanationStages(view.snapshot);
@@ -256,11 +363,16 @@ export function useGuidedJourneyDashboard(input: Input) {
       dismissExplanation();
     }
   }
-  const active = input.eligible && state?.key === input.contextKey ? state : null;
+  const active = input.eligible && state?.generation === generation && state.key === input.contextKey ? state : null;
   const destinationAllowed = !!active?.snapshot && journeyDestinationAllowed(active.snapshot, input.account);
   const handoff = !active?.loading && !active?.error && !active?.busy && !input.workflowBusy
     ? workflowHandoff(active?.snapshot ?? null, input.account) : null;
   return {
+    confirmedPlan: input.mealBoard && !input.mealBoard.pending && !input.mealBoard.failed && !active?.loading && !active?.error
+      && active?.snapshot && explanationJourneyAllowed(active.snapshot, input.account)
+      && (!input.mealBoard.localSignature || input.mealBoard.localSignature === active?.confirmedPlan?.signature)
+      ? active?.confirmedPlan ?? null : null,
+    openBoardExplanation,
     handoff,
     async nextStep() {
       const session = sessionRef.current;
@@ -270,13 +382,26 @@ export function useGuidedJourneyDashboard(input: Input) {
         || !workflowHandoff(latest?.snapshot ?? null, inputRef.current.account)) return;
       return openExplanation(false, true);
     },
-    visible: input.eligible && active?.snapshot?.status !== "not_applicable",
+    visible: input.eligible && active?.snapshot?.status !== "not_applicable"
+      && (!input.mealBoard || active?.snapshot?.completionGoal !== "personal_setup"),
     model: gettingStartedCardModel(active?.snapshot ?? null, active?.preferences ?? null, {
       loading: !active || active.loading, busy: active?.busy ?? false,
       error: active?.error ?? false, destinationAllowed,
       sessionPaused: guidancePausedForSession(input.account?.id ?? ""),
     }),
-    explanation: validExplanation
+    explanation: validExplanation?.completionPlan ? {
+      stageId: "saved_meal_plan" as const, title: "Your Meal Plan Is Saved",
+      description: "You've added your first meal to your plan. You can come back to your Meal Builder anytime to add, replace, or change meals.",
+      indicator: "Stage 3 of 3", builderName: "General Nutrition Meal Builder",
+      primaryLabel: "Open My Plan", secondaryLabel: "Go to Dashboard", activityNotice: null,
+      canPerform: !active?.busy && !input.workflowBusy,
+    } : validExplanation?.builderIntro ? {
+      stageId: "saved_meal_plan" as const, title: "Let's Create Your First Meal",
+      description: "Use Create With Chef or select a meal from Favorites. Add it to a day and meal slot on your board. A generated recipe or Favorite isn't a saved plan. Meals added here autosave; guidance confirms the server result without requiring another Save Plan click.",
+      indicator: "Stage 3 of 3", builderName: "General Nutrition Meal Builder",
+      primaryLabel: "Continue in Builder", secondaryLabel: "Close & Pause", activityNotice: null,
+      canPerform: !active?.busy && !input.workflowBusy,
+    } : validExplanation
       ? explanationModel(validExplanation.snapshot, validExplanation.stageId, validExplanation.replay, active?.busy ?? false) : null,
     canExplain: !!active?.snapshot && !!active.preferences && !active.loading && !active.busy
       && explanationJourneyAllowed(active.snapshot, input.account),
@@ -295,10 +420,14 @@ export function useGuidedJourneyDashboard(input: Input) {
       const session = sessionRef.current;
       if (!view || view.generation !== generation || !session || !current(session)
         || guidanceInteractionBlocked()) return;
+      if (view.completionPlan || view.builderIntro) return boardExplanationAction();
       return continueSetup(view.stageId);
     },
     continueSetup,
-    retry() { const session = sessionRef.current; if (session && !session.busy) void load(session); },
+    retry() { const session = sessionRef.current; if (session && !session.busy) {
+      if (inputRef.current.mealBoard) inputRef.current.mealBoard.retry();
+      else void load(session);
+    } },
     pauseResume() {
       const session = sessionRef.current;
       if (session && current(session)) {
