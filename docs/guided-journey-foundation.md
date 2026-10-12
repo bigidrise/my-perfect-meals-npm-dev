@@ -2,10 +2,12 @@
 
 ## Approved boundary
 
-Only the engine and completion detection are implemented. There are no new
-modals, Dashboard controls, automatic navigation, local preferences, onboarding
+The foundation implements the engine and completion detection. There are no new
+modals, Dashboard controls, automatic navigation, onboarding
 changes, nutrition changes, entitlement changes, database writes, or migrations.
 Professional and organization journey types are reserved, not implemented.
+Change 3 subsequently added a separate, unwired local preference library; see
+`docs/guided-journey-preferences.md`. Preferences never change completion evidence.
 
 ## Inspection
 
@@ -57,6 +59,8 @@ completion goal, and saved-plan reference.
 * Free/expired access omits meal planning; completion means personal setup.
 * Guests, reviewer/demo/sandbox accounts, professional identities, and active
   household-subject contexts do not run this personal V1 adapter.
+  Unsupported household responses expose only actor self scope, not the
+  selected household identifier or that member's data.
 
 ## Failure and lifecycle
 
@@ -86,6 +90,7 @@ Builders/subjects, changing access, concurrent actor inspections, authentication
 runtime gating, and absence of mutation routes. Fixtures are not evidence of a
 live authenticated user's database state.
 
-Before adding screens, separately approve presentation preferences, modal
-coordination and the compact Dashboard entry. Other Builder adapters require
+Before adding screens, separately approve modal coordination and the compact
+Dashboard entry. Local presentation preferences are implemented separately
+but remain unwired. Other Builder adapters require
 their own authority and board contracts; do not simply reuse General's namespace.

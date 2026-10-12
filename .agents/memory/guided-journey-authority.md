@@ -29,3 +29,16 @@ subjects or Builders unresolved instead of substituting actor progress or
 General Nutrition. Obtain separate approval before adding the visible journey
 or enabling automatic presentations; the foundation approval alone does not
 authorize those changes.
+
+Keep preferences, the Dashboard card, first modals, and workflow/Builder
+connections as separate, testable Development changes. Initial preferences use
+account-scoped, versioned local storage without new database tables.
+
+**Why:** The user confirmed the foundation-only approach was the desired result
+and explicitly requested one controlled change at a time.
+
+**How to apply:** Do not widen a preferences approval into visible guidance.
+Replay changes explanations only, preserves a disabled-automatic choice, and
+never resets saved work. Clearly state device-local persistence limitations.
+Review the project-wide type baseline before Production, without folding
+unrelated diagnostic repairs into these Development changes.
