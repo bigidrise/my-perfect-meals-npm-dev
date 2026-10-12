@@ -5,7 +5,8 @@
 Change 6 connects the existing personal OnboardingV3 and Macro Calculator saved
 results to a manual **Next Step** offer. It does not finish the Guided Journey,
 implement Builder completion guidance, generate meals, activate Production, or
-enable automatic explanations. Change 7 requires separate approval.
+enable automatic explanations. The separately approved Change 7 integration and
+its unresolved limits are documented in `guided-journey-meal-builder.md`.
 
 No questions, safety PIN rules, formulas, native save messages, redirects,
 authorization, subscriptions, schema, or resume keys are changed.

@@ -80,5 +80,18 @@ no competing redirects or additional popups. Native workflows must retain contro
 **How to apply:** Treat save events as wake-ups, never evidence. Confirm current
 server-backed results, and discard temporary submitted-value comparisons once
 confirmed so later valid server updates are not pinned to stale numbers. Unknown
-confirmation does not authorize success. Builder-arrival/completion guidance still
-requires separate approval.
+confirmation does not authorize success. The approved personal General Nutrition
+Builder connection remains Development-only and manual; other Builder, household,
+professional/organization, automatic-presentation and Production expansions require
+separate approval.
+
+Saved-plan handoffs must reopen the confirmed board's planning week, not assume
+today's board. A successful legacy/in-memory response is not persisted plan evidence.
+
+**Why:** The user requires an actual saved meal and an exact place to find it,
+including existing saved plans, while prohibiting changes to native saving behavior.
+
+**How to apply:** Recheck the current actor, subject, namespace and week against
+canonical persisted evidence before offering completion or navigation. Report
+unreliable native save paths rather than converting their HTTP success into proof
+or repairing them without separate approval.

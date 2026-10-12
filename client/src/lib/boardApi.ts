@@ -1,6 +1,10 @@
 import type { Meal } from "@/types/meal";
 import { get, put, post } from "@/lib/api";
 import { weekDatesInTZ } from "@/utils/midnight";
+import { apiRequest } from "@/lib/apiRequest";
+import { WeekBoardResponseSchema } from "@/../../shared/schema/weeklyBoard";
+import { z } from "zod";
+import { notifyBoardSave, type BoardSaveObserver } from "@/lib/guidedJourney/mealBoard";
 
 // ---------- Types (extend existing) ----------
 export type Ingredient = { item: string; amount: string };
@@ -59,8 +63,20 @@ export async function getWeekBoard(): Promise<WeekBoard> {
   return get<WeekBoard>("/api/week-board");
 }
 
-export async function saveWeekBoard(board: WeekBoard): Promise<WeekBoard> {
-  return put<WeekBoard>("/api/week-board", board);
+export async function saveWeekBoard(board: WeekBoard, observation?: { observer?: BoardSaveObserver; weekStartISO: string; namespace: string }): Promise<WeekBoard> {
+  const operation = {};
+  const notify = (state: "saving" | "saved" | "failed") => {
+    if (observation) notifyBoardSave(observation.observer, { operation, state, weekStartISO: observation.weekStartISO, namespace: observation.namespace });
+  };
+  notify("saving");
+  try {
+    const saved = await put<WeekBoard>("/api/week-board", board);
+    notify("saved"); // Wake-up only. Legacy memory success is NOT canonical persistence.
+    return saved;
+  } catch (error) {
+    notify("failed");
+    throw error;
+  }
 }
 
 export async function addMealToList(list: "breakfast"|"lunch"|"dinner"|"snacks"|"meal4"|"meal5"|"meal6", meal: Meal, dateISO?: string): Promise<WeekBoard> {
@@ -97,6 +113,16 @@ export function getWeekBoardByDate(weekStartISO: string, proClientId?: string): 
     return apiGet<WeekBoardResponse>(`/api/pro/week-board/${proClientId}/${weekStartISO}`);
   }
   return apiGet<WeekBoardResponse>(`/api/week-board/${weekStartISO}`);
+}
+
+/** Guidance-only fresh self read. No cache, save, subject override or namespace fallback. */
+export async function getGuidedPersonalWeekBoard(weekStartISO: string, signal?: AbortSignal) {
+  const value = await apiRequest(`/api/weekly-board?week=${encodeURIComponent(weekStartISO)}&bt=generalNutrition`, {
+    method: "GET", cache: "no-store", signal,
+  });
+  return WeekBoardResponseSchema.extend({
+    subjectId: z.string().min(1), boardNamespace: z.literal("generalNutrition"),
+  }).parse(value);
 }
 
 /** Save/replace a specific week (expects WeekBoard shape under 'week'). */

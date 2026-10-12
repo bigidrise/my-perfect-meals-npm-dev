@@ -4,6 +4,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { safeBoardCacheWrite } from "@/lib/boardStorage";
 import { myPerfectMenuBuilderKeyForNamespace } from "@shared/builderNamespaces";
+import { notifyBoardSave, type BoardSaveObserver } from "@/lib/guidedJourney/mealBoard";
 
 const CACHE_NS = "mpm.weeklyBoard";
 const FETCH_TIMEOUT_MS = 8000;
@@ -230,6 +231,7 @@ export function useWeeklyBoard(
   proClientId?: string,
   namespace?: string,
   householdProfileId?: string,
+  saveObserver?: BoardSaveObserver,
 ) {
   const monday = weekStartISO ?? (() => {
     const now = new Date();
@@ -376,6 +378,8 @@ export function useWeeklyBoard(
 
   const save = useCallback(
     async (board: WeekBoard, opId?: string): Promise<void> => {
+      const observedScope = { operation: {}, weekStartISO: monday, namespace, proClientId, householdProfileId };
+      notifyBoardSave(saveObserver, { ...observedScope, state: "saving" });
       // Block background reloads for up to 30s while save is in flight
       saveCooldownRef.current = Date.now() + 30_000;
       try {
@@ -390,15 +394,18 @@ export function useWeeklyBoard(
         });
         setData(result);
         setError(null);
+        notifyBoardSave(saveObserver, { ...observedScope,
+          state: result.weekStartISO === monday ? "saved" : "failed" });
       } catch (e) {
         setError(e as Error);
+        notifyBoardSave(saveObserver, { ...observedScope, state: "failed" });
         throw e;
       } finally {
         // Whether save succeeded or failed, allow background reloads after a short grace period
         saveCooldownRef.current = Date.now() + 1_500;
       }
     },
-    [userId, monday, proClientId, namespace, householdProfileId]
+    [userId, monday, proClientId, namespace, householdProfileId, saveObserver]
   );
 
   const refresh = useCallback(async (): Promise<void> => {
