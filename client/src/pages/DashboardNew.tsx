@@ -72,6 +72,7 @@ import { useTranslation } from "react-i18next";
 import InspirationCaptureModal from "@/components/InspirationCaptureModal";
 import MacroScanModal from "@/components/MacroScanModal";
 import { NutritionPersonalizationSummaryCard } from "@/components/protocol/NutritionPersonalizationSummaryCard";
+import { GettingStartedCard } from "@/components/dashboard/GettingStartedCard";
 import { useMyPerfectMenuBuilder } from "@/hooks/useMyPerfectMenuBuilder";
 import { WhatsNewCard } from "@/components/WhatsNewCard";
 import { TrialStatusCard } from "@/components/TrialStatusCard";
@@ -993,6 +994,7 @@ export default function DashboardNew() {
           </div>
         </motion.div>
 
+         <GettingStartedCard />
          <NutritionPersonalizationSummaryCard />
 
         {COACHES_CORNER_ENABLED && <CoachCornerCard />}
