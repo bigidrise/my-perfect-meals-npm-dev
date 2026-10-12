@@ -68,7 +68,9 @@ nonpersistent choices; browser preferences are local-device, not cross-device.
    successful authoritative read, not a new repair/recalculation workflow.
 4. Professional, Organization, and household guidance require their own adapters.
 5. Manual explanations now have their separately approved presentation layer.
-   Automatic progression and workflow-specific guidance are not implemented.
+    Manual onboarding/target handoffs are now separately documented in
+    `guided-journey-workflow-handoffs.md`. Automatic launch and Builder completion
+    guidance remain unimplemented.
 6. The existing project-wide TypeScript baseline mismatch still requires review
    before Production. This change neither repairs unrelated diagnostics nor
    refreshes the baseline.

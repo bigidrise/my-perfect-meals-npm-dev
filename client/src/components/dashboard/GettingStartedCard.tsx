@@ -38,6 +38,12 @@ export function GettingStartedCard() {
         onToggleAutomatic={journey.toggleAutomatic} onRestart={journey.restart}
         onExplain={() => { void journey.openExplanation(); }} canExplain={journey.canExplain}
         presentationNotice={journey.presentationNotice} />
+      {journey.handoff?.destination === "explanation" && (
+        <button type="button" onClick={() => { void journey.nextStep(); }}
+          className="mt-2 min-h-11 rounded-xl border border-orange-300/40 bg-zinc-950 px-4 py-2 font-semibold text-orange-200">
+          Next Step
+        </button>
+      )}
       {journey.explanation && (
         <GuidedJourneyExplanation open model={journey.explanation} busy={journey.model.busy}
           onPrimary={() => { void journey.explanationPrimary(); }}

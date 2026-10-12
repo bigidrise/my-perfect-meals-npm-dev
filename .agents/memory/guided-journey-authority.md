@@ -68,3 +68,17 @@ connection. They require a gap report rather than broad critical-workflow change
 **How to apply:** Keep launch manual until separately approved. Replay never resets
 operational work, enables disabled automatic guidance, or turns modal events into
 completion. Preserve all native actions, redirects and authorization checks.
+
+Onboarding/target completion offers a manual Next Step, not another automatic
+popup or redirect. A successful target write must be confirmed independently of
+biometric writes; previous valid targets, including zero carbohydrates, still
+count without forced recalculation.
+
+**Why:** The user approved activity handoffs only on the condition that there are
+no competing redirects or additional popups. Native workflows must retain control.
+
+**How to apply:** Treat save events as wake-ups, never evidence. Confirm current
+server-backed results, and discard temporary submitted-value comparisons once
+confirmed so later valid server updates are not pinned to stale numbers. Unknown
+confirmation does not authorize success. Builder-arrival/completion guidance still
+requires separate approval.
