@@ -170,8 +170,9 @@ describe("personal foundation", () => {
   test("household context suspends actor evidence without leaking it into subject completion", async () => {
     const f = fixture({ ...configured(), activeHouseholdProfileId: "household-one" }, [board()]);
     expect(await f.service.inspect(actor)).toMatchObject({
-      status: "not_applicable", scope: { subjectId: "household-one" }, savedPlan: null,
+      status: "not_applicable", scope: { subjectId: actor.id }, savedPlan: null,
     });
+    expect(JSON.stringify(await f.service.inspect(actor))).not.toContain("household-one");
     expect(f.readSavedBoards).not.toHaveBeenCalled();
   });
   test.each([

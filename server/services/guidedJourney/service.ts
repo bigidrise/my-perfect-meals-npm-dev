@@ -58,7 +58,8 @@ export function createGuidedJourneyService(repository: JourneyRepository) {
         return result();
       }
       if (account.activeHouseholdProfileId) {
-        scope.subjectId = account.activeHouseholdProfileId;
+        // This self-only adapter has not authorized a household subject. Do not
+        // expose its identifier or claim a subject scope we have not verified.
         steps = steps.map(step => ({ ...step, evidence: notApplicable("household_adapter_not_enabled") }));
         return result();
       }
