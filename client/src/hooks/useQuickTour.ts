@@ -33,7 +33,11 @@ function isToursGloballyDisabled(): boolean {
   }
 }
 
-export function useQuickTour(pageKey: string, onPreferenceSaveError?: () => void): QuickTourState {
+export function useQuickTour(
+  pageKey: string,
+  onPreferenceSaveError?: () => void,
+  { autoOpenDelayMs = 500 }: { autoOpenDelayMs?: number } = {},
+): QuickTourState {
   const storageKey = `quick-tour::${pageKey}`;
   
   // Tri-state: null = not yet loaded, true = seen, false = not seen
@@ -65,12 +69,18 @@ export function useQuickTour(pageKey: string, onPreferenceSaveError?: () => void
     // Only auto-open if not seen and we haven't already scheduled it
     if (hasSeenTour === false && !autoOpenScheduledRef.current) {
       autoOpenScheduledRef.current = true;
+      // The onboarding entrance opens as soon as preferences are loaded.
+      // Other guides retain their existing delayed presentation.
+      if (autoOpenDelayMs === 0) {
+        setIsOpen(true);
+        return;
+      }
       const timer = setTimeout(() => {
         setIsOpen(true);
-      }, 500);
+      }, autoOpenDelayMs);
       return () => clearTimeout(timer);
     }
-  }, [hasSeenTour, globalDisabled]);
+  }, [hasSeenTour, globalDisabled, autoOpenDelayMs]);
 
   const setGlobalDisabled = useCallback((disabled: boolean) => {
     try {
