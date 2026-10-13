@@ -68,6 +68,7 @@
 - [Saved grocery evidence governance](saved-grocery-evidence-governance.md) — permanent favorites stay evidence-ranked and fail closed against the current profile.
 - [Auth security-state issuance](auth-security-state-issuance.md) — credential issuance must compare the security version verified before password or MFA acceptance.
 - [Signup email and username identity](signup-email-username-identity.md) — matching email prefixes never link accounts; username collisions must not block distinct emails.
+- [Consumer signup first-run order](consumer-signup-first-run.md) — regular signup leads into onboarding and personal meal setup, not trial feature exploration.
 - [Browser CSRF boundary](browser-csrf-boundary.md) — cookie mutations require exact-origin session tokens; native bearer traffic and signed callbacks remain distinct.
 - [Duplicate-route authorization](duplicate-route-authorization.md) — secure every production-effective registration; a later guarded router cannot protect an earlier match.
 - [Reason-coded food outcomes](reason-coded-food-outcomes.md) — every governed food adaptation or block must identify what changed and the exact rule that caused it.
