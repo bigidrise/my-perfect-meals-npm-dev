@@ -156,7 +156,7 @@ describe("organization-owned Rewardful lifecycle", () => {
     const dashboard = read("client/src/pages/AffiliateDashboard.tsx");
     expect(dashboard).toContain('window.open("about:blank", "_blank")');
     expect(dashboard).toContain("Rewardful is not available yet");
-    expect(dashboard).toContain("!account.hasLinkedRewardful");
+    expect(dashboard).toContain("hasLinkedRewardful={account.hasLinkedRewardful}");
     expect(dashboard).toContain("Rewardful is not linked yet");
     expect(dashboard).toContain("escapeRewardfulMessage(message)");
     expect(dashboard).not.toContain('window.open("", "_blank", "noopener,noreferrer")');

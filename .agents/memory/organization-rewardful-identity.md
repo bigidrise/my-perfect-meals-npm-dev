@@ -17,11 +17,15 @@ Partner & Revenue activation; guidance must never grant those benefits itself.
 All businesses use a 50/50 Rewardful link, not 70/30.
 The intended default for new eligible organizations is specifically the
 Founding Partner Referral Program, not the My Perfect Meals Affiliate Program.
+New activations must use its actual campaign ID and 48-month terms through the
+existing API integration, not a separate signup page. Keep the older 30% program
+available and do not automatically change existing affiliates or referrals.
 
 **Why:** The user explicitly corrected the business commission standard to
 50% commission; neither the older 30% program nor the older 40% business terms
-reflect that instruction. The user also explicitly named the intended
-organization campaign.
+reflect that instruction. The user explicitly named the intended organization
+campaign and required this separation between future setup and existing-account
+repair.
 
 **How to apply:** Use this standard when reviewing business campaign selection
 and displayed terms. Do not treat changing the displayed percentage as changing

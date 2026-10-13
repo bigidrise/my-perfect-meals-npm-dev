@@ -12,6 +12,7 @@ import {
   getRewardfulAffiliate,
   getRewardfulAffiliateByEmail,
   getRewardfulAffiliateStatus,
+  getRewardfulCampaign,
   RewardfulAffiliateConflictError,
 } from "../services/rewardfulApi";
 import { sendAffiliateReferralInvite, sendRewardfulConnectionConfirmationEmail } from "../services/emailService";
@@ -26,6 +27,15 @@ import {
 import { partnerRecords } from "../db/schema/partnerRecords";
 import { partnerActivityLog } from "../db/schema/partnerActivityLog";
 import { rewardfulConnectionConfirmations } from "../db/schema/rewardfulConnectionConfirmations";
+import { businesses } from "../db/schema/business";
+import { organizations } from "../db/schema/organizations";
+import {
+  FOUNDING_ORGANIZATION_CAMPAIGN,
+  foundingOrganizationPolicyEnabled,
+  organizationRewardfulCampaignId,
+  assertFoundingOrganizationCampaign,
+  verifyOrganizationRewardfulPayment,
+} from "../services/organizationRewardfulPolicy";
 
 const router = Router();
 const REWARDFUL_CONFIRMATION_TTL_MS = 30 * 60 * 1000;
@@ -95,6 +105,24 @@ async function organizationAffiliateResponse(
   },
 ) {
   const lifecycle = await resolveOrganizationPartnerLifecycle(workspace.organizationId, account);
+  let organizationRewardfulTerms: typeof FOUNDING_ORGANIZATION_CAMPAIGN | null = null;
+  if (foundingOrganizationPolicyEnabled()) {
+    if (!account.rewardfulAffiliateId) {
+      organizationRewardfulTerms = FOUNDING_ORGANIZATION_CAMPAIGN;
+    } else if (account.rewardfulCampaignId === FOUNDING_ORGANIZATION_CAMPAIGN.id) {
+      const [partner] = await db.select().from(partnerRecords).where(and(
+        partnerRecordScope(workspace.organizationId),
+        eq(partnerRecords.rewardfulAffiliateId, account.rewardfulAffiliateId),
+      )).limit(1);
+      // Only expose this policy for an exact persisted enrollment. Legacy terms
+      // and existing affiliate identities are never backfilled on a read.
+      if (partner?.commissionRate === FOUNDING_ORGANIZATION_CAMPAIGN.commissionRate
+        && partner.commissionMonths === FOUNDING_ORGANIZATION_CAMPAIGN.commissionMonths
+        && partner.referralCampaignName === FOUNDING_ORGANIZATION_CAMPAIGN.name) {
+        organizationRewardfulTerms = FOUNDING_ORGANIZATION_CAMPAIGN;
+      }
+    }
+  }
   return {
     organizationId: account.organizationId,
     affiliateTrack: account.affiliateTrack,
@@ -112,6 +140,7 @@ async function organizationAffiliateResponse(
     organizationRelationshipType: workspace.organizationRelationshipType,
     canManage: ["owner", "admin"].includes(workspace.organizationRole),
     organizationRewardfulLifecycle: lifecycle,
+    organizationRewardfulTerms,
   };
 }
 
@@ -664,12 +693,32 @@ router.post("/organization/setup", requireAuth, async (req, res) => {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || nameParts.length < 2) {
       return res.status(400).json({ error: "A valid organization contact name and email are required." });
     }
-    const campaignId = process.env.REWARDFUL_CAMPAIGN_ID ?? "";
+    const campaignId = organizationRewardfulCampaignId();
     if (!campaignId || !process.env.REWARDFUL_API_SECRET) {
       return res.status(503).json({
         error: "Rewardful organization setup is not configured.",
         code: "REWARDFUL_CONFIGURATION_REQUIRED",
       });
+    }
+    if (foundingOrganizationPolicyEnabled()) {
+      const [existingPartner] = await db.select().from(partnerRecords)
+        .where(partnerRecordScope(workspace.organizationId)).limit(1);
+      if (existingPartner?.rewardfulAffiliateId) {
+        return res.status(409).json({
+          error: "This organization already has a partner affiliate record. Existing-account repair is required.",
+          code: "ORGANIZATION_REWARDFUL_ALREADY_LINKED",
+        });
+      }
+      const [business] = await db.select().from(organizations)
+        .innerJoin(businesses, eq(businesses.id, organizations.sourceBusinessId))
+        .where(eq(organizations.id, workspace.organizationId)).limit(1);
+      if (!business || !await verifyOrganizationRewardfulPayment(business.businesses)) {
+        return res.status(403).json({
+          error: "Complete your organization trial and qualifying paid activation before setting up Rewardful.",
+          code: "ORGANIZATION_PAID_ACTIVATION_REQUIRED",
+        });
+      }
+      assertFoundingOrganizationCampaign(await getRewardfulCampaign(campaignId));
     }
     const [claimed] = await db
       .update(userAffiliateAccounts)
@@ -693,6 +742,9 @@ router.post("/organization/setup", requireAuth, async (req, res) => {
       email,
       campaignId,
     });
+    if (foundingOrganizationPolicyEnabled() && affiliate.campaign?.id !== campaignId) {
+      throw new Error("Rewardful returned an unexpected organization campaign.");
+    }
     const link = affiliate.links?.[0];
     const now = new Date();
     const [updated] = await db.transaction(async (tx) => {
@@ -710,15 +762,26 @@ router.post("/organization/setup", requireAuth, async (req, res) => {
         eq(userAffiliateAccounts.rewardfulState, "setup_in_progress"),
       )).returning();
       if (!saved) throw new Error("Organization Rewardful setup was already completed.");
-      await tx.update(partnerRecords).set({
+      const savedPartners = await tx.update(partnerRecords).set({
         rewardfulAffiliateId: affiliate.id,
+        ...(foundingOrganizationPolicyEnabled() ? {
+          commissionRate: FOUNDING_ORGANIZATION_CAMPAIGN.commissionRate,
+          commissionMonths: FOUNDING_ORGANIZATION_CAMPAIGN.commissionMonths,
+          referralCampaignName: FOUNDING_ORGANIZATION_CAMPAIGN.name,
+        } : {}),
         rewardfulCreatedAt: now,
         acceptedAt: now,
         contactName,
         contactEmail: email,
         status: affiliate.state === "active" ? "active" : "setup_in_progress",
         updatedAt: now,
-      }).where(partnerRecordScope(workspace.organizationId));
+      }).where(and(
+        partnerRecordScope(workspace.organizationId),
+        ...(foundingOrganizationPolicyEnabled() ? [isNull(partnerRecords.rewardfulAffiliateId)] : []),
+      )).returning({ id: partnerRecords.id });
+      if (foundingOrganizationPolicyEnabled() && !savedPartners.length) {
+        throw new Error("The organization partner identity changed during setup.");
+      }
       await tx.insert(partnerActivityLog).values({
         userId,
         actorId: userId,
