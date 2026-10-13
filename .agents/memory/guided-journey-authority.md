@@ -186,3 +186,19 @@ the tool, rather than relying on engagement with the existing Copilot.
 Keep initial setup completion distinct from recurring tool guide preferences.
 Do not interpret this diagnosis-stage clarification as implementation approval
 or permission to hide Copilot.
+
+The user defines onboarding and initial Macro Calculator targets as the two
+mandatory personal setup activities. The final onboarding Next action should
+complete saved onboarding and advance only on success. Afterward, personal
+information changes belong in Edit Profile, not a repeat onboarding flow;
+the Macro Calculator remains available for voluntary target updates.
+Recurring Meal Builder introductions may be turned off at any time without
+generating or saving a meal. Possible mandatory Business setup is separate,
+unspecified scope.
+
+**Why:** The user distinguishes required initial setup from explanations for
+optional repeat-use tools.
+
+**How to apply:** Treat this as the requested product behavior, not evidence that
+all existing access gates enforce it. Never equate a Next click alone with
+successful persistence, and do not add completion gates to recurring tools.
