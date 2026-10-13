@@ -15,10 +15,13 @@ only after the trial and qualifying paid activation.
 Partner & Revenue activation; guidance must never grant those benefits itself.
 
 All businesses use a 50/50 Rewardful link, not 70/30.
+The intended default for new eligible organizations is specifically the
+Founding Partner Referral Program, not the My Perfect Meals Affiliate Program.
 
 **Why:** The user explicitly corrected the business commission standard to
 50% commission; neither the older 30% program nor the older 40% business terms
-reflect that instruction.
+reflect that instruction. The user also explicitly named the intended
+organization campaign.
 
 **How to apply:** Use this standard when reviewing business campaign selection
 and displayed terms. Do not treat changing the displayed percentage as changing
