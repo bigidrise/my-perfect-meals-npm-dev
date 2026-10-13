@@ -33,7 +33,7 @@ function isToursGloballyDisabled(): boolean {
   }
 }
 
-export function useQuickTour(pageKey: string): QuickTourState {
+export function useQuickTour(pageKey: string, onPreferenceSaveError?: () => void): QuickTourState {
   const storageKey = `quick-tour::${pageKey}`;
   
   // Tri-state: null = not yet loaded, true = seen, false = not seen
@@ -96,10 +96,10 @@ export function useQuickTour(pageKey: string): QuickTourState {
         localStorage.setItem(storageKey, "seen");
         setHasSeenTour(true);
       } catch {
-        // localStorage not available - silently fail
+        onPreferenceSaveError?.();
       }
     }
-  }, [storageKey]);
+  }, [storageKey, onPreferenceSaveError]);
 
   return {
     shouldShow: isOpen,

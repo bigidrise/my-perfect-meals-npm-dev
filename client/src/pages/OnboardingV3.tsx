@@ -11,6 +11,7 @@ import { useHousehold } from "@/contexts/HouseholdContext";
 import { IS_DEVELOPMENT } from "@/lib/developmentAuthRoutes";
 import { beginWorkflowSave, personalWorkflowSaveEnabled } from "@/lib/guidedJourney/workflow";
 import { GuidedWorkflowNextStep } from "@/components/guided/GuidedWorkflowNextStep";
+import { OnboardingWelcome } from "@/components/guided/OnboardingWelcome";
 import { useConsumerOncologySelection } from "@/components/OncologySymptomSelector";
 import { OncologySymptomDialog, OncologySymptomSummary } from "@/components/OncologySymptomDialog";
 import { oncologyDevelopmentReviewEnabled } from "@/lib/oncologyDevelopmentGate";
@@ -160,8 +161,13 @@ function getRecommendedBuilder(conditions: string[]): string {
 
 export default function OnboardingV3() {
   const [, setLocation] = useLocation();
-  const { refreshUser, user } = useAuth();
+  const { refreshUser, user, loading } = useAuth();
   const { activeProfileId: guidedHouseholdProfileId } = useHousehold();
+  const welcomeExperiment = IS_DEVELOPMENT && !loading && !!user
+    && user.role === "client" && !user.professionalRole
+    && !user.id.startsWith("guest-") && !user.isSandbox
+    && !user.onboardingCompletedAt && !user.studioMembership && !user.hasStudioMembership
+    && (!guidedHouseholdProfileId || guidedHouseholdProfileId === user.id);
   const oncologySelection = useConsumerOncologySelection(user?.oncologySupportContext);
   const oncologyDevelopment = oncologyDevelopmentReviewEnabled();
   const [oncologySymptomsOpen, setOncologySymptomsOpen] = useState(false);
@@ -1468,7 +1474,9 @@ export default function OnboardingV3() {
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
-      <GuidedWorkflowNextStep busy={saving} />
+      {welcomeExperiment
+        ? <OnboardingWelcome key={user!.id} accountId={user!.id} />
+        : <GuidedWorkflowNextStep busy={saving} />}
       {/* Trial welcome modal — shown immediately after onboarding completes */}
       {showTrialModal && (() => {
         // Priority for trialStartedAt:
