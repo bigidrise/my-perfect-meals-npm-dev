@@ -21,6 +21,7 @@ export function OnboardingWelcome({ accountId }: { accountId: string }) {
   const tour = useQuickTour(
     `development-setup-welcome-v1::${encodeURIComponent(accountId)}`,
     reportPreferenceError,
+    { autoOpenDelayMs: 0 },
   );
   const { isOpen: copilotOpen, close: closeCopilot } = useCopilot();
   useEffect(() => {
@@ -41,15 +42,10 @@ export function OnboardingWelcome({ accountId }: { accountId: string }) {
       isOpen={tour.shouldShow}
       onClose={tour.closeTour}
       onRestoreFocus={() => guideRef.current?.focus()}
-      title="Let's Get Your Meals Set Up"
-      introduction="You don't have to figure everything out yourself. We'll show you how My Perfect Meals works, one step at a time."
-      primaryLabel="Start With Step 1"
-      steps={[
-        { title: "Tell Us About Yourself", description: "Your food preferences, goals, and lifestyle." },
-        { title: "Set Your Nutrition Targets", description: "Understand your calories and macros." },
-        { title: "Discover Your Meal Tools", description: "Learn how to create personalized meals." },
-        { title: "Shop for Your Meals", description: "Learn how your shopping list works." },
-      ]}
+      title="Let's Get to Know You"
+      introduction="Tell us about yourself, your food preferences, your goals, and your lifestyle. This helps My Perfect Meals personalize your experience around you."
+      primaryLabel="Start Onboarding"
+      steps={[]}
     />
   </>;
 }
