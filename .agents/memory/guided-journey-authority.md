@@ -21,15 +21,28 @@ is one small Development welcome-screen experiment, not a multi-change rollout.
 First-login guidance should be prominent written guidance with one main action
 leading to existing onboarding, plus a smaller Skip and Don't Show Again option.
 Copilot remains an optional assistant, not the primary onboarding experience.
+The approved Development experiment belongs at the onboarding entrance, not only
+on the signup welcome page.
 
 **Why:** The user explicitly limited the next work to "One welcome screen. One
 button. One test. Then you decide whether it's right," rather than another seven
 changes or guessing why existing guidance is missed.
+The user chose the onboarding entrance to cover both signup and unfinished-setup
+login paths while retaining the existing legal welcome.
 
 **How to apply:** Examine actual first-login order and competing prompts before
 changing presentation. Preserve native legal acknowledgements, navigation and
 onboarding. Test the single Development experiment on desktop and phone before
 applying the pattern elsewhere. Do not delete Copilot or cancel ElevenLabs.
+
+Nonessential release announcements must not compete with the welcome's primary
+action. Defer their display without acknowledging or deleting them.
+
+**Why:** Browser verification showed the release banner covering the welcome
+footer; dismissing the banner could also close the introduction.
+
+**How to apply:** Keep that announcement out of the welcome while it is visible,
+then let the unchanged announcement return afterward.
 
 ## Earlier direction — historical, not authority to continue building it
 

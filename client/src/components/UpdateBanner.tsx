@@ -37,7 +37,7 @@ export function UpdateBanner({ show, releaseNotes = [], releaseId = "" }: Update
   if (!show || !releaseId || releaseNotes.length === 0 || dismissed) return null;
 
   return (
-    <div className="fixed bottom-20 left-0 right-0 z-[9999] flex justify-center px-4 pointer-events-none">
+    <div data-release-update-banner className="fixed bottom-20 left-0 right-0 z-[9999] flex justify-center px-4 pointer-events-none">
       <div className="pointer-events-auto w-full max-w-sm bg-black/95 border border-orange-500/50 backdrop-blur-lg rounded-2xl px-5 py-4 shadow-lg shadow-orange-500/20">
         <p className="text-sm font-semibold text-white mb-2">What's new</p>
 

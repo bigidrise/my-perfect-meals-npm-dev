@@ -1,0 +1,5 @@
+/* Defer the release banner during this one introduction; never acknowledge it. */
+body:has([data-onboarding-welcome]) [data-release-update-banner] {
+  visibility: hidden;
+  pointer-events: none;
+}
