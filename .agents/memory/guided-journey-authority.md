@@ -9,6 +9,22 @@ Page explanations only: enter a page, show its explanation, dismiss it, use the
 existing page, and reopen the explanation through Help/Guide. "Don't show this
 again" suppresses that page's automatic explanation.
 
+Each entrance explanation must describe only the current page: onboarding,
+then the Macro Calculator, then the user's Meal Builder. Do not preview the
+entire journey or explain later tools in the onboarding introduction.
+Automatically show the current page's explanation, retaining Guide as a way
+to reopen it. At calculator completion, the user requests a Next Step button
+leading to their Meal Builder; its introduction covers creating meals,
+duplicating meals, and shopping for groceries.
+
+**Why:** The user emphasized limited attention and asked for one thing at a time,
+with no preview of the next tool inside the calculator introduction.
+
+**How to apply:** Use this as the intended experience for diagnosis and future
+approved changes, not permission to implement it. Preserve saved onboarding,
+nutrition calculations, and builder authority; diagnose the existing handoffs
+before modifying them.
+
 **Why:** The user corrected the project direction: they want instructions in front
 of existing pages, not monitoring of meal creation, plan saving, or task completion.
 
