@@ -23,6 +23,13 @@ reflect that instruction.
 **How to apply:** Use this standard when reviewing business campaign selection
 and displayed terms. Do not treat changing the displayed percentage as changing
 the provider's actual commission, and preserve the paid-activation boundary.
+The user requires each organization's eligibility and agreed full terms to be
+verified before changes; the intended 50/50 standard is not permission to move
+every organization automatically. Connection repair and commission reconciliation
+require separate controlled approval, with a read-only repair plan first.
+
+**Why:** The user explicitly required this sequence because the shared database
+and external Rewardful service can affect real affiliate records and payouts.
 
 Rewardful SSO links expire after one minute, are single-use, and generating a
 new link invalidates every previous magic link for that affiliate.
@@ -32,6 +39,16 @@ status check that generates SSO can invalidate an in-progress portal opening.
 
 **How to apply:** Generate SSO on demand for portal opening rather than as a
 side effect of ordinary status refreshes. Never log or persist the magic URL.
+
+Rewardful referral commission terms are sticky: moving an affiliate changes the
+terms for newly referred customers, not future invoices for existing referrals.
+
+**Why:** Rewardful's multiple-campaign documentation explicitly illustrates this
+behavior; a campaign move does not repair an existing customer's original rate.
+
+**How to apply:** Check current referral and commission inventory immediately
+before any approved move, distinguish existing versus new referrals, and require
+separate approval for any historical commission correction.
 
 Organization attribution must be inherited through every client acquisition path: active workspace or exact Studio organization binding → invitation → acceptance → client relationship → future paid conversion. Bulk rows share the server-resolved workspace identity. Providers and coordinators never re-enter referral codes per invitation.
 
