@@ -14,6 +14,25 @@ only after the trial and qualifying paid activation.
 **How to apply:** Preserve this boundary when adding Organization guidance or
 Partner & Revenue activation; guidance must never grant those benefits itself.
 
+All businesses use a 50/50 Rewardful link, not 70/30.
+
+**Why:** The user explicitly corrected the business commission standard to
+50% commission; neither the older 30% program nor the older 40% business terms
+reflect that instruction.
+
+**How to apply:** Use this standard when reviewing business campaign selection
+and displayed terms. Do not treat changing the displayed percentage as changing
+the provider's actual commission, and preserve the paid-activation boundary.
+
+Rewardful SSO links expire after one minute, are single-use, and generating a
+new link invalidates every previous magic link for that affiliate.
+
+**Why:** Rewardful's SSO documentation specifies these semantics; a passive
+status check that generates SSO can invalidate an in-progress portal opening.
+
+**How to apply:** Generate SSO on demand for portal opening rather than as a
+side effect of ordinary status refreshes. Never log or persist the magic URL.
+
 Organization attribution must be inherited through every client acquisition path: active workspace or exact Studio organization binding → invitation → acceptance → client relationship → future paid conversion. Bulk rows share the server-resolved workspace identity. Providers and coordinators never re-enter referral codes per invitation.
 
 **Why:** One person can administer multiple independent organizations, and an outside contractor can leave without taking a clinic's identity. Rewardful's email-based integration cannot deterministically distinguish organizations sharing an operator.
