@@ -1,7 +1,24 @@
 ---
 name: Guided Journey authority
-description: Product boundaries for personal guidance and later professional or organization journeys.
+description: Current page-explanation scope; earlier task-completion direction is superseded.
 ---
+
+## Current direction — supersedes the earlier scope below
+
+Page explanations only: enter a page, show its explanation, dismiss it, use the
+existing page, and reopen the explanation through Help/Guide. "Don't show this
+again" suppresses that page's automatic explanation.
+
+**Why:** The user corrected the project direction: they want instructions in front
+of existing pages, not monitoring of meal creation, plan saving, or task completion.
+
+**How to apply:** Reuse the existing explanation modal and account-scoped preference
+patterns. No requirement to finish a meal, no waiting for server board confirmation,
+and no automatic redirects to another tool. Do not touch underlying functionality.
+Leave Copilot and ElevenLabs alone unless separately approved. The current approval
+is a small read-only inventory, not implementation.
+
+## Earlier direction — historical, not authority to continue building it
 
 Guided Journey is an optional task-completion experience, not a mandatory tour:
 explain an existing activity, let the person perform it, recognize its saved
