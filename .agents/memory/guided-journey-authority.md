@@ -169,3 +169,20 @@ requested initial-setup behavior.
 tour-seen flags. Close the modal for the current visit without immediately
 reopening it. This clarification was diagnosis-only, not authorization to change
 the application, expand to other pages, or release to Production.
+
+The user explicitly confirmed that successfully saving nutrition targets—not
+permanently dismissing an explanation—is the Macro Calculator completion
+milestone. They want user-clicked Next/Next Step handoffs from completed
+onboarding to the calculator, and from saved targets to the assigned Meal
+Builder, with each destination presenting its own readable introduction.
+Automatic introductions should have user-controlled on/off settings, with
+manual Guide access retained. Hiding Copilot's automatic introductions is only
+under consideration, not approved.
+
+**Why:** The user wants explanations customers notice and dismiss before using
+the tool, rather than relying on engagement with the existing Copilot.
+
+**How to apply:** Preserve existing saving and authorized destination rules.
+Keep initial setup completion distinct from recurring tool guide preferences.
+Do not interpret this diagnosis-stage clarification as implementation approval
+or permission to hide Copilot.
