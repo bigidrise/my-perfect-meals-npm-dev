@@ -38,6 +38,16 @@ require separate controlled approval, with a read-only repair plan first.
 **Why:** The user explicitly required this sequence because the shared database
 and external Rewardful service can affect real affiliate records and payouts.
 
+The reported broken Manage Payouts button belongs to RHM, not MPM.
+
+**Why:** The user explicitly corrected the organization identity. A separately
+observed missing MPM affiliate connection is not evidence that MPM was the
+organization in the reported payout-button issue.
+
+**How to apply:** Scope investigation of the reported button failure to RHM;
+keep any MPM connection investigation separate. Verify the exact organization
+and existing affiliate identity before proposing a repair.
+
 Rewardful SSO links expire after one minute, are single-use, and generating a
 new link invalidates every previous magic link for that affiliate.
 
