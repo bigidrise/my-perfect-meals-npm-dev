@@ -12,6 +12,7 @@ import { IS_DEVELOPMENT } from "@/lib/developmentAuthRoutes";
 import { beginWorkflowSave, personalWorkflowSaveEnabled } from "@/lib/guidedJourney/workflow";
 import { GuidedWorkflowNextStep } from "@/components/guided/GuidedWorkflowNextStep";
 import { OnboardingWelcome } from "@/components/guided/OnboardingWelcome";
+import { onboardingWelcomeEligible } from "@/lib/onboardingWelcomeEligibility";
 import { useConsumerOncologySelection } from "@/components/OncologySymptomSelector";
 import { OncologySymptomDialog, OncologySymptomSummary } from "@/components/OncologySymptomDialog";
 import { oncologyDevelopmentReviewEnabled } from "@/lib/oncologyDevelopmentGate";
@@ -169,11 +170,7 @@ function AccountOnboardingV3() {
   const [, setLocation] = useLocation();
   const { refreshUser, user, loading } = useAuth();
   const { activeProfileId: guidedHouseholdProfileId } = useHousehold();
-  const welcomeExperiment = IS_DEVELOPMENT && !loading && !!user
-    && user.role === "client" && !user.professionalRole
-    && !user.id.startsWith("guest-") && !user.isSandbox
-    && !user.onboardingCompletedAt && !user.studioMembership && !user.hasStudioMembership
-    && (!guidedHouseholdProfileId || guidedHouseholdProfileId === user.id);
+  const welcomeExperiment = onboardingWelcomeEligible(IS_DEVELOPMENT, loading, user);
   const oncologySelection = useConsumerOncologySelection(user?.oncologySupportContext);
   const oncologyDevelopment = oncologyDevelopmentReviewEnabled();
   const [oncologySymptomsOpen, setOncologySymptomsOpen] = useState(false);

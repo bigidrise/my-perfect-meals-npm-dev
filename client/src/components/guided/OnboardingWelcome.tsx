@@ -30,7 +30,19 @@ export function OnboardingWelcome({ accountId }: { accountId: string }) {
   }, [tour.shouldShow, copilotOpen, closeCopilot]);
 
   return <>
-    <div className="mx-auto flex w-full max-w-3xl justify-end px-6 pt-3">
+    <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-end gap-2 px-6 pt-3">
+      {tour.isGloballyDisabled && <>
+        <span className="text-sm text-white/70" data-testid="onboarding-guides-disabled">
+          Automatic introductions are off.
+        </span>
+        <button type="button" onClick={() => {
+          tour.setGlobalDisabled(false);
+          tour.openTour();
+        }}
+          className="min-h-11 rounded-lg px-3 text-sm font-semibold text-orange-400 hover:text-orange-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-400">
+          Turn On Guides
+        </button>
+      </>}
       <button ref={guideRef} type="button" onClick={tour.openTour}
         className="min-h-11 rounded-lg px-3 text-sm text-orange-400 hover:text-orange-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-400"
         aria-label="Open setup guide" data-testid="onboarding-welcome-guide">
