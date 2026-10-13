@@ -41,6 +41,7 @@ import {
 import { AUTH_ATTEMPT_SCOPES, createAuthAttemptSubject } from "../services/authAttemptTracker";
 import { authAttemptTracker } from "../services/authAttemptTrackingService";
 import { requiresPrivilegedMfa } from "../lib/privilegedMfaPolicy";
+import { createWithUniqueSignupUsername, isSignupEmailConflict, signupDatabaseError } from "../services/signupUsername";
 
 const router = Router();
 
@@ -115,7 +116,10 @@ router.post("/api/auth/signup", async (req, res) => {
     // Do not create another case-variant account when a legacy spelling exists.
     const existingIdentity = await resolveEmailIdentityForEmail(email);
     if (existingIdentity.status !== "not_found") {
-      return res.status(400).json({ error: "User already exists" });
+      return res.status(400).json({
+        code: "EMAIL_ALREADY_EXISTS",
+        error: "An account with this email address already exists. Sign in or reset your password.",
+      });
     }
 
     // Hash password
@@ -255,8 +259,8 @@ router.post("/api/auth/signup", async (req, res) => {
     // Create the user and claim any pre-registration record atomically. If the
     // record was claimed by another request, the user insert rolls back rather
     // than issuing an untracked 30-day entitlement.
-    const newUser = await db.transaction(async (tx) => {
-      const [createdUser] = await tx.insert(users).values(userValues).returning();
+    const newUser = await createWithUniqueSignupUsername(userValues.username, username => db.transaction(async (tx) => {
+      const [createdUser] = await tx.insert(users).values({ ...userValues, username }).returning();
       if (clinicPilotToken) {
         await enrollClinicPatientInTransaction(tx, clinicPilotToken, createdUser.id);
       }
@@ -294,7 +298,7 @@ router.post("/api/auth/signup", async (req, res) => {
       }
 
       return createdUser;
-    });
+    }));
 
   await regenerateSession(req);
   (req.session as any).userId = newUser.id;
@@ -356,7 +360,14 @@ router.post("/api/auth/signup", async (req, res) => {
       ...(membership && { studioMembership: membership }),
     });
   } catch (error: any) {
-    console.error("Signup error:", error);
+    if (isSignupEmailConflict(error)) {
+      return res.status(400).json({
+        code: "EMAIL_ALREADY_EXISTS",
+        error: "An account with this email address already exists. Sign in or reset your password.",
+      });
+    }
+    // Wrapped SQL errors can contain password hashes and other signup values.
+    console.error("Signup error:", { name: error?.name, ...signupDatabaseError(error) });
     res.status(500).json({ error: "Failed to create account" });
   }
 });
