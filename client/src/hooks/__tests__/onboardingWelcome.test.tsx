@@ -53,24 +53,72 @@ test("Start Onboarding only dismisses the explanation and retains the existing q
   window.fetch = originalFetch;
 });
 
-test.each([seenKey, "quick-tour-global-disabled"])("respects deliberate opt-out %s and still allows Guide", key => {
-  localStorage.setItem(key, key === seenKey ? "seen" : "true");
+test("respects explicit global off and still allows Guide", () => {
+  localStorage.setItem("quick-tour-global-disabled", "true");
   render(<OnboardingWelcome accountId={accountId} />);
   act(() => { jest.runOnlyPendingTimers(); });
   expect(screen.queryByRole("dialog")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Open setup guide" }));
   expect(screen.getByRole("dialog")).toBeTruthy();
-  expect(localStorage.getItem(key)).toBe(key === seenKey ? "seen" : "true");
+  expect(localStorage.getItem("quick-tour-global-disabled")).toBe("true");
 });
 
-test("Don't show again persists only this account's introduction", () => {
+test("old seen preferences never complete onboarding; closing is only for this visit", () => {
+  localStorage.setItem(seenKey, "seen");
   const view = render(<OnboardingWelcome accountId={accountId} />);
-  fireEvent.click(screen.getByRole("checkbox"));
+  expect(screen.getByRole("dialog")).toBeTruthy();
+  expect(screen.queryByRole("checkbox")).toBeNull();
+  expect(screen.queryByText("Don't show again")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Start Onboarding" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
   expect(localStorage.getItem(seenKey)).toBe("seen");
   view.unmount();
-  render(<OnboardingWelcome accountId="another-synthetic-account" />);
+  render(<OnboardingWelcome accountId={accountId} />);
   expect(screen.getByRole("dialog")).toBeTruthy();
+});
+
+test("saved completion suppresses automatic opening but never manual Guide", () => {
+  const { result } = renderHook(() => useQuickTour("setup", undefined, {
+    autoOpenDelayMs: 0, setupComplete: true,
+  }));
+  expect(result.current.shouldShow).toBe(false);
+  act(() => result.current.openTour());
+  expect(result.current.shouldShow).toBe(true);
+  act(() => result.current.closeTour(true));
+  expect(result.current.shouldShow).toBe(false);
+  expect(localStorage.getItem("quick-tour::setup")).toBeNull();
+});
+
+test("unknown completion waits; unfinished setup opens once per visit without marking completion", () => {
+  const { result, rerender, unmount } = renderHook(
+    ({ complete }: { complete: boolean | null }) => useQuickTour("setup", undefined, {
+      autoOpenDelayMs: 0, setupComplete: complete,
+    }), { initialProps: { complete: null as boolean | null } },
+  );
+  expect(result.current.shouldShow).toBe(false);
+  rerender({ complete: false });
+  expect(result.current.shouldShow).toBe(true);
+  act(() => result.current.closeTour(true));
+  rerender({ complete: false });
+  expect(result.current.shouldShow).toBe(false);
+  expect(localStorage.getItem("quick-tour::setup")).toBeNull();
+  unmount();
+  const returning = renderHook(() => useQuickTour("setup", undefined, {
+    autoOpenDelayMs: 0, setupComplete: false,
+  }));
+  expect(returning.result.current.shouldShow).toBe(true);
+});
+
+test("switching accounts cannot retain the previous setup introduction", () => {
+  const { result, rerender } = renderHook(
+    ({ key, complete }) => useQuickTour(key, undefined, { autoOpenDelayMs: 0, setupComplete: complete }),
+    { initialProps: { key: "account-a", complete: false as boolean | null } },
+  );
+  expect(result.current.shouldShow).toBe(true);
+  rerender({ key: "account-b", complete: null });
+  expect(result.current.shouldShow).toBe(false);
+  rerender({ key: "account-b", complete: true });
+  expect(result.current.shouldShow).toBe(false);
 });
 
 test("other pages retain their existing delayed guide behavior", () => {
@@ -79,5 +127,14 @@ test("other pages retain their existing delayed guide behavior", () => {
   act(() => { jest.advanceTimersByTime(499); });
   expect(result.current.shouldShow).toBe(false);
   act(() => { jest.advanceTimersByTime(1); });
+  expect(result.current.shouldShow).toBe(true);
+});
+
+test("ordinary tool tours still respect their own seen preference", () => {
+  localStorage.setItem("quick-tour::unrelated-page", "seen");
+  const { result } = renderHook(() => useQuickTour("unrelated-page"));
+  act(() => jest.runOnlyPendingTimers());
+  expect(result.current.shouldShow).toBe(false);
+  act(() => result.current.openTour());
   expect(result.current.shouldShow).toBe(true);
 });

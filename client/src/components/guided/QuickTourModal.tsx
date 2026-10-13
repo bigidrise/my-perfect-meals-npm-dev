@@ -22,6 +22,8 @@ interface QuickTourModalProps {
   introduction?: string;
   primaryLabel?: string;
   onRestoreFocus?: () => void;
+  /** Initial setup is completed by saving the page, never by dismissing its guide. */
+  completionDriven?: boolean;
 }
 
 export function QuickTourModal({
@@ -34,6 +36,7 @@ export function QuickTourModal({
   introduction,
   primaryLabel = "Got it!",
   onRestoreFocus,
+  completionDriven = false,
 }: QuickTourModalProps) {
   const [dontShowAgain, setDontShowAgain] = useState(!welcome);
 
@@ -101,25 +104,25 @@ export function QuickTourModal({
               {primaryLabel}
             </Button>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-white/75">
+              {!completionDriven && <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-white/75">
                 <input type="checkbox" checked={dontShowAgain}
                   onChange={event => setDontShowAgain(event.target.checked)}
                   className="h-4 w-4 accent-orange-500" />
                 Don't show again
-              </label>
+              </label>}
               <button type="button" onClick={() => onClose(dontShowAgain)}
                 className="min-h-11 rounded-lg px-3 text-sm text-white/70 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-400">
                 Skip introduction
               </button>
             </div>
           </> : <div className="flex items-center justify-between">
-            <PillButton
+            {!completionDriven && <PillButton
               active={dontShowAgain}
               onClick={() => setDontShowAgain(!dontShowAgain)}
               data-testid="toggle-dismiss-tour"
             >
               Don't show again
-            </PillButton>
+            </PillButton>}
 
             <Button
               onClick={() => onClose(dontShowAgain)}
