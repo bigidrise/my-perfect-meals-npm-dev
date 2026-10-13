@@ -17,11 +17,11 @@ export function OnboardingWelcome({ accountId }: { accountId: string }) {
     });
   }, [toast]);
   // Reuse the existing tour controller, but isolate this page and immutable account.
-  // This is browser-local presentation state, not onboarding/task completion.
+  // The parent mounts this entrance only while saved onboarding is incomplete.
   const tour = useQuickTour(
     `development-setup-welcome-v1::${encodeURIComponent(accountId)}`,
     reportPreferenceError,
-    { autoOpenDelayMs: 0 },
+    { autoOpenDelayMs: 0, setupComplete: false },
   );
   const { isOpen: copilotOpen, close: closeCopilot } = useCopilot();
   useEffect(() => {
@@ -39,6 +39,7 @@ export function OnboardingWelcome({ accountId }: { accountId: string }) {
     </div>
     <QuickTourModal
       welcome
+      completionDriven
       isOpen={tour.shouldShow}
       onClose={tour.closeTour}
       onRestoreFocus={() => guideRef.current?.focus()}
@@ -46,6 +47,7 @@ export function OnboardingWelcome({ accountId }: { accountId: string }) {
       introduction="Tell us about yourself, your food preferences, your goals, and your lifestyle. This helps My Perfect Meals personalize your experience around you."
       primaryLabel="Start Onboarding"
       steps={[]}
+      onDisableAllTours={() => tour.setGlobalDisabled(true)}
     />
   </>;
 }

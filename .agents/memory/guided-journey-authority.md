@@ -168,7 +168,10 @@ requested initial-setup behavior.
 **How to apply:** Diagnose against authoritative saved completion, not browser
 tour-seen flags. Close the modal for the current visit without immediately
 reopening it. This clarification was diagnosis-only, not authorization to change
-the application, expand to other pages, or release to Production.
+the application, expand to other pages, or release to Production. Subsequent
+implementation approval is limited to Development onboarding and the Macro
+Calculator using existing Quick Tours; recurring tools and Production remain
+outside that approved scope.
 
 The user explicitly confirmed that successfully saving nutrition targets—not
 permanently dismissing an explanation—is the Macro Calculator completion
@@ -184,8 +187,8 @@ the tool, rather than relying on engagement with the existing Copilot.
 
 **How to apply:** Preserve existing saving and authorized destination rules.
 Keep initial setup completion distinct from recurring tool guide preferences.
-Do not interpret this diagnosis-stage clarification as implementation approval
-or permission to hide Copilot.
+The later focused setup approval does not authorize recurring tool changes or
+hiding Copilot. Preserve its settings; avoid competing explanation overlays.
 
 The user defines onboarding and initial Macro Calculator targets as the two
 mandatory personal setup activities. The final onboarding Next action should

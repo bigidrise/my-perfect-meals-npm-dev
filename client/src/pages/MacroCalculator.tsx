@@ -118,8 +118,10 @@ import { getAuthHeaders } from "@/lib/auth";
 import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
 import { apiRequest } from "@/lib/queryClient";
 import { useQuickTour } from "@/hooks/useQuickTour";
+import { useSavedMacroSetup } from "@/hooks/useSavedMacroSetup";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { useCopilot } from "@/components/copilot/CopilotContext";
 import { getAssignedBuilderFromStorage } from "@/lib/assignedBuilder";
 import MetabolicConsiderations from "@/components/macro-targeting/MetabolicConsiderations";
 import BodyCompositionSection from "@/components/macro-targeting/BodyCompositionSection";
@@ -750,6 +752,21 @@ export default function MacroCounter() {
   const [isDirty, setIsDirty] = useState(false);
   const isDirtyFirstRenderRef = useRef(true);
   const [isProSession] = useState(() => localStorage.getItem("pro-session") === "true");
+  // This focused introduction is Development-only and personal-account-only.
+  // Professional, household, sandbox and Production tours keep their behavior.
+  const setupGuideEnabled = IS_DEVELOPMENT && !!user
+    && user.role === "client" && !user.professionalRole
+    && !user.id.startsWith("guest-") && !user.isSandbox
+    && !user.studioMembership && !user.hasStudioMembership && !isProSession
+    && (!guidedHouseholdProfileId || guidedHouseholdProfileId === user.id);
+  const savedMacroSetup = useSavedMacroSetup(setupGuideEnabled ? user!.id : null);
+  useEffect(() => {
+    if (savedMacroSetup.error) toast({
+      title: "Setup status unavailable",
+      description: savedMacroSetup.error,
+      variant: "destructive",
+    });
+  }, [savedMacroSetup.error, toast]);
 
   const isFromOnboarding = window.location.search.includes("from=onboarding");
 
@@ -1166,7 +1183,30 @@ export default function MacroCounter() {
     },
   ];
 
-  const quickTour = useQuickTour("macro-calculator");
+  const setupCalculatorTourSteps: TourStep[] = [
+    {
+      title: "Enter Your Details",
+      description: "Choose your goal and enter your age, height, weight, and activity level. Follow the calculator's questions at your own pace.",
+    },
+    {
+      title: "Review Your Targets",
+      description: "Review your daily calories, protein, carbohydrates, and fat. The calculator also explains its nutrition options and optional measurements.",
+    },
+    {
+      title: "Save When You're Ready",
+      description: "Your setup is complete only after your nutrition targets are successfully saved. You can return to this calculator whenever your weight or goals change.",
+    },
+  ];
+  const quickTour = useQuickTour(
+    setupGuideEnabled ? `development-macro-setup-v1::${encodeURIComponent(user!.id)}` : "macro-calculator",
+    undefined,
+    setupGuideEnabled ? { autoOpenDelayMs: 0, setupComplete: savedMacroSetup.complete } : {},
+  );
+  const { isOpen: copilotOpen, close: closeCopilot } = useCopilot();
+  useEffect(() => {
+    // Give the written setup explanation the screen without changing Copilot settings.
+    if (setupGuideEnabled && quickTour.shouldShow && copilotOpen) closeCopilot();
+  }, [setupGuideEnabled, quickTour.shouldShow, copilotOpen, closeCopilot]);
 
   // Walkthrough disabled - conflicts with Copilot intro TTS
   // useEffect(() => {
@@ -1493,6 +1533,7 @@ export default function MacroCounter() {
       { calories: targets.calories, protein_g: targets.protein_g, carbs_g: targets.carbs_g, fat_g: targets.fat_g });
     try {
       await setMacroTargets(targets, user?.id);
+      savedMacroSetup.markSaved();
       guidedSave.saved();
     } catch (error) {
       guidedSave.failed();
@@ -3465,11 +3506,17 @@ export default function MacroCounter() {
                         try {
                           if (isGuestMode()) markMacrosCompleted();
                           const assignedBuilder = getAssignedBuilderFromStorage();
-                          advanceGuided("done");
-                          try { sessionStorage.removeItem("macro_guided_step"); } catch {}
+                          if (!setupGuideEnabled) {
+                            advanceGuided("done");
+                            try { sessionStorage.removeItem("macro_guided_step"); } catch {}
+                          }
                           await performMacroAndBiometricsSave(buildMacroTargetsFromResults(), {
                             successTitle: "Macros & Stats Saved",
                             onComplete: () => {
+                              if (setupGuideEnabled) {
+                                advanceGuided("done");
+                                try { sessionStorage.removeItem("macro_guided_step"); } catch {}
+                              }
                               if (hasActivePaidSubscription(user)) {
                                 setLocation(assignedBuilder.path);
                               } else {
@@ -4394,12 +4441,13 @@ export default function MacroCounter() {
                       data-testid="macro-save-biometrics-button"
                       disabled={!isCalcInputValid || isSaving}
                       onClick={async () => {
-                        advance("calc");
+                        if (!setupGuideEnabled) advance("calc");
                         setIsSaving(true);
                         try {
                           if (isGuestMode()) markMacrosCompleted();
                           await performMacroAndBiometricsSave(buildMacroTargetsFromResults(), {
                             successTitle: "Macros & Stats Saved",
+                            onComplete: setupGuideEnabled ? () => advance("calc") : undefined,
                           });
                         } catch (error) {
                           console.error("Failed to save macro targets:", error);
@@ -4427,7 +4475,7 @@ export default function MacroCounter() {
                         window.dispatchEvent(new CustomEvent("walkthrough:event", {
                           detail: { testId: "macro-calculator-interacted", event: "interacted" },
                         }));
-                        advance("calc");
+                        if (!setupGuideEnabled) advance("calc");
                         setIsSaving(true);
                         try {
                           if (isGuestMode()) markMacrosCompleted();
@@ -4435,6 +4483,7 @@ export default function MacroCounter() {
                           await performMacroAndBiometricsSave(buildMacroTargetsFromResults(), {
                             successTitle: "Macros & Stats Saved",
                             onComplete: () => {
+                              if (setupGuideEnabled) advance("calc");
                               if (hasActivePaidSubscription(user)) {
                                 setLocation(assignedBuilder.path);
                               } else {
@@ -4530,8 +4579,14 @@ export default function MacroCounter() {
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        steps={macroCalculatorTourSteps}
-        title="How to Use the Macro Calculator"
+        steps={setupGuideEnabled ? setupCalculatorTourSteps : macroCalculatorTourSteps}
+        title={setupGuideEnabled ? "Set Your Nutrition Targets" : "How to Use the Macro Calculator"}
+        welcome={setupGuideEnabled}
+        completionDriven={setupGuideEnabled}
+        introduction={setupGuideEnabled
+          ? "Use your goals and body measurements to calculate your daily calorie, protein, carbohydrate, and fat targets."
+          : undefined}
+        primaryLabel={setupGuideEnabled ? "Start Calculator" : undefined}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
     </>
