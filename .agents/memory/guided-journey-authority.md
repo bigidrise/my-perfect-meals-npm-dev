@@ -205,3 +205,17 @@ optional repeat-use tools.
 **How to apply:** Treat this as the requested product behavior, not evidence that
 all existing access gates enforce it. Never equate a Next click alone with
 successful persistence, and do not add completion gates to recurring tools.
+
+The user reiterated that a blank first onboarding step must receive the
+introduction on entry; merely having an account or another workspace must not
+make unfinished personal setup appear finished.
+
+**Why:** The user still saw only the first question after child-overlay tests
+passed. A clean synthetic client did not exercise the page-level conditions
+that can prevent the introduction from mounting.
+
+**How to apply:** Verify the actual page entrance as well as the modal, including
+unrelated memberships and remembered browser context. Respect explicit global
+automatic-off, but show that state visibly with an accessible way to turn guides
+back on. Do not infer the user's exact browser suppression cause from a fixture
+pass or a read-only account check.

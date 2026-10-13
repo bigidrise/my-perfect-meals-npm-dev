@@ -58,9 +58,25 @@ test("respects explicit global off and still allows Guide", () => {
   render(<OnboardingWelcome accountId={accountId} />);
   act(() => { jest.runOnlyPendingTimers(); });
   expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.getByText("Automatic introductions are off.")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Open setup guide" }));
   expect(screen.getByRole("dialog")).toBeTruthy();
   expect(localStorage.getItem("quick-tour-global-disabled")).toBe("true");
+});
+
+test("Turn On Guides makes a global suppression visible and restores automatic introductions on return", () => {
+  localStorage.setItem("quick-tour-global-disabled", "true");
+  const view = render(<OnboardingWelcome accountId={accountId} />);
+  expect(screen.queryByRole("dialog")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Turn On Guides" }));
+  expect(screen.getByRole("dialog")).toBeTruthy();
+  expect(screen.queryByText("Automatic introductions are off.")).toBeNull();
+  expect(localStorage.getItem("quick-tour-global-disabled")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Start Onboarding" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
+  view.unmount();
+  render(<OnboardingWelcome accountId={accountId} />);
+  expect(screen.getByRole("dialog")).toBeTruthy();
 });
 
 test("old seen preferences never complete onboarding; closing is only for this visit", () => {
