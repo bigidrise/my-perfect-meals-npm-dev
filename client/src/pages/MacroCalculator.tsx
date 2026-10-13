@@ -79,27 +79,10 @@ import {
 } from "lucide-react";
 
 // Guided flow step type
-type GuidedStep =
-  | "entry"
-  | "goal"
-  | "commitmentLevel"
-  | "bodyType"
-  | "units"
-  | "sex"
-  | "age"
-  | "height"
-  | "weight"
-  | "waist"
-  | "activity"
-  | "syncWeight"
-  | "metabolic"
-  | "results"
-  | "nutritionStrategy"
-  | "starch"
-  | "clinicalContext"
-  | "bodyComposition"
-  | "save"
-  | "done";
+import {
+  macroCalculatorStorageKeys, readMacroCalculatorResumeStep,
+  type MacroCalculatorStep as GuidedStep,
+} from "@/lib/macroCalculatorResume";
 import { useToast } from "@/hooks/use-toast";
 import {
   setMacroTargets,
@@ -741,6 +724,11 @@ function ClinicalCategoryReasoningList({ categories }: { categories: string[] })
 }
 
 export default function MacroCounter() {
+  const { user } = useAuth();
+  return <AccountMacroCounter key={IS_DEVELOPMENT ? user?.id ?? "awaiting-account" : "calculator"} />;
+}
+
+function AccountMacroCounter() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { t } = useTranslation("macroCalc");
@@ -760,6 +748,8 @@ export default function MacroCounter() {
     && !user.studioMembership && !user.hasStudioMembership && !isProSession
     && (!guidedHouseholdProfileId || guidedHouseholdProfileId === user.id);
   const savedMacroSetup = useSavedMacroSetup(setupGuideEnabled ? user!.id : null);
+  const calculatorDraftAccountId = setupGuideEnabled ? user!.id : null;
+  const calculatorStorageKeys = macroCalculatorStorageKeys(calculatorDraftAccountId);
   useEffect(() => {
     if (savedMacroSetup.error) toast({
       title: "Setup status unavailable",
@@ -775,7 +765,7 @@ export default function MacroCounter() {
   // Load calculator settings from localStorage
   const loadCalculatorSettings = () => {
     try {
-      const saved = localStorage.getItem("macro_calculator_settings");
+      const saved = localStorage.getItem(calculatorStorageKeys.settings);
       if (saved) {
         const parsed = JSON.parse(saved);
         console.log("📥 Loaded macro settings:", parsed);
@@ -787,7 +777,8 @@ export default function MacroCounter() {
     return null;
   };
 
-  const savedSettings = loadCalculatorSettings();
+  const [initialSetupSettings] = useState(() => setupGuideEnabled ? loadCalculatorSettings() : null);
+  const savedSettings = setupGuideEnabled ? initialSetupSettings : loadCalculatorSettings();
 
   const [goal, setGoal] = useState<Goal>(savedSettings?.goal ?? "maint");
   const [bodyType, setBodyType] = useState<BodyType>(
@@ -855,6 +846,7 @@ export default function MacroCounter() {
   const [recalculationConfirmation, setRecalculationConfirmation] = useState<
     "first" | "second" | null
   >(null);
+  const recalculationApprovedRef = useRef(false);
   const [starchStrategy, setStarchStrategy] = useState<
     StarchStrategy | undefined
   >(existingTargets?.starchStrategy ?? undefined);
@@ -913,11 +905,16 @@ export default function MacroCounter() {
   );
 
   // Guided Mode State
-  const hasExistingSettings = savedSettings !== null && !isFromOnboarding;
-  const hasSavedMacroConfiguration =
-    hasExistingSettings || hasExistingMacroTargets;
+  const hasExistingSettings = savedSettings !== null && !isFromOnboarding
+    && (!setupGuideEnabled || savedMacroSetup.complete === true);
+  const hasSavedMacroConfiguration = setupGuideEnabled
+    ? savedMacroSetup.complete === true || (savedMacroSetup.complete === null && hasExistingMacroTargets)
+    : hasExistingSettings || hasExistingMacroTargets;
 
   const resolveInitialStep = (): GuidedStep => {
+    if (setupGuideEnabled) return readMacroCalculatorResumeStep(
+      sessionStorage, calculatorDraftAccountId, savedSettings !== null, savedMacroSetup.complete,
+    );
     if (hasExistingSettings) return "done";
     try {
       const persisted = sessionStorage.getItem("macro_guided_step");
@@ -932,8 +929,17 @@ export default function MacroCounter() {
   const [guidedStep, setGuidedStepRaw] = useState<GuidedStep>(resolveInitialStep);
   const setGuidedStep = (step: GuidedStep) => {
     setGuidedStepRaw(step);
-    try { sessionStorage.setItem("macro_guided_step", step); } catch {}
+    try { sessionStorage.setItem(calculatorStorageKeys.step, step); } catch {}
   };
+  useEffect(() => {
+    // A persisted "done" is restored only after the saved-target read confirms it.
+    // Do not interrupt a visitor who has already begun entering new answers.
+    if (setupGuideEnabled && savedMacroSetup.complete === true && guidedStep === "entry"
+      && readMacroCalculatorResumeStep(sessionStorage, calculatorDraftAccountId,
+        savedSettings !== null, true) === "done") {
+      setGuidedStepRaw("done");
+    }
+  }, [setupGuideEnabled, savedMacroSetup.complete, calculatorDraftAccountId, savedSettings, guidedStep]);
   const [showResults, setShowResults] = useState(hasExistingSettings || resolveInitialStep() !== "entry");
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasSpokenEntry, setHasSpokenEntry] = useState(resolveInitialStep() !== "entry");
@@ -1016,7 +1022,7 @@ export default function MacroCounter() {
   // Prefill from server profile when no saved settings exist (e.g. after reinstall)
   useEffect(() => {
     if (!user) return;
-    const hasSaved = !!localStorage.getItem("macro_calculator_settings");
+    const hasSaved = !!localStorage.getItem(calculatorStorageKeys.settings);
     if (hasSaved) return;
 
     if (user.age) setAge(user.age);
@@ -1096,6 +1102,7 @@ export default function MacroCounter() {
 
   const confirmMacroRecalculation = useCallback(() => {
     setRecalculationConfirmation(null);
+    recalculationApprovedRef.current = true;
     resetGuidedFlow();
   }, [resetGuidedFlow]);
 
@@ -1261,7 +1268,7 @@ export default function MacroCounter() {
         sugarCapMode,
       };
       localStorage.setItem(
-        "macro_calculator_settings",
+        calculatorStorageKeys.settings,
         JSON.stringify(settings),
       );
       console.log("💾 Saved macro settings:", settings);
@@ -1722,8 +1729,9 @@ export default function MacroCounter() {
           className="max-w-5xl mx-auto space-y-6 px-4"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
-          <GuidedWorkflowNextStep busy={isSaving} professionalSession={isProSession}
-            summaryVisible={guidedStep === "done" && !!results} />
+          {(!setupGuideEnabled || savedMacroSetup.complete === true) &&
+            <GuidedWorkflowNextStep busy={isSaving} professionalSession={isProSession}
+              summaryVisible={guidedStep === "done" && !!results} />}
           {/* Scientific Sources - Apple App Store Compliance (must be visible immediately) */}
           {(guidedStep === "entry" || guidedStep === "goal") && (
             <div className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-blue-400/30 rounded-xl p-4">
@@ -1808,7 +1816,16 @@ export default function MacroCounter() {
                     </div>
 
                     <Button
-                      onClick={() => advanceGuided("goal")}
+                      onClick={() => {
+                        // A saved baseline remains protected even when this device
+                        // has no account-scoped draft to restore a results screen.
+                        if (setupGuideEnabled && hasSavedMacroConfiguration
+                          && !recalculationApprovedRef.current) {
+                          requestMacroRecalculation();
+                          return;
+                        }
+                        advanceGuided("goal");
+                      }}
                       className="
                         w-full py-4
                         bg-orange-600 hover:bg-orange-500

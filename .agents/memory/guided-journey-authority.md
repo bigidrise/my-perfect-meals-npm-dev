@@ -219,3 +219,17 @@ unrelated memberships and remembered browser context. Respect explicit global
 automatic-off, but show that state visibly with an accessible way to turn guides
 back on. Do not infer the user's exact browser suppression cause from a fixture
 pass or a read-only account check.
+
+Verify the underlying calculator question sequence, not merely that its
+introduction opens. Browser settings are drafts, not saved-target evidence, and
+another account's or a legacy browser-wide late step must not skip first setup.
+
+**Why:** The user received the correct welcome but landed directly in starch
+planning with a numeric preview before answering the calculator questions. The
+explanatory handoff then reopened the same late calculator step.
+
+**How to apply:** Include stale-browser progress in entrance verification and
+walk the questions through results, starch and confirmed saving. Protect existing
+targets and replacement confirmations; explanation visibility alone does not
+prove calculator readiness. Do not offer an "open calculator" handoff while
+already performing that initial calculation.
