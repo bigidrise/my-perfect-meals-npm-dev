@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
 import { useState } from "react";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import "./OnboardingWelcome.css";
 
 export interface TourStep {
   icon?: string;
@@ -47,6 +48,18 @@ export function QuickTourModal({
     onClose(true);
   };
 
+  const header = <DialogHeader className={welcome ? "shrink-0" : undefined}>
+    {welcome && <p className="mb-3 text-sm font-semibold tracking-widest text-orange-400">MY PERFECT MEALS · WELCOME</p>}
+    <DialogTitle className={welcome
+      ? "text-3xl font-bold leading-tight text-white break-words [text-wrap:balance] sm:text-4xl"
+      : "text-xl font-bold text-white text-center break-words [text-wrap:balance]"}>
+      {title}
+    </DialogTitle>
+    <VisuallyHidden>
+      <DialogDescription>Quick tour guide showing {steps.length} tips for this page</DialogDescription>
+    </VisuallyHidden>
+  </DialogHeader>;
+
   return (
     <UniversalDialog
       rawLayout
@@ -60,22 +73,13 @@ export function QuickTourModal({
         ? "bg-zinc-950 border-white/10 text-white max-w-xl mx-auto rounded-2xl h-[min(52rem,calc(100dvh-2rem-env(safe-area-inset-top)-env(safe-area-inset-bottom)))] max-h-[calc(100dvh-2rem-env(safe-area-inset-top)-env(safe-area-inset-bottom))]"
         : "bg-zinc-900/95 backdrop-blur-xl border-white/10 text-white max-w-md mx-auto rounded-2xl"}
     >
-        <DialogHeader className={welcome ? "shrink-0" : undefined}>
-          {welcome && <p className="mb-3 text-sm font-semibold tracking-widest text-orange-400">MY PERFECT MEALS · WELCOME</p>}
-          <DialogTitle className={welcome
-            ? "text-3xl font-bold leading-tight text-white break-words [text-wrap:balance] sm:text-4xl"
-            : "text-xl font-bold text-white text-center break-words [text-wrap:balance]"}>
-            {title}
-          </DialogTitle>
-          <VisuallyHidden>
-            <DialogDescription>
-              Quick tour guide showing {steps.length} tips for this page
-            </DialogDescription>
-          </VisuallyHidden>
-        </DialogHeader>
-
+        {!welcome && header}
         <div data-onboarding-welcome={welcome ? "" : undefined}
-          className={welcome ? "min-h-0 flex-1 space-y-5 overflow-y-auto py-5 pr-2" : "space-y-4 py-4 max-h-[50vh] overflow-y-auto pr-2"}>
+          role={welcome ? "region" : undefined}
+          aria-label={welcome ? "Page introduction" : undefined}
+          tabIndex={welcome ? 0 : undefined}
+          className={welcome ? "min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain py-5 pr-2" : "space-y-4 py-4 max-h-[50vh] overflow-y-auto pr-2"}>
+          {welcome && header}
           {introduction && <p className="text-base leading-relaxed text-white/80">{introduction}</p>}
           {steps.map((step, index) => (
             <div key={index} className="flex items-start gap-3">

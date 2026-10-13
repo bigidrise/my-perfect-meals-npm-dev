@@ -1,5 +1,6 @@
-/* Defer the release banner during this one introduction; never acknowledge it. */
-body:has([data-onboarding-welcome]) [data-release-update-banner] {
+/* Defer announcements while a setup introduction is open; never dismiss them. */
+body:has([data-onboarding-welcome]) [data-release-update-banner],
+body:has([data-onboarding-welcome]) [data-trial-banner] {
   visibility: hidden;
   pointer-events: none;
 }
