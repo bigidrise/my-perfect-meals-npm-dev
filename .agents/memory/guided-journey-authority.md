@@ -154,3 +154,18 @@ including existing saved plans, while prohibiting changes to native saving behav
 canonical persisted evidence before offering completion or navigation. Report
 unreliable native save paths rather than converting their HTTP success into proof
 or repairing them without separate approval.
+
+For the initial setup page introductions, automatic presentation should be
+completion-driven: show on each return while the page's work is incomplete;
+after successful completion, show only through Guide. Dismissing the introduction
+is not completion. This includes onboarding and the Macro Calculator.
+
+**Why:** The user clarified that an account abandoned during onboarding must
+receive the explanation again on return, and that later profile or macro changes
+are voluntary revisits. Prior seen/opt-out suppression does not match this
+requested initial-setup behavior.
+
+**How to apply:** Diagnose against authoritative saved completion, not browser
+tour-seen flags. Close the modal for the current visit without immediately
+reopening it. This clarification was diagnosis-only, not authorization to change
+the application, expand to other pages, or release to Production.
