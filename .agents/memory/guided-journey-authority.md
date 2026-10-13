@@ -16,7 +16,20 @@ of existing pages, not monitoring of meal creation, plan saving, or task complet
 patterns. No requirement to finish a meal, no waiting for server board confirmation,
 and no automatic redirects to another tool. Do not touch underlying functionality.
 Leave Copilot and ElevenLabs alone unless separately approved. The current approval
-is a small read-only inventory, not implementation.
+is one small Development welcome-screen experiment, not a multi-change rollout.
+
+First-login guidance should be prominent written guidance with one main action
+leading to existing onboarding, plus a smaller Skip and Don't Show Again option.
+Copilot remains an optional assistant, not the primary onboarding experience.
+
+**Why:** The user explicitly limited the next work to "One welcome screen. One
+button. One test. Then you decide whether it's right," rather than another seven
+changes or guessing why existing guidance is missed.
+
+**How to apply:** Examine actual first-login order and competing prompts before
+changing presentation. Preserve native legal acknowledgements, navigation and
+onboarding. Test the single Development experiment on desktop and phone before
+applying the pattern elsewhere. Do not delete Copilot or cancel ElevenLabs.
 
 ## Earlier direction — historical, not authority to continue building it
 
