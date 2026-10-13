@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 // Routes where the banner should not appear
 const EXCLUDED_ROUTES = [
   "/welcome",
+  "/consumer-welcome",
   "/auth",
   "/login",
   "/pricing",

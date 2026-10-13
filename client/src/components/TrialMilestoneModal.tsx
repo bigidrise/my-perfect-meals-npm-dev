@@ -28,6 +28,7 @@ import { isInTrial } from "@/lib/subscriptionCheck";
 // ── Routes where no modal should appear ───────────────────────────────────────
 const EXCLUDED_ROUTES = [
   "/welcome",
+  "/consumer-welcome",
   "/auth",
   "/login",
   "/pricing",
