@@ -27,12 +27,12 @@ import { useTranslation } from "react-i18next";
 import { computeTrialDays } from "@shared/trialDays";
 import { NutritionPrioritiesSelector } from "@/components/NutritionPrioritiesSelector";
 import { useAdultNutritionPriorities } from "@/hooks/useNutritionPriorities";
+import { readOnboardingResumeStep, writeOnboardingResumeStep, clearOnboardingResume } from "@/lib/onboardingResume";
 
-const RESUME_STEP_KEY = "mpm.onboarding.resumeStep";
-const RESUME_FLOW_VERSION_KEY = "mpm.onboarding.flowVersion";
 const RESUME_FLOW_VERSION = "nutrition-priorities-v1";
 
 const TOTAL_STEPS = 11;
+const RESUME_FLOW = { flowVersion: RESUME_FLOW_VERSION, totalSteps: TOTAL_STEPS };
 
 const CUISINE_OPTIONS = [
   "American", "Mexican", "Italian", "Indian", "Chinese",
@@ -160,6 +160,12 @@ function getRecommendedBuilder(conditions: string[]): string {
 }
 
 export default function OnboardingV3() {
+  const { user } = useAuth();
+  // An account change must not retain the prior person's step or form state.
+  return <AccountOnboardingV3 key={user?.id ?? "awaiting-account"} />;
+}
+
+function AccountOnboardingV3() {
   const [, setLocation] = useLocation();
   const { refreshUser, user, loading } = useAuth();
   const { activeProfileId: guidedHouseholdProfileId } = useHousehold();
@@ -229,23 +235,16 @@ export default function OnboardingV3() {
 
   // Persist current step so we can resume after refresh / app close
   useEffect(() => {
-    if (!restoredRef.current) return;
-    localStorage.setItem(RESUME_STEP_KEY, String(step));
-    localStorage.setItem(RESUME_FLOW_VERSION_KEY, RESUME_FLOW_VERSION);
+    if (!restoredRef.current || !user?.id) return;
+    writeOnboardingResumeStep(localStorage, user.id, step, RESUME_FLOW);
   }, [step]);
 
   // On mount: restore step position and pre-populate fields from already-saved profile
   useEffect(() => {
-    if (restoredRef.current || !user) return;
+    if (restoredRef.current || !user?.id) return;
     restoredRef.current = true;
 
-    const savedStep = localStorage.getItem(RESUME_STEP_KEY);
-    if (savedStep) {
-      const n = parseInt(savedStep, 10);
-      const isPreviousFlow = localStorage.getItem(RESUME_FLOW_VERSION_KEY) !== RESUME_FLOW_VERSION;
-      const restoredStep = isPreviousFlow && n >= 6 ? n + 1 : n;
-      if (restoredStep >= 1 && restoredStep <= TOTAL_STEPS) setStep(restoredStep);
-    }
+    setStep(readOnboardingResumeStep(localStorage, user.id, RESUME_FLOW));
 
     if (user.firstName) setFirstName(user.firstName);
     if (user.lastName) setLastName(user.lastName);
@@ -563,8 +562,7 @@ export default function OnboardingV3() {
       let completionData: any = {};
       try { completionData = await completeRes.json(); } catch { /* ignore */ }
 
-      localStorage.removeItem(RESUME_STEP_KEY);
-      localStorage.removeItem(RESUME_FLOW_VERSION_KEY);
+      clearOnboardingResume(localStorage, user?.id);
       await refreshUser();
       beginWorkflowSave(user?.id, "get_to_know_you",
         personalWorkflowSaveEnabled(IS_DEVELOPMENT, user, guidedHouseholdProfileId)).saved();

@@ -22,3 +22,14 @@ feature access from organization identity. Review this flow one step at a time
 without broadening it into unrelated organization or billing changes.
 Hiding promotions must not remove the seven-day trial, change subscriptions or
 expiration, or modify the welcome acknowledgements or onboarding introduction.
+
+Returning-login routing must use genuine evidence of the two existing Consumer
+Welcome acknowledgements. Do not invent a completion flag, infer acceptance
+from profile answers, or substitute professional/client agreements as proof.
+
+**Why:** The user explicitly required checking for reliable stored evidence
+before changing this routing and preserving the existing legal requirements.
+
+**How to apply:** Record actual explicit acknowledgements rather than backfilling
+acceptance for existing accounts. If reliable evidence is absent, obtain approval
+for recording it before making acknowledgement-dependent routing changes.
