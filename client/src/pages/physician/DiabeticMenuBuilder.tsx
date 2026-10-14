@@ -110,8 +110,9 @@ import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import DailyMealProgressBar from "@/components/guided/DailyMealProgressBar";
 import { InformationModal } from "@/components/ui/universal-modal";
-import { useQuickTour } from "@/hooks/useQuickTour";
-import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import { useBuilderGuidanceTour } from "@/hooks/useBuilderGuidanceTour";
+import { TourStep } from "@/components/guided/QuickTourModal";
+import { BuilderGuidanceTour } from "@/components/guided/BuilderGuidanceTour";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 import { useDailyNutritionState } from "@/hooks/useDailyNutritionState";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
@@ -151,7 +152,6 @@ export default function DiabeticMenuBuilder() {
   ], [t]);
 
   usePageTitle(t("diabeticBuilder.pageTitle"));
-  const quickTour = useQuickTour("diabetic-menu-builder");
   const [, setLocation] = useLocation();
   const search = useSearch();
   const householdProfileId = useMemo(
@@ -168,6 +168,7 @@ export default function DiabeticMenuBuilder() {
   const queryClient = useQueryClient();
 
   const effectiveUserId = proClientId || user?.id;
+  const quickTour = useBuilderGuidanceTour("diabetic", proClientId, householdProfileId);
 
   // Resolve nutrition ONCE. Presentation components receive it as props.
   const nutritionTargets = useBaselineNutrition(effectiveUserId);
@@ -1887,7 +1888,7 @@ export default function DiabeticMenuBuilder() {
       </InformationModal>
 
       {/* Quick Tour Modal */}
-      <QuickTourModal
+      <BuilderGuidanceTour key={quickTour.scopeKey} builderKey="diabetic" professionalClient={Boolean(proClientId)}
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
         title={t("diabeticBuilder.tourTitle")}

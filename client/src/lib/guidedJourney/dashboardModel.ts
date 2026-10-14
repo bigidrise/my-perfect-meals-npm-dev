@@ -1,5 +1,6 @@
 import type { JourneySnapshot, JourneyStepId, CompletionState } from "../../../../shared/guidedJourney";
 import type { GuidancePreferenceResult } from "./preferences";
+import { mealBuilderGuidance } from "@shared/mealBuilderGuidance";
 
 export const JOURNEY_STAGE_LABELS: Record<JourneyStepId, string> = {
   get_to_know_you: "Get to Know You",
@@ -29,12 +30,12 @@ export function manualJourneyDestination(snapshot: JourneySnapshot): string | nu
   const routes: Record<JourneyStepId, string> = {
     get_to_know_you: "/onboarding",
     nutrition_targets: "/macro-counter",
-    saved_meal_plan: "/general-nutrition-builder/build",
+    saved_meal_plan: mealBuilderGuidance(snapshot.builderKey)?.route ?? "",
   };
   const id = snapshot.nextStep;
   if (!id || snapshot.nextAction.route !== routes[id]
     || snapshot.steps.find(step => step.id === id)?.evidence.state !== "incomplete") return null;
-  if (id === "saved_meal_plan" && (snapshot.builderKey !== "general_nutrition"
+  if (id === "saved_meal_plan" && (!mealBuilderGuidance(snapshot.builderKey)
     || snapshot.completionGoal !== "saved_meal_plan")) return null;
   return routes[id];
 }

@@ -84,8 +84,9 @@ import { SnackCreatorModal } from "@/components/SnackCreatorModal";
 import { SnackCreatorButton } from "@/components/SnackCreatorButton";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
 import { useNavigateToFavorites } from "@/hooks/useNavigateToFavorites";
-import { useQuickTour } from "@/hooks/useQuickTour";
-import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import { useBuilderGuidanceTour } from "@/hooks/useBuilderGuidanceTour";
+import { TourStep } from "@/components/guided/QuickTourModal";
+import { BuilderGuidanceTour } from "@/components/guided/BuilderGuidanceTour";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 import { useDailyNutritionState } from "@/hooks/useDailyNutritionState";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
@@ -113,7 +114,6 @@ export default function WeeklyMealBoard() {
 
 
 
-  const quickTour = useQuickTour("general-nutrition-builder");
 
   const GENERAL_NUTRITION_TOUR_STEPS = useMemo<TourStep[]>(() => [
     { icon: "1", title: t("generalNutritionBuilder.tour1Title"), description: t("generalNutritionBuilder.tour1Desc") },
@@ -131,6 +131,7 @@ export default function WeeklyMealBoard() {
   const clientId = params?.id || "1";
   const isProCareMode = !!params?.id;
   const effectiveUserId = proClientId || user?.id;
+  const quickTour = useBuilderGuidanceTour("general_nutrition", proClientId, householdProfileId);
 
   // Resolve nutrition ONCE. Use performance-aware resolver so Training Nutrition
   // Schedule adjustments are reflected when the user has saved a schedule.
@@ -1557,7 +1558,7 @@ export default function WeeklyMealBoard() {
       />
 
       {/* Quick Tour Modal */}
-      <QuickTourModal
+      <BuilderGuidanceTour key={quickTour.scopeKey} builderKey="general_nutrition" professionalClient={Boolean(proClientId)} useIntroduction={quickTour.useIntroduction}
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
         title={t("generalNutritionBuilder.tourTitle")}

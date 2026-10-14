@@ -1,5 +1,6 @@
 import { UniversalDialog } from "../ui/universal-modal";
 import type { GuidedJourneyExplanationModel } from "../../lib/guidedJourney/explanation";
+import type { ReactNode } from "react";
 
 interface GuidedJourneyExplanationProps {
   open: boolean;
@@ -9,6 +10,7 @@ interface GuidedJourneyExplanationProps {
   onSecondary?: () => void;
   onClose: () => void;
   onRestoreFocus?: () => void;
+  extraContent?: ReactNode;
 }
 
 export function GuidedJourneyExplanation({
@@ -19,6 +21,7 @@ export function GuidedJourneyExplanation({
   onSecondary,
   onClose,
   onRestoreFocus,
+  extraContent,
 }: GuidedJourneyExplanationProps) {
   return (
     <UniversalDialog
@@ -97,6 +100,7 @@ export function GuidedJourneyExplanation({
             {model.activityNotice}
           </p>
         )}
+        {extraContent}
       </div>
     </UniversalDialog>
   );

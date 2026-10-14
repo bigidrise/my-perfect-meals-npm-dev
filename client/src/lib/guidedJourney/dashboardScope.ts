@@ -2,6 +2,7 @@ import type { User } from "@/lib/auth";
 import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
 import type { JourneySnapshot } from "../../../../shared/guidedJourney";
 import { manualJourneyDestination } from "./dashboardModel";
+import { mealBuilderGuidance } from "@shared/mealBuilderGuidance";
 
 export type JourneyDashboardAccount = Pick<User,
   "id" | "role" | "professionalRole" | "isSandbox" | "activeBoard"
@@ -45,15 +46,16 @@ export function journeyDestinationAllowed(
     || account.role !== "client" || account.professionalRole || account.isSandbox) return false;
   const route = manualJourneyDestination(snapshot);
   if (!route) return false;
-  if (route !== "/general-nutrition-builder/build") return true;
-  return journeyMealBuilderAllowed(account);
+  if (route !== mealBuilderGuidance(snapshot.builderKey)?.route) return true;
+  return journeyMealBuilderAllowed(account, snapshot.builderKey ?? undefined);
 }
 
-export function journeyMealBuilderAllowed(account: JourneyDashboardAccount): boolean {
+export function journeyMealBuilderAllowed(account: JourneyDashboardAccount, builderKey = "general_nutrition"): boolean {
   // Match the existing BuilderAccessGuard; additionally decline a conflicting
   // professional assignment rather than adding an unapproved Builder adapter.
   const assigned = account.studioMembership?.assignedBuilder;
   return hasActivePaidSubscription(account)
-    && (!account.activeBoard || account.activeBoard === "general_nutrition" || account.builderSwitchUnlimited === true)
-    && (!assigned || assigned === "general_nutrition");
+    && !!mealBuilderGuidance(builderKey)
+    && (!account.activeBoard || account.activeBoard === builderKey || account.builderSwitchUnlimited === true)
+    && (!assigned || assigned === builderKey);
 }

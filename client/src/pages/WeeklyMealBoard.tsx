@@ -120,8 +120,9 @@ import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import { useDailyNutritionState } from "@/hooks/useDailyNutritionState";
 import { useCopilot } from "@/components/copilot/CopilotContext";
-import { useQuickTour } from "@/hooks/useQuickTour";
-import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import { useBuilderGuidanceTour } from "@/hooks/useBuilderGuidanceTour";
+import { TourStep } from "@/components/guided/QuickTourModal";
+import { BuilderGuidanceTour } from "@/components/guided/BuilderGuidanceTour";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import {
   isGuestMode,
@@ -217,7 +218,7 @@ export default function WeeklyMealBoard() {
   // Baseline resolver — never applies Performance session modifiers.
   const nutritionTargets = useBaselineNutrition(effectiveUserId);
 
-  const quickTour = useQuickTour("weekly-meal-board");
+  const quickTour = useBuilderGuidanceTour("weekly", proClientId, householdProfileId);
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
   // CHICAGO CALENDAR FIX v1.0: Uses noon UTC anchor pattern
@@ -2036,7 +2037,7 @@ export default function WeeklyMealBoard() {
         />
 
         {/* Quick Tour Modal */}
-        <QuickTourModal
+        <BuilderGuidanceTour key={quickTour.scopeKey} builderKey="weekly" professionalClient={Boolean(proClientId)}
           isOpen={quickTour.shouldShow}
           onClose={quickTour.closeTour}
           title="How to Build Your Week"

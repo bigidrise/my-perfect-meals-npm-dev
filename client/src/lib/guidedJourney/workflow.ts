@@ -1,4 +1,5 @@
 import type { JourneySnapshot } from "../../../../shared/guidedJourney";
+import { mealBuilderGuidance } from "@shared/mealBuilderGuidance";
 import { apiRequest } from "@/lib/apiRequest";
 import { explanationJourneyAllowed } from "./explanation";
 import { isPersonalJourneyWorkflow, type JourneyDashboardAccount } from "./dashboardScope";
@@ -96,7 +97,7 @@ export function workflowHandoff(snapshot: JourneySnapshot | null, account: Journ
     destination: "explanation" as const,
   };
   if (snapshot.nextStep === "saved_meal_plan") return {
-    message: `${previousSaveNotice}${latest?.status === "failed" ? "Previously saved nutrition targets remain available." : "Your saved nutrition targets are confirmed."} Next: create your first meal in General Nutrition Meal Builder.`,
+    message: `${previousSaveNotice}${latest?.status === "failed" ? "Previously saved nutrition targets remain available." : "Your saved nutrition targets are confirmed."} Next: create your first meal in ${mealBuilderGuidance(snapshot.builderKey)?.name ?? "your Meal Builder"}.`,
     destination: "explanation" as const,
   };
   return null;
