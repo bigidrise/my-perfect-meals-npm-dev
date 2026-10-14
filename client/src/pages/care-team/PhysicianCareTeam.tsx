@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
@@ -50,7 +50,8 @@ const DEFAULT_PERMS: Record<ProRole, Permissions> = {
   dietitian: { canViewMacros: true, canAddMeals: true, canEditPlan: true },
 };
 
-export default function PhysicianCareTeamPage() {
+export default function PhysicianCareTeamPage({ syntheticContent }: { syntheticContent?: ReactNode } = {}) {
+  const synthetic = syntheticContent !== undefined;
   const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
@@ -75,13 +76,13 @@ export default function PhysicianCareTeamPage() {
   ];
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || synthetic) return;
     const isAdmin = user.role === "admin";
     const isPhysician = user.professionalRole === "physician";
     if (!isAdmin && !isPhysician) {
       setLocation("/more");
     }
-  }, [user, setLocation]);
+  }, [user, setLocation, synthetic]);
 
   const [members, setMembers] = useState<CareMember[]>([]);
   const [loading, setLoading] = useState(false);
@@ -92,6 +93,7 @@ export default function PhysicianCareTeamPage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
+    if (synthetic) return;
     let mounted = true;
     (async () => {
       try {
@@ -107,13 +109,14 @@ export default function PhysicianCareTeamPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [synthetic]);
 
   useEffect(() => {
     setPerms(DEFAULT_PERMS[role]);
   }, [role]);
 
   async function inviteByEmail() {
+    if (synthetic) return;
     setError(null);
     setSuccessMsg(null);
     if (!invEmail.trim()) {
@@ -150,6 +153,7 @@ export default function PhysicianCareTeamPage() {
   const [availSaved, setAvailSaved] = useState(false);
 
   const updateAvailability = useCallback(async (status: AvailStatus) => {
+    if (synthetic) return;
     setAvailStatus(status);
     setAvailSaving(true);
     try {
@@ -164,9 +168,10 @@ export default function PhysicianCareTeamPage() {
     } finally {
       setAvailSaving(false);
     }
-  }, [backAtInput, awayFromInput]);
+  }, [backAtInput, awayFromInput, synthetic]);
 
   const saveBackAt = useCallback(async () => {
+    if (synthetic) return;
     setAvailSaving(true);
     try {
       await apiRequest("/api/professionals/me/availability", {
@@ -180,7 +185,7 @@ export default function PhysicianCareTeamPage() {
     } finally {
       setAvailSaving(false);
     }
-  }, [availStatus, backAtInput, awayFromInput]);
+  }, [availStatus, backAtInput, awayFromInput, synthetic]);
 
   return (
     <motion.div
@@ -189,7 +194,7 @@ export default function PhysicianCareTeamPage() {
       transition={{ duration: 0.6 }}
       className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 pb-safe-nav"
     >
-      <ProfessionalIntroOverlay type="physician" onEnter={() => {}} />
+      {!synthetic && <ProfessionalIntroOverlay type="physician" onEnter={() => {}} />}
 
       <MobileHeaderGuard>
       <div
@@ -210,6 +215,8 @@ export default function PhysicianCareTeamPage() {
         className="max-w-6xl mx-auto px-4 sm:px-6 space-y-6 pb-8"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
+        {syntheticContent}
+        {!synthetic && <>
         {/* Platform Features */}
         <GlassCard className="border border-orange-500/20">
           <GlassCardContent className="p-4">
@@ -280,6 +287,7 @@ export default function PhysicianCareTeamPage() {
             )}
           </GlassCardContent>
         </GlassCard>
+        </>}
 
         {/* Physician Portal CTA */}
         <GlassCard className="border border-orange-400/30 bg-orange-900/10">
@@ -300,7 +308,7 @@ export default function PhysicianCareTeamPage() {
         </GlassCard>
 
         {/* Invite Patient */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {!synthetic && <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <GlassCard className="border-2 border-orange-500/40">
             <GlassCardContent className="p-6 space-y-4">
               <div className="flex items-center gap-2">
@@ -352,7 +360,7 @@ export default function PhysicianCareTeamPage() {
               </Button>
             </GlassCardContent>
           </GlassCard>
-        </div>
+        </div>}
 
         {successMsg && (
           <div className="rounded-xl border border-green-500/50 bg-green-900/30 text-green-100 p-3">

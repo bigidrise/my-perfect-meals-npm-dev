@@ -1134,19 +1134,8 @@ export default function Router() {
     }
   }, [location, user, loading, isProfessionalUser, isFounderPilotRoute]);
 
-  useEffect(() => {
-    if (!authLoading && user?.operatingStatus === "demo_only" && !isFounderPilotRoute &&
-      !["/auth", "/welcome", "/logout", "/signout", "/auth/logout"].includes(location) &&
-      location !== "/pro/physician-clients") {
-      setLocation("/pro/physician-clients");
-    }
-  }, [authLoading, user?.operatingStatus, location, setLocation, isFounderPilotRoute]);
-
-  useEffect(() => {
-    if (isFounderDevelopmentSession && !isAuthRoute && !isFounderPilotRoute && location !== "/pro/physician-clients") {
-      setLocation("/pro/physician-clients");
-    }
-  }, [isFounderDevelopmentSession, isAuthRoute, location, setLocation, isFounderPilotRoute]);
+  // Demo isolation belongs to the data adapter, not a forced single-page
+  // redirect. The route-aware workspace below never mounts live client pages.
 
   if (
     import.meta.env.DEV &&

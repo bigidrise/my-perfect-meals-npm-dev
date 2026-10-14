@@ -8,7 +8,10 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
-export default function ProPortal() {
+export default function ProPortal({ studioHome = false, syntheticContent }: {
+  studioHome?: boolean;
+  syntheticContent?: import("react").ReactNode;
+} = {}) {
   const { t } = useTranslation("pro");
   const [, setLocation] = useLocation();
   const quickTour = useQuickTour("pro-portal");
@@ -54,7 +57,7 @@ export default function ProPortal() {
           </button>
 
           {/* Title */}
-          <h1 className="text-lg font-bold text-white">{t("physicianPortal.title")}</h1>
+          <h1 className="text-lg font-bold text-white">{studioHome ? "Physician Studio" : t("physicianPortal.title")}</h1>
 
           <div className="flex-grow" />
 
@@ -68,14 +71,17 @@ export default function ProPortal() {
         className="max-w-6xl mx-auto px-6 space-y-6"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
+        {syntheticContent}
         <Card className="bg-black/20 backdrop-blur-lg border-white/20">
           <CardHeader>
-            <CardTitle className="text-2xl text-white">{t("physicianPortal.title")}</CardTitle>
+            <CardTitle className="text-2xl text-white">{studioHome ? "Physician Studio" : t("physicianPortal.title")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <p className="text-white/80">
-                {t("physicianPortal.comingSoon")}
+                {syntheticContent !== undefined
+                  ? "Open your Care Team or select a synthetic client to review their dashboard. Patient records and invitations stay inside this test workspace."
+                  : t("physicianPortal.comingSoon")}
               </p>
               <Button
                 onClick={() => setLocation("/pro/physician-clients")}
@@ -83,6 +89,10 @@ export default function ProPortal() {
               >
                 {t("physicianPortal.viewClients")}
               </Button>
+              {syntheticContent !== undefined && <Button
+                onClick={() => setLocation("/care-team/physician")}
+                className="w-full bg-orange-600 text-white hover:bg-orange-700"
+              >Open Care Team</Button>}
             </div>
           </CardContent>
         </Card>
