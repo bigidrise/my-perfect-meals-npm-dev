@@ -129,7 +129,7 @@ router.use("/clients/:clientId/starch-preferences",
       logAudit({
         actor: actorId, target: clientId,
         orgId: (req as any).authUser?.organizationId ?? null,
-        action: "UPDATE", resourceType: "starch_preferences", table: "users",
+        action: "WRITE", resourceType: "starch_preferences", table: "users",
         route: req.path, ip: getClientIp(req as any),
         meta: { changedFields: ["defaultStarchMealsPerDay", "starchDistributionStrategy"] },
       });
