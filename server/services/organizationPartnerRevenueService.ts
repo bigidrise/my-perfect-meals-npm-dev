@@ -5,6 +5,12 @@ import { businesses } from "../db/schema/business";
 import { organizations } from "../db/schema/organizations";
 import { partnerRecords } from "../db/schema/partnerRecords";
 import { deriveBusinessCommercialState } from "./businessCommercialAccessService";
+import {
+  FOUNDING_ORGANIZATION_CAMPAIGN,
+  foundingOrganizationPolicyEnabled,
+  hasRecordedOrganizationPaidActivation,
+  type OrganizationPaymentEvidence,
+} from "./organizationRewardfulPolicy";
 
 export const ORGANIZATION_PARTNER_TERMS = {
   customerDiscount: 10,
@@ -31,7 +37,7 @@ export type OrganizationPartnerLifecycleState =
 export function deriveOrganizationPartnerLifecycle(input: {
   rewardfulAffiliateId: string | null;
   rewardfulState: string;
-  business: {
+  business: OrganizationPaymentEvidence & {
     status: "active" | "cancelled" | "past_due" | "pending_billing";
     commercialAccessMode: "onboarding_pilot" | "paid" | "authorized_arrangement" | null;
     commercialAccessStartedAt: Date | null;
@@ -64,6 +70,19 @@ export function deriveOrganizationPartnerLifecycle(input: {
     };
   }
   const commercialState = deriveBusinessCommercialState(input.business, input.now);
+  if (foundingOrganizationPolicyEnabled()) {
+    const setupAvailable = hasRecordedOrganizationPaidActivation(input.business, input.now);
+    return {
+      state: setupAvailable ? "setup_available" as const : "not_available" as const,
+      setupAvailable,
+      reason: setupAvailable
+        ? "organization_paid_activation"
+        : commercialState === "pilot_active"
+          ? "onboarding_pilot_active"
+          : "organization_paid_activation_required",
+      commercialState,
+    };
+  }
   const expiredOnboardingPilot =
     input.business.commercialAccessMode === "onboarding_pilot" &&
     commercialState === "commercial_required";
@@ -96,6 +115,10 @@ export async function resolveOrganizationPartnerLifecycle(
       commercialAccessMode: businesses.commercialAccessMode,
       commercialAccessStartedAt: businesses.commercialAccessStartedAt,
       commercialAccessEndsAt: businesses.commercialAccessEndsAt,
+      stripeCustomerId: businesses.stripeCustomerId,
+      stripeSubscriptionId: businesses.stripeSubscriptionId,
+      stripeLastEventCreatedAt: businesses.stripeLastEventCreatedAt,
+      createdAt: businesses.createdAt,
     })
     .from(organizations)
     .innerJoin(businesses, eq(businesses.id, organizations.sourceBusinessId))
@@ -133,8 +156,10 @@ export async function ensureOrganizationPartnerRevenueShell(
       partnerName: input.organizationName ?? null,
       partnerTypes: [],
       customerDiscount: ORGANIZATION_PARTNER_TERMS.customerDiscount,
-      commissionRate: ORGANIZATION_PARTNER_TERMS.commissionRate,
-      commissionMonths: ORGANIZATION_PARTNER_TERMS.commissionMonths,
+      commissionRate: foundingOrganizationPolicyEnabled()
+        ? FOUNDING_ORGANIZATION_CAMPAIGN.commissionRate : ORGANIZATION_PARTNER_TERMS.commissionRate,
+      commissionMonths: foundingOrganizationPolicyEnabled()
+        ? FOUNDING_ORGANIZATION_CAMPAIGN.commissionMonths : ORGANIZATION_PARTNER_TERMS.commissionMonths,
       status: "not_activated",
     })
     .onConflictDoNothing({ target: partnerRecords.organizationId });

@@ -1,5 +1,20 @@
 const REWARDFUL_API_BASE = "https://api.getrewardful.com/v1";
 
+export async function getRewardfulCampaign(campaignId: string) {
+  const res = await fetch(`${REWARDFUL_API_BASE}/campaigns/${encodeURIComponent(campaignId)}`, {
+    headers: { Authorization: basicAuth() },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) throw new Error(`Rewardful campaign verification failed (${res.status}).`);
+  return res.json() as Promise<{
+    id: string;
+    name: string;
+    reward_type: string;
+    commission_percent: number;
+    max_commission_period_months: number | null;
+  }>;
+}
+
 function basicAuth(): string {
   const secret = process.env.REWARDFUL_API_SECRET ?? "";
   return "Basic " + Buffer.from(`${secret}:`).toString("base64");

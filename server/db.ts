@@ -1,4 +1,5 @@
 import { Pool } from "pg";
+import { installDevelopmentBillingWriteGuard } from "./services/developmentBillingWriteGuard";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { getDatabaseTlsConfig } from "./lib/databaseTls";
 import * as schema from "@shared/schema";
@@ -73,6 +74,9 @@ export const pool = new Pool({
   keepAliveInitialDelayMillis: 10000,
   ssl: getDatabaseTlsConfig(databaseUrl),
 });
+
+installDevelopmentBillingWriteGuard(pool);
+pool.on("connect", installDevelopmentBillingWriteGuard);
 
 // Handle pool errors without crashing
 pool.on("error", (err) => {

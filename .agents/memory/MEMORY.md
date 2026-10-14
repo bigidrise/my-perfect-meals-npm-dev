@@ -1,4 +1,5 @@
 - [Safe-area modal layout](safe-area-modal-layout-rule.md) — safe-area spacing fixes must not restructure modal flex or overflow behavior.
+- [Development startup log retention](development-startup-log-retention.md) — preview asset reloads can displace boot messages; capture early and qualify incomplete log evidence.
 - [Authenticated API cache identity](authenticated-api-client-cache-identity.md) — removing caller IDs from APIs must not erase client-side account partitions.
 - [Role-aware polling authentication](role-aware-polling-auth.md) — background 401/403 responses are not always invalid sessions; respect endpoint role boundaries.
 - [Studio message composer controls](studio-message-composer-controls.md) — client-facing composers share purple Send, orange Voice, and prominent red Video controls.
@@ -28,6 +29,7 @@
 - [Savory-side image recovery](savory-side-image-recovery.md) — ambiguous savory sides get bounded plated guidance and one strictly validated recovery attempt.
 - [Override propagation](override-propagation-pattern.md) — successful allergy PIN overrides must reach every post-generation validation path.
 - [Release type gate](release-type-gate.md) — use the layered release check so newly introduced type errors cannot hide in debt.
+- [Process environment types](process-environment-type-contracts.md) — named-key Pick and Partial Pick can reject an index-signature-only environment dictionary.
 - [Drizzle schema migration fallback](drizzle-kit-push-instability.md) — use small idempotent SQL migrations when schema-pull tooling is unreliable.
 - [Drizzle array columns](ace-drizzle-array-rule.md) — SQL templates expand arrays; use explicit per-value conditions for membership queries.
 - [PostgreSQL parameter gaps](postgres-parameter-gaps.md) — mocked writes can pass while live updates fail if SQL leaves unused leading placeholders.
@@ -47,13 +49,7 @@
 - [Private Studio moderation policy](private-studio-moderation-policy.md) — ordinary profanity is flagged but deliverable in private Studio; serious categories and public policy stay unchanged.
 - [Beverage safeguard alternative parity](beverage-safeguard-alternative-parity.md) — alternative offers must use every original validation surface and stay DEV-gated until intentionally released.
 - [Pre-registration trial activation](pre-registration-trial-activation.md) — Pilot and Client access are separate identities; their clocks start only when a matching account activates.
-- [Legacy Hydration intake bridge](legacy-hydration-intake-bridge.md) — until migration approval, canonical Hydration reads project from water_logs without a second stored copy.
-- [Hydration modifier governance](hydration-modifier-governance.md) — context sources emit nonnumeric claims; one deterministic resolver owns precedence, suppression, and review.
-- [Hydration planning eligibility](hydration-planning-eligibility.md) — eligibility is nonnumeric; validate every registry claim before resolver status filtering.
-- [Hydration local-day authority](hydration-local-day-authority.md) — hydration totals and rolling windows follow the subject's IANA timezone, including DST and backdated intake.
-- [Hydration numeric policy v0.1](hydration-numeric-policy-v01.md) — only current clinician directives permit numbers; production stays inactive until the full activation gate opens.
-- [Hydration four-door product boundary](daily-hydration-plan-architecture.md) — keep Everyday, Athletic, Sick-Day, and Liquid Nutrition Support distinct while one Hub organizes explicit instructions.
-- [Hydration product recommendation boundary](hydration-product-recommendation-boundary.md) — commercial relationships never determine eligibility; qualify and verify products first.
+- [Hydration references](hydration-reference-index.md) — timing, intake bridge, numeric governance, eligibility, product doors, Creator handoffs, professional roles, and paywall.
 - [Professional legal activation boundary](professional-legal-activation-boundary.md) — ProCare activation and provider actions require explicit current attestation and role-specific agreements.
 - [Private Pilot ProCare](private-pilot-procare.md) — temporary founder grants are explicit runtime entitlements, never synthetic paid plans.
 - [Academy progression authority](academy-progression-authority.md) — Phase 1 is educational; Phase 2 earns the core Specialist credential; ProCare is optional and role-gated.
@@ -62,10 +58,6 @@
 - [Production-mode dev dependencies](production-mode-dev-dependencies.md) — NODE_ENV=production can omit declared TypeScript types and create false LSP cascades.
 - [Crawler-visible SPA pages](crawler-visible-spa-pages.md) — public HTML snapshots must precede every SPA fallback and remain public after the client mounts.
 - [Nutrition consistency score boundary](nutrition-consistency-score-boundary.md) — score observable user behavior, never rules the platform enforces automatically.
-- [Hydration Creator handoffs](hydration-creator-handoffs.md) — Creator handoffs carry signed intent only; current safety context is always re-resolved server-side.
-- [Professional Hydration role split](professional-hydration-role-split.md) — clinical professionals own numeric directives; trainers only own bounded nonclinical coaching.
-- [Hydration Hub entry experience](hydration-hub-entry-experience.md) — render the four-door shell immediately and keep Everyday/Athletic Creator handoffs obvious.
-- [Hydration Center strict paywall](hydration-center-strict-paywall.md) — Free and Essential stay blocked even when internal pre-launch/test bypasses are enabled.
 - [Whole-Food governance](whole-food-governance.md) — central evidence-aware policy gates every active human recommendation; a clean coverage matrix is required for platform-wide claims.
 - [Consumer ProCare role split](consumer-procare-role-split.md) — Pro opens coach/trainer relationships; Clinical remains required for clinical professionals and data.
 - [Stripe entitlement authority](stripe-entitlement-authority.md) — web access requires Stripe verification plus immutable user identity; email and client returns never grant it.
@@ -75,6 +67,8 @@
 - [Professional glucose access](professional-glucose-access.md) — raw glucose requires verified clinical identity, exact active care relationship, org isolation, and current consent.
 - [Saved grocery evidence governance](saved-grocery-evidence-governance.md) — permanent favorites stay evidence-ranked and fail closed against the current profile.
 - [Auth security-state issuance](auth-security-state-issuance.md) — credential issuance must compare the security version verified before password or MFA acceptance.
+- [Signup email and username identity](signup-email-username-identity.md) — matching email prefixes never link accounts; username collisions must not block distinct emails.
+- [Consumer signup first-run order](consumer-signup-first-run.md) — regular signup leads into onboarding and personal meal setup, not trial feature exploration.
 - [Browser CSRF boundary](browser-csrf-boundary.md) — cookie mutations require exact-origin session tokens; native bearer traffic and signed callbacks remain distinct.
 - [Duplicate-route authorization](duplicate-route-authorization.md) — secure every production-effective registration; a later guarded router cannot protect an earlier match.
 - [Reason-coded food outcomes](reason-coded-food-outcomes.md) — every governed food adaptation or block must identify what changed and the exact rule that caused it.
@@ -82,6 +76,7 @@
 - [One-action food choice](one-action-food-choice.md) — profiles set defaults; an informed explicit choice governs one food action without changing the profile.
 - [Macro replacement boundary](macro-replacement-boundary.md) — recalculation is preview-only; saved targets remain authoritative until a final confirmed save succeeds.
 - [Business invitation identity](business-invitation-identity.md) — one email-bound invitation connects existing or new accounts through the same acceptance path.
+- [Physician pilot invitation experience](physician-pilot-invitation-experience.md) — one emailed link preserves auth context; personal and organization paths share the physician clock, not client clocks.
 - [Organization-owned Rewardful identity](organization-rewardful-identity.md) — Rewardful identities belong to exact organizations; never infer them from an operator’s user ID or email.
 - [Multi-organization membership](multi-organization-membership.md) — one account can manage multiple isolated organizations through explicit workspace selection.
 - [Business Suite commercial boundary](business-suite-commercial-boundary.md) — $44.99 is flat at quantity 1; invitations never grant permanent sponsored professional access.
@@ -144,9 +139,17 @@
 - [Professional credential clearance](professional-credential-clearance.md) — bind genuine MFA-reviewed evidence to current identity; activation, pilots and demos remain separate.
 - [Grocery Coach meal-card workflow](grocery-coach-meal-card-workflow.md) — automatic Favorites creation and card continuity on reopen; recovery must not duplicate saves.
 - [Focused Jest execution](focused-jest-execution.md) — use isolated test transpilation and a separate type gate to avoid loading the entire project twice.
+- [Studio loading release boundary](studio-loading-release-boundary.md) — loading corrections are Development-only; permission caching and restart/release need separate approval.
 - [Recipe carbohydrate categories](recipe-carb-category-boundary.md) — preserve explicit source estimates; dietary fiber and unknown carbohydrate remain distinct.
 - [Interrupted edit integrity](interrupted-edit-integrity.md) — check every affected file after a disconnected multi-file edit, including reported successes.
 - [Page paywall return policy](page-paywall-return-policy.md) — denied pages need an accessible parent behind the modal; action-level prompts stay on their current page.
 - [Recipe Maker product expectation](recipe-maker-product-expectation.md) — reliable, identity-preserving recipes; category recognition alone does not prove clinical compliance.
 - [Dessert Creator product boundary](dessert-creator-product-boundary.md) — Craving is for smaller meals; Dessert is for larger recipes such as whole pies and pans of brownies.
 - [Craving quality standard](craving-quality-standard.md) — preserve adapted food identity without rigid ingredients, routine extra AI checks, or overrejecting legitimate variations.
+- [Pilot erasure and receipt retention](pilot-erasure-and-receipt-retention.md) — operational capabilities and financial consent have different erasure purposes; no receipt retention period was established.
+- [Neon preflight default privileges](neon-preflight-default-privileges.md) — scope default ACL checks to the actual creator, schema, and object type; provider defaults need not apply.
+- [PostgreSQL catalog array decoding](postgres-catalog-array-decoding.md) — cast catalog identifier arrays to text[] for node-postgres; name[] may arrive as raw strings.
+- [Drizzle billing insert defaults](drizzle-billing-insert-defaults.md) — billing-column names alone cannot distinguish free inserts from paid writes; test actual Drizzle SQL.
+- [Reusable business partner pilot](reusable-business-partner-pilot.md) — one shared link, independent per-account pilot clocks; forwarding restrictions are explicitly deferred.
+- [Guided Journey authority](guided-journey-authority.md) — explain existing tasks and verify saved work; guidance never owns navigation, access, or nutrition decisions.
+- [Studio starch plan parity](studio-starch-plan-parity.md) — Physician and Trainer choices must share the client's calculator count and timing and reach their Builders.

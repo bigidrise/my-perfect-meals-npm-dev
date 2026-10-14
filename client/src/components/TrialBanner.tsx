@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 // Routes where the banner should not appear
 const EXCLUDED_ROUTES = [
   "/welcome",
+  "/consumer-welcome",
   "/auth",
   "/login",
   "/pricing",
@@ -79,6 +80,7 @@ export function TrialBanner() {
 
   return (
     <div
+      data-trial-banner
       className="fixed left-0 right-0 z-[9990] pointer-events-none"
       style={{ top: "calc(env(safe-area-inset-top, 0px) + 4rem)" }}
     >

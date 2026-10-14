@@ -68,6 +68,7 @@ export interface User {
 
   isTester?: boolean;
   isSandbox?: boolean;
+  isFounder?: boolean;
 
   accessTier?: AccessTier;
 
@@ -84,6 +85,8 @@ export interface User {
   // Onboarding completion - CRITICAL for enforcing onboarding gate
 
   onboardingCompletedAt?: string | null;
+  /** Fresh server evidence of an existing macro profile; contains no measurements or targets. */
+  hasSavedMacroProfile?: boolean;
   // Profile data from onboarding (used by Edit Profile)
 
   firstName?: string | null;
@@ -161,6 +164,8 @@ export interface User {
   professionalRole?: AccountProfessionalRole | null;
   /** Server-resolved restriction; never an authorization grant from client state. */
   operatingStatus?: "demo_only" | null;
+  /** Server-issued Development presentation choice; never a clinical entitlement. */
+  developmentPhysicianStudioInterface?: "original";
 
   professionalCategory?: "certified" | "experienced" | "non_certified" | null;
 

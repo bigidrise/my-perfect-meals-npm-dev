@@ -84,6 +84,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           activeBoard: userData.activeBoard || null,
           builderSwitchUnlimited: userData.builderSwitchUnlimited || false,
           onboardingCompletedAt: userData.onboardingCompletedAt || null,
+          hasSavedMacroProfile: userData.hasSavedMacroProfile === true,
           firstName: userData.firstName || null,
           lastName: userData.lastName || null,
           nickname: userData.nickname || null,
@@ -97,6 +98,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           attestationText: userData.attestationText || null,
           professionalRole: userData.professionalRole || null,
           operatingStatus: userData.operatingStatus === "demo_only" ? "demo_only" : null,
+          developmentPhysicianStudioInterface: userData.developmentPhysicianStudioInterface === "original" ? "original" : undefined,
           procareEntryPath: userData.procareEntryPath || null,
           attestedAt: userData.attestedAt || null,
           procareTrainingCompleted: userData.procareTrainingCompleted || false,
@@ -382,7 +384,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
             clearAuthToken();
             clearUserContext();
             clearNutritionCache();
-            if (window.location.pathname !== "/auth" && window.location.pathname !== "/login" && window.location.pathname !== "/welcome") {
+            if (window.location.pathname !== "/auth" && window.location.pathname !== "/login" && window.location.pathname !== "/welcome" &&
+                !DEVELOPMENT_AUTH_PUBLIC_PATHS.includes(window.location.pathname)) {
               window.location.href = "/auth";
             }
           }

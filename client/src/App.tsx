@@ -71,14 +71,17 @@ function UpdateBannerMount() {
   return <UpdateBanner show={hasUpdate} releaseNotes={releaseNotes} releaseId={releaseId} />;
 }
 
-// Demo grants are not consumer trials, paid plans, live client boards, or
-// real-clinical readiness. Never mount that chrome over the isolated workspace.
+// Demo grants are not consumer trials, paid plans, or real-clinical readiness.
+// The designated Development account uses the original provider tree and pages;
+// all authorization and the server-side live-data restriction remain in place.
 function DemoOperatingShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   // Do not mount a consumer shell (and its stateful global widgets) temporarily
   // while a cookie-backed professional's operating status is still unresolved.
   if (loading) return <div role="status" className="flex min-h-[100dvh] items-center justify-center bg-black text-white">Loading your account…</div>;
-  if (user?.operatingStatus !== "demo_only") return <>{children}</>;
+  const originalDevelopmentStudio = import.meta.env.DEV &&
+    user?.developmentPhysicianStudioInterface === "original";
+  if (user?.operatingStatus !== "demo_only" || originalDevelopmentStudio) return <>{children}</>;
   return (
     <PageTitleProvider>
       <RootViewport><Router /></RootViewport>

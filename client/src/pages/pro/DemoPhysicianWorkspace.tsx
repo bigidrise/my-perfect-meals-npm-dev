@@ -2,8 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "wouter";
+import { developmentStudioLoadingEnabled } from "@/lib/developmentStudioLoading";
+import { currentStudioNavigation } from "@/lib/studioTransition";
+import { StudioTransitionPanel } from "@/components/pro/DevelopmentStudioGuard";
 import DemoCareInvitation from "@/components/pro/DemoCareInvitation";
 import ProClients from "@/pages/pro/ProClients";
+import PhysicianPortal from "@/pages/pro/PhysicianPortal";
+import PhysicianCareTeam from "@/pages/care-team/PhysicianCareTeam";
+import {
+  DEMO_PHYSICIAN_NAVIGATION, demoPhysicianPage, demoPhysicianClientPath,
+} from "@/lib/demoPhysicianNavigation";
 import { apiRequest } from "@/lib/queryClient";
 import { logout } from "@/lib/auth";
 import {
@@ -61,7 +69,13 @@ function isUsableContext(context: DemoContext | null, accountId: string): contex
 
 export default function DemoPhysicianWorkspace({ fallback }: { fallback?: ReactNode }) {
   const { user, loading: authLoading, refreshUser, setUser } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+  const page = useMemo(() => demoPhysicianPage(location), [location]);
+  const locationRef = useRef(location);
+  locationRef.current = location;
+  useEffect(() => {
+    currentStudioNavigation(location)?.selectCode("demo");
+  }, [location]);
   const accountId = user?.id ?? "";
   const [context, setContext] = useState<DemoContext | null>(null);
   const [loadedAccountId, setLoadedAccountId] = useState("");
@@ -171,10 +185,13 @@ export default function DemoPhysicianWorkspace({ fallback }: { fallback?: ReactN
   const loadContext = useCallback(async (epoch: number) => {
     setContextLoading(true);
     setContextError("");
+    const timing = currentStudioNavigation(locationRef.current);
+    timing?.start("workspace");
     try {
       const result = await getDemoContext();
       if (contextEpoch.current !== epoch) return;
       const founderContext = result;
+      timing?.finish("workspace", isUsableContext(founderContext, accountId) ? "verified" : "denied");
       setContext(founderContext);
       setLoadedAccountId(accountId);
       setAcknowledged(Boolean(
@@ -183,6 +200,7 @@ export default function DemoPhysicianWorkspace({ fallback }: { fallback?: ReactN
         founderContext.grant.acknowledgmentVersion === DEMO_ACKNOWLEDGMENT_VERSION
       ));
     } catch (error) {
+      timing?.finish("workspace", "error");
       if (contextEpoch.current === epoch) {
         setContext(null);
         setLoadedAccountId(accountId);
@@ -279,6 +297,14 @@ export default function DemoPhysicianWorkspace({ fallback }: { fallback?: ReactN
     setExportError("");
     setExportDone(false);
   }, []);
+
+  // A route selects only a patient in the current server-authorized synthetic
+  // list. Browser history/deep links must never retain another client's detail.
+  useEffect(() => {
+    const nextId = page.kind === "client" && canReadPatients
+      && patients.some(item => item.id === page.patientId) ? page.patientId : "";
+    if (nextId !== selectedId) selectPatient(nextId);
+  }, [page, canReadPatients, patients, selectedId, selectPatient]);
 
   useEffect(() => {
     if (!selectedId || !context || !canReadPatients) return;
@@ -469,7 +495,22 @@ export default function DemoPhysicianWorkspace({ fallback }: { fallback?: ReactN
     return "";
   }, [context, expiryPulse]);
 
+  useEffect(() => {
+    if (!developmentStudioLoadingEnabled || authLoading || contextLoading ||
+      !contextReady || loadedAccountId !== accountId || !acknowledged) return;
+    const timing = currentStudioNavigation(location);
+    // Demo authorization/acknowledgment stays separate from practitioner clearance.
+    timing?.finish("workspace", "verified");
+    timing?.finish("agreements", "not-required");
+    timing?.finish("certification", "not-required");
+    timing?.finish("authorized-page", "ready");
+    timing?.finish("navigation", "ready");
+  }, [authLoading, contextLoading, contextReady, loadedAccountId, accountId, acknowledged, location]);
+
   if (authLoading || contextLoading || loadedAccountId !== accountId) {
+    if (developmentStudioLoadingEnabled) {
+      return <StudioTransitionPanel title="Opening your Clinic workspace" detail="Verifying workspace access and preparing the page…" />;
+    }
     return (
       <main className="min-h-[100dvh] bg-[#f1f3eb] px-4 py-8 text-[#283c32] sm:px-8">
         <div className="mx-auto max-w-7xl">
@@ -511,9 +552,17 @@ export default function DemoPhysicianWorkspace({ fallback }: { fallback?: ReactN
 
   const boundaryNotice = (
     <section className="rounded-xl border border-orange-300/40 bg-orange-950/30 px-4 py-4 text-white" aria-label="Synthetic-only acknowledgment">
+      <nav aria-label="Physician Studio navigation" className="mb-4 flex flex-wrap gap-2 border-b border-white/20 pb-4">
+        {DEMO_PHYSICIAN_NAVIGATION.map(item => (
+          <button key={item.path} type="button" onClick={() => setLocation(item.path)}
+            aria-current={page.kind === item.kind ? "page" : undefined}
+            className={`min-h-11 rounded-lg border px-4 py-2 text-sm font-semibold ${page.kind === item.kind ? "border-orange-300 bg-orange-600" : "border-white/30 bg-black/20 hover:bg-white/10"}`}
+          >{item.label}</button>
+        ))}
+      </nav>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div className="max-w-4xl">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange-200">Synthetic-only demonstration · physician persona</p>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-orange-200">Physician Studio · synthetic test patients only</p>
           <p className="mt-1 text-sm leading-6 text-white/75">This is the Clinic workspace for a server-authorized, fictional patient environment. This acknowledgment is separate from normal professional agreements. Do not enter real patient information.</p>
           <p className="mt-1 text-xs leading-5 text-white/60">Live archive, unlink, and invitation actions are unavailable here. Care Team invitation creation and acceptance are simulated; messages are demo-provided and read-only.</p>
           <p className="mt-1 text-xs text-white/55">Account identity and physician demonstration persona are separate. No professional verification or clinical readiness is implied.</p>
@@ -668,6 +717,50 @@ export default function DemoPhysicianWorkspace({ fallback }: { fallback?: ReactN
       />
     </div>
   );
+  if (page.kind === "home" || page.kind === "portal" || page.kind === "unavailable") {
+    return <PhysicianPortal studioHome={page.kind !== "portal"} syntheticContent={<>
+      {boundaryNotice}
+      {page.kind === "unavailable" && <p role="status" className="rounded-xl border border-white/20 p-4 text-white">
+        This page is not available in the synthetic Physician workspace. Use the Studio navigation above; live patient tools remain isolated.
+      </p>}
+    </>} />;
+  }
+  if (page.kind === "care-team") {
+    return <PhysicianCareTeam syntheticContent={<>
+      {boundaryNotice}
+      <section aria-label="Synthetic Care Team" className="space-y-4">
+        <h2 className="text-xl font-semibold text-white">Your Care Team — test patients</h2>
+        <p className="text-sm text-white/70">Invitations and Care Team connections below are simulated in this workspace. No real invitations are sent.</p>
+        {patientsLoading && <p role="status" className="text-white">Loading test patients…</p>}
+        {patientsError && <p role="alert" className="text-red-200">{patientsError}</p>}
+        <button type="button" onClick={() => void refreshPatients()} disabled={!canUseDemo || patientsLoading}
+          className="min-h-11 rounded-lg border border-white/30 px-4 text-white disabled:opacity-50">Refresh Care Team</button>
+        {patients.map(item => <article key={item.id} className="space-y-3 rounded-xl border border-white/20 bg-black/20 p-4">
+          <h3 className="font-semibold text-white">{item.label}</h3>
+          <p className="text-sm text-white/60">{item.scenario}</p>
+          <button type="button" onClick={() => setLocation(demoPhysicianClientPath(item.id))}
+            className="min-h-11 rounded-lg bg-purple-600 px-4 text-white">Open Client Dashboard</button>
+          {canUseDemo && <DemoCareInvitation workspaceId={context.workspace.id} patientId={item.id} />}
+        </article>)}
+      </section>
+    </>} />;
+  }
+  if (page.kind === "client") {
+    const authorizedPatient = canReadPatients && patients.some(item => item.id === page.patientId);
+    return <main className="min-h-screen bg-gradient-to-br from-black/60 via-orange-600 to-black/80 px-4 pb-10 text-white">
+      <div className="mx-auto max-w-6xl space-y-5 pt-6" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 1.5rem)" }}>
+        {boundaryNotice}
+        <button type="button" onClick={() => setLocation("/pro/physician-clients")}
+          className="min-h-11 rounded-lg border border-white/30 px-4">Back to Clients</button>
+        <h1 className="text-2xl font-bold">Client Dashboard{authorizedPatient ? ` — ${patients.find(item => item.id === page.patientId)?.label}` : ""}</h1>
+        {patientsLoading ? <p role="status">Loading test client…</p>
+          : patientsError ? <p role="alert">{patientsError}</p>
+          : !authorizedPatient ? <p role="alert">{acknowledged ? "This client is not in your authorized synthetic workspace. No live patient record has been loaded." : "Acknowledge synthetic-only use above to open this test client."}</p>
+          : selectedId !== page.patientId ? <p role="status">Opening client dashboard…</p>
+          : patientDetail}
+      </div>
+    </main>;
+  }
   return (
     <ProClients
       workspace="clinician"
@@ -678,9 +771,9 @@ export default function DemoPhysicianWorkspace({ fallback }: { fallback?: ReactN
         error: patientsError,
         onRefresh: () => void refreshPatients(),
         onSelect: id => {
-          if (canUseDemo) selectPatient(id);
+          if (canUseDemo && patients.some(item => item.id === id)) setLocation(demoPhysicianClientPath(id));
         },
-        patientDetail,
+        patientDetail: null,
         boundaryNotice,
       }}
     />

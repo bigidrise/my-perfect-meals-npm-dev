@@ -107,8 +107,9 @@ import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
 import DailyMealProgressBar from "@/components/guided/DailyMealProgressBar";
 import { InformationModal } from "@/components/ui/universal-modal";
-import { useQuickTour } from "@/hooks/useQuickTour";
-import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import { useBuilderGuidanceTour } from "@/hooks/useBuilderGuidanceTour";
+import { TourStep } from "@/components/guided/QuickTourModal";
+import { BuilderGuidanceTour } from "@/components/guided/BuilderGuidanceTour";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 import { useDailyNutritionState } from "@/hooks/useDailyNutritionState";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
@@ -126,7 +127,6 @@ import { getBuilderProtocolBadges } from "@/lib/nutritionPersonalization";
 export default function GLP1MealBuilder() {
   const { t } = useTranslation();
   usePageTitle(t("metabolicBuilder.pageTitle"));
-  const quickTour = useQuickTour("glp1-meal-builder");
 
   const GLP1_BUILDER_TOUR_STEPS = useMemo<TourStep[]>(() => [
     { icon: "1", title: t("metabolicBuilder.tour1Title"), description: t("metabolicBuilder.tour1Desc") },
@@ -156,6 +156,7 @@ export default function GLP1MealBuilder() {
   const { user } = useAuth();
 
   const effectiveUserId = proClientId || user?.id;
+  const quickTour = useBuilderGuidanceTour("glp1", proClientId, householdProfileId);
 
   // Resolve nutrition ONCE. Presentation components receive it as props.
   const nutritionTargets = useBaselineNutrition(effectiveUserId);
@@ -1771,7 +1772,7 @@ export default function GLP1MealBuilder() {
       </InformationModal>
 
       {/* Quick Tour Modal */}
-      <QuickTourModal
+      <BuilderGuidanceTour key={quickTour.scopeKey} builderKey="glp1" professionalClient={Boolean(proClientId)}
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
         title={t("metabolicBuilder.tourTitle")}

@@ -31,7 +31,10 @@ Do not add fabricated consumer-trial, commercial, training, credential, or real-
 
 **Why:** Demo authority must remain independent of the real account's commercial and professional evidence; normal application chrome can assume a fuller live profile than a truthful restricted bootstrap supplies.
 
-**How to apply:** Use a dedicated isolated shell and verify it separately. Passing backend authorization tests is not proof that the demo browser journey works; do not activate a shared account while that acceptance is blocked.
+**How to apply:** Preserve the original Physician components and workflow while
+isolating test data. Do not substitute a reduced demonstration shell to work
+around missing authorization or profile fields. Passing backend tests or
+intercepted UI fixtures is not proof that the actual account journey works.
 
 ## Validation authority and error evidence
 
@@ -54,6 +57,23 @@ The founder wants permanent physician demonstration access to the existing Studi
 **Why:** The user needs dependable physician Studio access for testing and business demonstrations; the product is already public. Temporary access fixes and recurring setup requirements do not meet this purpose.
 
 **How to apply:** Reuse the owned Clinic and preserve its organization/business relationships and existing records. Keep the physician interface isolated from live clinical APIs and use demo-backed data and simulated invitations. Do not replace the Clinic with another Studio or treat ownership as clinical authority. Account/grant changes and Production publishing still require separate authorization and verified shared-runtime isolation. Investigate demonstrated access regressions and protect the established access paths without claiming all customers are affected or expanding into unrelated audits.
+
+The doctor test account must use the original Physician interface and workflow:
+Pro Portal, Physician Care Team, the shared client list and folder, and the full
+Clinician dashboard. Preserve physician-specific clinical functionality and the
+shared architecture with Trainer Studio. Synthetic isolation is a data boundary,
+not permission to replace those interfaces.
+
+**Why:** After navigation was added to the substitute interface, the user rejected
+that result and explicitly authorized restoration of the original components,
+not a redesign, rebuild, or another demonstration interface.
+
+**How to apply:** Reconnect original guarded routes; preserve relationships,
+permissions, prescriptions, messaging, notes, Builder assignments, Macro
+Calculator behavior, and starch corrections. Keep Development-only scope and
+do not roll back unrelated work. If server restrictions prevent a workflow,
+report the exact blocker rather than bypassing it or claiming restoration is
+complete. Keep demo files until their remaining dependencies are established.
 
 Shared-account activation requires both live-data isolation and a usable permanent founder demo experience in the intended runtime. A protective release that only denies live APIs is not sufficient evidence that activation restores the requested Studio.
 

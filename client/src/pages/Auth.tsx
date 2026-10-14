@@ -3,6 +3,7 @@ import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { login, signUp, getProCareSignupData, getAuthHeaders } from "@/lib/auth";
 import type { User } from "@/lib/auth";
+import { invitationDestination, isPatientInvitation } from "@/lib/businessPilotJourney";
 import { Stethoscope } from "lucide-react";
 import { WorkspaceChooser } from "@/components/WorkspaceChooser";
 import {
@@ -14,6 +15,8 @@ import { MfaChallengeModal } from "@/components/MfaChallengeModal";
 import { MfaSetupSection } from "@/components/MfaSetupSection";
 import { createProfessionalLegalRecoveryUrl } from "@/lib/professionalLegalRecovery";
 import { saveNewAccountProfessionalDraft, professionalRequestsEnabled } from "@/lib/professionalOnboarding";
+import { IS_DEVELOPMENT } from "@/lib/developmentAuthRoutes";
+import { pendingBusinessPilotReturn } from "@/lib/businessPilotEntrance";
 
 export default function Auth() {
   const [, setLocation] = useLocation();
@@ -76,7 +79,7 @@ export default function Auth() {
   const [showMfaChallenge, setShowMfaChallenge] = useState(false);
   const [showMfaEnrollment, setShowMfaEnrollment] = useState(false);
 
-  async function acceptInviteToken(token: string): Promise<{ ok: boolean; error?: string }> {
+  async function acceptInviteToken(token: string): Promise<{ ok: boolean; error?: string; invitationType?: string; populationType?: string }> {
     try {
       const res = await fetch("/api/business/invite/accept", {
         method: "POST",
@@ -86,7 +89,7 @@ export default function Auth() {
       });
       const data = await res.json();
       if (!res.ok) return { ok: false, error: data.error };
-      return { ok: true };
+      return { ok: true, invitationType: data.invitationType, populationType: data.populationType };
     } catch {
       return { ok: false, error: "Could not auto-accept invitation." };
     }
@@ -115,6 +118,15 @@ export default function Auth() {
     setUser(u);
     localStorage.setItem("isAuthenticated", "true");
     sessionStorage.removeItem("mpm.welcomeGateDone");
+
+    // Both account journeys (including MFA completion) return to the same
+    // explicit activation action. Never redeem merely because auth succeeded.
+    const pilotReturn = pendingBusinessPilotReturn(sessionStorage, IS_DEVELOPMENT, urlReturnTo);
+    if (pilotReturn && !clinicPilotToken && !businessOfferToken && !urlInvite && !pilotAuthorizationToken) {
+      await refreshUser();
+      setLocation(pilotReturn);
+      return;
+    }
 
     if (clinicPilotToken) {
       const result = await fetch("/api/clinic-pilot/enroll", {
@@ -148,8 +160,7 @@ export default function Auth() {
     }
 
     // If an invite token is present, auto-accept it now that the user is
-    // authenticated.  On success we always route to the business dashboard,
-    // regardless of whether this was a fresh signup or an existing-user login.
+    // authenticated. Patients return to their own profile, never an admin workspace.
     if (urlInvite) {
       const result = await acceptInviteToken(urlInvite);
       if (!result.ok) {
@@ -161,7 +172,7 @@ export default function Auth() {
       sessionStorage.removeItem("mpm.organizationInviteToken");
       // Refresh session so the business membership is visible immediately
       try { await refreshUser(); } catch { /* non-fatal */ }
-      setLocation("/business-dashboard");
+      setLocation(invitationDestination(result, Boolean(u.onboardingCompletedAt)));
       return;
     }
     if (pilotAuthorizationToken) {
@@ -244,7 +255,16 @@ export default function Auth() {
         // Treat invite-link signups as business signups so the account is
         // created with professionalRole="business" from the start and the
         // invite auto-accept succeeds immediately after (email must match).
-        const isBusinessSignup = urlRole === "business" || !!urlInvite || !!pilotAuthorizationToken;
+        let patientInvite = false;
+        if (urlInvite) {
+          const inspected = await fetch("/api/business/invite/inspect", {
+            headers: { "x-business-invitation-token": urlInvite },
+          });
+          const details = await inspected.json();
+          if (!inspected.ok) throw new Error(details.error || "Could not verify invitation.");
+          patientInvite = isPatientInvitation(details);
+        }
+        const isBusinessSignup = urlRole === "business" || (!!urlInvite && !patientInvite) || !!pilotAuthorizationToken;
         if (!procareData && urlRole && urlRole !== "business") {
           procareData = {
             professionalRole: urlRole,

@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAuthHeaders } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
+import { invitationDestination } from "@/lib/businessPilotJourney";
 import { Loader2, Building2, CheckCircle, XCircle, UserCheck, ChevronRight } from "lucide-react";
 
 const POLICY_LABELS: Record<string, { label: string; description: string; color: string }> = {
@@ -177,7 +178,7 @@ export default function BusinessInviteAccept() {
             </div>
             <button
               className="w-full py-4 rounded-xl bg-green-600 hover:bg-green-500 text-white font-bold text-base transition-colors flex items-center justify-center gap-2"
-              onClick={() => setLocation("/")}
+              onClick={() => setLocation(invitationDestination({ invitationType: "client" }, Boolean(user?.onboardingCompletedAt)))}
             >
               Start My Meal Plan
               <ChevronRight className="w-5 h-5" />

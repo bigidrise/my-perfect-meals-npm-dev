@@ -21,6 +21,7 @@ import path from "path";
 
 // ⬇️ Your existing helpers (keep these imports as-is)
 import { registerRoutes } from "./routes";
+import { createGuidedJourneyRouter, guidedJourneyDevelopmentEnabled } from "./routes/guidedJourney";
 import { setupVite, serveStatic, log } from "./vite";
 import { requestId } from "./middleware/requestId";
 import { logger } from "./middleware/logger";
@@ -108,6 +109,7 @@ import abTestingMealPlansRouter from "./routes/mealPlans";
 import { templateRouter } from "./routes/mealTemplates";
 import { userMealPrefsRouter } from "./routes/userMealPrefs";
 import stripeRouter from "./routes/stripe";
+import { developmentStripeIsolationMiddleware } from "./middleware/developmentStripeIsolation";
 import stripeCheckoutRouter from "./routes/stripeCheckout";
 import studioStripeRouter from "./routes/studioStripeRoutes";
 import coachingRouter from "./routes/coaching";
@@ -244,6 +246,9 @@ app.get("/api/health", (_req, res) => {
 // ---------- Production Middleware ----------
 app.use(requestId);
 app.use(logger);
+
+// Block Development billing before ANY webhook processing or API handler.
+app.use(developmentStripeIsolationMiddleware);
 
 // Stripe webhook MUST come BEFORE express.json() to preserve raw body for signature verification
 // IMPORTANT: Use specific path /api/stripe/webhook to avoid intercepting other /api/stripe/* routes
@@ -518,6 +523,11 @@ app.use("/api/biometrics/labs", clinicalLabsRouter);
 
 // Manual Macros System - Quick add custom macro entries
 app.use("/api", manualMacrosRouter);
+
+// Inspection only. Never mounted by the Production entrypoint.
+if (guidedJourneyDevelopmentEnabled()) {
+  app.use("/api/guided-journey", createGuidedJourneyRouter());
+}
 
 // Meal Templates System - Library browsing for meal replacement
 app.use("/api/meal-templates", templateRouter);

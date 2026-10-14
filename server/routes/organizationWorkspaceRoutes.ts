@@ -7,7 +7,7 @@ import {
 } from "../services/organizationWorkspaceService";
 import { getStudioAccessStatus, getWorkspaceAvailability } from "../services/workspaceAvailabilityService";
 import { getOrganizationAccessStatus } from "../services/organizationAccessStatus";
-import Stripe from "stripe";
+import Stripe from "../services/isolatedStripeClient";
 import { requireAuth } from "../middleware/requireAuth";
 import { assertStripeBillingOwnership, getStripeKeyMode } from "../services/stripeRuntimePolicy";
 import { changeStudioRenewal, StudioBillingReviewError } from "../services/studioRenewalService";

@@ -10,6 +10,7 @@ interface UserForAccess {
   trialEndsAt?: Date | string | null;
   hasPilotProCareAccess?: boolean;
   hasPilotFullAccess?: boolean;
+  hasTemporaryClinicalAccess?: boolean;
 }
 
 // PAID_PLAN_KEYS is now the single source of truth: it lives in shared/planFeatures.ts
@@ -37,6 +38,7 @@ export function resolveAccessTier(user: UserForAccess, now: Date = new Date()): 
   if (user.isSandbox || user.isTester) return "PAID_FULL";
   if (user.hasPilotProCareAccess) return "PAID_FULL";
   if (user.hasPilotFullAccess) return "PAID_FULL";
+  if (user.hasTemporaryClinicalAccess) return "PAID_FULL";
 
   // Tier 2: Active paid subscription
   if (user.planLookupKey && PAID_PLAN_KEYS.has(user.planLookupKey)) {

@@ -79,27 +79,11 @@ import {
 } from "lucide-react";
 
 // Guided flow step type
-type GuidedStep =
-  | "entry"
-  | "goal"
-  | "commitmentLevel"
-  | "bodyType"
-  | "units"
-  | "sex"
-  | "age"
-  | "height"
-  | "weight"
-  | "waist"
-  | "activity"
-  | "syncWeight"
-  | "metabolic"
-  | "results"
-  | "nutritionStrategy"
-  | "starch"
-  | "clinicalContext"
-  | "bodyComposition"
-  | "save"
-  | "done";
+import {
+  macroCalculatorStorageKeys, readMacroCalculatorResumeStep,
+  type MacroCalculatorStep as GuidedStep,
+} from "@/lib/macroCalculatorResume";
+import { STARCH_MEAL_COUNTS, STARCH_TIMING_OPTIONS, legacyStarchMealCount, starchPreviewGrams } from "@shared/starchPreferences";
 import { useToast } from "@/hooks/use-toast";
 import {
   setMacroTargets,
@@ -110,12 +94,18 @@ import {
 } from "@/lib/dailyLimits";
 import ReadOnlyNote from "@/components/ReadOnlyNote";
 import { useAuth } from "@/contexts/AuthContext";
+import { useHousehold } from "@/contexts/HouseholdContext";
+import { IS_DEVELOPMENT } from "@/lib/developmentAuthRoutes";
+import { beginWorkflowSave, personalWorkflowSaveEnabled } from "@/lib/guidedJourney/workflow";
+import { GuidedWorkflowNextStep } from "@/components/guided/GuidedWorkflowNextStep";
 import { getAuthHeaders } from "@/lib/auth";
 import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
 import { apiRequest } from "@/lib/queryClient";
 import { useQuickTour } from "@/hooks/useQuickTour";
+import { useSavedMacroSetup } from "@/hooks/useSavedMacroSetup";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { useCopilot } from "@/components/copilot/CopilotContext";
 import { getAssignedBuilderFromStorage } from "@/lib/assignedBuilder";
 import MetabolicConsiderations from "@/components/macro-targeting/MetabolicConsiderations";
 import BodyCompositionSection from "@/components/macro-targeting/BodyCompositionSection";
@@ -735,16 +725,39 @@ function ClinicalCategoryReasoningList({ categories }: { categories: string[] })
 }
 
 export default function MacroCounter() {
+  const { user } = useAuth();
+  return <AccountMacroCounter key={IS_DEVELOPMENT ? user?.id ?? "awaiting-account" : "calculator"} />;
+}
+
+function AccountMacroCounter() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { t } = useTranslation("macroCalc");
   const { user, refreshUser } = useAuth();
+  const { activeProfileId: guidedHouseholdProfileId } = useHousehold();
   const [isSaving, setIsSaving] = useState(false);
   const [isApplyingOverlay, setIsApplyingOverlay] = useState(false);
   const [overlayApplied, setOverlayApplied] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const isDirtyFirstRenderRef = useRef(true);
   const [isProSession] = useState(() => localStorage.getItem("pro-session") === "true");
+  // This focused introduction is Development-only and personal-account-only.
+  // Professional, household, sandbox and Production tours keep their behavior.
+  const setupGuideEnabled = IS_DEVELOPMENT && !!user
+    && user.role === "client" && !user.professionalRole
+    && !user.id.startsWith("guest-") && !user.isSandbox
+    && !user.studioMembership && !user.hasStudioMembership && !isProSession
+    && (!guidedHouseholdProfileId || guidedHouseholdProfileId === user.id);
+  const savedMacroSetup = useSavedMacroSetup(setupGuideEnabled ? user!.id : null);
+  const calculatorDraftAccountId = setupGuideEnabled ? user!.id : null;
+  const calculatorStorageKeys = macroCalculatorStorageKeys(calculatorDraftAccountId);
+  useEffect(() => {
+    if (savedMacroSetup.error) toast({
+      title: "Setup status unavailable",
+      description: savedMacroSetup.error,
+      variant: "destructive",
+    });
+  }, [savedMacroSetup.error, toast]);
 
   const isFromOnboarding = window.location.search.includes("from=onboarding");
 
@@ -753,7 +766,7 @@ export default function MacroCounter() {
   // Load calculator settings from localStorage
   const loadCalculatorSettings = () => {
     try {
-      const saved = localStorage.getItem("macro_calculator_settings");
+      const saved = localStorage.getItem(calculatorStorageKeys.settings);
       if (saved) {
         const parsed = JSON.parse(saved);
         console.log("📥 Loaded macro settings:", parsed);
@@ -765,7 +778,8 @@ export default function MacroCounter() {
     return null;
   };
 
-  const savedSettings = loadCalculatorSettings();
+  const [initialSetupSettings] = useState(() => setupGuideEnabled ? loadCalculatorSettings() : null);
+  const savedSettings = setupGuideEnabled ? initialSetupSettings : loadCalculatorSettings();
 
   const [goal, setGoal] = useState<Goal>(savedSettings?.goal ?? "maint");
   const [bodyType, setBodyType] = useState<BodyType>(
@@ -833,6 +847,7 @@ export default function MacroCounter() {
   const [recalculationConfirmation, setRecalculationConfirmation] = useState<
     "first" | "second" | null
   >(null);
+  const recalculationApprovedRef = useRef(false);
   const [starchStrategy, setStarchStrategy] = useState<
     StarchStrategy | undefined
   >(existingTargets?.starchStrategy ?? undefined);
@@ -843,7 +858,7 @@ export default function MacroCounter() {
   // Hydrate from DB-backed user profile if available; fall back to old macro_targets format
   const derivedInitialMeals =
     user?.defaultStarchMealsPerDay ??
-    (existingTargets?.starchStrategy === "flex" ? 2 : 1);
+    (legacyStarchMealCount(existingTargets?.starchStrategy) ?? 1);
   const [defaultStarchMealsPerDay, setDefaultStarchMealsPerDay] = useState<number>(
     derivedInitialMeals
   );
@@ -891,11 +906,16 @@ export default function MacroCounter() {
   );
 
   // Guided Mode State
-  const hasExistingSettings = savedSettings !== null && !isFromOnboarding;
-  const hasSavedMacroConfiguration =
-    hasExistingSettings || hasExistingMacroTargets;
+  const hasExistingSettings = savedSettings !== null && !isFromOnboarding
+    && (!setupGuideEnabled || savedMacroSetup.complete === true);
+  const hasSavedMacroConfiguration = setupGuideEnabled
+    ? savedMacroSetup.complete === true || (savedMacroSetup.complete === null && hasExistingMacroTargets)
+    : hasExistingSettings || hasExistingMacroTargets;
 
   const resolveInitialStep = (): GuidedStep => {
+    if (setupGuideEnabled) return readMacroCalculatorResumeStep(
+      sessionStorage, calculatorDraftAccountId, savedSettings !== null, savedMacroSetup.complete,
+    );
     if (hasExistingSettings) return "done";
     try {
       const persisted = sessionStorage.getItem("macro_guided_step");
@@ -910,8 +930,17 @@ export default function MacroCounter() {
   const [guidedStep, setGuidedStepRaw] = useState<GuidedStep>(resolveInitialStep);
   const setGuidedStep = (step: GuidedStep) => {
     setGuidedStepRaw(step);
-    try { sessionStorage.setItem("macro_guided_step", step); } catch {}
+    try { sessionStorage.setItem(calculatorStorageKeys.step, step); } catch {}
   };
+  useEffect(() => {
+    // A persisted "done" is restored only after the saved-target read confirms it.
+    // Do not interrupt a visitor who has already begun entering new answers.
+    if (setupGuideEnabled && savedMacroSetup.complete === true && guidedStep === "entry"
+      && readMacroCalculatorResumeStep(sessionStorage, calculatorDraftAccountId,
+        savedSettings !== null, true) === "done") {
+      setGuidedStepRaw("done");
+    }
+  }, [setupGuideEnabled, savedMacroSetup.complete, calculatorDraftAccountId, savedSettings, guidedStep]);
   const [showResults, setShowResults] = useState(hasExistingSettings || resolveInitialStep() !== "entry");
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasSpokenEntry, setHasSpokenEntry] = useState(resolveInitialStep() !== "entry");
@@ -994,7 +1023,7 @@ export default function MacroCounter() {
   // Prefill from server profile when no saved settings exist (e.g. after reinstall)
   useEffect(() => {
     if (!user) return;
-    const hasSaved = !!localStorage.getItem("macro_calculator_settings");
+    const hasSaved = !!localStorage.getItem(calculatorStorageKeys.settings);
     if (hasSaved) return;
 
     if (user.age) setAge(user.age);
@@ -1074,6 +1103,7 @@ export default function MacroCounter() {
 
   const confirmMacroRecalculation = useCallback(() => {
     setRecalculationConfirmation(null);
+    recalculationApprovedRef.current = true;
     resetGuidedFlow();
   }, [resetGuidedFlow]);
 
@@ -1161,7 +1191,30 @@ export default function MacroCounter() {
     },
   ];
 
-  const quickTour = useQuickTour("macro-calculator");
+  const setupCalculatorTourSteps: TourStep[] = [
+    {
+      title: "Enter Your Details",
+      description: "Choose your goal and enter your age, height, weight, and activity level. Follow the calculator's questions at your own pace.",
+    },
+    {
+      title: "Review Your Targets",
+      description: "Review your daily calories, protein, carbohydrates, and fat. The calculator also explains its nutrition options and optional measurements.",
+    },
+    {
+      title: "Save When You're Ready",
+      description: "Your setup is complete only after your nutrition targets are successfully saved. You can return to this calculator whenever your weight or goals change.",
+    },
+  ];
+  const quickTour = useQuickTour(
+    setupGuideEnabled ? `development-macro-setup-v1::${encodeURIComponent(user!.id)}` : "macro-calculator",
+    undefined,
+    setupGuideEnabled ? { autoOpenDelayMs: 0, setupComplete: savedMacroSetup.complete } : {},
+  );
+  const { isOpen: copilotOpen, close: closeCopilot } = useCopilot();
+  useEffect(() => {
+    // Give the written setup explanation the screen without changing Copilot settings.
+    if (setupGuideEnabled && quickTour.shouldShow && copilotOpen) closeCopilot();
+  }, [setupGuideEnabled, quickTour.shouldShow, copilotOpen, closeCopilot]);
 
   // Walkthrough disabled - conflicts with Copilot intro TTS
   // useEffect(() => {
@@ -1216,7 +1269,7 @@ export default function MacroCounter() {
         sugarCapMode,
       };
       localStorage.setItem(
-        "macro_calculator_settings",
+        calculatorStorageKeys.settings,
         JSON.stringify(settings),
       );
       console.log("💾 Saved macro settings:", settings);
@@ -1483,7 +1536,17 @@ export default function MacroCounter() {
     options?: { successTitle?: string; onComplete?: () => void },
   ): Promise<void> => {
     // Step 1: Macro prescription — fatal; stop if this fails.
-    await setMacroTargets(targets, user?.id);
+    const guidedSave = beginWorkflowSave(user?.id, "nutrition_targets",
+      personalWorkflowSaveEnabled(IS_DEVELOPMENT, user, guidedHouseholdProfileId, isProSession),
+      { calories: targets.calories, protein_g: targets.protein_g, carbs_g: targets.carbs_g, fat_g: targets.fat_g });
+    try {
+      await setMacroTargets(targets, user?.id);
+      savedMacroSetup.markSaved();
+      guidedSave.saved();
+    } catch (error) {
+      guidedSave.failed();
+      throw error;
+    }
 
     // Step 2: Starch preferences — non-blocking ancillary write.
     if (user?.id && !user.id.startsWith("guest-")) {
@@ -1667,6 +1730,9 @@ export default function MacroCounter() {
           className="max-w-5xl mx-auto space-y-6 px-4"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
+          {(!setupGuideEnabled || savedMacroSetup.complete === true) &&
+            <GuidedWorkflowNextStep busy={isSaving} professionalSession={isProSession}
+              summaryVisible={guidedStep === "done" && !!results} />}
           {/* Scientific Sources - Apple App Store Compliance (must be visible immediately) */}
           {(guidedStep === "entry" || guidedStep === "goal") && (
             <div className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-blue-400/30 rounded-xl p-4">
@@ -1751,7 +1817,16 @@ export default function MacroCounter() {
                     </div>
 
                     <Button
-                      onClick={() => advanceGuided("goal")}
+                      onClick={() => {
+                        // A saved baseline remains protected even when this device
+                        // has no account-scoped draft to restore a results screen.
+                        if (setupGuideEnabled && hasSavedMacroConfiguration
+                          && !recalculationApprovedRef.current) {
+                          requestMacroRecalculation();
+                          return;
+                        }
+                        advanceGuided("goal");
+                      }}
                       className="
                         w-full py-4
                         bg-orange-600 hover:bg-orange-500
@@ -2858,7 +2933,7 @@ export default function MacroCounter() {
                         How many meals a day will include starchy carbs?
                       </p>
                       <div className="flex gap-2 flex-wrap">
-                        {([1, 2, 3, 4, 5, 6] as const).map((n) => (
+                        {STARCH_MEAL_COUNTS.map((n) => (
                           <PillButton
                             key={n}
                             onClick={() => {
@@ -2880,17 +2955,8 @@ export default function MacroCounter() {
                         When do you prefer to eat your starchy carbs?
                       </p>
                       <div className="flex gap-2 flex-wrap">
-                        {(
-                          [
-                            { value: "even",    label: "Spread evenly" },
-                            { value: "morning", label: "Earlier in day" },
-                            ...(user?.performanceModeEnabled && user?.weeklyTrainingSchedule
-                              ? [{ value: "workout", label: "Around workouts" }]
-                              : []),
-                            { value: "evening", label: "Evening" },
-                            { value: "ai",      label: "AI decides" },
-                          ] as const
-                        ).map(({ value, label }) => (
+                        {STARCH_TIMING_OPTIONS.filter(option => option.value !== "workout"
+                          || (user?.performanceModeEnabled && user?.weeklyTrainingSchedule)).map(({ value, label }) => (
                           <PillButton
                             key={value}
                             onClick={() => { setStarchDistributionStrategy(value as typeof starchDistributionStrategy); setIsDirty(true); }}
@@ -2918,12 +2984,7 @@ export default function MacroCounter() {
                       const starchyTarget = results?.macros?.carbs?.starchy ?? 0;
                       if (starchyTarget <= 0) return null;
                       const n = defaultStarchMealsPerDay;
-                      const base = Math.floor(starchyTarget / n);
-                      const remainder = starchyTarget - base * n;
-                      // Distribute remainder to last meal so the first meals show the round number
-                      const mealGrams = Array.from({ length: n }, (_, i) =>
-                        i === n - 1 ? base + remainder : base
-                      );
+                      const mealGrams = starchPreviewGrams(starchyTarget, n);
                       const timingLabel =
                         starchDistributionStrategy === "even"    ? "Spread Evenly" :
                         starchDistributionStrategy === "morning"  ? "Earlier in the Day" :
@@ -3449,11 +3510,17 @@ export default function MacroCounter() {
                         try {
                           if (isGuestMode()) markMacrosCompleted();
                           const assignedBuilder = getAssignedBuilderFromStorage();
-                          advanceGuided("done");
-                          try { sessionStorage.removeItem("macro_guided_step"); } catch {}
+                          if (!setupGuideEnabled) {
+                            advanceGuided("done");
+                            try { sessionStorage.removeItem("macro_guided_step"); } catch {}
+                          }
                           await performMacroAndBiometricsSave(buildMacroTargetsFromResults(), {
                             successTitle: "Macros & Stats Saved",
                             onComplete: () => {
+                              if (setupGuideEnabled) {
+                                advanceGuided("done");
+                                try { sessionStorage.removeItem("macro_guided_step"); } catch {}
+                              }
                               if (hasActivePaidSubscription(user)) {
                                 setLocation(assignedBuilder.path);
                               } else {
@@ -4378,12 +4445,13 @@ export default function MacroCounter() {
                       data-testid="macro-save-biometrics-button"
                       disabled={!isCalcInputValid || isSaving}
                       onClick={async () => {
-                        advance("calc");
+                        if (!setupGuideEnabled) advance("calc");
                         setIsSaving(true);
                         try {
                           if (isGuestMode()) markMacrosCompleted();
                           await performMacroAndBiometricsSave(buildMacroTargetsFromResults(), {
                             successTitle: "Macros & Stats Saved",
+                            onComplete: setupGuideEnabled ? () => advance("calc") : undefined,
                           });
                         } catch (error) {
                           console.error("Failed to save macro targets:", error);
@@ -4411,7 +4479,7 @@ export default function MacroCounter() {
                         window.dispatchEvent(new CustomEvent("walkthrough:event", {
                           detail: { testId: "macro-calculator-interacted", event: "interacted" },
                         }));
-                        advance("calc");
+                        if (!setupGuideEnabled) advance("calc");
                         setIsSaving(true);
                         try {
                           if (isGuestMode()) markMacrosCompleted();
@@ -4419,6 +4487,7 @@ export default function MacroCounter() {
                           await performMacroAndBiometricsSave(buildMacroTargetsFromResults(), {
                             successTitle: "Macros & Stats Saved",
                             onComplete: () => {
+                              if (setupGuideEnabled) advance("calc");
                               if (hasActivePaidSubscription(user)) {
                                 setLocation(assignedBuilder.path);
                               } else {
@@ -4514,8 +4583,14 @@ export default function MacroCounter() {
       <QuickTourModal
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
-        steps={macroCalculatorTourSteps}
-        title="How to Use the Macro Calculator"
+        steps={setupGuideEnabled ? setupCalculatorTourSteps : macroCalculatorTourSteps}
+        title={setupGuideEnabled ? "Set Your Nutrition Targets" : "How to Use the Macro Calculator"}
+        welcome={setupGuideEnabled}
+        completionDriven={setupGuideEnabled}
+        introduction={setupGuideEnabled
+          ? "Use your goals and body measurements to calculate your daily calorie, protein, carbohydrate, and fat targets."
+          : undefined}
+        primaryLabel={setupGuideEnabled ? "Start Calculator" : undefined}
         onDisableAllTours={() => quickTour.setGlobalDisabled(true)}
       />
     </>

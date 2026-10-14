@@ -30,6 +30,11 @@ interface AffiliateAccount {
   organizationRole: string;
   organizationRelationshipType: "internal_staff" | "external_contractor";
   canManage: boolean;
+  organizationRewardfulTerms?: {
+    name: string;
+    commissionRate: number;
+    commissionMonths: number;
+  } | null;
   organizationRewardfulLifecycle?: {
     state: "not_available" | "setup_available" | "setup_in_progress" | "active";
     setupAvailable: boolean;
@@ -381,9 +386,13 @@ export default function AffiliateDashboard() {
   // Derive program identity from the Rewardful campaign that was assigned at activation.
   // Founding affiliates are enrolled in the founding campaign (stored as rewardfulCampaignId).
   // Future strategic campaigns will resolve to a different label here without touching existing records.
-  const programLabel = account?.rewardfulCampaignId
+  const commissionRate = account?.organizationRewardfulTerms?.commissionRate
+    ?? partnerRecord?.commissionRate ?? 30;
+  const commissionMonths = account?.organizationRewardfulTerms?.commissionMonths
+    ?? partnerRecord?.commissionMonths ?? 24;
+  const programLabel = account?.organizationRewardfulTerms?.name ?? (account?.rewardfulCampaignId
     ? "Founding Affiliate Program"
-    : null;
+    : null);
 
   const needsRewardfulSetup = rewardfulStatus && (!rewardfulStatus.emailConfirmed || !rewardfulStatus.signedIn);
 
@@ -501,7 +510,11 @@ export default function AffiliateDashboard() {
               <p className="text-sm font-bold text-white">Partner &amp; Revenue is not available yet</p>
               <p className="mt-2 text-xs leading-relaxed text-gray-300">
                 {organizationRewardfulLifecycle.reason === "onboarding_pilot_active"
-                  ? "This organization is still in its 30-day Business pilot. Setup becomes available when the pilot completes; no Rewardful account will be created automatically."
+                  ? account.organizationRewardfulTerms
+                    ? "This organization is still in its 30-day Business pilot. Setup requires both completing the pilot and qualifying paid activation; no Rewardful account will be created automatically."
+                    : "This organization is still in its 30-day Business pilot. Setup becomes available when the pilot completes; no Rewardful account will be created automatically."
+                  : organizationRewardfulLifecycle.reason === "organization_paid_activation_required"
+                    ? "Complete the 30-day organization trial and qualifying paid activation before setting up Rewardful."
                   : "This organization must reach an eligible commercial state before Rewardful setup can begin."}
               </p>
             </Card>
@@ -715,13 +728,13 @@ export default function AffiliateDashboard() {
                 {partnerRecord.commissionRate != null && (
                   <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-center">
                     <p className="text-[9px] text-gray-400 mb-1">Commission</p>
-                    <p className="text-xl font-black text-orange-400">{partnerRecord.commissionRate}%</p>
+                    <p className="text-xl font-black text-orange-400">{commissionRate}%</p>
                   </div>
                 )}
                 {partnerRecord.commissionMonths != null && (
                   <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-center">
                     <p className="text-[9px] text-gray-400 mb-1">Term</p>
-                    <p className="text-xl font-black text-white">{partnerRecord.commissionMonths === 60 ? "5 yr" : `${partnerRecord.commissionMonths} mo`}</p>
+                    <p className="text-xl font-black text-white">{commissionMonths === 60 ? "5 yr" : `${commissionMonths} mo`}</p>
                   </div>
                 )}
               </div>
@@ -979,7 +992,7 @@ export default function AffiliateDashboard() {
                 >
                   <div className="mt-4 space-y-3">
                     <p className="text-xs text-gray-300 leading-relaxed">
-                      When someone clicks your link, they land on the normal MyPerfectMeals website. They have no idea they came from you — it looks totally natural. Rewardful tracks them silently. If they subscribe, you earn 30% for up to 24 months.
+                      When someone clicks your link, they land on the normal MyPerfectMeals website. They have no idea they came from you — it looks totally natural. Rewardful tracks them silently. If they subscribe, you earn {commissionRate}% for up to {commissionMonths} months.
                     </p>
 
                     <div className="space-y-2">
@@ -1029,7 +1042,7 @@ export default function AffiliateDashboard() {
 
                     <div className="rounded-xl bg-orange-500/20 border border-orange-500/30 p-3 mt-2">
                       <p className="text-[11px] text-orange-300 leading-relaxed font-medium">
-                        💡 What counts as a conversion: Someone clicks your link, signs up for MPM, and starts a paid subscription. You earn 30% of their subscription payments for up to 24 months — automatically tracked and paid through Rewardful.
+                        💡 What counts as a conversion: Someone clicks your link, signs up for MPM, and starts a paid subscription. You earn {commissionRate}% of their subscription payments for up to {commissionMonths} months — automatically tracked and paid through Rewardful.
                       </p>
                     </div>
                   </div>
@@ -1093,17 +1106,13 @@ export default function AffiliateDashboard() {
               {[
                 {
                   label: "Commission rate",
-                  value: partnerRecord?.commissionRate != null
-                    ? `${partnerRecord.commissionRate}% on qualifying payments`
-                    : "30% on qualifying payments",
+                  value: `${commissionRate}% on qualifying payments`,
                 },
                 {
                   label: "Commission window",
-                  value: partnerRecord?.commissionMonths != null
-                    ? partnerRecord.commissionMonths === 60
+                  value: commissionMonths === 60
                       ? "5-year term per customer"
-                      : `First ${partnerRecord.commissionMonths} months per customer`
-                    : "First 24 months per customer",
+                      : `First ${commissionMonths} months per customer`,
                 },
                 {
                   label: "Customer discount",

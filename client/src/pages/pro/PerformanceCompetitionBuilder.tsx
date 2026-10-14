@@ -103,8 +103,9 @@ import { linkUserToClient } from "@/lib/macroResolver";
 import { saveLastPerformanceClientId } from "@/lib/macroSourcesConfig";
 import MealProgressCoach from "@/components/guided/MealProgressCoach";
 import { InformationModal } from "@/components/ui/universal-modal";
-import { useQuickTour } from "@/hooks/useQuickTour";
-import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import { useBuilderGuidanceTour } from "@/hooks/useBuilderGuidanceTour";
+import { TourStep } from "@/components/guided/QuickTourModal";
+import { BuilderGuidanceTour } from "@/components/guided/BuilderGuidanceTour";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
 import { getBuilderProtocolBadges } from "@/lib/nutritionPersonalization";
 
@@ -131,7 +132,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   const isDesktop = useIsDesktop();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const quickTour = useQuickTour("performance-competition-builder");
 
   const PERFORMANCE_TOUR_STEPS = useMemo<TourStep[]>(() => [
     { icon: "1", title: t("performanceCompetitionBuilder.tour1Title"), description: t("performanceCompetitionBuilder.tour1Desc") },
@@ -163,6 +163,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
   );
   const routeClientId = athleteParams?.clientId || proParams?.id;
   const proClientId = proParams?.id;
+  const quickTour = useBuilderGuidanceTour("performance_competition", proClientId);
   // In standalone mode, use current user's ID; in procare mode, use route clientId
   const clientId =
     mode === "procare" ? routeClientId : routeClientId || user?.id || null;
@@ -1709,7 +1710,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
       </InformationModal>
 
       {/* Quick Tour Modal */}
-      <QuickTourModal
+      <BuilderGuidanceTour key={quickTour.scopeKey} builderKey="performance_competition" professionalClient={Boolean(proClientId)}
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
         title={t("performanceCompetitionBuilder.tourTitle")}

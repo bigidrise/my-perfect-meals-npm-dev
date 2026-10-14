@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { registerSessionProbeRoutes } from "./authSessionProbe";
 import { db } from "../db";
+import { businessInvitations } from "../db/schema/business";
 import { trialAccessInvites, users } from "@shared/schema";
 import { isCanonicalPractitionerRole, isClinicalPractitionerRole } from "@shared/professionalRoles";
 import { eq, sql, and, or, isNotNull, gt, isNull } from "drizzle-orm";
@@ -40,6 +41,7 @@ import {
 import { AUTH_ATTEMPT_SCOPES, createAuthAttemptSubject } from "../services/authAttemptTracker";
 import { authAttemptTracker } from "../services/authAttemptTrackingService";
 import { requiresPrivilegedMfa } from "../lib/privilegedMfaPolicy";
+import { createWithUniqueSignupUsername, isSignupEmailConflict, signupDatabaseError } from "../services/signupUsername";
 
 const router = Router();
 
@@ -114,7 +116,10 @@ router.post("/api/auth/signup", async (req, res) => {
     // Do not create another case-variant account when a legacy spelling exists.
     const existingIdentity = await resolveEmailIdentityForEmail(email);
     if (existingIdentity.status !== "not_found") {
-      return res.status(400).json({ error: "User already exists" });
+      return res.status(400).json({
+        code: "EMAIL_ALREADY_EXISTS",
+        error: "An account with this email address already exists. Sign in or reset your password.",
+      });
     }
 
     // Hash password
@@ -151,6 +156,15 @@ router.post("/api/auth/signup", async (req, res) => {
       pilotInvite.expiresAt > new Date(),
     );
     const isPilotClientSignup = isValidPilotSignup && pilotInvite?.populationType === "client";
+    const [standardClientInvite] = !pilotInvite && inviteToken
+      ? await db.select({ id: businessInvitations.id }).from(businessInvitations).where(and(
+          eq(businessInvitations.token, inviteToken),
+          eq(businessInvitations.invitationType, "client"),
+          eq(businessInvitations.status, "pending"),
+          gt(businessInvitations.expiresAt, new Date()),
+        )).limit(1)
+      : [];
+    const isPatientSignup = isPilotClientSignup || Boolean(standardClientInvite);
     const pilotAuthorizationToken = typeof req.body.pilotAuthorizationToken === "string"
       ? req.body.pilotAuthorizationToken
       : null;
@@ -184,7 +198,7 @@ router.post("/api/auth/signup", async (req, res) => {
       && !isValidPilotSignup
       && !isValidPilotAuthorizationSignup
       && !businessPilotAuthorization
-      && !isBusinessAccount;
+      && (!isBusinessAccount || isPatientSignup);
     const trialNow = isNormalConsumer ? new Date() : null;
     const pendingPreRegistrationAccess = isNormalConsumer
       ? await findPendingPreRegistrationAccess(email)
@@ -210,7 +224,7 @@ router.post("/api/auth/signup", async (req, res) => {
 
     // Business / Organization account — not a ProCare practitioner.
     // Gets professionalRole="business" only; no isProCare, no role=coach, no plan override.
-    if (isBusinessAccount && !isPilotClientSignup) {
+    if (isBusinessAccount && !isPatientSignup) {
       userValues.professionalRole = "business";
     }
 
@@ -245,8 +259,8 @@ router.post("/api/auth/signup", async (req, res) => {
     // Create the user and claim any pre-registration record atomically. If the
     // record was claimed by another request, the user insert rolls back rather
     // than issuing an untracked 30-day entitlement.
-    const newUser = await db.transaction(async (tx) => {
-      const [createdUser] = await tx.insert(users).values(userValues).returning();
+    const newUser = await createWithUniqueSignupUsername(userValues.username, username => db.transaction(async (tx) => {
+      const [createdUser] = await tx.insert(users).values({ ...userValues, username }).returning();
       if (clinicPilotToken) {
         await enrollClinicPatientInTransaction(tx, clinicPilotToken, createdUser.id);
       }
@@ -284,7 +298,7 @@ router.post("/api/auth/signup", async (req, res) => {
       }
 
       return createdUser;
-    });
+    }));
 
   await regenerateSession(req);
   (req.session as any).userId = newUser.id;
@@ -346,7 +360,14 @@ router.post("/api/auth/signup", async (req, res) => {
       ...(membership && { studioMembership: membership }),
     });
   } catch (error: any) {
-    console.error("Signup error:", error);
+    if (isSignupEmailConflict(error)) {
+      return res.status(400).json({
+        code: "EMAIL_ALREADY_EXISTS",
+        error: "An account with this email address already exists. Sign in or reset your password.",
+      });
+    }
+    // Wrapped SQL errors can contain password hashes and other signup values.
+    console.error("Signup error:", { name: error?.name, ...signupDatabaseError(error) });
     res.status(500).json({ error: "Failed to create account" });
   }
 });

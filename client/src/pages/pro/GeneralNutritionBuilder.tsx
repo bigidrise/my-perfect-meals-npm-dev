@@ -65,6 +65,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import ShoppingListPreviewModal from "@/components/ShoppingListPreviewModal";
 import { useWeeklyBoard } from "@/hooks/useWeeklyBoard";
+import { useGuidedPersonalMealBoard } from "@/hooks/useGuidedPersonalMealBoard";
+import { GuidedMealBoard } from "@/components/guided/GuidedMealBoard";
+import { validPlanningWeek } from "@/lib/guidedJourney/mealBoard";
+import { IS_DEVELOPMENT } from "@/lib/developmentAuthRoutes";
 import { BUILDER_NS } from "@shared/builderNamespaces";
 import { setActiveBuilderNs } from "@/lib/activeBuilderNs";
 // CHICAGO CALENDAR FIX v1.0: getMondayISO replaced with getWeekStartISOInTZ from midnight.ts
@@ -80,8 +84,9 @@ import { SnackCreatorModal } from "@/components/SnackCreatorModal";
 import { SnackCreatorButton } from "@/components/SnackCreatorButton";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
 import { useNavigateToFavorites } from "@/hooks/useNavigateToFavorites";
-import { useQuickTour } from "@/hooks/useQuickTour";
-import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import { useBuilderGuidanceTour } from "@/hooks/useBuilderGuidanceTour";
+import { TourStep } from "@/components/guided/QuickTourModal";
+import { BuilderGuidanceTour } from "@/components/guided/BuilderGuidanceTour";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 import { useDailyNutritionState } from "@/hooks/useDailyNutritionState";
 import { BuilderHeader } from "@/components/pro/BuilderHeader";
@@ -109,7 +114,6 @@ export default function WeeklyMealBoard() {
 
 
 
-  const quickTour = useQuickTour("general-nutrition-builder");
 
   const GENERAL_NUTRITION_TOUR_STEPS = useMemo<TourStep[]>(() => [
     { icon: "1", title: t("generalNutritionBuilder.tour1Title"), description: t("generalNutritionBuilder.tour1Desc") },
@@ -127,6 +131,7 @@ export default function WeeklyMealBoard() {
   const clientId = params?.id || "1";
   const isProCareMode = !!params?.id;
   const effectiveUserId = proClientId || user?.id;
+  const quickTour = useBuilderGuidanceTour("general_nutrition", proClientId, householdProfileId);
 
   // Resolve nutrition ONCE. Use performance-aware resolver so Training Nutrition
   // Schedule adjustments are reflected when the user has saved a schedule.
@@ -135,11 +140,15 @@ export default function WeeklyMealBoard() {
 
   // 🎯 BULLETPROOF BOARD LOADING: Cache-first, guaranteed to render
   // CHICAGO CALENDAR FIX v1.0: Using noon UTC anchor pattern
-  const [weekStartISO, setWeekStartISO] = React.useState<string>(getWeekStartISOInTZ("America/Chicago"));
-  const { board: hookBoard, loading: hookLoading, error, save: saveToHook, source, refresh: refreshBoard, primeCache } = useWeeklyBoard(clientId, weekStartISO, proClientId, BUILDER_NS.GENERAL_NUTRITION, householdProfileId);
+  const [weekStartISO, setWeekStartISO] = React.useState<string>(() => {
+    const requested = IS_DEVELOPMENT && !proClientId && !householdProfileId ? new URLSearchParams(search).get("week") : null;
+    return validPlanningWeek(requested) ? requested : getWeekStartISOInTZ("America/Chicago");
+  });
 
   // Local mutable board state for optimistic updates
   const [board, setBoard] = React.useState<WeekBoard | null>(null);
+  const guidedBoard = useGuidedPersonalMealBoard(weekStartISO, board, proClientId, householdProfileId);
+  const { board: hookBoard, loading: hookLoading, error, save: saveToHook, source, refresh: refreshBoard, primeCache } = useWeeklyBoard(clientId, weekStartISO, proClientId, BUILDER_NS.GENERAL_NUTRITION, householdProfileId, guidedBoard.observeSave);
   const { fetchImageForMeal } = useChefMealImage();
   const boardRef = React.useRef<WeekBoard | null>(null);
 
@@ -706,6 +715,15 @@ export default function WeeklyMealBoard() {
   const gotoWeek = useCallback((targetISO: string) => {
     setWeekStartISO(targetISO);
   }, []);
+  React.useEffect(() => {
+    if (!IS_DEVELOPMENT || proClientId || householdProfileId) return;
+    const query = new URLSearchParams(search);
+    const requested = query.get("week");
+    if (validPlanningWeek(requested)) {
+      gotoWeek(requested);
+      if (query.get("view") === "week") setPlanningMode("week");
+    }
+  }, [search, proClientId, householdProfileId, gotoWeek]);
 
   const onPrevWeek = useCallback(() => {
     if (!weekStartISO) return;
@@ -731,7 +749,9 @@ export default function WeeklyMealBoard() {
     if (!board) return;
     setSaving(true);
     try {
-      const saved = await saveWeekBoard(board);
+      const saved = await saveWeekBoard(board, guidedBoard.observeSave ? {
+        observer: guidedBoard.observeSave, weekStartISO, namespace: BUILDER_NS.GENERAL_NUTRITION,
+      } : undefined);
       setBoard(saved);
       setJustSaved(true);
       // Reset success state after 2.5 seconds
@@ -876,10 +896,12 @@ export default function WeeklyMealBoard() {
 
       {/* Main Content */}
       <div
+        data-guided-board-content
         className="max-w-[1600px] mx-auto px-4 space-y-6"
         style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isProCareMode ? '9rem' : '6rem'})` }}
       >
         {/* NutritionBudgetBanner hidden — restore when reactivity is fixed */}
+        <GuidedMealBoard journey={guidedBoard} />
       <div className="mb-6 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl">
         <div className="px-4 py-4 flex flex-col gap-3">
 
@@ -1536,7 +1558,7 @@ export default function WeeklyMealBoard() {
       />
 
       {/* Quick Tour Modal */}
-      <QuickTourModal
+      <BuilderGuidanceTour key={quickTour.scopeKey} builderKey="general_nutrition" professionalClient={Boolean(proClientId)} useIntroduction={quickTour.useIntroduction}
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
         title={t("generalNutritionBuilder.tourTitle")}

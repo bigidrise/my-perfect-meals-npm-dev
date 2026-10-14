@@ -110,9 +110,10 @@ import { computeTargetsFromOnboarding } from "@/lib/targets";
 import { useTodayMacros } from "@/hooks/useTodayMacros";
 import { useNutritionBudget } from "@/hooks/useNutritionBudget";
 import { useOnboardingProfile } from "@/hooks/useOnboardingProfile";
-import { useQuickTour } from "@/hooks/useQuickTour";
+import { useBuilderGuidanceTour } from "@/hooks/useBuilderGuidanceTour";
 import { useDailyNutritionState } from "@/hooks/useDailyNutritionState";
-import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import { TourStep } from "@/components/guided/QuickTourModal";
+import { BuilderGuidanceTour } from "@/components/guided/BuilderGuidanceTour";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
 import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
@@ -200,7 +201,6 @@ export default function BeachBodyMealBoard() {
   usePageTitle("Performance Nutrition Builder");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const quickTour = useQuickTour("beach-body-meal-board");
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
@@ -225,6 +225,7 @@ export default function BeachBodyMealBoard() {
 
   const [, proParams] = useRoute("/pro/clients/:id/beach-body-builder");
   const proClientId = proParams?.id;
+  const quickTour = useBuilderGuidanceTour("beach_body", proClientId);
 
   const effectiveUserId = proClientId || user?.id;
 
@@ -2103,7 +2104,7 @@ export default function BeachBodyMealBoard() {
         />
 
         {/* Quick Tour Modal */}
-        <QuickTourModal
+        <BuilderGuidanceTour key={quickTour.scopeKey} builderKey="beach_body" professionalClient={Boolean(proClientId)}
           isOpen={quickTour.shouldShow}
           onClose={quickTour.closeTour}
           title="How to Build Your Performance Nutrition Meals"

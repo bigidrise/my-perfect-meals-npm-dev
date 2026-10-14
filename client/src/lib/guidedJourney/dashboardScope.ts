@@ -1,0 +1,61 @@
+import type { User } from "@/lib/auth";
+import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
+import type { JourneySnapshot } from "../../../../shared/guidedJourney";
+import { manualJourneyDestination } from "./dashboardModel";
+import { mealBuilderGuidance } from "@shared/mealBuilderGuidance";
+
+export type JourneyDashboardAccount = Pick<User,
+  "id" | "role" | "professionalRole" | "isSandbox" | "activeBoard"
+  | "selectedMealBuilder" | "accessTier" | "planLookupKey" | "builderSwitchUnlimited" | "studioMembership">;
+export interface JourneyDashboardContext {
+  development: boolean;
+  path: string;
+  workspace: string | null;
+  householdProfileId: string | null;
+}
+export function isPersonalJourneyDashboard(
+  account: JourneyDashboardAccount | null, context: JourneyDashboardContext,
+): boolean {
+  return context.development && context.path.split("?")[0] === "/dashboard"
+    && (context.workspace === null || context.workspace === "personal")
+    && !context.householdProfileId && !!account?.id && account.role === "client"
+    && !account.professionalRole && !account.isSandbox
+    && !account.id.startsWith("guest-") && !["anon", "anonymous"].includes(account.id)
+    && account.id !== "00000000-0000-0000-0000-000000000001";
+}
+
+export function isPersonalJourneyWorkflow(
+  account: JourneyDashboardAccount | null, context: JourneyDashboardContext,
+): boolean {
+  return ["/onboarding", "/macro-counter"].includes(context.path.split("?")[0])
+    && isPersonalJourneyDashboard(account, { ...context, path: "/dashboard" });
+}
+/** Include authority-affecting fields so changed accounts/access hide stale state immediately. */
+export function journeyDashboardContextKey(
+  account: JourneyDashboardAccount | null, context: JourneyDashboardContext,
+): string {
+  return JSON.stringify([context, account?.id, account?.role, account?.professionalRole,
+    account?.isSandbox, account?.activeBoard, account?.selectedMealBuilder,
+    account?.accessTier, account?.planLookupKey, account?.builderSwitchUnlimited,
+    account?.studioMembership?.assignedBuilder]);
+}
+export function journeyDestinationAllowed(
+  snapshot: JourneySnapshot, account: JourneyDashboardAccount | null,
+): boolean {
+  if (!account || snapshot.scope.actorId !== account.id || snapshot.scope.subjectId !== account.id
+    || account.role !== "client" || account.professionalRole || account.isSandbox) return false;
+  const route = manualJourneyDestination(snapshot);
+  if (!route) return false;
+  if (route !== mealBuilderGuidance(snapshot.builderKey)?.route) return true;
+  return journeyMealBuilderAllowed(account, snapshot.builderKey ?? undefined);
+}
+
+export function journeyMealBuilderAllowed(account: JourneyDashboardAccount, builderKey = "general_nutrition"): boolean {
+  // Match the existing BuilderAccessGuard; additionally decline a conflicting
+  // professional assignment rather than adding an unapproved Builder adapter.
+  const assigned = account.studioMembership?.assignedBuilder;
+  return hasActivePaidSubscription(account)
+    && !!mealBuilderGuidance(builderKey)
+    && (!account.activeBoard || account.activeBoard === builderKey || account.builderSwitchUnlimited === true)
+    && (!assigned || assigned === builderKey);
+}

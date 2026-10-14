@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { BUILDER_MAP, type BuilderKey } from "@/lib/builderMap";
 const GeneralNutritionBuilder = lazy(() => import("@/pages/pro/GeneralNutritionBuilder"));
@@ -19,6 +19,7 @@ import { FEATURES } from "@/utils/features";
 import ComingSoon from "@/pages/ComingSoon";
 import StudioBottomNav from "@/components/pro/StudioBottomNav";
 import { OrganizationQuickStartReturn } from "@/components/business/OrganizationQuickStartReturn";
+import { isBusinessPilotOrganizationEntry } from "@/lib/businessPilotEntrance";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
 import { useToast } from "@/hooks/use-toast";
@@ -34,6 +35,12 @@ import {
 } from "@/lib/professionalLegalRecovery";
 import { getDemoContext } from "@/lib/demoProfessional";
 import { isDemoGrantCurrent } from "@shared/demoProfessional";
+import { isDevelopmentFounderPilotRoute } from "@/lib/developmentFounderPilotRoute";
+import { developmentStudioLoadingEnabled } from "@/lib/developmentStudioLoading";
+import { beginStudioNavigation, isStudioTransitionRoute, preloadStudioPage, preloadStudioDemoPage } from "@/lib/studioTransition";
+import { DevelopmentStudioGuard, StudioTransitionPanel } from "@/components/pro/DevelopmentStudioGuard";
+
+const PilotProgramAdmin = lazy(() => import("@/pages/PilotProgramAdmin"));
 
 // DEV-ONLY: responsive modal bounds test harness.
 // Static import (no lazy) so the module is compiled into the main bundle and
@@ -215,7 +222,14 @@ function ClinicalGuard({ component: Component }: { component: React.ComponentTyp
 
 const PROCARE_CERT_POLL_MS = 5 * 60 * 1000; // 5 minutes
 
-function ProCareStudioGuard({ component: Component }: { component: React.ComponentType }) {
+function ProCareStudioGuard({ component }: { component: React.ComponentType }) {
+  const [location] = useLocation();
+  return developmentStudioLoadingEnabled && isStudioTransitionRoute(location)
+    ? <DevelopmentStudioGuard component={component} />
+    : <LegacyProCareStudioGuard component={component} />;
+}
+
+function LegacyProCareStudioGuard({ component: Component }: { component: React.ComponentType }) {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
   const [studioAccess, setStudioAccess] = useState<"checking" | "available" | "disconnected" | "error">("checking");
@@ -728,12 +742,6 @@ const SafeAntiInflammatoryMenuBuilder = withPageErrorBoundary(AntiInflammatoryMe
 const GuardedProPortal = () => <ProCareStudioGuard component={SafeProPortal} />;
 const GuardedProClients = () => <ProCareStudioGuard component={SafeProClients} />;
 const GuardedProClientsPhysician = () => <ProCareStudioGuard component={SafeProClientsPhysician} />;
-function DevelopmentFounderClinicEntry({ component: Component }: { component: React.ComponentType }) {
-  return <DemoPhysicianWorkspace fallback={<Component />} />;
-}
-const DevelopmentFounderPhysicianClientsRoute = () => <DevelopmentFounderClinicEntry component={GuardedProClientsPhysician} />;
-const DevelopmentFounderPhysicianCareTeamRoute = () => <DevelopmentFounderClinicEntry component={GuardedPhysicianCareTeam} />;
-const DevelopmentFounderClinicClientsRoute = () => <DevelopmentFounderClinicEntry component={GuardedProClients} />;
 const DemoPhysicianWorkspaceRoute = () => <DemoPhysicianWorkspace />;
 const GuardedWorkspaceShell = () => <ProCareStudioGuard component={SafeWorkspaceShell} />;
 const GuardedProClientDashboard = () => <ProCareStudioGuard component={SafeProClientDashboard} />;
@@ -875,6 +883,15 @@ export default function Router() {
   const guardRedirectedRef = useRef(false);
   const isDesktopView = useIsDesktop();
   const [founderProbe, setFounderProbe] = useState<{ accountId: string; authority: boolean } | null>(null);
+  const studioTiming = useMemo(() => beginStudioNavigation(location), [location, user?.id]);
+  useEffect(() => {
+    if (!studioTiming) return;
+    // Code only; neither page is mounted and no protected page data is prefetched.
+    preloadStudioPage(location).then(() => studioTiming.codeLoaded("professional", "ready"))
+      .catch(() => studioTiming.codeLoaded("professional", "error"));
+    preloadStudioDemoPage(location).then(() => studioTiming.codeLoaded("demo", "ready"))
+      .catch(() => studioTiming.codeLoaded("demo", "error"));
+  }, [location, studioTiming]);
 
   useEffect(() => {
     if (!import.meta.env.DEV || authLoading) return;
@@ -905,6 +922,14 @@ export default function Router() {
 
   const founderIsCurrentAccount = Boolean(user?.id && founderProbe?.accountId === user.id);
   const isFounderDevelopmentSession = import.meta.env.DEV && founderIsCurrentAccount && founderProbe?.authority === true;
+  // Unlike pilot authority, page selection does not require an active grant.
+  // Expired/revoked/unavailable demo authority must show the original guard's
+  // denial, not quietly substitute a different Physician interface again.
+  const isOriginalPhysicianStudio = import.meta.env.DEV &&
+    user?.developmentPhysicianStudioInterface === "original";
+  const isFounderPilotRoute = isDevelopmentFounderPilotRoute(
+    import.meta.env.DEV, isFounderDevelopmentSession, location,
+  );
   const authRoutes = ["/auth", "/welcome", "/login", "/signup", "/forgot-password", "/reset-password", "/logout", "/signout", "/auth/logout"];
   const isAuthRoute = authRoutes.includes(location);
 
@@ -975,11 +1000,12 @@ export default function Router() {
     "/business/start",
     "/business/setup",
     "/business/join",
+    "/activate/business-pilot",
   ];
 
   const loading = authLoading;
   const shouldShowBottomNav =
-    user?.operatingStatus !== "demo_only" &&
+    (user?.operatingStatus !== "demo_only" || isOriginalPhysicianStudio) &&
     !hideBottomNavRoutes.includes(location) &&
     !location.startsWith("/join/clinic") &&
     !location.startsWith("/join/business-offer") &&
@@ -1030,6 +1056,7 @@ export default function Router() {
     "/home",
     "/business/join",
     "/join/clinic",
+    "/activate/business-pilot",
     "/business/start",
     "/business-dashboard",
     "/business/setup",
@@ -1047,7 +1074,10 @@ export default function Router() {
 
   // Onboarding + Macro route guards with toast feedback
   useEffect(() => {
-    if (loading || !user || isUngatedRoute || isMacroRoute) return;
+    if (loading || !user || isUngatedRoute || isMacroRoute || isFounderPilotRoute) return;
+    // Only a short-lived, account-bound More navigation continuation skips
+    // personal onboarding. Every Organization API retains its existing gates.
+    if (isBusinessPilotOrganizationEntry(sessionStorage, import.meta.env.DEV, location, user.id)) return;
     if (user.id.startsWith("guest-") || user.isTester) return;
     if (guardRedirectedRef.current) return;
 
@@ -1082,7 +1112,7 @@ export default function Router() {
     }
 
     // Guard 2: Macro profile must be complete (age, height, weight required — consumers only)
-    const hasMacroProfile = user.age && user.height && user.weight;
+    const hasMacroProfile = user.hasSavedMacroProfile === true || (user.age && user.height && user.weight);
     const hasLocalMacroSettings = (() => {
       try {
         const s = localStorage.getItem("macro_calculator_settings");
@@ -1101,21 +1131,11 @@ export default function Router() {
       setTimeout(() => { guardRedirectedRef.current = false; }, 1000);
       return;
     }
-  }, [location, user, loading, isProfessionalUser]);
+  }, [location, user, loading, isProfessionalUser, isFounderPilotRoute]);
 
-  useEffect(() => {
-    if (!authLoading && user?.operatingStatus === "demo_only" &&
-      !["/auth", "/welcome", "/logout", "/signout", "/auth/logout"].includes(location) &&
-      location !== "/pro/physician-clients") {
-      setLocation("/pro/physician-clients");
-    }
-  }, [authLoading, user?.operatingStatus, location, setLocation]);
-
-  useEffect(() => {
-    if (isFounderDevelopmentSession && !isAuthRoute && location !== "/pro/physician-clients") {
-      setLocation("/pro/physician-clients");
-    }
-  }, [isFounderDevelopmentSession, isAuthRoute, location, setLocation]);
+  // The recognized Development founder uses the ORIGINAL Physician routes and
+  // their existing guards. This is presentation only: server demo restrictions,
+  // role checks, client authorization and clinical readiness remain unchanged.
 
   if (
     import.meta.env.DEV &&
@@ -1124,23 +1144,27 @@ export default function Router() {
     !isAuthRoute &&
     (!founderProbe || founderProbe.accountId !== user.id)
   ) {
+    if (isStudioTransitionRoute(location)) {
+      return <StudioTransitionPanel title="Opening your Studio workspace" detail="Resolving secure workspace access…" />;
+    }
     return <div className="min-h-[100dvh] grid place-items-center bg-[#201c19] text-white/75 text-sm">Resolving secure workspace…</div>;
   }
 
-  if (isFounderDevelopmentSession && !isAuthRoute) {
-    return <Suspense fallback={<p role="status">Loading physician Clinic…</p>}><DemoPhysicianWorkspace /></Suspense>;
-  }
-
   // Do not mount/cache-render a live professional page while redirecting.
-  if (!authLoading && user?.operatingStatus === "demo_only" && !isAuthRoute) {
-    return <Suspense fallback={<p role="status">Loading isolated demo workspace…</p>}><DemoPhysicianWorkspace /></Suspense>;
+  // Other restricted accounts and Production retain the isolated demo shell.
+  if (!authLoading && user?.operatingStatus === "demo_only" && !isAuthRoute && !isFounderPilotRoute && !isOriginalPhysicianStudio) {
+    return <Suspense fallback={developmentStudioLoadingEnabled
+      ? <StudioTransitionPanel title="Opening your Clinic workspace" detail="Preparing the page…" />
+      : <p role="status">Loading isolated demo workspace…</p>}><DemoPhysicianWorkspace /></Suspense>;
   }
   return (
     <>
       <ScrollRestorer />
       <Suspense
         fallback={
-          <div className="min-h-screen flex items-center justify-center bg-black text-white/60 text-sm">
+          developmentStudioLoadingEnabled && isStudioTransitionRoute(location)
+          ? <StudioTransitionPanel title="Opening your Studio workspace" detail="Preparing the page…" />
+          : <div className="min-h-screen flex items-center justify-center bg-black text-white/60 text-sm">
             Loading...
           </div>
         }
@@ -1173,6 +1197,7 @@ export default function Router() {
         <Route path="/onboarding/extended" component={ExtendedOnboarding} />
         <Route path="/checkout/success" component={CheckoutSuccess} />
         <Route path="/billing/success" component={CheckoutSuccess} />
+        <Route path="/activate/business-pilot" component={lazy(() => import("@/pages/BusinessPilotActivation"))} />
         <Route path="/business/start" component={lazy(() => import("@/pages/BusinessStart"))} />
         <Route path="/business/setup" component={lazy(() => import("@/pages/BusinessSetup"))} />
         <Route path="/business/dashboard" component={lazy(() => import("@/pages/BusinessDashboard"))} />
@@ -1186,9 +1211,11 @@ export default function Router() {
         <Route path="/personal-guidance-info" component={PersonalGuidanceInfoPage} />
         <Route path="/admin-moderation" component={AdminModerationPage} />
         <Route path="/admin/professional-requests" component={lazy(() => import("@/pages/admin/ProfessionalIdentityRequests"))} />
-        {import.meta.env.DEV && <Route path="/demo-physician" component={DemoPhysicianWorkspaceRoute} />}
+        {import.meta.env.DEV && <Route path="/demo-physician" component={isOriginalPhysicianStudio ? GuardedProClientsPhysician : DemoPhysicianWorkspaceRoute} />}
         <Route path="/admin/chef-kitchens" component={ChefKitchensAdmin} />
-        <Route path="/admin/pilots" component={lazy(() => import("@/pages/PilotProgramAdmin"))} />
+        <Route path="/admin/pilots">
+          <PilotProgramAdmin showDevelopmentMfaStatus={isFounderPilotRoute} />
+        </Route>
         <Route path="/kitchens" component={SignatureKitchenHubPage} />
         <Route path="/kitchen/:slug" component={SignatureKitchenPage} />
         <Route path="/consumer-welcome" component={ConsumerWelcome} />
@@ -1362,12 +1389,12 @@ export default function Router() {
         <Route path="/tips" component={SafeTips} />
         <Route path="/pro/physician" component={PhysicianPortal} />
         <Route path="/care-team" component={GuardedCareTeam} />
-        <Route path="/care-team/physician" component={import.meta.env.DEV ? DevelopmentFounderPhysicianCareTeamRoute : GuardedPhysicianCareTeam} />
+        <Route path="/care-team/physician" component={GuardedPhysicianCareTeam} />
         <Route path="/care-team/trainer" component={GuardedTrainerCareTeam} />
         <Route path="/pro-portal" component={GuardedProPortal} />
         <Route path="/pro" component={() => { const [, go] = useLocation(); useEffect(() => { go("/pro-portal"); }, []); return null; }} />
-        <Route path="/pro/clients" component={import.meta.env.DEV ? DevelopmentFounderClinicClientsRoute : GuardedProClients} />
-        <Route path="/pro/physician-clients" component={import.meta.env.DEV ? DevelopmentFounderPhysicianClientsRoute : GuardedProClientsPhysician} />
+        <Route path="/pro/clients" component={GuardedProClients} />
+        <Route path="/pro/physician-clients" component={GuardedProClientsPhysician} />
         <Route path="/pro/workspace/:clientId" component={GuardedWorkspaceShell} />
         <Route path="/pro/clients/:id" component={GuardedProClientDashboard} />
         <Route path="/pro/clients/:id/nutrition-life-plan" component={GuardedProClientNutritionPlan} />

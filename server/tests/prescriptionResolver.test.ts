@@ -215,6 +215,30 @@ function setupGlp1Test(guardrails: unknown = {}) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("resolveDailyNutritionPrescription", () => {
+  test.each([
+    [1, "even"], [2, "morning"], [3, "even"], [4, "evening"], [5, "ai"], [6, "even"],
+  ])("client's saved %s starch meals / %s reach the real resolver without changing macro totals", async (count, timing) => {
+    const client = makeGlp1User({
+      specialtyConditions: [],
+      selectedMealBuilder: "general-nutrition",
+      activeBoard: "general-nutrition",
+      performanceModeEnabled: false,
+      defaultStarchMealsPerDay: count,
+      starchDistributionStrategy: timing,
+      dailyStarchyCarbsTarget: 84,
+      dailyFibrousCarbsTarget: 136,
+    });
+    glp1GuardrailsRow = {};
+    mockSelectQueue([[client], [{ count: 0 }], [], [{ weight: 175 }]]);
+    const prescription = await resolveDailyNutritionPrescription({ userId: UUID_USER_ID, dateISO: DATE_ISO });
+    expect(prescription.starchMealsAllowed).toBe(count);
+    expect(prescription.starchDistributionStrategy).toBe(timing);
+    expect(prescription.starchyCarbsTarget).toBe(84);
+    expect(prescription.fibrousCarbsTarget).toBe(136);
+    expect(prescription.proteinTarget).toBe(client.dailyProteinTarget);
+    expect(prescription.fatTarget).toBe(client.dailyFatTarget);
+    expect(prescription.caloriesTarget).toBe(client.dailyCalorieTarget);
+  });
 
   // ── Test 1: UUID userId reaches glp1_profile as a string ─────────────────
 

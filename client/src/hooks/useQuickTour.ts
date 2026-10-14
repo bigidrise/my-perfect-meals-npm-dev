@@ -33,7 +33,17 @@ function isToursGloballyDisabled(): boolean {
   }
 }
 
-export function useQuickTour(pageKey: string): QuickTourState {
+export function useQuickTour(
+  pageKey: string,
+  onPreferenceSaveError?: () => void,
+  { autoOpenDelayMs = 500, setupComplete, autoEnabled = true }: {
+    autoOpenDelayMs?: number;
+    /** undefined keeps ordinary tours unchanged; null waits for saved evidence. */
+    setupComplete?: boolean | null;
+    /** Suppress automatic presentation without disabling manual Guide access. */
+    autoEnabled?: boolean;
+  } = {},
+): QuickTourState {
   const storageKey = `quick-tour::${pageKey}`;
   
   // Tri-state: null = not yet loaded, true = seen, false = not seen
@@ -41,6 +51,8 @@ export function useQuickTour(pageKey: string): QuickTourState {
   const [hasSeenTour, setHasSeenTour] = useState<boolean | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [globalDisabled, setGlobalDisabledState] = useState(false);
+  const [loadedStorageKey, setLoadedStorageKey] = useState<string | null>(null);
+  const setupVisitRef = useRef({ key: storageKey, opened: false });
   
   // Track if we've already scheduled auto-open to prevent duplicates
   const autoOpenScheduledRef = useRef(false);
@@ -48,14 +60,36 @@ export function useQuickTour(pageKey: string): QuickTourState {
   // Use useLayoutEffect to read localStorage synchronously before paint
   // This blocks the first render until we know the storage state
   useLayoutEffect(() => {
+    // A different account/client/page must not inherit an open prior tour.
+    setIsOpen(false);
+    autoOpenScheduledRef.current = false;
     const seen = checkIfSeen(storageKey);
     const globalOff = isToursGloballyDisabled();
     setHasSeenTour(seen);
     setGlobalDisabledState(globalOff);
+    setLoadedStorageKey(storageKey);
   }, [storageKey]);
 
   // Auto-open tour ONLY after storage is loaded AND user hasn't seen it AND tours not globally disabled
   useLayoutEffect(() => {
+    if (!autoEnabled || loadedStorageKey !== storageKey) return;
+    if (setupComplete !== undefined) {
+      if (setupVisitRef.current.key !== storageKey) {
+        setupVisitRef.current = { key: storageKey, opened: false };
+        setIsOpen(false);
+      }
+      // Setup completion, not an old "seen" preference, owns this entrance.
+      // Unknown saved state never means unfinished setup.
+      if (loadedStorageKey !== storageKey || globalDisabled
+        || setupComplete !== false || setupVisitRef.current.opened) return;
+      const open = () => {
+        setupVisitRef.current.opened = true;
+        setIsOpen(true);
+      };
+      if (autoOpenDelayMs === 0) { open(); return; }
+      const timer = setTimeout(open, autoOpenDelayMs);
+      return () => clearTimeout(timer);
+    }
     // Wait until storage has been checked (hasSeenTour is not null)
     if (hasSeenTour === null) return;
     
@@ -65,12 +99,18 @@ export function useQuickTour(pageKey: string): QuickTourState {
     // Only auto-open if not seen and we haven't already scheduled it
     if (hasSeenTour === false && !autoOpenScheduledRef.current) {
       autoOpenScheduledRef.current = true;
+      // The onboarding entrance opens as soon as preferences are loaded.
+      // Other guides retain their existing delayed presentation.
+      if (autoOpenDelayMs === 0) {
+        setIsOpen(true);
+        return;
+      }
       const timer = setTimeout(() => {
         setIsOpen(true);
-      }, 500);
+      }, autoOpenDelayMs);
       return () => clearTimeout(timer);
     }
-  }, [hasSeenTour, globalDisabled]);
+  }, [hasSeenTour, globalDisabled, autoOpenDelayMs, setupComplete, storageKey, loadedStorageKey, autoEnabled]);
 
   const setGlobalDisabled = useCallback((disabled: boolean) => {
     try {
@@ -86,23 +126,25 @@ export function useQuickTour(pageKey: string): QuickTourState {
   }, []);
 
   const openTour = useCallback(() => {
+    setupVisitRef.current = { key: storageKey, opened: true };
     setIsOpen(true);
-  }, []);
+  }, [storageKey]);
 
   const closeTour = useCallback((dontShowAgain: boolean) => {
+    setupVisitRef.current = { key: storageKey, opened: true };
     setIsOpen(false);
-    if (dontShowAgain) {
+    if (dontShowAgain && setupComplete === undefined) {
       try {
         localStorage.setItem(storageKey, "seen");
         setHasSeenTour(true);
       } catch {
-        // localStorage not available - silently fail
+        onPreferenceSaveError?.();
       }
     }
-  }, [storageKey]);
+  }, [storageKey, onPreferenceSaveError, setupComplete]);
 
   return {
-    shouldShow: isOpen,
+    shouldShow: isOpen && loadedStorageKey === storageKey,
     // Return false while loading to avoid UI flicker
     hasSeenTour: hasSeenTour === true,
     openTour,

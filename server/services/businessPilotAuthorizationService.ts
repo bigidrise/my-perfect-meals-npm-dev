@@ -9,6 +9,7 @@ import {
   type BusinessPilotDurationPolicy,
 } from "../db/schema/businessPilotAuthorization";
 import { normalizeEmailIdentity } from "./emailIdentityService";
+import { businessPilotActivationEnabled, FOUNDER_ACTIVATION_WORKFLOW } from "./businessPilotActivationPolicy";
 
 export class BusinessPilotAuthorizationError extends Error {
   constructor(
@@ -81,7 +82,7 @@ export async function createBusinessPilotAuthorization(input: {
   durationDays?: number;
   notes?: string | null;
   internalMetadata?: Record<string, unknown> | null;
-}): Promise<BusinessPilotAuthorization> {
+}, transaction?: any): Promise<BusinessPilotAuthorization> {
   const email = normalizedEmail(input.authorizedEmail);
   const startsAt = dateOrNull(input.startsAt, "startsAt");
   const durationPolicy = input.durationPolicy ?? "fixed";
@@ -108,7 +109,7 @@ export async function createBusinessPilotAuthorization(input: {
     throw new BusinessPilotAuthorizationError("notes is too long.", "INVALID_NOTES");
   }
 
-  return db.transaction(async (tx) => {
+  const create = async (tx: any) => {
     await tx.execute(lockKey(email));
     const [created] = await tx.insert(businessPilotAuthorizations).values({
       authorizedEmail: input.authorizedEmail.trim(),
@@ -124,7 +125,8 @@ export async function createBusinessPilotAuthorization(input: {
       internalMetadata: input.internalMetadata ?? null,
     }).returning();
     return created;
-  }).catch((error: any) => {
+  };
+  return (transaction ? create(transaction) : db.transaction(create)).catch((error: any) => {
     if (error?.code === "23505") {
       throw new BusinessPilotAuthorizationError(
         "An open Business Pilot authorization already exists for this email.",
@@ -174,6 +176,20 @@ export async function extendBusinessPilotAuthorization(input: {
     const [current] = await tx.select().from(businessPilotAuthorizations)
       .where(eq(businessPilotAuthorizations.id, input.authorizationId)).limit(1);
     if (!current) throw new BusinessPilotAuthorizationError("Authorization not found.", "AUTHORIZATION_NOT_FOUND", 404);
+    if (current.internalMetadata?.workflow === FOUNDER_ACTIVATION_WORKFLOW) {
+      throw new BusinessPilotAuthorizationError(
+        "Founder activation pilots have one fixed 30-day window.",
+        "FIXED_PILOT_EXTENSION_NOT_SUPPORTED", 409,
+      );
+    }
+    if (businessPilotActivationEnabled()) {
+      const result: any = await tx.execute(sql`SELECT authorization_id FROM business_pilot_activation_links
+        WHERE authorization_id = ${input.authorizationId}`);
+      if ((result.rows ?? result).length) throw new BusinessPilotAuthorizationError(
+        "Founder activation pilots have one fixed 30-day window and cannot be extended through legacy controls.",
+        "FIXED_PILOT_EXTENSION_NOT_SUPPORTED", 409,
+      );
+    }
     if (!["pending", "active"].includes(current.status)) {
       throw new BusinessPilotAuthorizationError("Only open authorizations can be extended.", "AUTHORIZATION_NOT_EXTENDABLE", 409);
     }
@@ -288,6 +304,14 @@ export async function revokeBusinessPilotAuthorization(input: {
     )).returning();
     if (!revoked) {
       throw new BusinessPilotAuthorizationError("Authorization is no longer open.", "AUTHORIZATION_NOT_REVOCABLE", 409);
+    }
+    if (businessPilotActivationEnabled()) {
+      // Also handles revocation between atomic business reservation and canonical provisioning.
+      await tx.execute(sql`UPDATE businesses b SET commercial_access_ends_at = now(), updated_at = now()
+        FROM business_pilot_activation_links l
+        WHERE l.authorization_id = ${input.authorizationId} AND b.id = l.business_id
+          AND b.commercial_access_mode = 'onboarding_pilot'
+          AND b.stripe_customer_id IS NULL AND b.stripe_subscription_id IS NULL`);
     }
     if (current.organizationId) {
       const [business] = await tx.select().from(businesses)

@@ -1,6 +1,11 @@
 import { Router } from "express";
+import businessPilotActivationRoutes from "./businessPilotActivationRoutes";
+import { bindFounderOrganization, founderOrganizationWindow, getBusinessPilotActivation } from "../services/businessPilotActivationService";
+import { deleteDevelopmentBusinessRecords } from "../services/developmentBusinessCleanup";
+import { BusinessPilotActivationError, FOUNDER_ACTIVATION_WORKFLOW } from "../services/businessPilotActivationPolicy";
+import { getProviderStudioReadiness } from "../services/procareStudioReadiness";
 import { randomBytes, randomUUID } from "crypto";
-import Stripe from "stripe";
+import Stripe from "../services/isolatedStripeClient";
 import { db } from "../db";
 import { eq, and, ne, sql, isNull, gt, or, inArray } from "drizzle-orm";
 import {
@@ -101,6 +106,7 @@ const stripe = stripeKey
   : null;
 
 const router = Router();
+router.use("/pilot-activation", businessPilotActivationRoutes);
 
 // Development-only guided Business pilot surface. Production deliberately has
 // no route here: the commercial product must not acquire a second pilot clock.
@@ -1258,6 +1264,17 @@ router.post("/invite", requireAuth, requireProOrOrgAdmin, requireSelectedBusines
       return res.status(403).json({ error: "No business account found." });
     }
     const { business, locationId } = resolved;
+    if (isClient) {
+      // Gate new provider-originated relationships, not a patient's already-issued trial.
+      // Organization commercial access owns this invitation action. Do not
+      // require a separate paid Studio merely to issue an Organization trial;
+      // identity, credentials, training and legal readiness still apply.
+      const readiness = await getProviderStudioReadiness(business.ownerUserId, { requireSubscription: false });
+      if (!readiness.ok) return res.status(422).json({
+        error: readiness.message || "Complete the existing professional setup before inviting patients.",
+        code: readiness.code,
+      });
+    }
     const attribution = await resolveBp1Attribution(userId, {
       organizationId: resolved.organizationId,
       locationId,
@@ -1864,8 +1881,9 @@ async function inspectBusinessInvitation(req: any, res: any) {
         return res.status(pilotInvite.status === "accepted" ? 200 : 410).json({
           alreadyAccepted: pilotInvite.status === "accepted",
           status: pilotInvite.status,
-          invitationType: pilotInvite.invitationType,
+          invitationType: pilotInvite.populationType === "client" ? "client" : "team_member",
           populationType: pilotInvite.populationType,
+          role: pilotInvite.participantRole,
           participantRole: pilotInvite.participantRole,
           email: pilotInvite.email,
           expiresAt: pilotInvite.expiresAt,
@@ -1885,7 +1903,7 @@ async function inspectBusinessInvitation(req: any, res: any) {
         role: pilotInvite.participantRole,
         businessName: pilotBusiness?.name ?? pilotInvite.programName,
         expiresAt: pilotInvite.expiresAt,
-        invitationType: pilotInvite.invitationType,
+        invitationType: pilotInvite.populationType === "client" ? "client" : "team_member",
         populationType: pilotInvite.populationType,
         participantRole: pilotInvite.participantRole,
         programName: pilotInvite.programName,
@@ -1979,6 +1997,9 @@ async function acceptBusinessInvitation(req: any, res: any) {
           alreadyAccepted: accepted.alreadyAccepted,
           businessName: pilotBusiness?.name ?? pilotInvite.programName,
           populationType: pilotInvite.populationType,
+          invitationType: pilotInvite.populationType === "client" ? "client" : "team_member",
+          role: pilotInvite.participantRole,
+          programName: pilotInvite.programName,
           participantRole: pilotInvite.participantRole,
           trialDays: pilotInvite.trialDays,
           accessStartsAt: accepted.alreadyAccepted ? null : accepted.accessStartsAt,
@@ -2736,8 +2757,13 @@ async function associateClaimedBusinessPilotAfterWorkspace(input: {
   businessId: string;
   organizationId: string;
 }) {
+  const founder = await getBusinessPilotActivation(input.userId);
+  // A personal pilot never rewrites a pre-existing organization's commercial window.
+  if (founder && founder.business_id !== input.businessId) return null;
   const authorization = await findClaimedBusinessPilotAuthorizationForUser(input.userId);
   if (!authorization) return null;
+  if (authorization.internalMetadata?.workflow === FOUNDER_ACTIVATION_WORKFLOW &&
+      (!founder || founder.business_id !== input.businessId)) return null;
   const attached = await attachClaimedBusinessPilotAuthorizationToOrganization({
     authorizationId: authorization.id,
     claimedUserId: input.userId,
@@ -2787,7 +2813,8 @@ router.post("/create-org", requireAuth, async (req, res) => {
           if (
             prior.status === "pending_billing" &&
             !prior.stripeSubscriptionId &&
-            !prior.commercialAccessMode
+            !prior.commercialAccessMode &&
+            !(await getBusinessPilotActivation(userId, tx))
           ) {
             const [activated] = await tx.update(businesses).set({
               status: "active",
@@ -2801,6 +2828,8 @@ router.post("/create-org", requireAuth, async (req, res) => {
           return { business: prior, created: false };
         }
 
+        const founderWindow = await founderOrganizationWindow(tx, userId);
+        const creationWindow = founderWindow ?? onboardingWindow;
         const [business] = await tx.insert(businesses).values({
           name: orgName,
           ownerUserId: userId,
@@ -2809,9 +2838,10 @@ router.post("/create-org", requireAuth, async (req, res) => {
           seatLimit: 1,
           status: "active",
           commercialAccessMode: "onboarding_pilot",
-          commercialAccessStartedAt: onboardingWindow.startedAt,
-          commercialAccessEndsAt: onboardingWindow.endsAt,
+          commercialAccessStartedAt: creationWindow.startedAt,
+          commercialAccessEndsAt: creationWindow.endsAt,
         }).returning();
+        if (founderWindow) await bindFounderOrganization(tx, founderWindow.authorizationId, business.id);
         await tx.insert(businessMembers).values({
           businessId: business.id,
           userId,
@@ -2874,7 +2904,8 @@ router.post("/create-org", requireAuth, async (req, res) => {
       if (
         existing.status === "pending_billing" &&
         !existing.stripeSubscriptionId &&
-        !existing.commercialAccessMode
+        !existing.commercialAccessMode &&
+        !(await getBusinessPilotActivation(userId))
       ) {
         const [activated] = await db.update(businesses).set({
           status: "active",
@@ -2907,6 +2938,8 @@ router.post("/create-org", requireAuth, async (req, res) => {
     let newBiz: typeof businesses.$inferSelect;
     try {
       newBiz = await db.transaction(async (tx) => {
+        const founderWindow = await founderOrganizationWindow(tx, userId);
+        const creationWindow = founderWindow ?? onboardingWindow;
         const [biz] = await tx.insert(businesses).values({
           name: orgName,
           ownerUserId: userId,
@@ -2914,9 +2947,10 @@ router.post("/create-org", requireAuth, async (req, res) => {
           seatLimit: 1,
           status: "active",
           commercialAccessMode: "onboarding_pilot",
-          commercialAccessStartedAt: onboardingWindow.startedAt,
-          commercialAccessEndsAt: onboardingWindow.endsAt,
+          commercialAccessStartedAt: creationWindow.startedAt,
+          commercialAccessEndsAt: creationWindow.endsAt,
         }).returning();
+        if (founderWindow) await bindFounderOrganization(tx, founderWindow.authorizationId, biz.id);
 
         // Generic self-service creation establishes an internal owner. External
         // contractors must receive an explicit delegated administrator grant.
@@ -2975,6 +3009,9 @@ router.post("/create-org", requireAuth, async (req, res) => {
     });
   } catch (err: any) {
     console.error("[business/create-org] error:", err);
+    if (err instanceof BusinessPilotActivationError) {
+      return res.status(err.statusCode).json({ error: err.message, code: err.code });
+    }
     if (err instanceof BusinessPilotAuthorizationError) {
       return res.status(err.statusCode).json({ error: err.message, code: err.code });
     }
@@ -3158,9 +3195,7 @@ router.delete("/dev-seed", requireAuth, async (req, res) => {
     const [biz] = await db.select().from(businesses).where(eq(businesses.ownerUserId, userId)).limit(1);
     if (!biz) return res.json({ success: true, message: "Nothing to delete." });
 
-    await db.execute(sql`DELETE FROM business_invitations WHERE business_id = ${biz.id}`);
-    await db.execute(sql`DELETE FROM business_members WHERE business_id = ${biz.id}`);
-    await db.execute(sql`DELETE FROM businesses WHERE id = ${biz.id}`);
+    await deleteDevelopmentBusinessRecords(db, biz.id);
 
     console.log(`[dev-seed] Wiped test business ${biz.id} for user ${userId}`);
     return res.json({ success: true });

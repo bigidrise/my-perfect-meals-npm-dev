@@ -66,6 +66,8 @@ export interface AuthenticatedUser {
   pilotProCareEndsAt: Date | null;
   /** Commercial full-platform pilot; does not grant clinical credentials or ProCare authority. */
   pilotFullAccess: boolean;
+  temporaryClinicalAccess?: boolean;
+  businessPilotClinicalAccessEndsAt?: Date | string | null;
   pilotParticipantId: string | null;
   pilotProgramName: string | null;
   pilotFullAccessEndsAt: Date | null;
@@ -126,6 +128,7 @@ export async function buildAuthUserWithEffectiveAccess(user: any): Promise<Authe
         planLookupKey: effective.planLookupKey,
         hasPilotProCareAccess: effective.pilotProCareAccess,
         hasPilotFullAccess: effective.pilotFullAccess,
+        hasTemporaryClinicalAccess: effective.temporaryClinicalAccess,
       },
       now
     );
@@ -142,6 +145,8 @@ export async function buildAuthUserWithEffectiveAccess(user: any): Promise<Authe
       pilotProCareGrantId: effective.pilotProCareGrantId,
       pilotProCareEndsAt: effective.pilotProCareEndsAt,
       pilotFullAccess: effective.pilotFullAccess,
+      temporaryClinicalAccess: effective.temporaryClinicalAccess ?? false,
+      businessPilotClinicalAccessEndsAt: effective.businessPilotClinicalAccessEndsAt ?? null,
       pilotParticipantId: effective.pilotParticipantId,
       pilotProgramName: effective.pilotProgramName,
       pilotFullAccessEndsAt: effective.pilotFullAccessEndsAt,

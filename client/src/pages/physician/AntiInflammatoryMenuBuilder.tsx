@@ -110,8 +110,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useQuickTour } from "@/hooks/useQuickTour";
-import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
+import { useBuilderGuidanceTour } from "@/hooks/useBuilderGuidanceTour";
+import { TourStep } from "@/components/guided/QuickTourModal";
+import { BuilderGuidanceTour } from "@/components/guided/BuilderGuidanceTour";
 import { useMealBoardDraft } from "@/hooks/useMealBoardDraft";
 import { useDailyNutritionState } from "@/hooks/useDailyNutritionState";
 import { NutritionBudgetBanner } from "@/components/NutritionBudgetBanner";
@@ -133,7 +134,6 @@ import { isClinicalOrAbove } from "@/lib/subscriptionCheck";
 // Using noon UTC anchor pattern to prevent day-shift bugs
 
 export default function AntiInflammatoryMenuBuilder() {
-  const quickTour = useQuickTour("anti-inflammatory-menu-builder");
   const [, setLocation] = useLocation();
   const search = useSearch();
   const householdProfileId = useMemo(
@@ -170,6 +170,7 @@ export default function AntiInflammatoryMenuBuilder() {
   ], [t]);
 
   const effectiveUserId = proClientId || user?.id;
+  const quickTour = useBuilderGuidanceTour("anti_inflammatory", proClientId, householdProfileId);
 
   // Resolve nutrition ONCE. Presentation components receive it as props.
   const nutritionTargets = useBaselineNutrition(effectiveUserId);
@@ -1970,7 +1971,7 @@ export default function AntiInflammatoryMenuBuilder() {
         />
 
       {/* Quick Tour Modal */}
-      <QuickTourModal
+      <BuilderGuidanceTour key={quickTour.scopeKey} builderKey="anti_inflammatory" professionalClient={Boolean(proClientId)}
         isOpen={quickTour.shouldShow}
         onClose={quickTour.closeTour}
         title={t("antiInflammatoryBuilder.tourTitle")}
