@@ -190,6 +190,15 @@ Keep initial setup completion distinct from recurring tool guide preferences.
 The later focused setup approval does not authorize recurring tool changes or
 hiding Copilot. Preserve its settings; avoid competing explanation overlays.
 
+All three Guided Journey stage explanation modals should match the platform's
+dark modal backgrounds with white text, not bright white cards.
+
+**Why:** The user requested consistency with existing delete and other modals,
+and described the bright white cards as hard on the eyes.
+
+**How to apply:** Keep the shared stage presentation dark, including inset
+cards and button states, without changing progression or modal behavior.
+
 The user defines onboarding and initial Macro Calculator targets as the two
 mandatory personal setup activities. The final onboarding Next action should
 complete saved onboarding and advance only on success. Afterward, personal

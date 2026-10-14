@@ -341,3 +341,28 @@ test("reusable dialog supports no secondary action without removing Close", asyn
   expect(screen.getByRole("button", { name: "Close and pause guidance" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Close & Pause" })).toBeNull();
 });
+
+test.each(["get_to_know_you", "nutrition_targets", "saved_meal_plan"] as const)(
+  "%s explanation matches the platform's dark modals with light text",
+  async stageId => {
+    const model = explanationModel(await snapshot(), stageId, false, false)!;
+    render(<GuidedJourneyExplanation open model={model}
+      busy={false} onPrimary={jest.fn()} onSecondary={jest.fn()} onClose={jest.fn()} />);
+    const dialog = screen.getByRole("dialog");
+    expect(dialog.classList.contains("bg-[#111111]")).toBe(true);
+    expect(dialog.classList.contains("text-white")).toBe(true);
+    expect(dialog.classList.contains("bg-stone-50")).toBe(false);
+    const description = screen.getAllByText(model.description).find(element => element.tagName === "P");
+    expect(description?.classList.contains("text-white/85")).toBe(true);
+    expect(screen.getByText(model.indicator).classList.contains("text-teal-300")).toBe(true);
+    expect(screen.getByRole("button", { name: "Close & Pause" }).classList.contains("bg-white/5")).toBe(true);
+    if (model.builderName) {
+      const workspace = screen.getByText(model.builderName);
+      expect(workspace.classList.contains("text-white")).toBe(true);
+      expect(workspace.parentElement?.classList.contains("bg-teal-950/40")).toBe(true);
+    }
+    if (model.activityNotice) {
+      expect(screen.getByRole("status").classList.contains("bg-amber-950/40")).toBe(true);
+    }
+  },
+);
