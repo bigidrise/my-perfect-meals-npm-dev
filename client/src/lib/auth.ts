@@ -162,6 +162,8 @@ export interface User {
   professionalRole?: AccountProfessionalRole | null;
   /** Server-resolved restriction; never an authorization grant from client state. */
   operatingStatus?: "demo_only" | null;
+  /** Server-issued Development presentation choice; never a clinical entitlement. */
+  developmentPhysicianStudioInterface?: "original";
 
   professionalCategory?: "certified" | "experienced" | "non_certified" | null;
 

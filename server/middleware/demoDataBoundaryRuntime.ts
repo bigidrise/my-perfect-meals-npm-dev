@@ -38,6 +38,9 @@ export const demoDataBoundary = createDemoDataBoundary({
       firstName: profile.firstName ?? actor.firstName ?? "", lastName: profile.lastName ?? actor.lastName ?? "",
       preferredLanguage: profile.preferredLanguage ?? "auto", operatingStatus: "demo_only",
       demoPersona: "physician", demoGrantState: grant.state,
+      // Presentation only, for this exact authenticated Development account.
+      // This neither removes the data boundary nor grants clinical readiness.
+      developmentPhysicianStudioInterface: "original",
     };
   },
 });
