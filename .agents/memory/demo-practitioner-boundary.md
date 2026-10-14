@@ -55,6 +55,19 @@ The founder wants permanent physician demonstration access to the existing Studi
 
 **How to apply:** Reuse the owned Clinic and preserve its organization/business relationships and existing records. Keep the physician interface isolated from live clinical APIs and use demo-backed data and simulated invitations. Do not replace the Clinic with another Studio or treat ownership as clinical authority. Account/grant changes and Production publishing still require separate authorization and verified shared-runtime isolation. Investigate demonstrated access regressions and protect the established access paths without claiming all customers are affected or expanding into unrelated audits.
 
+The doctor test account must retain full Physician navigation: Studio, Pro Portal,
+Care Team, Clients, and client dashboards, with synthetic-only patient data.
+Synthetic isolation must not trap it on a single demonstration page.
+
+**Why:** The user explicitly approved restoring these paths after reporting that
+the forced demonstration landing page made the app and previously connected
+Physician workflow inaccessible.
+
+**How to apply:** Keep navigation separate from live-data authority. Preserve
+recognizable Physician pages, route identity, browser history, and client isolation
+without manufacturing credentials or enabling live clinical APIs. Report fixture
+browser evidence separately from actual signed-in server acceptance.
+
 Shared-account activation requires both live-data isolation and a usable permanent founder demo experience in the intended runtime. A protective release that only denies live APIs is not sufficient evidence that activation restores the requested Studio.
 
 **Why:** Isolation and demonstration availability are separate acceptance conditions; restricting a shared account must not leave it without the promised demo workspace or require recurring temporary grants.
