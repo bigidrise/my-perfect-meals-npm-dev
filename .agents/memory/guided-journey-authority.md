@@ -32,7 +32,17 @@ of existing pages, not monitoring of meal creation, plan saving, or task complet
 patterns. No requirement to finish a meal, no waiting for server board confirmation,
 and no automatic redirects to another tool. Do not touch underlying functionality.
 Leave Copilot and ElevenLabs alone unless separately approved. The current approval
-is one small Development welcome-screen experiment, not a multi-change rollout.
+now includes extending the existing General Nutrition guidance to the other
+Meal Builders.
+
+**Why:** The user confirmed, "I liked what I saw" and that they reached the Meal
+Builder through the existing flow, then requested the other builders. They have
+not yet reviewed the shopping page.
+
+**How to apply:** Preserve the accepted guidance and dark modal presentation.
+This approval extends builder guidance, not the underlying nutrition workflows
+or shopping functionality; do not treat the user's success report as proof of
+every untested builder or server authorization path.
 
 First-login guidance should be prominent written guidance with one main action
 leading to existing onboarding, plus a smaller Skip and Don't Show Again option.
