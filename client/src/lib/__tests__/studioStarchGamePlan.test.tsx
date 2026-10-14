@@ -139,6 +139,17 @@ test("macro target changes refresh this client's grams without discarding the pe
   expect(screen.getByRole("button", { name: "3 meals" }).getAttribute("aria-pressed")).toBe("true");
 });
 
+test.each([401, 403])("HTTP %s is explained as denied access, not a misleading retryable load failure", async status => {
+  api.mockRejectedValueOnce(Object.assign(new Error(`Request failed (${status})`), {
+    status, serverMessage: "An authorized Studio is required.",
+  }));
+  render(<StudioStarchGamePlan clientUserId="client-a" />);
+  expect((await screen.findByRole("alert")).textContent).toContain("Access to this client's starch plan was not approved.");
+  expect(screen.getByRole("alert").textContent).toContain("An authorized Studio is required.");
+  expect(screen.queryByRole("button", { name: "Retry Starch Plan" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "3 meals" })).toBeNull();
+});
+
 test("a late pre-save prescription refresh cannot overwrite the confirmed count", async () => {
   let finishRefresh!: (value: StudioStarchState) => void;
   let reads = 0;

@@ -60,6 +60,8 @@ import { resolveDailyNutritionPrescription } from "../services/prescriptionResol
 import { getUserTimezone, todayInTimezone } from "../services/nutritionDayService";
 import type { StudioStarchState } from "@shared/starchPreferences";
 import { writeStudioStarchPreferences } from "../services/studioStarchPreferenceWrite";
+import { resolveInvitationProviderContext } from "../services/invitationProviderContext";
+import { CareInvitationError } from "../services/careInvitationPolicy";
 
 const router = Router();
 
@@ -73,6 +75,17 @@ router.use("/clients/:clientId/starch-preferences",
       async professionalRole(id) {
         const [actor] = await db.select({ role: users.professionalRole }).from(users).where(eq(users.id, id)).limit(1);
         return actor?.role ?? null;
+      },
+      async businessStudioReady(id) {
+        // Reuse the established read-only operating-authority resolver. Never
+        // promote business ownership into a trainer occupation or clinical role.
+        try {
+          const context = await resolveInvitationProviderContext({ id, professionalRole: "business" });
+          return context?.relationshipRole === "studio_operator" && !!context.studioId;
+        } catch (error) {
+          if (error instanceof CareInvitationError) throw new StudioStarchAccessError(error.status, error.message);
+          throw error;
+        }
       },
       sameOrganization: assertSameOrg,
       async activeRelationship(actor, client) {
