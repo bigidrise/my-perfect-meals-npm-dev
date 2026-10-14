@@ -43,6 +43,7 @@ function isInProfessionalWorkspace(path: string): boolean {
 }
 
 function hasMacroProfile(user: any): boolean {
+  if (user?.hasSavedMacroProfile === true) return true;
   if (user?.age && user?.height && user?.weight) return true;
   try {
     const s = localStorage.getItem("macro_calculator_settings");

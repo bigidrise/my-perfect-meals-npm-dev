@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { users } from "@shared/schema";
 import { db } from "../db";
 import { findUserByValidAuthToken } from "../services/authTokenService";
@@ -30,6 +30,13 @@ export const demoDataBoundary = createDemoDataBoundary({
   restriction: readDemoRestriction,
   async developmentProfile(req, actor, grant) {
     if (grant.authority !== "development_founder" || !isDevelopmentFounderDemoAccount(actor.id)) return null;
+    // Preserve this actor's existing setup evidence without returning personal
+    // measurements, nutrition targets, credentials, or another person's data.
+    const [setup] = await db.select({
+      onboardingCompletedAt: users.onboardingCompletedAt,
+      hasSavedMacroProfile: sql<boolean>`coalesce(${users.age} > 0 AND ${users.height} > 0 AND ${users.weight} > 0, false)`,
+    }).from(users).where(eq(users.id, actor.id)).limit(1);
+    if (!setup) throw { code: "AUTH_REAUTHENTICATION_REQUIRED" };
     const profile = req.method === "GET" ? await developmentFounderDemoStore.profile()
       : await developmentFounderDemoStore.updateProfile(req.body ?? {});
     return {
@@ -41,6 +48,8 @@ export const demoDataBoundary = createDemoDataBoundary({
       // Presentation only, for this exact authenticated Development account.
       // This neither removes the data boundary nor grants clinical readiness.
       developmentPhysicianStudioInterface: "original",
+      onboardingCompletedAt: setup.onboardingCompletedAt,
+      hasSavedMacroProfile: setup.hasSavedMacroProfile === true,
     };
   },
 });
