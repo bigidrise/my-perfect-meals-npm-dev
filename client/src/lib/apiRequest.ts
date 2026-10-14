@@ -19,7 +19,12 @@ export async function apiRequest(path: string, init: RequestInit = {}) {
 
   if (!res.ok || data?.ok === false) {
     const message = data?.message || `Request failed (${res.status})`;
-    throw new Error(message);
+    // Preserve existing callers' messages; structured metadata lets individual
+    // screens distinguish denied access from retryable transport failures.
+    throw Object.assign(new Error(message), {
+      status: res.status, code: data?.code ?? null,
+      serverMessage: typeof data?.error === "string" ? data.error : null,
+    });
   }
   return data;
 }

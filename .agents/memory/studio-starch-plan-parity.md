@@ -29,3 +29,17 @@ Development and Production share a database.
 **How to apply:** Verify request identity and delayed-response isolation alongside
 save/reload behavior. Report unresolved compatibility limits rather than
 silently widening the implementation scope.
+
+Client starch controls must recognize verified nonclinical Business Studio
+operating authority, not only a stored physician or trainer occupation. Keep
+the exact active-client and organization checks; ownership alone is insufficient.
+Never change Business identity to repair access.
+
+**Why:** An established, eligible Business-owned Studio was incorrectly denied
+by the occupation-only starch gate even though it could already manage that
+client through the normal Studio workflow. Intercepted browser fixtures missed
+this real-account authority path.
+
+**How to apply:** Include eligible Business Studio operators in positive
+authorization contracts, alongside unready owners and unrelated clients in
+negative contracts. Distinguish permission denials from retryable load failures.

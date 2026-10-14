@@ -15,6 +15,7 @@ function harness(role = "physician", enabled = true) {
   }]));
   const authority = {
     professionalRole: jest.fn(async () => role),
+    businessStudioReady: jest.fn(async () => false),
     sameOrganization: jest.fn(async () => {}),
     activeRelationship: jest.fn(async (_actor: string, client: string) => client === "client-a"),
   };
@@ -76,6 +77,35 @@ test("cross-organization and inactive client relationships fail closed", async (
   inactive.authority.activeRelationship.mockResolvedValue(false);
   expect((await request(inactive.app).patch("/clients/client-a/starch-preferences").send(change)).status).toBe(403);
   expect(inactive.save).not.toHaveBeenCalled();
+});
+
+test("verified nonclinical Business Studio authority can manage only its selected active client without changing identity", async () => {
+  const h = harness("business");
+  h.authority.businessStudioReady.mockResolvedValue(true);
+  const own = JSON.stringify(h.states.get("professional"));
+  const other = JSON.stringify(h.states.get("client-b"));
+  expect((await request(h.app).get("/clients/client-a/starch-preferences")).status).toBe(200);
+  expect((await request(h.app).patch("/clients/client-a/starch-preferences").send(change)).status).toBe(200);
+  expect((await request(h.app).get("/clients/client-a/starch-preferences")).body.savedPreferences).toMatchObject(change);
+  for (const target of ["professional", "client-b"]) {
+    expect((await request(h.app).patch(`/clients/${target}/starch-preferences`).send(change)).status).toBe(403);
+  }
+  expect(h.authority.businessStudioReady).toHaveBeenCalledWith("professional");
+  expect(await h.authority.professionalRole("professional")).toBe("business");
+  expect(JSON.stringify(h.states.get("professional"))).toBe(own);
+  expect(JSON.stringify(h.states.get("client-b"))).toBe(other);
+  expect(h.save).toHaveBeenCalledTimes(1);
+});
+
+test("verified Business Studio authority does not bypass organization or active-client checks", async () => {
+  const h = harness("business");
+  h.authority.businessStudioReady.mockResolvedValue(true);
+  h.authority.sameOrganization.mockRejectedValueOnce(Object.assign(new Error("org mismatch"), { code: "ORG_ISOLATION_VIOLATION" }));
+  expect((await request(h.app).patch("/clients/client-a/starch-preferences").send(change)).status).toBe(403);
+  h.authority.activeRelationship.mockResolvedValue(false);
+  expect((await request(h.app).patch("/clients/client-a/starch-preferences").send(change)).status).toBe(403);
+  expect(h.save).not.toHaveBeenCalled();
+  expect(h.read).not.toHaveBeenCalled();
 });
 
 test.each([

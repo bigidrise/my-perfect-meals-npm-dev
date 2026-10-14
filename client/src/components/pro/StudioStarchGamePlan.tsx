@@ -23,6 +23,7 @@ function StarchEditor({ clientUserId, legacyStrategy }: Props) {
   const [notice, setNotice] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [revision, setRevision] = useState(0);
+  const [retryAllowed, setRetryAllowed] = useState(true);
   const live = useRef(false);
   const savePending = useRef(false);
   const refreshAfterSave = useRef(false);
@@ -37,7 +38,7 @@ function StarchEditor({ clientUserId, legacyStrategy }: Props) {
     live.current = true;
     const controller = new AbortController();
     const generation = ++readGeneration.current;
-    setState(null); setDraft(null); setError(null);
+    setState(null); setDraft(null); setError(null); setRetryAllowed(true);
     if (clientUserId) {
       apiRequest(path, { method: "GET", cache: "no-store", signal: controller.signal })
         .then((value: StudioStarchState) => {
@@ -47,8 +48,13 @@ function StarchEditor({ clientUserId, legacyStrategy }: Props) {
           }
           setState(value);
           setDraft(studioStarchDraft(value.savedPreferences, legacy.current));
-        }).catch(() => {
-          if (live.current && !controller.signal.aborted && generation === readGeneration.current) setError("Could not load this client's starch plan. No changes have been made.");
+        }).catch((failure) => {
+          if (!live.current || controller.signal.aborted || generation !== readGeneration.current) return;
+          const denied = failure?.status === 401 || failure?.status === 403;
+          setRetryAllowed(!denied);
+          setError(denied
+            ? `Access to this client's starch plan was not approved. ${failure.serverMessage ?? failure.message} No starch preferences have been changed.`
+            : "Could not load this client's starch plan. No changes have been made.");
         });
     }
     return () => { live.current = false; controller.abort(); };
@@ -134,7 +140,7 @@ function StarchEditor({ clientUserId, legacyStrategy }: Props) {
     {!clientUserId && <p role="status" className="text-sm text-white/70">Select a verified client to view their starch plan.</p>}
     {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
     {clientUserId && !state && !error && <p role="status">Loading client starch plan…</p>}
-    {clientUserId && error && !state && <button type="button" onClick={() => setRevision(v => v + 1)} className="min-h-11 rounded-lg border border-white/30 px-3">Retry Starch Plan</button>}
+    {clientUserId && error && !state && retryAllowed && <button type="button" onClick={() => setRevision(v => v + 1)} className="min-h-11 rounded-lg border border-white/30 px-3">Retry Starch Plan</button>}
     {state && draft && <>
       <p className="text-sm text-white/70">
         Current client prescription: <strong>{state.currentPrescription.starchyCarbsTarget}g</strong> daily starch,

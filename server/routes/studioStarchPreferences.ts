@@ -7,6 +7,7 @@ export class StudioStarchAccessError extends Error {
 
 export interface StudioStarchAuthority {
   professionalRole(actorId: string): Promise<string | null>;
+  businessStudioReady(actorId: string): Promise<boolean>;
   sameOrganization(actorId: string, clientId: string): Promise<void>;
   activeRelationship(actorId: string, clientId: string): Promise<boolean>;
 }
@@ -19,8 +20,9 @@ export async function authorizeStudioStarchClient(
   const role = await authority.professionalRole(actorId);
   // Persisted occupations are canonical. "doctor"/"coach" are display/request
   // aliases, not permission-bearing account roles.
-  if (!role || !["physician", "trainer"].includes(role)) {
-    throw new StudioStarchAccessError(403, "Physician or trainer access required");
+  const businessOperator = role === "business" && await authority.businessStudioReady(actorId);
+  if (!role || (!["physician", "trainer"].includes(role) && !businessOperator)) {
+    throw new StudioStarchAccessError(403, "An authorized Physician or Trainer Studio is required to manage this client's starch plan.");
   }
   await authority.sameOrganization(actorId, clientId);
   if (!await authority.activeRelationship(actorId, clientId)) {
