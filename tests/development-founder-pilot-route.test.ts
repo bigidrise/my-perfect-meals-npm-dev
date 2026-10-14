@@ -17,9 +17,9 @@ describe("Development founder pilot route boundary", () => {
     (route) => expect(isDevelopmentFounderPilotRoute(true, true, route)).toBe(false),
   );
 
-  test("isolated route-aware demo rendering preserves the pilot exception without trapping navigation", () => {
-    expect(router).toContain("if (isFounderDevelopmentSession && !isAuthRoute && !isFounderPilotRoute)");
-    expect(router).toContain("user?.operatingStatus === \"demo_only\" && !isAuthRoute && !isFounderPilotRoute");
+  test("original founder Studio routing preserves the pilot exception and other demo isolation", () => {
+    expect(router).not.toContain("if (isFounderDevelopmentSession && !isAuthRoute && !isFounderPilotRoute)");
+    expect(router).toContain('user?.operatingStatus === "demo_only" && !isAuthRoute && !isFounderPilotRoute && !isOriginalPhysicianStudio');
     expect(router).not.toContain('setLocation("/pro/physician-clients")');
     expect(router).toContain("isUngatedRoute || isMacroRoute || isFounderPilotRoute");
     expect(router).toContain("import.meta.env.DEV, isFounderDevelopmentSession, location");

@@ -742,12 +742,6 @@ const SafeAntiInflammatoryMenuBuilder = withPageErrorBoundary(AntiInflammatoryMe
 const GuardedProPortal = () => <ProCareStudioGuard component={SafeProPortal} />;
 const GuardedProClients = () => <ProCareStudioGuard component={SafeProClients} />;
 const GuardedProClientsPhysician = () => <ProCareStudioGuard component={SafeProClientsPhysician} />;
-function DevelopmentFounderClinicEntry({ component: Component }: { component: React.ComponentType }) {
-  return <DemoPhysicianWorkspace fallback={<Component />} />;
-}
-const DevelopmentFounderPhysicianClientsRoute = () => <DevelopmentFounderClinicEntry component={GuardedProClientsPhysician} />;
-const DevelopmentFounderPhysicianCareTeamRoute = () => <DevelopmentFounderClinicEntry component={GuardedPhysicianCareTeam} />;
-const DevelopmentFounderClinicClientsRoute = () => <DevelopmentFounderClinicEntry component={GuardedProClients} />;
 const DemoPhysicianWorkspaceRoute = () => <DemoPhysicianWorkspace />;
 const GuardedWorkspaceShell = () => <ProCareStudioGuard component={SafeWorkspaceShell} />;
 const GuardedProClientDashboard = () => <ProCareStudioGuard component={SafeProClientDashboard} />;
@@ -928,6 +922,11 @@ export default function Router() {
 
   const founderIsCurrentAccount = Boolean(user?.id && founderProbe?.accountId === user.id);
   const isFounderDevelopmentSession = import.meta.env.DEV && founderIsCurrentAccount && founderProbe?.authority === true;
+  // Unlike pilot authority, page selection does not require an active grant.
+  // Expired/revoked/unavailable demo authority must show the original guard's
+  // denial, not quietly substitute a different Physician interface again.
+  const isOriginalPhysicianStudio = import.meta.env.DEV &&
+    user?.developmentPhysicianStudioInterface === "original";
   const isFounderPilotRoute = isDevelopmentFounderPilotRoute(
     import.meta.env.DEV, isFounderDevelopmentSession, location,
   );
@@ -1006,7 +1005,7 @@ export default function Router() {
 
   const loading = authLoading;
   const shouldShowBottomNav =
-    user?.operatingStatus !== "demo_only" &&
+    (user?.operatingStatus !== "demo_only" || isOriginalPhysicianStudio) &&
     !hideBottomNavRoutes.includes(location) &&
     !location.startsWith("/join/clinic") &&
     !location.startsWith("/join/business-offer") &&
@@ -1134,8 +1133,9 @@ export default function Router() {
     }
   }, [location, user, loading, isProfessionalUser, isFounderPilotRoute]);
 
-  // Demo isolation belongs to the data adapter, not a forced single-page
-  // redirect. The route-aware workspace below never mounts live client pages.
+  // The recognized Development founder uses the ORIGINAL Physician routes and
+  // their existing guards. This is presentation only: server demo restrictions,
+  // role checks, client authorization and clinical readiness remain unchanged.
 
   if (
     import.meta.env.DEV &&
@@ -1150,14 +1150,9 @@ export default function Router() {
     return <div className="min-h-[100dvh] grid place-items-center bg-[#201c19] text-white/75 text-sm">Resolving secure workspace…</div>;
   }
 
-  if (isFounderDevelopmentSession && !isAuthRoute && !isFounderPilotRoute) {
-    return <Suspense fallback={developmentStudioLoadingEnabled
-      ? <StudioTransitionPanel title="Opening your Clinic workspace" detail="Preparing the page…" />
-      : <p role="status">Loading physician Clinic…</p>}><DemoPhysicianWorkspace /></Suspense>;
-  }
-
   // Do not mount/cache-render a live professional page while redirecting.
-  if (!authLoading && user?.operatingStatus === "demo_only" && !isAuthRoute && !isFounderPilotRoute) {
+  // Other restricted accounts and Production retain the isolated demo shell.
+  if (!authLoading && user?.operatingStatus === "demo_only" && !isAuthRoute && !isFounderPilotRoute && !isOriginalPhysicianStudio) {
     return <Suspense fallback={developmentStudioLoadingEnabled
       ? <StudioTransitionPanel title="Opening your Clinic workspace" detail="Preparing the page…" />
       : <p role="status">Loading isolated demo workspace…</p>}><DemoPhysicianWorkspace /></Suspense>;
@@ -1216,7 +1211,7 @@ export default function Router() {
         <Route path="/personal-guidance-info" component={PersonalGuidanceInfoPage} />
         <Route path="/admin-moderation" component={AdminModerationPage} />
         <Route path="/admin/professional-requests" component={lazy(() => import("@/pages/admin/ProfessionalIdentityRequests"))} />
-        {import.meta.env.DEV && <Route path="/demo-physician" component={DemoPhysicianWorkspaceRoute} />}
+        {import.meta.env.DEV && <Route path="/demo-physician" component={isOriginalPhysicianStudio ? GuardedProClientsPhysician : DemoPhysicianWorkspaceRoute} />}
         <Route path="/admin/chef-kitchens" component={ChefKitchensAdmin} />
         <Route path="/admin/pilots">
           <PilotProgramAdmin showDevelopmentMfaStatus={isFounderPilotRoute} />
@@ -1394,12 +1389,12 @@ export default function Router() {
         <Route path="/tips" component={SafeTips} />
         <Route path="/pro/physician" component={PhysicianPortal} />
         <Route path="/care-team" component={GuardedCareTeam} />
-        <Route path="/care-team/physician" component={import.meta.env.DEV ? DevelopmentFounderPhysicianCareTeamRoute : GuardedPhysicianCareTeam} />
+        <Route path="/care-team/physician" component={GuardedPhysicianCareTeam} />
         <Route path="/care-team/trainer" component={GuardedTrainerCareTeam} />
         <Route path="/pro-portal" component={GuardedProPortal} />
         <Route path="/pro" component={() => { const [, go] = useLocation(); useEffect(() => { go("/pro-portal"); }, []); return null; }} />
-        <Route path="/pro/clients" component={import.meta.env.DEV ? DevelopmentFounderClinicClientsRoute : GuardedProClients} />
-        <Route path="/pro/physician-clients" component={import.meta.env.DEV ? DevelopmentFounderPhysicianClientsRoute : GuardedProClientsPhysician} />
+        <Route path="/pro/clients" component={GuardedProClients} />
+        <Route path="/pro/physician-clients" component={GuardedProClientsPhysician} />
         <Route path="/pro/workspace/:clientId" component={GuardedWorkspaceShell} />
         <Route path="/pro/clients/:id" component={GuardedProClientDashboard} />
         <Route path="/pro/clients/:id/nutrition-life-plan" component={GuardedProClientNutritionPlan} />
