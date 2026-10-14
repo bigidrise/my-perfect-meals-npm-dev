@@ -15,5 +15,17 @@ Meal Builders and the rest of the system.
 **How to apply:** Read and save the selected client's authoritative preferences,
 not the logged-in professional's personal settings. Keep total meal count
 separate from starch-meal count and preserve clinical/performance authority.
-Verify persistence and builder consumption, not only visual parity. The initial
-request was diagnosis, not authorization to implement or publish changes.
+Verify persistence and builder consumption, not only visual parity.
+
+The approved correction is Development-only. Do not publish Production, change
+nutrition formulas or generation algorithms, or broadly refactor Builder
+fallbacks without separate approval. Use synthetic fixtures or isolated tests;
+never modify real client prescriptions to verify this correction.
+
+**Why:** The user explicitly required these boundaries and emphasized that
+Client A's edits must never reach Client B or the professional's own preferences.
+Development and Production share a database.
+
+**How to apply:** Verify request identity and delayed-response isolation alongside
+save/reload behavior. Report unresolved compatibility limits rather than
+silently widening the implementation scope.

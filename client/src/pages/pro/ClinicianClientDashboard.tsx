@@ -53,6 +53,8 @@ import { resolveVerifiedProClientUserId } from "@/lib/proClientIdentity";
 import { ONCOLOGY_SYMPTOM_OPTIONS, type OncologySupportSelection } from "@shared/oncologySupportSelection";
 import { oncologyDevelopmentReviewEnabled } from "@/lib/oncologyDevelopmentGate";
 import { loadOncologySupportSelection, saveOncologySupportSelection } from "@/lib/oncologySupportSelectionClient";
+import { StudioStarchGamePlan } from "@/components/pro/StudioStarchGamePlan";
+import { IS_DEVELOPMENT } from "@/lib/developmentAuthRoutes";
 
 
 export default function ClinicianClientDashboard() {
@@ -899,7 +901,8 @@ export default function ClinicianClientDashboard() {
               </div>
             </div>
 
-            <div className="col-span-full mt-3">
+            {IS_DEVELOPMENT ? <StudioStarchGamePlan key={clientId}
+              clientUserId={resolvedClientUserId} legacyStrategy={proStore.hasTargets(clientId) ? macros.starchStrategy : undefined} /> : <div className="col-span-full mt-3">
               <label className="text-lg font-semibold text-white/90 mb-2 block">
                 Starch Game Plan
               </label>
@@ -940,7 +943,7 @@ export default function ClinicianClientDashboard() {
                   <p className="text-xs text-white/70">Divide starch across two meals for flexibility.</p>
                 </button>
               </div>
-            </div>
+            </div>}
 
             <div className="col-span-full mt-4">
               <ClinicalAdvisoryDrawer

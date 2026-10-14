@@ -83,6 +83,7 @@ import {
   macroCalculatorStorageKeys, readMacroCalculatorResumeStep,
   type MacroCalculatorStep as GuidedStep,
 } from "@/lib/macroCalculatorResume";
+import { STARCH_MEAL_COUNTS, STARCH_TIMING_OPTIONS, legacyStarchMealCount, starchPreviewGrams } from "@shared/starchPreferences";
 import { useToast } from "@/hooks/use-toast";
 import {
   setMacroTargets,
@@ -857,7 +858,7 @@ function AccountMacroCounter() {
   // Hydrate from DB-backed user profile if available; fall back to old macro_targets format
   const derivedInitialMeals =
     user?.defaultStarchMealsPerDay ??
-    (existingTargets?.starchStrategy === "flex" ? 2 : 1);
+    (legacyStarchMealCount(existingTargets?.starchStrategy) ?? 1);
   const [defaultStarchMealsPerDay, setDefaultStarchMealsPerDay] = useState<number>(
     derivedInitialMeals
   );
@@ -2932,7 +2933,7 @@ function AccountMacroCounter() {
                         How many meals a day will include starchy carbs?
                       </p>
                       <div className="flex gap-2 flex-wrap">
-                        {([1, 2, 3, 4, 5, 6] as const).map((n) => (
+                        {STARCH_MEAL_COUNTS.map((n) => (
                           <PillButton
                             key={n}
                             onClick={() => {
@@ -2954,17 +2955,8 @@ function AccountMacroCounter() {
                         When do you prefer to eat your starchy carbs?
                       </p>
                       <div className="flex gap-2 flex-wrap">
-                        {(
-                          [
-                            { value: "even",    label: "Spread evenly" },
-                            { value: "morning", label: "Earlier in day" },
-                            ...(user?.performanceModeEnabled && user?.weeklyTrainingSchedule
-                              ? [{ value: "workout", label: "Around workouts" }]
-                              : []),
-                            { value: "evening", label: "Evening" },
-                            { value: "ai",      label: "AI decides" },
-                          ] as const
-                        ).map(({ value, label }) => (
+                        {STARCH_TIMING_OPTIONS.filter(option => option.value !== "workout"
+                          || (user?.performanceModeEnabled && user?.weeklyTrainingSchedule)).map(({ value, label }) => (
                           <PillButton
                             key={value}
                             onClick={() => { setStarchDistributionStrategy(value as typeof starchDistributionStrategy); setIsDirty(true); }}
@@ -2992,12 +2984,7 @@ function AccountMacroCounter() {
                       const starchyTarget = results?.macros?.carbs?.starchy ?? 0;
                       if (starchyTarget <= 0) return null;
                       const n = defaultStarchMealsPerDay;
-                      const base = Math.floor(starchyTarget / n);
-                      const remainder = starchyTarget - base * n;
-                      // Distribute remainder to last meal so the first meals show the round number
-                      const mealGrams = Array.from({ length: n }, (_, i) =>
-                        i === n - 1 ? base + remainder : base
-                      );
+                      const mealGrams = starchPreviewGrams(starchyTarget, n);
                       const timingLabel =
                         starchDistributionStrategy === "even"    ? "Spread Evenly" :
                         starchDistributionStrategy === "morning"  ? "Earlier in the Day" :

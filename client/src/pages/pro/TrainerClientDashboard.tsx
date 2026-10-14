@@ -16,6 +16,8 @@ import {
 } from "@/lib/professionalBuilderMap";
 import { assignBuilderToClient } from "@/lib/assignBuilderToClient";
 import { linkUserToClient, ensureClientMapping } from "@/lib/macroResolver";
+import { StudioStarchGamePlan } from "@/components/pro/StudioStarchGamePlan";
+import { IS_DEVELOPMENT } from "@/lib/developmentAuthRoutes";
 import { apiUrl } from "@/lib/resolveApiBase";
 import {
   Settings,
@@ -929,7 +931,8 @@ export default function TrainerClientDashboard() {
 
             {/* Performance Dietary Directives - hidden until properly wired */}
 
-            <div className="col-span-full mt-3">
+            {IS_DEVELOPMENT ? <StudioStarchGamePlan key={clientId}
+              clientUserId={resolvedClientUserId} legacyStrategy={proStore.hasTargets(clientId) ? macros.starchStrategy : undefined} /> : <div className="col-span-full mt-3">
               <label className="text-md font-semibold text-white/90 mb-2 block">
                 Starch Game Plan
               </label>
@@ -978,7 +981,7 @@ export default function TrainerClientDashboard() {
                   </p>
                 </button>
               </div>
-            </div>
+            </div>}
 
             {isDirty && (
               <p className="col-span-full text-xs text-orange-400 font-semibold flex items-center gap-1.5">

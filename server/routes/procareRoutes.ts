@@ -55,8 +55,74 @@ import {
   buildProfessionalGlucoseHistory,
   getProfessionalGlucoseWindowStart,
 } from "../services/professionalGlucoseHistory";
+import { createStudioStarchPreferencesRouter, authorizeStudioStarchClient, StudioStarchAccessError } from "./studioStarchPreferences";
+import { resolveDailyNutritionPrescription } from "../services/prescriptionResolver";
+import { getUserTimezone, todayInTimezone } from "../services/nutritionDayService";
+import type { StudioStarchState } from "@shared/starchPreferences";
+import { writeStudioStarchPreferences } from "../services/studioStarchPreferenceWrite";
 
 const router = Router();
+
+// Development-only correction. Parent /api/pro retains auth, MFA and ProCare
+// gates; this route uses the same professional gates and relationship as summary.
+router.use("/clients/:clientId/starch-preferences",
+  requireAuth, requireProAccess, requirePhase1Cert, requirePhase2Training,
+  createStudioStarchPreferencesRouter({
+    developmentEnabled: () => process.env.NODE_ENV === "development",
+    authorize: (actorId, clientId) => authorizeStudioStarchClient({
+      async professionalRole(id) {
+        const [actor] = await db.select({ role: users.professionalRole }).from(users).where(eq(users.id, id)).limit(1);
+        return actor?.role ?? null;
+      },
+      sameOrganization: assertSameOrg,
+      async activeRelationship(actor, client) {
+        const [link] = await db.select({ id: clientLinks.id }).from(clientLinks)
+          .where(and(eq(clientLinks.proUserId, actor), eq(clientLinks.clientUserId, client), eq(clientLinks.active, true))).limit(1);
+        return !!link;
+      },
+    }, actorId, clientId),
+    async read(clientId) {
+      const [client] = await db.select({
+        count: users.defaultStarchMealsPerDay,
+        timing: users.starchDistributionStrategy,
+        defined: users.starchPlanDefined,
+        performance: users.performanceModeEnabled,
+        schedule: users.weeklyTrainingSchedule,
+      }).from(users).where(eq(users.id, clientId)).limit(1);
+      if (!client) throw new StudioStarchAccessError(404, "Client not found");
+      const dateISO = todayInTimezone(await getUserTimezone(clientId));
+      const prescription = await resolveDailyNutritionPrescription({ userId: clientId, dateISO });
+      if (prescription.source === "fallback") throw new Error("Client prescription unavailable");
+      const state: StudioStarchState = {
+        clientUserId: clientId,
+        savedPreferences: {
+          defaultStarchMealsPerDay: client.count,
+          starchDistributionStrategy: client.timing,
+          starchPlanDefined: client.defined ?? false,
+        },
+        currentPrescription: {
+          starchyCarbsTarget: prescription.starchyCarbsTarget,
+          starchMealsAllowed: prescription.starchMealsAllowed,
+          starchDistributionStrategy: prescription.starchDistributionStrategy,
+        },
+        workoutTimingAvailable: !!(client.performance && client.schedule),
+      };
+      return state;
+    },
+    async save(actorId, clientId, preferences) {
+      await writeStudioStarchPreferences(db, actorId, clientId, preferences);
+    },
+    audit(req, actorId, clientId) {
+      logAudit({
+        actor: actorId, target: clientId,
+        orgId: (req as any).authUser?.organizationId ?? null,
+        action: "UPDATE", resourceType: "starch_preferences", table: "users",
+        route: req.path, ip: getClientIp(req as any),
+        meta: { changedFields: ["defaultStarchMealsPerDay", "starchDistributionStrategy"] },
+      });
+    },
+  }),
+);
 
 // ─── GATE CONVENTION (enforced by server/tests/procareRouteGates.test.ts) ───
 //

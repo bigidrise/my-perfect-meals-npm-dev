@@ -1,6 +1,10 @@
 {
   "extends": "./tsconfig.json",
   "include": [
+    "shared/starchPreferences.ts",
+    "server/routes/studioStarchPreferences.ts",
+    "server/services/studioStarchPreferenceWrite.ts",
+    "client/src/components/pro/StudioStarchGamePlan.tsx",
     "server/services/invitationProviderContext.ts",
     "server/services/careInvitationPolicy.ts",
     "server/services/careInvitationAcceptance.ts",
