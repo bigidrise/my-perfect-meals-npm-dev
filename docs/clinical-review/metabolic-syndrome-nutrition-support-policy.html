@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Metabolic Syndrome Nutrition Support — Clinical Review Draft</title>
+<style>
+:root{--ink:#172b3b;--muted:#526577;--line:#d7e1e9;--soft:#f2f6fa;--accent:#16686d}
+*{box-sizing:border-box}body{margin:0;background:#edf2f6;color:var(--ink);font:16px/1.65 system-ui,-apple-system,Segoe UI,sans-serif}main{max-width:1120px;margin:32px auto;background:white;padding:48px;border:1px solid var(--line);border-radius:12px}h1{font-size:32px;line-height:1.2;margin:14px 0}h2{font-size:24px;margin:42px 0 14px;border-bottom:2px solid var(--line);padding-bottom:8px}h3{font-size:18px;margin:24px 0 8px}p{margin:10px 0}a{color:#12616c;text-underline-offset:3px}code{font-size:.9em;background:var(--soft);padding:2px 5px;border-radius:3px;overflow-wrap:anywhere}.badge{display:inline-block;background:#fff1d5;color:#705014;border:1px solid #ead3a3;padding:5px 12px;font-weight:700;border-radius:6px}.meta{color:var(--muted);font-size:14px}.notice{background:#fff8e9;border-left:4px solid #c49a40;padding:15px 20px;margin:22px 0}.summary{background:var(--soft);border-left:4px solid var(--accent);padding:15px 20px}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14px;margin:16px 0}th,td{text-align:left;vertical-align:top;padding:12px;border:1px solid var(--line)}th{background:var(--soft)}td p{margin:5px 0}ul,ol{padding-left:24px}li{margin:7px 0}.ref{padding:15px 0;border-bottom:1px solid var(--line);scroll-margin-top:20px}.ref h3{margin:0}.small{font-size:14px}.toc{display:flex;gap:9px 22px;flex-wrap:wrap;padding:14px;background:var(--soft);font-size:14px}footer{margin-top:40px;color:var(--muted);font-size:13px}
+@media(max-width:700px){main{margin:0;padding:24px 18px;border:0;border-radius:0}h1{font-size:27px}th,td{padding:9px;min-width:135px}}
+@media print{body{background:white;font-size:11pt}main{border:0;margin:0;padding:0;max-width:none}h2,h3{break-after:avoid}.ref,.notice,.summary,tr{break-inside:avoid}a{color:inherit}table{font-size:9pt}.toc{display:none}}
+</style>
+</head>
+<body><main>
+<header>
+<span class="badge">Clinical review draft — not approved or implemented</span>
+<h1>Metabolic Syndrome Nutrition Support Policy</h1>
+<p>My Perfect Meals • Policy, supporting references, proposed implementation map, and validation plan</p>
+<p class="meta">Prepared and sources checked: October 14, 2026. Intended reviewers: the product owner and Dr. Eric. Draft identifier: MS-NUTRITION-2026-10-14.</p>
+</header>
+<div class="notice"><strong>Approval boundary:</strong> This document proposes future behavior. It does not activate a condition, change onboarding, modify the Sources interface, alter GLP-1 functionality, update any database or account, or authorize a Production release. Clinical policy approval, software implementation, and release approval are separate steps.</div>
+<nav class="toc" aria-label="Document sections">
+<a href="#inspection">Existing Sources inspection</a><a href="#scope">Policy scope</a><a href="#rules">Nutrition rules</a><a href="#conflicts">Conflicts</a><a href="#surfaces">Food-tool coverage</a><a href="#references">References</a><a href="#sources-plan">Sources additions</a><a href="#implementation">Implementation map</a><a href="#tests">Test plan</a><a href="#approval">Review checklist</a>
+</nav>
+
+<section id="inspection">
+<h2>1. Existing Sources interface: inspected findings</h2>
+<p>The inspected Sources experience is a reusable bottom-sheet panel titled <strong>“Sources &amp; Medical Information”</strong>, implemented in <code>client/src/components/MedicalSourcesInfo.tsx</code>. It is not a standalone <code>/sources</code> page in the inspected routing. Dashboard and Macro Calculator call sites open the same component; other call sites include Hydration Center, pregnancy, guest, and clinical-builder pages.</p>
+<ul>
+<li><strong>Organization:</strong> condition- and topic-oriented sections, explanatory paragraphs, and source cards within the existing dark, vertically scrollable sheet.</li>
+<li><strong>Most storage:</strong> references are directly authored in the component as <code>SourceItem</code> properties: <code>title</code>, <code>description</code>, and <code>url</code>. These static entries are not fetched from a clinical-reference database by this component.</li>
+<li><strong>Display:</strong> cards show title and description with an external-link control. Links open a new tab with <code>noopener noreferrer</code> and a title-based accessible label.</li>
+<li><strong>Structured precedent:</strong> <code>HydrationEvidenceSection</code> requests <code>/api/hydration/evidence</code> when the panel is open. Its record includes source identity, organization/author, publication date, citation, evidence type/level, population, and supported rule. That section is explicitly Development-only, and its endpoint requires authentication. This precedent is not proof that every clinical section already has equivalent traceability.</li>
+<li><strong>Missing addition:</strong> no dedicated metabolic-syndrome section was found. Existing source cards do not structurally require publication dates, review dates, or rule IDs.</li>
+<li><strong>Separate unrelated registry:</strong> <code>client/src/lib/macroSourcesConfig.ts</code> lists food-entry destinations for macro logging; it is not the clinical bibliography.</li>
+</ul>
+<p><strong>Inspection limit:</strong> these are code-inspection findings. The sheet was not opened in an authenticated browser during this drafting exercise; no Sources UI changes or new display tests have been executed.</p>
+<p>The nutrition envelope recognizes the text “metabolic syndrome” as a general medical-optimization condition, but this is not a dedicated, evidence-linked policy with demonstrated all-surface coverage. The onboarding option currently labeled “Metabolic Medication” stores <code>glp1</code>. Neither recognition nor relabeling is sufficient implementation.</p>
+</section>
+
+<section id="scope">
+<h2>2. Scope, identity, and non-negotiable boundaries</h2>
+<div class="summary"><strong>Core proposal:</strong> metabolic syndrome should improve food quality and personalization across human food tools. It must not introduce a GLP-1 overlay, automatic portion reduction, or a universal forbidden-food list.</div>
+<p>Metabolic syndrome is a clinical cluster involving abdominal adiposity, blood pressure, glucose, triglycerides, and HDL cholesterol. It does not establish that every component is present, diagnose diabetes, prove medication use, or prescribe a particular macronutrient ratio. Diagnostic background is supported by <a href="#S8">S8</a>; this policy does not implement diagnostic criteria.</p>
+<ul>
+<li>Proposed independent condition identity: <code>metabolic-syndrome</code>, with display label “Metabolic Syndrome.” The final identifier and normalization rules require review. Never reuse <code>glp1</code> or automatically reinterpret existing GLP-1 records.</li>
+<li>Record user-reported condition information as user-reported. Do not label it clinician-verified without genuine verification. Do not infer a diagnosis from measurements, medication, appearance, or the selected Builder.</li>
+<li>Preserve saved calorie and macro targets, explicit recipe-design instructions, serving count, serving preferences, dietary identity, allergy rules, cultural preferences, and legitimate medical care plans. Recommendations must not silently save replacement targets.</li>
+<li>Do not force weight loss, high protein, low carbohydrate, a GLP-1 Builder assignment, a smaller meal, or a new mandatory onboarding stage.</li>
+<li>Scope is human food personalization. Pet nutrition, medication prescribing, diagnosis, exercise prescriptions, supplements as treatment, and emergency treatment design are outside this policy.</li>
+<li>For professional workflows, use the exact authorized client and organization/Location context, not the practitioner's personal profile. Household subjects need their own authorized context.</li>
+<li>Adults are the proposed initial evidence population. Pediatric, pregnancy, frailty, eating-disorder, undernutrition, and other medically complex cases require their established specialized policies and clinical review; do not extrapolate an adult weight-loss pattern.</li>
+</ul>
+<h3>Enforcement classes</h3>
+<ol>
+<li><strong>Prefer:</strong> rank or generate suitable choices consistent with the approved dietary pattern.</li>
+<li><strong>Limit:</strong> propose a reasonable reduction or substitution and explain it. This does not mean “never eat.”</li>
+<li><strong>Independent safety constraint:</strong> enforce a genuine allergy, dietary identity, authorized patient-specific clinical restriction, or established safety rule. The metabolic-syndrome label alone creates none of these hard stops.</li>
+<li><strong>Uncertain:</strong> identify missing composition or clinical evidence. Do not claim exact nutrient compliance from a dish name, model estimate, or unverified product record.</li>
+</ol>
+<p>Rules operate on the whole eating pattern where evidence is available. A single food is not equivalent to an entire diet. Clinical recommendations and product-preservation requirements must remain visibly distinguishable in the implementation.</p>
+</section>
+
+<section id="rules">
+<h2>3. Proposed nutrition rules and source traceability</h2>
+<p>Each clinical rule below has a source ID and a bounded interpretation. Quantities and exceptions must be reviewed before any numeric implementation. Preserving an established preference does not guarantee that every dietary pattern optimally manages metabolic syndrome; explain genuine tradeoffs without silently changing the person's diet.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Rule</th><th>Preferred choices / limits</th><th>Application and boundaries</th><th>Supporting sources</th></tr></thead>
+<tbody>
+<tr><td><strong>MS-01<br>Overall food pattern</strong></td><td>Offer DASH- or Mediterranean-compatible choices: vegetables, appropriate fruit, higher-quality carbohydrates, suitable protein, and unsaturated fats.</td><td>Food-pattern guidance, not a required diet identity. Apply within vegan, vegetarian, gluten-free, kosher, halal, and other established constraints. No claim that a recipe cures the syndrome.</td><td><a href="#S1">S1</a>, <a href="#S2">S2</a>, <a href="#S3">S3</a>, <a href="#S4">S4</a>, <a href="#S7">S7</a></td></tr>
+<tr><td><strong>MS-02<br>Carbohydrate quality and fiber</strong></td><td>Favor suitable whole grains, legumes, whole fruit, vegetables, nuts, and seeds over lower-fiber refined alternatives.</td><td>Respect carbohydrate allowances, intolerances, active glucose-related policies, and kidney constraints. “Whole grain” is not automatically gluten-free or low carbohydrate. Never ban all carbohydrates. Do not convert ADA's diabetes-specific fiber guidance into an unreviewed universal metabolic-syndrome threshold.</td><td><a href="#S1">S1</a>, <a href="#S3">S3</a>; <a href="#S5">S5</a> recommendations 5.14 and 5.24 where diabetes/prediabetes guidance is applicable.</td></tr>
+<tr><td><strong>MS-03<br>Added sugars and drinks</strong></td><td>Favor unsweetened beverages and reduce avoidable added sugar in recipes. Offer water or an appropriate low/no-calorie alternative to sugar-sweetened drinks.</td><td>Distinguish added sugar from total sugar and whole-fruit ingredients. Do not impose a zero-sugar rule, erase desserts, or override established hypoglycemia-care instructions. Use explicit sweetener preferences and evidence; no automatic ban on all nonnutritive sweeteners.</td><td><a href="#S1">S1</a>, <a href="#S2">S2</a>, <a href="#S3">S3</a>, <a href="#S4">S4</a>; <a href="#S5">S5</a> 5.21, 5.22, and 5.25 for relevant diabetes contexts.</td></tr>
+<tr><td><strong>MS-04<br>Fat quality</strong></td><td>Favor sources of unsaturated fat in place of saturated-fat-heavy choices; minimize dietary patterns high in saturated/trans fats.</td><td>Examples include an appropriate liquid plant oil instead of some butter or coconut oil, subject to recipe function and preferences. Do not use GLP-1 per-meal fat ceilings. Nuts, oils, and avocado are not automatically disallowed because they contain fat; all allergy and renal rules still apply.</td><td><a href="#S1">S1</a> feature 5; <a href="#S2">S2</a>, <a href="#S3">S3</a>, <a href="#S4">S4</a>.</td></tr>
+<tr><td><strong>MS-05<br>Sodium-aware preparation</strong></td><td>Favor lower-sodium products, unsalted or reduced-sodium ingredients, and seasoning with suitable herbs, spices, and acid.</td><td>Do not prescribe a new daily or per-meal sodium limit from this condition alone. Quantitative claims require a reviewed, applicable limit and adequate ingredient evidence. Do not automatically substitute potassium-based salt, especially when kidney disease, hyperkalemia, or relevant medication concerns are unresolved.</td><td><a href="#S1">S1</a> feature 8; <a href="#S2">S2</a>, <a href="#S3">S3</a>, <a href="#S4">S4</a>; <a href="#S6">S6</a> practice point 3.3.2 for renal personalization.</td></tr>
+<tr><td><strong>MS-06<br>Protein-source quality</strong></td><td>Offer suitable plant proteins, fish, lean poultry, or other compatible lower-saturated-fat protein choices. Favor plant proteins for vegan/vegetarian identities.</td><td>No automatic protein increase or replacement of the user's saved protein target. Kidney disease, dialysis, undernutrition, allergies, religious identity, and clinician instructions determine whether a source and quantity are suitable.</td><td><a href="#S1">S1</a> feature 4; <a href="#S3">S3</a>, <a href="#S4">S4</a>; <a href="#S6">S6</a> for renal conflicts.</td></tr>
+<tr><td><strong>MS-07<br>Processing and product quality</strong></td><td>Favor minimally processed choices and reduce avoidable sodium, added sugar, and less favorable fat sources in packaged selections.</td><td>Judge actual formulation and preparation where known. Do not ban all packaged foods, erase an entire requested category, or classify a homemade shake as a processed supplement merely from its name. Keep usefulness, cost, availability, and current dietary identity in view.</td><td><a href="#S1">S1</a> feature 6; <a href="#S4">S4</a>; <a href="#S5">S5</a> 5.14 where applicable.</td></tr>
+<tr><td><strong>MS-08<br>Alcohol-related food guidance</strong></td><td>Do not encourage a nondrinker to start; offer alcohol-free alternatives and lower-added-sugar options when appropriate.</td><td>No claim that wine treats the syndrome and no new drinking allowance. Pregnancy, liver disease, diabetes medication, and other established restrictions retain their own authority. Medication advice and alcohol-treatment services are outside this policy.</td><td><a href="#S1">S1</a> feature 9; <a href="#S2">S2</a>; <a href="#S5">S5</a> 5.18–5.19 for relevant diabetes contexts.</td></tr>
+</tbody></table></div>
+<h3>Product-preservation requirements, not new clinical thresholds</h3>
+<p><strong>MS-P1:</strong> portion sizes, servings, and saved nutrition targets remain governed by the user's established setup and individual circumstances. <strong>MS-P2:</strong> preserve the requested dish's identity and make suitable substitutions instead of default rejection. <strong>MS-P3:</strong> keep clinical and dietary safety independent. <strong>MS-P4:</strong> disclose what changed and why, with rule/source traceability. These are explicit product requirements; their implementation must not be presented as a newly discovered medical guideline.</p>
+<h3>Substitution examples</h3>
+<ul>
+<li><strong>Shake:</strong> use a compatible unsweetened milk or plant alternative and suitable fruit/fiber ingredients, rather than adding avoidable syrup. Preserve serving size and protein target; no rule requiring every shake to be small.</li>
+<li><strong>Soup:</strong> offer reduced-sodium broth and suitable herbs rather than rejecting soup. Do not claim compliance with a numeric limit if product sodium is unknown.</li>
+<li><strong>Dessert:</strong> reduce avoidable added sugar or replace some saturated fat only when the recipe remains workable and recognizable. Do not replace a requested cake with fruit and call that equivalent.</li>
+<li><strong>Restaurant:</strong> suggest an available preparation or sauce adjustment when supported by the menu. State that sodium/composition are uncertain when no nutrition or ingredient evidence is available; do not invent numbers.</li>
+<li><strong>Restrictive dietary identity:</strong> use compatible choices first. If the diet meaningfully conflicts with the recommended pattern, disclose the tradeoff and offer optional clinical discussion rather than covertly switching diets.</li>
+</ul>
+</section>
+
+<section id="conflicts">
+<h2>4. Conflict-resolution approach</h2>
+<p>This is proposed precedence for the new support layer, not permission to rewrite established clinical policies. Conflicting clinical instructions require clarification; “the most restrictive rule wins” is not a safe universal strategy.</p>
+<ol>
+<li>Resolve the exact authorized food subject and applicable care context. Never borrow the practitioner's targets or another household member's condition.</li>
+<li>Preserve genuine allergy/food-safety requirements and established acute-care exceptions.</li>
+<li>Apply current, authorized patient-specific clinical instructions with known provenance. If instructions conflict, identify the conflict and avoid claiming clinical compliance; request qualified review where needed.</li>
+<li>Apply existing dietary identity and explicit meal/recipe intent within those safety boundaries.</li>
+<li>Apply metabolic-syndrome preferences and substitutions where compatible. Keep portion count and saved targets unchanged.</li>
+</ol>
+<div class="table-wrap"><table>
+<thead><tr><th>Coexisting context</th><th>Required handling</th></tr></thead><tbody>
+<tr><td>Type 1 or Type 2 diabetes / prediabetes</td><td>Keep the person's actual diabetes and glucose-related policies intact. Do not invent an insulin plan or assume diabetes from metabolic syndrome. Higher-fiber choices still need to fit applicable carbohydrate/produce rules. Existing clinician-directed hypoglycemia care takes precedence over a general “less added sugar” preference. ADA S5 informs individualized nutrition, not replacement of diabetes management.</td></tr>
+<tr><td>Kidney disease / dialysis / potassium concerns</td><td>Do not automatically increase protein, legumes, nuts, whole grains, or potassium salt substitutes without checking existing renal guidance. Use the applicable stage, clinical context, and authorized instructions. Unknown evidence cannot support a claim of renal clearance. KDIGO S6 requires individualized sodium, phosphorus, potassium, and protein adaptations.</td></tr>
+<tr><td>Cardiovascular disease / hypertension / heart failure</td><td>Favor suitable fat quality and sodium-aware choices, while preserving established individualized sodium or fluid restrictions. Do not infer a fluid limit or weight-loss prescription from metabolic syndrome.</td></tr>
+<tr><td>Vegan / vegetarian / low carb / carnivore / religious identity</td><td>Stay inside the dietary identity. A vegan recipe cannot acquire fish or dairy to satisfy generic guidance. A low-carbohydrate recipe must not be repaired by indiscriminately adding whole grains. Disclose meaningful nutritional tradeoffs; do not promise every identity provides equivalent cardiometabolic benefit.</td></tr>
+<tr><td>Allergies, celiac, intolerances</td><td>Approved substitutions must pass existing ingredient and preparation checks. “Whole grain” never proves gluten-free. Soy, nuts, legumes, dairy, and alternatives require their own suitability checks.</td></tr>
+<tr><td>GLP-1 medication / GLP-1 Builder</td><td>The conditions remain separate. This metabolic-syndrome policy must neither activate, disable, broaden, nor refactor existing GLP-1 behavior. Any independently approved GLP-1 Builder/Menu support is composed only under its own authority. The separately requested narrowing of global GLP-1 overlays needs its own reviewed change.</td></tr>
+<tr><td>Pregnancy, children, frailty, malnutrition, eating-disorder concerns</td><td>Preserve specialized nutrition authority and adequate intake. No automatic calorie reduction, weight-loss goal, or adult-protocol extrapolation. Clinically review applicability before personalized therapeutic claims.</td></tr>
+</tbody></table></div>
+<p><strong>Missing evidence:</strong> absence of laboratory data alone should not prevent ordinary heart-healthy suggestions. It does prevent inventing individualized restrictions. Missing composition must be disclosed; existing high-risk safety policies determine whether an item can be offered, needs clarification, or cannot be cleared.</p>
+</section>
+
+<section id="surfaces">
+<h2>5. Consistent application across food tools</h2>
+<p>Coverage must include every relevant route and fallback, not just a prominent page. Food creation, recommendation, saving, and actual consumption are different actions; a generated or saved item does not mean it was consumed.</p>
+<div class="table-wrap"><table><thead><tr><th>Surface</th><th>Expected application</th><th>Final check</th></tr></thead><tbody>
+<tr><td>Meal Builders and Weekly Board</td><td>Generate/select appropriate food quality within the established targets, portions, and Builder context.</td><td>Actual ingredients, stated servings, preserved targets, and selected subject. No hidden reassignment to GLP-1.</td></tr>
+<tr><td>My Perfect Menu</td><td>Rank and generate ideas using the same policy; pass it through selection and completed recipe creation.</td><td>Concept is not proof of final recipe suitability. Validate selected/completed results and restored/cached choices.</td></tr>
+<tr><td>Create a Dish / Chef / Fridge Rescue / Craving tools</td><td>Preserve requested food identity, explicit recipe instructions, cuisine, and available ingredients; make suitable adaptations.</td><td>Recheck original, repaired, retried, and fallback outputs. No automatic rejection based on an ordinary daily-budget overage.</td></tr>
+<tr><td>Snacks and desserts</td><td>Prefer workable lower-added-sugar / more favorable fat choices where appropriate.</td><td>Keep desserts available, respect recipe size and serving count, and distinguish per-serving from whole-recipe nutrition.</td></tr>
+<tr><td>Beverages, homemade shakes, smoothies</td><td>Favor compatible unsweetened ingredients and nutrient quality.</td><td>Same clinical and dietary checks as food. Do not infer a processed-product restriction from the word “shake.”</td></tr>
+<tr><td>Grocery Coach, packaged-product suggestions, barcode and saved picks</td><td>Compare actual label evidence within the requested category; offer preferable options without category erasure.</td><td>Product identity, serving basis, source date, and known ingredients/nutrients. Do not claim “metabolic-syndrome approved” from an unverified brand name.</td></tr>
+<tr><td>Restaurants, fast food, buffet, eating out</td><td>Offer available choices and practical adjustments without GLP-1 portion caps.</td><td>Separate verified menu/label facts from estimates. Explain missing information and maintain existing serious-risk protections.</td></tr>
+<tr><td>Meal swaps, refinements, alternatives, favorites, caches, assistants</td><td>Apply the same context to a new recommendation or meaningful transformation.</td><td>Do not duplicate saves, rewrite historical recipes, or treat an old saved/cached item as newly verified. Recheck relevant authority before a new recommendation.</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="references">
+<h2>6. Verified reference register</h2>
+<p>Technical source review date for all records below: <strong>October 14, 2026</strong>. Original content was retrieved or verified through the publisher/institution and, for the trial metadata, NCBI PubMed. Clinical review is still pending. Access at review time is not a guarantee of perpetual link availability.</p>
+<p><strong>Evidence interpretation:</strong> scientific statements and guidelines support a dietary pattern. The trial supports the studied intervention in its specific population. None establishes universal food bans, an app-prescribed portion size, a guaranteed clinical outcome, or a new medication indication.</p>
+
+<article class="ref" id="S1"><h3>S1 — Primary current dietary-pattern guidance</h3>
+<p><strong>Organization/authorship:</strong> American Heart Association; Lichtenstein et al. <strong>Title:</strong> <em>2026 Dietary Guidance to Improve Cardiovascular Health: A Scientific Statement From the American Heart Association.</em> <strong>Publication:</strong> Circulation, May 5, 2026, 153:e1285–e1295; ahead of print March 31, 2026.</p>
+<p><a href="https://www.ahajournals.org/doi/full/10.1161/CIR.0000000000001435">Original publisher</a> • DOI: <a href="https://doi.org/10.1161/CIR.0000000000001435">10.1161/CIR.0000000000001435</a>.</p>
+<p><strong>Supports:</strong> MS-01–MS-08: whole dietary patterns; varied vegetables/fruits; whole grains; suitable protein; replacing saturated-fat sources with unsaturated-fat sources; minimally processed foods; less added sugar and sodium; no encouragement to start alcohol. General cardiovascular-risk population, not a metabolic-syndrome-specific numeric prescription.</p>
+<p><strong>Currency:</strong> explicitly supersedes the AHA 2021 dietary-guidance statement. Use 2026 as the proposed primary citation. Do not silently delete or replace any historical reference already displayed in the app.</p></article>
+
+<article class="ref" id="S2"><h3>S2 — Condition-specific institutional guidance</h3>
+<p><strong>Organization:</strong> National Heart, Lung, and Blood Institute, NIH. <strong>Title:</strong> <em>Metabolic Syndrome — Treatment.</em> <strong>Last updated:</strong> May 27, 2022.</p>
+<p><a href="https://www.nhlbi.nih.gov/health/metabolic-syndrome/treatment">Original source</a>.</p>
+<p><strong>Supports:</strong> MS-01, MS-03–MS-05, MS-08. Heart-healthy lifestyle is first-line; DASH may be appropriate; fruits, vegetables, and whole grains are emphasized, with limits on saturated fats, sodium, added sugars, and alcohol. Does not authorize the app to prescribe medication or universally reduce portions.</p></article>
+
+<article class="ref" id="S3"><h3>S3 — DASH food-pattern reference</h3>
+<p><strong>Organization:</strong> NHLBI, NIH. <strong>Title:</strong> <em>DASH — DASH Eating Plan.</em> <strong>Last updated:</strong> February 25, 2026.</p>
+<p><a href="https://www.nhlbi.nih.gov/health/dash-eating-plan">Original source</a>.</p>
+<p><strong>Supports:</strong> MS-01–MS-07: vegetables, fruit, whole grains, compatible lean/plant protein sources, lower saturated fat, and fewer sugar-sweetened beverages; lower-sodium preparation. Its illustrative calorie-level servings and sodium examples are educational, not automatically assigned targets for this protocol.</p></article>
+
+<article class="ref" id="S4"><h3>S4 — Metabolic-syndrome food-choice guidance</h3>
+<p><strong>Organization:</strong> American Heart Association. <strong>Title:</strong> <em>Prevention and Treatment of Metabolic Syndrome.</em> <strong>Last reviewed:</strong> October 17, 2023.</p>
+<p><a href="https://www.heart.org/en/health-topics/metabolic-syndrome/prevention-and-treatment-of-metabolic-syndrome">Original source</a>.</p>
+<p><strong>Supports:</strong> MS-01, MS-03–MS-07: whole grains, fruits, vegetables, suitable lean and plant protein sources; limits on processed foods, saturated/trans fats, red meat, sodium, and added sugar. Practical institutional guidance, not a hard prohibition of every named food.</p></article>
+
+<article class="ref" id="S5"><h3>S5 — Diabetes/prediabetes conflict and personalization guidance</h3>
+<p><strong>Organization/authorship:</strong> American Diabetes Association Professional Practice Committee for Diabetes. <strong>Title:</strong> <em>5. Facilitating Positive Health Behaviors and Well-being to Improve Health Outcomes: Standards of Care in Diabetes—2026.</em> <strong>Published online:</strong> December 8, 2025; 2026 January collection, Diabetes Care 49(Suppl 1):S89–S131.</p>
+<p><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12690188/">Original article, open full text</a> • DOI: <a href="https://doi.org/10.2337/dc26-S005">10.2337/dc26-S005</a>.</p>
+<p><strong>Supports:</strong> individualized nutrition therapy and meal plans (5.10, 5.13); food quality (5.14); context-dependent carbohydrate reduction (5.15); alcohol counseling (5.18–5.19); clinically appropriate sodium guidance (5.20); water and conditional sweetener substitution (5.21–5.22); adequate intake during weight loss (5.23); fiber quality (5.24); less sugar-sweetened beverage intake (5.25). Applicable to diabetes/prediabetes/risk contexts specified by each recommendation, not proof that all metabolic-syndrome users have diabetes.</p></article>
+
+<article class="ref" id="S6"><h3>S6 — Kidney-disease conflict guidance</h3>
+<p><strong>Organization:</strong> Kidney Disease: Improving Global Outcomes (KDIGO). <strong>Title:</strong> <em>KDIGO 2024 Clinical Practice Guideline for the Evaluation and Management of Chronic Kidney Disease.</em> <strong>Publication:</strong> March 2024. The linked recommendations document is a summary of the final 2024 guideline, not a new 2026 guideline.</p>
+<p><a href="https://kdigo.org/wp-content/uploads/2024/03/KDIGO-2024-CKD-Guideline.pdf">Original guideline</a> • <a href="https://kdigo.org/wp-content/uploads/2026/05/KDIGO-2024-CKD-Guideline-Summary-Recommendations-and-Practice-Points.pdf">Official recommendations/practice-points summary inspected</a>.</p>
+<p><strong>Supports:</strong> practice point 3.3.2 calls for renal-dietitian/provider guidance on sodium, phosphorus, potassium, and protein tailored to individual needs, CKD severity, and comorbidities. MS-02, MS-05, and MS-06 must not blindly override renal care. No universal low-potassium or high-protein prescription is inferred. The KDIGO 2026 diabetes/CKD public-review draft is not treated as finalized policy.</p></article>
+
+<article class="ref" id="S7"><h3>S7 — Peer-reviewed intervention evidence</h3>
+<p><strong>Authors:</strong> Filippou CD, Thomopoulos CG, Konstantinidis DG, et al. <strong>Title:</strong> <em>Effect of DASH vs. mediterranean diet accompanied by a salt restriction on metabolic syndrome and cardiometabolic risk factors in adults with high normal blood pressure or grade 1 hypertension: secondary analyses of a randomized controlled trial.</em> <strong>Journal/publication:</strong> Hellenic Journal of Cardiology, September–October 2025; electronic publication May 21, 2024.</p>
+<p><a href="https://pubmed.ncbi.nlm.nih.gov/38777087/">PubMed record and abstract</a> • DOI: <a href="https://doi.org/10.1016/j.hjc.2024.05.006">10.1016/j.hjc.2024.05.006</a>.</p>
+<p><strong>Supports:</strong> MS-01 and MS-05 as dietary-pattern interventions. Secondary analyses of a three-month randomized trial in 240 never-drug-treated adults with high-normal blood pressure or grade 1 hypertension found lower odds of metabolic syndrome in the DASH-plus-salt-restriction and Mediterranean-plus-salt-restriction groups compared with control.</p>
+<p><strong>Limits:</strong> short-term, specific population and intervention; does not isolate the effect of every ingredient, prove long-term outcomes for every user, or support guaranteed reversal/cure. Abstract and original PubMed citation metadata were checked; this draft does not claim an independent full-methods appraisal of the publisher's complete trial report.</p></article>
+
+<article class="ref" id="S8"><h3>S8 — Diagnostic background only</h3>
+<p><strong>Organization:</strong> NHLBI, NIH. <strong>Title:</strong> <em>Metabolic Syndrome — What Is Metabolic Syndrome?</em> <strong>Last updated:</strong> May 18, 2022.</p>
+<p><a href="https://www.nhlbi.nih.gov/health/metabolic-syndrome">Original source</a>.</p>
+<p><strong>Supports:</strong> the distinction between a clinical risk-factor cluster and GLP-1 medication use. Not a citation for food restrictions or a platform diagnostic algorithm.</p></article>
+</section>
+
+<section id="sources-plan">
+<h2>7. Proposed additions to the existing Sources panel</h2>
+<ol>
+<li>Add an identifiable <strong>“Metabolic Syndrome — Nutrition Support &amp; Evidence”</strong> section to the existing shared panel, retaining its dark section/card design. Do not create a replacement Sources experience.</li>
+<li>Display S1–S7 with organization/author, full title, publication/update date, link/DOI, supported rule IDs, population, and evidence limitation. Put S8 under “Condition background,” separate from nutrition-decision evidence.</li>
+<li>Distinguish <strong>source reviewed date</strong> from <strong>clinical approval date/status</strong>. Retrieving an article does not mean Dr. Eric approved the policy.</li>
+<li>Use an additive, typed reference registry shared with the future rule implementation. Proposed fields: source ID, organization/authors, title, publication date, update date if available, URL, DOI if available, evidence type, population, locator/recommendation numbers, supported rule IDs, access date, review status, and supersession links.</li>
+<li>Reuse existing <code>SourceItem</code> visual conventions or extend them additively with optional metadata. Keep current cards intact. Avoid a database migration solely to display this static reference set unless a separate reviewed need emerges.</li>
+<li>Do not copy the hydration section's Development-only visibility accidentally into the intended final clinical-reference display. Public metadata access and production mounting/visibility must be explicit review decisions.</li>
+<li>Provide an explanation such as: “These references support food-pattern personalization. They do not establish a diagnosis, medication need, universal food ban, or automatic change to your portions or saved targets.”</li>
+</ol>
+<p><strong>Illustrative card copy:</strong> “AHA 2026 Dietary Guidance — Supports carbohydrate quality, healthier fat sources, less added sugar, and sodium-aware preparation (MS-01–MS-08). Published May 5, 2026; source checked October 14, 2026. General cardiovascular dietary guidance; individualized clinical restrictions remain separate.” This is proposed content, not text already added to the app.</p>
+<h3>Reference maintenance</h3>
+<p>Proposed review: at least every six months and sooner after an authoritative guideline update, correction/retraction, or new safety issue. Next scheduled review would be April 14, 2027, subject to approval. Do not silently update live rules from a web search. Retain a source-change record, assess superseded recommendations, obtain clinical approval for changed decisions, and verify links again before release. A broken URL is not proof that the underlying clinical rule is invalid; supply a verified canonical alternative rather than fabricating a replacement.</p>
+</section>
+
+<section id="implementation">
+<h2>8. Proposed implementation map — only after approval</h2>
+<p>The following files are starting points observed in the current project. This is not a complete route-coverage audit. Exact types, registrations, aliases, cache boundaries, and all food-tool paths require implementation-time inspection.</p>
+<div class="table-wrap"><table><thead><tr><th>Layer</th><th>Current starting points</th><th>Proposed responsibility</th></tr></thead><tbody>
+<tr><td>Condition identity and onboarding</td><td><code>client/src/pages/OnboardingV3.tsx</code>; existing health-information persistence and profile validation</td><td>Add a separate approved condition option only when behavior is ready. Preserve existing <code>glp1</code> records and avoid automatic Builder assignment. Define self-report versus clinician provenance; review any storage need separately.</td></tr>
+<tr><td>Canonical subject/context</td><td><code>server/services/humanFoodContext/resolveHumanFoodContext.ts</code>; <code>shared/humanFoodContext.ts</code></td><td>Resolve metabolic-syndrome support from the exact authorized subject, not request overrides or the actor's profile. Include approved policy version, applicable rule IDs, conflicts, and evidence gaps.</td></tr>
+<tr><td>Shared policy/envelope</td><td><code>server/services/protocolEnvelope.ts</code>; <code>server/services/universalMedicalGuidance.ts</code></td><td>Replace generic-name reliance with one typed metabolic-syndrome policy. Separate guidance from patient-specific hard constraints. Do not modify the GLP-1 resolver as part of this policy.</td></tr>
+<tr><td>Generation and final validation</td><td><code>server/services/humanFoodContext/buildHumanFoodPromptBlock.ts</code>; <code>validateHumanFoodResult.ts</code>; <code>finalValidation.ts</code>; protocol output scan</td><td>Provide bounded substitutions to generation and validate the actual final candidate, including repaired/retried/alternative outputs. Keep recipe-serving normalization and requested dish identity intact.</td></tr>
+<tr><td>Food-tool adapters</td><td><code>server/routes/myPerfectMenu.ts</code>, <code>groceryCoach.ts</code>, <code>restaurants.ts</code>, <code>beverage-creator.ts</code>, <code>dessert-creator.ts</code>, and other food routes</td><td>Build a complete surface matrix and ensure the shared policy reaches each relevant entry point and its fallback. Imports alone do not prove coverage.</td></tr>
+<tr><td>References and explanations</td><td><code>client/src/components/MedicalSourcesInfo.tsx</code>; proposed typed evidence registry</td><td>Use the same approved source/rule IDs for Sources cards and action explanations. Localize meaningful copy without changing clinical meaning.</td></tr>
+<tr><td>Release and cache controls</td><td>Existing development/production route wiring and relevant food-context caches</td><td>Keep the draft inactive. After implementation, verify explicit production route parity and versioned cache compatibility. Do not reclassify legacy GLP-1 users, alter historical food records, or enable a new condition through deployment alone without review.</td></tr>
+</tbody></table></div>
+<h3>Proposed decision contract</h3>
+<p>A future decision should carry the authorized subject/context, policy version, applicable rule IDs, source IDs, enforcement class, concrete proposed change, known nutrition/ingredient evidence, evidence gaps, preserved serving/target facts, and a reason-coded user explanation. Structured audit data should be minimized and avoid raw clinical values. A Boolean “metabolic-syndrome approved” is insufficient.</p>
+<p><strong>Safe flow:</strong> resolve subject → establish applicable existing constraints → select compatible policy guidance → generate/rank/adapt → validate final ingredients and serving basis → explain verified changes and uncertainty. If an independent serious-risk rule rejects a candidate, report that exact reason; do not disguise it as a universal metabolic-syndrome ban.</p>
+</section>
+
+<section id="tests">
+<h2>9. Proposed validation and release tests</h2>
+<p><strong>Status:</strong> none of these proposed protocol or Sources-display tests has been implemented or executed. This draft specifies acceptance criteria, not passing results.</p>
+<div class="table-wrap"><table><thead><tr><th>Test group</th><th>Required cases and pass criteria</th></tr></thead><tbody>
+<tr><td>T01 — Identity separation</td><td>A new metabolic-syndrome choice stores its own identity; it never writes <code>glp1</code>, sets medication status, claims clinical verification, assigns a GLP-1 Builder, or automatically migrates a legacy GLP-1 record. Existing condition choices remain intact.</td></tr>
+<tr><td>T02 — Preserved setup</td><td>Before/after comparisons keep macro targets, serving count, portion preferences, explicit recipe-design instructions, onboarding completion, and saved plans unchanged. Metabolic-syndrome support never silently recalculates or saves targets.</td></tr>
+<tr><td>T03 — Rule outcomes</td><td>For each MS-01–MS-08, test positive adaptation, already-suitable food, incompatible substitution, and missing composition. The final output has the intended actual ingredients/preparation—not just reassuring description text—and cites the correct rule/source IDs.</td></tr>
+<tr><td>T04 — Food identity and availability</td><td>Ordinary desserts, homemade shakes, snacks, and restaurant choices remain available when otherwise safe. A cake stays a recognizable cake. No category-level ban, mandatory small portion, zero-carbohydrate rule, or daily-budget refusal is introduced.</td></tr>
+<tr><td>T05 — Dietary identities and allergies</td><td>Vegan, vegetarian, celiac/gluten-free, low carb, carnivore, kosher/halal, and allergy cases preserve their actual rules. A whole-grain substitution cannot introduce gluten; a protein substitution cannot introduce dairy/fish into vegan food; an unsaturated-fat substitution cannot introduce a known allergen.</td></tr>
+<tr><td>T06 — Clinical coexistence</td><td>Exercise Type 1/Type 2 diabetes, prediabetes, current glucose-dependent constraints, existing hypoglycemia-care exceptions, CKD stages/dialysis, cardiovascular restrictions, pregnancy, pediatric and undernutrition contexts. No inferred diagnoses, high-protein defaults, potassium-salt defaults, unsupported limits, or conflicting instructions hidden behind “approved.”</td></tr>
+<tr><td>T07 — Subject isolation</td><td>Personal, household, and authorized professional client paths use the correct subject. Client/org/Location switches discard stale evidence and late responses. Unauthorized client access remains denied; no actor-to-client target copying.</td></tr>
+<tr><td>T08 — Whole-surface coverage</td><td>For every surface in section 5, prove context threading and final-result validation. Include Menu concepts and completed recipes, beverage/dessert branches, grocery alternatives, restaurant estimates, retries, repair, fallback, cached/restored candidates, and newly recommended saved items. A clean import list is not sufficient.</td></tr>
+<tr><td>T09 — Nutrition evidence and uncertainty</td><td>Distinguish whole-recipe from per-serving quantities, added sugar from total sugar, ingredient evidence from dish names, and label facts from estimates. Unknown sodium cannot pass an exact sodium-compliance assertion. Product facts remain bound to exact brand/variant, serving basis, source, and date.</td></tr>
+<tr><td>T10 — GLP-1 non-regression</td><td>Metabolic syndrome alone does not activate GLP-1 targets, tolerance, fat ceilings, or portion caps. Existing GLP-1 code/records are not altered. When both contexts are legitimately present, independent authorized Builder/Menu support and other clinical rules compose without spreading new quantity restrictions.</td></tr>
+<tr><td>T11 — Citation integrity</td><td>Every clinical rule references an existing approved source and locator. Verify original title, organization/authors, publication versus update date, DOI/URL, supported population, and review status. No invented citations or applicability claims. Confirm AHA 2026 supersession is represented without deleting existing sources.</td></tr>
+<tr><td>T12 — Sources UI</td><td>From the real Dashboard and Macro Calculator entry points, open the existing panel; verify the new section, complete reference cards, rule links, external URLs, keyboard/screen-reader labels, mobile scrolling, no horizontal overflow, and accurate approval wording. Preserve all existing references. Test link failures without replacing citations silently.</td></tr>
+<tr><td>T13 — Source accessibility</td><td>Check canonical links with bounded requests, redirects, DOI resolution, and content/title identity—not HTTP status alone. Distinguish transient network failure, access restrictions, and genuinely unavailable content. A publicly accessible abstract is not a full-methods review.</td></tr>
+<tr><td>T14 — Release boundary</td><td>Draft remains inactive until review. Verify intended API registration and frontend visibility in the actual production build before release; confirm no Development-only guard silently removes approved references. Confirm no account/data backfill, payment, entitlement, or historical-recipe mutation is introduced.</td></tr>
+</tbody></table></div>
+<p>Unit and contract tests should establish deterministic behavior and provenance. A single focused browser pass should cover the eventual changed onboarding/Sources flow and representative final food output. Authenticated clinical acceptance must use authorized evidence; fixtures may demonstrate wiring but cannot be described as live patient-data verification. Nutrition-therapy claims require clinical review in addition to software tests.</p>
+</section>
+
+<section id="approval">
+<h2>10. Review decisions and approval gates</h2>
+<div class="table-wrap"><table><thead><tr><th>Decision</th><th>Proposed position</th><th>Review status</th></tr></thead><tbody>
+<tr><td>Initial population</td><td>Adults; specialized populations defer to their own reviewed guidance.</td><td>Pending Dr. Eric and product owner</td></tr>
+<tr><td>Nutrition scope</td><td>Pattern-based preferred/limited choices, not universal bans or new portion caps.</td><td>Pending</td></tr>
+<tr><td>Identity and onboarding</td><td>Independent condition; no relabeling or migration of <code>glp1</code>.</td><td>Pending</td></tr>
+<tr><td>Quantitative limits</td><td>No new syndrome-only numeric enforcement. Any later threshold needs source, population, authoritative individual basis, and separate approval.</td><td>Pending</td></tr>
+<tr><td>Sources additions</td><td>Append the identifiable section and traceable records to the existing panel; preserve existing references.</td><td>Pending</td></tr>
+<tr><td>Conflicts and substitutions</td><td>Review all examples, precedence, evidence gaps, dietary tradeoffs, and serious-risk handling.</td><td>Pending</td></tr>
+<tr><td>Evidence appraisal</td><td>Approve S1–S8 and the source-to-rule interpretation. Review full trial methods if stronger efficacy claims are proposed.</td><td>Pending</td></tr>
+<tr><td>Implementation authorization</td><td>Only after written policy and reference approval; begin in Development with the proposed test matrix.</td><td>Not authorized</td></tr>
+<tr><td>Production release</td><td>Separate authorization after implementation, clinical review, route/visibility verification, tests, and release review.</td><td>Not authorized</td></tr>
+</tbody></table></div>
+<p><strong>Requested review output:</strong> approved rules and evidence, corrections or exclusions, selected population, accepted conflict handling, approved Sources copy, and explicit authorization—or refusal—to implement. No implementation should be inferred from receiving this document.</p>
+</section>
+<footer>Prepared as a technical and evidence review draft for My Perfect Meals. This is not medical advice for an individual, a diagnosis, a signed clinical protocol, or proof that the platform already implements the proposed behavior. No app, onboarding, database, GLP-1, Sources-interface, or Production changes were made in preparing it.</footer>
+</main></body></html>
