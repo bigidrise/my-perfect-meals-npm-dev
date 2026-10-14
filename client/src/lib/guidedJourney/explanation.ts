@@ -1,5 +1,6 @@
 import type { JourneySnapshot, JourneyStepId } from "../../../../shared/guidedJourney";
 import { journeyMealBuilderAllowed, type JourneyDashboardAccount } from "./dashboardScope";
+import { mealBuilderGuidance } from "@shared/mealBuilderGuidance";
 
 const copy: Record<JourneyStepId, { title: string; description: string; primaryLabel: string }> = {
   get_to_know_you: {
@@ -41,7 +42,7 @@ export function explanationJourneyAllowed(
     || snapshot.steps.some(step => step.evidence.state === "unknown")) return false;
   const mealStage = snapshot.steps.find(step => step.id === "saved_meal_plan");
   return mealStage?.evidence.state === "not_applicable"
-    || (snapshot.builderKey === "general_nutrition" && journeyMealBuilderAllowed(account));
+    || (!!mealBuilderGuidance(snapshot.builderKey) && journeyMealBuilderAllowed(account, snapshot.builderKey ?? undefined));
 }
 
 export function explanationStages(snapshot: JourneySnapshot) {
@@ -59,7 +60,7 @@ export function explanationModel(
   return {
     stageId, ...copy[stageId],
     indicator: `Stage ${index + 1} of ${stages.length}${replay ? " · Explanation replay" : ""}`,
-    builderName: stageId === "saved_meal_plan" ? "General Nutrition Meal Builder" : null,
+    builderName: stageId === "saved_meal_plan" ? mealBuilderGuidance(snapshot.builderKey)?.name ?? null : null,
     canPerform: !busy && !completed && snapshot.nextStep === stageId,
     activityNotice: completed
       ? "This activity is already complete. Reviewing its explanation does not reset your saved work."

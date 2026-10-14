@@ -145,7 +145,7 @@ describe("personal foundation", () => {
     });
     expect(f.readSavedBoards).not.toHaveBeenCalled();
   });
-  test.each(["diabetic", "glp1", "anti_inflammatory", "beach_body", "performance_competition", "invalid", ""])(
+  test.each(["invalid", ""])(
     "active assignment %s never falls back to selected General", async activeBoard => {
       const f = fixture({ ...configured(), activeBoard, selectedMealBuilder: "general_nutrition" });
       expect(await f.service.inspect(actor)).toMatchObject({

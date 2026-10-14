@@ -44,6 +44,16 @@ This approval extends builder guidance, not the underlying nutrition workflows
 or shopping functionality; do not treat the user's success report as proof of
 every untested builder or server authorization path.
 
+The user explicitly chose both personal and professional client builders for
+the guidance expansion.
+
+**Why:** They selected "Personal and professional client builders" after the
+personal-only and client-specific scopes were explained.
+
+**How to apply:** Keep professional page explanations tied to the exact selected
+client and organization. Never reuse the practitioner's personal setup as client
+progress or turn guide dismissal into target, meal, or clinical completion.
+
 First-login guidance should be prominent written guidance with one main action
 leading to existing onboarding, plus a smaller Skip and Don't Show Again option.
 Copilot remains an optional assistant, not the primary onboarding experience.

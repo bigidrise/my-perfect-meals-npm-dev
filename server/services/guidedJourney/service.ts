@@ -1,4 +1,4 @@
-import { BUILDER_NS } from "../../../shared/builderNamespaces";
+import { mealBuilderGuidance } from "../../../shared/mealBuilderGuidance";
 import { evaluateOrderedJourney, type JourneySnapshot, type JourneyStep } from "../../../shared/guidedJourney";
 import {
   onboardingEvidence, targetEvidence, savedBoardEvidence,
@@ -87,18 +87,19 @@ export function createGuidedJourneyService(repository: JourneyRepository) {
         steps[2].action = { kind: "select_builder", route: "/select-builder" };
         return result();
       }
-      if (builderKey !== "general_nutrition") {
+      const builder = mealBuilderGuidance(builderKey);
+      if (!builder) {
         steps[2].evidence = unknown(builderKey ? "builder_adapter_not_enabled" : "invalid_builder_assignment");
         return result();
       }
       try {
-        const history = await repository.readSavedBoards(actor.id, BUILDER_NS.GENERAL_NUTRITION);
+        const history = await repository.readSavedBoards(actor.id, builder.namespace);
         let uncertain = history.hasMore;
         for (const record of history.records) {
           const evidence = savedBoardEvidence(record);
           if (evidence.state === "complete") {
             steps[2].evidence = evidence;
-            savedPlan = { weekStartISO: record.weekStartISO, namespace: BUILDER_NS.GENERAL_NUTRITION };
+            savedPlan = { weekStartISO: record.weekStartISO, namespace: builder.namespace };
             return result();
           }
           if (evidence.state === "unknown") uncertain = true;
@@ -106,7 +107,7 @@ export function createGuidedJourneyService(repository: JourneyRepository) {
         steps[2].evidence = uncertain ? unknown("saved_plan_history_unresolved")
           : incomplete("no_saved_meal_plan");
         if (!uncertain) steps[2].action = {
-          kind: "open_existing_activity", route: "/general-nutrition-builder/build",
+          kind: "open_existing_activity", route: builder.route,
         };
       } catch { steps[2].evidence = unknown("saved_plan_read_failed"); }
       return result();

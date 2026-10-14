@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { apiRequest } from "@/lib/apiRequest";
 import { evaluateOrderedJourney, type JourneySnapshot } from "../../../../shared/guidedJourney";
+import { mealBuilderGuidance } from "@shared/mealBuilderGuidance";
 
 const action = z.object({
   kind: z.enum(["open_existing_activity", "select_builder"]), route: z.string().max(150),
@@ -18,7 +19,7 @@ const snapshotSchema = z.object({
   }).strict()).length(3),
   nextStep: z.enum(["get_to_know_you", "nutrition_targets", "saved_meal_plan"]).nullable(),
   nextAction: action, builderKey: z.string().max(100).nullable(),
-  savedPlan: z.object({ weekStartISO: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), namespace: z.literal("generalNutrition") }).strict().nullable(),
+  savedPlan: z.object({ weekStartISO: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), namespace: z.string().max(100) }).strict().nullable(),
   completionGoal: z.enum(["personal_setup", "saved_meal_plan", "unresolved"]),
 }).strict();
 
@@ -29,6 +30,10 @@ export function parsePersonalJourneyProgress(value: unknown, accountId: string):
     throw new Error("Progress scope could not be verified.");
   }
   const evaluated = evaluateOrderedJourney(snapshot.steps);
+  if (snapshot.savedPlan && (!mealBuilderGuidance(snapshot.builderKey)
+    || snapshot.savedPlan.namespace !== mealBuilderGuidance(snapshot.builderKey)?.namespace)) {
+    throw new Error("Saved plan Builder scope could not be verified.");
+  }
   if (evaluated.status !== snapshot.status || evaluated.nextStep !== snapshot.nextStep
     || JSON.stringify(evaluated.nextAction) !== JSON.stringify(snapshot.nextAction)) {
     throw new Error("Progress state could not be verified.");
@@ -36,7 +41,8 @@ export function parsePersonalJourneyProgress(value: unknown, accountId: string):
   if ((snapshot.completionGoal === "personal_setup"
       && snapshot.steps[2].evidence.state !== "not_applicable")
     || (snapshot.steps[2].evidence.state === "complete"
-      && (!snapshot.savedPlan || snapshot.builderKey !== "general_nutrition"))) {
+      && (!snapshot.savedPlan || !mealBuilderGuidance(snapshot.builderKey)
+        || snapshot.savedPlan.namespace !== mealBuilderGuidance(snapshot.builderKey)?.namespace))) {
     throw new Error("Saved setup evidence could not be verified.");
   }
   return snapshot;

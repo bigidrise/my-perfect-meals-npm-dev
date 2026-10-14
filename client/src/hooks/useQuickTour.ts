@@ -36,10 +36,12 @@ function isToursGloballyDisabled(): boolean {
 export function useQuickTour(
   pageKey: string,
   onPreferenceSaveError?: () => void,
-  { autoOpenDelayMs = 500, setupComplete }: {
+  { autoOpenDelayMs = 500, setupComplete, autoEnabled = true }: {
     autoOpenDelayMs?: number;
     /** undefined keeps ordinary tours unchanged; null waits for saved evidence. */
     setupComplete?: boolean | null;
+    /** Suppress automatic presentation without disabling manual Guide access. */
+    autoEnabled?: boolean;
   } = {},
 ): QuickTourState {
   const storageKey = `quick-tour::${pageKey}`;
@@ -58,6 +60,9 @@ export function useQuickTour(
   // Use useLayoutEffect to read localStorage synchronously before paint
   // This blocks the first render until we know the storage state
   useLayoutEffect(() => {
+    // A different account/client/page must not inherit an open prior tour.
+    setIsOpen(false);
+    autoOpenScheduledRef.current = false;
     const seen = checkIfSeen(storageKey);
     const globalOff = isToursGloballyDisabled();
     setHasSeenTour(seen);
@@ -67,6 +72,7 @@ export function useQuickTour(
 
   // Auto-open tour ONLY after storage is loaded AND user hasn't seen it AND tours not globally disabled
   useLayoutEffect(() => {
+    if (!autoEnabled || loadedStorageKey !== storageKey) return;
     if (setupComplete !== undefined) {
       if (setupVisitRef.current.key !== storageKey) {
         setupVisitRef.current = { key: storageKey, opened: false };
@@ -104,7 +110,7 @@ export function useQuickTour(
       }, autoOpenDelayMs);
       return () => clearTimeout(timer);
     }
-  }, [hasSeenTour, globalDisabled, autoOpenDelayMs, setupComplete, storageKey, loadedStorageKey]);
+  }, [hasSeenTour, globalDisabled, autoOpenDelayMs, setupComplete, storageKey, loadedStorageKey, autoEnabled]);
 
   const setGlobalDisabled = useCallback((disabled: boolean) => {
     try {
@@ -138,7 +144,7 @@ export function useQuickTour(
   }, [storageKey, onPreferenceSaveError, setupComplete]);
 
   return {
-    shouldShow: isOpen,
+    shouldShow: isOpen && loadedStorageKey === storageKey,
     // Return false while loading to avoid UI flicker
     hasSeenTour: hasSeenTour === true,
     openTour,
