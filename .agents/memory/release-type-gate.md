@@ -18,6 +18,21 @@ description: Policy for the release-check type-validation layers — safety slic
 
 **Safety slice:** Add any new safety-sensitive surface to `tsconfig.safety-check.json` before relying on the release check for that surface.
 
+## Interrupted checks
+
+A tool timeout does not guarantee validator cleanup. Confirm the compiler and
+validator have exited and inspect temporary validation state before retrying;
+never treat a timeout as a completed typecheck or unlock a live validator.
+
+**Why:** An interrupted combined check left the release validator's workspace
+lock behind, causing the next invocation to report another check running even
+though the earlier processes had exited.
+
+**How to apply:** Keep expensive root validation separate from earlier checks
+when their combined duration risks the tool limit. Clear only confirmed orphaned
+temporary state; keep the reviewed diagnostic baseline unchanged unless its
+delta has actually been reconciled.
+
 ## Diagnostic display-order drift
 
 Literal-union ordering inside a compiler error message can change even when the diagnosed source and semantic error are unchanged.
