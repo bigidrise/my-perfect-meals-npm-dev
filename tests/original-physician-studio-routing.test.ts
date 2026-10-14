@@ -74,6 +74,12 @@ describe("original Physician Studio restoration", () => {
     }
   });
 
+  test("both personal route guards retain saved macro completion from the minimized server profile", () => {
+    expect(read("client/src/contexts/AuthContext.tsx")).toContain("hasSavedMacroProfile: userData.hasSavedMacroProfile === true");
+    expect(read("client/src/components/AppRouter.tsx")).toContain("if (user?.hasSavedMacroProfile === true) return true");
+    expect(router).toContain("const hasMacroProfile = user.hasSavedMacroProfile === true || (user.age && user.height && user.weight)");
+  });
+
   test("original Physician clients reuse the shared list without syntheticSource", () => {
     const clients = read("client/src/pages/pro/ProClientsPhysician.tsx");
     expect(clients).toContain('<ProClients workspace="clinician" />');

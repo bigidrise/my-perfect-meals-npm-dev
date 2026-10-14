@@ -16,3 +16,9 @@ A valid browser cookie session cannot be displaced by a stale legacy browser tok
 **Why:** A workspace refactor combined new-provider eligibility, existing-resource visibility, and readiness. An unrelated invalid business query and stale browser token then made intact Studio, organization, and Academy state appear lost.
 
 **How to apply:** Any auth, entitlement, Academy, Studio, business, or workspace change must preserve established-owner positive contracts and unauthorized-user negative controls in the permanent validation suite.
+
+Already-completed personal onboarding and a saved macro profile must remain complete when a professional account enters a restricted operating mode. Do not require repetition or fabricate new completion.
+
+**Why:** Restoring the original application shell exposed a minimized Development bootstrap that hid existing setup evidence and sent an established account through onboarding again.
+
+**How to apply:** Preserve authoritative own-account completion evidence across bootstrap boundaries without treating it as clinical access, exposing personal measurements, or changing saved nutrition targets.

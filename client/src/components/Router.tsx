@@ -1112,7 +1112,7 @@ export default function Router() {
     }
 
     // Guard 2: Macro profile must be complete (age, height, weight required — consumers only)
-    const hasMacroProfile = user.age && user.height && user.weight;
+    const hasMacroProfile = user.hasSavedMacroProfile === true || (user.age && user.height && user.weight);
     const hasLocalMacroSettings = (() => {
       try {
         const s = localStorage.getItem("macro_calculator_settings");

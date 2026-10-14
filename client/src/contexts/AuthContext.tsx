@@ -84,6 +84,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           activeBoard: userData.activeBoard || null,
           builderSwitchUnlimited: userData.builderSwitchUnlimited || false,
           onboardingCompletedAt: userData.onboardingCompletedAt || null,
+          hasSavedMacroProfile: userData.hasSavedMacroProfile === true,
           firstName: userData.firstName || null,
           lastName: userData.lastName || null,
           nickname: userData.nickname || null,

@@ -85,6 +85,8 @@ export interface User {
   // Onboarding completion - CRITICAL for enforcing onboarding gate
 
   onboardingCompletedAt?: string | null;
+  /** Fresh server evidence of an existing macro profile; contains no measurements or targets. */
+  hasSavedMacroProfile?: boolean;
   // Profile data from onboarding (used by Edit Profile)
 
   firstName?: string | null;
