@@ -1,12 +1,26 @@
 ---
 name: GLP-1 Canonical Context Resolver — Stage 1
-description: Architecture and wiring for the platform-wide GLP-1 canonical context resolver introduced in Stage 1 of the GLP-1 system-level repair.
+description: Canonical GLP-1 signals and the user's Builder-and-Menu-only portion-support policy.
 ---
 
 # GLP-1 Canonical Context Resolver
 
-## The rule
-"The surface changes; the person doesn't." When GLP-1 is active, every food-generating and food-recommending surface receives the same canonical GLP-1 intelligence automatically. The page does not decide whether GLP-1 exists.
+## Current product scope
+The user wants GLP-1 support only in the GLP-1 Meal Builder and My Perfect Menu
+when it makes meal cards for that Builder, considering portion size and high
+nutrients. The rest of the platform should not apply the GLP-1 portion overlay.
+This supersedes the earlier all-surface GLP-1 portion-support policy.
+
+**Why:** The user reports that the global overlay repeatedly obstructed meal
+creation because of quantity restrictions and explicitly rejected restoring it.
+
+**How to apply:** Separate current medication/clinical information from the food
+operation where GLP-1 portion support is authorized. Merely having a GLP-1 Builder
+selected must not spread its portion restrictions into unrelated food tools.
+Keep genuine allergy, diabetes, and independently established clinical safety
+authorities distinct. This is product policy, not proof that the current code
+already enforces the narrowed scope; no application change was authorized in
+the discussion.
 
 ## Canonical resolver
 `server/services/glp1/resolveGLP1GlobalContext.ts` — `resolveGLP1GlobalContext(userId, dateISO, mealType)`
