@@ -9,6 +9,14 @@ Demo practitioners use a canonical practitioner persona with a separate `demo_on
 
 **How to apply:** Keep demo operation separate from credential verification, commercial entitlement, Academy evidence, legal acceptance, memberships, relationships, and consent. Install the server-enforced synthetic-data boundary before any demo-persona transition; do not simulate verification by passing true into real-clinical authorization.
 
+## Original Physician Studio restoration
+
+Restore the existing original Physician Studio components and workflow in Development; do not replace them with a synthetic demonstration interface, create another Studio, or roll back unrelated work. Isolated test records are acceptable for verification, but existing authentication, organization isolation, and active-client authorization must remain intact.
+
+**Why:** The user explicitly rejected the substitute demonstration interface and requested the original client list, folders, and complete clinical dashboard. Development and Production share data, so a presentation correction is not permission to change the shared account's role or remove its data restrictions.
+
+**How to apply:** Distinguish Studio discovery, interface routing, practitioner identity, and patient-data authorization. Verify current account and existing Studio state read-only; do not assume previous routing corrections restored server access. Report an exact security blocker rather than fabricating clinical readiness or bypassing restrictions.
+
 ## Shared-account activation prerequisite
 
 Before any approved demo-persona transition, verify that every deployed application able to authenticate the shared account enforces the demo-only boundary. If the currently running Production application could expose real/live professional capability, or its protections cannot be verified, do not activate the account.
