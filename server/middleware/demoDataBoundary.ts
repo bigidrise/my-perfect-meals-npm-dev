@@ -10,6 +10,7 @@ export interface DemoBoundaryDependencies {
   actor(req: Request): Promise<DemoBoundaryActor | null>;
   restriction(userId: string): Promise<DemoGrant | null>;
   developmentProfile?(req: Request, actor: DemoBoundaryActor, grant: DemoGrant): Promise<Record<string, unknown> | null>;
+  developmentWorkspaceMetadata?(req: Request, actor: DemoBoundaryActor, grant: DemoGrant): Promise<Record<string, unknown> | null>;
 }
 function normalizedPath(req: Request) {
   return decodeURIComponent((req.originalUrl || req.url).split("?")[0]).replace(/\/+/g, "/").toLowerCase();
@@ -45,6 +46,13 @@ export function createDemoDataBoundary(deps: DemoBoundaryDependencies) {
       if (!actor) return next(); // Existing anonymous/signed-callback authorization is unchanged.
       const grant = await deps.restriction(actor.id);
       if (!grant) return next();
+      if (req.method === "GET" && [
+        "/api/business/workspace/availability",
+        "/api/business/workspace/studio-access",
+      ].includes(path) && deps.developmentWorkspaceMetadata) {
+        const metadata = await deps.developmentWorkspaceMetadata(req, actor, grant);
+        if (metadata) return res.json(metadata);
+      }
       if (path === "/api/user/profile" && ["GET", "POST", "PUT", "PATCH"].includes(req.method) && deps.developmentProfile) {
         const profile = await deps.developmentProfile(req, actor, grant);
         if (profile) return res.json(profile);

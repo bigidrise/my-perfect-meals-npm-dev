@@ -3,6 +3,10 @@ import type { DemoBoundaryDependencies } from "../middleware/demoDataBoundary";
 const mockSelect = jest.fn();
 const mockProfile = jest.fn();
 const mockUpdateProfile = jest.fn();
+const mockOrganizations = jest.fn();
+jest.mock("../services/organizationWorkspaceService", () => ({
+  discoverAuthorizedWorkspaces: (...args: unknown[]) => mockOrganizations(...args),
+}));
 jest.mock("../db", () => ({ db: { select: (...args: unknown[]) => mockSelect(...args) } }));
 jest.mock("../services/authTokenService", () => ({ findUserByValidAuthToken: jest.fn() }));
 jest.mock("../services/demoProfessionalRepository", () => ({ readDemoRestriction: jest.fn() }));
@@ -18,6 +22,7 @@ import { demoDataBoundary } from "../middleware/demoDataBoundaryRuntime";
 import { DEVELOPMENT_FOUNDER_PHYSICIAN_DEMO as authority } from "../config/developmentFounderPhysicianDemo";
 
 const project = (demoDataBoundary as unknown as DemoBoundaryDependencies).developmentProfile!;
+const workspaceMetadata = (demoDataBoundary as unknown as DemoBoundaryDependencies).developmentWorkspaceMetadata!;
 const actor: any = { id: authority.userId, username: "synthetic-owner", role: "client" };
 const grant: any = { authority: "development_founder", state: "active" };
 let previousEnvironment: string | undefined;
@@ -31,6 +36,39 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockProfile.mockResolvedValue({});
   mockUpdateProfile.mockResolvedValue({});
+  mockOrganizations.mockResolvedValue([]);
+});
+
+test.each(["availability", "studio-access"])("saved runtime callback reads own %s without falling through to live handlers", async suffix => {
+  const currentGrant: any = {
+    ...grant, id: authority.grantId, userId: authority.userId,
+    workspaceId: authority.workspaceId, clinicId: authority.clinicId,
+    persona: "physician", operatingStatus: "demo_only", lifetime: "permanent_founder",
+    expiresAt: null, approverId: "fixture-approver", trainingBasis: "demo_only_waiver",
+    trainingWaiverReason: "Isolated test authorization",
+  };
+  function result(rows: unknown[]) {
+    const q: any = { from: jest.fn(), where: jest.fn(), limit: jest.fn().mockResolvedValue(rows) };
+    q.from.mockReturnValue(q); q.where.mockReturnValue(q); return q;
+  }
+  mockSelect.mockReset();
+  mockSelect.mockReturnValueOnce(result([{ onboardingCompletedAt: "2026-01-01", professionalRole: "business" }]))
+    .mockReturnValueOnce(result([{ id: authority.clinicId, ownerUserId: authority.userId, type: "clinic", status: "active", name: "Own fixture Clinic" }]));
+  mockOrganizations.mockResolvedValue([{ id: "own-org", name: "Own Organization", role: "owner", relationshipType: "internal_staff", locations: [] }]);
+  const payload: any = await workspaceMetadata({
+    method: "GET", originalUrl: `/api/business/workspace/${suffix}?userId=foreign`,
+  } as any, actor, currentGrant);
+  expect(mockSelect).toHaveBeenCalledTimes(2);
+  expect(mockOrganizations).toHaveBeenCalledWith(authority.userId);
+  if (suffix === "availability") {
+    expect(payload.availability.studio).toMatchObject({ available: true, destination: "/pro-portal" });
+    expect(payload.availability.organization.organizations[0].id).toBe("own-org");
+    expect(payload).not.toHaveProperty("studioAccess");
+  } else {
+    expect(payload.studioAccess).toMatchObject({ authorized: false, studioReady: false });
+    expect(payload).not.toHaveProperty("availability");
+  }
+  expect(mockUpdateProfile).not.toHaveBeenCalled();
 });
 afterEach(() => {
   if (previousEnvironment === undefined) delete process.env.NODE_ENV;
