@@ -82,6 +82,21 @@ not permission to replace those interfaces.
 that result and explicitly authorized restoration of the original components,
 not a redesign, rebuild, or another demonstration interface.
 
+The user subsequently approved reconnecting the original Physician Studio to
+its existing server-validated Development test authorization and isolated local
+synthetic data. This is not approval to change the shared Business identity,
+grant live-clinical readiness, write the shared database, change MFA or billing,
+restart the application, or publish Production.
+
+**Why:** The original Studio was recognized but its live-readiness guard could
+not represent the already authorized synthetic-only testing context.
+
+**How to apply:** Keep synthetic interface permission independent of
+`canEnterStudio` live permission. Render the established Physician components
+through isolated data inputs; explicitly identify workflows that lack isolated
+adapters instead of letting them call live endpoints or claiming full
+restoration from page rendering alone. A future restart needs separate approval.
+
 **How to apply:** Reconnect original guarded routes; preserve relationships,
 permissions, prescriptions, messaging, notes, Builder assignments, Macro
 Calculator behavior, and starch corrections. Keep Development-only scope and

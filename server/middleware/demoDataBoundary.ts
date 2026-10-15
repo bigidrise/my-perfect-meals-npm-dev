@@ -21,8 +21,8 @@ function demoEndpoint(method: string, path: string) {
   const patient = "/api/demo-professional/workspaces/[a-f0-9-]{36}/patients";
   if (["GET", "POST"].includes(method) &&
       new RegExp(`^${patient}/[a-f0-9-]{36}/invitation${method === "POST" ? "(?:/accept)?" : ""}$`).test(path)) return true;
-  if (method === "GET" && new RegExp(`^${patient}(?:/[a-f0-9-]{36}(?:/(?:messages|media|export)|/media/[a-f0-9-]{36})?)?$`).test(path)) return true;
-  return method === "PUT" && new RegExp(`^${patient}/[a-f0-9-]{36}/plan$`).test(path);
+  if (method === "GET" && new RegExp(`^${patient}(?:/[a-f0-9-]{36}(?:/(?:messages|media|export|development-dashboard)|/media/[a-f0-9-]{36})?)?$`).test(path)) return true;
+  return method === "PUT" && new RegExp(`^${patient}/[a-f0-9-]{36}/(?:plan|development-dashboard)$`).test(path);
 }
 const authenticationPaths = new Set([
   "POST /api/auth/login", "POST /api/auth/logout", "POST /api/auth/mfa/challenge",

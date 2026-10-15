@@ -55,9 +55,11 @@ import { oncologyDevelopmentReviewEnabled } from "@/lib/oncologyDevelopmentGate"
 import { loadOncologySupportSelection, saveOncologySupportSelection } from "@/lib/oncologySupportSelectionClient";
 import { StudioStarchGamePlan } from "@/components/pro/StudioStarchGamePlan";
 import { IS_DEVELOPMENT } from "@/lib/developmentAuthRoutes";
+import type { DevelopmentDashboardSource } from "@/lib/developmentPhysicianStudio";
+import type { StudioStarchState } from "@shared/starchPreferences";
 
 
-export default function ClinicianClientDashboard() {
+export default function ClinicianClientDashboard({ syntheticSource }: { syntheticSource?: DevelopmentDashboardSource } = {}) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -94,11 +96,11 @@ export default function ClinicianClientDashboard() {
     },
   ];
 
-  const [client, setClient] = useState(() => proStore.getClient(clientId));
-  const [macros, setMacros] = useState<Targets>(() => proStore.getTargets(clientId));
-  const [ctx, setCtx] = useState<ClinicalContext>(() => proStore.getContext(clientId));
+  const [client, setClient] = useState(() => syntheticSource?.client ?? proStore.getClient(clientId));
+  const [macros, setMacros] = useState<Targets>(() => syntheticSource?.dashboard.targets ?? proStore.getTargets(clientId));
+  const [ctx, setCtx] = useState<ClinicalContext>(() => syntheticSource?.dashboard.context ?? proStore.getContext(clientId));
   const [isDirty, setIsDirty] = useState(false);
-  const oncologyDevelopment = oncologyDevelopmentReviewEnabled();
+  const oncologyDevelopment = !syntheticSource && oncologyDevelopmentReviewEnabled();
   const [oncologySelection, setOncologySelection] = useState<{
     subjectId: string; value: OncologySupportSelection;
   } | null>(null);
@@ -152,7 +154,21 @@ export default function ClinicianClientDashboard() {
   const [nutritionSummaryLoading, setNutritionSummaryLoading] = useState(false);
 
   // Must be defined BEFORE any useEffect that references it in deps or body.
-  const resolvedClientUserId = resolveVerifiedProClientUserId(client, clientId);
+  const resolvedClientUserId = syntheticSource ? null : resolveVerifiedProClientUserId(client, clientId);
+  const syntheticStarchState: StudioStarchState | undefined = syntheticSource ? {
+    clientUserId: clientId,
+    savedPreferences: {
+      defaultStarchMealsPerDay: syntheticSource.dashboard.starchPreferences?.defaultStarchMealsPerDay ?? null,
+      starchDistributionStrategy: syntheticSource.dashboard.starchPreferences?.starchDistributionStrategy ?? null,
+      starchPlanDefined: !!syntheticSource.dashboard.starchPreferences,
+    },
+    currentPrescription: {
+      starchyCarbsTarget: syntheticSource.dashboard.targets.starchyCarbs,
+      starchMealsAllowed: syntheticSource.dashboard.starchPreferences?.defaultStarchMealsPerDay ?? 0,
+      starchDistributionStrategy: syntheticSource.dashboard.starchPreferences?.starchDistributionStrategy ?? "even",
+    },
+    workoutTimingAvailable: false,
+  } : undefined;
 
   useEffect(() => {
     if (!oncologyDevelopment) return;
@@ -172,6 +188,7 @@ export default function ClinicianClientDashboard() {
   }, [resolvedClientUserId, oncologyDevelopment]);
 
   useEffect(() => {
+    if (syntheticSource) return;
     setMacros(proStore.getTargets(clientId));
     setCtx(proStore.getContext(clientId));
     const c = proStore.getClient(clientId);
@@ -216,6 +233,7 @@ export default function ClinicianClientDashboard() {
   // Step 3: Prefill macro targets from the canonical API on first visit.
   // If proStore already has physician-set targets for this client, those are shown instead.
   useEffect(() => {
+    if (syntheticSource) return;
     const c = proStore.getClient(clientId);
     const uid = c?.clientUserId || c?.userId;
     if (!uid || uid === clientId) return;
@@ -235,6 +253,7 @@ export default function ClinicianClientDashboard() {
   }, [clientId]);
 
   useEffect(() => {
+    if (syntheticSource) return;
     const c = proStore.getClient(clientId);
     const uid = c?.clientUserId || c?.userId;
     if (!uid) return;
@@ -295,6 +314,16 @@ export default function ClinicianClientDashboard() {
   }, [clientId]);
 
   const saveTargets = async () => {
+    if (syntheticSource) {
+      try {
+        await syntheticSource.save({ targets: macros });
+        setIsDirty(false);
+        toast({ title: "Test targets saved", description: "Saved only to this synthetic patient in Development." });
+      } catch (e) {
+        toast({ title: "Test targets not saved", description: e instanceof Error ? e.message : "Save failed.", variant: "destructive" });
+      }
+      return;
+    }
     const savingClientId = clientId;
     if (oncologyDevelopment && (oncologySaveInFlight.current || !resolvedClientUserId ||
         oncologySelection?.subjectId !== resolvedClientUserId || oncologyLoadError)) {
@@ -419,7 +448,16 @@ export default function ClinicianClientDashboard() {
     }
   };
 
-  const saveContext = () => {
+  const saveContext = async () => {
+    if (syntheticSource) {
+      try {
+        await syntheticSource.save({ context: { ...ctx, role: "doctor" } });
+        toast({ title: "Test clinical context saved", description: "Saved only in the Development synthetic workspace." });
+      } catch (e) {
+        toast({ title: "Test context not saved", description: e instanceof Error ? e.message : "Save failed.", variant: "destructive" });
+      }
+      return;
+    }
     proStore.setContext(clientId, ctx);
     toast({
       title: "Clinical context saved",
@@ -439,6 +477,21 @@ export default function ClinicianClientDashboard() {
     const dateStr = ctx.followupDate;
     if (!dateStr) {
       toast({ title: "Select a date", description: "Pick a follow-up date above." });
+      return;
+    }
+    if (syntheticSource) {
+      try {
+        const nextContext = { ...ctx, role: "doctor" as const, followupDate: undefined, patientNote: undefined };
+        const next = [...syntheticSource.dashboard.followups, {
+          id: crypto.randomUUID(), dueAt: new Date(dateStr + "T12:00:00").toISOString(),
+          done: false, note: ctx.patientNote?.trim() || null, coachDisplayName: "Development physician" as const,
+        }];
+        await syntheticSource.save({ context: nextContext, followups: next });
+        setCtx(nextContext);
+        toast({ title: "Test follow-up saved", description: "Synthetic appointment only. No patient notification was sent." });
+      } catch (e) {
+        toast({ title: "Test follow-up not saved", description: e instanceof Error ? e.message : "Save failed.", variant: "destructive" });
+      }
       return;
     }
     const linkedUserId = resolvedClientUserId !== clientId ? resolvedClientUserId : undefined;
@@ -492,6 +545,7 @@ export default function ClinicianClientDashboard() {
   const [upcomingCheckIns, setUpcomingCheckIns] = useState<CheckInSchedule[]>([]);
 
   useEffect(() => {
+    if (syntheticSource) return;
     const c = proStore.getClient(clientId);
     const uid = c?.clientUserId || c?.userId;
     if (!uid) {
@@ -513,6 +567,7 @@ export default function ClinicianClientDashboard() {
   }, [clientId]);
 
   const fetchUpcomingCheckIns = () => {
+    if (syntheticSource) return;
     const c = proStore.getClient(clientId);
     const uid = c?.clientUserId || c?.userId;
     if (!uid) { setUpcomingCheckIns([]); return; }
@@ -526,6 +581,15 @@ export default function ClinicianClientDashboard() {
   };
 
   const cancelCheckIn = async (id: string) => {
+    if (syntheticSource) {
+      try {
+        await syntheticSource.save({ followups: syntheticSource.dashboard.followups.filter(row => row.id !== id) });
+        toast({ title: "Test follow-up removed" });
+      } catch (e) {
+        toast({ title: "Test follow-up not removed", description: e instanceof Error ? e.message : "Save failed.", variant: "destructive" });
+      }
+      return;
+    }
     try {
       const res = await fetch(apiUrl(`/api/check-in-schedules/${id}`), {
         method: "DELETE",
@@ -541,6 +605,16 @@ export default function ClinicianClientDashboard() {
   };
 
   const handlePhysicianBuilderAssignment = async (builderKey: ProfessionalBuilderKey) => {
+    if (syntheticSource) {
+      try {
+        await syntheticSource.save({ assignedBuilder: builderKey });
+        setAssignedBuilder(builderKey);
+        toast({ title: "Test Builder assigned", description: "Assignment is local to this synthetic patient. Live Builder execution remains blocked." });
+      } catch (e) {
+        toast({ title: "Test assignment not saved", description: e instanceof Error ? e.message : "Save failed.", variant: "destructive" });
+      }
+      return;
+    }
     if (!resolvedClientUserId) {
       toast({
         title: "Cannot Assign",
@@ -594,7 +668,7 @@ export default function ClinicianClientDashboard() {
           </div>
           <QuickTourButton onClick={quickTour.openTour} />
         </div>
-        <ProClientBanner />
+        {!syntheticSource && <ProClientBanner />}
       </div>
       </MobileHeaderGuard>
 
@@ -602,6 +676,11 @@ export default function ClinicianClientDashboard() {
         className="max-w-6xl mx-auto px-6 space-y-6 pb-16"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8rem)" }}
       >
+        {syntheticSource?.notice}
+        {syntheticSource && <p role="status" className="rounded-xl border border-orange-300/30 p-4 text-sm">
+          Test targets, clinical notes, starch strategy, Builder assignments, and follow-ups save locally.
+          Live protocol review, hydration, compliance, weight history, patient messaging writes, and meal generation do not yet have isolated adapters and remain unavailable here.
+        </p>}
         <div className="rounded-2xl p-6 bg-white/5 border border-white/20">
           <div className="flex items-center justify-between gap-3">
             <p className="text-white/90 text-lg font-semibold">
@@ -678,7 +757,7 @@ export default function ClinicianClientDashboard() {
         </div>
 
         {/* Option C — ProCare Clinical Protocol Card */}
-        {client && (
+        {client && !syntheticSource && (
           <ClinicalProtocolCard
             clientUserId={clientId}
             specialtyConditions={(client as any)?.specialtyConditions ?? []}
@@ -730,7 +809,7 @@ export default function ClinicianClientDashboard() {
         )}
 
         {/* ── CLINICAL INTERVENTION PANEL ──────────────────────────────────── */}
-        {client && (
+        {client && !syntheticSource && (
           <>
             <ClinicalInterventionPanel clientUserId={clientId} />
             <ClinicalDirectiveReviewPanel clientUserId={clientId} />
@@ -901,7 +980,15 @@ export default function ClinicianClientDashboard() {
               </div>
             </div>
 
-            {IS_DEVELOPMENT ? <StudioStarchGamePlan key={clientId}
+            {syntheticSource && syntheticStarchState ? <StudioStarchGamePlan key={clientId} clientUserId={clientId}
+              syntheticSource={{ state: syntheticStarchState, save: async preferences => {
+                await syntheticSource.save({ starchPreferences: preferences });
+                return { ...syntheticStarchState,
+                  savedPreferences: { ...preferences, starchPlanDefined: true },
+                  currentPrescription: { ...syntheticStarchState.currentPrescription,
+                    starchMealsAllowed: preferences.defaultStarchMealsPerDay, starchDistributionStrategy: preferences.starchDistributionStrategy },
+                };
+              } }} /> : IS_DEVELOPMENT ? <StudioStarchGamePlan key={clientId}
               clientUserId={resolvedClientUserId} legacyStrategy={proStore.hasTargets(clientId) ? macros.starchStrategy : undefined} /> : <div className="col-span-full mt-3">
               <label className="text-lg font-semibold text-white/90 mb-2 block">
                 Starch Game Plan
@@ -951,7 +1038,7 @@ export default function ClinicianClientDashboard() {
                 targets={macros}
                 onAdvisoryChange={(advisory: ClinicalAdvisory) => {
                   updateCtx({ ...ctx, advisory });
-                  proStore.setContext(clientId, { ...ctx, advisory });
+                  if (!syntheticSource) proStore.setContext(clientId, { ...ctx, advisory });
                 }}
                 onApplySuggestions={(deltas) => {
                   const totalCarbs = (macros.starchyCarbs || 0) + (macros.fibrousCarbs || 0);
@@ -1109,7 +1196,7 @@ export default function ClinicianClientDashboard() {
           </CardContent>
         </Card>
 
-        <WeeklyWeightTrendCard clientId={client?.clientUserId || client?.userId || clientId} />
+        {!syntheticSource && <WeeklyWeightTrendCard clientId={client?.clientUserId || client?.userId || clientId} />}
 
         <Card className="bg-white/5 border border-teal-500/30">
           <CardHeader>
@@ -1160,6 +1247,10 @@ export default function ClinicianClientDashboard() {
             </p>
             <Button
               onClick={() => {
+                if (syntheticSource) {
+                  toast({ title: "Isolated Builder execution unavailable", description: "This synthetic patient cannot enter live meal-generation routes.", variant: "destructive" });
+                  return;
+                }
                 const entry = assignedBuilder ? PROFESSIONAL_BUILDER_MAP[assignedBuilder] : null;
                 if (!entry) {
                   toast({ title: "No Builder Assigned", description: "Please assign a builder above first.", variant: "destructive" });
@@ -1207,10 +1298,10 @@ export default function ClinicianClientDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {upcomingCheckIns.length > 0 && (
+            {(syntheticSource?.dashboard.followups ?? upcomingCheckIns).length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs text-blue-400 font-semibold uppercase tracking-wide">Upcoming Appointments</p>
-                {upcomingCheckIns.map((ci) => (
+                {(syntheticSource?.dashboard.followups ?? upcomingCheckIns).map((ci) => (
                   <div key={ci.id} className="p-3 rounded-xl bg-blue-900/20 border border-blue-400/30">
                     <div className="flex items-center gap-3">
                       <CalendarCheck className="h-4 w-4 text-blue-400 shrink-0" />

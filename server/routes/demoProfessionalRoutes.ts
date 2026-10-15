@@ -58,6 +58,14 @@ demoProfessionalRouter.post("/workspaces/:workspaceId/patients/:patientId/invita
 demoProfessionalRouter.get("/context", async (req, res) => {
   try { res.json(await actorService(req).context(user(req))); } catch (error) { failure(res,error); }
 });
+demoProfessionalRouter.get("/workspaces/:workspaceId/patients/:patientId/development-dashboard", async (req, res) => {
+  try { ids(req); res.json(await actorService(req).developmentDashboard(user(req), req.params.workspaceId, req.params.patientId)); }
+  catch (error) { failure(res, error); }
+});
+demoProfessionalRouter.put("/workspaces/:workspaceId/patients/:patientId/development-dashboard", async (req, res) => {
+  try { ids(req); res.json(await actorService(req).saveDevelopmentDashboard(user(req), req.params.workspaceId, req.params.patientId, req.body)); }
+  catch (error) { failure(res, error); }
+});
 demoProfessionalRouter.post("/acknowledgment", async (req, res) => {
   if (!z.object({ version: z.literal(DEMO_ACKNOWLEDGMENT_VERSION), syntheticOnlyAcknowledged: z.literal(true) }).strict().safeParse(req.body).success) return res.status(400).json({ code: "DEMO_ACKNOWLEDGMENT_REQUIRED" });
   try { res.json(await actorService(req).acknowledge(user(req))); } catch (error) { failure(res,error); }
