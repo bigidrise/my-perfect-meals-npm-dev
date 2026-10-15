@@ -209,8 +209,9 @@ export default function Auth() {
       try {
         availability = await fetchWorkspaceAvailability();
       } catch {
-        // Fail closed: Personal remains available, but no Organization or
-        // Studio choice is inferred when the authoritative response is absent.
+        // Do not turn a discovery failure into a Personal-only account.
+        setShowWorkspaceChooser(true);
+        return;
       }
     }
 

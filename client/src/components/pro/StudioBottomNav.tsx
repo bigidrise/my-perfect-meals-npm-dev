@@ -7,7 +7,6 @@ import { useProUnreadCount } from "@/hooks/useProUnreadCount";
 import type { WorkspaceAvailability } from "@shared/workspaceAvailability";
 import {
   fetchWorkspaceAvailability,
-  PERSONAL_ONLY_FALLBACK,
 } from "@/lib/workspaceAvailability";
 import { deriveStudioNavigationAccess } from "@/lib/studioNavigationAccess";
 
@@ -18,15 +17,18 @@ export default function StudioBottomNav() {
   const totalUnread = useProUnreadCount();
   const [availability, setAvailability] =
     useState<WorkspaceAvailability | null>(null);
+  const [workspaceError, setWorkspaceError] = useState(false);
 
   useEffect(() => {
     let active = true;
+    setAvailability(null);
+    setWorkspaceError(false);
     fetchWorkspaceAvailability()
       .then((nextAvailability) => {
         if (active) setAvailability(nextAvailability);
       })
       .catch(() => {
-        if (active) setAvailability(PERSONAL_ONLY_FALLBACK);
+        if (active) setWorkspaceError(true);
       });
     return () => {
       active = false;
@@ -40,6 +42,13 @@ export default function StudioBottomNav() {
 
   const isActive = (path: string) => location.startsWith(path);
 
+  if (workspaceError) return (
+    <div role="alert" className="fixed bottom-0 inset-x-0 z-40 border-t border-amber-500/30 bg-black p-4 text-sm text-amber-200"
+      style={{ paddingBottom: "max(1rem, var(--safe-bottom, 0px))" }}>
+      Workspace discovery failed. Your workspaces could not be verified.{" "}
+      <button className="underline" onClick={() => window.location.reload()}>Retry</button>
+    </div>
+  );
   if (!studioNavigation.studioVisible) return null;
 
   return (

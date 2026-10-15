@@ -232,7 +232,7 @@ function ProCareStudioGuard({ component }: { component: React.ComponentType }) {
 function LegacyProCareStudioGuard({ component: Component }: { component: React.ComponentType }) {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
-  const [studioAccess, setStudioAccess] = useState<"checking" | "available" | "disconnected" | "error">("checking");
+  const [studioAccess, setStudioAccess] = useState<"checking" | "available" | "disconnected" | "denied" | "error">("checking");
   const [certChecked, setCertChecked] = useState(false);
   const [certified, setCertified] = useState(false);
   const [legalChecked, setLegalChecked] = useState(false);
@@ -250,7 +250,7 @@ function LegacyProCareStudioGuard({ component: Component }: { component: React.C
       .then((result: any) => {
         if (!active) return;
         const disconnected = result?.studioAccess?.canReconnectAddon === true;
-        setStudioAccess(disconnected ? "disconnected" : "available");
+        setStudioAccess(disconnected ? "disconnected" : canEnterStudio(result?.studioAccess) ? "available" : "denied");
         if (disconnected) setLocation("/more");
       })
       .catch(() => {
@@ -389,6 +389,7 @@ function LegacyProCareStudioGuard({ component: Component }: { component: React.C
   }, [user?.id, verifyCert]);
 
   if (studioAccess === "error") return <p role="alert">Studio access could not be verified. Please refresh and try again.</p>;
+  if (studioAccess === "denied") return <p role="alert">Studio access is not authorized or ready. Recognizing a workspace does not grant patient access.</p>;
   if (studioAccess !== "available" || !certChecked || !legalChecked) return null;
   if (!certified || !legalAccepted) return null;
   return <Component />;
@@ -403,6 +404,7 @@ import MacroCounter from "@/pages/MacroCalculator";
 import LifestyleLandingPage from "@/pages/LifestyleLandingPage"; // Renamed from EmotionAIHub
 import { isExactPublicMarketingRoute } from "@/lib/publicRoutePolicy";
 import GLP1MealsTracking from "@/pages/GLP1MealsTracking";
+import { canEnterStudio } from "@shared/studioAccess";
 
 // New Simple Plan page
 // Page imports

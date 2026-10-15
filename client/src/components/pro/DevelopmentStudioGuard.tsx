@@ -1,6 +1,8 @@
 import { useEffect, useState, type ComponentType, type ComponentProps } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
+import { canEnterStudio } from "@shared/studioAccess";
+import { WorkspaceChooser } from "@/components/WorkspaceChooser";
 import { useOrg } from "@/contexts/OrgContext";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { apiRequest } from "@/lib/queryClient";
@@ -28,6 +30,8 @@ export function DevelopmentStudioGuard({ component: Component }: { component: Co
   // Identity stays local to React; timing records never contain this key.
   const scope = [user?.id, user?.professionalRole, user?.isAdmin, user?.phase2GateEnabled, org.id, requireAcademy, location].join("|");
   const [checks, setChecks] = useState(() => pending(scope));
+  const [workspaceRestriction, setWorkspaceRestriction] = useState<{ scope: string; message: string } | null>(null);
+  const [showWorkspaceChooser, setShowWorkspaceChooser] = useState(false);
   const timing = currentStudioNavigation(location);
   const update = (key: keyof Omit<Checks, "scope">, value: Check) => {
     setChecks(previous => ({ ...(previous.scope === scope ? previous : pending(scope)), [key]: value }));
@@ -51,13 +55,19 @@ export function DevelopmentStudioGuard({ component: Component }: { component: Co
   useEffect(() => {
     let active = true;
     update("workspace", "checking");
+    setWorkspaceRestriction(null);
     if (!user?.id || authLoading) return () => { active = false; };
     timing?.start("workspace");
     apiRequest("/api/business/workspace/studio-access").then((result: any) => {
       if (!active) return;
       const disconnected = result?.studioAccess?.canReconnectAddon === true;
-      update("workspace", disconnected ? "denied" : "passed");
-      timing?.finish("workspace", disconnected ? "denied" : "verified");
+      const allowed = canEnterStudio(result?.studioAccess);
+      update("workspace", allowed ? "passed" : "denied");
+      if (!allowed) setWorkspaceRestriction({
+        scope, message: result?.studioAccess?.restriction?.message ||
+          "Studio access is not authorized or ready. Workspace recognition does not grant clinical access.",
+      });
+      timing?.finish("workspace", allowed ? "verified" : "denied");
       if (disconnected) navigate("/more");
     }).catch(() => {
       if (!active) return;
@@ -143,7 +153,15 @@ export function DevelopmentStudioGuard({ component: Component }: { component: Co
       detail="An access or agreement check could not be completed. Protected content remains hidden. Please reload to retry." />;
   }
   if ([current.workspace, current.agreements, current.certification].includes("denied")) {
-    return <StudioTransitionPanel kind="denied" detail="The required workspace access, agreements, or certification are not complete." />;
+    return <>
+      <StudioTransitionPanel kind="denied" title="Studio access is unavailable"
+        detail={workspaceRestriction?.scope === scope ? workspaceRestriction.message : "The required workspace access, agreements, or certification are not complete."} />
+      <div className="px-4 pb-6 text-center">
+        <button className="rounded-lg border border-white/20 px-4 py-2 text-sm text-white"
+          onClick={() => setShowWorkspaceChooser(true)}>View recognized workspaces</button>
+      </div>
+      {showWorkspaceChooser && <WorkspaceChooser onSelected={() => setShowWorkspaceChooser(false)} />}
+    </>;
   }
   if (!ready) return <StudioTransitionPanel title="Opening your Studio workspace" detail="Checking access and preparing the page…" />;
   return <Component />;

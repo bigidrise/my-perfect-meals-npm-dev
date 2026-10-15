@@ -17,6 +17,12 @@ Restore the existing original Physician Studio components and workflow in Develo
 
 **How to apply:** Distinguish Studio discovery, interface routing, practitioner identity, and patient-data authorization. Verify current account and existing Studio state read-only; do not assume previous routing corrections restored server access. Report an exact security blocker rather than fabricating clinical readiness or bypassing restrictions.
 
+The approved initial correction allows narrowly scoped, authenticated, read-only discovery of this Development account's existing workspaces and memberships. It does not authorize changing the shared identity, activating a practitioner role, or opening patient APIs. Discovery failure must remain an explicit error rather than being presented as absent workspaces.
+
+**Why:** The user approved restoring recognition/navigation separately from clinical clearance and explicitly retained the shared-database and patient-security restrictions.
+
+**How to apply:** Preserve independent Business/Organization membership and Studio ownership evidence; keep verified practitioner authority and per-patient access checks separate. When authority is unresolved, show the existing resource with an honest restriction, not a Trainer fallback or substitute demonstration interface.
+
 ## Shared-account activation prerequisite
 
 Before any approved demo-persona transition, verify that every deployed application able to authenticate the shared account enforces the demo-only boundary. If the currently running Production application could expose real/live professional capability, or its protections cannot be verified, do not activate the account.

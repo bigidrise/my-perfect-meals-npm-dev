@@ -7,6 +7,7 @@ import { getGuestPageExplanation } from "@/components/copilot/CopilotPageExplana
 import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanationStore";
 import { isGuestMode } from "@/lib/guestMode";
 import ChefEmojiButton from "@/components/chef/ChefEmojiButton";
+import { WorkspaceChooser } from "@/components/WorkspaceChooser";
 import { DesktopLayoutProvider } from "@/contexts/DesktopLayoutContext";
 import {
   LayoutDashboard,
@@ -23,7 +24,6 @@ import { useTranslation } from "react-i18next";
 import type { WorkspaceAvailability } from "@shared/workspaceAvailability";
 import {
   fetchWorkspaceAvailability,
-  PERSONAL_ONLY_FALLBACK,
 } from "@/lib/workspaceAvailability";
 import { deriveStudioNavigationAccess } from "@/lib/studioNavigationAccess";
 
@@ -60,16 +60,19 @@ export default function DesktopLayout({ children }: Props) {
 
   const [availability, setAvailability] =
     useState<WorkspaceAvailability | null>(null);
+  const [workspaceError, setWorkspaceError] = useState(false);
+  const [showWorkspaceChooser, setShowWorkspaceChooser] = useState(false);
 
   useEffect(() => {
     let active = true;
     setAvailability(null);
+    setWorkspaceError(false);
     fetchWorkspaceAvailability()
       .then((nextAvailability) => {
         if (active) setAvailability(nextAvailability);
       })
       .catch(() => {
-        if (active) setAvailability(PERSONAL_ONLY_FALLBACK);
+        if (active) setWorkspaceError(true);
       });
     return () => {
       active = false;
@@ -156,6 +159,7 @@ export default function DesktopLayout({ children }: Props) {
 
   return (
     <DesktopLayoutProvider value={true}>
+      {showWorkspaceChooser && <WorkspaceChooser onSelected={() => setShowWorkspaceChooser(false)} />}
       <div className="flex h-screen bg-neutral-950 text-white overflow-hidden">
         <aside
           className={`w-60 shrink-0 border-r border-white/10 flex flex-col overflow-y-auto transition-colors duration-300 pb-20 ${
@@ -199,6 +203,23 @@ export default function DesktopLayout({ children }: Props) {
             </div>
           )}
 
+          {availability && (
+            <button onClick={() => setShowWorkspaceChooser(true)}
+              className="mx-3 mb-3 rounded-lg border border-white/20 px-3 py-2 text-left text-sm text-white/80">
+              Workspaces{availability.organization.available ? " · Business / Organization" : ""}
+            </button>
+          )}
+          {workspaceError && (
+            <div role="alert" className="mx-3 mb-3 rounded-lg border border-amber-500/30 p-3 text-xs text-amber-200">
+              Workspace discovery failed. Studio and Organization access could not be determined.
+              <button className="mt-2 block underline" onClick={() => window.location.reload()}>Retry workspace discovery</button>
+            </div>
+          )}
+          {availability?.restriction && (
+            <p role="status" className="mx-3 mb-3 rounded-lg border border-amber-500/30 p-3 text-xs text-amber-200">
+              {availability.restriction.message}
+            </p>
+          )}
           <nav className="flex-1 px-3 space-y-1">
             {NAV_PATHS.map(({ path, icon: Icon, key }) => {
               const label = tn(key);
@@ -267,7 +288,7 @@ export default function DesktopLayout({ children }: Props) {
                   }`}
                 >
                   <Briefcase className="w-4 h-4 shrink-0" />
-                  {t("studioWorkspace")}
+                  {availability?.studio.kind === "clinic" ? "Clinic" : t("studioWorkspace")}
                 </button>
               )}
 

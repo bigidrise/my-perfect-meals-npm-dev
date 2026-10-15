@@ -29,8 +29,8 @@ describe("Studio navigation access", () => {
       expect(access.studioVisible).toBe(true);
       expect(access.studioDestination).toBe("/pro/clients");
       expect(access.proPortalVisible).toBe(true);
-      expect(access.careTeamVisible).toBe(true);
-      expect(access.careTeamDestination).toBe("/care-team/trainer");
+      expect(access.careTeamVisible).toBe(false);
+      expect(access.careTeamDestination).toBeNull();
     },
   );
 
@@ -43,6 +43,17 @@ describe("Studio navigation access", () => {
     expect(access.studioVisible).toBe(false);
     expect(access.proPortalVisible).toBe(false);
     expect(access.careTeamVisible).toBe(false);
+  });
+
+  it("does not route a Business owner or restricted Clinic to Trainer", () => {
+    const access = deriveStudioNavigationAccess(availability({
+      destination: "/pro-portal", readiness: "professional_setup_required",
+      kind: "clinic", operatingContext: null,
+    }), "business");
+    expect(access.studioVisible).toBe(true);
+    expect(access.studioDestination).toBe("/pro-portal");
+    expect(access.careTeamVisible).toBe(false);
+    expect(access.careTeamDestination).toBeNull();
   });
 
   it("does not infer access while availability is unresolved", () => {

@@ -10,7 +10,6 @@ import type {
 import { getAuthHeaders } from "@/lib/auth";
 import {
   fetchWorkspaceAvailability,
-  PERSONAL_ONLY_FALLBACK,
 } from "@/lib/workspaceAvailability";
 
 interface WorkspaceChooserProps {
@@ -32,8 +31,8 @@ export function WorkspaceChooser({
     fetchWorkspaceAvailability()
       .then(setAvailability)
       .catch(() => {
-        setAvailability(PERSONAL_ONLY_FALLBACK);
-        setError("Additional workspaces could not be loaded. Personal remains available.");
+        setAvailability(null);
+        setError("Workspace discovery failed. Studio and Organization access could not be determined.");
       })
       .finally(() => setLoading(false));
   }, []);
@@ -85,6 +84,12 @@ export function WorkspaceChooser({
 
   const chooseOrganization = async () => {
     if (!availability?.organization.available) return;
+    if (availability.restriction) {
+      // Metadata-only discovery must never POST a shared workspace selection.
+      onSelected?.();
+      setLocation(availability.organization.destination || "/business-organizations");
+      return;
+    }
     if (
       availability.organization.destination === "/business-organizations" ||
       availability.organization.organizations.length !== 1 ||
@@ -112,7 +117,7 @@ export function WorkspaceChooser({
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="w-full max-w-sm mx-6 space-y-5"
+          className="w-full max-w-sm mx-6 space-y-5 max-h-[90dvh] overflow-y-auto"
         >
           <div className="text-center mb-6">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500/20 rounded-full border border-orange-500/30 mb-4">
@@ -183,9 +188,11 @@ export function WorkspaceChooser({
                   )}
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-white font-semibold text-base">Studio</h3>
+                  <h3 className="text-white font-semibold text-base">{availability.studio.kind === "clinic" ? "Clinic" : "Studio"}</h3>
                   <p className="text-white/50 text-sm mt-0.5">
-                    {availability.studio.readiness === "ready"
+                    {availability.studio.restriction
+                      ? `${availability.studio.name || "Existing Clinic"} — access review required`
+                      : availability.studio.readiness === "ready"
                       ? "Manage clients in your Studio"
                       : "Continue Studio setup"}
                   </p>
@@ -194,10 +201,15 @@ export function WorkspaceChooser({
             </button>
           )}
 
+          {availability?.restriction && <p role="status" className="text-sm text-amber-200">{availability.restriction.message}</p>}
           {(loading || error) && (
-            <p className={`text-center text-sm ${error ? "text-amber-200" : "text-white/50"}`}>
+            <p role={error ? "alert" : "status"} className={`text-center text-sm ${error ? "text-amber-200" : "text-white/50"}`}>
               {loading ? "Loading workspaces…" : error}
             </p>
+          )}
+          {!loading && !availability && error && (
+            <button className="w-full rounded-xl border border-amber-500/30 p-3 text-amber-200"
+              onClick={() => window.location.reload()}>Retry workspace discovery</button>
           )}
         </motion.div>
       </motion.div>

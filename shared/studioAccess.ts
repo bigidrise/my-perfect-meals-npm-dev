@@ -24,6 +24,15 @@ export interface StudioAccessStatus {
   canStartStudioCheckout?: boolean;
   canDisconnectAddon?: boolean;
   canReconnectAddon?: boolean;
+  restriction?: { code: string; message: string };
+}
+
+/** A successful metadata request is not Studio authorization. */
+export function canEnterStudio(access: Partial<StudioAccessStatus> | null | undefined): boolean {
+  return access?.authorized === true && access.studioActive === true &&
+    access.studioReady === true &&
+    (access.state === "active" || access.state === "managed_access") &&
+    !access.restriction;
 }
 
 export function isIndependentStudioRenewalEligible(access: StudioAccessStatus): boolean {
