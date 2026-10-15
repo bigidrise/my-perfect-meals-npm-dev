@@ -8,6 +8,7 @@ import { createDemoProfessionalService } from "../services/demoProfessionalServi
 import { createDemoDataBoundary } from "../middleware/demoDataBoundary";
 import { DEVELOPMENT_FOUNDER_PHYSICIAN_DEMO as authority, developmentFounderDemoEnabled, isDevelopmentFounderDemoAccount } from "../config/developmentFounderPhysicianDemo";
 import { isDemoGrantCurrent } from "@shared/demoProfessional";
+import { initialDevelopmentDashboard } from "@shared/developmentStudio";
 import type { IdentityAccountSnapshot } from "../services/professionalIdentityDecisionService";
 
 // Authenticated actor/ownership fixtures and local temporary files only.
@@ -87,15 +88,13 @@ test("plans and simulated exact-patient invitations survive restart without live
   expect(await reopened.invitation(account.id, authority.workspaceId, patient.id)).toMatchObject({ state: "accepted" });
   expect(account.professionalRole).toBe("business");
 });
-test("live IDs and different workspaces are denied; only synthetic exports and media exist", async () => {
+test("live IDs, different workspaces, and founder exports are denied", async () => {
   const service = createDemoProfessionalService(store().repository);
   await service.acknowledge(account.id);
   const [patient] = await service.list(account.id, authority.workspaceId);
   await expect(service.read(account.id, authority.workspaceId, authority.userId)).rejects.toMatchObject({ code: "DEMO_DATA_SCOPE_DENIED" });
   await expect(service.read(account.id, authority.clinicId, patient.id)).rejects.toMatchObject({ code: "DEMO_DATA_SCOPE_DENIED" });
-  const exported = JSON.stringify(await service.export(account.id, authority.workspaceId, patient.id));
-  expect(exported).toContain("synthetic");
-  expect(exported).not.toContain("membership");
+  await expect(service.export(account.id, authority.workspaceId, patient.id)).rejects.toMatchObject({ code: "DEMO_EXPORT_DENIED" });
 });
 test("changed Clinic ownership, disabled overlay, and corrupt state fail closed", async () => {
   const local = store();
@@ -123,6 +122,68 @@ test("another actor cannot acquire founder authority", async () => {
   expect(isDevelopmentFounderDemoAccount("different-account")).toBe(false);
   await expect(createDemoProfessionalService(store().repository).context("different-account"))
     .rejects.toMatchObject({ code: "DEMO_AUTHORITY_REQUIRED" });
+});
+test("original dashboard stores targets, notes, assignments and follow-ups only in the local synthetic dataset", async () => {
+  const before = structuredClone(account);
+  const service = createDemoProfessionalService(store().repository);
+  await service.acknowledge(account.id);
+  const [first, second] = await service.list(account.id, authority.workspaceId);
+  const loaded = await service.developmentDashboard(account.id, authority.workspaceId, first.id);
+  expect(loaded.dashboard).toEqual(initialDevelopmentDashboard());
+  const dashboard = {
+    ...loaded.dashboard,
+    targets: { protein: 120, starchyCarbs: 90, fibrousCarbs: 35, fat: 65, starchStrategy: "flex" as const },
+    context: { role: "doctor" as const, diagnosis: "Fictional test scenario", coachNote: "Synthetic provider note" },
+    assignedBuilder: "diabetic" as const,
+    starchPreferences: { defaultStarchMealsPerDay: 3, starchDistributionStrategy: "evening" as const },
+    followups: [{ id: "37e010aa-c441-4881-bf2a-3f402654cd22", dueAt: "2027-01-01T12:00:00.000Z",
+      done: false, note: "Synthetic follow-up", coachDisplayName: "Development physician" as const }],
+  };
+  const saved = await service.saveDevelopmentDashboard(account.id, authority.workspaceId, first.id, { revision: loaded.revision, dashboard });
+  expect(saved).toEqual({ dashboard, revision: loaded.revision + 1 });
+  const reopened = createDemoProfessionalService(store().repository);
+  expect(await reopened.developmentDashboard(account.id, authority.workspaceId, first.id)).toEqual(saved);
+  expect((await reopened.developmentDashboard(account.id, authority.workspaceId, second.id)).dashboard).toEqual(initialDevelopmentDashboard());
+  await expect(reopened.saveDevelopmentDashboard(account.id, authority.workspaceId, first.id, { revision: loaded.revision, dashboard }))
+    .rejects.toMatchObject({ code: "DEVELOPMENT_DASHBOARD_CONFLICT", status: 409 });
+  expect(account).toEqual(before);
+});
+test("dashboard adapters enforce acknowledgment, exact patient/workspace, capability, grant state and ownership", async () => {
+  const service = createDemoProfessionalService(store().repository);
+  await expect(service.developmentDashboard(account.id, authority.workspaceId, authority.userId))
+    .rejects.toMatchObject({ code: "DEMO_ACKNOWLEDGMENT_REQUIRED" });
+  await service.acknowledge(account.id);
+  const [first] = await service.list(account.id, authority.workspaceId);
+  await expect(service.developmentDashboard(account.id, authority.workspaceId, authority.userId))
+    .rejects.toMatchObject({ code: "DEMO_DATA_SCOPE_DENIED" });
+  await expect(service.developmentDashboard(account.id, authority.clinicId, first.id))
+    .rejects.toMatchObject({ code: "DEMO_DATA_SCOPE_DENIED" });
+  const filename = path.join(directory, "demo.json");
+  const state = JSON.parse(await readFile(filename, "utf8"));
+  state.grant.capabilities = ["patient.read", "clinical.read"];
+  await writeFile(filename, JSON.stringify(state));
+  await expect(service.saveDevelopmentDashboard(account.id, authority.workspaceId, first.id, { revision: 1, dashboard: initialDevelopmentDashboard() }))
+    .rejects.toMatchObject({ code: "DEMO_CAPABILITY_DENIED" });
+  state.grant.state = "revoked";
+  await writeFile(filename, JSON.stringify(state));
+  await expect(service.developmentDashboard(account.id, authority.workspaceId, first.id)).rejects.toMatchObject({ code: "DEMO_GRANT_INACTIVE" });
+  state.grant.state = "active";
+  await writeFile(filename, JSON.stringify(state));
+  clinicId = authority.workspaceId;
+  await expect(service.developmentDashboard(account.id, authority.workspaceId, first.id)).rejects.toMatchObject({ code: "DEVELOPMENT_DEMO_OWNERSHIP_CHANGED" });
+});
+test("dashboard payloads cannot smuggle identity, real-client mappings or unsupported prescription fields", async () => {
+  const service = createDemoProfessionalService(store().repository);
+  await service.acknowledge(account.id);
+  const [first] = await service.list(account.id, authority.workspaceId);
+  for (const dashboard of [
+    { ...initialDevelopmentDashboard(), clientUserId: authority.userId },
+    { ...initialDevelopmentDashboard(), professionalRole: "physician" },
+    { ...initialDevelopmentDashboard(), targets: { ...initialDevelopmentDashboard().targets, protein: -1 } },
+  ]) await expect(service.saveDevelopmentDashboard(account.id, authority.workspaceId, first.id, { revision: 1, dashboard }))
+    .rejects.toMatchObject({ code: "DEVELOPMENT_DASHBOARD_INVALID" });
+  enabled = false;
+  await expect(service.developmentDashboard(account.id, authority.workspaceId, first.id)).rejects.toMatchObject({ code: "DEVELOPMENT_DEMO_DISABLED" });
 });
 test.each([
   ["GET", "/api/studios/my-studio"], ["GET", `/api/studios/${authority.clinicId}/clients`],

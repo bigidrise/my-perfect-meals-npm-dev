@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { developmentDashboardWrite, initialDevelopmentDashboard, type DevelopmentDashboard } from "@shared/developmentStudio";
 import { DEMO_ACKNOWLEDGMENT_VERSION, isDemoGrantCurrent, isPermanentFounderDemoGrant, type DemoCapability, type DemoContext, type DemoGrant, type DemoGrantActivation, type DemoGrantPreparation, type DemoPatient, type DemoPlan, type DemoWorkspace } from "@shared/demoProfessional";
 import { identitySnapshotHash, type IdentityAccountSnapshot, type IdentityReviewerProof } from "./professionalIdentityDecisionService";
 import { ProfessionalRequestError } from "./professionalOnboardingService";
@@ -17,6 +18,7 @@ export interface DemoTransaction {
   createDataset(workspace: DemoWorkspace, patient: DemoPatient): Promise<void>;
   saveGrant(grant: DemoGrant): Promise<void>;
   savePlan(patient: DemoPatient, plan: DemoPlan): Promise<DemoPatient>;
+  saveDevelopmentDashboard?(patient: DemoPatient, dashboard: DevelopmentDashboard, revision: number): Promise<DemoPatient>;
   saveInvitation(patient: DemoPatient, invitation: DemoCareInvitation): Promise<DemoPatient>;
   invalidateSessions(account: IdentityAccountSnapshot): Promise<void>;
   recoverFounderIdentity?(account: IdentityAccountSnapshot): Promise<void>;
@@ -259,6 +261,23 @@ export function createDemoProfessionalService(repository: DemoRepository, clock 
         const saved = await tx.savePlan(record, plan);
         await tx.event(grant, userId, "demo_plan_saved", { patientId: record.id, plan, patientRevision: saved.revision });
         return { plan: saved.plan, revision: saved.revision, classification: "synthetic" as const };
+      });
+    },
+    async developmentDashboard(userId: string, workspaceId: string, id: string) {
+      return repository.transaction(async tx => {
+        const { patient: record, grant } = await patient(tx, userId, workspaceId, id, "clinical.read");
+        if (grant.authority !== "development_founder" || !tx.saveDevelopmentDashboard) deny("DEVELOPMENT_DEMO_ONLY");
+        return { dashboard: record.developmentDashboard ?? initialDevelopmentDashboard(), revision: record.revision };
+      });
+    },
+    async saveDevelopmentDashboard(userId: string, workspaceId: string, id: string, input: unknown) {
+      const parsed = developmentDashboardWrite.safeParse(input);
+      if (!parsed.success) throw new ProfessionalRequestError(400, "DEVELOPMENT_DASHBOARD_INVALID", "Invalid synthetic dashboard settings.");
+      return repository.transaction(async tx => {
+        const { patient: record, grant } = await patient(tx, userId, workspaceId, id, "clinical.write");
+        if (grant.authority !== "development_founder" || !tx.saveDevelopmentDashboard) deny("DEVELOPMENT_DEMO_ONLY");
+        const saved = await tx.saveDevelopmentDashboard(record, parsed.data.dashboard, parsed.data.revision);
+        return { dashboard: saved.developmentDashboard!, revision: saved.revision };
       });
     },
     async messages(userId: string, workspaceId: string, id: string) {

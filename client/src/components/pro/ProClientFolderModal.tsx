@@ -112,6 +112,12 @@ interface ProClientFolderModalProps {
   onOpenChange: (open: boolean) => void;
   onNavigate: (path: string) => void;
   isPhysician: boolean;
+  syntheticSource?: {
+    messages: Array<{ id: string; author: string; text: string }>;
+    note: string;
+    targets: import("@/lib/proData").Targets;
+    onSaveNote(body: string): Promise<void>;
+  };
 }
 
 const BUILDER_LABELS: Record<string, string> = {
@@ -155,6 +161,7 @@ function getRoleLabel(role?: string): string {
 const translationCache = new Map<string, string>();
 
 function formatTimestamp(iso: string): string {
+  if (!iso) return "Synthetic record";
   const d = new Date(iso);
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) +
     " " +
@@ -189,6 +196,7 @@ export default function ProClientFolderModal({
   onOpenChange,
   onNavigate,
   isPhysician,
+  syntheticSource,
 }: ProClientFolderModalProps) {
   const { t } = useTranslation();
   const [messages, setMessages] = useState<TabletEntry[]>([]);
@@ -250,11 +258,12 @@ export default function ProClientFolderModal({
 
   const [resolvedClientId, setResolvedClientId] = useState<string | null>(null);
   const [resolvedStudioId, setResolvedStudioId] = useState<string | null>(null);
-  const clientId = resolvedClientId || client?.clientUserId || client?.userId || null;
+  const clientId = syntheticSource ? null : resolvedClientId || client?.clientUserId || client?.userId || null;
   const studioId = resolvedStudioId || client?.studioId || null;
   const hasDbBackedId = !!(client?.clientUserId || client?.userId);
 
   useEffect(() => {
+    if (syntheticSource) return;
     if (!open || !client?.email) {
       if (!hasDbBackedId) setResolvedClientId(null);
       return;
@@ -276,6 +285,18 @@ export default function ProClientFolderModal({
     })();
     return () => { cancelled = true; };
   }, [open, hasDbBackedId, client?.email]);
+
+  useEffect(() => {
+    if (!syntheticSource || !open) return;
+    setMessages(syntheticSource.messages.map(m => ({
+      id: m.id, body: m.text, authorUserId: m.author, entryType: "message",
+      visibility: "synthetic", sender: "client", createdAt: "",
+    })));
+    setNotes(syntheticSource.note ? [{
+      id: "synthetic-provider-note", body: syntheticSource.note, authorUserId: "Development physician",
+      entryType: "note", visibility: "synthetic", sender: "pro", createdAt: "",
+    }] : []);
+  }, [syntheticSource, open]);
 
   useEffect(() => {
     if (!open || !clientId) { setClientGoal(null); return; }
@@ -490,6 +511,16 @@ export default function ProClientFolderModal({
   };
 
   const handleSaveNote = async () => {
+    if (syntheticSource) {
+      if (!noteInput.trim() || sending) return;
+      setSending(true);
+      try {
+        await syntheticSource.onSaveNote(noteInput.trim());
+        setNoteInput("");
+      } catch (e) { setError(e instanceof Error ? e.message : "Test note was not saved."); }
+      finally { setSending(false); }
+      return;
+    }
     if (!noteInput.trim() || !clientId || sending) return;
     setSending(true);
     try {
@@ -511,6 +542,7 @@ export default function ProClientFolderModal({
   };
 
   const handleTranslate = async (entry: TabletEntry) => {
+    if (syntheticSource) { setError("Translation is unavailable in this isolated test folder."); return; }
     if (translatingId) return;
     const cacheKey = `${entry.id}_translate`;
     if (translationCache.has(cacheKey)) {
@@ -583,6 +615,7 @@ export default function ProClientFolderModal({
   };
 
   const startRecording = async () => {
+    if (syntheticSource) { setError("Voice capture is unavailable in this isolated test folder."); return; }
     setMicError(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -766,7 +799,7 @@ export default function ProClientFolderModal({
 
   if (!client) return null;
 
-  const builderLabel = getBuilderLabel(client);
+  const builderLabel = syntheticSource ? (client.assignedBuilder ? BUILDER_LABELS[client.assignedBuilder] : "") : getBuilderLabel(client);
   const workspace = isPhysician ? "clinician" : "trainer";
 
   const renderVoiceBubble = (entry: TabletEntry) => {
@@ -1070,6 +1103,10 @@ export default function ProClientFolderModal({
         </DialogHeader>
 
         <div className="space-y-3 overflow-y-auto flex-1 pt-2 px-4 pb-4">
+          {syntheticSource && <p role="status" className="rounded-lg border border-orange-300/30 p-3 text-xs">
+            Development synthetic folder. Messages are read-only; provider notes save locally.
+            Live metrics, protocol execution, translation, voice, and video are unavailable.
+          </p>}
           <div className="flex flex-wrap gap-2">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
               <CheckCircle2 className="h-3 w-3" />
@@ -1089,7 +1126,7 @@ export default function ProClientFolderModal({
 
           {/* Active Clinical Supports */}
           {(() => {
-            const flags = proStore.getTargets(client.id)?.flags;
+            const flags = syntheticSource ? syntheticSource.targets.flags : proStore.getTargets(client.id)?.flags;
             return (
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs mb-1">
                 <span className="font-medium text-white/70">Active Clinical Supports:</span>
@@ -1171,7 +1208,7 @@ export default function ProClientFolderModal({
                 </div>
                 <button
                   type="button"
-                  disabled={glp1Saving}
+                  disabled={!!syntheticSource || glp1Saving}
                   onClick={async () => {
                     if (!clientId) return;
                     setGlp1Saving(true);
@@ -1362,7 +1399,7 @@ export default function ProClientFolderModal({
                       <div className="flex flex-col gap-1.5 self-end">
                         <Button
                           size="sm"
-                          disabled={!msgInput.trim() || sending}
+                          disabled={!!syntheticSource || !msgInput.trim() || sending}
                           onClick={handleSendMessage}
                           className="bg-purple-600 hover:bg-purple-700 px-3"
                           title="Send message"
@@ -1379,7 +1416,7 @@ export default function ProClientFolderModal({
                           <Mic className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => setVideoMode(true)}
+                          onClick={() => { if (syntheticSource) { setError("Video capture is unavailable in this isolated test folder."); return; } setVideoMode(true); }}
                           className="flex items-center justify-center p-1.5 rounded-md bg-red-600 border border-red-400 text-white hover:bg-red-700 shadow-sm shadow-red-950/40"
                           title="Video message"
                           aria-label="Video message"

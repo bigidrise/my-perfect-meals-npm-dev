@@ -39,6 +39,8 @@ import { isDevelopmentFounderPilotRoute } from "@/lib/developmentFounderPilotRou
 import { developmentStudioLoadingEnabled } from "@/lib/developmentStudioLoading";
 import { beginStudioNavigation, isStudioTransitionRoute, preloadStudioPage, preloadStudioDemoPage } from "@/lib/studioTransition";
 import { DevelopmentStudioGuard, StudioTransitionPanel } from "@/components/pro/DevelopmentStudioGuard";
+import { isOriginalDevelopmentStudioPath } from "@/lib/developmentPhysicianStudio";
+const DevelopmentPhysicianStudio = lazy(() => import("@/components/pro/DevelopmentPhysicianStudio"));
 
 const PilotProgramAdmin = lazy(() => import("@/pages/PilotProgramAdmin"));
 
@@ -1158,6 +1160,14 @@ export default function Router() {
     return <Suspense fallback={developmentStudioLoadingEnabled
       ? <StudioTransitionPanel title="Opening your Clinic workspace" detail="Preparing the page…" />
       : <p role="status">Loading isolated demo workspace…</p>}><DemoPhysicianWorkspace /></Suspense>;
+  }
+  // The marker chooses original pages, never permission. This adapter verifies
+  // the server-issued local authority on every navigation, and cannot mount a
+  // live-data page. The ordinary live Studio guards remain unchanged.
+  if (!authLoading && user && isOriginalPhysicianStudio && isOriginalDevelopmentStudioPath(location)) {
+    return <Suspense fallback={<StudioTransitionPanel title="Opening your Physician Studio" />}>
+      <DevelopmentPhysicianStudio key={`${user.id}|${location}`} />
+    </Suspense>;
   }
   return (
     <>

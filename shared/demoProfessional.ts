@@ -27,6 +27,7 @@ export interface DemoCareInvitation {
   classification: "synthetic";
 }
 export interface DemoPatient {
+  developmentDashboard?: import("./developmentStudio").DevelopmentDashboard;
   id: string; workspaceId: string; classification: "synthetic" | "live" | null;
   label: string; scenario: string;
   glucose: { id: string; value: number; unit: "mg/dL"; context: "FASTED" | "POST_MEAL_2H"; recordedAt: string }[];

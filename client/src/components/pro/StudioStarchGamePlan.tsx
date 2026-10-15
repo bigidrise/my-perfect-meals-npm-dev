@@ -7,7 +7,13 @@ import {
   studioStarchPreferencesSchema, starchPreviewGrams, type StudioStarchState,
 } from "@shared/starchPreferences";
 
-interface Props { clientUserId: string | null; legacyStrategy?: "one" | "flex" }
+interface Props {
+  clientUserId: string | null; legacyStrategy?: "one" | "flex";
+  syntheticSource?: {
+    state: StudioStarchState;
+    save(value: import("@shared/starchPreferences").StarchPreferences): Promise<StudioStarchState>;
+  };
+}
 
 export function StudioStarchGamePlan(props: Props) {
   const { user } = useAuth();
@@ -16,7 +22,7 @@ export function StudioStarchGamePlan(props: Props) {
   return <StarchEditor key={`${user.id}:${props.clientUserId ?? "unverified"}`} {...props} />;
 }
 
-function StarchEditor({ clientUserId, legacyStrategy }: Props) {
+function StarchEditor({ clientUserId, legacyStrategy, syntheticSource }: Props) {
   const [state, setState] = useState<StudioStarchState | null>(null);
   const [draft, setDraft] = useState<ReturnType<typeof studioStarchDraft> | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +39,11 @@ function StarchEditor({ clientUserId, legacyStrategy }: Props) {
   const legacy = useRef(legacyStrategy);
   legacy.current = legacyStrategy;
   const path = `/api/pro/clients/${encodeURIComponent(clientUserId ?? "")}/starch-preferences`;
+  const isolated = useRef(syntheticSource);
+  isolated.current = syntheticSource;
+  const syntheticTarget = syntheticSource?.state.currentPrescription.starchyCarbsTarget;
+  const syntheticCount = syntheticSource?.state.savedPreferences.defaultStarchMealsPerDay;
+  const syntheticTiming = syntheticSource?.state.savedPreferences.starchDistributionStrategy;
 
   useEffect(() => {
     live.current = true;
@@ -40,7 +51,7 @@ function StarchEditor({ clientUserId, legacyStrategy }: Props) {
     const generation = ++readGeneration.current;
     setState(null); setDraft(null); setError(null); setRetryAllowed(true);
     if (clientUserId) {
-      apiRequest(path, { method: "GET", cache: "no-store", signal: controller.signal })
+      (isolated.current ? Promise.resolve(isolated.current.state) : apiRequest(path, { method: "GET", cache: "no-store", signal: controller.signal }))
         .then((value: StudioStarchState) => {
           if (!live.current || controller.signal.aborted || generation !== readGeneration.current) return;
           if (value.clientUserId !== clientUserId || !value.savedPreferences || !value.currentPrescription) {
@@ -58,10 +69,10 @@ function StarchEditor({ clientUserId, legacyStrategy }: Props) {
         });
     }
     return () => { live.current = false; controller.abort(); };
-  }, [clientUserId, path, revision]);
+  }, [clientUserId, path, revision, syntheticTarget, syntheticCount, syntheticTiming]);
 
   useEffect(() => {
-    if (!clientUserId) return;
+    if (!clientUserId || isolated.current) return;
     const refresh = (event: Event) => {
       const detail = (event as CustomEvent).detail;
       if (detail?.source === "studio-starch-plan"
@@ -100,7 +111,8 @@ function StarchEditor({ clientUserId, legacyStrategy }: Props) {
     ++readGeneration.current; // A pre-save refresh must not undo a confirmed save.
     savePending.current = true; setSaving(true); setError(null); setNotice(null);
     try {
-      const value = await apiRequest(path, { method: "PATCH", body: JSON.stringify(parsed.data) }) as StudioStarchState;
+      const value = isolated.current ? await isolated.current.save(parsed.data)
+        : await apiRequest(path, { method: "PATCH", body: JSON.stringify(parsed.data) }) as StudioStarchState;
       if (!live.current) return;
       if (value.clientUserId !== clientUserId
         || value.savedPreferences.defaultStarchMealsPerDay !== parsed.data.defaultStarchMealsPerDay
@@ -109,9 +121,11 @@ function StarchEditor({ clientUserId, legacyStrategy }: Props) {
       }
       setState(value);
       setDraft(studioStarchDraft(value.savedPreferences, legacy.current));
-      setNotice("Client starch plan saved and confirmed.");
-      window.dispatchEvent(new CustomEvent("mpm:targetsUpdated", { detail: { userId: clientUserId, source: "studio-starch-plan" } }));
-      window.dispatchEvent(new CustomEvent("macros:updated", { detail: { userId: clientUserId } }));
+      setNotice(isolated.current ? "Synthetic starch preferences saved in Development only." : "Client starch plan saved and confirmed.");
+      if (!isolated.current) {
+        window.dispatchEvent(new CustomEvent("mpm:targetsUpdated", { detail: { userId: clientUserId, source: "studio-starch-plan" } }));
+        window.dispatchEvent(new CustomEvent("macros:updated", { detail: { userId: clientUserId } }));
+      }
     } catch {
       if (live.current) setError("The save was not confirmed. Reload or retry before relying on the new starch plan.");
     } finally {
@@ -143,7 +157,7 @@ function StarchEditor({ clientUserId, legacyStrategy }: Props) {
     {clientUserId && error && !state && retryAllowed && <button type="button" onClick={() => setRevision(v => v + 1)} className="min-h-11 rounded-lg border border-white/30 px-3">Retry Starch Plan</button>}
     {state && draft && <>
       <p className="text-sm text-white/70">
-        Current client prescription: <strong>{state.currentPrescription.starchyCarbsTarget}g</strong> daily starch,
+        {syntheticSource ? "Saved synthetic test targets:" : "Current client prescription:"} <strong>{state.currentPrescription.starchyCarbsTarget}g</strong> daily starch,
         {" "}{state.currentPrescription.starchMealsAllowed} starch-containing meals.
       </p>
       {draft.legacyPreview && <p className="text-sm text-amber-200">
@@ -171,7 +185,7 @@ function StarchEditor({ clientUserId, legacyStrategy }: Props) {
         <p className="font-semibold text-amber-200">{dirty ? "Unsaved distribution preview" : "Saved preference preview"}</p>
         {starchPreviewGrams(state.currentPrescription.starchyCarbsTarget, draft.defaultStarchMealsPerDay!).map((grams, i) =>
           <p key={i}>Meal {i + 1}: approximately {grams}g</p>)}
-        <p className="mt-2 text-white/60">Illustrative split only. Actual Builder allocation follows the saved timing and the client's clinical/performance prescription.</p>
+        <p className="mt-2 text-white/60">{syntheticSource ? "Illustrative synthetic split only. Live Builder execution is unavailable in this test workspace." : "Illustrative split only. Actual Builder allocation follows the saved timing and the client's clinical/performance prescription."}</p>
       </div>}
       <p className="text-xs text-white/60">Save starch preferences separately from macro targets. This does not change calories, macro totals, or clinical/performance settings.</p>
       <button type="button" disabled={!valid || !dirty || saving} onClick={() => { void save(); }}
