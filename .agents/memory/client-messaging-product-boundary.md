@@ -15,11 +15,11 @@ Personal Space has one Client Messages entry that opens the conversation directl
 
 **How to apply:** Reuse existing messaging and protected media APIs. Preserve relationships, organization isolation, consent, and message/attachment records. Verification uses isolated fixtures because Neon is shared; Development approval does not authorize Production publication or changes to the Physician Studio restoration.
 
-Unread messages must be discoverable from the left sidebar while the user is in Personal Space, with the orange flashing indicator the user expects.
+The current sidebar investigation concerns only the existing Pro Portal indicator. Leave the working Client Messages experience alone; do not add Personal notification navigation.
 
-**Why:** The user confirmed messages work but reported that without the sidebar light, someone in Personal Space would not know a message had arrived.
+**Why:** The user clarified: “Don't worry about the client messages those are already working. The only indicator light that is not working is the left side bar pro portal.”
 
-**How to apply:** Preserve the distinction between messages received personally and messages received by a professional Studio. A Personal inbox notification must not require Studio ownership.
+**How to apply:** Trace the existing professional sidebar unread path and keep the two message directions separate. Earlier discussion of a Personal sidebar extension does not authorize that work after this clarification.
 
 For the sidebar notification correction, find and repair the existing indicator system; do not add replacement navigation or a second notification system.
 
