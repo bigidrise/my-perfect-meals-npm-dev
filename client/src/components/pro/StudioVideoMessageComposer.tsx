@@ -29,6 +29,7 @@ export interface StudioVideoMessageComposerProps {
   uploadPath: string;
   onSent: (entry: unknown) => void;
   onCancel: () => void;
+  getSendErrorMessage?: (response: Response) => Promise<string>;
 }
 
 export function getSupportedVideoMimeType(): string | undefined {
@@ -65,6 +66,7 @@ export default function StudioVideoMessageComposer({
   uploadPath,
   onSent,
   onCancel,
+  getSendErrorMessage,
 }: StudioVideoMessageComposerProps) {
   const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
@@ -316,6 +318,7 @@ export default function StudioVideoMessageComposer({
       });
 
       if (!response.ok) {
+        if (getSendErrorMessage) throw new Error(await getSendErrorMessage(response));
         const data = await response.json().catch(() => ({}));
         throw new Error(data.error || "Failed to send video message");
       }
