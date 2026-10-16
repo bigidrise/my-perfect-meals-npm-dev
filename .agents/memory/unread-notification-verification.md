@@ -20,3 +20,9 @@ Incoming Studio videos are expected to notify the professional by email as well 
 **Why:** The user explicitly reported that successful video delivery without either the email or existing indicators is not acceptable.
 
 **How to apply:** Check email dispatch separately from push delivery and unread counting. A notification helper's name does not establish that it sends email.
+
+If a controlled, unopened conversation is already marked read, investigate shared read-state writers before changing badge rendering or treating read messages as unread.
+
+**Why:** A live controlled test returned zero from the video-inclusive query; both UI consumers correctly used zero. The shared read watermark advanced repeatedly without a corresponding folder-read or professional-send request in the observed Development workflow, and another database connection had executed a marker write.
+
+**How to apply:** Compare message arrival, watermark changes, and local write requests without modifying records. Shared Neon allows another runtime to consume unread state. Do not name a particular tab, device, or environment as the writer until it is identified.
