@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getAuthHeaders } from "@/lib/auth";
 import { canPollProfessionalUnread } from "@/lib/proUnreadEligibility";
 import { developmentProUnreadAuthorizationEnabled } from "@/features/proUnreadFlag";
+import { developmentUnreadRequest, traceDevelopmentUnread } from "@/lib/developmentUnreadTrace";
 
 let cachedCount = 0;
 let pollingIdentity: string | null = null;
@@ -37,6 +38,7 @@ async function fetchUnread(identity: string) {
     });
     if (!isCurrent()) return;
     if (res.status === 401 || res.status === 403) {
+      traceDevelopmentUnread("hook", { count: 0, request: developmentUnreadRequest(res), status: res.status, accepted: false, current: true });
       terminalIdentity = identity;
       stopPolling();
       if (developmentProUnreadAuthorizationEnabled) notifyListeners(0);
@@ -46,6 +48,12 @@ async function fetchUnread(identity: string) {
 
     const data = await res.json();
     if (isCurrent()) {
+      traceDevelopmentUnread("hook", {
+        count: data.totalUnread, request: developmentUnreadRequest(res),
+        status: res.status, current: true,
+        accepted: !developmentProUnreadAuthorizationEnabled ||
+          (Number.isSafeInteger(data.totalUnread) && data.totalUnread >= 0),
+      });
       if (developmentProUnreadAuthorizationEnabled &&
           (!Number.isSafeInteger(data.totalUnread) || data.totalUnread < 0)) return;
       notifyListeners(data.totalUnread ?? 0);

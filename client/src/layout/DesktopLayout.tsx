@@ -20,6 +20,7 @@ import {
   Briefcase,
 } from "lucide-react";
 import { useProUnreadCount } from "@/hooks/useProUnreadCount";
+import { traceDevelopmentUnread } from "@/lib/developmentUnreadTrace";
 import { useTranslation } from "react-i18next";
 import type { WorkspaceAvailability } from "@shared/workspaceAvailability";
 import {
@@ -85,6 +86,13 @@ export default function DesktopLayout({ children }: Props) {
   );
 
   const proUnreadCount = useProUnreadCount();
+  useEffect(() => {
+    traceDevelopmentUnread("sidebar", {
+      count: proUnreadCount, visible: studioNavigation.proPortalVisible,
+      indicatorOn: studioNavigation.proPortalVisible && proUnreadCount > 0,
+      mounted: true, desktopViewport: window.innerWidth >= 1024,
+    });
+  }, [proUnreadCount, studioNavigation.proPortalVisible, user?.id]);
 
   const isOnProRoute =
     location.startsWith("/care-team/") || location.startsWith("/pro/");
