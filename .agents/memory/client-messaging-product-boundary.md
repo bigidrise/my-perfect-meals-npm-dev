@@ -3,9 +3,9 @@ name: Client messaging product boundary
 description: Dashboard messaging visibility for accounts without a Studio.
 ---
 
-Personal Space should have one Provider Messages entry for receiving and replying to the user's own provider, not separate Client Messages and Provider Messages buttons.
+Personal Space should have one Messages entry for receiving and replying to the user's own provider, not separate Client Messages and Provider Messages buttons.
 
-**Why:** The user clarified that the dashboard Client Messages button should be hidden and the single remaining entry should say Provider Messages.
+**Why:** The user's latest clarification names the single Personal Dashboard button Messages, with text, voice, and video supported on both sides.
 
 **How to apply:** Keep client message access independent of owning a Studio. Do not interpret professional-role metadata alone as proof that the account owns or can enter a Studio.
 
