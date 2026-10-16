@@ -14,3 +14,9 @@ Personal Space has one Client Messages entry that opens the conversation directl
 **Why:** The user approved correcting the messaging defects in Development and explicitly said clients must not need a Studio account to receive a physician's or trainer's video.
 
 **How to apply:** Reuse existing messaging and protected media APIs. Preserve relationships, organization isolation, consent, and message/attachment records. Verification uses isolated fixtures because Neon is shared; Development approval does not authorize Production publication or changes to the Physician Studio restoration.
+
+Unread messages must be discoverable from the left sidebar while the user is in Personal Space, with the orange flashing indicator the user expects.
+
+**Why:** The user confirmed messages work but reported that without the sidebar light, someone in Personal Space would not know a message had arrived.
+
+**How to apply:** Preserve the distinction between messages received personally and messages received by a professional Studio. A Personal inbox notification must not require Studio ownership.
