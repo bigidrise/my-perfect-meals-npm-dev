@@ -411,4 +411,33 @@ describe("Development client conversation routing with synthetic data", () => {
     expect(result.body.messages.map((entry: any) => entry.contentType)).toEqual(["text", "voice", "video"]);
     expect(listStudioVideoMessages).toHaveBeenCalledWith(STUDIO_ID, CLIENT_ID, PRO_ID);
   });
+  it("traces a synthetic fresh unread reply without fetching a folder or updating read markers", async () => {
+    const log = jest.spyOn(console, "info").mockImplementation(() => {});
+    try {
+      mockDb.execute.mockClear();
+      mockDb.execute.mockResolvedValue({ rows: [{
+        clientUserId: CLIENT_ID, unreadCount: 1,
+        lastMessageAt: "2026-10-16T10:00:00Z", lastMessageBody: "PRIVATE SYNTHETIC MESSAGE",
+      }] } as any);
+      const instance = express();
+      instance.use((req, _res, next) => {
+        (req as any).authUser = { id: PRO_ID };
+        next();
+      });
+      instance.use("/api/pro/tablet", proTabletRouter);
+      const result = await request(instance).get("/api/pro/tablet/unread-summary");
+      expect(result.status).toBe(200);
+      expect(result.body.totalUnread).toBe(1);
+      expect(mockDb.execute).toHaveBeenCalledTimes(1);
+      expect(mockDb.insert).not.toHaveBeenCalled();
+      expect(log).toHaveBeenCalledWith("[ProUnreadTrace]", {
+        stage: "server", count: 1, countType: "number",
+        clients: 1, cacheHit: false, studioResolved: true,
+      });
+      expect(JSON.stringify(log.mock.calls)).not.toContain("PRIVATE");
+      expect(JSON.stringify(log.mock.calls)).not.toContain(CLIENT_ID);
+    } finally {
+      log.mockRestore();
+    }
+  });
 });
