@@ -153,3 +153,4 @@
 - [Reusable business partner pilot](reusable-business-partner-pilot.md) — one shared link, independent per-account pilot clocks; forwarding restrictions are explicitly deferred.
 - [Guided Journey authority](guided-journey-authority.md) — explain existing tasks and verify saved work; guidance never owns navigation, access, or nutrition decisions.
 - [Studio starch plan parity](studio-starch-plan-parity.md) — Physician and Trainer choices must share the client's calculator count and timing and reach their Builders.
+- [Client messaging boundary](client-messaging-product-boundary.md) — accounts without a Studio should have only Client Messages, not Provider Messages.
