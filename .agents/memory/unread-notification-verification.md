@@ -14,3 +14,9 @@ Verify each media type through its actual server counting path, not only through
 **Why:** Labeling the same mocked positive-count test as text, voice, and video gave false confidence while a real video reply produced zero from the server. Delivery and email success do not prove unread counting.
 
 **How to apply:** Distinguish verified server results from UI fixture results. Do not attribute a current failure to the latest change unless history and pre-read evidence support that conclusion.
+
+Incoming Studio videos are expected to notify the professional by email as well as through the existing sidebar and Pro Portal indicators, just as text messages do.
+
+**Why:** The user explicitly reported that successful video delivery without either the email or existing indicators is not acceptable.
+
+**How to apply:** Check email dispatch separately from push delivery and unread counting. A notification helper's name does not establish that it sends email.
