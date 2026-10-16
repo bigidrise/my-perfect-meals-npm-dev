@@ -40,6 +40,32 @@ test("a server-authorized business-role Studio can receive unread counts", async
   });
 });
 
+test("traces a positive count after client logout and Studio login without opening a folder", async () => {
+  const log = jest.spyOn(console, "info").mockImplementation(() => {});
+  try {
+    mockUser = { id: "synthetic-client" };
+    request.mockResolvedValueOnce(response(0, 403)).mockResolvedValue(response(1));
+    const { result, rerender } = renderHook(useProUnreadCount);
+    await flush();
+    expect(result.current).toBe(0);
+    mockUser = null;
+    rerender();
+    await flush();
+    mockUser = { id: "synthetic-studio-owner", professionalRole: "business", isAdmin: true };
+    rerender();
+    await flush();
+    expect(result.current).toBe(1);
+    expect(log).toHaveBeenCalledWith("[ProUnreadTrace]", {
+      stage: "hook", count: 1, countType: "number",
+      status: 200, current: true, accepted: true,
+    });
+    expect(request.mock.calls.every(([url]) => url === "/api/pro/tablet/unread-summary")).toBe(true);
+    expect(JSON.stringify(log.mock.calls)).not.toContain("synthetic-");
+  } finally {
+    log.mockRestore();
+  }
+});
+
 test.each([401, 403])("status %s denies even an admin/owner and stops retries", async status => {
   request.mockResolvedValue(response(99, status));
   const { result } = renderHook(useProUnreadCount);
