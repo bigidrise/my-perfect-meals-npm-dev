@@ -79,6 +79,15 @@ import { TrialStatusCard } from "@/components/TrialStatusCard";
 import { QuickStartPopover } from "@/components/QuickStartPopover";
 import CoachCornerCard from "@/components/ace/CoachCornerCard";
 import { COACHES_CORNER_ENABLED } from "@/features/coachCornerFlag";
+import { developmentClientMessagingEnabled } from "@/features/clientMessagingFlag";
+import {
+  advanceClientInboxReadState,
+  clientInboxReadKey,
+  hasUnreadClientMessages,
+  mergeClientInboxReadStates,
+  readClientInboxState,
+  type ClientInboxReadState,
+} from "@/lib/clientInboxReadState";
 
 interface FeatureCard {
   title: string;
@@ -111,8 +120,12 @@ export default function DashboardNew() {
   const [showMacroModal, setShowMacroModal] = useState(false);
   const handlePhotoLog = () => setShowMacroModal(true);
 
-  const isCoach = !!(user?.professionalRole);
-  const isProCareClient = !!user?.isProCare && !isCoach;
+  // This page is Personal Space, even for an account that also owns a Studio.
+  // Studio tools remain in their existing, independently authorized workspace.
+  const showLegacyProfessionalMessaging = !developmentClientMessagingEnabled && !!(user?.professionalRole);
+  const canUseClientInbox = developmentClientMessagingEnabled
+    ? !!user?.id
+    : !!user?.isProCare && !showLegacyProfessionalMessaging;
   const { data: providerConnection } = useQuery<{ connected: boolean }>({
     queryKey: ["/api/pro/connection-status", user?.id],
     queryFn: async () => {
@@ -124,7 +137,7 @@ export default function DashboardNew() {
       if (!response.ok) return { connected: false };
       return response.json();
     },
-    enabled: !!user?.id && isCoach,
+    enabled: !!user?.id && showLegacyProfessionalMessaging,
     staleTime: 30_000,
     retry: false,
   });
@@ -135,6 +148,7 @@ export default function DashboardNew() {
   const [tabletMessages, setTabletMessages] = useState<any[]>([]);
   const [tabletLoading, setTabletLoading] = useState(false);
   const [tabletError, setTabletError] = useState<string | null>(null);
+  const [tabletPlaybackError, setTabletPlaybackError] = useState<string | null>(null);
   const [tabletInput, setTabletInput] = useState("");
   const [tabletSending, setTabletSending] = useState(false);
   const [tabletTranslatingId, setTabletTranslatingId] = useState<string | null>(
@@ -164,6 +178,61 @@ export default function DashboardNew() {
   const [tabletOpenVideoId, setTabletOpenVideoId] = useState<string | null>(null);
   const tabletVideoUrlRevokeRef = useRef<Record<string, () => void>>({});
   const tabletVideoProgressSentAt = useRef<Record<string, number>>({});
+  const tabletAccountRef = useRef(user?.id);
+  const tabletFetchSequence = useRef(0);
+  tabletAccountRef.current = user?.id;
+  const tabletOpenRef = useRef(tabletOpen);
+  tabletOpenRef.current = tabletOpen;
+  const tabletSeenRef = useRef<ClientInboxReadState>({ latestAt: 0, ids: [] });
+  const isCurrentTabletAccount = (id: string | undefined) =>
+    !developmentClientMessagingEnabled || id === tabletAccountRef.current;
+
+  const markTabletRead = useCallback((messages: any[]) => {
+    if (!developmentClientMessagingEnabled || !tabletAccountRef.current) return;
+    const id = tabletAccountRef.current;
+    const stored = readClientInboxState(localStorage, id);
+    const combined = mergeClientInboxReadStates(stored, tabletSeenRef.current);
+    tabletSeenRef.current = advanceClientInboxReadState(combined, messages);
+    try {
+      localStorage.setItem(clientInboxReadKey(id), JSON.stringify(tabletSeenRef.current));
+    } catch {
+      // Session memory still preserves read state when browser storage is unavailable.
+    }
+    setTabletHasUnread(hasUnreadClientMessages(messages, tabletSeenRef.current));
+  }, []);
+
+  useEffect(() => {
+    if (!developmentClientMessagingEnabled) return;
+    tabletFetchSequence.current++;
+    tabletSeenRef.current = user?.id
+      ? readClientInboxState(localStorage, user.id)
+      : { latestAt: 0, ids: [] };
+    setTabletMessages([]); setTabletOpen(false); setTabletHasUnread(false);
+    setTabletError(null); setTabletPlaybackError(null); setTabletInput("");
+    setTabletVideoMode(false); setTabletVideoUrls({}); setTabletOpenVideoId(null);
+    setTabletHasNewMessagesBelow(false); setTabletSending(false);
+    setTabletTranslatingId(null); setTabletVoiceSending(false);
+    tabletInitialLoad.current = true;
+    tabletPreviousMessageIdsRef.current = null;
+    tabletTranslationCache.current.clear();
+    tabletScrollNearBottomRef.current = true;
+    tabletVideoProgressSentAt.current = {};
+    Object.values(tabletVideoUrlRevokeRef.current).forEach(revoke => revoke());
+    tabletVideoUrlRevokeRef.current = {};
+    tabletAudioRef.current?.pause();
+    tabletVoiceUrlRevokeRef.current?.();
+    tabletVoiceUrlRevokeRef.current = null;
+    setTabletPlayingId(null);
+    if (tabletMediaRecorderRef.current) {
+      tabletMediaRecorderRef.current.onstop = null;
+      tabletMediaRecorderRef.current.ondataavailable = null;
+      if (tabletMediaRecorderRef.current.state !== "inactive") tabletMediaRecorderRef.current.stop();
+    }
+    tabletMediaRecorderRef.current = null;
+    tabletStreamRef.current?.getTracks().forEach(track => track.stop());
+    if (tabletRecordingTimerRef.current) clearInterval(tabletRecordingTimerRef.current);
+    setTabletRecording(false); setTabletAudioBlob(null); setTabletRecordingSec(0);
+  }, [user?.id]);
 
   useEffect(() => () => {
     Object.values(tabletVideoUrlRevokeRef.current).forEach((revoke) => revoke());
@@ -187,6 +256,10 @@ export default function DashboardNew() {
   const providerInitialScrollPendingRef = useRef(false);
 
   const fetchClientTablet = useCallback(async () => {
+    const accountId = user?.id;
+    const sequence = ++tabletFetchSequence.current;
+    const isCurrent = () => !developmentClientMessagingEnabled ||
+      (tabletAccountRef.current === accountId && tabletFetchSequence.current === sequence);
     if (tabletInitialLoad.current) {
       setTabletLoading(true);
     }
@@ -197,6 +270,7 @@ export default function DashboardNew() {
         credentials: "include",
         cache: "no-store",
       });
+      if (!isCurrent()) return;
       if (!res.ok) {
         if (res.status === 401) {
           // This is a role/relationship-scoped inbox, not a session probe.
@@ -207,7 +281,9 @@ export default function DashboardNew() {
         if (res.status === 403) {
           // The session is still valid; this account simply cannot read the
           // tablet endpoint. Do not turn a feature denial into a logout.
-          setTabletError("You do not have access to client messages");
+          setTabletError(developmentClientMessagingEnabled
+            ? "No authorized messaging connection is available. You do not need a Studio account to receive messages from your connected professional."
+            : "You do not have access to client messages");
           return;
         }
         if (res.status === 404) setTabletError("No active coach connection");
@@ -215,6 +291,7 @@ export default function DashboardNew() {
         return;
       }
       const data = await res.json();
+      if (!isCurrent()) return;
       const msgs = data.messages || [];
       setTabletMessages((prev) => {
         const prevMap = new Map(prev.map((m: any) => [m.id, m]));
@@ -224,6 +301,12 @@ export default function DashboardNew() {
         }));
       });
 
+      if (developmentClientMessagingEnabled) {
+        if (!tabletOpenRef.current || !tabletScrollNearBottomRef.current) {
+          setTabletHasUnread(hasUnreadClientMessages(msgs, tabletSeenRef.current));
+        }
+        return;
+      }
       const lastSeenKey = "mpm.tablet.client.lastSeen";
       const lastSeen = localStorage.getItem(lastSeenKey);
       const coachMsgs = msgs.filter((m: any) => m.sender === "pro");
@@ -237,19 +320,22 @@ export default function DashboardNew() {
         setTabletHasUnread(false);
       }
     } catch {
-      setTabletError("Failed to load messages");
+      if (isCurrent()) setTabletError("Failed to load messages");
     } finally {
-      setTabletLoading(false);
-      tabletInitialLoad.current = false;
+      if (isCurrent()) {
+        setTabletLoading(false);
+        tabletInitialLoad.current = false;
+      }
     }
-  }, []);
+  }, [user?.id]);
 
   const handleTabletSend = async () => {
-    if (!isProCareClient) {
+    if (!canUseClientInbox) {
       setLocation("/pricing");
       return;
     }
     if (!tabletInput.trim() || tabletSending) return;
+    const accountId = user?.id;
     setTabletSending(true);
     try {
       const res = await fetch(apiUrl("/api/client/tablet/message"), {
@@ -258,6 +344,7 @@ export default function DashboardNew() {
         credentials: "include",
         body: JSON.stringify({ body: tabletInput.trim() }),
       });
+      if (!isCurrentTabletAccount(accountId)) return;
       if (!res.ok) {
         if (res.status === 422) {
           const errData = await res.json().catch(() => ({}));
@@ -267,17 +354,19 @@ export default function DashboardNew() {
         throw new Error("Failed to send");
       }
       const data = await res.json();
+      if (!isCurrentTabletAccount(accountId)) return;
       setTabletMessages((prev) => [...prev, data.entry]);
       setTabletInput("");
     } catch {
-      setTabletError("Failed to send message");
+      if (isCurrentTabletAccount(accountId)) setTabletError("Failed to send message");
     } finally {
-      setTabletSending(false);
+      if (isCurrentTabletAccount(accountId)) setTabletSending(false);
     }
   };
 
   const handleTabletTranslate = async (entry: any) => {
-    if (!isProCareClient) {
+    const accountId = user?.id;
+    if (!canUseClientInbox) {
       setLocation("/pricing");
       return;
     }
@@ -311,6 +400,7 @@ export default function DashboardNew() {
       });
       if (!res.ok) throw new Error("Translation failed");
       const data = await res.json();
+      if (!isCurrentTabletAccount(accountId)) return;
       const translated =
         data.translated?.description || data.description || entry.body;
       tabletTranslationCache.current.set(cacheKey, translated);
@@ -322,12 +412,13 @@ export default function DashboardNew() {
     } catch {
       setTabletError("Translation failed");
     } finally {
-      setTabletTranslatingId(null);
+      if (isCurrentTabletAccount(accountId)) setTabletTranslatingId(null);
     }
   };
 
   const handleTabletDelete = async (entry: any) => {
-    if (!isProCareClient) {
+    const accountId = user?.id;
+    if (!canUseClientInbox) {
       setLocation("/pricing");
       return;
     }
@@ -337,6 +428,7 @@ export default function DashboardNew() {
         headers: { ...getAuthHeaders() },
         credentials: "include",
       });
+      if (!isCurrentTabletAccount(accountId)) return;
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Failed to delete message");
@@ -353,11 +445,12 @@ export default function DashboardNew() {
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to delete message";
-      setTabletError(message);
+      if (isCurrentTabletAccount(accountId)) setTabletError(message);
     }
   };
 
   const handleTabletPlay = async (entry: any) => {
+    const accountId = user?.id;
     if (tabletPlayingId === entry.id) {
       tabletAudioRef.current?.pause();
       tabletVoiceUrlRevokeRef.current?.();
@@ -374,6 +467,10 @@ export default function DashboardNew() {
         `/api/client/tablet/audio/${entry.id}`,
         getAuthHeaders(),
       );
+      if (!isCurrentTabletAccount(accountId)) {
+        source.revoke();
+        return;
+      }
       const audio = new Audio(source.url);
       tabletAudioRef.current = audio;
       tabletVoiceUrlRevokeRef.current = source.revoke;
@@ -390,6 +487,7 @@ export default function DashboardNew() {
       };
       await audio.play();
     } catch (error) {
+      if (!isCurrentTabletAccount(accountId)) return;
       tabletVoiceUrlRevokeRef.current?.();
       tabletVoiceUrlRevokeRef.current = null;
       setTabletError(error instanceof StudioVoicePlaybackError
@@ -400,6 +498,7 @@ export default function DashboardNew() {
   };
 
   const startTabletRecording = async () => {
+    const accountId = user?.id;
     setTabletError(null);
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
@@ -407,6 +506,10 @@ export default function DashboardNew() {
         return;
       }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (!isCurrentTabletAccount(accountId)) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
       tabletStreamRef.current = stream;
 
       let mimeType = "audio/webm;codecs=opus";
@@ -465,6 +568,7 @@ export default function DashboardNew() {
   };
 
   const sendTabletVoice = async () => {
+    const accountId = user?.id;
     if (!tabletAudioBlob || tabletVoiceSending) return;
     setTabletVoiceSending(true);
     try {
@@ -481,34 +585,45 @@ export default function DashboardNew() {
         credentials: "include",
         body: formData,
       });
+      if (!isCurrentTabletAccount(accountId)) return;
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         setTabletError(errData.error || "Failed to send voice message");
         return;
       }
       const data = await res.json();
+      if (!isCurrentTabletAccount(accountId)) return;
       setTabletMessages((prev) => [...prev, data.entry]);
       setTabletAudioBlob(null);
       setTabletRecordingSec(0);
     } catch {
-      setTabletError("Failed to send voice message");
+      if (isCurrentTabletAccount(accountId)) setTabletError("Failed to send voice message");
     } finally {
-      setTabletVoiceSending(false);
+      if (isCurrentTabletAccount(accountId)) setTabletVoiceSending(false);
     }
   };
 
   const loadTabletVideo = async (entry: any) => {
+    const accountId = user?.id;
+    setTabletPlaybackError(null);
     try {
       const source = await loadStudioVideoPlayback(
         `/api/client/tablet/video/${entry.id}/playback`,
         getAuthHeaders(),
       );
+      if (developmentClientMessagingEnabled && accountId !== tabletAccountRef.current) {
+        source.revoke();
+        return;
+      }
       tabletVideoUrlRevokeRef.current[entry.id]?.();
       tabletVideoUrlRevokeRef.current[entry.id] = source.revoke;
       setTabletVideoUrls((previous) => ({ ...previous, [entry.id]: source.url }));
       setTabletOpenVideoId(entry.id);
     } catch (error) {
-      setTabletError(error instanceof StudioVideoPlaybackError ? error.message : "Could not load video");
+      if (developmentClientMessagingEnabled && accountId !== tabletAccountRef.current) return;
+      const message = error instanceof StudioVideoPlaybackError ? error.message : "Could not load video";
+      if (developmentClientMessagingEnabled) setTabletPlaybackError(message);
+      else setTabletError(message);
     }
   };
 
@@ -667,22 +782,22 @@ export default function DashboardNew() {
   };
 
   useEffect(() => {
-    if (isProCareClient && !tabletOpen) {
+    if (canUseClientInbox && !tabletOpen) {
       fetchClientTablet();
       const bgInterval = setInterval(fetchClientTablet, 30000);
       return () => clearInterval(bgInterval);
     }
-  }, [isProCareClient, tabletOpen, fetchClientTablet]);
+  }, [canUseClientInbox, tabletOpen, fetchClientTablet]);
 
   useEffect(() => {
-    if (isProCareClient && sessionStorage.getItem("mpm.openClientChat") === "1") {
+    if (canUseClientInbox && sessionStorage.getItem("mpm.openClientChat") === "1") {
       sessionStorage.removeItem("mpm.openClientChat");
       setTabletOpen(true);
     }
-  }, [isProCareClient]);
+  }, [canUseClientInbox]);
 
   useEffect(() => {
-    if (tabletOpen && isProCareClient) {
+    if (tabletOpen && canUseClientInbox) {
       tabletInitialLoad.current = true;
       tabletInitialScrollPendingRef.current = true;
       tabletPreviousMessageIdsRef.current = null;
@@ -690,19 +805,32 @@ export default function DashboardNew() {
       setTabletHasNewMessagesBelow(false);
       fetchClientTablet();
       const interval = setInterval(fetchClientTablet, 10000);
-      localStorage.setItem("mpm.tablet.client.lastSeen", Date.now().toString());
-      setTabletHasUnread(false);
+      if (!developmentClientMessagingEnabled) {
+        localStorage.setItem("mpm.tablet.client.lastSeen", Date.now().toString());
+        setTabletHasUnread(false);
+      }
       return () => clearInterval(interval);
     }
-  }, [tabletOpen, isProCareClient, fetchClientTablet]);
+  }, [tabletOpen, canUseClientInbox, fetchClientTablet]);
 
   useEffect(() => {
-    if (!isProCareClient) {
+    if (!developmentClientMessagingEnabled || !user?.id) return;
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== clientInboxReadKey(user.id)) return;
+      tabletSeenRef.current = readClientInboxState(localStorage, user.id);
+      setTabletHasUnread(hasUnreadClientMessages(tabletMessages, tabletSeenRef.current));
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [user?.id, tabletMessages]);
+
+  useEffect(() => {
+    if (!canUseClientInbox) {
       setTabletOpen(false);
       setTabletInput("");
       setTabletError(null);
     }
-  }, [isProCareClient]);
+  }, [canUseClientInbox]);
 
   useEffect(() => {
     if (!tabletOpen) return;
@@ -725,19 +853,23 @@ export default function DashboardNew() {
     if (tabletInitialScrollPendingRef.current && ids.length > 0) {
       tabletInitialScrollPendingRef.current = false;
     }
-  }, [tabletMessages, tabletOpen]);
+    if (developmentClientMessagingEnabled && !tabletLoading && !tabletError &&
+        tabletScrollNearBottomRef.current) {
+      markTabletRead(tabletMessages);
+    }
+  }, [tabletMessages, tabletOpen, tabletLoading, tabletError, markTabletRead]);
 
   // Provider inbox polling effects
   useEffect(() => {
-    if (isCoach && hasProviderConnection && !providerOpen) {
+    if (showLegacyProfessionalMessaging && hasProviderConnection && !providerOpen) {
       fetchProviderTablet();
       const bg = setInterval(fetchProviderTablet, 30000);
       return () => clearInterval(bg);
     }
-  }, [isCoach, hasProviderConnection, providerOpen, fetchProviderTablet]);
+  }, [showLegacyProfessionalMessaging, hasProviderConnection, providerOpen, fetchProviderTablet]);
 
   useEffect(() => {
-    if (providerOpen && isCoach && hasProviderConnection) {
+    if (providerOpen && showLegacyProfessionalMessaging && hasProviderConnection) {
       providerInitialLoad.current = true;
       providerInitialScrollPendingRef.current = true;
       providerPreviousMessageIdsRef.current = null;
@@ -749,7 +881,7 @@ export default function DashboardNew() {
       setProviderHasUnread(false);
       return () => clearInterval(interval);
     }
-  }, [providerOpen, isCoach, hasProviderConnection, fetchProviderTablet]);
+  }, [providerOpen, showLegacyProfessionalMessaging, hasProviderConnection, fetchProviderTablet]);
 
   useEffect(() => {
     if (!providerOpen) return;
@@ -1005,7 +1137,7 @@ export default function DashboardNew() {
           transition={{ delay: 0.12, duration: 0.5 }}
           className="mb-4 space-y-3"
         >
-          {isCoach ? (
+          {showLegacyProfessionalMessaging ? (
             <>
               {/* Card 1: Client Messages inbox */}
               <div className="relative">
@@ -1071,10 +1203,11 @@ export default function DashboardNew() {
                 </div>
               )}
             </>
-          ) : isProCareClient ? (
+          ) : canUseClientInbox ? (
             <div className="relative">
               <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(168,85,247,0.5), rgba(168,85,247,0.25), rgba(0,0,0,0))" }} />
             <Card
+              data-testid="client-messages-entry"
               className={`relative cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg transition-all duration-300 rounded-xl shadow-md ${tabletHasUnread ? "border-2 border-orange-400 shadow-[0_0_0_3px_rgba(249,115,22,0.25),0_0_28px_rgba(249,115,22,0.8)]" : "border border-purple-500/30"}`}
               onClick={() => setTabletOpen(!tabletOpen)}
             >
@@ -1085,7 +1218,7 @@ export default function DashboardNew() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-sm font-semibold text-white">
-                      {t("myMessages")}
+                      {developmentClientMessagingEnabled ? t("clientMessages") : t("myMessages")}
                     </h3>
                     <p className={`text-xs ${tabletHasUnread ? "text-orange-400 font-medium" : "text-white/70"}`}>
                       {tabletHasUnread ? t("newCoachMsg") : t("viewCoach")}
@@ -1132,7 +1265,7 @@ export default function DashboardNew() {
           )}
 
           {tabletOpen && (
-            <div className="bg-black/30 backdrop-blur-lg border border-purple-500/20 rounded-xl p-4 space-y-3">
+            <div data-testid="client-messages-inbox" className="bg-black/30 backdrop-blur-lg border border-purple-500/20 rounded-xl p-4 space-y-3">
               {tabletLoading && (
                 <div className="flex items-center justify-center py-4">
                   <Loader2 className="w-4 h-4 animate-spin text-white/40" />
@@ -1141,6 +1274,9 @@ export default function DashboardNew() {
               {tabletError && (
                 <p className="text-sm text-red-400">{tabletError}</p>
               )}
+              {developmentClientMessagingEnabled && tabletPlaybackError && (
+                <p role="alert" className="text-sm text-red-400">{tabletPlaybackError}. You can retry playback below.</p>
+              )}
               {!tabletLoading && !tabletError && (
                 <>
                   <div
@@ -1148,7 +1284,10 @@ export default function DashboardNew() {
                     onScroll={(event) => {
                       const nearBottom = isStudioMessageListNearBottom(event.currentTarget);
                       tabletScrollNearBottomRef.current = nearBottom;
-                      if (nearBottom) setTabletHasNewMessagesBelow(false);
+                      if (nearBottom) {
+                        setTabletHasNewMessagesBelow(false);
+                        if (developmentClientMessagingEnabled) markTabletRead(tabletMessages);
+                      }
                     }}
                     className="max-h-64 overflow-y-auto space-y-2"
                   >
@@ -1161,6 +1300,7 @@ export default function DashboardNew() {
                           }
                           tabletScrollNearBottomRef.current = true;
                           setTabletHasNewMessagesBelow(false);
+                            if (developmentClientMessagingEnabled) markTabletRead(tabletMessages);
                         }}
                         className="sticky top-1 z-10 mx-auto block rounded-full bg-orange-500 px-2.5 py-1 text-[10px] font-semibold text-white shadow"
                       >
@@ -1253,6 +1393,12 @@ export default function DashboardNew() {
                                 src={tabletVideoUrls[entry.id]}
                                 controls
                                 playsInline
+                                onError={() => {
+                                  if (developmentClientMessagingEnabled) {
+                                    setTabletPlaybackError("The video could not be played in this browser");
+                                    setTabletOpenVideoId(null);
+                                  }
+                                }}
                                 className="w-full rounded-md bg-black max-h-56"
                                 onTimeUpdate={(event) => reportTabletVideoProgress(entry, event.currentTarget)}
                                 onEnded={(event) => reportTabletVideoProgress(entry, event.currentTarget)}
@@ -1343,9 +1489,12 @@ export default function DashboardNew() {
                   </div>
                   {tabletVideoMode ? (
                     <StudioVideoMessageComposer
+                      key={user?.id}
                       recipientName="your coach"
                       uploadPath="/api/client/tablet/video-message"
-                      onSent={(entry) => setTabletMessages((previous) => [...previous, entry])}
+                      onSent={(entry) => {
+                        if (isCurrentTabletAccount(user?.id)) setTabletMessages((previous) => [...previous, entry]);
+                      }}
                       onCancel={() => setTabletVideoMode(false)}
                     />
                   ) : tabletRecording ? (
@@ -1443,7 +1592,7 @@ export default function DashboardNew() {
           )}
 
           {/* Provider inbox panel — fully independent from client tablet */}
-          {providerOpen && isCoach && hasProviderConnection && (
+          {providerOpen && showLegacyProfessionalMessaging && hasProviderConnection && (
             <div className="bg-black/30 backdrop-blur-lg border border-blue-500/20 rounded-xl p-4 space-y-3">
               {providerLoading && (
                 <div className="flex items-center justify-center py-4">
