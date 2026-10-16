@@ -9,7 +9,6 @@ import { apiRequest } from "@/lib/apiRequest";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { useQuickTour } from "@/hooks/useQuickTour";
-import { developmentUnreadRequest, traceDevelopmentUnread } from "@/lib/developmentUnreadTrace";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { Card, CardContent } from "@/components/ui/card";
@@ -112,10 +111,6 @@ export default function ProClients({ workspace, syntheticSource }: ProClientsPro
       const res = await fetch(apiUrl("/api/pro/tablet/unread-summary"), { headers });
       if (!res.ok) return;
       const data = await res.json();
-      traceDevelopmentUnread("portalResponse", {
-        count: data.totalUnread, request: developmentUnreadRequest(res), status: res.status,
-        clientGroups: Array.isArray(data.clients) ? data.clients.length : undefined,
-      });
       const map: Record<string, number> = {};
       for (const c of (data.clients as UnreadClient[])) {
         if (c.unreadCount > 0) map[c.clientUserId] = c.unreadCount;
@@ -132,17 +127,6 @@ export default function ProClients({ workspace, syntheticSource }: ProClientsPro
     } catch {
     }
   }, [showToast]);
-
-  useEffect(() => {
-    traceDevelopmentUnread("portal", {
-      count: totalUnread, mounted: true,
-      visible: !syntheticSource && totalUnread > 0,
-      highlightedClients: Object.values(unreadMap).filter(count => count > 0).length,
-    });
-  }, [totalUnread, unreadMap, !!syntheticSource]);
-  useEffect(() => () => {
-    traceDevelopmentUnread("portal", { mounted: false, visible: false });
-  }, []);
 
   const fetchInboxMessages = useCallback(async () => {
     setInboxLoading(true);
