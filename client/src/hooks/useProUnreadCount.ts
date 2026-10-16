@@ -3,7 +3,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getAuthHeaders } from "@/lib/auth";
 import { canPollProfessionalUnread } from "@/lib/proUnreadEligibility";
 import { developmentProUnreadAuthorizationEnabled } from "@/features/proUnreadFlag";
-import { traceProUnreadCount } from "@shared/proUnreadCountTrace";
 
 let cachedCount = 0;
 let pollingIdentity: string | null = null;
@@ -36,30 +35,17 @@ async function fetchUnread(identity: string) {
       headers: getAuthHeaders(),
       credentials: "include",
     });
-    if (!isCurrent()) {
-      if (developmentProUnreadAuthorizationEnabled) traceProUnreadCount("hook", { status: res.status, current: false, accepted: false });
-      return;
-    }
+    if (!isCurrent()) return;
     if (res.status === 401 || res.status === 403) {
-      if (developmentProUnreadAuthorizationEnabled) traceProUnreadCount("hook", { count: 0, status: res.status, current: true, accepted: false });
       terminalIdentity = identity;
       stopPolling();
       if (developmentProUnreadAuthorizationEnabled) notifyListeners(0);
       return;
     }
-    if (!res.ok) {
-      if (developmentProUnreadAuthorizationEnabled) traceProUnreadCount("hook", { status: res.status, current: true, accepted: false });
-      return;
-    }
+    if (!res.ok) return;
 
     const data = await res.json();
     if (isCurrent()) {
-      if (developmentProUnreadAuthorizationEnabled) traceProUnreadCount("hook", {
-        count: data.totalUnread,
-        status: res.status,
-        current: true,
-        accepted: Number.isSafeInteger(data.totalUnread) && data.totalUnread >= 0,
-      });
       if (developmentProUnreadAuthorizationEnabled &&
           (!Number.isSafeInteger(data.totalUnread) || data.totalUnread < 0)) return;
       notifyListeners(data.totalUnread ?? 0);

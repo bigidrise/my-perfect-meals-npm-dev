@@ -12,7 +12,6 @@ import { eq, and, asc, desc, inArray, isNull, notExists } from "drizzle-orm";
 import { requireWorkspaceAccess } from "../middleware/requireWorkspaceAccess";
 import { logAudit, getClientIp } from "../lib/auditLog";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
-import { traceProUnreadCount } from "../../shared/proUnreadCountTrace";
 import { moderatePrivateStudioContent, BLOCKED_MESSAGE } from "../services/tabletModerationService";
 import { notifyClientOfMessage, notifyClientOfNote } from "../services/tabletNotificationService";
 import { logClientActivity } from "../services/activityLog";
@@ -641,12 +640,8 @@ router.get("/unread-summary", async (req: Request, res: Response) => {
   }
 
   const cacheKey = `pro-unread:${authUser.id}`;
-  let computed = false;
-  let studioResolved: boolean | undefined;
   const payload = await getOrSet(cacheKey, PRO_UNREAD_TTL_MS, async () => {
-    computed = true;
     const studioId = await getProStudioId(authUser.id);
-    studioResolved = !!studioId;
     if (!studioId) {
       return { clients: [], totalUnread: 0 };
     }
@@ -686,14 +681,6 @@ router.get("/unread-summary", async (req: Request, res: Response) => {
     return { clients, totalUnread };
   });
 
-  if (process.env.NODE_ENV === "development" && !process.env.REPLIT_DEPLOYMENT) {
-    traceProUnreadCount("server", {
-      count: payload.totalUnread,
-      clients: payload.clients.length,
-      cacheHit: !computed,
-      studioResolved,
-    });
-  }
   res.set("Cache-Control", "no-store");
   res.json(payload);
 });
