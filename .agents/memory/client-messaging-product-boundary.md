@@ -20,3 +20,9 @@ Unread messages must be discoverable from the left sidebar while the user is in 
 **Why:** The user confirmed messages work but reported that without the sidebar light, someone in Personal Space would not know a message had arrived.
 
 **How to apply:** Preserve the distinction between messages received personally and messages received by a professional Studio. A Personal inbox notification must not require Studio ownership.
+
+For the sidebar notification correction, find and repair the existing indicator system; do not add replacement navigation or a second notification system.
+
+**Why:** The user corrected the implementation direction: “It already worked. The system is already there. You need to find what was already there. You don't need to add anything. It's just not working.”
+
+**How to apply:** Trace the existing indicator, unread request, account eligibility, and workspace visibility before proposing changes. Preserve the working messaging correction.
