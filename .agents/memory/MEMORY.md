@@ -2,6 +2,7 @@
 - [Development startup log retention](development-startup-log-retention.md) — preview asset reloads can displace boot messages; capture early and qualify incomplete log evidence.
 - [Authenticated API cache identity](authenticated-api-client-cache-identity.md) — removing caller IDs from APIs must not erase client-side account partitions.
 - [Role-aware polling authentication](role-aware-polling-auth.md) — background 401/403 responses are not always invalid sessions; respect endpoint role boundaries.
+- [Unread notification verification](unread-notification-verification.md) — capture counts before folder reads; media-labeled UI mocks do not establish backend coverage.
 - [Studio message composer controls](studio-message-composer-controls.md) — client-facing composers share purple Send, orange Voice, and prominent red Video controls.
 - [Allergy adaptation layer](allergy-adaptation-layer.md) — classify adaptable conflicts before generation and rescan every final output.
 - [Allergen override matching](allergen-override-exact-match.md) — safety PINs use canonical key and alias matching, never substrings.
