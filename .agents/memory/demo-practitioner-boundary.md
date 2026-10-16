@@ -9,6 +9,20 @@ Demo practitioners use a canonical practitioner persona with a separate `demo_on
 
 **How to apply:** Keep demo operation separate from credential verification, commercial entitlement, Academy evidence, legal acceptance, memberships, relationships, and consent. Install the server-enforced synthetic-data boundary before any demo-persona transition; do not simulate verification by passing true into real-clinical authorization.
 
+## Original Physician Studio restoration
+
+Restore the existing original Physician Studio components and workflow in Development; do not replace them with a synthetic demonstration interface, create another Studio, or roll back unrelated work. Isolated test records are acceptable for verification, but existing authentication, organization isolation, and active-client authorization must remain intact.
+
+**Why:** The user explicitly rejected the substitute demonstration interface and requested the original client list, folders, and complete clinical dashboard. Development and Production share data, so a presentation correction is not permission to change the shared account's role or remove its data restrictions.
+
+**How to apply:** Distinguish Studio discovery, interface routing, practitioner identity, and patient-data authorization. Verify current account and existing Studio state read-only; do not assume previous routing corrections restored server access. Report an exact security blocker rather than fabricating clinical readiness or bypassing restrictions.
+
+The approved initial correction allows narrowly scoped, authenticated, read-only discovery of this Development account's existing workspaces and memberships. It does not authorize changing the shared identity, activating a practitioner role, or opening patient APIs. Discovery failure must remain an explicit error rather than being presented as absent workspaces.
+
+**Why:** The user approved restoring recognition/navigation separately from clinical clearance and explicitly retained the shared-database and patient-security restrictions.
+
+**How to apply:** Preserve independent Business/Organization membership and Studio ownership evidence; keep verified practitioner authority and per-patient access checks separate. When authority is unresolved, show the existing resource with an honest restriction, not a Trainer fallback or substitute demonstration interface.
+
 ## Shared-account activation prerequisite
 
 Before any approved demo-persona transition, verify that every deployed application able to authenticate the shared account enforces the demo-only boundary. If the currently running Production application could expose real/live professional capability, or its protections cannot be verified, do not activate the account.
@@ -67,6 +81,21 @@ not permission to replace those interfaces.
 **Why:** After navigation was added to the substitute interface, the user rejected
 that result and explicitly authorized restoration of the original components,
 not a redesign, rebuild, or another demonstration interface.
+
+The user subsequently approved reconnecting the original Physician Studio to
+its existing server-validated Development test authorization and isolated local
+synthetic data. This is not approval to change the shared Business identity,
+grant live-clinical readiness, write the shared database, change MFA or billing,
+restart the application, or publish Production.
+
+**Why:** The original Studio was recognized but its live-readiness guard could
+not represent the already authorized synthetic-only testing context.
+
+**How to apply:** Keep synthetic interface permission independent of
+`canEnterStudio` live permission. Render the established Physician components
+through isolated data inputs; explicitly identify workflows that lack isolated
+adapters instead of letting them call live endpoints or claiming full
+restoration from page rendering alone. A future restart needs separate approval.
 
 **How to apply:** Reconnect original guarded routes; preserve relationships,
 permissions, prescriptions, messaging, notes, Builder assignments, Macro

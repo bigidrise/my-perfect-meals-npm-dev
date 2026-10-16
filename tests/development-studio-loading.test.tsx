@@ -33,7 +33,9 @@ function ProtectedPage() {
   return <h1>Authorized clients</h1>;
 }
 function response(url: string) {
-  if (url.includes("studio-access")) return { studioAccess: { canReconnectAddon: false } };
+  if (url.includes("studio-access")) return { studioAccess: {
+    canReconnectAddon: false, authorized: true, studioActive: true, studioReady: true, state: "active",
+  } };
   if (url.includes("/legal/")) return { allAccepted: true };
   return { phase1Complete: true, proCareCertificationComplete: true };
 }

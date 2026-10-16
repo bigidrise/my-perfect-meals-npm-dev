@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { users } from "@shared/schema";
 import { db } from "../db";
 import { findUserByValidAuthToken } from "../services/authTokenService";
@@ -6,6 +6,9 @@ import { readDemoRestriction } from "../services/demoProfessionalRepository";
 import { createDemoDataBoundary } from "./demoDataBoundary";
 import { isDevelopmentFounderDemoAccount } from "../config/developmentFounderPhysicianDemo";
 import { developmentFounderDemoStore } from "../services/developmentFounderDemoRepository";
+import { studios } from "../db/schema/studio";
+import { DEVELOPMENT_FOUNDER_PHYSICIAN_DEMO as authority } from "../config/developmentFounderPhysicianDemo";
+import { buildDevelopmentWorkspaceMetadata, canDiscoverDevelopmentWorkspaces } from "../services/developmentWorkspaceDiscovery";
 export const demoDataBoundary = createDemoDataBoundary({
   async actor(req) {
     const sessionId = req.session?.userId;
@@ -28,6 +31,30 @@ export const demoDataBoundary = createDemoDataBoundary({
     return user;
   },
   restriction: readDemoRestriction,
+  async developmentWorkspaceMetadata(req, actor, grant) {
+    if (!canDiscoverDevelopmentWorkspaces(actor.id, grant)) return null;
+    const [setup] = await db.select({
+      onboardingCompletedAt: users.onboardingCompletedAt,
+      professionalRole: users.professionalRole,
+    }).from(users).where(eq(users.id, actor.id)).limit(1);
+    const [studio] = await db.select({
+      id: studios.id, ownerUserId: studios.ownerUserId, name: studios.name,
+      type: studios.type, status: studios.status,
+    }).from(studios).where(and(
+      eq(studios.id, authority.clinicId), eq(studios.ownerUserId, actor.id),
+    )).limit(1);
+    if (!setup || !studio) throw new Error("Existing workspace ownership could not be verified.");
+    // This discovery method performs SELECTs only; no selection/projection repair.
+    const { discoverAuthorizedWorkspaces } = await import("../services/organizationWorkspaceService");
+    const organizations = await discoverAuthorizedWorkspaces(actor.id);
+    const metadata = buildDevelopmentWorkspaceMetadata({
+      userId: actor.id, ...setup, studio, organizations,
+    });
+    const path = decodeURIComponent((req.originalUrl || req.url).split("?")[0]).replace(/\/+/g, "/").toLowerCase();
+    return path === "/api/business/workspace/availability"
+      ? { availability: metadata.availability }
+      : { studioAccess: metadata.studioAccess };
+  },
   async developmentProfile(req, actor, grant) {
     if (grant.authority !== "development_founder" || !isDevelopmentFounderDemoAccount(actor.id)) return null;
     // Preserve this actor's existing setup evidence without returning personal

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { developmentDashboardInput } from "@shared/developmentStudio";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { DEMO_CAPABILITIES, type DemoGrant, type DemoPatient, type DemoWorkspace } from "@shared/demoProfessional";
@@ -54,7 +55,8 @@ function validate(value: State): State {
     || value.patients.some(p => p.classification !== "synthetic" || p.workspaceId !== authority.workspaceId
       || !/^[a-f0-9-]{36}$/i.test(p.id) || p.id === authority.userId || p.id === authority.clinicId
       || !Array.isArray(p.glucose) || !Array.isArray(p.messages) || !Array.isArray(p.media)
-      || !Number.isInteger(p.revision))) {
+      || !Number.isInteger(p.revision)
+      || (p.developmentDashboard !== undefined && !developmentDashboardInput.safeParse(p.developmentDashboard).success))) {
     throw new ProfessionalRequestError(503, "DEVELOPMENT_DEMO_STATE_INVALID", "Local demo data could not be verified. No live-data fallback is permitted.");
   }
   return value;
@@ -91,6 +93,14 @@ export function createDevelopmentFounderDemoStore(deps: DevelopmentDemoStoreDepe
           if (grant.id !== state.grant.id || grant.userId !== state.grant.userId || grant.authority !== state.grant.authority
             || grant.lifetime !== state.grant.lifetime || grant.expiresAt !== null || grant.revision !== state.grant.revision + 1) blocked();
           state.grant = structuredClone(grant); dirty = true;
+        },
+        saveDevelopmentDashboard: async (patient, dashboard, revision) => {
+          const row = state.patients.find(p => p.id === patient.id && p.workspaceId === patient.workspaceId && p.classification === "synthetic");
+          if (!row) blocked("DEMO_DATA_SCOPE_DENIED");
+          if (row.revision !== revision) throw new ProfessionalRequestError(409, "DEVELOPMENT_DASHBOARD_CONFLICT", "This test patient changed. Reopen the folder before saving.");
+          row.developmentDashboard = developmentDashboardInput.parse(dashboard);
+          row.revision++; dirty = true;
+          return structuredClone(row);
         },
         savePlan: async (patient, plan) => {
           const row = state.patients.find(p => p.id === patient.id && p.workspaceId === patient.workspaceId);

@@ -18,7 +18,7 @@
 - [Meal image fidelity](meal-image-ingredient-contract.md) — image prompts and cache keys derive from full recipes, not only dish labels.
 - [Daily prescription hierarchy](daily-prescription-hierarchy.md) — one endpoint owns macro targets; clinical overlays are applied in documented order.
 - [Nutrition decision engine entry points](nde-food-entry-points.md) — all food intake surfaces must consult NDE before presenting results.
-- [GLP-1 canonical context](glp1-canonical-context.md) — server-resolved global context is the only GLP-1 activation source.
+- [GLP-1 canonical context](glp1-canonical-context.md) — canonical signals stay separate from the user's Builder-and-Menu-only portion-support policy.
 - [GLP-1 daily tolerance boot](glp1-daily-tolerance-boot.md) — feature-table alters must first create the table for fresh environments.
 - [Professional context architecture](professional-context-architecture.md) — preserve the separation between personal and professional product worlds.
 - [Professional client-switch isolation](professional-client-switch-isolation.md) — route changes must hide stale client state and reject late responses from the prior client.
@@ -153,3 +153,4 @@
 - [Reusable business partner pilot](reusable-business-partner-pilot.md) — one shared link, independent per-account pilot clocks; forwarding restrictions are explicitly deferred.
 - [Guided Journey authority](guided-journey-authority.md) — explain existing tasks and verify saved work; guidance never owns navigation, access, or nutrition decisions.
 - [Studio starch plan parity](studio-starch-plan-parity.md) — Physician and Trainer choices must share the client's calculator count and timing and reach their Builders.
+- [Client messaging boundary](client-messaging-product-boundary.md) — accounts without a Studio should have only Client Messages, not Provider Messages.

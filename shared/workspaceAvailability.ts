@@ -34,7 +34,13 @@ export interface WorkspaceAvailability {
     available: boolean;
     destination: string | null;
     readiness: WorkspaceReadinessStatus | null;
+    name?: string;
+    kind?: "clinic" | "studio";
+    operatingContext?: "physician" | "trainer" | null;
+    restriction?: { code: string; message: string };
   };
+  /** Discovery only; never a grant to read workspace or patient data. */
+  restriction?: { code: string; message: string };
 }
 
 export function countAvailableWorkspaceTypes(
