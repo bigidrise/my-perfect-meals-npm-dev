@@ -13,10 +13,10 @@ describe("bounded startup network guards", () => {
     expect(source).toContain("setInterval(sync, POLL_INTERVAL_MS)");
   });
 
-  it("requires resolved ProCare professional identity for unread polling", () => {
+  it("waits for resolved auth and keeps the Development authorization check gated", () => {
     const source = read("client/src/hooks/useProUnreadCount.ts");
-    expect(source).toContain("canPollProfessionalUnread(user)");
-    expect(source).toContain("const eligible = !loading && canPollProfessionalUnread(user)");
+    expect(source).toContain("canPollProfessionalUnread(user, developmentProUnreadAuthorizationEnabled)");
+    expect(source).toContain("const eligible = !loading && canPollProfessionalUnread(user, developmentProUnreadAuthorizationEnabled)");
   });
 
   it("stops professional polling after an authorization rejection", () => {

@@ -17,4 +17,15 @@ describe("professional unread eligibility", () => {
   ])("allows polling for an eligible %s", (_label, user) => {
     expect(canPollProfessionalUnread(user)).toBe(true);
   });
+
+  it("allows an authenticated Development identity to ask the server, not to bypass it", () => {
+    expect(canPollProfessionalUnread({
+      id: "fixture-studio-account", isProCare: false, professionalRole: "business",
+    }, true)).toBe(true);
+    expect(canPollProfessionalUnread({
+      id: "fixture-studio-account", isProCare: false, professionalRole: "business",
+    })).toBe(false);
+    expect(canPollProfessionalUnread(null, true)).toBe(false);
+    expect(canPollProfessionalUnread({ professionalRole: "physician", isProCare: true }, true)).toBe(false);
+  });
 });
