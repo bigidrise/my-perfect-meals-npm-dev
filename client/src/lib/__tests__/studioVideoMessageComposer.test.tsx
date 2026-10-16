@@ -92,13 +92,17 @@ beforeEach(() => {
   global.fetch = fetchMock;
 });
 
-function renderComposer(uploadPath = "/api/pro/tablet/client-1/video-message") {
+function renderComposer(
+  uploadPath = "/api/pro/tablet/client-1/video-message",
+  getSendErrorMessage?: (response: Response) => Promise<string>,
+) {
   return render(
     <StudioVideoMessageComposer
       recipientName="Alex"
       uploadPath={uploadPath}
       onSent={onSent}
       onCancel={onCancel}
+      getSendErrorMessage={getSendErrorMessage}
     />,
   );
 }
@@ -183,6 +187,22 @@ describe("StudioVideoMessageComposer", () => {
     expect(screen.queryByTestId("recorded-video-preview")).not.toBeInTheDocument();
     expect(screen.getByTestId("start-video-recording")).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps the recording for retry and uses the client's safe error formatter", async () => {
+    const formatError = jest.fn(async () => "Safe connection error. Your recording has been kept.");
+    renderComposer("/api/client/tablet/video-message", formatError);
+    await recordOneVideo();
+    fetchMock.mockResolvedValueOnce({
+      ok: false, status: 503, json: async () => ({ error: "private backend details" }),
+    });
+    fireEvent.click(screen.getByTestId("send-video-message"));
+    await waitFor(() => expect(formatError).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText("Safe connection error. Your recording has been kept.")).toBeInTheDocument();
+    expect(screen.getByTestId("recorded-video-preview")).toBeInTheDocument();
+    expect(screen.queryByText("private backend details")).not.toBeInTheDocument();
+    expect(onSent).not.toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
   });
 
   it("sends exactly once and clears the local recording after success", async () => {

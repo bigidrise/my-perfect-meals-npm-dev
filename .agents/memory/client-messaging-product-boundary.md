@@ -15,11 +15,11 @@ Personal Space has one conversation entry that opens messages directly, includin
 
 **How to apply:** Reuse existing messaging and protected media APIs. Preserve relationships, organization isolation, consent, and message/attachment records. Verification uses isolated fixtures because Neon is shared; Development approval does not authorize Production publication or changes to the Physician Studio restoration.
 
-The earlier sidebar-only correction did not authorize Personal notification navigation. A later Production messaging report explicitly reopened diagnosis of Personal inbox duplication and failed replies, without authorizing code changes.
+Development messaging repair is authorized using the existing full conversation, with the redundant Personal card hidden rather than deleting its implementation. Production activation remains a separate release decision.
 
-**Why:** The user clarified: “Don't worry about the client messages those are already working. The only indicator light that is not working is the left side bar pro portal.”
+**Why:** After accepting the diagnosis, the user approved a narrowly scoped Development repair, synthetic verification, consistent authorization, and draft-preserving retries, but explicitly prohibited Production publication.
 
-**How to apply:** Keep the two message directions separate. The latest diagnosis request supersedes the earlier sidebar-only investigation scope, but does not authorize implementation or publication.
+**How to apply:** Keep the two message directions separate and reuse existing interfaces. Do not change shared patient records or permissions for verification, remove the legacy implementation, or enable the correction in published builds without separate approval.
 
 For the sidebar notification correction, find and repair the existing indicator system; do not add replacement navigation or a second notification system.
 

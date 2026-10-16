@@ -31,6 +31,11 @@ import {
 import { getOrSet, invalidateClientTabletCache } from "../services/queryCache";
 import { requireClientWorkspaceAccess, WorkspaceRequest } from "../middleware/requireWorkspaceAccess";
 import {
+  authorizedDevelopmentStudio,
+  developmentClientConversationEnabled,
+  requireDevelopmentClientConversation,
+} from "../middleware/developmentClientConversation";
+import {
   assertStudioVideoFeatureEnabled,
   auditStudioVideoAction,
   auditStudioVideoListAction,
@@ -113,6 +118,11 @@ async function resolveStudioId(clientUserId: string): Promise<string | null> {
     return await getStudioIdByOwner(link.proUserId);
   }
   return await getStudioIdByMembership(clientUserId);
+}
+
+async function resolveConversationStudioId(req: Request): Promise<string | null> {
+  if (developmentClientConversationEnabled()) return authorizedDevelopmentStudio(req);
+  return resolveStudioId((req as AuthenticatedRequest).authUser!.id);
 }
 
 function studioVideoError(res: Response, error: unknown): boolean {
@@ -598,9 +608,11 @@ router.get("/", requireClientWorkspaceAccess, async (req: Request, res: Response
     return;
   }
 
-  const cacheKey = `client-tablet:${authUser.id}`;
+  const cacheKey = developmentClientConversationEnabled()
+    ? `client-tablet:${authUser.id}:studio:${authorizedDevelopmentStudio(req)}`
+    : `client-tablet:${authUser.id}`;
   const payload = await getOrSet(cacheKey, CLIENT_TABLET_TTL_MS, async () => {
-    const studioId = await resolveStudioId(authUser.id);
+    const studioId = await resolveConversationStudioId(req);
     if (!studioId) {
       return null; // caller handles 404
     }
@@ -620,6 +632,7 @@ router.get("/", requireClientWorkspaceAccess, async (req: Request, res: Response
         transcript_status AS "transcriptStatus"
       FROM client_notes
       WHERE client_user_id = ${authUser.id}
+        ${developmentClientConversationEnabled() ? sql`AND studio_id = ${studioId}` : sql``}
         AND entry_type     = 'message'
         AND visibility     = 'shared_with_client'
         AND NOT EXISTS (
@@ -660,7 +673,7 @@ router.get("/", requireClientWorkspaceAccess, async (req: Request, res: Response
   res.json(payload);
 });
 
-router.post("/message", async (req: Request, res: Response) => {
+router.post("/message", requireDevelopmentClientConversation, async (req: Request, res: Response) => {
   const authUser = (req as AuthenticatedRequest).authUser;
   if (!authUser) {
     res.status(401).json({ error: "Authentication required" });
@@ -673,7 +686,7 @@ router.post("/message", async (req: Request, res: Response) => {
     return;
   }
 
-  const studioId = await resolveStudioId(authUser.id);
+  const studioId = await resolveConversationStudioId(req);
   if (!studioId) {
     res.status(404).json({ error: "No active professional connection" });
     return;
@@ -811,7 +824,7 @@ router.post("/voice-message", requireClientWorkspaceAccess, upload.single("audio
     return;
   }
 
-  const studioId = await resolveStudioId(authUser.id);
+  const studioId = await resolveConversationStudioId(req);
   if (!studioId) {
     res.status(404).json({ error: "No active professional connection" });
     return;
@@ -952,7 +965,7 @@ router.get("/audio/:entryId", requireClientWorkspaceAccess, async (req: Request,
   }
 
   const { entryId } = req.params;
-  const studioId = await resolveStudioId(authUser.id);
+  const studioId = await resolveConversationStudioId(req);
   if (!studioId) {
     res.status(404).json({ error: "No active professional connection" });
     return;

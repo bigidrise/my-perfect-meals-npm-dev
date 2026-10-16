@@ -80,6 +80,7 @@ import { QuickStartPopover } from "@/components/QuickStartPopover";
 import CoachCornerCard from "@/components/ace/CoachCornerCard";
 import { COACHES_CORNER_ENABLED } from "@/features/coachCornerFlag";
 import { developmentClientMessagingEnabled } from "@/features/clientMessagingFlag";
+import { clientMessageSendError } from "@/lib/clientMessageSendError";
 import {
   advanceClientInboxReadState,
   clientInboxReadKey,
@@ -148,6 +149,13 @@ export default function DashboardNew() {
   const [tabletMessages, setTabletMessages] = useState<any[]>([]);
   const [tabletLoading, setTabletLoading] = useState(false);
   const [tabletError, setTabletError] = useState<string | null>(null);
+  const [tabletSendError, setTabletSendError] = useState<{
+    message: string; retry: "text" | "voice" | null;
+  } | null>(null);
+  const reportTabletSendError = (message: string, retry: "text" | "voice" | null) => {
+    if (developmentClientMessagingEnabled) setTabletSendError({ message, retry });
+    else setTabletError(message);
+  };
   const [tabletPlaybackError, setTabletPlaybackError] = useState<string | null>(null);
   const [tabletInput, setTabletInput] = useState("");
   const [tabletSending, setTabletSending] = useState(false);
@@ -209,6 +217,7 @@ export default function DashboardNew() {
       : { latestAt: 0, ids: [] };
     setTabletMessages([]); setTabletOpen(false); setTabletHasUnread(false);
     setTabletError(null); setTabletPlaybackError(null); setTabletInput("");
+    setTabletSendError(null);
     setTabletVideoMode(false); setTabletVideoUrls({}); setTabletOpenVideoId(null);
     setTabletHasNewMessagesBelow(false); setTabletSending(false);
     setTabletTranslatingId(null); setTabletVoiceSending(false);
@@ -336,16 +345,23 @@ export default function DashboardNew() {
     }
     if (!tabletInput.trim() || tabletSending) return;
     const accountId = user?.id;
+    const draft = tabletInput;
     setTabletSending(true);
+    if (developmentClientMessagingEnabled) setTabletSendError(null);
     try {
       const res = await fetch(apiUrl("/api/client/tablet/message"), {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         credentials: "include",
-        body: JSON.stringify({ body: tabletInput.trim() }),
+        body: JSON.stringify({ body: draft.trim() }),
       });
       if (!isCurrentTabletAccount(accountId)) return;
       if (!res.ok) {
+        if (developmentClientMessagingEnabled) {
+          const message = await clientMessageSendError(res);
+          if (isCurrentTabletAccount(accountId)) reportTabletSendError(message, "text");
+          return;
+        }
         if (res.status === 422) {
           const errData = await res.json().catch(() => ({}));
           setTabletError(errData.error || "Message blocked by content policy");
@@ -356,9 +372,12 @@ export default function DashboardNew() {
       const data = await res.json();
       if (!isCurrentTabletAccount(accountId)) return;
       setTabletMessages((prev) => [...prev, data.entry]);
-      setTabletInput("");
+      setTabletInput(current => developmentClientMessagingEnabled && current !== draft ? current : "");
     } catch {
-      if (isCurrentTabletAccount(accountId)) setTabletError("Failed to send message");
+      if (isCurrentTabletAccount(accountId)) reportTabletSendError(
+        developmentClientMessagingEnabled ? "The message could not be sent. Your draft has been kept. Check the conversation before retrying." : "Failed to send message",
+        "text",
+      );
     } finally {
       if (isCurrentTabletAccount(accountId)) setTabletSending(false);
     }
@@ -499,10 +518,11 @@ export default function DashboardNew() {
 
   const startTabletRecording = async () => {
     const accountId = user?.id;
-    setTabletError(null);
+    if (developmentClientMessagingEnabled) setTabletSendError(null);
+    else setTabletError(null);
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
-        setTabletError("Audio recording not supported in this browser");
+        reportTabletSendError("Audio recording not supported in this browser", null);
         return;
       }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -544,9 +564,9 @@ export default function DashboardNew() {
       }, 1000);
     } catch (err: any) {
       if (err?.name === "NotAllowedError") {
-        setTabletError("Microphone access denied — please allow it in your browser settings");
+        if (isCurrentTabletAccount(accountId)) reportTabletSendError("Microphone access denied — please allow it in your browser settings", null);
       } else {
-        setTabletError("Could not start recording");
+        if (isCurrentTabletAccount(accountId)) reportTabletSendError("Could not start recording", null);
       }
     }
   };
@@ -562,6 +582,7 @@ export default function DashboardNew() {
 
   const discardTabletVoice = () => {
     setTabletAudioBlob(null);
+    if (developmentClientMessagingEnabled) setTabletSendError(null);
     setTabletRecordingSec(0);
     tabletStreamRef.current?.getTracks().forEach((t) => t.stop());
     tabletStreamRef.current = null;
@@ -571,6 +592,7 @@ export default function DashboardNew() {
     const accountId = user?.id;
     if (!tabletAudioBlob || tabletVoiceSending) return;
     setTabletVoiceSending(true);
+    if (developmentClientMessagingEnabled) setTabletSendError(null);
     try {
       const formData = new FormData();
       const ext = tabletAudioMimeType.includes("webm") ? "webm"
@@ -587,6 +609,11 @@ export default function DashboardNew() {
       });
       if (!isCurrentTabletAccount(accountId)) return;
       if (!res.ok) {
+        if (developmentClientMessagingEnabled) {
+          const message = await clientMessageSendError(res);
+          if (isCurrentTabletAccount(accountId)) reportTabletSendError(message, "voice");
+          return;
+        }
         const errData = await res.json().catch(() => ({}));
         setTabletError(errData.error || "Failed to send voice message");
         return;
@@ -597,7 +624,10 @@ export default function DashboardNew() {
       setTabletAudioBlob(null);
       setTabletRecordingSec(0);
     } catch {
-      if (isCurrentTabletAccount(accountId)) setTabletError("Failed to send voice message");
+      if (isCurrentTabletAccount(accountId)) reportTabletSendError(
+        developmentClientMessagingEnabled ? "The voice message could not be sent. Your recording has been kept. Check the conversation before retrying." : "Failed to send voice message",
+        "voice",
+      );
     } finally {
       if (isCurrentTabletAccount(accountId)) setTabletVoiceSending(false);
     }
@@ -1218,7 +1248,7 @@ export default function DashboardNew() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-sm font-semibold text-white">
-                      {developmentClientMessagingEnabled ? t("clientMessages") : t("myMessages")}
+                      {developmentClientMessagingEnabled ? "Messages" : t("myMessages")}
                     </h3>
                     <p className={`text-xs ${tabletHasUnread ? "text-orange-400 font-medium" : "text-white/70"}`}>
                       {tabletHasUnread ? t("newCoachMsg") : t("viewCoach")}
@@ -1276,6 +1306,21 @@ export default function DashboardNew() {
               )}
               {developmentClientMessagingEnabled && tabletPlaybackError && (
                 <p role="alert" className="text-sm text-red-400">{tabletPlaybackError}. You can retry playback below.</p>
+              )}
+              {developmentClientMessagingEnabled && tabletSendError && (
+                <div role="alert" data-testid="client-message-send-error" className="rounded-md border border-red-400/40 bg-red-500/10 p-3 space-y-2">
+                  <p className="text-sm text-red-300">{tabletSendError.message}</p>
+                  {tabletSendError.retry && (
+                    <Button
+                      size="sm"
+                      disabled={tabletSending || tabletVoiceSending || !!tabletError ||
+                        (tabletSendError.retry === "text" ? !tabletInput.trim() : !tabletAudioBlob)}
+                      onClick={() => tabletSendError.retry === "voice" ? sendTabletVoice() : handleTabletSend()}
+                    >
+                      Retry {tabletSendError.retry === "voice" ? "voice message" : "message"}
+                    </Button>
+                  )}
+                </div>
               )}
               {!tabletLoading && !tabletError && (
                 <>
@@ -1492,6 +1537,7 @@ export default function DashboardNew() {
                       key={user?.id}
                       recipientName="your coach"
                       uploadPath="/api/client/tablet/video-message"
+                      getSendErrorMessage={developmentClientMessagingEnabled ? clientMessageSendError : undefined}
                       onSent={(entry) => {
                         if (isCurrentTabletAccount(user?.id)) setTabletMessages((previous) => [...previous, entry]);
                       }}
@@ -1528,6 +1574,7 @@ export default function DashboardNew() {
                         size="sm"
                         disabled={tabletVoiceSending}
                         onClick={sendTabletVoice}
+                        aria-label={developmentClientMessagingEnabled ? "Send voice message" : undefined}
                         className="bg-orange-600 px-3 shrink-0"
                       >
                         {tabletVoiceSending ? (
