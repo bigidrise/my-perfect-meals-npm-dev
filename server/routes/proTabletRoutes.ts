@@ -22,6 +22,7 @@ import { getOrSet, invalidateClientTabletCache, invalidatePrefix } from "../serv
 import multer from "multer";
 
 const PRO_UNREAD_TTL_MS = 15_000;
+let developmentUnreadTraceSequence = 0;
 
 /** Invalidate the pro unread-summary cache for a given pro user. */
 export function invalidateProUnreadCache(proUserId: string): void {
@@ -643,13 +644,17 @@ router.get("/unread-summary", async (req: Request, res: Response) => {
   }
 
   const cacheKey = `pro-unread:${authUser.id}`;
+  const includeVideos = developmentClientConversationEnabled();
+  let queryBranch = "cache";
   const payload = await getOrSet(cacheKey, PRO_UNREAD_TTL_MS, async () => {
     const studioId = await getProStudioId(authUser.id);
     if (!studioId) {
+      queryBranch = "no-studio";
       return { clients: [], totalUnread: 0 };
     }
 
-    const result = await db.execute(developmentClientConversationEnabled()
+    queryBranch = includeVideos ? "video-inclusive" : "legacy";
+    const result = await db.execute(includeVideos
       ? developmentProUnreadQuery(studioId, authUser.id)
       : sql`
       SELECT
@@ -686,6 +691,14 @@ router.get("/unread-summary", async (req: Request, res: Response) => {
     return { clients, totalUnread };
   });
 
+  if (includeVideos) {
+    const request = ++developmentUnreadTraceSequence;
+    res.set("X-Development-Unread-Trace", String(request));
+    console.info("[StudioUnreadTrace]", {
+      stage: "server", request, queryBranch,
+      count: payload.totalUnread, clientGroups: payload.clients.length,
+    });
+  }
   res.set("Cache-Control", "no-store");
   res.json(payload);
 });
