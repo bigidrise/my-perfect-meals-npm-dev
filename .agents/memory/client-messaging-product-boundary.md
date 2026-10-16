@@ -3,23 +3,23 @@ name: Client messaging product boundary
 description: Dashboard messaging visibility for accounts without a Studio.
 ---
 
-Someone who does not have a Studio account should have only Client Messages, not a Provider Messages button.
+Personal Space should have one Provider Messages entry for receiving and replying to the user's own provider, not separate Client Messages and Provider Messages buttons.
 
-**Why:** The user explicitly stated this expected client-side behavior while reporting a received video that appeared only as “Video message.”
+**Why:** The user clarified that the dashboard Client Messages button should be hidden and the single remaining entry should say Provider Messages.
 
 **How to apply:** Keep client message access independent of owning a Studio. Do not interpret professional-role metadata alone as proof that the account owns or can enter a Studio.
 
-Personal Space has one Client Messages entry that opens the conversation directly, including professional messages and supported media. Accounts with both Personal and Studio access keep professional tools in their independently authorized Studio context, not in a second Personal inbox.
+Personal Space has one conversation entry that opens messages directly, including professional messages and supported media. Accounts with both Personal and Studio access keep professional sending and receiving inside Studio; their Personal inbox is only for conversations where they are the client.
 
 **Why:** The user approved correcting the messaging defects in Development and explicitly said clients must not need a Studio account to receive a physician's or trainer's video.
 
 **How to apply:** Reuse existing messaging and protected media APIs. Preserve relationships, organization isolation, consent, and message/attachment records. Verification uses isolated fixtures because Neon is shared; Development approval does not authorize Production publication or changes to the Physician Studio restoration.
 
-The current sidebar investigation concerns only the existing Pro Portal indicator. Leave the working Client Messages experience alone; do not add Personal notification navigation.
+The earlier sidebar-only correction did not authorize Personal notification navigation. A later Production messaging report explicitly reopened diagnosis of Personal inbox duplication and failed replies, without authorizing code changes.
 
 **Why:** The user clarified: “Don't worry about the client messages those are already working. The only indicator light that is not working is the left side bar pro portal.”
 
-**How to apply:** Trace the existing professional sidebar unread path and keep the two message directions separate. Earlier discussion of a Personal sidebar extension does not authorize that work after this clarification.
+**How to apply:** Keep the two message directions separate. The latest diagnosis request supersedes the earlier sidebar-only investigation scope, but does not authorize implementation or publication.
 
 For the sidebar notification correction, find and repair the existing indicator system; do not add replacement navigation or a second notification system.
 
