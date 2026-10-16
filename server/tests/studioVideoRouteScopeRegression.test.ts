@@ -20,22 +20,24 @@ const mockDb = {
   select: jest.fn(() => mockQuery),
   insert: jest.fn(() => mockQuery),
   update: jest.fn(() => mockQuery),
-  execute: jest.fn(async () => undefined),
+  execute: jest.fn(async (_query: unknown): Promise<any> => undefined),
 };
 
 const mockTranscribeStudioVideoBuffer = jest.fn();
 const mockUploadStudioVideoToS3 = jest.fn(async () => undefined);
-const mockModeratePrivateStudioContent = jest.fn(() => ({ allowed: true }));
+const mockModeratePrivateStudioContent = jest.fn((): Record<string, unknown> => ({ allowed: true }));
 const mockAuditStudioVideoAction = jest.fn();
 const mockGetStudioVideoMessage = jest.fn();
 const mockHideStudioMessageForViewer = jest.fn();
 let mockClientAccessDenied = false;
+let mockProfessionalAccessDenied = false;
 const mockClientAccessCheck = jest.fn();
 
 jest.mock("../db", () => ({ db: mockDb }));
 
 jest.mock("../middleware/requireWorkspaceAccess", () => ({
   requireWorkspaceAccess: (_req: any, _res: any, next: any) => {
+    if (mockProfessionalAccessDenied) return _res.status(403).json({ error: "No active workspace access" });
     _req.authUser = {
       id: PRO_ID,
       organizationId: null,
@@ -130,7 +132,8 @@ jest.mock("../lib/auditLog", () => ({
 import proTabletRouter from "../routes/proTabletRoutes";
 import clientTabletRouter from "../routes/clientTabletRoutes";
 import { createStudioVoiceNote } from "../services/studioVoiceMessageService";
-import { getOrSet } from "../services/queryCache";
+import { getOrSet, invalidatePrefix } from "../services/queryCache";
+import { PgDialect } from "drizzle-orm/pg-core";
 import { listStudioVideoMessages } from "../services/studioVideoMessageService";
 
 function buildApp(router: any, prefix: string) {
@@ -141,6 +144,98 @@ function buildApp(router: any, prefix: string) {
   });
   return app;
 }
+
+describe("Development professional unread summary", () => {
+  const originalMode = process.env.NODE_ENV;
+  const originalDeployment = process.env.REPLIT_DEPLOYMENT;
+  beforeEach(() => {
+    process.env.NODE_ENV = "development";
+    mockProfessionalAccessDenied = false;
+    delete process.env.REPLIT_DEPLOYMENT;
+    mockDb.select.mockClear();
+    mockDb.insert.mockClear();
+    mockDb.update.mockClear();
+    mockQuery.limit.mockResolvedValue([{ id: STUDIO_ID, ownerUserId: PRO_ID }] as any);
+    mockDb.execute.mockReset();
+    mockDb.execute.mockResolvedValue({ rows: [{
+      clientUserId: CLIENT_ID, unreadCount: 1,
+      lastMessageAt: "2000-01-03T00:00:00Z", lastMessageBody: "Video message",
+    }] } as any);
+    (getOrSet as jest.Mock).mockImplementation((_key, _ttl, factory) => factory());
+    (invalidatePrefix as jest.Mock).mockClear();
+    (listStudioVideoMessages as jest.Mock).mockResolvedValue([]);
+  });
+  afterEach(() => {
+    mockProfessionalAccessDenied = false;
+    process.env.NODE_ENV = originalMode;
+    if (originalDeployment === undefined) delete process.env.REPLIT_DEPLOYMENT;
+    else process.env.REPLIT_DEPLOYMENT = originalDeployment;
+  });
+  function ownerApp(authenticated = true) {
+    const instance = express();
+    // Existing upstream authentication/entitlement gates remain unchanged.
+    instance.use((req, _res, next) => {
+      if (authenticated) (req as any).authUser = {
+        id: PRO_ID, professionalRole: "business", role: "admin", isProCare: false,
+      };
+      next();
+    });
+    instance.use("/api/pro/tablet", proTabletRouter);
+    return instance;
+  }
+  test("an authorized dual-role business owner receives the existing summary contract, without marking it read", async () => {
+    const result = await request(ownerApp()).get("/api/pro/tablet/unread-summary");
+    expect(result.status).toBe(200);
+    expect(result.body).toEqual({
+      clients: [expect.objectContaining({ clientUserId: CLIENT_ID, unreadCount: 1 })], totalUnread: 1,
+    });
+    const query = new PgDialect().sqlToQuery(mockDb.execute.mock.calls[0][0] as any);
+    expect(query.sql).toContain("studio_video_messages");
+    expect(query.sql).not.toMatch(/\b(INSERT|UPDATE|DELETE)\b/);
+    expect(query.params).toContain(STUDIO_ID);
+    expect(query.params).toContain(PRO_ID);
+    expect(mockDb.execute).toHaveBeenCalledTimes(1);
+    expect(mockDb.insert).not.toHaveBeenCalled();
+    expect(mockDb.update).not.toHaveBeenCalled();
+    expect(invalidatePrefix).not.toHaveBeenCalled();
+  });
+  test("an anonymous request is denied before database reads", async () => {
+    expect((await request(ownerApp(false)).get("/api/pro/tablet/unread-summary")).status).toBe(401);
+    expect(mockDb.select).not.toHaveBeenCalled();
+    expect(mockDb.execute).not.toHaveBeenCalled();
+  });
+  test("business/admin metadata alone never supplies a Studio", async () => {
+    mockQuery.limit.mockResolvedValueOnce([]);
+    expect((await request(ownerApp()).get("/api/pro/tablet/unread-summary")).body)
+      .toEqual({ clients: [], totalUnread: 0 });
+    expect(mockDb.execute).not.toHaveBeenCalled();
+  });
+  test.each(["production", "deployed-development"])("%s keeps the legacy text/voice query", async mode => {
+    if (mode === "production") process.env.NODE_ENV = "production";
+    else process.env.REPLIT_DEPLOYMENT = "1";
+    await request(ownerApp()).get("/api/pro/tablet/unread-summary");
+    const query = new PgDialect().sqlToQuery(mockDb.execute.mock.calls[0][0] as any);
+    expect(query.sql).toContain("client_notes");
+    expect(query.sql).not.toContain("studio_video_messages");
+  });
+  test("opening the authorized folder preserves its read write and invalidates the owner's cached unread total", async () => {
+    mockDb.execute.mockResolvedValue({ rows: [] } as any);
+    const result = await request(ownerApp()).get(`/api/pro/tablet/${CLIENT_ID}`);
+    expect(result.status).toBe(200);
+    const markerQueries = mockDb.execute.mock.calls.map(([query]) => new PgDialect().sqlToQuery(query as any))
+      .filter(query => query.sql.includes("INSERT INTO pro_message_reads"));
+    expect(markerQueries).toHaveLength(1);
+    expect(markerQueries[0].params).toEqual([STUDIO_ID, CLIENT_ID]);
+    expect(markerQueries[0].sql).toContain("DO UPDATE SET last_read_at = NOW()");
+    expect(invalidatePrefix).toHaveBeenCalledWith(`pro-unread:${PRO_ID}`);
+  });
+  test("a denied client folder does not advance any marker or clear a cached count", async () => {
+    mockProfessionalAccessDenied = true;
+    expect((await request(ownerApp()).get(`/api/pro/tablet/${CLIENT_ID}`)).status).toBe(403);
+    expect(mockDb.execute).not.toHaveBeenCalled();
+    expect(invalidatePrefix).not.toHaveBeenCalled();
+  });
+});
 
 describe("Studio video route transcript scope regression", () => {
   beforeEach(() => {

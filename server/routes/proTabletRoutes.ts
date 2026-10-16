@@ -12,6 +12,8 @@ import { eq, and, asc, desc, inArray, isNull, notExists } from "drizzle-orm";
 import { requireWorkspaceAccess } from "../middleware/requireWorkspaceAccess";
 import { logAudit, getClientIp } from "../lib/auditLog";
 import { AuthenticatedRequest } from "../middleware/requireAuth";
+import { developmentClientConversationEnabled } from "../middleware/developmentClientConversation";
+import { developmentProUnreadQuery } from "../services/developmentProUnreadQuery";
 import { moderatePrivateStudioContent, BLOCKED_MESSAGE } from "../services/tabletModerationService";
 import { notifyClientOfMessage, notifyClientOfNote } from "../services/tabletNotificationService";
 import { logClientActivity } from "../services/activityLog";
@@ -93,7 +95,7 @@ async function getProStudioId(proUserId: string): Promise<string | null> {
   return studio?.id ?? null;
 }
 
-async function markMessagesRead(studioId: string, clientUserId: string): Promise<void> {
+async function markMessagesRead(studioId: string, clientUserId: string, proUserId: string): Promise<void> {
   try {
     await db.execute(sql`
       INSERT INTO pro_message_reads (studio_id, client_user_id, last_read_at)
@@ -101,6 +103,7 @@ async function markMessagesRead(studioId: string, clientUserId: string): Promise
       ON CONFLICT (studio_id, client_user_id)
       DO UPDATE SET last_read_at = NOW()
     `);
+    if (developmentClientConversationEnabled()) invalidateProUnreadCache(proUserId);
   } catch (err) {
     console.warn("Could not mark messages as read:", err);
   }
@@ -646,7 +649,9 @@ router.get("/unread-summary", async (req: Request, res: Response) => {
       return { clients: [], totalUnread: 0 };
     }
 
-    const result = await db.execute(sql`
+    const result = await db.execute(developmentClientConversationEnabled()
+      ? developmentProUnreadQuery(studioId, authUser.id)
+      : sql`
       SELECT
         cn.client_user_id AS "clientUserId",
         COUNT(*) FILTER (
@@ -812,7 +817,7 @@ router.get("/:clientId", requireWorkspaceAccess, async (req: Request, res: Respo
     .limit(200);
   const videoMessages = await listStudioVideoMessages(studioId, clientId, authUser.id);
 
-  markMessagesRead(studioId, clientId);
+  markMessagesRead(studioId, clientId, authUser.id);
 
   const isClientOnly = (tags: string[] | null) =>
     Array.isArray(tags) && tags.includes("visibleTo:client");
@@ -917,7 +922,7 @@ router.post("/:clientId/message", requireWorkspaceAccess, async (req: Request, r
 
   notifyClientOfMessage(clientId);
 
-  markMessagesRead(studioId, clientId);
+  markMessagesRead(studioId, clientId, authUser.id);
 
   logAudit({ actor: authUser.id, target: clientId, orgId: authUser.organizationId ?? null, action: "WRITE", resourceType: "client_message", table: "client_notes", resourceId: entry.id, route: req.path, ip: getClientIp(req as any) });
   res.status(201).json({ entry });
