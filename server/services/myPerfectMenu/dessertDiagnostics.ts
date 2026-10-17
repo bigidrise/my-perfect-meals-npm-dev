@@ -7,6 +7,7 @@ export interface DessertDiagnostic {
   outcome?: "accepted" | "rejected" | "valid" | "invalid";
   repairAttempted?: boolean;
   repairSucceeded?: boolean;
+  displayDescriptionRecovered?: boolean;
   issues?: { path: string; rule: string; phase: "before" | "after" }[];
   branch?: string;
   evidence?: {
