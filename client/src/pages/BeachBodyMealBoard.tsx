@@ -1527,6 +1527,7 @@ export default function BeachBodyMealBoard() {
                           {dayLists[key as keyof typeof dayLists].map(
                             (meal: Meal, idx: number) => (
                               <MealCard
+                                originBuilder="performance"
                                 key={meal.id}
                                 date={activeDayISO}
                                 slot={key}
@@ -1645,6 +1646,7 @@ export default function BeachBodyMealBoard() {
                   <div className="space-y-3">
                     {board.lists[key].map((meal: Meal, idx: number) => (
                       <MealCard
+                        originBuilder="performance"
                         key={meal.id}
                         date={"board"}
                         slot={key}
@@ -1732,6 +1734,7 @@ export default function BeachBodyMealBoard() {
                     const dayLists = getDayLists(board, activeDayISO);
                     return dayLists.snacks.map((meal: Meal, idx: number) => (
                       <MealCard
+                        originBuilder="performance"
                         key={meal.id}
                         date={activeDayISO}
                         slot="snacks"
@@ -1783,6 +1786,7 @@ export default function BeachBodyMealBoard() {
                   })()
                 : board.lists.snacks.map((meal: Meal, idx: number) => (
                     <MealCard
+                      originBuilder="performance"
                       key={meal.id}
                       date={"board"}
                       slot="snacks"
