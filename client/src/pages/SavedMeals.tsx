@@ -8,6 +8,7 @@ import { setQuickView } from "@/lib/macrosQuickView";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
 import SavedMealRow from "@/components/SavedMealRow";
+import { savedMealSourceLabel } from "@/lib/savedMealSource";
 import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
 
 export default function SavedMeals() {
@@ -21,28 +22,9 @@ export default function SavedMeals() {
   const allMeals = data?.pages.flatMap(p => p.meals) ?? [];
   const totalCount = data?.pages[0]?.total ?? 0;
 
-  // ── Source label map (i18n) ───────────────────────────────────────────────
-  const SOURCE_LABELS: Record<string, string> = {
-    "meal-builder":           t("savedMeals.sourceMealBuilder"),
-    "general-nutrition":      t("savedMeals.sourceGeneralNutrition"),
-    "performance-competition":t("savedMeals.sourcePerformance"),
-    "diabetic":               t("savedMeals.sourceDiabetic"),
-    "glp1":                   t("savedMeals.sourceMetabolic"),
-    "anti-inflammatory":      t("savedMeals.sourceAntiInflam"),
-    "craving-creator":        t("savedMeals.sourceCravingCreator"),
-    "dessert-creator":        t("savedMeals.sourceDessertCreator"),
-    "fridge-rescue":          t("savedMeals.sourceFridgeRescue"),
-    "chefs-kitchen":          t("savedMeals.sourceChefsKitchen"),
-    "weekly-board":           t("savedMeals.sourceWeeklyBoard"),
-    "pairings-ai":            t("savedMeals.sourcePairings"),
-    "wine-list-helper":       t("savedMeals.sourceWineList"),
-    "my-inspiration":         t("savedMeals.sourceRecipeScan"),
-    "grocery-coach":          t("savedMeals.sourceGroceryCoach"),
-    unknown:                  t("savedMeals.sourceMeal"),
-  };
-
-  function sourceLabel(s: string): string {
-    return SOURCE_LABELS[s] || s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  function sourceLabel(sourceType: string, mealData?: unknown): string {
+    return savedMealSourceLabel(sourceType, mealData,
+      (key, fallback) => t(key, { defaultValue: fallback }));
   }
 
   // ── Diabetic BGL sections ─────────────────────────────────────────────────

@@ -1608,7 +1608,7 @@ export default function AntiInflammatoryMenuBuilder() {
                         </div>
                         <div className="space-y-3">
                           {dayLists[key as keyof typeof dayLists].map((meal: Meal, idx: number) => (
-                            <MealCard key={meal.id} date={activeDayISO} slot={key} meal={meal} showStarchBadge={true} builderType={clinicalModeState} data-wt="wmb-meal-card"
+                            <MealCard key={meal.id} date={activeDayISO} slot={key} meal={meal} showStarchBadge={true} builderType={clinicalModeState} originBuilder="anti_inflammatory" data-wt="wmb-meal-card"
                               onUpdated={(m) => {
                                 if (m === null) {
                                   if (meal.id.startsWith("ai-meal-")) clearAIMealsCache();
@@ -1655,7 +1655,7 @@ export default function AntiInflammatoryMenuBuilder() {
                       </div>
                       <div className="space-y-3">
                         {dayLists.snacks.map((meal: Meal) => (
-                          <MealCard key={meal.id} date={activeDayISO} slot="snacks" meal={meal} showStarchBadge={true} builderType={clinicalModeState}
+                          <MealCard key={meal.id} date={activeDayISO} slot="snacks" meal={meal} showStarchBadge={true} builderType={clinicalModeState} originBuilder="anti_inflammatory"
                             onUpdated={(m) => {
                               if (m === null) {
                                 const updatedDayLists = { ...dayLists, snacks: dayLists.snacks.filter((e) => e.id !== meal.id) };
@@ -1695,7 +1695,7 @@ export default function AntiInflammatoryMenuBuilder() {
                   </div>
                   <div className="space-y-3">
                     {(board.lists[key] || []).map((meal: Meal, idx: number) => (
-                      <MealCard key={meal.id} date={"board"} slot={key} meal={meal} showStarchBadge={true} builderType={clinicalModeState}
+                      <MealCard key={meal.id} date={"board"} slot={key} meal={meal} showStarchBadge={true} builderType={clinicalModeState} originBuilder="anti_inflammatory"
                         onUpdated={(m) => {
                           if (m === null) {
                             if (!board) return;

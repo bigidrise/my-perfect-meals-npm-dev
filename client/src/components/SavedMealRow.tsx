@@ -26,7 +26,7 @@ import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
 interface Props {
   row: any;
 
-  sourceLabel: (s: string) => string;
+  sourceLabel: (sourceType: string, mealData?: unknown) => string;
 
   onRemove: (row: any) => void;
 
@@ -120,7 +120,7 @@ export default function SavedMealRow({
         <div className="flex items-center gap-2 text-left min-w-0 flex-1">
           <div className="min-w-0">
             <div className="text-white font-medium truncate">{displayTitle}</div>
-            <div className="text-xs text-white/50">{sourceLabel(row.sourceType)}</div>
+            <div className="text-xs text-white/50">{sourceLabel(row.sourceType, row.mealData)}</div>
             {!isExpanded && <DiabetesProtocolIndicator memory={d?.diabeticMemory} compact />}
           </div>
         </div>

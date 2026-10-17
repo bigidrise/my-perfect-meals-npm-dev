@@ -1291,16 +1291,16 @@ export default function MyPerfectMenu() {
       </AlertDialog>
 
       <AlertDialog open={tryMoreOpen} onOpenChange={setTryMoreOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="border-orange-300/20 bg-black/95 text-white shadow-2xl backdrop-blur-xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Try 3 new ideas?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-white">Try 3 new ideas?</AlertDialogTitle>
+            <AlertDialogDescription className="text-white/70">
               These three ideas will be replaced with three new personalized choices. If you already created a meal you want to keep, save the finished meal to Favorites first.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep These Ideas</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmTryMore}>Replace with 3 New Ideas</AlertDialogAction>
+            <AlertDialogCancel className="border-white/15 bg-white/10 text-white hover:bg-white/15 hover:text-white">Keep These Ideas</AlertDialogCancel>
+            <AlertDialogAction className="bg-orange-600 text-white hover:bg-orange-700" onClick={confirmTryMore}>Replace with 3 New Ideas</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

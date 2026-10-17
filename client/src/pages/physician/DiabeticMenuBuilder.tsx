@@ -1397,6 +1397,7 @@ export default function DiabeticMenuBuilder() {
                       <div className="space-y-3">
                         {dayLists[key as keyof typeof dayLists].map((meal: Meal, idx: number) => (
                           <MealCard
+                            originBuilder="diabetic"
                             key={meal.id}
                             date={activeDayISO}
                             slot={key}
@@ -1460,7 +1461,7 @@ export default function DiabeticMenuBuilder() {
                     </div>
                     <div className="space-y-3">
                       {dayLists.snacks.map((meal: Meal) => (
-                        <MealCard key={meal.id} date={activeDayISO} slot="snacks" meal={meal} showStarchBadge={true} builderType="diabetic" proClientId={proClientId} weekStartISO={weekStartISO}
+                        <MealCard key={meal.id} date={activeDayISO} slot="snacks" meal={meal} showStarchBadge={true} builderType="diabetic" originBuilder="diabetic" proClientId={proClientId} weekStartISO={weekStartISO}
                                 coachingLine={t("diabeticBuilder.coachingLine")}
                                 diabeticMemoryContext={meal.diabeticMemory ?? undefined}
                           onUpdated={(m) => {
@@ -1507,6 +1508,7 @@ export default function DiabeticMenuBuilder() {
                 <div className="space-y-3">
                   {board.lists[key].map((meal: Meal, idx: number) => (
                     <MealCard
+                      originBuilder="diabetic"
                       key={meal.id}
                       date={"board"}
                       slot={key}

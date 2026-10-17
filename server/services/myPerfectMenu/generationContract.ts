@@ -5,14 +5,20 @@ import {
 } from "@shared/myPerfectMenu";
 import { culinaryIdentitySchema } from "@shared/culinaryIdentity";
 import { normalizeGeneratedMenuResponse } from "./normalizeGeneratedConcepts";
+import { developmentSnackRepairEnabled } from "../snackCompatibilityRepair";
+import { safeSchemaIssues, type DessertDiagnosticSink } from "./dessertDiagnostics";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 export const generatedMenuConceptSchema = myPerfectMenuConceptSchema
-  .omit({ id: true, ideaType: true })
+  .omit({ id: true, ideaType: true, validationDescription: true })
   .extend({ culinaryIdentity: culinaryIdentitySchema });
+
+const dessertSourceSchema = generatedMenuConceptSchema.extend({
+  description: z.string().trim().min(3).max(4000),
+});
 
 const generatedMenuEnvelopeSchema = z.object({
   concepts: z.array(z.unknown()).min(1).max(8),
@@ -28,16 +34,23 @@ type RequiredMenuConceptKeys =
 // mode makes Zod infer required object properties as optional.
 export type GeneratedMenuConcept =
   Omit<ParsedMenuConcept, RequiredMenuConceptKeys> &
-  Required<Pick<ParsedMenuConcept, RequiredMenuConceptKeys>>;
+  Required<Pick<ParsedMenuConcept, RequiredMenuConceptKeys>> & {
+    validationDescription?: string;
+  };
 
 export interface ParsedGeneratedMenuCandidates {
   candidates: GeneratedMenuConcept[];
+  candidateIds?: string[];
   rejectionCodes: string[];
   metadataRepairCount: number;
+  repairInstructions?: string[];
 }
 
 const culinaryRepairSourceSchema = myPerfectMenuConceptSchema
   .omit({ id: true, ideaType: true, culinaryIdentity: true });
+const dessertCulinaryRepairSourceSchema = culinaryRepairSourceSchema.extend({
+  description: z.string().trim().min(3).max(4000),
+});
 
 function compactString(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
@@ -54,12 +67,13 @@ function inferredTemperature(text: string): "hot" | "warm" | "room_temperature" 
   return "warm";
 }
 
-function repairGeneratedConceptMetadata(value: unknown): { value: unknown; repaired: boolean } {
+function repairGeneratedConceptMetadata(value: unknown, dessertRepair = false): { value: unknown; repaired: boolean } {
   if (!isRecord(value)) return { value, repaired: false };
   const repaired: Record<string, unknown> = { ...value };
   let changed = false;
 
-  if (repaired.primaryProtein === undefined) {
+  if (repaired.primaryProtein === undefined ||
+    (dessertRepair && typeof repaired.primaryProtein === "string" && !repaired.primaryProtein.trim())) {
     repaired.primaryProtein = null;
     changed = true;
   }
@@ -73,8 +87,16 @@ function repairGeneratedConceptMetadata(value: unknown): { value: unknown; repai
   if (!Array.isArray(repaired.dietaryEvidence)) {
     repaired.dietaryEvidence = [];
     changed = true;
+  } else if (dessertRepair && !myPerfectMenuConceptSchema.shape.dietaryEvidence.safeParse(repaired.dietaryEvidence).success) {
+    // Retain valid advisory claims, but never turn malformed claims into evidence.
+    repaired.dietaryEvidence = repaired.dietaryEvidence
+      .filter(item => myPerfectMenuConceptSchema.shape.dietaryEvidence.element.safeParse(item).success)
+      .slice(0, 8);
+    changed = true;
   }
-  if (!compactString(repaired.signature)) {
+  if (dessertRepair
+    ? !myPerfectMenuConceptSchema.shape.signature.safeParse(repaired.signature).success
+    : !compactString(repaired.signature)) {
     const source = [repaired.title, repaired.primaryProtein, repaired.preparationMethod]
       .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
       .join("|")
@@ -85,7 +107,7 @@ function repairGeneratedConceptMetadata(value: unknown): { value: unknown; repai
     }
   }
 
-  const source = culinaryRepairSourceSchema.safeParse(repaired);
+  const source = (dessertRepair ? dessertCulinaryRepairSourceSchema : culinaryRepairSourceSchema).safeParse(repaired);
   if (source.success && !culinaryIdentitySchema.safeParse(repaired.culinaryIdentity).success) {
     const existing = isRecord(repaired.culinaryIdentity) ? repaired.culinaryIdentity : {};
     const temperature = compactString(existing.temperature);
@@ -100,7 +122,10 @@ function repairGeneratedConceptMetadata(value: unknown): { value: unknown; repai
       preparationStyle: compactString(existing.preparationStyle) ?? source.data.preparationMethod,
       ...(compactString(existing.texture) ? { texture: compactString(existing.texture) } : {}),
       ...(validTemperature ? { temperature: validTemperature } : {}),
-      primaryProteinBase: compactString(existing.primaryProteinBase) ?? source.data.primaryProtein,
+      primaryProteinBase: dessertRepair &&
+        culinaryIdentitySchema.shape.primaryProteinBase.safeParse(existing.primaryProteinBase).success
+        ? existing.primaryProteinBase
+        : compactString(existing.primaryProteinBase) ?? source.data.primaryProtein,
       majorStarchBase: compactString(existing.majorStarchBase) ?? null,
       flavorFamily: compactString(existing.flavorFamily) ?? source.data.cuisine,
       cuisineEvidence: compactString(existing.cuisineEvidence) ?? source.data.cuisine,
@@ -116,10 +141,25 @@ function repairGeneratedConceptMetadata(value: unknown): { value: unknown; repai
 export function parseGeneratedMenuCandidates(
   value: unknown,
   ideaType: MyPerfectMenuCategory,
+  options?: {
+    developmentDessertRepair: boolean;
+    attempt: number;
+    onDiagnostic?: DessertDiagnosticSink;
+  },
 ): ParsedGeneratedMenuCandidates {
-  const normalized = normalizeGeneratedMenuResponse(value, ideaType);
+  const dessertRepair = ideaType === "snack" &&
+    options?.developmentDessertRepair === true;
+  const diagnostic = dessertRepair && developmentSnackRepairEnabled()
+    ? options?.onDiagnostic : undefined;
+  const normalized = normalizeGeneratedMenuResponse(value, ideaType,
+    dessertRepair ? { preserveValidFoodIdentityFields: true } : undefined);
   const envelope = generatedMenuEnvelopeSchema.safeParse(normalized);
   if (!envelope.success) {
+    diagnostic?.({
+      stage: "schema", attempt: options!.attempt, candidateId: `a${options!.attempt}:envelope`,
+      outcome: "invalid", repairAttempted: false, repairSucceeded: false,
+      issues: safeSchemaIssues(envelope.error.issues, "after"),
+    });
     return {
       candidates: [],
       rejectionCodes: envelope.error.issues.map((issue) =>
@@ -130,12 +170,45 @@ export function parseGeneratedMenuCandidates(
   }
 
   const candidates: GeneratedMenuConcept[] = [];
+  const candidateIds: string[] = [];
   const rejectionCodes: string[] = [];
+  const repairInstructions = new Set<string>();
   let metadataRepairCount = 0;
   for (const [index, candidate] of envelope.data.concepts.entries()) {
-    const repaired = repairGeneratedConceptMetadata(candidate);
-    const parsed = generatedMenuConceptSchema.safeParse(repaired.value);
+    const originalCandidate = isRecord(value) && Array.isArray(value.concepts)
+      ? value.concepts[index] : candidate;
+    const normalizationRepair = dessertRepair && isRecord(originalCandidate) && isRecord(candidate) &&
+      originalCandidate.foodIdentity !== candidate.foodIdentity;
+    const before = diagnostic ? generatedMenuConceptSchema.safeParse(originalCandidate) : undefined;
+    const repaired = repairGeneratedConceptMetadata(candidate, dessertRepair);
+    let parsed = generatedMenuConceptSchema.safeParse(repaired.value);
+    let validationDescription: string | undefined;
+    if (dessertRepair && !parsed.success) {
+      const full = dessertSourceSchema.safeParse(repaired.value);
+      if (full.success) {
+        // Preserve the COMPLETE source for both initial and restored validation.
+        // Only the card copy is shortened, using an existing complete sentence
+        // or the already-validated title, never a chopped-off safety statement.
+        validationDescription = full.data.description;
+        const sentence = validationDescription.match(/^(.{3,180}?[.!?])(?:\s|$)/u)?.[1];
+        parsed = generatedMenuConceptSchema.safeParse({
+          ...full.data, description: sentence ?? full.data.title,
+        });
+      }
+    }
+    diagnostic?.({
+      stage: "schema", attempt: options!.attempt, candidateId: `a${options!.attempt}:c${index + 1}`,
+      outcome: parsed.success ? "valid" : "invalid",
+      repairAttempted: repaired.repaired || normalizationRepair || Boolean(validationDescription),
+      repairSucceeded: (repaired.repaired || normalizationRepair || Boolean(validationDescription)) && parsed.success,
+      ...(validationDescription ? { displayDescriptionRecovered: true } : {}),
+      issues: [
+        ...(before && !before.success ? safeSchemaIssues(before.error.issues, "before") : []),
+        ...(!parsed.success ? safeSchemaIssues(parsed.error.issues, "after") : []),
+      ],
+    });
     if (parsed.success) {
+      candidateIds.push(`a${options?.attempt ?? 0}:c${index + 1}`);
       candidates.push({
         ...parsed.data,
         title: parsed.data.title,
@@ -148,9 +221,15 @@ export function parseGeneratedMenuCandidates(
         preparationMethod: parsed.data.preparationMethod,
         signature: parsed.data.signature,
         culinaryIdentity: parsed.data.culinaryIdentity,
+        ...(validationDescription ? { validationDescription } : {}),
       });
-      if (repaired.repaired) metadataRepairCount += 1;
+      if (repaired.repaired || normalizationRepair || validationDescription) metadataRepairCount += 1;
     } else {
+      if (dessertRepair) {
+        for (const issue of safeSchemaIssues(parsed.error.issues, "after")) {
+          repairInstructions.add(`${issue.path}: ${issue.rule}`);
+        }
+      }
       rejectionCodes.push(
         ...parsed.error.issues.map((issue) =>
           `schema_metadata_failure:concept_${index}:${issue.path.join(".") || "concept"}`,
@@ -158,7 +237,9 @@ export function parseGeneratedMenuCandidates(
       );
     }
   }
-  return { candidates, rejectionCodes, metadataRepairCount };
+  return { candidates, rejectionCodes, metadataRepairCount,
+    ...(dessertRepair ? { repairInstructions: [...repairInstructions] } : {}),
+    ...(dessertRepair ? { candidateIds } : {}) };
 }
 
 function cuisineTokens(value: string): string[] {
@@ -190,6 +271,7 @@ export function rejectionCategory(reason: string): string {
   if (reason.startsWith("protocol:")) return "protocol_rejection";
   if (reason.startsWith("schema_metadata_failure:")) return "schema_metadata_failure";
   if (reason.startsWith("repetition:")) return "repetition_rejection";
+  if (reason.startsWith("history_uncertainty:")) return "history_evidence_required";
   return "governance_rejection";
 }
 

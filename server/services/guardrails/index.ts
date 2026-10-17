@@ -53,6 +53,9 @@ import {
   type WholeFoodPolicyContext,
   type WholeFoodPurpose,
 } from '../wholeFoodStandard';
+import {
+  validateCardiacSnackIngredients,
+} from '../snackCompatibilityRepair';
 
 function wholeFoodContextForDiet(dietType: DietType): WholeFoodPolicyContext {
   const purposes: WholeFoodPurpose[] = [];
@@ -415,8 +418,11 @@ export function validateMealForDiet(
   dietType: DietType,
   dietPhase?: BeachBodyPhase,
   isSnack: boolean = false,
-  glp1Targets?: ResolvedGLP1Targets
+  glp1Targets?: ResolvedGLP1Targets,
+  options?: { developmentSnackRepair?: boolean },
 ): ValidationResult {
+  // Legacy option name: explicit Snack Creator opt-in, not a Development gate.
+  const repairEnabled = isSnack && options?.developmentSnackRepair === true;
   // Helper: merge ingredient precision violations into any diet result
   function mergeWithPrecision(dietResult: ValidationResult): ValidationResult {
     const precisionCheck = validateIngredientPrecision(meal.ingredients);
@@ -443,6 +449,21 @@ export function validateMealForDiet(
         ...(wholeFoodDecision.shouldBlock ? wholeFoodDecision.matchedTerms : []),
       ],
       warnings: dietResult.warnings,
+      ...(repairEnabled ? {
+        issues: [
+          ...(dietResult.issues ?? dietResult.violations.map(message => ({
+            source: dietType ?? (glp1Targets ? "glp1" : "nutrition"),
+            ruleId: `${dietType ?? (glp1Targets ? "glp1" : "nutrition")}:compatibility`,
+            message,
+          }))),
+          ...precisionViolations.map(message => ({
+            source: "ingredient-precision", ruleId: "ingredient:measurement", message,
+          })),
+          ...wholeFoodViolations.map(message => ({
+            source: "whole-food", ruleId: "whole_food:compatibility", message,
+          })),
+        ],
+      } : {}),
     };
   }
 
@@ -503,6 +524,9 @@ export function validateMealForDiet(
       }
 
       case 'heart-failure': {
+        if (repairEnabled) {
+          return mergeWithPrecision(validateCardiacSnackIngredients(meal.ingredients, heartFailureBlockedIngredients));
+        }
         const blocked = heartFailureBlockedIngredients;
         const violations: string[] = [];
         for (const ing of meal.ingredients) {
@@ -670,6 +694,14 @@ export function validateMealForDiet(
       return {
         isValid: mergedViolations.length === 0,
         violations: mergedViolations,
+        ...(repairEnabled ? {
+          issues: [
+            ...(primaryResult.issues ?? []),
+            ...glp1Overlay.violations.map(message => ({
+              source: "glp1", ruleId: "glp1:compatibility", message,
+            })),
+          ],
+        } : {}),
         blockedIngredients: [
           ...(primaryResult.blockedIngredients ?? []),
           ...(glp1Overlay.blockedIngredients ?? []),

@@ -1,3 +1,7 @@
+import {
+  CARDIAC_DESSERT_ADAPTATION,
+  SnackCompatibilityError,
+} from "./snackCompatibilityRepair";
 /**
  * Unified Meal Generation Pipeline
  * 
@@ -4951,6 +4955,9 @@ Create the personalized snack for: "${cravingDescription}"`;
     const guardrailResult = applyGuardrails(basePrompt, dietType || null, 'snack',
       undefined, undefined, undefined, undefined, glp1Targets);
     let guardrailedPrompt = guardrailResult.modifiedPrompt;
+    if (dietType === "heart-failure") {
+      guardrailedPrompt += `\n\n${CARDIAC_DESSERT_ADAPTATION}`;
+    }
     
     if (guardrailResult.appliedRules.length > 0) {
       console.log(`🛡️ Applied snack guardrails: ${guardrailResult.appliedRules.join(', ')}`);
@@ -5067,26 +5074,19 @@ Create the personalized snack for: "${cravingDescription}"`;
             ...(tempSnack.carbs === null ? {} : { carbs: tempSnack.carbs }),
           },
         };
-        const validation = validateMealForDiet(snackForDietValidation, dietType, undefined, true, glp1Targets);
+        const validation = validateMealForDiet(snackForDietValidation, dietType, undefined, true, glp1Targets,
+          { developmentSnackRepair: true });
         if (!validation.isValid) {
-          const glp1Violations = validation.violations.filter(v =>
-            v.toLowerCase().includes('glp') || v.toLowerCase().includes('fat') ||
-            v.toLowerCase().includes('protein') || v.toLowerCase().includes('portion')
-          );
-          if (glp1Violations.length > 0) {
-            if (snackAttemptCount < SNACK_MAX_REGENERATION_ATTEMPTS) {
-              snackLastFixHint =
-                `GLP-1 CLINICAL CONSTRAINT VIOLATION — regenerate strictly compliant:\n` +
-                glp1Violations.join('; ') + '\n' +
-                `Reduce fat to under ${glp1Targets?.maximumToleratedFatGrams ?? 8}g, ` +
-                `target ${glp1Targets?.targetProteinGrams ?? 8}g protein, ` +
-                `keep snack very small (${glp1Targets?.resolvedSnackCalories ?? 150} kcal max).`;
-              console.warn(`⚠️ [GLP-1] Post-gen snack violation (attempt ${snackAttemptCount}) — scheduling regeneration: ${glp1Violations.join(', ')}`);
-              continue;
-            }
-            throw new GLP1ComplianceRetryExhaustedError("snack", glp1Violations, snackAttemptCount);
+          const issues = validation.issues ?? validation.violations.map(message => ({
+            source: dietType, ruleId: `${dietType}:compatibility`, message,
+          }));
+          if (snackAttemptCount < SNACK_MAX_REGENERATION_ATTEMPTS) {
+            snackLastFixHint = `COMPATIBILITY REPAIR — preserve the requested food and every active protocol:\n` +
+              issues.map(issue => `[${issue.source}/${issue.ruleId}] ${issue.message}`).join("\n") +
+              (dietType === "heart-failure" ? `\n${CARDIAC_DESSERT_ADAPTATION}` : "");
+            continue;
           }
-          console.warn(`⚠️ Snack has guardrail violations: ${validation.violations.join(', ')}`);
+          throw new SnackCompatibilityError(issues, snackAttemptCount);
         }
       }
 
@@ -5309,11 +5309,15 @@ Create the personalized snack for: "${cravingDescription}"`;
   } catch (error: any) {
     console.error('❌ Snack Creator generation failed:', error);
 
+    if (error instanceof SnackCompatibilityError ||
+      error instanceof GLP1ComplianceRetryExhaustedError) {
+      return { success: false, source: "error", error: error.message };
+    }
     if (protectedIdentity) {
       return {
         success: false,
         source: "error",
-        error: `We couldn't safely create the requested ${protectedIdentity} without changing it into a different food. Please try again.`,
+        error: `We couldn't finish creating the requested ${protectedIdentity} on this attempt. No replacement food was returned. Please try again.`,
       };
     }
     

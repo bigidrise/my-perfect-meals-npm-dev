@@ -234,6 +234,68 @@ describe("My Perfect Menu protected dessert retry boundary", () => {
     expect(retryPrompt).toContain("preserve recognizable cheesecake identity");
   });
 
+  it.each(["development", "production"])(
+    "%s repairs cardiac cheesecake ingredients without a false GLP-1 retry", async mode => {
+    const originalMode = process.env.NODE_ENV;
+    const originalDeployment = process.env.REPLIT_DEPLOYMENT;
+    process.env.NODE_ENV = mode;
+    delete process.env.REPLIT_DEPLOYMENT;
+    try {
+      const adapted = JSON.parse(snackResponse("Strawberry Cheesecake",
+        "A recognizable chilled cheesecake with a set creamy filling and almond base."));
+      adapted.ingredients = [
+        { name: "plain nonfat Greek yogurt", quantity: "3/4", unit: "cup" },
+        { name: "strawberries", quantity: "1/2", unit: "cup" },
+        { name: "unflavored gelatin", quantity: "1", unit: "tsp" },
+        { name: "unsalted almonds", quantity: "1", unit: "tbsp" },
+      ];
+      adapted.instructions = "1. Press the almond base. 2. Mix the yogurt filling with dissolved gelatin. 3. Pour over the base and chill until set.";
+      queueResponses(snackResponse("Strawberry Cheesecake", "A cheesecake with a set filling."),
+        JSON.stringify(adapted));
+      const result = await generateMealUnified({
+        type: "snack-creator", mealType: "snack", input: "Strawberry cheesecake",
+        dietType: "heart-failure", protocolEnvelope: SAFE_ENVELOPE,
+        generationContext: AUTHORITATIVE_CONTEXT, safetyAlreadyChecked: true,
+      });
+      expect(result.success).toBe(true);
+      expect(result.meal?.name).toContain("Cheesecake");
+      expect(capturedMessages[0].map(message => message.content).join("\n"))
+        .toContain("Dessert is not a prohibited category");
+      const retry = capturedMessages[1].map(message => message.content).join("\n");
+      expect(retry).toContain("heart-failure/cardiac:restricted_ingredient");
+      expect(retry).not.toContain("GLP-1 CLINICAL CONSTRAINT VIOLATION");
+      expect(mockScanGeneratedOutput).toHaveBeenCalled();
+    } finally {
+      process.env.NODE_ENV = originalMode;
+      if (originalDeployment === undefined) delete process.env.REPLIT_DEPLOYMENT;
+      else process.env.REPLIT_DEPLOYMENT = originalDeployment;
+    }
+  });
+
+  it.each(["development", "production"])(
+    "%s preserves the actual cardiac reason after bounded exhaustion", async mode => {
+    const originalMode = process.env.NODE_ENV;
+    process.env.NODE_ENV = mode;
+    try {
+      queueResponses(
+        snackResponse("Strawberry Cheesecake", "A chilled cheesecake with a creamy filling."),
+        snackResponse("Strawberry Cheesecake", "A chilled cheesecake with a creamy filling."),
+      );
+      const result = await generateMealUnified({
+        type: "snack-creator", mealType: "snack", input: "Strawberry cheesecake",
+        dietType: "heart-failure", protocolEnvelope: SAFE_ENVELOPE,
+        safetyAlreadyChecked: true,
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("[heart-failure]");
+      expect(result.error).not.toContain("GLP-1 targets");
+      expect(result.error).not.toContain("without changing it into a different food");
+      expect(mockCreate).toHaveBeenCalledTimes(2);
+    } finally {
+      process.env.NODE_ENV = originalMode;
+    }
+  });
+
   it("returns an explicit failure after identity retries instead of a generic fallback", async () => {
     queueResponses(
       snackResponse("Greek Yogurt Berry Cup", "A chilled yogurt cup with fresh fruit."),

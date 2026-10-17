@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Router, type NextFunction, type Request, type Response } from "express";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "../db";
+import { db, pool } from "../db";
 import { householdProfiles, users } from "@shared/schema";
 import {
   emptyMyPerfectMenuPreferences,
@@ -57,6 +57,12 @@ import {
 import { builderContextFor, type MyPerfectMenuBuilderContext } from "@shared/builderNamespaces";
 import { resolveMyPerfectMenuPerformanceContext } from "../services/myPerfectMenu/performanceContext";
 import { issuePerformanceAuthorityToken } from "../services/myPerfectMenu/performanceAuthorityToken";
+import { developmentSnackRepairEnabled } from "../services/snackCompatibilityRepair";
+import {
+  assertNoDevelopmentTestWrites, createDevelopmentDessertTestClaim,
+  createDevelopmentDessertTestDiagnostics, DevelopmentNoSaveError,
+  withDevelopmentNoSaveDatabase,
+} from "../services/myPerfectMenu/developmentNoSave";
 
 const router = Router();
 const categorySchema = myPerfectMenuCategorySchema;
@@ -348,7 +354,7 @@ function dietaryMode(effectiveDiet: string[]): DietaryMode | null {
 function conceptMeal(concept: Omit<MyPerfectMenuConcept, "id" | "ideaType">) {
   return {
     name: concept.title,
-    description: concept.description,
+    description: concept.validationDescription ?? concept.description,
     ingredients: concept.primaryIngredients.map((name) => ({ name })),
     instructions: [`Prepare using ${concept.preparationMethod}.`],
     preparationEvidence: "unknown" as const,
@@ -580,7 +586,7 @@ router.post("/validate-selection", requireAuth, async (req, res) => {
           id: concept.id,
           ideaType: concept.ideaType,
           title: concept.title,
-          description: concept.description,
+          description: concept.validationDescription ?? concept.description,
           signature: concept.signature,
           primaryIngredients: concept.primaryIngredients,
         },
@@ -590,10 +596,39 @@ router.post("/validate-selection", requireAuth, async (req, res) => {
   return res.json({ valid: true, concept, builder, performance, performanceAuthorityToken });
 });
 
-router.post("/concepts", requireAuth, async (req, res) => {
+router.post("/concepts", requireAuth, (req, res, next) => {
+  void handleConceptGeneration(req, res).catch(next);
+});
+
+const claimDevelopmentDessertTest = createDevelopmentDessertTestClaim();
+router.post("/development/dessert-test", (req, res, next) => {
+  if (!developmentSnackRepairEnabled()) return res.sendStatus(404);
+  return next();
+}, requireAuth, (req, res, next) => {
+  res.setHeader("Cache-Control", "private, no-store");
+  void withDevelopmentNoSaveDatabase(pool, async state => {
+    await handleConceptGeneration(req, res, { noSave: true, state });
+  }).catch(error => {
+    if (res.headersSent) return next(error);
+    if (error instanceof DevelopmentNoSaveError) {
+      return res.status(error.status).json({ code: error.code, error: error.message });
+    }
+    return next(error);
+  });
+});
+
+async function handleConceptGeneration(
+  req: Request,
+  res: Response,
+  test?: { noSave: true; state: { readonly blockedWriteCount: number; readonly suppressedPrescriptionWrites: number } },
+) {
+  const diagnostics = test ? createDevelopmentDessertTestDiagnostics() : undefined;
   const parsed = generationRequestSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "Choose breakfast, lunch, dinner, or snack ideas." });
+  }
+  if (test && (parsed.data.ideaType !== "snack" || parsed.data.snackType !== "dessert")) {
+    return res.status(400).json({ code: "DEVELOPMENT_DESSERT_TEST_ONLY" });
   }
 
   const actorUserId = String((req as AuthenticatedRequest).authUser.id);
@@ -685,13 +720,23 @@ router.post("/concepts", requireAuth, async (req, res) => {
     const recentCulinaryHistory = stored.recentCulinaryFingerprints.filter(
       (item) => item.occasion === occasion,
     );
+    if (test) {
+      assertNoDevelopmentTestWrites();
+      claimDevelopmentDessertTest();
+    }
     const generated = await generateCulinaryConcepts({
       occasion,
+      ...(diagnostics ? { onDiagnostic: diagnostics.capture } : {}),
+      developmentDessertCompletion: occasion === "snack" && parsed.data.snackType === "dessert",
       ...(occasion === "snack" ? { menuShape: "craving" as const, cravingCategory: parsed.data.snackType } : {}),
       subjectLabel: target.label ?? "the person being fed",
       requiredCuisine,
       history: recentCulinaryHistory,
       priorSignatures: [...priorSignatures],
+      previousDesserts: occasion === "snack" && parsed.data.snackType === "dessert"
+        ? (stored.categories.snack ?? []).filter(concept =>
+          concept.snackType === "dessert" || concept.foodIdentity?.foodRole === "dessert")
+        : undefined,
       userContext: [
         buildCreatorHumanFoodPrompt("my_perfect_menu", context, scope.executionState),
         dietBlock,
@@ -708,6 +753,17 @@ router.post("/concepts", requireAuth, async (req, res) => {
           ? ["snack_type:identity_mismatch"] : []),
       ],
     });
+    if (test) {
+      assertNoDevelopmentTestWrites();
+      return res.json({
+        ...diagnostics!.summary(),
+        acceptedCount: generated.concepts.length,
+        generationRounds: generated.attemptsCompleted,
+        metadataRepairCount: generated.metadataRepairCount,
+        blockedWriteCount: test.state.blockedWriteCount,
+        suppressedPrescriptionWrites: test.state.suppressedPrescriptionWrites,
+      });
+    }
     const concepts: GovernedMenuConcept[] = generated.concepts.map((concept) => ({
       ...concept,
       id: randomUUID(),
@@ -734,15 +790,23 @@ router.post("/concepts", requireAuth, async (req, res) => {
   } catch (error) {
     await scope.releaseAuthorization().catch(() => {});
     if (error instanceof Error && "code" in error &&
-      typeof error.code === "string" && error.code.startsWith("CONCEPT_") &&
+      typeof error.code === "string" && (error.code.startsWith("CONCEPT_") ||
+        (test && error.code.startsWith("DEVELOPMENT_DESSERT_TEST_"))) &&
       "status" in error && typeof error.status === "number") {
-      return res.status(error.status).json({ error: error.message, code: error.code });
+      return res.status(error.status).json({
+        error: error.message, code: error.code,
+        ...(test ? {
+          ...diagnostics!.summary(),
+          blockedWriteCount: test.state.blockedWriteCount,
+          suppressedPrescriptionWrites: test.state.suppressedPrescriptionWrites,
+        } : {}),
+      });
     }
     console.error("[my-perfect-menu] concept generation failed", error);
     return res.status(500).json({
       error: "We couldn't create your menu ideas right now. Please try again.",
     });
   }
-});
+}
 
 export default router;
