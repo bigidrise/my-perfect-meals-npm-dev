@@ -15,8 +15,13 @@ import {
   canAttemptConceptCompletion,
   conceptCompletionFailure,
 } from "./candidateCompletion";
+import { randomUUID } from "node:crypto";
 import { developmentSnackRepairEnabled } from "../snackCompatibilityRepair";
-import { areDessertDuplicates, dessertCompletionFeedback } from "./developmentDessertCompletion";
+import {
+  compareDessertStructures, dessertCompletionFeedback, isRelevantDessertHistory,
+  type DessertReference,
+} from "./developmentDessertCompletion";
+import type { DessertDiagnostic, DessertDiagnosticSink } from "./dessertDiagnostics";
 
 export interface CulinaryConceptRequest {
   occasion: MyPerfectMenuCategory;
@@ -31,6 +36,8 @@ export interface CulinaryConceptRequest {
   requiredCuisine: string | null;
   history: CulinaryFingerprint[];
   priorSignatures?: string[];
+  previousDesserts?: DessertReference[];
+  onDiagnostic?: DessertDiagnosticSink;
   rejectHistoryFingerprints?: boolean;
   targetCount?: 1 | 2 | 3;
   validate: (concept: GeneratedMenuConcept) => string[];
@@ -71,6 +78,31 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
   let attemptsCompleted = 0;
   let metadataRepairCount = 0;
   let providerFailureCount = 0;
+  let candidateCount = 0;
+  let rejectedCount = 0;
+  let schemaIssueCount = 0;
+  let invalidResponseCount = 0;
+  const diagnosticRunId = dessertRepairEnabled ? randomUUID() : undefined;
+  const emit: DessertDiagnosticSink | undefined = dessertRepairEnabled ? event => {
+    if (event.stage === "schema") {
+      if (event.candidateId?.endsWith(":envelope")) invalidResponseCount++;
+      else {
+        candidateCount++;
+        if (event.outcome === "invalid") rejectedCount++;
+      }
+      schemaIssueCount += event.issues?.filter(issue => issue.phase === "after").length ?? 0;
+    }
+    if (event.stage === "candidate" && event.outcome === "rejected") rejectedCount++;
+    // Only controlled enums, booleans, counters and request-local identifiers.
+    // No prompts, profiles, titles, ingredients, descriptions or medical details.
+    console.info("[dessert-completion]", { runId: diagnosticRunId, ...event });
+    input.onDiagnostic?.(event);
+  } : undefined;
+  const completeDiagnostic = () => emit?.({
+    stage: "completion", attempt: attemptsCompleted,
+    acceptedCount: accepted.length, rejectedCount, candidateCount, schemaIssueCount,
+    providerFailureCount, invalidResponseCount, rejectionCounts: rejectionCategoryCounts(rejectedReasons),
+  });
   const recentPatterns = input.history.slice(0, 48).map((item) => [
     item.dishForm,
     item.preparationStyle,
@@ -91,6 +123,9 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
     "Explore meaningfully different dish forms, bases, preparations, flavors, textures, and temperatures when they fit the person. Do not use quotas or force every dimension to differ.",
     "Do not default to generic healthy-food templates such as bowls, salads, grilled protein with vegetables, yogurt, oatmeal, or wraps.",
     "Every candidate must obey the supplied authoritative context and protocol guidance.",
+    dessertRepairEnabled
+      ? "DESSERT METADATA CONTRACT: title 3–80 characters; description 3–180; primaryIngredients 2–10 explicit ingredients, each 1–80 characters; cuisine and preparationMethod 2–80; signature 5–180. Culinary identity text must be 1–80 characters and definingComponents 1–8 entries. Use null for unknown optional protein metadata and [] for absent advisory dietaryEvidence. Do not invent ingredients, cuisine or nutrition to fill a field. Give accurate, consistent dessert structure and format metadata, not renamed flavor variants of one dessert."
+      : "",
     input.requiredCuisine
       ? `Cuisine requirement: every candidate must be recognizably ${input.requiredCuisine}; adapt that cuisine to higher-priority requirements rather than changing cuisines.`
       : "Use the resolved cuisine guidance when available.",
@@ -129,7 +164,9 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
         : input.cravingCategory === "food"
           ? `Every missing position must be a non-dessert food craving. Return only ${requestedCount} food concept${requestedCount === 1 ? "" : "s"}.`
           : "",
-      `Previously shown signatures to avoid immediately: ${[...priorSignatures].join(", ") || "none"}.`,
+      dessertRepairEnabled
+        ? `Historical signature hints: ${[...priorSignatures].join(", ") || "none"}. Signature equality is not proof of duplication. Avoid repeating actual dessert structures; genuinely different desserts can share ingredients or coarse signatures.`
+        : `Previously shown signatures to avoid immediately: ${[...priorSignatures].join(", ") || "none"}.`,
       `Recent culinary patterns to move beyond when appropriate: ${recentPatterns.join(", ") || "none"}.`,
       rejectedReasons.length
         ? `Repair only the missing ${requestedCount} position(s). Prior rejection categories: ${Object.keys(rejectionCategoryCounts(rejectedReasons)).join(", ")}. Keep every authoritative constraint above.`
@@ -149,34 +186,101 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
       providerFailureCount++;
       continue;
     }
-    const parsed = parseGeneratedMenuCandidates(raw, input.occasion);
+    const parsed = parseGeneratedMenuCandidates(raw, input.occasion, dessertRepairEnabled ? {
+      developmentDessertRepair: true, attempt: attempt + 1, onDiagnostic: emit,
+    } : undefined);
     rejectedReasons.push(...parsed.rejectionCodes);
     metadataRepairCount += parsed.metadataRepairCount;
-    for (const candidate of parsed.candidates) {
+    for (const [candidateIndex, candidate] of parsed.candidates.entries()) {
+      const candidateId = parsed.candidateIds?.[candidateIndex];
+      const candidateEvent = (outcome: "accepted" | "rejected", branch: string) => emit?.({
+        stage: "candidate", attempt: attempt + 1, candidateId, outcome, branch,
+      });
+      if (dessertRepairEnabled && candidatePool.length >= targetCount) {
+        candidateEvent("rejected", "surplus_candidate");
+        continue;
+      }
       const signature = normalizeSignature(candidate.signature);
-      if (priorSignatures.has(signature) ||
-        candidatePool.some((item) => normalizeSignature(item.signature) === signature &&
-          (!dessertRepairEnabled || areDessertDuplicates(item, candidate)))) {
+      if (!dessertRepairEnabled && (priorSignatures.has(signature) ||
+        candidatePool.some((item) => normalizeSignature(item.signature) === signature))) {
         rejectedReasons.push("repetition:signature");
         continue;
       }
       const violations = input.validate(candidate);
       if (violations.length) {
         rejectedReasons.push(...violations);
+        candidateEvent("rejected", "governance");
         continue;
       }
-      if (dessertRepairEnabled && candidatePool.some(item => areDessertDuplicates(item, candidate))) {
-        rejectedReasons.push("repetition:dessert_structure");
-        continue;
+      if (dessertRepairEnabled) {
+        const historicalReferences = input.history.map((reference, index) => ({
+          reference, id: `history${index + 1}`, scope: "history" as const,
+        }));
+        for (const { reference, id } of historicalReferences) {
+          if (isRelevantDessertHistory(reference, candidate)) continue;
+          const comparison = compareDessertStructures(candidate, reference);
+          emit?.({
+            stage: "comparison", attempt: attempt + 1, candidateId, referenceId: id,
+            branch: "history:unclassified_nonmatching_snack",
+            evidence: comparison.evidence,
+          });
+        }
+        const references: { reference: DessertReference; id: string; scope: "batch" | "history" }[] = [
+          ...candidatePool.map((reference, index) => ({ reference, id: `batch${index + 1}`, scope: "batch" as const })),
+          ...(input.previousDesserts ?? []).map((reference, index) => ({ reference, id: `saved${index + 1}`, scope: "history" as const })),
+          ...historicalReferences.filter(({ reference }) => isRelevantDessertHistory(reference, candidate)),
+        ];
+        let rejection: string | undefined;
+        // Even an empty-history request needs an inspectable current structure.
+        const currentStructure = compareDessertStructures(candidate, candidate);
+        if (currentStructure.decision === "uncertain") {
+          rejection = "history_uncertainty:current_structure";
+          emit?.({
+            stage: "comparison", attempt: attempt + 1, candidateId,
+            branch: `current:${currentStructure.branch}`, evidence: currentStructure.evidence,
+          });
+        }
+        for (const { reference, id, scope } of references) {
+          const comparison = compareDessertStructures(candidate, reference);
+          const signatureCollision = scope === "history" && priorSignatures.has(signature);
+          emit?.({
+            stage: "comparison", attempt: attempt + 1, candidateId, referenceId: id,
+            branch: `${scope}:${comparison.branch}`,
+            evidence: { ...comparison.evidence, signatureCollision },
+          });
+          if (comparison.decision === "duplicate") {
+            rejection = `repetition:${scope}_dessert_structure`;
+            break;
+          }
+          if (comparison.decision === "uncertain") {
+            rejection = `history_uncertainty:${scope}_structure`;
+            break;
+          }
+        }
+        if (!rejection && priorSignatures.has(signature) &&
+          !references.some(reference => reference.scope === "history")) {
+          rejection = "history_uncertainty:unresolved_signature";
+          emit?.({
+            stage: "comparison", attempt: attempt + 1, candidateId,
+            branch: "history:unresolved_signature",
+            evidence: { leftStructure: true, rightStructure: false, ingredientOverlap: 0, signatureCollision: true },
+          });
+        }
+        if (rejection) {
+          rejectedReasons.push(rejection);
+          candidateEvent("rejected", rejection.split(":")[0] === "repetition" ? "duplicate" : "insufficient_structure");
+          continue;
+        }
       }
       // A previous set should not be repeated even when the model renames its signature.
       const fingerprint = buildCulinaryFingerprint(candidate, input.occasion);
-      if (input.rejectHistoryFingerprints &&
+      if (!dessertRepairEnabled && input.rejectHistoryFingerprints &&
         input.history.some((item) => item.fingerprint === fingerprint.fingerprint)) {
         rejectedReasons.push("repetition:signature");
         continue;
       }
       candidatePool.push(candidate);
+      candidateEvent("accepted", "governed_distinct");
     }
     accepted = dessertRepairEnabled
       ? candidatePool.slice(0, targetCount)
@@ -186,6 +290,7 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
   }
 
   if (accepted.length !== targetCount) {
+    completeDiagnostic();
     const rejectionCounts = rejectionCategoryCounts(rejectedReasons);
     console.warn("[culinary-concepts] completion exhausted", {
       occasion: input.occasion,
@@ -206,5 +311,6 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
       metadataRepairCount,
     });
   }
+  completeDiagnostic();
   return { concepts: accepted, attemptsCompleted, metadataRepairCount, providerFailureCount, rejectionCodes: rejectedReasons };
 }

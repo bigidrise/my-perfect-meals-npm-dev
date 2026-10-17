@@ -8,3 +8,9 @@ My Perfect Menu owns one stable working set of three ideas per category. Selecti
 **Why:** Users cannot judge whether they want to keep an idea until its governing Builder creates the complete meal. A second Menu-specific save system would duplicate Favorites and blur the difference between discovery, creation, planning, and retention.
 
 **How to apply:** My Perfect Menu discovers, the resolved Builder creates and labels the completed meal, Favorites keeps it for later, and the Weekly Board represents the current plan. Builder navigation must carry an allowlisted return target with the originating Builder, category, authorized subject, and Performance destination when applicable; navigation alone never changes food authority. Teach users to Favorite a completed meal before deleting or replacing it, and confirm before replacing the current three.
+
+Dessert replacement must handle incomplete historical structure explicitly, without inventing missing identity or treating every uncertain comparison as approval. Shared ingredients do not establish duplication when recognizable dessert structures differ.
+
+**Why:** The user requires meaningful variety, including rejection of renamed repeats, without presenting flavor variants of one dessert as three distinct choices. They explicitly prefer making better use of generated candidates over increasing AI retries.
+
+**How to apply:** Preserve accepted candidates, the five-round maximum and all safety checks. Keep existing choices on failure, and distinguish an unresolved history comparison from a medical rejection. Ordinary diagnostics must exclude patient context, prompts and generated descriptions.
