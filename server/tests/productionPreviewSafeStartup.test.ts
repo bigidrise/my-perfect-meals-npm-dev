@@ -59,6 +59,59 @@ describe("isolated Production preview startup policy", () => {
     expect(checkPort).not.toHaveBeenCalled();
   });
 
+  test.each([
+    "fixture..nested.replit.dev",
+    "fixture.-nested.replit.dev",
+    "fixture-.nested.replit.dev",
+    ".fixture.replit.dev",
+    "fixture.replit.dev.",
+    "-fixture.replit.dev",
+    "fixture-.replit.dev",
+    "fixture_name.replit.dev",
+    "fixturé.replit.dev",
+    "fixture replit.dev",
+    " fixture.replit.dev",
+    "fixture.replit.dev\n",
+    "fixture\n.nested.replit.dev",
+    "fixture.replit.dev:5000",
+    "fixture.replit.dev/path",
+    "fixture.replit.dev.evil.example",
+    "replit.dev",
+    `${"a".repeat(64)}.replit.dev`,
+    ["a".repeat(63), "b".repeat(63), "c".repeat(63), "d".repeat(51), "replit", "dev"].join("."),
+  ])("rejects malformed or unpermitted preview hostname %j before any probe/import", async hostname => {
+    const { runProductionPreviewStartup } = require("../bootstrap/productionPreviewStartup");
+    const loadApplication = jest.fn();
+    const checkPort = jest.fn();
+    await expect(runProductionPreviewStartup({
+      env: { ...previewEnvironment, REPLIT_DEV_DOMAIN: hostname }, loadApplication, checkPort,
+    })).rejects.toThrow();
+    expect(checkPort).not.toHaveBeenCalled();
+    expect(loadApplication).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    "fixture.replit.dev",
+    "fixture-123.replit.dev",
+    "fixture.nested.replit.dev",
+    "a.replit.dev",
+    "1fixture.replit.dev",
+    "FIXTURE.REPLIT.DEV",
+    `${"a".repeat(63)}.replit.dev`,
+    ["a".repeat(63), "b".repeat(63), "c".repeat(63), "d".repeat(50), "replit", "dev"].join("."),
+  ])("accepts valid permitted preview hostname %j without changing suppression", async hostname => {
+    const { runProductionPreviewStartup } = require("../bootstrap/productionPreviewStartup");
+    const { startupMaintenanceEnabled } = require("../bootstrap/developmentStartupMaintenance");
+    const env = { ...previewEnvironment, REPLIT_DEV_DOMAIN: hostname };
+    const checkPort = jest.fn().mockResolvedValue(undefined);
+    const loadApplication = jest.fn(async () => {
+      expect(startupMaintenanceEnabled(env)).toBe(false);
+    });
+    await runProductionPreviewStartup({ env, checkPort, loadApplication });
+    expect(checkPort).toHaveBeenCalledWith(5000);
+    expect(loadApplication).toHaveBeenCalledTimes(1);
+  });
+
   test.each(["0", "65536", "not-a-port"])("refuses invalid port %s before application imports", async PORT => {
     const { runProductionPreviewStartup } = require("../bootstrap/productionPreviewStartup");
     const loadApplication = jest.fn();
