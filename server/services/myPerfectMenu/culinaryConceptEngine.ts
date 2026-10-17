@@ -82,6 +82,7 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
   let rejectedCount = 0;
   let schemaIssueCount = 0;
   let invalidResponseCount = 0;
+  let schemaRepairInstructions: string[] = [];
   const diagnosticRunId = dessertRepairEnabled ? randomUUID() : undefined;
   const emit: DessertDiagnosticSink | undefined = dessertRepairEnabled ? event => {
     if (event.stage === "schema") {
@@ -171,6 +172,9 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
       rejectedReasons.length
         ? `Repair only the missing ${requestedCount} position(s). Prior rejection categories: ${Object.keys(rejectionCategoryCounts(rejectedReasons)).join(", ")}. Keep every authoritative constraint above.`
         : "",
+      dessertRepairEnabled && schemaRepairInstructions.length
+        ? `Correct these exact schema fields from the last round: ${schemaRepairInstructions.join("; ")}. Keep descriptions to one short sentence, ideally under 120 characters (hard display limit 180). Do not omit meaningful ingredients or change food identity to shorten copy.`
+        : "",
       candidatePool.length
         ? `${accepted.length} governed candidate(s) are already retained. Generate only the ${requestedCount} missing position(s); broaden compliant culinary structures without changing the person's context or cuisine.`
         : "",
@@ -200,6 +204,7 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
       developmentDessertRepair: true, attempt: attempt + 1, onDiagnostic: emit,
     } : undefined);
     rejectedReasons.push(...parsed.rejectionCodes);
+    schemaRepairInstructions = parsed.repairInstructions ?? [];
     metadataRepairCount += parsed.metadataRepairCount;
     for (const [candidateIndex, candidate] of parsed.candidates.entries()) {
       const candidateId = parsed.candidateIds?.[candidateIndex];
@@ -216,7 +221,8 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
         rejectedReasons.push("repetition:signature");
         continue;
       }
-      const violations = input.validate(candidate);
+      const violations = input.validate(candidate.validationDescription
+        ? { ...candidate, description: candidate.validationDescription } : candidate);
       if (violations.length) {
         rejectedReasons.push(...violations);
         candidateEvent("rejected", "governance");

@@ -4,6 +4,7 @@ import { buildCulinaryFingerprint } from "@shared/culinaryIdentity";
 import { readFileSync } from "node:fs";
 import type { DessertDiagnostic } from "../services/myPerfectMenu/dessertDiagnostics";
 import type { GeneratedMenuConcept } from "../services/myPerfectMenu/generationContract";
+import { myPerfectMenuConceptSchema } from "@shared/myPerfectMenu";
 
 function dessert(title: string, format: "cheesecake" | "cookie" | "frozen_dessert"): GeneratedMenuConcept {
   const frozen = format === "frozen_dessert";
@@ -55,6 +56,53 @@ describe("Development My Perfect Menu dessert completion", () => {
   it("does not equate shared compatible ingredients with identical dessert structures", () => {
     expect(areDessertDuplicates(cheesecake, frozen)).toBe(false);
     expect(areDessertDuplicates(cheesecake, { ...cheesecake, title: "Delicious Cheesecake" })).toBe(true);
+  });
+  it("completes three valid desserts when all descriptions exceed the card display limit", async () => {
+    const concepts = [cheesecake, frozen, cookie].map(item => ({
+      ...item, description: "A recognizable dessert. " + "Its full original preparation remains available. ".repeat(7),
+    }));
+    const validate = jest.fn((_item: GeneratedMenuConcept) => [] as string[]);
+    const result = await generateCulinaryConcepts({
+      ...request, validate, generate: async () => ({ concepts }),
+    });
+    expect(result.attemptsCompleted).toBe(1);
+    expect(result.concepts).toHaveLength(3);
+    for (const [index, item] of result.concepts.entries()) {
+      expect(item.description.length).toBeLessThanOrEqual(180);
+      expect(validate.mock.calls[index][0].description).toBe(concepts[index].description.trim());
+      // Persistence/restoration must keep the full original evidence too.
+      expect(myPerfectMenuConceptSchema.parse({
+        ...item, id: "synthetic-choice", ideaType: "snack",
+      }).validationDescription).toBe(concepts[index].description.trim());
+    }
+  });
+  it("still rejects disallowed evidence beyond the display boundary in every round", async () => {
+    const description = "A dessert with its complete original evidence. ".repeat(6) + "FORBIDDEN-INGREDIENT-CANARY";
+    const validate = jest.fn((item: GeneratedMenuConcept) =>
+      item.description.includes("FORBIDDEN-INGREDIENT-CANARY") ? ["forbidden_ingredient:canary"] : []);
+    await expect(generateCulinaryConcepts({
+      ...request, validate,
+      generate: async () => ({ concepts: [{ ...cheesecake, description }] }),
+    })).rejects.toMatchObject({ code: "CONCEPT_REPAIR_EXHAUSTED" });
+    expect(validate).toHaveBeenCalledTimes(3);
+    expect(validate.mock.calls.every(([item]) => item.description === description)).toBe(true);
+  });
+  it("supplies exact sanitized schema feedback in the existing retry budget", async () => {
+    const result = await generateCulinaryConcepts({
+      ...request,
+      generate: async ({ attempt, user }) => {
+        if (!attempt) return { concepts: [{ ...cheesecake, cuisine: "" }] };
+        expect(user).toContain("cuisine: too_small");
+        return { concepts: [cheesecake, frozen, cookie] };
+      },
+    });
+    expect(result.attemptsCompleted).toBe(2);
+  });
+  it("uses retained original description evidence in restoration and Builder handoff", () => {
+    const source = readFileSync("server/routes/myPerfectMenu.ts", "utf8");
+    const mealAdapter = source.slice(source.indexOf("function conceptMeal("), source.indexOf("function conceptViolations("));
+    expect(mealAdapter).toContain("description: concept.validationDescription ?? concept.description");
+    expect(source.match(/description: concept.validationDescription \?\? concept.description/g)).toHaveLength(2);
   });
 
   it("retains two valid desserts, supplies their identities on retries, and completes only the third", async () => {

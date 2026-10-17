@@ -348,7 +348,7 @@ function dietaryMode(effectiveDiet: string[]): DietaryMode | null {
 function conceptMeal(concept: Omit<MyPerfectMenuConcept, "id" | "ideaType">) {
   return {
     name: concept.title,
-    description: concept.description,
+    description: concept.validationDescription ?? concept.description,
     ingredients: concept.primaryIngredients.map((name) => ({ name })),
     instructions: [`Prepare using ${concept.preparationMethod}.`],
     preparationEvidence: "unknown" as const,
@@ -580,7 +580,7 @@ router.post("/validate-selection", requireAuth, async (req, res) => {
           id: concept.id,
           ideaType: concept.ideaType,
           title: concept.title,
-          description: concept.description,
+          description: concept.validationDescription ?? concept.description,
           signature: concept.signature,
           primaryIngredients: concept.primaryIngredients,
         },

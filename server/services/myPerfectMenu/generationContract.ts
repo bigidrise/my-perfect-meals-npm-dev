@@ -13,8 +13,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export const generatedMenuConceptSchema = myPerfectMenuConceptSchema
-  .omit({ id: true, ideaType: true })
+  .omit({ id: true, ideaType: true, validationDescription: true })
   .extend({ culinaryIdentity: culinaryIdentitySchema });
+
+const dessertSourceSchema = generatedMenuConceptSchema.extend({
+  description: z.string().trim().min(3).max(4000),
+});
 
 const generatedMenuEnvelopeSchema = z.object({
   concepts: z.array(z.unknown()).min(1).max(8),
@@ -30,17 +34,23 @@ type RequiredMenuConceptKeys =
 // mode makes Zod infer required object properties as optional.
 export type GeneratedMenuConcept =
   Omit<ParsedMenuConcept, RequiredMenuConceptKeys> &
-  Required<Pick<ParsedMenuConcept, RequiredMenuConceptKeys>>;
+  Required<Pick<ParsedMenuConcept, RequiredMenuConceptKeys>> & {
+    validationDescription?: string;
+  };
 
 export interface ParsedGeneratedMenuCandidates {
   candidates: GeneratedMenuConcept[];
   candidateIds?: string[];
   rejectionCodes: string[];
   metadataRepairCount: number;
+  repairInstructions?: string[];
 }
 
 const culinaryRepairSourceSchema = myPerfectMenuConceptSchema
   .omit({ id: true, ideaType: true, culinaryIdentity: true });
+const dessertCulinaryRepairSourceSchema = culinaryRepairSourceSchema.extend({
+  description: z.string().trim().min(3).max(4000),
+});
 
 function compactString(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
@@ -97,7 +107,7 @@ function repairGeneratedConceptMetadata(value: unknown, dessertRepair = false): 
     }
   }
 
-  const source = culinaryRepairSourceSchema.safeParse(repaired);
+  const source = (dessertRepair ? dessertCulinaryRepairSourceSchema : culinaryRepairSourceSchema).safeParse(repaired);
   if (source.success && !culinaryIdentitySchema.safeParse(repaired.culinaryIdentity).success) {
     const existing = isRecord(repaired.culinaryIdentity) ? repaired.culinaryIdentity : {};
     const temperature = compactString(existing.temperature);
@@ -161,6 +171,7 @@ export function parseGeneratedMenuCandidates(
   const candidates: GeneratedMenuConcept[] = [];
   const candidateIds: string[] = [];
   const rejectionCodes: string[] = [];
+  const repairInstructions = new Set<string>();
   let metadataRepairCount = 0;
   for (const [index, candidate] of envelope.data.concepts.entries()) {
     const originalCandidate = isRecord(value) && Array.isArray(value.concepts)
@@ -169,12 +180,26 @@ export function parseGeneratedMenuCandidates(
       originalCandidate.foodIdentity !== candidate.foodIdentity;
     const before = diagnostic ? generatedMenuConceptSchema.safeParse(originalCandidate) : undefined;
     const repaired = repairGeneratedConceptMetadata(candidate, dessertRepair);
-    const parsed = generatedMenuConceptSchema.safeParse(repaired.value);
+    let parsed = generatedMenuConceptSchema.safeParse(repaired.value);
+    let validationDescription: string | undefined;
+    if (dessertRepair && !parsed.success) {
+      const full = dessertSourceSchema.safeParse(repaired.value);
+      if (full.success) {
+        // Preserve the COMPLETE source for both initial and restored validation.
+        // Only the card copy is shortened, using an existing complete sentence
+        // or the already-validated title, never a chopped-off safety statement.
+        validationDescription = full.data.description;
+        const sentence = validationDescription.match(/^(.{3,180}?[.!?])(?:\s|$)/u)?.[1];
+        parsed = generatedMenuConceptSchema.safeParse({
+          ...full.data, description: sentence ?? full.data.title,
+        });
+      }
+    }
     diagnostic?.({
       stage: "schema", attempt: options!.attempt, candidateId: `a${options!.attempt}:c${index + 1}`,
       outcome: parsed.success ? "valid" : "invalid",
-      repairAttempted: repaired.repaired || normalizationRepair,
-      repairSucceeded: (repaired.repaired || normalizationRepair) && parsed.success,
+      repairAttempted: repaired.repaired || normalizationRepair || Boolean(validationDescription),
+      repairSucceeded: (repaired.repaired || normalizationRepair || Boolean(validationDescription)) && parsed.success,
       issues: [
         ...(before && !before.success ? safeSchemaIssues(before.error.issues, "before") : []),
         ...(!parsed.success ? safeSchemaIssues(parsed.error.issues, "after") : []),
@@ -194,9 +219,15 @@ export function parseGeneratedMenuCandidates(
         preparationMethod: parsed.data.preparationMethod,
         signature: parsed.data.signature,
         culinaryIdentity: parsed.data.culinaryIdentity,
+        ...(validationDescription ? { validationDescription } : {}),
       });
-      if (repaired.repaired || normalizationRepair) metadataRepairCount += 1;
+      if (repaired.repaired || normalizationRepair || validationDescription) metadataRepairCount += 1;
     } else {
+      if (dessertRepair) {
+        for (const issue of safeSchemaIssues(parsed.error.issues, "after")) {
+          repairInstructions.add(`${issue.path}: ${issue.rule}`);
+        }
+      }
       rejectionCodes.push(
         ...parsed.error.issues.map((issue) =>
           `schema_metadata_failure:concept_${index}:${issue.path.join(".") || "concept"}`,
@@ -205,6 +236,7 @@ export function parseGeneratedMenuCandidates(
     }
   }
   return { candidates, rejectionCodes, metadataRepairCount,
+    ...(dessertRepair ? { repairInstructions: [...repairInstructions] } : {}),
     ...(dessertRepair ? { candidateIds } : {}) };
 }
 

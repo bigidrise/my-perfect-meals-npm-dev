@@ -27,6 +27,9 @@ export const myPerfectMenuConceptSchema = z.object({
   ideaType: myPerfectMenuCategorySchema,
   title: z.string().trim().min(3).max(80),
   description: z.string().trim().min(3).max(180),
+  // Server-retained original copy when Development normalizes display length.
+  // Never replace food evidence with shortened presentation text.
+  validationDescription: z.string().trim().min(3).max(4000).optional(),
   primaryIngredients: z.array(z.string().trim().min(1).max(80)).min(2).max(10),
   primaryProtein: z.string().trim().max(80).nullable(),
   produceItems: z.array(z.string().trim().min(1).max(80)).max(8),
