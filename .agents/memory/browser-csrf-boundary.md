@@ -14,3 +14,9 @@ Cookie-forwarding internal HTTP requests remain authenticated browser-session wr
 **Why:** Recipe Maker's outer request succeeded, but its cookie-forwarding call to the meal generator omitted the browser security context and was rejected before generation. The user confirmed successful Development use after preserving that context; a shared-policy bypass was neither needed nor approved.
 
 **How to apply:** When adding a server-side loopback to a protected mutation, preserve its verified session security context and test both the successful authenticated call and rejection of an untrusted external origin.
+
+Distinguish an Editor workspace running the Production entrypoint from a published deployment when applying preview cookie policy.
+
+**Why:** Production-mode code can still run inside a cross-site embedded workspace preview. Using NODE_ENV alone to exclude preview cookies misses that context; applying preview behavior to published deployments changes a separate security boundary.
+
+**How to apply:** Use the platform's workspace and published-runtime signals, keep the Production entrypoint's secure baseline independent of NODE_ENV, and cover creation and clearing of matching cookies. Partitioned cookies do not replace CSRF, MFA, authorization, or durable sessions. Cookie-header and session-round-trip fixtures are not proof of real-browser cookie acceptance.
