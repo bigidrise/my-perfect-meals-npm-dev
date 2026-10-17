@@ -693,6 +693,10 @@ router.post("/concepts", requireAuth, async (req, res) => {
       requiredCuisine,
       history: recentCulinaryHistory,
       priorSignatures: [...priorSignatures],
+      previousDesserts: occasion === "snack" && parsed.data.snackType === "dessert"
+        ? (stored.categories.snack ?? []).filter(concept =>
+          concept.snackType === "dessert" || concept.foodIdentity?.foodRole === "dessert")
+        : undefined,
       userContext: [
         buildCreatorHumanFoodPrompt("my_perfect_menu", context, scope.executionState),
         dietBlock,
