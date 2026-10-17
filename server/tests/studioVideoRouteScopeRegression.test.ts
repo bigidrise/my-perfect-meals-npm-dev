@@ -13,26 +13,31 @@ const mockQuery = {
   values: jest.fn(() => mockQuery),
   returning: jest.fn(async () => [{ id: MESSAGE_ID, createdAt: new Date("2026-08-25T12:00:00.000Z") }]),
   set: jest.fn(() => mockQuery),
+  orderBy: jest.fn(() => mockQuery),
 };
 
 const mockDb = {
   select: jest.fn(() => mockQuery),
   insert: jest.fn(() => mockQuery),
   update: jest.fn(() => mockQuery),
-  execute: jest.fn(async () => undefined),
+  execute: jest.fn(async (_query: unknown): Promise<any> => undefined),
 };
 
 const mockTranscribeStudioVideoBuffer = jest.fn();
 const mockUploadStudioVideoToS3 = jest.fn(async () => undefined);
-const mockModeratePrivateStudioContent = jest.fn(() => ({ allowed: true }));
+const mockModeratePrivateStudioContent = jest.fn((): Record<string, unknown> => ({ allowed: true }));
 const mockAuditStudioVideoAction = jest.fn();
 const mockGetStudioVideoMessage = jest.fn();
 const mockHideStudioMessageForViewer = jest.fn();
+let mockClientAccessDenied = false;
+let mockProfessionalAccessDenied = false;
+const mockClientAccessCheck = jest.fn();
 
 jest.mock("../db", () => ({ db: mockDb }));
 
 jest.mock("../middleware/requireWorkspaceAccess", () => ({
   requireWorkspaceAccess: (_req: any, _res: any, next: any) => {
+    if (mockProfessionalAccessDenied) return _res.status(403).json({ error: "No active workspace access" });
     _req.authUser = {
       id: PRO_ID,
       organizationId: null,
@@ -42,6 +47,8 @@ jest.mock("../middleware/requireWorkspaceAccess", () => ({
     next();
   },
   requireClientWorkspaceAccess: (req: any, _res: any, next: any) => {
+    mockClientAccessCheck();
+    if (mockClientAccessDenied) return _res.status(403).json({ error: "No active workspace access" });
     req.authUser = {
       id: CLIENT_ID,
       organizationId: null,
@@ -124,6 +131,10 @@ jest.mock("../lib/auditLog", () => ({
 
 import proTabletRouter from "../routes/proTabletRoutes";
 import clientTabletRouter from "../routes/clientTabletRoutes";
+import { createStudioVoiceNote } from "../services/studioVoiceMessageService";
+import { getOrSet, invalidatePrefix } from "../services/queryCache";
+import { PgDialect } from "drizzle-orm/pg-core";
+import { listStudioVideoMessages } from "../services/studioVideoMessageService";
 
 function buildApp(router: any, prefix: string) {
   const app = express();
@@ -133,6 +144,98 @@ function buildApp(router: any, prefix: string) {
   });
   return app;
 }
+
+describe("Development professional unread summary", () => {
+  const originalMode = process.env.NODE_ENV;
+  const originalDeployment = process.env.REPLIT_DEPLOYMENT;
+  beforeEach(() => {
+    process.env.NODE_ENV = "development";
+    mockProfessionalAccessDenied = false;
+    delete process.env.REPLIT_DEPLOYMENT;
+    mockDb.select.mockClear();
+    mockDb.insert.mockClear();
+    mockDb.update.mockClear();
+    mockQuery.limit.mockResolvedValue([{ id: STUDIO_ID, ownerUserId: PRO_ID }] as any);
+    mockDb.execute.mockReset();
+    mockDb.execute.mockResolvedValue({ rows: [{
+      clientUserId: CLIENT_ID, unreadCount: 1,
+      lastMessageAt: "2000-01-03T00:00:00Z", lastMessageBody: "Video message",
+    }] } as any);
+    (getOrSet as jest.Mock).mockImplementation((_key, _ttl, factory) => factory());
+    (invalidatePrefix as jest.Mock).mockClear();
+    (listStudioVideoMessages as jest.Mock).mockResolvedValue([]);
+  });
+  afterEach(() => {
+    mockProfessionalAccessDenied = false;
+    process.env.NODE_ENV = originalMode;
+    if (originalDeployment === undefined) delete process.env.REPLIT_DEPLOYMENT;
+    else process.env.REPLIT_DEPLOYMENT = originalDeployment;
+  });
+  function ownerApp(authenticated = true) {
+    const instance = express();
+    // Existing upstream authentication/entitlement gates remain unchanged.
+    instance.use((req, _res, next) => {
+      if (authenticated) (req as any).authUser = {
+        id: PRO_ID, professionalRole: "business", role: "admin", isProCare: false,
+      };
+      next();
+    });
+    instance.use("/api/pro/tablet", proTabletRouter);
+    return instance;
+  }
+  test("an authorized dual-role business owner receives the existing summary contract, without marking it read", async () => {
+    const result = await request(ownerApp()).get("/api/pro/tablet/unread-summary");
+    expect(result.status).toBe(200);
+    expect(result.body).toEqual({
+      clients: [expect.objectContaining({ clientUserId: CLIENT_ID, unreadCount: 1 })], totalUnread: 1,
+    });
+    const query = new PgDialect().sqlToQuery(mockDb.execute.mock.calls[0][0] as any);
+    expect(query.sql).toContain("studio_video_messages");
+    expect(query.sql).not.toMatch(/\b(INSERT|UPDATE|DELETE)\b/);
+    expect(query.params).toContain(STUDIO_ID);
+    expect(query.params).toContain(PRO_ID);
+    expect(mockDb.execute).toHaveBeenCalledTimes(1);
+    expect(mockDb.insert).not.toHaveBeenCalled();
+    expect(mockDb.update).not.toHaveBeenCalled();
+    expect(invalidatePrefix).not.toHaveBeenCalled();
+  });
+  test("an anonymous request is denied before database reads", async () => {
+    expect((await request(ownerApp(false)).get("/api/pro/tablet/unread-summary")).status).toBe(401);
+    expect(mockDb.select).not.toHaveBeenCalled();
+    expect(mockDb.execute).not.toHaveBeenCalled();
+  });
+  test("business/admin metadata alone never supplies a Studio", async () => {
+    mockQuery.limit.mockResolvedValueOnce([]);
+    expect((await request(ownerApp()).get("/api/pro/tablet/unread-summary")).body)
+      .toEqual({ clients: [], totalUnread: 0 });
+    expect(mockDb.execute).not.toHaveBeenCalled();
+  });
+  test.each(["production", "deployed-development"])("%s keeps the legacy text/voice query", async mode => {
+    if (mode === "production") process.env.NODE_ENV = "production";
+    else process.env.REPLIT_DEPLOYMENT = "1";
+    await request(ownerApp()).get("/api/pro/tablet/unread-summary");
+    const query = new PgDialect().sqlToQuery(mockDb.execute.mock.calls[0][0] as any);
+    expect(query.sql).toContain("client_notes");
+    expect(query.sql).not.toContain("studio_video_messages");
+  });
+  test("opening the authorized folder preserves its read write and invalidates the owner's cached unread total", async () => {
+    mockDb.execute.mockResolvedValue({ rows: [] } as any);
+    const result = await request(ownerApp()).get(`/api/pro/tablet/${CLIENT_ID}`);
+    expect(result.status).toBe(200);
+    const markerQueries = mockDb.execute.mock.calls.map(([query]) => new PgDialect().sqlToQuery(query as any))
+      .filter(query => query.sql.includes("INSERT INTO pro_message_reads"));
+    expect(markerQueries).toHaveLength(1);
+    expect(markerQueries[0].params).toEqual([STUDIO_ID, CLIENT_ID]);
+    expect(markerQueries[0].sql).toContain("DO UPDATE SET last_read_at = NOW()");
+    expect(invalidatePrefix).toHaveBeenCalledWith(`pro-unread:${PRO_ID}`);
+  });
+  test("a denied client folder does not advance any marker or clear a cached count", async () => {
+    mockProfessionalAccessDenied = true;
+    expect((await request(ownerApp()).get(`/api/pro/tablet/${CLIENT_ID}`)).status).toBe(403);
+    expect(mockDb.execute).not.toHaveBeenCalled();
+    expect(invalidatePrefix).not.toHaveBeenCalled();
+  });
+});
 
 describe("Studio video route transcript scope regression", () => {
   beforeEach(() => {
@@ -325,4 +428,82 @@ describe("Studio video route transcript scope regression", () => {
       }));
     },
   );
+});
+
+describe("Development client conversation routing with synthetic data", () => {
+  const originalMode = process.env.NODE_ENV;
+  const originalDeployment = process.env.REPLIT_DEPLOYMENT;
+  beforeEach(() => {
+    process.env.NODE_ENV = "development";
+    delete process.env.REPLIT_DEPLOYMENT;
+    mockClientAccessDenied = false;
+    mockClientAccessCheck.mockClear();
+    mockDb.select.mockClear();
+    mockDb.insert.mockClear();
+    mockQuery.values.mockClear();
+    mockModeratePrivateStudioContent.mockReturnValue({ allowed: true });
+    (createStudioVoiceNote as jest.Mock).mockResolvedValue({ id: MESSAGE_ID, contentType: "voice", sender: "client" });
+    (getOrSet as jest.Mock).mockImplementation((_key, _ttl, factory) => factory());
+    (listStudioVideoMessages as jest.Mock).mockResolvedValue([]);
+    mockDb.execute.mockResolvedValue({ rows: [] } as any);
+  });
+  afterEach(() => {
+    mockClientAccessDenied = false;
+    process.env.NODE_ENV = originalMode;
+    if (originalDeployment === undefined) delete process.env.REPLIT_DEPLOYMENT;
+    else process.env.REPLIT_DEPLOYMENT = originalDeployment;
+  });
+  function app() {
+    const instance = express();
+    instance.use(express.json());
+    instance.use((req, _res, next) => {
+      (req as any).authUser = { id: CLIENT_ID, professionalRole: "business" };
+      next();
+    });
+    instance.use("/api/client/tablet", clientTabletRouter);
+    return instance;
+  }
+  it("saves a text reply to the authorized Studio, not a new role-based lookup", async () => {
+    const result = await request(app()).post("/api/client/tablet/message").send({ body: "Synthetic reply" });
+    expect(result.status).toBe(201);
+    expect(mockClientAccessCheck).toHaveBeenCalledTimes(1);
+    expect(mockQuery.values).toHaveBeenCalledWith(expect.objectContaining({
+      studioId: STUDIO_ID, clientUserId: CLIENT_ID, sender: "client",
+    }));
+    // Only notification metadata is looked up after persistence.
+    expect(mockDb.select).not.toHaveBeenCalledWith({ id: expect.anything() });
+  });
+  it("saves a voice reply to that same authorized Studio", async () => {
+    const result = await request(app()).post("/api/client/tablet/voice-message")
+      .attach("audio", Buffer.from("synthetic audio"), { filename: "reply.webm", contentType: "audio/webm" });
+    expect(result.status).toBe(201);
+    expect(createStudioVoiceNote).toHaveBeenCalledWith(expect.objectContaining({
+      studioId: STUDIO_ID, clientUserId: CLIENT_ID, sender: "client",
+    }), expect.any(Buffer));
+  });
+  it.each(["message", "voice-message", "video-message"])("rejects unauthorized %s before persistence or upload", async route => {
+    mockClientAccessDenied = true;
+    const result = await request(app()).post(`/api/client/tablet/${route}`).send({ body: "Synthetic reply" });
+    expect(result.status).toBe(403);
+    expect(mockDb.insert).not.toHaveBeenCalled();
+  });
+  it("keys the inbox by the authorized Studio and merges existing media", async () => {
+    const result = await request(app()).get("/api/client/tablet");
+    expect(result.status).toBe(200);
+    expect(getOrSet).toHaveBeenCalledWith(`client-tablet:${CLIENT_ID}:studio:${STUDIO_ID}`, expect.any(Number), expect.any(Function));
+    expect(listStudioVideoMessages).toHaveBeenCalledWith(STUDIO_ID, CLIENT_ID, CLIENT_ID);
+  });
+  it("returns synthetic client text, voice and video in the provider's existing client folder", async () => {
+    const text = { id: MESSAGE_ID, entryType: "message", sender: "client", contentType: "text", body: "Synthetic reply", createdAt: "2026-10-16T10:00:00Z" };
+    const voice = { ...text, id: "synthetic-voice", contentType: "voice", body: "Synthetic voice" };
+    const video = { ...text, id: "synthetic-video", contentType: "video" };
+    mockQuery.limit
+      .mockResolvedValueOnce([{ id: STUDIO_ID }])
+      .mockResolvedValueOnce([text, voice]);
+    (listStudioVideoMessages as jest.Mock).mockResolvedValue([video]);
+    const result = await request(buildApp(proTabletRouter, "/api/pro/tablet")).get(`/api/pro/tablet/${CLIENT_ID}`);
+    expect(result.status).toBe(200);
+    expect(result.body.messages.map((entry: any) => entry.contentType)).toEqual(["text", "voice", "video"]);
+    expect(listStudioVideoMessages).toHaveBeenCalledWith(STUDIO_ID, CLIENT_ID, PRO_ID);
+  });
 });

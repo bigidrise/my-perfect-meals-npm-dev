@@ -20,3 +20,9 @@ Avoid full-root compiler-host or filesystem-overlay comparisons as a quick way t
 **Why:** Both comparison approaches stalled beyond multi-minute timeouts in this project, yielding no baseline proof.
 
 **How to apply:** Inspect the complete current compiler output and keep an unexplained release fingerprint mismatch explicitly unresolved rather than repeatedly compiling synthetic before/after programs.
+
+Run an in-memory PostgreSQL test engine in a Node worker when its Node dynamic imports are incompatible with Jest's VM.
+
+**Why:** PGlite initialization failed under the existing Jest loader with a missing dynamic-import callback. A normal Node worker supports those imports without changing the project's global Jest module mode.
+
+**How to apply:** Keep the engine entirely in memory and pass only synthetic SQL fixtures across the worker boundary. Do not substitute the application database or change global test-loader behavior to make these checks pass.

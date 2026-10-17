@@ -329,7 +329,7 @@ echo -e "  Using isolated test port: ${CYAN}${VALIDATE_PORT}${NC}"
 echo ""
 
 TMPLOG=$(mktemp /tmp/mpm-validate-XXXXXX.log)
-PORT=$VALIDATE_PORT NODE_ENV=development tsx server/index.ts >"$TMPLOG" 2>&1 &
+PORT=$VALIDATE_PORT NODE_ENV=development DEVELOPMENT_SAFE_RESTART=true SKIP_DEVELOPMENT_ACCOUNT_MAINTENANCE=true tsx server/devBootstrap.ts >"$TMPLOG" 2>&1 &
 SERVER_PID=$!
 
 # Poll /api/health on VALIDATE_PORT for a bounded, configurable startup window.
