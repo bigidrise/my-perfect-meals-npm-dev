@@ -747,6 +747,7 @@ const GuardedProPortal = () => <ProCareStudioGuard component={SafeProPortal} />;
 const GuardedProClients = () => <ProCareStudioGuard component={SafeProClients} />;
 const GuardedProClientsPhysician = () => <ProCareStudioGuard component={SafeProClientsPhysician} />;
 const DemoPhysicianWorkspaceRoute = () => <DemoPhysicianWorkspace />;
+const PhysicianPortalRoute = () => <PhysicianPortal />;
 const GuardedWorkspaceShell = () => <ProCareStudioGuard component={SafeWorkspaceShell} />;
 const GuardedProClientDashboard = () => <ProCareStudioGuard component={SafeProClientDashboard} />;
 const GuardedProClientNutritionPlan = () => <ProCareStudioGuard component={SafeProClientNutritionPlan} />;
@@ -1399,7 +1400,7 @@ export default function Router() {
         {/* ProCare Feature Routes (ProCare Cover → Care Team → Pro Portal → Client Dashboard → Performance & Competition Builder) */}
         <Route path="/more" component={SafeMore} />
         <Route path="/tips" component={SafeTips} />
-        <Route path="/pro/physician" component={PhysicianPortal} />
+        <Route path="/pro/physician" component={PhysicianPortalRoute} />
         <Route path="/care-team" component={GuardedCareTeam} />
         <Route path="/care-team/physician" component={GuardedPhysicianCareTeam} />
         <Route path="/care-team/trainer" component={GuardedTrainerCareTeam} />
