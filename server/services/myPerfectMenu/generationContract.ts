@@ -140,7 +140,8 @@ export function parseGeneratedMenuCandidates(
   const dessertRepair = ideaType === "snack" &&
     options?.developmentDessertRepair === true && developmentSnackRepairEnabled();
   const diagnostic = dessertRepair ? options?.onDiagnostic : undefined;
-  const normalized = normalizeGeneratedMenuResponse(value, ideaType);
+  const normalized = normalizeGeneratedMenuResponse(value, ideaType,
+    dessertRepair ? { preserveValidFoodIdentityFields: true } : undefined);
   const envelope = generatedMenuEnvelopeSchema.safeParse(normalized);
   if (!envelope.success) {
     diagnostic?.({

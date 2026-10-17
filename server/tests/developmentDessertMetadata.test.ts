@@ -108,6 +108,21 @@ describe("isolated Development dessert metadata repair", () => {
     expect(events[0].issues?.some(issue => issue.phase === "before" && issue.path === "foodIdentity.foodRole")).toBe(true);
     expect(events[0].issues?.some(issue => issue.phase === "after")).toBe(false);
   });
+  it("does not erase valid dessert identity because an optional texture is invalid", () => {
+    const result = parse({
+      ...concept, title: "Chocolate Delight Cups", description: "A chilled chocolate dessert.",
+      foodIdentity: {
+        foodRole: "dessert", polarity: "sweet", formatFamily: "pudding_custard",
+        preparationStyle: "chilled", texture: "silky",
+      },
+      culinaryIdentity: { ...concept.culinaryIdentity, dishForm: "pudding cups" },
+    });
+    expect(result.candidates[0].foodIdentity).toMatchObject({
+      foodRole: "dessert", polarity: "sweet", formatFamily: "pudding_custard", preparationStyle: "chilled",
+    });
+    expect(result.candidates[0].foodIdentity?.texture).toBeUndefined();
+    expect(result.metadataRepairCount).toBe(1);
+  });
   it.each([["production", undefined], ["development", "1"]])(
     "preserves legacy parsing and emits no diagnostics outside scope: %s %s", (mode, deployed) => {
       process.env.NODE_ENV = mode as string;

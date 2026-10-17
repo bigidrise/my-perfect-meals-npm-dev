@@ -16,6 +16,8 @@ export interface DessertReference {
   preparationStyle?: string;
   ingredients?: string[];
   fingerprint?: string;
+  primaryProteinBase?: string | null;
+  majorStarchBase?: string | null;
 }
 
 const words = (value: string | undefined) =>
@@ -25,12 +27,12 @@ const words = (value: string | undefined) =>
 function dessertForm(value: string | undefined): string | undefined {
   const text = words(value);
   const patterns: [string, RegExp][] = [
-    ["cheesecake", /\bcheese\s?cake\b/], ["parfait", /\bparfait\b/],
-    ["cupcake", /\bcupcake\b/], ["brownie", /\bbrownie\b/],
-    ["cookie", /\b(cookies?|biscuit)\b/], ["cake", /\bcake\b/],
+    ["cheesecake", /\bcheese\s?cakes?\b/], ["parfait", /\bparfaits?\b/],
+    ["cupcake", /\bcupcakes?\b/], ["brownie", /\bbrownies?\b/],
+    ["cookie", /\b(cookies?|biscuits?)\b/], ["cake", /\bcakes?\b/],
     ["pudding_custard", /\b(pudding|custard|mousse)\b/],
     ["frozen_dessert", /\b(frozen dessert|ice cream|sorbet|gelato|popsicle|frozen.*bark)\b/],
-    ["bar", /\bbars?\b/], ["muffin", /\bmuffin\b/],
+    ["bar", /\bbars?\b/], ["muffin", /\bmuffins?\b/],
     ["pie", /\b(pie|tart)\b/], ["pastry", /\b(pastry|strudel)\b/],
     ["confection", /\b(confection|truffle|fudge)\b/],
   ];
@@ -50,10 +52,12 @@ function structure(reference: DessertReference): { form?: string; conflicting: b
     (titleForm && labelForm && titleForm !== labelForm),
   );
   // A title alone is not a substitute for missing historical structural evidence.
-  const explicitStructure = rawDishForm && !/^(dessert|sweet|snack|general sweet|general snack)$/.test(words(rawDishForm)) &&
+  const explicitStructure = rawDishForm && !/^(dessert|sweet|snack|general sweet|general snack|no bake dessert)$/.test(words(rawDishForm)) &&
     Boolean(reference.culinaryIdentity?.preparationStyle ?? reference.preparationStyle ?? reference.preparationMethod);
   return {
-    form: dishForm ?? (labelForm && (titleForm === labelForm || explicitStructure) ? labelForm : undefined),
+    form: dishForm ?? (explicitStructure ? titleForm : undefined) ??
+      (labelForm && (titleForm === labelForm || explicitStructure) ? labelForm : undefined) ??
+      (label === "no_bake_dessert" && explicitStructure ? "no_bake_dessert" : undefined),
     conflicting,
   };
 }
@@ -74,15 +78,41 @@ function fingerprint(reference: DessertReference): string | undefined {
   }
 }
 
-export function compareDessertStructures(left: DessertReference, right: DessertReference) {
+function preparation(reference: DessertReference): string {
+  const value = words(reference.culinaryIdentity?.preparationStyle ??
+    reference.preparationStyle ?? reference.preparationMethod);
+  if (/\b(chilled|no bake|set|assembled)\b/.test(value)) return "set";
+  if (/\b(baked|baking|oven)\b/.test(value)) return "baked";
+  if (/\b(frozen|freezing)\b/.test(value)) return "frozen";
+  return value;
+}
+
+function coreBases(reference: DessertReference): string[] {
+  return [
+    reference.culinaryIdentity?.primaryProteinBase ?? reference.primaryProteinBase ?? reference.primaryProtein,
+    reference.culinaryIdentity?.majorStarchBase ?? reference.majorStarchBase,
+  ].map(value => words(value ?? undefined)).filter(Boolean);
+}
+
+export function compareDessertStructures(
+  left: DessertReference,
+  right: DessertReference,
+  options?: { scope: "batch" | "history" },
+) {
   const a = structure(left), b = structure(right);
   const ai = ingredients(left), bi = ingredients(right);
   const overlap = ai.size && bi.size
     ? [...ai].filter(item => bi.has(item)).length / Math.max(ai.size, bi.size) : 0;
+  const leftPreparation = preparation(left), rightPreparation = preparation(right);
+  const samePreparation = Boolean(leftPreparation && leftPreparation === rightPreparation);
+  const leftBases = coreBases(left), rightBases = coreBases(right);
+  const sameCoreBase = leftBases.some(base => rightBases.includes(base));
   const evidence = {
     leftStructure: Boolean(a.form && !a.conflicting),
     rightStructure: Boolean(b.form && !b.conflicting),
     ingredientOverlap: Math.round(overlap * 100) / 100,
+    samePreparation,
+    sameCoreBase,
   };
   if (a.conflicting || b.conflicting) {
     return { decision: "uncertain" as const, branch: "conflicting_structure", evidence };
@@ -93,6 +123,17 @@ export function compareDessertStructures(left: DessertReference, right: DessertR
   }
   if (!a.form || !b.form) {
     return { decision: "uncertain" as const, branch: "incomplete_structure", evidence };
+  }
+  if (a.form === b.form && options?.scope === "history") {
+    // History must reject a repeated recipe, not permanently ban a whole dessert
+    // category. Flavor/protein relabeling of the same preparation still repeats.
+    if (samePreparation && (overlap >= 0.75 || (sameCoreBase && overlap >= 0.5))) {
+      return { decision: "duplicate" as const, branch: "historical_recipe_repeat", evidence };
+    }
+    if (ai.size < 2 || bi.size < 2 || !leftPreparation || !rightPreparation) {
+      return { decision: "uncertain" as const, branch: "incomplete_historical_recipe", evidence };
+    }
+    return { decision: "distinct" as const, branch: "same_format_different_recipe", evidence };
   }
   return a.form === b.form
     ? { decision: "duplicate" as const, branch: "same_dessert_structure", evidence }

@@ -14,3 +14,9 @@ Dessert replacement must handle incomplete historical structure explicitly, with
 **Why:** The user requires meaningful variety, including rejection of renamed repeats, without presenting flavor variants of one dessert as three distinct choices. They explicitly prefer making better use of generated candidates over increasing AI retries.
 
 **How to apply:** Preserve accepted candidates, the five-round maximum and all safety checks. Keep existing choices on failure, and distinguish an unresolved history comparison from a medical rejection. Ordinary diagnostics must exclude patient context, prompts and generated descriptions.
+
+Historical novelty is recipe-level, not a permanent prohibition on a dessert format. The current three should have different recognizable structures; older history must not make every future pudding, cookie or cake a duplicate merely because its format appeared before.
+
+**Why:** Live replacement attempts exhausted their candidates when broad historical format matches were treated as conclusive repeats. Missing identity evidence must still remain explicit rather than being fabricated.
+
+**How to apply:** Compare historical preparation and composition, preserve rejection of renamed recipes, and keep the Try 3 More confirmation consistent with the app's black-glass, white-text modals.
