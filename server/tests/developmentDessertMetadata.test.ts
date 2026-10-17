@@ -14,7 +14,7 @@ const concept = {
   foodIdentity: { foodRole: "dessert", polarity: "sweet", formatFamily: "cheesecake" },
 };
 
-describe("isolated Development dessert metadata repair", () => {
+describe("isolated dessert metadata repair with Development-only diagnostics", () => {
   const originalMode = process.env.NODE_ENV;
   const originalDeployment = process.env.REPLIT_DEPLOYMENT;
   beforeEach(() => {
@@ -141,21 +141,26 @@ describe("isolated Development dessert metadata repair", () => {
     const result = parse({ ...concept, validationDescription: "An unrelated model-supplied claim." });
     expect(result.candidates[0].validationDescription).toBeUndefined();
   });
-  it.each(["production", "development"])("does not recover descriptions outside the approved runtime/caller: %s", mode => {
+  it.each(["production", "development"])("does not recover descriptions for an unrelated caller: %s", mode => {
     process.env.NODE_ENV = mode;
     const result = parseGeneratedMenuCandidates({
       concepts: [{ ...concept, description: "Original description evidence. ".repeat(12) }],
-    }, "snack", { developmentDessertRepair: mode === "production", attempt: 1 });
+    }, "snack", { developmentDessertRepair: false, attempt: 1 });
     expect(result.candidates).toEqual([]);
     expect(result.rejectionCodes).toContain("schema_metadata_failure:concept_0:description");
   });
   it.each([["production", undefined], ["development", "1"]])(
-    "preserves legacy parsing and emits no diagnostics outside scope: %s %s", (mode, deployed) => {
+    "repairs metadata and full-description evidence without diagnostics: %s %s", (mode, deployed) => {
       process.env.NODE_ENV = mode as string;
       if (deployed === undefined) delete process.env.REPLIT_DEPLOYMENT;
       else process.env.REPLIT_DEPLOYMENT = deployed;
       const spy = jest.fn();
-      expect(parse({ ...concept, signature: "bad" }, spy).candidates).toEqual([]);
+      const description = "Original description evidence. ".repeat(12);
+      const result = parse({ ...concept, signature: "bad", description }, spy);
+      expect(result.candidates).toHaveLength(1);
+      expect(result.candidates[0].validationDescription).toBe(description.trim());
+      expect(result.candidates[0].description.length).toBeLessThanOrEqual(180);
+      expect(result.candidates[0].signature).toBe("Berry Cheesecake|Greek yogurt|chilled");
       expect(spy).not.toHaveBeenCalled();
     },
   );

@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { Pool } from "pg";
+import type { Pool, PoolClient } from "pg";
 import { developmentSnackRepairEnabled } from "../snackCompatibilityRepair";
 import type { DessertDiagnostic } from "./dessertDiagnostics";
 
@@ -10,7 +10,7 @@ export class DevelopmentNoSaveError extends Error {
 }
 
 interface ReadOnlyState {
-  query: Pool["query"];
+  query: PoolClient["query"];
   closed: boolean;
   blockedWriteCount: number;
   suppressedPrescriptionWrites: number;
@@ -49,43 +49,60 @@ function installRouting(pool: Pool): void {
   installed.add(pool);
   const originalQuery = pool.query;
   const originalConnect = pool.connect;
-  pool.query = function (...args: any[]) {
-    const state = execution.getStore();
-    if (!state) return originalQuery.apply(this, args);
-    try {
-      if (state.closed) deny(state);
-      const text = typeof args[0] === "string" ? args[0] : args[0]?.text;
-      const code = typeof text === "string"
-        ? text.replace(/'(?:''|[^'])*'/g, "''").replace(/--[^\n]*|\/\*[\s\S]*?\*\//g, " ").trim()
-        : "";
-      if (!/^(select|with|show)\b/i.test(code) || /;/.test(code.replace(/;\s*$/, "")) ||
-        /\b(insert|update|delete|merge|call|copy|create|alter|drop|truncate)\b/i.test(code)) {
+  // Proxy preserves pg's overloads, receiver, callbacks and stream return values.
+  // Unknown values are narrowed at this reflection boundary, never cast to an
+  // invented query signature.
+  pool.query = new Proxy(originalQuery, {
+    apply(target, receiver: unknown, args: unknown[]) {
+      const state = execution.getStore();
+      if (!state) return Reflect.apply(target, receiver, args);
+      try {
+        if (state.closed) deny(state);
+        const query = args[0];
+        const text = typeof query === "string" ? query
+          : query !== null && typeof query === "object" && "text" in query
+            ? query.text : undefined;
+        const code = typeof text === "string"
+          ? text.replace(/'(?:''|[^'])*'/g, "''").replace(/--[^\n]*|\/\*[\s\S]*?\*\//g, " ").trim()
+          : "";
+        if (!/^(select|with|show)\b/i.test(code) || /;/.test(code.replace(/;\s*$/, "")) ||
+          /\b(insert|update|delete|merge|call|copy|create|alter|drop|truncate)\b/i.test(code)) {
+          deny(state);
+        }
+        const result: unknown = Reflect.apply(state.query, undefined, args);
+        if (result !== null && typeof result === "object" &&
+          "catch" in result && typeof result.catch === "function") {
+          return Reflect.apply(result.catch, result, [(error: unknown) => {
+            if (error !== null && typeof error === "object" &&
+              "code" in error && error.code === "25006") state.blockedWriteCount++;
+            throw error;
+          }]);
+        }
+        return result;
+      } catch (error) {
+        const callback = args[args.length - 1];
+        if (typeof callback === "function") {
+          return queueMicrotask(() => Reflect.apply(callback, undefined, [error]));
+        }
+        return Promise.reject(error);
+      }
+    },
+  });
+  pool.connect = new Proxy(originalConnect, {
+    apply(target, receiver: unknown, args: unknown[]) {
+      const state = execution.getStore();
+      if (!state) return Reflect.apply(target, receiver, args);
+      try {
         deny(state);
+      } catch (error) {
+        const callback = args[0];
+        if (typeof callback === "function") {
+          return queueMicrotask(() => Reflect.apply(callback, undefined, [error]));
+        }
+        return Promise.reject(error);
       }
-      const result = (state.query as (...queryArgs: unknown[]) => unknown)(...args);
-      if (result && typeof (result as { catch?: unknown }).catch === "function") {
-        return (result as Promise<unknown>).catch((error: { code?: string }) => {
-          if (error?.code === "25006") state.blockedWriteCount++;
-          throw error;
-        });
-      }
-      return result;
-    } catch (error) {
-      const callback = args[args.length - 1];
-      if (typeof callback === "function") return queueMicrotask(() => callback(error));
-      return Promise.reject(error);
-    }
-  } as Pool["query"];
-  pool.connect = function (...args: any[]) {
-    const state = execution.getStore();
-    if (!state) return originalConnect.apply(this, args);
-    try {
-      deny(state);
-    } catch (error) {
-      if (typeof args[0] === "function") return queueMicrotask(() => args[0](error));
-      return Promise.reject(error);
-    }
-  } as Pool["connect"];
+    },
+  });
 }
 
 export async function withDevelopmentNoSaveDatabase<T>(
@@ -99,7 +116,7 @@ export async function withDevelopmentNoSaveDatabase<T>(
   installRouting(pool);
   const client = await pool.connect();
   const state: ReadOnlyState = {
-    query: client.query.bind(client) as Pool["query"],
+    query: client.query.bind(client),
     closed: false, blockedWriteCount: 0, suppressedPrescriptionWrites: 0,
   };
   try {

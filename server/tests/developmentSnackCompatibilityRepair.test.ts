@@ -8,7 +8,7 @@ import {
 import { validateMealForDiet } from "../services/guardrails";
 import { heartFailureBlockedIngredients } from "../services/guardrails/prompt/heartFailurePromptBuilder";
 
-describe("Development snack ingredient identity and clinical provenance", () => {
+describe("Snack ingredient identity and clinical provenance", () => {
   const originalMode = process.env.NODE_ENV;
   const originalDeployment = process.env.REPLIT_DEPLOYMENT;
   beforeEach(() => {
@@ -70,15 +70,31 @@ describe("Development snack ingredient identity and clinical provenance", () => 
     expect(error.message).toContain("[glp1]");
   });
 
-  it("does not activate for other callers, Production, or published Development", () => {
+  it("keeps unrelated callers unchanged", () => {
     const meal = { name: "Graham", ingredients: [{ name: "graham", quantity: "1", unit: "oz" }] };
     expect(validateMealForDiet(meal, "heart-failure", undefined, true).issues).toBeUndefined();
-    process.env.NODE_ENV = "production";
-    expect(developmentSnackRepairEnabled()).toBe(false);
-    expect(validateMealForDiet(meal, "heart-failure", undefined, true, undefined,
-      { developmentSnackRepair: true }).issues).toBeUndefined();
-    process.env.NODE_ENV = "development";
-    process.env.REPLIT_DEPLOYMENT = "1";
-    expect(developmentSnackRepairEnabled()).toBe(false);
   });
+
+  it.each([["production", undefined], ["development", undefined], ["development", "1"]])(
+    "uses the same functional repair without enabling diagnostics: %s %s", (mode, deployment) => {
+      process.env.NODE_ENV = mode;
+      if (deployment === undefined) delete process.env.REPLIT_DEPLOYMENT;
+      else process.env.REPLIT_DEPLOYMENT = deployment;
+      const meal = {
+        name: "Cheesecake",
+        ingredients: [{ name: "unsalted butter", quantity: "1", unit: "tbsp" }],
+      };
+      const result = validateMealForDiet(meal, "heart-failure", undefined, true, undefined,
+        { developmentSnackRepair: true });
+      expect(result.isValid).toBe(false);
+      expect(result.issues).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          source: "heart-failure", ruleId: "cardiac:qualified_ingredient_evidence_required",
+        }),
+      ]));
+      expect(developmentSnackRepairEnabled()).toBe(mode === "development" && !deployment);
+      expect(validateMealForDiet(meal, "heart-failure", undefined, false, undefined,
+        { developmentSnackRepair: true }).issues).toBeUndefined();
+    },
+  );
 });

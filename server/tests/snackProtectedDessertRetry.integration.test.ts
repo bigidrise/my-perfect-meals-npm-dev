@@ -234,10 +234,11 @@ describe("My Perfect Menu protected dessert retry boundary", () => {
     expect(retryPrompt).toContain("preserve recognizable cheesecake identity");
   });
 
-  it("Development repairs cardiac cheesecake ingredients without a false GLP-1 retry", async () => {
+  it.each(["development", "production"])(
+    "%s repairs cardiac cheesecake ingredients without a false GLP-1 retry", async mode => {
     const originalMode = process.env.NODE_ENV;
     const originalDeployment = process.env.REPLIT_DEPLOYMENT;
-    process.env.NODE_ENV = "development";
+    process.env.NODE_ENV = mode;
     delete process.env.REPLIT_DEPLOYMENT;
     try {
       const adapted = JSON.parse(snackResponse("Strawberry Cheesecake",
@@ -258,6 +259,8 @@ describe("My Perfect Menu protected dessert retry boundary", () => {
       });
       expect(result.success).toBe(true);
       expect(result.meal?.name).toContain("Cheesecake");
+      expect(capturedMessages[0].map(message => message.content).join("\n"))
+        .toContain("Dessert is not a prohibited category");
       const retry = capturedMessages[1].map(message => message.content).join("\n");
       expect(retry).toContain("heart-failure/cardiac:restricted_ingredient");
       expect(retry).not.toContain("GLP-1 CLINICAL CONSTRAINT VIOLATION");
@@ -269,9 +272,10 @@ describe("My Perfect Menu protected dessert retry boundary", () => {
     }
   });
 
-  it("Development preserves the actual cardiac reason after bounded exhaustion", async () => {
+  it.each(["development", "production"])(
+    "%s preserves the actual cardiac reason after bounded exhaustion", async mode => {
     const originalMode = process.env.NODE_ENV;
-    process.env.NODE_ENV = "development";
+    process.env.NODE_ENV = mode;
     try {
       queueResponses(
         snackResponse("Strawberry Cheesecake", "A chilled cheesecake with a creamy filling."),
