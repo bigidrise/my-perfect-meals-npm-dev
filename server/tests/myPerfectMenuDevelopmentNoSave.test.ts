@@ -173,6 +173,59 @@ describe("My Perfect Menu Development-only no-save endpoint", () => {
     expect(mockClient.query.mock.calls.map(([sql]: any[]) => sql)).toEqual(["BEGIN READ ONLY", "ROLLBACK"]);
   });
 
+  it.each(["development", "production"])(
+    "%s normal route repairs dessert metadata and signature collisions before saving three governed choices",
+    async mode => {
+      process.env.NODE_ENV = mode;
+      mockResolveBuilder.mockResolvedValue({
+        key: "anti_inflammatory", namespace: "antiInflammatory", route: "/anti-inflammatory-builder",
+      });
+      const description = "Complete original dessert evidence. ".repeat(10);
+      mockGenerate.mockResolvedValue({
+        concepts: candidates.map(item => ({ ...item, signature: "shared berry dessert", description })),
+      });
+      const response = await request(app).post("/api/my-perfect-menu/concepts")
+        .send({ ...body, requestedBuilderKey: "anti_inflammatory" }).expect(200);
+      expect(response.body.concepts).toHaveLength(3);
+      expect(response.body.builder.key).toBe("anti_inflammatory");
+      expect(response.body.concepts.map((item: { foodIdentity: { formatFamily: string } }) =>
+        item.foodIdentity.formatFamily)).toEqual(["cheesecake", "cookie", "pudding_custard"]);
+      for (const item of response.body.concepts) {
+        expect(item.validationDescription).toBe(description.trim());
+        expect(item.description.length).toBeLessThanOrEqual(180);
+      }
+      expect(mockGenerate).toHaveBeenCalledTimes(1);
+      expect(mockHumanValidation).toHaveBeenCalledTimes(3);
+      expect(mockDietValidation).toHaveBeenCalledTimes(3);
+      expect(mockProtocolScan).toHaveBeenCalledTimes(3);
+      expect(mockDietValidation.mock.calls.every(([meal]) =>
+        meal.description === description.trim())).toBe(true);
+      expect(mockPersisted.preferences.categories.snack).toHaveLength(3);
+      expect(mockDb.update).toHaveBeenCalledTimes(1);
+      expect(mockComplete).toHaveBeenCalledTimes(1);
+      expect(mockClaim).not.toHaveBeenCalled();
+      expect(mockPool.connect).not.toHaveBeenCalled();
+      if (mode === "production") {
+        expect(console.info).not.toHaveBeenCalled();
+      }
+    },
+  );
+
+  it("Production normal route fails closed on protocol rejection and preserves saved choices", async () => {
+    process.env.NODE_ENV = "production";
+    mockProtocolScan.mockReturnValue({
+      passed: false, violations: [{ code: "synthetic_restriction" }],
+    });
+    const snapshot = JSON.stringify(mockPersisted);
+    const response = await request(app).post("/api/my-perfect-menu/concepts").send(body).expect(422);
+    expect(response.body.code).toBe("CONCEPT_REPAIR_EXHAUSTED");
+    expect(mockGenerate).toHaveBeenCalledTimes(3);
+    expect(mockProtocolScan).toHaveBeenCalled();
+    expect(mockPool.connect).not.toHaveBeenCalled();
+    expect(mockClaim).not.toHaveBeenCalled();
+    assertNoSave(snapshot);
+  });
+
   it.each([["production", undefined], ["development", "1"], ["test", undefined]])(
     "returns 404 before authentication or generation outside unpublished Development: %s %s", async (mode, deployment) => {
       process.env.NODE_ENV = mode;

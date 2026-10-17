@@ -54,7 +54,6 @@ import {
   type WholeFoodPurpose,
 } from '../wholeFoodStandard';
 import {
-  developmentSnackRepairEnabled,
   validateCardiacSnackIngredients,
 } from '../snackCompatibilityRepair';
 
@@ -422,8 +421,8 @@ export function validateMealForDiet(
   glp1Targets?: ResolvedGLP1Targets,
   options?: { developmentSnackRepair?: boolean },
 ): ValidationResult {
-  const repairEnabled = isSnack && options?.developmentSnackRepair === true &&
-    developmentSnackRepairEnabled();
+  // Legacy option name: explicit Snack Creator opt-in, not a Development gate.
+  const repairEnabled = isSnack && options?.developmentSnackRepair === true;
   // Helper: merge ingredient precision violations into any diet result
   function mergeWithPrecision(dietResult: ValidationResult): ValidationResult {
     const precisionCheck = validateIngredientPrecision(meal.ingredients);

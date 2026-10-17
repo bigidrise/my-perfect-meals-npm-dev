@@ -1,6 +1,6 @@
 import type { DietValidationIssue, ValidationResult } from "./guardrails/types";
 
-/** This release is approved only for unpublished Development. */
+/** Diagnostic/test infrastructure only; normal functional repairs are not runtime-gated. */
 export function developmentSnackRepairEnabled(
   env: Record<string, string | undefined> = process.env,
 ): boolean {

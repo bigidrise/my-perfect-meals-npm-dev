@@ -68,8 +68,7 @@ const normalizeSignature = (signature: string) =>
  */
 export async function generateCulinaryConcepts(input: CulinaryConceptRequest): Promise<CulinaryConceptResult> {
   const dessertRepairEnabled = input.developmentDessertCompletion === true &&
-    input.occasion === "snack" && input.cravingCategory === "dessert" &&
-    developmentSnackRepairEnabled();
+    input.occasion === "snack" && input.cravingCategory === "dessert";
   const targetCount = input.targetCount ?? 3;
   const priorSignatures = new Set((input.priorSignatures ?? []).map(normalizeSignature));
   const candidatePool: GeneratedMenuConcept[] = [];
@@ -83,8 +82,9 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
   let schemaIssueCount = 0;
   let invalidResponseCount = 0;
   let schemaRepairInstructions: string[] = [];
-  const diagnosticRunId = dessertRepairEnabled ? randomUUID() : undefined;
-  const emit: DessertDiagnosticSink | undefined = dessertRepairEnabled ? event => {
+  const diagnosticsEnabled = dessertRepairEnabled && developmentSnackRepairEnabled();
+  const diagnosticRunId = diagnosticsEnabled ? randomUUID() : undefined;
+  const emit: DessertDiagnosticSink | undefined = diagnosticsEnabled ? event => {
     if (event.stage === "schema") {
       if (event.candidateId?.endsWith(":envelope")) invalidResponseCount++;
       else {

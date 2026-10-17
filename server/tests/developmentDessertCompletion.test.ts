@@ -37,7 +37,7 @@ const request = {
   requiredCuisine: null, history: [], validate: (_concept: GeneratedMenuConcept) => [] as string[],
 };
 
-describe("Development My Perfect Menu dessert completion", () => {
+describe("My Perfect Menu dessert completion with Development-only diagnostics", () => {
   const originalMode = process.env.NODE_ENV;
   const originalDeployment = process.env.REPLIT_DEPLOYMENT;
   let diagnosticLog: jest.SpyInstance;
@@ -265,7 +265,9 @@ describe("Development My Perfect Menu dessert completion", () => {
     });
     expect(compareDessertStructures(newPudding, oldPudding, { scope: "batch" }).decision).toBe("duplicate");
   });
-  it("completes a new set even when every broad dessert format already exists in history", async () => {
+  it.each(["development", "production"])(
+    "%s completes a new set even when every broad dessert format already exists in history", async mode => {
+    process.env.NODE_ENV = mode;
     const oldChoices = [cheesecake, frozen, cookie].map(item => ({
       ...item, primaryIngredients: ["oats", "cocoa", "coconut milk"], primaryProtein: "oats",
       culinaryIdentity: {
@@ -363,21 +365,40 @@ describe("Development My Perfect Menu dessert completion", () => {
     expect(route.slice(failure)).not.toContain("mutatePreferences(");
   });
 
-  it.each([
-    ["production", undefined, true],
-    ["development", "1", true],
-    ["development", undefined, false],
-  ])("does not change behavior outside the approved caller/runtime: %s %s %s", async (mode, deployed, optIn) => {
+  it.each([["production", undefined], ["development", "1"], ["development", undefined]])(
+    "uses identical functional repairs across runtimes: %s %s", async (mode, deployed) => {
     process.env.NODE_ENV = mode as string;
     if (deployed === undefined) delete process.env.REPLIT_DEPLOYMENT;
     else process.env.REPLIT_DEPLOYMENT = deployed;
-    const generate = jest.fn(async ({ user }) => {
-      expect(user).not.toContain("Retained, fully governed desserts");
-      expect(diagnosticLog).not.toHaveBeenCalled();
+    const events: DessertDiagnostic[] = [];
+    const generate = jest.fn(async () => {
       return { concepts: [cheesecake, frozen, cookie] };
     });
-    await expect(generateCulinaryConcepts({
-      ...request, developmentDessertCompletion: optIn, generate,
-    })).rejects.toMatchObject({ code: "CONCEPT_REPAIR_EXHAUSTED" });
+    const result = await generateCulinaryConcepts({
+      ...request, onDiagnostic: event => events.push(event), generate,
+    });
+    expect(result.concepts.map(item => item.title)).toEqual([
+      cheesecake.title, frozen.title, cookie.title,
+    ]);
+    expect(result.attemptsCompleted).toBe(1);
+    expect(result.metadataRepairCount).toBe(0);
+    expect(generate).toHaveBeenCalledTimes(1);
+    if (mode === "development" && deployed === undefined) {
+      expect(diagnosticLog).toHaveBeenCalled();
+      expect(events.some(event => event.stage === "completion")).toBe(true);
+    } else {
+      expect(diagnosticLog).not.toHaveBeenCalled();
+      expect(events).toEqual([]);
+    }
+  });
+
+  it.each(["development", "production"])(
+    "does not activate another caller's dessert completion in %s", async mode => {
+      process.env.NODE_ENV = mode;
+      await expect(generateCulinaryConcepts({
+        ...request, developmentDessertCompletion: false,
+        generate: async () => ({ concepts: [cheesecake, frozen, cookie] }),
+      })).rejects.toMatchObject({ code: "CONCEPT_REPAIR_EXHAUSTED" });
+      expect(diagnosticLog).not.toHaveBeenCalled();
   });
 });

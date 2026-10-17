@@ -156,3 +156,4 @@
 - [Studio starch plan parity](studio-starch-plan-parity.md) — Physician and Trainer choices must share the client's calculator count and timing and reach their Builders.
 - [Client messaging boundary](client-messaging-product-boundary.md) — accounts without a Studio should have only Client Messages, not Provider Messages.
 - [Non-persisting food diagnostics](non-persisting-food-diagnostics.md) — no-save tests must also prevent writes during context resolution, without relaxing generation or validation.
+- [Meal card source labels](meal-card-source-label-policy.md) — show the originating builder or creator, not a clinical condition such as Heart Failure.
