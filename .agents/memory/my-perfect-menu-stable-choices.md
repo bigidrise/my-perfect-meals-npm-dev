@@ -20,3 +20,9 @@ Historical novelty is recipe-level, not a permanent prohibition on a dessert for
 **Why:** Live replacement attempts exhausted their candidates when broad historical format matches were treated as conclusive repeats. Missing identity evidence must still remain explicit rather than being fabricated.
 
 **How to apply:** Compare historical preparation and composition, preserve rejection of renamed recipes, and keep the Try 3 More confirmation consistent with the app's black-glass, white-text modals.
+
+Presentation limits must not discard otherwise inspectable food concepts or remove original food evidence from later validation.
+
+**Why:** Repeated live failures included candidates rejected solely for overlong descriptive copy; shortening it before checking safety or losing it on restoration would hide potentially meaningful food details.
+
+**How to apply:** Keep full original evidence through initial validation, persistence, restoration and Builder handoff. Short display copy is separate; never use it to bypass any protection or increase the retry ceiling.

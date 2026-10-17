@@ -83,7 +83,7 @@ describe("isolated Development dessert metadata repair", () => {
   });
   it("reports exact issue paths and repair outcome, never generated content", () => {
     const events: DessertDiagnostic[] = [];
-    parse({ ...concept, title: "PRIVATE-CONTENT-CANARY", primaryProtein: "", description: "z".repeat(181) },
+    parse({ ...concept, title: "PRIVATE-CONTENT-CANARY", primaryProtein: "", description: "z".repeat(4001) },
       event => events.push(event));
     expect(events[0]).toMatchObject({
       attempt: 1, candidateId: "a1:c1", repairAttempted: true,
@@ -122,6 +122,32 @@ describe("isolated Development dessert metadata repair", () => {
     });
     expect(result.candidates[0].foodIdentity?.texture).toBeUndefined();
     expect(result.metadataRepairCount).toBe(1);
+  });
+  it("recovers overlong display copy without losing its complete validation evidence", () => {
+    const description = "A chilled berry dessert. " + "Retain every original preparation detail. ".repeat(8);
+    const result = parse({ ...concept, description });
+    expect(result.candidates[0].description).toBe("A chilled berry dessert.");
+    expect(result.candidates[0].validationDescription).toBe(description.trim());
+    expect(result.metadataRepairCount).toBe(1);
+    expect(result.rejectionCodes).toEqual([]);
+  });
+  it("uses the original title rather than cutting an incomplete description mid-sentence", () => {
+    const description = "An intentionally extended single sentence " + "with original details ".repeat(12);
+    const result = parse({ ...concept, description });
+    expect(result.candidates[0].description).toBe(concept.title);
+    expect(result.candidates[0].validationDescription).toBe(description.trim());
+  });
+  it("does not accept model-supplied validation evidence in place of the actual description", () => {
+    const result = parse({ ...concept, validationDescription: "An unrelated model-supplied claim." });
+    expect(result.candidates[0].validationDescription).toBeUndefined();
+  });
+  it.each(["production", "development"])("does not recover descriptions outside the approved runtime/caller: %s", mode => {
+    process.env.NODE_ENV = mode;
+    const result = parseGeneratedMenuCandidates({
+      concepts: [{ ...concept, description: "Original description evidence. ".repeat(12) }],
+    }, "snack", { developmentDessertRepair: mode === "production", attempt: 1 });
+    expect(result.candidates).toEqual([]);
+    expect(result.rejectionCodes).toContain("schema_metadata_failure:concept_0:description");
   });
   it.each([["production", undefined], ["development", "1"]])(
     "preserves legacy parsing and emits no diagnostics outside scope: %s %s", (mode, deployed) => {
