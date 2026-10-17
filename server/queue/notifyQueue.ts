@@ -5,13 +5,14 @@ import { sendSMS } from "../smsService";
 import { db } from "../db";
 import { users } from "../../shared/schema";
 import { eq } from "drizzle-orm";
+import { startupMaintenanceEnabled } from "../bootstrap/developmentStartupMaintenance";
 
 // Redis connection temporarily disabled to fix ENOTFOUND errors
 let redis: any = null;
 console.log('📡 Redis notifications temporarily disabled to prevent connection errors');
 
 // Notification queue
-export const notifyQueue = redis ? new Queue("notify", { connection: redis }) : null;
+export const notifyQueue = redis && startupMaintenanceEnabled() ? new Queue("notify", { connection: redis }) : null;
 
 // Queue a notification job
 export async function enqueueNotifyJob(data: {
@@ -45,7 +46,7 @@ export async function enqueueNotifyJob(data: {
 }
 
 // Worker to process notifications
-export const notifyWorker = redis ? new Worker("notify", async (job) => {
+export const notifyWorker = redis && startupMaintenanceEnabled() ? new Worker("notify", async (job) => {
   const { userId, slot, channel } = job.data;
 
   try {

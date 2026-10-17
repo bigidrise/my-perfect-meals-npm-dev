@@ -21,11 +21,11 @@ Do not treat a skipped migration as a successful schema prerequisite for a destr
 
 **How to apply:** Separate mutation jobs from readiness checks and preserve explicit schema assurance before starting dependent workers.
 
-Development-only safe startup must suppress automatic launch sites, not globally block database writes or bypass request security. Authoritative server Production/deployment markers override suppression; inherited client branding does not establish runtime identity.
+Safe startup must suppress automatic launch sites, not globally block database writes or bypass request security. Published-deployment authority always overrides suppression; inherited client branding does not establish runtime identity. The Development bootstrap still refuses Production mode; an explicit, unpublished Production-workspace diagnostic uses a separate pre-import boundary.
 
-**Why:** Shared Neon requires stopping automatic maintenance without breaking authentication, interactive recipe generation, or clinical enforcement. A safe-start opt-in was silently ignored because Development inherited client Production branding; tests with minimal synthetic environments missed it. Static imports can launch workers before the entrypoint body runs.
+**Why:** Shared Neon requires stopping automatic maintenance without breaking authentication, interactive recipe generation, or clinical enforcement. A safe-start opt-in was silently ignored because Development inherited client Production branding; tests with minimal synthetic environments missed it. Static imports can launch workers before the entrypoint body runs. A workspace preview can use the same Production entrypoint as the published app, so NODE_ENV alone cannot distinguish those contexts.
 
-**How to apply:** Initialize an immutable decision before importing the application. An ambiguous or uninitialized safe opt-in must abort, never fall back to normal maintenance. Audit import-time workers, singleton initialization, deferred jobs and awaited startup work together. Keep read-only prerequisites fail-closed; test inherited branding and occupied ports without loading database dependencies.
+**How to apply:** Initialize an immutable decision before importing the application. An ambiguous or uninitialized workspace safe opt-in must abort, never fall back to normal maintenance; normal published startup must retain workers despite inherited preview switches. Audit import-time workers, singleton initialization, session pruning, deferred jobs and awaited startup work together. Keep read-only prerequisites fail-closed; test inherited branding and occupied ports without loading database dependencies. Maintenance suppression is not a read-only sandbox: intentional login/session and other request writes remain real.
 
 Do not attribute cumulative database mutation counters or current schema presence to a single failed startup without a before-state or operation-specific evidence.
 
