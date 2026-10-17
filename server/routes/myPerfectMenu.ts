@@ -687,6 +687,7 @@ router.post("/concepts", requireAuth, async (req, res) => {
     );
     const generated = await generateCulinaryConcepts({
       occasion,
+      developmentDessertCompletion: occasion === "snack" && parsed.data.snackType === "dessert",
       ...(occasion === "snack" ? { menuShape: "craving" as const, cravingCategory: parsed.data.snackType } : {}),
       subjectLabel: target.label ?? "the person being fed",
       requiredCuisine,
