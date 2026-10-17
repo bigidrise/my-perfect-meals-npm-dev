@@ -119,10 +119,18 @@ export interface GuardrailResult {
   warnings: string[];
 }
 
+export interface DietValidationIssue {
+  source: string;
+  ruleId: string;
+  message: string;
+  ingredient?: string;
+}
+
 export interface ValidationResult {
   isValid: boolean;
   violations: string[];
   blockedIngredients?: string[];
   warnings?: string[];
   dietType?: DietType;
+  issues?: DietValidationIssue[];
 }

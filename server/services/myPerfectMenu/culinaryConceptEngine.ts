@@ -15,6 +15,8 @@ import {
   canAttemptConceptCompletion,
   conceptCompletionFailure,
 } from "./candidateCompletion";
+import { developmentSnackRepairEnabled } from "../snackCompatibilityRepair";
+import { areDessertDuplicates, dessertCompletionFeedback } from "./developmentDessertCompletion";
 
 export interface CulinaryConceptRequest {
   occasion: MyPerfectMenuCategory;
@@ -22,6 +24,8 @@ export interface CulinaryConceptRequest {
   menuShape?: "dish" | "craving";
   /** An explicit Craving Menu choice, not an inference from the snack occasion. */
   cravingCategory?: "food" | "dessert";
+  /** Explicitly opted in by My Perfect Menu, never other Creator callers. */
+  developmentDessertCompletion?: boolean;
   subjectLabel: string;
   userContext: string[];
   requiredCuisine: string | null;
@@ -56,6 +60,9 @@ const normalizeSignature = (signature: string) =>
  * Creators. The caller owns authorization, history storage, and destination.
  */
 export async function generateCulinaryConcepts(input: CulinaryConceptRequest): Promise<CulinaryConceptResult> {
+  const dessertRepairEnabled = input.developmentDessertCompletion === true &&
+    input.occasion === "snack" && input.cravingCategory === "dessert" &&
+    developmentSnackRepairEnabled();
   const targetCount = input.targetCount ?? 3;
   const priorSignatures = new Set((input.priorSignatures ?? []).map(normalizeSignature));
   const candidatePool: GeneratedMenuConcept[] = [];
@@ -130,6 +137,7 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
       candidatePool.length
         ? `${accepted.length} governed candidate(s) are already retained. Generate only the ${requestedCount} missing position(s); broaden compliant culinary structures without changing the person's context or cuisine.`
         : "",
+      dessertRepairEnabled ? dessertCompletionFeedback(accepted) : "",
       "Vary dish format, primary protein, preparation method, flavor profile, and—when relevant—food identity dimensions without overriding the person's preferences.",
       ...(input.extraInstructions ?? []),
     ].filter(Boolean).join("\n\n");
@@ -147,13 +155,18 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
     for (const candidate of parsed.candidates) {
       const signature = normalizeSignature(candidate.signature);
       if (priorSignatures.has(signature) ||
-        candidatePool.some((item) => normalizeSignature(item.signature) === signature)) {
+        candidatePool.some((item) => normalizeSignature(item.signature) === signature &&
+          (!dessertRepairEnabled || areDessertDuplicates(item, candidate)))) {
         rejectedReasons.push("repetition:signature");
         continue;
       }
       const violations = input.validate(candidate);
       if (violations.length) {
         rejectedReasons.push(...violations);
+        continue;
+      }
+      if (dessertRepairEnabled && candidatePool.some(item => areDessertDuplicates(item, candidate))) {
+        rejectedReasons.push("repetition:dessert_structure");
         continue;
       }
       // A previous set should not be repeated even when the model renames its signature.
@@ -165,8 +178,11 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
       }
       candidatePool.push(candidate);
     }
-    accepted = selectCulinarilyBroadConcepts(candidatePool, input.occasion, input.history, targetCount);
-    if (accepted.length === targetCount && !hasMeaningfulCulinaryRepetition(accepted, input.occasion)) break;
+    accepted = dessertRepairEnabled
+      ? candidatePool.slice(0, targetCount)
+      : selectCulinarilyBroadConcepts(candidatePool, input.occasion, input.history, targetCount);
+    if (accepted.length === targetCount &&
+      (dessertRepairEnabled || !hasMeaningfulCulinaryRepetition(accepted, input.occasion))) break;
   }
 
   if (accepted.length !== targetCount) {
@@ -180,7 +196,8 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
       providerFailureCount,
       attemptsCompleted,
     });
-    const failure = conceptCompletionFailure(rejectionCounts, providerFailureCount);
+    const failure = conceptCompletionFailure(rejectionCounts, providerFailureCount,
+      dessertRepairEnabled ? { dessertCompletion: true, acceptedCount: accepted.length } : undefined);
     throw Object.assign(new Error(failure.error), {
       code: failure.code,
       status: failure.status,

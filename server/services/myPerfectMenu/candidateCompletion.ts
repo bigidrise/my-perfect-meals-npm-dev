@@ -17,12 +17,23 @@ export function canAttemptConceptCompletion(
 export function conceptCompletionFailure(
   rejectionCounts: Record<string, number>,
   providerFailureCount: number,
+  options?: { dessertCompletion: boolean; acceptedCount: number },
 ): { status: number; code: string; error: string } {
   const metadataFailures = rejectionCounts.schema_metadata_failure ?? 0;
   const authorityFailures = Object.entries(rejectionCounts)
     .filter(([category]) => category !== "schema_metadata_failure" && category !== "repetition_rejection")
     .reduce((total, [, count]) => total + count, 0);
 
+  if (options?.dessertCompletion && authorityFailures === 0 &&
+    metadataFailures === 0 && providerFailureCount === 0) {
+    return {
+      status: 422,
+      code: "CONCEPT_VARIETY_COMPLETION_FAILED",
+      error: `We couldn't finish three distinct dessert ideas this time (${options.acceptedCount} passed validation). ` +
+        "The remaining ideas repeated existing choices; this does not mean desserts are prohibited. " +
+        "Your current choices are still here and your settings were not changed.",
+    };
+  }
   if (providerFailureCount > 0 && metadataFailures === 0 && authorityFailures === 0) {
     return {
       status: 502,
