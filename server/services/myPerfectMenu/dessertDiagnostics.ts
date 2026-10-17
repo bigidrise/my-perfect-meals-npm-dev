@@ -13,6 +13,8 @@ export interface DessertDiagnostic {
     leftStructure: boolean;
     rightStructure: boolean;
     ingredientOverlap: number;
+    samePreparation?: boolean;
+    sameCoreBase?: boolean;
     signatureCollision?: boolean;
   };
   acceptedCount?: number;

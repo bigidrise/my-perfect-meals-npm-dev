@@ -196,6 +196,76 @@ describe("Development My Perfect Menu dessert completion", () => {
       ...cheesecake, foodIdentity: { ...cheesecake.foodIdentity!, formatFamily: "cookie" },
     }).decision).toBe("uncertain");
   });
+  it("does not permanently ban an old dessert format when the actual historical recipe differs", () => {
+    const newPudding = {
+      ...cheesecake, title: "Chilled Cocoa Avocado Pudding",
+      primaryIngredients: ["avocado", "cocoa", "coconut milk"],
+      primaryProtein: null,
+      culinaryIdentity: {
+        ...cheesecake.culinaryIdentity, dishForm: "pudding",
+        primaryProteinBase: null, definingComponents: ["avocado", "cocoa"],
+      },
+      foodIdentity: { ...cheesecake.foodIdentity!, formatFamily: "pudding_custard" as const },
+    };
+    const oldPudding = {
+      ...cheesecake, title: "Berry Pudding",
+      culinaryIdentity: { ...cheesecake.culinaryIdentity, dishForm: "pudding" },
+      foodIdentity: { ...cheesecake.foodIdentity!, formatFamily: "pudding_custard" as const },
+    };
+    expect(compareDessertStructures(newPudding, oldPudding, { scope: "history" })).toMatchObject({
+      decision: "distinct", branch: "same_format_different_recipe",
+    });
+    expect(compareDessertStructures(newPudding, oldPudding, { scope: "batch" }).decision).toBe("duplicate");
+  });
+  it("completes a new set even when every broad dessert format already exists in history", async () => {
+    const oldChoices = [cheesecake, frozen, cookie].map(item => ({
+      ...item, primaryIngredients: ["oats", "cocoa", "coconut milk"], primaryProtein: "oats",
+      culinaryIdentity: {
+        ...item.culinaryIdentity, primaryProteinBase: "oats", definingComponents: ["oats", "cocoa"],
+      },
+    }));
+    const result = await generateCulinaryConcepts({
+      ...request, previousDesserts: oldChoices,
+      history: oldChoices.map(item => buildCulinaryFingerprint(item, "snack")),
+      generate: async () => ({ concepts: [cheesecake, frozen, cookie] }),
+    });
+    expect(result.concepts).toHaveLength(3);
+    expect(result.attemptsCompleted).toBe(1);
+  });
+  it("still rejects flavor renames and protein swaps of an otherwise repeated historical recipe", () => {
+    const renamed = {
+      ...cheesecake, title: "Strawberry Cheesecakes", signature: "new identity",
+      primaryIngredients: [...cheesecake.primaryIngredients.slice(0, 2), "walnuts"],
+    };
+    expect(compareDessertStructures(cheesecake, renamed, { scope: "history" }).decision).toBe("duplicate");
+    const proteinSwap = {
+      ...cheesecake, primaryProtein: "soy yogurt",
+      culinaryIdentity: { ...cheesecake.culinaryIdentity, primaryProteinBase: "soy yogurt" },
+    };
+    expect(compareDessertStructures(cheesecake, proteinSwap, { scope: "history" }).decision).toBe("duplicate");
+  });
+  it("supports explicit plural dessert structure and no-bake shapes without treating bare titles as evidence", () => {
+    const cups = {
+      ...cheesecake, title: "Chocolate Dessert Cups",
+      culinaryIdentity: { ...cheesecake.culinaryIdentity, dishForm: "individual cups" },
+      foodIdentity: { ...cheesecake.foodIdentity!, formatFamily: "no_bake_dessert" as const },
+    };
+    expect(compareDessertStructures(cups, cups).decision).toBe("duplicate");
+    expect(compareDessertStructures({ title: "Chocolate Dessert Cups" }, cups).decision).toBe("uncertain");
+    expect(compareDessertStructures({
+      ...cookie, title: "Almond Cookies", culinaryIdentity: { ...cookie.culinaryIdentity, dishForm: "cookies" },
+    }, cookie).decision).toBe("duplicate");
+  });
+  it("renders the Try 3 More confirmation using a dark glass surface and white text", () => {
+    const source = readFileSync("client/src/pages/MyPerfectMenu.tsx", "utf8");
+    const modal = source.slice(source.indexOf("<AlertDialog open={tryMoreOpen}"),
+      source.indexOf("</AlertDialog>", source.indexOf("<AlertDialog open={tryMoreOpen}")));
+    expect(modal).toContain("bg-black/95");
+    expect(modal).toContain("text-white");
+    expect(modal).toContain('className="text-white/70"');
+    expect(modal).not.toContain("bg-white ");
+    expect(modal).toContain("onClick={confirmTryMore}");
+  });
 
   it.each(["protocol:clinical_restriction", "forbidden_ingredient:allergy", "dietary:identity", "cuisine_mismatch:requested"])(
     "never bypasses authoritative validation, even with a signature collision: %s", violation => {

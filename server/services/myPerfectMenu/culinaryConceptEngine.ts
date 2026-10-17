@@ -175,6 +175,16 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
         ? `${accepted.length} governed candidate(s) are already retained. Generate only the ${requestedCount} missing position(s); broaden compliant culinary structures without changing the person's context or cuisine.`
         : "",
       dessertRepairEnabled ? dessertCompletionFeedback(accepted) : "",
+      dessertRepairEnabled
+        ? "Historical dessert formats are not permanently banned. Create three different recognizable structures within this set. Against history, avoid repeating an actual recipe or merely renaming it, changing its flavor, or swapping its protein; a substantially different recipe can reuse a format."
+        : "",
+      dessertRepairEnabled && input.previousDesserts?.length
+        ? "Current saved desserts to move beyond (preserve them until replacement succeeds): " +
+          JSON.stringify(input.previousDesserts.map(item => ({
+            title: item.title, primaryIngredients: item.primaryIngredients,
+            culinaryIdentity: item.culinaryIdentity, foodIdentity: item.foodIdentity,
+          })))
+        : "",
       "Vary dish format, primary protein, preparation method, flavor profile, and—when relevant—food identity dimensions without overriding the person's preferences.",
       ...(input.extraInstructions ?? []),
     ].filter(Boolean).join("\n\n");
@@ -218,7 +228,7 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
         }));
         for (const { reference, id } of historicalReferences) {
           if (isRelevantDessertHistory(reference, candidate)) continue;
-          const comparison = compareDessertStructures(candidate, reference);
+          const comparison = compareDessertStructures(candidate, reference, { scope: "history" });
           emit?.({
             stage: "comparison", attempt: attempt + 1, candidateId, referenceId: id,
             branch: "history:unclassified_nonmatching_snack",
@@ -241,7 +251,7 @@ export async function generateCulinaryConcepts(input: CulinaryConceptRequest): P
           });
         }
         for (const { reference, id, scope } of references) {
-          const comparison = compareDessertStructures(candidate, reference);
+          const comparison = compareDessertStructures(candidate, reference, { scope });
           const signatureCollision = scope === "history" && priorSignatures.has(signature);
           emit?.({
             stage: "comparison", attempt: attempt + 1, candidateId, referenceId: id,
