@@ -48,20 +48,26 @@ describe("U3 session security helpers", () => {
     ).rejects.toBe(failure);
   });
 
-  it("clears the configured session cookie with matching security attributes", () => {
+  it("clears the published session cookie with matching security attributes", () => {
     const previousNodeEnv = process.env.NODE_ENV;
+    const previousDeployment = process.env.REPLIT_DEPLOYMENT;
     process.env.NODE_ENV = "production";
-    const clearCookie = jest.fn();
-
-    clearSessionCookie({ clearCookie } as any);
-
-    expect(clearCookie).toHaveBeenCalledWith(SESSION_COOKIE_NAME, {
-      path: "/",
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-    });
-    process.env.NODE_ENV = previousNodeEnv;
+    process.env.REPLIT_DEPLOYMENT = "1";
+    try {
+      const clearCookie = jest.fn();
+      clearSessionCookie({ clearCookie } as any);
+      expect(clearCookie).toHaveBeenCalledWith(SESSION_COOKIE_NAME, {
+        path: "/",
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+      });
+    } finally {
+      if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = previousNodeEnv;
+      if (previousDeployment === undefined) delete process.env.REPLIT_DEPLOYMENT;
+      else process.env.REPLIT_DEPLOYMENT = previousDeployment;
+    }
   });
 
   it("binds MFA proof to the authenticated user identity", () => {

@@ -4,10 +4,14 @@ export const SESSION_COOKIE_NAME = "connect.sid";
 
 export function sessionCookieSecurity(
   nodeEnv = process.env.NODE_ENV,
-  embeddedDevelopment = Boolean(process.env.REPLIT_DEV_DOMAIN),
+  workspacePreview = Boolean(process.env.REPLIT_DEV_DOMAIN),
+  publishedDeployment = process.env.REPLIT_DEPLOYMENT === "1",
 ) {
-  const isProduction = nodeEnv === "production";
-  const iframePreview = !isProduction && embeddedDevelopment;
+  const isProduction = nodeEnv === "production" || publishedDeployment;
+  // A workspace can run the production entrypoint without being published.
+  // Published deployments never inherit preview-only CHIPS behavior, even if
+  // REPLIT_DEV_DOMAIN is also present in their environment.
+  const iframePreview = workspacePreview && !publishedDeployment;
   return {
     httpOnly: true,
     secure: isProduction || iframePreview,
