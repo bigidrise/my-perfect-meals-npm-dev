@@ -15,6 +15,7 @@
  */
 
 import { db } from "../db";
+import { suppressDevelopmentTestPrescriptionWrite } from "./myPerfectMenu/developmentNoSave";
 import { users } from "../../shared/schema";
 import { clinicalLabs } from "../db/schema/clinicalLabs";
 import { companionProfiles } from "../db/schema/companionProfiles";
@@ -349,7 +350,7 @@ export async function resolveDailyNutritionPrescription(
   const snapshotMealsPerDay       = user.macroMealsPerDay ?? 4;
   const snapshotStarchMealsPerDay = baselineStarchMeals;
 
-  await db.insert(dailyNutritionPrescriptions)
+  if (!suppressDevelopmentTestPrescriptionWrite()) await db.insert(dailyNutritionPrescriptions)
     .values({
       userId,
       date: dateISO,

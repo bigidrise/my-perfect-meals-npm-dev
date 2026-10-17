@@ -50,6 +50,13 @@ function mockSelectQueue(values: unknown[]) {
 }
 
 jest.mock("../db", () => ({
+  pool: {
+    query: jest.fn(async () => ({ rows: [{ source_kind: "medication" }] })),
+    connect: jest.fn(async () => ({
+      query: jest.fn(async () => ({ rows: [{ source_kind: "medication" }] })),
+      release: jest.fn(),
+    })),
+  },
   db: {
     insert: jest.fn(() => ({
       values: () => ({ onConflictDoUpdate: () => Promise.resolve() }),
@@ -165,6 +172,8 @@ jest.mock("../../shared/dailyNutritionPrescription", () => ({
 
 // ── NOW import the module under test (after mocks are registered) ─────────────
 import { resolveDailyNutritionPrescription } from "../services/prescriptionResolver";
+import { db } from "../db";
+import { withDevelopmentNoSaveDatabase } from "../services/myPerfectMenu/developmentNoSave";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FIXTURES
@@ -215,6 +224,33 @@ function setupGlp1Test(guardrails: unknown = {}) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("resolveDailyNutritionPrescription", () => {
+  it("keeps the exact prescription calculation while suppressing no-save diagnostic persistence", async () => {
+    const mode = process.env.NODE_ENV, deployment = process.env.REPLIT_DEPLOYMENT;
+    try {
+      process.env.NODE_ENV = "development";
+      delete process.env.REPLIT_DEPLOYMENT;
+      setupGlp1Test();
+      (db.insert as jest.Mock).mockClear();
+      const normal = await resolveDailyNutritionPrescription({ userId: UUID_USER_ID, dateISO: DATE_ISO });
+      expect(db.insert).toHaveBeenCalledTimes(1);
+      (db.insert as jest.Mock).mockClear();
+      setupGlp1Test();
+      const pool = require("../db").pool as import("pg").Pool;
+      const connect = pool.connect;
+      await withDevelopmentNoSaveDatabase(pool, async state => {
+        const diagnostic = await resolveDailyNutritionPrescription({ userId: UUID_USER_ID, dateISO: DATE_ISO });
+        expect(diagnostic).toEqual(normal);
+        expect(state.suppressedPrescriptionWrites).toBe(1);
+        expect(state.blockedWriteCount).toBe(0);
+      });
+      expect(db.insert).not.toHaveBeenCalled();
+      expect(connect).toHaveBeenCalledTimes(1);
+    } finally {
+      process.env.NODE_ENV = mode;
+      if (deployment === undefined) delete process.env.REPLIT_DEPLOYMENT;
+      else process.env.REPLIT_DEPLOYMENT = deployment;
+    }
+  });
   test.each([
     [1, "even"], [2, "morning"], [3, "even"], [4, "evening"], [5, "ai"], [6, "even"],
   ])("client's saved %s starch meals / %s reach the real resolver without changing macro totals", async (count, timing) => {

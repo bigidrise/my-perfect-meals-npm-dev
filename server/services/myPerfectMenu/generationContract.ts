@@ -200,6 +200,7 @@ export function parseGeneratedMenuCandidates(
       outcome: parsed.success ? "valid" : "invalid",
       repairAttempted: repaired.repaired || normalizationRepair || Boolean(validationDescription),
       repairSucceeded: (repaired.repaired || normalizationRepair || Boolean(validationDescription)) && parsed.success,
+      ...(validationDescription ? { displayDescriptionRecovered: true } : {}),
       issues: [
         ...(before && !before.success ? safeSchemaIssues(before.error.issues, "before") : []),
         ...(!parsed.success ? safeSchemaIssues(parsed.error.issues, "after") : []),
