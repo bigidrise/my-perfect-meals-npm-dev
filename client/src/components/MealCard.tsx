@@ -23,6 +23,7 @@ import BuilderSourcePill from "@/components/BuilderSourcePill";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 import FavoriteButton from "@/components/FavoriteButton";
+import { withSavedMealBuilderOrigin, type SavedMealBuilder } from "@/lib/savedMealSource";
 import DiabetesProtocolIndicator from "@/components/DiabetesProtocolIndicator";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ProtocolVisibilityPanel from "@/components/ProtocolVisibilityPanel";
@@ -138,7 +139,7 @@ function MacroPill({ label, value, suffix = "" }: { label: string; value: number
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export function MealCard({
-  date, slot, meal, onUpdated, showStarchBadge = false, coachingLine, builderType, proClientId, diabeticMemoryContext,
+  date, slot, meal, onUpdated, showStarchBadge = false, coachingLine, builderType, originBuilder, proClientId, diabeticMemoryContext,
   weekStartISO, onRefined,
 }: {
   date: string; // "board" or "YYYY-MM-DD"
@@ -148,6 +149,7 @@ export function MealCard({
   showStarchBadge?: boolean; // Show starch/fiber classification badge on meal boards
   coachingLine?: string; // Optional coaching confirmation line shown below the meal image
   builderType?: string; // Builder identity override — used by medical builders (e.g. "oncology-support")
+  originBuilder?: SavedMealBuilder; // Save provenance only; never replaces the clinical mode.
   proClientId?: string;
   diabeticMemoryContext?: DiabeticMemoryContext;
   /**
@@ -321,7 +323,10 @@ export function MealCard({
             <FavoriteButton
               title={title}
               sourceType={builderType ?? meal.builderType ?? "meal-builder"}
-              mealData={{ ...meal, builderType: builderType ?? meal.builderType, ...(storedDiabeticMemory ? { diabeticMemory: storedDiabeticMemory } : {}) }}
+              mealData={withSavedMealBuilderOrigin({
+                ...meal, builderType: builderType ?? meal.builderType,
+                ...(storedDiabeticMemory ? { diabeticMemory: storedDiabeticMemory } : {}),
+              }, originBuilder)}
               size={20}
             />
           </div>

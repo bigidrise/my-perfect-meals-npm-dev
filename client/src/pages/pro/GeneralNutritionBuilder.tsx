@@ -1093,6 +1093,7 @@ export default function WeeklyMealBoard() {
                     <div className="space-y-3">
                       {dayLists[key as keyof typeof dayLists].map((meal: Meal, idx: number) => (
                         <MealCard
+                          originBuilder="general_nutrition"
                           key={meal.id}
                           date={activeDayISO}
                           slot={key}
@@ -1155,6 +1156,7 @@ export default function WeeklyMealBoard() {
                     {dayLists.snacks
                       .map((meal: Meal) => (
                         <MealCard
+                          originBuilder="general_nutrition"
                           key={meal.id}
                           date={activeDayISO}
                           slot="snacks"
@@ -1221,6 +1223,7 @@ export default function WeeklyMealBoard() {
               <div className="space-y-3">
                 {board.lists[key].map((meal: Meal, idx: number) => (
                   <MealCard
+                    originBuilder="general_nutrition"
                     key={meal.id}
                     date={"board"}
                     slot={key}

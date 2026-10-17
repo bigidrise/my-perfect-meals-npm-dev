@@ -1310,6 +1310,7 @@ export default function GLP1MealBuilder() {
                       <div className="space-y-3">
                         {dayLists[key as keyof typeof dayLists].map((meal: Meal, idx: number) => (
                           <MealCard
+                            originBuilder="metabolic_medication"
                             key={meal.id}
                             date={activeDayISO}
                             slot={key}
@@ -1376,6 +1377,7 @@ export default function GLP1MealBuilder() {
                       {dayLists.snacks
                         .map((meal: Meal) => (
                           <MealCard
+                            originBuilder="metabolic_medication"
                             key={meal.id}
                             date={activeDayISO}
                             slot="snacks"
@@ -1427,6 +1429,7 @@ export default function GLP1MealBuilder() {
                 <div className="space-y-3">
                   {board.lists[key].map((meal: Meal, idx: number) => (
                     <MealCard
+                      originBuilder="metabolic_medication"
                       key={meal.id}
                       date={"board"}
                       slot={key}

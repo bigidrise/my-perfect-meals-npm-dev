@@ -1150,6 +1150,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                         {dayLists[key as keyof typeof dayLists].map(
                           (meal: Meal, idx: number) => (
                             <MealCard
+                              originBuilder="performance"
                               key={meal.id}
                               date={activeDayISO}
                               slot={key}
@@ -1251,6 +1252,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                       {dayLists.snacks
                         .map((meal: Meal, idx: number) => (
                           <MealCard
+                            originBuilder="performance"
                             key={meal.id}
                             date={activeDayISO}
                             slot="snacks"
@@ -1373,6 +1375,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                   <div className="space-y-3">
                     {board.lists[key].map((meal: Meal, idx: number) => (
                       <MealCard
+                        originBuilder="performance"
                         key={meal.id}
                         date={"board"}
                         slot={key}
