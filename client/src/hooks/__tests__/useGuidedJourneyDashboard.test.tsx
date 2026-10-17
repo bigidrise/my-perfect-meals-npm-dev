@@ -195,7 +195,7 @@ test("plan completion changing after render cannot send the user back into a Bui
 test.each(["expired", "assigned_elsewhere", "professional"])("fresh account check prevents %s navigation", async change => {
   request.mockResolvedValue(await snapshot({ configured: true }));
   const options = input();
-  const changed = change === "expired" ? { accessTier: "FREE" }
+  const changed: Partial<JourneyDashboardAccount> = change === "expired" ? { accessTier: "FREE" }
     : change === "professional" ? { professionalRole: "physician" as const }
       : { activeBoard: "diabetic" as const };
   options.refreshAccount.mockResolvedValue({ ...account, ...changed });
@@ -255,7 +255,7 @@ test("an in-flight Continue from account A cannot navigate after switching to B"
   const { result, rerender } = renderHook(({ options: current }) => useGuidedJourneyDashboard(current),
     { initialProps: { options } });
   await waitFor(() => expect(result.current.model.canContinue).toBe(true));
-  let continuing!: Promise<void>;
+  let continuing!: ReturnType<typeof result.current.continueSetup>;
   act(() => { continuing = result.current.continueSetup(); });
   const b = { ...account, id: "account-b" };
   request.mockResolvedValue(await snapshot({ id: b.id, configured: true }));

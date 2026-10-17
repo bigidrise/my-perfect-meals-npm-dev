@@ -280,7 +280,7 @@ test.each(["builder-dialog", "legal", "checkout", "quick-tour"])("%s blocks manu
   await fixture(); const input = options();
   const hook = renderHook(() => useGuidedJourneyDashboard(input));
   await waitFor(() => expect(hook.result.current.canExplain).toBe(true));
-  const release = acquireGuidanceInteractionBlock(name);
+  const release = acquireGuidanceInteractionBlock();
   try {
     await act(async () => { await hook.result.current.openBoardExplanation(); });
     expect(hook.result.current.explanation).toBeNull();
