@@ -6,10 +6,20 @@ function isProductionRuntime(env: StartupEnvironment): boolean {
   return env.NODE_ENV === "production" || Boolean(env.REPLIT_DEPLOYMENT);
 }
 
+function isPermittedPreviewHostname(hostname: string | undefined): boolean {
+  if (!hostname || hostname.length > 253 || !hostname.toLowerCase().endsWith(".replit.dev")) {
+    return false;
+  }
+  return hostname.split(".").every(label =>
+    label.length > 0 && label.length <= 63 &&
+    !/[^a-z0-9-]/i.test(label) && !label.startsWith("-") && !label.endsWith("-"),
+  );
+}
+
 function isProductionWorkspacePreview(env: StartupEnvironment): boolean {
   return env.NODE_ENV === "production" &&
     !env.REPLIT_DEPLOYMENT &&
-    /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\.replit\.dev$/i.test(env.REPLIT_DEV_DOMAIN ?? "");
+    isPermittedPreviewHostname(env.REPLIT_DEV_DOMAIN);
 }
 
 // Client branding flags are deliberately NOT server-runtime authority.
