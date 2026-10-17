@@ -17,7 +17,7 @@ Dessert replacement must handle incomplete historical structure explicitly, with
 
 Historical novelty is recipe-level, not a permanent prohibition on a dessert format. The current three should have different recognizable structures; older history must not make every future pudding, cookie or cake a duplicate merely because its format appeared before.
 
-**Why:** Live replacement attempts exhausted their candidates when broad historical format matches were treated as conclusive repeats. Missing identity evidence must still remain explicit rather than being fabricated.
+**Why:** Live replacement attempts exhausted their candidates when broad historical format matches were treated as conclusive repeats. Missing identity evidence must still remain explicit rather than being fabricated. The founder explicitly confirmed that three fresh Menu choices followed by a recognizable requested cheesecake from the Anti-Inflammatory Snack Creator is the desired experience; this confirms product expectations, not independent clinical validation.
 
 **How to apply:** Compare historical preparation and composition, preserve rejection of renamed recipes, and keep the Try 3 More confirmation consistent with the app's black-glass, white-text modals.
 
