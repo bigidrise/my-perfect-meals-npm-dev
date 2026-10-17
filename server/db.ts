@@ -114,8 +114,9 @@ export const db = drizzle(pool, {
   } 
 });
 
-// Keepalive ping to prevent connection drops during idle
-setInterval(async () => {
+// Keepalive is infrastructure maintenance, not an interactive/security action.
+import { startupMaintenanceEnabled } from "./bootstrap/developmentStartupMaintenance";
+if (startupMaintenanceEnabled()) setInterval(async () => {
   try {
     await pool.query("SELECT 1");
   } catch (err) {

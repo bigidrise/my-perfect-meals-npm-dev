@@ -14,6 +14,7 @@ import { fileURLToPath } from "url";
 import pg from "pg";
 import { getDatabaseTlsConfig } from "./lib/databaseTls";
 import { sessionCookieSecurity } from "./lib/sessionSecurity";
+import { startupMaintenanceEnabled } from "./bootstrap/developmentStartupMaintenance";
 import { resolveMealImageStorageContext } from "./services/mealImageBucket";
 import {
   createStaticFileMiddleware,
@@ -423,6 +424,7 @@ async function initializeApp() {
     let schemaMigPromise: Promise<void> = Promise.resolve();
 
     const runReleaseMigrations =
+      startupMaintenanceEnabled() &&
       process.env.RUN_PRODUCTION_RELEASE_MIGRATIONS === "true";
     if (runReleaseMigrations) {
       console.log("📋 [INIT] Running explicitly enabled release migrations...");
@@ -1072,7 +1074,7 @@ async function initializeApp() {
       pool: sessionPool,
       tableName: "session",
       createTableIfMissing: false,
-      pruneSessionInterval: 60 * 15,
+      pruneSessionInterval: startupMaintenanceEnabled() ? 60 * 15 : false,
     });
     console.log("✅ [INIT] PostgreSQL session store configured");
 
@@ -1448,6 +1450,11 @@ async function initializeApp() {
       `🎉 [INIT] Full initialization complete in ${Date.now() - startTime}ms`,
     );
     console.log(`✅ [INIT] Server fully ready at: ${new Date().toISOString()}`);
+
+    if (!startupMaintenanceEnabled()) {
+      console.log("[production-preview-startup] Ready: automatic background and deferred release maintenance suppressed.");
+      return;
+    }
 
     // Background services - AFTER full initialization (non-blocking)
     setTimeout(async () => {
