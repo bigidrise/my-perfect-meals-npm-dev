@@ -20,6 +20,7 @@ import {
   type DevelopmentalStageKey,
 } from "../services/pediatric/pediatricResolver";
 import { signPediatricSubject } from "../services/pediatric/subjectAttribution";
+import { generatePediatricRecipeImage } from "../services/pediatric/recipeImage";
 import {
   loadOwnedActiveChildProfile,
   loadOwnedActiveChildProfiles,
@@ -1415,37 +1416,34 @@ router.post("/create-dish", requireAuth, async (req, res) => {
     );
 
     // ── Unified Image Pipeline: generate permanent imageUrl before responding ──
-    // Client receives recipe + image in one atomic response — no shimmer on card.
-    // Failure is non-fatal; client falls back to its own generate-image call.
+    // A contextual failure is explicit and terminal for this recipe, not permission
+    // for the client to issue a second paid generation request.
     let recipeImageUrl: string | null = null;
-    try {
-      const { generateMealImageUnified: _mpbGenImg } = await import('../services/mealImageGenerator');
-      const recipeName: string =
-        (finalRecipe as any).recipeName ?? (finalRecipe as any).name ?? '';
-      const recipeIngredients: string[] = ((finalRecipe as any).ingredients ?? [])
-        .map((i: any) => i.name || i.item || '')
-        .filter(Boolean);
-      if (recipeName) {
-        recipeImageUrl = await _mpbGenImg(recipeName, recipeIngredients, 'meal');
-      }
-    } catch {
-      /* image failure is non-fatal */
-    }
+    const imageResult = await generatePediatricRecipeImage(finalRecipe, {
+      stageKey: resolverCtx?.stageKey ?? ageStage,
+      textureClass: resolverCtx?.textureClass,
+      ...resolverContext,
+      activeConditionIds: mergedProtocolIds,
+    }, req.body.mealOccasion);
+    recipeImageUrl = imageResult.imageUrl;
+    const imageGeneration = imageResult.imageGeneration;
+    const recipeWithImageContext = { ...finalRecipe, _imageGeneration: imageGeneration };
     // ─────────────────────────────────────────────────────────────────────────
 
     const attributedRecipe = childProfileId && childProfileInput
       ? {
-          ...finalRecipe,
+          ...recipeWithImageContext,
           _subjectAttribution: {
             childProfileId,
             token: signPediatricSubject(userId, childProfileId),
           },
         }
-      : finalRecipe;
+      : recipeWithImageContext;
 
     return res.json({
       recipe: attributedRecipe,
       imageUrl: recipeImageUrl,
+      imageGeneration,
       blocked: false,
       mealConfidence: educationLayer.mealConfidence,
       clinicalReviewStatus: educationLayer.clinicalReviewStatus,

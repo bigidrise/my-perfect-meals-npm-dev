@@ -8153,6 +8153,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { mealName, ingredients = [], mealType, sourceType, pediatricContext } = req.body;
       if (!mealName) return res.status(400).json({ error: "mealName is required" });
       const { generateMealImageUnified, normalizeMealTypeToSourceType } = await import("./services/mealImageGenerator");
+      const { pediatricImageContextSchema, recipeImageStatus } = await import("../shared/pediatricMealImage");
+      const parsedPediatric = pediatricContext === undefined
+        ? undefined : pediatricImageContextSchema.safeParse(pediatricContext);
+      if (parsedPediatric && !parsedPediatric.success) {
+        return res.status(400).json({ imageUrl: null, code: "INVALID_PEDIATRIC_IMAGE_CONTEXT" });
+      }
       // Resolve effective sourceType: explicit sourceType wins; fall back to mealType mapping.
       // This ensures mealType:"restaurant" → sourceType:"meal" so food meals never fall through
       // to the undefined/classifier path and share cache entries with beverages.
@@ -8203,9 +8209,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mealName,
         ingredientNames,
         resolvedSourceType,
-        hasPediatric ? pediatricContext : undefined
+        parsedPediatric?.success ? parsedPediatric.data : undefined
       );
-      res.json({ imageUrl });
+      res.json({ imageUrl, imageStatus: recipeImageStatus(imageUrl) });
     } catch (err: any) {
       console.error("❌ /api/meals/generate-image error:", err);
       res.status(500).json({ error: "Image generation failed" });
