@@ -1,3 +1,4 @@
+import { PREGNANCY_CUSTOMER_AVAILABLE, PREGNANCY_PAUSE_MESSAGE } from "@shared/pregnancyAvailability";
 /**
  * Pregnancy Coach — AI Companion for My Perfect Pregnancy
  *
@@ -217,6 +218,10 @@ router.delete("/conversation", async (req, res) => {
 
 // POST /ask — send a message to the Pregnancy Coach
 router.post("/ask", async (req, res) => {
+  if (!PREGNANCY_CUSTOMER_AVAILABLE) {
+    if (!resolveUserId(req)) return res.status(401).json({ error: "Not authenticated" });
+    return res.status(403).json({ code: "pregnancy_coming_soon", error: PREGNANCY_PAUSE_MESSAGE });
+  }
   try {
     const userId = resolveUserId(req);
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
@@ -565,6 +570,10 @@ You MUST respond with a JSON object:
 
 // POST /setup — save pregnancy stage, due date, symptoms, tracking mode
 router.post("/setup", async (req, res) => {
+  if (!PREGNANCY_CUSTOMER_AVAILABLE) {
+    if (!resolveUserId(req)) return res.status(401).json({ error: "Not authenticated" });
+    return res.status(403).json({ code: "pregnancy_coming_soon", error: PREGNANCY_PAUSE_MESSAGE });
+  }
   try {
     const userId = resolveUserId(req);
     if (!userId) return res.status(401).json({ error: "Not authenticated" });
@@ -650,6 +659,10 @@ router.post("/setup", async (req, res) => {
 
 // DELETE /setup — deactivate pregnancy support without touching other protocols
 router.delete("/setup", async (req, res) => {
+  if (!PREGNANCY_CUSTOMER_AVAILABLE) {
+    if (!resolveUserId(req)) return res.status(401).json({ error: "Not authenticated" });
+    return res.status(403).json({ code: "pregnancy_coming_soon", error: PREGNANCY_PAUSE_MESSAGE });
+  }
   try {
     const userId = resolveUserId(req);
     if (!userId) return res.status(401).json({ error: "Not authenticated" });

@@ -1,3 +1,4 @@
+import { PREGNANCY_CUSTOMER_AVAILABLE, PREGNANCY_PAUSE_MESSAGE } from "@shared/pregnancyAvailability";
 import { useState, useEffect, useRef } from "react";
 import { PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED } from "@shared/personalFoodSupportFreeze";
 import { useLocation } from "wouter";
@@ -835,7 +836,9 @@ function AccountOnboardingV3() {
                   <PillButton
                     key={opt.value}
                     active={specialtyConditions.includes(opt.value)}
+                    disabled={opt.value === "pregnancy-support" && !PREGNANCY_CUSTOMER_AVAILABLE}
                     onClick={() => {
+                      if (opt.value === "pregnancy-support" && !PREGNANCY_CUSTOMER_AVAILABLE) return;
                       if (oncologyDevelopment && opt.value === "oncology-support") {
                         if (oncologySelection.readOnly) {
                           setOncologySymptomsOpen(true);
@@ -850,7 +853,7 @@ function AccountOnboardingV3() {
                       );
                     }}
                   >
-                    {opt.label}
+                    {opt.label}{opt.value === "pregnancy-support" && !PREGNANCY_CUSTOMER_AVAILABLE ? " — Coming Soon (Clinical)" : ""}
                   </PillButton>
                 ))}
               </div>
@@ -859,9 +862,9 @@ function AccountOnboardingV3() {
                   <div className="flex items-start gap-2">
                     <span className="text-pink-400 text-base mt-0.5">🩷</span>
                     <div>
-                      <p className="text-pink-300 text-xs font-semibold mb-1">My Perfect Pregnancy — Nutritional Guidance Only</p>
+                      <p className="text-pink-300 text-xs font-semibold mb-1">My Perfect Pregnancy — {PREGNANCY_CUSTOMER_AVAILABLE ? "Nutritional Guidance Only" : "Coming Soon (Clinical)"}</p>
                       <p className="text-white/70 text-xs leading-relaxed">
-                        Activates pregnancy-aware meal generation with trimester-specific nutrients, food safety guidance (mercury, listeria), and symptom support (nausea, heartburn, swelling). This is <span className="text-white font-medium">not a medical protocol</span>, not a substitute for your OB/GYN or midwife, and <span className="text-white font-medium">not individualized prenatal care</span>. Always follow your healthcare provider's recommendations first. Set up your stage and due date in My Perfect Pregnancy.
+                        {PREGNANCY_CUSTOMER_AVAILABLE ? "General nutrition education only. Daily calorie and macro targets are not pregnancy-adjusted; follow your healthcare provider's guidance." : PREGNANCY_PAUSE_MESSAGE}
                       </p>
                     </div>
                   </div>

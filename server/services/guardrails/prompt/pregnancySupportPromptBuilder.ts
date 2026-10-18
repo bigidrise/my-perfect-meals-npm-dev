@@ -1,3 +1,4 @@
+import { pregnancyRecommendationsPaused, PREGNANCY_PAUSE_MESSAGE } from "@shared/pregnancyAvailability";
 /**
  * Pregnancy Support Nutritional Protocol — Prompt Builder
  *
@@ -455,6 +456,11 @@ Frame as "pregnancy-nourishing," "folate-rich," "DHA-supportive," or "gentle on 
  * Returns a self-contained directive string suitable for any generator.
  */
 export function buildPregnancySupportPrompt(context: PregnancySupportContext): string {
+  if (pregnancyRecommendationsPaused(context)) {
+    return [MANDATORY_SAFETY_DISCLAIMER, FOOD_SAFETY_BLOCK,
+      PREGNANCY_PAUSE_MESSAGE,
+      "Do not recommend breastfeeding/postpartum-specific meals, nutrient targets, calorie additions, lactation treatments, or recovery protocols. Preserve all unrelated allergy and medical restrictions."].join("\n\n");
+  }
   const parts: string[] = [];
 
   parts.push(MANDATORY_SAFETY_DISCLAIMER);

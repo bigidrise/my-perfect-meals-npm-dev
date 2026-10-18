@@ -1,3 +1,4 @@
+import { PREGNANCY_CUSTOMER_AVAILABLE, PREGNANCY_PAUSE_MESSAGE, retainPregnancySupport } from "@shared/pregnancyAvailability";
 import fs from "fs";
 import { buildCravingCategoryPrompt } from "../shared/cravingCategories";
 import { resolveCravingSelection } from "./services/craving/categorySelection";
@@ -4629,7 +4630,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const authReq = req as AuthenticatedRequest;
       const userId = authReq.authUser.id;
       const ALLOWED = SELF_SELECTABLE_SPECIALTY_CONDITIONS;
-      const { condition, conditions, oncologySupport } = req.body;
+      let { condition, conditions, oncologySupport } = req.body;
+      if (!PREGNANCY_CUSTOMER_AVAILABLE) {
+        const [stored] = await db.select({
+          conditions: users.specialtyConditions,
+          primary: users.specialtyCondition,
+        }).from(users).where(eq(users.id, userId)).limit(1);
+        const current = Array.from(new Set([...(stored?.conditions ?? []), ...(stored?.primary ? [stored.primary] : [])]));
+        const requested = conditions === undefined ? (condition ? [condition] : []) : conditions;
+        if (Array.isArray(requested)) {
+          try {
+            const retained = retainPregnancySupport(requested, current);
+            if (conditions !== undefined || current.includes("pregnancy-support")) conditions = retained;
+          } catch {
+            return res.status(403).json({ code: "pregnancy_coming_soon", error: PREGNANCY_PAUSE_MESSAGE });
+          }
+        }
+      }
       if (oncologySupport !== undefined && !oncologySymptomPriorityEnabled()) {
         return res.status(400).json({ error: "Consumer oncology symptom editing is available in Development only." });
       }

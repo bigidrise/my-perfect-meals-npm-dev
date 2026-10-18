@@ -1,3 +1,4 @@
+import { assertPregnancyRecommendationsAvailable } from "@shared/pregnancyAvailability";
 /**
  * protocolEnvelope.ts
  *
@@ -1826,6 +1827,7 @@ export function enforceBeforeGenerate(
     orgId?: string | null;
   }
 ): ProtocolPromptBlock {
+  assertPregnancyRecommendationsAvailable(envelope.pregnancySupportContext);
   const generatorName = context?.generatorName || "unknown_generator";
   const layers: ProtocolPromptBlock["layers"] = {
     dietaryIdentity: "",

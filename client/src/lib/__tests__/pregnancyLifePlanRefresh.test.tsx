@@ -1,5 +1,10 @@
 /** @jest-environment jsdom */
 import React from "react";
+// Exercise refresh mechanics independently of the temporary availability pause.
+jest.mock("@shared/pregnancyAvailability", () => ({
+  ...jest.requireActual("@shared/pregnancyAvailability"),
+  PREGNANCY_CUSTOMER_AVAILABLE: true,
+}));
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/apiRequest";
