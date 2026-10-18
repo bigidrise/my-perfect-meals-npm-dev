@@ -210,13 +210,15 @@ describe("Development professional unread summary", () => {
       .toEqual({ clients: [], totalUnread: 0 });
     expect(mockDb.execute).not.toHaveBeenCalled();
   });
-  test.each(["production", "deployed-development"])("%s keeps the legacy text/voice query", async mode => {
+  test.each(["production", "deployed-development"])("%s includes video in the authorized unread query", async mode => {
     if (mode === "production") process.env.NODE_ENV = "production";
     else process.env.REPLIT_DEPLOYMENT = "1";
     await request(ownerApp()).get("/api/pro/tablet/unread-summary");
     const query = new PgDialect().sqlToQuery(mockDb.execute.mock.calls[0][0] as any);
     expect(query.sql).toContain("client_notes");
-    expect(query.sql).not.toContain("studio_video_messages");
+    expect(query.sql).toContain("studio_video_messages");
+    expect(query.params).toContain(STUDIO_ID);
+    expect(query.params).toContain(PRO_ID);
   });
   test("opening the authorized folder preserves its read write and invalidates the owner's cached unread total", async () => {
     mockDb.execute.mockResolvedValue({ rows: [] } as any);

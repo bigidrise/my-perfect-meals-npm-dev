@@ -4,7 +4,7 @@ import { sql } from "drizzle-orm";
  * Same per-conversation read watermark as the existing text/voice summary.
  * Video visibility matches the existing conversation listing. EXISTS avoids
  * multiplying messages through media or viewer-deletion records.
- * Called only behind the Development-only release boundary.
+ * Used in every runtime after the professional endpoint authorizes access.
  */
 export function developmentProUnreadQuery(studioId: string, viewerUserId: string) {
   return sql`

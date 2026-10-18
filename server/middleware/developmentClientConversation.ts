@@ -1,19 +1,18 @@
 import type { Request, RequestHandler } from "express";
 import { requireClientWorkspaceAccess, type WorkspaceRequest } from "./requireWorkspaceAccess";
 
-/** Preview-only correction. Deployed builds keep the existing release boundary. */
+/** Shared conversation policy for every runtime; the name is retained for callers. */
 export function developmentClientConversationEnabled(
-  env: Record<string, string | undefined> = process.env,
+  _env?: Record<string, string | undefined>,
 ): boolean {
-  return env.NODE_ENV === "development" && !env.REPLIT_DEPLOYMENT;
+  return true;
 }
 
 export const requireDevelopmentClientConversation: RequestHandler = (req, res, next) => {
-  if (!developmentClientConversationEnabled()) return next();
   return requireClientWorkspaceAccess(req, res, next);
 };
 
-/** No second lookup or legacy fallback after the Development authorization check. */
+/** No second lookup or legacy fallback after the relationship authorization check. */
 export function authorizedDevelopmentStudio(req: Request): string | null {
   return (req as WorkspaceRequest).workspace?.studioId ?? null;
 }

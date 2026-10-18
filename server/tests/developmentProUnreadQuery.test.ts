@@ -205,9 +205,10 @@ test("multiple identical-looking videos count separately without multiplying thr
 
 test.each([
   [{ NODE_ENV: "development" }, true],
-  [{ NODE_ENV: "production" }, false],
-  [{ NODE_ENV: "development", REPLIT_DEPLOYMENT: "1" }, false],
-  [{ NODE_ENV: "test" }, false],
-])("release boundary %j is %s", (env, enabled) => {
+  [{ NODE_ENV: "production" }, true],
+  [{ NODE_ENV: "production", REPLIT_DEPLOYMENT: "1" }, true],
+  [{ NODE_ENV: "development", REPLIT_DEPLOYMENT: "1" }, true],
+  [{ NODE_ENV: "test" }, true],
+])("conversation availability %j is %s", (env, enabled) => {
   expect(developmentClientConversationEnabled(env)).toBe(enabled);
 });
