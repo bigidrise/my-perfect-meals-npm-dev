@@ -20,6 +20,33 @@
 import express, { Request, Response, NextFunction } from "express";
 import request from "supertest";
 
+let mockPregnancyRow: Record<string, unknown> | null = null;
+jest.mock("../db", () => ({
+  pool: { query: jest.fn(async () => ({ rows: [] })) },
+  db: {
+    execute: jest.fn(async () => ({ rows: [] })),
+    select: (selection?: Record<string, unknown>) => ({
+      from: () => ({
+        where: () => ({
+          limit: async () => mockPregnancyRow
+            ? [selection
+                ? Object.fromEntries(Object.keys(selection).map(key => [key, mockPregnancyRow![key]]))
+                : { ...mockPregnancyRow }]
+            : [],
+        }),
+      }),
+    }),
+  },
+}));
+jest.mock("openai", () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(() => ({
+    chat: { completions: { create: jest.fn(async () => {
+      throw new Error("Provider calls disabled in isolated pregnancy route tests");
+    }) } },
+  })),
+}));
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
@@ -197,6 +224,33 @@ describe("POST /api/pregnancy/ask — paywall guard", () => {
     expect(res.status).not.toBe(403);
     // Restore
     process.env.BILLING_ENFORCED = "true";
+  });
+});
+
+describe("Pregnancy bootstrap stage/date preservation", () => {
+  afterEach(() => { mockPregnancyRow = null; });
+
+  it.each(["breastfeeding", "postpartum"])("preserves %s and its breastfeeding flag with an old due date", async stage => {
+    mockPregnancyRow = {
+      pregnancyStage: stage, pregnancyDueDate: "2026-01-01",
+      pregnancySupportContext: { trackingMode: "due-date", isBreastfeeding: true, symptoms: ["fatigue"] },
+    };
+    const app = await buildApp({ id: "synthetic-pregnancy-parent" });
+    const response = await request(app).get("/api/pregnancy/bootstrap");
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      stage, weekOfPregnancy: null, isBreastfeeding: true, symptoms: ["fatigue"],
+    });
+  });
+
+  it("does not turn an invalid due date into third-trimester guidance", async () => {
+    mockPregnancyRow = {
+      pregnancyStage: "trimester-1", pregnancyDueDate: "2026-02-30",
+      pregnancySupportContext: { trackingMode: "due-date" },
+    };
+    const app = await buildApp({ id: "synthetic-pregnancy-parent" });
+    const response = await request(app).get("/api/pregnancy/bootstrap");
+    expect(response.body).toMatchObject({ stage: "trimester-1", weekOfPregnancy: null });
   });
 });
 

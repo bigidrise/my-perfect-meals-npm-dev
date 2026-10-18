@@ -15,6 +15,7 @@ import OpenAI from "openai";
 import { getLanguageInstruction } from "../utils/languageInstruction";
 import { db } from "../db";
 import { users } from "@shared/schema";
+import { derivePregnancyStage } from "@shared/pregnancyStage";
 import { coachingProfiles } from "../db/schema/ace";
 import { eq, sql } from "drizzle-orm";
 import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
@@ -116,35 +117,6 @@ function stageLabel(stage: string): string {
 // For due-date tracking mode, week and trimester are computed from the due date,
 // not read from the stored stage field. This is the canonical source of truth.
 
-function computeWeekFromDueDate(dueDate: string): number | null {
-  try {
-    const due = new Date(dueDate + "T12:00:00");
-    const now = new Date();
-    const weeksUntilDue = (due.getTime() - now.getTime()) / (7 * 24 * 60 * 60 * 1000);
-    return Math.max(1, Math.min(42, Math.round(40 - weeksUntilDue)));
-  } catch {
-    return null;
-  }
-}
-
-function deriveStageAndWeek(
-  rawStage: string,
-  rawDueDate: string | null,
-  trackingMode: string
-): { resolvedStage: string; weekOfPregnancy: number | null } {
-  if (rawDueDate && trackingMode !== "manual") {
-    const week = computeWeekFromDueDate(rawDueDate);
-    if (week !== null) {
-      let resolvedStage = rawStage;
-      if (week <= 13) resolvedStage = "trimester-1";
-      else if (week <= 27) resolvedStage = "trimester-2";
-      else resolvedStage = "trimester-3";
-      return { resolvedStage, weekOfPregnancy: week };
-    }
-  }
-  return { resolvedStage: rawStage, weekOfPregnancy: null };
-}
-
 // GET /bootstrap — single-call loader: conversation messages + pregnancy context
 // Replaces the 2-step waterfall (GET /conversation + derive from user profile).
 // Uses the same stage/week derivation as the client-side derivePregnancyStatus()
@@ -190,7 +162,7 @@ router.get("/bootstrap", async (req, res) => {
     }
 
     // Derive week and resolved stage exactly as the client's derivePregnancyStatus does
-    const { resolvedStage, weekOfPregnancy } = deriveStageAndWeek(
+    const { resolvedStage, weekOfPregnancy } = derivePregnancyStage(
       rawStage,
       rawDueDate,
       trackingMode
