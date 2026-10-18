@@ -1,3 +1,4 @@
+import { pregnancyRecommendationsPaused, PREGNANCY_PAUSE_MESSAGE } from "@shared/pregnancyAvailability";
 import type { HiddenViolation } from "../allergyGuardrails";
 import type { UserProtocolEnvelope } from "../protocolEnvelope";
 import { validatePregnancyMealSafety } from "../guardrails/validators/pregnancySupportValidator";
@@ -24,6 +25,13 @@ export function scanClinicalFoodSafety(
   envelope: UserProtocolEnvelope,
 ): HiddenViolation[] {
   const violations: HiddenViolation[] = [];
+  if (pregnancyRecommendationsPaused(envelope.pregnancySupportContext)) {
+    violations.push({
+      term: "pregnancy guidance temporarily unavailable",
+      category: "pregnancy",
+      reason: PREGNANCY_PAUSE_MESSAGE,
+    });
+  }
   const ingredients = food.ingredients ?? [];
   const ingredientText = structuredIngredientText(ingredients).toLowerCase();
   const alpha = envelope.alphaGalContext;

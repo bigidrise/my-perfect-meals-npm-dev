@@ -1,3 +1,4 @@
+import { PREGNANCY_CUSTOMER_AVAILABLE } from "@shared/pregnancyAvailability";
 import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -326,7 +327,9 @@ const CONDITION_PROTOCOL_LABELS: Record<string, { name: string; category: string
   "diabetic":              { name: "Diabetic Nutrition Protocol", category: "Clinical", note: "Glycemic index management active; starchy carb sources are controlled and distributed across meals." },
   "glp1":                  { name: "GLP-1 / Metabolic Protocol",  category: "Clinical", note: "Protein-first meal structure enforced; satiety-optimized portions; low glycemic anchoring." },
   "oncology_support":      { name: "Oncology Support Protocol",   category: "Clinical", note: "Hard-blocked ingredients enforced at prompt and post-generation. Physician-assigned; no treatment claims made." },
-  "pregnancy-support":     { name: "Pregnancy Nutrition Protocol",category: "Clinical", note: "Trimester-aware nutrient targets; mercury, listeria, and raw food safety blocks active." },
+  "pregnancy-support":     { name: "My Perfect Pregnancy", category: "Clinical", note: PREGNANCY_CUSTOMER_AVAILABLE
+    ? "General nutrition guidance; daily calorie and macro targets are not pregnancy-adjusted."
+    : "Coming Soon. Saved support remains on your profile; daily calorie and macro targets are not pregnancy-adjusted. Breastfeeding/postpartum-specific automated guidance is paused." },
   "hypothyroid":           { name: "Thyroid Support — Hypo",      category: "Clinical", note: "Iodine-supportive food base; goitrogen awareness; selenium and zinc prioritized." },
   "hyperthyroid":          { name: "Thyroid Support — Hyper",     category: "Clinical", note: "Iodine-limited food base; elevated caloric support for increased metabolic rate." },
   "hashimotos":            { name: "Hashimoto's Protocol",         category: "Clinical", note: "Autoimmune nutrition framework; gluten and dairy awareness; anti-inflammatory food base." },

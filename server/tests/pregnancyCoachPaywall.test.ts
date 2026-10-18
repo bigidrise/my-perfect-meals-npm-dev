@@ -20,6 +20,12 @@
 import express, { Request, Response, NextFunction } from "express";
 import request from "supertest";
 
+let mockPregnancyAvailable = true;
+jest.mock("@shared/pregnancyAvailability", () => ({
+  ...jest.requireActual("@shared/pregnancyAvailability"),
+  get PREGNANCY_CUSTOMER_AVAILABLE() { return mockPregnancyAvailable; },
+}));
+
 let mockPregnancyRow: Record<string, unknown> | null = null;
 jest.mock("../db", () => ({
   pool: { query: jest.fn(async () => ({ rows: [] })) },
@@ -84,6 +90,30 @@ async function buildApp(authUser: Record<string, unknown> | null) {
 }
 
 // ── Test suite ────────────────────────────────────────────────────────────────
+
+describe("Pregnancy temporary customer availability", () => {
+  beforeEach(() => { mockPregnancyAvailable = false; });
+  afterEach(() => { mockPregnancyAvailable = true; jest.restoreAllMocks(); });
+
+  it.each([["post", "/setup"], ["post", "/ask"], ["delete", "/setup"]] as const)(
+    "blocks %s %s before any database work", async (method, path) => {
+      const app = await buildApp({ id: "synthetic-existing", accessTier: "PAID_FULL", planLookupKey: "mpm_ultimate_monthly" });
+      const reads = jest.spyOn(require("../db").db, "select");
+      const res = await request(app)[method](`/api/pregnancy${path}`)
+        .send({ stage: "breastfeeding", message: "Meal please" });
+      expect(res.status).toBe(403);
+      expect(res.body.code).toBe("pregnancy_coming_soon");
+      expect(reads).not.toHaveBeenCalled();
+      expect(require("../db").db.execute).not.toHaveBeenCalled();
+      expect(require("../db").pool.query).not.toHaveBeenCalled();
+    },
+  );
+
+  it("does not turn an unauthenticated request into an authenticated one", async () => {
+    const app = await buildApp(null);
+    expect((await request(app).post("/api/pregnancy/setup").send({ stage: "trimester-2" })).status).toBe(401);
+  });
+});
 
 describe("POST /api/pregnancy/ask — paywall guard", () => {
   const originalEnv = process.env.BILLING_ENFORCED;

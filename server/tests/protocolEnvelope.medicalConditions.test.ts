@@ -381,8 +381,9 @@ describe("protocol envelope medicalConditions projection", () => {
     expect(envelope?.pregnancySupportContext).toMatchObject({
       stage, weekOfPregnancy: null, isBreastfeeding: true,
     });
-    expect(enforceBeforeGenerate(envelope!, { generatorName: "pregnancy_repair_test" }).combined)
-      .toContain("+500");
+    expect(() => enforceBeforeGenerate(envelope!, { generatorName: "pregnancy_repair_test" }))
+      .toThrow("Coming Soon");
+    expect(scanGeneratedOutput({ name: "Rice", ingredients: ["rice"] }, envelope!).passed).toBe(false);
   });
 
   it.each([[13, "trimester-1"], [14, "trimester-2"], [27, "trimester-2"], [28, "trimester-3"]])(
