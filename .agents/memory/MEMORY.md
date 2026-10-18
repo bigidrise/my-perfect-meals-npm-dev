@@ -154,6 +154,6 @@
 - [Reusable business partner pilot](reusable-business-partner-pilot.md) — one shared link, independent per-account pilot clocks; forwarding restrictions are explicitly deferred.
 - [Guided Journey authority](guided-journey-authority.md) — explain existing tasks and verify saved work; guidance never owns navigation, access, or nutrition decisions.
 - [Studio starch plan parity](studio-starch-plan-parity.md) — Physician and Trainer choices must share the client's calculator count and timing and reach their Builders.
-- [Client messaging boundary](client-messaging-product-boundary.md) — accounts without a Studio should have only Client Messages, not Provider Messages.
+- [Client messaging boundary](client-messaging-product-boundary.md) — one Personal Messages entry in all builds; professional conversations stay in Studio; no implicit Development-only restriction.
 - [Non-persisting food diagnostics](non-persisting-food-diagnostics.md) — no-save tests must also prevent writes during context resolution, without relaxing generation or validation.
 - [Meal card source labels](meal-card-source-label-policy.md) — show the originating builder or creator, not a clinical condition such as Heart Failure.

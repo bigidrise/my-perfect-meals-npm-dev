@@ -13,13 +13,13 @@ Personal Space has one conversation entry that opens messages directly, includin
 
 **Why:** The user approved correcting the messaging defects in Development and explicitly said clients must not need a Studio account to receive a physician's or trainer's video.
 
-**How to apply:** Reuse existing messaging and protected media APIs. Preserve relationships, organization isolation, consent, and message/attachment records. Verification uses isolated fixtures because Neon is shared; Development approval does not authorize Production publication or changes to the Physician Studio restoration.
+**How to apply:** Reuse existing messaging and protected media APIs. Preserve relationships, organization isolation, consent, and message/attachment records. Verification uses isolated fixtures because Neon is shared; code activation does not authorize Production publication or changes to the Physician Studio restoration.
 
-Development messaging repair is authorized using the existing full conversation, with the redundant Personal card hidden rather than deleting its implementation. Production activation remains a separate release decision.
+Unified messaging is intended for Development and Production, using the existing full conversation with the redundant Personal card hidden rather than deleting its implementation. Do not add or retain Development-only restrictions unless the user explicitly requests them.
 
-**Why:** After accepting the diagnosis, the user approved a narrowly scoped Development repair, synthetic verification, consistent authorization, and draft-preserving retries, but explicitly prohibited Production publication.
+**Why:** The user corrected the earlier temporary release boundary: “It's supposed to be available, period. Unless I say turn it off or something like that.” Features developed for this product are intended to reach Production, not remain implicitly Development-only.
 
-**How to apply:** Keep the two message directions separate and reuse existing interfaces. Do not change shared patient records or permissions for verification, remove the legacy implementation, or enable the correction in published builds without separate approval.
+**How to apply:** Keep messaging UI, relationship authorization, and unread behavior consistent across builds without enabling unrelated Development features. Keep the two message directions separate. Publication, startup changes, and shared patient writes still require their own authorization.
 
 For the sidebar notification correction, find and repair the existing indicator system; do not add replacement navigation or a second notification system.
 

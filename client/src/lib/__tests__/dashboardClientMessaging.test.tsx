@@ -11,7 +11,6 @@ jest.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ user: mockUser, l
 jest.mock("@/contexts/OrgContext", () => ({ useOrgFlag: () => false }));
 jest.mock("@tanstack/react-query", () => ({ useQuery: () => ({ data: undefined }) }));
 jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
-jest.mock("@/features/clientMessagingFlag", () => ({ developmentClientMessagingEnabled: true }));
 jest.mock("@/features/coachCornerFlag", () => ({ COACHES_CORNER_ENABLED: false }));
 jest.mock("@/lib/auth", () => ({ getAuthHeaders: () => ({}) }));
 jest.mock("@/lib/resolveApiBase", () => ({ apiUrl: (path: string) => path }));

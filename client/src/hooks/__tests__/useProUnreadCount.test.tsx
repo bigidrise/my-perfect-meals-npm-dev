@@ -4,12 +4,8 @@ import { useProUnreadCount } from "../useProUnreadCount";
 
 let mockUser: any;
 let mockLoading = false;
-let mockDevelopment = true;
 jest.mock("@/contexts/AuthContext", () => ({
   useAuth: () => ({ user: mockUser, loading: mockLoading }),
-}));
-jest.mock("@/features/proUnreadFlag", () => ({
-  get developmentProUnreadAuthorizationEnabled() { return mockDevelopment; },
 }));
 jest.mock("@/lib/auth", () => ({ getAuthHeaders: () => ({ "x-auth-token": "isolated-fixture" }) }));
 
@@ -21,7 +17,6 @@ const flush = async () => { await act(async () => {}); };
 let request: jest.Mock;
 beforeEach(() => {
   jest.useFakeTimers();
-  mockDevelopment = true;
   mockLoading = false;
   mockUser = { id: "fixture-studio-owner", professionalRole: "business", isProCare: false, isAdmin: true };
   request = jest.fn().mockResolvedValue(response(0));
@@ -152,15 +147,16 @@ test.each([-1, "3", null, 1.5])("invalid count %p never lights the indicator", a
   expect(result.current).toBe(0);
 });
 
-test("Production retains the original eligibility and does not probe a business account", async () => {
-  mockDevelopment = false;
+test("a business identity asks the server for authorization in every build", async () => {
+  request.mockResolvedValue(response(0, 403));
   renderHook(useProUnreadCount);
   await flush();
-  expect(request).not.toHaveBeenCalled();
+  expect(request).toHaveBeenCalledTimes(1);
+  await act(async () => { await jest.advanceTimersByTimeAsync(90_000); });
+  expect(request).toHaveBeenCalledTimes(1);
 });
 
-test("Production still polls for a ProCare trainer", async () => {
-  mockDevelopment = false;
+test("the shared policy still polls for a ProCare trainer", async () => {
   mockUser = { id: "legacy-trainer", professionalRole: "trainer", isProCare: true };
   request.mockResolvedValue(response(1));
   const { result } = renderHook(useProUnreadCount);
