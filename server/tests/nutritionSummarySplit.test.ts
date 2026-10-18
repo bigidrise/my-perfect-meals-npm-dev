@@ -1,3 +1,10 @@
+// Summary construction is pure. Never initialize the shared database through
+// transitive imports while exercising synthetic summary fixtures.
+jest.mock("../db", () => ({
+  db: {},
+  pool: { query: jest.fn(() => { throw new Error("Database access forbidden in summary unit tests"); }) },
+}));
+
 import { buildNutritionSummary } from "../services/nutritionSummary/buildNutritionSummary";
 
 const envelope = {
