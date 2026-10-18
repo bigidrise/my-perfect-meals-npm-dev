@@ -1,3 +1,4 @@
+import { isPregnancyRecommendationPause, PREGNANCY_PAUSE_MESSAGE } from "@shared/pregnancyAvailability";
 import express from "express";
 import OpenAI from "openai";
 import { db } from "../db";
@@ -648,6 +649,11 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     return res.json({ ...result, macros: { ...result.macros, ...groceryCoachCarbBreakdown(result.macros) }, servingCount: finalServingCount });
   } catch (err: any) {
     console.error("[GroceryCoach] Error:", err?.message);
+    if (isPregnancyRecommendationPause(err)) {
+      return res.status(503).json({
+        code: "pregnancy_recommendations_paused", error: PREGNANCY_PAUSE_MESSAGE, retryable: false,
+      });
+    }
     if (err instanceof ProtocolContextUnavailableError) {
       return res.status(err.status).json({ code: err.code, error: err.message, retryable: true });
     }

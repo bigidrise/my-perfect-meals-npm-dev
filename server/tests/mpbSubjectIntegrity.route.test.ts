@@ -245,6 +245,21 @@ describe("My Perfect Beginnings subject integrity routes", () => {
     expect(mockDbExecute).not.toHaveBeenCalled();
   });
 
+  it("never ingests a fallback illustration as a successful generated photograph", async () => {
+    mockLoadOwnedActiveChildProfile.mockResolvedValueOnce(childA);
+    mockProcessMealImageForSave.mockResolvedValueOnce({ imageUrl: null });
+    const response = await request(buildApp())
+      .post("/api/my-perfect-beginning/generated-meals")
+      .send({
+        childProfileId: childA.id,
+        recipeData: attributedRecipe(childA.id),
+        imageUrl: "/images/fallback/soup-bowl.svg",
+      });
+    expect(response.status).toBe(200);
+    expect(mockProcessMealImageForSave).toHaveBeenCalledWith(null, "Safe Pasta");
+    expect(response.body.imagePersisted).toBe(false);
+  });
+
   it("cannot save a Child A recipe under Child B", async () => {
     mockLoadOwnedActiveChildProfile.mockResolvedValueOnce(childB);
     const response = await request(buildApp())

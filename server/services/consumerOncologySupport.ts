@@ -1,3 +1,4 @@
+import { retainPregnancySupport } from "@shared/pregnancyAvailability";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { users } from "@shared/schema";
@@ -17,6 +18,11 @@ const RETAINED_SPECIALTY_CONDITIONS = ["therapeutic-support", "performance-nutri
 
 /** Retain established settings; this form cannot newly activate legacy supports. */
 export function resolveConsumerSpecialtyConditions(requested: string[], stored: string[]): string[] {
+  try {
+    requested = retainPregnancySupport(requested, stored);
+  } catch {
+    throw new ConsumerOncologyError(403, "pregnancy_coming_soon", "My Perfect Pregnancy — Coming Soon in Clinical.");
+  }
   const retained = stored.filter(condition => RETAINED_SPECIALTY_CONDITIONS.includes(condition));
   const invalid = requested.find(condition =>
     !SELF_SELECTABLE_SPECIALTY_CONDITIONS.includes(condition) && !retained.includes(condition));
@@ -78,7 +84,7 @@ export async function saveConsumerSpecialtySupport(userId: string, conditions: s
       .from(users).where(eq(users.id, userId)).limit(1).for("update");
     if (!record) throw new ConsumerOncologyError(404, "user_not_found", "User not found.");
     const resolvedConditions = resolveConsumerSpecialtyConditions(
-      conditions, record.conditions ?? (record.primaryCondition ? [record.primaryCondition] : []));
+      conditions, [...(record.conditions ?? []), ...(record.primaryCondition ? [record.primaryCondition] : [])]);
     const context = consumerOncologyUpdate(record.context, resolvedConditions, input, userId);
     await tx.update(users).set({
       specialtyCondition: resolvedConditions[0] ?? null,

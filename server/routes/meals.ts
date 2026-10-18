@@ -10,6 +10,7 @@ import { getAuthUserId } from "../utils/getAuthUserId";
 import { generateMealImageUnified, type ImageSourceType } from "../services/mealImageGenerator";
 import { createHumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
 import { validateHumanFoodCandidate } from "../services/humanFoodContext/finalValidation";
+import { pediatricImageContextSchema, recipeImageStatus } from "../../shared/pediatricMealImage";
 
 const imageRateLimit = createApiRateLimit();
 
@@ -27,6 +28,12 @@ router.post("/generate-image", requireAuth, imageRateLimit, async (req: any, res
   if (!mealName || mealName.trim().length < 3) {
     return res.status(400).json({ imageUrl: null });
   }
+  const parsedPediatric = req.body?.pediatricContext === undefined
+    ? undefined : pediatricImageContextSchema.safeParse(req.body.pediatricContext);
+  if (parsedPediatric && !parsedPediatric.success) {
+    return res.status(400).json({ imageUrl: null, code: "INVALID_PEDIATRIC_IMAGE_CONTEXT" });
+  }
+  const pediatricContext = parsedPediatric?.success ? parsedPediatric.data : undefined;
 
   // If the caller explicitly supplied sourceType, trust it — they know what they're
   // asking for (e.g. Find Meals Near Me sends "meal" for restaurant menu items, even
@@ -119,8 +126,8 @@ router.post("/generate-image", requireAuth, imageRateLimit, async (req: any, res
   }
 
   try {
-    const imageUrl = await generateMealImageUnified(mealName.trim(), normalizedIngredients, sourceType);
-    return res.json({ imageUrl });
+    const imageUrl = await generateMealImageUnified(mealName.trim(), normalizedIngredients, sourceType, pediatricContext);
+    return res.json({ imageUrl, imageStatus: recipeImageStatus(imageUrl) });
   } catch (err: any) {
     console.error(`[generate-image] failed for "${mealName}":`, err.message);
     return res.json({ imageUrl: null });

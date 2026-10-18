@@ -17,6 +17,8 @@ import { getStaticSnackImage, isLikelySnack } from '../../shared/staticSnackMapp
 import { ingestImageToPermanentStorage } from './imageLifecycle';
 import { normalizeMealName } from './mealNameNormalizer';
 import { validateMealImageAuthority } from "./mealImageAuthority";
+import type { PediatricImageContext } from "../../shared/pediatricMealImage";
+export type { PediatricImageContext } from "../../shared/pediatricMealImage";
 import {
   validateImageAgainstRecipe,
   buildRetryExclusionAddendum,
@@ -384,6 +386,7 @@ function buildPediatricContextAddendum(ctx: PediatricImageContext): string {
   return `
 PEDIATRIC CONTEXT: This meal is for a ${ctx.stage} child (${ctx.ageRange}).
 ${textureInstruction}
+${ctx.textureHint ? `PREPARED FOOD APPEARANCE: ${ctx.textureHint}\n` : ""}Preserve the recipe's recognizable prepared-food identity while applying the required cutting, preparation, and texture. Show the actual finished recipe, not an unrelated dish or generic illustration.
 The rendered food MUST visually match this texture — a purée stage must look smooth with no chunks; a toddler plate must show soft small pieces, not crunchy sticks.
 PORTION: ${ctx.portionNote} — this is a child's serving, NOT a full adult restaurant plate.${presentationLine ? `\n${presentationLine}` : ""}
 The food should look like what a parent would actually put on a small child's plate: appropriately sized, soft-looking if needed, simply presented.
@@ -726,7 +729,7 @@ export function buildStableCacheKey(
   mealName: string,
   ingredients: string[],
   sourceType?: string,
-  contextTag?: string,
+  contextTag?: string | PediatricImageContext,
   createDishContext?: CreateDishImageContext,
 ): string {
   const normalizedName = mealName.toLowerCase().trim();
@@ -739,7 +742,20 @@ export function buildStableCacheKey(
   // Default to "meal" so food requests without explicit sourceType stay in the food bucket.
   const typeContext = (sourceType || "meal").toLowerCase();
   // contextTag (e.g. pediatric stage) ensures pediatric images cache separately from adult ones.
-  const tag = contextTag ? `|${contextTag.toLowerCase().trim()}` : "";
+  // All prompt-relevant pediatric fields partition the cache, not just stage.
+  // Adult cache identity stays unchanged; pediatric prompt revision is scoped here.
+  const tag = !contextTag ? "" : typeof contextTag === "string"
+    ? `|${contextTag.toLowerCase().trim()}`
+    : `|pediatric-v2:${JSON.stringify({
+        stage: contextTag.stage,
+        ageRange: contextTag.ageRange,
+        portionNote: contextTag.portionNote,
+        textureClass: contextTag.textureClass,
+        textureHint: contextTag.textureHint,
+        textureStrategy: contextTag.textureStrategy,
+        presentationStrategy: contextTag.presentationStrategy,
+        activeConditionIds: [...new Set(contextTag.activeConditionIds ?? [])].sort(),
+      })}`;
   const createDishTag = createDishContext
     ? `|create-dish:${JSON.stringify({
         ingredient: createDishContext.canonicalIngredient.toLowerCase().trim(),
@@ -823,22 +839,6 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 // The classifier still runs for presentation style within that category.
 export type ImageSourceType = 'meal' | 'beverage' | 'snack' | 'dessert';
 
-export interface PediatricImageContext {
-  stage: string;             // e.g. "Preschool"
-  ageRange: string;          // e.g. "4–5 years"
-  portionNote: string;       // e.g. "small preschool portion"
-  /** Legacy free-text fallback: first sentence of textureAndChokingPreparation */
-  textureHint?: string;
-  /** Resolver-derived texture class key, e.g. "puree_only" — maps to TEXTURE_CLASS_VISUAL */
-  textureClass?: string;
-  /** Resolver-derived human-readable texture string, e.g. "purée/smooth — no visible chunks" */
-  textureStrategy?: string;
-  /** Resolver-derived plating note, e.g. "small toddler plate with very soft pieces" */
-  presentationStrategy?: string;
-  /** COND-XXXX protocol IDs active for this child — drives condition-specific visual notes */
-  activeConditionIds?: string[];
-}
-
 export interface CreateDishImageContext {
   canonicalIngredient: string;
   form?: { id: string; label: string } | null;
@@ -882,7 +882,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
     mealName,
     ingredients,
     sourceType,
-    pediatricContext?.stage,
+    pediatricContext,
     createDishContext,
   );
   const currentSignature = computeRecipeSignature(ingredients);
@@ -1067,7 +1067,11 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
   let finalPrompt = prompt;
   console.log(`[IMG-LIFECYCLE:${traceId}] VALIDATE-START | +${Date.now()-_t0}ms`);
   const dishForValidation = detectDishType(mealName);
-  const visualRequirements = createDishVisualRequirements(createDishContext);
+  const visualRequirements = [
+    ...createDishVisualRequirements(createDishContext),
+    // The existing vision validator also checks the prepared pediatric texture.
+    ...(pediatricContext ? [buildPediatricContextAddendum(pediatricContext)] : []),
+  ];
   let validation: ValidationResult = await validateImageAgainstRecipe(imageUrl, mealName, ingredients, {
     structuralIdentity: dishForValidation.structuralIdentity,
     visualRequirements,
@@ -1104,7 +1108,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
             ingredients,
             dishForValidation.structuralIdentity,
             createDishContext,
-          );
+          ) + (pediatricContext ? buildPediatricContextAddendum(pediatricContext) : "");
           console.log(`[IMG-LIFECYCLE:${traceId}] RECOVERY-START | attempt=${MAX_IMAGE_GENERATION_ATTEMPTS} | +${Date.now()-_t0}ms`);
           const recoveryUrl = await callDalle(recoveryPrompt);
           if (recoveryUrl) {
@@ -1236,7 +1240,7 @@ export async function generateMealImages(requests: MealImageRequest[]): Promise<
             req.mealName,
             req.ingredients,
             req.sourceType,
-            req.pediatricContext?.stage,
+            req.pediatricContext,
             req.createDishContext,
           ),
           createdAt: new Date().toISOString(),
@@ -1261,7 +1265,7 @@ export function getCachedImage(request: MealImageRequest): GeneratedImage | null
     request.mealName,
     request.ingredients,
     request.sourceType,
-    request.pediatricContext?.stage,
+    request.pediatricContext,
     request.createDishContext,
   );
   const entry = memCache.get(cacheKey);
@@ -1295,7 +1299,7 @@ export async function invalidateMealImageCache(request: MealImageRequest): Promi
     mealName,
     ingredients,
     request.sourceType,
-    request.pediatricContext?.stage,
+    request.pediatricContext,
     request.createDishContext,
   );
 
@@ -1355,7 +1359,7 @@ export async function generateMealImageUnified(
     normalizedName,
     ingredientNames,
     sourceType,
-    pediatricContext?.stage,
+    pediatricContext,
     createDishContext,
   );
   const existing = inflightRequests.get(dedupeKey);

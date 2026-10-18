@@ -1,3 +1,4 @@
+import { PREGNANCY_CUSTOMER_AVAILABLE } from "./pregnancyAvailability";
 export type PlanTier = "free" | "basic" | "premium" | "ultimate";
 
 export type Entitlement =
@@ -128,7 +129,9 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
       "Hormone Biomarker Integration — Track hormone values and incorporate them into your Clinical nutrition profile and personalized guidance.",
       "Performance Nutrition Builder — sport-specific fueling protocols, starch cycling, and competition prep meal builder",
       "Clinical Advisory System — AI that continuously interprets your health data, medications, biomarkers, and nutrition history to deliver personalized clinical guidance.",
-      "My Perfect Pregnancy™ — trimester-aware nutrition, Pregnancy Coach, food safety guidance (mercury, listeria, raw foods), and pregnancy-support meal generation",
+      PREGNANCY_CUSTOMER_AVAILABLE
+        ? "My Perfect Pregnancy™ — general nutrition education and food safety guidance; daily calorie and macro targets are not pregnancy-adjusted"
+        : "My Perfect Pregnancy™ — Coming Soon (Clinical)",
       "Therapeutic Nutrition Intelligence — hormone, peptide, and medication-aware meal generation that adapts to your active therapies and recovery goals",
     ],
     entitlements: [
@@ -203,7 +206,9 @@ export const IOS_DISPLAY_FEATURES: Record<string, string[]> = {
     "Hormone Biomarker Integration — Track hormone values and incorporate them into your Clinical nutrition profile.",
     "Performance Nutrition Builder (sport fueling protocols + starch cycling)",
     "Clinical Advisory System — AI that continuously interprets your health data, medications, biomarkers, and nutrition history to deliver personalized clinical guidance.",
-    "My Perfect Pregnancy™ (trimester nutrition + Pregnancy Coach)",
+    PREGNANCY_CUSTOMER_AVAILABLE
+      ? "My Perfect Pregnancy™ (general nutrition education; not pregnancy-adjusted daily targets)"
+      : "My Perfect Pregnancy™ — Coming Soon (Clinical)",
     "Therapeutic Nutrition Intelligence (hormone, peptide & therapy-aware meal generation)",
     "Priority Support",
   ],

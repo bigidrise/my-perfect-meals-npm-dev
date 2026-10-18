@@ -1,3 +1,4 @@
+- [Pregnancy release safety pause](pregnancy-release-safety-pause.md) — Coming Soon stays Clinical; retain saved support and other safety rules while activation and unreviewed guidance are paused.
 - [Safe-area modal layout](safe-area-modal-layout-rule.md) — safe-area spacing fixes must not restructure modal flex or overflow behavior.
 - [Development startup log retention](development-startup-log-retention.md) — preview asset reloads can displace boot messages; capture early and qualify incomplete log evidence.
 - [Authenticated API cache identity](authenticated-api-client-cache-identity.md) — removing caller IDs from APIs must not erase client-side account partitions.
@@ -16,7 +17,7 @@
 - [Coaching confidence doctrine](coaching-engine-confidence-doctrine.md) — confidence.ts is the authoritative LLM control surface for coaching tone.
 - [Object storage architecture](object-storage-architecture.md) — Object Storage Client is the working server upload path; do not rely on signed URL sidecars.
 - [Canonical media assets](media-asset-architecture.md) — media lifecycle gates must protect every referencing surface before object deletion.
-- [Meal image fidelity](meal-image-ingredient-contract.md) — image prompts and cache keys derive from full recipes, not only dish labels.
+- [Meal image references](meal-image-reference-index.md) — recipe fidelity, pediatric prepared-food expectations, production delivery, bounded recovery, and board media identity.
 - [Daily prescription hierarchy](daily-prescription-hierarchy.md) — one endpoint owns macro targets; clinical overlays are applied in documented order.
 - [Nutrition decision engine entry points](nde-food-entry-points.md) — all food intake surfaces must consult NDE before presenting results.
 - [GLP-1 canonical context](glp1-canonical-context.md) — canonical signals stay separate from the user's Builder-and-Menu-only portion-support policy.
@@ -26,8 +27,6 @@
 - [Performance nutrition](performance-nutrition.md) — the MacroCalculator remains the always-live baseline beneath session modifiers.
 - [Nutrition Life Plan cache boundary](nutrition-life-plan-cache-boundary.md) — saved baseline targets and changing day context have distinct freshness; preserve self-summary authorization and weekday semantics.
 - [Shared resolver ownership](nutrition-resolver-ownership.md) — workflow pages resolve once and pass data into shared components.
-- [Production media delivery](production-image-differential-diagnosis.md) — diagnose image records on their exact saved-object path.
-- [Savory-side image recovery](savory-side-image-recovery.md) — ambiguous savory sides get bounded plated guidance and one strictly validated recovery attempt.
 - [Override propagation](override-propagation-pattern.md) — successful allergy PIN overrides must reach every post-generation validation path.
 - [Release type gate](release-type-gate.md) — use the layered release check so newly introduced type errors cannot hide in debt.
 - [Process environment types](process-environment-type-contracts.md) — named-key Pick and Partial Pick can reject an index-signature-only environment dictionary.
@@ -115,7 +114,6 @@
 - [Nutrition Priorities authority](nutrition-priorities-authority.md) — subject-owned optional food inclusion guidance enters HFC identity; release DDL stays explicitly gated.
 - [Culinary preference authority](culinary-preference-authority.md) — profile palate values guide generation; only explicit request sources may reject or repair a dish.
 - [Generated meal serving contract](generated-meal-serving-contract.md) — response nutrition is total-recipe; validators must normalize with the same requested serving count.
-- [Board meal media identity](board-meal-media-identity.md) — Weekly Board images retain canonical asset identity; URL shape alone never proves durable storage.
 - [One-Touch Creator authority](one-touch-creator-authority.md) — delegated choices require explicit diet authority and safety-equivalent checks; Menu stays separate from manual Creators.
 - [Creator Menu choice retention](creator-menu-choice-retention.md) — completing a recipe must keep its three Menu ideas available until the user explicitly replaces or removes them.
 - [Vite-only feature gates in Jest](vite-feature-gates-jest.md) — isolate import.meta.env gates from request helpers so CommonJS Jest can test them.

@@ -1,3 +1,4 @@
+import { assertPregnancyRecommendationsAvailable } from "@shared/pregnancyAvailability";
 /**
  * protocolEnvelope.ts
  *
@@ -68,6 +69,7 @@ import { projectOncologyRecommendationContext } from "./guardrails/prompt/oncolo
 import { readDevelopmentPersonalFoodSupports } from "./healthProtocols/developmentFoodSupports";
 import { resolveCurrentGLP1MealAuthority, currentGLP1AuthorityEnabled } from "./glp1/currentMealAuthority";
 import { scanClinicalFoodSafety } from "./healthProtocols/clinicalOutputChecks";
+import { derivePregnancyStage } from "@shared/pregnancyStage";
 import { validateDishIdentity } from "./dishAdaptation/dishIdentityValidator";
 import { deriveCompPrepStatus } from "./protocol/competitionPrepDateEngine";
 import { sanitizeIdentifiers } from "./promptSanitizer";
@@ -942,6 +944,8 @@ export async function loadUserProtocolEnvelope(
         timezone: (users as any).timezone,
         therapeuticSupportContext: (users as any).therapeuticSupportContext,
         alphaGalProfile: (users as any).alphaGalProfile,
+        pregnancyStage: users.pregnancyStage,
+        pregnancyDueDate: users.pregnancyDueDate,
         pregnancySupportContext: (users as any).pregnancySupportContext,
         flavorPreference: users.flavorPreference,
         heatPreference: users.heatPreference,
@@ -1022,6 +1026,8 @@ export async function loadUserProtocolEnvelope(
             (user as any).therapeuticSupportContext = null;
             (user as any).alphaGalProfile = null;
             (user as any).pregnancySupportContext = null;
+            (user as any).pregnancyStage = null;
+            (user as any).pregnancyDueDate = null;
             (user as any).dailyCalorieTarget = hProfile.dailyCalorieTarget ?? null;
             (user as any).dailyProteinTarget = hProfile.dailyProteinTarget ?? null;
             (user as any).dailyCarbsTarget = hProfile.dailyCarbsTarget ?? null;
@@ -1192,31 +1198,14 @@ export async function loadUserProtocolEnvelope(
         isBreastfeeding?: boolean;
       } | null) ?? null;
 
-      let derivedStage: "trying-to-conceive" | "trimester-1" | "trimester-2" | "trimester-3" | "breastfeeding" | "postpartum" =
-        (rawStage as any) ?? "trimester-2";
-      let derivedWeek: number | null = null;
-
-      // Auto-derive trimester + week from due date when trackingMode = "due-date"
-      if (rawDueDate && rawCtx?.trackingMode !== "manual") {
-        try {
-          const due = new Date(rawDueDate);
-          const now = new Date();
-          const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-          const weeksUntilDue = (due.getTime() - now.getTime()) / msPerWeek;
-          const currentWeek = Math.max(1, Math.min(42, Math.round(40 - weeksUntilDue)));
-          derivedWeek = currentWeek;
-          if (currentWeek <= 13) derivedStage = "trimester-1";
-          else if (currentWeek <= 27) derivedStage = "trimester-2";
-          else derivedStage = "trimester-3";
-        } catch {
-          // Due date parse failed — fall back to manual stage
-        }
-      }
+      const { resolvedStage, weekOfPregnancy } = derivePregnancyStage(
+        rawStage ?? "trimester-2", rawDueDate, rawCtx?.trackingMode,
+      );
 
       pregnancySupportCtx = {
         active: true,
-        stage: derivedStage,
-        weekOfPregnancy: derivedWeek,
+        stage: resolvedStage as NonNullable<UserProtocolEnvelope["pregnancySupportContext"]>["stage"],
+        weekOfPregnancy,
         dueDate: rawDueDate,
         symptoms: (rawCtx?.symptoms as any[] ?? []),
         isBreastfeeding: rawCtx?.isBreastfeeding ?? false,
@@ -1838,6 +1827,7 @@ export function enforceBeforeGenerate(
     orgId?: string | null;
   }
 ): ProtocolPromptBlock {
+  assertPregnancyRecommendationsAvailable(envelope.pregnancySupportContext);
   const generatorName = context?.generatorName || "unknown_generator";
   const layers: ProtocolPromptBlock["layers"] = {
     dietaryIdentity: "",
