@@ -1,8 +1,10 @@
+import { PREGNANCY_CUSTOMER_AVAILABLE, PREGNANCY_PAUSE_MESSAGE } from "@shared/pregnancyAvailability";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { PillButton } from "@/components/ui/pill-button";
 import { apiRequest } from "@/lib/apiRequest";
+import { queryClient } from "@/lib/queryClient";
 
 interface PregnancySupportSetupModalProps {
   open: boolean;
@@ -66,6 +68,10 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
   }
 
   async function handleSave() {
+    if (!PREGNANCY_CUSTOMER_AVAILABLE) {
+      setError(PREGNANCY_PAUSE_MESSAGE);
+      return;
+    }
     if (!stage) return;
     setSaving(true);
     setError(null);
@@ -80,6 +86,9 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
           isBreastfeeding: stage === "breastfeeding" || isBreastfeeding,
         }),
       });
+      // Invalidate mounted and unmounted Life Plan caches, not just the local
+      // Pregnancy page. Both baseline and day context own pregnancy fields.
+      void queryClient.invalidateQueries({ queryKey: ["nutrition-summary"] });
       setSaved(true);
       onSaved?.({ stage, dueDate: trackingMode === "due-date" ? dueDate : null });
       setTimeout(() => {
@@ -95,10 +104,15 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
   }
 
   async function handleDeactivate() {
+    if (!PREGNANCY_CUSTOMER_AVAILABLE) {
+      setError(PREGNANCY_PAUSE_MESSAGE);
+      return;
+    }
     setDeactivating(true);
     setError(null);
     try {
       await apiRequest("/api/pregnancy/setup", { method: "DELETE" });
+      void queryClient.invalidateQueries({ queryKey: ["nutrition-summary"] });
       onSaved?.({ stage: "", dueDate: null });
       setShowDeactivateConfirm(false);
       setTimeout(() => onOpenChange(false), 400);
@@ -121,7 +135,7 @@ export function PregnancySupportSetupModal({ open, onOpenChange, onSaved }: Preg
             🩷 {t("pregnancySupport.title")}
           </SheetTitle>
           <p className="text-white/60 text-xs leading-relaxed mt-1">
-            {t("pregnancySupport.intro")}
+            {PREGNANCY_CUSTOMER_AVAILABLE ? t("pregnancySupport.intro") : PREGNANCY_PAUSE_MESSAGE}
           </p>
         </SheetHeader>
 

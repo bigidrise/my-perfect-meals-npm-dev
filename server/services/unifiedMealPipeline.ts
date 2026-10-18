@@ -1,3 +1,4 @@
+import { isPregnancyRecommendationPause, PREGNANCY_PAUSE_MESSAGE } from "@shared/pregnancyAvailability";
 import {
   CARDIAC_DESSERT_ADAPTATION,
   SnackCompatibilityError,
@@ -3245,6 +3246,9 @@ export async function generateFridgeRescueUnified(
     };
   } catch (error) {
     console.error('❌ Fridge Rescue AI generation failed:', error);
+    if (isPregnancyRecommendationPause(error)) {
+      return { success: false, source: "error", error: PREGNANCY_PAUSE_MESSAGE };
+    }
     
     // Fallback to deterministic templates only if AI fails
     console.log('⚠️ Falling back to deterministic templates...');
@@ -4683,6 +4687,9 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
     
   } catch (error: any) {
     console.error('❌ Create With Chef generation failed:', error);
+    if (isPregnancyRecommendationPause(error)) {
+      return { success: false, source: "error", error: PREGNANCY_PAUSE_MESSAGE };
+    }
     // A canonical request must never turn a verification/provider exception
     // into an unrelated, unverified template. Preserve fail-closed behavior.
     if (chefFoodContext) {
@@ -5308,6 +5315,9 @@ Create the personalized snack for: "${cravingDescription}"`;
     
   } catch (error: any) {
     console.error('❌ Snack Creator generation failed:', error);
+    if (isPregnancyRecommendationPause(error)) {
+      return { success: false, source: "error", error: PREGNANCY_PAUSE_MESSAGE };
+    }
 
     if (error instanceof SnackCompatibilityError ||
       error instanceof GLP1ComplianceRetryExhaustedError) {

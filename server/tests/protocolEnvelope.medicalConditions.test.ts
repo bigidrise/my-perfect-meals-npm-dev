@@ -58,6 +58,7 @@ const mockHouseholdProfile = {
 let mockUserMissing = false;
 let mockUserLoadFailure = false;
 let mockSelectCalls = 0;
+const mockUserSelections: Record<string, unknown>[] = [];
 jest.mock("../services/healthProtocols/developmentFoodSupports", () => ({
   readDevelopmentPersonalFoodSupports: (...args: unknown[]) => mockPersonalSupports(...args),
 }));
@@ -65,7 +66,7 @@ jest.mock("../services/healthProtocols/developmentFoodSupports", () => ({
 jest.mock("../db", () => ({
   pool: { query: (...args: unknown[]) => mockQuery(...args) },
   db: {
-    select: () => {
+    select: (selection?: Record<string, unknown>) => {
       mockSelectCalls++;
       return ({
       from: (table: any) => ({
@@ -74,7 +75,15 @@ jest.mock("../db", () => ({
             if (mockUserLoadFailure) throw new Error("Database unavailable");
             const tableName = table?.[Symbol.for("drizzle:Name")] ?? table?._?.name;
             if (tableName === "household_profiles") return [mockHouseholdProfile];
-            return mockUserMissing ? [] : [selectedUser];
+            if (mockUserMissing) return [];
+            if (selection) mockUserSelections.push(selection);
+            // Respect the real projection: returning every fixture field hid
+            // missing pregnancy_stage / pregnancy_due_date selections.
+            return [selection
+              ? Object.fromEntries(Object.keys(selection).map(key => [
+                  key, (selectedUser as Record<string, unknown>)[key],
+                ]))
+              : { ...selectedUser }];
           },
         }),
       }),
@@ -92,6 +101,8 @@ jest.mock("../services/glp1/resolveDailyMedicationTolerance", () => ({
 }));
 
 import { buildGuestEnvelope, enforceBeforeGenerate, loadUserProtocolEnvelope, loadGenerationProtocolEnvelope, ProtocolContextUnavailableError, scanGeneratedOutput } from "../services/protocolEnvelope";
+import { users } from "@shared/schema";
+import { buildNutritionSummary } from "../services/nutritionSummary/buildNutritionSummary";
 
 describe("protocol envelope medicalConditions projection", () => {
   it("reserves guest authority for genuinely anonymous generation", async () => {
@@ -220,7 +231,9 @@ describe("protocol envelope medicalConditions projection", () => {
     selectedUser.specialtyConditions = [];
     selectedUser.alphaGalProfile = null;
     selectedUser.pregnancyStage = null;
+    selectedUser.pregnancyDueDate = null;
     selectedUser.pregnancySupportContext = null;
+    mockUserSelections.length = 0;
     mockPersonalSupports.mockReset();
     mockPersonalSupports.mockResolvedValue(new Set());
     mockTolerance.mockClear();
@@ -325,6 +338,103 @@ describe("protocol envelope medicalConditions projection", () => {
     expect((envelope?.conditionGuidanceBlocks ?? []).join("\n")).toMatch(/PREGNANCY/i);
     expect(scanGeneratedOutput({ name: "Raw tuna plate", ingredients: ["raw tuna", "rice"] }, envelope!).passed).toBe(false);
     expect(scanGeneratedOutput({ name: "Unnamed food" }, envelope!).passed).toBe(false);
+  });
+
+  it.each([
+    "trying-to-conceive", "trimester-1", "trimester-2", "trimester-3", "breastfeeding", "postpartum",
+  ])("projects saved %s into shared meal context and the Life Plan", async stage => {
+    selectedUser.medicalConditions = [];
+    selectedUser.specialtyConditions = ["pregnancy-support", "thyroid-support"];
+    selectedUser.pregnancyStage = stage;
+    selectedUser.pregnancyDueDate = "2027-01-10";
+    selectedUser.pregnancySupportContext = {
+      trackingMode: "manual", symptoms: ["fatigue"], isBreastfeeding: stage === "breastfeeding",
+    };
+    const envelope = await loadUserProtocolEnvelope("protocol-user");
+    expect(mockUserSelections.some(fields =>
+      fields.pregnancyStage === users.pregnancyStage &&
+      fields.pregnancyDueDate === users.pregnancyDueDate &&
+      fields.pregnancySupportContext === users.pregnancySupportContext,
+    )).toBe(true);
+    expect(envelope?.pregnancySupportContext).toMatchObject({
+      stage, dueDate: "2027-01-10", weekOfPregnancy: null, symptoms: ["fatigue"],
+    });
+    expect(envelope?.thyroidSupport).toBe(true);
+    const baseline = buildNutritionSummary(envelope!, {}, { includeDayContext: false });
+    expect(baseline.activeInputs.pregnancy).toEqual({
+      label: "Pregnancy Nutrition",
+      detail: ({
+        "trying-to-conceive": "Trying to Conceive", "trimester-1": "First Trimester",
+        "trimester-2": "Second Trimester", "trimester-3": "Third Trimester",
+        breastfeeding: "Breastfeeding", postpartum: "Postpartum",
+      } as Record<string, string>)[stage],
+    });
+  });
+
+  it.each(["breastfeeding", "postpartum"])("does not convert %s with a stale due date into a trimester", async stage => {
+    selectedUser.medicalConditions = [];
+    selectedUser.specialtyConditions = ["pregnancy-support"];
+    selectedUser.pregnancyStage = stage;
+    selectedUser.pregnancyDueDate = "2026-01-01";
+    selectedUser.pregnancySupportContext = { trackingMode: "due-date", isBreastfeeding: true };
+    const envelope = await loadUserProtocolEnvelope("protocol-user");
+    expect(envelope?.pregnancySupportContext).toMatchObject({
+      stage, weekOfPregnancy: null, isBreastfeeding: true,
+    });
+    expect(() => enforceBeforeGenerate(envelope!, { generatorName: "pregnancy_repair_test" }))
+      .toThrow("Coming Soon");
+    expect(scanGeneratedOutput({ name: "Rice", ingredients: ["rice"] }, envelope!).passed).toBe(false);
+  });
+
+  it.each([[13, "trimester-1"], [14, "trimester-2"], [27, "trimester-2"], [28, "trimester-3"]])(
+    "uses the selected due date for week %i / %s in meal and Life Plan context",
+    async (week, stage) => {
+      selectedUser.medicalConditions = [];
+      selectedUser.specialtyConditions = ["pregnancy-support"];
+      selectedUser.pregnancyStage = "trimester-1";
+      selectedUser.pregnancyDueDate = new Date(
+        Date.now() + (40 - Number(week)) * 7 * 24 * 60 * 60 * 1000,
+      ).toISOString().slice(0, 10);
+      selectedUser.pregnancySupportContext = { trackingMode: "due-date" };
+      const envelope = await loadUserProtocolEnvelope("protocol-user");
+      expect(envelope?.pregnancySupportContext).toMatchObject({ stage, weekOfPregnancy: week });
+      expect(buildNutritionSummary(envelope!, {}, { includeDayContext: true }).activeInputs.pregnancy?.detail)
+        .toBe(`Week ${week}`);
+    },
+  );
+
+  it.each(["trimester-1", "trimester-2", "trimester-3"])("keeps existing food safety and allergy checks in %s", async stage => {
+    selectedUser.medicalConditions = [];
+    selectedUser.specialtyConditions = ["pregnancy-support"];
+    selectedUser.pregnancyStage = stage;
+    selectedUser.allergies = ["peanut"];
+    try {
+      const envelope = await loadUserProtocolEnvelope("protocol-user");
+      expect(scanGeneratedOutput({ name: "Raw fish", ingredients: ["raw tuna", "rice"] }, envelope!).passed).toBe(false);
+      expect(scanGeneratedOutput({ name: "Nut snack", ingredients: ["peanut"] }, envelope!).passed).toBe(false);
+      expect(scanGeneratedOutput({ name: "Cooked meal", ingredients: ["chicken", "rice"] }, envelope!).passed).toBe(true);
+    } finally { selectedUser.allergies = []; }
+  });
+
+  it("does not recover the owner's pregnancy card by leaking it into a household subject", async () => {
+    selectedUser.medicalConditions = [];
+    selectedUser.specialtyConditions = ["pregnancy-support"];
+    selectedUser.pregnancyStage = "trimester-3";
+    selectedUser.pregnancyDueDate = "2027-01-10";
+    selectedUser.pregnancySupportContext = { trackingMode: "manual", isBreastfeeding: false };
+    const envelope = await loadUserProtocolEnvelope("protocol-user", "household-1");
+    expect(envelope?.pregnancySupport).toBe(false);
+    expect(envelope?.pregnancySupportContext).toBeNull();
+    expect(buildNutritionSummary(envelope!, {}, { includeDayContext: false }).activeInputs.pregnancy).toBeNull();
+  });
+
+  it("omits pregnancy when that subject has no active pregnancy selection, without reactivating saved history", async () => {
+    selectedUser.medicalConditions = [];
+    selectedUser.specialtyConditions = ["thyroid-support"];
+    selectedUser.pregnancyStage = "trimester-3";
+    selectedUser.pregnancySupportContext = { trackingMode: "manual" };
+    const envelope = await loadUserProtocolEnvelope("protocol-user");
+    expect(buildNutritionSummary(envelope!, {}, { includeDayContext: false }).activeInputs.pregnancy).toBeNull();
   });
 
   it("rejects known thyroid hard violations through the common post-generation scan", async () => {

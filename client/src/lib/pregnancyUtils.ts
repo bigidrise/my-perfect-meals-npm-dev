@@ -1,3 +1,5 @@
+import { derivePregnancyStage } from "@shared/pregnancyStage";
+
 export interface PregnancyStatus {
   stage: string;
   weekOfPregnancy: number | null;
@@ -18,17 +20,6 @@ export const PREGNANCY_STAGE_META: Record<string, { label: string; emoji: string
   "breastfeeding":      { label: "Breastfeeding",      emoji: "🤱" },
   "postpartum":         { label: "Postpartum",         emoji: "🩷" },
 };
-
-function computeWeekFromDueDate(dueDate: string): number | null {
-  try {
-    const due = new Date(dueDate + "T12:00:00");
-    const now = new Date();
-    const weeksUntilDue = (due.getTime() - now.getTime()) / (7 * 24 * 60 * 60 * 1000);
-    return Math.max(1, Math.min(42, Math.round(40 - weeksUntilDue)));
-  } catch {
-    return null;
-  }
-}
 
 function computeNextMilestone(week: number, stage: string): string | null {
   if (stage === "trimester-1") {
@@ -58,18 +49,7 @@ export function derivePregnancyStatus(user: any): PregnancyStatus | null {
   const rawDueDate: string | null = user.pregnancyDueDate ?? null;
   const trackingMode: string = ctx.trackingMode ?? "manual";
 
-  let weekOfPregnancy: number | null = null;
-  let resolvedStage = rawStage;
-
-  if (rawDueDate && trackingMode !== "manual") {
-    const week = computeWeekFromDueDate(rawDueDate);
-    if (week !== null) {
-      weekOfPregnancy = week;
-      if (week <= 13) resolvedStage = "trimester-1";
-      else if (week <= 27) resolvedStage = "trimester-2";
-      else resolvedStage = "trimester-3";
-    }
-  }
+  const { resolvedStage, weekOfPregnancy } = derivePregnancyStage(rawStage, rawDueDate, trackingMode);
 
   const meta = PREGNANCY_STAGE_META[resolvedStage] ?? PREGNANCY_STAGE_META["trimester-2"];
   const nextMilestone =

@@ -1,3 +1,4 @@
+import { PREGNANCY_CUSTOMER_AVAILABLE, PREGNANCY_PAUSE_MESSAGE } from "@shared/pregnancyAvailability";
 import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -1381,8 +1382,9 @@ export default function EditProfilePage() {
                       <PillButton
                         key={opt.value}
                         active={isActive}
-                        disabled={saving}
+                        disabled={saving || (opt.value === "pregnancy-support" && !PREGNANCY_CUSTOMER_AVAILABLE)}
                           onClick={() => {
+                          if (opt.value === "pregnancy-support" && !PREGNANCY_CUSTOMER_AVAILABLE) return;
                           if (locked) return;
                           if ((physicianOncologyLocked || (oncologyDevelopment && oncologySelection.readOnly)) && opt.value === "oncology-support") {
                             if (oncologyDevelopment) setOncologySymptomsOpen(true);
@@ -1409,7 +1411,7 @@ export default function EditProfilePage() {
                         }}
                         className={locked ? "opacity-80 cursor-not-allowed" : ""}
                       >
-                        {isLabDriven ? <span className="mr-1 text-[10px]">🔬</span> : null}{opt.label}
+                        {isLabDriven ? <span className="mr-1 text-[10px]">🔬</span> : null}{opt.label}{opt.value === "pregnancy-support" && !PREGNANCY_CUSTOMER_AVAILABLE ? " — Coming Soon (Clinical)" : ""}
                       </PillButton>
                     );
                   })}
@@ -1443,7 +1445,8 @@ export default function EditProfilePage() {
                     <PillButton
                       active={false}
                       onClick={() => {
-                        setSpecialtyConditions(prev => prev.filter(c => labDrivenConditions.includes(c)));
+                        setSpecialtyConditions(prev => prev.filter(c => labDrivenConditions.includes(c) ||
+                          (!PREGNANCY_CUSTOMER_AVAILABLE && c === "pregnancy-support")));
                         if (!import.meta.env.DEV) setGlp1Active(false);
                       }}
                     >
@@ -1456,9 +1459,9 @@ export default function EditProfilePage() {
                     <div className="flex items-start gap-2">
                       <span className="text-pink-400 text-base mt-0.5">🩷</span>
                       <div>
-                        <p className="text-pink-300 text-xs font-semibold mb-1">My Perfect Pregnancy — Nutritional Guidance Only</p>
+                        <p className="text-pink-300 text-xs font-semibold mb-1">My Perfect Pregnancy — {PREGNANCY_CUSTOMER_AVAILABLE ? "Nutritional Guidance Only" : "Coming Soon (Clinical)"}</p>
                         <p className="text-white/70 text-xs leading-relaxed">
-                          Activates pregnancy-aware meal generation with trimester-specific nutrients, food safety guidance (mercury, listeria), and symptom support. This is <span className="text-white font-medium">not a medical protocol</span>, not a substitute for your OB/GYN or midwife, and <span className="text-white font-medium">not individualized prenatal care</span>. Set up your stage and due date in the My Perfect Pregnancy hub under Lifestyle.
+                          {PREGNANCY_CUSTOMER_AVAILABLE ? "General nutrition education only. Daily calorie and macro targets are not pregnancy-adjusted; follow your healthcare provider's guidance." : PREGNANCY_PAUSE_MESSAGE}
                         </p>
                       </div>
                     </div>

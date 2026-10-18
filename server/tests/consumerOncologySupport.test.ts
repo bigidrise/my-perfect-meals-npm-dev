@@ -11,6 +11,26 @@ const self = {
 };
 
 describe("consumer authoritative oncology save", () => {
+  test.each([[[]], [["pregnancy-support"]]])(
+    "retains saved Pregnancy and its records during unrelated saves, including primary-only storage: %j",
+    async conditions => {
+      const pregnancy = {
+        pregnancyStage: "breastfeeding", pregnancyDueDate: "2026-01-01",
+        pregnancySupportContext: { symptoms: ["fatigue"], isBreastfeeding: true },
+        medicalConditions: ["hypothyroid"],
+      };
+      const record = { context: null, conditions, primaryCondition: "pregnancy-support" };
+      let savedRecord: any = { ...pregnancy };
+      const tx = {
+        select: () => ({ from: () => ({ where: () => ({ limit: () => ({ for: async () => [record] }) }) }) }),
+        update: () => ({ set: (value: any) => ({ where: async () => { savedRecord = { ...savedRecord, ...value }; } }) }),
+      };
+      (db.transaction as jest.Mock).mockImplementation(async fn => fn(tx));
+      await saveConsumerSpecialtySupport(userId, ["renal"], undefined);
+      expect(savedRecord.specialtyConditions).toEqual(["renal", "pregnancy-support"]);
+      for (const [key, value] of Object.entries(pregnancy)) expect(savedRecord[key]).toEqual(value);
+    },
+  );
   test("established support settings survive unrelated oncology selections and omission", () => {
     const stored = ["therapeutic-support", "performance-nutrition"];
     expect(resolveConsumerSpecialtyConditions([...stored, "oncology-support"], stored))

@@ -20,6 +20,39 @@
 import express, { Request, Response, NextFunction } from "express";
 import request from "supertest";
 
+let mockPregnancyAvailable = true;
+jest.mock("@shared/pregnancyAvailability", () => ({
+  ...jest.requireActual("@shared/pregnancyAvailability"),
+  get PREGNANCY_CUSTOMER_AVAILABLE() { return mockPregnancyAvailable; },
+}));
+
+let mockPregnancyRow: Record<string, unknown> | null = null;
+jest.mock("../db", () => ({
+  pool: { query: jest.fn(async () => ({ rows: [] })) },
+  db: {
+    execute: jest.fn(async () => ({ rows: [] })),
+    select: (selection?: Record<string, unknown>) => ({
+      from: () => ({
+        where: () => ({
+          limit: async () => mockPregnancyRow
+            ? [selection
+                ? Object.fromEntries(Object.keys(selection).map(key => [key, mockPregnancyRow![key]]))
+                : { ...mockPregnancyRow }]
+            : [],
+        }),
+      }),
+    }),
+  },
+}));
+jest.mock("openai", () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(() => ({
+    chat: { completions: { create: jest.fn(async () => {
+      throw new Error("Provider calls disabled in isolated pregnancy route tests");
+    }) } },
+  })),
+}));
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
@@ -57,6 +90,31 @@ async function buildApp(authUser: Record<string, unknown> | null) {
 }
 
 // ── Test suite ────────────────────────────────────────────────────────────────
+
+describe("Pregnancy temporary customer availability", () => {
+  beforeEach(() => { mockPregnancyAvailable = false; });
+  afterEach(() => { mockPregnancyAvailable = true; jest.restoreAllMocks(); });
+
+  it.each([["post", "/setup"], ["post", "/ask"], ["delete", "/setup"]] as const)(
+    "blocks %s %s before any database work", async (method, path) => {
+      const app = await buildApp({ id: "synthetic-existing", accessTier: "PAID_FULL", planLookupKey: "mpm_ultimate_monthly" });
+      const reads = jest.spyOn(require("../db").db, "select");
+      const res = await request(app)[method](`/api/pregnancy${path}`)
+        .send({ stage: "breastfeeding", message: "Meal please" });
+      expect(res.status).toBe(403);
+      expect(res.body.code).toBe("pregnancy_coming_soon");
+      expect(res.body.error).toMatch(/breastfeeding\/postpartum-specific automated guidance is paused/i);
+      expect(reads).not.toHaveBeenCalled();
+      expect(require("../db").db.execute).not.toHaveBeenCalled();
+      expect(require("../db").pool.query).not.toHaveBeenCalled();
+    },
+  );
+
+  it("does not turn an unauthenticated request into an authenticated one", async () => {
+    const app = await buildApp(null);
+    expect((await request(app).post("/api/pregnancy/setup").send({ stage: "trimester-2" })).status).toBe(401);
+  });
+});
 
 describe("POST /api/pregnancy/ask — paywall guard", () => {
   const originalEnv = process.env.BILLING_ENFORCED;
@@ -197,6 +255,33 @@ describe("POST /api/pregnancy/ask — paywall guard", () => {
     expect(res.status).not.toBe(403);
     // Restore
     process.env.BILLING_ENFORCED = "true";
+  });
+});
+
+describe("Pregnancy bootstrap stage/date preservation", () => {
+  afterEach(() => { mockPregnancyRow = null; });
+
+  it.each(["breastfeeding", "postpartum"])("preserves %s and its breastfeeding flag with an old due date", async stage => {
+    mockPregnancyRow = {
+      pregnancyStage: stage, pregnancyDueDate: "2026-01-01",
+      pregnancySupportContext: { trackingMode: "due-date", isBreastfeeding: true, symptoms: ["fatigue"] },
+    };
+    const app = await buildApp({ id: "synthetic-pregnancy-parent" });
+    const response = await request(app).get("/api/pregnancy/bootstrap");
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      stage, weekOfPregnancy: null, isBreastfeeding: true, symptoms: ["fatigue"],
+    });
+  });
+
+  it("does not turn an invalid due date into third-trimester guidance", async () => {
+    mockPregnancyRow = {
+      pregnancyStage: "trimester-1", pregnancyDueDate: "2026-02-30",
+      pregnancySupportContext: { trackingMode: "due-date" },
+    };
+    const app = await buildApp({ id: "synthetic-pregnancy-parent" });
+    const response = await request(app).get("/api/pregnancy/bootstrap");
+    expect(response.body).toMatchObject({ stage: "trimester-1", weekOfPregnancy: null });
   });
 });
 

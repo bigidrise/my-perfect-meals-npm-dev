@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { resolvePediatricRecipeImage, pediatricImageForSave, createPediatricImageRestorer } from "@/lib/pediatricRecipeImage";
+import { isFallbackMealImage } from "@shared/pediatricMealImage";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
@@ -1005,6 +1007,9 @@ function RecipeCard({
                 height="h-56"
                 className="rounded-2xl overflow-hidden"
               />
+              {isFallbackMealImage(imageUrl) && (
+                <p className="mt-1 text-xs text-white/60">Preview illustration — generated photo unavailable.</p>
+              )}
             </div>
           )}
 
@@ -1652,6 +1657,9 @@ export default function MyPerfectBeginningCreateMealPage() {
   // Image state — fires once per recipe, independent of main generation
   const [recipeImageUrl, setRecipeImageUrl] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
+  // Per-mounted-page authority: deduplicate restoration across StrictMode and
+  // child switches without sharing recipes or image requests across accounts.
+  const [restoreRecipeImage] = useState(() => createPediatricImageRestorer());
 
   // Resolver meta — texture class for pediatric info tile + full resolver context for WhyEngineDecidedPanel
   const [resolverTextureClass, setResolverTextureClass] = useState<string | undefined>(undefined);
@@ -1795,48 +1803,48 @@ export default function MyPerfectBeginningCreateMealPage() {
   useEffect(() => {
     if (!activeChild?.id) return;
     const childProfileId = activeChild.id;
+    const childStage = activeChild.age_stage;
+    let cancelled = false;
     get<{ meal: { id: string; recipeData: any; imageUrl: string | null; selectedOptionName: string | null } | null }>(
       `/api/my-perfect-beginning/generated-meals?childProfileId=${encodeURIComponent(childProfileId)}`
     )
       .then(data => {
-        if (data.meal && !recipe) {
+        if (!cancelled && data.meal && !recipe) {
           setRecipe(data.meal.recipeData);
-          const restoredImageUrl = data.meal.imageUrl;
+          const restoredImageUrl = data.meal.imageUrl ?? data.meal.recipeData?._imageGeneration?.fallbackUrl ?? null;
           setRecipeImageUrl(restoredImageUrl);
 
           // If no persisted image, silently regenerate from the recipe data so
           // the card shows an image without the user having to re-generate the recipe.
-          if (!restoredImageUrl && data.meal.recipeData?.recipeName) {
-            const recipeName: string = data.meal.recipeData.recipeName;
-            const ingredients: string[] = (data.meal.recipeData.ingredients ?? []).map((i: any) => i.name ?? i);
+          if ((!restoredImageUrl || isFallbackMealImage(restoredImageUrl)) && data.meal.recipeData?.recipeName) {
             const selectedOptionName = data.meal.selectedOptionName ?? null;
             const savedRecipeData = data.meal.recipeData;
             setImageLoading(true);
-            post<{ imageUrl?: string }>('/api/meals/generate-image', {
-              mealName: recipeName,
-              ingredients,
-              mealType: 'meal',
-              sourceType: 'meal',
-            })
-              .then(img => {
-                const imgUrl = img.imageUrl ?? null;
-                if (imgUrl) {
-                  setRecipeImageUrl(imgUrl);
-                  // Write the permanent URL back so future reloads skip re-generation.
-                  post('/api/my-perfect-beginning/generated-meals', {
+            const key = `${childProfileId}:${data.meal.id}`;
+            const pending = restoreRecipeImage(
+                key,
+                { recipe: savedRecipeData, imageUrl: restoredImageUrl },
+                childStage,
+                body => post('/api/meals/generate-image', body),
+                result => post('/api/my-perfect-beginning/generated-meals', {
                     childProfileId,
-                    recipeData: savedRecipeData,
-                    imageUrl: imgUrl,
+                    recipeData: result.recipe,
+                    imageUrl: pediatricImageForSave(result.imageUrl),
                     selectedOptionName,
-                  }).catch(() => {});
-                }
+                  }),
+              );
+            pending.then(result => {
+                if (cancelled) return;
+                setRecipeImageUrl(result.imageUrl);
+                setRecipe(result.recipe as unknown as ChildRecipeResponse);
               })
               .catch(() => {})
-              .finally(() => setImageLoading(false));
+              .finally(() => { if (!cancelled) setImageLoading(false); });
           }
         }
       })
       .catch(() => {});
+    return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeChild?.id]);
 
@@ -1912,6 +1920,7 @@ export default function MyPerfectBeginningCreateMealPage() {
     try {
       const requestBody: Record<string, unknown> = {
         ageStage: selectedStage,
+        mealOccasion,
         allergies,
         foodRequest: fullFoodRequest,
         parentPrefs: Object.keys(parentPrefs).length > 0 ? parentPrefs : undefined,
@@ -1953,36 +1962,7 @@ export default function MyPerfectBeginningCreateMealPage() {
       }
       setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
 
-      // ── Unified Image Pipeline ─────────────────────────────────────────────
-      // /create-dish now returns imageUrl when server-side generation succeeded.
-      // Use it directly so the recipe card renders complete — no shimmer.
-      if (data.imageUrl) {
-        setRecipeImageUrl(data.imageUrl);
-        setImageLoading(false);
-        // Persist the permanent URL so future reloads restore without re-fetching.
-        post('/api/my-perfect-beginning/generated-meals', {
-          childProfileId: activeChild?.id ?? null,
-          recipeData: data.recipe,
-          imageUrl: data.imageUrl,
-          selectedOptionName: conceptName ?? null,
-        }).catch(() => {});
-        return; // outer finally calls setIsGenerating(false); card renders with image
-      }
-      // Server didn't return imageUrl (generation failed) — fall through to the
-      // client-side background fetch below for graceful degradation.
-      // ──────────────────────────────────────────────────────────────────────
-
-      // Fire image generation in the background — single fetch, no hook needed
-      setRecipeImageUrl(null);
-      setImageLoading(true);
-      const stage = STAGES.find(s => s.id === selectedStage);
-      // Prefer resolver-derived texture/presentation fields — they match what the
-      // AI actually cooked, giving a purée stage a smooth image and a toddler
-      // plate small soft pieces instead of adult restaurant plating.
-      const textureStrategy: string | undefined = data.resolverContext?.textureStrategy;
-      const presentationStrategy: string | undefined = data.resolverContext?.presentationStrategy;
-      // Also pull the raw textureClass key and active condition IDs for the
-      // structured prompt builder (TEXTURE_CLASS_VISUAL + CONDITION_VISUAL_NOTES).
+      // Apply recipe metadata regardless of image success or fallback.
       const resolvedTextureClass: string | undefined = data.resolverMeta?.textureClass;
       // Save texture class for the pediatric info tile in the recipe card
       setResolverTextureClass(resolvedTextureClass);
@@ -2004,51 +1984,24 @@ export default function MyPerfectBeginningCreateMealPage() {
       if (data.clinicalNutritionSummary) {
         setClinicalNutritionSummary(data.clinicalNutritionSummary);
       }
-      const activeConditionIds: string[] = data.resolverMeta?.activeConditionIds ?? [];
-      // Fallback: first sentence of the AI-generated texture note (legacy path)
-      const textureHintFallback = data.recipe.textureAndChokingPreparation
-        ? data.recipe.textureAndChokingPreparation.split('.')[0].trim()
-        : "";
-      // Derive source type from meal occasion so snack/dessert/beverage get the
-      // correct macro anchor in the image prompt builder.
-      const imageSourceType: string = mealOccasion === "Snack" ? "snack"
-        : mealOccasion === "Dessert" ? "dessert"
-        : mealOccasion === "Smoothie" ? "beverage"
-        : "meal";
-      const saveRecipeToDb = (imgUrl: string | null) => {
-        post('/api/my-perfect-beginning/generated-meals', {
+      setRecipeImageUrl(data.imageUrl ?? null);
+      setImageLoading(true);
+      // New responses already attempted the fully contextual pipeline. Only a
+      // legacy response missing that attempt may make one background image call.
+      resolvePediatricRecipeImage(
+        data, selectedStage, mealOccasion,
+        body => post('/api/meals/generate-image', body),
+      ).then(result => {
+        setRecipeImageUrl(result.imageUrl);
+        setRecipe(result.recipe as unknown as ChildRecipeResponse);
+        return post('/api/my-perfect-beginning/generated-meals', {
           childProfileId: activeChild?.id ?? null,
-          recipeData: data.recipe,
-          imageUrl: imgUrl,
+          recipeData: result.recipe,
+          imageUrl: pediatricImageForSave(result.imageUrl),
           selectedOptionName: conceptName ?? null,
-        }).catch(() => {});
-      };
-
-      post<{ imageUrl?: string }>('/api/meals/generate-image', {
-        mealName: data.recipe.recipeName,
-        ingredients: (data.recipe.ingredients ?? []).map((i: any) => i.name ?? i),
-        mealType: imageSourceType,
-        sourceType: imageSourceType,
-        pediatricContext: {
-          stage: stage?.label ?? selectedStage,
-          ageRange: stage?.ageRange ?? "",
-          textureStrategy: textureStrategy || undefined,
-          presentationStrategy: presentationStrategy || undefined,
-          textureClass: resolvedTextureClass,
-          activeConditionIds,
-          // Legacy fallback if structured resolver fields are absent
-          textureHint: (textureStrategy || resolvedTextureClass)
-            ? undefined
-            : (textureHintFallback || "soft, age-appropriate texture"),
-          portionNote: `small ${(stage?.label ?? "child").toLowerCase()} portion`,
-        },
+        });
       })
-        .then(img => {
-          const imgUrl = img.imageUrl ?? null;
-          if (imgUrl) setRecipeImageUrl(imgUrl);
-          saveRecipeToDb(imgUrl);
-        })
-        .catch(() => { saveRecipeToDb(null); })
+        .catch(() => {})
         .finally(() => setImageLoading(false));
     } catch (err: any) {
       toast({ title: "Something went wrong", description: err.message || "Please try again.", variant: "destructive" });

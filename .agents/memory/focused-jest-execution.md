@@ -26,3 +26,17 @@ Run an in-memory PostgreSQL test engine in a Node worker when its Node dynamic i
 **Why:** PGlite initialization failed under the existing Jest loader with a missing dynamic-import callback. A normal Node worker supports those imports without changing the project's global Jest module mode.
 
 **How to apply:** Keep the engine entirely in memory and pass only synthetic SQL fixtures across the worker boundary. Do not substitute the application database or change global test-loader behavior to make these checks pass.
+
+## Provider and database isolation
+
+Synthetic identities and a test's description do not establish isolation. Mock database and paid-provider modules before importing routes, including pre-existing regression suites.
+
+**Why:** An existing paywall suite used synthetic identities but still executed live conversation reads/writes and text-coaching calls. Pure summary imports also initialized the real database transitively.
+
+**How to apply:** Inspect dependency mocks before running a no-save/no-paid check. Make unexpected external calls fail locally. If a boundary is crossed, disclose it, inspect only synthetic metadata with a read-only transaction, and obtain permission before shared-record cleanup.
+
+Database fixtures must respect the query's selected columns rather than returning the entire fixture.
+
+**Why:** A stage-propagation test passed while the real query omitted the saved stage and due date, because the fixture supplied fields that PostgreSQL would not return.
+
+**How to apply:** Project fixtures using the requested selection and assert that required fields map to their actual schema columns.

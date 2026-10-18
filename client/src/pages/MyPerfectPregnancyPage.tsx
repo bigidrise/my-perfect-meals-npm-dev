@@ -1,3 +1,4 @@
+import { PREGNANCY_CUSTOMER_AVAILABLE, PREGNANCY_PAUSE_MESSAGE } from "@shared/pregnancyAvailability";
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -125,6 +126,16 @@ const MERCURY_AVOID = ["Shark", "Swordfish", "King mackerel", "Tilefish", "Bigey
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function MyPerfectPregnancyPage() {
+  return PREGNANCY_CUSTOMER_AVAILABLE ? <PregnancyPageContent /> : (
+    <section className="mx-auto max-w-xl p-6 text-white">
+      <h1 className="text-2xl font-semibold">My Perfect Pregnancy — Coming Soon</h1>
+      <p className="mt-4">{PREGNANCY_PAUSE_MESSAGE}</p>
+      <a className="mt-6 inline-block underline" href="/lifestyle">Back to Lifestyle</a>
+    </section>
+  );
+}
+
+function PregnancyPageContent() {
   const [, setLocation] = useLocation();
   const isDesktop = useIsDesktop();
   const { user, refreshUser } = useAuth();
