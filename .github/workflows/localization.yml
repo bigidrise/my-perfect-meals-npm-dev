@@ -1,3 +1,4 @@
+
 name: Localization Quality Gates
 
 on:
@@ -26,20 +27,38 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22.23.3"
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
+        id: install
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(node --version)" = "v22.23.3"
+          test "$(npm --version)" = "10.9.9"
+          npm ci --foreground-scripts
+          test -x node_modules/.bin/tsx
+          ./node_modules/.bin/tsx --version
+
+      - name: Upload npm debug logs on install failure
+        if: failure() && steps.install.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: localization-npm-debug-${{ github.run_attempt }}
+          path: ~/.npm/_logs/*-debug-*.log
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 3
 
       - name: GATE_02 + GATE_03 + GATE_07 + GATE_08 — Phase 0 Validate
-        run: npx tsx scripts/i18n-phase0-validate.ts --ci
+        run: ./node_modules/.bin/tsx scripts/i18n-phase0-validate.ts --ci
 
       - name: Generate clinical registry (verify it builds)
-        run: npx tsx scripts/i18n-clinical-registry.ts
+        run: ./node_modules/.bin/tsx scripts/i18n-clinical-registry.ts
 
       - name: Fallback detection report
-        run: npx tsx scripts/i18n-fallback-detect.ts
+        run: ./node_modules/.bin/tsx scripts/i18n-fallback-detect.ts
 
       - name: Upload localization reports
         if: always()

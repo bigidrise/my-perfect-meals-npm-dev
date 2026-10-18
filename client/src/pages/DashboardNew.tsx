@@ -1037,13 +1037,13 @@ export default function DashboardNew() {
 
   const dashboardGlowConfigs: Record<string, { glowBg: string; border: string; hoverBorder: string; hoverShadow: string; cardBg: string; iconBg: string; iconColor: string }> = {
     "/macro-counter": {
-      glowBg: "radial-gradient(120% 120% at 50% 0%, rgba(249,115,22,0.5), rgba(249,115,22,0.25), rgba(0,0,0,0))",
-      border: "border-orange-500/30",
-      hoverBorder: "hover:border-orange-500/60",
-      hoverShadow: "hover:shadow-[0_0_30px_rgba(249,115,22,0.45)]",
-      cardBg: "from-black via-orange-950/30 to-black",
-      iconBg: "from-orange-500/20 to-orange-700/20 border border-orange-500/30",
-      iconColor: "text-orange-500",
+      glowBg: "radial-gradient(120% 120% at 50% 0%, rgba(180,204,69,0.5), rgba(180,204,69,0.25), rgba(0,0,0,0))",
+      border: "border-[#B4CC45]/30",
+      hoverBorder: "hover:border-[#B4CC45]/60",
+      hoverShadow: "hover:shadow-[0_0_30px_rgba(180,204,69,0.45)]",
+      cardBg: "from-black via-[rgba(180,204,69,0.12)] to-black",
+      iconBg: "from-[#B4CC45]/20 to-[#B4CC45]/10 border border-[#B4CC45]/30",
+      iconColor: "text-[#B4CC45]",
     },
     "/my-biometrics": {
       glowBg: "radial-gradient(120% 120% at 50% 0%, rgba(6,182,212,0.5), rgba(6,182,212,0.25), rgba(0,0,0,0))",
@@ -1235,16 +1235,16 @@ export default function DashboardNew() {
             </>
           ) : canUseClientInbox ? (
             <div className="relative">
-              <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(168,85,247,0.5), rgba(168,85,247,0.25), rgba(0,0,0,0))" }} />
+              <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(180,154,82,0.5), rgba(180,154,82,0.25), rgba(0,0,0,0))" }} />
             <Card
               data-testid="client-messages-entry"
-              className={`relative cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg transition-all duration-300 rounded-xl shadow-md ${tabletHasUnread ? "border-2 border-orange-400 shadow-[0_0_0_3px_rgba(249,115,22,0.25),0_0_28px_rgba(249,115,22,0.8)]" : "border border-purple-500/30"}`}
+              className={`relative cursor-pointer active:scale-[0.98] bg-black/30 backdrop-blur-lg transition-all duration-300 rounded-xl shadow-md ${tabletHasUnread ? "border-2 border-orange-400 shadow-[0_0_0_3px_rgba(249,115,22,0.25),0_0_28px_rgba(249,115,22,0.8)]" : "border border-[#B49A52]/30"}`}
               onClick={() => setTabletOpen(!tabletOpen)}
             >
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${tabletHasUnread ? "bg-orange-500/20" : "bg-purple-500/20"}`}>
-                    <MessageSquare className={`h-5 w-5 ${tabletHasUnread ? "text-orange-400" : "text-purple-400"}`} />
+                  <div className={`p-2 rounded-lg ${tabletHasUnread ? "bg-orange-500/20" : "bg-[#B49A52]/20"}`}>
+                    <MessageSquare className={`h-5 w-5 ${tabletHasUnread ? "text-orange-400" : "text-[#B49A52]"}`} />
                   </div>
                   <div className="flex-1">
                     <h3 className="text-sm font-semibold text-white">
@@ -1884,7 +1884,7 @@ export default function DashboardNew() {
           className="mb-4"
         >
           <div className="relative">
-            <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(244,63,94,0.5), rgba(244,63,94,0.25), rgba(0,0,0,0))" }} />
+            <div className="pointer-events-none absolute -inset-1 rounded-xl blur-md opacity-70" style={{ background: "radial-gradient(120% 120% at 50% 0%, rgba(203,213,225,0.5), rgba(203,213,225,0.25), rgba(0,0,0,0))" }} />
             <Card
               onClick={() => {
                 if (!hasActivePaidSubscription(user)) {
@@ -1893,14 +1893,14 @@ export default function DashboardNew() {
                 }
                 setShowInspirationModal(true);
               }}
-              className="relative cursor-pointer transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_0_30px_rgba(244,63,94,0.45)] active:scale-95 bg-gradient-to-r from-black via-rose-950/30 to-black backdrop-blur-lg border border-rose-500/30 hover:border-rose-500/60 rounded-xl group"
+              className="relative cursor-pointer transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_0_30px_rgba(203,213,225,0.45)] active:scale-95 bg-gradient-to-r from-black via-[rgba(203,213,225,0.12)] to-black backdrop-blur-lg border border-[#CBD5E1]/30 hover:border-[#CBD5E1]/60 rounded-xl group"
               style={{ backgroundColor: "transparent" }}
               data-testid="card-recipe-scan"
             >
               <CardContent className="p-5">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-gradient-to-br from-rose-500/20 to-rose-700/20 border border-rose-500/30 group-hover:from-rose-500/30 group-hover:to-rose-700/30 transition-all">
-                    <Camera className="h-6 w-6 text-rose-400" />
+                  <div className="p-3 rounded-lg bg-gradient-to-br from-[#CBD5E1]/20 to-[#CBD5E1]/10 border border-[#CBD5E1]/30 group-hover:from-[#CBD5E1]/30 group-hover:to-[#CBD5E1]/20 transition-all">
+                    <Camera className="h-6 w-6 text-[#CBD5E1]" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-base font-semibold text-white">{t("recipeScanCard")}</h3>

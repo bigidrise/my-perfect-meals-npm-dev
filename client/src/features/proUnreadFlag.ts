@@ -1,2 +1,3 @@
-// Server-authorized unread eligibility is approved for Development only.
-export const developmentProUnreadAuthorizationEnabled = import.meta.env.DEV;
+// Every build asks the protected endpoint to authorize unread access.
+// This permits a request, never grants Studio access.
+export const developmentProUnreadAuthorizationEnabled = true;

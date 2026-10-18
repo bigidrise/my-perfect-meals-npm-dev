@@ -1,5 +1,6 @@
 /** Opt-in setup for pediatric image contract tests. Never start the app or use Neon. */
 import net from "node:net";
+import { jest } from "@jest/globals";
 
 jest.mock("../db", () => ({
   db: new Proxy({}, {

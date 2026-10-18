@@ -10,7 +10,10 @@ export const pediatricImageContextSchema = z.object({
   textureStrategy: z.string().max(1000).optional(),
   presentationStrategy: z.string().max(1000).optional(),
   activeConditionIds: z.array(z.string().regex(/^COND-\d+$/)).max(50).optional(),
-});
+// Keep validated required fields explicit under the server's non-strict compiler too.
+}).transform((value): PediatricImageContext => ({
+  ...value, stage: value.stage, ageRange: value.ageRange, portionNote: value.portionNote,
+}));
 
 export interface PediatricImageContext {
   stage: string;

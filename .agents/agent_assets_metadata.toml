@@ -439,17 +439,3 @@ mtime_ms = 1792013351616
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/10027e2a-8fc2-48fb-b39f-ad2f09996760/3f2cae20-c518-426f-bd4f-842dc400bff5"
 storage_version_token = "1792013451414506"
 content_type = "text/markdown"
-
-[[outputs]]
-id = "rWMVd6KMGxya_1Nzv5jsQ"
-uri = "file://test-results/mpb-one-real-image/pancakes.png"
-type = "image"
-title = "Single test photograph — rejected by image validator"
-description = "The only real-provider image generated for the synthetic preschool pancake test. The shared validator rejected it for adult-sized pancake pieces; it was not accepted, saved as a meal photo, or published."
-logical_id = "3798f184-5ccf-4f79-9d8b-ec17032284e5"
-content_hash = "sha256:d37c0214beecb476a83b9aed52722e96a8113b5800a25f202f618f903f7f263f"
-size = 1445811
-mtime_ms = 1792348519593
-storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/3798f184-5ccf-4f79-9d8b-ec17032284e5/a4ec6db2-367a-4467-98fe-0aaa6865724c"
-storage_version_token = "1792348591003534"
-content_type = "image/png"

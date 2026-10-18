@@ -103,6 +103,7 @@ describe("Pregnancy temporary customer availability", () => {
         .send({ stage: "breastfeeding", message: "Meal please" });
       expect(res.status).toBe(403);
       expect(res.body.code).toBe("pregnancy_coming_soon");
+      expect(res.body.error).toMatch(/breastfeeding\/postpartum-specific automated guidance is paused/i);
       expect(reads).not.toHaveBeenCalled();
       expect(require("../db").db.execute).not.toHaveBeenCalled();
       expect(require("../db").pool.query).not.toHaveBeenCalled();

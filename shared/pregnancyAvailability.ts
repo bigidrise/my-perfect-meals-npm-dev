@@ -22,6 +22,12 @@ export function assertPregnancyRecommendationsAvailable(
   }
 }
 
+/** Keep the approved pause explanation intact through generic generator catches. */
+export function isPregnancyRecommendationPause(error: unknown): boolean {
+  return typeof error === "object" && error !== null &&
+    "code" in error && error.code === "pregnancy_recommendations_paused";
+}
+
 /** Omission in an unrelated health edit must never silently remove saved support. */
 export function retainPregnancySupport(requested: string[], stored: string[]): string[] {
   if (PREGNANCY_CUSTOMER_AVAILABLE) return requested;

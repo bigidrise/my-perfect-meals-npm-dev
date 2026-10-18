@@ -5,6 +5,8 @@ jest.mock("../db", () => ({
 import {
   PREGNANCY_CUSTOMER_AVAILABLE,
   assertPregnancyRecommendationsAvailable,
+  isPregnancyRecommendationPause,
+  PREGNANCY_PAUSE_MESSAGE,
   pregnancyRecommendationsPaused,
   retainPregnancySupport,
 } from "@shared/pregnancyAvailability";
@@ -13,8 +15,58 @@ import { buildPregnancySupportPrompt } from "../services/guardrails/prompt/pregn
 import { scanClinicalFoodSafety } from "../services/healthProtocols/clinicalOutputChecks";
 import { derivePregnancyStage } from "@shared/pregnancyStage";
 import fs from "node:fs";
+import ts from "typescript";
 
 describe("temporary Pregnancy customer safety pause", () => {
+  it("preserves the pause explanation in actual meal-generator catch guards before fallbacks", () => {
+    let pause: unknown;
+    try { assertPregnancyRecommendationsAvailable({ active: true, stage: "breastfeeding" }); }
+    catch (error) { pause = error; }
+    expect(isPregnancyRecommendationPause(pause)).toBe(true);
+    expect(isPregnancyRecommendationPause(new Error("unrelated provider error"))).toBe(false);
+    const source = fs.readFileSync("server/services/unifiedMealPipeline.ts", "utf8");
+    const file = ts.createSourceFile("pipeline.ts", source, ts.ScriptTarget.Latest, true);
+    const guards: string[] = [];
+    function visit(node: ts.Node) {
+      if (ts.isCatchClause(node)) {
+        const guard = node.block.statements.find(statement =>
+          ts.isIfStatement(statement) && statement.expression.getText(file) === "isPregnancyRecommendationPause(error)");
+        if (guard) guards.push(guard.getText(file));
+      }
+      ts.forEachChild(node, visit);
+    }
+    visit(file);
+    expect(guards).toHaveLength(3);
+    for (const guard of guards) {
+      const handle = new Function("error", "isPregnancyRecommendationPause", "PREGNANCY_PAUSE_MESSAGE",
+        `${guard}\nreturn "ordinary error handling";`);
+      expect(handle(pause, isPregnancyRecommendationPause, PREGNANCY_PAUSE_MESSAGE))
+        .toEqual({ success: false, source: "error", error: PREGNANCY_PAUSE_MESSAGE });
+      expect(handle(new Error("ordinary"), isPregnancyRecommendationPause, PREGNANCY_PAUSE_MESSAGE))
+        .toBe("ordinary error handling");
+    }
+  });
+  it("returns a clear non-retryable Grocery Coach pause instead of a generic outage", () => {
+    const source = fs.readFileSync("server/routes/groceryCoach.ts", "utf8");
+    const file = ts.createSourceFile("grocery.ts", source, ts.ScriptTarget.Latest, true);
+    let guard: ts.Statement | undefined;
+    function visit(node: ts.Node) {
+      if (ts.isCatchClause(node)) guard ??= node.block.statements.find(statement =>
+        ts.isIfStatement(statement) && statement.expression.getText(file) === "isPregnancyRecommendationPause(err)");
+      ts.forEachChild(node, visit);
+    }
+    visit(file);
+    expect(guard).toBeDefined();
+    const res = { status: jest.fn(), json: jest.fn() };
+    res.status.mockReturnValue(res);
+    const handle = new Function("err", "res", "isPregnancyRecommendationPause", "PREGNANCY_PAUSE_MESSAGE",
+      guard!.getText(file));
+    handle({ code: "pregnancy_recommendations_paused" }, res, isPregnancyRecommendationPause, PREGNANCY_PAUSE_MESSAGE);
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.json).toHaveBeenCalledWith({
+      code: "pregnancy_recommendations_paused", error: PREGNANCY_PAUSE_MESSAGE, retryable: false,
+    });
+  });
   it("has one disabled availability control without changing Clinical entitlements", () => {
     expect(PREGNANCY_CUSTOMER_AVAILABLE).toBe(false);
     const source = fs.readFileSync("shared/planFeatures.ts", "utf8");
