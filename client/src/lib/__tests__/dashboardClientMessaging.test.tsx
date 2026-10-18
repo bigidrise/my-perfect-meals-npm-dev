@@ -78,6 +78,24 @@ async function openConversation() {
 }
 
 describe("real Dashboard client panel with isolated synthetic dependencies", () => {
+  it("uses distinct approved dashboard accents without recoloring neighboring cards", async () => {
+    mockFetch.mockResolvedValue(ok({ messages: [] }));
+    await act(async () => { render(<DashboardNew />); });
+    expect(screen.getByTestId("client-messages-entry")).toHaveClass("border-[#B49A52]/30");
+    expect(screen.getByTestId("client-messages-entry").querySelector("svg")).toHaveClass("text-[#B49A52]");
+    expect(screen.getByTestId("macro-calculator")).toHaveClass("border-[#B4CC45]/30");
+    expect(screen.getByTestId("macro-calculator").querySelector("svg")).toHaveClass("text-[#B4CC45]");
+    expect(screen.getByTestId("card-recipe-scan")).toHaveClass("border-[#CBD5E1]/30");
+    expect(screen.getByTestId("card-recipe-scan").querySelector("svg")).toHaveClass("text-[#CBD5E1]");
+    expect(screen.getByTestId("card-saved-meals")).toHaveClass("border-rose-500/30");
+    expect(screen.getByTestId("card-inspiration")).toHaveClass("border-amber-500/30");
+    expect(screen.getByTestId("biometrics")).toHaveClass("border-cyan-500/30");
+  });
+  it("keeps the orange message indicator when there is an unread message", async () => {
+    await act(async () => { render(<DashboardNew />); });
+    expect(screen.getByTestId("client-messages-entry")).toHaveClass("border-orange-400");
+    expect(screen.getByTestId("client-messages-entry").querySelector("svg")).toHaveClass("text-orange-400");
+  });
   it.each(["business", "physician", "trainer", ""])("shows one Messages entry for role %s and opens the full panel directly", async role => {
     mockUser = { ...mockUser, professionalRole: role };
     await openConversation();
