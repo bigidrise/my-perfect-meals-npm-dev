@@ -26,6 +26,7 @@ import {
 } from "../services/pediatric/buildPediatricGuidanceBlocks";
 import type { DevelopmentalStage } from "../services/pediatric/pediatricStageConstants";
 import { processMealImageForSave } from "../services/imageLifecycle";
+import { isFallbackMealImage } from "../../shared/pediatricMealImage";
 import {
   applyCompletePlateSideGuardrail,
   scanGeneratedOutput,
@@ -1107,8 +1108,9 @@ router.post('/generated-meals', requireAuth, async (req, res) => {
       ? String(safeRecipeData.recipeName)
       : 'meal';
     const rawMpbImageUrl = imageUrl ?? null;
-    const sanitisedMpbImageUrl = rawMpbImageUrl?.startsWith("data:") ? null : rawMpbImageUrl;
-    if (rawMpbImageUrl && !sanitisedMpbImageUrl) {
+    const sanitisedMpbImageUrl = rawMpbImageUrl?.startsWith("data:") || isFallbackMealImage(rawMpbImageUrl)
+      ? null : rawMpbImageUrl;
+    if (rawMpbImageUrl?.startsWith("data:")) {
       console.warn(
         `[myPerfectBeginning/generated-meals] Stripped base64 imageUrl from client payload for "${recipeName}" — client sent stale localStorage data`,
       );
