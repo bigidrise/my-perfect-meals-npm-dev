@@ -3,7 +3,11 @@ name: Pairing foundation release boundary
 description: Scope and safety policy for the approved Development-only first phase of pairing consolidation.
 ---
 
-Only Phase 1 of the shared pairing foundation is approved, in Development. Keep the existing screens, API compatibility and Production behavior. Do not start conversational intelligence, research, photo input, inventory integration or release work without separate approval.
+Phase 1 of the shared pairing foundation and its approved Development message correction are now frozen. Current authorization is limited to designing the education-versus-consumption safety policy and Phase 2 conversational behavior, not implementing them. No additional implementation or paid testing is authorized.
+
+**Why:** The user explicitly chose to close current development work and leave live verification pending until an eligible, authorized test account is available, rather than repeat known-blocked tests.
+
+**How to apply:** Do not create accounts, change genuine restrictions, repeat blocked generation tests, or treat policy design as Phase 2 implementation approval. Keep screens, API compatibility and Production behavior unchanged; research, photo input, inventory integration and release work still require separate approval.
 
 The approved Development-only UI exception is to show Chef Pairings' specific `PAIRING_INGREDIENTS_UNVERIFIED` explanation instead of generic retry advice. Reviewing the HTTP classification does not authorize changing its contract.
 
