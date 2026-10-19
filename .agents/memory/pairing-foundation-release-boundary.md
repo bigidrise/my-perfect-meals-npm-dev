@@ -5,6 +5,12 @@ description: Scope and safety policy for the approved Development-only first pha
 
 Only Phase 1 of the shared pairing foundation is approved, in Development. Keep the existing screens, API compatibility and Production behavior. Do not start conversational intelligence, research, photo input, inventory integration or release work without separate approval.
 
+The approved Development-only UI exception is to show Chef Pairings' specific `PAIRING_INGREDIENTS_UNVERIFIED` explanation instead of generic retry advice. Reviewing the HTTP classification does not authorize changing its contract.
+
+**Why:** The user approved that narrow verification follow-up without changing safety policy, eligibility, authentication, subscriptions or clinical authority.
+
+**How to apply:** Keep the message correction Development-gated. Account eligibility must come from genuine saved settings; never create accounts or remove restrictions to obtain a successful demonstration. Preparation-only instructions mean stop before paid execution.
+
 **Why:** The user authorized a controlled foundation correction, not all five phases of the proposed advisor.
 
 **How to apply:** Keep the implementation server-gated to an undeployed Development runtime. Apply authoritative context and complete output validation to the active Drink Pairing, Wine List Translator and Chef Pairings routes. Tighten the weaker routes; never establish parity by removing Drink Pairing's verified-ingredient gate. Education-versus-consumption policy remains a separate decision.
@@ -26,3 +32,9 @@ For bounded live verification, count provider attempts across both application r
 **Why:** An initial pairing smoke-test estimate counted the application retry loop but missed the SDK's additional retries, understating the possible provider-attempt count.
 
 **How to apply:** Establish a reliable total upper bound before submitting paid requests. If it exceeds the user's approved budget, stop rather than silently increasing the budget or changing frozen code or configuration.
+
+The larger product objective is an AI advisor that understands food, wine, flavor, preparation, personal preferences and real-world context, not just generic wine suggestions.
+
+**Why:** The user explicitly restated this objective while keeping the work limited to Phase 1 verification.
+
+**How to apply:** Use this objective when separately authorized future intelligence work is scoped; it is not permission to begin Phase 2.
