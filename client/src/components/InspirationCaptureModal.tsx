@@ -839,20 +839,24 @@ export default function InspirationCaptureModal({
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
                 </div>
-                <PillButton
-                  active={mode === "voice"}
-                  onClick={() => switchMode("voice")}
-                >
-                  <Mic className="h-3 w-3 mr-1" />
-                  {t("inspiration.speakPill")}
-                </PillButton>
-                <PillButton
-                  active={mode === "text"}
-                  onClick={() => switchMode("text")}
-                >
-                  <PenLine className="h-3 w-3 mr-1" />
-                  {t("inspiration.typePill")}
-                </PillButton>
+                {isSmartScan && (
+                  <>
+                    <PillButton
+                      active={mode === "voice"}
+                      onClick={() => switchMode("voice")}
+                    >
+                      <Mic className="h-3 w-3 mr-1" />
+                      {t("inspiration.speakPill")}
+                    </PillButton>
+                    <PillButton
+                      active={mode === "text"}
+                      onClick={() => switchMode("text")}
+                    >
+                      <PenLine className="h-3 w-3 mr-1" />
+                      {t("inspiration.typePill")}
+                    </PillButton>
+                  </>
+                )}
               </div>
 
               {mode === "upload" && (
@@ -909,7 +913,7 @@ export default function InspirationCaptureModal({
                 </div>
               )}
 
-              {mode === "voice" && (
+              {isSmartScan && mode === "voice" && (
                 <div className="space-y-3">
                   <p className="text-white/60 text-sm text-center">
                     {t("inspiration.voiceHint")}
@@ -954,7 +958,7 @@ export default function InspirationCaptureModal({
                 </div>
               )}
 
-              {mode === "text" && (
+              {isSmartScan && mode === "text" && (
                 <div className="space-y-3">
                   <p className="text-white/60 text-sm text-center">
                     {t("inspiration.textHint")}
