@@ -9,6 +9,12 @@ Phase 1 of the shared pairing foundation and its approved Development message co
 
 **How to apply:** Do not create accounts, change genuine restrictions, repeat blocked generation tests, or treat policy design as Phase 2 implementation approval. Keep screens, API compatibility and Production behavior unchanged; research, photo input, inventory integration and release work still require separate approval.
 
+The education-versus-consumption distinction is the approved Phase 2 design baseline, not implementation approval. Reclassify intent on every turn, validate all response fields including alternatives and follow-up suggestions, and explain transitions into restricted consumption advice without misleading retry instructions.
+
+**Why:** The user accepted the proposed design and explicitly added these three refinements before requesting a read-only integration blueprint.
+
+**How to apply:** Educational explanation is not personal consumption clearance. Chat history cannot override saved safety authority or substantiate bottle ingredients, availability, prices or supplied-list membership. Keep coding and paid execution paused until separately authorized.
+
 The approved Development-only UI exception is to show Chef Pairings' specific `PAIRING_INGREDIENTS_UNVERIFIED` explanation instead of generic retry advice. Reviewing the HTTP classification does not authorize changing its contract.
 
 **Why:** The user approved that narrow verification follow-up without changing safety policy, eligibility, authentication, subscriptions or clinical authority.
