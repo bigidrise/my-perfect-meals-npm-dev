@@ -9,14 +9,14 @@ jest.mock("@/contexts/AuthContext", () => ({
 jest.mock("@/lib/api", () => ({ post: jest.fn(), ApiError: class extends Error {} }));
 jest.mock("@/lib/resolveApiBase", () => ({ apiUrl: (path: string) => path }));
 jest.mock("@/components/MedicalSourcesInfo", () => ({ MedicalSourcesInfo: () => null }));
-jest.mock("@/components/layout/MobileHeaderGuard", () => ({ __esModule: true, default: () => null }));
-jest.mock("@/hooks/useIsDesktop", () => ({ useIsDesktop: () => false }));
+jest.mock("@/hooks/useIsDesktop", () => ({ useIsDesktop: jest.fn(() => false) }));
 jest.mock("@/components/PregnancySupportSetupModal", () => ({ PregnancySupportSetupModal: () => null }));
 jest.mock("@/components/voice/VoiceInputButton", () => ({ VoiceInputButton: () => null }));
 
 import MyPerfectPregnancyPage from "@/pages/MyPerfectPregnancyPage";
 import { useAuth } from "@/contexts/AuthContext";
 import { post } from "@/lib/api";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 
 it("direct navigation shows Coming Soon without mounting setup, coaching, or account queries", () => {
   const { container } = render(<MyPerfectPregnancyPage />);
@@ -28,4 +28,21 @@ it("direct navigation shows Coming Soon without mounting setup, coaching, or acc
   expect(container.querySelector("input")).toBeNull();
   expect(useAuth).not.toHaveBeenCalled();
   expect(post).not.toHaveBeenCalled();
+});
+
+it("keeps the mobile Coming Soon header and content below the iPhone safe area", () => {
+  render(<MyPerfectPregnancyPage />);
+  const page = screen.getByTestId("pregnancy-coming-soon");
+  // JSDOM drops env() values; inspect the actual React style supplied to browsers.
+  expect(MyPerfectPregnancyPage().props.style.paddingTop).toBe("env(safe-area-inset-top, 0px)");
+  expect(page.querySelector('[aria-label="Pregnancy page header"]')).not.toBeNull();
+  expect(page.querySelector("header")).toBeNull(); // Avoid global header CSS adding a second inset.
+  expect(screen.getByRole("link", { name: "Back to Lifestyle" }).getAttribute("href")).toBe("/lifestyle");
+});
+
+it("does not add a duplicate mobile header on desktop", () => {
+  (useIsDesktop as jest.Mock).mockReturnValueOnce(true);
+  render(<MyPerfectPregnancyPage />);
+  expect(screen.queryByLabelText("Pregnancy page header")).toBeNull();
+  expect(screen.getByRole("heading").textContent).toContain("Coming Soon");
 });
