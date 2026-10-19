@@ -37,9 +37,12 @@ describe("offline harness (cross-cutting acceptance boundary)", () => {
 
   test("production sources have a closed pure import graph with no runtime adapters", () => {
     const root = process.cwd();
-    const directories = ["shared/pairingAdvisor", "server/services/pairingAdvisor"];
-    const ownFiles = directories.flatMap(dir => fs.readdirSync(path.join(root, dir))
-      .filter(name => name.endsWith(".ts")).map(name => path.join(root, dir, name)));
+    // Preserve Increment 1's pure closure; Increment 2's separate suite checks its router graph.
+    const ownFiles = [
+      "shared/pairingAdvisor/contracts.ts", "shared/pairingAdvisor/conversation.ts",
+      "server/services/pairingAdvisor/policy.ts", "server/services/pairingAdvisor/prompts.ts",
+      "server/services/pairingAdvisor/validation.ts",
+    ].map(file => path.join(root, file));
     const identityFile = path.join(root, "server/services/pairings/wineListIdentity.ts");
     const allowed = new Set([...ownFiles, identityFile]);
     for (const file of allowed) {

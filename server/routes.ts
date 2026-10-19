@@ -647,6 +647,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Advisor integration is deny-by-default; never supply synthetic/live dependencies here.
+  // Dynamic import and registration occur only in undeployed Development.
+  if (process.env.NODE_ENV === "development" && !process.env.REPLIT_DEPLOYMENT) {
+    const { registerPairingAdvisor } = await import("./services/pairingAdvisor/register");
+    registerPairingAdvisor(app, {
+      getRuntime: () => ({ nodeEnv: process.env.NODE_ENV, deploymentMarker: process.env.REPLIT_DEPLOYMENT }),
+      security: { authenticate: requireAuth, activeAccess: requireActiveAccess, proAccess: requireProAccess },
+    });
+  }
+
   // Router-group gate: all /api/ai/* routes require auth + active access (PAID_FULL)
   // Note: /api/health/ai is registered ABOVE this middleware so it remains public
   app.use("/api/ai", requireAuth, requireActiveAccess);
