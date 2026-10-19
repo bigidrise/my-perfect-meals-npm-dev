@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": ["node", "jest"],
+    "lib": ["ES2022", "DOM"]
+  },
+  "include": [
+    "./*.ts",
+    "../../../shared/pairingAdvisor/*.ts",
+    "../../services/pairingAdvisor/*.ts",
+    "../../services/pairings/wineListIdentity.ts"
+  ]
+}
