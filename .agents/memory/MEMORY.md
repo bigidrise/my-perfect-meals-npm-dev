@@ -48,6 +48,7 @@
 - [Development browser session boundary](development-browser-session-boundary.md) — app-preview screenshots do not inherit the user's signed-in Development preview session.
 - [Private Studio moderation policy](private-studio-moderation-policy.md) — ordinary profanity is flagged but deliverable in private Studio; serious categories and public policy stay unchanged.
 - [Beverage safeguard alternative parity](beverage-safeguard-alternative-parity.md) — alternative offers must use every original validation surface and stay DEV-gated until intentionally released.
+- [Pairing foundation release boundary](pairing-foundation-release-boundary.md) — only Development Phase 1 is approved; tighten weaker routes without removing ingredient verification.
 - [Pre-registration trial activation](pre-registration-trial-activation.md) — Pilot and Client access are separate identities; their clocks start only when a matching account activates.
 - [Hydration references](hydration-reference-index.md) — timing, intake bridge, numeric governance, eligibility, product doors, Creator handoffs, professional roles, and paywall.
 - [Professional legal activation boundary](professional-legal-activation-boundary.md) — ProCare activation and provider actions require explicit current attestation and role-specific agreements.

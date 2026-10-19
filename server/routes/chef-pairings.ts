@@ -3,6 +3,10 @@ import OpenAI from "openai";
 import { enforceSafetyProfile } from "../services/safetyProfileService";
 import { loadGenerationProtocolEnvelope, ProtocolContextUnavailableError, enforceBeforeGenerate, buildGuestEnvelope } from "../services/protocolEnvelope";
 import { getAuthUserId } from "../utils/getAuthUserId";
+import {
+  developmentPairingFoundationEnabled, resolveDevelopmentPairingContext,
+  validateDevelopmentChefPairings, PairingFoundationError, COMPOSITION_NOTE,
+} from "../services/pairings/developmentPairingFoundation";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -62,10 +66,13 @@ chefPairingsRouter.post("/", async (req, res) => {
     }
 
     // ── Protocol envelope: enforce dietary identity before generation ──────────
-    const chefPairingsEnvelope = userId
+    const foundationContext = developmentPairingFoundationEnabled()
+      ? await resolveDevelopmentPairingContext(userId ?? "", "chef_pairings") : null;
+    const chefPairingsEnvelope = foundationContext?.envelope ?? (userId
       ? await loadGenerationProtocolEnvelope(userId)
-      : buildGuestEnvelope();
-    const chefPairingsProtocolBlock = enforceBeforeGenerate(chefPairingsEnvelope, { generatorName: 'chef_pairings' }).combined;
+      : buildGuestEnvelope());
+    const chefPairingsProtocolBlock = foundationContext?.constraints ??
+      enforceBeforeGenerate(chefPairingsEnvelope, { generatorName: 'chef_pairings' }).combined;
 
     const prompt = `You are an expert sommelier, beer cicerone, and master distiller. Provide food and drink pairing recommendations for the following food item.
 ${chefPairingsProtocolBlock ? `\n${chefPairingsProtocolBlock}\n` : ""}
@@ -163,22 +170,30 @@ RULES:
       return res.status(500).json({ error: "AI returned invalid JSON for pairings" });
     }
 
+    const foundationResult = foundationContext ? validateDevelopmentChefPairings(pairings, foundationContext) : null;
     return res.json({
       id: `chef-pairing-${Date.now()}`,
-      pairings: {
+      pairings: foundationResult?.pairings ?? {
         wine: Array.isArray(pairings.wine) ? pairings.wine : [],
         beer: Array.isArray(pairings.beer) ? pairings.beer : [],
         spirits: Array.isArray(pairings.spirits) ? pairings.spirits : [],
       },
+      ...(foundationResult ? {
+        foundation: foundationResult.foundation,
+        compositionEvidence: "unverified", compositionNote: COMPOSITION_NOTE,
+      } : {}),
       safety: {
         result: "SAFE",
-        message: "No safety conflicts detected",
+        message: foundationResult ? COMPOSITION_NOTE : "No safety conflicts detected",
         blockedTerms: [],
         blockedCategories: [],
         ambiguousTerms: [],
       },
     });
   } catch (err: any) {
+    if (err instanceof PairingFoundationError) {
+      return res.status(err.status).json({ error: err.message, code: err.code });
+    }
     console.error("[CHEF-PAIRINGS] Error:", err);
     if (err instanceof ProtocolContextUnavailableError) {
       return res.status(err.status).json({ code: err.code, message: err.message, retryable: true });
