@@ -11,6 +11,7 @@ import {
   setNoStoreHeaders,
 } from "./staticDelivery";
 import { registerMarketingSsrRoutes } from "./marketingSsr";
+import { addDevelopmentStartupPresentation } from "./developmentStartupPresentation";
 
 const viteLogger = createLogger();
 
@@ -63,7 +64,7 @@ export async function setupVite(app: Express, server: Server) {
       `src="/src/main.tsx"`,
       `src="/src/main.tsx?v=${nanoid()}"`,
     );
-    return (await vite.transformIndexHtml("/", template))
+    return (await vite.transformIndexHtml("/", addDevelopmentStartupPresentation(template)))
       .replace(/<script[^>]*src="\/@vite\/client"[^>]*><\/script>\s*/g, "");
   });
   app.use("*", async (req, res, next) => {
@@ -85,7 +86,7 @@ export async function setupVite(app: Express, server: Server) {
       );
       // Strip the @vite/client script tag — HMR is disabled (hmr: false) but
       // Vite still injects it, which causes a WebSocket error in the console.
-      const page = (await vite.transformIndexHtml(url, template))
+      const page = (await vite.transformIndexHtml(url, addDevelopmentStartupPresentation(template)))
         .replace(/<script[^>]*src="\/@vite\/client"[^>]*><\/script>\s*/g, "");
       setNoStoreHeaders(res);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);

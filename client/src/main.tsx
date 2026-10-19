@@ -76,7 +76,10 @@ if (lastUnload) {
  * - No-op on web
  * - Dynamically imported on iOS
  */
-async function hideSplashSafely() {
+async function hideSplashSafely(startupFailed = false) {
+  if (startupFailed && document.getElementById("mpm-development-startup")) {
+    window.dispatchEvent(new Event("mpm:startup-failed"));
+  }
   if (!Capacitor.isNativePlatform()) return;
   try {
     const { SplashScreen } = await import("@capacitor/splash-screen");
@@ -101,7 +104,7 @@ import("./app-entry")
 
     if (!rootEl) {
       console.error("Root element not found");
-      hideSplashSafely();
+      hideSplashSafely(true);
       return;
     }
 
@@ -121,7 +124,7 @@ import("./app-entry")
               hideSplashSafely();
             } catch (renderErr: any) {
               console.error("[MPM Boot] Render threw synchronously:", renderErr?.name, renderErr?.message, renderErr?.stack);
-              hideSplashSafely();
+              hideSplashSafely(true);
             }
           })
           .catch((err) => {
@@ -133,7 +136,7 @@ import("./app-entry")
             } else {
               try { console.error("  raw:", JSON.stringify(err)); } catch { console.error("  type:", typeof err, Object.keys(err || {})); }
             }
-            hideSplashSafely();
+            hideSplashSafely(true);
           }),
       )
       .catch((err) => {
@@ -145,7 +148,7 @@ import("./app-entry")
         } else {
           try { console.error("  raw:", JSON.stringify(err)); } catch { console.error("  type:", typeof err, Object.keys(err || {})); }
         }
-        hideSplashSafely();
+        hideSplashSafely(true);
       });
   })
   .catch((error) => {
@@ -161,5 +164,5 @@ import("./app-entry")
         console.error("  error type:", typeof error, Object.keys(error || {}));
       }
     }
-    hideSplashSafely();
+    hideSplashSafely(true);
   });

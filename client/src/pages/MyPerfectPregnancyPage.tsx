@@ -1,7 +1,7 @@
 import { PREGNANCY_CUSTOMER_AVAILABLE, PREGNANCY_PAUSE_MESSAGE } from "@shared/pregnancyAvailability";
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Send, Baby, ShieldCheck, Leaf, BookOpen, ChevronDown, ChevronUp, Heart } from "lucide-react";
 import { post, ApiError } from "@/lib/api";
@@ -144,7 +144,7 @@ export default function MyPerfectPregnancyPage() {
       <div className="mx-auto max-w-xl p-6">
         <h1 className="text-2xl font-semibold">My Perfect Pregnancy — Coming Soon</h1>
         <p className="mt-4">{PREGNANCY_PAUSE_MESSAGE}</p>
-        <a className="mt-6 inline-block underline" href="/lifestyle">Back to Lifestyle</a>
+        <Link className="mt-6 inline-block underline" href="/lifestyle">Back to Lifestyle</Link>
       </div>
     </section>
   );
