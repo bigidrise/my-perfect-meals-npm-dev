@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { apiJSON } from "@/lib/api";
+import { chefPairingIngredientNotice } from "@/lib/chefPairingSafetyMessage";
+import { developmentPairingMessagesEnabled } from "@/lib/developmentPairingMessages";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassButton } from "@/components/glass";
 import MealGenerationProgress from "@/components/MealGenerationProgress";
@@ -204,8 +206,11 @@ export default function ChefPairings() {
       });
     } catch (err: any) {
       stopProgressTicker();
+      const ingredientNotice = chefPairingIngredientNotice(err, developmentPairingMessagesEnabled);
       const errorMsg = err?.message || String(err) || "";
-      if (isAllergyRelatedError(errorMsg)) {
+      if (ingredientNotice) {
+        toast(ingredientNotice);
+      } else if (isAllergyRelatedError(errorMsg)) {
         toast({
           title: "ALLERGY ALERT",
           description: formatAllergyAlertDescription(errorMsg),
