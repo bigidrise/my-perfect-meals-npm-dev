@@ -8,6 +8,10 @@ import { chatJson } from "../utils/openaiSafe";
 import { log } from "../vite";
 import { requiresVerifiedIngredientEvidence } from "../services/foodCompositionEvidence";
 import {
+  developmentPairingFoundationEnabled, resolveDevelopmentPairingContext,
+  validateDevelopmentPairings, PairingFoundationError,
+} from "../services/pairings/developmentPairingFoundation";
+import {
   loadUserProtocolEnvelope,
   enforceBeforeGenerate,
   scanGeneratedOutput,
@@ -131,11 +135,15 @@ router.post("/", async (req, res) => {
       });
     }
 
-    const profile = await loadPairingsProfile(userId);
-    const constraints = buildPairingsConstraints(profile);
+    const foundationContext = developmentPairingFoundationEnabled()
+      ? await resolveDevelopmentPairingContext(userId, "pairings_ai",
+        typeof req.body?.cultureOverride === "string" ? req.body.cultureOverride : undefined) : null;
+    const constraints = foundationContext
+      ? { fullConstraintBlock: foundationContext.constraints }
+      : buildPairingsConstraints(await loadPairingsProfile(userId));
 
     // ── Protocol envelope: add identity-level enforcement above profile constraints ──
-    const pairingsEnvelope = await loadUserProtocolEnvelope(userId).catch(() => null);
+    const pairingsEnvelope = foundationContext?.envelope ?? await loadUserProtocolEnvelope(userId).catch(() => null);
     if (!pairingsEnvelope) {
       return res.status(503).json({ error: "Your active food-safety information is unavailable. Please try again." });
     }
@@ -152,7 +160,8 @@ router.post("/", async (req, res) => {
       pairingsEnvelope.cuisinePreference = cultureOverride;
       pairingsEnvelope.cuisineIntensity = "balanced";
     }
-    const pairingsProtocolBlock = enforceBeforeGenerate(pairingsEnvelope, { generatorName: 'pairings_ai' }).combined;
+    const pairingsProtocolBlock = foundationContext
+      ? "" : enforceBeforeGenerate(pairingsEnvelope, { generatorName: 'pairings_ai' }).combined;
     const augmentedConstraints = pairingsProtocolBlock
       ? { ...constraints, fullConstraintBlock: `${pairingsProtocolBlock}\n${constraints.fullConstraintBlock}` }
       : constraints;
@@ -178,8 +187,11 @@ router.post("/", async (req, res) => {
       return res.status(500).json({ error: "AI returned invalid results" });
     }
 
-    const validatedPairings: any[] = [];
-    for (const p of pairings) {
+    const foundationResult = foundationContext
+      ? validateDevelopmentPairings(pairings, foundationContext, mode === "discovery" && category !== "both" ? category : undefined)
+      : null;
+    const validatedPairings: any[] = foundationResult?.pairings ?? [];
+    for (const p of foundationContext ? [] : pairings) {
       const itemParsed = PairingItem.safeParse({ ...p, imageUrl: null });
       if (itemParsed.success) {
         const item = itemParsed.data;
@@ -223,6 +235,7 @@ router.post("/", async (req, res) => {
     return res.json({
       query: { input, detectedIntent, category },
       pairings: validatedPairings,
+      ...(foundationResult ? { foundation: foundationResult.foundation } : {}),
       compositionEvidence: "unverified",
       compositionNote: "Pairing ingredients, nutrition, and preparation have not been verified. Check the label or ask the venue before choosing, especially for active dietary or clinical restrictions.",
       safety: {
@@ -234,6 +247,9 @@ router.post("/", async (req, res) => {
       },
     });
   } catch (error: any) {
+    if (error instanceof PairingFoundationError) {
+      return res.status(error.status).json({ error: error.message, code: error.code });
+    }
     log(`[PairingsAI] Unexpected error: ${error.message}`, "error");
     return res.status(500).json({ error: "Internal server error" });
   }
