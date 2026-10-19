@@ -37,6 +37,9 @@ import { useShoppingListStore } from "@/stores/shoppingListStore";
 import type { UniversalIngredient } from "@/stores/shoppingListStore";
 import { GroceryCoachMacroTiles, type GroceryCoachMacros } from "./GroceryCoachMacroTiles";
 import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
+import { groceryCoachCatalogEnabled } from "@/lib/groceryCoachCatalogGate";
+import { packagedProductEligibility, catalogProductLabel, recipeShoppingQuantity } from "@/lib/groceryCoachPackagedIngredients";
+import MealIngredientBrands from "./MealIngredientBrands";
 
 type Phase = "idle" | "loading" | "result";
 
@@ -84,6 +87,7 @@ interface BrandRecommendation {
   evidenceStatus?: "verified" | "unverified";
   verificationMessage?: string;
   wholeFoodNote?: string;
+  catalogProduct?: CatalogProductMatch;
 }
 
 interface AvoidRecommendation {
@@ -135,7 +139,7 @@ interface ProductAdviceResult {
   excludedReasons?: string[];
 }
 
-type CatalogProductMatch = NonNullable<ProductAdviceResult["catalogMatches"]>[number];
+export type CatalogProductMatch = NonNullable<ProductAdviceResult["catalogMatches"]>[number];
 
 interface SwapSuggestion {
   item: string;
@@ -431,12 +435,14 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         }
         if (session.preRefinedResult) setPreRefinedResult(session.preRefinedResult);
         if (session.pickedBrandsEntries?.length) {
-          setPickedBrands(new Map(session.pickedBrandsEntries));
+          setPickedBrands(new Map(groceryCoachCatalogEnabled
+            ? session.pickedBrandsEntries.filter(([, pick]: [string, BrandRecommendation]) => pick.catalogProduct)
+            : session.pickedBrandsEntries));
         }
         setResultOwnerKey(SESSION_KEY); // result now belongs to this user's key
         setPhase("result");
 
-        if (session.productAdvice?.advice?.length) {
+        if (!groceryCoachCatalogEnabled && session.productAdvice?.advice?.length) {
           // Verify the saved advice still covers the same ingredients as the
           // restored shopping list. If a swap changed the list since the advice
           // was generated, re-fetch rather than showing stale picks.
@@ -447,7 +453,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
             // Stale — silently re-fetch in the background
             fetchProductAdvice(allIng);
           }
-        } else if (buildAllIngredients(session.result).length) {
+        } else if (!groceryCoachCatalogEnabled && buildAllIngredients(session.result).length) {
           // No saved advice — fetch now so Smart Cart isn't empty
           fetchProductAdvice(buildAllIngredients(session.result));
         }
@@ -684,6 +690,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
   }, [savedProductKeys, savingKey, productSearch?.query, toast, t]);
 
   const fetchProductAdvice = useCallback(async (shoppingList: ShoppingListItem[]) => {
+    if (groceryCoachCatalogEnabled) return;
     if (!shoppingList.length) return;
     const gen = sessionGenRef.current; // capture before first await
     setAdvisorLoading(true);
@@ -800,7 +807,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       // shoppingList with non-empty ownedIngredients is covered: the guard inside
       // fetchProductAdvice checks the combined length, not shoppingList alone.
       const allIngredients = buildAllIngredients(data);
-      if (allIngredients.length) {
+      if (!groceryCoachCatalogEnabled && allIngredients.length) {
         fetchProductAdvice(allIngredients);
       }
     } catch (err: any) {
@@ -873,14 +880,24 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
   const handleAddToList = useCallback(() => {
     if (!result?.shoppingList?.length) return;
+    if (groceryCoachCatalogEnabled && result.shoppingList.some(s =>
+      pickedBrands.get(s.item.toLowerCase())?.catalogProduct && recipeShoppingQuantity(s.quantity) === null
+    )) {
+      toast({ title: "Recipe quantity needs review", description: "A selected product has an unspecified recipe amount. Clear that shopping choice before adding the list; no package quantity has been invented." });
+      return;
+    }
     const mealName = result.meal?.name || "Grocery Coach";
     // Build list — wherever the user picked a brand, substitute it for the generic.
     const toItems = (arr: Array<{ item: string; quantity: string; unit: string }>): UniversalIngredient[] =>
       arr.map((s) => ({
         name: resolveItemName(s.item, pickedBrands),
-        quantity: parseFloat(s.quantity) || 1,
+        quantity: groceryCoachCatalogEnabled && pickedBrands.get(s.item.toLowerCase())?.catalogProduct
+          ? recipeShoppingQuantity(s.quantity)! : parseFloat(s.quantity) || 1,
         unit: s.unit || "",
         sourceMeals: [mealName],
+        ...(groceryCoachCatalogEnabled && pickedBrands.get(s.item.toLowerCase())?.catalogProduct ? {
+          notes: `For ${s.item}: ${s.quantity} ${s.unit}; ${result.servingCount || result.meal?.servings || 1} servings. Catalog shopping choice only; check current label. ${pickedBrands.get(s.item.toLowerCase())!.catalogProduct!.source} record ${pickedBrands.get(s.item.toLowerCase())!.catalogProduct!.sourceRecordId}; UPC ${pickedBrands.get(s.item.toLowerCase())!.catalogProduct!.barcode || "unavailable"}. ${pickedBrands.get(s.item.toLowerCase())!.catalogProduct!.verificationMessage} Finished meal not medically revalidated.`,
+        } : {}),
       }));
     const allItems = [
       ...toItems(result.shoppingList),
@@ -1656,7 +1673,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                                 </div>
                                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                                   {groupedList[cat].map((s, i) => (
-                                    <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 14, padding: "2px 0" }}>
+                                    <div key={`${SESSION_KEY}:${JSON.stringify(result)}:${i}`} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 14, padding: "2px 0" }}>
                                       <span style={{ color: "rgba(255,255,255,0.85)", lineHeight: 1.3, flex: 1, minWidth: 0 }}>{s.item}</span>
                                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                                         <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 12 }}>{s.quantity} {s.unit}</span>
@@ -1676,6 +1693,24 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                                           Replace
                                         </button>
                                       </div>
+                                      {groceryCoachCatalogEnabled && packagedProductEligibility(s.item).eligible && (
+                                        <MealIngredientBrands
+                                          ingredient={s}
+                                          servings={result.servingCount || result.meal?.servings || 1}
+                                          selectedLabel={pickedBrands.get(s.item.toLowerCase())?.brand}
+                                          onSelect={(product) => setPickedBrands(prev => {
+                                            const next = new Map(prev);
+                                            if (product) next.set(s.item.toLowerCase(), {
+                                              brand: catalogProductLabel(product), rank: 1, grade: "C",
+                                              reason: "Shopping choice only; review current label",
+                                              evidenceStatus: "unverified",
+                                              catalogProduct: product,
+                                            });
+                                            else next.delete(s.item.toLowerCase());
+                                            return next;
+                                          })}
+                                        />
+                                      )}
                                     </div>
                                   ))}
                                 </div>
