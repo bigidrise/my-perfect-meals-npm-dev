@@ -26,3 +26,9 @@ GLP-1 medication use alone should not universally prohibit a requested pastry; a
 **Why:** The user explicitly stated this product requirement when asking for a separate review of the existing pastry restriction.
 
 **How to apply:** Verify the clinical basis of a restriction before recommending a policy change. Keep that review separate from recipe-formatting corrections, and preserve genuine safety requirements.
+
+Recipe Maker should expose only Choose Photo and Camera; hide Speak and Type reversibly, without changing Companion product scanning or other creators.
+
+**Why:** The user said the photo workflow works better and that Craving and the other creators already cover non-photo creation.
+
+**How to apply:** Keep the photo-based recipe workflow intact. Do not restore non-photo choices or remove shared scanning functionality during unrelated modal changes.

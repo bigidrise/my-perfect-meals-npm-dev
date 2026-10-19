@@ -44,7 +44,8 @@ jest.mock("wouter", () => ({ useLocation: () => ["/", jest.fn()] }));
 
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string, fallback?: string) => fallback ?? key,
+    t: (key: string, fallback?: string | Record<string, unknown>) =>
+      typeof fallback === "string" ? fallback : key,
   }),
 }));
 
@@ -173,6 +174,29 @@ beforeEach(() => {
 });
 
 // ── 1. Banner visible when wasAdapted=true and adaptedNote is present ──────────
+
+describe("Recipe Maker photo-only entry", () => {
+  it("keeps the gallery and rear-camera inputs while hiding Speak and Type", () => {
+    renderModal();
+    const gallery = screen.getByRole("button", { name: "inspiration.choosePhoto" });
+    const camera = screen.getByRole("button", { name: "inspiration.cameraPill" });
+    expect(gallery.parentElement?.querySelector("input")).toHaveAttribute("accept", "image/*");
+    expect(gallery.parentElement?.querySelector("input")).not.toHaveAttribute("capture");
+    expect(camera.parentElement?.querySelector("input")).toHaveAttribute("accept", "image/*");
+    expect(camera.parentElement?.querySelector("input")).toHaveAttribute("capture", "environment");
+    expect(screen.queryByRole("button", { name: "inspiration.speakPill" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "inspiration.typePill" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+  });
+
+  it("leaves all four input choices available for Companion product scanning", () => {
+    render(<InspirationCaptureModal open onOpenChange={jest.fn()} destination="smart-scan"
+      profileType="companion" profileId="synthetic-companion" profileName="Test Companion" />);
+    for (const name of ["choosePhoto", "cameraPill", "speakPill", "typePill"]) {
+      expect(screen.getByRole("button", { name: `inspiration.${name}` })).toBeInTheDocument();
+    }
+  });
+});
 
 describe("NDE adaptation banner — single-card fallback (wasAdapted=true)", () => {
   it("renders the banner label when the restored scan carries wasAdapted=true and adaptedNote", async () => {
