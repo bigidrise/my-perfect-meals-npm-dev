@@ -153,3 +153,4 @@
 - [Non-persisting food diagnostics](non-persisting-food-diagnostics.md) — no-save tests must also prevent writes during context resolution, without relaxing generation or validation.
 - [Meal card source labels](meal-card-source-label-policy.md) — show the originating builder or creator, not a clinical condition such as Heart Failure.
 - [Dashboard menu colors](dashboard-menu-color-policy.md) — use visually distinct accents for unrelated dashboard tools, not merely different hex shades of the same hue.
+- [RHM client walkthrough](rhm-client-walkthrough-context.md) — staff need the actual first-time client experience before distributing a 30-day link to 8,000 clinic clients.
