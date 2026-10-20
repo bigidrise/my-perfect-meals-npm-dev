@@ -33,3 +33,15 @@ so upgrading persistence must not convert it into cross-account server writes.
 
 **How to apply:** Keep the new cache account-scoped and use server-owned legacy rows
 as the restoration source. Keep late asynchronous responses account-bound.
+
+Restart permission is conditional on inspecting the exact startup path and establishing
+that unrelated migrations and unexpected shared-database writes will not run. If
+that cannot be established, stop rather than restart. Runtime checks must use safely
+isolated, cleanup-bounded synthetic records or remain non-mutating.
+
+**Why:** The user explicitly set this boundary for Development verification because
+the database is shared with Production.
+
+**How to apply:** Do not treat a flag's name or a previous successful restart as
+proof for a changed startup path. Keep live preview transport checks distinct from
+authenticated database save/hydration evidence.
