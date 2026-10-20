@@ -1,0 +1,14 @@
+{
+  "extends": "../pairingAdvisorIntegration/tsconfig.json",
+  "include": [
+    "./*.ts",
+    "../pairingAdvisorOffline/fixtures.ts",
+    "../pairingAdvisorIntegration/harness.ts",
+    "../../../shared/pairingAdvisor/*.ts",
+    "../../services/pairingAdvisor/*.ts",
+    "../../routes/pairingAdvisor.ts",
+    "../../services/pairings/wineListIdentity.ts",
+    "../../lib/csrfProtection.ts",
+    "../../types/express-session.d.ts"
+  ]
+}

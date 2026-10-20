@@ -3,11 +3,11 @@ name: Pairing foundation release boundary
 description: Scope and safety policy for the approved Development-only first phase of pairing consolidation.
 ---
 
-Phase 1 of the shared pairing foundation and its approved Development message correction remain frozen. The user authorized offline contracts and mocked server integration only, including a deny-by-default undeployed-Development registration. Live authority resolution, real profile reads, live or paid calls, customer-facing synthetic recommendations, and conversational UI remain unauthorized.
+Phase 1 of the shared pairing foundation and its approved Development message correction remain frozen. The user authorized offline contracts, mocked server integration, and bounded synthetic deterministic-safety/write-isolation verification only, including a deny-by-default undeployed-Development registration. Live authority resolution, real profile reads, live or paid calls, customer-facing synthetic recommendations, and conversational UI remain unauthorized.
 
 **Why:** The user explicitly chose to close current development work and leave live verification pending until an eligible, authorized test account is available, rather than repeat known-blocked tests.
 
-**How to apply:** Do not create accounts, change genuine restrictions, repeat blocked generation tests, or treat mocked integration approval as live activation approval. Keep existing screens, pairing routes, validators, DTOs, API compatibility and Production behavior unchanged; research, photo input, inventory integration and release work still require separate approval. Stop after mocked integration for review.
+**How to apply:** Do not create accounts, change genuine restrictions, repeat blocked generation tests, or treat mocked integration approval as live activation approval. Keep existing screens, pairing routes, validators, DTOs, API compatibility and Production behavior unchanged; research, photo input, inventory integration and release work still require separate approval. Stop after each approved bounded verification increment for review.
 
 The education-versus-consumption distinction is the approved Phase 2 design baseline. Reclassify intent on every turn, validate all response fields including alternatives and follow-up suggestions, and explain transitions into restricted consumption advice without misleading retry instructions.
 
@@ -26,6 +26,12 @@ The new advisor must use existing active-access AND Pro-access checks, with five
 **Why:** The user explicitly approved those limits and access requirements for mocked integration while prohibiting real customer reads/writes and synthetic recommendations to real users.
 
 **How to apply:** Inject fixtures only in the isolated integration harness. Do not supply fixture or live dependencies in the application registration, change existing middleware, bypass required context to avoid persistence, or begin the conversational interface without separate approval.
+
+Real deterministic scanner integration is authorized only with synthetic profiles and envelopes. Write-isolation verification must use synthetic dependencies and mocked storage. Strict account-owner resolution remains design-only, and shared-service changes require separate approval.
+
+**Why:** The user explicitly approved these three bounded activities while keeping the application binding unactivated and prohibiting shared-service implementation.
+
+**How to apply:** Test the existing mechanisms without correcting shared helpers or scanners in the same increment. Report demonstrated failures as blockers, propose the exact change scope, and stop for approval rather than activating authority or beginning frontend work.
 
 The approved Development-only UI exception is to show Chef Pairings' specific `PAIRING_INGREDIENTS_UNVERIFIED` explanation instead of generic retry advice. Reviewing the HTTP classification does not authorize changing its contract.
 
