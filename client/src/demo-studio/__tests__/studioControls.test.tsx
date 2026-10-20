@@ -88,4 +88,18 @@ describe("Demo walkthrough choices stay visible", () => {
     expect(actions.onResetAll).not.toHaveBeenCalled();
     expect(actions.onStartFresh).not.toHaveBeenCalled();
   });
+
+  it("uses one compact control area during a walkthrough and full cards in Studio", async () => {
+    await render("onboarding");
+    expect(container.querySelector(".demo-studio")?.classList.contains("ds-session")).toBe(true);
+    expect(container.querySelector(".ds-session-body")).not.toBeNull();
+    expect(container.querySelector(".ds-topbar")).toBeNull();
+    expect(container.querySelector('[aria-label="Demo workflow navigation"]')?.closest(".ds-session-body")).not.toBeNull();
+    expect(container.querySelector('[aria-label="Demo controls"]')?.closest(".ds-session-body")).not.toBeNull();
+    expect(container.querySelector(".ds-divider")).toBeNull();
+    await render(null);
+    expect(container.querySelector(".ds-topbar")).not.toBeNull();
+    expect(container.querySelectorAll(".ds-workflow")).toHaveLength(3);
+    expect(container.querySelector(".ds-session-body")).toBeNull();
+  });
 });

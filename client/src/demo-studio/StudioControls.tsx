@@ -53,7 +53,7 @@ export default function StudioControls({
   onEnter, onResetDemo, currentPage,
 }: StudioControlsProps) {
   return (
-    <div className="demo-studio">
+    <div className={`demo-studio${workflow ? " ds-session" : ""}`}>
       <style>{`
         .demo-studio {
           --ds-ink: #171613;
@@ -214,6 +214,20 @@ export default function StudioControls({
         .ds-blocked-count { margin-left: 4px; color: var(--ds-amber-pale); }
         .ds-blocked ul { margin: 9px 0 0; padding-left: 17px; color: var(--ds-muted); font-size: 11px; line-height: 1.6; }
         .ds-stage { color: inherit; }
+        .ds-session-body {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 8px 12px;
+          padding: 8px 12px;
+          flex: 0 0 auto;
+          border-bottom: 1px solid var(--ds-line);
+        }
+        .ds-session-brand { display: grid; gap: 3px; }
+        .ds-session-title { margin: 0; color: var(--ds-muted); font-size: 11px; font-weight: 600; }
+        .ds-session-body .ds-workflow-actions { justify-content: flex-start; gap: 6px; }
+        .ds-session-body .ds-button { min-height: 32px; padding: 6px 8px; }
+        .ds-session-body .ds-blocked { flex-basis: 100%; margin-top: 0; }
         @media (max-width: 620px) {
           .ds-topbar { padding: 12px 13px; }
           .ds-body { padding: 14px 13px 15px; }
@@ -226,7 +240,7 @@ export default function StudioControls({
         }
       `}</style>
 
-      <header className="ds-topbar">
+      {!workflow && <header className="ds-topbar">
         <div className="ds-brand">
           <span className="ds-mark" aria-hidden="true">MP</span>
           <div className="ds-brand-copy">
@@ -234,15 +248,9 @@ export default function StudioControls({
             <span className="ds-title">My Perfect Meals · Demo Studio</span>
           </div>
         </div>
-        {workflow && (
-          <span className="ds-mode" aria-label="Demo Mode is active">
-            <span className="ds-mode-dot" aria-hidden="true" />
-            Demo Mode
-          </span>
-        )}
-      </header>
+      </header>}
 
-      <div className="ds-body">
+      <div className={workflow ? "ds-body ds-session-body" : "ds-body"}>
         {!workflow ? (
           <>
             <p className="ds-safety">
@@ -273,18 +281,14 @@ export default function StudioControls({
           </>
         ) : (
           <>
-            <div className="ds-selected">
-              <div>
-                <h1 className="ds-selected-title">{currentPage ?? workflowTitle(workflow)}</h1>
-                <p className="ds-selected-meta">
-                  Synthetic profile: <strong>{name}</strong>
-                  {" · "}
-                  <strong>{calories.toLocaleString()} kcal</strong> target
-                </p>
-              </div>
+            <div className="ds-session-brand" title={`Synthetic profile: ${name} · ${calories.toLocaleString()} kcal target`}>
+              <span className="ds-mode" aria-label="Demo Mode is active — synthetic data">
+                <span className="ds-mode-dot" aria-hidden="true" />
+                Demo · Synthetic
+              </span>
+              <h1 className="ds-session-title">{currentPage ?? workflowTitle(workflow)}</h1>
             </div>
-            <h2 className="ds-section-label">Demo walkthroughs</h2>
-            <nav aria-label="Demo workflow navigation" className="ds-workflows">
+            <nav aria-label="Demo workflow navigation">
               <div className="ds-workflow-actions">
                 {workflows.map((item) => (
                   <button
@@ -299,10 +303,9 @@ export default function StudioControls({
                 ))}
               </div>
             </nav>
-            <button className="ds-button" type="button" onClick={onResetCurrent}>Reset Current Demo</button>
-            <button className="ds-button" type="button" onClick={onResetAll}>Reset All Demo Data</button>
-            <div className="ds-divider" />
-            <div className="ds-current-controls" aria-label="Demo controls">
+            <div className="ds-workflow-actions" aria-label="Demo controls">
+              <button className="ds-button" type="button" onClick={onResetCurrent}>Reset Current Demo</button>
+              <button className="ds-button" type="button" onClick={onResetAll}>Reset All Demo Data</button>
               {onResetDemo && <button className="ds-button" type="button" onClick={onResetDemo}>Reset Demo</button>}
               <button className="ds-button ds-button-quiet ds-return" type="button" onClick={onReturn}>
                 Return to Demo Studio
@@ -321,7 +324,7 @@ export default function StudioControls({
           </aside>
         )}
       </div>
-      {workflow && children != null && <div className="ds-stage">{children}</div>}
+      {workflow && children != null && <div className="ds-stage" data-workflow={workflow}>{children}</div>}
     </div>
   );
 }
