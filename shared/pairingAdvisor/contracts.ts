@@ -72,6 +72,9 @@ export const SafetyAuthority = z.discriminatedUnion("status", [
   }).strict(),
 ]);
 export type SafetyAuthority = z.infer<typeof SafetyAuthority>;
+// Infer the ready schema member directly: Extract on the inferred union becomes
+// never in the legacy server check with strictNullChecks disabled.
+export type ReadySafetyAuthority = z.infer<(typeof SafetyAuthority)["options"][2]>;
 
 export const IntentAssessment = z.object({
   intent: z.enum(["education", "consumption", "personal_suitability", "mixed", "unclear"]),
@@ -157,6 +160,7 @@ export const AdvisorResponse = z.discriminatedUnion("outcome", [
   }).strict(),
 ]);
 export type AdvisorResponse = z.infer<typeof AdvisorResponse>;
+export type RestrictedAdvisorResponse = z.infer<(typeof AdvisorResponse)["options"][2]>;
 
 /** Server-owned list evidence, not a verified price/composition/inventory record. */
 export const EvidenceContext = z.object({

@@ -1,5 +1,6 @@
 import {
   AdvisorResponse, type AdvisorRequest, type EvidenceContext, type PolicyDecision,
+  type RestrictedAdvisorResponse,
 } from "../../../shared/pairingAdvisor/contracts";
 import { decideAdvisorPolicy } from "./policy";
 import {
@@ -128,7 +129,7 @@ function evidenceFor(request: AdvisorRequest): EvidenceContext {
 function restrictedResponse(
   request: AdvisorRequest,
   decision: Extract<PolicyDecision, { kind: "restricted" }>,
-  education: Extract<AdvisorResponse, { outcome: "restricted" }>["education"],
+  education: RestrictedAdvisorResponse["education"],
 ): AdvisorResponse {
   return {
     ...metadata(request), outcome: "restricted", reason: decision.reason,
