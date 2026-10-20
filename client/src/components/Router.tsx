@@ -1545,3 +1545,11 @@ export default function Router() {
     </>
   );
 }
+
+// Additive exports only: the isolated Development runtime reuses these exact
+// components and their existing guards. Normal routes and guards are unchanged.
+export {
+  SafeOnboarding, SafeDashboard, SafeMacroCounter, GuardedBuilders,
+  GuardedMealBuilderSelection, LifestyleLandingPage, SafeMore,
+  GuardedCravingCreatorLanding, GuardedBeverageCreatorHub,
+};

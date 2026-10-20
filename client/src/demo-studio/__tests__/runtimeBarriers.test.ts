@@ -52,7 +52,8 @@ describe("installed browser barriers", () => {
     location.href = "/dashboard";
     expect(store.state.workflow).toBe("dashboard");
     location.assign("https://production.example/dashboard");
-    expect(store.state.workflow).toBeNull();
+    expect(store.state.path).toBe("/dashboard");
+    expect([...store.blocked].join(" ")).toContain("production.example");
     expect(window.location.href).toBe(browserHref);
     window.open("/macro-counter");
     expect(store.state.workflow).toBe("macro");
@@ -61,7 +62,9 @@ describe("installed browser barriers", () => {
     history.pushState({}, "", "/onboarding");
     expect(store.state.workflow).toBe("onboarding");
     history.back();
-    expect(store.state.workflow).toBeNull();
+    expect(store.state.workflow).toBe("macro");
+    history.forward();
+    expect(store.state.workflow).toBe("onboarding");
     expect(window.location.href).toBe(browserHref);
   });
 });

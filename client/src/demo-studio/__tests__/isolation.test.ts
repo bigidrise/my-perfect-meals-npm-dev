@@ -153,7 +153,7 @@ describe("fail-closed data boundary", () => {
   it("blocks unsupported navigation", () => {
     store.navigate("/checkout");
     expect(store.state.workflow).toBeNull();
-    expect([...store.blocked]).toContain("Navigation outside Phase 1: /checkout");
+    expect([...store.blocked].join(" ")).toContain("Not connected in Demo Mode Group 1: /checkout");
   });
   it("uses only memory for the Storage API, including clear", () => {
     let data = { sample: "synthetic" } as Record<string, string>;

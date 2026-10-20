@@ -2,9 +2,21 @@ import { computeDemoMacros, type DemoStore } from "./state";
 import { emptyFoodInclusionPrioritiesDocument, normalizeFoodInclusionPrioritiesDocument } from "@shared/nutritionPriorities";
 import type { NutritionPersonalizationSummary } from "@/types/nutritionSummary";
 import { evaluateOrderedJourney, type JourneySnapshot } from "@shared/guidedJourney";
+import { canAccessMealBuilders } from "@/lib/subscriptionCheck";
+import type { WorkspaceAvailability } from "@shared/workspaceAvailability";
+import type { StudioAccessStatus } from "@shared/studioAccess";
+import { resolveAcademyProgression } from "@shared/academyProgression";
+
+const builders: Record<string, { label: string; href: string }> = {
+  general_nutrition: { label: "General Nutrition", href: "/general-nutrition-builder" },
+  diabetic: { label: "Diabetic", href: "/diabetic-builder" },
+  glp1: { label: "Metabolic Medication", href: "/glp1-builder" },
+  anti_inflammatory: { label: "Anti-Inflammatory", href: "/anti-inflammatory-builder" },
+  beach_body: { label: "Performance Nutrition", href: "/performance" },
+};
 
 export class UnsupportedDemoRequest extends Error {
-  constructor(public method: string, public path: string) { super(`Not connected in Phase 1 Demo Mode: ${method} ${path}`); }
+  constructor(public method: string, public path: string) { super(`Not connected in Demo Mode Group 1: ${method} ${path}`); }
 }
 
 /** Exhaustive local routing. There is intentionally no original-fetch fallback. */
@@ -24,7 +36,46 @@ export async function demoRequest(store: DemoStore, input: string, init: Request
   });
   const user = () => store.state.user;
   const targets = () => store.state.targets;
+  const builderId = user().selectedMealBuilder ?? "general_nutrition";
+  const builder = builders[builderId] ?? builders.general_nutrition;
+  const switchStatus = () => {
+    const used = Number(user().builderChangesUsed ?? 0);
+    const limit = 4; // Same ordinary-account allowance; never unlimited/admin access.
+    return { changesUsed: used, changesRemaining: Math.max(0, limit - used),
+      changeLimit: limit, canSwitch: used < limit, isUnlimited: false };
+  };
   if (method === "GET") {
+    // Landing-page status only: no enrollment, credential or MFA authority.
+    if (path === "/api/auth/mfa/status") return json({ mfaEnabled: false, enrolledAt: null });
+    if (path === "/api/certifications/academy-progression") return json(resolveAcademyProgression({
+      completedPlatformLessonIds: [], completedMarketingModuleIds: [],
+      legacyPlatformComplete: false, legacyMarketingComplete: false,
+      specialistCredentialComplete: false, proCareTrainingComplete: false,
+      proCareTrainingEligible: false,
+    }));
+    if (path === "/api/user/builder-switch-status") return json(switchStatus());
+    if (path === "/api/kitchens/featured") return json({ kitchens: [] });
+    if (path === "/api/business/mine" || path === "/api/business/membership") {
+      return json({ error: "This synthetic client has no organization membership" }, 404);
+    }
+    const hubReads: Record<string, unknown> = {
+      "/api/business/workspace/availability": { availability: {
+        personal: { available: true, destination: "/dashboard" },
+        organization: { available: false, destination: null, organizations: [] },
+        studio: { available: false, destination: null, readiness: "professional_setup_required" },
+      } satisfies WorkspaceAvailability },
+      "/api/business/workspace/options": { organizations: [], workspaces: [] },
+      "/api/business/workspaces": { workspaces: [] },
+      "/api/business/check-status": { exists: false },
+      "/api/business/workspace/studio-access": { studioAccess: {
+        state: "inactive", sources: [], studioActive: false, studioReady: false,
+        authorized: false, ownsOrganization: false, setupDestination: null,
+        canStartStudioCheckout: false, billing: null,
+      } satisfies StudioAccessStatus },
+      "/api/business/workspace/organization-access": { organizationAccess: { organizations: [] } },
+      "/api/business/removal-notice": { notice: null },
+    };
+    if (Object.hasOwn(hubReads, path)) return json(hubReads[path]);
     if (path === "/api/auth/csrf") return json({ csrfToken: "synthetic-demo-not-a-live-credential" });
     if (["/api/user/profile", "/api/users/profile"].includes(path)) return json(user());
     if (path === `/api/users/${uid}/macro-targets`) return json({ hasTargets: !!targets(), ...targets() });
@@ -38,10 +89,10 @@ export async function demoRequest(store: DemoStore, input: string, init: Request
       hasClinicalContext: false, warnings: [], missingFields: [],
     });
     if (path === "/api/my-perfect-menu/effective-builder") return json({
-      builder: { builderId: "general_nutrition", label: "General Nutrition",
-        href: "/general-nutrition-builder", subjectUserId: uid },
-      builderId: "general_nutrition", effectiveBuilder: "general_nutrition",
-      builderLabel: "General Nutrition", subjectUserId: uid,
+      builder: { builderId, label: builder.label, displayName: builder.label,
+        href: builder.href, subjectUserId: uid },
+      builderId, effectiveBuilder: builderId,
+      builderLabel: builder.label, subjectUserId: uid,
     });
     if (path === "/api/nutrition-priorities") return json({
       document: user().foodInclusionPriorities ?? emptyFoodInclusionPrioritiesDocument(),
@@ -74,7 +125,7 @@ export async function demoRequest(store: DemoStore, input: string, init: Request
             calories: t.calories, proteinG: t.protein_g, carbsG: t.carbs_g, fatG: t.fat_g,
             starchyCarbsG: t.starchyCarbs_g ?? null, fibrousCarbsG: t.fibrousCarbs_g ?? null,
           } : null },
-        dietaryIdentity: user().dietaryRestrictions ?? [], mealBuilderLabel: "General Nutrition",
+        dietaryIdentity: user().dietaryRestrictions ?? [], mealBuilderLabel: builder.label,
         nutritionDrivers: { medicalConditions: [], therapeuticInputs: [], liveMetrics: [] },
         nutritionPriorities: [], foodInclusionPriorityIds: user().foodInclusionPriorities?.selectedPriorityIds ?? [],
         compositeExplanation: "Synthetic Demo Mode reflects your saved onboarding and nutrition targets.",
@@ -110,6 +161,21 @@ export async function demoRequest(store: DemoStore, input: string, init: Request
     if (Object.prototype.hasOwnProperty.call(emptyReads, path)) return json(emptyReads[path]);
   }
   if (["PUT", "PATCH", "POST"].includes(method)) {
+    if (path === "/api/user/meal-builder" && method === "PATCH") {
+      if (!canAccessMealBuilders(user())) return json({ error: "Meal Builder access is required" }, 403);
+      const selected = body.selectedMealBuilder;
+      if (typeof selected !== "string" || !Object.hasOwn(builders, selected)) {
+        return json({ error: "This builder is not available for selection" }, 400);
+      }
+      if (selected !== builderId) {
+        if (!switchStatus().canSwitch) return json({ error: "Demo builder switch limit reached",
+          switchStatus: switchStatus() }, 403);
+        store.state = { ...store.state, user: { ...user(),
+          builderChangesUsed: switchStatus().changesUsed + 1 } };
+        store.patchUser({ selectedMealBuilder: selected, preferredBuilder: selected });
+      }
+      return json({ success: true, selectedMealBuilder: selected, switchStatus: switchStatus() });
+    }
     if (path === "/api/users/profile" || path === "/api/user/preferences") {
       store.patchUser(body); return json({ ...user(), success: true, user: user() });
     }

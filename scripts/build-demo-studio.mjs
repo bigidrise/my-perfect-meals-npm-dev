@@ -20,7 +20,8 @@ const css = await postcss([tailwindcss(tailwind)])
 await writeFile(path.join(outdir, "styles.css"), css.css);
 const staticImages = Object.fromEntries(await Promise.all([
   "/icons/chef.png", "/icons/ChefMPMLogo-v2.png", "/images/dashboard-chef-community-hero.png",
-].map(async asset => [asset, `data:image/png;base64,${(await readFile(`client/public${asset}`)).toString("base64")}`])));
+  "/images/beverage-creator-bg.jpg", "/images/craving-creator-bg.jpg",
+].map(async asset => [asset, `data:image/${asset.endsWith(".jpg") ? "jpeg" : "png"};base64,${(await readFile(`client/public${asset}`)).toString("base64")}`])));
 await build({
   entryPoints: ["client/src/demo-studio/bootstrap.ts"], bundle: true,
   outfile: path.join(outdir, "bundle.js"), format: "iife", platform: "browser",
