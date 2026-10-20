@@ -18,6 +18,16 @@ or Production deployments are authorized by this work. Revisit Demo Studio only 
 user identifies a specific future need. Earlier approvals below describe the preserved
 implementation boundary, not permission to resume development.
 
+The existing Onboarding, Macro Calculator, and Dashboard choices must remain visible,
+not collapsible, including after Start Fresh and returning to or reopening Demo Studio.
+Use a prominent, readable walkthrough heading rather than a small Phase 1 disclosure.
+
+**Why:** The user could not find the preserved walkthroughs and explicitly said the choices
+should not be collapsible. This visibility correction does not resume expansion.
+
+**How to apply:** Preserve existing workflow actions and isolation; do not hide these
+choices behind a dropdown or disclosure when simplifying the Studio controls.
+
 Demo Studio is the foundation of My Perfect Meals Demo Mode: a connected customer-facing
 journey using synthetic data, not three disconnected recording previews.
 Onboarding must carry into the Macro Calculator and Dashboard until explicitly reset.

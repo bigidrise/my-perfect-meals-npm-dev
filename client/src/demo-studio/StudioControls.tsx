@@ -136,14 +136,13 @@ export default function StudioControls({
         }
         .ds-safety strong { color: #e8dfcf; font-weight: 650; }
         .ds-section-label {
-          margin: 0 0 9px;
-          color: #9f9788;
-          font-size: 9px;
-          font-weight: 800;
-          letter-spacing: .14em;
-          text-transform: uppercase;
+          margin: 16px 0 12px;
+          color: var(--ds-text);
+          font-size: 18px;
+          font-weight: 700;
+          line-height: 1.3;
         }
-        .ds-workflows { display: grid; gap: 8px; }
+        .ds-workflows { display: grid; gap: 8px; margin-bottom: 12px; }
         .ds-workflow {
           display: flex;
           align-items: center;
@@ -161,7 +160,7 @@ export default function StudioControls({
         .ds-workflow-copy { min-width: 0; }
         .ds-workflow-title { margin: 0; color: var(--ds-text); font-size: 13px; font-weight: 700; }
         .ds-workflow-detail { margin: 4px 0 0; color: var(--ds-muted); font-size: 11px; line-height: 1.4; }
-        .ds-workflow-actions { display: flex; align-items: center; justify-content: flex-end; gap: 7px; flex: 0 0 auto; }
+        .ds-workflow-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 7px; flex: 0 0 auto; }
         .ds-button {
           display: inline-flex;
           min-height: 34px;
@@ -252,8 +251,7 @@ export default function StudioControls({
             </p>
             {onEnter && <button className="ds-button ds-button-primary" type="button"
               onClick={onEnter}>Enter Demo Mode</button>}
-            <details>
-            <summary className="ds-section-label">Existing Phase 1 workflows</summary>
+            <h1 className="ds-section-label">Choose a demo walkthrough</h1>
             <div className="ds-workflows">
               {workflows.map((item) => (
                 <section className="ds-workflow" key={item.id} aria-labelledby={`ds-${item.id}-title`}>
@@ -272,7 +270,6 @@ export default function StudioControls({
                 </section>
               ))}
             </div>
-            </details>
           </>
         ) : (
           <>
@@ -286,8 +283,7 @@ export default function StudioControls({
                 </p>
               </div>
             </div>
-            <details>
-            <summary className="ds-section-label">Phase 1 workflows and reset controls</summary>
+            <h2 className="ds-section-label">Demo walkthroughs</h2>
             <nav aria-label="Demo workflow navigation" className="ds-workflows">
               <div className="ds-workflow-actions">
                 {workflows.map((item) => (
@@ -305,7 +301,6 @@ export default function StudioControls({
             </nav>
             <button className="ds-button" type="button" onClick={onResetCurrent}>Reset Current Demo</button>
             <button className="ds-button" type="button" onClick={onResetAll}>Reset All Demo Data</button>
-            </details>
             <div className="ds-divider" />
             <div className="ds-current-controls" aria-label="Demo controls">
               {onResetDemo && <button className="ds-button" type="button" onClick={onResetDemo}>Reset Demo</button>}
