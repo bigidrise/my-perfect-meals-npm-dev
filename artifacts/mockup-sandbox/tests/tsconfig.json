@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": { "types": ["node", "jest", "vite/client"] },
+  "include": [
+    "../src/pairing-advisor/**/*",
+    "../src/components/mockups/_development/pairing-advisor/PairingAdvisor.tsx",
+    "../prototypeIsolation.ts",
+    "./*.test.ts",
+    "./*.test.tsx"
+  ],
+  "exclude": ["../node_modules"]
+}

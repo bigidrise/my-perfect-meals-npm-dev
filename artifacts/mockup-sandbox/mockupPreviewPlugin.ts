@@ -4,6 +4,7 @@ import glob from "fast-glob";
 import chokidar from "chokidar";
 import type { FSWatcher } from "chokidar";
 import type { Plugin } from "vite";
+import { prototypeDevelopmentAllowed, isDevelopmentPrototypePath } from "./prototypeIsolation";
 
 /**
  * Vite plugin that dynamically discovers mockup components and writes them to
@@ -36,6 +37,8 @@ export function mockupPreviewPlugin(): Plugin {
   let root = "";
   let currentSource = "";
   let watcher: FSWatcher | null = null;
+  let allowDevelopmentPrototype = false;
+  let isPreview = false;
 
   function getMockupsAbsDir(): string {
     return path.join(root, MOCKUPS_DIR);
@@ -63,6 +66,9 @@ export function mockupPreviewPlugin(): Plugin {
       cwd: root,
       ignore: ["**/_*/**", "**/_*.tsx"],
     });
+    if (allowDevelopmentPrototype) {
+      files.push(...await glob(`${MOCKUPS_DIR}/_development/pairing-advisor/PairingAdvisor.tsx`, { cwd: root }));
+    }
 
     return files.map((f) => ({
       globKey: "./" + f.slice("src/".length),
@@ -137,8 +143,22 @@ export function mockupPreviewPlugin(): Plugin {
     name: "mockup-preview",
     enforce: "pre",
 
+    config(_config, env) {
+      isPreview = "isPreview" in env && env.isPreview === true;
+      // A separate Vite dev server may inherit the main app's NODE_ENV. Do not
+      // mutate it or equate import.meta.env.DEV with private preview approval.
+      const allowed = prototypeDevelopmentAllowed({
+        command: env.command, mode: env.mode, isPreview,
+        deployment: process.env.REPLIT_DEPLOYMENT,
+      });
+      return { define: { __PAIRING_SYNTHETIC_PREVIEW__: JSON.stringify(allowed) } };
+    },
     configResolved(config) {
       root = config.root;
+      allowDevelopmentPrototype = prototypeDevelopmentAllowed({
+        command: config.command, mode: config.mode, isPreview,
+        deployment: process.env.REPLIT_DEPLOYMENT,
+      });
     },
 
     async buildStart() {
@@ -146,6 +166,14 @@ export function mockupPreviewPlugin(): Plugin {
     },
 
     async configureServer(viteServer) {
+      viteServer.middlewares.use((req, res, next) => {
+        if (!allowDevelopmentPrototype && isDevelopmentPrototypePath(req.url ?? "")) {
+          res.statusCode = 404;
+          res.end("Not found");
+          return;
+        }
+        next();
+      });
       await refresh();
 
       const mockupsAbsDir = getMockupsAbsDir();
