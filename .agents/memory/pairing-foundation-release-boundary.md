@@ -67,11 +67,11 @@ An isolated, undeployed Development-only conversational UI prototype is approved
 
 **How to apply:** Keep the prototype separate from the three existing pairing screens and exclude its private preview from builds, preview serving and deployed runtimes. Display-shape validation is not clinical authority. Keep the application binding denied and stop after prototype verification; customer integration or live activation needs separate approval.
 
-Integration-readiness Increments A–C are approved only for offline adapter/control reliability, with synthetic inputs and mocked providers. Keep the prototype unchanged and application binding denied; stop for review before D–F, frontend integration or any live execution.
+Integration-readiness Increments A–C are a reviewed, frozen offline adapter/control checkpoint, not live activation approval. Keep the prototype unchanged, the existing Drink Pairing feature operating normally and the application advisor binding denied.
 
-**Why:** The user reaffirmed that the next milestone is completing and verifying the approved foundation, not launching Drink Pairing or expanding/redesigning it.
+**Why:** The user reviewed the offline completion report and recommended freezing it. The next investment should prove that the intelligence works, not add infrastructure without a specific reason or begin another broad redesign.
 
-**How to apply:** Preserve education versus consumption on every turn. Keep real strict-owner results separate from synthetic-only contracts. Disclosure continuity must survive supported-session chat/list resets, but do not claim cross-login, expired-session or process-restart continuity without separately approved storage. Offline success is not evidence of real language understanding, provider retry behavior or customer readiness.
+**How to apply:** Before seeking D–F approval, define a narrow cost-controlled phase covering safe real-provider connection, medical-context re-establishment after expiry, and measured recommendation improvement. Preserve education versus consumption on every turn. Keep real strict-owner results separate from synthetic-only contracts. Do not claim cross-login, expired-session or process-restart disclosure continuity without separately approved storage. Offline success is not evidence of real language understanding, provider retry behavior or customer readiness.
 
 The larger product objective is an AI advisor that understands food, wine, flavor, preparation, personal preferences and real-world context, not just generic wine suggestions.
 
