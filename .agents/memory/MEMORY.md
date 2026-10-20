@@ -34,13 +34,8 @@
 - [Drizzle array columns](ace-drizzle-array-rule.md) — SQL templates expand arrays; use explicit per-value conditions for membership queries.
 - [PostgreSQL parameter gaps](postgres-parameter-gaps.md) — mocked writes can pass while live updates fail if SQL leaves unused leading placeholders.
 - [Neon pooler read-only queries](neon-pooler-read-only-queries.md) — pooled connection rejects read-only startup options; use an explicit read-only transaction.
-- [Studio video purge retention](studio-video-purge-retention.md) — private media purge needs a renewable token lease and immutable retained transcript before references clear.
-- [Studio video MIME compatibility](studio-video-mime-compatibility.md) — use browser capability selection and server MIME normalization across WebM, MP4, and QuickTime.
-- [Failed Studio video deletion](failed-studio-video-deletion.md) — failed-transcription media is deletable without creating a transcript or weakening playback gates.
-- [Studio participant deletion lifecycle](studio-transcript-deletion-lifecycle.md) — normal trash hides shared Studio history per viewer; private video media deletion stays separate and global.
+- [Studio media lifecycle](studio-media-reference-index.md) — video retention, MIME compatibility, participant deletion, failed media, transcription result scope and voice queue integrity.
 - [OpenAI server upload runtime](openai-server-upload-runtime.md) — server-side uploads must not rely on ambient web globals from the OpenAI SDK auto shim.
-- [Studio route result scope](studio-route-result-scope.md) — keep transcription results at handler scope when later moderation and response code runs outside the processing try block.
-- [Voice message queue integrity](voice-message-queue-integrity.md) — pending voice notes require stored audio and a transcription job; otherwise show failure.
 - [Bundled-first iOS startup](bundled-first-ios-startup.md) — native startup must use packaged web assets; remote APIs are a separate, explicit dependency.
 - [iOS capture diagnosis](ios-capture-diagnosis.md) — diagnose Grocery Voice Add separately from Studio capture, and sync the native bundle before device evidence.
 - [Shared Neon and workspace release boundary](runtime-database-identity.md) — both workspaces share Neon, but Development Publish does not update Production.
@@ -49,6 +44,7 @@
 - [Private Studio moderation policy](private-studio-moderation-policy.md) — ordinary profanity is flagged but deliverable in private Studio; serious categories and public policy stay unchanged.
 - [Beverage safeguard alternative parity](beverage-safeguard-alternative-parity.md) — alternative offers must use every original validation surface and stay DEV-gated until intentionally released.
 - [Pairing release boundary](pairing-foundation-release-boundary.md) — Phase 1 frozen; advisor verification and approved opt-in corrections are offline-only; no runtime activation.
+- [Isolated preview runtimes](isolated-preview-runtime-boundary.md) — private preview approval and React test execution must not change the main application's environment or authority.
 - [Pre-registration trial activation](pre-registration-trial-activation.md) — Pilot and Client access are separate identities; their clocks start only when a matching account activates.
 - [Hydration references](hydration-reference-index.md) — timing, intake bridge, numeric governance, eligibility, product doors, Creator handoffs, professional roles, and paywall.
 - [Professional legal activation boundary](professional-legal-activation-boundary.md) — ProCare activation and provider actions require explicit current attestation and role-specific agreements.

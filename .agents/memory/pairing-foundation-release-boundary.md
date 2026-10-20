@@ -3,7 +3,7 @@ name: Pairing foundation release boundary
 description: Scope and safety policy for the approved Development-only first phase of pairing consolidation.
 ---
 
-Phase 1 of the shared pairing foundation and its approved Development message correction remain frozen. The user authorized offline contracts, mocked server integration, bounded synthetic safety verification, and the specifically approved opt-in shared-service corrections only. The undeployed-Development advisor registration stays deny-by-default. Real profile execution, live or paid calls, customer-facing synthetic recommendations, and conversational UI remain unauthorized.
+Phase 1 of the shared pairing foundation and its approved Development message correction remain frozen. The user authorized offline contracts, mocked server integration, bounded synthetic safety verification, the specifically approved opt-in shared-service corrections, and the isolated synthetic UI exception below. The undeployed-Development advisor registration stays deny-by-default. Real profile execution, live or paid calls, customer-facing synthetic recommendations, and live advisor activation remain unauthorized.
 
 **Why:** The user explicitly chose to close current development work and leave live verification pending until an eligible, authorized test account is available, rather than repeat known-blocked tests.
 
@@ -61,8 +61,14 @@ For bounded live verification, count provider attempts across both application r
 
 **How to apply:** Establish a reliable total upper bound before submitting paid requests. If it exceeds the user's approved budget, stop rather than silently increasing the budget or changing frozen code or configuration.
 
+An isolated, undeployed Development-only conversational UI prototype is approved using deterministic synthetic fixtures only. Freeform chat is primary; optional questions and context editing must not become a required questionnaire.
+
+**Why:** The user separately approved the synthetic conversational experience while explicitly prohibiting customer entry points, live routes/providers, strict-owner activation, real profiles, database/schema/environment changes, Production changes, publishing, pushes and merges.
+
+**How to apply:** Keep the prototype separate from the three existing pairing screens and exclude its private preview from builds, preview serving and deployed runtimes. Display-shape validation is not clinical authority. Keep the application binding denied and stop after prototype verification; customer integration or live activation needs separate approval.
+
 The larger product objective is an AI advisor that understands food, wine, flavor, preparation, personal preferences and real-world context, not just generic wine suggestions.
 
 **Why:** The user explicitly restated this objective while keeping the work limited to Phase 1 verification.
 
-**How to apply:** Use this objective when separately authorized future intelligence work is scoped; it is not permission to begin Phase 2.
+**How to apply:** Use this objective when separately authorized future intelligence work is scoped; it is not permission to begin live advisor execution.
