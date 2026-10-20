@@ -17,9 +17,8 @@ import { CopilotProvider } from "@/components/copilot/CopilotContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import { RootViewport } from "@/layouts/RootViewport";
-import OnboardingV3 from "@/pages/OnboardingV3";
-import MacroCalculator from "@/pages/MacroCalculator";
-import DashboardNew from "@/pages/DashboardNew";
+import CustomerShell from "./CustomerShell";
+import { DEMO_ROUTES } from "./navigation";
 import StudioControls from "./StudioControls";
 import { type DemoStore, type DemoWorkflow, workflowPath } from "./state";
 import { assertIsolatedDemoRuntime } from "./runtimeAuthority";
@@ -41,7 +40,11 @@ export function mountDemo(store: DemoStore) {
   queryClient.setDefaultOptions({ queries: { retry: false, refetchOnWindowFocus: false } });
   const useDemoLocation = () => {
     useSyncExternalStore(store.subscribe, () => store.revision);
-    return [store.state.path.split("?")[0], store.navigate] as [string, typeof store.navigate];
+    return [new URL(store.state.path, "https://demo.invalid").pathname, store.navigate] as [string, typeof store.navigate];
+  };
+  const useDemoSearch = () => {
+    useSyncExternalStore(store.subscribe, () => store.revision);
+    return new URL(store.state.path, "https://demo.invalid").search;
   };
   function Runtime() {
     useSyncExternalStore(store.subscribe, () => store.revision);
@@ -54,6 +57,8 @@ export function mountDemo(store: DemoStore) {
       window.dispatchEvent(new Event("mpm:targetsUpdated"));
     };
     return <StudioControls workflow={state.workflow}
+      currentPage={DEMO_ROUTES[new URL(state.path, "https://demo.invalid").pathname as keyof typeof DEMO_ROUTES]}
+      onEnter={() => store.enter()} onResetDemo={() => reset("dashboard")}
       name={`${state.user.firstName} ${state.user.lastName}`.trim()}
       calories={state.targets?.calories ?? 0}
       onNavigate={navigate} onStartFresh={reset}
@@ -61,11 +66,12 @@ export function mountDemo(store: DemoStore) {
       onReturn={() => store.navigate("/")} blockedRequests={[...store.blocked]}>
       <p className="bg-amber-950/70 text-amber-100 text-xs px-4 py-2" role="note">
         Synthetic walkthrough only. Calculations are illustrative, not clinical guidance.
-        Live AI, billing, communication, uploads, and modules outside Phase 1 are unavailable.
+        Group 1 navigation only. AI, clinical workflows, billing, communication and uploads
+        are not connected. Pregnancy and Spirit &amp; Wine Pairing remain Coming Soon.
       </p>
       <div key={epoch}>
         <DemoErrorBoundary>
-          <Router hook={useDemoLocation}>
+          <Router hook={useDemoLocation} searchHook={useDemoSearch}>
             <QueryClientProvider client={queryClient}><TooltipProvider>
               <IsolatedDemoAuthProvider user={state.user} onChange={onChange} readUser={() => store.state.user}>
                 <OrgProvider><HouseholdProvider><FontSizeProvider><NarrationSpeedProvider>
@@ -73,9 +79,9 @@ export function mountDemo(store: DemoStore) {
                     if (action.type === "navigate") store.navigate(action.to);
                   }}><UpgradeModalProvider><ProClientProvider><PageTitleProvider>
                     <RootViewport>
-                      {state.workflow === "onboarding" && <OnboardingV3 />}
-                      {state.workflow === "macro" && <MacroCalculator />}
-                      {state.workflow === "dashboard" && <DashboardNew />}
+                      <React.Suspense fallback={<p role="status" className="p-6 text-white">Loading demo page…</p>}>
+                        <CustomerShell />
+                      </React.Suspense>
                     </RootViewport>
                     <Toaster />
                   </PageTitleProvider></ProClientProvider></UpgradeModalProvider></CopilotProvider>

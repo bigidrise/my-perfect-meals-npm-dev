@@ -13,6 +13,9 @@ type StudioControlsProps = {
   onReturn: () => void;
   blockedRequests: string[];
   children?: React.ReactNode;
+  onEnter?: () => void;
+  onResetDemo?: () => void;
+  currentPage?: string;
 };
 
 const workflows: { id: DemoWorkflow; title: string; detail: string }[] = [
@@ -47,6 +50,7 @@ export default function StudioControls({
   onReturn,
   blockedRequests,
   children,
+  onEnter, onResetDemo, currentPage,
 }: StudioControlsProps) {
   return (
     <div className="demo-studio">
@@ -71,6 +75,10 @@ export default function StudioControls({
         }
         .demo-studio *, .demo-studio *::before, .demo-studio *::after { box-sizing: border-box; }
         .ds-topbar {
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          flex-shrink: 0;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -242,7 +250,10 @@ export default function StudioControls({
               Walk through the real customer experience with <strong>synthetic demo data</strong>.
               Changes stay in this demo runtime; no customer records or production data are used.
             </p>
-            <p className="ds-section-label">Choose a walkthrough</p>
+            {onEnter && <button className="ds-button ds-button-primary" type="button"
+              onClick={onEnter}>Enter Demo Mode</button>}
+            <details>
+            <summary className="ds-section-label">Existing Phase 1 workflows</summary>
             <div className="ds-workflows">
               {workflows.map((item) => (
                 <section className="ds-workflow" key={item.id} aria-labelledby={`ds-${item.id}-title`}>
@@ -261,12 +272,13 @@ export default function StudioControls({
                 </section>
               ))}
             </div>
+            </details>
           </>
         ) : (
           <>
             <div className="ds-selected">
               <div>
-                <h1 className="ds-selected-title">{workflowTitle(workflow)}</h1>
+                <h1 className="ds-selected-title">{currentPage ?? workflowTitle(workflow)}</h1>
                 <p className="ds-selected-meta">
                   Synthetic profile: <strong>{name}</strong>
                   {" · "}
@@ -274,8 +286,9 @@ export default function StudioControls({
                 </p>
               </div>
             </div>
+            <details>
+            <summary className="ds-section-label">Phase 1 workflows and reset controls</summary>
             <nav aria-label="Demo workflow navigation" className="ds-workflows">
-              <p className="ds-section-label">Switch workflow</p>
               <div className="ds-workflow-actions">
                 {workflows.map((item) => (
                   <button
@@ -290,10 +303,12 @@ export default function StudioControls({
                 ))}
               </div>
             </nav>
+            <button className="ds-button" type="button" onClick={onResetCurrent}>Reset Current Demo</button>
+            <button className="ds-button" type="button" onClick={onResetAll}>Reset All Demo Data</button>
+            </details>
             <div className="ds-divider" />
             <div className="ds-current-controls" aria-label="Demo controls">
-              <button className="ds-button" type="button" onClick={onResetCurrent}>Reset Current Demo</button>
-              <button className="ds-button" type="button" onClick={onResetAll}>Reset All Demo Data</button>
+              {onResetDemo && <button className="ds-button" type="button" onClick={onResetDemo}>Reset Demo</button>}
               <button className="ds-button ds-button-quiet ds-return" type="button" onClick={onReturn}>
                 Return to Demo Studio
               </button>
@@ -302,7 +317,7 @@ export default function StudioControls({
         )}
         {blockedRequests.length > 0 && (
           <aside className="ds-blocked" role="alert" aria-label="Unsupported demo action">
-            <p>This action is not connected in Phase 1 Demo Mode. It was blocked; no live fallback was used.</p>
+            <p>This action is not connected in Demo Mode Group 1. It was blocked; no live fallback was used.</p>
             <details>
               <summary>Unsupported actions blocked ({blockedRequests.length})</summary>
               <ul>{blockedRequests.map((request, index) =>

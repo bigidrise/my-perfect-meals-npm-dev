@@ -24,9 +24,9 @@ export class DemoMemoryStorage implements Storage {
 export function installDemoIsolation(store: DemoStore) {
   assertIsolatedDemoRuntime();
   const origin = "https://demo.invalid";
-  const navigate = (value: string) => {
+  const navigate = (value: string, replace = false) => {
     if (value.startsWith(`${origin}/`)) value = value.slice(origin.length);
-    store.navigate(value);
+    store.navigate(value, { replace });
   };
   // Only the separate demo bundle rewrites browser Location reads/writes to
   // this object; the main application and its actual Location are untouched.
@@ -34,20 +34,23 @@ export function installDemoIsolation(store: DemoStore) {
     origin, protocol: "https:", hostname: "demo.invalid", host: "demo.invalid", port: "",
     get href() { return `${origin}${store.state.path}`; },
     set href(value: string) { navigate(value); },
-    get pathname() { return store.state.path.split("?")[0]; },
+    get pathname() { return new URL(`${origin}${store.state.path}`).pathname; },
     set pathname(value: string) { navigate(value); },
-    get search() { return store.state.path.includes("?") ? `?${store.state.path.split("?")[1]}` : ""; },
-    set search(value: string) { navigate(`${store.state.path.split("?")[0]}${value}`); },
-    hash: "", assign: navigate, replace: navigate, reload: () => store.navigate(store.state.path),
+    get search() { return new URL(`${origin}${store.state.path}`).search; },
+    set search(value: string) { navigate(`${store.state.path.split(/[?#]/)[0]}${value}`); },
+    get hash() { return new URL(`${origin}${store.state.path}`).hash; },
+    set hash(value: string) { navigate(`${store.state.path.split("#")[0]}${value}`); },
+    assign: (url: string) => navigate(url), replace: (url: string) => navigate(url, true),
+    reload: () => store.navigate(store.state.path, { replace: true }),
     toString: () => `${origin}${store.state.path}`,
   };
   Object.defineProperty(window, "__mpmDemoLocation", { value: demoLocation, configurable: false });
   window.open = (url?: string | URL) => { navigate(String(url ?? "/")); return null; };
   window.history.pushState = (_data, _unused, url) => { if (url) navigate(String(url)); };
-  window.history.replaceState = window.history.pushState;
-  window.history.back = () => store.navigate("/");
-  window.history.forward = () => store.navigate("/");
-  window.history.go = () => store.navigate("/");
+  window.history.replaceState = (_data, _unused, url) => { if (url) navigate(String(url), true); };
+  window.history.back = () => store.travel(-1);
+  window.history.forward = () => store.travel(1);
+  window.history.go = (delta = 0) => store.travel(delta);
   Object.defineProperty(window, "localStorage", { configurable: false,
     value: new DemoMemoryStorage(() => store.state.local, store.changed) });
   Object.defineProperty(window, "sessionStorage", { configurable: false,
@@ -102,14 +105,27 @@ export function installDemoIsolation(store: DemoStore) {
     const embedded = __MPM_DEMO_STATIC_IMAGES__[source.split("?")[0]];
     if (embedded) { image.removeAttribute("srcset"); image.src = embedded; }
   };
+  const useEmbeddedBackground = (element: Element) => {
+    const style = (element as HTMLElement).style;
+    if (!style?.backgroundImage) return;
+    const previous = style.backgroundImage;
+    const embedded = previous.replace(/url\((["']?)(\/[^)"']+)\1\)/g, (original, _quote, source) => {
+      const data = __MPM_DEMO_STATIC_IMAGES__[source];
+      return data ? `url("${data}")` : original;
+    });
+    if (embedded !== previous) style.backgroundImage = embedded;
+  };
   new MutationObserver(records => {
     for (const record of records) {
       if (record.type === "attributes" && record.target instanceof HTMLImageElement) useEmbeddedImage(record.target);
+      if (record.type === "attributes" && record.target instanceof Element) useEmbeddedBackground(record.target);
       for (const node of record.addedNodes) {
         if (!(node instanceof Element)) continue;
         if (node instanceof HTMLImageElement) useEmbeddedImage(node);
         node.querySelectorAll("img").forEach(useEmbeddedImage);
+        useEmbeddedBackground(node);
+        node.querySelectorAll("[style]").forEach(useEmbeddedBackground);
       }
     }
-  }).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["src"] });
+  }).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["src", "style"] });
 }

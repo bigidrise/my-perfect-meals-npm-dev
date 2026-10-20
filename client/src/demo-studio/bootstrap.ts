@@ -17,8 +17,9 @@ try {
   window.__mpmDemoStore = store;
   let cachedUser: unknown;
   store.subscribe(() => {
-    window.__mpmDemoPath = store.state.path.split("?")[0];
-    window.__mpmDemoSearch = store.state.path.includes("?") ? `?${store.state.path.split("?")[1]}` : "";
+    const url = new URL(store.state.path, "https://demo.invalid");
+    window.__mpmDemoPath = url.pathname;
+    window.__mpmDemoSearch = url.search;
     if (cachedUser !== store.state.user) {
       cachedUser = store.state.user;
       // For real components which still read the legacy cached-user helper.

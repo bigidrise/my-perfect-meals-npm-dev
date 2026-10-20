@@ -1,6 +1,7 @@
 import type { User } from "@/lib/auth";
 import { assertSyntheticIdentity } from "./authority";
 import { macroCalculatorStorageKeys } from "@/lib/macroCalculatorResume";
+import { demoDestination, blockedDestination } from "./navigation";
 
 export type DemoWorkflow = "onboarding" | "macro" | "dashboard";
 export interface DemoState {
@@ -12,6 +13,8 @@ export interface DemoState {
   workflow: DemoWorkflow | null;
   path: string;
   bodyComposition: Record<string, any> | null;
+  journeyStarted?: boolean;
+  navigation?: { entries: string[]; index: number };
 }
 
 /** Deliberately synthetic, nonclinical illustration; never a clinical resolver. */
@@ -66,7 +69,8 @@ export function freshDemo(workflow: DemoWorkflow | null = null): DemoState {
   };
   const state: DemoState = { version: 1, user, targets, workflow, path: workflowPath(workflow),
     local: targets ? { [`mpm.macroTargets.${user.id}`]: JSON.stringify(targets) } : {},
-    session: {}, bodyComposition: null };
+    session: { "mpm.welcomeGateDone": "true" }, bodyComposition: null, journeyStarted: !!workflow,
+    navigation: { entries: [workflowPath(workflow)], index: 0 } };
   if (workflow === "macro") seedCalculatorFromProfile(state);
   return state;
 }
@@ -98,7 +102,7 @@ export function validateDemoState(value: unknown): value is DemoState {
     const s = value as DemoState;
     assertSyntheticIdentity(s?.user);
     return s.version === 1 && ["onboarding", "macro", "dashboard", null].includes(s.workflow)
-      && typeof s.path === "string" && !!s.local && !!s.session &&
+      && typeof s.path === "string" && !!demoDestination(s.path) && !!s.local && !!s.session &&
       Object.values(s.local).every(v => typeof v === "string") &&
       Object.values(s.session).every(v => typeof v === "string");
   } catch { return false; }
@@ -111,27 +115,65 @@ export class DemoStore {
   revision = 0;
   constructor(state: unknown) {
     this.state = validateDemoState(state) ? structuredClone(state) : freshDemo();
+    // Legacy sessions are retained, not replaced with a new returning-member seed.
+    this.state.journeyStarted ??= true;
+    if (!this.state.navigation || !Array.isArray(this.state.navigation.entries) ||
+      !Number.isInteger(this.state.navigation.index) ||
+      this.state.navigation.index < 0 ||
+      this.state.navigation.index >= this.state.navigation.entries.length ||
+      this.state.navigation.entries.some(p => typeof p !== "string" || !demoDestination(p))) {
+      this.state.navigation = { entries: [this.state.path], index: 0 };
+    }
     if (this.state.workflow === "macro") seedCalculatorFromProfile(this.state);
   }
   subscribe = (fn: () => void) => { this.listeners.add(fn); return () => { this.listeners.delete(fn); }; };
   changed = () => { this.revision++; this.listeners.forEach(fn => fn()); };
   patchUser(fields: Record<string, any>) {
     // Identity and privileges are immutable, including on malformed save payloads.
-    const { id, email, role, isAdmin, isFounder, professionalRole, ...profile } = fields;
+    const { id, email, role, isAdmin, isFounder, professionalRole,
+      isTester, isSandbox, isProCare, hasStudioMembership, studioMembership,
+      operatingStatus, builderSwitchUnlimited, accessTier, planLookupKey, plan,
+      subscriptionPlan, subscriptionStatus, entitlements, builderChangesUsed,
+      builderChangeLimit, ...profile } = fields;
     if ("firstName" in profile || "lastName" in profile) {
       profile.name = `${profile.firstName ?? this.state.user.firstName ?? ""} ${profile.lastName ?? this.state.user.lastName ?? ""}`.trim();
     }
-    this.state = { ...this.state, user: { ...this.state.user, ...profile } };
+    this.state = { ...this.state, journeyStarted: true, user: { ...this.state.user, ...profile } };
     assertSyntheticIdentity(this.state.user); this.changed();
   }
-  navigate = (path: string) => {
-    const clean = path.split("?")[0];
-    const workflow: DemoWorkflow | null = clean.startsWith("/onboarding") ? "onboarding"
-      : clean === "/macro-counter" ? "macro" : clean === "/dashboard" || clean === "/home" ? "dashboard" : null;
-    if (!workflow && clean !== "/") this.blocked.add(`Navigation outside Phase 1: ${clean}`);
-    this.state = { ...this.state, workflow, path: workflow ? path : "/" };
+  navigate = (input: string, options?: { replace?: boolean }) => {
+    if (input.startsWith("https://demo.invalid/")) input = input.slice("https://demo.invalid".length);
+    const path = demoDestination(input, this.state.path);
+    if (!path) { this.blocked.add(blockedDestination(input)); this.changed(); return; }
+    const clean = path.split(/[?#]/)[0];
+    const workflow: DemoWorkflow | null = clean === "/" ? null
+      : clean.startsWith("/onboarding") ? "onboarding" : clean === "/macro-counter" ? "macro" : "dashboard";
+    const history = this.state.navigation ?? { entries: [this.state.path], index: 0 };
+    const entries = history.entries.slice(0, history.index + 1);
+    if (options?.replace) entries[entries.length - 1] = path;
+    else if (entries[entries.length - 1] !== path) entries.push(path);
+    this.state = { ...this.state, workflow, path, journeyStarted: true,
+      navigation: { entries, index: entries.length - 1 } };
     if (workflow === "macro") seedCalculatorFromProfile(this.state);
     this.changed();
+  };
+  travel = (delta: number) => {
+    const h = this.state.navigation;
+    if (!h || !Number.isInteger(delta)) return;
+    const index = h.index + delta;
+    if (index < 0 || index >= h.entries.length || index === h.index) return;
+    const destination = h.entries[index];
+    if (!demoDestination(destination)) { this.blocked.add(blockedDestination(destination)); this.changed(); return; }
+    const clean = destination.split(/[?#]/)[0];
+    this.state = { ...this.state, path: destination, workflow: clean === "/" ? null
+      : clean.startsWith("/onboarding") ? "onboarding" : clean === "/macro-counter" ? "macro" : "dashboard",
+      navigation: { ...h, index } };
+    if (this.state.workflow === "macro") seedCalculatorFromProfile(this.state);
+    this.changed();
+  };
+  enter = () => {
+    if (!this.state.journeyStarted) this.reset("dashboard");
+    else this.navigate("/dashboard");
   };
   reset(workflow: DemoWorkflow | null) { this.state = freshDemo(workflow); this.blocked.clear(); this.changed(); }
 }

@@ -1,9 +1,11 @@
-# My Perfect Meals Demo Studio — Phase 1
+# My Perfect Meals Demo Studio — Phase 1 and Group 1
 
 ## What this is
 
 A connected, Development-only synthetic walkthrough using the **actual**
-`OnboardingV3`, `MacroCalculator`, and `DashboardNew` source components.
+`OnboardingV3`, `MacroCalculator`, and `DashboardNew` source components, now
+connected to the normal Dashboard / Builders / Lifestyle / More navigation and
+the safe Cravings and Beverage landing hubs.
 It is the foundation for Demo Mode, not a backend Test Sandbox.
 Do not describe it as a verified, full Stripe-style test environment.
 
@@ -19,8 +21,10 @@ profile and its macro targets. Dashboard's nutrition summary uses those targets.
 2. Keep the existing Development application running. No backend restart is
    necessary. At desktop width (768px or wider), open **Dev Navigator**.
 3. Select **Open Demo Studio**, in its own section above developer diagnostics.
-4. Choose **Start Fresh** beside **Onboarding**, **Macro calculator**, or
-   **Member dashboard**. All use the reserved synthetic identity
+4. Select **Enter Demo Mode** to open the actual Dashboard. It seeds a returning
+   synthetic member on first entry and retains existing progress on later entries.
+   The three original **Start Fresh** workflows remain under **Existing Phase 1
+   workflows**. All use the reserved synthetic identity
    `demo-studio-user`, never the account signed in behind the studio.
 
 The normal Development-tools visibility gate must already be enabled. This
@@ -55,6 +59,8 @@ that state is memory-only until the studio closes.
   workflow's original seed. This intentionally discards earlier demo selections,
   including selections made in the other screens of the connected journey.
 - **Reset All Demo Data** clears that same demo journey and returns to the chooser.
+- **Reset Demo** restores the default returning-member Dashboard, including the
+  initial builder choice, targets, counters, memory stores and query cache.
 - A fresh Dashboard seed includes example saved targets; a fresh Calculator
   seed has not saved its targets; a fresh Onboarding seed has not completed
   onboarding.
@@ -82,7 +88,7 @@ storage is enumerated or cleared. No account or database reset is involved.
   fail closed with an unsupported-action disclosure. There is no original-fetch
   fallback. CSP independently sets `connect-src 'none'`; XHR, WebSocket,
   EventSource, workers, beacons, speech services and media capture are blocked.
-- Existing public brand images and the Dashboard hero are embedded at build time rather than
+- Existing public brand images, the Dashboard hero and approved hub backgrounds are embedded at build time rather than
   fetched from the authenticated app. Other HTTP image/media requests are denied.
 - Static bundle/style preparation requests omit account credentials. The normal
   parent app may continue its own polling; those are not demo requests and are
@@ -93,8 +99,9 @@ storage is enumerated or cleared. No account or database reset is involved.
 
 ## Deliberate limitations
 
-- Only these three workflows are connected. Menu, Creators, grocery/shopping
-  lists, professional workflows and other navigation remain outside Phase 1.
+- Group 1 adds bounded navigation and verified landing pages, not functional
+  Creators, meal generation, shopping, clinical or professional workflows.
+  See [Group 1 scope](demo-studio-group-1.md) for supported and blocked destinations.
 - Macro results are explicitly **synthetic nonclinical illustrations**, not
   production prescription calculations or clinical-validation evidence.
 - No real AI, billing, email, messages, uploads, audio generation, recording,
