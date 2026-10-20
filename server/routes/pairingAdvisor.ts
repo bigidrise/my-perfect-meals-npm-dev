@@ -38,7 +38,7 @@ export function createAdvisorRouter(options: AdvisorRouterOptions) {
         return;
       }
       const lease = limits.acquire(accountId);
-      if (!lease.accepted) {
+      if (lease.accepted === false) {
         res.setHeader("Retry-After", String(lease.retryAfterSeconds));
         res.status(429).json({ error: "Advisor request limit reached", code: lease.reason });
         return;

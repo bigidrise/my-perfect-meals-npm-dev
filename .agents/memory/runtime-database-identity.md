@@ -45,6 +45,12 @@ Request-wiring verification need not wait for a migration-free application start
 
 **How to apply:** Execute the saved handler and route binding with allowlisted fixture dependencies. Clearly distinguish wiring checks from real authentication, database-backed policy, and model compliance.
 
+An isolated validation HTTP port does not authorize live account creation on shared Neon. Routine authentication validation must remain credential-free; live account lifecycle testing requires a separately approved cleanup strategy.
+
+**Why:** Live validation left temporary accounts behind because the Development billing safeguard deliberately rejects parent-user deletion to protect financial cascades. Passing login checks must not conceal failed cleanup, and the safeguard must not be relaxed for test convenience.
+
+**How to apply:** Use mocked requests and blocked database/network transports for routine checks. Treat cleanup failure as failure, retain sanitized evidence, and never describe fixture success as live authentication coverage.
+
 For explicitly approved additive, Development-only clinical storage, "Development-only" gates the migration command and application access, not the physical schema: new tables exist on shared Neon while food reads remain unchanged. Do not substitute a requirement for a separate Development database after that approval.
 
 **Why:** Requiring independent branch isolation contradicted the confirmed shared-database arrangement and delayed an approved additive migration.

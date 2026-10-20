@@ -3,7 +3,10 @@
  * scripts/test-auth-integration.ts
  *
  * Auth login + session restore integration tests.
- * Runs against a live server at BASE_URL (default: http://localhost:5000).
+ * Live execution is disabled: Development and Production share a database,
+ * and the Development billing guard intentionally rejects account deletion.
+ * The retained harness is exercised only with mocked requests by the isolated
+ * auth-validation-safety suite. There is no live-execution override.
  *
  * Test cases:
  *   1. Missing credentials          → 400
@@ -13,8 +16,7 @@
  *   5. Session restore via token    → 200 + user profile
  *   6. Session restore bad token    → 401
  *
- * The script creates a temporary test account, runs all checks, then deletes
- * the account so it leaves no permanent state. Exit code: 0 = all pass, 1 = any fail.
+ * The harness treats cleanup as mandatory and includes its result in success.
  *
  * Usage:
  *   npx tsx scripts/test-auth-integration.ts [--base-url http://localhost:5000]
@@ -38,6 +40,7 @@ interface Result {
 
 const results: Result[] = [];
 let testAuthToken = "";
+let testUserCreated = false;
 
 function pass(label: string, detail = ""): void {
   results.push({ label, pass: true, detail });
@@ -73,7 +76,16 @@ async function get(path: string, headers: Record<string, string> = {}) {
 
 async function deleteReq(path: string, headers: Record<string, string> = {}) {
   const res = await fetch(`${BASE_URL}${path}`, { method: "DELETE", headers });
-  return { status: res.status };
+  let code = "";
+  try {
+    const body = await res.json() as Record<string, unknown>;
+    // Preserve only a bounded machine code, never arbitrary response text,
+    // tokens, account identifiers, or personal data.
+    if (typeof body?.code === "string" && /^[A-Z][A-Z0-9_]{0,79}$/.test(body.code)) {
+      code = body.code;
+    }
+  } catch { /* 204 responses have no body. */ }
+  return { status: res.status, code };
 }
 
 // ─── Test 1: Missing credentials → 400 ───────────────────────────────────────
@@ -118,7 +130,8 @@ async function createTestUser(): Promise<boolean> {
       password: TEST_PASSWORD,
     });
     if (status === 200 || status === 201) {
-      pass(label, `userId=${(json as Record<string, unknown>)?.id}`);
+      testUserCreated = true;
+      pass(label, `status=${status}`);
       // Store token for session test; also needed for cleanup
       testAuthToken = ((json as Record<string, unknown>)?.authToken as string) || "";
       return true;
@@ -161,7 +174,7 @@ async function testValidLogin(): Promise<boolean> {
     const body = json as Record<string, unknown> | null;
     if (status === 200 && typeof body?.authToken === "string" && body.authToken.length > 0) {
       testAuthToken = body.authToken as string;
-      pass(label, `status=${status}, tokenPrefix=${testAuthToken.slice(0, 8)}…`);
+      pass(label, `status=${status}, token received`);
       return true;
     } else {
       fail(label, `status=${status}, hasToken=${typeof body?.authToken}, body=${JSON.stringify(json)}`);
@@ -215,19 +228,23 @@ async function testSessionBadToken() {
 
 // ─── Cleanup: delete the test account ────────────────────────────────────────
 async function cleanupTestUser() {
-  if (!testAuthToken) return;
+  if (!testUserCreated) return;
+  const label = "Cleanup: temporary authentication account";
+  if (!testAuthToken) {
+    fail(label, "cleanup credential unavailable; account removal not confirmed");
+    return;
+  }
   try {
-    const { status } = await deleteReq("/api/auth/delete-account", {
+    const { status, code } = await deleteReq("/api/auth/delete-account", {
       "x-auth-token": testAuthToken,
     });
     if (status === 204 || status === 200) {
-      console.log(`  🧹 Cleanup: test user deleted (status=${status})`);
+      pass(label, `status=${status}`);
     } else {
-      console.warn(`  ⚠️  Cleanup: delete returned ${status} — test user may need manual removal`);
-      console.warn(`     email: ${TEST_EMAIL}`);
+      fail(label, `status=${status}${code ? ` code=${code}` : ""}; account removal not confirmed`);
     }
-  } catch (e: unknown) {
-    console.warn(`  ⚠️  Cleanup: delete-account request failed — ${String(e)}`);
+  } catch {
+    fail(label, "cleanup request failed; account removal not confirmed");
   }
 }
 
@@ -243,16 +260,18 @@ async function main() {
   await testNonExistentEmail();
 
   // Create temp user for the remaining tests
-  const created = await createTestUser();
-  if (created) {
-    await testWrongPassword();
-    await testValidLogin();
-    await testSessionRestore();
-    await testSessionBadToken();
+  try {
+    const created = await createTestUser();
+    if (created) {
+      await testWrongPassword();
+      await testValidLogin();
+      await testSessionRestore();
+      await testSessionBadToken();
+    } else {
+      console.log("  Skipping per-user checks because signup failed");
+    }
+  } finally {
     await cleanupTestUser();
-  } else {
-    // Still run the error-path tests even if signup failed (route must be mounted)
-    console.log("  ⚠️  Skipping per-user tests (signup failed)");
   }
 
   // ─── Summary ────────────────────────────────────────────────────────────────
@@ -273,7 +292,7 @@ async function main() {
   }
 }
 
-main().catch((e) => {
-  console.error("  ❌ Auth integration test runner crashed:", e);
-  process.exit(1);
-});
+// Fail before any HTTP request. Do not add an environment/CLI bypass: a safe
+// disposable-account lifecycle strategy requires separate explicit approval.
+console.error("Live authentication lifecycle validation is disabled: shared-database account creation and deletion are not authorized. Run the isolated auth-validation-safety suite instead.");
+process.exitCode = 1;

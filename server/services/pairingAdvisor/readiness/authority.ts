@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { SafetySourceKey } from "../../nutritionResolutionContext";
-import type { SafetyAuthority } from "../../../../shared/pairingAdvisor/contracts";
+import type { ReadySafetyAuthority } from "../../../../shared/pairingAdvisor/contracts";
 import { immutableCopy } from "./immutable";
 import { ReadinessFailure } from "./execution";
 
@@ -18,7 +18,7 @@ export const CheckEnvelope = z.object({
 export type CheckEnvelope = z.infer<typeof CheckEnvelope>;
 export type OwnerAuthority = {
   kind: "strict_owner_authority";
-  authority: Extract<SafetyAuthority, { status: "ready" }>;
+  authority: ReadySafetyAuthority;
   envelope: CheckEnvelope;
   constraints: string;
 };

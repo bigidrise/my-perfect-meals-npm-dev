@@ -85,7 +85,7 @@ export function createOfflineReadinessController(options: OfflineReadinessOption
       try {
         authorize(owner);
         const lease = requestLimits.acquire(owner.accountId);
-        if (!lease.accepted) throw new ReadinessFailure(lease.reason);
+        if (lease.accepted === false) throw new ReadinessFailure(lease.reason);
         release = lease.release;
         // Bound before parsing, cloning, storing or interpreting. Never echo parser/provider errors.
         if (Buffer.byteLength(JSON.stringify(raw) ?? "", "utf8") > ContextLimits.requestBytes) {
