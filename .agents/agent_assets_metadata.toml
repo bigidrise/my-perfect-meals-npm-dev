@@ -439,3 +439,17 @@ mtime_ms = 1792013351616
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/10027e2a-8fc2-48fb-b39f-ad2f09996760/3f2cae20-c518-426f-bd4f-842dc400bff5"
 storage_version_token = "1792013451414506"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "mn5KxWcVRA_6DHTzYQt4X"
+uri = "file://docs/pairing-advisor-readiness-offline-ac.md"
+type = "text"
+title = "AI Pairing Advisor — Offline A–C Verification"
+description = "Implementation report with exact changed files, 530 passing tests, unchanged TypeScript baselines, continuity guarantees, unresolved risks, and approval boundaries."
+logical_id = "a26ddad3-52e7-45e1-93dd-a37b9b262fdd"
+content_hash = "sha256:1575913063db59ecc18f7aa7e0527e1d7a345dd4a5a72c416837f771ed558945"
+size = 13410
+mtime_ms = 1792467253340
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/a26ddad3-52e7-45e1-93dd-a37b9b262fdd/3c3cfb37-5f88-42fe-aeac-3d6033ef603b"
+storage_version_token = "1792467262416157"
+content_type = "text/markdown"

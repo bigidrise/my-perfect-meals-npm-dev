@@ -1,0 +1,11 @@
+{
+  "extends": "../pairingAdvisorOffline/tsconfig.json",
+  "include": [
+    "./*.ts",
+    "../../../shared/pairingAdvisor/**/*.ts",
+    "../../services/pairingAdvisor/**/*.ts",
+    "../../services/pairings/wineListIdentity.ts",
+    "../../services/nutritionResolutionContext.ts",
+    "../pairingAdvisorOffline/fixtures.ts"
+  ]
+}
