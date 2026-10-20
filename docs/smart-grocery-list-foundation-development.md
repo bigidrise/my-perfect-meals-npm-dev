@@ -1,5 +1,11 @@
 # Smart Grocery List persistence foundation — Development handoff
 
+Follow-up status: the guarded Development restart and non-mutating runtime
+verification are now complete. See
+`docs/smart-grocery-list-runtime-verification.md` for the safety review, runtime
+results and remaining live-persistence limitation. The implementation/test results
+below describe the initial foundation stage.
+
 ## Release boundary
 
 This is a Development-only persistence foundation, not a product-recommendation release.
@@ -148,10 +154,10 @@ shared-database end-to-end test.
   replacement retains metadata only when its replacement payload supplies it.
 - Legacy Saved Grocery restoration keeps existing metadata; it does not automatically
   add metadata to an old row that has none.
-- A restart/reload of the application server is still required to load new server
-  code into the existing long-running process. The application was not restarted:
-  its startup can run unrelated database migrations, outside this authorization.
-  Synthetic route tests loaded the changed handlers independently.
+- The initially deferred application restart has now been completed using the
+  existing pre-import safe Development mode, after reviewing its migration and
+  worker guards. Live preview checks confirm the new handler is loaded; actual
+  authenticated Neon save/refresh was not exercised. See the runtime report.
 
 The approved nullable/no-default additive column is compatible with old inserts.
 It must not be removed by a later schema synchronization operation.
@@ -159,8 +165,9 @@ It must not be removed by a later schema synchronization operation.
 ## 6. Approval boundaries
 
 No approval is needed to complete the code and isolated verification described here.
-Before using the changed server code interactively, a safe Development server restart
-must be coordinated without unrelated database operations. No restart was attempted.
+The subsequent authorized safe Development restart is complete. No startup migrations
+were enabled. Further shared-database write verification needs an isolated identity
+and narrowly scoped cleanup plan before proceeding.
 Repairing unrelated full-project TypeScript errors and any Production promotion are
 separate work. Product-selection UI, product recommendations, clinical evaluation
 integration and the next phase require explicit approval.
