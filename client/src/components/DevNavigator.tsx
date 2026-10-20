@@ -6,6 +6,7 @@ import { getAuthHeaders } from "@/lib/auth";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { apiRequest } from "@/lib/apiRequest";
 import WelcomeGate from "@/components/WelcomeGate";
+import DemoStudioLauncher from "@/demo-studio/DemoStudioLauncher";
 
 interface NavSection {
   title: string;
@@ -24,8 +25,7 @@ const NAV_SECTIONS: NavSection[] = [
       { path: "/guest-builder", label: "Guest Builder" },
       { path: "/guest-suite", label: "Guest Suite" },
       { path: "/onboarding", label: "Onboarding (V3)" },
-      { path: "/onboarding-v2", label: "Onboarding V2" },
-      { path: "/onboarding-legacy", label: "Onboarding Legacy" },
+      { path: "/onboarding-v2", label: "Onboarding (V3 compatibility route)" },
       { path: "/onboarding/extended", label: "Extended Onboarding" },
       { path: "/consumer-welcome", label: "Consumer Welcome" },
       { path: "/trainer-welcome", label: "Trainer Welcome" },
@@ -77,11 +77,8 @@ const NAV_SECTIONS: NavSection[] = [
       { path: "/lifestyle/chefs-kitchen", label: "Chef's Kitchen" },
       { path: "/craving-creator", label: "Craving Creator" },
       { path: "/craving-creator-landing", label: "Craving Landing" },
-      { path: "/craving-studio", label: "Craving Studio" },
       { path: "/craving-desserts", label: "Dessert Creator" },
-      { path: "/dessert-studio", label: "Dessert Studio" },
       { path: "/fridge-rescue", label: "Fridge Rescue" },
-      { path: "/fridge-rescue-studio", label: "Fridge Rescue Studio" },
     ],
   },
   {
@@ -127,10 +124,6 @@ const NAV_SECTIONS: NavSection[] = [
     title: "Beverage",
     routes: [
       { path: "/lifestyle/beverage-creator", label: "Beverage Creator" },
-      { path: "/beer-pairing", label: "Beer Pairing" },
-      { path: "/bourbon-spirits", label: "Bourbon & Spirits" },
-      { path: "/wine-pairing", label: "Wine Pairing" },
-      { path: "/meal-pairing-ai", label: "Meal Pairing AI" },
       { path: "/weaning-off-tool", label: "Weaning Off Tool" },
     ],
   },
@@ -475,6 +468,7 @@ function ProDashboardPreview({ onNavigate }: { onNavigate: (path: string) => voi
 export default function DevNavigator() {
   const [open, setOpen] = useState(false);
   const [showWelcomePreview, setShowWelcomePreview] = useState(false);
+  const [showDemoStudio, setShowDemoStudio] = useState(false);
   const [, setLocation] = useLocation();
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["Pro Dashboard Preview"]));
 
@@ -512,6 +506,8 @@ export default function DevNavigator() {
     );
   }
 
+  if (showDemoStudio) return <DemoStudioLauncher onClose={() => setShowDemoStudio(false)} />;
+
   if (!open) {
     return (
       <button
@@ -541,6 +537,16 @@ export default function DevNavigator() {
       </div>
 
       <div className="p-3 space-y-2 pb-24">
+        <section className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-4 mb-4">
+          <h2 className="font-semibold text-amber-100">Demo Studio</h2>
+          <p className="text-xs text-white/60 mt-1 mb-3">
+            Connected Onboarding, Macro Calculator, and Dashboard. Synthetic data only; separate from developer diagnostics.
+          </p>
+          <button onClick={() => { setOpen(false); setShowDemoStudio(true); }}
+            className="rounded-lg px-4 py-2 bg-amber-600 text-white text-sm font-semibold">
+            Open Demo Studio
+          </button>
+        </section>
 
         {/* ── PRO DASHBOARD PREVIEW — always at the top ── */}
         <div className="rounded-xl bg-white/5 border border-amber-500/20 overflow-hidden">

@@ -45,6 +45,7 @@
 - [Beverage safeguard alternative parity](beverage-safeguard-alternative-parity.md) — alternative offers must use every original validation surface and stay DEV-gated until intentionally released.
 - [Pairing release boundary](pairing-foundation-release-boundary.md) — Phase 1 frozen; advisor verification and approved opt-in corrections are offline-only; no runtime activation.
 - [Isolated preview runtimes](isolated-preview-runtime-boundary.md) — private preview approval and React test execution must not change the main application's environment or authority.
+- [Demo Studio authority](demo-studio-authority.md) — connected synthetic Demo Mode is not a backend Test Sandbox; Phase 1 stays Development-only and limited to three workflows.
 - [Pre-registration trial activation](pre-registration-trial-activation.md) — Pilot and Client access are separate identities; their clocks start only when a matching account activates.
 - [Hydration references](hydration-reference-index.md) — timing, intake bridge, numeric governance, eligibility, product doors, Creator handoffs, professional roles, and paywall.
 - [Professional legal activation boundary](professional-legal-activation-boundary.md) — ProCare activation and provider actions require explicit current attestation and role-specific agreements.

@@ -17,6 +17,8 @@ import { clearNutritionCache } from "@/hooks/nutritionStateCache";
 import { isExactPublicMarketingRoute } from "@/lib/publicRoutePolicy";
 import { createSingleFlight } from "@/lib/singleFlight";
 import { DEVELOPMENT_AUTH_PUBLIC_PATHS } from "@/lib/developmentAuthRoutes";
+import { assertIsolatedDemoRuntime } from "@/demo-studio/runtimeAuthority";
+import { assertSyntheticIdentity } from "@/demo-studio/authority";
 
 interface AuthContextType {
   user: User | null;
@@ -489,4 +491,37 @@ export function useAuth() {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
+}
+
+/**
+ * Additive provider seam for the opaque, sandboxed Development demo frame only.
+ * Does not mount AuthProvider, restore a session, mint a token, or fetch a profile.
+ * The normal AuthProvider and useAuth paths above are intentionally unchanged.
+ */
+export function IsolatedDemoAuthProvider({
+  user, onChange, readUser, children,
+}: {
+  user: User;
+  onChange: (user: User) => void;
+  readUser: () => User;
+  children: ReactNode;
+}) {
+  assertIsolatedDemoRuntime();
+  assertSyntheticIdentity(user);
+  const setDemoUser = (next: User | null) => {
+    assertSyntheticIdentity(next);
+    onChange(next!);
+  };
+  return (
+    <AuthContext.Provider value={{
+      user, loading: false, setUser: setDemoUser,
+      refreshUser: async () => {
+        const current = readUser();
+        assertSyntheticIdentity(current);
+        return current;
+      },
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
