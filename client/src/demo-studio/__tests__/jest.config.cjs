@@ -5,6 +5,7 @@ module.exports = {
     "<rootDir>/client/src/demo-studio/__tests__/isolation.test.ts",
     "<rootDir>/client/src/demo-studio/__tests__/liveApiBoundary.test.ts",
     "<rootDir>/client/src/demo-studio/__tests__/authProvider.test.tsx",
+    "<rootDir>/client/src/demo-studio/__tests__/studioControls.test.tsx",
     "<rootDir>/client/src/demo-studio/__tests__/runtimeBarriers.test.ts",
     "<rootDir>/client/src/demo-studio/__tests__/navigation.test.ts",
     "<rootDir>/client/src/lib/__tests__/fetch-credentials-patch.test.ts",
