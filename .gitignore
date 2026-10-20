@@ -77,5 +77,6 @@ docs/localization/value-quality-report.json
 docs/localization/screenshots/
 
 # Playwright test artifacts
+client/.demo-studio-runtime/
 test-results/
 .agents/outputs/

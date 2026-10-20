@@ -7,6 +7,7 @@
     "node": ">=20.0.0"
   },
   "scripts": {
+    "demo:prepare": "node scripts/build-demo-studio.mjs",
     "test": "jest",
     "test:fridge-rescue-contract": "jest server/tests/fridgeRescueHumanFood.contract.test.ts --runInBand --forceExit",
     "dev": "NODE_ENV=development tsx server/devBootstrap.ts",
