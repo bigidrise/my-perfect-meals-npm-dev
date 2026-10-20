@@ -28,6 +28,17 @@ should not be collapsible. This visibility correction does not resume expansion.
 **How to apply:** Preserve existing workflow actions and isolation; do not hide these
 choices behind a dropdown or disclosure when simplifying the Studio controls.
 
+Active walkthroughs must leave most of the screen for the real application, using
+compact visible controls rather than a tall Studio panel. The full workflow chooser
+belongs on Return to Demo Studio.
+
+**Why:** The user records YouTube demonstrations and reported the expanded controls took
+half the screen. Keep the choices discoverable without sacrificing recording space.
+
+**How to apply:** Keep the active toolbar compact, preserve all workflow and reset actions,
+and size the isolated application viewport to the remaining height. Do not change the
+normal application's viewport or scrolling rules to accommodate Demo Studio.
+
 Demo Studio is the foundation of My Perfect Meals Demo Mode: a connected customer-facing
 journey using synthetic data, not three disconnected recording previews.
 Onboarding must carry into the Macro Calculator and Dashboard until explicitly reset.

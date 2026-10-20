@@ -14,8 +14,11 @@ export function makeDemoDocument(js: string, css: string, initialState: unknown,
 <title>My Perfect Meals · Demo Mode</title><style>${css.replace(/<\/style/gi, "<\\/style")}
 html,body,#root{height:100%;margin:0}
 .demo-studio{height:100dvh;min-height:0!important;display:flex;flex-direction:column;overflow:auto}
-.ds-stage{flex:1;min-height:360px;position:relative;display:flex;flex-direction:column}
+.demo-studio.ds-session{overflow:hidden;margin:0;border:0;border-radius:0}
+.ds-stage{flex:1;min-height:0;position:relative;display:flex;flex-direction:column}
+.ds-stage>p{flex:0 0 auto;margin:0}
 .ds-stage>div{flex:1;min-height:0;position:relative}
+.ds-stage[data-workflow="onboarding"] #root-viewport .min-h-screen{min-height:100%}
 </style>
 </head><body><div id="root"></div><script>window.__mpmDemoInitialState=${literal(validateDemoState(initialState) ? initialState : null)};
 window.__mpmDemoChannel=${literal(channel)};</script><script>${js.replace(/<\/script/gi, "<\\/script")}</script></body></html>`;
