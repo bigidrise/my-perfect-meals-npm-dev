@@ -35,6 +35,26 @@ export type ValidationResult =
 export function validateAdvisorResponse(
   raw: unknown, decision: PolicyDecision, rawEvidence: unknown, rawReview: unknown,
 ): ValidationResult {
+  const candidate = validateAdvisorCandidate(raw, decision, rawEvidence);
+  if (candidate.status !== "accepted") return candidate;
+  const response = candidate.response;
+  const generated = response.outcome === "education" || response.outcome === "recommendation"
+    || (response.outcome === "restricted" && response.education !== null);
+  if (!generated) return candidate;
+  const review = CompleteResponseReview.safeParse(rawReview);
+  if (!review.success || review.data.verdict !== "pass"
+    || review.data.reviewedPayload !== JSON.stringify(response)
+    || !review.data.intentBoundary || !review.data.evidenceClaims
+    || !review.data.noUnsafeAdvice || !review.data.referencesConsistent) {
+    return { status: "rejected", reason: "VALIDATION_FAILED" };
+  }
+  return candidate;
+}
+
+/** Deterministic pre-review checks only. Acceptance here is NEVER permission to render prose. */
+export function validateAdvisorCandidate(
+  raw: unknown, decision: PolicyDecision, rawEvidence: unknown,
+): ValidationResult {
   const reject = (): ValidationResult => ({ status: "rejected", reason: "VALIDATION_FAILED" });
   const parsed = AdvisorResponse.safeParse(raw);
   const evidence = EvidenceContext.safeParse(rawEvidence);
@@ -89,10 +109,5 @@ export function validateAdvisorResponse(
       }
     }
   }
-  const review = CompleteResponseReview.safeParse(rawReview);
-  if (!review.success || review.data.verdict !== "pass"
-    || review.data.reviewedPayload !== JSON.stringify(response)
-    || !review.data.intentBoundary || !review.data.evidenceClaims
-    || !review.data.noUnsafeAdvice || !review.data.referencesConsistent) return reject();
   return { status: "accepted", response };
 }

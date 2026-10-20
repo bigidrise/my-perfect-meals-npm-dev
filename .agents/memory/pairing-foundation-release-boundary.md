@@ -15,7 +15,7 @@ The education-versus-consumption distinction is the approved Phase 2 design base
 
 **How to apply:** Educational explanation is not personal consumption clearance. Chat history cannot override saved safety authority or substantiate bottle ingredients, availability, prices or supplied-list membership. Keep live runtime implementation and paid execution paused until separately authorized.
 
-Initial advisor scope is the authenticated account owner only. Missing required safety authority fails closed even for education; missing optional preferences is a separate concern. Newly disclosed relevant risks withhold personal advice without silently editing profiles. Attempt limits, deadlines and new endpoint HTTP mappings remain provisional.
+Initial advisor scope is the authenticated account owner only. Missing required safety authority fails closed even for education; missing optional preferences is a separate concern. Newly disclosed relevant risks withhold personal advice without silently editing profiles. Approved offline attempt/deadline/error contracts do not authorize live operational settings.
 
 **Why:** The user explicitly settled these design decisions while authorizing offline work only, keeping household resolution and operational settings for separate approval.
 
@@ -66,6 +66,12 @@ An isolated, undeployed Development-only conversational UI prototype is approved
 **Why:** The user separately approved the synthetic conversational experience while explicitly prohibiting customer entry points, live routes/providers, strict-owner activation, real profiles, database/schema/environment changes, Production changes, publishing, pushes and merges.
 
 **How to apply:** Keep the prototype separate from the three existing pairing screens and exclude its private preview from builds, preview serving and deployed runtimes. Display-shape validation is not clinical authority. Keep the application binding denied and stop after prototype verification; customer integration or live activation needs separate approval.
+
+Integration-readiness Increments A–C are approved only for offline adapter/control reliability, with synthetic inputs and mocked providers. Keep the prototype unchanged and application binding denied; stop for review before D–F, frontend integration or any live execution.
+
+**Why:** The user reaffirmed that the next milestone is completing and verifying the approved foundation, not launching Drink Pairing or expanding/redesigning it.
+
+**How to apply:** Preserve education versus consumption on every turn. Keep real strict-owner results separate from synthetic-only contracts. Disclosure continuity must survive supported-session chat/list resets, but do not claim cross-login, expired-session or process-restart continuity without separately approved storage. Offline success is not evidence of real language understanding, provider retry behavior or customer readiness.
 
 The larger product objective is an AI advisor that understands food, wine, flavor, preparation, personal preferences and real-world context, not just generic wine suggestions.
 
