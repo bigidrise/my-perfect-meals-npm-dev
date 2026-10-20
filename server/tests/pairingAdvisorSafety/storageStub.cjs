@@ -1,10 +1,10 @@
 // Memory-only replacement loaded BEFORE every module that imports application db.
 // Nothing in this file constructs a database driver, session store, or connection.
 const calls = { direct: [], client: [], clients: [], inserts: 0, selects: [], executions: 0, connects: 0, releases: 0 };
-const state = { rows: [], executeRows: null, allowMaterialization: false };
+const state = { rows: [], executeRows: null, executeQueue: [], executeError: null, queryRows: [], allowMaterialization: false };
 async function query(text, values) {
   calls.direct.push([text, values]);
-  return { rows: [] };
+  return { rows: state.queryRows };
 }
 const pool = {
   query,
@@ -17,12 +17,12 @@ const pool = {
         queries.push(String(text));
         calls.client.push([text, values]);
         const done = typeof values === "function" ? values : callback;
-        if (String(text).includes("synthetic_write_function")) {
+        if (String(typeof text === "object" ? text.text : text).includes("synthetic_write_function")) {
           const error = Object.assign(new Error("Synthetic READ ONLY rejection"), { code: "25006" });
           if (done) { queueMicrotask(() => done(error)); return; }
           return Promise.reject(error);
         }
-        const result = { rows: [] };
+        const result = { rows: state.queryRows };
         if (done) { queueMicrotask(() => done(null, result)); return; }
         return Promise.resolve(result);
       },
@@ -36,6 +36,7 @@ const db = {
     const run = async () => {
       await pool.query("SELECT synthetic_fixture");
       const rows = state.rows.shift();
+      if (rows instanceof Error) throw rows;
       if (!rows) throw new Error("Unexpected synthetic read; no live fallback");
       return selection
         ? rows.map(row => Object.fromEntries(Object.keys(selection).map(key => [key, row[key]])))
@@ -65,6 +66,8 @@ const db = {
   async execute() {
     calls.executions++;
     await pool.query("SELECT synthetic_guardrails");
+    if (state.executeError) throw state.executeError;
+    if (state.executeQueue.length) return { rows: state.executeQueue.shift() };
     if (!state.executeRows) throw new Error("Unexpected synthetic execute; no live fallback");
     return { rows: state.executeRows };
   },
@@ -77,6 +80,9 @@ function reset() {
   calls.inserts = calls.executions = calls.connects = calls.releases = 0;
   state.rows = [];
   state.executeRows = null;
+  state.executeQueue = [];
+  state.executeError = null;
+  state.queryRows = [];
   state.allowMaterialization = false;
 }
 module.exports = { pool, db, calls, state, reset };

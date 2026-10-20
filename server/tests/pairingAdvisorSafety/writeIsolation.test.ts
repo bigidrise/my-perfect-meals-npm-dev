@@ -157,12 +157,11 @@ describe("unexpected writes and swallowed failures", () => {
     })).rejects.toMatchObject(blocked);
     expect(storage.calls.client).toHaveLength(2);
   });
-  test.failing("KNOWN GAP: server-side callback read-only errors must prevent verified success", async () => {
+  test("server-side callback read-only errors prevent verified success", async () => {
     // Unlike a syntactically blocked INSERT, a SELECT invoking a write function
     // reaches the synthetic client. The shared helper only observes promise
     // rejections, not a server error delivered through pg's callback overload.
-    // Keep this desired-behavior regression explicitly failing until a separately
-    // approved shared-service fix wraps/records those callback errors.
+    // The corrected boundary records the server error before invoking the caller.
     await expect(verifiedNoSave(async () => {
       await new Promise<void>(resolve => storage.pool.query("SELECT synthetic_write_function()", error => {
         expect(error).toMatchObject({ code: "25006" });
@@ -170,6 +169,65 @@ describe("unexpected writes and swallowed failures", () => {
       }));
       return "must-not-escape";
     })).rejects.toMatchObject(blocked);
+  });
+  test.each(["text", "values", "config"])("25006 callback overload %s preserves receiver and records before callback", async form => {
+    const f = storage.pool;
+    await expect(verifiedNoSave(async state => {
+      await new Promise<void>(resolve => {
+        const callback = function(this: unknown, error: Error) {
+          expect(error).toMatchObject({ code: "25006" });
+          expect(state.blockedWriteCount).toBe(1);
+          resolve();
+        };
+        if (form === "text") f.query("SELECT synthetic_write_function()", callback);
+        else if (form === "values") f.query("SELECT synthetic_write_function()", [], callback);
+        else f.query({ text: "SELECT synthetic_write_function()", rowMode: "array" }, callback);
+      });
+    })).rejects.toMatchObject(blocked);
+  });
+  test("distinct swallowed server errors count as separate attempts", async () => {
+    await expect(verifiedNoSave(async state => {
+      await storage.pool.query("SELECT synthetic_write_function()").catch(() => undefined);
+      await new Promise<void>(resolve => storage.pool.query("SELECT synthetic_write_function()", () => resolve()));
+      expect(state.blockedWriteCount).toBe(2);
+    })).rejects.toMatchObject(blocked);
+  });
+  test("callback receiver, arguments, callback return, query return and scheduling are preserved", async () => {
+    const receiver = {};
+    const queryReturn = {};
+    const result = { rows: [{ synthetic: true }] };
+    const events: string[] = [];
+    let callbackReturn: unknown;
+    const fixturePool = {
+      query: jest.fn(),
+      connect: async () => ({
+        query(text: string, callback?: (...args: unknown[]) => unknown) {
+          if (!callback) return Promise.resolve({ rows: [] });
+          queueMicrotask(() => {
+            callbackReturn = callback.call(receiver, null, result);
+          });
+          return queryReturn;
+        },
+        release: jest.fn(),
+      }),
+    } as unknown as Pool;
+    await boundary.withDevelopmentNoSaveDatabase(fixturePool, async state => {
+      await new Promise<void>(resolve => {
+        const returned = Reflect.apply(fixturePool.query, fixturePool, ["SELECT 1", function(this: unknown, ...args: unknown[]) {
+          expect(this).toBe(receiver);
+          expect(args).toEqual([null, result]);
+          events.push("callback");
+          resolve();
+          return "original-callback-return";
+        }]);
+        expect(returned).toBe(queryReturn);
+        events.push("query-returned");
+      });
+      expect(state.blockedWriteCount).toBe(0);
+      boundary.assertNoDevelopmentTestWrites();
+    });
+    expect(callbackReturn).toBe("original-callback-return");
+    expect(events).toEqual(["query-returned", "callback"]);
   });
   test("nested connections cannot escape the current read-only transaction", async () => {
     await expect(verifiedNoSave(async () => {

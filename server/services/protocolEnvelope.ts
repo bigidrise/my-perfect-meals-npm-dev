@@ -68,6 +68,11 @@ import { buildUniversalConditionGuidance } from "./universalMedicalGuidance";
 import { projectOncologyRecommendationContext } from "./guardrails/prompt/oncologyRecommendationContext";
 import { readDevelopmentPersonalFoodSupports } from "./healthProtocols/developmentFoodSupports";
 import { resolveCurrentGLP1MealAuthority, currentGLP1AuthorityEnabled } from "./glp1/currentMealAuthority";
+import {
+  assertStrictOwner, establishOwnerDay, observeSource,
+  type StrictOwnerScope, type StrictOwnerClinicalContext,
+} from "./nutritionResolutionContext";
+import { PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED } from "../../shared/personalFoodSupportFreeze";
 import { scanClinicalFoodSafety } from "./healthProtocols/clinicalOutputChecks";
 import { derivePregnancyStage } from "@shared/pregnancyStage";
 import { validateDishIdentity } from "./dishAdaptation/dishIdentityValidator";
@@ -896,9 +901,18 @@ export async function loadUserProtocolEnvelope(
     skipDiabetesGlucose?: boolean;
     /** Caller has authorized the account itself as the nutrition subject. */
     personalSubject?: boolean;
+    strictOwner?: StrictOwnerScope;
   },
 ): Promise<UserProtocolEnvelope | null> {
+  const strict = options?.strictOwner;
   try {
+    if (strict) {
+      assertStrictOwner(strict, userId, !!householdProfileId);
+      if (options?.skipDiabetesGlucose || options?.includeDailyNutritionState === false) {
+        strict.resolution.fail("owner_profile", "unsupported");
+        return null;
+      }
+    }
     if (options?.diabetesAttempt) {
       assertDiabetesAttemptSubject(options.diabetesAttempt, userId);
       if (householdProfileId) throw new Error("A household meal cannot use the account owner's glucose snapshot");
@@ -959,15 +973,39 @@ export async function loadUserProtocolEnvelope(
       .limit(1);
 
     if (!user) {
+      strict?.resolution.record("owner_profile", { status: "absent", reasonCode: "successful_empty_read" });
       console.warn(`[ProtocolEnvelope] User not found: ${userId}`);
       return null;
+    }
+    if (strict) {
+      if (user.id !== strict.ownerId || [
+        user.allergies, user.dietaryRestrictions, user.healthConditions,
+        user.medicalConditions, user.specialtyConditions, user.avoidedFoods, user.dislikedFoods,
+      ].some(value => value != null && (!Array.isArray(value) || !value.every(item => typeof item === "string")))) {
+        strict.resolution.fail("owner_profile", "invalid_data");
+        return null;
+      }
+      strict.resolution.record("owner_profile", { status: "success", value: { id: user.id }, basis: "stored" });
+    }
+    let strictPerformanceMode = false;
+    if (strict) {
+      // Keep the legacy projection/SQL unchanged. This additional source read is
+      // exclusive to strict callers and preserves the existing performance flag.
+      const [performanceOwner] = await db.select({
+        id: users.id, performanceModeEnabled: users.performanceModeEnabled,
+      }).from(users).where(eq(users.id, userId)).limit(1);
+      if (!performanceOwner || performanceOwner.id !== userId) {
+        strict.resolution.fail("owner_profile", "invalid_data");
+        return null;
+      }
+      strictPerformanceMode = performanceOwner.performanceModeEnabled ?? false;
     }
 
     if (options?.personalSubject && householdProfileId) {
       throw new Error("A personal nutrition subject cannot include a household profile");
     }
     const scopedHouseholdProfileId = householdProfileId ??
-      (options?.personalSubject ? null : (user as any).activeHouseholdProfileId ?? null);
+      (options?.personalSubject || strict ? null : (user as any).activeHouseholdProfileId ?? null);
 
     // ── HOUSEHOLD PROFILE OVERLAY ─────────────────────────────────────────────
     // When the owner has switched to a household member's profile, overlay that
@@ -1071,8 +1109,10 @@ export async function loadUserProtocolEnvelope(
     const glp1Authority = await resolveCurrentGLP1MealAuthority(
       user as typeof user & { id: string },
       !!scopedHouseholdProfileId,
+      strict ? { strictOwner: strict } : undefined,
     );
-    const medicalConditionsGlp1 = currentGLP1AuthorityEnabled()
+    const currentAuthority = !!strict || currentGLP1AuthorityEnabled();
+    const medicalConditionsGlp1 = currentAuthority
       ? (glp1Authority.length > 0 ? ["glp1"] : [])
       : _activeMedicalConditions.filter((c: string) => GLP1_MC_KEYS.has(c.toLowerCase()));
     // Phase 2B: only an explicitly confirmed, active personal source may add
@@ -1080,12 +1120,21 @@ export async function loadUserProtocolEnvelope(
     // household member's support choice as the nutrition subject's context.
     const personalSupports = scopedHouseholdProfileId
       ? new Set()
-      : await readDevelopmentPersonalFoodSupports(userId);
+      : await readDevelopmentPersonalFoodSupports(userId).catch(error => {
+        strict?.resolution.fail("personal_supports", "read_failed");
+        throw error;
+      });
+    if (strict) {
+      if (!PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED) strict.resolution.notApplicable("personal_supports", "existing_support_gate_disabled");
+      else strict.resolution.record("personal_supports", personalSupports.size
+        ? { status: "success", value: [...personalSupports] as string[], basis: "stored" }
+        : { status: "absent", reasonCode: "successful_empty_read" });
+    }
     const mergedHealthConditions = [...new Set([
-      ...(currentGLP1AuthorityEnabled()
+      ...(currentAuthority
         ? healthConditions.filter((c) => !GLP1_MC_KEYS.has(c.toLowerCase()))
         : healthConditions),
-      ...(currentGLP1AuthorityEnabled()
+      ...(currentAuthority
         ? specialtyConditionsArr.filter((c) => !GLP1_MC_KEYS.has(c.toLowerCase()))
         : specialtyConditionsArr),
       ...medicalConditionsGlp1,
@@ -1095,17 +1144,27 @@ export async function loadUserProtocolEnvelope(
     ])];
     const dislikedFoods: string[] = (user.dislikedFoods as string[]) || [];
     const avoidedFoods: string[] = (user.avoidedFoods as string[]) || [];
-    const likedFoods: string[] = (user.likedFoods as string[]) || [];
+    let likedFoods: string[] = (user.likedFoods as string[]) || [];
+    if (strict && (!Array.isArray(likedFoods) || !likedFoods.every(item => typeof item === "string"))) {
+      strict.resolution.fail("preferences", "invalid_data");
+      likedFoods = [];
+    }
     // Resolve sweeteners with fallback: if AI-facing columns are empty (user
     // saved preferences before the bridge was deployed), derive from the legacy
     // sweetenerPreferences column so no re-save is required.
-    const { resolveSweetenerAllowlist } = await import("./promptBuilder");
-    const { preferred: resolvedSweeteners } = resolveSweetenerAllowlist(
-      (user.preferredSweeteners as string[]) || [],
-      ((user as any).avoidSweeteners as string[]) || [],
-      ((user as any).sweetenerPreferences as string[]) || []
-    );
-    const preferredSweeteners: string[] = resolvedSweeteners;
+    const readSweeteners = async () => {
+      const { resolveSweetenerAllowlist } = await import("./promptBuilder");
+      return resolveSweetenerAllowlist(
+        (user.preferredSweeteners as string[]) || [],
+        ((user as any).avoidSweeteners as string[]) || [],
+        ((user as any).sweetenerPreferences as string[]) || []
+      ).preferred;
+    };
+    const preferredSweeteners: string[] = await readSweeteners().catch(error => {
+      if (!strict) throw error;
+      strict.resolution.fail("preferences", "read_failed");
+      return [];
+    });
 
     const { hardLimits, optimization } = classifyHealthConditions(mergedHealthConditions);
     const avoidances = [...new Set([...dislikedFoods, ...avoidedFoods])];
@@ -1132,11 +1191,13 @@ export async function loadUserProtocolEnvelope(
         const diabCtx = options?.diabetesAttempt?.context ?? await getDiabeticContext(userId);
         diabeticGuidance = getGlucoseBasedMealGuidance(diabCtx);
         diabeticGlucoseState = diabCtx.latestGlucose?.state ?? null;
+        strict?.resolution.record("diabetes_context", { status: "success", value: diabCtx, basis: "stored" });
       } catch (err) {
+        strict?.resolution.fail("diabetes_context", "read_failed");
         console.warn("[ProtocolEnvelope] Could not load diabetic context:", err);
         return null;
       }
-    }
+    } else strict?.resolution.notApplicable("diabetes_context", "no_applicable_diabetes_context");
 
     // ── UNIVERSAL CONDITION GUIDANCE (GLP-1, Anti-Inflammatory, Renal, Cardiac, Liver, Oncology)
     // Builds directive guidance blocks for all active non-diabetic medical conditions.
@@ -1395,13 +1456,34 @@ export async function loadUserProtocolEnvelope(
             currentWeight: rawComp.currentWeight,
             targetWeight: rawComp.targetWeight,
           };
+          strict?.resolution.record("competition", { status: "success", value: competitionPrepCtx, basis: "calculated" });
         } catch {
+          if (strict) {
+            strict.resolution.fail("competition", "invalid_data");
+            return null;
+          }
           // Date engine failed — don't crash the envelope
         }
+      } else if (strict) {
+        strict.resolution.fail("competition", "missing_required");
+        return null;
+      }
+    } else strict?.resolution.notApplicable("competition", "competition_not_active");
+
+    let clinicalOwner: StrictOwnerClinicalContext | undefined;
+    if (strict) {
+      if (medicalConditionsGlp1.length || performanceNutrition || competitionPrep ||
+        (strictPerformanceMode && user.weeklyTrainingSchedule && user.performanceProtocolConfig)) {
+        clinicalOwner = establishOwnerDay(strict, user.timezone);
+      } else strict.resolution.notApplicable("timezone", "no_date_sensitive_clinical_sources");
+      if (!medicalConditionsGlp1.length && !performanceNutrition &&
+        !(strictPerformanceMode && user.weeklyTrainingSchedule && user.performanceProtocolConfig)) {
+        strict.resolution.notApplicable("prescription", "no_applicable_clinical_prescription");
+        strict.resolution.notApplicable("glp1_guardrails", "no_current_glp1");
+        strict.resolution.notApplicable("performance", "performance_modifier_not_active");
       }
     }
-
-    const conditionGuidanceBlocks = await buildUniversalConditionGuidance({
+    const conditionGuidanceBlocks = await observeSource(strict, "condition_guidance", () => buildUniversalConditionGuidance({
       userId: scopedHouseholdProfileId ?? userId,
       healthConditions: mergedHealthConditions,
       personalGlp1NutritionSupport: personalSupports.has("glp1") && user.selectedMealBuilder !== "glp1",
@@ -1432,7 +1514,7 @@ export async function loadUserProtocolEnvelope(
       competitionPrepContext: competitionPrepCtx,
       therapeuticSupportContext: therapeuticSupportCtx,
       alphaGalContext: alphaGalCtx,
-    });
+    }));
 
     // ── GLP-1 DAILY BEHAVIORAL TOLERANCE ────────────────────────────────────
     // Resolved only for users who have a GLP-1 / metabolic medication in their
@@ -1444,15 +1526,19 @@ export async function loadUserProtocolEnvelope(
     let glp1DailyTolerance: DailyMedicationTolerance | null = null;
     if (medicalConditionsGlp1.length > 0 && !scopedHouseholdProfileId) {
       try {
-        glp1DailyTolerance = await resolveDailyMedicationTolerance({
+        glp1DailyTolerance = await observeSource(strict, "glp1_tolerance", () => resolveDailyMedicationTolerance({
           userId: String(userId),
-        });
+          ...(clinicalOwner ? {
+            dateStr: clinicalOwner.day.localDate, timezone: clinicalOwner.day.timezone, now: strict?.now,
+          } : {}),
+        }));
         conditionGuidanceBlocks.push(buildGlp1ToleranceBlock(glp1DailyTolerance));
       } catch (err) {
+        strict?.resolution.fail("glp1_tolerance", "read_failed");
         console.warn("[ProtocolEnvelope] GLP-1 daily tolerance resolution failed:", err);
         return null;
       }
-    }
+    } else strict?.resolution.notApplicable("glp1_tolerance", "no_current_glp1");
 
     const rawCarbCycle = ((user as any).carbCycleState as any);
     const carbCycleContext: UserProtocolEnvelope["carbCycleContext"] =
@@ -1484,6 +1570,9 @@ export async function loadUserProtocolEnvelope(
             eq(providerClinicalInterventions.isActive, true)
           )
         );
+      if (strict) strict.resolution.record("provider_interventions", activeInterventions.length
+        ? { status: "success", value: activeInterventions, basis: "stored" }
+        : { status: "absent", reasonCode: "successful_empty_read" });
 
       if (activeInterventions.length > 0) {
         providerInterventions = activeInterventions.map(i => ({
@@ -1523,6 +1612,7 @@ export async function loadUserProtocolEnvelope(
         );
       }
     } catch (err) {
+      strict?.resolution.fail("provider_interventions", "read_failed");
       console.error(`[ProtocolEnvelope] Failed to load provider interventions for user ${userId}:`, err);
       return null;
     }
@@ -1600,16 +1690,25 @@ export async function loadUserProtocolEnvelope(
           schedule:         wts,
           config:           ppc,
           baseline,
-          timezone:         ((user as any).timezone as string | null) ?? "America/Chicago",
+          timezone:         clinicalOwner?.day.timezone ?? ((user as any).timezone as string | null) ?? "America/Chicago",
           performanceActive: true,
+          ...(clinicalOwner ? { strictOwner: clinicalOwner, now: strict?.now } : {}),
         });
+        strict?.resolution.record("daily_state", { status: "success", value: envelope.dailyNutritionState, basis: "calculated" });
       } catch (err) {
+        if (strict) {
+          strict.resolution.fail("daily_state", "read_failed");
+          return null;
+        }
         console.warn("[ProtocolEnvelope] Daily nutrition state resolution failed:", err);
       }
-    }
+    } else strict?.resolution.notApplicable("daily_state", "daily_state_not_active");
 
     return envelope;
   } catch (error) {
+    // Specific nested failures stay sticky; unobserved required sources remain
+    // unresolved and prevent the disconnected strict entry from issuing authority.
+    if (strict && !strict.resolution.get("owner_profile")) strict.resolution.fail("owner_profile", "read_failed");
     console.error("[ProtocolEnvelope] Failed to load envelope:", error);
     return null;
   }

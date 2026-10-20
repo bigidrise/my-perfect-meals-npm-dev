@@ -18,6 +18,7 @@ import { resolveDailyNutritionPrescription } from "./prescriptionResolver";
 import { getUserTimezone } from "./nutritionDayService";
 import { dailyNutritionPrescriptions } from "../db/schema/dailyNutritionPrescriptions";
 import { resolveCurrentGLP1MealAuthority } from "./glp1/currentMealAuthority";
+import { assertOwnerDay, type StrictOwnerClinicalContext } from "./nutritionResolutionContext";
 import type {
   DailyNutritionState,
   GenerationContext,
@@ -40,7 +41,10 @@ export async function resolveDailyNutritionState(
    * being replaced is not counted against its own replacement budget.
    */
   excludeItemId?: string,
+  options?: { strictOwner?: StrictOwnerClinicalContext },
 ): Promise<DailyNutritionState> {
+  const strict = options?.strictOwner;
+  if (strict) assertOwnerDay(strict, userId, dateISO);
   // ── Read stored prescription source BEFORE resolving ─────────────────────
   // The prescriptionResolver fire-and-forgets an upsert that overwrites this
   // row. Reading first ensures we capture the PREVIOUS source for mid-day
@@ -58,13 +62,14 @@ export async function resolveDailyNutritionState(
 
   // Now resolve concurrently — the upsert triggered here writes the NEW source.
   const [prescription, userRows, tz] = await Promise.all([
-    resolveDailyNutritionPrescription({ userId, dateISO }),
+    resolveDailyNutritionPrescription({ userId, dateISO }, strict ? { strictOwner: strict } : undefined),
     db.select().from(users).where(eq(users.id, userId)).limit(1),
-    getUserTimezone(userId),
+    strict ? Promise.resolve(strict.day.timezone) : getUserTimezone(userId),
   ]);
 
   const user = userRows[0];
   if (!user) throw new Error(`User not found: ${userId}`);
+  if (strict && user.id !== strict.ownerId) throw new Error("Strict owner identity mismatch");
 
   // ── Consumed: aggregate macro_logs for this user-local date ──────────────
   const consumedRows = await db.execute(sql`
@@ -249,7 +254,9 @@ export async function resolveDailyNutritionState(
   const medicalConditions = Array.isArray(user.medicalConditions)
     ? (user.medicalConditions as string[]) : [];
 
-  const glp1Active = (await resolveCurrentGLP1MealAuthority(user)).length > 0;
+  const glp1Active = (await (strict
+    ? resolveCurrentGLP1MealAuthority(user, false, { strictOwner: strict })
+    : resolveCurrentGLP1MealAuthority(user))).length > 0;
   const diabeticActive = specialtyConditions.includes("diabetic")
     || medicalConditions.some(c => c === "diabetic" || c.includes("diabetes"));
   const performanceActive = !!(user as any).performanceModeEnabled
