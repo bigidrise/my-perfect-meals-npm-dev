@@ -1,7 +1,22 @@
 ---
 name: Demo Studio product and authority boundary
-description: Connected Demo Mode is distinct from a future backend Test Sandbox; preserve Development-only Group 1 scope and shared-code approval boundaries.
+description: Demo Studio development is paused; preserve existing walkthroughs and isolation without expansions or a separate test environment.
 ---
+
+Demo Studio development is paused at its current state. Preserve all completed functionality,
+including Start Fresh, Continue Demo, the Onboarding and Macro Calculator walkthroughs,
+Dashboard navigation, and existing synthetic isolation protections. Do not remove, refactor,
+or change existing Demo Studio functionality.
+
+**Why:** The user says the current Demo Studio is sufficient for instructional recordings
+and does not want further development time or expense now. The regular application will
+be used for Meal Builders, Lifestyle, Favorites, Hydration, and other recordings.
+
+**How to apply:** Do not implement builder presentation expansion, a separate test environment,
+additional synthetic adapters, or new Demo Studio features. No code changes, GitHub pushes,
+or Production deployments are authorized by this work. Revisit Demo Studio only when the
+user identifies a specific future need. Earlier approvals below describe the preserved
+implementation boundary, not permission to resume development.
 
 Demo Studio is the foundation of My Perfect Meals Demo Mode: a connected customer-facing
 journey using synthetic data, not three disconnected recording previews.
