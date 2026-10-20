@@ -115,6 +115,7 @@ import inspirationRouter from "./routes/inspiration";
 import groceryCoachRouter from "./routes/groceryCoach";
 import mealRefinementRouter from "./routes/mealRefinement";
 import savedGroceriesRouter from "./routes/savedGroceries";
+import { shoppingMetadataDevelopment, developmentShoppingPost } from "./services/shopping-list/metadataPersistence";
 import pregnancyCoachRouter from "./routes/pregnancyCoach";
 import coachingEngineRouter from "./routes/coachingEngine";
 import performanceNutritionRouter from "./routes/performanceNutrition";
@@ -3762,6 +3763,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "Not authenticated. Please sign in." 
         });
       }
+
+      if (shoppingMetadataDevelopment()) return await developmentShoppingPost(req, res, db, userId);
 
       const { 
         items = [], 

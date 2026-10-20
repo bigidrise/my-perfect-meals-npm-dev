@@ -6,6 +6,7 @@ import { eq, and } from "drizzle-orm";
 import { requireAuth } from "../middleware/requireAuth";
 import { getAuthUserId } from "../utils/getAuthUserId";
 import { getLanguageInstruction } from "../utils/languageInstruction";
+import { shoppingMetadataDevelopment, developmentItemPatch, metadataInputFailure, developmentMealCommit, developmentMealIngredients, developmentIngredientFields, aggregateDevelopmentShoppingItems } from "../services/shopping-list/metadataPersistence";
 
 type MealInput = any;
 
@@ -21,7 +22,9 @@ shoppingPreviewRouter.post("/preview", async (req: any, res: any) => {
       return res.status(400).json({ error: "meals array is required" });
     }
 
-    const items = normalizeShopping(meals);
+    const items = shoppingMetadataDevelopment()
+      ? aggregateDevelopmentShoppingItems(developmentMealIngredients(meals).map(i => ({ ...i, ...developmentIngredientFields(i) })))
+      : normalizeShopping(meals);
     
     res.json(items);
   } catch (error: any) {
@@ -33,6 +36,8 @@ shoppingPreviewRouter.post("/preview", async (req: any, res: any) => {
 shoppingRouter.post("/commit", requireAuth, async (req: any, res: any) => {
   try {
     const userId = getAuthUserId(req);
+
+    if (shoppingMetadataDevelopment()) return await developmentMealCommit(req, res, db, userId!);
 
     const { meals } = req.body as { meals: MealInput[] };
     
@@ -137,7 +142,10 @@ shoppingRouter.get("/", requireAuth, async (req: any, res: any) => {
       orderBy: (items, { asc }) => [asc(items.category), asc(items.name)],
     });
 
-    res.json({ items });
+    res.json({
+      items,
+      ...(shoppingMetadataDevelopment() ? { shoppingMetadataVersion: 1, ownerUserId: userId } : {}),
+    });
   } catch (error: any) {
     console.error("Error fetching shopping list:", error);
     res.status(500).json({ error: "Failed to fetch shopping list" });
@@ -148,7 +156,7 @@ shoppingRouter.patch("/:id", requireAuth, async (req: any, res: any) => {
   try {
     const userId = getAuthUserId(req);
     const { id } = req.params;
-    const updates = req.body;
+    let updates = req.body;
 
     const existing = await db.query.shoppingListItems.findFirst({
       where: (items, { eq, and }) => and(
@@ -161,9 +169,13 @@ shoppingRouter.patch("/:id", requireAuth, async (req: any, res: any) => {
       return res.status(404).json({ error: "Item not found" });
     }
 
+    if (shoppingMetadataDevelopment()) updates = developmentItemPatch(req.body, existing);
+
     await db.update(shoppingListItems)
       .set(updates)
-      .where(eq(shoppingListItems.id, id));
+      .where(shoppingMetadataDevelopment()
+        ? and(eq(shoppingListItems.id, id), eq(shoppingListItems.userId, userId))
+        : eq(shoppingListItems.id, id));
 
     const updated = await db.query.shoppingListItems.findFirst({
       where: (items, { eq }) => eq(items.id, id),
@@ -172,6 +184,7 @@ shoppingRouter.patch("/:id", requireAuth, async (req: any, res: any) => {
 
     res.json({ item: updated });
   } catch (error: any) {
+    if (metadataInputFailure(error, res)) return;
     console.error("Error updating shopping list item:", error);
     res.status(500).json({ error: "Failed to update item" });
   }

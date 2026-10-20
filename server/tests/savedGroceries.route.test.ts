@@ -156,6 +156,35 @@ beforeEach(() => {
 });
 
 describe("Saved Groceries routes", () => {
+  test("Development list insertion retains saved product evidence and restoration does not erase it", async () => {
+    const previousEnvironment = process.env.NODE_ENV;
+    process.env.NODE_ENV = "development";
+    try {
+      const app = buildApp();
+      mockState.savedRows = [savedItem({ id: "saved-development" })];
+      await request(app).post("/api/saved-groceries/saved-development/add-to-list").send().expect(200);
+      expect(mockState.insertedListRows).toHaveLength(1);
+      const row = mockState.insertedListRows[0];
+      const metadata = structuredClone(row.ingredientMetadata);
+      expect(metadata.selectedProduct).toMatchObject({
+        productKey: "name::banza::chickpeapasta",
+        brand: "Banza",
+        assessment: { status: "review_required" },
+      });
+      expect(JSON.parse(metadata.selectedProduct.sourcePayloadJson)).toEqual({
+        productMeta: { ingredients: ["chickpeas", "pea protein"] },
+        nutrition: { carbs: 32, fat: 3 },
+      });
+      row.checked = true;
+      await request(app).post("/api/saved-groceries/saved-development/add-to-list").send().expect(200);
+      expect(mockState.insertedListRows).toHaveLength(1);
+      expect(row.checked).toBe(false);
+      expect(row.ingredientMetadata).toEqual(metadata);
+    } finally {
+      process.env.NODE_ENV = previousEnvironment;
+    }
+  });
+
   test("Product Scan and Grocery Coach save through the same permanent table", async () => {
     const app = buildApp();
 

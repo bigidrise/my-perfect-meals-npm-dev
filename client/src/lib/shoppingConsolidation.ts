@@ -22,6 +22,8 @@
 
 import type { ShoppingListItem } from '@/stores/shoppingListStore';
 import type { IngredientCategory } from '@/data/ingredientCategories';
+import { shoppingMetadataEnabled } from "@/lib/shoppingMetadataGate";
+import { shoppingIdentityKey, mergeIngredientMetadata } from "@shared/shoppingIngredientMetadata";
 
 // ── Unit conversion tables ────────────────────────────────────────────────────
 // (Local copies to avoid circular imports with the store)
@@ -113,7 +115,7 @@ export function buildConsolidatedItems(
   // 2. Group by normalizedName (case-insensitive)
   const groups = new Map<string, ShoppingListItem[]>();
   for (const item of filtered) {
-    const key = (item.normalizedName || item.name).toLowerCase().trim();
+    const key = shoppingMetadataEnabled ? shoppingIdentityKey(item) : (item.normalizedName || item.name).toLowerCase().trim();
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(item);
   }
@@ -197,6 +199,10 @@ export function buildConsolidatedItems(
       isChecked: group.every((i) => i.isChecked),
       mergedCount: group.length,
       allIds: group.map((i) => i.id),
+      ...(shoppingMetadataEnabled ? {
+        ingredientMetadata: group.reduce((m, i) => mergeIngredientMetadata(m, i.ingredientMetadata),
+          undefined as ShoppingListItem["ingredientMetadata"]),
+      } : {}),
     });
   }
 

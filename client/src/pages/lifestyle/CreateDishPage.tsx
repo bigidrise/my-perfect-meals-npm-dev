@@ -53,6 +53,8 @@ import type { AllergyConflictPayload } from "@/hooks/useSafetyGuardPrecheck";
 import { AllergyConflictModal } from "@/components/AllergyConflictModal";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
+import { shoppingMetadataEnabled } from "@/lib/shoppingMetadataGate";
+import { recipeIngredientTransfer } from "@/lib/shoppingIngredientTransfer";
 import { setQuickView } from "@/lib/macrosQuickView";
 import { creatorMealNutrition as getMealNutrition } from "@/lib/mealMacroSnapshot";
 import TrashButton from "@/components/ui/TrashButton";
@@ -2427,6 +2429,14 @@ export default function CreateDishPage() {
             ingredients={visibleMeals.flatMap((meal) =>
               meal.ingredients.map((ing: StructuredIngredient) => ({
                 name: ing.name,
+                originalText: ing.name,
+                recipeId: meal.id,
+                recipeName: meal.name,
+                ...(shoppingMetadataEnabled ? {
+                  ingredientMetadata: recipeIngredientTransfer(ing, {
+                    id: meal.id, name: meal.name, source: "create_a_dish",
+                  }).ingredientMetadata,
+                } : {}),
                 qty:
                   typeof ing.quantity === "string"
                     ? parseFloat(ing.quantity) || undefined

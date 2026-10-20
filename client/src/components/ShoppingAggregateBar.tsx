@@ -7,11 +7,18 @@ import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
+import { shoppingMetadataEnabled } from "@/lib/shoppingMetadataGate";
+import { recipeIngredientTransfer } from "@/lib/shoppingIngredientTransfer";
+import type { ShoppingIngredientMetadata } from "@shared/shoppingIngredientMetadata";
 
 type Ingredient = {
   name: string;
   qty?: number | string;
   unit?: string;
+  ingredientMetadata?: ShoppingIngredientMetadata;
+  recipeId?: string;
+  recipeName?: string;
+  originalText?: string;
 };
 
 type Props = {
@@ -159,6 +166,11 @@ export default function ShoppingAggregateBar({
 
     const items = ingredients.map((i) => ({
       name: i.name,
+      ...(shoppingMetadataEnabled ? {
+        ingredientMetadata: recipeIngredientTransfer(i, {
+          id: i.recipeId, name: i.recipeName, source,
+        }).ingredientMetadata,
+      } : {}),
       quantity:
         typeof i.qty === "number"
           ? i.qty

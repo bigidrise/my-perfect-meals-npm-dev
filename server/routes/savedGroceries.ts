@@ -19,6 +19,7 @@ import { userSavedGroceryItems, shoppingListItems } from "@shared/schema";
 import { eq, and, inArray, sql } from "drizzle-orm";
 import { computeProductKey } from "../utils/productKey";
 import { revalidateSavedGroceriesForUser } from "../services/savedGroceryRevalidation";
+import { developmentSavedProductFields } from "../services/shopping-list/metadataPersistence";
 
 export { computeProductKey };
 
@@ -58,6 +59,8 @@ async function addSavedItemToShoppingList(
     barcode: string | null;
     productKey: string;
     category: string | null;
+    productMeta?: unknown;
+    nutritionJson?: unknown;
   },
   existingRows: ExistingShoppingListRow[],
 ): Promise<{
@@ -119,6 +122,7 @@ async function addSavedItemToShoppingList(
       scopeKey: "inbox",
       sourceBuilder: "saved_groceries",
       checked: false,
+      ...developmentSavedProductFields(item),
     })
     .returning({ id: shoppingListItems.id });
 

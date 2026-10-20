@@ -27,6 +27,7 @@ This prevents silent data corruption.
 import { pgTable, varchar, boolean, serial, integer, timestamp, jsonb, index, uniqueIndex, pgEnum, uuid, text, decimal, real, time, date, numeric, unique, check, primaryKey } from "drizzle-orm/pg-core";
 import { sql, relations } from "drizzle-orm";
 import type { AccountProfessionalRole } from "./professionalRoles";
+import type { ShoppingIngredientMetadata } from "./shoppingIngredientMetadata";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod"
 
@@ -930,6 +931,7 @@ export const shoppingListItems = pgTable("shopping_list_items", {
   // UPC wins; otherwise this is normalized brand + product name.
   // Ingredient-only shopping rows remain null.
   productKey: text("product_key"),
+  ingredientMetadata: jsonb("ingredient_metadata").$type<ShoppingIngredientMetadata>(),
   quantity: text("quantity").notNull(), // "2", "1.5", etc.
   unit: text("unit"), // "lb", "cups", "oz", etc.
   category: text("category"), // "protein", "produce", "dairy", etc.

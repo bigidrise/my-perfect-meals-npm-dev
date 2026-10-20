@@ -1,9 +1,12 @@
-import { create } from 'zustand';
+import { create, type UseBoundStore, type StoreApi } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { classifyIngredient, normalizeIngredientName } from '@/utils/ingredientClassifier';
 import { normalizeIngredient } from '@shared/ingredientNormalizer';
 import type { IngredientCategory } from '@/data/ingredientCategories';
 import { apiRequest } from '@/lib/apiRequest';
+import type { ShoppingIngredientMetadata } from '@shared/shoppingIngredientMetadata';
+import { shoppingMetadataEnabled } from '@/lib/shoppingMetadataGate';
+import { createDevelopmentShoppingListStore } from './developmentShoppingListStore';
 
 // ── Cross-unit conversion tables ──────────────────────────────────────────────
 const VOLUME_TO_ML: Record<string, number> = {
@@ -68,6 +71,11 @@ export interface UniversalIngredient {
   notes?: string;
   sourceMeals?: string[];
   category?: IngredientCategory;
+  ingredientMetadata?: ShoppingIngredientMetadata;
+  productKey?: string;
+  originalText?: string;
+  recipeId?: string;
+  recipeName?: string;
 }
 
 export interface ShoppingListItem {
@@ -76,6 +84,7 @@ export interface ShoppingListItem {
   serverId?: string;
   /** Stable Saved Grocery identity; absent for ingredient-only list rows. */
   productKey?: string;
+  ingredientMetadata?: ShoppingIngredientMetadata;
   name: string;
   normalizedName: string;
   quantity: number;
@@ -87,7 +96,9 @@ export interface ShoppingListItem {
   sourceMeals?: string[];
 }
 
-interface ShoppingListStore {
+export interface ShoppingListStore {
+  /** Present only in the isolated Development cache. */
+  ownerId?: string;
   items: ShoppingListItem[];
   /** True while the initial server fetch is in progress */
   isHydrating: boolean;
@@ -244,7 +255,7 @@ function serverPatch(serverId: string, quantity: number, unit: string) {
   }).catch(() => {});
 }
 
-export const useShoppingListStore = create<ShoppingListStore>()(
+export const useShoppingListStore: UseBoundStore<StoreApi<ShoppingListStore>> = shoppingMetadataEnabled ? createDevelopmentShoppingListStore() : create<ShoppingListStore>()(
   persist(
     (set, get) => ({
       items: [],

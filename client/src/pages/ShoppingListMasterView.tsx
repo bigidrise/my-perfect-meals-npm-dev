@@ -17,6 +17,7 @@ import {
   useShoppingListStore,
   ShoppingListItem,
 } from "@/stores/shoppingListStore";
+import { shoppingMetadataEnabled } from "@/lib/shoppingMetadataGate";
 import { buildConsolidatedItems, ConsolidatedItem } from "@/lib/shoppingConsolidation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -104,7 +105,9 @@ export default function ShoppingListMasterView() {
   });
 
   // Subscribe to Zustand store
-  const items = useShoppingListStore((s) => s.items);
+  const storedItems = useShoppingListStore((s) => s.items);
+  const storedOwner = useShoppingListStore((s) => s.ownerId);
+  const items = shoppingMetadataEnabled && storedOwner !== (user?.id || "guest") ? [] : storedItems;
   const isHydrating = useShoppingListStore((s) => s.isHydrating);
   const hydrate = useShoppingListStore((s) => s.hydrate);
   const addItem = useShoppingListStore((s) => s.addItem);
@@ -120,7 +123,7 @@ export default function ShoppingListMasterView() {
   useEffect(() => {
     hydrate();
     clearExpiredShoppingScans();
-  }, [hydrate]);
+  }, [hydrate, user?.id]);
 
   const isDesktop = useIsDesktop();
 
