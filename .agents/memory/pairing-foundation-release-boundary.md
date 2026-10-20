@@ -71,7 +71,9 @@ Integration-readiness Increments A–C are a reviewed, frozen offline adapter/co
 
 **Why:** The user reviewed the offline completion report and recommended freezing it. The next investment should prove that the intelligence works, not add infrastructure without a specific reason or begin another broad redesign.
 
-**How to apply:** Before seeking D–F approval, define a narrow cost-controlled phase covering safe real-provider connection, medical-context re-establishment after expiry, and measured recommendation improvement. Preserve education versus consumption on every turn. Keep real strict-owner results separate from synthetic-only contracts. Do not claim cross-login, expired-session or process-restart disclosure continuity without separately approved storage. Offline success is not evidence of real language understanding, provider retry behavior or customer readiness.
+**How to apply:** Further conversational advisor development and paid evaluation are postponed until business revenue supports investment. Only the separately approved Development Coming Soon presentation/navigation and accurate subscription labeling may proceed; keep working Drink Pairing, prices, entitlements and billing unchanged. Preserve the frozen prototype and A–C. Offline success is not evidence of real language understanding, provider retry behavior or customer readiness.
+
+**Why this pause:** The user explicitly postponed further advisor investment for business-revenue reasons and requested a small presentation-only exception, not D–F or live integration.
 
 The larger product objective is an AI advisor that understands food, wine, flavor, preparation, personal preferences and real-world context, not just generic wine suggestions.
 

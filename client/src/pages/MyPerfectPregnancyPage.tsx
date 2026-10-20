@@ -1,4 +1,6 @@
 import { PREGNANCY_CUSTOMER_AVAILABLE, PREGNANCY_PAUSE_MESSAGE } from "@shared/pregnancyAvailability";
+import ComingSoonPresentation from "@/components/coming-soon/ComingSoonPresentation";
+import { developmentComingSoonEnabled } from "@/lib/developmentComingSoon";
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
@@ -126,6 +128,18 @@ const MERCURY_AVOID = ["Shark", "Swordfish", "King mackerel", "Tilefish", "Bigey
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function MyPerfectPregnancyPage() {
+  if (!PREGNANCY_CUSTOMER_AVAILABLE && developmentComingSoonEnabled) {
+    return (
+      <ComingSoonPresentation
+        title="My Perfect Pregnancy — Coming Soon"
+        description={PREGNANCY_PAUSE_MESSAGE}
+        headerLabel="My Perfect Pregnancy"
+        backHref="/lifestyle"
+        backLabel="Back to Lifestyle"
+        testId="pregnancy-coming-soon"
+      />
+    );
+  }
   return PREGNANCY_CUSTOMER_AVAILABLE ? <PregnancyPageContent /> : (
     <section
       className="text-white"
