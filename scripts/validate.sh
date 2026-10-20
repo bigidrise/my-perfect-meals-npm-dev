@@ -5,6 +5,7 @@
 # catches raw-fetch auth violations, and confirms the server boots without crashing.
 #
 # Usage: npm run validate [--report]
+#        MPM_VALIDATE_OFFLINE=1 npm run validate  (no application/server boot)
 #   --report   Write a plain-text summary digest to /tmp/mpm-validate-report-<timestamp>.txt
 #
 # What it checks:
@@ -203,6 +204,21 @@ else
 fi
 rm -f "$ACCESS_CONTRACT_LOG"
 
+# Always run credential-free checks, including when startup is intentionally
+# skipped. An isolated port does not isolate the shared database.
+echo ""
+echo "  Running isolated auth-validator safety tests (mocked HTTP only)..."
+echo "  Live login/session checks NOT RUN: shared-database account creation is disabled."
+AUTH_TEST_OUT=$(mktemp /tmp/mpm-auth-test-XXXXXX.log)
+if npx jest --config scripts/tests/auth-validation-safety.jest.cjs --runInBand >"$AUTH_TEST_OUT" 2>&1; then
+  cat "$AUTH_TEST_OUT" | sed 's/^/  /'
+  pass "Auth-validator safety checks passed — mocked requests only, not live authentication"
+  rm -f "$AUTH_TEST_OUT"
+else
+  cat "$AUTH_TEST_OUT" | sed 's/^/  /'
+  fail "Auth-validator safety checks failed; diagnostic log retained at ${AUTH_TEST_OUT}"
+fi
+
 # ──────────────────────────────────────────────────
 header "Step 4 of 6: Translation Quality"
 echo "  Running i18n value quality scan..."
@@ -298,7 +314,10 @@ echo ""
 # processes, so we use our own flag instead. Steps 1–5 already gate code
 # quality; the boot test is redundant here because it passed in the most recent
 # standalone validate run.
-if [ -n "$MPM_IS_HOOK" ]; then
+if [ "${MPM_VALIDATE_OFFLINE:-0}" = "1" ]; then
+  echo "  Offline release verification: server boot NOT RUN; no application database connection authorized."
+  echo "  Passing offline checks is not evidence of successful live server startup."
+elif [ -n "$MPM_IS_HOOK" ]; then
   echo -e "${CYAN}  ℹ️  Running as git hook — boot test skipped to preserve session stability.${NC}"
   echo -e "${CYAN}     Run 'npm run validate' standalone to include the full boot test.${NC}"
   echo ""
@@ -386,20 +405,6 @@ if [ "$STARTED" = true ]; then
     pass "Server started cleanly — /api/health responded with 200 on port ${VALIDATE_PORT}"
     pass "No critical error patterns in startup log"
   fi
-
-  # ── Auth login + session integration tests ────────────────────────────────
-  # Runs against the isolated test server to catch route-mounting regressions.
-  echo ""
-  echo -e "  ${CYAN}Running auth login/session integration tests...${NC}"
-  AUTH_TEST_OUT=$(mktemp /tmp/mpm-auth-test-XXXXXX.log)
-  if npx tsx scripts/test-auth-integration.ts --base-url "http://localhost:${VALIDATE_PORT}" >"$AUTH_TEST_OUT" 2>&1; then
-    cat "$AUTH_TEST_OUT" | sed 's/^/  /'
-    pass "Auth login/session integration tests — all checks passed"
-  else
-    cat "$AUTH_TEST_OUT" | sed 's/^/  /'
-    fail "Auth login/session integration tests — one or more checks failed (see above)"
-  fi
-  rm -f "$AUTH_TEST_OUT"
 
 elif [ "$ELAPSED" -ge "$MAX_WAIT" ]; then
   fail "Server did not respond to /api/health within ${MAX_WAIT}s on port ${VALIDATE_PORT} — startup may have hung"
@@ -507,12 +512,9 @@ if [ "$ERRORS" -eq 0 ]; then
     RESULT_LINE="RESULT: PASS"
   fi
   echo ""
-  echo -e "  Full push sequence:"
-  echo -e "    1. git push origin dev"
-  echo -e "    2. Merge dev → main on GitHub"
-  echo -e "    3. git pull in production shell"
-  echo -e "    4. Check /api/health in browser"
-  echo -e "    5. Update LAST_STABLE.md with new commit hash"
+  echo "  Before release: review the exact branch, base commit, and approved file manifest."
+  echo "  Validation does not authorize pushing, merging, or publishing."
+  echo "  Offline verification skips live startup and must not be described as a live boot check."
   echo ""
   [ "$SAVE_REPORT" -eq 1 ] && write_report "$RESULT_LINE"
   exit 0

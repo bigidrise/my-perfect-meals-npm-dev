@@ -4,6 +4,7 @@ import WelcomeGate from "./WelcomeGate";
 import { Route } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { IS_DEVELOPMENT } from "@/lib/developmentAuthRoutes";
+import { COMING_SOON_ADVISOR_PATH } from "@/lib/comingSoonRoutes";
 import { isGuestMode, isGuestAllowedRoute } from "@/lib/guestMode";
 import { hasActivePaidSubscription, isProOrAbove } from "@/lib/subscriptionCheck";
 import { isExactPublicMarketingRoute } from "@/lib/publicRoutePolicy";
@@ -29,6 +30,7 @@ function isPublicAppRoute(path: string): boolean {
     ? ["/test-modal-bounds", "/__modal-test__", "/__sheet-test__", "/rewardful/connect/confirm"]
     : [];
   return (
+    path === COMING_SOON_ADVISOR_PATH ||
     (IS_DEVELOPMENT && path === "/activate/business-pilot") ||
     path === "/login" ||
     isExactPublicMarketingRoute(path) ||
@@ -210,6 +212,7 @@ export default function AppRouter({ children }: AppRouterProps) {
 
   if (
     showWelcomeGate &&
+    location !== COMING_SOON_ADVISOR_PATH &&
     !(IS_DEVELOPMENT && location === "/activate/business-pilot") &&
     !isBusinessPilotOrganizationEntry(sessionStorage, IS_DEVELOPMENT, location, user?.id) &&
     !location.startsWith("/join/clinic") &&

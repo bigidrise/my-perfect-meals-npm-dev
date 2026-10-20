@@ -1,4 +1,5 @@
 import { PREGNANCY_CUSTOMER_AVAILABLE, PREGNANCY_PAUSE_MESSAGE } from "@shared/pregnancyAvailability";
+import ComingSoonPresentation from "@/components/coming-soon/ComingSoonPresentation";
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -127,26 +128,14 @@ const MERCURY_AVOID = ["Shark", "Swordfish", "King mackerel", "Tilefish", "Bigey
 
 export default function MyPerfectPregnancyPage() {
   return PREGNANCY_CUSTOMER_AVAILABLE ? <PregnancyPageContent /> : (
-    <section
-      className="text-white"
-      data-testid="pregnancy-coming-soon"
-      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
-    >
-      <MobileHeaderGuard>
-        <div
-          aria-label="Pregnancy page header"
-          className="border-b border-pink-500/20 bg-black/80 px-4 py-3"
-        >
-          <span className="text-sm font-semibold">My Perfect Pregnancy</span>
-          <span className="ml-2 text-xs text-pink-300">Coming Soon</span>
-        </div>
-      </MobileHeaderGuard>
-      <div className="mx-auto max-w-xl p-6">
-        <h1 className="text-2xl font-semibold">My Perfect Pregnancy — Coming Soon</h1>
-        <p className="mt-4">{PREGNANCY_PAUSE_MESSAGE}</p>
-        <a className="mt-6 inline-block underline" href="/lifestyle">Back to Lifestyle</a>
-      </div>
-    </section>
+    <ComingSoonPresentation
+      title="My Perfect Pregnancy — Coming Soon"
+      description={PREGNANCY_PAUSE_MESSAGE}
+      headerLabel="Pregnancy"
+      backHref="/lifestyle"
+      backLabel="Back to Lifestyle"
+      testId="pregnancy-coming-soon"
+    />
   );
 }
 
