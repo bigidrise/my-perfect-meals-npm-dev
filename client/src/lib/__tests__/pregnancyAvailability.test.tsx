@@ -1,6 +1,7 @@
 /** @jest-environment jsdom */
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
+jest.mock("@/lib/developmentComingSoon", () => ({ developmentComingSoonEnabled: false }));
 jest.mock("wouter", () => ({
   useLocation: jest.fn(),
   Link: jest.fn(({ href, children, ...props }: any) => (

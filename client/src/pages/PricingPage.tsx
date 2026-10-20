@@ -1,4 +1,5 @@
 import { useLocation } from "wouter";
+import PlannedFeaturesNotice from "@/components/coming-soon/PlannedFeaturesNotice";
 import { useOrgBranding } from "@/hooks/useOrgBranding";
 import { useOrgFlag } from "@/contexts/OrgContext";
 import { motion } from "framer-motion";
@@ -191,6 +192,7 @@ export default function PricingPage() {
           className="max-w-md mx-auto px-6 text-white"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
         >
+          <PlannedFeaturesNotice />
           {hasIosSubscription && (
             <div className="bg-lime-500/20 border border-lime-500/30 rounded-xl p-4 mb-6 text-center">
               <p className="text-lime-400 font-medium text-sm">
@@ -635,6 +637,7 @@ export default function PricingPage() {
         className="max-w-6xl mx-auto px-4 text-white space-y-8"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
+        <PlannedFeaturesNotice />
         <div className="rounded-2xl border border-orange-300/20 bg-black/30 px-5 py-4 text-center shadow-lg backdrop-blur-lg">
           <p className="font-semibold text-white">
             Know what you want? Build it. Not sure what you want? Pick from My Perfect Menu.

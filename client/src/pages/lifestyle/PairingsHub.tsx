@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { motion } from "framer-motion";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { ArrowLeft, Wine, BookOpen, HeartPulse } from "lucide-react";
 import {
   Card,
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import PhaseGate from "@/components/PhaseGate";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { developmentComingSoonEnabled } from "@/lib/developmentComingSoon";
 
 interface PairingFeature {
   title: string;
@@ -125,6 +126,16 @@ export default function PairingsHub() {
                   </Card>
                 );
               })}
+              {developmentComingSoonEnabled && (
+                <Link
+                  href="/lifestyle/ai-pairing-advisor"
+                  className="block rounded-xl border border-white/15 bg-black/20 p-3 text-sm text-white/80 hover:border-orange-400/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-400"
+                  data-testid="pairingshub-advisor-coming-soon"
+                >
+                  <span className="font-semibold text-orange-300">AI Pairing Advisor — Coming Soon</span>
+                  <span className="mt-1 block text-xs">A future conversational experience. Existing drink pairing tools remain available above.</span>
+                </Link>
+              )}
             </div>
           </div>
         </div>
