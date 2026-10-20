@@ -1,5 +1,6 @@
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Switch, Route, useLocation } from "wouter";
+import { COMING_SOON_ADVISOR_PATH } from "@/lib/comingSoonRoutes";
 import { BUILDER_MAP, type BuilderKey } from "@/lib/builderMap";
 const GeneralNutritionBuilder = lazy(() => import("@/pages/pro/GeneralNutritionBuilder"));
 const GeneralNutritionBuilderEntry = lazy(() => import("@/pages/pro/GeneralNutritionBuilderEntry"));
@@ -610,6 +611,7 @@ const BeverageCreator = lazy(() => import("@/pages/BeverageCreator"));
 const ChefPairings = lazy(() => import("@/pages/ChefPairings"));
 const PairingsHub = lazy(() => import("@/pages/lifestyle/PairingsHub"));
 const PairingsAI = lazy(() => import("@/pages/lifestyle/PairingsAI"));
+const DrinkAdvisorComingSoon = lazy(() => import("@/pages/lifestyle/DrinkAdvisorComingSoon"));
 const WineListHelper = lazy(() => import("@/pages/lifestyle/WineListHelper"));
 const ReduceDrinkingPlan = lazy(() => import("@/pages/lifestyle/ReduceDrinkingPlan"));
 // DELETED: CravingPresets
@@ -1041,6 +1043,7 @@ export default function Router() {
 
   // Routes that DON'T require onboarding or macro completion
   const ungatedRoutes = [
+    COMING_SOON_ADVISOR_PATH,
     "/demo-physician",
     // Dev-only responsive regression harnesses — never gated in development
     ...(import.meta.env.DEV
@@ -1310,6 +1313,7 @@ export default function Router() {
         <Route path="/sushi-creator" component={GuardedSushiCreator} />
         <Route path="/lifestyle/chef-pairings" component={GuardedChefPairings} />
         <Route path="/lifestyle/pairings-hub" component={GuardedPairingsHub} />
+        <Route path="/lifestyle/ai-pairing-advisor" component={DrinkAdvisorComingSoon} />
         <Route path="/lifestyle/pairings-ai" component={GuardedPairingsAI} />
         <Route path="/lifestyle/wine-list-helper" component={GuardedWineListHelper} />
         <Route path="/lifestyle/reduce-drinking-plan" component={GuardedReduceDrinkingPlan} />
