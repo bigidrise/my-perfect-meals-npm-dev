@@ -44,6 +44,7 @@ import {
 import { getTierForLookupKey } from "../../shared/planFeatures";
 import { getExecutableRuleValue } from "./glp1/ruleRegistry";
 import { resolveCurrentGLP1MealAuthority } from "./glp1/currentMealAuthority";
+import { assertOwnerDay, StrictOwnerResolutionError, type StrictOwnerClinicalContext } from "./nutritionResolutionContext";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -65,6 +66,30 @@ interface PrescriptionResolverInput {
 
 export async function resolveDailyNutritionPrescription(
   input: PrescriptionResolverInput,
+  options?: { strictOwner?: StrictOwnerClinicalContext },
+): Promise<DailyNutritionPrescription> {
+  const strict = options?.strictOwner;
+  if (!strict) return calculateDailyPrescription(input);
+  assertOwnerDay(strict, input.userId, input.dateISO);
+  return strict.resolution.once("prescription", async () => {
+    try {
+      const result = await calculateDailyPrescription(input, strict);
+      if (result.rationaleCodes.includes("fallback_no_targets")) {
+        strict.resolution.fail("prescription", "missing_required");
+        throw new StrictOwnerResolutionError("prescription", "missing_required");
+      }
+      strict.resolution.record("prescription", { status: "success", value: result, basis: "calculated" });
+      return result;
+    } catch (error) {
+      strict.resolution.fail("prescription", "read_failed");
+      throw error;
+    }
+  });
+}
+
+async function calculateDailyPrescription(
+  input: PrescriptionResolverInput,
+  strict?: StrictOwnerClinicalContext,
 ): Promise<DailyNutritionPrescription> {
   const { userId, dateISO, consumed = { starchyCarbs: 0, starchMealsUsed: 0 } } = input;
   const nowOverride = input.nowOverride ?? new Date(dateISO + "T12:00:00Z");
@@ -75,6 +100,10 @@ export async function resolveDailyNutritionPrescription(
     .where(eq(users.id, userId))
     .limit(1);
 
+  if (strict && (!user || user.id !== userId)) {
+    strict.resolution.fail("owner_profile", "invalid_data");
+    throw new StrictOwnerResolutionError("owner_profile", "invalid_data");
+  }
   if (!user) return buildFallbackPrescription(dateISO);
 
   const rationaleCodes: string[] = [];
@@ -165,7 +194,9 @@ export async function resolveDailyNutritionPrescription(
   // Applied BEFORE Performance so Performance modifiers operate on the
   // GLP-1-adjusted baseline, never on the raw Macro Calculator values.
   // Design rule: Performance must not bypass GLP-1 clinical constraints.
-  const isGLP1Active = (await resolveCurrentGLP1MealAuthority(user)).length > 0;
+  const isGLP1Active = (await (strict
+    ? resolveCurrentGLP1MealAuthority(user, false, { strictOwner: strict })
+    : resolveCurrentGLP1MealAuthority(user))).length > 0;
 
   let glp1DailyProteinFloor: number | null = null;
   let glp1DailyFatCeiling: number | null = null;
@@ -178,9 +209,27 @@ export async function resolveDailyNutritionPrescription(
       );
       const glp1Row = glp1Result.rows?.[0] as { guardrails?: unknown } | undefined;
       if (glp1Row?.guardrails && typeof glp1Row.guardrails === "object") {
+        if (strict && (Array.isArray(glp1Row.guardrails) ||
+          Object.entries(glp1Row.guardrails).some(([key, value]) =>
+            ["mealsPerDay", "proteinMinG", "fatMaxG", "maxMealVolumeMl"].includes(key) &&
+            (typeof value !== "number" || !Number.isFinite(value) || value < 0)))) {
+          strict.resolution.fail("glp1_guardrails", "invalid_data");
+          throw new StrictOwnerResolutionError("glp1_guardrails", "invalid_data");
+        }
         guardrails = glp1Row.guardrails as typeof DEFAULT_GLP1_GUARDRAILS;
       }
-    } catch {
+      if (strict) strict.resolution.record("glp1_guardrails", glp1Row?.guardrails == null
+        ? { status: "absent", reasonCode: "successful_empty_read" }
+        : { status: "success", value: guardrails, basis: "stored" });
+      if (strict && glp1Row?.guardrails != null && typeof glp1Row.guardrails !== "object") {
+        strict.resolution.fail("glp1_guardrails", "invalid_data");
+        throw new StrictOwnerResolutionError("glp1_guardrails", "invalid_data");
+      }
+    } catch (error) {
+      if (strict) {
+        strict.resolution.fail("glp1_guardrails", "read_failed");
+        throw error;
+      }
       // Use defaults on any DB error
     }
 
@@ -223,7 +272,7 @@ export async function resolveDailyNutritionPrescription(
     source = "clinical";
     rationaleCodes.push("glp1_daily_overlay_active");
     if (treatmentPhase !== "maintenance") rationaleCodes.push(`glp1_phase_${treatmentPhase}`);
-  }
+  } else strict?.resolution.notApplicable("glp1_guardrails", "no_current_glp1");
 
   // ── Performance Hub layer ─────────────────────────────────────────────────
   const weeklySchedule = user.weeklyTrainingSchedule as WeeklyTrainingSchedule | null;
@@ -258,10 +307,15 @@ export async function resolveDailyNutritionPrescription(
         isZeroStarchDay = true;
         rationaleCodes.push("zero_starch_rest_day");
       }
-    } catch {
+      strict?.resolution.record("performance", { status: "success", value: resolved, basis: "calculated" });
+    } catch (error) {
+      if (strict) {
+        strict.resolution.fail("performance", "invalid_data");
+        throw error;
+      }
       rationaleCodes.push("performance_resolver_error_fallback");
     }
-  }
+  } else strict?.resolution.notApplicable("performance", "performance_modifier_not_active");
 
   // ── GLP-1 Re-enforcement after Performance ────────────────────────────────
   // Performance modifiers apply to the GLP-1-adjusted baseline, but we

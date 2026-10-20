@@ -3,7 +3,7 @@ name: Pairing foundation release boundary
 description: Scope and safety policy for the approved Development-only first phase of pairing consolidation.
 ---
 
-Phase 1 of the shared pairing foundation and its approved Development message correction remain frozen. The user authorized offline contracts, mocked server integration, and bounded synthetic deterministic-safety/write-isolation verification only, including a deny-by-default undeployed-Development registration. Live authority resolution, real profile reads, live or paid calls, customer-facing synthetic recommendations, and conversational UI remain unauthorized.
+Phase 1 of the shared pairing foundation and its approved Development message correction remain frozen. The user authorized offline contracts, mocked server integration, bounded synthetic safety verification, and the specifically approved opt-in shared-service corrections only. The undeployed-Development advisor registration stays deny-by-default. Real profile execution, live or paid calls, customer-facing synthetic recommendations, and conversational UI remain unauthorized.
 
 **Why:** The user explicitly chose to close current development work and leave live verification pending until an eligible, authorized test account is available, rather than repeat known-blocked tests.
 
@@ -27,11 +27,11 @@ The new advisor must use existing active-access AND Pro-access checks, with five
 
 **How to apply:** Inject fixtures only in the isolated integration harness. Do not supply fixture or live dependencies in the application registration, change existing middleware, bypass required context to avoid persistence, or begin the conversational interface without separate approval.
 
-Real deterministic scanner integration is authorized only with synthetic profiles and envelopes. Write-isolation verification must use synthetic dependencies and mocked storage. Strict account-owner resolution remains design-only, and shared-service changes require separate approval.
+Real deterministic scanner integration and strict account-owner verification are authorized only with synthetic profiles, envelopes, dependencies and mocked storage. The approved shared-service corrections are limited to no-save write accounting, explicit owner scope and required-source completeness. Existing callers must retain their default behavior.
 
-**Why:** The user explicitly approved these three bounded activities while keeping the application binding unactivated and prohibiting shared-service implementation.
+**Why:** The user separately approved these three corrections for offline implementation while explicitly keeping the entry point disconnected and the application binding unactivated.
 
-**How to apply:** Test the existing mechanisms without correcting shared helpers or scanners in the same increment. Report demonstrated failures as blockers, propose the exact change scope, and stop for approval rather than activating authority or beginning frontend work.
+**How to apply:** Do not change scanners, clinical formulas, thresholds, activation rules or nutrient limits. Do not register the strict-owner entry point, query real profiles or start live verification. Additional shared-service scope, runtime activation and frontend work require separate approval; stop after implementing and verifying the authorized corrections.
 
 The approved Development-only UI exception is to show Chef Pairings' specific `PAIRING_INGREDIENTS_UNVERIFIED` explanation instead of generic retry advice. Reviewing the HTTP classification does not authorize changing its contract.
 
