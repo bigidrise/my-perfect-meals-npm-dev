@@ -4,6 +4,7 @@ import { mealPlans, shoppingListItems, mealPlansCurrent } from "../../shared/sch
 import { and, eq, desc } from "drizzle-orm";
 import { extractIngredients, mergeIngredients } from "../services/ingredients";
 import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
+import { shoppingMetadataDevelopment, developmentShoppingPost, developmentMealIngredients, developmentPlanMeals } from "../services/shopping-list/metadataPersistence";
 
 const r = Router();
 r.use(requireAuth);
@@ -143,6 +144,16 @@ r.post("/:planId/add-to-shopping-list", async (req, res) => {
     const row = (await db.select().from(mealPlans)
       .where(and(eq(mealPlans.id, planId), eq(mealPlans.userId, userId)))).at(0);
     if (!row) return res.status(404).json({ error: "Meal plan not found." });
+
+    if (shoppingMetadataDevelopment()) {
+      const stored = (row as any).meals ?? (row as any).weeklyPlan;
+      const meals = developmentPlanMeals(stored);
+      const transfer = developmentMealIngredients(meals);
+      if (!transfer.length) return res.json({ added: 0, message: "No ingredients to add." });
+      return await developmentShoppingPost({
+        body: { items: transfer, sourceBuilder: "meal-plan", scope: { type: "adhoc", key: "inbox" } },
+      }, res, db, userId);
+    }
 
     const raw = extractIngredients((row as any).meals ?? (row as any).weeklyPlan);
     if (!raw.length) return res.json({ added: 0, message: "No ingredients to add." });

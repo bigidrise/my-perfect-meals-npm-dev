@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "shared/shoppingIngredientMetadata.ts",
+    "server/services/shopping-list/metadataPersistence.ts",
+    "client/src/stores/developmentShoppingListStore.ts",
+    "client/src/lib/shoppingIngredientTransfer.ts",
+    "client/src/lib/shoppingMetadataTransport.ts",
+    "client/src/lib/shoppingConsolidation.ts",
+    "client/src/lib/shoppingListApi.ts"
+  ],
+  "exclude": ["node_modules", "**/*.test.ts", "**/*.test.tsx"]
+}
