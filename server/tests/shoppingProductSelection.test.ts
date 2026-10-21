@@ -88,6 +88,14 @@ test("review-only assessment cannot pass the client selection parser", () => {
   })).toThrow();
 });
 
+test.each([
+  { ingredient },
+  { ingredient, product: undefined },
+  { ingredient, product: null },
+])("does not fabricate a product for an ingredient-only input: %j", input => {
+  expect(() => parseShoppingProductSelection(input)).toThrow();
+});
+
 test("Pro middleware still rejects Essential access and allows actual Pro access", () => {
   // Module-local policy is resolved at import; isolate only this middleware.
   const previous = process.env.BILLING_ENFORCED;
