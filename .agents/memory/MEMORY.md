@@ -64,7 +64,7 @@
 - [Stateless Human Food retries](stateless-human-food-retries.md) — resolve fresh authoritative context per request; retry state never crosses requests or reaches clients.
 - [Professional glucose access](professional-glucose-access.md) — raw glucose requires verified clinical identity, exact active care relationship, org isolation, and current consent.
 - [Saved grocery evidence governance](saved-grocery-evidence-governance.md) — permanent favorites stay evidence-ranked and fail closed against the current profile.
-- [Smart Grocery persistence boundary](smart-grocery-persistence-boundary.md) — Development-only foundation; older Production replacements lose metadata; never adopt unowned cache data.
+- [Smart Grocery persistence boundary](smart-grocery-persistence-boundary.md) — minimal existing-catalog picker is Development-only; older Production replacements lose metadata; live writes require isolation.
 - [Auth security-state issuance](auth-security-state-issuance.md) — credential issuance must compare the security version verified before password or MFA acceptance.
 - [Signup email and username identity](signup-email-username-identity.md) — matching email prefixes never link accounts; username collisions must not block distinct emails.
 - [Consumer signup first-run order](consumer-signup-first-run.md) — regular signup leads into onboarding and personal meal setup, not trial feature exploration.

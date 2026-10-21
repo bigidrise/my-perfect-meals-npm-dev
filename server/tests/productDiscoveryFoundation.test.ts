@@ -10,6 +10,7 @@ import { legacyBarcodeIdentityLead, normalizeProductEvidence, type ProductEviden
 import { discoverProductCandidates, type ProductRuleAssessor } from
   "../services/productDiscovery/discoverProductCandidates";
 import { findProductDevelopment } from "../services/productDiscovery/findProductDevelopment";
+import { parseShoppingProductSelection } from "../../shared/shoppingProductSelection";
 import { createUsdaBrandedAdapter } from "../services/productDiscovery/usdaBrandedAdapter";
 import { createOpenFoodFactsSearchAdapter } from "../services/productDiscovery/openFoodFactsSearchAdapter";
 import { lookupOpenFoodFactsByBarcode, offEvidenceForExactUsdaProduct } from
@@ -25,6 +26,56 @@ const INTENT: ProductSearchIntent = {
 const EMPTY_REVIEW: ProductRuleEvidenceRegistry = {
   version: "reviewed-v1", identityMaxAgeDays: 30, reviewedRules: [],
 };
+
+describe("Smart Grocery reuses the existing catalog without extra AI", () => {
+  const sauceRecord = () => record({
+    name: "Pasta sauce", identityObservedAt: new Date().toISOString(),
+    observedAt: null, facts: [
+      { kind: "ingredients", originalStatement: "Tomatoes, water", completeness: "unknown" },
+      { kind: "nutrition", target: "sodium_mg_per_100g", originalStatement: "Sodium 100 mg per 100 g",
+        completeness: "unknown", nutritionMeasurement: { value: 100, unit: "mg", basis: "per_100g" } },
+    ],
+  });
+  test("existing evaluation supplies exact structured selection and skips interpretation", async () => {
+    const interpret = jest.fn();
+    const result = await findProductDevelopment("owner", "Pasta sauce", {
+      sources: sources(), adapter: adapter([sauceRecord()]), interpret,
+      shoppingIngredient: { originalName: "Pasta sauce", requirements: [] },
+    });
+    expect(result.catalogMatches).toHaveLength(1);
+    expect(result.catalogMatches[0].shoppingSelection).toMatchObject({ eligible: true });
+    const selection = parseShoppingProductSelection(result.catalogMatches[0].shoppingSelection?.selection);
+    expect(selection.product.productKey).toBe(result.catalogMatches[0].productKey);
+    expect(selection.product.assessment.subjectReference).toBe("owner");
+    expect(selection.product.evidence.find(f => f.kind === "nutrition")?.measurement).toEqual({
+      value: 100, unit: "mg", basis: "per_100g",
+    });
+    expect(interpret).not.toHaveBeenCalled();
+  });
+  test("explicit low-sodium request is not approved from a matching search phrase", async () => {
+    const result = await findProductDevelopment("owner", "low-sodium sauce", {
+      sources: sources(), adapter: adapter([{ ...sauceRecord(), name: "Low-sodium sauce" }]),
+      shoppingIngredient: { originalName: "low-sodium sauce", requirements: [] },
+    });
+    expect(result.catalogMatches).toHaveLength(1);
+    expect(result.catalogMatches[0].shoppingSelection).toMatchObject({
+      eligible: false, reason: expect.stringContaining("No reviewed"),
+    });
+  });
+  test("clinical context requiring unavailable reviewed policy stays unselectable", async () => {
+    const result = await findProductDevelopment("owner", "Pasta sauce", {
+      sources: sources({ hard: ["cardiac"] }), adapter: adapter([sauceRecord()]),
+      shoppingIngredient: { originalName: "Pasta sauce", requirements: [] },
+    });
+    expect(result.catalogMatches.every(match => match.shoppingSelection?.eligible === false)).toBe(true);
+  });
+  test("mismatched original request cannot bypass preserved qualifiers", async () => {
+    await expect(findProductDevelopment("owner", "sauce", {
+      sources: sources(), adapter: adapter([]),
+      shoppingIngredient: { originalName: "low-sodium sauce", requirements: [] },
+    })).rejects.toThrow("original ingredient");
+  });
+});
 const AVOID_REVIEW: ProductRuleEvidenceRegistry = {
   ...EMPTY_REVIEW,
   reviewedRules: [{

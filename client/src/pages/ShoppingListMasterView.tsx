@@ -10,6 +10,7 @@ import {
   Mic,
   ListPlus,
   ExternalLink,
+  ScanLine,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import TrashButton from "@/components/ui/TrashButton";
@@ -60,6 +61,12 @@ import { recordShoppingToBiometricsTransition, hasCompletedFirstLoop } from "@/l
 import { useGuestNavigationGuard } from "@/hooks/useGuestNavigationGuard";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { isProOrAbove } from "@/lib/subscriptionCheck";
+import ShoppingProductPicker from "@/components/shopping/ShoppingProductPicker";
+import SmartShoppingProductChoice from "@/components/shopping/SmartShoppingProductChoice";
+import { groceryCoachCatalogEnabled } from "@/lib/groceryCoachCatalogGate";
+import { shoppingIngredientFor, applyShoppingProductChoice } from "@/lib/shoppingProductChoice";
+import type { ShoppingIngredientRequest, ShoppingProductSelection } from "@shared/shoppingProductSelection";
 
 const CATEGORY_ORDER = [
   'Produce',
@@ -95,6 +102,7 @@ export default function ShoppingListMasterView() {
   const entitlements: string[] = (user as any)?.entitlements || [];
   const hasGroceryCoachAccess =
     entitlements.includes("grocery_coach") || entitlements.includes("FULL_ACCESS");
+  const hasProductPickerAccess = isProOrAbove(user as any);
   
   useGuestNavigationGuard("shopping-list");
 
@@ -170,6 +178,35 @@ export default function ShoppingListMasterView() {
   const [barcodeText, setBarcodeText] = useState("");
   const [barcodeLoading, setBarcodeLoading] = useState(false);
   const [barcodeScanMode, setBarcodeScanMode] = useState<"manual" | "camera">("manual");
+  const [productPickerTarget, setProductPickerTarget] = useState<{
+    ids: string[];
+    ingredient: ShoppingIngredientRequest;
+    quantityLabel: string;
+    currentSelection: ShoppingProductSelection | null;
+    sessionKey: string;
+  } | null>(null);
+  const productPickerEnabled = shoppingMetadataEnabled && groceryCoachCatalogEnabled;
+  const productPickerSessionKey = `${user?.id || "guest"}:${JSON.stringify(user ?? null)}`;
+  const previousProductSession = useRef(productPickerSessionKey);
+  useEffect(() => {
+    if (previousProductSession.current !== productPickerSessionKey) {
+      previousProductSession.current = productPickerSessionKey;
+      setProductPickerTarget(null);
+    }
+  }, [productPickerSessionKey]);
+  useEffect(() => {
+    if (!productPickerTarget) return;
+    const stillSameRequest = productPickerTarget.ids.every(id => {
+      const current = items.find(item => item.id === id);
+      if (!current) return false;
+      try {
+        return JSON.stringify(shoppingIngredientFor(current)) === JSON.stringify(productPickerTarget.ingredient);
+      } catch {
+        return false;
+      }
+    });
+    if (!stillSameRequest) setProductPickerTarget(null);
+  }, [items, productPickerTarget]);
 
   const persistScan = useCallback((result: IngredientScanResult) => {
     try { localStorage.setItem('mpm.shopping.activeScan', JSON.stringify(result)); } catch {}
@@ -300,6 +337,47 @@ export default function ShoppingListMasterView() {
   }, []);
 
   const handleShoppingScan = () => setScanModalOpen(true);
+
+  const openProductPicker = useCallback((row: ConsolidatedItem) => {
+    if (!productPickerEnabled) return;
+    if (!hasProductPickerAccess) {
+      requestUpgrade({ requiredTier: "pro", featureName: "Choose Product" });
+      return;
+    }
+    const ingredient = shoppingIngredientFor(row);
+    if (!ingredient) return;
+    setProductPickerTarget({
+      ids: row.allIds,
+      sessionKey: productPickerSessionKey,
+      ingredient,
+      quantityLabel: formatQuantity(row.quantity, row.unit),
+      currentSelection: row.ingredientMetadata?.selectedProduct
+        ? { ingredient, product: row.ingredientMetadata.selectedProduct }
+        : null,
+    });
+  }, [productPickerEnabled, hasProductPickerAccess, requestUpgrade, productPickerSessionKey]);
+
+  const commitProductChoice = useCallback(async (selection: ShoppingProductSelection | null) => {
+    const target = productPickerTarget;
+    if (!target) throw new Error("Shopping row is no longer available");
+    if (target.sessionKey !== productPickerSessionKey) throw new Error("The account or profile changed. Look up products again.");
+    if (selection && !hasProductPickerAccess) throw new Error("Grocery Coach Pro access is required.");
+    const targetIsCurrent = target.ids.every(id => {
+      const current = items.find(item => item.id === id);
+      if (!current) return false;
+      try { return JSON.stringify(shoppingIngredientFor(current)) === JSON.stringify(target.ingredient); }
+      catch { return false; }
+    });
+    if (!targetIsCurrent) {
+      setProductPickerTarget(null);
+      throw new Error("Shopping row changed before the choice could be saved");
+    }
+    await applyShoppingProductChoice(target.ids, selection);
+  }, [productPickerTarget, items, productPickerSessionKey, hasProductPickerAccess]);
+
+  const clearProductChoice = useCallback(async (row: ConsolidatedItem) => {
+    await applyShoppingProductChoice(row.allIds, null);
+  }, []);
 
   // Toggle all underlying source items at once (for consolidated rows)
   const handleToggleConsolidated = useCallback(
@@ -1027,10 +1105,18 @@ export default function ShoppingListMasterView() {
                         </>
                       ) : (
                         <>
-                          <div
-                            className={`flex-1 text-white ${item.isChecked ? "line-through" : ""}`}
-                          >
-                            {item.name}
+                          <div className="min-w-0 flex-1">
+                            <div className={`text-white ${item.isChecked ? "line-through" : ""}`}>
+                              {item.name}
+                            </div>
+                            <SmartShoppingProductChoice
+                              item={item}
+                              enabled={productPickerEnabled}
+                              hasAccess={hasProductPickerAccess}
+                              onChoose={() => openProductPicker(item as ConsolidatedItem)}
+                              onUpgrade={() => requestUpgrade({ requiredTier: "pro", featureName: "Choose Product" })}
+                              onClear={() => clearProductChoice(item as ConsolidatedItem)}
+                            />
                           </div>
                           {(() => {
                             const qty = getRetailQuantity(item);
@@ -1109,8 +1195,16 @@ export default function ShoppingListMasterView() {
                               >
                                 <Check className="h-4 w-4" />
                               </Button>
-                              <div className="flex-1 text-white line-through">
-                                {item.name}
+                              <div className="min-w-0 flex-1">
+                                <div className="text-white line-through">{item.name}</div>
+                                <SmartShoppingProductChoice
+                                  item={item}
+                                  enabled={productPickerEnabled}
+                                  hasAccess={hasProductPickerAccess}
+                                  onChoose={() => openProductPicker(item as ConsolidatedItem)}
+                                  onUpgrade={() => requestUpgrade({ requiredTier: "pro", featureName: "Choose Product" })}
+                                  onClear={() => clearProductChoice(item as ConsolidatedItem)}
+                                />
                               </div>
                               {(() => {
                                 const qty = getRetailQuantity(item);
@@ -1380,6 +1474,17 @@ export default function ShoppingListMasterView() {
               </div>
             </div>
           </div>
+        )}
+        {productPickerTarget && productPickerEnabled && (
+          <ShoppingProductPicker
+            open
+            onOpenChange={(open) => { if (!open) setProductPickerTarget(null); }}
+            ingredient={productPickerTarget.ingredient}
+            quantityLabel={productPickerTarget.quantityLabel}
+            sessionKey={productPickerSessionKey}
+            currentSelection={productPickerTarget.currentSelection}
+            onCommit={commitProductChoice}
+          />
         )}
       </div>
     </motion.div>

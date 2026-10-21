@@ -186,4 +186,98 @@ shopping modal/row connection, a small Development response-contract bridge and
 focused regression coverage. No third engine, new clinical-rule system, provider
 change, ranking redesign, library auto-save, migration or Production release.
 
-No implementation was performed. Stop for approval.
+The user subsequently approved this narrow Development-only implementation.
+That approval does not include a new recommendation engine, reviewed clinical
+rules, additional migrations, Production changes/publication, or live writes
+through the unresolved pairing identity.
+
+## Implementation and verification report
+
+### Implemented
+
+- Development-gated Choose Product / Change / Clear actions and one standard
+  `PickerModal`, preserving the existing list and original ingredient text.
+- Reused `MealIngredientBrands` content through shared catalog cards and the
+  existing `POST /api/grocery-coach/product-advisor`, `mode: "find_product"`.
+  Existing Grocery Coach review-needed behavior and Pro middleware remain intact.
+- One explicit lookup per open action; no page-load/hydration searches, automatic
+  retry, added AI call, or library auto-save. Shopping mode skips the existing
+  optional catalog AI interpretation.
+- Up to three existing-engine-eligible, structurally complete choices. Review
+  candidates and unsupported explicit qualifiers show an explanation and stay
+  generic. The 80-character lookup limit rejects rather than truncates a name.
+- The bridge preserves exact identity, available variant/UPC/package/serving,
+  fact-specific provenance and measurement basis, original source payload, and
+  historical assessment/context. Missing dates and package amounts are not invented.
+- Awaited per-source metadata saves preserve each underlying quantity/unit and
+  recipe contribution. Change/clear use the same store instance as the list.
+  API capability/account checks precede writes; exact returned product evidence
+  and contributions must match. Partial failures stay visible and do not cause a
+  broad rollback or false group-success message.
+- Cancel does not save. Keeping an already-generic ingredient makes no write.
+  Saved choices remain labeled historical, including on checked rows.
+- Late lookup results are invalidated on account/profile/ingredient/dismissal
+  changes. The existing account-owner subject boundary remains unchanged.
+
+### Changed application files
+
+- `shared/shoppingProductSelection.ts`
+- `server/services/productDiscovery/shoppingSelectionBridge.ts`
+- `server/services/productDiscovery/findProductDevelopment.ts`
+- `server/routes/groceryCoach.ts` — only the existing Development catalog branch
+- `client/src/stores/developmentShoppingListStore.ts`
+- `client/src/lib/shoppingProductChoice.ts`
+- `client/src/lib/groceryCoachPackagedIngredients.ts` — narrow milk/plain-milk addition
+- `client/src/components/shopping/ProductCatalogChoices.tsx`
+- `client/src/components/shopping/ShoppingProductPicker.tsx`
+- `client/src/components/shopping/SmartShoppingProductChoice.tsx`
+- `client/src/components/shopping/MealIngredientBrands.tsx`
+- `client/src/components/shopping/GroceryStoreCoachSheet.tsx` — optional response type
+- `client/src/pages/ShoppingListMasterView.tsx` — gated row/modal wiring and the
+  missing import for its existing ScanLine icon, necessary for this view to render
+
+### Synthetic checks
+
+The focused picker/service/store suites cover Pro rejection, eligibility, exact
+qualifiers, evidence gaps, no extra AI interpretation, exact source projection,
+choose/change/clear/refresh, compatible and distinct consolidated choices,
+per-source quantities/contributions, old-API refusal, partial failure, evidence
+loss in a successful API response, account changes and canceled/stale UI results.
+
+- `server/tests/shoppingProductSelection.test.ts`
+- `server/tests/productDiscoveryFoundation.test.ts`
+- `client/src/lib/__tests__/shoppingProductChoice.test.ts`
+- `client/src/lib/__tests__/smartShoppingProductPicker.test.tsx`
+- `client/src/lib/__tests__/groceryCoachMealCatalog.test.tsx`
+
+Existing metadata foundation/store and guarded Development startup/presentation
+regression suites also passed. These use isolated fixtures, not authenticated
+Neon writes. Across the final focused picker/catalog suites, 133 synthetic
+checks passed (the latest save-confirmation/eligibility subset passed 39 checks).
+The focused `tsconfig.shopping-foundation.json` typecheck passed.
+The full-root typecheck remains non-clean due to existing diagnostic debt
+(120 diagnostics; none in the modified picker/application files). The reviewed
+typecheck baseline was not changed.
+
+One guarded Development workflow restart was completed. Captured startup logs
+confirmed pre-import safe mode and suppression of automatic migrations,
+seeding/recovery and background maintenance. The public app returned HTTP 200;
+an unauthenticated, no-CSRF product lookup was rejected with HTTP 403. The
+unauthenticated screenshot captured the initial loading surface, not the
+signed-in picker; it does not establish authenticated UI or Neon persistence.
+
+### Still not verified or authorized
+
+- Authenticated Neon save/reload/hydration and dedicated-account isolation remain
+  outstanding. No live product selection writes or test-account creation were
+  performed, and the unresolved pairing account was not used.
+- The reviewed product-rule registry is still empty. Explicit ingredient
+  requirements (including low sodium, reduced sugar, gluten-free and vegan),
+  unresolved allergy/avoidance and clinical requirements cannot become selectable
+  approvals through a search phrase or a Profile-Matched Pick label.
+- No low-carb/day-level allocation guarantee or permanent clinical clearance is
+  inferred. Stored context is historical.
+- Older Production replacement APIs still cannot guarantee metadata preservation;
+  new metadata writes require positive target-API capability.
+- No database migration, new clinical threshold, unrestricted medical product
+  recommendation, GitHub push, Production workspace change or publication.

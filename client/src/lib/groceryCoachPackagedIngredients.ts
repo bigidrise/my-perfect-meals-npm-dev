@@ -15,7 +15,8 @@ export function packagedProductEligibility(item: string): {
 } {
   const name = item.trim().toLowerCase();
   const excluded = /\b(homemade|home-made|from scratch|spaghetti squash|fresh tomatoes?|cherry tomatoes?|cucumbers?|lemons?|mixed greens|chicken breast|ground turkey)\b/.test(name);
-  const packaged = /\b(sauce|marinara|pasta|spaghetti|noodles|parmesan|cheese|yogurt|bread|tortillas?|crackers?|cereal|broth|stock|tofu|plant-based milk|almond milk|soy milk|oat milk|salad dressing)\b/.test(name);
+  const packaged = /\b(sauce|marinara|pasta|spaghetti|noodles|parmesan|cheese|yogurt|bread|tortillas?|crackers?|cereal|broth|stock|tofu|plant-based milk|almond milk|soy milk|oat milk|salad dressing)\b/.test(name)
+    || /^(?:plain\s+)?milk$/.test(name);
   return !excluded && packaged
     ? { eligible: true, reason: "packaged_product" }
     : { eligible: false, reason: "ordinary_or_unknown" };

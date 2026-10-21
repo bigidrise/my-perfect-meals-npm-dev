@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { post } from "@/lib/api";
-import { catalogProductLabel, type GroceryIngredient } from "@/lib/groceryCoachPackagedIngredients";
+import type { GroceryIngredient } from "@/lib/groceryCoachPackagedIngredients";
 import type { CatalogProductMatch } from "./GroceryStoreCoachSheet";
+import ProductCatalogChoices from "./ProductCatalogChoices";
 
 interface Props {
   ingredient: GroceryIngredient;
@@ -10,7 +11,7 @@ interface Props {
   onSelect: (product: CatalogProductMatch | null) => void;
 }
 
-/** User-initiated discovery only; never mutates the recipe or its nutrition. */
+/** Existing Grocery Coach picker behavior; review-needed choices remain selectable here. */
 export default function MealIngredientBrands({ ingredient, servings, selectedLabel, onSelect }: Props) {
   const [products, setProducts] = useState<CatalogProductMatch[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -41,9 +42,7 @@ export default function MealIngredientBrands({ ingredient, servings, selectedLab
       setNotice(data.catalogNotice || "");
       setExcluded(data.excludedReasons || []);
     } catch {
-      if (active.current) {
-        setError(`Couldn't look up brands for ${ingredient.item}. Try again. Your meal and quantities have not changed.`);
-      }
+      if (active.current) setError(`Couldn't look up brands for ${ingredient.item}. Try again. Your meal and quantities have not changed.`);
     } finally {
       busy.current = false;
       if (active.current) setLoading(false);
@@ -70,24 +69,7 @@ export default function MealIngredientBrands({ ingredient, servings, selectedLab
           <p>{notice || "Catalog information is not a guarantee of medical or allergen safety. Check the current package label."}</p>
           {!!excluded.length && <p>Excluded for known conflicts: {excluded.join(" ")}</p>}
           {!products.length && <p>No suitable catalog options were found. Your ingredient is unchanged. Try a more specific search in Find a Product.</p>}
-          {products.map(product => {
-            const label = catalogProductLabel(product);
-            return <div key={product.productKey} style={{ border: "1px solid #555", borderRadius: 8, padding: 10, marginTop: 8 }}>
-              <strong>{label}</strong>
-              <p>{product.recommendationStatus === "profile_matched_pick" ? "Profile-Matched Pick" : "Check the Label"}</p>
-              <p>{product.evidenceStatus === "eligible" ? "Supporting catalog evidence available" : "Further label verification required"}</p>
-              <p>{product.verificationMessage}</p>
-              {product.profileInsight && <p>{product.profileInsight}</p>}
-              <p>Source: {product.source} · Record: {product.sourceRecordId}</p>
-              {product.ingredients && <p>Ingredients: {product.ingredients}</p>}
-              {product.nutrition?.map((fact, i) => <div key={i}>{fact.statement} ({fact.source})</div>)}
-              {product.allergenInformation?.map((fact, i) => <div key={i}>{fact.statement} ({fact.source})</div>)}
-              {product.serving && <p>Catalog serving: {product.serving} (not the recipe quantity)</p>}
-              <button style={buttonStyle} onClick={() => onSelect(product)}>
-                {selectedLabel === label ? "Selected for shopping" : product.recommendationStatus === "review" ? "Choose for shopping — label review needed" : "Choose for shopping"}
-              </button>
-            </div>;
-          })}
+          <ProductCatalogChoices products={products} selectedLabel={selectedLabel} onSelect={onSelect} />
           <p>Choosing a product changes only your shopping choice. Recipe quantities, servings, and nutrition remain unchanged; the finished meal has not been medically revalidated.</p>
         </>}
       </div>}
