@@ -37,6 +37,7 @@
 - [Studio media lifecycle](studio-media-reference-index.md) — video retention, MIME compatibility, participant deletion, failed media, transcription result scope and voice queue integrity.
 - [OpenAI server upload runtime](openai-server-upload-runtime.md) — server-side uploads must not rely on ambient web globals from the OpenAI SDK auto shim.
 - [Bundled-first iOS startup](bundled-first-ios-startup.md) — native startup must use packaged web assets; remote APIs are a separate, explicit dependency.
+- [iOS reminder release boundary](ios-reminder-release-boundary.md) — repair the existing native scheduler, preserve web push, and require TestFlight evidence before Production.
 - [iOS capture diagnosis](ios-capture-diagnosis.md) — diagnose Grocery Voice Add separately from Studio capture, and sync the native bundle before device evidence.
 - [Shared Neon and workspace release boundary](runtime-database-identity.md) — both workspaces share Neon, but Development Publish does not update Production.
 - [Studio browser verification access](studio-browser-verification-access.md) — DEV browser recording checks can be blocked by workspace entitlements or browser media permissions.
