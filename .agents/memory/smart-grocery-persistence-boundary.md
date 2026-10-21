@@ -66,3 +66,17 @@ the database is shared with Production.
 proof for a changed startup path. Keep live preview transport checks distinct from
 authenticated database save/hydration evidence. Read-only account-isolation approval
 is not permission to sign in or perform persistence writes.
+
+Missing reviewed profile-specific product checks are not evidence that a product
+contains a restricted ingredient. Explain policy gaps, missing product information,
+and unsupported requested qualifiers separately in member-friendly language,
+without internal identifiers. Whether members may also see review-only products
+is a separate product-design decision, not permission to loosen eligibility.
+
+**Why:** The user explicitly asked to remember this distinction after finding that
+Smart Grocery's stricter selection boundary can exclude products Grocery Coach
+displays, and approved explanation changes only.
+
+**How to apply:** Preserve Grocery Coach's recommendation behavior and Smart
+Grocery's current selection safeguards unless the user separately approves a
+review-only product experience.

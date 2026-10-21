@@ -6,6 +6,7 @@ import {
 import type { ShoppingIngredientMetadata } from "../../../shared/shoppingIngredientMetadata";
 import type { ProductSubjectSnapshot } from "./subjectAuthority";
 import { DEVELOPMENT_CATALOG_IDENTITY_POLICY } from "./ruleEvidenceRegistry";
+import { shoppingRejectionExplanation, type ShoppingUnresolvedRequirement } from "./shoppingRejectionExplanation";
 
 /**
  * Projection only: never awards eligibility or installs product rules.
@@ -15,21 +16,26 @@ export function shoppingSelectionBridge(
   candidate: ProductCandidate,
   decision: ProductEligibilityDecision,
   subject: ProductSubjectSnapshot,
-  unresolved: readonly { id: string; classification: string }[],
+  unresolved: readonly ShoppingUnresolvedRequirement[],
   input: ShoppingIngredientRequest,
 ): ShoppingCatalogDecision {
   const ingredient = canonicalShoppingIngredient(input);
   const explicit = ingredient.requirements.filter(r => r.origin !== "profile_guidance");
   if (explicit.length) return {
     eligible: false,
-    reason: `No reviewed product-evidence rule verifies ${explicit.map(r => r.value).join(", ")} for this ingredient. Keep it generic and check the current label.`,
+    reason: `We can't verify the requested ingredient requirement (${explicit.map(r => r.value).join(", ")}) with the available product checks. Keep this ingredient generic.`,
   };
   if (subject.status !== "resolved" || subject.subjectKind !== "account" ||
       decision.status !== "eligible" || decision.subjectId !== subject.subjectId ||
       decision.productKey !== candidate.identity.key ||
       decision.contextFingerprint !== subject.fingerprint ||
       decision.reasons.length || unresolved.some(r => r.classification !== "support_context")) {
-    return { eligible: false, reason: "Current profile or product evidence still requires review. No shopping choice was approved; the ingredient is unchanged." };
+    const contextMatches = subject.status === "resolved" && subject.subjectKind === "account" &&
+      decision.subjectId === subject.subjectId && decision.productKey === candidate.identity.key &&
+      decision.contextFingerprint === subject.fingerprint;
+    return { eligible: false, reason: contextMatches
+      ? shoppingRejectionExplanation(decision, subject, unresolved)
+      : "Your current food profile could not be confirmed for this product. Your ingredient is unchanged." };
   }
   const provenance = (source: ProductCandidate["identity"]["provenance"]) => ({
     source: source.source, sourceRecordId: source.sourceRecordId,
@@ -70,6 +76,6 @@ export function shoppingSelectionBridge(
     return { eligible: true, selection };
   } catch {
     // Oversized/malformed source records cannot be silently trimmed into approvals.
-    return { eligible: false, reason: "The catalog record cannot preserve sufficient structured product evidence. Keep this ingredient generic." };
+    return { eligible: false, reason: "This product's information can't be saved reliably. Keep this ingredient generic." };
   }
 }

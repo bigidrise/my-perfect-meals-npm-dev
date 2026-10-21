@@ -50,7 +50,7 @@ test("projects existing eligible evidence without inventing facts or dates", () 
 test.each(["low-sodium soy sauce", "reduced-sugar jam", "gluten-free bread", "vegan cream cheese"])(
   "search words never establish explicit qualifier evidence: %s", originalName => {
     const result = shoppingSelectionBridge(candidate, decision, subject, [], { originalName, requirements: [] });
-    expect(result).toMatchObject({ eligible: false, reason: expect.stringContaining("No reviewed") });
+    expect(result).toMatchObject({ eligible: false, reason: expect.stringContaining("We can't verify the requested ingredient requirement") });
     expect(result.selection).toBeUndefined();
     expect(canonicalShoppingIngredient({ originalName, requirements: [] }).requirements.length).toBeGreaterThan(0);
   },
