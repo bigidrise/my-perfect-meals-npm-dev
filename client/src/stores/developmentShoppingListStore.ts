@@ -4,8 +4,9 @@ import { apiRequest } from "@/lib/apiRequest";
 import { classifyIngredient } from "@/utils/ingredientClassifier";
 import { assertShoppingMetadataEndpoint } from "@/lib/shoppingMetadataTransport";
 import {
-  makeIngredientMetadata, parseIngredientMetadata, shoppingIdentityKey, mergeIngredientMetadata, preserveRecipeContributions,
+  makeIngredientMetadata, parseIngredientMetadata, shoppingIdentityKey, preserveRecipeContributions,
 } from "@shared/shoppingIngredientMetadata";
+import { developmentShoppingGroups, mergeDevelopmentShoppingMetadata } from "@shared/developmentShoppingMerge";
 import type { ShoppingListItem, ShoppingListStore, UniversalIngredient } from "./shoppingListStore";
 import {
   canonicalShoppingIngredient, parseShoppingProductSelection, shoppingIngredientSignature,
@@ -142,16 +143,21 @@ export function createDevelopmentShoppingListStore(request: typeof apiRequest = 
         ingredientMetadata: metadata,
         productKey: metadata.selectedProduct?.productKey || input.productKey,
       };
-      const index = get().items.findIndex(i => shoppingIdentityKey(i) === shoppingIdentityKey(next) &&
-        compatibleUnit(i.unit, next.unit));
+      const group = developmentShoppingGroups([...get().items, next],
+        (a, b) => Boolean(compatibleUnit(a.unit, b.unit))).find(g => g.includes(next))!;
+      const priorMatch = group.find(i => i !== next && i.ingredientMetadata?.selectedProduct) ||
+        group.find(i => i !== next);
+      const index = priorMatch ? get().items.indexOf(priorMatch) : -1;
       if (index < 0) {
         set({ items: [...get().items, next] });
         save(next.id);
       } else {
         const prior = get().items[index];
+        const ingredientMetadata = mergeDevelopmentShoppingMetadata(prior.ingredientMetadata, metadata);
         const merged = {
           ...prior, quantity: combinedQuantity(prior, next),
-          ingredientMetadata: mergeIngredientMetadata(prior.ingredientMetadata, metadata),
+          ingredientMetadata,
+          productKey: ingredientMetadata?.selectedProduct?.productKey || prior.productKey,
           sourceMeals: [...(prior.sourceMeals || []), ...(next.sourceMeals || [])],
         };
         set({ items: get().items.map((i, n) => n === index ? merged : i) });

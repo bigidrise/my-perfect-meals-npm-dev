@@ -91,11 +91,14 @@ transfers it to Smart Grocery; do not require the same selection twice. Generic
 meal-card ingredients offer Choose Product only when no choice exists. Different
 sources alone must not create duplicate rows. Retain a choice across a merge only
 when product identity and ingredient requirements are compatible; never overwrite
-an existing choice or silently discard conflicts.
+an existing choice or silently discard conflicts. Incompatible evidence also
+requires separate items, without losing quantities or recipe provenance.
 
 **Why:** The user confirmed the Grocery Coach selection experience works as wanted
-and specified origin-aware continuity without changing Grocery Coach itself.
+and approved only its Development Add All transfer and compatible merging, without
+changing lookup, ranking, recommendations, selection experience or medical rules.
 
 **How to apply:** Reuse the existing saved-product presentation and selection
-system, preserve recipe quantities and qualifiers, and obtain approval for the
-smallest handoff/merge correction before changing application code.
+system and preserve recipe quantities and qualifiers. Verification uses synthetic
+identities and storage; real customer accounts and destructive authenticated
+persistence tests are prohibited.

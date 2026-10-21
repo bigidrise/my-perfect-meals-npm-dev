@@ -39,6 +39,8 @@ import { GroceryCoachMacroTiles, type GroceryCoachMacros } from "./GroceryCoachM
 import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
 import { groceryCoachCatalogEnabled } from "@/lib/groceryCoachCatalogGate";
 import { packagedProductEligibility, catalogProductLabel, recipeShoppingQuantity } from "@/lib/groceryCoachPackagedIngredients";
+import { shoppingMetadataEnabled } from "@/lib/shoppingMetadataGate";
+import { groceryCoachSelectedProductMetadata } from "@/lib/groceryCoachShoppingTransfer";
 import MealIngredientBrands from "./MealIngredientBrands";
 import type { ShoppingCatalogDecision } from "@shared/shoppingProductSelection";
 
@@ -901,12 +903,26 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         sourceMeals: [mealName],
         ...(groceryCoachCatalogEnabled && pickedBrands.get(s.item.toLowerCase())?.catalogProduct ? {
           notes: `For ${s.item}: ${s.quantity} ${s.unit}; ${result.servingCount || result.meal?.servings || 1} servings. Catalog shopping choice only; check current label. ${pickedBrands.get(s.item.toLowerCase())!.catalogProduct!.source} record ${pickedBrands.get(s.item.toLowerCase())!.catalogProduct!.sourceRecordId}; UPC ${pickedBrands.get(s.item.toLowerCase())!.catalogProduct!.barcode || "unavailable"}. ${pickedBrands.get(s.item.toLowerCase())!.catalogProduct!.verificationMessage} Finished meal not medically revalidated.`,
+          ...(shoppingMetadataEnabled ? {
+            name: s.item,
+            ingredientMetadata: groceryCoachSelectedProductMetadata(
+              s, pickedBrands.get(s.item.toLowerCase())!.catalogProduct!,
+              { id: mealCard?.id, name: mealName },
+            ),
+          } : {}),
         } : {}),
       }));
-    const allItems = [
-      ...toItems(result.shoppingList),
-      ...toItems(result.ownedIngredients ?? []),
-    ];
+    let allItems: UniversalIngredient[];
+    try {
+      allItems = [
+        ...toItems(result.shoppingList),
+        ...toItems(result.ownedIngredients ?? []),
+      ];
+    } catch (error) {
+      if (!shoppingMetadataEnabled) throw error;
+      toast({ title: "Shopping choice needs review", description: "The chosen product information couldn't be preserved. Nothing was added; refresh the choice before trying again." });
+      return;
+    }
     addItems(allItems);
     setAddedToList(true);
     const pickedCount = pickedBrands.size;
@@ -914,7 +930,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       ? `${allItems.length} items added — ${pickedCount} with your brand selection.`
       : `${allItems.length} items added.`;
     toast({ title: "Added to shopping list!", description: desc });
-  }, [result, pickedBrands, addItems, toast]);
+  }, [result, pickedBrands, addItems, toast, mealCard?.id]);
 
   const finalizeCard = useCallback(async (coachResult: CoachResult) => {
     const gen = sessionGenRef.current; // capture before first await
