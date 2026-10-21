@@ -453,3 +453,17 @@ mtime_ms = 1792467253340
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/a26ddad3-52e7-45e1-93dd-a37b9b262fdd/3c3cfb37-5f88-42fe-aeac-3d6033ef603b"
 storage_version_token = "1792467262416157"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "5sRZ6AQCGoZRl3T86F_m-"
+uri = "file://.local/reports/pr429-localization-comparison.csv"
+type = "table"
+title = "PR #429 — Complete localization comparison"
+description = "Every CI failure classified against clean Production, with complete before/after messages, affected files, all missing locale keys, the unchanged warning, and the additional unregistered translation-key finding."
+logical_id = "21e82081-c6d8-4cfe-87e9-38226a011eb4"
+content_hash = "sha256:f0a48f8929b5661ff8b683cd4783172877688d304782eb423de58db8b5aa9b34"
+size = 72287
+mtime_ms = 1792620299211
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/21e82081-c6d8-4cfe-87e9-38226a011eb4/1d078b15-bcae-42d2-b9e4-b943b837d88d"
+storage_version_token = "1792620306194697"
+content_type = "text/csv"
