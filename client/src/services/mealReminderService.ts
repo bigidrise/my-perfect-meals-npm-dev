@@ -1,34 +1,31 @@
 import { Capacitor } from "@capacitor/core";
-
-export interface ReminderSlot {
-  id?: string;
-  label: string;
-  time: string;
-  enabled: boolean;
-}
+import { createIOSMealReminderScheduler, type ReminderSlot } from "./iosMealReminderScheduler";
+export type { ReminderSlot } from "./iosMealReminderScheduler";
 
 const MAX_SLOTS = 6;
 const VAPID_PUBLIC_KEY = 'BOX8GMIv1Y8E14t5Vc9elEjswXS-N-xvRVjqUsV2dGQwyXH0yyXvVUD94nyocUyG-V8f2Gdj4tfVzYaxKNHybqg';
 
 // ── SERVER API ───────────────────────────────────────────────────────────────
 
-export async function loadRemindersFromServer(): Promise<ReminderSlot[]> {
+export async function loadRemindersFromServer(options: { strict?: boolean } = {}): Promise<ReminderSlot[]> {
   try {
     const res = await fetch('/api/user/reminders', { credentials: 'include' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
+    if (options.strict && !Array.isArray(data.slots)) throw new Error("Invalid reminder response");
     return (data.slots || []).map((s: any) => ({
       id: s.id,
       label: s.label,
-      time: s.time,
+      time: options.strict && typeof s.time === "string" && /^([01]\d|2[0-3]):[0-5]\d:00$/.test(s.time) ? s.time.slice(0, 5) : s.time,
       enabled: s.enabled,
     }));
-  } catch {
+  } catch (error) {
+    if (options.strict) throw error;
     return getDefaultSlots();
   }
 }
 
-export async function saveRemindersToServer(slots: ReminderSlot[]): Promise<ReminderSlot[]> {
+export async function saveRemindersToServer(slots: ReminderSlot[], options: { strict?: boolean } = {}): Promise<ReminderSlot[]> {
   const res = await fetch('/api/user/reminders', {
     method: 'PUT',
     credentials: 'include',
@@ -37,7 +34,14 @@ export async function saveRemindersToServer(slots: ReminderSlot[]): Promise<Remi
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = await res.json();
-  return (data.slots || []).map((s: any) => ({ id: s.id, label: s.label, time: s.time, enabled: s.enabled }));
+  if (options.strict && (!Array.isArray(data.slots) || data.slots.length !== slots.length)) {
+    throw new Error("Saved reminder response could not be confirmed");
+  }
+  return (data.slots || []).map((s: any) => ({
+    id: s.id, label: s.label,
+    time: options.strict && typeof s.time === "string" && /^([01]\d|2[0-3]):[0-5]\d:00$/.test(s.time) ? s.time.slice(0, 5) : s.time,
+    enabled: s.enabled,
+  }));
 }
 
 export function getDefaultSlots(): ReminderSlot[] {
@@ -67,6 +71,14 @@ async function getLocalNotifications() {
   }
 }
 
+export const isIOSReminderDevice = () =>
+  Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios";
+
+export const iosMealReminderScheduler = createIOSMealReminderScheduler({
+  plugin: getLocalNotifications,
+  load: () => loadRemindersFromServer({ strict: true }),
+});
+
 export async function requestNotificationPermission(): Promise<boolean> {
   const LN = await getLocalNotifications();
   if (!LN) return false;
@@ -92,6 +104,10 @@ export async function checkNotificationPermission(): Promise<boolean> {
 }
 
 export async function syncToiOS(slots: ReminderSlot[]): Promise<void> {
+  if (isIOSReminderDevice()) {
+    await iosMealReminderScheduler.sync(slots);
+    return;
+  }
   const LN = await getLocalNotifications();
   if (!LN) return;
 
@@ -125,6 +141,10 @@ export async function syncToiOS(slots: ReminderSlot[]): Promise<void> {
 }
 
 export async function canceliOSReminders(): Promise<void> {
+  if (isIOSReminderDevice()) {
+    await iosMealReminderScheduler.sync([]);
+    return;
+  }
   const LN = await getLocalNotifications();
   if (!LN) return;
   try {
