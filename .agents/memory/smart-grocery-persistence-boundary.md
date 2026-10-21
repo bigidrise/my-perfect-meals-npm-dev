@@ -14,6 +14,21 @@ medical-needs-first recommendation phase.
 **How to apply:** Keep new work within the approved foundation unless the user
 explicitly expands scope. Preserve current profile revalidation authority.
 
+The intended next interface reuses Grocery Coach's existing product lookup and
+choices, not a third recommendation engine. Keep the existing list, use a small
+Choose Product action only where packaged-product selection matters, and start
+lookups only when the member taps it. Show a saved choice beneath the original
+ingredient without replacing its name or recipe quantity; allow change/clear.
+
+**Why:** The user explicitly chose this simpler reuse direction and prohibited a
+new engine or clinical-rule system. Investigation/plan approval alone does not
+authorize interface implementation or live persistence writes.
+
+**How to apply:** Preserve existing medical/evidence and entitlement gates; when
+suitability cannot be established, do not portray unverified options as approved
+recommendations. Keep authenticated Neon persistence verification outstanding
+until separately completed under its isolation requirements.
+
 Development and Production share Neon, while the older Production application does
 not understand ingredient metadata. Its scoped replacement deletes/recreates items
 without metadata; nullable additive storage compatibility is not lifecycle preservation.
