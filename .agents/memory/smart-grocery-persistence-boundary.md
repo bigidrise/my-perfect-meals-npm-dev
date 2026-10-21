@@ -85,3 +85,17 @@ from already-resolved nutrition guidance or an explicit ingredient qualifier.
 Condition names alone never imply a new nutrient restriction. Preserve the
 ingredient, quantity, saved choice and Keep generic behavior; no extra AI calls
 or automatic searches. Authenticated Neon persistence verification remains outstanding.
+
+Preserve a member's Grocery Coach Choose for Shopping selection when Add All
+transfers it to Smart Grocery; do not require the same selection twice. Generic
+meal-card ingredients offer Choose Product only when no choice exists. Different
+sources alone must not create duplicate rows. Retain a choice across a merge only
+when product identity and ingredient requirements are compatible; never overwrite
+an existing choice or silently discard conflicts.
+
+**Why:** The user confirmed the Grocery Coach selection experience works as wanted
+and specified origin-aware continuity without changing Grocery Coach itself.
+
+**How to apply:** Reuse the existing saved-product presentation and selection
+system, preserve recipe quantities and qualifiers, and obtain approval for the
+smallest handoff/merge correction before changing application code.
