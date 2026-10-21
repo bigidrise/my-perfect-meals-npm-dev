@@ -3486,6 +3486,14 @@
     "regularGi": "IG normale"
   },
   "mealReminders": {
+    "iosDeliveryNote": "Le impostazioni delle notifiche di iOS e Full immersion possono influire sul momento in cui vengono mostrati gli avvisi.",
+    "loadFailedDescription": "I promemoria esistenti sull’iPhone non sono stati modificati. Riapri le impostazioni per riprovare.",
+    "loadFailedMessage": "Impossibile caricare i promemoria dei pasti salvati. La pianificazione esistente dei promemoria sull’iPhone non è stata modificata.",
+    "loadFailedTitle": "Impossibile caricare i promemoria dei pasti salvati",
+    "permissionAllowed": "Notifiche consentite",
+    "retryLoading": "Riprova a caricare i promemoria",
+    "scheduleUnconfirmedDescription": "Controlla le autorizzazioni delle notifiche e ripeti la verifica dei promemoria dell’iPhone qui sotto.",
+    "scheduleUnconfirmedTitle": "Salvato, ma non è stato possibile confermare la pianificazione dei promemoria sull’iPhone",
     "addReminder": "Aggiungi promemoria",
     "checkAgain": "Ricontrolla",
     "checking": "Controllo…",

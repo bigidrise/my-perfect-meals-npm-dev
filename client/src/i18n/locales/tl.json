@@ -3486,6 +3486,14 @@
     "regularGi": "Regular na GI"
   },
   "mealReminders": {
+    "iosDeliveryNote": "Maaaring maapektuhan ng mga setting ng notification sa iOS at ng Focus kung kailan lumalabas ang mga alerto.",
+    "loadFailedDescription": "Hindi binago ang mga kasalukuyang paalala sa iPhone. Buksan muli ang mga setting para subukan ulit.",
+    "loadFailedMessage": "Hindi na-load ang mga naka-save na paalala sa pagkain. Hindi binago ang kasalukuyang iskedyul ng mga paalala sa iPhone.",
+    "loadFailedTitle": "Hindi na-load ang mga naka-save na paalala sa pagkain",
+    "permissionAllowed": "Pinapayagan ang mga notification",
+    "retryLoading": "Subukang i-load muli ang mga paalala",
+    "scheduleUnconfirmedDescription": "Suriin ang mga pahintulot sa notification at subukan muli ang pagsusuri ng mga paalala sa iPhone sa ibaba.",
+    "scheduleUnconfirmedTitle": "Na-save, pero hindi makumpirma ang pag-iskedyul ng mga paalala sa iPhone",
     "addReminder": "Magdagdag ng paalala sa pagkain",
     "checkAgain": "Suriin muli",
     "checking": "Sinusuri…",

@@ -3489,6 +3489,14 @@
     "regularGi": "IG normal"
   },
   "mealReminders": {
+    "iosDeliveryNote": "As configurações de notificações do iOS e o modo Foco podem afetar quando os alertas aparecem.",
+    "loadFailedDescription": "Os lembretes existentes no iPhone não foram alterados. Abra as configurações novamente para tentar outra vez.",
+    "loadFailedMessage": "Não foi possível carregar os lembretes de refeições salvos. A programação existente de lembretes no iPhone não foi alterada.",
+    "loadFailedTitle": "Não foi possível carregar os lembretes de refeições salvos",
+    "permissionAllowed": "Notificações permitidas",
+    "retryLoading": "Tentar carregar os lembretes novamente",
+    "scheduleUnconfirmedDescription": "Verifique as permissões de notificação e repita a verificação dos lembretes do iPhone abaixo.",
+    "scheduleUnconfirmedTitle": "Salvo, mas não foi possível confirmar a programação dos lembretes no iPhone",
     "addReminder": "Adicionar lembrete",
     "checkAgain": "Verificar de novo",
     "checking": "Verificando…",

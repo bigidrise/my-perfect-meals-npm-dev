@@ -3258,6 +3258,14 @@
     "regularGi": "Regular GI"
   },
   "mealReminders": {
+    "iosDeliveryNote": "iOS notification settings and Focus can affect when alerts appear.",
+    "loadFailedDescription": "Existing iPhone reminders were left unchanged. Reopen settings to try again.",
+    "loadFailedMessage": "Could not load saved meal reminders. Your existing iPhone schedule was left unchanged.",
+    "loadFailedTitle": "Could not load saved meal reminders",
+    "permissionAllowed": "Notifications allowed",
+    "retryLoading": "Retry loading reminders",
+    "scheduleUnconfirmedDescription": "Check notification permissions and retry the iPhone reminder check below.",
+    "scheduleUnconfirmedTitle": "Saved, but iPhone scheduling could not be confirmed",
     "addReminder": "Add meal reminder",
     "checkAgain": "Check again",
     "checking": "Checking…",

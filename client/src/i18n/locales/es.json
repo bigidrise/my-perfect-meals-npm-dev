@@ -3486,6 +3486,14 @@
     "regularGi": "IG normal"
   },
   "mealReminders": {
+    "iosDeliveryNote": "Los ajustes de notificaciones de iOS y los modos de concentración pueden afectar al momento en que aparecen los avisos.",
+    "loadFailedDescription": "Los recordatorios existentes del iPhone no se han modificado. Vuelve a abrir los ajustes para intentarlo de nuevo.",
+    "loadFailedMessage": "No se pudieron cargar los recordatorios de comidas guardados. La programación existente de recordatorios del iPhone no se ha modificado.",
+    "loadFailedTitle": "No se pudieron cargar los recordatorios de comidas guardados",
+    "permissionAllowed": "Notificaciones permitidas",
+    "retryLoading": "Volver a cargar los recordatorios",
+    "scheduleUnconfirmedDescription": "Comprueba los permisos de notificaciones y repite la comprobación de recordatorios del iPhone que aparece abajo.",
+    "scheduleUnconfirmedTitle": "Guardado, pero no se pudo confirmar la programación de recordatorios del iPhone",
     "addReminder": "Añadir recordatorio",
     "checkAgain": "Comprobar de nuevo",
     "checking": "Comprobando…",

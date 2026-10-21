@@ -3240,6 +3240,14 @@
     "regularGi": "常规 GI"
   },
   "mealReminders": {
+    "iosDeliveryNote": "iOS 通知设置和专注模式可能会影响提醒的显示时间。",
+    "loadFailedDescription": "iPhone 上现有的提醒未被更改。请重新打开设置后再试。",
+    "loadFailedMessage": "无法加载已保存的用餐提醒。iPhone 上现有的提醒计划未被更改。",
+    "loadFailedTitle": "无法加载已保存的用餐提醒",
+    "permissionAllowed": "已允许通知",
+    "retryLoading": "重新加载提醒",
+    "scheduleUnconfirmedDescription": "请检查通知权限，然后在下方重新检查 iPhone 提醒。",
+    "scheduleUnconfirmedTitle": "已保存，但无法确认 iPhone 提醒的计划设置",
     "addReminder": "添加餐点提醒",
     "checkAgain": "再次检查",
     "checking": "正在检查…",

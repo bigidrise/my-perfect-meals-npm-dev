@@ -3225,6 +3225,14 @@
     "regularGi": "[Réègûüláãr GÍÏ ŦŦŦ]"
   },
   "mealReminders": {
+    "iosDeliveryNote": "[íïÔÖS nôötíïfíïcáãtíïôön séèttíïngs áãnd Fôöcûüs cáãn áãfféèct whéèn áãléèrts áãppéèáãr. ŦŦŦ]",
+    "loadFailedDescription": "[ÉÈxíïstíïng íïPhôönéè réèmíïndéèrs wéèréè léèft ûüncháãngéèd. Réèôöpéèn séèttíïngs tôö try áãgáãíïn. ŦŦŦ]",
+    "loadFailedMessage": "[Côöûüld nôöt lôöáãd sáãvéèd méèáãl réèmíïndéèrs. Yôöûür éèxíïstíïng íïPhôönéè schéèdûüléè wáãs léèft ûüncháãngéèd. ŦŦŦ]",
+    "loadFailedTitle": "[Côöûüld nôöt lôöáãd sáãvéèd méèáãl réèmíïndéèrs ŦŦŦ]",
+    "permissionAllowed": "[Nôötíïfíïcáãtíïôöns áãllôöwéèd ŦŦŦ]",
+    "retryLoading": "[Réètry lôöáãdíïng réèmíïndéèrs ŦŦŦ]",
+    "scheduleUnconfirmedDescription": "[Chéèck nôötíïfíïcáãtíïôön péèrmíïssíïôöns áãnd réètry théè íïPhôönéè réèmíïndéèr chéèck béèlôöw. ŦŦŦ]",
+    "scheduleUnconfirmedTitle": "[Sáãvéèd, bûüt íïPhôönéè schéèdûülíïng côöûüld nôöt béè côönfíïrméèd ŦŦŦ]",
     "addReminder": "[ÁÃdd méèáãl réèmíïndéèr ŦŦŦ]",
     "checkAgain": "[Chéèck áãgáãíïn ŦŦŦ]",
     "checking": "[Chéèckíïng… ŦŦŦ]",

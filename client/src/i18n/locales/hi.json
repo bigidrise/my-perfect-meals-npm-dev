@@ -3486,6 +3486,14 @@
     "regularGi": "सामान्य GI"
   },
   "mealReminders": {
+    "iosDeliveryNote": "iOS की सूचना सेटिंग और फ़ोकस मोड के कारण अलर्ट दिखने का समय प्रभावित हो सकता है।",
+    "loadFailedDescription": "iPhone के मौजूदा रिमाइंडर बदले नहीं गए हैं। फिर से कोशिश करने के लिए सेटिंग दोबारा खोलें।",
+    "loadFailedMessage": "भोजन के सेव किए गए रिमाइंडर लोड नहीं हो सके। iPhone पर रिमाइंडर का मौजूदा शेड्यूल बदला नहीं गया है।",
+    "loadFailedTitle": "भोजन के सेव किए गए रिमाइंडर लोड नहीं हो सके",
+    "permissionAllowed": "सूचनाओं की अनुमति है",
+    "retryLoading": "रिमाइंडर दोबारा लोड करें",
+    "scheduleUnconfirmedDescription": "सूचनाओं की अनुमतियाँ जाँचें और नीचे iPhone रिमाइंडर की जाँच फिर से करें।",
+    "scheduleUnconfirmedTitle": "सेव हो गया, लेकिन iPhone पर रिमाइंडर शेड्यूल होने की पुष्टि नहीं हो सकी",
     "addReminder": "भोजन रिमाइंडर जोड़ें",
     "checkAgain": "पुनः जांचें",
     "checking": "जांच हो रही है…",

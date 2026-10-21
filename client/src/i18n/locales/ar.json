@@ -3244,6 +3244,14 @@
     "regularGi": "مؤشر عادي"
   },
   "mealReminders": {
+    "iosDeliveryNote": "قد تؤثر إعدادات إشعارات iOS ونمط التركيز في وقت ظهور التنبيهات.",
+    "loadFailedDescription": "لم تتغير التذكيرات الحالية على iPhone. أعد فتح الإعدادات للمحاولة مرة أخرى.",
+    "loadFailedMessage": "تعذّر تحميل تذكيرات الوجبات المحفوظة. لم يتغير جدول التذكيرات الحالي على iPhone.",
+    "loadFailedTitle": "تعذّر تحميل تذكيرات الوجبات المحفوظة",
+    "permissionAllowed": "الإشعارات مسموح بها",
+    "retryLoading": "إعادة محاولة تحميل التذكيرات",
+    "scheduleUnconfirmedDescription": "تحقّق من أذونات الإشعارات وأعد محاولة التحقق من تذكيرات iPhone أدناه.",
+    "scheduleUnconfirmedTitle": "تم الحفظ، لكن تعذّر تأكيد جدولة التذكيرات على iPhone",
     "addReminder": "إضافة تذكير وجبة",
     "checkAgain": "إعادة الفحص",
     "checking": "جارٍ الفحص…",
