@@ -10,6 +10,7 @@ import {
   developmentShoppingPost, developmentItemPatch, developmentMealCommit,
   developmentSavedProductFields,
   developmentPlanMeals, developmentMealIngredients,
+  aggregateDevelopmentShoppingItems,
 } from "../services/shopping-list/metadataPersistence";
 
 jest.mock("drizzle-orm", () => ({
@@ -87,6 +88,71 @@ function app(order: "classic-first" | "enhanced-first" = "classic-first") {
 const originalEnvironment = process.env.NODE_ENV;
 beforeEach(() => { process.env.NODE_ENV = "development"; state.rows = []; state.sources = []; state.writes = []; });
 afterAll(() => { process.env.NODE_ENV = originalEnvironment; });
+
+describe("Development origin-aware merging with synthetic storage", () => {
+  function metadata(selected: boolean, recipeId: string) {
+    const base = makeIngredientMetadata({
+      name: "low-sodium spaghetti sauce", quantity: ".5", unit: "cup", recipeId,
+    });
+    return selected ? parseIngredientMetadata({
+      ...base, selectedProduct: {
+        productKey: "synthetic-choice", name: "Tomato Sauce", brand: "Synthetic Brand",
+        source: { source: "synthetic", sourceRecordId: "record-a" }, evidence: [],
+        assessment: { status: "review_required", unresolvedRequirements: ["label_review"], reasons: [] },
+      },
+    })! : base;
+  }
+  test("server aggregation preserves a compatible saved product and every underlying ID", () => {
+    const inputs = [true, false].map((selected, i) => ({
+      id: `source-${i}`, name: "low-sodium spaghetti sauce", quantity: ".5", unit: "cup",
+      ingredientMetadata: metadata(selected, `recipe-${i}`),
+    }));
+    const result = aggregateDevelopmentShoppingItems(inputs);
+    expect(result).toHaveLength(1);
+    expect(result[0].quantity).toBe("1");
+    expect(result[0].ids).toEqual(["source-0", "source-1"]);
+    expect(result[0].productKey).toBe("synthetic-choice");
+    expect(result[0].ingredientMetadata.contributions).toHaveLength(2);
+    expect(result[0].ingredientMetadata.selectedProduct.assessment.status).toBe("review_required");
+    expect(inputs[0].ingredientMetadata.contributions).toHaveLength(1);
+  });
+  test.each([true, false])("meal commit preserves compatible choice when existing row selected=%s", async existingSelected => {
+    const existingMetadata = metadata(existingSelected, "prior-recipe");
+    const incomingMetadata = metadata(!existingSelected, "next-recipe");
+    state.rows.push({
+      id: "synthetic-existing", userId: "synthetic-a",
+      name: "low-sodium spaghetti sauce", quantity: ".5", unit: "cup",
+      scopeType: "week", scopeKey: "synthetic-day",
+      ingredientMetadata: existingMetadata,
+      productKey: existingMetadata.selectedProduct?.productKey || null,
+    });
+    const response: any = { json: jest.fn(), status: jest.fn().mockReturnThis() };
+    await developmentMealCommit({ body: { meals: [{
+      id: "next-recipe", name: "Next recipe", day: "synthetic-day",
+      ingredients: [{ name: "low-sodium spaghetti sauce", quantity: .5, unit: "cup",
+        ingredientMetadata: incomingMetadata }],
+    }] } }, response, mockDatabase, "synthetic-a");
+    expect(state.rows).toHaveLength(1);
+    expect(state.rows[0].quantity).toBe("1");
+    expect(state.rows[0].productKey).toBe("synthetic-choice");
+    expect(state.rows[0].ingredientMetadata.selectedProduct).toEqual(
+      (existingSelected ? existingMetadata : incomingMetadata).selectedProduct);
+    expect(state.rows[0].ingredientMetadata.contributions).toHaveLength(2);
+    expect(state.sources).toHaveLength(1);
+    expect(state.writes.every(w => w.action !== "delete")).toBe(true);
+  });
+  test("server aggregation keeps conflicting evidence separate with both quantities intact", () => {
+    const a = metadata(true, "a"), b = metadata(true, "b");
+    b.selectedProduct!.assessment.reasons = ["Different evidence"];
+    const result = aggregateDevelopmentShoppingItems([a, b].map((m, i) => ({
+      id: `source-${i}`, name: m.ingredient.originalName, quantity: ".5", unit: "cup",
+      ingredientMetadata: m,
+    })));
+    expect(result).toHaveLength(2);
+    expect(result.map(r => r.quantity)).toEqual(["0.5", "0.5"]);
+    expect(result.map(r => r.ingredientMetadata)).toEqual([a, b]);
+  });
+});
 
 describe("Versioned shopping metadata", () => {
   test.each(["low-sodium soy sauce", "reduced-sugar jam", "gluten-free bread", "vegan cream cheese"])("preserves %s independently of matching normalization", name => {

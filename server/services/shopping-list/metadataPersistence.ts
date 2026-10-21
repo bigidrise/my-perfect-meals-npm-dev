@@ -3,10 +3,10 @@ import { z } from "zod";
 import { shoppingListItems, shoppingListSources } from "@shared/schema";
 import { prepareShoppingRecipeIngredient } from "@shared/shoppingRecipeIngredient";
 import {
-  makeIngredientMetadata, parseIngredientMetadata, shoppingIdentityKey,
-  mergeIngredientMetadata,
+  makeIngredientMetadata, parseIngredientMetadata, type ShoppingIngredientMetadata,
   preserveRecipeContributions,
 } from "@shared/shoppingIngredientMetadata";
+import { developmentShoppingGroups, mergeDevelopmentShoppingMetadata } from "@shared/developmentShoppingMerge";
 
 export const shoppingMetadataDevelopment = () => process.env.NODE_ENV === "development";
 
@@ -149,17 +149,17 @@ export async function developmentShoppingPost(req: any, res: any, database: any,
 }
 
 export function aggregateDevelopmentShoppingItems(items: any[]) {
-  const map = new Map<string, any>();
-  for (const item of items) {
-    const key = `${shoppingIdentityKey(item)}|${item.unit || ""}|${item.category || ""}`;
-    const prior = map.get(key);
-    if (prior) {
-      prior.quantity = String(Number(prior.quantity) + Number(item.quantity));
-      prior.ids.push(item.id);
-      prior.ingredientMetadata = mergeIngredientMetadata(prior.ingredientMetadata, item.ingredientMetadata);
-    } else map.set(key, { ...item, ids: [item.id] });
-  }
-  return [...map.values()];
+  return developmentShoppingGroups(items, (a, b) =>
+    (a.unit || "") === (b.unit || "") && (a.category || "") === (b.category || "")
+  ).map(group => {
+    const ingredientMetadata = group.reduce<ShoppingIngredientMetadata | undefined>((m, item) =>
+      mergeDevelopmentShoppingMetadata(m, item.ingredientMetadata), undefined);
+    return {
+      ...group[0], quantity: String(group.reduce((sum, item) => sum + Number(item.quantity), 0)),
+      ids: group.map(item => item.id), ingredientMetadata,
+      productKey: ingredientMetadata?.selectedProduct?.productKey || group[0].productKey,
+    };
+  });
 }
 
 export function developmentMealIngredients(meals: any[]) {
@@ -211,15 +211,20 @@ export async function developmentMealCommit(req: any, res: any, database: any, u
       for (const item of prepared) {
         if (item.recipeId && seen.has(item.recipeId)) continue;
         const scopeKey = meals.find(m => (m.mealId || m.id) === item.recipeId)?.day || "current";
-        const match = existing.find((row: any) =>
-          row.scopeType === "week" && row.scopeKey === scopeKey &&
-          (row.unit || "") === item.unit &&
-          shoppingIdentityKey(row) === shoppingIdentityKey(item));
+        const group = developmentShoppingGroups([...existing, item], (a: any, b: any) => {
+          const inScope = (row: any) => row === item ||
+            (row.scopeType === "week" && row.scopeKey === scopeKey);
+          return inScope(a) && inScope(b) && (a.unit || "") === (b.unit || "");
+        }).find(g => g.includes(item))!;
+        const match = group.find(row => row !== item && row.ingredientMetadata?.selectedProduct) ||
+          group.find(row => row !== item);
         let id: string;
         if (match) {
+          const ingredientMetadata = mergeDevelopmentShoppingMetadata(match.ingredientMetadata, item.ingredientMetadata);
           const changes = {
             quantity: String(Number(match.quantity) + item.quantity),
-            ingredientMetadata: mergeIngredientMetadata(match.ingredientMetadata, item.ingredientMetadata),
+            ingredientMetadata,
+            productKey: ingredientMetadata?.selectedProduct?.productKey || match.productKey || null,
           };
           await tx.update(shoppingListItems).set(changes).where(and(
             eq(shoppingListItems.id, match.id), eq(shoppingListItems.userId, userId),
