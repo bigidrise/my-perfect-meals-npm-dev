@@ -46,4 +46,5 @@ the database is shared with Production.
 
 **How to apply:** Do not treat a flag's name or a previous successful restart as
 proof for a changed startup path. Keep live preview transport checks distinct from
-authenticated database save/hydration evidence.
+authenticated database save/hydration evidence. Read-only account-isolation approval
+is not permission to sign in or perform persistence writes.

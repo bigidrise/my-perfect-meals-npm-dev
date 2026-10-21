@@ -2,6 +2,13 @@
 
 ## Status: stopped at the test-isolation gate
 
+Follow-up: the user subsequently approved read-only investigation of the existing
+pairing-test identity, without login or writes. That review confirmed an internal
+QA/demo designation but found shared-session and linked-account risks. The identity
+remains **UNVERIFIED** for live persistence testing; see
+`docs/smart-grocery-list-pairing-account-isolation-review.md`. The initial gate
+findings below describe the state before that read-only investigation.
+
 The approved stage requires establishing an existing authorized, dedicated test
 identity and precise cleanup before any database writes. That condition could not
 be established from the available project evidence. No live persistence operation
@@ -72,6 +79,9 @@ account deletion, list clearing or scoped replacement was attempted.
 
 The actual authenticated Neon save/update/refresh round trip remains unverified.
 The older Production API's known metadata-loss boundary also remains unchanged.
+
+The subsequent read-only review did not authorize or perform a sign-in or write.
+Its account-specific findings supersede credential-presence-only assumptions here.
 
 Before resuming, the user must designate or confirm an existing dedicated QA identity
 authorized for this test. No password or token should be supplied in chat. The
