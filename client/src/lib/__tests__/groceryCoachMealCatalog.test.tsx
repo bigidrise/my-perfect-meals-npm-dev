@@ -60,10 +60,10 @@ describe("explicit packaged-product discovery eligibility", () => {
   it.each([["1.5", 1.5], ["1/2", .5], ["1 1/2", 1.5], ["½", .5], ["1½", 1.5], ["to taste", null], ["1-2", null], ["1/0", null]])("preserves exact recipe quantity %s without inventing packages", (raw, expected) => {
     expect(recipeShoppingQuantity(String(raw))).toBe(expected);
   });
-  it.each(["Spaghetti", "spaghetti sauce", "Parmesan cheese", "vegetable broth", "tofu"])("allows %s", name => {
+  it.each(["Spaghetti", "spaghetti sauce", "Parmesan cheese", "vegetable broth", "tofu", "milk", "plain milk"])("allows %s", name => {
     expect(packagedProductEligibility(name)).toEqual({ eligible: true, reason: "packaged_product" });
   });
-  it.each(["Cucumber", "Lemon", "Chicken breast", "Ground turkey", "Olive oil", "Mixed greens", "spaghetti squash", "homemade spaghetti sauce", "unknown item"])("does not require brands for %s", name => {
+  it.each(["Cucumber", "Lemon", "Chicken breast", "Ground turkey", "Olive oil", "Mixed greens", "spaghetti squash", "homemade spaghetti sauce", "unknown item", "breast milk"])("does not require brands for %s", name => {
     expect(packagedProductEligibility(name).eligible).toBe(false);
   });
 });

@@ -40,6 +40,7 @@ import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
 import { groceryCoachCatalogEnabled } from "@/lib/groceryCoachCatalogGate";
 import { packagedProductEligibility, catalogProductLabel, recipeShoppingQuantity } from "@/lib/groceryCoachPackagedIngredients";
 import MealIngredientBrands from "./MealIngredientBrands";
+import type { ShoppingCatalogDecision } from "@shared/shoppingProductSelection";
 
 type Phase = "idle" | "loading" | "result";
 
@@ -133,6 +134,7 @@ interface ProductAdviceResult {
     nutrition?: { statement: string; source: string }[];
     allergenInformation?: { statement: string; source: string }[];
     profileInsight?: string;
+    shoppingSelection?: ShoppingCatalogDecision;
   }[];
   sourceFailures?: string[];
   catalogSearchAvailable?: boolean;

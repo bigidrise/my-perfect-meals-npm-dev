@@ -7,8 +7,15 @@ import {
   makeIngredientMetadata, parseIngredientMetadata, shoppingIdentityKey, mergeIngredientMetadata, preserveRecipeContributions,
 } from "@shared/shoppingIngredientMetadata";
 import type { ShoppingListItem, ShoppingListStore, UniversalIngredient } from "./shoppingListStore";
+import {
+  canonicalShoppingIngredient, parseShoppingProductSelection, shoppingIngredientSignature,
+  type ShoppingProductSelection,
+} from "@shared/shoppingProductSelection";
 
-type State = ShoppingListStore & { ownerId: string; lastSyncError: string | null };
+type State = ShoppingListStore & {
+  ownerId: string; lastSyncError: string | null;
+  chooseProduct: (ids: string[], selection: ShoppingProductSelection | null) => Promise<void>;
+};
 const owner = () => typeof localStorage === "undefined" ? "guest" : localStorage.getItem("userId") || "guest";
 const cacheKey = (id: string) => `shopping-list-storage:development:${encodeURIComponent(id)}`;
 const units: Record<string, [string, number]> = {
@@ -153,6 +160,81 @@ export function createDevelopmentShoppingListStore(request: typeof apiRequest = 
     }
     return {
       ownerId: owner(), lastSyncError: null, items: [], isHydrating: false, _clearGen: 0,
+      chooseProduct: (ids, input) => {
+        const accountId = account();
+        const selection = input === null ? null : parseShoppingProductSelection(input);
+        const uniqueIds = [...new Set(ids)];
+        const result = queue.then(async () => {
+          const assertOwner = () => {
+            if (accountId === "guest" || owner() !== accountId || get().ownerId !== accountId) {
+              throw new Error("Shopping account changed. Nothing else was saved.");
+            }
+          };
+          assertOwner();
+          if (!uniqueIds.length) throw new Error("This shopping ingredient is no longer available.");
+          const targets = uniqueIds.map(id => get().items.find(item => item.id === id));
+          if (targets.some(item => !item?.serverId)) {
+            throw new Error("Save and refresh this ingredient before choosing a product.");
+          }
+          // Validate the WHOLE consolidated group before its first write.
+          for (const item of targets as ShoppingListItem[]) {
+            const ingredient = canonicalShoppingIngredient({
+              originalName: item.ingredientMetadata?.ingredient.originalName || item.name,
+              requirements: item.ingredientMetadata?.ingredient.requirements || [],
+            });
+            if (selection && (
+              selection.product.assessment.subjectReference !== accountId ||
+              shoppingIngredientSignature(ingredient) !== shoppingIngredientSignature(selection.ingredient)
+            )) throw new Error("The product lookup no longer matches this ingredient and account. Look up choices again.");
+          }
+          const capability = await request("/api/shopping-list-v2/");
+          assertOwner();
+          assertShoppingMetadataEndpoint(capability, accountId);
+          set({ lastSyncError: null });
+          for (const prior of targets as ShoppingListItem[]) {
+            assertOwner();
+            const current = get().items.find(item => item.id === prior.id);
+            if (!current || JSON.stringify(writeShape(current)) !== JSON.stringify(writeShape(prior))) {
+              throw new Error("The ingredient changed during selection. Refresh before choosing again.");
+            }
+            const metadata = prior.ingredientMetadata || makeIngredientMetadata({
+              name: prior.name, quantity: prior.quantity, unit: prior.unit,
+            });
+            const ingredientMetadata = { ...metadata, selectedProduct: selection?.product || null };
+            const response = await request(`/api/shopping-list-v2/${prior.serverId}`, {
+              method: "PATCH", body: JSON.stringify({ ingredientMetadata }),
+            });
+            assertOwner();
+            if (!response?.item || response.item.id !== prior.serverId ||
+                response.item.userId !== accountId) {
+              throw new Error("The shopping API did not confirm this product save. Refresh the list.");
+            }
+            const savedMetadata = parseIngredientMetadata(response.item.ingredientMetadata);
+            if (!savedMetadata || shoppingIdentityKey({ name: prior.name, ingredientMetadata: savedMetadata }) !==
+                shoppingIdentityKey({ name: prior.name, ingredientMetadata }) ||
+                JSON.stringify(savedMetadata.selectedProduct) !== JSON.stringify(ingredientMetadata.selectedProduct) ||
+                JSON.stringify(savedMetadata.contributions) !== JSON.stringify(metadata.contributions)) {
+              throw new Error("The shopping API did not preserve the choice and recipe contributions. Refresh the list.");
+            }
+            const latest = get().items.find(item => item.id === prior.id);
+            if (!latest || JSON.stringify(writeShape(latest)) !== JSON.stringify(writeShape(prior))) {
+              throw new Error("The ingredient changed while saving. Refresh the list to check its choice.");
+            }
+            set({ items: get().items.map(item => item.id === prior.id ? {
+              ...item, ingredientMetadata: savedMetadata,
+              productKey: selection?.product.productKey || undefined,
+            } : item) });
+          }
+        }).catch((error: unknown) => {
+          if (owner() === accountId && get().ownerId === accountId) {
+            set({ lastSyncError: `${error instanceof Error ? error.message : "Could not save the product choice."} Some rows may already have saved; refresh before retrying.` });
+          }
+          throw error;
+        });
+        // Keep later shopping operations usable; the caller still receives rejection.
+        queue = result.catch(() => {});
+        return result;
+      },
       addItem: add,
       addItems: items => items.forEach(add),
       hydrate: async () => {

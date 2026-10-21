@@ -17,6 +17,7 @@ import { createHumanFoodRequestScope } from "../services/humanFoodContext/reques
 import { buildHumanFoodPromptBlock } from "../services/humanFoodContext/buildHumanFoodPromptBlock";
 import { validateHumanFoodResult } from "../services/humanFoodContext/validateHumanFoodResult";
 import { findProductDevelopment, ProductSubjectContextUnavailableError } from "../services/productDiscovery/findProductDevelopment";
+import { canonicalShoppingIngredient } from "../../shared/shoppingProductSelection";
 import { GROCERY_COACH_CARB_PROMPT, groceryCoachCarbBreakdown, groceryCoachPerServingMacros } from "@shared/groceryCoachCarbs";
 
 const router = express.Router();
@@ -683,7 +684,18 @@ router.post("/product-advisor", async (req, res) => {
         return res.status(400).json({ error: "Enter one product category (up to 80 characters)." });
       }
       try {
-        const matches = await findProductDevelopment(userId, ingredients[0]);
+        let shoppingIngredient;
+        if (req.body.shoppingIngredient !== undefined) {
+          try {
+            shoppingIngredient = canonicalShoppingIngredient(req.body.shoppingIngredient);
+            if (shoppingIngredient.originalName.trim() !== ingredients[0].trim()) {
+              return res.status(400).json({ error: "Preserve the original shopping ingredient in the lookup." });
+            }
+          } catch {
+            return res.status(400).json({ error: "Invalid original shopping ingredient requirements." });
+          }
+        }
+        const matches = await findProductDevelopment(userId, ingredients[0], { shoppingIngredient });
         if (!matches.catalogMatches.length && !matches.catalogSearchAvailable) {
           return res.status(503).json({
             error: "The product catalog is unavailable right now. Please try again.",

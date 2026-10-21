@@ -9,8 +9,11 @@ import { createUsdaBrandedAdapter } from "./usdaBrandedAdapter";
 import { createOpenFoodFactsSearchAdapter } from "./openFoodFactsSearchAdapter";
 import { interpretCatalogProduct } from "./catalogProductInterpretation";
 import { DEVELOPMENT_CATALOG_IDENTITY_POLICY } from "./ruleEvidenceRegistry";
+import { canonicalShoppingIngredient, type ShoppingIngredientRequest, type ShoppingCatalogDecision } from "../../../shared/shoppingProductSelection";
+import { shoppingSelectionBridge } from "./shoppingSelectionBridge";
 
 export interface DevelopmentProductMatch {
+  shoppingSelection?: ShoppingCatalogDecision;
   productKey: string;
   name: string;
   brand: string;
@@ -261,6 +264,7 @@ export async function findProductDevelopment(
     adapter?: ProductEvidenceAdapter;
     fallbackAdapter?: ProductEvidenceAdapter;
     interpret?: typeof interpretCatalogProduct;
+    shoppingIngredient?: ShoppingIngredientRequest;
   } = {},
 ): Promise<{
   catalogMatches: DevelopmentProductMatch[];
@@ -277,6 +281,11 @@ export async function findProductDevelopment(
   }
   const food = query.trim();
   if (!food || food.length > 80) throw new Error("Enter a product category (up to 80 characters).");
+  const shoppingIngredient = options.shoppingIngredient
+    ? canonicalShoppingIngredient(options.shoppingIngredient) : undefined;
+  if (shoppingIngredient && shoppingIngredient.originalName.trim() !== food) {
+    throw new Error("Shopping lookup must preserve the original ingredient.");
+  }
   const sources = options.sources ?? existingProductSubjectSources;
   let dateISO: string;
   if (options.sources) {
@@ -382,9 +391,13 @@ export async function findProductDevelopment(
            ? `Product eligibility is not cleared: ${unresolvedHard.map((issue) =>
              unresolvedReason(issue.id, issue.reason)).join(" ")} Your saved profile was resolved; this is a product-policy gap. A package label alone may not resolve it.`
           : decision.reasons.map((reason) => reason.detail).join(" "),
+       ...(shoppingIngredient ? {
+         shoppingSelection: shoppingSelectionBridge(candidate, decision, evaluated.subject!, evaluated.unresolved, shoppingIngredient),
+       } : {}),
     };
   });
-  if ((!options.sources || options.interpret) && evaluated.subject) {
+  // Shopping uses existing deterministic commentary: no extra interpretation/AI call.
+  if (!shoppingIngredient && (!options.sources || options.interpret) && evaluated.subject) {
      await Promise.all(presentable.map(async ({ candidate, decision }, index) => {
       if (decision.status !== "eligible") return;
       catalogMatches[index].profileInsight =
