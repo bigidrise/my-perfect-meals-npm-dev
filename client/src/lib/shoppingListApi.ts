@@ -1,5 +1,10 @@
 import { parseQuantity } from "./quantityParser";
 import { apiRequest } from "./apiRequest";
+import type { ShoppingIngredientMetadata } from "@shared/shoppingIngredientMetadata";
+import { shoppingMetadataEnabled } from "@/lib/shoppingMetadataGate";
+import { makeIngredientMetadata } from "@shared/shoppingIngredientMetadata";
+import { recipeIngredientTransfer } from "./shoppingIngredientTransfer";
+import { assertShoppingMetadataEndpoint } from "./shoppingMetadataTransport";
 
 export type ShoppingScope = {
   type: "day" | "week" | "adhoc";
@@ -13,6 +18,7 @@ export type ShoppingItemInput = {
   category?: string;
   source?: string;
   weekStartIso?: string;
+  ingredientMetadata?: ShoppingIngredientMetadata;
 };
 
 /**
@@ -34,10 +40,20 @@ export async function sendToShoppingList(
     unit: item.unit || null,
     category: item.category || null,
     source: sourceBuilder || item.source || "manual",
+    ...(shoppingMetadataEnabled ? {
+      ingredientMetadata: makeIngredientMetadata({
+        name: item.name, quantity: item.quantity, unit: item.unit || "",
+        source: sourceBuilder || item.source,
+        ingredientMetadata: item.ingredientMetadata,
+      }),
+    } : {}),
   }));
 
   console.log(`🛒 Sending ${formattedItems.length} items to shopping list`);
 
+  if (shoppingMetadataEnabled) {
+    assertShoppingMetadataEndpoint(await apiRequest("/api/shopping-list-v2/"), localStorage.getItem("userId"));
+  }
   const data = await apiRequest("/api/shopping-list", {
     method: "POST",
     body: JSON.stringify({
@@ -175,6 +191,11 @@ export async function sendMealsToShopping(
         quantity: quantity * multiplier,
         unit,
         category: typeof ing === "string" ? "" : ing.category || "",
+        ...(shoppingMetadataEnabled ? {
+          ingredientMetadata: recipeIngredientTransfer(ing, {
+            id: meal.id || meal.mealId, name: meal.name, source: sourceBuilder,
+          }).ingredientMetadata,
+        } : {}),
       };
     })
   );

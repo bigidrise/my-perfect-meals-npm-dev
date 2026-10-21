@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth } from "../middleware/requireAuth";
 import { getAuthUserId } from "../utils/getAuthUserId";
+import { shoppingMetadataDevelopment, developmentShoppingPost, developmentItemPatch, metadataInputFailure, aggregateDevelopmentShoppingItems } from "../services/shopping-list/metadataPersistence";
 
 const router = Router();
 
@@ -19,6 +20,7 @@ router.post("/shopping-list", requireAuth, async (req, res) => {
   }
   
   try {
+    if (shoppingMetadataDevelopment()) return await developmentShoppingPost(req, res, db, userId!);
     const toInsert = items.map((item: any) => ({
       userId,
       name: item.name || "",
@@ -84,7 +86,7 @@ router.get("/shopping-list", requireAuth, async (req, res) => {
       }
     }
     
-    const aggregated = Array.from(aggregateMap.values());
+    const aggregated = shoppingMetadataDevelopment() ? aggregateDevelopmentShoppingItems(items) : Array.from(aggregateMap.values());
     
     return res.json({ ok: true, items, aggregated });
   } catch (error) {
@@ -100,6 +102,17 @@ router.patch("/shopping-list/:id", requireAuth, async (req, res) => {
   const { checked } = req.body || {};
   
   try {
+    if (shoppingMetadataDevelopment()) {
+      const [existing] = await db.select().from(shoppingListItems).where(and(
+        eq(shoppingListItems.id, id), eq(shoppingListItems.userId, userId),
+      ));
+      if (!existing) return res.status(404).json({ ok: false, message: "Item not found" });
+      const changes = developmentItemPatch(req.body, existing);
+      const [updated] = await db.update(shoppingListItems).set(changes).where(and(
+        eq(shoppingListItems.id, id), eq(shoppingListItems.userId, userId),
+      )).returning();
+      return res.json({ ok: true, item: updated });
+    }
     const [updated] = await db
       .update(shoppingListItems)
       .set({ checked: Boolean(checked) })
@@ -117,6 +130,7 @@ router.patch("/shopping-list/:id", requireAuth, async (req, res) => {
     
     return res.json({ ok: true, item: updated });
   } catch (error) {
+    if (metadataInputFailure(error, res)) return;
     console.error("Shopping list PATCH error:", error);
     return res.status(500).json({ ok: false, message: "Failed to update item" });
   }

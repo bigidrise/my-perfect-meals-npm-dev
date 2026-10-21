@@ -6,7 +6,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { getDayLists, type WeekBoard } from "@/lib/boardApi";
-import { normalizeIngredients } from "@/utils/ingredientParser";
+import { normalizeIngredients, type ParsedIngredient } from "@/utils/ingredientParser";
+import type { ShoppingIngredientMetadata } from "@shared/shoppingIngredientMetadata";
+import { shoppingMetadataEnabled } from "@/lib/shoppingMetadataGate";
+import { recipeIngredientTransfer } from "@/lib/shoppingIngredientTransfer";
 import { formatDateDisplay, addDaysISOSafe, getWeekStartFromDate } from "@/utils/midnight";
 import { getRolling7Days } from "@/utils/dateRange";
 import { useWeekBoardCache } from "@/hooks/useWeekBoardCache";
@@ -132,7 +135,7 @@ export default function BuilderShoppingBar({
     return acc;
   }, {});
 
-  function collectIngredients(days: string[]) {
+  function collectIngredients(days: string[]): Array<ParsedIngredient & { ingredientMetadata?: ShoppingIngredientMetadata }> {
     const allMeals = days.flatMap((date) => {
       const lists = getDayListsMultiWeek(date);
       return [
@@ -142,7 +145,10 @@ export default function BuilderShoppingBar({
         ...lists.snacks,
       ];
     });
-    return normalizeIngredients(allMeals.flatMap((m) => m.ingredients || []));
+    return shoppingMetadataEnabled
+      ? allMeals.flatMap(m => (m.ingredients || []).map((ing: any) =>
+          recipeIngredientTransfer(ing, { id: m.id, name: m.name, source: sourceSlug })))
+      : normalizeIngredients(allMeals.flatMap((m) => m.ingredients || []));
   }
 
   function sendDays(days: string[], label: string) {
@@ -157,6 +163,7 @@ export default function BuilderShoppingBar({
     }
     const items = ingredients.map((i) => ({
       name: i.name,
+      ...(shoppingMetadataEnabled && "ingredientMetadata" in i ? { ingredientMetadata: i.ingredientMetadata } : {}),
       quantity:
         typeof i.qty === "number"
           ? i.qty

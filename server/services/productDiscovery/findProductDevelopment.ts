@@ -9,8 +9,14 @@ import { createUsdaBrandedAdapter } from "./usdaBrandedAdapter";
 import { createOpenFoodFactsSearchAdapter } from "./openFoodFactsSearchAdapter";
 import { interpretCatalogProduct } from "./catalogProductInterpretation";
 import { DEVELOPMENT_CATALOG_IDENTITY_POLICY } from "./ruleEvidenceRegistry";
+import { canonicalShoppingIngredient, type ShoppingIngredientRequest, type ShoppingCatalogDecision } from "../../../shared/shoppingProductSelection";
+import { shoppingSelectionBridge } from "./shoppingSelectionBridge";
+import { shoppingCatalogPresentation, shoppingCatalogTip } from "./shoppingCatalogGuidance";
 
 export interface DevelopmentProductMatch {
+  shoppingSelection?: ShoppingCatalogDecision;
+  shoppingDisplay?: "selectable" | "label_review" | "hidden";
+  shoppingCaution?: string;
   productKey: string;
   name: string;
   brand: string;
@@ -261,6 +267,7 @@ export async function findProductDevelopment(
     adapter?: ProductEvidenceAdapter;
     fallbackAdapter?: ProductEvidenceAdapter;
     interpret?: typeof interpretCatalogProduct;
+    shoppingIngredient?: ShoppingIngredientRequest;
   } = {},
 ): Promise<{
   catalogMatches: DevelopmentProductMatch[];
@@ -271,12 +278,18 @@ export async function findProductDevelopment(
   catalogSearchAvailable: boolean;
   unresolved: string[];
   profileUsed: string[];
+  shoppingTip?: string;
 }> {
   if (process.env.NODE_ENV !== "development" && process.env.NODE_ENV !== "test") {
     throw new Error("Development product discovery is not available in Production.");
   }
   const food = query.trim();
   if (!food || food.length > 80) throw new Error("Enter a product category (up to 80 characters).");
+  const shoppingIngredient = options.shoppingIngredient
+    ? canonicalShoppingIngredient(options.shoppingIngredient) : undefined;
+  if (shoppingIngredient && shoppingIngredient.originalName.trim() !== food) {
+    throw new Error("Shopping lookup must preserve the original ingredient.");
+  }
   const sources = options.sources ?? existingProductSubjectSources;
   let dateISO: string;
   if (options.sources) {
@@ -299,6 +312,7 @@ export async function findProductDevelopment(
   const initial = await resolveProductSubjectAuthority({
     actorUserId: userId, subjectUserId: userId, subjectKind: "account",
     dateISO,
+    ...(shoppingIngredient ? { includeShoppingGuidance: true } : {}),
   }, sources);
   if (initial.status !== "resolved") {
     throw new ProductSubjectContextUnavailableError();
@@ -308,6 +322,7 @@ export async function findProductDevelopment(
     subject: {
       actorUserId: userId, subjectUserId: userId, subjectKind: "account",
       dateISO: initial.dateISO,
+      ...(shoppingIngredient ? { includeShoppingGuidance: true } : {}),
     },
     sources,
     intent,
@@ -326,7 +341,17 @@ export async function findProductDevelopment(
     maxCandidates: 40, maxPages: 6, targetCount: 9,
     maxEvaluatedCandidates: 24,
     allowUnresolvedLeads: true,
-    knownConflict: knownIngredientConflict,
+    knownConflict: shoppingIngredient
+      ? (candidate, subject) => knownIngredientConflict(candidate, {
+        ...subject,
+        // Reuse established dietary-conflict checks for explicit recipe requests.
+        // Unknown qualifiers install no new rule and cannot establish a pass.
+        dietaryIdentity: [
+          ...subject.dietaryIdentity,
+          ...shoppingIngredient.requirements.filter(r => r.origin !== "profile_guidance").map(r => r.value),
+        ],
+      })
+      : knownIngredientConflict,
     minimumEvidence: (candidate) => {
       const missing = [
         !candidate.facts.some((fact) => fact.kind === "ingredients" && fact.statement.trim()) && "ingredients",
@@ -349,11 +374,19 @@ export async function findProductDevelopment(
       "Your product search preferences changed during the search. Please try again.",
     );
   }
-  const presentable = selectDistinctProducts(evaluated.evaluatedCandidates, evaluated.subject, evaluated.unresolved);
+  // Smart Grocery must not surface rejected records as review-only choices.
+  // The existing Grocery Coach ordering and behavior remain unchanged.
+  const presentationCandidates = shoppingIngredient
+    ? evaluated.evaluatedCandidates.filter(item => item.decision.status !== "rejected")
+    : evaluated.evaluatedCandidates;
+  const presentable = selectDistinctProducts(presentationCandidates, evaluated.subject, evaluated.unresolved);
   const unresolvedHard = evaluated.unresolved.filter((issue) => issue.classification !== "support_context");
   const catalogMatches = presentable.map((item): DevelopmentProductMatch => {
     const { candidate, decision } = item;
     const recommendation = recommendationStatus(item, evaluated.subject!, evaluated.unresolved);
+    const shoppingSelection = shoppingIngredient
+      ? shoppingSelectionBridge(candidate, decision, evaluated.subject!, evaluated.unresolved, shoppingIngredient)
+      : undefined;
     return {
       productKey: candidate.identity.key,
       name: candidate.identity.name,
@@ -382,9 +415,14 @@ export async function findProductDevelopment(
            ? `Product eligibility is not cleared: ${unresolvedHard.map((issue) =>
              unresolvedReason(issue.id, issue.reason)).join(" ")} Your saved profile was resolved; this is a product-policy gap. A package label alone may not resolve it.`
           : decision.reasons.map((reason) => reason.detail).join(" "),
+        ...(shoppingIngredient && shoppingSelection ? {
+          shoppingSelection,
+          ...shoppingCatalogPresentation(candidate, decision, shoppingSelection, shoppingIngredient),
+       } : {}),
     };
   });
-  if ((!options.sources || options.interpret) && evaluated.subject) {
+  // Shopping uses existing deterministic commentary: no extra interpretation/AI call.
+  if (!shoppingIngredient && (!options.sources || options.interpret) && evaluated.subject) {
      await Promise.all(presentable.map(async ({ candidate, decision }, index) => {
       if (decision.status !== "eligible") return;
       catalogMatches[index].profileInsight =
@@ -394,6 +432,7 @@ export async function findProductDevelopment(
   }
   return {
     catalogMatches,
+    ...(shoppingIngredient ? { shoppingTip: shoppingCatalogTip(shoppingIngredient, evaluated.subject) } : {}),
     searched: evaluated.inspectedCount,
     rejected: evaluated.rejectedCount,
     excludedReasons: evaluated.knownConflicts.map((conflict) => conflict.reason),

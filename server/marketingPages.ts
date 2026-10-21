@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import type { Express, Request, Response, NextFunction } from "express";
 import { setNoStoreHeaders } from "./staticDelivery";
+import { addDevelopmentStartupPresentation } from "./developmentStartupPresentation";
 
 const SITE_ORIGIN = "https://app.myperfectmeals.com";
 
@@ -352,7 +353,7 @@ export function registerMarketingPageRoutes(app: Express, templatePath: string):
       try {
         const template = fs.readFileSync(path.resolve(templatePath), "utf8");
         setNoStoreHeaders(res);
-        res.type("html").send(renderMarketingPage(template, pathname));
+        res.type("html").send(addDevelopmentStartupPresentation(renderMarketingPage(template, pathname)));
       } catch (error) {
         next(error);
       }

@@ -22,3 +22,9 @@ For a small front-end-only correction, isolated browser rendering of the real co
 **Why:** A fresh app screenshot captured only startup, while real-component browser checks could exercise destination guidance at desktop and mobile sizes without using the user's session.
 
 **How to apply:** Report component-level browser checks separately from signed-in end-to-end results. Never describe a callback fixture as proof that a real meal was generated or stored.
+
+Keep browser notebook operations short; a long wait can reset the browser and destroy its session even when the server already completed the request.
+
+**Why:** A pairing browser check timed out while waiting for a response that Development server logs showed had completed with HTTP 503 in about 1.5 seconds. The harness timeout did not establish an application timeout.
+
+**How to apply:** Correlate existing server completion logs before repeating a submission. Report missing final UI evidence separately from the known HTTP result, and re-establish normal authorized sign-in if a notebook reset lost the session.

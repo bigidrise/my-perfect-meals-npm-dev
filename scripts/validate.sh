@@ -387,19 +387,21 @@ if [ "$STARTED" = true ]; then
     pass "No critical error patterns in startup log"
   fi
 
-  # ── Auth login + session integration tests ────────────────────────────────
-  # Runs against the isolated test server to catch route-mounting regressions.
+  # ── Credential-free auth-validator safety checks ─────────────────────────
+  # An isolated HTTP port does NOT isolate the shared Neon database.
+  # Never invoke the live signup/delete harness from routine validation.
   echo ""
-  echo -e "  ${CYAN}Running auth login/session integration tests...${NC}"
+  echo -e "  ${CYAN}Running isolated auth-validator safety tests (mocked HTTP only)...${NC}"
+  echo "  Live login/session checks NOT RUN: shared-database account creation is disabled."
   AUTH_TEST_OUT=$(mktemp /tmp/mpm-auth-test-XXXXXX.log)
-  if npx tsx scripts/test-auth-integration.ts --base-url "http://localhost:${VALIDATE_PORT}" >"$AUTH_TEST_OUT" 2>&1; then
+  if npx jest --config scripts/tests/auth-validation-safety.jest.cjs --runInBand >"$AUTH_TEST_OUT" 2>&1; then
     cat "$AUTH_TEST_OUT" | sed 's/^/  /'
-    pass "Auth login/session integration tests — all checks passed"
+    pass "Auth-validator safety checks passed — mocked requests only, not live authentication"
+    rm -f "$AUTH_TEST_OUT"
   else
     cat "$AUTH_TEST_OUT" | sed 's/^/  /'
-    fail "Auth login/session integration tests — one or more checks failed (see above)"
+    fail "Auth-validator safety checks failed; diagnostic log retained at ${AUTH_TEST_OUT}"
   fi
-  rm -f "$AUTH_TEST_OUT"
 
 elif [ "$ELAPSED" -ge "$MAX_WAIT" ]; then
   fail "Server did not respond to /api/health within ${MAX_WAIT}s on port ${VALIDATE_PORT} — startup may have hung"

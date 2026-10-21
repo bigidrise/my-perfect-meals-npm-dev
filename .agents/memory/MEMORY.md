@@ -34,13 +34,8 @@
 - [Drizzle array columns](ace-drizzle-array-rule.md) — SQL templates expand arrays; use explicit per-value conditions for membership queries.
 - [PostgreSQL parameter gaps](postgres-parameter-gaps.md) — mocked writes can pass while live updates fail if SQL leaves unused leading placeholders.
 - [Neon pooler read-only queries](neon-pooler-read-only-queries.md) — pooled connection rejects read-only startup options; use an explicit read-only transaction.
-- [Studio video purge retention](studio-video-purge-retention.md) — private media purge needs a renewable token lease and immutable retained transcript before references clear.
-- [Studio video MIME compatibility](studio-video-mime-compatibility.md) — use browser capability selection and server MIME normalization across WebM, MP4, and QuickTime.
-- [Failed Studio video deletion](failed-studio-video-deletion.md) — failed-transcription media is deletable without creating a transcript or weakening playback gates.
-- [Studio participant deletion lifecycle](studio-transcript-deletion-lifecycle.md) — normal trash hides shared Studio history per viewer; private video media deletion stays separate and global.
+- [Studio media lifecycle](studio-media-reference-index.md) — video retention, MIME compatibility, participant deletion, failed media, transcription result scope and voice queue integrity.
 - [OpenAI server upload runtime](openai-server-upload-runtime.md) — server-side uploads must not rely on ambient web globals from the OpenAI SDK auto shim.
-- [Studio route result scope](studio-route-result-scope.md) — keep transcription results at handler scope when later moderation and response code runs outside the processing try block.
-- [Voice message queue integrity](voice-message-queue-integrity.md) — pending voice notes require stored audio and a transcription job; otherwise show failure.
 - [Bundled-first iOS startup](bundled-first-ios-startup.md) — native startup must use packaged web assets; remote APIs are a separate, explicit dependency.
 - [iOS capture diagnosis](ios-capture-diagnosis.md) — diagnose Grocery Voice Add separately from Studio capture, and sync the native bundle before device evidence.
 - [Shared Neon and workspace release boundary](runtime-database-identity.md) — both workspaces share Neon, but Development Publish does not update Production.
@@ -48,6 +43,9 @@
 - [Development browser session boundary](development-browser-session-boundary.md) — app-preview screenshots do not inherit the user's signed-in Development preview session.
 - [Private Studio moderation policy](private-studio-moderation-policy.md) — ordinary profanity is flagged but deliverable in private Studio; serious categories and public policy stay unchanged.
 - [Beverage safeguard alternative parity](beverage-safeguard-alternative-parity.md) — alternative offers must use every original validation surface and stay DEV-gated until intentionally released.
+- [Pairing release boundary](pairing-foundation-release-boundary.md) — Phase 1 frozen; advisor verification and approved opt-in corrections are offline-only; no runtime activation.
+- [Isolated preview runtimes](isolated-preview-runtime-boundary.md) — private preview approval and React test execution must not change the main application's environment or authority.
+- [Demo Studio authority](demo-studio-authority.md) — development paused; preserve existing walkthroughs and isolation; no expansion or separate test environment without a specific future need.
 - [Pre-registration trial activation](pre-registration-trial-activation.md) — Pilot and Client access are separate identities; their clocks start only when a matching account activates.
 - [Hydration references](hydration-reference-index.md) — timing, intake bridge, numeric governance, eligibility, product doors, Creator handoffs, professional roles, and paywall.
 - [Professional legal activation boundary](professional-legal-activation-boundary.md) — ProCare activation and provider actions require explicit current attestation and role-specific agreements.
@@ -66,6 +64,7 @@
 - [Stateless Human Food retries](stateless-human-food-retries.md) — resolve fresh authoritative context per request; retry state never crosses requests or reaches clients.
 - [Professional glucose access](professional-glucose-access.md) — raw glucose requires verified clinical identity, exact active care relationship, org isolation, and current consent.
 - [Saved grocery evidence governance](saved-grocery-evidence-governance.md) — permanent favorites stay evidence-ranked and fail closed against the current profile.
+- [Smart Grocery persistence boundary](smart-grocery-persistence-boundary.md) — minimal existing-catalog picker is Development-only; older Production replacements lose metadata; live writes require isolation.
 - [Auth security-state issuance](auth-security-state-issuance.md) — credential issuance must compare the security version verified before password or MFA acceptance.
 - [Signup email and username identity](signup-email-username-identity.md) — matching email prefixes never link accounts; username collisions must not block distinct emails.
 - [Consumer signup first-run order](consumer-signup-first-run.md) — regular signup leads into onboarding and personal meal setup, not trial feature exploration.
@@ -156,3 +155,4 @@
 - [Non-persisting food diagnostics](non-persisting-food-diagnostics.md) — no-save tests must also prevent writes during context resolution, without relaxing generation or validation.
 - [Meal card source labels](meal-card-source-label-policy.md) — show the originating builder or creator, not a clinical condition such as Heart Failure.
 - [Dashboard menu colors](dashboard-menu-color-policy.md) — use visually distinct accents for unrelated dashboard tools, not merely different hex shades of the same hue.
+- [RHM client walkthrough](rhm-client-walkthrough-context.md) — staff need the actual first-time client experience before distributing a 30-day link to 8,000 clinic clients.

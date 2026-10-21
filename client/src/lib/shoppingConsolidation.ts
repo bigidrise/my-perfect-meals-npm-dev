@@ -22,6 +22,9 @@
 
 import type { ShoppingListItem } from '@/stores/shoppingListStore';
 import type { IngredientCategory } from '@/data/ingredientCategories';
+import { shoppingMetadataEnabled } from "@/lib/shoppingMetadataGate";
+import { developmentShoppingGroups, mergeDevelopmentShoppingMetadata } from "@shared/developmentShoppingMerge";
+import { shoppingIdentityKey } from "@shared/shoppingIngredientMetadata";
 
 // ── Unit conversion tables ────────────────────────────────────────────────────
 // (Local copies to avoid circular imports with the store)
@@ -121,7 +124,16 @@ export function buildConsolidatedItems(
   // 3. Consolidate each group into one ConsolidatedItem
   const result: ConsolidatedItem[] = [];
 
-  for (const [, group] of groups) {
+  const displayGroups = shoppingMetadataEnabled
+    ? developmentShoppingGroups(filtered, (a, b) => {
+      // Preserve legacy dimensional grouping for unrelated exact identities.
+      if (shoppingIdentityKey(a) === shoppingIdentityKey(b)) return true;
+      const dimension = (unit: string) => toGrams(1, unit) !== null ? "weight" :
+        toMl(1, unit) !== null ? "volume" : `count:${unit.trim().toLowerCase()}`;
+      return dimension(a.unit) === dimension(b.unit);
+    })
+    : [...groups.values()];
+  for (const group of displayGroups) {
     // Canonical representative: longest name (most specific) or first
     const canonical = group.reduce(
       (best, cur) => (cur.name.length > best.name.length ? cur : best),
@@ -197,6 +209,12 @@ export function buildConsolidatedItems(
       isChecked: group.every((i) => i.isChecked),
       mergedCount: group.length,
       allIds: group.map((i) => i.id),
+      ...(shoppingMetadataEnabled ? {
+        ingredientMetadata: group.reduce((m, i) => mergeDevelopmentShoppingMetadata(m, i.ingredientMetadata),
+          undefined as ShoppingListItem["ingredientMetadata"]),
+        productKey: group.find(i => i.ingredientMetadata?.selectedProduct)?.ingredientMetadata?.selectedProduct?.productKey ||
+          canonical.productKey,
+      } : {}),
     });
   }
 

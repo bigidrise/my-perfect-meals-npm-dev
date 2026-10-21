@@ -7,6 +7,11 @@ import { generatePairingImages } from "../services/pairings/pairingsImageService
 import { chatJson } from "../utils/openaiSafe";
 import { log } from "../vite";
 import { loadGenerationProtocolEnvelope, ProtocolContextUnavailableError, enforceBeforeGenerate, buildGuestEnvelope } from "../services/protocolEnvelope";
+import {
+  developmentPairingFoundationEnabled, resolveDevelopmentPairingContext,
+  validateDevelopmentWineList, PairingFoundationError, COMPOSITION_NOTE,
+} from "../services/pairings/developmentPairingFoundation";
+import { parseWineListEntries, wineListIdentityInstructions } from "../services/pairings/wineListIdentity";
 
 const router = Router();
 
@@ -91,17 +96,24 @@ router.post("/", async (req, res) => {
       });
     }
 
-    const profile = await loadPairingsProfile(userId);
-    const constraints = buildPairingsConstraints(profile);
+    const foundationContext = developmentPairingFoundationEnabled()
+      ? await resolveDevelopmentPairingContext(userId, "wine_list_helper") : null;
+    const entries = foundationContext ? parseWineListEntries(wineListText) : [];
+    const constraints = foundationContext
+      ? { fullConstraintBlock: foundationContext.constraints }
+      : buildPairingsConstraints(await loadPairingsProfile(userId));
 
     // ── Protocol envelope: add identity-level enforcement above profile constraints ──
-    const wineListEnvelope = await loadGenerationProtocolEnvelope(userId);
-    const wineListProtocolBlock = enforceBeforeGenerate(wineListEnvelope, { generatorName: 'wine_list_helper' }).combined;
+    const wineListEnvelope = foundationContext?.envelope ?? await loadGenerationProtocolEnvelope(userId);
+    const wineListProtocolBlock = foundationContext
+      ? "" : enforceBeforeGenerate(wineListEnvelope, { generatorName: 'wine_list_helper' }).combined;
     const augmentedConstraints = wineListProtocolBlock
       ? `${wineListProtocolBlock}\n${constraints.fullConstraintBlock}`
       : constraints.fullConstraintBlock;
 
-    const prompt = buildWineListPrompt(wineListText, mealContext, augmentedConstraints);
+    const prompt = buildWineListPrompt(wineListText, mealContext, foundationContext
+      ? `${augmentedConstraints}\n${wineListIdentityInstructions(entries)}\nIf there are no other eligible listed wines, return an empty alternatives array.`
+      : augmentedConstraints);
 
     let aiResult: any;
     try {
@@ -118,6 +130,24 @@ router.post("/", async (req, res) => {
 
     const bestChoice = aiResult?.bestChoice;
     const pairings = aiResult?.pairings;
+
+    if (foundationContext) {
+      const result = validateDevelopmentWineList(aiResult, entries, foundationContext);
+      const imageMap = await generatePairingImages(
+        result.pairings.map(p => ({ name: p.name, category: p.category })), mealContext || "wine tasting",
+      );
+      return res.json({
+        query: { wineListText, mealContext },
+        bestChoice: result.bestChoice,
+        pairings: result.pairings.map(p => ({ ...p, imageUrl: imageMap.get(`wine:${p.name}`) || null })),
+        foundation: result.foundation,
+        compositionEvidence: "unverified", compositionNote: COMPOSITION_NOTE,
+        safety: {
+          result: "SAFE", message: COMPOSITION_NOTE,
+          blockedTerms: [], blockedCategories: [], ambiguousTerms: [],
+        },
+      });
+    }
 
     if (!bestChoice || !Array.isArray(pairings) || pairings.length === 0) {
       log("[WineListHelper] AI returned invalid results", "warn");
@@ -159,6 +189,9 @@ router.post("/", async (req, res) => {
       },
     });
   } catch (error: any) {
+    if (error instanceof PairingFoundationError) {
+      return res.status(error.status).json({ error: error.message, code: error.code });
+    }
     log(`[WineListHelper] Unexpected error: ${error.message}`, "error");
     if (error instanceof ProtocolContextUnavailableError) {
       return res.status(error.status).json({ code: error.code, message: error.message, retryable: true });

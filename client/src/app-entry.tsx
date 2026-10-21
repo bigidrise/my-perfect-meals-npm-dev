@@ -24,6 +24,10 @@ if ('serviceWorker' in navigator) {
 export function AppEntry() {
   useEffect(() => {
     setupGlobalErrorHandling();
+    // Signal a committed React render, not merely a downloaded entry module.
+    if (document.getElementById("mpm-development-startup")) {
+      window.dispatchEvent(new Event("mpm:app-mounted"));
+    }
   }, []);
 
   return (

@@ -1,5 +1,6 @@
 import { pool } from "../../db";
 import { detectLegacyGLP1ActivationSources, type GLP1ActivationSource } from "./activationSources";
+import { assertStrictOwner, type StrictOwnerScope } from "../nutritionResolutionContext";
 
 export type CurrentGLP1Source = GLP1ActivationSource | "verifiedProvider" | "verifiedMedication";
 
@@ -21,10 +22,35 @@ export async function resolveCurrentGLP1MealAuthority(
     activeHouseholdProfileId?: string | null;
   },
   householdSubject = false,
+  options?: { strictOwner?: StrictOwnerScope },
 ): Promise<CurrentGLP1Source[]> {
+  const strict = options?.strictOwner;
+  if (strict) {
+    assertStrictOwner(strict, subject.id, householdSubject);
+    return strict.resolution.once("glp1_activation", async () => {
+      try {
+        // This explicit request scope, not a persisted UI selection, owns identity.
+        const sources = await readCurrentSources({ ...subject, activeHouseholdProfileId: null }, false);
+        strict.resolution.record("glp1_activation", sources.length
+          ? { status: "success", value: sources, basis: "stored" }
+          : { status: "absent", reasonCode: "successful_empty_read" });
+        return sources;
+      } catch (error) {
+        strict.resolution.fail("glp1_activation", "read_failed");
+        throw error;
+      }
+    });
+  }
   if (!currentGLP1AuthorityEnabled()) {
     return detectLegacyGLP1ActivationSources(subject);
   }
+  return readCurrentSources(subject, householdSubject);
+}
+
+async function readCurrentSources(
+  subject: Parameters<typeof resolveCurrentGLP1MealAuthority>[0],
+  householdSubject: boolean,
+): Promise<CurrentGLP1Source[]> {
   const sources: CurrentGLP1Source[] = [];
   if (householdSubject || subject.activeHouseholdProfileId) return sources;
   if (subject.selectedMealBuilder === "glp1") sources.push("selectedMealBuilder");

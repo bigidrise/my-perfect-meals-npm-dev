@@ -1,5 +1,6 @@
 /** @jest-environment jsdom */
 jest.mock("@/lib/groceryCoachCatalogGate", () => ({ groceryCoachCatalogEnabled: true }));
+jest.mock("@/lib/shoppingMetadataGate", () => ({ shoppingMetadataEnabled: true }));
 jest.mock("react-dom", () => ({ ...jest.requireActual("react-dom"), createPortal: (node: any) => node }));
 jest.mock("@/components/MealRefinementSheet", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/components/voice/VoiceInputButton", () => ({ __esModule: true, default: () => null }));
@@ -23,6 +24,7 @@ import MealIngredientBrands from "@/components/shopping/MealIngredientBrands";
 import { packagedProductEligibility, recipeShoppingQuantity } from "@/lib/groceryCoachPackagedIngredients";
 import { post, get } from "@/lib/api";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
+import SmartShoppingProductChoice from "@/components/shopping/SmartShoppingProductChoice";
 
 const ingredient = { item: "Spaghetti sauce", quantity: "1.5", unit: "cups", category: "Pantry" };
 const meal = {
@@ -50,6 +52,7 @@ function seed() {
 }
 beforeEach(() => {
   localStorage.clear();
+  jest.restoreAllMocks();
   jest.clearAllMocks();
   (get as jest.Mock).mockResolvedValue({ items: [] });
   (post as jest.Mock).mockResolvedValue(catalog);
@@ -60,10 +63,10 @@ describe("explicit packaged-product discovery eligibility", () => {
   it.each([["1.5", 1.5], ["1/2", .5], ["1 1/2", 1.5], ["½", .5], ["1½", 1.5], ["to taste", null], ["1-2", null], ["1/0", null]])("preserves exact recipe quantity %s without inventing packages", (raw, expected) => {
     expect(recipeShoppingQuantity(String(raw))).toBe(expected);
   });
-  it.each(["Spaghetti", "spaghetti sauce", "Parmesan cheese", "vegetable broth", "tofu"])("allows %s", name => {
+  it.each(["Spaghetti", "spaghetti sauce", "Parmesan cheese", "vegetable broth", "tofu", "milk", "plain milk"])("allows %s", name => {
     expect(packagedProductEligibility(name)).toEqual({ eligible: true, reason: "packaged_product" });
   });
-  it.each(["Cucumber", "Lemon", "Chicken breast", "Ground turkey", "Olive oil", "Mixed greens", "spaghetti squash", "homemade spaghetti sauce", "unknown item"])("does not require brands for %s", name => {
+  it.each(["Cucumber", "Lemon", "Chicken breast", "Ground turkey", "Olive oil", "Mixed greens", "spaghetti squash", "homemade spaghetti sauce", "unknown item", "breast milk"])("does not require brands for %s", name => {
     expect(packagedProductEligibility(name).eligible).toBe(false);
   });
 });
@@ -87,7 +90,20 @@ describe("Development Grocery Coach catalog integration", () => {
     fireEvent.click(screen.getByText("Choose for shopping — label review needed"));
     fireEvent.click(screen.getByText("Add All to Shopping List"));
     const selected = addItems.mock.calls[0][0][0];
-    expect(selected).toMatchObject({ name: "Example Tomato Sauce", quantity: 1.5, unit: "cups" });
+    expect(selected).toMatchObject({
+      name: "Spaghetti sauce", quantity: 1.5, unit: "cups",
+      ingredientMetadata: {
+        ingredient: { originalName: "Spaghetti sauce" },
+        selectedProduct: {
+          productKey: product.productKey, name: product.name, brand: product.brand,
+          assessment: { status: "review_required" },
+        },
+      },
+    });
+    expect(selected.ingredientMetadata.contributions[0]).toMatchObject({
+      quantity: "1.5", unit: "cups", recipeId: "existing-card", recipeName: "Turkey Spaghetti",
+    });
+    expect(JSON.parse(selected.ingredientMetadata.selectedProduct.sourcePayloadJson)).toEqual(product);
     expect(selected.notes).toContain("2 servings");
     expect(selected.notes).toContain("UPC 012345678901");
     expect(selected.notes).toContain("not medically revalidated");
@@ -96,6 +112,23 @@ describe("Development Grocery Coach catalog integration", () => {
     expect(screen.getByText(/Catalog serving: 125 g \(not the recipe quantity\)/)).toBeInTheDocument();
     fireEvent.click(screen.getByText("Clear choice"));
     expect(screen.queryByText(/Shopping choice:/)).not.toBeInTheDocument();
+    render(<SmartShoppingProductChoice item={selected} enabled hasAccess
+      onChoose={jest.fn()} onUpgrade={jest.fn()} onClear={jest.fn()} />);
+    expect(screen.getByText("Saved with review required")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Choose Product" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Change" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Clear" })).toBeInTheDocument();
+  });
+
+  it("leaves the non-Development transfer unchanged when metadata is disabled", async () => {
+    jest.replaceProperty(require("@/lib/shoppingMetadataGate"), "shoppingMetadataEnabled", false);
+    seed();
+    render(<GroceryStoreCoachSheet open onOpenChange={jest.fn()} />);
+    fireEvent.click(await screen.findByText("Find brands"));
+    fireEvent.click(await screen.findByText("Choose for shopping — label review needed"));
+    fireEvent.click(screen.getByText("Add All to Shopping List"));
+    expect(addItems.mock.calls[0][0][0]).toMatchObject({ name: "Example Tomato Sauce", quantity: 1.5 });
+    expect(addItems.mock.calls[0][0][0].ingredientMetadata).toBeUndefined();
   });
 
   it("Find a Product uses the same catalog endpoint and preserves the meal on return", async () => {

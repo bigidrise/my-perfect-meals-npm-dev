@@ -17,6 +17,7 @@ import {
 import type { ShoppingListItem } from "@/stores/shoppingListStore";
 import { buildConsolidatedItems } from "@/lib/shoppingConsolidation";
 import { getRetailQuantity } from "@/lib/retailIntelligence";
+import "./GroceryExportModal.css";
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -55,12 +56,13 @@ export default function GroceryExportModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm"
+      data-shop-online-modal
+      className="shop-online-modal fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-lg bg-gradient-to-b from-black/95 via-gray-900 to-black border border-orange-500/20 rounded-t-3xl shadow-2xl flex flex-col overflow-hidden max-h-[88vh]">
+      <div className="shop-online-panel w-full max-w-lg bg-gradient-to-b from-black/95 via-gray-900 to-black border border-orange-500/20 rounded-t-3xl shadow-2xl flex flex-col overflow-hidden max-h-[88vh]">
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3 flex-shrink-0">
@@ -83,6 +85,7 @@ export default function GroceryExportModal({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close Shop Online"
             className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 active:text-white transition-colors"
           >
             <X className="h-4 w-4" />
@@ -91,7 +94,7 @@ export default function GroceryExportModal({
 
         {/* Retailer tabs — single scrollable row, never wraps */}
         <div
-          className="px-4 pb-3 flex gap-2 overflow-x-auto flex-shrink-0"
+          className="shop-online-retailers px-4 pb-3 flex gap-2 overflow-x-auto flex-shrink-0"
           style={{ scrollbarWidth: "none" }}
         >
           {GROCERY_RETAILERS.map((retailer) => (
@@ -121,7 +124,7 @@ export default function GroceryExportModal({
         </div>
 
         {/* Item list */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4 flex flex-col gap-1.5">
+        <div className="shop-online-items flex-1 min-h-0 overflow-y-auto px-4 pb-4 flex flex-col gap-1.5">
           {consolidated.length === 0 ? (
             <div className="text-center py-10 text-white/40 text-sm">
               No items to export. Add items to your list first.
@@ -142,7 +145,7 @@ export default function GroceryExportModal({
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => handleItemClick(item.id)}
-                  className={`w-full flex items-center gap-3 rounded-xl px-4 py-3 border transition-all ${
+                  className={`shop-online-item w-full flex items-center gap-3 rounded-xl px-4 py-3 border transition-all ${
                     wasOpened
                       ? "bg-white/5 border-white/10 opacity-70"
                       : "bg-white/10 border-white/15 active:bg-orange-600/20"

@@ -69,12 +69,29 @@ function installRouting(pool: Pool): void {
           /\b(insert|update|delete|merge|call|copy|create|alter|drop|truncate)\b/i.test(code)) {
           deny(state);
         }
-        const result: unknown = Reflect.apply(state.query, undefined, args);
+        let recorded = false;
+        const observe = (error: unknown) => {
+          if (!recorded && error !== null && typeof error === "object"
+            && "code" in error && error.code === "25006") {
+            recorded = true;
+            state.blockedWriteCount++;
+          }
+        };
+        const forwarded = [...args];
+        const callback = forwarded[forwarded.length - 1];
+        if (typeof callback === "function") {
+          forwarded[forwarded.length - 1] = new Proxy(callback, {
+            apply(target, receiver: unknown, callbackArgs: unknown[]) {
+              observe(callbackArgs[0]);
+              return Reflect.apply(target, receiver, callbackArgs);
+            },
+          });
+        }
+        const result: unknown = Reflect.apply(state.query, undefined, forwarded);
         if (result !== null && typeof result === "object" &&
           "catch" in result && typeof result.catch === "function") {
           return Reflect.apply(result.catch, result, [(error: unknown) => {
-            if (error !== null && typeof error === "object" &&
-              "code" in error && error.code === "25006") state.blockedWriteCount++;
+            observe(error);
             throw error;
           }]);
         }

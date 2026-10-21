@@ -32,6 +32,7 @@ import {
   MacroBaseline,
 } from "./protocol/performanceProtocolResolver";
 import { resolveDailyNutritionState as resolveCanonicalNutritionState } from "./nutritionStateService";
+import { assertOwnerDay, type StrictOwnerClinicalContext } from "./nutritionResolutionContext";
 
 export type StarchPolicy = "zero" | "restricted" | "moderate" | "generous" | "unlimited";
 export type LedgerReliability = "high" | "medium" | "low";
@@ -67,6 +68,7 @@ export interface DailyNutritionState {
 }
 
 export interface DailyStateInput {
+  strictOwner?: StrictOwnerClinicalContext;
   userId: string;
   schedule: WeeklyTrainingSchedule | null;
   config: PerformanceProtocolConfig | null;
@@ -381,10 +383,15 @@ export async function resolveDailyNutritionState(
   const now = input.now ?? new Date();
   const timezone = input.timezone || "America/Chicago";
   const localDate = new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(now);
+  if (input.strictOwner) {
+    assertOwnerDay(input.strictOwner, input.userId, localDate);
+    if (timezone !== input.strictOwner.day.timezone) throw new Error("Strict owner timezone mismatch");
+  }
   const canonical = await resolveCanonicalNutritionState(
     input.userId,
     localDate,
     input.excludeItemId,
+    input.strictOwner ? { strictOwner: input.strictOwner } : undefined,
   );
 
   const classification = canonical.consumed.classificationStatus ?? "UNCLASSIFIED";
