@@ -59,5 +59,7 @@ export function parseShoppingProductSelection(input: unknown): ShoppingProductSe
       !parsed.product.evidence.some(f => f.kind === "nutrition")) {
     throw new Error("This product does not have a complete evidence-supported shopping decision.");
   }
-  return { ...parsed, ingredient };
+  // Name the required field explicitly: the server's non-strict-null Zod
+  // inference marks object keys optional even though parsing requires product.
+  return { ingredient, product: parsed.product };
 }
