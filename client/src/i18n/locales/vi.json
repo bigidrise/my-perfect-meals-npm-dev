@@ -3251,6 +3251,13 @@
     "regularGi": "GI thông thường"
   },
   "mealReminders": {
+    "checkIOSReminders": "Kiểm tra lời nhắc trên iPhone",
+    "iosScheduleBlocked": "Thông báo trên iPhone chưa được cho phép. Hãy bật trong phần Cài đặt rồi kiểm tra lại.",
+    "iosScheduleChecking": "Đang kiểm tra lịch nhắc trên iPhone này…",
+    "iosScheduleConfirmed_one": "Đã xác nhận {{count}} lời nhắc bữa ăn trên iPhone này.",
+    "iosScheduleConfirmed_other": "Đã xác nhận {{count}} lời nhắc bữa ăn trên iPhone này.",
+    "iosScheduleError": "Không thể xác nhận việc lên lịch lời nhắc trên iPhone. Các lời nhắc hiện có có thể vẫn đang chờ.",
+    "iosScheduleOff": "Không có lời nhắc bữa ăn nào được lên lịch trên iPhone này.",
     "iosDeliveryNote": "Cài đặt thông báo của iOS và chế độ Tập trung có thể ảnh hưởng đến thời điểm cảnh báo xuất hiện.",
     "loadFailedDescription": "Các lời nhắc hiện có trên iPhone không bị thay đổi. Hãy mở lại phần cài đặt để thử lại.",
     "loadFailedMessage": "Không thể tải các lời nhắc bữa ăn đã lưu. Lịch nhắc hiện có trên iPhone không bị thay đổi.",

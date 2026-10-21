@@ -416,15 +416,15 @@ export default function MealReminders() {
       {isIOS && (
         <div className="space-y-2 text-xs" role="status" data-testid="ios-reminder-schedule">
           <p className={iosSchedule.state === "error" || iosSchedule.state === "blocked" ? "text-amber-300" : "text-white/80"}>
-            {iosSchedule.state === "scheduled" ? `${iosSchedule.count} meal reminder${iosSchedule.count === 1 ? "" : "s"} confirmed on this iPhone.`
-              : iosSchedule.state === "off" ? "No meal reminders scheduled on this iPhone."
-              : iosSchedule.state === "blocked" ? "iPhone notifications are not allowed. Enable them in Settings, then check again."
-              : iosSchedule.state === "error" ? "Could not confirm iPhone scheduling. Existing reminders may still be pending."
-              : "Checking this iPhone's reminder schedule…"}
+            {iosSchedule.state === "scheduled" ? t("mealReminders.iosScheduleConfirmed", { count: iosSchedule.count })
+              : iosSchedule.state === "off" ? t("mealReminders.iosScheduleOff")
+              : iosSchedule.state === "blocked" ? t("mealReminders.iosScheduleBlocked")
+              : iosSchedule.state === "error" ? t("mealReminders.iosScheduleError")
+              : t("mealReminders.iosScheduleChecking")}
           </p>
           <button type="button" className="text-orange-300 underline" disabled={iosSchedule.state === "checking" || saving}
             onClick={() => { void iosMealReminderScheduler.restore().catch(() => {}); }}>
-            Check iPhone reminders
+            {t("mealReminders.checkIOSReminders")}
           </button>
           <p className="text-white/50">{t("mealReminders.iosDeliveryNote")}</p>
         </div>

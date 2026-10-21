@@ -3306,6 +3306,13 @@
     "regularGi": "通常GI"
   },
   "mealReminders": {
+    "checkIOSReminders": "iPhoneのリマインダーを確認",
+    "iosScheduleBlocked": "iPhoneの通知が許可されていません。設定で通知を許可してから、もう一度確認してください。",
+    "iosScheduleChecking": "このiPhoneのリマインダースケジュールを確認しています…",
+    "iosScheduleConfirmed_one": "{{count}}件の食事リマインダーをこのiPhoneで確認しました。",
+    "iosScheduleConfirmed_other": "{{count}}件の食事リマインダーをこのiPhoneで確認しました。",
+    "iosScheduleError": "iPhoneのリマインダーの設定を確認できませんでした。既存のリマインダーはまだ待機中の可能性があります。",
+    "iosScheduleOff": "このiPhoneには食事リマインダーが設定されていません。",
     "iosDeliveryNote": "iOSの通知設定や集中モードによって、通知が表示されるタイミングが変わることがあります。",
     "loadFailedDescription": "iPhoneの既存のリマインダーは変更されていません。設定を開き直して、もう一度お試しください。",
     "loadFailedMessage": "保存済みの食事リマインダーを読み込めませんでした。iPhoneの既存のリマインダースケジュールは変更されていません。",

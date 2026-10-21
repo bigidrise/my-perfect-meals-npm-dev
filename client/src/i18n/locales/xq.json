@@ -3225,6 +3225,13 @@
     "regularGi": "[Réègûüláãr GÍÏ ŦŦŦ]"
   },
   "mealReminders": {
+    "checkIOSReminders": "[Chéèck íïPhôönéè réèmíïndéèrs ŦŦŦ]",
+    "iosScheduleBlocked": "[íïPhôönéè nôötíïfíïcáãtíïôöns áãréè nôöt áãllôöwéèd. ÉÈnáãbléè théèm íïn Séèttíïngs, théèn chéèck áãgáãíïn. ŦŦŦ]",
+    "iosScheduleChecking": "[Chéèckíïng thíïs íïPhôönéè's réèmíïndéèr schéèdûüléè… ŦŦŦ]",
+    "iosScheduleConfirmed_one": "[{{count}} méèáãl réèmíïndéèr côönfíïrméèd ôön thíïs íïPhôönéè. ŦŦŦ]",
+    "iosScheduleConfirmed_other": "[{{count}} méèáãl réèmíïndéèrs côönfíïrméèd ôön thíïs íïPhôönéè. ŦŦŦ]",
+    "iosScheduleError": "[Côöûüld nôöt côönfíïrm íïPhôönéè schéèdûülíïng. ÉÈxíïstíïng réèmíïndéèrs máãy stíïll béè péèndíïng. ŦŦŦ]",
+    "iosScheduleOff": "[Nôö méèáãl réèmíïndéèrs schéèdûüléèd ôön thíïs íïPhôönéè. ŦŦŦ]",
     "iosDeliveryNote": "[íïÔÖS nôötíïfíïcáãtíïôön séèttíïngs áãnd Fôöcûüs cáãn áãfféèct whéèn áãléèrts áãppéèáãr. ŦŦŦ]",
     "loadFailedDescription": "[ÉÈxíïstíïng íïPhôönéè réèmíïndéèrs wéèréè léèft ûüncháãngéèd. Réèôöpéèn séèttíïngs tôö try áãgáãíïn. ŦŦŦ]",
     "loadFailedMessage": "[Côöûüld nôöt lôöáãd sáãvéèd méèáãl réèmíïndéèrs. Yôöûür éèxíïstíïng íïPhôönéè schéèdûüléè wáãs léèft ûüncháãngéèd. ŦŦŦ]",

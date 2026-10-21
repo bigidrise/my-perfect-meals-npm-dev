@@ -3489,6 +3489,14 @@
     "regularGi": "IG normal"
   },
   "mealReminders": {
+    "checkIOSReminders": "Verificar lembretes do iPhone",
+    "iosScheduleBlocked": "As notificações do iPhone não estão permitidas. Ative-as nas configurações e verifique novamente.",
+    "iosScheduleChecking": "Verificando a programação de lembretes deste iPhone…",
+    "iosScheduleConfirmed_one": "{{count}} lembrete de refeição confirmado neste iPhone.",
+    "iosScheduleConfirmed_many": "{{count}} lembretes de refeições confirmados neste iPhone.",
+    "iosScheduleConfirmed_other": "{{count}} lembretes de refeições confirmados neste iPhone.",
+    "iosScheduleError": "Não foi possível confirmar a programação dos lembretes no iPhone. Os lembretes existentes ainda podem estar pendentes.",
+    "iosScheduleOff": "Não há lembretes de refeições programados neste iPhone.",
     "iosDeliveryNote": "As configurações de notificações do iOS e o modo Foco podem afetar quando os alertas aparecem.",
     "loadFailedDescription": "Os lembretes existentes no iPhone não foram alterados. Abra as configurações novamente para tentar outra vez.",
     "loadFailedMessage": "Não foi possível carregar os lembretes de refeições salvos. A programação existente de lembretes no iPhone não foi alterada.",

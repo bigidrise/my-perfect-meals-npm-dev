@@ -3486,6 +3486,13 @@
     "regularGi": "सामान्य GI"
   },
   "mealReminders": {
+    "checkIOSReminders": "iPhone के रिमाइंडर जाँचें",
+    "iosScheduleBlocked": "iPhone पर सूचनाओं की अनुमति नहीं है। सेटिंग में इन्हें चालू करें, फिर दोबारा जाँचें।",
+    "iosScheduleChecking": "इस iPhone पर रिमाइंडर का शेड्यूल जाँचा जा रहा है…",
+    "iosScheduleConfirmed_one": "इस iPhone पर भोजन के {{count}} रिमाइंडर की पुष्टि हो गई है।",
+    "iosScheduleConfirmed_other": "इस iPhone पर भोजन के {{count}} रिमाइंडरों की पुष्टि हो गई है।",
+    "iosScheduleError": "iPhone पर रिमाइंडर शेड्यूल होने की पुष्टि नहीं हो सकी। मौजूदा रिमाइंडर अभी भी लंबित हो सकते हैं।",
+    "iosScheduleOff": "इस iPhone पर भोजन का कोई रिमाइंडर शेड्यूल नहीं है।",
     "iosDeliveryNote": "iOS की सूचना सेटिंग और फ़ोकस मोड के कारण अलर्ट दिखने का समय प्रभावित हो सकता है।",
     "loadFailedDescription": "iPhone के मौजूदा रिमाइंडर बदले नहीं गए हैं। फिर से कोशिश करने के लिए सेटिंग दोबारा खोलें।",
     "loadFailedMessage": "भोजन के सेव किए गए रिमाइंडर लोड नहीं हो सके। iPhone पर रिमाइंडर का मौजूदा शेड्यूल बदला नहीं गया है।",

@@ -3306,6 +3306,13 @@
     "regularGi": "Normaler GI"
   },
   "mealReminders": {
+    "checkIOSReminders": "iPhone-Erinnerungen prüfen",
+    "iosScheduleBlocked": "iPhone-Mitteilungen sind nicht erlaubt. Erlaube sie in den Einstellungen und prüfe dann erneut.",
+    "iosScheduleChecking": "Der Erinnerungszeitplan auf diesem iPhone wird geprüft…",
+    "iosScheduleConfirmed_one": "{{count}} Mahlzeitenerinnerung auf diesem iPhone bestätigt.",
+    "iosScheduleConfirmed_other": "{{count}} Mahlzeitenerinnerungen auf diesem iPhone bestätigt.",
+    "iosScheduleError": "Die Planung der iPhone-Erinnerungen konnte nicht bestätigt werden. Vorhandene Erinnerungen könnten noch ausstehen.",
+    "iosScheduleOff": "Auf diesem iPhone sind keine Mahlzeitenerinnerungen geplant.",
     "iosDeliveryNote": "Die Mitteilungseinstellungen und der Fokusmodus von iOS können beeinflussen, wann Hinweise angezeigt werden.",
     "loadFailedDescription": "Vorhandene iPhone-Erinnerungen wurden nicht geändert. Öffne die Einstellungen erneut, um es noch einmal zu versuchen.",
     "loadFailedMessage": "Gespeicherte Mahlzeitenerinnerungen konnten nicht geladen werden. Dein bisheriger Erinnerungszeitplan auf dem iPhone wurde nicht geändert.",
