@@ -21,9 +21,8 @@ export default function ShoppingProductPicker({
   open, onOpenChange, ingredient, quantityLabel, sessionKey, currentSelection, onCommit,
 }: Props) {
   const [matches, setMatches] = useState<CatalogProductMatch[]>([]);
-  const [reviewCount, setReviewCount] = useState(0);
-  const [blockedReasons, setBlockedReasons] = useState<string[]>([]);
-  const [notice, setNotice] = useState("");
+  const [hasSelectable, setHasSelectable] = useState(false);
+  const [shoppingTip, setShoppingTip] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -47,8 +46,8 @@ export default function ShoppingProductPicker({
       effectIdentity.current = identity;
       generation.current += 1;
       setMatches([]);
-      setReviewCount(0);
-      setBlockedReasons([]);
+      setHasSelectable(false);
+      setShoppingTip("");
       setLoading(false);
       setError("");
       onOpenChange(false);
@@ -58,9 +57,8 @@ export default function ShoppingProductPicker({
   useEffect(() => {
     generation.current += 1;
     setMatches([]);
-    setReviewCount(0);
-    setBlockedReasons([]);
-    setNotice("");
+    setHasSelectable(false);
+    setShoppingTip("");
     setError("");
     setSaving(false);
     if (!open) {
@@ -82,6 +80,12 @@ export default function ShoppingProductPicker({
       if (generation.current !== requestGeneration) return;
       if (data?.error) throw new Error("Catalog lookup unavailable");
       if (!Array.isArray(data?.catalogMatches)) throw new Error("Catalog lookup unavailable");
+      const tip = typeof data.shoppingTip === "string" ? data.shoppingTip.trim() : "";
+      setShoppingTip(tip.length > 180 ? `${tip.slice(0, 177)}…` : tip);
+      if (data.catalogSearchAvailable === false) {
+        setError("The product catalog is temporarily unavailable. Your ingredient and saved choice are unchanged. You can keep it generic.");
+        return;
+      }
       const all = data.catalogMatches as CatalogProductMatch[];
       const isSupported = (match: CatalogProductMatch) => {
         if (match?.evidenceStatus !== "eligible" || match.shoppingSelection?.eligible !== true) return false;
@@ -91,14 +95,23 @@ export default function ShoppingProductPicker({
             shoppingIngredientSignature(selection.ingredient) === shoppingIngredientSignature(ingredient);
         } catch { return false; }
       };
-      const supported = all.filter(isSupported).slice(0, 3);
-      setMatches(supported);
-      const blocked = all.filter(match => !isSupported(match));
-      setReviewCount(blocked.length);
-      setBlockedReasons([...new Set(blocked.map(match => match.shoppingSelection?.reason || match.verificationMessage).filter((reason): reason is string => !!reason))].slice(0, 3));
-      setNotice(typeof data.catalogNotice === "string" ? data.catalogNotice : "");
-    }).catch(() => {
-      if (generation.current === requestGeneration) setError("Could not load catalog choices. Your ingredient and saved choice are unchanged. Close this picker and choose again to retry.");
+      const displayable = all.filter(match => {
+        const display = match.shoppingDisplay;
+        return display !== "hidden" && (display === "label_review" || (isSupported(match) && display !== "label_review"));
+      }).slice(0, 3);
+      setMatches(displayable);
+      setHasSelectable(displayable.some(match => {
+        const display = match.shoppingDisplay;
+        return display !== "hidden" && display !== "label_review" && isSupported(match);
+      }));
+    }).catch((error: unknown) => {
+      if (generation.current !== requestGeneration) return;
+      const status = (error as { status?: number } | null)?.status;
+      setError(status === 409
+        ? "We couldn't confirm your current requirements. Keep this ingredient generic or try again later."
+        : status === 401 || status === 403
+          ? "Product lookup isn't available for this account. Your ingredient and saved choice are unchanged."
+          : "We couldn’t check product choices just now. Your ingredient and saved choice are unchanged. You can keep it generic or close and try again.");
     }).finally(() => {
       if (generation.current === requestGeneration) setLoading(false);
     });
@@ -134,8 +147,8 @@ export default function ShoppingProductPicker({
     <PickerModal
       open={open}
       onOpenChange={closeWithoutSaving}
-      title="Choose a product"
-      description={`Original ingredient: ${ingredient.originalName} · Recipe amount: ${quantityLabel}. Product packages do not change recipe quantities.`}
+      title="Find a grocery option"
+      description={`${ingredient.originalName} · Recipe amount: ${quantityLabel}. Your recipe quantity stays the same.`}
       className="border border-orange-200/15 bg-[#211c18] text-white"
       footer={<div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-between">
         <Button type="button" variant="ghost" disabled={saving} onClick={() => closeWithoutSaving(false)} className="text-white/75 hover:bg-white/10">Cancel</Button>
@@ -147,25 +160,26 @@ export default function ShoppingProductPicker({
     >
       <div className="space-y-4 pb-2">
         <div className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-orange-200/70">Shopping choice only</p>
-          <p className="mt-1 text-sm text-white/75">The original ingredient, its amount, meal contributions, and nutrition remain unchanged. Saved assessments are historical evidence, not current medical advice.</p>
+          <p className="text-sm text-white/75">These are shopping references, not medical approval. Check the package label before you buy.</p>
         </div>
         {loading && <div role="status" aria-label="Loading catalog choices" className="space-y-3">{[0, 1].map(i => <div key={i} className="h-28 animate-pulse rounded-xl border border-white/10 bg-white/[0.06]" />)}<p className="text-xs text-white/55">Checking existing catalog evidence…</p></div>}
         {error && <p role="alert" className="rounded-lg border border-red-200/20 bg-red-300/10 p-3 text-sm text-red-100">{error}</p>}
         {!loading && !error && <>
-          {notice && <p className="text-xs text-white/60">{notice}</p>}
-          {matches.length > 0 ? <ProductCatalogChoices
+          {matches.length > 0 && <ProductCatalogChoices
             products={matches}
-            shoppingOnly
+            compactShopping
             disabled={saving}
             onSelect={(product) => {
+              if (product.shoppingDisplay === "label_review") return;
               const selection = product.shoppingSelection?.selection;
               if (selection) void commit(selection);
             }}
-          /> : <p className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/65">No evidence-supported catalog choices are available. Keep the original ingredient generic.</p>}
-          {reviewCount > 0 && <p className="text-xs leading-relaxed text-amber-100/75">{reviewCount} catalog {reviewCount === 1 ? "option needs" : "options need"} further review and {reviewCount === 1 ? "is" : "are"} not selectable here.</p>}
-          {!!blockedReasons.length && <ul aria-label="Why other catalog options are unavailable" className="list-disc space-y-1 pl-5 text-xs text-amber-100/70">{blockedReasons.map((reason, index) => <li key={`${reason}-${index}`}>{reason}</li>)}</ul>}
+          />}
+          {!hasSelectable && <>
+            <p className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm leading-relaxed text-white/75">No suitable specific product could be identified. You can keep this ingredient generic.</p>
+          </>}
         </>}
+        {!loading && !hasSelectable && <p className="rounded-lg border border-orange-200/10 bg-orange-100/[0.04] px-3 py-2 text-xs leading-relaxed text-orange-50/75">{shoppingTip || "Product labels can vary; check the current package before choosing."}</p>}
         {saving && <p role="status" className="text-xs text-white/60">Saving your choice…</p>}
       </div>
     </PickerModal>

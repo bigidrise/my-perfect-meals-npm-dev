@@ -7,6 +7,7 @@ import "@testing-library/jest-dom";
 import ShoppingProductPicker from "@/components/shopping/ShoppingProductPicker";
 import { post } from "@/lib/api";
 import { shoppingSelectionBridge } from "../../../../server/services/productDiscovery/shoppingSelectionBridge";
+import { shoppingCatalogPresentation } from "../../../../server/services/productDiscovery/shoppingCatalogGuidance";
 import type { ShoppingUnresolvedRequirement } from "../../../../server/services/productDiscovery/shoppingRejectionExplanation";
 import type { ProductCandidate, ProductEligibilityDecision, ProductDecisionReason } from "@shared/productCandidateContract";
 import type { ProductSubjectSnapshot } from "../../../../server/services/productDiscovery/subjectAuthority";
@@ -62,27 +63,30 @@ test.each([
   { name: "missing product evidence", expected: evidenceMessage, unresolved: [], reasons: [evidenceReason], ingredient },
   { name: "unsupported explicit qualifier", expected: qualifierMessage, unresolved: [], reasons: decision.reasons,
     ingredient: { originalName: "low-sodium cream cheese", requirements: [] } },
-])("$name: actual bridge explanation displays without approving or saving a product", async testCase => {
+])("$name: bridge retains reasons while the compact UI shows a concise review caution", async testCase => {
   const before = JSON.stringify({ candidate, decision, subject, ingredient: testCase.ingredient, unresolved: testCase.unresolved });
   const shoppingSelection = shoppingSelectionBridge(candidate, { ...decision, reasons: testCase.reasons },
     subject, testCase.unresolved, testCase.ingredient);
   expect(shoppingSelection).toEqual({ eligible: false, reason: testCase.expected });
+  const presentation = shoppingCatalogPresentation(candidate, { ...decision, reasons: testCase.reasons }, shoppingSelection, testCase.ingredient);
   (post as jest.Mock).mockResolvedValue({
     catalogMatches: [{
       productKey: candidate.identity.key, name: candidate.identity.name, brand: candidate.identity.brand,
       evidenceStatus: "needs_verification", recommendationStatus: "profile_matched_pick",
       verificationMessage: "This appears to fit.", shoppingSelection,
+      ...presentation,
     }],
   });
   const onCommit = jest.fn();
   render(<ShoppingProductPicker open onOpenChange={jest.fn()} ingredient={testCase.ingredient}
     quantityLabel="2 tbsp" sessionKey="synthetic-owner:synthetic-context"
     currentSelection={null} onCommit={onCommit} />);
-  expect(await screen.findByText(testCase.expected)).toBeInTheDocument();
-  const explanation = screen.getByRole("list", { name: "Why other catalog options are unavailable" });
+  expect(await screen.findByText(presentation.shoppingCaution)).toBeInTheDocument();
+  expect(screen.queryByText(testCase.expected)).not.toBeInTheDocument();
+  const explanation = screen.getByRole("article");
   expect(explanation.textContent).not.toMatch(/allergy:|explicit_avoidance:|clinical:|sodium_mg_per_serving|context_unavailable|evidence_missing|rule-specific|fingerprint/);
   expect(screen.queryByText("This appears to fit.")).not.toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: "Choose for shopping" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Choose this option" })).not.toBeInTheDocument();
   expect(onCommit).not.toHaveBeenCalled();
   expect(post).toHaveBeenCalledTimes(1);
   expect(JSON.stringify({ candidate, decision, subject, ingredient: testCase.ingredient, unresolved: testCase.unresolved })).toBe(before);
