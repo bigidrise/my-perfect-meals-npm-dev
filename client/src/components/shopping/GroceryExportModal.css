@@ -1,0 +1,42 @@
+/* Keep this override local: the global mobile .flex rule wraps column layouts
+   into additional columns and hides horizontal overflow, including retailer tabs.
+   These selectors deliberately outrank .flex:not([role="dialog"]). */
+@media (max-width: 768px) {
+  [data-shop-online-modal].shop-online-modal.flex,
+  [data-shop-online-modal] .flex:not([role="dialog"]) {
+    flex-wrap: nowrap;
+  }
+
+  [data-shop-online-modal].shop-online-modal {
+    padding: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + 8px)
+      var(--safe-right, env(safe-area-inset-right, 0px))
+      calc(var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + 8px)
+      var(--safe-left, env(safe-area-inset-left, 0px));
+  }
+
+  [data-shop-online-modal] .shop-online-panel {
+    min-width: 0;
+    height: min(88vh, calc(100vh - var(--safe-top, env(safe-area-inset-top, 0px)) - var(--safe-bottom, env(safe-area-inset-bottom, 0px)) - 16px));
+    max-height: calc(100vh - var(--safe-top, env(safe-area-inset-top, 0px)) - var(--safe-bottom, env(safe-area-inset-bottom, 0px)) - 16px);
+    height: min(88dvh, calc(100dvh - var(--safe-top, env(safe-area-inset-top, 0px)) - var(--safe-bottom, env(safe-area-inset-bottom, 0px)) - 16px));
+    max-height: calc(100dvh - var(--safe-top, env(safe-area-inset-top, 0px)) - var(--safe-bottom, env(safe-area-inset-bottom, 0px)) - 16px);
+  }
+
+  [data-shop-online-modal] .shop-online-retailers.flex {
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  [data-shop-online-modal] .shop-online-items.flex {
+    min-width: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  [data-shop-online-modal] .shop-online-item {
+    min-width: 0;
+    flex-shrink: 0;
+  }
+}
