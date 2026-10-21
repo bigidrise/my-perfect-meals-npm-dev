@@ -9,6 +9,18 @@ Run focused Jest checks with isolated transpilation and perform TypeScript check
 
 **How to apply:** Enable ts-jest's isolated compilation mode for the test invocation, without changing the app's TypeScript configuration. Keep the separate release type gate. On the current Jest setup, the invocation-level override `--globals='{"ts-jest":{"isolatedModules":true}}'` works, though ts-jest warns that this configuration form is deprecated.
 
+Do not rely on a release-check wrapper's cleanup when an external shell deadline
+can kill it during synchronous compilation. Preserve ignored generated build
+metadata before imposing such a deadline; remove only a confirmed abandoned lock.
+
+**Why:** An external timeout killed the wrapper before its cleanup ran, leaving
+its temporary lock and Development build-metadata stub behind without compiler
+output. A missing result must be reported as an incomplete check, not a pass.
+
+**How to apply:** Prefer a sufficiently bounded background run with streamed
+output and a saved metadata copy. Confirm the compiler and wrapper have exited
+before cleaning up their temporary state; never overwrite another run's lock.
+
 Stream or save verification output while commands run, rather than buffering subprocess output and writing it only after completion.
 
 **Why:** A parent timeout can discard all buffered child output, hiding which phase stalled and making a tooling timeout look like an application failure.

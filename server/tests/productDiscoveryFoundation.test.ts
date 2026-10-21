@@ -59,7 +59,7 @@ describe("Smart Grocery reuses the existing catalog without extra AI", () => {
     });
     expect(result.catalogMatches).toHaveLength(1);
     expect(result.catalogMatches[0].shoppingSelection).toMatchObject({
-      eligible: false, reason: expect.stringContaining("No reviewed"),
+      eligible: false, reason: expect.stringContaining("We can't verify the requested ingredient requirement"),
     });
   });
   test("clinical context requiring unavailable reviewed policy stays unselectable", async () => {

@@ -8,6 +8,8 @@ export interface ProductSubjectRequest {
   subjectUserId: string;
   subjectKind: "account" | "household";
   dateISO: string;
+  /** Development shopping presentation only; no additional profile read. */
+  includeShoppingGuidance?: boolean;
 }
 
 export interface ProductSubjectSnapshot {
@@ -27,6 +29,8 @@ export interface ProductSubjectSnapshot {
   profileFactors: string[];
   medicalHardLimitNames: string[];
   medicalOptimizationNames: string[];
+  /** Existing guidance, retained only for the explicit Smart Grocery lookup. */
+  shoppingGuidance?: readonly string[];
   glp1Active: boolean;
   alphaGalActive: boolean;
   pregnancyActive: boolean;
@@ -159,6 +163,13 @@ export async function resolveProductSubjectAuthority(
     profileFactors,
     medicalHardLimitNames: [...envelope.medicalHardLimits],
     medicalOptimizationNames: [...envelope.medicalOptimization],
+    ...(request.includeShoppingGuidance ? {
+      shoppingGuidance: [
+        ...envelope.medicalHardLimits,
+        ...envelope.medicalOptimization,
+        ...(envelope.conditionGuidanceBlocks ?? []),
+      ],
+    } : {}),
     glp1Active: food.safety.glp1MealAuthorityActive === true,
     alphaGalActive: envelope.alphaGalContext?.active === true,
     pregnancyActive: envelope.pregnancySupportContext?.active === true,

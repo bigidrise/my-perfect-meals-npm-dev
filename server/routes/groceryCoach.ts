@@ -696,7 +696,7 @@ router.post("/product-advisor", async (req, res) => {
           }
         }
         const matches = await findProductDevelopment(userId, ingredients[0], { shoppingIngredient });
-        if (!matches.catalogMatches.length && !matches.catalogSearchAvailable) {
+        if (!shoppingIngredient && !matches.catalogMatches.length && !matches.catalogSearchAvailable) {
           return res.status(503).json({
             error: "The product catalog is unavailable right now. Please try again.",
             retryable: true,

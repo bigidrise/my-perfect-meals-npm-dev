@@ -135,6 +135,8 @@ interface ProductAdviceResult {
     allergenInformation?: { statement: string; source: string }[];
     profileInsight?: string;
     shoppingSelection?: ShoppingCatalogDecision;
+    shoppingDisplay?: "selectable" | "label_review" | "hidden";
+    shoppingCaution?: string;
   }[];
   sourceFailures?: string[];
   catalogSearchAvailable?: boolean;

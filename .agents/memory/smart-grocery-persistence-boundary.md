@@ -70,13 +70,18 @@ is not permission to sign in or perform persistence writes.
 Missing reviewed profile-specific product checks are not evidence that a product
 contains a restricted ingredient. Explain policy gaps, missing product information,
 and unsupported requested qualifiers separately in member-friendly language,
-without internal identifiers. Whether members may also see review-only products
-is a separate product-design decision, not permission to loosen eligibility.
+without internal identifiers. Useful review-needed catalog products may be shown
+as view-only references with a clear current-label notice; only existing eligible
+structured choices may be selected. Never display established conflicting products.
 
 **Why:** The user explicitly asked to remember this distinction after finding that
 Smart Grocery's stricter selection boundary can exclude products Grocery Coach
-displays, and approved explanation changes only.
+displays, then separately approved view-only references and simple fallback tips
+without changing selection eligibility or Grocery Coach behavior.
 
-**How to apply:** Preserve Grocery Coach's recommendation behavior and Smart
-Grocery's current selection safeguards unless the user separately approves a
-review-only product experience.
+**How to apply:** Keep Smart Grocery concise and useful, not a medical product
+certification system. If nothing is selectable, provide one short shopping tip
+from already-resolved nutrition guidance or an explicit ingredient qualifier.
+Condition names alone never imply a new nutrient restriction. Preserve the
+ingredient, quantity, saved choice and Keep generic behavior; no extra AI calls
+or automatic searches. Authenticated Neon persistence verification remains outstanding.
