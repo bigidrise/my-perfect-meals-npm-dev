@@ -36,8 +36,10 @@ as the restoration source. Keep late asynchronous responses account-bound.
 
 Restart permission is conditional on inspecting the exact startup path and establishing
 that unrelated migrations and unexpected shared-database writes will not run. If
-that cannot be established, stop rather than restart. Runtime checks must use safely
-isolated, cleanup-bounded synthetic records or remain non-mutating.
+that cannot be established, stop rather than restart. Live persistence checks require
+an existing authorized, dedicated test identity whose isolation and exact synthetic-record
+cleanup are established before any writes. If isolation cannot be established, stop
+without writes or account creation and report for further approval.
 
 **Why:** The user explicitly set this boundary for Development verification because
 the database is shared with Production.
