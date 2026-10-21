@@ -40,6 +40,7 @@ import { TrialMilestoneModal } from "@/components/TrialMilestoneModal";
 import { IdleTimeoutModal } from "@/components/IdleTimeoutModal";
 import MealPickerRetryHarness from "@/pages/e2e/MealPickerRetryHarness";
 import { CanonicalTimezonePrompt } from "@/components/CanonicalTimezonePrompt";
+import IOSMealReminderSync from "@/components/IOSMealReminderSync";
 
 // Initialize native demo mode BEFORE React renders (for iOS preview recording)
 initNativeDemoMode();
@@ -130,6 +131,9 @@ export default function App() {
           await LocalNotifications.requestPermissions();
         }
         localStorage.setItem(ASKED_KEY, "1");
+        if (Capacitor.getPlatform() === "ios") {
+          window.dispatchEvent(new Event("mpm:ios-reminders-refresh"));
+        }
       } catch {
         // Silently fail — user can still enable from the Meal Reminders toggle
       }
@@ -200,6 +204,7 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <AuthProvider>
+            <IOSMealReminderSync />
             <DemoOperatingShell>
             <CanonicalTimezonePrompt />
             <OrgProvider>
