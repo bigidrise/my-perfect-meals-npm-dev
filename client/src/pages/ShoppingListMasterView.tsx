@@ -884,11 +884,10 @@ export default function ShoppingListMasterView() {
           prefillName={addOtherPrefill}
           onPrefillConsumed={() => setAddOtherPrefill(undefined)}
         />
-        {/* Order Groceries Online — tablet/desktop only */}
+        {/* Order Groceries Online — all screen sizes */}
         {uncheckedItems.length > 0 && (
           <>
-            {/* Full retailer card: md and up */}
-            <div className="hidden md:block rounded-2xl border border-orange-400/20 bg-black/40 backdrop-blur p-4 space-y-3">
+            <div className="rounded-2xl border border-orange-400/20 bg-black/40 backdrop-blur p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <div className="flex-1">
                   <div className="text-white font-semibold text-sm leading-tight">
@@ -917,18 +916,6 @@ export default function ShoppingListMasterView() {
               </p>
             </div>
 
-            {/* Mobile nudge: phones only */}
-            <div className="md:hidden rounded-2xl border border-orange-400/20 bg-black/40 backdrop-blur p-4 flex items-start gap-3">
-              <ExternalLink className="h-4 w-4 text-orange-400/60 flex-shrink-0 mt-0.5" />
-              <div>
-                <div className="text-white/80 text-sm font-medium leading-tight">
-                  Online grocery ordering available on tablet &amp; desktop
-                </div>
-                <div className="text-white/40 text-xs mt-1 leading-snug">
-                  Visit My Perfect Meals on a larger screen to order directly from Instacart, Walmart, and more.
-                </div>
-              </div>
-            </div>
           </>
         )}
         {/* Actions */}
