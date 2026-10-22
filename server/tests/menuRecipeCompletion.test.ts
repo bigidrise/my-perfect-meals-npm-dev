@@ -616,7 +616,7 @@ describe("Menu-owned one-recipe completion (not connected to the manual Creators
       expect(await completeMenuRecipe({ ...input, approvedConcept: buffaloCasseroleConcept })).toMatchObject({
         ok: false, code: "requirement_evidence_unsupported",
       });
-      expect(generateMenuRecipe).toHaveBeenCalledTimes(3);
+      expect(generateMenuRecipe).toHaveBeenCalledTimes(1);
       expect(generateMealImageUnified).not.toHaveBeenCalled();
     },
   );
