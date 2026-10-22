@@ -97,7 +97,7 @@ export default function ShoppingProductPicker({
       };
       const displayable = all.filter(match => {
         const display = match.shoppingDisplay;
-        return display !== "hidden" && (display === "label_review" || (isSupported(match) && display !== "label_review"));
+        return display !== "hidden" && (display === "label_review" || (isSupported(match)));
       }).slice(0, 3);
       setMatches(displayable);
       setHasSelectable(displayable.some(match => {
