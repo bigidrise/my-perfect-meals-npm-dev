@@ -27,11 +27,11 @@ Creator Menu concept creation accepts food context with non-blocking preference 
 
 **How to apply:** Align eligibility at both stages; still re-resolve authority and run the normal protocol, clinical, dish-identity, and final-recipe checks. Do not treat missing preferences as permission to bypass those gates.
 
-The shared variety generator may preserve a dish's recognizable name but omit defining ingredients from every variant. One bounded identity repair is preferable to accepting a related but incomplete meal or silently changing the selected dish.
+Every advertised ingredient, preparation method, and physical form in a selected Menu concept is a recipe commitment. The shared variety generator may preserve the recognizable dish name while violating that commitment; one bounded identity repair is preferable to silently accepting a different promise.
 
-**Why:** A real provider pass returned familiar versions of a selected wrap without satisfying the stored ingredient contract. After an explicit corrective pass, a complete matching card could be validated; name resemblance alone would have hidden the omission.
+**Why:** A real provider pass returned familiar versions of a selected wrap without satisfying the stored ingredient contract. The user subsequently required selected-Menu variations to preserve what was advertised and personalize only unpromised details, subject to existing safety protections.
 
-**How to apply:** Retain the stored concept's required ingredients and physical form as immutable constraints across attempts. Recheck repaired output through the same safety and final gates, and return no card when safe preservation remains impossible.
+**How to apply:** Retain the stored concept's ingredients, preparation and physical form across initial and corrective attempts. Vary only unpromised details. Never force an unsafe ingredient or invent adaptation permission; use only existing explicitly authorized adaptations, or return inability to complete. Recheck repaired output through the same safety and final gates.
 
 A passed negative protocol scan cannot serve as positive evidence of a compositional diet or a numeric clinical limit, and model-estimated macros are not independently verified nutrition. Unsupported evidence must stay review-required or be rejected, even if this reduces the number of concepts that can finish automatically.
 
