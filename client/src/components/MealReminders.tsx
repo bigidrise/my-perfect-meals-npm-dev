@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useSyncExternalStore } from "react";
 import {
   Bell, BellOff, Plus, Trash2, Pencil, Check, X,
   CheckCircle2, XCircle, Loader2, ChevronDown, ChevronRight, Smartphone, Globe,
@@ -19,6 +19,8 @@ import {
   PipelineDiagnostic,
   MAX_SLOTS,
   setupNotificationListeners,
+  iosMealReminderScheduler,
+  isIOSReminderDevice,
 } from "@/services/mealReminderService";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
@@ -139,6 +141,8 @@ export default function MealReminders() {
   const [slots, setSlots] = useState<ReminderSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [loadRetry, setLoadRetry] = useState(0);
   const [webPermission, setWebPermission] = useState<string>("default");
   const [iOSPermission, setiOSPermission] = useState(false);
   const [pipeline, setPipeline] = useState<PipelineDiagnostic | null>(null);
@@ -148,6 +152,10 @@ export default function MealReminders() {
   const { t } = useTranslation();
 
   const isNative = Capacitor.isNativePlatform();
+  const isIOS = isIOSReminderDevice();
+  const iosSchedule = useSyncExternalStore(
+    iosMealReminderScheduler.subscribe, iosMealReminderScheduler.getStatus,
+  );
   const anyEnabled = slots.some((s) => s.enabled);
 
   async function runPipelineCheck() {
@@ -164,11 +172,17 @@ export default function MealReminders() {
 
   // Mount: load reminders + run initial pipeline check
   useEffect(() => {
+    const current = isIOS ? iosMealReminderScheduler.captureSession() : () => true;
     async function init() {
+      setLoading(true);
+      setSaving(false);
+      setLoadFailed(false);
+      if (isIOS) setSlots([]);
       console.log('[MealReminders] ① mounted — isNative:', isNative);
       try {
         console.log('[MealReminders] ② calling loadRemindersFromServer');
-        const saved = await loadRemindersFromServer();
+        const saved = await loadRemindersFromServer(isIOS ? { strict: true } : undefined);
+        if (!current()) return;
         console.log('[MealReminders] ③ fetch returned — slots:', saved.length);
         setSlots(saved.length > 0 ? saved : getDefaultSlots());
         console.log('[MealReminders] ④ slots applied');
@@ -185,14 +199,23 @@ export default function MealReminders() {
           setWebPermission(getWebPushPermission());
         }
       } catch (e) {
+        if (!current()) return;
         console.error('[MealReminders] ✗ init error:', e);
+        if (isIOS) {
+          setLoadFailed(true);
+          toast({
+          title: t("mealReminders.loadFailedTitle"),
+          description: t("mealReminders.loadFailedDescription"),
+          variant: "destructive",
+          });
+        }
       } finally {
         console.log('[MealReminders] ⑦ setLoading(false)');
-        setLoading(false);
+        if (current()) setLoading(false);
       }
     }
     init();
-  }, [isNative]);
+  }, [isNative, isIOS, iosSchedule.session, loadRetry]);
 
   // iOS tap-to-route listener
   useEffect(() => {
@@ -221,16 +244,32 @@ export default function MealReminders() {
   // ── Actions ────────────────────────────────────────────────────────────────
 
   async function persist(next: ReminderSlot[]) {
+    const current = isIOS ? iosMealReminderScheduler.captureSession() : () => true;
+    const previous = slots;
     setSaving(true);
     try {
-      const saved = await saveRemindersToServer(next);
+      const saved = await saveRemindersToServer(next, isIOS ? { strict: true } : undefined);
+      if (!current()) return;
       setSlots(saved);
-      if (isNative) await syncToiOS(saved);
+      if (isNative) {
+        try {
+          await syncToiOS(saved);
+        } catch (error) {
+          if (!isIOS) throw error;
+          toast({
+            title: t("mealReminders.scheduleUnconfirmedTitle"),
+            description: t("mealReminders.scheduleUnconfirmedDescription"),
+            variant: "destructive",
+          });
+        }
+      }
     } catch (e) {
+      if (!current()) return;
+      if (isIOS) setSlots(previous);
       console.error("[MealReminders] save failed:", e);
       toast({ title: t("mealReminders.toastSaveFailed"), variant: "destructive" });
     } finally {
-      setSaving(false);
+      if (current()) setSaving(false);
     }
   }
 
@@ -271,7 +310,7 @@ export default function MealReminders() {
     }
 
     const next = slots.map((s, i) => i === index ? { ...s, enabled: willEnable } : s);
-    if (!next.some((s) => s.enabled) && isNative) await canceliOSReminders();
+    if (!next.some((s) => s.enabled) && isNative && !isIOS) await canceliOSReminders();
     await persist(next);
   }
 
@@ -323,6 +362,13 @@ export default function MealReminders() {
   const status = webStatus();
   const isBlocked = !isNative && (status === "blocked" || status === "unsupported");
 
+  if (isIOS && loadFailed) return (
+    <div role="alert" className="bg-white/5 rounded-xl p-3 space-y-2 text-sm text-amber-300">
+      <p>{t("mealReminders.loadFailedMessage")}</p>
+      <button type="button" className="underline" onClick={() => setLoadRetry(value => value + 1)}>{t("mealReminders.retryLoading")}</button>
+    </div>
+  );
+
   return (
     <div className="bg-white/5 rounded-xl p-3 space-y-3">
 
@@ -352,7 +398,7 @@ export default function MealReminders() {
             <>
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
               <span className="text-emerald-400 text-xs font-medium" data-testid="ios-permission-label">
-                {t("mealReminders.statusConnected")}
+              {isIOS ? t("mealReminders.permissionAllowed") : t("mealReminders.statusConnected")}
               </span>
             </>
           ) : (
@@ -367,6 +413,22 @@ export default function MealReminders() {
       )}
 
       {/* ── Simple user-facing status ── */}
+      {isIOS && (
+        <div className="space-y-2 text-xs" role="status" data-testid="ios-reminder-schedule">
+          <p className={iosSchedule.state === "error" || iosSchedule.state === "blocked" ? "text-amber-300" : "text-white/80"}>
+            {iosSchedule.state === "scheduled" ? t("mealReminders.iosScheduleConfirmed", { count: iosSchedule.count })
+              : iosSchedule.state === "off" ? t("mealReminders.iosScheduleOff")
+              : iosSchedule.state === "blocked" ? t("mealReminders.iosScheduleBlocked")
+              : iosSchedule.state === "error" ? t("mealReminders.iosScheduleError")
+              : t("mealReminders.iosScheduleChecking")}
+          </p>
+          <button type="button" className="text-orange-300 underline" disabled={iosSchedule.state === "checking" || saving}
+            onClick={() => { void iosMealReminderScheduler.restore().catch(() => {}); }}>
+            {t("mealReminders.checkIOSReminders")}
+          </button>
+          <p className="text-white/50">{t("mealReminders.iosDeliveryNote")}</p>
+        </div>
+      )}
       {!isNative && (
         <div className="flex items-center gap-2">
           {status === "ready" && (
