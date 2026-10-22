@@ -9,6 +9,12 @@ Run focused Jest checks with isolated transpilation and perform TypeScript check
 
 **How to apply:** Enable ts-jest's isolated compilation mode for the test invocation, without changing the app's TypeScript configuration. Keep the separate release type gate. On the current Jest setup, the invocation-level override `--globals='{"ts-jest":{"isolatedModules":true}}'` works, though ts-jest warns that this configuration form is deprecated.
 
+Do not apply a focused-test heap limit to the root TypeScript release check.
+
+**Why:** A 2 GB heap exhausted on both an untouched Production-source base and its isolated candidate before either produced diagnostics. That is an execution-resource failure, not evidence of changed TypeScript debt.
+
+**How to apply:** Give the root compiler an adequate separate heap budget, such as 6 GB, and rerun only the failed type layer. Preserve valid build and safety-check results; never refresh a diagnostic baseline to address an out-of-memory failure.
+
 Do not rely on a release-check wrapper's cleanup when an external shell deadline
 can kill it during synchronous compilation. Preserve ignored generated build
 metadata before imposing such a deadline; remove only a confirmed abandoned lock.
