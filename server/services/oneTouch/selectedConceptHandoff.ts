@@ -20,6 +20,7 @@ import { scaleIngredientQuantity } from "../servingScaling";
 import { generateMealImageUnified, normalizeMealTypeToSourceType } from "../mealImageGenerator";
 import type { GLP1GlobalContext } from "../glp1/resolveGLP1GlobalContext";
 import type { DiabetesGenerationAttempt } from "../diabetesGenerationSnapshot";
+import type { DishAdaptationDirective } from "../dishAdaptation/types";
 
 type Envelope = Parameters<typeof scanGeneratedOutput>[1];
 
@@ -109,6 +110,18 @@ export async function completeSelectedConcept(input: SelectedConceptHandoff): Pr
     }),
     "first_pass",
   );
+  // A selected server-owned concept already supplies its physical form. Do
+  // not lose that promise when DAL is unavailable or decomposes it broadly.
+  // Existing authorized DAL adaptations and all safety directives remain.
+  const identityDirective: DishAdaptationDirective = {
+    identityAnchor: concept.title,
+    definingComponents: [],
+    adaptableComponents: [],
+    conflicts: [],
+    adaptationBlock: "",
+    ...directive,
+    dishForm: concept.culinaryIdentity.dishForm,
+  };
 
   // The title is classification input; concept text is culinary data, never an
   // authorization source. The generator resolves the account profile again.
@@ -118,6 +131,15 @@ export async function completeSelectedConcept(input: SelectedConceptHandoff): Pr
     `Defining ingredients: ${concept.primaryIngredients.join(", ")}.`,
     `Preparation: ${concept.preparationMethod}. Cuisine: ${concept.cuisine}.`,
     concept.description,
+    // Reuse the generator's existing fixed-intent branch, not its generic
+    // protein/preparation/form variations. This applies only to Menu handoffs.
+    "[CREATE A DISH — HARD CULINARY INTENT]",
+    "SELECTED MENU COMMITMENT: These requirements override generic variety instructions and examples.",
+    `Every candidate must remain ${concept.title}, in the ${concept.culinaryIdentity.dishForm} form, prepared using ${concept.preparationMethod}.`,
+    `Every candidate must list all advertised ingredients as structured ingredients: ${concept.primaryIngredients.join(", ")}.`,
+    "Do not omit or silently substitute advertised ingredients, change the protein/cut, preparation method, or physical form.",
+    "Vary only unpromised details such as compatible seasoning intensity, sauce proportions, and unconstrained garnishes.",
+    "All allergy, avoidance, dietary and clinical protections take precedence. If this commitment cannot be completed safely under existing authorized adaptations, return no candidates rather than force an unsafe ingredient or invent permission to substitute.",
     buildCreatorHumanFoodPrompt(input.creator, context),
     enforceBeforeGenerate(envelope, { generatorName: "menu-selected-concept" }).combined,
     buildAllergenAdaptPromptBlock(envelope.allergies, concept.title),
@@ -133,32 +155,43 @@ export async function completeSelectedConcept(input: SelectedConceptHandoff): Pr
     concept.title, undefined, undefined, diabetesAttempt,
   );
   const matches = (meal: UnifiedMeal): boolean => {
-    const identity = validateDishIdentity(concept.title, meal, directive);
+    const identity = validateDishIdentity(concept.title, meal, identityDirective);
     if (!identity.passed || identity.catastrophicDeviation) return false;
     return missingSelectedIngredientPositions(
       concept.primaryIngredients, meal.ingredients.map(ingredient => ingredient.name),
     ).length === 0;
   };
-  const identityMatchesWithDiagnostics = (meals: UnifiedMeal[], phase: "initial" | "repair") =>
-    meals.filter((meal, candidateIndex) => {
-      const identity = validateDishIdentity(concept.title, meal, directive);
+  const identityMatchesWithDiagnostics = (meals: UnifiedMeal[], phase: "initial" | "repair") => {
+    if (!meals.length) {
+      console.warn("[CreatorMenu] identity candidates unavailable", {
+        phase, reason: "empty_upstream_candidates", candidateCount: 0,
+      });
+    }
+    return meals.filter((meal, candidateIndex) => {
+      const identity = validateDishIdentity(concept.title, meal, identityDirective);
       const missingIngredientIndices = missingSelectedIngredientPositions(
         concept.primaryIngredients, meal.ingredients.map(ingredient => ingredient.name),
       );
-      const accepted = matches(meal);
-      if (!accepted && process.env.NODE_ENV !== "production") {
+      const identityFailed = !identity.passed || identity.catastrophicDeviation;
+      const ingredientsFailed = missingIngredientIndices.length > 0;
+      const accepted = !identityFailed && !ingredientsFailed;
+      if (!accepted) {
         // No recipe contents, user identifier, allergy, or health information.
-        // A literal miss is a diagnostic fact, not proof of a missing food:
-        // an equivalent ingredient might have been worded differently.
+        // An evidence miss is not proof that the food was absent: unreviewed
+        // equivalent wording must remain unresolved, not silently accepted.
         console.warn("[CreatorMenu] identity candidate rejected", {
+          reason: identityFailed && ingredientsFailed ? "combined_identity_failure"
+            : ingredientsFailed ? "ingredient_evidence_failure"
+            : identity.formMismatch ? "dish_form_failure" : "dish_identity_failure",
           phase, candidateIndex, semanticIdentityFailed: !identity.passed,
           formMismatch: identity.formMismatch,
           catastrophicDeviation: identity.catastrophicDeviation,
-          missingLiteralIngredientPositions: missingIngredientIndices,
+          missingIngredientPositions: missingIngredientIndices,
         });
       }
       return accepted;
     });
+  };
   const nutrition = (meal: UnifiedMeal) => ({
     calories: meal.calories, protein: meal.protein, carbs: meal.carbs ?? undefined,
     fat: meal.fat, starchyCarbs: meal.starchyCarbs,
@@ -203,7 +236,7 @@ export async function completeSelectedConcept(input: SelectedConceptHandoff): Pr
     return filterMealsByProtocol([meal], envelope, {
       generatorName: "menu-selected-concept",
       exemptDishNameTerms,
-      dishIdentity: { requestedDish: concept.title, directive },
+      dishIdentity: { requestedDish: concept.title, directive: identityDirective },
     }).length === 1;
   };
   const validate = (meal: UnifiedMeal) =>

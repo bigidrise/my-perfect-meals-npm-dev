@@ -26,6 +26,38 @@ import { __varietyTestables } from "../services/unifiedMealPipeline";
 
 const { validateVarietyOption } = __varietyTestables;
 
+describe("selected Menu commitment uses the existing fixed-intent prompt branch", () => {
+  const commitment = "Szechuan Beef\n[CREATE A DISH — HARD CULINARY INTENT]\n" +
+    "Every candidate must list beef sirloin, broccoli, bell peppers, snow peas, Szechuan peppercorns, soy sauce, garlic, ginger.";
+
+  it("restricts the meal prompt without changing ordinary manual variety", () => {
+    const fixed = __varietyTestables.buildVarietyPrompt(
+      commitment, "lunch", "meal", "stir-fry", "", [], "",
+    );
+    expect(fixed).toContain("preserving every fixed Create a Dish form/cut, texture, and flavor requirement");
+    expect(fixed).not.toContain("different preparations, textures, flavors, or proteins");
+    expect(fixed).not.toContain("Different preparation method, texture or format");
+    expect(fixed).toContain(commitment);
+    const manual = __varietyTestables.buildVarietyPrompt(
+      "stir-fry", "lunch", "meal", "stir-fry", "", [], "",
+    );
+    expect(manual).toContain("different preparations, textures, flavors, or proteins");
+  });
+
+  it("restricts the recipe prompt and retains ordinary manual variety separately", () => {
+    const fixed = __varietyTestables.buildRecipeVarietyPrompt(
+      commitment, "lunch", "stir-fry", "", [], "",
+    );
+    expect(fixed).toContain("preserving every fixed Create a Dish form/cut, texture, and flavor requirement");
+    expect(fixed).not.toContain("Preparation methods (baked vs pan-fried vs stovetop)");
+    expect(fixed).toContain(commitment);
+    const manual = __varietyTestables.buildRecipeVarietyPrompt(
+      "stir-fry", "lunch", "stir-fry", "", [], "",
+    );
+    expect(manual).toContain("Preparation methods (baked vs pan-fried vs stovetop)");
+  });
+});
+
 describe("Create a Dish named identity in the variety engine", () => {
   const contract = {
     requestedDish: "potato salad", definingIngredient: "Potato",
