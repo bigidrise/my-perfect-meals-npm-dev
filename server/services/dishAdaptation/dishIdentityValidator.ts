@@ -299,7 +299,13 @@ export function validateDishIdentity(
             // Suppression rule 2: ingredient-modifier suffix immediately after.
             const afterStart = idx + 1 + normKeyword.length + 1;
             const firstWordAfter = normLead.slice(afterStart).split(" ")[0];
-            const suppressedByModifier = !!(firstWordAfter && INGREDIENT_MODIFIER_SUFFIXES.has(firstWordAfter));
+            // "Chili-garlic sauce" names a sauce, not a chili/stew format.
+            // Match only this bounded compound modifier, not arbitrary words
+            // before "sauce"; a later genuine chili occurrence still fails.
+            const compoundSauceModifier = keyword === "chili" &&
+              /^garlic sauce\b/.test(normLead.slice(afterStart));
+            const suppressedByModifier = compoundSauceModifier ||
+              !!(firstWordAfter && INGREDIENT_MODIFIER_SUFFIXES.has(firstWordAfter));
             if (!suppressedByContainer && !suppressedByModifier) {
               return true; // genuine occurrence found
             }

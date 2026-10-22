@@ -40,6 +40,44 @@ const pieDirective: DishAdaptationDirective = {
 
 // ── #1198 — New escape words ─────────────────────────────────────────────────
 
+describe("compound chili sauce descriptions do not imply a stew transformation", () => {
+  const stirFry: DishAdaptationDirective = {
+    identityAnchor: "Szechuan Beef", definingComponents: ["beef"],
+    adaptableComponents: [], conflicts: [], adaptationBlock: "", dishForm: "stir-fry",
+  };
+  it.each(["chili sauce", "chili peppers", "chili-garlic sauce", "chili garlic sauce", "garlic-chili sauce"])(
+    "allows %s as a sauce/ingredient in a stir-fry", modifier => {
+      const result = validateDishIdentity("Szechuan Beef", {
+        name: "Szechuan Beef", description: `Tender beef stir-fried with ${modifier} and crisp vegetables.`,
+        ingredients: [{ name: "beef" }],
+      }, stirFry);
+      expect(result.passed).toBe(true);
+      expect(result.formMismatch).toBe(false);
+    },
+  );
+  it.each([
+    "A hearty chili with beef and garlic sauce.",
+    "Chili-garlic sauce flavors this hearty chili with beef.",
+    "A beef soup with chili-garlic sauce.",
+    "A beef stew with chili-garlic sauce.",
+    "A beef wrap with chili-garlic sauce.",
+    "A beef bowl with chili-garlic sauce.",
+  ])("still rejects a genuine foreign format: %s", description => {
+    const result = validateDishIdentity("Szechuan Beef", {
+      name: "Szechuan Beef", description, ingredients: [{ name: "beef" }],
+    }, stirFry);
+    expect(result.passed).toBe(false);
+    expect(result.formMismatch).toBe(true);
+  });
+  it("does not suppress a chili/garlic stew merely because sauce appears later", () => {
+    const result = validateDishIdentity("Szechuan Beef", {
+      name: "Szechuan Beef", description: "A hearty chili garlic stew finished with sauce.",
+      ingredients: [{ name: "beef" }],
+    }, stirFry);
+    expect(result.formMismatch).toBe(true);
+  });
+});
+
 describe("#1198 — new form-family escape words are caught in the meal name", () => {
   // deconstructed
   it("flags 'deconstructed cheesecake' as form-collapse when cheesecake was requested", () => {

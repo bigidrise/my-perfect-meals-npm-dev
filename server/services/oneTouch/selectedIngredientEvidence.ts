@@ -1,7 +1,8 @@
 /**
  * A selected Menu card promises concrete foods. Match their names against
  * structured recipe ingredients, never the title or instructions. This only
- * handles grammatical variation, not substitutions or food-safety decisions.
+ * handles grammatical variation and reviewed name equivalents, never
+ * substitutions or food-safety decisions.
  */
 const ABSTRACT_INGREDIENT =
   /^(?:spices?|seasonings?|herbs?|aromatics?|toppings?|condiments?|vegetables?|proteins?|produce|sauce|base|ingredients?|greens?)$/i;
@@ -20,6 +21,25 @@ function normalizedWords(value: string): string[] {
     });
 }
 
+/** Explicit equivalents only. Never collapse beef cuts or sauce substitutes. */
+function ingredientWords(value: string): string[] {
+  return normalizedWords(value).join(" ")
+    .replace(/\bsichuan peppercorn\b/g, "szechuan peppercorn")
+    .replace(/\bbeef top sirloin\b/g, "beef sirloin")
+    .replace(/\b(?:top sirloin beef|sirloin beef)\b/g, "beef sirloin")
+    .split(" ").filter(Boolean);
+}
+
+function qualifierText(required: string, name: string): string {
+  // A gluten/wheat absence claim does not negate soy sauce itself. Keep this
+  // exception bounded to this reviewed food/qualifier pair: e.g. dairy-free
+  // butter must not silently become proof of dairy butter. Soy-free, flavored
+  // substitutes and tamari still cannot prove the selected soy sauce.
+  return ingredientWords(required).join(" ") === "soy sauce"
+    ? name.replace(/\b(?:gluten|wheat)[-\s]+free\b/gi, "")
+    : name;
+}
+
 export function missingSelectedIngredientPositions(
   selected: readonly string[],
   recipeIngredientNames: readonly string[],
@@ -28,19 +48,22 @@ export function missingSelectedIngredientPositions(
     // An abstract selected item cannot be proved by a named spice or a phrase
     // in instructions. It must be made concrete before the card is offered.
     if (!hasConcreteSelectedIngredients([required])) return [index];
-    const terms = normalizedWords(required);
+    const terms = ingredientWords(required);
     if (!terms.length) return [index];
     const present = recipeIngredientNames.some(name => {
+      // Sirloin tip is a different cut (round), not a top-sirloin name alias.
+      if (terms.join(" ") === "beef sirloin" &&
+          /\b(?:sirloin[\s-]+tip|tip[\s-]+sirloin)\b/i.test(name)) return false;
       // A product advertised as "onion-free" or merely flavored with onion is
       // not evidence of onions. A named ingredient containing onion is.
-      if (/\b(?:free|less|flavou?red|flavou?ring|extract|seasoning)\b/i.test(name) &&
+      if (/\b(?:free|less|flavou?red|flavou?ring|extract|seasoning)\b/i.test(qualifierText(required, name)) &&
           !/\b(?:free|less|flavou?red|flavou?ring|extract|powder|seasoning)\b/i.test(required)) {
         return false;
       }
       // Plural selected foods (onions, tomatoes) describe the food itself, not
       // a powdered flavoring. Unqualified cocoa can legitimately be cocoa powder.
       if (/\bpowder\b/i.test(name) && /s$/i.test(required.trim())) return false;
-      const words = normalizedWords(name);
+      const words = ingredientWords(name);
       return words.some((word, start) =>
         word === terms[0] && terms.every((term, offset) => words[start + offset] === term));
     });
