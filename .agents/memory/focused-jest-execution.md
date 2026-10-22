@@ -15,6 +15,12 @@ Do not apply a focused-test heap limit to the root TypeScript release check.
 
 **How to apply:** Give the root compiler an adequate separate heap budget, such as 6 GB, and rerun only the failed type layer. Preserve valid build and safety-check results; never refresh a diagnostic baseline to address an out-of-memory failure.
 
+Verify a nested worktree's actual repository root and revision before editing or using Git there.
+
+**Why:** A restored nested worktree lost its `.git` link while its files and registration survived. `git -C` silently fell through to the parent repository instead of reporting the candidate revision.
+
+**How to apply:** Check `rev-parse --show-toplevel` and the expected commit, not just directory existence. Repair the existing Development worktree registration before proceeding; never substitute edits or commits in the parent checkout.
+
 Do not rely on a release-check wrapper's cleanup when an external shell deadline
 can kill it during synchronous compilation. Preserve ignored generated build
 metadata before imposing such a deadline; remove only a confirmed abandoned lock.
