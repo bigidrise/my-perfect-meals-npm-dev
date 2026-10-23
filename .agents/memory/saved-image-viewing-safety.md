@@ -32,3 +32,9 @@ An explicitly approved provisional primary does not authorize automatic failover
 **Why:** The user accepted the controlled comparison and selected its provisional primary while explicitly keeping automatic alternative switching unauthorized.
 
 **How to apply:** Obtain separate approval for failover, even when the alternative has already passed a paid comparison. Source preparation, paid execution, runtime activation, monitoring/alerts, native release and Production release remain distinct approvals.
+
+Controlled Development activation is not authorization to generate a new live photograph.
+
+**Why:** The user explicitly approved Development Flare activation while forbidding paid generation, saved-meal/storage modifications, recovery, Production changes, publishing, native builds, automatic failover and monitoring scheduler activation.
+
+**How to apply:** An enabled Development image gate does not authorize an agent-initiated paid request. Stop after activation verification and obtain separate approval before generating a new live meal photograph.
