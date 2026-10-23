@@ -2,7 +2,7 @@ import crypto from "crypto";
 
 // These tests must never initialize a real database, generator, or storage client.
 jest.mock("../db", () => ({
-  db: { select: jest.fn(), update: jest.fn() },
+  db: { select: jest.fn(), update: jest.fn(), insert: jest.fn(), delete: jest.fn() },
 }));
 jest.mock("../services/mealImageGenerator", () => ({
   invalidateMealImageCache: jest.fn(async () => undefined),
@@ -11,6 +11,12 @@ jest.mock("../services/mealImageGenerator", () => ({
 jest.mock("../services/imageLifecycle", () => ({
   processMealImageForSave: jest.fn(),
 }));
+jest.mock("../services/savedImageVerification", () => ({
+  checkSavedImageDelivery: jest.fn(),
+  verifyRecoveryPhotograph: jest.fn(),
+}));
+jest.mock("../middleware/requireAuth", () => ({ requireAuth: jest.fn() }));
+jest.mock("../middleware/rateLimit", () => ({ createApiRateLimit: () => jest.fn() }));
 
 import { db } from "../db";
 import { savedMeals } from "@shared/schema";
@@ -19,10 +25,16 @@ import { mealImageRecoveryJobs } from "../db/schema/mealImageRecoveryJobs";
 import {
   getMealImageRecoveryStatus,
   resumePendingMealImageRecoveries,
+  runControlledMealImageRecoveryJob,
+  queueMealImageRecovery,
+  CONTROLLED_MEAL_IMAGE_REPAIR,
 } from "../services/mealImageRecovery";
-import { generateMealImageUnified } from "../services/mealImageGenerator";
+import { generateMealImageUnified, invalidateMealImageCache } from "../services/mealImageGenerator";
 import { processMealImageForSave } from "../services/imageLifecycle";
 import { isFirstPartyPermanentImageUrl } from "@shared/mediaImageUrls";
+import { checkSavedImageDelivery, verifyRecoveryPhotograph } from "../services/savedImageVerification";
+import { savedMealImageDelivery } from "../routes/savedMealImageDelivery";
+import { mealImagesRouter } from "../routes/mealImages";
 
 const originalUrl = "/public-objects/replit-objstore-test/meal-images/original.jpg";
 const replacementUrl = "/public-objects/replit-objstore-test/meal-images/recovered.jpg";
@@ -53,7 +65,12 @@ function project(record: TestRecord, selection?: TestRecord) {
 }
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  jest.resetAllMocks();
+  (db.insert as jest.Mock).mockImplementation(() => { throw new Error("Unexpected database insert"); });
+  (db.delete as jest.Mock).mockImplementation(() => { throw new Error("Unexpected database delete"); });
+  jest.mocked(checkSavedImageDelivery).mockResolvedValue({ status: "unavailable", reason: "missing" });
+  jest.mocked(verifyRecoveryPhotograph).mockResolvedValue(true);
+  jest.mocked(invalidateMealImageCache).mockResolvedValue(undefined);
   meal = structuredClone(originalMeal);
   asset = { id: "original-asset", thumbnailUrl: originalUrl, displayUrl: originalUrl };
   job = {
@@ -117,7 +134,7 @@ beforeEach(() => {
 });
 
 async function expectFailedRecoveryPreservesMeal() {
-  await resumePendingMealImageRecoveries();
+  await runControlledMealImageRecoveryJob(job.id, CONTROLLED_MEAL_IMAGE_REPAIR);
   expect(meal).toEqual(originalMeal);
   expect(asset).toEqual({ id: "original-asset", thumbnailUrl: originalUrl, displayUrl: originalUrl });
   expect(writes.some(write => write.table === savedMeals || write.table === mediaAssets)).toBe(false);
@@ -132,7 +149,7 @@ async function expectFailedRecoveryPreservesMeal() {
 
 describe("saved photograph recovery results", () => {
   it("replaces the reference only after a successful photograph is persisted", async () => {
-    await resumePendingMealImageRecoveries();
+    await runControlledMealImageRecoveryJob(job.id, CONTROLLED_MEAL_IMAGE_REPAIR);
     expect(processMealImageForSave).toHaveBeenCalledWith(replacementUrl, meal.title);
     expect(meal).toEqual({
       ...originalMeal,
@@ -200,7 +217,7 @@ describe("saved photograph recovery results", () => {
         imageUrl: url, mediaAssetId: "replacement-asset", mediaAsset: null,
         imagePending: false, ingestionAttempted: false,
       });
-      await resumePendingMealImageRecoveries();
+      await runControlledMealImageRecoveryJob(job.id, CONTROLLED_MEAL_IMAGE_REPAIR);
       expect(job).toMatchObject({ status: "ready", resultImageUrl: url });
       expect(meal.mealData.imageUrl).toBe(url);
     },
@@ -210,5 +227,121 @@ describe("saved photograph recovery results", () => {
     expect(isFirstPartyPermanentImageUrl("/images/fallback/pasta.svg")).toBe(true);
     expect(isFirstPartyPermanentImageUrl("/images/fallback/salad.svg")).toBe(true);
     expect(isFirstPartyPermanentImageUrl("/assets/intentional-illustration.svg")).toBe(true);
+  });
+});
+
+describe("viewing and startup never authorize recovery", () => {
+  function expectNoEffects() {
+    expect(db.update).not.toHaveBeenCalled();
+    expect(db.insert).not.toHaveBeenCalled();
+    expect(db.delete).not.toHaveBeenCalled();
+    expect(generateMealImageUnified).not.toHaveBeenCalled();
+    expect(invalidateMealImageCache).not.toHaveBeenCalled();
+    expect(processMealImageForSave).not.toHaveBeenCalled();
+    expect(meal).toEqual(originalMeal);
+  }
+
+  it.each(["pending", "processing"])("leaves old %s jobs untouched during startup", async status => {
+    job.status = status;
+    await resumePendingMealImageRecoveries();
+    expect(db.select).not.toHaveBeenCalled();
+    expect(job.status).toBe(status);
+    expectNoEffects();
+  });
+
+  it("refuses queue and worker calls without server-only approval, before database access", async () => {
+    expect(await queueMealImageRecovery({
+      userId: job.userId, savedMealId: meal.id, mediaAssetId: asset.id, imageUrl: originalUrl,
+    })).toMatchObject({ accepted: false });
+    await runControlledMealImageRecoveryJob(job.id);
+    await runControlledMealImageRecoveryJob(job.id, "controlled-meal-image-repair" as any);
+    expect(db.select).not.toHaveBeenCalled();
+    expectNoEffects();
+  });
+
+  it("keeps the HTTP recovery route fail-closed even with forged approval", async () => {
+    const route = mealImagesRouter.stack.find(layer => layer.route?.path === "/meal-images/recover")!.route!;
+    const response = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+    await route.stack[route.stack.length - 1].handle({
+      body: { approved: true, approval: "controlled-meal-image-repair", imageUrl: originalUrl },
+      authUser: { id: job.userId },
+    } as any, response as any, jest.fn());
+    expect(response.status).toHaveBeenCalledWith(403);
+    expect(response.json).toHaveBeenCalledWith(expect.objectContaining({ accepted: false }));
+    expectNoEffects();
+  });
+
+  it.each([
+    { status: "unavailable", reason: "missing" },
+    { status: "retry", imageUrl: originalUrl },
+    { status: "recovered", imageUrl: replacementUrl },
+  ] as const)("delivery response $status never writes, queues, invalidates or generates", async decision => {
+    jest.mocked(checkSavedImageDelivery).mockResolvedValue(decision);
+    const response = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+    await savedMealImageDelivery({
+      body: { savedMealId: meal.id, mediaAssetId: asset.id, imageUrl: originalUrl },
+      authUser: { id: job.userId },
+    } as any, response as any);
+    expect(response.json).toHaveBeenCalledWith(expect.objectContaining(decision));
+    expectNoEffects();
+  });
+
+  it("failed diagnostic storage checks remain read-only", async () => {
+    jest.mocked(checkSavedImageDelivery).mockRejectedValue(new Error("Synthetic storage unavailable"));
+    const response = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+    await savedMealImageDelivery({
+      body: { savedMealId: meal.id, mediaAssetId: asset.id, imageUrl: originalUrl },
+      authUser: { id: job.userId },
+    } as any, response as any);
+    expect(response.status).toHaveBeenCalledWith(503);
+    expectNoEffects();
+  });
+
+  it("rejects a stale or foreign media relationship before probing", async () => {
+    const response = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+    await savedMealImageDelivery({
+      body: { savedMealId: meal.id, mediaAssetId: "foreign-asset", imageUrl: originalUrl },
+      authUser: { id: job.userId },
+    } as any, response as any);
+    expect(response.status).toHaveBeenCalledWith(404);
+    expect(checkSavedImageDelivery).not.toHaveBeenCalled();
+    expectNoEffects();
+  });
+
+  it.each([
+    { status: "retry", imageUrl: originalUrl },
+    { status: "recovered", imageUrl: replacementUrl },
+    { status: "unavailable", reason: "unsupported" },
+  ] as const)("requires confirmed absence before a controlled queue operation: $status", async decision => {
+    jest.mocked(checkSavedImageDelivery).mockResolvedValue(decision);
+    expect(await queueMealImageRecovery({
+      userId: job.userId, savedMealId: meal.id, mediaAssetId: asset.id, imageUrl: originalUrl,
+    }, CONTROLLED_MEAL_IMAGE_REPAIR)).toMatchObject({ accepted: false });
+    expectNoEffects();
+  });
+
+  it("does not invalidate or generate when the worker cannot confirm original absence", async () => {
+    jest.mocked(checkSavedImageDelivery).mockResolvedValue({ status: "retry", imageUrl: originalUrl });
+    await expectFailedRecoveryPreservesMeal();
+    expect(generateMealImageUnified).not.toHaveBeenCalled();
+    expect(invalidateMealImageCache).not.toHaveBeenCalled();
+  });
+
+  it("rejects a replacement that fails independent byte verification before persistence", async () => {
+    jest.mocked(verifyRecoveryPhotograph).mockResolvedValue(false);
+    await expectFailedRecoveryPreservesMeal();
+    expect(processMealImageForSave).not.toHaveBeenCalled();
+  });
+
+  it("rejects a persisted replacement that fails independent byte verification", async () => {
+    jest.mocked(verifyRecoveryPhotograph).mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    await expectFailedRecoveryPreservesMeal();
+  });
+
+  it("preserves the original when it becomes accessible during controlled generation", async () => {
+    jest.mocked(checkSavedImageDelivery)
+      .mockResolvedValueOnce({ status: "unavailable", reason: "missing" })
+      .mockResolvedValueOnce({ status: "retry", imageUrl: originalUrl });
+    await expectFailedRecoveryPreservesMeal();
   });
 });

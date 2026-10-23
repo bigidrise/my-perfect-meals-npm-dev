@@ -5,31 +5,20 @@ import { Router } from 'express';
 import { requireAuth } from '../middleware/requireAuth';
 import { createApiRateLimit } from '../middleware/rateLimit';
 import { generateMealImage, generateMealImages, getCachedImage, getImageCacheStats } from '../services/mealImageGenerator';
-import { getMealImageRecoveryStatus, queueMealImageRecovery } from '../services/mealImageRecovery';
+import { getMealImageRecoveryStatus } from '../services/mealImageRecovery';
 
 const imageRateLimit = createApiRateLimit();
 
 export const mealImagesRouter = Router();
 
-// A browser can prove that a permanent Object Storage URL is no longer
-// deliverable. Queue one replacement job and let the image slot poll it once;
-// this never silently falls back to a photograph of another dish.
-mealImagesRouter.post('/meal-images/recover', requireAuth, imageRateLimit, async (req, res) => {
-  try {
-    const result = await queueMealImageRecovery({
-      userId: req.authUser!.id,
-      imageUrl: req.body?.imageUrl,
-      mealName: req.body?.mealName,
-      ingredients: req.body?.ingredients,
-      sourceType: req.body?.sourceType,
-      mediaAssetId: req.body?.mediaAssetId,
-      savedMealId: req.body?.savedMealId,
-    });
-    return res.status(result.accepted ? 202 : 400).json(result);
-  } catch (error: any) {
-    console.error("[IMG-RECOVERY] Could not queue recovery:", error);
-    return res.status(500).json({ accepted: false, reason: "Could not queue image recovery" });
-  }
+// Keep the route contract, but fail closed even for stale clients or forged
+// approval fields. Future controlled repair must be a server-owned workflow.
+mealImagesRouter.post('/meal-images/recover', requireAuth, (_req, res) => {
+  return res.status(403).json({
+    accepted: false,
+    reason: "Saved image recovery requires separately approved controlled repair",
+    code: "CONTROLLED_IMAGE_REPAIR_REQUIRED",
+  });
 });
 
 mealImagesRouter.get('/meal-images/recover/:recoveryId', requireAuth, async (req, res) => {

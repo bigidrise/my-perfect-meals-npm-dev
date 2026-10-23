@@ -649,76 +649,9 @@ export default function weekBoardRoutes(app: Express) {
       return res.json({ status: "retry", imageUrl: authority.canonicalUrl });
     }
 
-    const { finalizeMealImage } = await import("../services/mealFinalizer");
-    const result = await finalizeMealImage({
-      meal: {
-        ...target.meal,
-        name: target.meal.name || target.meal.title || "Meal",
-      },
-      sourceType: slot === "snacks" ? "snack" : "meal",
-    });
-    if (!result.imageUrl || !result.mediaAssetId) {
-      console.log(JSON.stringify({ event: "board_image_recovery", outcome: "failed", mealId: parsed.data.mealId }));
-      return res.json({ status: "unavailable" });
-    }
-
-    // DEV and Production share Board rows, but not writable image buckets.
-    // A local display repair must not replace Production's canonical reference
-    // with a DEV-only object. The generator cache retains this local variant.
-    if (authority.status === "missing" && authority.reason === "inactive") {
-      console.log(JSON.stringify({
-        event: "board_image_recovery",
-        outcome: "recovered_local_display",
-        mealId: parsed.data.mealId,
-      }));
-      return res.json({
-        status: "recovered",
-        imageUrl: result.imageUrl,
-        mediaAssetId: result.mediaAssetId,
-      });
-    }
-
-    const nextBoard = structuredClone(target.row.boardJSON as any);
-    const nextMeals = nextBoard.days[parsed.data.dateISO][slot];
-    const nextIndex = nextMeals.findIndex((meal: any) => String(meal?.id) === parsed.data.mealId);
-    if (nextIndex < 0 ||
-        nextMeals[nextIndex]?.imageUrl !== parsed.data.imageUrl ||
-        (target.meal.mediaAssetId && nextMeals[nextIndex]?.mediaAssetId !== target.meal.mediaAssetId)) {
-      return res.status(409).json({ error: "Board meal changed while recovery was running" });
-    }
-    nextMeals[nextIndex] = {
-      ...nextMeals[nextIndex],
-      imageUrl: result.imageUrl,
-      mediaAssetId: result.mediaAssetId,
-      imagePending: undefined,
-    };
-    nextBoard.meta = { ...nextBoard.meta, lastUpdatedAt: new Date().toISOString() };
-
-    const updated = await db.update(weekBoards).set({
-      boardJSON: nextBoard,
-      updatedAt: new Date(),
-    }).where(and(
-      eq(weekBoards.userId, target.row.userId),
-      eq(weekBoards.weekStartISO, target.row.weekStartISO),
-      eq(weekBoards.builderType, target.row.builderType),
-      sql`${weekBoards.boardJSON} = ${JSON.stringify(target.row.boardJSON)}::jsonb`,
-    )).returning({ userId: weekBoards.userId });
-    if (updated.length !== 1) {
-      return res.status(409).json({ error: "Board changed while image recovery was running" });
-    }
-
-    console.log(JSON.stringify({
-      event: "board_image_recovery",
-      outcome: "recovered",
-      mealId: parsed.data.mealId,
-      mediaAssetId: result.mediaAssetId,
-      legacyRelationshipAttached: !target.meal.mediaAssetId && Boolean(mediaAssetId),
-    }));
-    return res.json({
-      status: "recovered",
-      imageUrl: result.imageUrl,
-      mediaAssetId: result.mediaAssetId,
-    });
+    // A view-triggered image error is never authorization to finalize/generate
+    // a meal image or write the shared Board. Leave all references untouched.
+    return res.json({ status: "unavailable", reason: authority.reason });
   });
 
   app.get("/api/week-board", (req: Request, res: Response) => {
