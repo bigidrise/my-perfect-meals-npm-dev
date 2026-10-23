@@ -80,3 +80,6 @@ docs/localization/screenshots/
 client/.demo-studio-runtime/
 test-results/
 .agents/outputs/
+
+# Generated comparison documents/results are not application assets.
+/generated-artifacts/

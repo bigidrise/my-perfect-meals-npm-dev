@@ -1,0 +1,207 @@
+{
+  "version": 1,
+  "provenance": {
+    "builder": "server/services/mealImageGenerator.ts::__testables.buildMealImagePrompt",
+    "builderSourceSha256": "ebefaf577d00762494568c5df0bf3c817a975ff9f472ed12bc08439f14765dc9",
+    "validator": "server/services/mealImageValidator.ts::buildValidationPrompt",
+    "validatorSourceSha256": "8f2d9e5d5f0cdb7ed92f30ed84cb23e2eb5636b0f45661719718381cef6e9241",
+    "note": "Exact existing builder output: methods, quantities and servings are retained as fixture evidence; methods/servings are not new builder parameters."
+  },
+  "models": [
+    "gpt-image-2.5-flare-2026-09-08",
+    "gpt-image-2.5-sunburst-2026-09-08"
+  ],
+  "settings": {
+    "size": "1024x1024",
+    "quality": "low",
+    "n": 1,
+    "output_format": "png",
+    "background": "opaque",
+    "moderation": "auto",
+    "stream": false
+  },
+  "recipes": [
+    {
+      "recipe": {
+        "id": "chia-parfait",
+        "name": "Berry Coconut Chia Parfait",
+        "sourceType": "snack",
+        "servings": 1,
+        "ingredients": [
+          "chia seeds 20 g",
+          "coconut milk 120 g",
+          "blueberries 40 g",
+          "strawberries 40 g",
+          "coconut flakes 5 g"
+        ],
+        "method": "Chill the chia and coconut milk mixture for four hours; layer with the fruit and coconut flakes.",
+        "visibleRequirement": "A layered parfait. No granola, nuts, or yogurt."
+      },
+      "normalizedName": "Berry Coconut Chia Parfait",
+      "prompt": "A photorealistic small portion snack, finished and ready to eat, on a small plate or board.\nDISPLAY NAME: Berry Coconut Chia Parfait\n\n━━ CONTRACT 1: DISH IDENTITY (MANDATORY — cannot be overridden by ingredients) ━━\nThis image MUST show: a smooth creamy dessert in a glass or small bowl, garnished on top. NOT a cake, NOT a cookie, NOT a plate of solid food.\nEven if the filling or toppings differ from a traditional version, this structural form must remain recognizable.\n\n━━ CONTRACT 2: INGREDIENT AUTHORIZATION ━━\n\nINGREDIENT AUTHORIZATION — FILLING & COMPOSITION ONLY:\nREQUIRED VISIBLE INGREDIENTS: chia seeds 20 g, coconut milk 120 g, blueberries 40 g, strawberries 40 g, coconut flakes 5 g\nUNAUTHORIZED INGREDIENTS: Any ingredient not in the required list above. Do NOT add ingredients traditionally associated with \"Berry Coconut Chia Parfait\" (or its cuisine) unless they appear in the required list. The ingredient list above is the only authority on what components appear inside or on this dish. The dish's structural form is defined by CONTRACT 1 (DISH IDENTITY) and cannot be overridden by this ingredient list.\n\n━━ CONTRACT 3: PRESENTATION ━━\nPresentation: served in a glass or bowl, garnished. creamy set dessert, finished and plated.\nTHIS IS A SNACK. Show a small, finished portion. Do NOT show a full dinner plate.\nCRITICAL: Show ONLY the finished, ready-to-eat item described above — NOT raw ingredients, NOT uncooked components, NOT ingredient bowls.\nABSOLUTE RULE: NO HUMANS. NO PEOPLE. NO PERSONS. NO HANDS. NO ARMS. NO BODIES. NO FACES. NO MODELS. Food only.\n\nStyle: cinematic, high-detail, natural lighting, realistic food photography.\nCamera: 3/4 angle or overhead depending on dish type.\nBackground: clean, minimal, neutral surface, no clutter, no text, no logos, no humans.",
+      "promptSha256": "679dba9d3a53ad5c83213c3f1ff78fd790c5c282bd4a39f64cd0d95738555680",
+      "verificationPrompt": "You are a recipe-fidelity inspector for food photography.\n\nRECIPE CONTRACT for \"Berry Coconut Chia Parfait\":\n- chia seeds 20 g\n- coconut milk 120 g\n- blueberries 40 g\n- strawberries 40 g\n- coconut flakes 5 g\n\nThe recipe ingredient list above is the ONLY source of truth. It outranks the dish name, cuisine label, cultural convention, and your prior knowledge of how this dish is traditionally made. Do NOT assume traditional ingredients belong in this dish.\n\nQUESTION (answer this and nothing else): Does this image FAIL on any of the following checks?\n\nCHECK A — Wrong ingredient: Does the image contain a clearly visible MAJOR ingredient that is NOT in the recipe contract above?\nCHECK B — Wrong dish category: Does the image depict a completely different dish category than \"Berry Coconut Chia Parfait\"? For example: a salad when the recipe is a cheesecake, a soup when the recipe is a sandwich, a green bowl of vegetables when the recipe is a dessert. Minor presentation differences are acceptable — only flag this if the dish category is fundamentally different.\nCHECK C — Wrong dish form: Even if the ingredients are approximately correct, is the food shown in the wrong structural form?\nRequired form: a smooth creamy dessert in a glass or small bowl, garnished on top. NOT a cake, NOT a cookie, NOT a plate of solid food.\nFor example: correct taco ingredients assembled as a salad bowl = FAIL. Three recognizable assembled tacos with tortilla shells and those ingredients = PASS even with minor variations.\nFlag Check C ONLY if the dish form is fundamentally and unmistakably wrong — not for minor plating or presentation differences.\n\nRespond with exactly one line:\nPASS\nor\nFAIL: <specific reason — e.g. \"hard-boiled egg visible\" or \"image shows a green salad, not assembled tacos\" or \"pasta served as a stir-fry bowl\">\n\nOnly report MAJOR, clearly identifiable violations. For all three checks, only fail if the violation is unmistakably present. If you are not confident a violation exists, answer PASS.",
+      "verificationSha256": "977191e445ed10dfd3bf412b6af7161206ea1947fcf850290c70b5b729e823a9"
+    },
+    {
+      "recipe": {
+        "id": "oat-brownies",
+        "name": "Cocoa Oat Brownies",
+        "sourceType": "dessert",
+        "servings": 6,
+        "ingredients": [
+          "oat flour 50 g",
+          "cocoa powder 15 g",
+          "banana 100 g",
+          "milk 80 g",
+          "egg 50 g",
+          "baking powder 3 g"
+        ],
+        "method": "Mix; bake in a small lined pan at 175 degrees Celsius until set; cool and cut into six squares.",
+        "visibleRequirement": "Brownie squares, not cookies. No frosting or chocolate chips."
+      },
+      "normalizedName": "Cocoa Oat Brownies",
+      "prompt": "A photorealistic plated dessert, finished and ready to eat.\nDISPLAY NAME: Cocoa Oat Brownies\n\n━━ CONTRACT 1: DISH IDENTITY (MANDATORY — cannot be overridden by ingredients) ━━\nThis image MUST show: cut square bars arranged on a plate or board — NOT a cookie, NOT a slice of cake, NOT a muffin.\nEven if the filling or toppings differ from a traditional version, this structural form must remain recognizable.\n\n━━ CONTRACT 2: INGREDIENT AUTHORIZATION ━━\n\nINGREDIENT AUTHORIZATION — FILLING & COMPOSITION ONLY:\nREQUIRED VISIBLE INGREDIENTS: oat flour 50 g, cocoa powder 15 g, banana 100 g, milk 80 g, egg 50 g, baking powder 3 g\nUNAUTHORIZED INGREDIENTS: Any ingredient not in the required list above. Do NOT add ingredients traditionally associated with \"Cocoa Oat Brownies\" (or its cuisine) unless they appear in the required list. The ingredient list above is the only authority on what components appear inside or on this dish. The dish's structural form is defined by CONTRACT 1 (DISH IDENTITY) and cannot be overridden by this ingredient list.\n\n━━ CONTRACT 3: PRESENTATION ━━\nPresentation: cut squares arranged on a plate. fudgy baked bars, finished dessert.\nTHIS IS A DESSERT. Show only the finished dessert, plated. Do NOT show savory food.\nCRITICAL: Show ONLY the finished, ready-to-eat item described above — NOT raw ingredients, NOT uncooked components, NOT ingredient bowls.\nABSOLUTE RULE: NO HUMANS. NO PEOPLE. NO PERSONS. NO HANDS. NO ARMS. NO BODIES. NO FACES. NO MODELS. Food only.\n\nStyle: cinematic, high-detail, natural lighting, realistic food photography.\nCamera: 3/4 angle or overhead depending on dish type.\nBackground: clean, minimal, neutral surface, no clutter, no text, no logos, no humans.",
+      "promptSha256": "4a7313dbef490eb04851d086918efbce736f491d74dbc218a73811c39458261c",
+      "verificationPrompt": "You are a recipe-fidelity inspector for food photography.\n\nRECIPE CONTRACT for \"Cocoa Oat Brownies\":\n- oat flour 50 g\n- cocoa powder 15 g\n- banana 100 g\n- milk 80 g\n- egg 50 g\n- baking powder 3 g\n\nThe recipe ingredient list above is the ONLY source of truth. It outranks the dish name, cuisine label, cultural convention, and your prior knowledge of how this dish is traditionally made. Do NOT assume traditional ingredients belong in this dish.\n\nQUESTION (answer this and nothing else): Does this image FAIL on any of the following checks?\n\nCHECK A — Wrong ingredient: Does the image contain a clearly visible MAJOR ingredient that is NOT in the recipe contract above?\nCHECK B — Wrong dish category: Does the image depict a completely different dish category than \"Cocoa Oat Brownies\"? For example: a salad when the recipe is a cheesecake, a soup when the recipe is a sandwich, a green bowl of vegetables when the recipe is a dessert. Minor presentation differences are acceptable — only flag this if the dish category is fundamentally different.\nCHECK C — Wrong dish form: Even if the ingredients are approximately correct, is the food shown in the wrong structural form?\nRequired form: cut square bars arranged on a plate or board — NOT a cookie, NOT a slice of cake, NOT a muffin.\nFor example: correct taco ingredients assembled as a salad bowl = FAIL. Three recognizable assembled tacos with tortilla shells and those ingredients = PASS even with minor variations.\nFlag Check C ONLY if the dish form is fundamentally and unmistakably wrong — not for minor plating or presentation differences.\n\nRespond with exactly one line:\nPASS\nor\nFAIL: <specific reason — e.g. \"hard-boiled egg visible\" or \"image shows a green salad, not assembled tacos\" or \"pasta served as a stir-fry bowl\">\n\nOnly report MAJOR, clearly identifiable violations. For all three checks, only fail if the violation is unmistakably present. If you are not confident a violation exists, answer PASS.",
+      "verificationSha256": "4dc8a20cc89af557258f6553dbe92488877247875f1e711ff95f911447e67b7a"
+    },
+    {
+      "recipe": {
+        "id": "berry-smoothie",
+        "name": "Spinach Berry Smoothie",
+        "sourceType": "beverage",
+        "servings": 1,
+        "ingredients": [
+          "yogurt 100 g",
+          "blueberries 80 g",
+          "banana 60 g",
+          "spinach 20 g",
+          "water 100 g"
+        ],
+        "method": "Blend until smooth and serve in a glass.",
+        "visibleRequirement": "A drink in a glass, not a salad or smoothie bowl."
+      },
+      "normalizedName": "Spinach Berry Smoothie",
+      "prompt": "A photorealistic tall glass containing a finished drink — liquid visible, condensation on the glass if cold, steam if hot. No food on the plate.\nDISPLAY NAME: Spinach Berry Smoothie\n\n━━ CONTRACT 1: DISH IDENTITY (MANDATORY — cannot be overridden by ingredients) ━━\nThis image MUST show: a drink in a tall glass or cup — NOT solid food on a plate, NOT a bowl of food.\nEven if the filling or toppings differ from a traditional version, this structural form must remain recognizable.\n\n━━ CONTRACT 2: INGREDIENT AUTHORIZATION ━━\n\nINGREDIENT AUTHORIZATION — FILLING & COMPOSITION ONLY:\nREQUIRED VISIBLE INGREDIENTS: yogurt 100 g, blueberries 80 g, banana 60 g, spinach 20 g, water 100 g\nUNAUTHORIZED INGREDIENTS: Any ingredient not in the required list above. Do NOT add ingredients traditionally associated with \"Spinach Berry Smoothie\" (or its cuisine) unless they appear in the required list. The ingredient list above is the only authority on what components appear inside or on this dish. The dish's structural form is defined by CONTRACT 1 (DISH IDENTITY) and cannot be overridden by this ingredient list.\n\n━━ CONTRACT 3: PRESENTATION ━━\nPresentation: in a tall glass. blended or chilled beverage with vibrant color, finished and ready to drink.\nTHIS IS A BEVERAGE. Do NOT show any solid food. Do NOT show a plate with food. Show ONLY the drink in a glass or cup.\nCRITICAL: Show ONLY the finished, ready-to-eat item described above — NOT raw ingredients, NOT uncooked components, NOT ingredient bowls.\nABSOLUTE RULE: NO HUMANS. NO PEOPLE. NO PERSONS. NO HANDS. NO ARMS. NO BODIES. NO FACES. NO MODELS. Food only.\n\nStyle: cinematic, high-detail, natural lighting, realistic food photography.\nCamera: 3/4 angle or overhead depending on dish type.\nBackground: clean, minimal, neutral surface, no clutter, no text, no logos, no humans.",
+      "promptSha256": "5f2febafde55d2407dfc3ff79349e56a953b79614cc19471d541051e2996ffc2",
+      "verificationPrompt": "You are a recipe-fidelity inspector for food photography.\n\nRECIPE CONTRACT for \"Spinach Berry Smoothie\":\n- yogurt 100 g\n- blueberries 80 g\n- banana 60 g\n- spinach 20 g\n- water 100 g\n\nThe recipe ingredient list above is the ONLY source of truth. It outranks the dish name, cuisine label, cultural convention, and your prior knowledge of how this dish is traditionally made. Do NOT assume traditional ingredients belong in this dish.\n\nQUESTION (answer this and nothing else): Does this image FAIL on any of the following checks?\n\nCHECK A — Wrong ingredient: Does the image contain a clearly visible MAJOR ingredient that is NOT in the recipe contract above?\nCHECK B — Wrong dish category: Does the image depict a completely different dish category than \"Spinach Berry Smoothie\"? For example: a salad when the recipe is a cheesecake, a soup when the recipe is a sandwich, a green bowl of vegetables when the recipe is a dessert. Minor presentation differences are acceptable — only flag this if the dish category is fundamentally different.\nCHECK C — Wrong dish form: Even if the ingredients are approximately correct, is the food shown in the wrong structural form?\nRequired form: a drink in a tall glass or cup — NOT solid food on a plate, NOT a bowl of food.\nFor example: correct taco ingredients assembled as a salad bowl = FAIL. Three recognizable assembled tacos with tortilla shells and those ingredients = PASS even with minor variations.\nFlag Check C ONLY if the dish form is fundamentally and unmistakably wrong — not for minor plating or presentation differences.\n\nRespond with exactly one line:\nPASS\nor\nFAIL: <specific reason — e.g. \"hard-boiled egg visible\" or \"image shows a green salad, not assembled tacos\" or \"pasta served as a stir-fry bowl\">\n\nOnly report MAJOR, clearly identifiable violations. For all three checks, only fail if the violation is unmistakably present. If you are not confident a violation exists, answer PASS.",
+      "verificationSha256": "d0c000b0caa3292fd9c4f9395f788ab8600b6b4e0daff2bcee9768fb53a6e41c"
+    },
+    {
+      "recipe": {
+        "id": "chicken-quinoa",
+        "name": "Lemon Chicken Quinoa Plate",
+        "sourceType": "meal",
+        "servings": 2,
+        "ingredients": [
+          "chicken breast 240 g",
+          "dry quinoa 80 g",
+          "broccoli 200 g",
+          "olive oil 10 g",
+          "lemon juice 20 g",
+          "cooking water as needed"
+        ],
+        "method": "Cook the quinoa in water; roast the chicken and broccoli using the oil and lemon juice; plate.",
+        "visibleRequirement": "Cooked chicken, quinoa, and broccoli. No rice or potatoes."
+      },
+      "normalizedName": "Lemon Chicken Quinoa Plate",
+      "prompt": "A photorealistic finished meal, plated and ready to eat.\nDISPLAY NAME: Lemon Chicken Quinoa Plate\n\n━━ CONTRACT 1: DISH IDENTITY (MANDATORY — cannot be overridden by ingredients) ━━\nThis image MUST show: a finished cooked meal arranged on a plate — the components are plated and ready to eat.\nEven if the filling or toppings differ from a traditional version, this structural form must remain recognizable.\n\n━━ CONTRACT 2: INGREDIENT AUTHORIZATION ━━\n\nINGREDIENT AUTHORIZATION — FILLING & COMPOSITION ONLY:\nREQUIRED VISIBLE INGREDIENTS: chicken breast 240 g, dry quinoa 80 g, broccoli 200 g, olive oil 10 g, lemon juice 20 g, cooking water as needed\nUNAUTHORIZED INGREDIENTS: Any ingredient not in the required list above. Do NOT add ingredients traditionally associated with \"Lemon Chicken Quinoa Plate\" (or its cuisine) unless they appear in the required list. The ingredient list above is the only authority on what components appear inside or on this dish. The dish's structural form is defined by CONTRACT 1 (DISH IDENTITY) and cannot be overridden by this ingredient list.\n\n━━ CONTRACT 3: PRESENTATION ━━\nPresentation: served on a plate. balanced, composed cooked meal, finished and ready to eat.\nTHIS IS A COOKED MEAL. Do NOT show a glass of liquid as the primary subject. Show a plated hot or warm dish.\nCRITICAL: Show ONLY the finished, ready-to-eat item described above — NOT raw ingredients, NOT uncooked components, NOT ingredient bowls.\nABSOLUTE RULE: NO HUMANS. NO PEOPLE. NO PERSONS. NO HANDS. NO ARMS. NO BODIES. NO FACES. NO MODELS. Food only.\n\nStyle: cinematic, high-detail, natural lighting, realistic food photography.\nCamera: 3/4 angle or overhead depending on dish type.\nBackground: clean, minimal, neutral surface, no clutter, no text, no logos, no humans.",
+      "promptSha256": "6e5f8633705c34af24caa3d3e11083c0280711c97cdb40cfab2ca40afa2753b8",
+      "verificationPrompt": "You are a recipe-fidelity inspector for food photography.\n\nRECIPE CONTRACT for \"Lemon Chicken Quinoa Plate\":\n- chicken breast 240 g\n- dry quinoa 80 g\n- broccoli 200 g\n- olive oil 10 g\n- lemon juice 20 g\n- cooking water as needed\n\nThe recipe ingredient list above is the ONLY source of truth. It outranks the dish name, cuisine label, cultural convention, and your prior knowledge of how this dish is traditionally made. Do NOT assume traditional ingredients belong in this dish.\n\nQUESTION (answer this and nothing else): Does this image FAIL on any of the following checks?\n\nCHECK A — Wrong ingredient: Does the image contain a clearly visible MAJOR ingredient that is NOT in the recipe contract above?\nCHECK B — Wrong dish category: Does the image depict a completely different dish category than \"Lemon Chicken Quinoa Plate\"? For example: a salad when the recipe is a cheesecake, a soup when the recipe is a sandwich, a green bowl of vegetables when the recipe is a dessert. Minor presentation differences are acceptable — only flag this if the dish category is fundamentally different.\nCHECK C — Wrong dish form: Even if the ingredients are approximately correct, is the food shown in the wrong structural form?\nRequired form: a finished cooked meal arranged on a plate — the components are plated and ready to eat.\nFor example: correct taco ingredients assembled as a salad bowl = FAIL. Three recognizable assembled tacos with tortilla shells and those ingredients = PASS even with minor variations.\nFlag Check C ONLY if the dish form is fundamentally and unmistakably wrong — not for minor plating or presentation differences.\n\nRespond with exactly one line:\nPASS\nor\nFAIL: <specific reason — e.g. \"hard-boiled egg visible\" or \"image shows a green salad, not assembled tacos\" or \"pasta served as a stir-fry bowl\">\n\nOnly report MAJOR, clearly identifiable violations. For all three checks, only fail if the violation is unmistakably present. If you are not confident a violation exists, answer PASS.",
+      "verificationSha256": "f51c1b5d7bea15009a7ba0636ba5ad601f22eb4dadbc35a71b3b8365bef0ce41"
+    },
+    {
+      "recipe": {
+        "id": "lentil-soup",
+        "name": "Red Lentil Carrot Soup",
+        "sourceType": "meal",
+        "servings": 2,
+        "ingredients": [
+          "dry red lentils 100 g",
+          "carrot 150 g",
+          "onion 50 g",
+          "water 600 g",
+          "olive oil 5 g",
+          "cumin 1 g"
+        ],
+        "method": "Saute the vegetables in the oil; add the other ingredients and simmer until soft; partially blend.",
+        "visibleRequirement": "Thick orange-red soup. No cream or bread."
+      },
+      "normalizedName": "Red Lentil Carrot Soup",
+      "prompt": "A photorealistic finished meal, plated and ready to eat.\nDISPLAY NAME: Red Lentil Carrot Soup\n\n━━ CONTRACT 1: DISH IDENTITY (MANDATORY — cannot be overridden by ingredients) ━━\nThis image MUST show: hot liquid filling a deep bowl with steam rising — the primary subject is a bowl of soup. NOT a plate, NOT a salad.\nEven if the filling or toppings differ from a traditional version, this structural form must remain recognizable.\n\n━━ CONTRACT 2: INGREDIENT AUTHORIZATION ━━\n\nINGREDIENT AUTHORIZATION — FILLING & COMPOSITION ONLY:\nREQUIRED VISIBLE INGREDIENTS: dry red lentils 100 g, carrot 150 g, onion 50 g, water 600 g, olive oil 5 g, cumin 1 g\nUNAUTHORIZED INGREDIENTS: Any ingredient not in the required list above. Do NOT add ingredients traditionally associated with \"Red Lentil Carrot Soup\" (or its cuisine) unless they appear in the required list. The ingredient list above is the only authority on what components appear inside or on this dish. The dish's structural form is defined by CONTRACT 1 (DISH IDENTITY) and cannot be overridden by this ingredient list.\n\n━━ CONTRACT 3: PRESENTATION ━━\nPresentation: bowl filled with soup and steam rising. hot liquid-based dish with vegetables and protein, finished dish.\nTHIS IS A COOKED MEAL. Do NOT show a glass of liquid as the primary subject. Show a plated hot or warm dish.\nCRITICAL: Show ONLY the finished, ready-to-eat item described above — NOT raw ingredients, NOT uncooked components, NOT ingredient bowls.\nABSOLUTE RULE: NO HUMANS. NO PEOPLE. NO PERSONS. NO HANDS. NO ARMS. NO BODIES. NO FACES. NO MODELS. Food only.\n\nStyle: cinematic, high-detail, natural lighting, realistic food photography.\nCamera: 3/4 angle or overhead depending on dish type.\nBackground: clean, minimal, neutral surface, no clutter, no text, no logos, no humans.",
+      "promptSha256": "ec59ad23216d268375d232bdade6370a506988ac2349586ec3c22155d14cdf7f",
+      "verificationPrompt": "You are a recipe-fidelity inspector for food photography.\n\nRECIPE CONTRACT for \"Red Lentil Carrot Soup\":\n- dry red lentils 100 g\n- carrot 150 g\n- onion 50 g\n- water 600 g\n- olive oil 5 g\n- cumin 1 g\n\nThe recipe ingredient list above is the ONLY source of truth. It outranks the dish name, cuisine label, cultural convention, and your prior knowledge of how this dish is traditionally made. Do NOT assume traditional ingredients belong in this dish.\n\nQUESTION (answer this and nothing else): Does this image FAIL on any of the following checks?\n\nCHECK A — Wrong ingredient: Does the image contain a clearly visible MAJOR ingredient that is NOT in the recipe contract above?\nCHECK B — Wrong dish category: Does the image depict a completely different dish category than \"Red Lentil Carrot Soup\"? For example: a salad when the recipe is a cheesecake, a soup when the recipe is a sandwich, a green bowl of vegetables when the recipe is a dessert. Minor presentation differences are acceptable — only flag this if the dish category is fundamentally different.\nCHECK C — Wrong dish form: Even if the ingredients are approximately correct, is the food shown in the wrong structural form?\nRequired form: hot liquid filling a deep bowl with steam rising — the primary subject is a bowl of soup. NOT a plate, NOT a salad.\nFor example: correct taco ingredients assembled as a salad bowl = FAIL. Three recognizable assembled tacos with tortilla shells and those ingredients = PASS even with minor variations.\nFlag Check C ONLY if the dish form is fundamentally and unmistakably wrong — not for minor plating or presentation differences.\n\nRespond with exactly one line:\nPASS\nor\nFAIL: <specific reason — e.g. \"hard-boiled egg visible\" or \"image shows a green salad, not assembled tacos\" or \"pasta served as a stir-fry bowl\">\n\nOnly report MAJOR, clearly identifiable violations. For all three checks, only fail if the violation is unmistakably present. If you are not confident a violation exists, answer PASS.",
+      "verificationSha256": "6c168521b6fb93d6247ba18bf4029b5e5f1d41376af8ed92e064acdce9f48e91"
+    },
+    {
+      "recipe": {
+        "id": "salmon-bowl",
+        "name": "Salmon Nori Rice Bowl",
+        "sourceType": "meal",
+        "servings": 2,
+        "ingredients": [
+          "salmon 200 g",
+          "cooked rice 240 g",
+          "cucumber 100 g",
+          "avocado 60 g",
+          "nori 2 g",
+          "soy sauce 10 g"
+        ],
+        "method": "Cook and flake the salmon; assemble bowls with the other ingredients.",
+        "visibleRequirement": "Cooked, not raw, salmon. No sesame garnish."
+      },
+      "normalizedName": "Salmon Nori Rice Bowl",
+      "prompt": "A photorealistic finished meal, plated and ready to eat.\nDISPLAY NAME: Salmon Nori Rice Bowl\n\n━━ CONTRACT 1: DISH IDENTITY (MANDATORY — cannot be overridden by ingredients) ━━\nThis image MUST show: ingredients arranged over a grain or vegetable base in a deep bowl — NOT a plate, NOT a salad.\nEven if the filling or toppings differ from a traditional version, this structural form must remain recognizable.\n\n━━ CONTRACT 2: INGREDIENT AUTHORIZATION ━━\n\nINGREDIENT AUTHORIZATION — FILLING & COMPOSITION ONLY:\nREQUIRED VISIBLE INGREDIENTS: salmon 200 g, cooked rice 240 g, cucumber 100 g, avocado 60 g, nori 2 g, soy sauce 10 g\nUNAUTHORIZED INGREDIENTS: Any ingredient not in the required list above. Do NOT add ingredients traditionally associated with \"Salmon Nori Rice Bowl\" (or its cuisine) unless they appear in the required list. The ingredient list above is the only authority on what components appear inside or on this dish. The dish's structural form is defined by CONTRACT 1 (DISH IDENTITY) and cannot be overridden by this ingredient list.\n\n━━ CONTRACT 3: PRESENTATION ━━\nPresentation: served in a bowl. composed bowl with protein, grains, and vegetables, finished dish.\nTHIS IS A COOKED MEAL. Do NOT show a glass of liquid as the primary subject. Show a plated hot or warm dish.\nCRITICAL: Show ONLY the finished, ready-to-eat item described above — NOT raw ingredients, NOT uncooked components, NOT ingredient bowls.\nABSOLUTE RULE: NO HUMANS. NO PEOPLE. NO PERSONS. NO HANDS. NO ARMS. NO BODIES. NO FACES. NO MODELS. Food only.\n\nStyle: cinematic, high-detail, natural lighting, realistic food photography.\nCamera: 3/4 angle or overhead depending on dish type.\nBackground: clean, minimal, neutral surface, no clutter, no text, no logos, no humans.",
+      "promptSha256": "619ebb3aab8e37827d927174350844a49891758fdd949be01157805b5e45dbc1",
+      "verificationPrompt": "You are a recipe-fidelity inspector for food photography.\n\nRECIPE CONTRACT for \"Salmon Nori Rice Bowl\":\n- salmon 200 g\n- cooked rice 240 g\n- cucumber 100 g\n- avocado 60 g\n- nori 2 g\n- soy sauce 10 g\n\nThe recipe ingredient list above is the ONLY source of truth. It outranks the dish name, cuisine label, cultural convention, and your prior knowledge of how this dish is traditionally made. Do NOT assume traditional ingredients belong in this dish.\n\nQUESTION (answer this and nothing else): Does this image FAIL on any of the following checks?\n\nCHECK A — Wrong ingredient: Does the image contain a clearly visible MAJOR ingredient that is NOT in the recipe contract above?\nCHECK B — Wrong dish category: Does the image depict a completely different dish category than \"Salmon Nori Rice Bowl\"? For example: a salad when the recipe is a cheesecake, a soup when the recipe is a sandwich, a green bowl of vegetables when the recipe is a dessert. Minor presentation differences are acceptable — only flag this if the dish category is fundamentally different.\nCHECK C — Wrong dish form: Even if the ingredients are approximately correct, is the food shown in the wrong structural form?\nRequired form: ingredients arranged over a grain or vegetable base in a deep bowl — NOT a plate, NOT a salad.\nFor example: correct taco ingredients assembled as a salad bowl = FAIL. Three recognizable assembled tacos with tortilla shells and those ingredients = PASS even with minor variations.\nFlag Check C ONLY if the dish form is fundamentally and unmistakably wrong — not for minor plating or presentation differences.\n\nRespond with exactly one line:\nPASS\nor\nFAIL: <specific reason — e.g. \"hard-boiled egg visible\" or \"image shows a green salad, not assembled tacos\" or \"pasta served as a stir-fry bowl\">\n\nOnly report MAJOR, clearly identifiable violations. For all three checks, only fail if the violation is unmistakably present. If you are not confident a violation exists, answer PASS.",
+      "verificationSha256": "ba66a16095c07590fa7a09fe5185c3e82571fe9e32fe58f1a8f686048a9de09d"
+    },
+    {
+      "recipe": {
+        "id": "egg-free-cobb",
+        "name": "Egg-Free Chicken Cobb-Style Salad",
+        "sourceType": "meal",
+        "servings": 2,
+        "ingredients": [
+          "cooked chicken 150 g",
+          "romaine 100 g",
+          "tomato 100 g",
+          "avocado 60 g",
+          "olive oil 10 g",
+          "lemon juice 15 g"
+        ],
+        "method": "Chop and arrange the chicken and vegetables; dress with the oil and lemon juice.",
+        "visibleRequirement": "No egg, bacon, or cheese, despite the familiar dish name."
+      },
+      "normalizedName": "Egg-Free Chicken Cobb-Style Salad",
+      "prompt": "A photorealistic finished meal, plated and ready to eat.\nDISPLAY NAME: Egg-Free Chicken Cobb-Style Salad\n\n━━ CONTRACT 1: DISH IDENTITY (MANDATORY — cannot be overridden by ingredients) ━━\nThis image MUST show: fresh ingredients arranged in a wide shallow bowl or flat plate — NOT a hot entrée, NOT a soup, NOT a stir-fry.\nEven if the filling or toppings differ from a traditional version, this structural form must remain recognizable.\n\n━━ CONTRACT 2: INGREDIENT AUTHORIZATION ━━\n\nINGREDIENT AUTHORIZATION — FILLING & COMPOSITION ONLY:\nREQUIRED VISIBLE INGREDIENTS: cooked chicken 150 g, romaine 100 g, tomato 100 g, avocado 60 g, olive oil 10 g, lemon juice 15 g\nUNAUTHORIZED INGREDIENTS: Any ingredient not in the required list above. Do NOT add ingredients traditionally associated with \"Egg-Free Chicken Cobb-Style Salad\" (or its cuisine) unless they appear in the required list. The ingredient list above is the only authority on what components appear inside or on this dish. The dish's structural form is defined by CONTRACT 1 (DISH IDENTITY) and cannot be overridden by this ingredient list.\n\n━━ CONTRACT 3: PRESENTATION ━━\nPresentation: wide bowl or plate with fresh layered ingredients. fresh, vibrant, crisp vegetables and toppings, finished dish.\nTHIS IS A COOKED MEAL. Do NOT show a glass of liquid as the primary subject. Show a plated hot or warm dish.\nCRITICAL: Show ONLY the finished, ready-to-eat item described above — NOT raw ingredients, NOT uncooked components, NOT ingredient bowls.\nABSOLUTE RULE: NO HUMANS. NO PEOPLE. NO PERSONS. NO HANDS. NO ARMS. NO BODIES. NO FACES. NO MODELS. Food only.\n\nStyle: cinematic, high-detail, natural lighting, realistic food photography.\nCamera: 3/4 angle or overhead depending on dish type.\nBackground: clean, minimal, neutral surface, no clutter, no text, no logos, no humans.",
+      "promptSha256": "379b3e1d5ef144bd62abc1fa4708e712a660ffa9741146812170523539838797",
+      "verificationPrompt": "You are a recipe-fidelity inspector for food photography.\n\nRECIPE CONTRACT for \"Egg-Free Chicken Cobb-Style Salad\":\n- cooked chicken 150 g\n- romaine 100 g\n- tomato 100 g\n- avocado 60 g\n- olive oil 10 g\n- lemon juice 15 g\n\nThe recipe ingredient list above is the ONLY source of truth. It outranks the dish name, cuisine label, cultural convention, and your prior knowledge of how this dish is traditionally made. Do NOT assume traditional ingredients belong in this dish.\n\nQUESTION (answer this and nothing else): Does this image FAIL on any of the following checks?\n\nCHECK A — Wrong ingredient: Does the image contain a clearly visible MAJOR ingredient that is NOT in the recipe contract above?\nCHECK B — Wrong dish category: Does the image depict a completely different dish category than \"Egg-Free Chicken Cobb-Style Salad\"? For example: a salad when the recipe is a cheesecake, a soup when the recipe is a sandwich, a green bowl of vegetables when the recipe is a dessert. Minor presentation differences are acceptable — only flag this if the dish category is fundamentally different.\nCHECK C — Wrong dish form: Even if the ingredients are approximately correct, is the food shown in the wrong structural form?\nRequired form: fresh ingredients arranged in a wide shallow bowl or flat plate — NOT a hot entrée, NOT a soup, NOT a stir-fry.\nFor example: correct taco ingredients assembled as a salad bowl = FAIL. Three recognizable assembled tacos with tortilla shells and those ingredients = PASS even with minor variations.\nFlag Check C ONLY if the dish form is fundamentally and unmistakably wrong — not for minor plating or presentation differences.\n\nRespond with exactly one line:\nPASS\nor\nFAIL: <specific reason — e.g. \"hard-boiled egg visible\" or \"image shows a green salad, not assembled tacos\" or \"pasta served as a stir-fry bowl\">\n\nOnly report MAJOR, clearly identifiable violations. For all three checks, only fail if the violation is unmistakably present. If you are not confident a violation exists, answer PASS.",
+      "verificationSha256": "a954fda056a4bcc14c9bbcf5782bbc4c7af9726819b6a5eb5a4e4e20889ce33d"
+    },
+    {
+      "recipe": {
+        "id": "banana-pancakes",
+        "name": "Soft Banana Oat Pancakes",
+        "sourceType": "meal",
+        "servings": 2,
+        "ingredients": [
+          "oat flour 60 g",
+          "banana 100 g",
+          "egg 50 g",
+          "water 30 g",
+          "olive oil 3 g"
+        ],
+        "method": "Mix; pan-cook small pancakes with the oil until set.",
+        "visibleRequirement": "Soft small pancakes. No syrup, berries, or nuts."
+      },
+      "normalizedName": "Soft Banana Oat Pancakes",
+      "prompt": "A photorealistic finished meal, plated and ready to eat.\nDISPLAY NAME: Soft Banana Oat Pancakes\n\n━━ CONTRACT 1: DISH IDENTITY (MANDATORY — cannot be overridden by ingredients) ━━\nThis image MUST show: a plated breakfast with components arranged on a plate — eggs, protein, and/or grains visible. NOT a drink, NOT a salad.\nEven if the filling or toppings differ from a traditional version, this structural form must remain recognizable.\n\n━━ CONTRACT 2: INGREDIENT AUTHORIZATION ━━\n\nINGREDIENT AUTHORIZATION — FILLING & COMPOSITION ONLY:\nREQUIRED VISIBLE INGREDIENTS: oat flour 60 g, banana 100 g, egg 50 g, water 30 g, olive oil 3 g\nUNAUTHORIZED INGREDIENTS: Any ingredient not in the required list above. Do NOT add ingredients traditionally associated with \"Soft Banana Oat Pancakes\" (or its cuisine) unless they appear in the required list. The ingredient list above is the only authority on what components appear inside or on this dish. The dish's structural form is defined by CONTRACT 1 (DISH IDENTITY) and cannot be overridden by this ingredient list.\n\n━━ CONTRACT 3: PRESENTATION ━━\nPresentation: on a plate with breakfast presentation. morning meal with eggs, proteins, or grains.\nTHIS IS A COOKED MEAL. Do NOT show a glass of liquid as the primary subject. Show a plated hot or warm dish.\nCRITICAL: Show ONLY the finished, ready-to-eat item described above — NOT raw ingredients, NOT uncooked components, NOT ingredient bowls.\nABSOLUTE RULE: NO HUMANS. NO PEOPLE. NO PERSONS. NO HANDS. NO ARMS. NO BODIES. NO FACES. NO MODELS. Food only.\n\nStyle: cinematic, high-detail, natural lighting, realistic food photography.\nCamera: 3/4 angle or overhead depending on dish type.\nBackground: clean, minimal, neutral surface, no clutter, no text, no logos, no humans.",
+      "promptSha256": "f5eec55f32c7707ed5f01c563f891670ac19e9a4d06d02e009fb79a9f6372b4e",
+      "verificationPrompt": "You are a recipe-fidelity inspector for food photography.\n\nRECIPE CONTRACT for \"Soft Banana Oat Pancakes\":\n- oat flour 60 g\n- banana 100 g\n- egg 50 g\n- water 30 g\n- olive oil 3 g\n\nThe recipe ingredient list above is the ONLY source of truth. It outranks the dish name, cuisine label, cultural convention, and your prior knowledge of how this dish is traditionally made. Do NOT assume traditional ingredients belong in this dish.\n\nQUESTION (answer this and nothing else): Does this image FAIL on any of the following checks?\n\nCHECK A — Wrong ingredient: Does the image contain a clearly visible MAJOR ingredient that is NOT in the recipe contract above?\nCHECK B — Wrong dish category: Does the image depict a completely different dish category than \"Soft Banana Oat Pancakes\"? For example: a salad when the recipe is a cheesecake, a soup when the recipe is a sandwich, a green bowl of vegetables when the recipe is a dessert. Minor presentation differences are acceptable — only flag this if the dish category is fundamentally different.\nCHECK C — Wrong dish form: Even if the ingredients are approximately correct, is the food shown in the wrong structural form?\nRequired form: a plated breakfast with components arranged on a plate — eggs, protein, and/or grains visible. NOT a drink, NOT a salad.\nFor example: correct taco ingredients assembled as a salad bowl = FAIL. Three recognizable assembled tacos with tortilla shells and those ingredients = PASS even with minor variations.\nFlag Check C ONLY if the dish form is fundamentally and unmistakably wrong — not for minor plating or presentation differences.\n\nRespond with exactly one line:\nPASS\nor\nFAIL: <specific reason — e.g. \"hard-boiled egg visible\" or \"image shows a green salad, not assembled tacos\" or \"pasta served as a stir-fry bowl\">\n\nOnly report MAJOR, clearly identifiable violations. For all three checks, only fail if the violation is unmistakably present. If you are not confident a violation exists, answer PASS.",
+      "verificationSha256": "23baef64be9a5be826dc26acb772d5835ed40c7e791e628936329ca91aaa82e9"
+    }
+  ],
+  "digest": "a2475c5745db875cbc008459ad96e5f7f82fa2b59943ebf0b5c35c1e151bb277"
+}
