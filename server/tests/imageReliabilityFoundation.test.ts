@@ -6,15 +6,18 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 const fallback = "/images/fallback/meal.svg";
-const approvedFixture: ImageModelPolicy = { ...APPROVED_IMAGE_MODEL, shutdownDate: null, reservationUSD: 0.10 };
-const photo = { data: [{ b64_json: "synthetic-image-bytes" }] };
+const approvedFixture: ImageModelPolicy = { ...APPROVED_IMAGE_MODEL, requiresDevelopmentActivation: false, shutdownDate: null, reservationUSD: 0.10 };
+const photo = { data: [{ b64_json: "synthetic-image-bytes" }], usage: {
+  input_tokens: 1, input_tokens_details: { text_tokens: 1, image_tokens: 0 },
+  output_tokens: 196, total_tokens: 197,
+} };
 
 describe("image reliability foundation (fixtures only, no network)", () => {
   afterEach(() => jest.useRealTimers());
 
   it("keeps the approved OpenAI model; retirement blocks dispatch without switching", async () => {
     const call = jest.fn();
-    const op = new ImageOperation(fallback, APPROVED_IMAGE_MODEL, new ImageSpendingLedger(1), 100, () => new Date("2026-10-23T00:00:00Z"));
+    const op = new ImageOperation(fallback, { ...APPROVED_IMAGE_MODEL, model: "gpt-image-1", shutdownDate: "2026-10-23" }, new ImageSpendingLedger(1), 100, () => new Date("2026-10-23T00:00:00Z"));
     expect(await op.generate("recipe", call)).toBeNull();
     expect(op.result.reason).toBe("model_retired");
     expect(op.result.model).toBe("gpt-image-1");
@@ -141,7 +144,7 @@ describe("image reliability foundation (fixtures only, no network)", () => {
 
   it.each([{}, { data: [] }, { data: [{ url: fallback }] }, { data: [{ url: `https://example.invalid${fallback}` }] }])("does not accept empty or placeholder provider output", async response => {
     const op = new ImageOperation(fallback, approvedFixture, new ImageSpendingLedger(1));
-    expect(await op.generate("recipe", async () => response)).toBeNull();
+    expect(await op.generate("recipe", async () => ({ ...response, usage: photo.usage }))).toBeNull();
     expect(op.result.reason).toBe("invalid_provider_response");
   });
 
@@ -155,14 +158,14 @@ describe("image reliability foundation (fixtures only, no network)", () => {
   it.each([
     [undefined, "unknown"], [null, "unknown"], ["2026-12-01", "scheduled"], ["2026-10-23", "retired"],
   ])("reads official metadata without activating monitoring: %s", async (date, state) => {
-    const retrieve = jest.fn().mockResolvedValue({ id: "gpt-image-1", shutdown_date: date });
+    const retrieve = jest.fn().mockResolvedValue({ id: APPROVED_IMAGE_MODEL.model, shutdown_date: date });
     const result = await inspectImageModelLifecycle({ models: { retrieve } }, new Date("2026-10-23T12:00:00Z"));
     expect(result.state).toBe(state);
-    expect(retrieve).toHaveBeenCalledWith("gpt-image-1");
+    expect(retrieve).toHaveBeenCalledWith(APPROVED_IMAGE_MODEL.model);
   });
 
   it("rejects malformed or wrong-model lifecycle evidence", async () => {
     await expect(inspectImageModelLifecycle({ models: { retrieve: async () => ({ id: "wrong" }) } })).rejects.toThrow("identity");
-    await expect(inspectImageModelLifecycle({ models: { retrieve: async () => ({ id: "gpt-image-1", shutdown_date: "2026-02-30" }) } })).rejects.toThrow("shutdown_date");
+    await expect(inspectImageModelLifecycle({ models: { retrieve: async () => ({ id: APPROVED_IMAGE_MODEL.model, shutdown_date: "2026-02-30" }) } })).rejects.toThrow("shutdown_date");
   });
 });

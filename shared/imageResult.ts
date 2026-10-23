@@ -11,6 +11,25 @@ export interface ImageResult {
   requestId?: string;
   attempts: number;
   cancellation: "not_requested" | "requested_unconfirmed";
+  spending?: { reservedUSD: number; estimatedKnownCostUSD: number; accountingUncertain: boolean };
+  evidence?: Array<{
+    stage: "generation" | "verification"; requestId?: string;
+    inputTokens: number; outputTokens: number; estimatedCostUSD: number;
+  }>;
+}
+
+/** Client margin includes transport, recipe/authorization checks and response parsing. */
+export const IMAGE_CLIENT_TIMEOUT_MS = 210_000;
+
+/** Legacy responses may omit typed evidence; explicit negative evidence always wins. */
+export function photographFromResponse(data: { imageUrl?: string | null; imageResult?: ImageResult }): string | null {
+  if (data.imageResult) return isVerifiedPhotograph(data.imageResult) && data.imageResult.url === data.imageUrl ? data.imageUrl! : null;
+  return data.imageUrl && !isPlaceholderImage(data.imageUrl) ? data.imageUrl : null;
+}
+
+/** Keep the legacy field present, but never hand old clients fallback artwork to save. */
+export function legacyPhotographUrl(result: ImageResult): string | null {
+  return isVerifiedPhotograph(result) ? result.url : null;
 }
 
 export function isPlaceholderImage(url?: string | null): boolean {

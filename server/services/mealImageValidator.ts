@@ -14,7 +14,7 @@
 
 import OpenAI from "openai";
 import crypto from "crypto";
-import { IMAGE_VERIFICATION_MODEL } from "./images/imageModelRegistry";
+import { IMAGE_VERIFICATION_MODEL, IMAGE_LIMITS } from "./images/imageModelRegistry";
 
 export const VALIDATION_MODEL = IMAGE_VERIFICATION_MODEL;
 
@@ -25,6 +25,8 @@ export interface ValidationResult {
   /** For FAIL: the detected offender, e.g. "hard-boiled egg visible". */
   reason: string | null;
   model: string;
+  usage?: unknown;
+  requestId?: string;
 }
 
 /**
@@ -106,7 +108,7 @@ function getOpenAI(): OpenAI {
   return _openai;
 }
 
-const defaultVisionCaller: VisionCaller = async (imageUrl, prompt) => {
+const defaultVisionCaller = async (imageUrl: string, prompt: string, signal: AbortSignal) => {
   const response = await getOpenAI().chat.completions.create({
     model: VALIDATION_MODEL,
     max_tokens: 60,
@@ -120,8 +122,9 @@ const defaultVisionCaller: VisionCaller = async (imageUrl, prompt) => {
         ],
       },
     ],
-  }, { maxRetries: 0, timeout: 20_000 });
-  return response.choices?.[0]?.message?.content ?? "";
+  }, { maxRetries: 0, timeout: IMAGE_LIMITS.verificationMs, signal });
+  return { text: response.choices?.[0]?.message?.content ?? "",
+    usage: response.usage, requestId: (response as any)._request_id };
 };
 
 /**
@@ -137,6 +140,7 @@ export async function validateImageAgainstRecipe(
     timeoutMs?: number;
     structuralIdentity?: string;
     visualRequirements?: string[];
+    signal?: AbortSignal;
   }
 ): Promise<ValidationResult> {
   const cleanIngredients = ingredients.map(i => (i || "").trim()).filter(Boolean);
@@ -151,24 +155,37 @@ export async function validateImageAgainstRecipe(
     opts?.structuralIdentity,
     opts?.visualRequirements,
   );
-  const caller = opts?.visionCaller ?? defaultVisionCaller;
-  const timeoutMs = opts?.timeoutMs ?? 20000;
+  const timeoutMs = Math.min(opts?.timeoutMs ?? IMAGE_LIMITS.verificationMs, IMAGE_LIMITS.verificationMs);
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  opts?.signal?.addEventListener("abort", abort, { once: true });
+  let timer: ReturnType<typeof setTimeout> | undefined;
 
   try {
-    const raw = await Promise.race([
-      caller(imageUrl, prompt),
-      new Promise<string>((_, reject) =>
-        setTimeout(() => reject(new Error(`vision validation timed out after ${timeoutMs}ms`)), timeoutMs)
-      ),
+    if (opts?.signal?.aborted) throw new Error("cancelled");
+    const response = await Promise.race([
+      opts?.visionCaller ? opts.visionCaller(imageUrl, prompt).then(text => ({ text })) : defaultVisionCaller(imageUrl, prompt, controller.signal),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => { controller.abort(); reject(new Error("verification timeout")); }, timeoutMs);
+      }),
     ]);
-    const parsed = parseValidationResponse(raw);
-    return { verdict: parsed.verdict, reason: parsed.reason, model: VALIDATION_MODEL };
+    // Unexpected/empty text is unavailable, not an implicit PASS.
+    if (!/^(PASS|FAIL:\s*\S[\s\S]*)$/i.test(response.text.trim())) {
+      return { verdict: "SKIPPED", reason: "invalid_verifier_response", model: VALIDATION_MODEL,
+        usage: (response as any).usage, requestId: (response as any).requestId };
+    }
+    const parsed = parseValidationResponse(response.text);
+    return { verdict: parsed.verdict, reason: parsed.reason, model: VALIDATION_MODEL,
+      usage: (response as any).usage, requestId: (response as any).requestId };
   } catch (err: any) {
     return {
       verdict: "SKIPPED",
-      reason: `vision validation error: ${err?.message?.substring(0, 120) ?? "unknown"}`,
+      reason: "verification_unavailable",
       model: VALIDATION_MODEL,
     };
+  } finally {
+    if (timer) clearTimeout(timer);
+    opts?.signal?.removeEventListener("abort", abort);
   }
 }
 
