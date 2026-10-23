@@ -93,7 +93,8 @@ import { filterByStarchStructure, validateStarchStructure, buildStarchFixHint } 
 import { scoreOncologyMealQuality } from './guardrails/validators/oncologyQualityScorer';
 import { scoreOncologySnackQuality } from './guardrails/validators/oncologySnackScorer';
 import { applyOncologySymptomPriority, oncologySymptomPriorityEnabled } from './guardrails/prompt/oncologySymptomPriority';
-import { generateMealImageUnified } from './mealImageGenerator';
+import { generateMealImageUnified, generateMealImageResult } from './mealImageGenerator';
+import { isPlaceholderImage, isVerifiedPhotograph, placeholderResult, type ImageResult } from "../../shared/imageResult";
 import { normalizeMealName, culturalNameTransform } from './mealNameNormalizer';
 import { estimateCaloriesFromIngredients, checkIngredientSanity } from './calorieEstimator';
 import { isClinicalAdaptationActive } from './clinicalMacroGate';
@@ -229,6 +230,7 @@ export interface UnifiedMeal {
   cookingTime?: string;
   difficulty?: 'Easy' | 'Medium' | 'Hard';
   imageUrl: string; // ALWAYS present
+  imageResult?: ImageResult;
   substitutionNotes?: string[]; // Smart Substitutions: explains ingredient swaps made for nutrition strategy
   medicalBadges?: Array<{
     id: string;
@@ -4611,17 +4613,19 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
 
     // Image generation — skipped when client handles it async (skipImage: true)
     let imageUrl: string | null = skipImage ? null : getFallbackImage(validMealType);
+    let imageResult = placeholderResult(imageUrl, skipImage ? "generation_pending" : "image_unavailable");
+    if (skipImage) imageResult.generation = "pending";
     if (!skipImage) {
       try {
-        const generatedImage = await generateImageCached(
+        const generatedImage = await generateMealImageResult(
           finalMealData.name,
           finalMealData.ingredients?.map((ing: any) => ing.name) || [],
           'meal',
-          'homemade',
         );
         if (generatedImage) {
-          imageUrl = generatedImage;
-          console.log(`🖼️ [create-with-chef] Image ready for: ${finalMealData.name}`);
+          imageUrl = generatedImage.url;
+          imageResult = generatedImage.imageResult;
+          console.log(`[create-with-chef] image=${isVerifiedPhotograph(imageResult) ? "verified" : imageResult.reason}`);
         }
       } catch (imgError) {
         console.warn('⚠️ Image generation failed, using fallback:', imgError);
@@ -4636,7 +4640,7 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
         finalMealData.name,
         (finalMealData.ingredients || []).map((ing: any) => ing.name || ing).filter(Boolean),
       ).then((url) => {
-        if (url) console.log(`🔥 [create-with-chef] pre-warm complete: ${finalMealData.name}`);
+        if (url && !isPlaceholderImage(url)) console.log(`[create-with-chef] verified pre-warm complete: ${finalMealData.name}`);
       }).catch(() => {
         // silent — client will retry via /api/meals/generate-image
       });
@@ -4644,6 +4648,7 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
     
     const unifiedMeal: UnifiedMeal = {
       id: `chef-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      imageResult,
       name: finalMealData.name,
       description: finalMealData.description,
       ingredients: normalizeIngredients(finalMealData.ingredients || []),
@@ -5260,16 +5265,18 @@ Create the personalized snack for: "${cravingDescription}"`;
     }
 
     let imageUrl = getFallbackImage('snack');
+    let imageResult = placeholderResult(imageUrl, "image_unavailable");
     try {
-      const generatedImage = await generateMealImageUnified(
+      const generatedImage = await generateMealImageResult(
         finalSnackData.name,
         finalSnackData.ingredients || [],
         'snack'
       );
 
       if (generatedImage) {
-        imageUrl = generatedImage;
-        console.log(`🖼️ [snack-creator] Image ready for: ${finalSnackData.name}`);
+        imageUrl = generatedImage.url;
+        imageResult = generatedImage.imageResult;
+        console.log(`[snack-creator] image=${isVerifiedPhotograph(imageResult) ? "verified" : imageResult.reason}`);
       }
     } catch (imgError) {
       console.warn('⚠️ Image generation failed for snack, using fallback:', imgError);
@@ -5279,6 +5286,7 @@ Create the personalized snack for: "${cravingDescription}"`;
 
     const unifiedSnack: UnifiedMeal = {
       id: `snack-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      imageResult,
       name: finalSnackData.name,
       description: finalSnackData.description,
       ingredients: snackIngredients,

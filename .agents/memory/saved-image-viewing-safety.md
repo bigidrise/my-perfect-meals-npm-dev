@@ -20,3 +20,9 @@ When an image model is listed but generation rejects it, check the provider's da
 **Why:** An explicitly approved isolated request reproduced the model rejection on October 23, 2026; OpenAI's official deprecation schedule listed that exact date as the shutdown of `gpt-image-1`, despite catalog and API-reference listings still naming it.
 
 **How to apply:** Compare runtime evidence with the current official deprecation schedule at https://developers.openai.com/api/docs/deprecations. Catalog visibility is not availability. A replacement model still requires approval and recipe-fidelity, response-format, and storage compatibility verification; retirement does not authorize saved-image regeneration.
+
+Model lifecycle evidence is advisory, not authority to switch models or activate scheduled monitoring and notifications. Paid comparison tests and runtime restarts require their own approval.
+
+**Why:** The user explicitly separated approval for the image reliability foundation from approval for provider/model selection, paid generation, monitoring activation, and release operations.
+
+**How to apply:** Implementing provider-independent contracts and safeguards must not select a replacement, enable another provider, or repair saved photographs as a side effect. Keep spending reservations distinct from a guaranteed provider billing cap, and never report an abort request as confirmed provider cancellation.

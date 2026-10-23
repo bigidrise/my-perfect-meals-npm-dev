@@ -9,14 +9,14 @@
 // Verdicts:
 //   PASS    — no clearly visible major ingredient outside the recipe contract
 //   FAIL    — a named offender was detected (reason carries the offender)
-//   SKIPPED — validation could not run (no ingredients / vision error);
-//             the image is still cached, but the row records SKIPPED so
-//             unvalidated entries are auditable.
+//   SKIPPED — validation could not run; the generation pipeline must not
+//             publish or cache it as a verified photograph.
 
 import OpenAI from "openai";
 import crypto from "crypto";
+import { IMAGE_VERIFICATION_MODEL } from "./images/imageModelRegistry";
 
-export const VALIDATION_MODEL = "gpt-4o";
+export const VALIDATION_MODEL = IMAGE_VERIFICATION_MODEL;
 
 export type ValidationVerdict = "PASS" | "FAIL" | "SKIPPED";
 
@@ -101,7 +101,7 @@ let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
   if (!_openai) {
     if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is required");
-    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, maxRetries: 0 });
   }
   return _openai;
 }
@@ -120,7 +120,7 @@ const defaultVisionCaller: VisionCaller = async (imageUrl, prompt) => {
         ],
       },
     ],
-  });
+  }, { maxRetries: 0, timeout: 20_000 });
   return response.choices?.[0]?.message?.content ?? "";
 };
 

@@ -4,6 +4,11 @@ const mockIngest = jest.fn();
 const mockCacheRead = jest.fn();
 const mockCacheWrite = jest.fn();
 
+jest.mock("../services/images/imageModelRegistry", () => {
+  const actual = jest.requireActual("../services/images/imageModelRegistry");
+  return { ...actual, APPROVED_IMAGE_MODEL: { ...actual.APPROVED_IMAGE_MODEL, shutdownDate: null, reservationUSD: .01 } };
+});
+
 jest.mock("openai", () => ({
   __esModule: true,
   default: jest.fn().mockImplementation(() => ({ images: { generate: mockImageGenerate } })),

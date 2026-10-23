@@ -94,34 +94,7 @@ export type FinalMeal = {
  * generateMealFromPrompt has been redirected to the canonical pipeline.
  */
 async function generateImageFromDalle(prompt: string): Promise<string | null> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => {
-    controller.abort();
-    console.warn("⏱️ [DALL-E] Image generation timed out after 30s — aborting");
-  }, 30_000);
-
-  try {
-    const response = await getOpenAI().images.generate(
-      {
-        model: "gpt-image-1",
-        prompt: prompt,
-        n: 1,
-        size: "1024x1024",
-        quality: "low",
-      },
-      { signal: controller.signal },
-    );
-    clearTimeout(timeoutId);
-    return response.data?.[0]?.url || null;
-  } catch (error: any) {
-    clearTimeout(timeoutId);
-    if (error?.name === "AbortError" || controller.signal.aborted) {
-      console.warn("⏱️ [DALL-E] Request aborted due to 30s timeout");
-      return null;
-    }
-    console.error("DALL-E image generation error:", error);
-    return null;
-  }
+  return generateMealImageUnified(prompt, [], "meal");
 }
 
 const _isDev = process.env.NODE_ENV !== "production";

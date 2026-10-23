@@ -6,6 +6,7 @@ import { requireAuth } from '../middleware/requireAuth';
 import { createApiRateLimit } from '../middleware/rateLimit';
 import { generateMealImage, generateMealImages, getCachedImage, getImageCacheStats } from '../services/mealImageGenerator';
 import { getMealImageRecoveryStatus } from '../services/mealImageRecovery';
+import { isVerifiedPhotograph } from "../../shared/imageResult";
 
 const imageRateLimit = createApiRateLimit();
 
@@ -47,7 +48,7 @@ mealImagesRouter.post('/meal-images/generate', requireAuth, imageRateLimit, asyn
     });
     
     res.json({ 
-      success: true,
+      success: isVerifiedPhotograph(result.imageResult),
       image: result
     });
     
@@ -82,7 +83,7 @@ mealImagesRouter.post('/meal-images/generate-batch', requireAuth, imageRateLimit
     const results = await generateMealImages(requests);
     
     res.json({ 
-      success: true,
+      success: results.every(result => isVerifiedPhotograph(result.imageResult)),
       images: results,
       count: results.length
     });
@@ -180,6 +181,8 @@ mealImagesRouter.post('/meal-images/hydrate-with-image', requireAuth, imageRateL
         });
         
         imageUrl = imageResult.url;
+        // Recipe success and image success are independent.
+        (validated as any).imageResult = imageResult.imageResult;
       } catch (error) {
         console.warn('Image generation failed, using fallback:', error);
       }
