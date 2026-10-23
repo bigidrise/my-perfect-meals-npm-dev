@@ -37,7 +37,7 @@ Signal delivery alone does not establish that the Development server stopped gra
 
 **Why:** An observed SIGTERM was intercepted by notification cleanup while both HTTP and Vite listeners remained open beyond the shutdown wait.
 
-**How to apply:** Confirm process exit and release of both ports before launching a replacement. Do not assume a shutdown hook terminates the server, or substitute forced termination without approval.
+**How to apply:** Confirm process exit and release of both ports before launching a replacement. Do not assume a shutdown hook terminates the server, or substitute forced termination without approval. A source-only shutdown fix protects newly loaded runtimes, not the legacy process already running; if that process cannot drain cleanly, obtain approval for a specific one-time stop procedure rather than silently changing signals or allowing escalation.
 
 Request-wiring verification need not wait for a migration-free application startup.
 

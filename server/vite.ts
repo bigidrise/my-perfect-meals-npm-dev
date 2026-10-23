@@ -95,6 +95,7 @@ export async function setupVite(app: Express, server: Server) {
       next(e);
     }
   });
+  return vite;
 }
 
 export function serveStatic(app: Express) {
