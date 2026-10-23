@@ -17,7 +17,7 @@
 - [Coaching confidence doctrine](coaching-engine-confidence-doctrine.md) — confidence.ts is the authoritative LLM control surface for coaching tone.
 - [Object storage architecture](object-storage-architecture.md) — Object Storage Client is the working server upload path; do not rely on signed URL sidecars.
 - [Canonical media assets](media-asset-architecture.md) — media lifecycle gates must protect every referencing surface before object deletion.
-- [Meal image references](meal-image-reference-index.md) — recipe fidelity, pediatric prepared-food expectations, production delivery, bounded recovery, and board media identity.
+- [Meal image references](meal-image-reference-index.md) — read-only saved-image viewing, recipe fidelity, production delivery, controlled recovery, and board media identity.
 - [Daily prescription hierarchy](daily-prescription-hierarchy.md) — one endpoint owns macro targets; clinical overlays are applied in documented order.
 - [Nutrition decision engine entry points](nde-food-entry-points.md) — all food intake surfaces must consult NDE before presenting results.
 - [GLP-1 canonical context](glp1-canonical-context.md) — canonical signals stay separate from the user's Builder-and-Menu-only portion-support policy.

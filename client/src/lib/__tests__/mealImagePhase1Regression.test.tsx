@@ -283,13 +283,9 @@ describe("MealImageSlot — permanent URL recovery", () => {
     expect(mockPost).toHaveBeenCalledTimes(1);
   });
 
-  it("reports a broken permanent URL and loads one regenerated replacement", async () => {
+  it("opening a Favorites card is read-only and missing images never queue regeneration", async () => {
     const brokenUrl = "/public-objects/test-bucket/meal-images/broken-display.jpg";
-    const restoredUrl = "/public-objects/test-bucket/meal-images/restored-display.jpg";
-    mockPost
-      .mockResolvedValueOnce({ status: "unavailable", reason: "missing" } as any)
-      .mockResolvedValueOnce({ accepted: true, recoveryId: "recovery-1" } as any);
-    mockGet.mockResolvedValue({ status: "ready", imageUrl: restoredUrl } as any);
+    mockPost.mockResolvedValueOnce({ status: "unavailable", reason: "missing" } as any);
 
     const { container } = render(
       <MealImageSlot
@@ -301,6 +297,8 @@ describe("MealImageSlot — permanent URL recovery", () => {
       />,
     );
 
+    expect(mockPost).not.toHaveBeenCalled();
+    expect(mockGet).not.toHaveBeenCalled();
     fireEvent.error(container.querySelector("img")!);
 
     await waitFor(() => {
@@ -308,25 +306,10 @@ describe("MealImageSlot — permanent URL recovery", () => {
         "/api/media/image-delivery-recovery",
         { imageUrl: brokenUrl, savedMealId: "saved-meal-1", mediaAssetId: "asset-1" },
       );
-      expect(mockPost).toHaveBeenCalledWith(
-        "/api/meal-images/recover",
-        expect.objectContaining({
-          imageUrl: brokenUrl,
-          mealName: "Grilled Salmon Bowl",
-          ingredients: ["salmon", "lemon", "brown rice"],
-          savedMealId: "saved-meal-1",
-          mediaAssetId: "asset-1",
-        }),
-      );
+      expect(container.textContent).toContain("Image unavailable");
     });
-
-    await waitFor(() => {
-      expect(container.querySelector("img")).toHaveAttribute("src", restoredUrl);
-    });
-
-    fireEvent.error(container.querySelector("img")!);
-    expect(mockPost).toHaveBeenCalledTimes(2);
-    expect(container.textContent).toContain("Image unavailable");
+    expect(mockPost).toHaveBeenCalledTimes(1);
+    expect(mockGet).not.toHaveBeenCalled();
   });
 
   it("does not report third-party image delivery failures as Object Storage repairs", () => {
@@ -404,19 +387,16 @@ describe("MealImageSlot — permanent URL recovery", () => {
     const oldUrl = "/public-objects/test-bucket/meal-images/old.jpg";
     const newUrl = "/public-objects/test-bucket/meal-images/new.jpg";
     let resolveStatus!: (value: unknown) => void;
-    mockPost
-      .mockResolvedValueOnce({ status: "unavailable", reason: "missing" } as any)
-      .mockResolvedValueOnce({ accepted: true, recoveryId: "old-recovery" } as any);
-    mockGet.mockReturnValueOnce(new Promise((resolve) => { resolveStatus = resolve; }) as any);
+    mockPost.mockReturnValueOnce(new Promise((resolve) => { resolveStatus = resolve; }) as any);
 
     const { container, rerender } = render(
       <MealImageSlot imageUrl={oldUrl} mealName="Old Salmon" savedMealId="saved-old" mediaAssetId="asset-old" />,
     );
     fireEvent.error(container.querySelector("img")!);
-    await waitFor(() => expect(mockGet).toHaveBeenCalled());
+    await waitFor(() => expect(mockPost).toHaveBeenCalledTimes(1));
 
     rerender(<MealImageSlot imageUrl={newUrl} mealName="New Salmon" savedMealId="saved-new" mediaAssetId="asset-new" />);
-    resolveStatus({ status: "ready", imageUrl: "/public-objects/test-bucket/meal-images/stale-recovered.jpg" });
+    resolveStatus({ status: "recovered", imageUrl: "/public-objects/test-bucket/meal-images/stale-recovered.jpg" });
 
     await waitFor(() => {
       expect(container.querySelector("img")).toHaveAttribute("src", newUrl);
@@ -427,22 +407,19 @@ describe("MealImageSlot — permanent URL recovery", () => {
   it("ignores an old recovery when a reused image URL belongs to a different saved meal", async () => {
     const sharedUrl = "/public-objects/test-bucket/meal-images/shared.jpg";
     let resolveStatus!: (value: unknown) => void;
-    mockPost
-      .mockResolvedValueOnce({ status: "unavailable", reason: "missing" } as any)
-      .mockResolvedValueOnce({ accepted: true, recoveryId: "shared-recovery" } as any);
-    mockGet.mockReturnValueOnce(new Promise((resolve) => { resolveStatus = resolve; }) as any);
+    mockPost.mockReturnValueOnce(new Promise((resolve) => { resolveStatus = resolve; }) as any);
 
     const { container, rerender } = render(
       <MealImageSlot imageUrl={sharedUrl} mealName="First Salmon" savedMealId="saved-first" mediaAssetId="asset-first" />,
     );
     fireEvent.error(container.querySelector("img")!);
-    await waitFor(() => expect(mockGet).toHaveBeenCalled());
+    await waitFor(() => expect(mockPost).toHaveBeenCalledTimes(1));
 
     rerender(
       <MealImageSlot imageUrl={sharedUrl} mealName="Second Salmon" savedMealId="saved-second" mediaAssetId="asset-second" />,
     );
     await waitFor(() => expect(container.querySelector("img")).toHaveAttribute("src", sharedUrl));
-    resolveStatus({ status: "ready", imageUrl: "/public-objects/test-bucket/meal-images/first-only-recovered.jpg" });
+    resolveStatus({ status: "recovered", imageUrl: "/public-objects/test-bucket/meal-images/first-only-recovered.jpg" });
 
     await waitFor(() => {
       expect(container.querySelector("img")).toHaveAttribute("src", sharedUrl);
@@ -450,7 +427,7 @@ describe("MealImageSlot — permanent URL recovery", () => {
     });
   });
 
-  it("reports a broken permanent S3 image URL for the same durable repair path", async () => {
+  it("leaves unsupported legacy S3 failures unavailable without any recovery request", async () => {
     const brokenUrl = "https://archived-meal-images.s3.amazonaws.com/meal-images/legacy.jpg";
     mockPost.mockResolvedValue({ accepted: true, recoveryId: "legacy-recovery" } as any);
     mockGet.mockResolvedValue({ status: "ready", imageUrl: "/public-objects/test-bucket/repaired.jpg" } as any);
@@ -468,12 +445,10 @@ describe("MealImageSlot — permanent URL recovery", () => {
     fireEvent.error(container.querySelector("img")!);
 
     await waitFor(() => {
-      expect(mockPost).toHaveBeenCalledWith(
-        "/api/meal-images/recover",
-        expect.objectContaining({ imageUrl: brokenUrl, savedMealId: "saved-meal-legacy", mediaAssetId: "asset-legacy" }),
-      );
-      expect(container.querySelector("img")).toHaveAttribute("src", "/public-objects/test-bucket/repaired.jpg");
+      expect(container.textContent).toContain("Image unavailable");
     });
+    expect(mockPost).not.toHaveBeenCalled();
+    expect(mockGet).not.toHaveBeenCalled();
   });
 });
 

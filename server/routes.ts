@@ -20,12 +20,7 @@ import { ObjectStorageService, objectStorageClient, StorageUnavailableError, inf
 import { resolveMealImageStorageContext } from "./services/mealImageBucket";
 import { processMealImageForSave } from "./services/imageLifecycle";
 import { mediaAssets as mediaAssetsTable } from "./db/schema/mediaAssets";
-import {
-  decideImageDeliveryRecovery,
-  publicObjectPathFromUrl,
-  publicObjectUrlForKey,
-  type DeliveryProbe,
-} from "./services/imageDeliveryRecovery";
+import { savedMealImageDelivery } from "./routes/savedMealImageDelivery";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { registerCreatorRoutes } from "./routes/creator";
 import { requireAuth, AuthenticatedRequest } from "./middleware/requireAuth";
@@ -747,121 +742,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // can reuse an existing media variant before the asset is marked unavailable.
   // This endpoint intentionally NEVER generates an image — recovery must not
   // spend on DALL-E while an authoritative stored variant may still exist.
-  app.post("/api/media/image-delivery-recovery", requireAuth, async (req, res) => {
-    const parsed = z.object({
-      imageUrl: z.string().min(1).max(2_048),
-      savedMealId: z.string().min(1),
-      mediaAssetId: z.string().min(1),
-    }).safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({ error: "An owned saved meal image is required" });
-    }
-
-    const { imageUrl: failedUrl, savedMealId, mediaAssetId } = parsed.data;
-    const failedPath = publicObjectPathFromUrl(failedUrl);
-    if (!failedPath) {
-      return res.status(400).json({ error: "Only first-party Object Storage URLs can be recovered" });
-    }
-
-    // A public Object Storage URL is not authorization. Bind it to the
-    // caller's current saved-meal asset before probing or changing lifecycle
-    // state, matching the durable regeneration queue's ownership invariant.
-    const [savedMeal] = await db
-      .select({ id: savedMealsTable.id, mediaAssetId: savedMealsTable.mediaAssetId })
-      .from(savedMealsTable)
-      .where(and(
-        eq(savedMealsTable.id, savedMealId),
-        eq(savedMealsTable.userId, req.authUser!.id),
-      ))
-      .limit(1);
-    if (!savedMeal || savedMeal.mediaAssetId !== mediaAssetId) {
-      return res.status(404).json({ error: "Saved meal image was not found" });
-    }
-
-    const [asset] = await db
-      .select({
-        id: mediaAssetsTable.id,
-        thumbnailUrl: mediaAssetsTable.thumbnailUrl,
-        displayUrl: mediaAssetsTable.displayUrl,
-        originalObjectKey: mediaAssetsTable.originalObjectKey,
-      })
-      .from(mediaAssetsTable)
-      .where(eq(mediaAssetsTable.id, mediaAssetId))
-      .limit(1);
-    if (!asset || (asset.thumbnailUrl !== failedUrl && asset.displayUrl !== failedUrl)) {
-      return res.status(409).json({ error: "Reported URL is not the saved meal's current image" });
-    }
-
-    const objectStorage = new ObjectStorageService();
-    const probe = async (url: string): Promise<DeliveryProbe> => {
-      const objectPath = publicObjectPathFromUrl(url);
-      if (!objectPath) return "missing";
-      try {
-        return (await objectStorage.resolvePublicObjectPath(objectPath)) ? "available" : "missing";
-      } catch (error) {
-        if (error instanceof StorageUnavailableError) return "unavailable";
-        console.error("[image-delivery-recovery] Object Storage probe failed:", error);
-        return "unavailable";
-      }
-    };
-
-    try {
-      const failedProbe = await probe(failedUrl);
-      if (failedProbe !== "missing") {
-        const decision = decideImageDeliveryRecovery({ failedUrl, failedProbe });
-        return res.json({ ...decision, retryAfterMs: 1_000 });
-      }
-
-      const candidates = [
-        asset.thumbnailUrl,
-        asset.displayUrl,
-        publicObjectUrlForKey(failedUrl, asset.originalObjectKey),
-      ].filter((url): url is string => Boolean(url && url !== failedUrl));
-
-      let alternate: { url: string; probe: DeliveryProbe } | null = null;
-      for (const candidate of candidates) {
-        const candidateProbe = await probe(candidate);
-        alternate = { url: candidate, probe: candidateProbe };
-        if (candidateProbe !== "missing") break;
-      }
-
-      const decision = decideImageDeliveryRecovery({ failedUrl, failedProbe, alternate });
-      if (decision.status === "recovered") {
-        const replacement = decision.imageUrl;
-        await db.update(mediaAssetsTable).set({
-          ...(asset.thumbnailUrl === failedUrl ? { thumbnailUrl: replacement } : {}),
-          ...(asset.displayUrl === failedUrl ? { displayUrl: replacement } : {}),
-          updatedAt: new Date(),
-        }).where(eq(mediaAssetsTable.id, asset.id));
-      }
-
-      if (decision.status === "unavailable" && decision.reason === "missing") {
-        // Preserve the canonical URL for the subsequent authenticated,
-        // recipe-aware regeneration request to bind against. The queue will
-        // replace it only after ownership and current-asset checks pass.
-        await db.update(mediaAssetsTable).set({
-          status: "failed",
-          validationStatus: "failed",
-          processingError: "delivery_missing",
-          retryCount: sql`COALESCE(${mediaAssetsTable.retryCount}, 0) + 1`,
-          nextRetryAt: new Date(Date.now() + 5 * 60 * 1000),
-          updatedAt: new Date(),
-        }).where(eq(mediaAssetsTable.id, asset.id));
-      }
-
-      console.log(JSON.stringify({
-        event: "meal_image_delivery_recovery",
-        outcome: decision.status,
-        reason: decision.status === "unavailable" ? decision.reason : undefined,
-        hadAlternate: Boolean(alternate),
-      }));
-      return res.json({ ...decision, retryAfterMs: decision.status === "retry" ? 1_000 : undefined });
-    } catch (error) {
-      console.error("[image-delivery-recovery] Failed to evaluate image delivery:", error);
-      // A diagnostic endpoint must never turn a broken image into a retry loop.
-      return res.status(503).json({ error: "Image recovery check temporarily unavailable", retryable: true });
-    }
-  });
+  app.post("/api/media/image-delivery-recovery", requireAuth, savedMealImageDelivery);
 
   // ⚡ PRIORITY ROUTE: Classic Builder - MUST BE FIRST before any middleware
   app.post("/api/meal-plan/generate", requireAuth, async (req, res) => {

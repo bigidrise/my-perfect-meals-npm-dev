@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { get, post } from "@/lib/api";
+import { post } from "@/lib/api";
 import { isFirstPartyPermanentImageUrl } from "@shared/mediaImageUrls";
 
 export type ImageSourceType = "beverage" | "dessert" | "snack" | "sushi" | "meal";
@@ -97,7 +97,7 @@ interface MealImageSlotProps {
   sourceType?: ImageSourceType;
   /** Recipe contract used to safely regenerate a confirmed-broken image. */
   ingredients?: Array<string | { name?: string; item?: string }>;
-  /** Present for saved meals, so recovery can replace the persisted asset. */
+  /** Bind read-only delivery checks to the saved meal's owned media asset. */
   savedMealId?: string;
   mediaAssetId?: string | null;
   boardTarget?: {
@@ -235,7 +235,7 @@ export function MealImageSlot({
 
       // Object Storage can distinguish a 404 from a temporary delivery outage
       // and can offer a surviving thumbnail/display/original variant. Do that
-      // no-cost recovery before considering image generation.
+      // read-only delivery check. Returned variants affect this view only.
       if (imageUrl?.startsWith("/public-objects/")) {
         const delivery = await post<{
           status: "retry" | "recovered" | "unavailable";
@@ -258,60 +258,12 @@ export function MealImageSlot({
         }
       }
 
-      // Only confirmed-missing Object Storage objects (or legacy first-party
-      // S3 URLs that have no Object Storage probe) reach the paid, recipe-aware
-      // regeneration queue.
-      const queued = await post<{ accepted: boolean; recoveryId?: string }>(
-        "/api/meal-images/recover",
-        {
-          imageUrl,
-          mealName,
-          ingredients,
-          sourceType: resolvedType === "sushi" ? "meal" : resolvedType,
-          savedMealId,
-          mediaAssetId,
-        },
-      );
-
-      if (!queued.accepted || !queued.recoveryId) {
-        if (canUpdate()) {
-          setRecoveryState("idle");
-          setFailed(true);
-        }
-        return;
+      // Viewing a saved meal never authorizes generation, persistence or cache
+      // invalidation. Missing, unsupported and legacy S3 images stay unchanged.
+      if (canUpdate()) {
+        setRecoveryState("idle");
+        setFailed(true);
       }
-
-      // Polling observes the one background generation job; it does not start
-      // another generation. Once ready, the image element receives exactly one
-      // replacement URL and will never loop if that URL also fails.
-      const poll = async (attempt: number): Promise<void> => {
-        try {
-          const recovery = await get<{ status: "pending" | "ready" | "failed"; imageUrl?: string }>(
-            `/api/meal-images/recover/${queued.recoveryId}`,
-          );
-          if (!canUpdate()) return;
-          if (recovery.status === "ready" && recovery.imageUrl) {
-            setRecoveredUrl(recovery.imageUrl);
-            setRecoveryState("idle");
-            setFailed(false);
-            return;
-          }
-          if (recovery.status === "failed" || attempt >= 119) {
-            setRecoveryState("idle");
-            setFailed(true);
-            return;
-          }
-        } catch {
-          if (canUpdate()) {
-            setRecoveryState("idle");
-            setFailed(true);
-          }
-          return;
-        }
-        window.setTimeout(() => void poll(attempt + 1), 1_000);
-      };
-
-      void poll(0);
     } catch {
       if (canUpdate()) {
         setRecoveryState("idle");
