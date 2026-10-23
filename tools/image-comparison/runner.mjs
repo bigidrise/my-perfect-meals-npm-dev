@@ -6,7 +6,8 @@ const systemClock = { now: () => Date.now(), set: (fn, ms) => setTimeout(fn, ms)
 const generationUsage = { input_tokens: 1000, input_tokens_details: { text_tokens: 1000, image_tokens: 0 }, output_tokens: 1000, total_tokens: 2000 };
 const verificationUsage = { prompt_tokens: 2000, completion_tokens: 60, total_tokens: 2060 };
 
-// Declarative scenarios, never injected transport callbacks. No live adapter exists.
+// Offline wrapper uses declarative scenarios. The separately gated live adapter
+// injects transport only into the shared engine, never into the offline CLI.
 function simulate(stage, script, signal, clock, index, state) {
   const spec = script ?? {};
   state.inFlight++;
@@ -37,11 +38,13 @@ function simulate(stage, script, signal, clock, index, state) {
     if (spec.delayMs) timer = clock.set(complete, spec.delayMs); else complete();
   });
 }
-async function bounded(stage, spec, deadline, clock, state, index) {
+async function bounded(stage, spec, deadline, clock, state, index, transport, request, cell) {
   const start = clock.now(), controller = new AbortController();
   const stop = {};
   let timer;
-  const pending = simulate(stage, spec, controller.signal, clock, index, state);
+  const pending = transport
+    ? Promise.resolve().then(() => transport(stage, request, cell, controller.signal))
+    : simulate(stage, spec, controller.signal, clock, index, state);
   const timeout = new Promise(resolve => {
     timer = clock.set(() => { controller.abort(); resolve(stop); }, Math.max(0, deadline - start));
   });
@@ -57,6 +60,10 @@ async function bounded(stage, spec, deadline, clock, state, index) {
 }
 
 export function createOfflineHarness(manifest, { clock = systemClock } = {}) {
+  return createComparisonEngine(manifest, { clock });
+}
+
+export function createComparisonEngine(manifest, { clock = systemClock, transport, mode = "OFFLINE_FIXTURES_ONLY", saveReview } = {}) {
   // Clone before freezing: a caller cannot change prompt bytes during execution.
   const frozenManifest = deepFreeze(structuredClone(manifest));
   const plan = comparisonPlan(frozenManifest);
@@ -67,7 +74,7 @@ export function createOfflineHarness(manifest, { clock = systemClock } = {}) {
       if (used) throw new Error("Harness already consumed; no resume or retry");
       used = true;
       const report = {
-        mode: "OFFLINE_FIXTURES_ONLY", paidCalls: 0, generationRequests: 0, verificationRequests: 0,
+        mode, ...(transport ? {} : { paidCalls: 0 }), generationRequests: 0, verificationRequests: 0,
         manifestSha256: frozenManifest.digest, requestSettings: frozenManifest.settings, limits: LIMITS,
         pricingBasis: {
           reviewedDate: "2026-10-23", currency: "USD", processing: "Standard",
@@ -99,7 +106,8 @@ export function createOfflineHarness(manifest, { clock = systemClock } = {}) {
         assertRequest("generation", cell.generation, cell);
         report.generationRequests++;
         const gen = await bounded("generation", scenarios[cell.id]?.generation,
-          Math.min(overallEnd, start + LIMITS.generationMs), clock, state, report.generationRequests);
+          Math.min(overallEnd, start + LIMITS.generationMs), clock, state, report.generationRequests,
+          transport, cell.generation, cell);
         record.generation = { status: gen.outcome, latencyMs: gen.latencyMs, cancellation: gen.cancellation };
         if (gen.outcome === "uncertain") {
           record.generation.reason = gen.reason;
@@ -138,7 +146,8 @@ export function createOfflineHarness(manifest, { clock = systemClock } = {}) {
                 if (report.verificationRequests >= LIMITS.verificationRequests) throw new Error("Verification limit");
                 report.verificationRequests++;
                 const ver = await bounded("verification", scenarios[cell.id]?.verification,
-                  Math.min(overallEnd, clock.now() + LIMITS.verificationMs), clock, state, report.verificationRequests);
+                  Math.min(overallEnd, clock.now() + LIMITS.verificationMs), clock, state, report.verificationRequests,
+                  transport, request, cell);
                 record.verification = { status: ver.outcome, model: VERIFIER, latencyMs: ver.latencyMs, cancellation: ver.cancellation };
                 if (ver.outcome === "uncertain") {
                   record.verification.reason = ver.reason; report.accountingUncertain = true; report.stopReason = ver.reason;
@@ -157,6 +166,11 @@ export function createOfflineHarness(manifest, { clock = systemClock } = {}) {
                   if (record.verification.status === "unavailable") report.stopReason = "verification_unavailable";
                 }
               }
+              if (saveReview && !report.stopReason && clock.now() < overallEnd) {
+                try {
+                  record.reviewArtifact = saveReview(cell, Buffer.from(image, "base64"));
+                } catch { report.stopReason = "review_artifact_failed"; }
+              }
             }
           }
         }
@@ -168,7 +182,8 @@ export function createOfflineHarness(manifest, { clock = systemClock } = {}) {
         if (clock.now() > overallEnd) report.stopReason = "overall_deadline";
         if (report.stopReason) break;
       }
-      report.maxInFlight = state.maxInFlight;
+      report.maxInFlight = transport ? Math.min(1, report.generationRequests) : state.maxInFlight;
+      if (transport) report.potentialPaidDispatches = report.generationRequests + report.verificationRequests;
       return deepFreeze(report);
     },
   });

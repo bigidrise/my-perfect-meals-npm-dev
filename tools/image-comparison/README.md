@@ -1,9 +1,11 @@
-# Offline OpenAI image comparison harness
+# Isolated OpenAI image comparison tooling
 
-Development tooling only. **There is no live adapter, credential loading, or
-paid-execution flag.** This tool cannot execute even one real API request.
-Adding a live transport requires a separate code review and explicit approval.
-It is not imported by the application and is excluded from deployment files.
+Development tooling only. The default tool is still **offline only**. A separate
+live adapter is prepared but has never been executed against OpenAI. The offline
+CLI cannot enable it with flags or environment settings. The live CLI requires
+all of the one-shot authorization gates below. No authorization has been issued
+or file created by this preparation stage.
+Nothing here is imported by the application; all tooling is excluded from deployment.
 
 ## Run offline
 
@@ -20,8 +22,8 @@ storage. All images are the same built-in one-pixel PNG fixture. Offline results
 are **not** evidence about either candidate model's quality, access, latency,
 verification accuracy, or real token consumption.
 
-Arguments, including `--live`, are rejected. No SDK or HTTP implementation is
-present. Only declarative fixture responses can be simulated. The runtime import
+Offline arguments, including `--live`, are rejected. The offline CLI has no SDK
+or HTTP implementation. Only declarative fixture responses can be simulated. Its import
 graph is restricted to this directory and built-in hashing; the CLI alone reads
 the committed manifest. There are no application registry, database, storage,
 saved-meal, recovery, or publication imports. Prompt generation is a separate
@@ -33,7 +35,12 @@ Jest test with application IO dependencies replaced by throwing mocks.
 quantities, preparation, servings and review criteria.
 `frozen-prompts.json` contains the exact existing application generation and
 verification prompts, per-prompt SHA-256 hashes, source-file fingerprints and an
-aggregate manifest digest. Each recipe's two candidate requests use identical
+aggregate manifest digest. The original builder outputs and Phase 2B hashes
+are retained alongside the comparison-only corrected text and per-recipe change
+records. `phase2b-prompts.json` is the unchanged historical baseline. The pure
+`prompt-review.mjs` corrects presentation, incorporates the unchanged method and
+yield, and adds explicit visible requirements/exclusions without changing the
+application builder. Each recipe's two candidate requests use identical
 prompt bytes. Candidate order alternates by recipe; outputs are not selectively
 retried. The manifest is validated and cloned/frozen before use.
 
@@ -68,7 +75,7 @@ The committed manifest is source evidence, not a generated-image asset.
   `max_tokens: 60`, low image detail and the frozen existing validation prompt.
   Only a strict `PASS` or `FAIL:` is accepted. Unlike the legacy application
   parser, unexpected output is unavailable, not implicitly passed.
-* At most 16 generations and 16 verifications; one simulated call at a time.
+* At most 16 generations and 16 verifications; one call at a time.
   A harness instance is single-use, including after failure. No resume,
   regeneration, recovery, automatic replacement, failover or model selection.
 * On uncertain timeout or transport failure: stop the whole run, request abort
@@ -108,24 +115,90 @@ https://developers.openai.com/api/docs/guides/image-generation
 https://developers.openai.com/api/docs/models/gpt-image-2.5-flare
 https://developers.openai.com/api/docs/models/gpt-image-2.5-sunburst
 
-## Review issues before paid execution
+## Comparison-only prompt corrections
 
-1. The existing prompt builder accepts name, ingredient strings and source type;
-   it does **not** accept method or servings. These remain fixture evidence;
-   they were not silently appended, inferred or introduced as new parameters.
-2. Exact existing prompts can contradict their fixtures: the salad identity
-   calls for fresh salad while the generic meal anchor demands a hot/warm dish.
-   The breakfast anchor also mentions eggs/proteins generically.
-   Review frozen text before treating output differences as model failures.
-3. No pediatric age/clinical context was invented for the pancake fixture.
-   This is not a clinical or actual-child validation.
-4. No documented hard all-in upper charge is established, nor an image output
-   token cap. The $0.25 reservation is a proposed risk allowance only. Explicit
-   approval of this risk and actual usage reconciliation is still required.
-5. Both candidates and the verifier remain untested on real paid execution.
-   Older web/iOS behavior and application activation are unchanged and untested
-   by this isolated tooling.
-6. A paid adapter must preserve all these guards, isolate review-only image
-   handling without application uploads, and obtain approval for any local
-   image-file output. Blind quality review is not implemented by the offline
-   metadata runner. Nothing in this package is an authorization to run it live.
+All eight prompts replace generic presentation instructions with the finalized
+method, original recipe yield, one-serving presentation and explicit exclusions.
+The original ingredient strings/quantities and authorization/identity rules
+remain unchanged. The misleading "required visible" heading is relabeled as
+authorized ingredients: incorporated water/oil/flour/egg need not be shown as
+separate raw food. The salad is fresh rather than hot/warm; chicken remains
+cooked. Pancake egg and banana are incorporated rather than side dishes.
+Verification retains the original fidelity checks and adds only observable
+preparation/presentation requirements, not gram/nutrition/clinical inference.
+The original and corrected bytes, old/new hashes and change explanations are
+in the manifest and generated review document.
+
+## Exact authorization requirements for a future paid test
+
+**Do not create approval files or execute the live CLI until the user separately
+approves paid execution of the corrected manifest.** Preparation approval is not
+execution approval. No npm script, workflow, server route or test activates it.
+
+After that explicit approval, create ONE private (mode 0600) JSON file at
+`generated-artifacts/image-comparison/authorizations/<run-id>.json`. It must contain:
+
+* `kind`: `explicit-image-comparison-authorization`
+* `context`: `development`
+* `manifestSha256`: the exact current corrected manifest digest
+* `models`, `settings`, `limits`: exact copies of the frozen models/settings and
+  LIMITS in `recipes.mjs`, with no broadened scope
+* `verifier`: `gpt-4o`
+* `acceptsNonGuaranteedBillingCap`: `true`
+* `allowTemporaryPrivateArtifacts`: `true`
+* A unique lowercase alphanumeric/hyphen `runId` (8–64 characters)
+* `expiresAt`: a valid timestamp after execution start and at most one hour away
+
+No API key goes in that file. The credential is loaded from the existing
+`OPENAI_API_KEY` only at validated dispatch and never reported or logged.
+No secret values were accessed during preparation.
+
+Direct invocation additionally requires the process-only
+`IMAGE_COMPARISON_CONTEXT=development`, a non-production/non-test process, no
+deployment/test-runner marker, and the exact CLI arguments:
+
+```text
+node tools/image-comparison/live-cli.mjs \
+  --execute-explicitly-authorized-comparison \
+  generated-artifacts/image-comparison/authorizations/<run-id>.json
+```
+
+This is documentation, not an instruction or authorization to execute now.
+The CLI atomically writes a `.consumed` marker before credential loading or
+dispatch. It remains after rejection, errors, unknown billing or crashes.
+It conservatively retains the full $4 risk claim; it does not assert a $4 charge.
+No resume, automatic retry or reuse is permitted. Any replacement authorization
+requires renewed user approval, not merely changing the run ID.
+
+`live-adapter.mjs` requires explicit dependency injection, has no default fetch or
+credential source, allows only the two fixed HTTPS POST endpoints, disables
+redirect following, validates exact request bytes/settings/order, caps response
+size and validates PNG dimensions/container/checksums and bounded decompression.
+Its in-flight and dispatch counters are independent of the engine's counters.
+Uncertain transport/abort stops the whole run; no late artifact writes occur.
+Actual provider token/usage schema compatibility remains unverified until a
+separately authorized real request.
+
+## Temporary review artifacts
+
+The authorized live CLI alone can create:
+`generated-artifacts/image-comparison/private-runs/<run-id>/`
+with private 0700 directories, 0600 PNGs/report, exclusive creation/no overwrites
+and no symlink traversal. No URLs, app uploads, saved-meal associations or
+application persistence APIs exist. No images were created by this preparation
+except synthetic test fixtures in temporary directories, removed after tests.
+Review deletion is manual, recommended within 24 hours. Preserve authorization
+consumed markers even after deleting images. No scheduler or release changes
+were added. Disk/process failure can leave partial artifacts; there is no
+automatic resumption or claim of distributed billing enforcement.
+
+## Remaining boundaries
+
+* No pediatric clinical/age context was invented. No clinical certification.
+* No documented hard all-in cost bound or image output-token cap was established.
+  $0.25 is an acknowledged risk allowance; $5 is not a guaranteed billing cap.
+* Paid execution, real quality/latency/cost and candidate/verifier access remain
+  untested. Account usage/billing reconciliation is still required after a test.
+* Installed web/iOS compatibility and application activation remain separate.
+* The corrected prompts are comparison-only. Nothing changes the application
+  image generator, active registry, nutrition calculations or saved photographs.

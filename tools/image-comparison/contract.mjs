@@ -14,7 +14,7 @@ export function manifestDigest(manifest) {
   return sha256(JSON.stringify(content));
 }
 export function validateManifest(manifest) {
-  if (manifest?.version !== 1 || manifest.digest !== manifestDigest(manifest) ||
+  if (manifest?.version !== 2 || manifest.digest !== manifestDigest(manifest) ||
       JSON.stringify(manifest.models) !== JSON.stringify(MODELS) ||
       JSON.stringify(manifest.settings) !== JSON.stringify(SETTINGS) ||
       manifest.recipes?.length !== 8) throw new Error("Frozen manifest mismatch");
