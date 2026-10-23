@@ -43,6 +43,12 @@ function isRecoverablePermanentImageUrl(url: string | undefined | null): boolean
   return isFirstPartyPermanentImageUrl(url, process.env.S3_BUCKET_NAME);
 }
 
+function isSuccessfulRecoveryImageUrl(url: string | undefined | null): boolean {
+  // First-party classification also includes intentional static illustrations.
+  // A generic fallback is not a recovered photograph and must never replace it.
+  return isRecoverablePermanentImageUrl(url) && !url?.startsWith("/images/fallback/");
+}
+
 function normalizeIngredients(ingredients: IngredientInput[] | undefined): string[] {
   return (ingredients ?? [])
     .map((ingredient) => typeof ingredient === "string"
@@ -89,7 +95,12 @@ function toRecoveryResult(job: {
   resultImageUrl: string | null;
   error: string | null;
 }): MealImageRecoveryResult {
-  if (job.status === "ready") return { status: "ready", imageUrl: job.resultImageUrl ?? undefined };
+  if (job.status === "ready") {
+    if (!isSuccessfulRecoveryImageUrl(job.resultImageUrl)) {
+      return { status: "failed", error: "Image recovery did not produce a permanent non-fallback image" };
+    }
+    return { status: "ready", imageUrl: job.resultImageUrl ?? undefined };
+  }
   if (job.status === "failed") return { status: "failed", error: job.error ?? "Image recovery failed" };
   return { status: "pending" };
 }
@@ -97,7 +108,7 @@ function toRecoveryResult(job: {
 async function failJob(jobId: string, leaseToken: string, error: unknown): Promise<void> {
   const message = (error instanceof Error ? error.message : String(error || "Image recovery failed")).slice(0, 300);
   const failed = await db.update(mealImageRecoveryJobs)
-    .set({ status: "failed", error: message, leaseExpiresAt: null, updatedAt: new Date() })
+    .set({ status: "failed", resultImageUrl: null, error: message, leaseExpiresAt: null, updatedAt: new Date() })
     .where(and(
       eq(mealImageRecoveryJobs.id, jobId),
       eq(mealImageRecoveryJobs.status, "processing"),
@@ -158,12 +169,12 @@ async function runMealImageRecoveryJob(jobId: string): Promise<void> {
     const request: MealImageRequest = { mealName: meal.title, ingredients, sourceType };
     await generator.invalidateMealImageCache(request);
     const imageUrl = await generator.generateMealImageUnified(meal.title, ingredients, sourceType);
-    if (!isRecoverablePermanentImageUrl(imageUrl)) {
-      throw new Error("Regeneration did not produce a permanent Object Storage URL");
+    if (!isSuccessfulRecoveryImageUrl(imageUrl)) {
+      throw new Error("Image recovery did not produce a permanent non-fallback image");
     }
 
     const persisted = await processMealImageForSave(imageUrl, meal.title);
-    if (!persisted.imageUrl || !persisted.mediaAssetId) {
+    if (!isSuccessfulRecoveryImageUrl(persisted.imageUrl) || !persisted.mediaAssetId) {
       throw new Error("Regenerated image could not be persisted");
     }
 
