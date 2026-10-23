@@ -6,6 +6,10 @@ import { db } from "../db";
 import { users } from "../../shared/schema";
 import { eq } from "drizzle-orm";
 import { startupMaintenanceEnabled } from "../bootstrap/developmentStartupMaintenance";
+import {
+  developmentShutdownEnabled,
+  registerDevelopmentShutdownResource,
+} from "../bootstrap/developmentShutdown";
 
 // Redis connection temporarily disabled to fix ENOTFOUND errors
 let redis: any = null;
@@ -116,12 +120,18 @@ async function sendSMSNotification(userId: string, slot: string) {
   }
 }
 
-// Cleanup worker on shutdown
-process.on('SIGTERM', async () => {
+// Development cleanup is awaited by its HTTP/Vite shutdown coordinator.
+// Preserve the existing signal behavior in every other runtime.
+async function closeNotificationResources() {
   if (notifyWorker) {
     await notifyWorker.close();
   }
   if (redis) {
     redis.disconnect();
   }
-});
+}
+if (developmentShutdownEnabled(process.env)) {
+  registerDevelopmentShutdownResource("notifications", closeNotificationResources);
+} else {
+  process.on("SIGTERM", closeNotificationResources);
+}
