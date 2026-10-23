@@ -8043,11 +8043,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!name || !type) {
         return res.status(400).json({ error: 'Name and type are required' });
       }
-      const { generateMealImageUnified } = await import("./services/mealImageGenerator");
+      const { generateMealImageResult } = await import("./services/mealImageGenerator");
       const sourceType = type === "beverage" ? "beverage" : "meal";
-      const imageUrl = await generateMealImageUnified(name, ingredients ?? [], sourceType);
+      const image = await generateMealImageResult(name, ingredients ?? [], sourceType);
+      const imageUrl = image.url;
       if (imageUrl) {
-        res.json({ imageUrl });
+        res.json({ imageUrl, imageResult: image.imageResult });
       } else {
         res.status(500).json({ error: 'Failed to generate image' });
       }
@@ -8063,7 +8064,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { mealName, ingredients = [], mealType, sourceType, pediatricContext } = req.body;
       if (!mealName) return res.status(400).json({ error: "mealName is required" });
-      const { generateMealImageUnified, normalizeMealTypeToSourceType } = await import("./services/mealImageGenerator");
+      const { generateMealImageResult, normalizeMealTypeToSourceType } = await import("./services/mealImageGenerator");
       const { pediatricImageContextSchema, recipeImageStatus } = await import("../shared/pediatricMealImage");
       const parsedPediatric = pediatricContext === undefined
         ? undefined : pediatricImageContextSchema.safeParse(pediatricContext);
@@ -8116,13 +8117,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (glucoseFinding) {
         return res.status(422).json({ error: glucoseFinding.message, code: "GLUCOSE_PRODUCE_NOT_ALLOWED" });
       }
-      const imageUrl = await generateMealImageUnified(
+      const image = await generateMealImageResult(
         mealName,
         ingredientNames,
         resolvedSourceType,
         parsedPediatric?.success ? parsedPediatric.data : undefined
       );
-      res.json({ imageUrl, imageStatus: recipeImageStatus(imageUrl) });
+      res.json({ imageUrl: image.url, imageStatus: recipeImageStatus(image.url), imageResult: image.imageResult });
     } catch (err: any) {
       console.error("❌ /api/meals/generate-image error:", err);
       res.status(500).json({ error: "Image generation failed" });

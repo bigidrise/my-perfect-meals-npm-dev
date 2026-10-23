@@ -6,9 +6,12 @@
 // Layer 3: DB persistence (meal_image_cache) — survives server restarts
 // Layer 4: Semantic fallback — never shows a wrong image, never returns null
 //
-// CRITICAL: Snacks use STATIC images ONLY (no DALL-E calls)
+// New requests obey the centralized model, verification and spending policy.
 
 import OpenAI from 'openai';
+import { ImageOperation } from "./images/imageReliability";
+import { APPROVED_IMAGE_MODEL, IMAGE_LIMITS } from "./images/imageModelRegistry";
+import { isPlaceholderImage, placeholderResult, type ImageResult } from "../../shared/imageResult";
 import crypto from 'crypto';
 import { db } from '../db';
 import { mealImageCache } from '../db/schema/mealImageCache';
@@ -53,7 +56,7 @@ function getOpenAI(): OpenAI {
     if (!process.env.OPENAI_API_KEY) {
       throw new Error("OPENAI_API_KEY is required");
     }
-    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, maxRetries: 0 });
   }
   return _openai;
 }
@@ -524,7 +527,7 @@ function createDishVisualRequirements(context?: CreateDishImageContext): string[
   return requirements;
 }
 
-export const MAX_IMAGE_GENERATION_ATTEMPTS = 3;
+export const MAX_IMAGE_GENERATION_ATTEMPTS = IMAGE_LIMITS.maxAttempts;
 
 function selectPrimaryMainFood(ingredients: string[], savorySides: string[]): string {
   const sideText = normalizedFoodText(savorySides.join(" "));
@@ -785,7 +788,7 @@ export function buildStableCacheKey(
 // matches the current request and it was not a validation failure.
 interface MemCacheEntry {
   url: string;
-  validationStatus: string | null;   // PASS | SKIPPED | null (fallback/legacy)
+  validationStatus: string | null;   // Only PASS is servable for new generation requests.
   recipeSignature: string | null;
 }
 const memCache = new Map<string, MemCacheEntry>();
@@ -793,17 +796,17 @@ const memCache = new Map<string, MemCacheEntry>();
 /**
  * Servability gate shared by memory + DB cache lookups.
  * A cached row may be served only when:
- *  - it was validated (PASS) or auditable-skipped (SKIPPED) — never FAIL, never
+ *  - it was validated (PASS) — never SKIPPED, FAIL, or
  *    a legacy NULL-validation row; and
  *  - its stored recipe signature matches the current request's signature.
  * Exported for the regression suite.
  */
 export function isCacheRowServable(
-  row: { validationStatus?: string | null; recipeSignature?: string | null },
+  row: { validationStatus?: string | null; recipeSignature?: string | null; url?: string; imageUrl?: string },
   currentSignature: string
 ): boolean {
   const status = row.validationStatus ?? null;
-  if (status !== "PASS" && status !== "SKIPPED") return false;
+  if (status !== "PASS" || isPlaceholderImage(row.url ?? row.imageUrl)) return false;
   return row.recipeSignature === currentSignature;
 }
 
@@ -812,23 +815,10 @@ export function isCacheRowServable(
 // If two callers request the same image while a DALL-E call is already running
 // (e.g. server pre-warm + client request arriving in parallel), they share the
 // single in-flight promise instead of spawning two DALL-E calls.
-// Entries are removed when the promise settles (success or failure).
+// Completed work is removed except uncertain timeout tombstones.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const inflightRequests = new Map<string, Promise<string>>();
-
-// ─────────────────────────────────────────────────────────────────────────────
-// DALL-E TIMEOUT HELPER
-// ─────────────────────────────────────────────────────────────────────────────
-
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`Image generation timed out after ${ms}ms`)), ms)
-    ),
-  ]);
-}
+const inflightRequests = new Map<string, Promise<GeneratedImage>>();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CORE TYPES (kept for backward compatibility with mealImages route)
@@ -861,6 +851,7 @@ export interface MealImageRequest {
 
 export interface GeneratedImage {
   url: string;
+  imageResult: ImageResult;
   prompt: string;
   templateRef?: string;
   hash: string;
@@ -872,6 +863,26 @@ export interface GeneratedImage {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function generateMealImage(request: MealImageRequest): Promise<GeneratedImage> {
+  const key = buildStableCacheKey(
+    normalizeMealName(request.mealName), request.ingredients, request.sourceType,
+    request.pediatricContext, request.createDishContext,
+  );
+  const existing = inflightRequests.get(key);
+  if (existing) return existing;
+  const work = generateMealImageInternal(request).then(result => {
+    // Joining applies to every entry point, including single/batch generation.
+    // A timeout cannot authorize a second possibly billed request.
+    if (result.imageResult.cancellation !== "requested_unconfirmed") inflightRequests.delete(key);
+    return result;
+  }, error => {
+    inflightRequests.delete(key);
+    throw error;
+  });
+  inflightRequests.set(key, work);
+  return work;
+}
+
+async function generateMealImageInternal(request: MealImageRequest): Promise<GeneratedImage> {
   // NORMALIZATION — must happen before cache key derivation and before prompt construction
   const normalizedName = normalizeMealName(request.mealName);
   const { ingredients, mealType, sourceType, pediatricContext, createDishContext } = request;
@@ -886,6 +897,13 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
     createDishContext,
   );
   const currentSignature = computeRecipeSignature(ingredients);
+  const operation = new ImageOperation(getSemanticFallback(mealName));
+  const cachedResult = (url: string): ImageResult => ({
+    ...placeholderResult(null, "cache_hit"),
+    generation: "succeeded", verification: "passed",
+    persistence: isPermanentUrl(url) ? "durable" : "failed",
+    display: "photograph", url,
+  });
 
   // ── RECIPE CONTRACT REQUIRED — FAIL CLOSED ─────────────────────────────────
   // Without at least one usable ingredient there is no recipe contract to
@@ -898,6 +916,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
     console.warn(`[IMG-VALIDATION-SKIP] No recipe contract (empty ingredients) — serving semantic fallback without caching | meal="${mealName}"`);
     return {
       url: fallback,
+      imageResult: placeholderResult(fallback, "no_recipe_contract"),
       prompt: `Fallback (no recipe contract): ${mealName}`,
       templateRef: request.templateRef,
       hash: cacheKey,
@@ -928,6 +947,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
         console.log(`[IMG-LIFECYCLE:${traceId}] MEM-CACHE HIT | urlType=permanent | meal="${mealName}" | +${Date.now()-_t0}ms`);
         return {
           url: authority.canonicalUrl,
+          imageResult: cachedResult(authority.canonicalUrl),
           prompt: "(memory cache)",
           templateRef: request.templateRef,
           hash: cacheKey,
@@ -939,6 +959,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
       console.log(`[IMG-LIFECYCLE:${traceId}] MEM-CACHE HIT | urlType=${urlType} | meal="${mealName}" | +${Date.now()-_t0}ms`);
       return {
         url: memHit.url,
+        imageResult: cachedResult(memHit.url),
         prompt: "(memory cache)",
         templateRef: request.templateRef,
         hash: cacheKey,
@@ -966,21 +987,24 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
         // Legacy NULL-validation row, FAIL row, or signature mismatch — never
         // serve it; evict and regenerate through the full validation gate.
         console.warn(`[IMG-LIFECYCLE:${traceId}] DB-CACHE EVICT (unvalidated or signature mismatch) | status=${dbRow.validationStatus} | meal="${mealName}"`);
-        try {
-          await db.delete(mealImageCache).where(eq(mealImageCache.cacheKey, cacheKey));
-        } catch {}
+        // Ignore unverifiable cache rows without mutating historical image records.
       } else if (isPermanentUrl(dbRow.imageUrl)) {
         const authority = await validateMealImageAuthority(dbRow.imageUrl);
         if (authority.status !== "available") {
           console.warn(`[IMG-LIFECYCLE:${traceId}] DB-CACHE EVICT (storage ${authority.status}) | meal="${mealName}"`);
-          try {
-            await db.delete(mealImageCache).where(eq(mealImageCache.cacheKey, cacheKey));
-          } catch {}
+          // Delivery uncertainty never authorizes deletion or repair.
+          return {
+            url: getSemanticFallback(mealName),
+            imageResult: placeholderResult(getSemanticFallback(mealName), "storage_unavailable"),
+            prompt: "(stored image unavailable)", hash: cacheKey,
+            templateRef: request.templateRef, createdAt: new Date().toISOString(),
+          };
         } else {
           console.log(`[IMG-LIFECYCLE:${traceId}] DB-CACHE HIT (permanent, validated) | meal="${mealName}" | +${Date.now()-_t0}ms`);
           memCache.set(cacheKey, { url: authority.canonicalUrl, validationStatus: dbRow.validationStatus, recipeSignature: dbRow.recipeSignature });
           return {
             url: authority.canonicalUrl,
+            imageResult: cachedResult(authority.canonicalUrl),
             prompt: dbRow.promptUsed || "(db cache)",
             templateRef: request.templateRef,
             hash: cacheKey,
@@ -989,9 +1013,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
         }
       } else {
         console.warn(`[IMG-LIFECYCLE:${traceId}] DB-CACHE EVICT (stale temp URL) | meal="${mealName}"`);
-        try {
-          await db.delete(mealImageCache).where(eq(mealImageCache.cacheKey, cacheKey));
-        } catch {}
+        // Stale cache rows are not deleted during generation lookup.
       }
     }
   } catch (dbErr) {
@@ -1019,25 +1041,15 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
 
   // ── LAYER 1: CALL DALL-E WITH TIMEOUT ──────────────────────────────────────
   const callDalle = async (dallePrompt: string): Promise<string | null> => {
-    try {
-      const response = await withTimeout(
-        (getOpenAI().images.generate as any)({
-          model: "gpt-image-1",
-          prompt: dallePrompt,
-          n: 1,
-          size: "1024x1024",
-          quality: "low",
-        }),
-        60000
-      );
-      const item = (response as any).data?.[0];
-      if (item?.url) return item.url;
-      if (item?.b64_json) return `data:image/png;base64,${item.b64_json}`;
-      return null;
-    } catch (dalleErr: any) {
-      console.warn(`⚠️ DALL-E failed for "${mealName}": ${dalleErr.message} +${Date.now()-_t0}ms`);
-      return null;
-    }
+    return operation.generate(dallePrompt, (providerPrompt, signal) =>
+      getOpenAI().images.generate({
+        model: APPROVED_IMAGE_MODEL.model,
+        prompt: providerPrompt,
+        n: 1,
+        size: APPROVED_IMAGE_MODEL.size,
+        quality: APPROVED_IMAGE_MODEL.quality,
+      }, { signal, maxRetries: 0 }),
+    );
   };
 
   let imageUrl: string | null = null;
@@ -1050,9 +1062,9 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
   if (!imageUrl) {
     const fallback = getSemanticFallback(mealName);
     console.log(`🛡️ Using semantic fallback for "${mealName}": ${fallback}`);
-    memCache.set(cacheKey, { url: fallback, validationStatus: "SKIPPED", recipeSignature: currentSignature });
     return {
       url: fallback,
+      imageResult: operation.result,
       prompt: `Fallback (generation failed): ${mealName}`,
       templateRef: request.templateRef,
       hash: cacheKey,
@@ -1144,6 +1156,10 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
       // Deliberately NOT written to memCache or DB cache — next request retries fresh.
       return {
         url: fallback,
+        imageResult: {
+          ...operation.result, verification: "failed", display: "placeholder",
+          url: fallback, reason: operation.result.reason ?? "verification_failed",
+        },
         prompt: `Fallback (validation failed: ${validation.reason}): ${mealName}`,
         templateRef: request.templateRef,
         hash: cacheKey,
@@ -1152,6 +1168,20 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
     }
   }
 
+  // Provider success is not recipe verification. Never ingest or cache SKIPPED.
+  if (validation.verdict !== "PASS") {
+    const fallback = getSemanticFallback(mealName);
+    return {
+      url: fallback,
+      imageResult: {
+        ...operation.result, verification: "unavailable", display: "placeholder",
+        url: fallback, reason: operation.result.reason ?? "verification_unavailable",
+      },
+      prompt: finalPrompt, hash: cacheKey, templateRef: request.templateRef,
+      createdAt: new Date().toISOString(),
+    };
+  }
+  operation.result = { ...operation.result, verification: "passed", persistence: "pending" };
   const recipeSignature = currentSignature;
 
   // ── FOREGROUND OBJECT STORAGE PERSIST ───────────────────────────────────
@@ -1163,7 +1193,8 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
   console.log(`[IMG-LIFECYCLE:${traceId}] STORAGE-START | +${Date.now()-_t0}ms`);
   try {
     const ingestionResult = await ingestImageToPermanentStorage(imageUrl, mealName);
-    if (ingestionResult.success && ingestionResult.permanentUrl) {
+    if (ingestionResult.success && ingestionResult.permanentUrl
+      && isPermanentUrl(ingestionResult.permanentUrl) && !isPlaceholderImage(ingestionResult.permanentUrl)) {
       const permanentUrl = ingestionResult.permanentUrl;
       try {
         const cacheRow = {
@@ -1191,6 +1222,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
       console.log(`[IMG-LIFECYCLE:${traceId}] STORAGE-DONE (permanent) | url=${permanentUrl.substring(0, 60)} | +${Date.now()-_t0}ms`);
       return {
         url: permanentUrl,
+        imageResult: { ...operation.result, persistence: "durable", display: "photograph", url: permanentUrl },
         prompt: finalPrompt,
         templateRef: request.templateRef,
         hash: cacheKey,
@@ -1214,6 +1246,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
   }
   return {
     url: imageUrl,
+    imageResult: { ...operation.result, persistence: "failed", display: "photograph", url: imageUrl, reason: "storage_failed" },
     prompt: finalPrompt,
     templateRef: request.templateRef,
     hash: cacheKey,
@@ -1235,6 +1268,7 @@ export async function generateMealImages(requests: MealImageRequest[]): Promise<
       batch.map(req =>
         generateMealImage(req).catch(err => ({
           url: getSemanticFallback(req.mealName),
+          imageResult: placeholderResult(getSemanticFallback(req.mealName), "generation_failed"),
           prompt: `Error: ${err.message}`,
           hash: buildStableCacheKey(
             req.mealName,
@@ -1273,6 +1307,10 @@ export function getCachedImage(request: MealImageRequest): GeneratedImage | null
   if (!isCacheRowServable(entry, computeRecipeSignature(request.ingredients))) return null;
   return {
     url: entry.url,
+    imageResult: {
+      ...placeholderResult(null, "cache_hit"), generation: "succeeded", verification: "passed",
+      persistence: isPermanentUrl(entry.url) ? "durable" : "failed", display: "photograph", url: entry.url,
+    },
     prompt: "(memory cache)",
     templateRef: request.templateRef,
     hash: cacheKey,
@@ -1326,19 +1364,16 @@ export function getImageCacheStats(): { size: number; entries: string[] } {
 // DO NOT pass raw AI descriptions as image prompts.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function generateMealImageUnified(
+export async function generateMealImageResult(
   mealName: string,
   ingredients: Array<string | Record<string, any>> = [],
   sourceType?: ImageSourceType,
   pediatricContext?: PediatricImageContext,
   createDishContext?: CreateDishImageContext,
-): Promise<string> {
-  if (!mealName || !mealName.trim()) {
-    return getSemanticFallback("meal");
-  }
+): Promise<GeneratedImage> {
 
   // NORMALIZATION — applied before cache key and prompt construction
-  const normalizedName = normalizeMealName(mealName);
+  const normalizedName = normalizeMealName(mealName || "meal");
 
   const ingredientNames = ingredients
     .map(i => typeof i === "string" ? i : (i.name || i.item || ""))
@@ -1346,38 +1381,26 @@ export async function generateMealImageUnified(
     .filter(Boolean);
 
   // FAIL CLOSED: no usable recipe contract → semantic fallback, never cached.
-  if (ingredientNames.length === 0) {
-    console.warn(`[IMG-VALIDATION-SKIP] generateMealImageUnified called without ingredients — semantic fallback | meal="${normalizedName}"`);
-    return getSemanticFallback(normalizedName);
-  }
+  // The core returns a typed placeholder for missing ingredient authority.
 
-  // IN-FLIGHT DEDUPLICATION: if an identical request is already running
-  // (e.g. server pre-warm fired by the pipeline + client request arriving
-  // moments later), join the existing promise instead of spawning a second
-  // DALL-E call.
-  const dedupeKey = buildStableCacheKey(
-    normalizedName,
-    ingredientNames,
-    sourceType,
-    pediatricContext,
-    createDishContext,
-  );
-  const existing = inflightRequests.get(dedupeKey);
-  if (existing) {
-    console.log(`⚡ [img-dedup] joining in-flight request for: ${normalizedName}`);
-    return existing;
-  }
-
-  const work = generateMealImage({
+  return generateMealImage({
     mealName: normalizedName,
     ingredients: ingredientNames,
     sourceType,
     pediatricContext,
     createDishContext,
-  }).then(r => r.url).finally(() => {
-    inflightRequests.delete(dedupeKey);
   });
+}
 
-  inflightRequests.set(dedupeKey, work);
-  return work;
+/** Compatibility adapter. The core and new consumers retain the full result.
+ * Existing meal builders can still display the fallback without failing recipes.
+ */
+export async function generateMealImageUnified(
+  mealName: string,
+  ingredients: Array<string | Record<string, any>> = [],
+  sourceType?: ImageSourceType,
+  pediatricContext?: PediatricImageContext,
+  createDishContext?: CreateDishImageContext,
+): Promise<string> {
+  return (await generateMealImageResult(mealName, ingredients, sourceType, pediatricContext, createDishContext)).url;
 }

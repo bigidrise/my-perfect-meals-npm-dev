@@ -12,7 +12,12 @@ jest.mock("../middleware/rateLimit", () => ({
   createApiRateLimit: () => (_req: any, _res: any, next: any) => next(),
 }));
 jest.mock("../utils/getAuthUserId", () => ({ getAuthUserId: () => "mock-parent" }));
-jest.mock("../services/mealImageGenerator", () => ({ generateMealImageUnified: mockGenerate }));
+jest.mock("../services/mealImageGenerator", () => ({
+  generateMealImageResult: async (...args: any[]) => {
+    const url = await mockGenerate(...args);
+    return { url, imageResult: { display: url?.includes("/fallback/") ? "placeholder" : "photograph" } };
+  },
+}));
 jest.mock("../services/humanFoodContext/requestScope", () => ({
   createHumanFoodRequestScope: () => ({ resolve: mockResolve }),
 }));

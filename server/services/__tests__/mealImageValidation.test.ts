@@ -263,7 +263,7 @@ async function run() {
     const sig = computeRecipeSignature(["tuna", "olives"]);
     const otherSig = computeRecipeSignature(["tuna", "olives", "hard-boiled egg"]);
     assert(isCacheRowServable({ validationStatus: "PASS", recipeSignature: sig }, sig), "PASS + matching signature → servable");
-    assert(isCacheRowServable({ validationStatus: "SKIPPED", recipeSignature: sig }, sig), "SKIPPED + matching signature → servable (audited)");
+    assert(!isCacheRowServable({ validationStatus: "SKIPPED", recipeSignature: sig }, sig), "SKIPPED is unverified → never servable");
     assert(!isCacheRowServable({ validationStatus: "FAIL", recipeSignature: sig }, sig), "FAIL row → never servable");
     assert(!isCacheRowServable({ validationStatus: null, recipeSignature: null }, sig), "legacy NULL-validation row → never servable");
     assert(!isCacheRowServable({ validationStatus: "PASS", recipeSignature: otherSig }, sig), "validated for a different recipe contract → not servable");

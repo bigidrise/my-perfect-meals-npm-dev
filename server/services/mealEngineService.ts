@@ -6,7 +6,9 @@ import {
   UnitPrefs,
   roundUnitsInIngredients,
 } from "./validators";
-import { chatJson, genImage } from "../utils/openaiSafe";
+import { chatJson } from "../utils/openaiSafe";
+import { generateMealImageResult, normalizeMealTypeToSourceType } from "./mealImageGenerator";
+import { placeholderResult, type ImageResult } from "../../shared/imageResult";
 import { applyCreatorTransformation } from "./creatorSystems/applyCreatorTransformation";
 import { type CreatorSystemConfig } from "./creatorSystems/registry";
 
@@ -113,6 +115,7 @@ export interface Meal {
   };
   servings: number;
   imageUrl?: string;
+  imageResult?: ImageResult;
   source: EngineSource;
   compliance: {
     allergiesCleared: boolean;
@@ -496,9 +499,17 @@ export class MealEngineService {
       process.env.DISABLE_IMAGE_GEN !== "true";
 
     if (shouldImage) {
-      meal.imageUrl = await genImage(
-        `High-fidelity, realistic photo of ${meal.name}. Natural lighting, accurate plating.`,
-      );
+      try {
+        const image = await generateMealImageResult(
+          meal.name, meal.ingredients, normalizeMealTypeToSourceType(req.mealType),
+        );
+        meal.imageUrl = image.url;
+        meal.imageResult = image.imageResult;
+      } catch {
+        // Recipe creation remains usable if the image subsystem is unavailable.
+        meal.imageUrl = undefined;
+        meal.imageResult = placeholderResult(null, "image_unavailable");
+      }
     }
 
     // 6) Persist & return (only for authenticated users)

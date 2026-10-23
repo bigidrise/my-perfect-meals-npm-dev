@@ -20,6 +20,10 @@ import crypto from "crypto";
 jest.mock("../services/imageLifecycle", () => ({
   ingestImageToPermanentStorage: jest.fn(),
 }));
+jest.mock("../db", () => ({ db: {} }));
+jest.mock("../services/mealImageAuthority", () => ({
+  validateMealImageAuthority: jest.fn(),
+}));
 
 import {
   __testables,
