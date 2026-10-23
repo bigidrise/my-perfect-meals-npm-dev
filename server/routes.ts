@@ -1,4 +1,5 @@
 import { PREGNANCY_CUSTOMER_AVAILABLE, PREGNANCY_PAUSE_MESSAGE, retainPregnancySupport } from "@shared/pregnancyAvailability";
+import { legacyPhotographUrl } from "../shared/imageResult";
 import fs from "fs";
 import { buildCravingCategoryPrompt } from "../shared/cravingCategories";
 import { resolveCravingSelection } from "./services/craving/categorySelection";
@@ -8048,7 +8049,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const image = await generateMealImageResult(name, ingredients ?? [], sourceType);
       const imageUrl = image.url;
       if (imageUrl) {
-        res.json({ imageUrl, imageResult: image.imageResult });
+        res.json({ imageUrl: legacyPhotographUrl(image.imageResult), imageResult: image.imageResult });
       } else {
         res.status(500).json({ error: 'Failed to generate image' });
       }
@@ -8123,7 +8124,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         resolvedSourceType,
         parsedPediatric?.success ? parsedPediatric.data : undefined
       );
-      res.json({ imageUrl: image.url, imageStatus: recipeImageStatus(image.url), imageResult: image.imageResult });
+      res.json({ imageUrl: legacyPhotographUrl(image.imageResult), imageStatus: recipeImageStatus(image.url), imageResult: image.imageResult });
     } catch (err: any) {
       console.error("❌ /api/meals/generate-image error:", err);
       res.status(500).json({ error: "Image generation failed" });

@@ -26,3 +26,9 @@ Model lifecycle evidence is advisory, not authority to switch models or activate
 **Why:** The user explicitly separated approval for the image reliability foundation from approval for provider/model selection, paid generation, monitoring activation, and release operations.
 
 **How to apply:** Implementing provider-independent contracts and safeguards must not select a replacement, enable another provider, or repair saved photographs as a side effect. Keep spending reservations distinct from a guaranteed provider billing cap, and never report an abort request as confirmed provider cancellation.
+
+An explicitly approved provisional primary does not authorize automatic failover to a tested alternative.
+
+**Why:** The user accepted the controlled comparison and selected its provisional primary while explicitly keeping automatic alternative switching unauthorized.
+
+**How to apply:** Obtain separate approval for failover, even when the alternative has already passed a paid comparison. Source preparation, paid execution, runtime activation, monitoring/alerts, native release and Production release remain distinct approvals.

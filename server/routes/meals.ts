@@ -11,6 +11,7 @@ import { generateMealImageResult, type ImageSourceType } from "../services/mealI
 import { createHumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
 import { validateHumanFoodCandidate } from "../services/humanFoodContext/finalValidation";
 import { pediatricImageContextSchema, recipeImageStatus } from "../../shared/pediatricMealImage";
+import { legacyPhotographUrl } from "../../shared/imageResult";
 
 const imageRateLimit = createApiRateLimit();
 
@@ -127,7 +128,7 @@ router.post("/generate-image", requireAuth, imageRateLimit, async (req: any, res
 
   try {
     const image = await generateMealImageResult(mealName.trim(), normalizedIngredients, sourceType, pediatricContext);
-    return res.json({ imageUrl: image.url, imageStatus: recipeImageStatus(image.url), imageResult: image.imageResult });
+    return res.json({ imageUrl: legacyPhotographUrl(image.imageResult), imageStatus: recipeImageStatus(image.url), imageResult: image.imageResult });
   } catch (err: any) {
     console.error(`[generate-image] failed for "${mealName}":`, err.message);
     return res.json({ imageUrl: null });

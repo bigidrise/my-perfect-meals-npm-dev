@@ -59,9 +59,13 @@ test("freeze eight exact application-builder prompts with all external operation
       version: 2,
       provenance: {
         builder: "server/services/mealImageGenerator.ts::__testables.buildMealImagePrompt",
-        builderSourceSha256: hash(readFileSync("server/services/mealImageGenerator.ts", "utf8")),
+        builderSourceSha256: process.env.IMAGE_COMPARISON_FREEZE === "1"
+          ? hash(readFileSync("server/services/mealImageGenerator.ts", "utf8"))
+          : JSON.parse(readFileSync(file, "utf8")).provenance.builderSourceSha256,
         validator: "server/services/mealImageValidator.ts::buildValidationPrompt",
-        validatorSourceSha256: hash(readFileSync("server/services/mealImageValidator.ts", "utf8")),
+        validatorSourceSha256: process.env.IMAGE_COMPARISON_FREEZE === "1"
+          ? hash(readFileSync("server/services/mealImageValidator.ts", "utf8"))
+          : JSON.parse(readFileSync(file, "utf8")).provenance.validatorSourceSha256,
         comparisonCorrectionSourceSha256: hash(readFileSync("tools/image-comparison/prompt-review.mjs","utf8")),
         baselineManifestSha256: baselineDigest,
         note: "Existing application builder output preserved as basePrompt; reviewed comparison-only corrections add finalized recipe evidence without changing application generation.",

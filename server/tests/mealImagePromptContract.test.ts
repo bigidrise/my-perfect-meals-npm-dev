@@ -115,13 +115,13 @@ describe("ambiguous savory-side recovery contract", () => {
     ).toEqual([]);
   });
 
-  it("uses one deterministic simplified third-attempt prompt", () => {
+  it("retains deterministic simplified prompt construction without increasing the two-attempt budget", () => {
     const prompt = __testables.buildSimplifiedRecoveryPrompt(
       mealName,
       ingredients,
       "a plated entrée with steak as the central subject",
     );
-    expect(MAX_IMAGE_GENERATION_ATTEMPTS).toBe(3);
+    expect(MAX_IMAGE_GENERATION_ATTEMPTS).toBe(2);
     expect(prompt).toContain(`MEAL: ${mealName}`);
     expect(prompt).toContain("PRIMARY MAIN FOOD: flank steak");
     expect(prompt).toContain("REQUIRED VISIBLE SAVORY SIDE: cauliflower mash");

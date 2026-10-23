@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { isPlaceholderImage } from "@shared/imageResult";
 import { useTranslation } from "react-i18next";
 import { post } from "@/lib/api";
 import { isFirstPartyPermanentImageUrl } from "@shared/mediaImageUrls";
@@ -128,6 +129,7 @@ export function MealImageSlot({
   height = "h-64",
   className = "",
 }: MealImageSlotProps) {
+  if (isPlaceholderImage(imageUrl)) imageUrl = undefined;
   const { t } = useTranslation();
   // Visibility belongs to the successfully loaded URL, not changing meal metadata.
   const [loadedUrl, setLoadedUrl] = useState<string | null>(null);

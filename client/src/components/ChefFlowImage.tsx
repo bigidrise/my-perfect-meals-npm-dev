@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { isPlaceholderImage } from "@shared/imageResult";
 
 interface ChefFlowImageProps {
   src?: string;
@@ -26,6 +27,7 @@ interface ChefFlowImageProps {
  * Full component consolidation into MealImageSlot happens in Phase 4.
  */
 export function ChefFlowImage({ src, alt, className, isLoading = false }: ChefFlowImageProps) {
+  if (isPlaceholderImage(src)) src = undefined;
   const { t } = useTranslation();
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { IMAGE_CLIENT_TIMEOUT_MS, photographFromResponse, isPlaceholderImage } from "@shared/imageResult";
+import { isPermanentImageUrl } from "@/lib/imageUrlUtils";
 
 export interface ChefFlowMeal {
   id?: string;
@@ -26,15 +28,16 @@ function readFromLS(id: string): string | null {
   try {
     // Check sessionStorage first (base64 / data: URIs stored here)
     const ss = sessionStorage.getItem(SS_PREFIX + id);
-    if (ss) return ss;
+    if (ss && !isPlaceholderImage(ss)) return ss;
     // Fall back to localStorage (https:// URLs stored here)
     const v = localStorage.getItem(LS_PREFIX + id);
-    return v && v.startsWith("https://") ? v : null;
+    return v && isPermanentImageUrl(v) ? v : null;
   } catch { return null; }
 }
 
 function writeToLS(id: string, url: string): void {
-  if (url.startsWith("https://")) {
+  if (isPlaceholderImage(url)) return;
+  if (isPermanentImageUrl(url)) {
     try { localStorage.setItem(LS_PREFIX + id, url); } catch {}
   } else if (url.startsWith("data:")) {
     // Store base64 in sessionStorage — tab-scoped, no cross-session quota risk
@@ -77,6 +80,10 @@ export function chefFlowMealId(meal: ChefFlowMeal, mealType: string): string {
   return `cfm-${mealType}-${name}`;
 }
 
+export function chefFlowCacheIdentity(meal: ChefFlowMeal, mealType: string): string {
+  return chefFlowMealId(meal, mealType) + JSON.stringify([meal.name || meal.meal || "", mealType, meal.ingredients ?? []]);
+}
+
 export interface ChefFlowImagesResult {
   imageMap: Record<string, string>;
   failedSet: Set<string>;
@@ -91,6 +98,12 @@ export function useChefFlowImages(
   const inFlightRef = useRef<Set<string>>(new Set());
   const failedRef = useRef<Set<string>>(new Set());
   const mountedRef = useRef(true);
+  const imageIdentityRef = useRef(new Map<string, string>());
+  const currentRecipeRef = useRef(new Map<string, string>());
+  currentRecipeRef.current = new Map(meals.map(meal => {
+    const id = chefFlowMealId(meal, mealType);
+    return [id, chefFlowCacheIdentity(meal, mealType)];
+  }));
 
   useEffect(() => {
     mountedRef.current = true;
@@ -108,9 +121,17 @@ export function useChefFlowImages(
       if (!mealName) return;
 
       // Priority 1: imageUrl already provided by API response — use immediately
-      if (meal.imageUrl) {
-        sessionCache.set(id, meal.imageUrl);
-        writeToLS(id, meal.imageUrl);
+      const cacheId = chefFlowCacheIdentity(meal, mealType);
+      if (imageIdentityRef.current.get(id) !== cacheId) {
+        imageIdentityRef.current.set(id, cacheId);
+        setImageMap(prev => {
+          if (!prev[id]) return prev;
+          const next = { ...prev }; delete next[id]; return next;
+        });
+      }
+      if (meal.imageUrl && !isPlaceholderImage(meal.imageUrl)) {
+        sessionCache.set(cacheId, meal.imageUrl);
+        writeToLS(cacheId, meal.imageUrl);
         setImageMap((prev) =>
           prev[id] === meal.imageUrl ? prev : { ...prev, [id]: meal.imageUrl! },
         );
@@ -118,8 +139,8 @@ export function useChefFlowImages(
       }
 
       // Priority 2: session cache hit — no network request needed
-      if (sessionCache.has(id)) {
-        const cached = sessionCache.get(id)!;
+      if (sessionCache.has(cacheId)) {
+        const cached = sessionCache.get(cacheId)!;
         setImageMap((prev) =>
           prev[id] === cached ? prev : { ...prev, [id]: cached },
         );
@@ -127,21 +148,21 @@ export function useChefFlowImages(
       }
 
       // Priority 2.5: localStorage hit — populate sessionCache and use (survives reload)
-      const lsHit = readFromLS(id);
+      const lsHit = readFromLS(cacheId);
       if (lsHit) {
-        sessionCache.set(id, lsHit);
+        sessionCache.set(cacheId, lsHit);
         setImageMap((prev) => prev[id] === lsHit ? prev : { ...prev, [id]: lsHit });
         return;
       }
 
       // Priority 3: already failed — do not retry
-      if (failedRef.current.has(id)) return;
+      if (failedRef.current.has(cacheId)) return;
 
       // Priority 4: already queued or in-flight — do not duplicate
-      if (inFlightRef.current.has(id)) return;
+      if (inFlightRef.current.has(cacheId)) return;
 
       // Mark in-flight immediately to prevent duplicate queuing
-      inFlightRef.current.add(id);
+      inFlightRef.current.add(cacheId);
 
       // Waits for a concurrency slot before firing the network request.
       // Meals earlier in the array (top of screen) acquire slots first.
@@ -149,7 +170,7 @@ export function useChefFlowImages(
         await acquireSlot();
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        const timeoutId = setTimeout(() => controller.abort(), IMAGE_CLIENT_TIMEOUT_MS);
 
         try {
           const res = await fetch(apiUrl("/api/meals/generate-image"), {
@@ -164,29 +185,30 @@ export function useChefFlowImages(
             }),
             signal: controller.signal,
           });
-          clearTimeout(timeoutId);
           const data = await res.json();
-          inFlightRef.current.delete(id);
+          clearTimeout(timeoutId);
+          inFlightRef.current.delete(cacheId);
           releaseSlot();
 
-          if (data.imageUrl) {
-            sessionCache.set(id, data.imageUrl);
-            writeToLS(id, data.imageUrl);
-            if (mountedRef.current) {
-              setImageMap((prev) => ({ ...prev, [id]: data.imageUrl }));
+          const photograph = res.ok ? photographFromResponse(data) : null;
+          if (photograph) {
+            sessionCache.set(cacheId, photograph);
+            writeToLS(cacheId, photograph);
+            if (mountedRef.current && currentRecipeRef.current.get(id) === cacheId) {
+              setImageMap((prev) => ({ ...prev, [id]: prev[id] || photograph }));
             }
           } else {
-            failedRef.current.add(id);
-            if (mountedRef.current) {
+            failedRef.current.add(cacheId);
+            if (mountedRef.current && currentRecipeRef.current.get(id) === cacheId) {
               setFailedSet((prev) => new Set([...prev, id]));
             }
           }
         } catch {
           clearTimeout(timeoutId);
-          inFlightRef.current.delete(id);
+          inFlightRef.current.delete(cacheId);
           releaseSlot();
-          failedRef.current.add(id);
-          if (mountedRef.current) {
+          failedRef.current.add(cacheId);
+          if (mountedRef.current && currentRecipeRef.current.get(id) === cacheId) {
             setFailedSet((prev) => new Set([...prev, id]));
           }
         }

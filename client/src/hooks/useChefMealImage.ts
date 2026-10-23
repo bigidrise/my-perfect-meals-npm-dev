@@ -2,6 +2,7 @@ import { useCallback, useRef } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import type { Meal } from "@/types/meal";
+import { photographFromResponse, IMAGE_CLIENT_TIMEOUT_MS } from "@shared/imageResult";
 
 function resolveSourceType(mealType: string): string {
   const t = mealType.toLowerCase();
@@ -17,6 +18,7 @@ export function useChefMealImage() {
   // silently discarded. This prevents stale callbacks from overwriting a correct
   // image that arrived first.
   const activeTokensRef = useRef<Map<string, string>>(new Map());
+  const pendingRef = useRef(new Set<string>());
 
   const fetchImageForMeal = useCallback(async (
     meal: Pick<Meal, "id" | "name" | "title" | "ingredients">,
@@ -27,6 +29,8 @@ export function useChefMealImage() {
     const normalizedMealType = mealType === 'snacks' ? 'snack' : mealType;
     const sourceType = resolveSourceType(normalizedMealType);
     const mealName = meal.name ?? meal.title ?? "Meal";
+    if (pendingRef.current.has(meal.id)) return;
+    pendingRef.current.add(meal.id);
 
     // Mint a fresh token. Any previous in-flight request for this mealId is now
     // superseded — its response will be silently dropped when it arrives.
@@ -39,10 +43,13 @@ export function useChefMealImage() {
     }
     activeTokensRef.current.set(meal.id, requestToken);
 
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), IMAGE_CLIENT_TIMEOUT_MS);
     try {
       const res = await fetch(apiUrl("/api/meals/generate-image"), {
         method: "POST",
         credentials: "include",
+        signal: controller.signal,
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
         body: JSON.stringify({
           mealName,
@@ -53,13 +60,14 @@ export function useChefMealImage() {
         }),
       });
       const data = await res.json();
-      if (data.imageUrl) {
+      const photograph = res.ok ? photographFromResponse(data) : null;
+      if (photograph) {
         const stillActive = activeTokensRef.current.get(meal.id) === requestToken;
         if (stillActive) {
           activeTokensRef.current.delete(meal.id);
           const urlType = data.imageUrl.startsWith('data:') ? 'base64-ephemeral' : 'permanent';
           console.log(`[IMG-LIFECYCLE:client] RESPONSE-DELIVERED | mealId=${meal.id} | token=${requestToken.substring(0,8)} | urlType=${urlType} | meal="${mealName}"`);
-          onImageReady(meal.id, data.imageUrl);
+          onImageReady(meal.id, photograph);
         } else {
           console.warn(`[IMG-LIFECYCLE:client] RESPONSE-DISCARDED (stale token) | mealId=${meal.id} | token=${requestToken.substring(0,8)} — a newer request superseded this one`);
           activeTokensRef.current.delete(meal.id);
@@ -70,6 +78,10 @@ export function useChefMealImage() {
     } catch {
       activeTokensRef.current.delete(meal.id);
       // silent — card still renders without image
+    } finally {
+      clearTimeout(timer);
+      pendingRef.current.delete(meal.id);
+      if (activeTokensRef.current.get(meal.id) === requestToken) activeTokensRef.current.delete(meal.id);
     }
   }, []);
 

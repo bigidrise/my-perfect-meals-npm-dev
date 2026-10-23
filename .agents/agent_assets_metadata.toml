@@ -495,3 +495,17 @@ mtime_ms = 1792797771752
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/a1759549-2fb5-4cd0-bb93-a28aea15b3e9/2dd1a0e8-7a65-492e-9f76-bb76adbee8d5"
 storage_version_token = "1792797785892241"
 content_type = "text/html"
+
+[[outputs]]
+id = "6OV5y_irup2UMMXjMvlhU"
+uri = "file://generated-artifacts/image-comparison/stage3a-preparation-report.html"
+type = "html"
+title = "Stage 3A — Development preparation and verification"
+description = "Implementation and compatibility findings, complete changed-file list, 231 passing mocked tests, TypeScript limitations, inactive monitoring, and remaining activation risks."
+logical_id = "4e4fe941-b770-4dc2-8877-8792f7a00726"
+content_hash = "sha256:3bfb9f354f99ed3716bc16c905f4665d7906dcf4ac05dec45ad48bacf7cab2c5"
+size = 9629
+mtime_ms = 1792799297054
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/4e4fe941-b770-4dc2-8877-8792f7a00726/16b6f7b9-76a1-47de-a06a-53130fe49ccc"
+storage_version_token = "1792799324909905"
+content_type = "text/html"

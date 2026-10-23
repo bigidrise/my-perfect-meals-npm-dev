@@ -18,7 +18,7 @@ jest.mock("../db", () => ({
 }));
 jest.mock("../services/images/imageModelRegistry", () => {
   const actual = jest.requireActual("../services/images/imageModelRegistry");
-  return { ...actual, APPROVED_IMAGE_MODEL: { ...actual.APPROVED_IMAGE_MODEL, shutdownDate: null, reservationUSD: .01 } };
+  return { ...actual, APPROVED_IMAGE_MODEL: { ...actual.APPROVED_IMAGE_MODEL, requiresDevelopmentActivation: false, shutdownDate: null, reservationUSD: .01 } };
 });
 jest.mock("../services/mealImageValidator", () => ({
   ...jest.requireActual("../services/mealImageValidator"), validateImageAgainstRecipe: mockVerify,
@@ -31,17 +31,22 @@ import { computeRecipeSignature } from "../services/mealImageValidator";
 import { isVerifiedPhotograph } from "../../shared/imageResult";
 import { APPROVED_IMAGE_MODEL } from "../services/images/imageModelRegistry";
 
-const name = "Berry Coconut Chia Parfait";
+let name = "Berry Coconut Chia Parfait";
 const ingredients = ["berries", "coconut", "chia"];
 const permanentUrl = "/public-objects/fixture/photo.png";
 
 beforeEach(() => {
+  // Uncertain operation tombstones intentionally survive display-cache invalidation.
+  // Isolate fixture identities rather than weakening the production replay guard.
+  name = `Berry Coconut Chia Parfait ${expect.getState().currentTestName}`;
   clearImageCache();
   jest.clearAllMocks();
   process.env.OPENAI_API_KEY = "synthetic-no-network";
   mockRead.mockResolvedValue([]);
-  mockGenerate.mockResolvedValue({ data: [{ b64_json: "fixture-image" }] });
-  mockVerify.mockResolvedValue({ verdict: "PASS", model: "fixture" });
+  mockGenerate.mockResolvedValue({ data: [{ b64_json: "fixture-image" }], _request_id: "req_generation_fixture",
+    usage: { input_tokens: 1, input_tokens_details: { text_tokens: 1, image_tokens: 0 }, output_tokens: 196, total_tokens: 197 } });
+  mockVerify.mockResolvedValue({ verdict: "PASS", model: "fixture", requestId: "req_verification_fixture",
+    usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 } });
   mockIngest.mockResolvedValue({ success: true, permanentUrl });
   mockAuthority.mockImplementation(async url => ({ status: "available", canonicalUrl: url }));
   // This mutable object exists only in the mocked module, never the real frozen registry.
@@ -67,6 +72,10 @@ describe("shared image pipeline result and cache contracts (all IO mocked)", () 
     expect(a.imageResult).toMatchObject({ generation: "succeeded", verification: "passed", persistence: "durable", display: "photograph" });
     expect(mockGenerate).toHaveBeenCalledTimes(1);
     expect(mockGenerate.mock.calls[0][1]).toMatchObject({ maxRetries: 0, signal: expect.any(AbortSignal) });
+    expect(mockGenerate.mock.calls[0][0]).toMatchObject({
+      model: "gpt-image-2.5-flare-2026-09-08", n: 1, size: "1024x1024",
+      quality: "low", output_format: "png", background: "opaque", moderation: "auto",
+    });
     expect(mockIngest).toHaveBeenCalledTimes(1);
   });
 
@@ -95,7 +104,7 @@ describe("shared image pipeline result and cache contracts (all IO mocked)", () 
       let complete!: (value: any) => void;
       mockGenerate.mockImplementation(() => new Promise(resolve => { complete = resolve; }));
       const pending = generateMealImageResult("Timeout fixture parfait", ingredients, "snack");
-      await jest.advanceTimersByTimeAsync(60_001);
+      await jest.advanceTimersByTimeAsync(150_001);
       const result = await pending;
       expect(result.imageResult).toMatchObject({
         generation: "pending", display: "placeholder", cancellation: "requested_unconfirmed",
@@ -155,5 +164,34 @@ describe("shared image pipeline result and cache contracts (all IO mocked)", () 
     const signature = computeRecipeSignature(ingredients);
     expect(isCacheRowServable({ validationStatus: "PASS", recipeSignature: signature, imageUrl: "/images/fallback/meal.svg" }, signature)).toBe(false);
     expect(isCacheRowServable({ validationStatus: "SKIPPED", recipeSignature: signature, imageUrl: permanentUrl }, signature)).toBe(false);
+  });
+
+  it("overall timeout does not publish late persistence, write a late cache row, or generate again", async () => {
+    jest.useFakeTimers();
+    try {
+      let finish!: (value: any) => void;
+      mockIngest.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+      const pending = generateMealImageResult(name, ingredients, "snack");
+      await jest.advanceTimersByTimeAsync(180_001);
+      const result = await pending;
+      expect(result.imageResult.cancellation).toBe("requested_unconfirmed");
+      expect(result.imageResult.display).toBe("placeholder");
+      finish({ success: true, permanentUrl });
+      await jest.advanceTimersByTimeAsync(1);
+      expect(mockWrite).not.toHaveBeenCalled();
+      expect(getCachedImage({ mealName: name, ingredients, sourceType: "snack" })).toBeNull();
+      await expect(generateMealImageResult(name, ingredients, "snack")).resolves.toEqual(result);
+      expect(mockGenerate).toHaveBeenCalledTimes(1);
+    } finally { jest.useRealTimers(); }
+  });
+
+  it("an unexpected verifier response with unavailable usage cannot create a photograph", async () => {
+    mockVerify.mockResolvedValue({ verdict: "SKIPPED", model: "gpt-4o" });
+    const first = await generateMealImageResult(name, ingredients, "snack");
+    expect(first.imageResult.verification).toBe("unavailable");
+    expect(first.imageResult.spending?.accountingUncertain).toBe(true);
+    await generateMealImageResult(name, ingredients, "snack");
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
+    expect(mockIngest).not.toHaveBeenCalled();
   });
 });

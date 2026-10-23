@@ -1,3 +1,4 @@
+import { isPlaceholderImage } from "@shared/imageResult";
 /**
  * imageUrlUtils — canonical image URL classification for My Perfect Meals
  *
@@ -27,6 +28,7 @@ const PERMANENT_HOST_PATTERNS = ['amazonaws.com'];
  */
 export function isPermanentImageUrl(url: string | null | undefined): boolean {
   if (!url) return false;
+  if (isPlaceholderImage(url)) return false;
   if (PERMANENT_PREFIXES.some((p) => url.startsWith(p))) return true;
   if (PERMANENT_HOST_PATTERNS.some((p) => url.includes(p))) return true;
   return false;
@@ -66,7 +68,8 @@ export function shouldProtectExistingImage(
   current: string | null | undefined,
   incoming: string | null | undefined,
 ): boolean {
-  if (!current) return false;          // no image yet — allow any incoming URL
+  if (!incoming || isPlaceholderImage(incoming)) return true;
+  if (!current) return false;
   if (current === incoming) return true; // same URL — no-op
   return isPermanentImageUrl(current);  // permanent image — protect it
 }

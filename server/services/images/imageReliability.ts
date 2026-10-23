@@ -1,5 +1,6 @@
 import { isPlaceholderImage, placeholderResult, type ImageResult } from "../../../shared/imageResult";
-import { APPROVED_IMAGE_MODEL, IMAGE_LIMITS, isRetiredModel, type ImageModelPolicy } from "./imageModelRegistry";
+import { APPROVED_IMAGE_MODEL, IMAGE_LIMITS, isRetiredModel, developmentImageActivationAllowed, type ImageModelPolicy } from "./imageModelRegistry";
+import { imageUsage, imageRequestId } from "./imageUsage";
 
 /** Process-local reservation ledger, NOT a provider billing cap or a distributed quota.
  * Dispatched reservations stay held, including failures and uncertain timeouts.
@@ -19,17 +20,17 @@ export class ImageSpendingLedger {
 }
 
 const processLedger = new ImageSpendingLedger(IMAGE_LIMITS.processUSD);
-type ProviderResponse = { data?: Array<{ url?: string; b64_json?: string }>; _request_id?: string | null };
+type ProviderResponse = { data?: Array<{ url?: string; b64_json?: string }>; _request_id?: string | null; usage?: unknown };
 export type ImageProviderCall = (prompt: string, signal: AbortSignal) => Promise<ProviderResponse>;
 
 function requestId(error: any): string | undefined {
-  const id = error?.request_id;
-  return typeof id === "string" && /^req_[a-zA-Z0-9_-]{1,128}$/.test(id) ? id : undefined;
+  return imageRequestId(error?.request_id ?? error?._request_id);
 }
 
 export function classifyImageError(error: any): string {
   const message = String(error?.error?.message ?? error?.message ?? "");
-  if (/model/i.test(message) && /does not exist|retired|deprecat|not found/i.test(message)) return "model_unavailable";
+  if (error?.code === "model_not_found" || error?.error?.code === "model_not_found" ||
+    (/model/i.test(message) && /does not exist|retired|deprecat|not found|no longer available|shut.?down/i.test(message))) return "model_unavailable";
   if (error?.status === 401 || error?.status === 403) return "provider_access_denied";
   if (error?.status === 429) return "provider_rate_limited";
   return "provider_failed";
@@ -40,6 +41,8 @@ export class ImageOperation {
   private reserved = 0;
   private uncertain = false;
   private terminalReason: string | null = null;
+  private deadline = 0;
+  private controllers = new Set<AbortController>();
   result: ImageResult;
   constructor(
     readonly fallback: string,
@@ -49,6 +52,45 @@ export class ImageOperation {
     private readonly now: () => Date = () => new Date(),
   ) {
     this.result = { ...placeholderResult(fallback, "not_started"), provider: policy.provider, model: policy.model };
+    this.deadline = this.now().getTime() + IMAGE_LIMITS.operationMs;
+  }
+  get remainingMs() { return Math.max(0, this.deadline - this.now().getTime()); }
+  get stopped() { return this.uncertain || !!this.terminalReason || !this.remainingMs; }
+  expire(stage = "operation") {
+    this.uncertain = true;
+    this.terminalReason = `${stage}_timeout_uncertain`;
+    for (const c of this.controllers) c.abort();
+    this.result = { ...this.result, display: "placeholder", url: this.fallback,
+      reason: this.terminalReason, cancellation: "requested_unconfirmed",
+      spending: { reservedUSD: this.reserved, estimatedKnownCostUSD: this.result.spending?.estimatedKnownCostUSD ?? 0, accountingUncertain: true } };
+  }
+  async bounded<T>(stage: string, call: (signal: AbortSignal) => Promise<T>, cap = this.remainingMs): Promise<T> {
+    if (this.stopped) throw new Error("operation_stopped");
+    const c = new AbortController(); this.controllers.add(c);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        Promise.resolve().then(() => call(c.signal)),
+        new Promise<never>((_, reject) => { timer = setTimeout(() => {
+          this.expire(stage); c.abort(); reject(new Error("operation_deadline"));
+        }, Math.min(cap, this.remainingMs)); }),
+      ]);
+    } finally { if (timer) clearTimeout(timer); this.controllers.delete(c); }
+  }
+  account(stage: "generation" | "verification", usage: unknown, id?: unknown): boolean {
+    try {
+      const evidence = { stage, ...imageUsage(stage, usage), requestId: imageRequestId(id) };
+      const total = (this.result.spending?.estimatedKnownCostUSD ?? 0) + evidence.estimatedCostUSD;
+      this.result = { ...this.result, evidence: [...(this.result.evidence ?? []), evidence],
+        spending: { reservedUSD: this.reserved, estimatedKnownCostUSD: total, accountingUncertain: false } };
+      if (total > this.reserved) throw new Error("reservation_exceeded");
+      return true;
+    } catch {
+      this.terminalReason = `${stage}_accounting_uncertain`;
+      this.result = { ...this.result, reason: this.terminalReason,
+        spending: { reservedUSD: this.reserved, estimatedKnownCostUSD: this.result.spending?.estimatedKnownCostUSD ?? 0, accountingUncertain: true } };
+      return false;
+    }
   }
   private fail(reason: string): null {
     this.result = {
@@ -60,14 +102,19 @@ export class ImageOperation {
   async generate(prompt: string, call: ImageProviderCall): Promise<string | null> {
     if (this.uncertain) return this.fail("timeout_uncertain");
     if (this.terminalReason) return this.fail(this.terminalReason);
+    if (!this.remainingMs) return this.fail("overall_deadline");
     if (isRetiredModel(this.policy, this.now())) return this.fail("model_retired");
+    if (this.policy.requiresDevelopmentActivation && !developmentImageActivationAllowed(process.env)) return this.fail("activation_pending");
     if (this.attempts >= IMAGE_LIMITS.maxAttempts) return this.fail("attempt_limit");
     const reservation = this.policy.reservationUSD;
     if (reservation === null || !Number.isFinite(reservation) || reservation <= 0) return this.fail("cost_bound_unapproved");
     if (this.reserved + reservation > IMAGE_LIMITS.operationUSD + 1e-9 || !this.ledger.reserve(reservation)) return this.fail("budget_exhausted");
     this.reserved += reservation;
+    this.result.spending = { reservedUSD: this.reserved,
+      estimatedKnownCostUSD: this.result.spending?.estimatedKnownCostUSD ?? 0, accountingUncertain: false };
     this.attempts++;
     const controller = new AbortController();
+    this.controllers.add(controller);
     let timer: ReturnType<typeof setTimeout> | undefined;
     this.result = { ...this.result, generation: "pending", reason: null, attempts: this.attempts };
     // Promise handlers remain attached after a timeout: late results never publish,
@@ -75,19 +122,19 @@ export class ImageOperation {
     const pending = Promise.resolve().then(() => call(prompt, controller.signal));
     const timeout = new Promise<null>((resolve) => {
       timer = setTimeout(() => {
-        this.uncertain = true;
-        this.result.cancellation = "requested_unconfirmed";
+        this.expire("generation");
         controller.abort();
         resolve(null);
-      }, this.timeoutMs);
+      }, Math.min(this.timeoutMs, this.remainingMs));
     });
     try {
       const response = await Promise.race([pending, timeout]);
       if (this.uncertain || response === null) return this.fail("timeout_uncertain");
-      this.result.requestId = requestId({ request_id: response._request_id });
+      this.result.requestId = imageRequestId(response._request_id);
+      if (!this.account("generation", response.usage, response._request_id)) return this.fail("generation_accounting_uncertain");
       const item = response.data?.[0];
       const url = item?.b64_json ? `data:image/png;base64,${item.b64_json}` : item?.url;
-      if (!url || isPlaceholderImage(url) || !(url.startsWith("data:image/png;base64,") || /^https:\/\//.test(url))) return this.fail("invalid_provider_response");
+      if (response.data?.length !== 1 || !url || isPlaceholderImage(url) || !(url.startsWith("data:image/png;base64,") || /^https:\/\//.test(url))) return this.fail("invalid_provider_response");
       this.result = {
         ...this.result, generation: "succeeded", verification: "pending",
         persistence: "not_started", display: "placeholder", url: this.fallback, reason: null,
@@ -97,9 +144,12 @@ export class ImageOperation {
       if (this.uncertain) return this.fail("timeout_uncertain");
       this.result.requestId = requestId(error);
       this.terminalReason = classifyImageError(error);
+      this.result.spending = { reservedUSD: this.reserved,
+        estimatedKnownCostUSD: this.result.spending?.estimatedKnownCostUSD ?? 0, accountingUncertain: true };
       return this.fail(this.terminalReason);
     } finally {
       if (timer) clearTimeout(timer);
+      this.controllers.delete(controller);
     }
   }
 }

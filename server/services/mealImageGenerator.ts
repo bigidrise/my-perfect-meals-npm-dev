@@ -10,7 +10,7 @@
 
 import OpenAI from 'openai';
 import { ImageOperation } from "./images/imageReliability";
-import { APPROVED_IMAGE_MODEL, IMAGE_LIMITS } from "./images/imageModelRegistry";
+import { APPROVED_IMAGE_MODEL, IMAGE_LIMITS, IMAGE_REQUEST_FORMAT } from "./images/imageModelRegistry";
 import { isPlaceholderImage, placeholderResult, type ImageResult } from "../../shared/imageResult";
 import crypto from 'crypto';
 import { db } from '../db';
@@ -869,10 +869,16 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
   );
   const existing = inflightRequests.get(key);
   if (existing) return existing;
-  const work = generateMealImageInternal(request).then(result => {
+  const operation = new ImageOperation(getSemanticFallback(request.mealName));
+  const work = operation.bounded("operation", () => generateMealImageInternal(request, operation))
+  .catch((): GeneratedImage => ({
+    url: operation.fallback, imageResult: operation.result,
+    prompt: "Image operation stopped", hash: key, createdAt: new Date().toISOString(),
+  })).then(result => {
     // Joining applies to every entry point, including single/batch generation.
     // A timeout cannot authorize a second possibly billed request.
-    if (result.imageResult.cancellation !== "requested_unconfirmed") inflightRequests.delete(key);
+    if (result.imageResult.cancellation !== "requested_unconfirmed" &&
+        !result.imageResult.spending?.accountingUncertain) inflightRequests.delete(key);
     return result;
   }, error => {
     inflightRequests.delete(key);
@@ -882,7 +888,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
   return work;
 }
 
-async function generateMealImageInternal(request: MealImageRequest): Promise<GeneratedImage> {
+async function generateMealImageInternal(request: MealImageRequest, operation: ImageOperation): Promise<GeneratedImage> {
   // NORMALIZATION — must happen before cache key derivation and before prompt construction
   const normalizedName = normalizeMealName(request.mealName);
   const { ingredients, mealType, sourceType, pediatricContext, createDishContext } = request;
@@ -897,7 +903,6 @@ async function generateMealImageInternal(request: MealImageRequest): Promise<Gen
     createDishContext,
   );
   const currentSignature = computeRecipeSignature(ingredients);
-  const operation = new ImageOperation(getSemanticFallback(mealName));
   const cachedResult = (url: string): ImageResult => ({
     ...placeholderResult(null, "cache_hit"),
     generation: "succeeded", verification: "passed",
@@ -1048,6 +1053,7 @@ async function generateMealImageInternal(request: MealImageRequest): Promise<Gen
         n: 1,
         size: APPROVED_IMAGE_MODEL.size,
         quality: APPROVED_IMAGE_MODEL.quality,
+        ...IMAGE_REQUEST_FORMAT,
       }, { signal, maxRetries: 0 }),
     );
   };
@@ -1084,10 +1090,20 @@ async function generateMealImageInternal(request: MealImageRequest): Promise<Gen
     // The existing vision validator also checks the prepared pediatric texture.
     ...(pediatricContext ? [buildPediatricContextAddendum(pediatricContext)] : []),
   ];
-  let validation: ValidationResult = await validateImageAgainstRecipe(imageUrl, mealName, ingredients, {
-    structuralIdentity: dishForValidation.structuralIdentity,
-    visualRequirements,
-  });
+  const verify = async (url: string): Promise<ValidationResult> => {
+    try {
+      const result = await operation.bounded("verification", signal =>
+        validateImageAgainstRecipe(url, mealName, ingredients, {
+          structuralIdentity: dishForValidation.structuralIdentity, visualRequirements,
+          signal, timeoutMs: Math.min(IMAGE_LIMITS.verificationMs, operation.remainingMs),
+        }), IMAGE_LIMITS.verificationMs);
+      if (!operation.account("verification", result.usage, result.requestId)) {
+        return { ...result, verdict: result.verdict === "FAIL" ? "FAIL" : "SKIPPED", reason: "verification_accounting_uncertain" };
+      }
+      return result;
+    } catch { return { verdict: "SKIPPED", reason: "verification_timeout_uncertain", model: "" }; }
+  };
+  let validation: ValidationResult = await verify(imageUrl);
   console.log(`[IMG-LIFECYCLE:${traceId}] VALIDATE-DONE | verdict=${validation.verdict}${validation.reason ? ` | reason=${validation.reason}` : ''} | +${Date.now()-_t0}ms`);
 
   if (validation.verdict === "FAIL") {
@@ -1097,10 +1113,7 @@ async function generateMealImageInternal(request: MealImageRequest): Promise<Gen
     const retryUrl = await callDalle(retryPrompt);
 
     if (retryUrl) {
-      const retryValidation = await validateImageAgainstRecipe(retryUrl, mealName, ingredients, {
-        structuralIdentity: dishForValidation.structuralIdentity,
-        visualRequirements,
-      });
+      const retryValidation = await verify(retryUrl);
       console.log(`[IMG-LIFECYCLE:${traceId}] RETRY-VALIDATE-DONE | verdict=${retryValidation.verdict}${retryValidation.reason ? ` | reason=${retryValidation.reason}` : ''} | +${Date.now()-_t0}ms`);
       if (retryValidation.verdict !== "FAIL") {
         imageUrl = retryUrl;
@@ -1124,15 +1137,7 @@ async function generateMealImageInternal(request: MealImageRequest): Promise<Gen
           console.log(`[IMG-LIFECYCLE:${traceId}] RECOVERY-START | attempt=${MAX_IMAGE_GENERATION_ATTEMPTS} | +${Date.now()-_t0}ms`);
           const recoveryUrl = await callDalle(recoveryPrompt);
           if (recoveryUrl) {
-            const recoveryValidation = await validateImageAgainstRecipe(
-              recoveryUrl,
-              mealName,
-              ingredients,
-              {
-                structuralIdentity: dishForValidation.structuralIdentity,
-                visualRequirements,
-              },
-            );
+            const recoveryValidation = await verify(recoveryUrl);
             console.log(`[IMG-LIFECYCLE:${traceId}] RECOVERY-VALIDATE-DONE | verdict=${recoveryValidation.verdict}${recoveryValidation.reason ? ` | reason=${recoveryValidation.reason}` : ''} | +${Date.now()-_t0}ms`);
             validation = recoveryValidation;
             if (recoveryValidation.verdict === "PASS") {
@@ -1169,7 +1174,7 @@ async function generateMealImageInternal(request: MealImageRequest): Promise<Gen
   }
 
   // Provider success is not recipe verification. Never ingest or cache SKIPPED.
-  if (validation.verdict !== "PASS") {
+  if (validation.verdict !== "PASS" || operation.stopped) {
     const fallback = getSemanticFallback(mealName);
     return {
       url: fallback,
@@ -1192,7 +1197,8 @@ async function generateMealImageInternal(request: MealImageRequest): Promise<Gen
   // write, losing the image on next page load).
   console.log(`[IMG-LIFECYCLE:${traceId}] STORAGE-START | +${Date.now()-_t0}ms`);
   try {
-    const ingestionResult = await ingestImageToPermanentStorage(imageUrl, mealName);
+    const ingestionResult = await operation.bounded("persistence", () => ingestImageToPermanentStorage(imageUrl!, mealName));
+    if (operation.stopped) throw new Error("operation_stopped");
     if (ingestionResult.success && ingestionResult.permanentUrl
       && isPermanentUrl(ingestionResult.permanentUrl) && !isPlaceholderImage(ingestionResult.permanentUrl)) {
       const permanentUrl = ingestionResult.permanentUrl;
@@ -1207,17 +1213,18 @@ async function generateMealImageInternal(request: MealImageRequest): Promise<Gen
           validationReason: validation.reason,
           recipeSignature,
         };
-        await db
+        await operation.bounded("cache", async () => db
           .insert(mealImageCache)
           .values(cacheRow)
           .onConflictDoUpdate({
             target: mealImageCache.cacheKey,
             set: { ...cacheRow },
-          });
+          }));
         console.log(`✅ Object Storage URL cached in DB for: ${mealName} +${Date.now()-_t0}ms`);
       } catch (dbErr) {
         console.warn(`⚠️ DB write failed for "${mealName}":`, dbErr);
       }
+      if (operation.stopped) throw new Error("operation_stopped");
       memCache.set(cacheKey, { url: permanentUrl, validationStatus: validation.verdict, recipeSignature });
       console.log(`[IMG-LIFECYCLE:${traceId}] STORAGE-DONE (permanent) | url=${permanentUrl.substring(0, 60)} | +${Date.now()-_t0}ms`);
       return {
@@ -1238,6 +1245,10 @@ async function generateMealImageInternal(request: MealImageRequest): Promise<Gen
   // Object Storage upload failed — image is EPHEMERAL (base64 in memCache only).
   // WARNING: On server restart or memCache eviction, the next request for this
   // meal will call DALL-E again and may return a different image.
+  if (operation.stopped) {
+    return { url: operation.fallback, imageResult: operation.result, prompt: finalPrompt,
+      hash: cacheKey, createdAt: new Date().toISOString() };
+  }
   if (imageUrl.startsWith('data:')) {
     memCache.set(cacheKey, { url: imageUrl, validationStatus: validation.verdict, recipeSignature });
     console.warn(`[IMG-LIFECYCLE:${traceId}] STORAGE-FALLBACK | urlType=base64-ephemeral | meal="${mealName}" | +${Date.now()-_t0}ms — IMAGE WILL DIFFER AFTER SERVER RESTART`);

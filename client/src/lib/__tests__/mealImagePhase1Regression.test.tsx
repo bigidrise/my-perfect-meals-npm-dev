@@ -23,6 +23,11 @@ import { get, post } from "@/lib/api";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import { ChefFlowImage } from "@/components/ChefFlowImage";
 
+it("does not display known fallback artwork as a meal photograph", () => {
+  const { container } = render(<MealImageSlot imageUrl="/images/fallback/meal.svg" mealName="Fixture" />);
+  expect(container.querySelector("img")).toBeNull();
+});
+
 jest.mock("@/lib/api", () => ({
   get: jest.fn(),
   post: jest.fn(),

@@ -15,8 +15,15 @@ export async function inspectImageModelLifecycle(
   client: { models: { retrieve: (id: string) => Promise<unknown> } },
   now = new Date(),
 ): Promise<ModelLifecycleReview> {
-  const metadata = await client.models.retrieve(APPROVED_IMAGE_MODEL.model) as ModelMetadata;
-  if (metadata?.id !== APPROVED_IMAGE_MODEL.model) throw new Error("Image model metadata identity mismatch");
+  return inspectModelLifecycle(client, APPROVED_IMAGE_MODEL.model, now);
+}
+
+export async function inspectModelLifecycle(
+  client: { models: { retrieve: (id: string) => Promise<unknown> } },
+  model: string, now = new Date(),
+): Promise<ModelLifecycleReview> {
+  const metadata = await client.models.retrieve(model) as ModelMetadata;
+  if (metadata?.id !== model) throw new Error("Image model metadata identity mismatch");
   const date = metadata.shutdown_date;
   if (date == null) return { model: metadata.id, shutdownDate: null, state: "unknown", daysRemaining: null };
   const parsed = new Date(`${date}T00:00:00Z`);
