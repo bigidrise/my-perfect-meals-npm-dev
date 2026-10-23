@@ -481,3 +481,17 @@ mtime_ms = 1792796645319
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/68bfaeaf-5fe8-4b62-a9c2-e02654c67128/a18184b0-3115-43f8-ac52-f8b49b15aa0b"
 storage_version_token = "1792796987157633"
 content_type = "text/html"
+
+[[outputs]]
+id = "J7ciksSnfYS1SX9R4UfQr"
+uri = "file://generated-artifacts/image-comparison/phase2d-results.html"
+type = "html"
+title = "Phase 2D — image comparison results"
+description = "Side-by-side fidelity findings, per-recipe latency, actual reported usage, estimated charges, all request IDs and image digests. Metadata only; no photographs. Temporary images were deleted after review and the one-use authorization marker was retained."
+logical_id = "a1759549-2fb5-4cd0-bb93-a28aea15b3e9"
+content_hash = "sha256:2e45e7cc944ad6b61003b86441654cf568fd6bfd96d46f1577f91bce82b43a6f"
+size = 58955
+mtime_ms = 1792797771752
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/a1759549-2fb5-4cd0-bb93-a28aea15b3e9/2dd1a0e8-7a65-492e-9f76-bb76adbee8d5"
+storage_version_token = "1792797785892241"
+content_type = "text/html"

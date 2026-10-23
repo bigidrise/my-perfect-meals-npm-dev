@@ -1,10 +1,11 @@
 # Isolated OpenAI image comparison tooling
 
 Development tooling only. The default tool is still **offline only**. A separate
-live adapter is prepared but has never been executed against OpenAI. The offline
+live adapter completed one explicitly authorized Phase 2D comparison on 2026-10-23;
+see `phase2d-results.md`. That authorization is consumed, not reusable. The offline
 CLI cannot enable it with flags or environment settings. The live CLI requires
-all of the one-shot authorization gates below. No authorization has been issued
-or file created by this preparation stage.
+all of the one-shot authorization gates below. Every additional paid run requires
+new explicit user approval. No application activation was authorized or performed.
 Nothing here is imported by the application; all tooling is excluded from deployment.
 
 ## Run offline
@@ -176,8 +177,8 @@ redirect following, validates exact request bytes/settings/order, caps response
 size and validates PNG dimensions/container/checksums and bounded decompression.
 Its in-flight and dispatch counters are independent of the engine's counters.
 Uncertain transport/abort stops the whole run; no late artifact writes occur.
-Actual provider token/usage schema compatibility remains unverified until a
-separately authorized real request.
+The Phase 2D run accepted actual usage from all 32 approved requests. This is
+evidence for that run only, not a guarantee of future provider compatibility.
 
 ## Temporary review artifacts
 
@@ -197,8 +198,9 @@ automatic resumption or claim of distributed billing enforcement.
 * No pediatric clinical/age context was invented. No clinical certification.
 * No documented hard all-in cost bound or image output-token cap was established.
   $0.25 is an acknowledged risk allowance; $5 is not a guaranteed billing cap.
-* Paid execution, real quality/latency/cost and candidate/verifier access remain
-  untested. Account usage/billing reconciliation is still required after a test.
+* One eight-recipe paired run is documented in `phase2d-results.md`. Broader
+  reliability, generation variability and clinical/allergen safety are not proven.
+  Provider billing reconciliation remains separate from estimated token charges.
 * Installed web/iOS compatibility and application activation remain separate.
 * The corrected prompts are comparison-only. Nothing changes the application
   image generator, active registry, nutrition calculations or saved photographs.
