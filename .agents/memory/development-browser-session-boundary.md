@@ -28,3 +28,9 @@ Keep browser notebook operations short; a long wait can reset the browser and de
 **Why:** A pairing browser check timed out while waiting for a response that Development server logs showed had completed with HTTP 503 in about 1.5 seconds. The harness timeout did not establish an application timeout.
 
 **How to apply:** Correlate existing server completion logs before repeating a submission. Report missing final UI evidence separately from the known HTTP result, and re-establish normal authorized sign-in if a notebook reset lost the session.
+
+Workspace shell credentials are not necessarily available to the isolated browser notebook; a shell environment variable does not establish notebook access to `process.env`.
+
+**Why:** An authenticated saved-image browser check was blocked by this separation while a normal, authorized cookie-and-CSRF API check could run from the workspace shell without exposing credentials.
+
+**How to apply:** Never print or return credentials to bridge the contexts. For backend contracts, use the existing authorized test account with credentials and cookies kept in process memory. Report that evidence as authenticated API coverage, not signed-in browser or placeholder-rendering coverage.
