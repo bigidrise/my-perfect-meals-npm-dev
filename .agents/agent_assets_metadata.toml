@@ -509,3 +509,17 @@ mtime_ms = 1792799297054
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/4e4fe941-b770-4dc2-8877-8792f7a00726/16b6f7b9-76a1-47de-a06a-53130fe49ccc"
 storage_version_token = "1792799324909905"
 content_type = "text/html"
+
+[[outputs]]
+id = "GMdDw7ilKZZk-sQf4gRiY"
+uri = "file://generated-artifacts/image-comparison/stage3b-activation-verification.html"
+type = "html"
+title = "Stage 3B — Development activation verification"
+description = "Exact running commit and source-file manifest, safe-start evidence, before/after recovery counts, 98 passing mocked tests, live endpoint results, warnings and verification limits."
+logical_id = "fbe5e1e0-5c3c-463c-8f60-a6f425a53c76"
+content_hash = "sha256:05fb05df82f8c67368670dc5ebf01bc0e8786a8767e8b4ba51d3c75f4a4a6cc5"
+size = 7097
+mtime_ms = 1792799947670
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/fbe5e1e0-5c3c-463c-8f60-a6f425a53c76/8cae8ba1-3db7-4bc8-a81a-1caacad72263"
+storage_version_token = "1792799954076545"
+content_type = "text/html"
