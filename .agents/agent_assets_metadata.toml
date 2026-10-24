@@ -523,3 +523,17 @@ mtime_ms = 1792799947670
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/fbe5e1e0-5c3c-463c-8f60-a6f425a53c76/8cae8ba1-3db7-4bc8-a81a-1caacad72263"
 storage_version_token = "1792799954076545"
 content_type = "text/html"
+
+[[outputs]]
+id = "l0KZxurCprO8cpmTDcmBz"
+uri = "file://generated-artifacts/stage3c1/bd0ecc12-86de-4de4-9eae-cd0a5facf62d/display.jpg"
+type = "image"
+title = "Berry Coconut Chia Parfait — controlled Development test"
+description = "The persisted display image from the single verified Flare generation."
+logical_id = "d0ce16b8-2b53-4034-95fa-1897a67c81da"
+content_hash = "sha256:c4b5c9c8629f3574c7fb51d0f7c52e9e88a0209b8e0796f74d8482dc4a8a02af"
+size = 150380
+mtime_ms = 1792803387057
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d0ce16b8-2b53-4034-95fa-1897a67c81da/d26d616f-9a6c-43c5-97f1-544faf4569b9"
+storage_version_token = "1792803478419716"
+content_type = "image/jpeg"
