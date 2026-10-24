@@ -38,3 +38,9 @@ Controlled Development activation is not authorization to generate a new live ph
 **Why:** The user explicitly approved Development Flare activation while forbidding paid generation, saved-meal/storage modifications, recovery, Production changes, publishing, native builds, automatic failover and monitoring scheduler activation.
 
 **How to apply:** An enabled Development image gate does not authorize an agent-initiated paid request. Stop after activation verification and obtain separate approval before generating a new live meal photograph.
+
+Controlled end-to-end image tests require isolated disposable records, isolated image storage, and enforcement of the exact authorized number of provider calls.
+
+**Why:** The user required the normal snack workflow with a synthetic Development identity, at most one initial image generation and its normal verification, and no fidelity regeneration. They explicitly required stopping before generation if normal writes could not be isolated from Production-visible records.
+
+**How to apply:** A synthetic identity alone is not an isolation boundary for shared image caches or canonical storage. Verify those write paths and the server's retry policy before creating test records or dispatching paid calls. Do not substitute a direct provider test for the required normal application workflow.
