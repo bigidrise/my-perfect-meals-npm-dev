@@ -15,6 +15,7 @@
 import OpenAI from "openai";
 import crypto from "crypto";
 import { IMAGE_VERIFICATION_MODEL, IMAGE_LIMITS } from "./images/imageModelRegistry";
+import { claimDevelopmentImageTestRequest } from "./images/developmentImageTestScope";
 
 export const VALIDATION_MODEL = IMAGE_VERIFICATION_MODEL;
 
@@ -109,6 +110,7 @@ function getOpenAI(): OpenAI {
 }
 
 const defaultVisionCaller = async (imageUrl: string, prompt: string, signal: AbortSignal) => {
+  claimDevelopmentImageTestRequest("verification", imageUrl);
   const response = await getOpenAI().chat.completions.create({
     model: VALIDATION_MODEL,
     max_tokens: 60,

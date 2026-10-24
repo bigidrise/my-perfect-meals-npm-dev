@@ -1,6 +1,7 @@
 import { isPlaceholderImage, placeholderResult, type ImageResult } from "../../../shared/imageResult";
 import { APPROVED_IMAGE_MODEL, IMAGE_LIMITS, isRetiredModel, developmentImageActivationAllowed, type ImageModelPolicy } from "./imageModelRegistry";
 import { imageUsage, imageRequestId } from "./imageUsage";
+import { claimDevelopmentImageTestRequest, DevelopmentImageTestError, developmentImageTestScope, rememberDevelopmentImageTestImage } from "./developmentImageTestScope";
 
 /** Process-local reservation ledger, NOT a provider billing cap or a distributed quota.
  * Dispatched reservations stay held, including failures and uncertain timeouts.
@@ -28,6 +29,7 @@ function requestId(error: any): string | undefined {
 }
 
 export function classifyImageError(error: any): string {
+  if (error instanceof DevelopmentImageTestError) return error.code;
   const message = String(error?.error?.message ?? error?.message ?? "");
   if (error?.code === "model_not_found" || error?.error?.code === "model_not_found" ||
     (/model/i.test(message) && /does not exist|retired|deprecat|not found|no longer available|shut.?down/i.test(message))) return "model_unavailable";
@@ -105,7 +107,7 @@ export class ImageOperation {
     if (!this.remainingMs) return this.fail("overall_deadline");
     if (isRetiredModel(this.policy, this.now())) return this.fail("model_retired");
     if (this.policy.requiresDevelopmentActivation && !developmentImageActivationAllowed(process.env)) return this.fail("activation_pending");
-    if (this.attempts >= IMAGE_LIMITS.maxAttempts) return this.fail("attempt_limit");
+    if (this.attempts >= (developmentImageTestScope() ? 1 : IMAGE_LIMITS.maxAttempts)) return this.fail("attempt_limit");
     const reservation = this.policy.reservationUSD;
     if (reservation === null || !Number.isFinite(reservation) || reservation <= 0) return this.fail("cost_bound_unapproved");
     if (this.reserved + reservation > IMAGE_LIMITS.operationUSD + 1e-9 || !this.ledger.reserve(reservation)) return this.fail("budget_exhausted");
@@ -119,7 +121,10 @@ export class ImageOperation {
     this.result = { ...this.result, generation: "pending", reason: null, attempts: this.attempts };
     // Promise handlers remain attached after a timeout: late results never publish,
     // upload, cache, refund reservations, or start another request.
-    const pending = Promise.resolve().then(() => call(prompt, controller.signal));
+    const pending = Promise.resolve().then(() => {
+      claimDevelopmentImageTestRequest("generation");
+      return call(prompt, controller.signal);
+    });
     const timeout = new Promise<null>((resolve) => {
       timer = setTimeout(() => {
         this.expire("generation");
@@ -135,6 +140,7 @@ export class ImageOperation {
       const item = response.data?.[0];
       const url = item?.b64_json ? `data:image/png;base64,${item.b64_json}` : item?.url;
       if (response.data?.length !== 1 || !url || isPlaceholderImage(url) || !(url.startsWith("data:image/png;base64,") || /^https:\/\//.test(url))) return this.fail("invalid_provider_response");
+      rememberDevelopmentImageTestImage(url);
       this.result = {
         ...this.result, generation: "succeeded", verification: "pending",
         persistence: "not_started", display: "placeholder", url: this.fallback, reason: null,

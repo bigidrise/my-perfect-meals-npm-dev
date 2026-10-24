@@ -44,3 +44,9 @@ Controlled end-to-end image tests require isolated disposable records, isolated 
 **Why:** The user required the normal snack workflow with a synthetic Development identity, at most one initial image generation and its normal verification, and no fidelity regeneration. They explicitly required stopping before generation if normal writes could not be isolated from Production-visible records.
 
 **How to apply:** A synthetic identity alone is not an isolation boundary for shared image caches or canonical storage. Verify those write paths and the server's retry policy before creating test records or dispatching paid calls. Do not substitute a direct provider test for the required normal application workflow.
+
+Bind controlled image-test scope before all authenticated downstream work, not only at the explicit image endpoint.
+
+**Why:** Normal food creation can launch inline image generation or asynchronous prewarm before the client requests its image. Endpoint-only scoping would leave those provider calls and shared writes outside the authorized limit.
+
+**How to apply:** Preserve normal authentication first, bind only the operator-selected synthetic account, and propagate scope through asynchronous work. Source preparation does not authorize setting its diagnostic flags, restarting, creating the identity or spending.
