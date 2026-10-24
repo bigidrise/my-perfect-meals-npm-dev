@@ -20,3 +20,9 @@ The user identified the installed app and matching App Store Connect release as 
 **Why:** The user's goal is Flare-generated meal photographs in the existing iPhone app with the fewest possible changes, preferably through compatible backend responses rather than another native build.
 
 **How to apply:** Seek the matching release archive or effective build configuration and client bundle. Absolute HTTPS photograph URLs are a backend-only candidate, not confirmed compatibility for that release until its actual client is identified.
+
+Keep absolute photograph URLs as a transport concern, not a new stored identity. A client returning one of our exact transport URLs must reach the existing canonical-object authority/save path, not external-image ingestion.
+
+**Why:** A backend-only compatibility fix must not cause a saved photograph to be downloaded and re-uploaded as a different object simply because its delivery URL gained an HTTPS origin. The user explicitly requires existing cache identity and saved-photo associations to survive.
+
+**How to apply:** Keep canonical storage references relative, bind transport URLs to the exact environment-owned origin and bucket, and test round trips with mocked storage/database calls. Development compatibility preparation does not authorize activation or Production rollout.

@@ -1,5 +1,5 @@
 import { PREGNANCY_CUSTOMER_AVAILABLE, PREGNANCY_PAUSE_MESSAGE, retainPregnancySupport } from "@shared/pregnancyAvailability";
-import { legacyPhotographUrl } from "../shared/imageResult";
+import { generatedMealPhotographResponse, serializeGeneratedMealPhotograph } from "./services/developmentMealImageUrls";
 import fs from "fs";
 import { buildCravingCategoryPrompt } from "../shared/cravingCategories";
 import { resolveCravingSelection } from "./services/craving/categorySelection";
@@ -8046,10 +8046,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const { generateMealImageResult } = await import("./services/mealImageGenerator");
       const sourceType = type === "beverage" ? "beverage" : "meal";
-      const image = await generateMealImageResult(name, ingredients ?? [], sourceType);
+      const image = serializeGeneratedMealPhotograph(await generateMealImageResult(name, ingredients ?? [], sourceType));
       const imageUrl = image.url;
       if (imageUrl) {
-        res.json({ imageUrl: legacyPhotographUrl(image.imageResult), imageResult: image.imageResult });
+        res.json(generatedMealPhotographResponse(image));
       } else {
         res.status(500).json({ error: 'Failed to generate image' });
       }
@@ -8118,13 +8118,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (glucoseFinding) {
         return res.status(422).json({ error: glucoseFinding.message, code: "GLUCOSE_PRODUCE_NOT_ALLOWED" });
       }
-      const image = await generateMealImageResult(
+      const generatedImage = await generateMealImageResult(
         mealName,
         ingredientNames,
         resolvedSourceType,
         parsedPediatric?.success ? parsedPediatric.data : undefined
       );
-      res.json({ imageUrl: legacyPhotographUrl(image.imageResult), imageStatus: recipeImageStatus(image.url), imageResult: image.imageResult });
+      const image = serializeGeneratedMealPhotograph(generatedImage);
+      res.json({ ...generatedMealPhotographResponse(image), imageStatus: recipeImageStatus(image.url) });
     } catch (err: any) {
       console.error("❌ /api/meals/generate-image error:", err);
       res.status(500).json({ error: "Image generation failed" });
