@@ -66,7 +66,7 @@ export async function genImage(prompt: string, size: "1024x1024" | "1024x1536" |
   const t = setTimeout(() => ac.abort("image-timeout"), IMAGE_TIMEOUT_MS);
   try {
     const res = await (openai.images.generate as any)(
-      { model: "gpt-image-1", prompt, size, n: 1 },
+      { model: "gpt-image-2.5-flare-2026-09-08", prompt, size, n: 1 },
       { signal: ac.signal }
     );
     clearTimeout(t);
@@ -93,7 +93,7 @@ export async function genImageFast(prompt: string): Promise<string | undefined> 
   const t = setTimeout(() => ac.abort("image-timeout"), IMAGE_TIMEOUT_MS);
   try {
     const res = await (openai.images.generate as any)(
-      { model: "gpt-image-1", prompt, size: "1024x1024", n: 1 },
+      { model: "gpt-image-2.5-flare-2026-09-08", prompt, size: "1024x1024", n: 1 },
       { signal: ac.signal }
     );
     clearTimeout(t);
