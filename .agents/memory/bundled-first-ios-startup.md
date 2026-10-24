@@ -14,3 +14,9 @@ The user has observed that publishing Production has historically updated what t
 **Why:** The user's observation is evidence about their actual installed app, while a checked-in Capacitor config describes only builds made from that config.
 
 **How to apply:** Separate remotely updated server responses from packaged client JavaScript. Investigate which build the user actually installed before requiring a native release or promising that a web publish updates its UI; keep Production publishing and device testing behind their separate approvals.
+
+The user identified the installed app and matching App Store Connect release as version **1.0.150**. Treat this as user-confirmed release identity, not independent verification of its packaging. Do not use the older checked-in project version as a proxy or ask the user to repeat the phone lookup.
+
+**Why:** The user's goal is Flare-generated meal photographs in the existing iPhone app with the fewest possible changes, preferably through compatible backend responses rather than another native build.
+
+**How to apply:** Seek the matching release archive or effective build configuration and client bundle. Absolute HTTPS photograph URLs are a backend-only candidate, not confirmed compatibility for that release until its actual client is identified.
