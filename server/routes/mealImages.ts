@@ -7,6 +7,7 @@ import { createApiRateLimit } from '../middleware/rateLimit';
 import { generateMealImage, generateMealImages, getCachedImage, getImageCacheStats } from '../services/mealImageGenerator';
 import { getMealImageRecoveryStatus } from '../services/mealImageRecovery';
 import { isVerifiedPhotograph } from "../../shared/imageResult";
+import { serializeGeneratedMealPhotograph } from "../services/developmentMealImageUrls";
 
 const imageRateLimit = createApiRateLimit();
 
@@ -39,13 +40,13 @@ mealImagesRouter.post('/meal-images/generate', requireAuth, imageRateLimit, asyn
       });
     }
     
-    const result = await generateMealImage({
+    const result = serializeGeneratedMealPhotograph(await generateMealImage({
       mealName,
       ingredients,
       style,
       templateRef,
       mealType // 🍎 Pass mealType to enable snack firewall
-    });
+    }));
     
     res.json({ 
       success: isVerifiedPhotograph(result.imageResult),
@@ -80,7 +81,7 @@ mealImagesRouter.post('/meal-images/generate-batch', requireAuth, imageRateLimit
       mealType: meal.mealType // 🍎 Pass mealType to enable snack firewall
     }));
     
-    const results = await generateMealImages(requests);
+    const results = (await generateMealImages(requests)).map(result => serializeGeneratedMealPhotograph(result));
     
     res.json({ 
       success: results.every(result => isVerifiedPhotograph(result.imageResult)),
@@ -108,11 +109,12 @@ mealImagesRouter.post('/meal-images/cached', requireAuth, imageRateLimit, (req, 
       });
     }
     
-    const cached = getCachedImage({ mealName, ingredients, style, mealType });
+    const rawCached = getCachedImage({ mealName, ingredients, style, mealType });
+    const cached = rawCached ? serializeGeneratedMealPhotograph(rawCached) : null;
     
     if (cached) {
       res.json({ 
-        success: true,
+        success: cached === rawCached || isVerifiedPhotograph(cached.imageResult),
         image: cached,
         cached: true
       });
@@ -180,9 +182,10 @@ mealImagesRouter.post('/meal-images/hydrate-with-image', requireAuth, imageRateL
           mealType: (validated as any).mealType // 🍎 Pass mealType to enable snack firewall
         });
         
-        imageUrl = imageResult.url;
+        const serialized = serializeGeneratedMealPhotograph(imageResult);
+        imageUrl = serialized.url;
         // Recipe success and image success are independent.
-        (validated as any).imageResult = imageResult.imageResult;
+        (validated as any).imageResult = serialized.imageResult;
       } catch (error) {
         console.warn('Image generation failed, using fallback:', error);
       }

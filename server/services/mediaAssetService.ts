@@ -17,6 +17,7 @@ import { Client as ReplitStorageClient } from "@replit/object-storage";
 import { db } from "../db";
 import { mediaAssets } from "../db/schema/mediaAssets";
 import { validateMealImageAuthority } from "./mealImageAuthority";
+import { canonicalDevelopmentMealImageUrl } from "./developmentMealImageUrls";
 import crypto from "crypto";
 import { developmentImageTestScope, assertDevelopmentImageTestSource } from "./images/developmentImageTestScope";
 import {
@@ -114,6 +115,9 @@ export async function processImageForMeal(
   source: string | null | undefined,
   mealName: string,
 ): Promise<MediaAsset> {
+  // A returned Development HTTPS URL still names the same canonical object.
+  // Normalize before classification so saving never downloads/re-ingests it.
+  if (source) source = canonicalDevelopmentMealImageUrl(source);
   const testScope = developmentImageTestScope();
   // A scoped request may not wrap historical/local images as its own test asset.
   assertDevelopmentImageTestSource(source);
