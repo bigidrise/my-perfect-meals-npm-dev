@@ -8,3 +8,9 @@ The production iOS shell must start from Capacitor-packaged web assets rather th
 **Why:** A remote initial document makes app startup depend on DNS, network availability, server health, cache state, and JavaScript download before the interface can render. A native splash must never wait indefinitely for JavaScript.
 
 **How to apply:** Keep API access explicit through the centralized native API resolver, and ensure relative API calls from `capacitor://localhost` are routed to that API rather than the local WebView origin. Before a rollout that moves an existing remote-startup app to bundled-first, test one-time authentication behavior on a physical device: browser local storage is origin-scoped and old cached auth state may not transfer.
+
+The user has observed that publishing Production has historically updated what they see in the installed iPhone app. Do not infer the installed binary's startup mode from the current repository configuration alone: older native configurations loaded the Production website directly, whereas the current source packages web assets. A home-screen web installation is another possible explanation; the installed build's distribution metadata is needed to distinguish them without asking the user to test the phone.
+
+**Why:** The user's observation is evidence about their actual installed app, while a checked-in Capacitor config describes only builds made from that config.
+
+**How to apply:** Separate remotely updated server responses from packaged client JavaScript. Investigate which build the user actually installed before requiring a native release or promising that a web publish updates its UI; keep Production publishing and device testing behind their separate approvals.
