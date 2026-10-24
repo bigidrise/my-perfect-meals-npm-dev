@@ -103,7 +103,7 @@ async function generateImageFromDalle(prompt: string): Promise<string | null> {
   try {
     const response = await getOpenAI().images.generate(
       {
-        model: "gpt-image-1",
+        model: "gpt-image-2.5-flare-2026-09-08",
         prompt: prompt,
         n: 1,
         size: "1024x1024",
@@ -112,7 +112,8 @@ async function generateImageFromDalle(prompt: string): Promise<string | null> {
       { signal: controller.signal },
     );
     clearTimeout(timeoutId);
-    return response.data?.[0]?.url || null;
+    const item = response.data?.[0];
+    return item?.url || (item?.b64_json ? `data:image/png;base64,${item.b64_json}` : null);
   } catch (error: any) {
     clearTimeout(timeoutId);
     if (error?.name === "AbortError" || controller.signal.aborted) {

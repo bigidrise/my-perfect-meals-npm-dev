@@ -1022,7 +1022,7 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
     try {
       const response = await withTimeout(
         (getOpenAI().images.generate as any)({
-          model: "gpt-image-1",
+          model: "gpt-image-2.5-flare-2026-09-08",
           prompt: dallePrompt,
           n: 1,
           size: "1024x1024",
