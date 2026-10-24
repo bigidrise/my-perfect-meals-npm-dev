@@ -32,3 +32,9 @@ The user has stopped additional image-system development. The sole approved obje
 **Why:** The user explicitly narrowed the scope after the compatibility investigation grew beyond the model replacement.
 
 **How to apply:** Distinguish a minimal model/request compatibility patch from optional reliability, diagnostics and URL changes. Further implementation, generation, restarts, publishing, deployment and GitHub pushes require new approval.
+
+The existing Flare implementation supports the user's manual Development meal-card image test; applying the isolated pre-replacement model-only patch is not a prerequisite.
+
+**Why:** The user confirmed that images worked after the approved graceful Development restart with the existing shared-cache protection, without applying that patch.
+
+**How to apply:** Preserve the working Development implementation. This confirmation establishes the manual Development path only; it does not authorize further changes or establish Production or installed-iOS compatibility.
