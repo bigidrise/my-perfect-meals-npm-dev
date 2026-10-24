@@ -516,10 +516,10 @@ describe("buildMealImagePrompt — structural identity in CONTRACT 1", () => {
 });
 
 describe("buildStableCacheKey — v8 cache flush + full-list hashing", () => {
-  it("produces a stable 32-char hex key and differs across names, ingredients, and source types", () => {
+  it("produces a stable Development-scoped digest and differs across names, ingredients, and source types", () => {
     const key = buildStableCacheKey("Tuna Salad", ["tuna", "greens"], "meal");
-    // 32-char hex
-    expect(/^[0-9a-f]{32}$/.test(key)).toBe(true);
+    // Development must never query or upsert an existing Production digest.
+    expect(/^dev-meal-image:v1:[0-9a-f]{32}$/.test(key)).toBe(true);
     // Deterministic across multiple calls
     expect(buildStableCacheKey("Tuna Salad", ["tuna", "greens"], "meal")).toBe(key);
     // Case/whitespace/order stable

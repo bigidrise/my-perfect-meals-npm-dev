@@ -11,6 +11,7 @@
 import OpenAI from 'openai';
 import { ImageOperation } from "./images/imageReliability";
 import { APPROVED_IMAGE_MODEL, IMAGE_LIMITS, IMAGE_REQUEST_FORMAT } from "./images/imageModelRegistry";
+import { namespaceMealImageCacheKey } from "./images/mealImageCacheNamespace";
 import { isPlaceholderImage, placeholderResult, type ImageResult } from "../../shared/imageResult";
 import crypto from 'crypto';
 import { db } from '../db';
@@ -773,11 +774,15 @@ export function buildStableCacheKey(
       })}`
     : "";
 
-  return crypto
+  const legacyDigest = crypto
     .createHash('sha256')
     .update(developmentImageTestCacheInput(`${normalizedName}|${normalizedIngredients}|${typeContext}|${CACHE_VERSION}${tag}${createDishTag}`))
     .digest('hex')
     .substring(0, 32);
+  // One server-owned identity for memory, DB, in-flight joining, batch,
+  // background prewarming and invalidation. Never fall back to unscoped rows.
+  // Diagnostic run/user identity remains inside the unchanged hash input above.
+  return namespaceMealImageCacheKey(legacyDigest);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
