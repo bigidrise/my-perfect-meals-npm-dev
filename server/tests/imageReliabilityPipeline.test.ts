@@ -3,6 +3,7 @@ const mockVerify = jest.fn();
 const mockIngest = jest.fn();
 const mockRead = jest.fn();
 const mockWrite = jest.fn();
+const mockValues = jest.fn(() => ({ onConflictDoUpdate: mockWrite }));
 const mockDelete = jest.fn();
 const mockAuthority = jest.fn();
 
@@ -12,7 +13,7 @@ jest.mock("openai", () => ({
 jest.mock("../db", () => ({
   db: {
     select: () => ({ from: () => ({ where: () => ({ limit: mockRead }) }) }),
-    insert: () => ({ values: () => ({ onConflictDoUpdate: mockWrite }) }),
+    insert: () => ({ values: mockValues }),
     delete: () => ({ where: mockDelete }),
   },
 }));
@@ -30,6 +31,8 @@ import { generateMealImage, generateMealImageResult, generateMealImageUnified, c
 import { computeRecipeSignature } from "../services/mealImageValidator";
 import { isVerifiedPhotograph } from "../../shared/imageResult";
 import { APPROVED_IMAGE_MODEL } from "../services/images/imageModelRegistry";
+import { randomUUID } from "node:crypto";
+import { withDevelopmentImageTestSubject, developmentImageTestScope, DevelopmentImageTestError } from "../services/images/developmentImageTestScope";
 
 let name = "Berry Coconut Chia Parfait";
 const ingredients = ["berries", "coconut", "chia"];
@@ -51,6 +54,68 @@ beforeEach(() => {
   mockAuthority.mockImplementation(async url => ({ status: "available", canonicalUrl: url }));
   // This mutable object exists only in the mocked module, never the real frozen registry.
   (APPROVED_IMAGE_MODEL as { shutdownDate: string | null }).shutdownDate = null;
+});
+
+describe("controlled Development pipeline (all IO mocked)", () => {
+  const inScope = <T>(work: () => T) => {
+    const runId = randomUUID();
+    const userId = "a0000000-0000-4000-8000-000000000003";
+    const used = new Set<string>();
+    return withDevelopmentImageTestSubject({ id: userId, email: `image-test+${runId}@example.invalid`, isSandbox: true }, work, {
+      env: { NODE_ENV: "development", IMAGE_DEVELOPMENT_ACTIVATION: "approved-flare",
+        DEVELOPMENT_IMAGE_TEST_ENABLED: "approved-single-image",
+        DEVELOPMENT_IMAGE_TEST_RUN_ID: runId, DEVELOPMENT_IMAGE_TEST_USER_ID: userId },
+      receipts: { claim: (_config, stage) => {
+        if (used.has(stage)) throw new DevelopmentImageTestError(`development_image_test_${stage}_receipt_unavailable`);
+        used.add(stage);
+      } },
+    });
+  };
+  const snack = "Berry Coconut Chia Parfait";
+  it("does not regenerate on fidelity failure or a new recipe-key request in the same run", async () => inScope(async () => {
+    mockVerify.mockResolvedValue({ verdict: "FAIL", model: "fixture", reason: "wrong ingredient",
+      usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 } });
+    const failed = await generateMealImageResult(snack, ingredients, "snack");
+    expect(failed.imageResult).toMatchObject({ generation: "succeeded", verification: "failed", display: "placeholder", attempts: 1 });
+    const repeated = await generateMealImageResult(snack, [...ingredients, "vanilla"], "snack");
+    expect(repeated.imageResult.reason).toBe("development_image_test_generation_receipt_unavailable");
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
+    expect(mockVerify).toHaveBeenCalledTimes(1);
+    expect(mockIngest).not.toHaveBeenCalled();
+    expect(mockWrite).not.toHaveBeenCalled();
+  }));
+  it("persists and reopens the same isolated durable reference without another provider call", async () => {
+    await inScope(async () => {
+      const prefix = developmentImageTestScope()!.storagePrefix;
+      const url = `/public-objects/fixture/${prefix}thumb.jpg`;
+      mockIngest.mockResolvedValueOnce({ success: true, permanentUrl: url });
+      const image = await generateMealImageResult(snack, ingredients, "snack");
+      const reopened = await generateMealImageResult(snack, ingredients, "snack");
+      expect(image.url).toBe(url);
+      expect(reopened.url).toBe(url);
+      expect(isVerifiedPhotograph(image.imageResult)).toBe(true);
+      expect(mockValues).toHaveBeenCalledWith(expect.objectContaining({ cacheKey: image.hash, imageUrl: url }));
+      expect(mockGenerate).toHaveBeenCalledTimes(1);
+      expect(mockIngest).toHaveBeenCalledTimes(1);
+    });
+    expect(getCachedImage({ mealName: snack, ingredients, sourceType: "snack" })).toBeNull();
+  });
+  it("rejects a cache row referencing a historical image before generation or mutation", async () => inScope(async () => {
+    mockRead.mockResolvedValueOnce([{ imageUrl: permanentUrl, validationStatus: "PASS", recipeSignature: computeRecipeSignature(ingredients) }]);
+    const image = await generateMealImageResult(snack, ingredients, "snack");
+    expect(image.imageResult.reason).toBe("development_image_test_storage_scope_violation");
+    expect(isVerifiedPhotograph(image.imageResult)).toBe(false);
+    expect(mockGenerate).not.toHaveBeenCalled();
+    expect(mockWrite).not.toHaveBeenCalled();
+    expect(mockDelete).not.toHaveBeenCalled();
+  }));
+  it("does not publish an unscoped storage URL or an ephemeral image on persistence failure", async () => inScope(async () => {
+    const image = await generateMealImageResult(snack, ingredients, "snack");
+    expect(image.imageResult).toMatchObject({ persistence: "failed", display: "placeholder", reason: "development_image_test_persistence_failed" });
+    expect(image.url).toBe("/images/fallback/meal.svg");
+    expect(mockWrite).not.toHaveBeenCalled();
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
+  }));
 });
 
 describe("shared image pipeline result and cache contracts (all IO mocked)", () => {

@@ -18,6 +18,7 @@ import { mealImageCache } from '../db/schema/mealImageCache';
 import { eq } from 'drizzle-orm';
 import { getStaticSnackImage, isLikelySnack } from '../../shared/staticSnackMappings';
 import { ingestImageToPermanentStorage } from './imageLifecycle';
+import { developmentImageTestCacheInput, developmentImageTestScope, assertDevelopmentImageTestRecipe, assertDevelopmentImageTestUrl, DevelopmentImageTestError } from "./images/developmentImageTestScope";
 import { normalizeMealName } from './mealNameNormalizer';
 import { validateMealImageAuthority } from "./mealImageAuthority";
 import type { PediatricImageContext } from "../../shared/pediatricMealImage";
@@ -774,7 +775,7 @@ export function buildStableCacheKey(
 
   return crypto
     .createHash('sha256')
-    .update(`${normalizedName}|${normalizedIngredients}|${typeContext}|${CACHE_VERSION}${tag}${createDishTag}`)
+    .update(developmentImageTestCacheInput(`${normalizedName}|${normalizedIngredients}|${typeContext}|${CACHE_VERSION}${tag}${createDishTag}`))
     .digest('hex')
     .substring(0, 32);
 }
@@ -863,6 +864,7 @@ export interface GeneratedImage {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function generateMealImage(request: MealImageRequest): Promise<GeneratedImage> {
+  assertDevelopmentImageTestRecipe(request.mealName, request.sourceType);
   const key = buildStableCacheKey(
     normalizeMealName(request.mealName), request.ingredients, request.sourceType,
     request.pediatricContext, request.createDishContext,
@@ -871,8 +873,10 @@ export async function generateMealImage(request: MealImageRequest): Promise<Gene
   if (existing) return existing;
   const operation = new ImageOperation(getSemanticFallback(request.mealName));
   const work = operation.bounded("operation", () => generateMealImageInternal(request, operation))
-  .catch((): GeneratedImage => ({
-    url: operation.fallback, imageResult: operation.result,
+  .catch((error): GeneratedImage => ({
+    url: operation.fallback, imageResult: error instanceof DevelopmentImageTestError
+      ? { ...operation.result, generation: "failed", display: "placeholder", reason: error.code }
+      : operation.result,
     prompt: "Image operation stopped", hash: key, createdAt: new Date().toISOString(),
   })).then(result => {
     // Joining applies to every entry point, including single/batch generation.
@@ -937,6 +941,7 @@ async function generateMealImageInternal(request: MealImageRequest, operation: I
   // ── LAYER 3: CHECK IN-MEMORY CACHE ─────────────────────────────────────────
   const memHit = memCache.get(cacheKey);
   if (memHit) {
+    assertDevelopmentImageTestUrl(memHit.url);
     if (isTempUrl(memHit.url)) {
       console.warn(`[IMG-LIFECYCLE:${traceId}] MEM-CACHE EVICT (temp URL) | meal="${mealName}"`);
       memCache.delete(cacheKey);
@@ -988,6 +993,7 @@ async function generateMealImageInternal(request: MealImageRequest, operation: I
       .limit(1);
 
     if (dbRow) {
+      assertDevelopmentImageTestUrl(dbRow.imageUrl);
       if (!isCacheRowServable(dbRow, currentSignature)) {
         // Legacy NULL-validation row, FAIL row, or signature mismatch — never
         // serve it; evict and regenerate through the full validation gate.
@@ -1022,6 +1028,7 @@ async function generateMealImageInternal(request: MealImageRequest, operation: I
       }
     }
   } catch (dbErr) {
+    if (dbErr instanceof DevelopmentImageTestError) throw dbErr;
     console.warn(`⚠️ DB cache read failed for "${mealName}":`, dbErr);
   }
 
@@ -1107,6 +1114,7 @@ async function generateMealImageInternal(request: MealImageRequest, operation: I
   console.log(`[IMG-LIFECYCLE:${traceId}] VALIDATE-DONE | verdict=${validation.verdict}${validation.reason ? ` | reason=${validation.reason}` : ''} | +${Date.now()-_t0}ms`);
 
   if (validation.verdict === "FAIL") {
+    if (!developmentImageTestScope()) {
     // ONE targeted retry with a strengthened prompt naming the detected offender.
     const retryPrompt = prompt + buildRetryExclusionAddendum(mealName, validation.reason ?? "off-recipe ingredient", dishForValidation.structuralIdentity);
     console.log(`[IMG-LIFECYCLE:${traceId}] RETRY-START | excluding="${validation.reason}" | +${Date.now()-_t0}ms`);
@@ -1149,6 +1157,7 @@ async function generateMealImageInternal(request: MealImageRequest, operation: I
       }
     }
 
+    }
     if (validation.verdict === "FAIL") {
       // FAIL CLOSED: never cache the bad image, never quietly show it.
       // Serve the semantic fallback and log full failure context.
@@ -1202,6 +1211,7 @@ async function generateMealImageInternal(request: MealImageRequest, operation: I
     if (ingestionResult.success && ingestionResult.permanentUrl
       && isPermanentUrl(ingestionResult.permanentUrl) && !isPlaceholderImage(ingestionResult.permanentUrl)) {
       const permanentUrl = ingestionResult.permanentUrl;
+      assertDevelopmentImageTestUrl(permanentUrl);
       try {
         const cacheRow = {
           cacheKey,
@@ -1243,6 +1253,14 @@ async function generateMealImageInternal(request: MealImageRequest, operation: I
   }
 
   // Object Storage upload failed — image is EPHEMERAL (base64 in memCache only).
+  if (developmentImageTestScope()) {
+    return {
+      url: operation.fallback,
+      imageResult: { ...operation.result, persistence: "failed", display: "placeholder",
+        url: operation.fallback, reason: operation.result.reason ?? "development_image_test_persistence_failed" },
+      prompt: finalPrompt, hash: cacheKey, createdAt: new Date().toISOString(),
+    };
+  }
   // WARNING: On server restart or memCache eviction, the next request for this
   // meal will call DALL-E again and may return a different image.
   if (operation.stopped) {
