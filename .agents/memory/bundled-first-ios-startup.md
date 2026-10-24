@@ -26,3 +26,9 @@ Keep absolute photograph URLs as a transport concern, not a new stored identity.
 **Why:** A backend-only compatibility fix must not cause a saved photograph to be downloaded and re-uploaded as a different object simply because its delivery URL gained an HTTPS origin. The user explicitly requires existing cache identity and saved-photo associations to survive.
 
 **How to apply:** Keep canonical storage references relative, bind transport URLs to the exact environment-owned origin and bucket, and test round trips with mocked storage/database calls. Development compatibility preparation does not authorize activation or Production rollout.
+
+The user has stopped additional image-system development. The sole approved objective is replacing retired `gpt-image-1` with the tested Flare model while preserving existing My Perfect Meals behavior. Do not expand database, storage, synchronization, iOS or application architecture work. Leave the three preliminary cache-isolation edits untouched: do not commit, revert or expand them without approval.
+
+**Why:** The user explicitly narrowed the scope after the compatibility investigation grew beyond the model replacement.
+
+**How to apply:** Distinguish a minimal model/request compatibility patch from optional reliability, diagnostics and URL changes. Further implementation, generation, restarts, publishing, deployment and GitHub pushes require new approval.
