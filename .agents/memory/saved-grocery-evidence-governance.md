@@ -90,3 +90,11 @@ Analysis must look visibly clickable, not like muted descriptive text.
 **Why:** The founder tested the transfer successfully, requested removing the tall two-line card layout, and said they did not realize the muted analysis text could be pressed.
 
 **How to apply:** Preserve the shopping-intent and saved-analysis behavior when changing presentation. This confirmation does not authorize Production release.
+
+## Stored payload compatibility during type repairs
+
+Preserve the existing mixed Saved Groceries payload, including advisory metadata beside nutrient amounts, when correcting static types. A type repair is not authorization to relocate or filter stored fields.
+
+**Why:** The numeric-only declaration did not describe the established saved-analysis format. Moving metadata merely to fit that declaration would needlessly change current consumers and historical payload compatibility; the user explicitly required no field loss.
+
+**How to apply:** Model the mixed payload honestly while keeping known nutrients numeric and retaining runtime label validation. Keep type-only fixes separate from migrations, record rewrites, and changes to clinical or shopping-intent policy.
