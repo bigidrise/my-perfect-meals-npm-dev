@@ -9,7 +9,9 @@
  * are persistent preferences, not a temporary scoped list.
  */
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { restoreSavedAnalysis, savedProductStatus } from "@/lib/savedGroceryAnalysis";
 import { queryClient } from "@/lib/queryClient";
 import { groceryProductLabel, savedRecommendationDetails } from "@/lib/savedGroceryRecommendation";
 import type { SavedRecommendationMetadata } from "@/lib/savedGroceryRecommendation";
@@ -36,6 +38,7 @@ import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 import { PillButton } from "@/components/ui/pill-button";
 
 interface SavedGroceryItemMeta extends SavedRecommendationMetadata {
+  [key: string]: any;
   alignmentGrade?: string;
   verdictLevel?: string;
   analysisMethod?: string;
@@ -44,7 +47,8 @@ interface SavedGroceryItemMeta extends SavedRecommendationMetadata {
   resolvedName?: string;
 }
 
-interface SavedGroceryItem {
+export interface SavedGroceryItem {
+  evidenceRevision?: string;
   id: string;
   productName: string;
   brand: string | null;
@@ -56,6 +60,7 @@ interface SavedGroceryItem {
   productMeta: SavedGroceryItemMeta | null;
   savedAt: string;
   compliance: {
+    category?: "evidence_missing" | "incompatible" | "profile_unavailable";
     status: "approved" | "blocked";
     reason: string | null;
   };
@@ -72,7 +77,7 @@ export function buildResultFromSavedItem(item: SavedGroceryItem): IngredientScan
 
   return {
     productName: groceryProductLabel(item),
-    alignmentGrade: (meta.alignmentGrade as IngredientScanResult['alignmentGrade']) ?? 'B',
+    alignmentGrade: meta.alignmentGrade as IngredientScanResult['alignmentGrade'],
     verdictLevel: (meta.verdictLevel as IngredientScanResult['verdictLevel']) ?? 'caution',
     analysisMethod: (meta.analysisMethod as IngredientScanResult['analysisMethod']) ?? 'by_name',
     overallSummary: '',
@@ -105,10 +110,12 @@ export function buildResultFromSavedItem(item: SavedGroceryItem): IngredientScan
     resolvedFromDb: meta.resolvedFromDb,
     resolvedName: meta.resolvedName,
     ...savedRecommendationDetails(meta),
+    ...restoreSavedAnalysis(item),
   };
 }
 
 interface Props {
+  onVerifyProduct?: (item: SavedGroceryItem) => void;
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }
@@ -149,7 +156,13 @@ function itemDisplayName(item: SavedGroceryItem): string {
   return groceryProductLabel(item);
 }
 
-export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
+export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduct }: Props) {
+  const { user } = useAuth();
+  const owner = user?.id ?? null;
+  const session = useRef({ owner });
+  if (session.current.owner !== owner) session.current = { owner };
+  const [loadedOwner, setLoadedOwner] = useState<string | null>(null);
+  const [historyIndex, setHistoryIndex] = useState(-1);
   const { toast } = useToast();
   const hydrate = useShoppingListStore((s) => s.hydrate);
   const shoppingItems = useShoppingListStore((s) => s.items);
@@ -166,19 +179,28 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [analysisItem, setAnalysisItem] = useState<SavedGroceryItem | null>(null);
+  useEffect(() => {
+    setAnalysisItem(null); setHistoryIndex(-1);
+    setSelectedIds(new Set()); setAddedIds(new Set());
+    setLoadedOwner(null); setItems([]);
+  }, [owner]);
 
   const fetchItems = useCallback(async () => {
+    if (!owner) return;
+    const started = session.current;
     setLoading(true);
     setError(null);
     try {
       const data = await get<{ items: SavedGroceryItem[] }>("/api/saved-groceries");
+      if (started !== session.current) return;
       setItems(data.items ?? []);
+      setLoadedOwner(owner);
     } catch {
-      setError("Could not load your saved groceries. Pull to refresh.");
+      if (started === session.current) setError("Could not load your saved groceries. Pull to refresh.");
     } finally {
-      setLoading(false);
+      if (started === session.current) setLoading(false);
     }
-  }, []);
+  }, [owner]);
 
   useEffect(() => {
     if (open) {
@@ -191,19 +213,19 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
 
   const visibleItems = useMemo(() => {
     const query = searchTerm.trim().toLocaleLowerCase();
-    return items.filter((item) => {
+    return (loadedOwner === owner ? items : []).filter((item) => {
       const matchesCategory = categoryFilter === "All" || (item.category ?? "General") === categoryFilter;
       if (!matchesCategory) return false;
       if (!query) return true;
       return itemDisplayName(item).toLocaleLowerCase().includes(query);
     });
-  }, [categoryFilter, items, searchTerm]);
+  }, [categoryFilter, items, searchTerm, loadedOwner, owner]);
 
   const grouped = useMemo(() => groupByCategory(visibleItems), [visibleItems]);
   const categories = useMemo(() => sortedCategories(grouped), [grouped]);
   const categoryOptions = useMemo(
-    () => sortedCategories(groupByCategory(items)).map(([category]) => category),
-    [items],
+    () => sortedCategories(groupByCategory(loadedOwner === owner ? items : [])).map(([category]) => category),
+    [items, loadedOwner, owner],
   );
 
   const isItemOnList = useCallback((item: SavedGroceryItem) => {
@@ -279,6 +301,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
   }, [hydrate, toast]);
 
   const handleAddToList = useCallback(async (item: SavedGroceryItem) => {
+    const started = session.current;
     if (isItemOnList(item)) return false;
     setAddingId(item.id);
     try {
@@ -287,6 +310,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
         status?: "added" | "already_on_list" | "restored" | "blocked";
         reason?: string | null;
       }>(`/api/saved-groceries/${item.id}/add-to-list`);
+      if (started !== session.current) return false;
       if (data.status === "blocked") {
         toast({
           title: "Saved, but not added",
@@ -562,22 +586,25 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
                               border: "1px solid rgba(255,255,255,0.07)",
                             }}
                           >
+                            <div className="flex flex-col gap-2 items-start">
                             <PillButton
                               type="button"
                               variant="sky"
                               active={isSelected}
-                              onClick={() => toggleSelected(item.id)}
-                              disabled={isBlocked}
-                              aria-label={`${isSelected ? "Deselect" : "Select"} ${itemDisplayName(item)}`}
-                              aria-pressed={isSelected}
+                              onClick={() => { setHistoryIndex(-1); setAnalysisItem(item); }}
+                              aria-label={`View Analysis: ${itemDisplayName(item)}`}
                               className="!px-2 !text-[8px]"
                             >
-                              {isBlocked ? "Review" : isSelected ? "Selected" : "Select"}
+                              View Analysis
                             </PillButton>
+                            <input type="checkbox" aria-label={`Select ${itemDisplayName(item)}`}
+                              checked={isSelected} disabled={isBlocked}
+                              onChange={() => toggleSelected(item.id)} />
+                            </div>
 
                             {/* Tappable product info — opens analysis sheet if data exists */}
                             <button
-                              onClick={() => hasAnalysis && setAnalysisItem(item)}
+                              onClick={() => { setHistoryIndex(-1); setAnalysisItem(item); }}
                               style={{
                                 flex: 1, minWidth: 0, background: "none", border: "none",
                                 cursor: hasAnalysis ? "pointer" : "default",
@@ -629,7 +656,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
                                       border: "1px solid rgba(239,68,68,0.3)",
                                     }}
                                   >
-                                    Needs review
+                                    {savedProductStatus(item)}
                                   </span>
                                 )}
                               </div>
@@ -666,7 +693,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
                                  ) : onList ? (
                                    <><CheckCircle2 style={{ width: 13, height: 13 }} /> Already on list</>
                                  ) : isBlocked ? (
-                                   <><AlertTriangle style={{ width: 13, height: 13 }} /> Blocked</>
+                                   <><AlertTriangle style={{ width: 13, height: 13 }} /> Cannot add yet</>
                                  ) : isAdded ? (
                                    <><CheckCircle2 style={{ width: 13, height: 13 }} /> Added</>
                                  ) : (
@@ -709,11 +736,36 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
   );
 
   // Render the analysis sheet outside the main portal so it layers above it
-  const analysisSheet = analysisItem ? (
+  const historical = historyIndex >= 0 ? analysisItem?.productMeta?.evidenceHistory?.[historyIndex] : null;
+  const displayedItem = historical && analysisItem ? { ...analysisItem, productMeta: historical.productMeta, nutritionJson: historical.nutritionJson } : analysisItem;
+  const storedScores = displayedItem?.productMeta?.analysisSnapshot?.scoreCards ?? displayedItem?.nutritionJson?.scoreCards;
+  const analysisSheet = analysisItem && loadedOwner === owner ? (
     <IngredientIntelligenceSheet
+      key={`${analysisItem.id}:${historyIndex}`}
       open={!!analysisItem}
-      result={buildResultFromSavedItem(analysisItem)}
-      onAddProduct={() => handleAddToList(analysisItem)}
+      hideSaveAction
+      hideLegacyScoreCards={!["kids", "adults", "diet", "fitnessGoal"].every(key => storedScores?.[key]?.verdict)}
+      result={buildResultFromSavedItem(displayedItem!)}
+      savedContext={<section className="rounded-xl border border-white/20 p-3 my-3 text-sm space-y-2">
+        <p>{analysisItem.productMeta?.analysisSnapshot ? "Analysis saved" : analysisItem.productMeta?.reason || analysisItem.productMeta?.recommendationWhyBetter ? "Recommendation saved" : "Saved product — original analysis may be unavailable"}</p>
+        <p>{savedProductStatus(analysisItem)}</p>
+        {analysisItem.compliance.reason && <p>{analysisItem.compliance.reason}</p>}
+        <p>Saving analysis does not verify the current label. Historical analysis is not current safety approval.</p>
+        {/certif/i.test(analysisItem.compliance.reason || "") && <p>An ingredient photo alone cannot establish independent certification.</p>}
+        {!!analysisItem.productMeta?.evidenceHistory?.length && <label>Evidence version{" "}
+          <select aria-label="Evidence version" className="bg-slate-800 p-2" value={historyIndex} onChange={e => setHistoryIndex(Number(e.target.value))}>
+            <option value={-1}>Current saved analysis</option>
+            {analysisItem.productMeta.evidenceHistory.map((_: unknown, i: number) => <option key={i} value={i}>Previous evidence {i + 1}</option>)}
+          </select>
+        </label>}
+        {onVerifyProduct && <button className="border border-orange-400 rounded-lg p-2" onClick={() => {
+          setAnalysisItem(null); onOpenChange(false); onVerifyProduct(analysisItem);
+        }}>Scan current ingredient label</button>}
+        {analysisItem.compliance.category === "profile_unavailable" && <button className="border rounded-lg p-2" onClick={async () => {
+          await fetchItems(); setAnalysisItem(null);
+        }}>Retry current profile check</button>}
+      </section>}
+      onAddProduct={analysisItem.compliance.status === "approved" && historyIndex === -1 ? () => handleAddToList(analysisItem) : undefined}
       onClose={() => setAnalysisItem(null)}
     />
   ) : null;

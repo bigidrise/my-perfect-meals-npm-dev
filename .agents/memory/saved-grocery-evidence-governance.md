@@ -42,3 +42,19 @@ For Find a Product, distinguish **missing verified product evidence** from a tem
 **Why:** Repeating a brand-only lookup cannot establish complete ingredients for a protected profile, and describing the deliberate safety block as a server failure encourages futile retries.
 
 **How to apply:** Keep the ingredient-evidence gate fail-closed, report a clear next action (checking a specific product's complete label), and reserve retryable 503s for genuinely unavailable context.
+
+## Evidence replacement and historical viewing
+
+Customers must be able to view original saved analysis independently of current eligibility. A saved recommendation, a photographed label, independent certification, and current-profile compatibility are different claims. Missing grades or scores must remain unavailable rather than being reconstructed as neutral or favorable judgments.
+
+**Why:** The user explicitly required working View Analysis for blocked and legacy records, no invented evidence, and preservation of original explanations and warnings.
+
+**How to apply:** Evidence replacement needs an explicit customer-initiated action for the exact same product and known brand/barcode, confirmation, ownership checks, stale-update protection, and retained previous evidence. Reapply existing server restrictions; a new ingredient photo alone does not prove independent certification.
+
+## Unowned device history
+
+Do not automatically assign old device-only scans without ownership information to whichever account signs in next. Keep temporary history separate from the permanent account-owned library.
+
+**Why:** A shared browser cannot establish which account created an unscoped local scan. Hiding unowned history avoids disclosure without deleting a customer's old device data.
+
+**How to apply:** Account-scope new temporary records and affected caches. Leave unowned historical storage untouched unless a separate, explicitly authorized recovery or deletion flow is requested.

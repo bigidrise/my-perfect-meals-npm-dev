@@ -28,11 +28,11 @@ export function recommendationProductKey(product: GroceryProductIdentity): strin
 
 export function recommendationSavePayload(
   alternative: BetterAlternative,
-  context: { query: string; educationalFooter: string },
+  context: { query: string; educationalFooter: string; source?: "scanner" | "grocery-coach"; subjectKind?: string },
 ) {
   return {
     ...recommendationIdentity(alternative),
-    source: "grocery-coach",
+    source: context.source ?? "grocery-coach",
     category: context.query,
     productMeta: {
       // These are the alternative's claims, not the analyzed product's grade,
@@ -43,6 +43,7 @@ export function recommendationSavePayload(
       evidenceStatus: "unverified",
       verificationMessage: context.educationalFooter,
       analysisMethod: "by_name",
+      subjectKind: context.subjectKind ?? "human",
     },
   };
 }

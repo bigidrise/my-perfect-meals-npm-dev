@@ -48,6 +48,8 @@ import { apiRequest } from "@/lib/queryClient";
 import InspirationCaptureModal from "@/components/InspirationCaptureModal";
 import GroceryStoreCoachSheet from "@/components/shopping/GroceryStoreCoachSheet";
 import SavedGroceriesSheet from "@/components/shopping/SavedGroceriesSheet";
+import type { SavedGroceryItem } from "@/components/shopping/SavedGroceriesSheet";
+import SavedGroceryEvidenceUpdate from "@/components/shopping/SavedGroceryEvidenceUpdate";
 import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
 import VoiceShoppingModal from "@/components/shopping/VoiceShoppingModal";
 import MobileBarcodeCamera from "@/components/MobileBarcodeCamera";
@@ -130,7 +132,7 @@ export default function ShoppingListMasterView() {
   // Also clear any shopping scans from previous days — they are session memory, not permanent archive.
   useEffect(() => {
     hydrate();
-    clearExpiredShoppingScans();
+    clearExpiredShoppingScans(user?.id);
   }, [hydrate, user?.id]);
 
   const isDesktop = useIsDesktop();
@@ -163,12 +165,19 @@ export default function ShoppingListMasterView() {
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
   const [barcodeModalOpen, setBarcodeModalOpen] = useState(false);
   const [shoppingSheetOpen, setShoppingSheetOpen] = useState(false);
-  const [shoppingSheetResult, setShoppingSheetResult] = useState<IngredientScanResult | null>(() => {
+  const [shoppingSheetResult, setShoppingSheetResult] = useState<IngredientScanResult | null>(null);
+  const [evidenceTarget, setEvidenceTarget] = useState<SavedGroceryItem | null>(null);
+  const [scanOwner, setScanOwner] = useState<string | null>(null);
+  useEffect(() => {
+    setShoppingSheetOpen(false);
+    setScanModalOpen(false);
+    setEvidenceTarget(null);
+    setScanOwner(user?.id ?? null);
     try {
-      const saved = localStorage.getItem('mpm.shopping.activeScan');
-      return saved ? (JSON.parse(saved) as IngredientScanResult) : null;
-    } catch { return null; }
-  });
+      const raw = user?.id ? localStorage.getItem(`mpm.shopping.activeScan:${user.id}`) : null;
+      setShoppingSheetResult(raw ? JSON.parse(raw) : null);
+    } catch { setShoppingSheetResult(null); }
+  }, [user?.id]);
   const [addOtherPrefill, setAddOtherPrefill] = useState<string | undefined>(undefined);
   const [scanModalOpen, setScanModalOpen] = useState(false);
   const [groceryCoachOpen, setGroceryCoachOpen] = useState(false);
@@ -209,14 +218,16 @@ export default function ShoppingListMasterView() {
   }, [items, productPickerTarget]);
 
   const persistScan = useCallback((result: IngredientScanResult) => {
-    try { localStorage.setItem('mpm.shopping.activeScan', JSON.stringify(result)); } catch {}
+    if (!user?.id) return;
+    try { localStorage.setItem(`mpm.shopping.activeScan:${user.id}`, JSON.stringify(result)); } catch {}
+    setScanOwner(user.id);
     setShoppingSheetResult(result);
-  }, []);
+  }, [user?.id]);
 
   const clearScan = useCallback(() => {
-    try { localStorage.removeItem('mpm.shopping.activeScan'); } catch {}
+    try { if (user?.id) localStorage.removeItem(`mpm.shopping.activeScan:${user.id}`); } catch {}
     setShoppingSheetResult(null);
-  }, []);
+  }, [user?.id]);
 
   /**
    * Shared barcode lookup used by BOTH the manual-entry path and the camera-scan
@@ -1230,6 +1241,8 @@ export default function ShoppingListMasterView() {
 
         {/* Saved Groceries */}
         <SavedGroceriesSheet
+          key={user?.id || "signed-out"}
+          onVerifyProduct={(item) => { setEvidenceTarget(item); setScanModalOpen(true); }}
           open={savedGroceriesOpen}
           onOpenChange={setSavedGroceriesOpen}
         />
@@ -1249,7 +1262,18 @@ export default function ShoppingListMasterView() {
 
         {/* Shopping Ingredient Intelligence Sheet */}
         <IngredientIntelligenceSheet
-          open={shoppingSheetOpen}
+          key={user?.id || "signed-out"}
+          open={shoppingSheetOpen && scanOwner === (user?.id ?? null)}
+          hideSaveAction={!!evidenceTarget}
+          savedContext={evidenceTarget && shoppingSheetResult ? <SavedGroceryEvidenceUpdate
+            key={`${user?.id}:${evidenceTarget.id}`}
+            target={evidenceTarget} analysis={shoppingSheetResult}
+            onCancel={() => setEvidenceTarget(null)}
+            onUpdated={() => {
+              setEvidenceTarget(null); setShoppingSheetOpen(false); setSavedGroceriesOpen(true);
+              toast({ title: "Label evidence updated", description: "Previous evidence retained. Current profile checks still apply." });
+            }}
+          /> : undefined}
           result={shoppingSheetResult}
           onClose={() => setShoppingSheetOpen(false)}
           onAddProduct={(name) => {
@@ -1276,11 +1300,11 @@ export default function ShoppingListMasterView() {
                 overallSummary: shoppingSheetResult.overallSummary,
                 considerations: shoppingSheetResult.ingredientConsiderations,
                 fullResult: JSON.stringify(shoppingSheetResult),
-              });
+              }, user?.id);
             }
             setShoppingSheetOpen(false);
             setScanRefreshKey((k) => k + 1);
-            toast({ title: "Saved for review", description: "You can revisit this scan anytime from this page." });
+            toast({ title: "Temporary scan history", description: "Stored for this account on this device until the daily cleanup. Use Save to Groceries for the permanent library." });
           }}
         />
 

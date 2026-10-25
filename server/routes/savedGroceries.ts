@@ -19,6 +19,7 @@ import { userSavedGroceryItems, shoppingListItems } from "@shared/schema";
 import { eq, and, inArray, sql } from "drizzle-orm";
 import { computeProductKey } from "../utils/productKey";
 import { revalidateSavedGroceriesForUser } from "../services/savedGroceryRevalidation";
+import { prepareSavedEvidenceUpdate, savedEvidenceRevision } from "../services/savedGroceryEvidence";
 import { developmentSavedProductFields } from "../services/shopping-list/metadataPersistence";
 
 export { computeProductKey };
@@ -152,8 +153,10 @@ router.get("/", async (req, res) => {
     return res.json({
       items: items.map((item) => ({
         ...item,
+        evidenceRevision: savedEvidenceRevision(item),
         compliance: decisionById.get(item.id) ?? {
           status: "blocked",
+          category: "profile_unavailable",
           reason: "Current profile compatibility could not be verified.",
         },
       })),
@@ -161,6 +164,35 @@ router.get("/", async (req, res) => {
   } catch (err: any) {
     console.error("[SavedGroceries] GET error:", err?.message);
     return res.status(500).json({ error: "Could not load saved groceries." });
+  }
+});
+
+// Explicit, optimistic and owner-scoped evidence replacement. Never an upsert.
+router.patch("/:id/evidence", async (req, res) => {
+  const userId = resolveUserId(req);
+  if (!userId) return res.status(401).json({ error: "Not authenticated" });
+  try {
+    const updated = await db.transaction(async (tx) => {
+      const [item] = await tx.select().from(userSavedGroceryItems).where(and(
+        eq(userSavedGroceryItems.id, req.params.id),
+        eq(userSavedGroceryItems.userId, userId),
+      )).for("update");
+      if (!item) return null;
+      const changes = prepareSavedEvidenceUpdate(item, req.body);
+      const [row] = await tx.update(userSavedGroceryItems).set(changes).where(and(
+        eq(userSavedGroceryItems.id, item.id), eq(userSavedGroceryItems.userId, userId),
+      )).returning();
+      return row;
+    });
+    if (!updated) return res.status(404).json({ error: "Saved product not found for this account." });
+    return res.json({ item: { ...updated, evidenceRevision: savedEvidenceRevision(updated) } });
+  } catch (error: any) {
+    const message = error instanceof Error ? error.message : "Evidence update failed";
+    if (/Confirm|changed|Scan a|barcode|scanned|history is full|too large|nutrition|serving basis/.test(message)) {
+      return res.status(409).json({ error: message });
+    }
+    console.error("[SavedGroceries] Evidence update failed");
+    return res.status(500).json({ error: "Evidence could not be updated. Previous evidence is unchanged." });
   }
 });
 

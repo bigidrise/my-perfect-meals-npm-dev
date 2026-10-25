@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useLocation } from "wouter";
@@ -81,11 +81,17 @@ interface SavedMeal {
 export default function CompanionNutritionHub() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const scanOwner = useRef(user?.id);
+  scanOwner.current = user?.id;
   const { open, setLastResponse } = useCopilot();
   const { isFree, showLockModal, lockMessage, guardAction, closeLockModal } = useFreeLock();
   const isDesktop = useIsDesktop();
   const [companionScanModal, setCompanionScanModal] = useState<{ open: boolean; profileId?: string; profileName?: string }>({ open: false });
   const [companionScanSheet, setCompanionScanSheet] = useState<{ open: boolean; result: IngredientScanResult | null }>({ open: false, result: null });
+  useEffect(() => {
+    setCompanionScanModal({ open: false });
+    setCompanionScanSheet({ open: false, result: null });
+  }, [user?.id]);
   const [profiles, setProfiles] = useState<DogProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [savedMeals, setSavedMeals] = useState<SavedMeal[]>([]);
@@ -653,6 +659,7 @@ export default function CompanionNutritionHub() {
       )}
 
       <InspirationCaptureModal
+        key={user?.id || "signed-out"}
         open={companionScanModal.open}
         onOpenChange={(open) => setCompanionScanModal((prev) => ({ ...prev, open }))}
         destination="smart-scan"
@@ -660,12 +667,23 @@ export default function CompanionNutritionHub() {
         profileId={companionScanModal.profileId}
         profileName={companionScanModal.profileName}
         onScanResult={(result) => {
-          saveProductScan(result);
+          if (!user?.id || scanOwner.current !== user.id) return;
+          saveProductScan({
+            productName: result.productName || "Scanned Product",
+            ingredients: result.extractedIngredients ?? [],
+            score: result.alignmentGrade ?? "",
+            gradeCalculated: !result.gradeUnavailable && !result.fallbackUsed,
+            householdFlags: result.householdNotes ?? [],
+            scanDate: new Date().toISOString(), userDecision: "saved", scanSource: "biometrics",
+            overallSummary: result.overallSummary, considerations: result.ingredientConsiderations,
+            fullResult: JSON.stringify(result),
+          }, user.id);
           setCompanionScanSheet({ open: true, result });
         }}
       />
 
       <IngredientIntelligenceSheet
+        key={user?.id || "signed-out"}
         open={companionScanSheet.open}
         result={companionScanSheet.result}
         companionName={companionScanModal.profileName}

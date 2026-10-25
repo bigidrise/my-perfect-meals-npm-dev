@@ -77,6 +77,7 @@ export default function MealIngredientBrands({ ingredient, servings, selectedLab
         {analysis && <IngredientIntelligenceSheet
           key={ingredient.item}
           open embedded result={analysis}
+          saveSource="grocery-coach"
           onClose={() => setExpanded(false)}
           onAddProduct={recipeShoppingQuantity(ingredient.quantity) === null ? undefined : (name) => onAddProduct(name, analysis)}
         />}

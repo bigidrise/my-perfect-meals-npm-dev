@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { getTodayShoppingScans, deleteProductScan, type SavedProductScan } from "@/lib/shoppingScanStorage";
+import { useAuth } from "@/contexts/AuthContext";
 import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
@@ -34,7 +35,9 @@ function reconstructResult(scan: SavedProductScan): IngredientScanResult {
   if (scan.fullResult) {
     try {
       const parsed = JSON.parse(scan.fullResult) as IngredientScanResult;
-      if (parsed && typeof parsed === "object" && parsed.alignmentGrade) return parsed;
+      if (parsed && typeof parsed === "object") return {
+        ...parsed, gradeUnavailable: parsed.gradeUnavailable === true || !["A", "B", "C", "D"].includes(parsed.alignmentGrade),
+      };
     } catch { /* fall through to reconstruction */ }
   }
   // Backward-compatible reconstruction for scans saved before fullResult was introduced.
@@ -45,11 +48,18 @@ function reconstructResult(scan: SavedProductScan): IngredientScanResult {
     fitnessGoal: { verdict: "neutral" as const, reason: "" },
   };
   return {
-    alignmentGrade: (scan.score as "A" | "B" | "C" | "D") ?? "B",
+    alignmentGrade: scan.score as "A" | "B" | "C" | "D",
+    gradeUnavailable: scan.gradeCalculated !== true || !["A", "B", "C", "D"].includes(scan.score),
     overallSummary: scan.overallSummary ?? "",
     verdict: "",
     verdictLevel: "caution",
     scoreCards: DEFAULT_SCORE_CARDS,
+    productName: scan.productName,
+    // Older history did not record label provenance; never promote it to label evidence.
+    analysisMethod: "by_name",
+    outcomeCards: [], analysisProfile: [], betterAlternatives: [],
+    isFrontLabel: false, productNameMissing: !scan.productName,
+    profileFactorsUsed: [], whatMattersMost: [],
     ingredientDecoder: [],
     ingredientConsiderations: scan.considerations ?? [],
     mayNotAlignWith: [],
@@ -69,27 +79,31 @@ interface Props {
 }
 
 export default function RecentScans({ refreshKey, onReopen }: Props) {
+  const { user } = useAuth();
+  const owner = user?.id ?? null;
+  const [loadedOwner, setLoadedOwner] = useState<string | null>(null);
   const [scans, setScans] = useState<SavedProductScan[]>([]);
   const [open, setOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   function loadScans() {
-    const todayScans = getTodayShoppingScans().slice(0, 20);
+    const todayScans = getTodayShoppingScans(owner).slice(0, 20);
     setScans(todayScans);
+    setLoadedOwner(owner);
   }
 
   useEffect(() => {
     loadScans();
-  }, [refreshKey]);
+  }, [refreshKey, owner]);
 
   function handleDelete(e: React.MouseEvent, id: string) {
     e.stopPropagation();
-    deleteProductScan(id);
+    deleteProductScan(id, owner);
     setScans((prev) => prev.filter((s) => s.id !== id));
     if (expandedId === id) setExpandedId(null);
   }
 
-  if (scans.length === 0) return null;
+  if (!owner || owner !== loadedOwner || scans.length === 0) return null;
 
   return (
     <div className="mt-3 rounded-2xl border border-white/10 bg-white/4 overflow-hidden">
@@ -98,7 +112,7 @@ export default function RecentScans({ refreshKey, onReopen }: Props) {
         className="w-full flex items-center justify-between px-4 py-3 text-left"
       >
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-white/80">Today's Scans</span>
+          <span className="text-sm font-semibold text-white/80">Temporary scan history</span>
           <span className="text-[10px] font-bold bg-cyan-700/60 text-white rounded-full px-1.5 py-0.5 leading-none">
             {scans.length}
           </span>
