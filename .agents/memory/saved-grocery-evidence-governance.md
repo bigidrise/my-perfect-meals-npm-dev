@@ -51,6 +51,12 @@ Customers must be able to view original saved analysis independently of current 
 
 **How to apply:** Evidence replacement needs an explicit customer-initiated action for the exact same product and known brand/barcode, confirmation, ownership checks, stale-update protection, and retained previous evidence. Reapply existing server restrictions; a new ingredient photo alone does not prove independent certification.
 
+Historical viewing must distinguish full saved scans, older partial scans, and recommendation-only products within the existing Product Scan presentation. Partial records are not failed new scans; recommendations never inherit the analyzed parent product's grade or personalization.
+
+**Why:** The founder approved faithful historical reopening, with accurate unavailable-information messaging and no new analysis, duplicate-save changes, or redundant safety warnings.
+
+**How to apply:** Show genuine stored grades and explanations for partial scans; preserve the entire original result for full snapshots. Recommendation-only views show their own saved reasons and criteria. Never automatically upgrade old records or regenerate missing historical content.
+
 ## Unowned device history
 
 Do not automatically assign old device-only scans without ownership information to whichever account signs in next. Keep temporary history separate from the permanent account-owned library.

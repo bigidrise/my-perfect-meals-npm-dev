@@ -9,6 +9,16 @@ export interface SavedAnalysisProduct {
   nutritionJson?: Record<string, any> | null;
 }
 
+export type SavedAnalysisKind = "full" | "legacy" | "recommendation";
+
+export function savedAnalysisKind(item: SavedAnalysisProduct): SavedAnalysisKind {
+  const meta = item.productMeta ?? {};
+  if (meta.analysisSnapshot && typeof meta.analysisSnapshot === "object" && !Array.isArray(meta.analysisSnapshot)) return "full";
+  if (Array.isArray(meta.recommendationWhyBetter) || typeof meta.recommendationTargetCriteria === "string" ||
+      (typeof meta.reason === "string" && !meta.alignmentGrade && meta.analysisMethod !== "by_label")) return "recommendation";
+  return "legacy";
+}
+
 export function scanSavePayload(result: IngredientScanResult, source: "scanner" | "grocery-coach", companionName?: string) {
   return {
     productName: result.productName,
@@ -38,7 +48,8 @@ export function scanSavePayload(result: IngredientScanResult, source: "scanner" 
 export function restoreSavedAnalysis(item: SavedAnalysisProduct): Partial<IngredientScanResult> {
   const meta = item.productMeta ?? {};
   const snapshot = meta.analysisSnapshot;
-  if (snapshot && typeof snapshot === "object" && !Array.isArray(snapshot)) {
+  const kind = savedAnalysisKind(item);
+  if (kind === "full") {
     const supportedGrade = ["A", "B", "C", "D"].includes(snapshot.alignmentGrade);
     return {
       ...snapshot,
@@ -52,14 +63,39 @@ export function restoreSavedAnalysis(item: SavedAnalysisProduct): Partial<Ingred
   const summary = reasons.join(" ") || (typeof meta.reason === "string" ? meta.reason : "");
   const warnings = [meta.recommendationTargetCriteria, meta.verificationMessage, meta.wholeFoodNote]
     .filter((v): v is string => typeof v === "string" && !!v);
-  const grade = meta.alignmentGrade ?? (meta.evidenceStatus === "verified" ? meta.grade : undefined);
+  const grade = kind === "recommendation" ? undefined
+    : meta.alignmentGrade ?? (meta.evidenceStatus === "verified" ? meta.grade : undefined);
+  // Some historical writers stored analysis fields directly, without a snapshot.
+  // Copy only genuine stored content; presentation defaults are not evidence.
+  const stored: Partial<IngredientScanResult> = {};
+  for (const key of ["overallSummary", "verdict", "educationalFooter"] as const) {
+    if (typeof meta[key] === "string") stored[key] = meta[key];
+  }
+  for (const key of ["analysisProfile", "betterAlternatives", "ingredientDecoder", "ingredientConsiderations",
+    "mayNotAlignWith", "betterFor", "householdNotes", "extractedIngredients", "highRiskFindings",
+    "profileFactorsUsed", "whatMattersMost", "outcomeCards"] as const) {
+    if (Array.isArray(meta[key])) Object.assign(stored, { [key]: meta[key] });
+  }
+  if (meta.scoreCards && typeof meta.scoreCards === "object") stored.scoreCards = meta.scoreCards;
+  if (kind === "recommendation") {
+    return {
+      overallSummary: summary,
+      ingredientConsiderations: [...reasons, ...warnings],
+      educationalFooter: typeof meta.educationalFooter === "string" ? meta.educationalFooter
+        : typeof meta.verificationMessage === "string" ? meta.verificationMessage : "",
+      alignmentGrade: undefined,
+      gradeUnavailable: true,
+      fallbackUsed: false,
+    };
+  }
   return {
-    overallSummary: summary || "The original analysis text was not stored with this older product.",
+    overallSummary: summary,
     ingredientConsiderations: [...reasons, ...warnings],
-    educationalFooter: meta.educationalFooter || meta.verificationMessage || "Current label evidence is not verified by saving this product.",
-    alignmentGrade: grade,
+    educationalFooter: typeof meta.verificationMessage === "string" ? meta.verificationMessage : "",
+    ...stored,
+    alignmentGrade: ["A", "B", "C", "D"].includes(grade) ? grade : undefined,
     gradeUnavailable: meta.gradeUnavailable === true || !["A", "B", "C", "D"].includes(grade),
-    fallbackUsed: !grade,
+    fallbackUsed: false,
   };
 }
 
