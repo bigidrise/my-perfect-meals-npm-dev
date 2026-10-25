@@ -18,6 +18,14 @@ description: Policy for the release-check type-validation layers — safety slic
 
 **Safety slice:** Add any new safety-sensitive surface to `tsconfig.safety-check.json` before relying on the release check for that surface.
 
+## Fresh-worktree build inputs
+
+Preflight ignored, generated build inputs before starting expensive isolated-worktree validation. A Development checkout can build successfully because it already contains generated inputs that a clean release worktree does not have.
+
+**Why:** Isolated Saved Groceries validation reached an unresolved generated build-version import only after expensive module transformation; repeated timeouts initially hid the actionable setup error.
+
+**How to apply:** Use the existing canonical build-input generator rather than inventing version exports. Preserve the customer release identity, exclude incidental tracked manifest updates from a feature-only release, and never treat a timed-out build as verified.
+
 ## Interrupted checks
 
 A tool timeout does not guarantee validator cleanup. Confirm the compiler and
