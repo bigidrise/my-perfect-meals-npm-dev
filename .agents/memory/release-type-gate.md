@@ -18,6 +18,14 @@ description: Policy for the release-check type-validation layers — safety slic
 
 **Safety slice:** Add any new safety-sensitive surface to `tsconfig.safety-check.json` before relying on the release check for that surface.
 
+## Committed candidate verification
+
+When confirming that an approved correction is included in an isolated release branch, distinguish its committed source from uncommitted worktree edits. Identify the actual tested commit and verify that the release checkout is clean.
+
+**Why:** A Saved Groceries correction passed local checks while remaining uncommitted in the isolated checkout; the branch's committed schema still contained the old declaration. The user explicitly required the correction in the release branch, not merely in Development.
+
+**How to apply:** Inspect the candidate's committed files as well as its working tree. Commit only the approved correction files locally before final candidate verification, preserve unrelated Development work, and keep pushing subject to separate authorization. Do not infer the cause of an external validation failure from local success alone.
+
 ## Fresh-worktree build inputs
 
 Preflight ignored, generated build inputs before starting expensive isolated-worktree validation. A Development checkout can build successfully because it already contains generated inputs that a clean release worktree does not have.
