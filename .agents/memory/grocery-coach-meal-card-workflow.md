@@ -11,11 +11,11 @@ Grocery Coach must automatically turn a recommendation into a complete meal card
 
 ## Packaged-product discovery boundary
 
-Build a Meal's sourced catalog discovery remains user-initiated for eligible ingredients to buy, not automatic across the recipe or owned ingredients. Ordinary ingredients do not need brand recommendations. This improvement is Development-only until separately approved for release.
+Build a Meal's Find Brands remains user-initiated for eligible ingredients to buy, not automatic across the recipe or owned ingredients. Its recommendations must reuse the same Product Scan by-name experience as Find a Product, not catalog-style cards. This improvement is Development-only until separately approved for release.
 
-**Why:** The user requested useful packaged-product choices within the existing meal experience without rebuilding generation, weakening profile restrictions, changing servings, or implying that choosing a brand medically revalidates the finished meal.
+**Why:** The user tested Find a Product in Development and confirmed its personalized recommendation cards are the experience they want for ingredient-level Find Brands too, without rebuilding generation or weakening restrictions.
 
-**How to apply:** Preserve the original ingredient amount, unit, servings, and meal/card workflow. Display evidence and unresolved review needs with each choice, keep lookup errors local, and retain exact product identity and review qualifications when carrying a choice into shopping.
+**How to apply:** Preserve the original ingredient amount, unit, servings, and meal/card workflow. The existing Add action must retain the specific recipe-ingredient association and review qualifications. Keep ingredient results isolated and return to the unchanged meal/list on close. Stop before substantial shopping-workflow changes.
 
 ## Find a Product and Product Scan
 

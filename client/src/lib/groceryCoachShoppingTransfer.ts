@@ -1,6 +1,7 @@
 import { makeIngredientMetadata, parseIngredientMetadata } from "@shared/shoppingIngredientMetadata";
 import type { CatalogProductMatch } from "@/components/shopping/GroceryStoreCoachSheet";
 import type { GroceryIngredient } from "./groceryCoachPackagedIngredients";
+import type { IngredientScanResult } from "./photoIngredientCapture";
 
 /**
  * Add All handoff only: retain a member's existing Coach choice as historical
@@ -8,7 +9,7 @@ import type { GroceryIngredient } from "./groceryCoachPackagedIngredients";
  */
 export function groceryCoachSelectedProductMetadata(
   ingredient: GroceryIngredient,
-  product: CatalogProductMatch,
+  product: CatalogProductMatch | { name: string; byNameAnalysis: IngredientScanResult },
   recipe: { id?: string; name: string },
 ) {
   const metadata = makeIngredientMetadata({
@@ -16,6 +17,26 @@ export function groceryCoachSelectedProductMetadata(
     originalText: `${ingredient.quantity} ${ingredient.unit} ${ingredient.item}`.trim(),
     recipeId: recipe.id, recipeName: recipe.name, source: "grocery_coach",
   });
+  if ("byNameAnalysis" in product) {
+    return parseIngredientMetadata({
+      ...metadata,
+      selectedProduct: {
+        productKey: `by_name:${JSON.stringify([ingredient.item.toLowerCase(), product.name.toLowerCase()])}`,
+        name: product.name,
+        source: { source: "Product Scan by-name guidance" },
+        sourcePayloadJson: JSON.stringify(product.byNameAnalysis),
+        evidence: [],
+        assessment: {
+          status: "review_required",
+          unresolvedRequirements: ["current_profile_and_label_review"],
+          reasons: [
+            "Knowledge-based shopping suggestion only; verify the current label. Not allergy or medical safety clearance.",
+            product.byNameAnalysis.educationalFooter,
+          ].filter(Boolean),
+        },
+      },
+    })!;
+  }
   const source = {
     source: product.source, sourceRecordId: product.sourceRecordId,
     ...(product.catalogDate ? { observedAt: product.catalogDate } : {}),
