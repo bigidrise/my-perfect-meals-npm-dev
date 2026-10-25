@@ -11,6 +11,8 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { queryClient } from "@/lib/queryClient";
+import { groceryProductLabel, savedRecommendationDetails } from "@/lib/savedGroceryRecommendation";
+import type { SavedRecommendationMetadata } from "@/lib/savedGroceryRecommendation";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -33,7 +35,7 @@ import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientI
 import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 import { PillButton } from "@/components/ui/pill-button";
 
-interface SavedGroceryItemMeta {
+interface SavedGroceryItemMeta extends SavedRecommendationMetadata {
   alignmentGrade?: string;
   verdictLevel?: string;
   analysisMethod?: string;
@@ -64,12 +66,12 @@ interface SavedGroceryItem {
  * IngredientIntelligenceSheet can display the badge and whatever analysis
  * data was persisted at save time.
  */
-function buildResultFromSavedItem(item: SavedGroceryItem): IngredientScanResult {
+export function buildResultFromSavedItem(item: SavedGroceryItem): IngredientScanResult {
   const meta = item.productMeta ?? {};
   const nutrition = item.nutritionJson ?? {};
 
   return {
-    productName: item.brand ? `${item.brand} ${item.productName}` : item.productName,
+    productName: groceryProductLabel(item),
     alignmentGrade: (meta.alignmentGrade as IngredientScanResult['alignmentGrade']) ?? 'B',
     verdictLevel: (meta.verdictLevel as IngredientScanResult['verdictLevel']) ?? 'caution',
     analysisMethod: (meta.analysisMethod as IngredientScanResult['analysisMethod']) ?? 'by_name',
@@ -102,6 +104,7 @@ function buildResultFromSavedItem(item: SavedGroceryItem): IngredientScanResult 
     barcode: item.barcode ?? undefined,
     resolvedFromDb: meta.resolvedFromDb,
     resolvedName: meta.resolvedName,
+    ...savedRecommendationDetails(meta),
   };
 }
 
@@ -143,9 +146,7 @@ function sortedCategories(groups: Record<string, SavedGroceryItem[]>): [string, 
 }
 
 function itemDisplayName(item: SavedGroceryItem): string {
-  return item.brand
-    ? `${item.brand} ${item.productName}`.trim()
-    : item.productName.trim();
+  return groceryProductLabel(item);
 }
 
 export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
@@ -278,7 +279,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
   }, [hydrate, toast]);
 
   const handleAddToList = useCallback(async (item: SavedGroceryItem) => {
-    if (isItemOnList(item)) return;
+    if (isItemOnList(item)) return false;
     setAddingId(item.id);
     try {
       const data = await post<{
@@ -292,7 +293,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
           description: data.reason ?? "This product does not fit your current profile.",
           variant: "destructive",
         });
-        return;
+        return false;
       }
       if (data.status !== "already_on_list") {
         setAddedIds((prev) => new Set(Array.from(prev).concat(item.id)));
@@ -302,8 +303,10 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
         title: data.status === "already_on_list" ? "Already on list" : "Added to list!",
         description: data.name ?? itemDisplayName(item),
       });
+      return true;
     } catch {
       toast({ title: "Couldn't add to list", description: "Please try again.", variant: "destructive" });
+      return false;
     } finally {
       setAddingId(null);
     }
@@ -542,7 +545,8 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
                         const isSelected = selectedIds.has(item.id);
                         const isBlocked = item.compliance.status === "blocked";
                         const isRemoving = removingId === item.id;
-                        const hasAnalysis = !!(item.productMeta?.alignmentGrade || item.productMeta?.resolvedFromDb !== undefined);
+                        const hasAnalysis = !!(item.productMeta?.alignmentGrade || item.productMeta?.resolvedFromDb !== undefined
+                          || Array.isArray(item.productMeta?.recommendationWhyBetter));
 
                         return (
                           <div
@@ -709,6 +713,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange }: Props) {
     <IngredientIntelligenceSheet
       open={!!analysisItem}
       result={buildResultFromSavedItem(analysisItem)}
+      onAddProduct={() => handleAddToList(analysisItem)}
       onClose={() => setAnalysisItem(null)}
     />
   ) : null;
