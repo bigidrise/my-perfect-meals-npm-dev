@@ -77,7 +77,7 @@ Saved Groceries is a personal library of the same Ingredient Intelligence cards,
 
 **Why:** The founder explicitly approved reuse after discovering that the main card treated an already-saved product as an unsave toggle and could not attach an existing printout. The founder subsequently completed visual testing and approved the implementation.
 
-**How to apply:** Keep Save, Update Saved Analysis, View Saved Analysis and explicit removal distinct. Preserve identity, package details, recommendation context, source and authoritative ingredient evidence. Reject stale or competing attachments, and never promote a historical by-name result into verified label evidence. The founder authorized consolidating only approved Saved Groceries and Ingredient Intelligence changes on the existing isolated release branch, preserving its history, and pushing a focused GitHub pull request into Production. This is not permission to merge, activate Production-only behavior, deploy, publish, migrate or change shared data.
+**How to apply:** Keep Save, Update Saved Analysis, View Saved Analysis and explicit removal distinct. Preserve identity, package details, recommendation context, source and authoritative ingredient evidence. Reject stale or competing attachments, and never promote a historical by-name result into verified label evidence. The founder authorized isolated GitHub review of the approved changes and subsequently approved a minimal follow-up PR enabling only the existing snapshot-attachment capability in Production. Preserve all protections and other feature gates. This is not permission to merge, deploy, publish, migrate or change shared data, or to alter interrupted-generation recovery.
 
 ## Unowned device history
 
