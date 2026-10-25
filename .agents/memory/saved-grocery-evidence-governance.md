@@ -5,6 +5,14 @@ description: Product-evidence priority and safety boundaries for permanent Saved
 
 Saved Groceries is the permanent library shared by Product Scan and Grocery Coach. A saved product is a preference, not a permanent safety approval: every surface must revalidate it against the current authoritative profile before adding or recommending it.
 
+## Unified customer experience
+
+The user wants one Saved Groceries library across Product Scan, Grocery Coach, Find a Product, and Find Brands. Saved items should retain product name, known brand, original analysis or recommendation, personalized explanation, verification warnings, useful source information, and account ownership. Reopening existing saved analysis must not require another paid AI analysis.
+
+**Why:** The user explicitly established this product expectation while requesting an investigation before further implementation.
+
+**How to apply:** Treat analysis, recommendation, current-label evidence, and current-profile eligibility as separate concepts. Preserve genuine allergy and medical restrictions; never promote an unverified recommendation to verified-safe status. These requirements do not authorize implementation during an investigation-only request.
+
 Every product shown by Find a Product should be individually saveable for future addition to the user's shopping list, retaining the specific product and brand rather than only a generic category such as "Juice".
 
 **Why:** The user explicitly described this as the expected purpose of Saved Groceries after seeing a saved entry labeled only "Juice".
