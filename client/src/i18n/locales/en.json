@@ -2884,7 +2884,11 @@
       "restrictions": "Important for You",
       "allPoints": "Original personalized points",
       "recommendation": "Saved recommendation reasons and criteria",
-      "analyzeNotice": "Generate this product's own personalized by-name analysis using AI. This uses the paid AI service; opening saved results does not run it again.",
+      "savedFromCoach": "Saved from Grocery Coach",
+      "savedRecommendation": "Saved recommendation",
+      "whyRecommended": "Why It Was Recommended",
+      "recommendationSource": "Recommendation based on product knowledge. Check the current label for exact ingredients and nutrition.",
+      "analyzeNotice": "Generate {{name}}'s own personalized analysis. Saved results can be reopened without another analysis request.",
       "analyzingProduct": "Analyzing This Product…",
       "analyzeProduct": "Analyze This Product"
     },
