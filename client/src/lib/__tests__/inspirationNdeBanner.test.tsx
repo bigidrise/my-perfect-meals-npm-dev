@@ -189,6 +189,20 @@ describe("Recipe Maker photo-only entry", () => {
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
   });
 
+  it("offers only gallery and camera for human Product Scan while preserving image inputs", () => {
+    render(<InspirationCaptureModal open onOpenChange={jest.fn()} destination="smart-scan" />);
+    for (const name of ["choosePhoto", "cameraPill"]) {
+      expect(screen.getByRole("button", { name: `inspiration.${name}` })).toBeInTheDocument();
+    }
+    expect(screen.queryByRole("button", { name: "inspiration.speakPill" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "inspiration.typePill" })).not.toBeInTheDocument();
+    const gallery = screen.getByRole("button", { name: "inspiration.choosePhoto" }).parentElement?.querySelector("input");
+    const camera = screen.getByRole("button", { name: "inspiration.cameraPill" }).parentElement?.querySelector("input");
+    expect(gallery).toHaveAttribute("accept", "image/*");
+    expect(gallery).not.toHaveAttribute("capture");
+    expect(camera).toHaveAttribute("capture", "environment");
+  });
+
   it("leaves all four input choices available for Companion product scanning", () => {
     render(<InspirationCaptureModal open onOpenChange={jest.fn()} destination="smart-scan"
       profileType="companion" profileId="synthetic-companion" profileName="Test Companion" />);

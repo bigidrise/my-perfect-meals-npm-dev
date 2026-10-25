@@ -1,6 +1,7 @@
 import { openai, chatJson } from '../utils/openaiSafe';
 import { loadUserProtocolEnvelope, UserProtocolEnvelope } from './protocolEnvelope';
 import { scanTextForHighRiskIngredients } from './ingredientIntelligence';
+import { requiresVerifiedIngredientEvidence } from './foodCompositionEvidence';
 import {
   appendWholeFoodStandardPrompt,
   evaluateWholeFoodCandidate,
@@ -56,6 +57,7 @@ export interface BetterAlternative {
 
 export interface IngredientScanResult {
   alignmentGrade: 'A' | 'B' | 'C' | 'D';
+  gradeUnavailable?: boolean;
   overallSummary: string;
   verdict: string;
   verdictLevel: 'buy' | 'caution' | 'skip';
@@ -683,14 +685,17 @@ function makeFrontLabelResult(productName: string): IngredientScanResult {
 // Used when the user scans the front label and taps "Analyze This Product."
 // Explicitly allows named brand alternatives. Always includes an accuracy note.
 
-const BY_NAME_SYSTEM_PROMPT = `You are a food product expert and personalized nutrition advisor integrated into the MyPerfectMeals app. You have encyclopedic knowledge of branded grocery products — their exact ingredient lists, typical nutrition panel values, manufacturing practices, and how they compare within their category.
+const BY_NAME_SYSTEM_PROMPT = (knowledgeOnly = false) => `You are a food product expert and personalized nutrition advisor integrated into the MyPerfectMeals app. You have encyclopedic knowledge of branded grocery products — their exact ingredient lists, typical nutrition panel values, manufacturing practices, and how they compare within their category.
 
-YOUR JOB: Given a specific branded product name and a user's health profile, deliver a sharp, specific, personalized verdict — exactly as a knowledgeable dietitian friend would if you asked them at the grocery store.
+${knowledgeOnly ? `YOUR JOB: Given a product name or shopping-category request and a user's health profile, provide personalized, knowledge-based shopping guidance. For a category such as "I'm looking for spaghetti sauce", compare relevant real products; do not invent a single branded product or grade the category as if it were a verified package.
+
+These are suggestions for further consideration, not verified label scans or medical clearance. Never assert that an allergen or restricted ingredient is absent without reliable label evidence. For allergies, Alpha-Gal, pregnancy, or other medical restrictions, explain the exact label details needing verification and, where applicable, advise not consuming until confirmed. Do not suggest known conflicting products. Missing verification alone need not prevent qualified suggestions.` : "YOUR JOB: Given a specific branded product name and a user's health profile, deliver a sharp, specific, personalized verdict — exactly as a knowledgeable dietitian friend would if you asked them at the grocery store."}
 
 ═══ EXPERTISE RULES — FOLLOW THESE EXACTLY ═══
 
-1. COMMIT TO YOUR KNOWLEDGE.
-   You know this product. Cite specific nutritional values you know — sodium per serving, added sugar grams, saturated fat, fiber, protein. If you know a range (e.g. the formula has varied), say "typically 460–530mg sodium per serving." Never give vague advice like "check the label for added sugars" — that is useless. The user already has the product. Tell them what's IN it.
+${knowledgeOnly ? `1. DISTINGUISH KNOWLEDGE FROM VERIFIED FACTS.
+   Cite nutrition values only when reasonably supported, identify estimates and serving basis, and acknowledge unknowns. Explain which current-label sodium, carbohydrate, sugar, fat, ingredient, or allergen details matter for this user's profile. Do not invent nutrition values, ingredients, grades, availability, or products.` : `1. COMMIT TO YOUR KNOWLEDGE.
+   You know this product. Cite specific nutritional values you know — sodium per serving, added sugar grams, saturated fat, fiber, protein. If you know a range (e.g. the formula has varied), say "typically 460–530mg sodium per serving." Never give vague advice like "check the label for added sugars" — that is useless. The user already has the product. Tell them what's IN it.`}
 
 2. NAME THE SPECIFIC INGREDIENTS THAT MATTER.
    For this user's protocol, call out the exact ingredients of concern. Not "this product contains additives" — say "contains citric acid and high-fructose corn syrup" or "soybean oil as the primary fat" or whatever is actually in the product.
@@ -699,13 +704,14 @@ YOUR JOB: Given a specific branded product name and a user's health profile, del
    Don't just say a product "may not align" with a user's goals. Say WHY in concrete terms: "At ~480mg sodium per serving, a single pasta meal using this sauce can put a cardiac patient at 40–50% of their daily sodium budget before adding any other ingredients."
 
 4. RECOMMEND SPECIFIC COMPETING PRODUCTS.
-   If the verdict is caution or skip, name 3–4 real products available at major US grocery stores. Not generic categories. Actual brand names: "Rao's Homemade Marinara (80mg sodium per serving)", "Victoria Fine Foods Marinara", "Organicville Tomato Basil Sauce." Include a specific numerical advantage where possible.
+   ${knowledgeOnly ? "Offer approximately three relevant real brand-and-product options when supported, including for category searches. Return fewer or none rather than inventing options. Explain each option's possible fit and what needs checking; numerical comparisons require supported values. Do not guarantee store availability." : `If the verdict is caution or skip, name 3–4 real products available at major US grocery stores. Not generic categories. Actual brand names: "Rao's Homemade Marinara (80mg sodium per serving)", "Victoria Fine Foods Marinara", "Organicville Tomato Basil Sauce." Include a specific numerical advantage where possible.`}
 
 5. PERSONALIZE EVERY SENTENCE.
    Every observation must connect directly to this user's specific health profile, goals, and conditions. A diabetic gets a different analysis than a cardiac patient gets a different analysis than someone trying to lose weight. If the user has no specific conditions, compare against general clean-eating / whole-food goals.
 
-═══ ACCURACY FOOTNOTE (goes in educationalFooter ONLY) ═══
-The disclaimer about product formulas possibly changing belongs ONLY in the educationalFooter field. Do NOT let it affect the confidence or specificity of the rest of your analysis. You are an expert — act like one.
+${knowledgeOnly ? `═══ ACCURACY AND UNCERTAINTY ═══
+Formulas change. Acknowledge uncertainty wherever relevant, including each alternative's targetCriteria and whyBetter. Use educationalFooter for the overall knowledge-based disclaimer. Grades assess supported nutritional fit only, never allergy or medical safety; use an empty alignmentGrade when unsupported.` : `═══ ACCURACY FOOTNOTE (goes in educationalFooter ONLY) ═══
+The disclaimer about product formulas possibly changing belongs ONLY in the educationalFooter field. Do NOT let it affect the confidence or specificity of the rest of your analysis. You are an expert — act like one.`}
 
 ═══ RESPONSE FORMAT (strict JSON only) ═══
 {
@@ -754,17 +760,19 @@ The disclaimer about product formulas possibly changing belongs ONLY in the educ
 ═══ RULES FOR EACH SECTION ═══
 
 betterAlternatives:
-- NAME 3–4 SPECIFIC REAL BRAND+PRODUCT NAMES. Never generic categories.
+${knowledgeOnly ? `- Name approximately three relevant real brand-and-product options when supported, for every verdict. Fewer or an empty array is better than invented products.
+- Frame alternatives as options to consider, not unconditional purchase or consumption recommendations.
+- Explain nutritional advantages only when supported; do not require or fabricate numerical comparisons or retailer availability.` : `- NAME 3–4 SPECIFIC REAL BRAND+PRODUCT NAMES. Never generic categories.
 - ALWAYS provide 3–4 alternatives for EVERY verdict, including "buy".
   - For "caution" or "skip": frame as "Choose one of these instead."
   - For "buy": frame as "Other strong options worth knowing — comparable or better."
 - Never return an empty betterAlternatives array.
 - Every whyBetter[0] must include a specific number: sodium comparison, sugar reduction, protein increase, etc.
-- Products must be findable at major US retailers (not specialty/obscure).
+- Products must be findable at major US retailers (not specialty/obscure).`}
 
 ingredientConsiderations:
-- 2–4 items. First item must cite a specific value you know about this product.
-- Do NOT use "may contain" or "check the label" language — commit to what you know.
+${knowledgeOnly ? "- Give useful supported considerations and clearly state unknowns. Tell the customer which current-label ingredients, allergen statements, nutrition values, and serving size to check." : `- 2–4 items. First item must cite a specific value you know about this product.
+- Do NOT use "may contain" or "check the label" language — commit to what you know.`}
 
 mayNotAlignWith:
 - Only include if there is a genuine conflict with this user's active protocols.
@@ -773,7 +781,7 @@ mayNotAlignWith:
 
 scoreCards:
 - All 4 must have real reasoning based on this product's actual known composition.
-- Do NOT return all-neutral stubs. If you have no specific insight for one card, use the product's most prominent nutritional characteristic.
+${knowledgeOnly ? "- Use neutral with an explanation when there is insufficient information for an assessment." : "- Do NOT return all-neutral stubs. If you have no specific insight for one card, use the product's most prominent nutritional characteristic."}
 
 verdictLevel:
 - "buy" = overall aligns well with this user's profile
@@ -996,6 +1004,9 @@ export async function analyzeProductByName(
   userId: string,
 ): Promise<IngredientScanResult> {
   const envelope = await loadUserProtocolEnvelope(userId);
+  if (!envelope || envelope.userId === 'guest') {
+    throw new Error('Your nutrition profile is temporarily unavailable. Please try again.');
+  }
   const protocolContext = envelope
     ? buildCompactProtocolContext(envelope)
     : 'No specific dietary or medical constraints on file.';
@@ -1006,21 +1017,22 @@ ${protocolContext}
 
 PRODUCT TO ANALYZE: ${productName}
 
-Analyze this SPECIFIC branded product against this user's health profile. Follow the expertise rules exactly:
-- Cite specific nutritional values you know about this product (sodium, sugar, fat, protein per serving)
-- Name specific ingredients of concern from the actual product formulation
-- Explain exactly why those values conflict or align with this user's specific conditions/goals
-- If caution or skip: name 3–4 specific competing products with numerical advantages (e.g. "Rao's Homemade Marinara — 80mg sodium vs ~480mg in this product")
-
-Do NOT give generic advice. Do NOT say "check the label." You are an expert — act like one.`;
+Assess this product or shopping-category request against this user's health profile.
+- Offer approximately three relevant real product options when supported; never invent options to reach a count.
+- Explain each option's possible fit, relevant nutritional considerations, and current-label checks.
+- Give values and nutritional grades only when supported. Identify estimates, unknowns, and serving basis.
+- These are knowledge-based suggestions, not verified ingredient, allergen, pregnancy, or medical clearance. Preserve known restrictions and do not suggest known conflicts.`;
 
   try {
     const alignment = await chatJson({
-      system: appendWholeFoodStandardPrompt(BY_NAME_SYSTEM_PROMPT, { recommendationSurface: "ingredient_name_scan" }),
+      system: appendWholeFoodStandardPrompt(BY_NAME_SYSTEM_PROMPT(true), { recommendationSurface: "ingredient_name_scan" }),
       user: userMessage,
       model: 'gpt-4o',
       temperature: 0.3,
     });
+    if (typeof alignment?.overallSummary !== 'string' || !alignment.overallSummary.trim()) {
+      throw new Error('Product analysis was empty.');
+    }
 
     const rawDecoder = Array.isArray(alignment.ingredientDecoder) ? alignment.ingredientDecoder : [];
     const ingredientDecoder = rawDecoder
@@ -1046,32 +1058,38 @@ Do NOT give generic advice. Do NOT say "check the label." You are an expert — 
       practicalAlternativeAvailable: true,
     });
     const enforcedVerdict = enforceWholeFoodProductVerdict(alignment, wholeFoodDecision);
+    const needsIngredientVerification = requiresVerifiedIngredientEvidence(envelope);
+    const verificationNote = needsIngredientVerification
+      ? 'These are unverified options for consideration, not allergy or medical safety clearance. Check the complete current ingredient label, allergen and cross-contact statements, and any requirements for your medical restrictions, including Alpha-Gal or pregnancy where applicable. Do not consume until the relevant safety information is confirmed.'
+      : 'Based on product knowledge, not a verified label scan. Formulas and availability can change. Check the current ingredient list, nutrition label, and serving size before choosing.';
 
     return {
       alignmentGrade: enforcedVerdict.alignmentGrade,
+      gradeUnavailable: !(['A', 'B', 'C', 'D'] as const).includes(alignment.alignmentGrade),
       overallSummary: enforcedVerdict.overallSummary,
-      verdict: enforcedVerdict.verdict,
-      verdictLevel: enforcedVerdict.verdictLevel,
+      verdict: needsIngredientVerification && enforcedVerdict.verdictLevel !== 'skip'
+        ? 'For consideration only — confirm the current label meets your restrictions before purchasing or consuming.'
+        : enforcedVerdict.verdict,
+      verdictLevel: needsIngredientVerification && enforcedVerdict.verdictLevel === 'buy'
+        ? 'caution' : enforcedVerdict.verdictLevel,
       scoreCards: parseScoreCards(alignment.scoreCards),
       outcomeCards: [],
       analysisProfile,
       betterAlternatives,
       ingredientDecoder,
-      ingredientConsiderations: Array.isArray(alignment.ingredientConsiderations) ? alignment.ingredientConsiderations.filter((s: any) => typeof s === 'string') : [],
+      ingredientConsiderations: [verificationNote, ...(Array.isArray(alignment.ingredientConsiderations) ? alignment.ingredientConsiderations.filter((s: any) => typeof s === 'string') : [])],
       mayNotAlignWith: Array.isArray(alignment.mayNotAlignWith) ? alignment.mayNotAlignWith.filter((s: any) => typeof s === 'string') : [],
       betterFor: Array.isArray(alignment.betterFor) ? alignment.betterFor.filter((s: any) => typeof s === 'string') : [],
       householdNotes: Array.isArray(alignment.householdNotes) ? alignment.householdNotes.filter((s: any) => typeof s === 'string') : [],
       educationalFooter: withWholeFoodUncertainty(
-        typeof alignment.educationalFooter === 'string'
-          ? alignment.educationalFooter
-          : 'Based on product knowledge, not a verified label scan. Product formulas can change.',
+        `${verificationNote}${typeof alignment.educationalFooter === 'string' ? ` ${alignment.educationalFooter}` : ''}`,
         { name: productName },
         "ingredient_name_scan",
       ),
       extractedIngredients: [],
       highRiskFindings: [],
       ocrConfidenceLow: false,
-      fallbackUsed: !(['A', 'B', 'C', 'D'] as const).includes(alignment.alignmentGrade),
+      fallbackUsed: false,
       productName,
       isFrontLabel: false,
       productNameMissing: false,
@@ -1126,7 +1144,7 @@ You have TWO sources of information: your product knowledge AND verified label d
 
   try {
     const alignment = await chatJson({
-      system: appendWholeFoodStandardPrompt(BY_NAME_SYSTEM_PROMPT, { recommendationSurface: "full_product_scan" }),
+      system: appendWholeFoodStandardPrompt(BY_NAME_SYSTEM_PROMPT(), { recommendationSurface: "full_product_scan" }),
       user: userMessage,
       model: 'gpt-4o',
       temperature: 0.3,

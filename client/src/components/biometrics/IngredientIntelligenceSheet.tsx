@@ -9,6 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 
 interface Props {
   open: boolean;
+  /** Render existing results inside Grocery Coach's scrollable sheet. */
+  embedded?: boolean;
   result: IngredientScanResult | null;
   onClose: () => void;
   onRescan?: () => void;
@@ -505,7 +507,7 @@ function AnalysisProfileSection({ items }: { items: string[] }) {
   );
 }
 
-export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, onAddProduct, onAddAnyway, onSaveForReview, onResultRefined, companionName }: Props) {
+export function IngredientIntelligenceSheet({ open, embedded = false, result, onClose, onRescan, onAddProduct, onAddAnyway, onSaveForReview, onResultRefined, companionName }: Props) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [byNameLoading, setByNameLoading] = useState(false);
@@ -633,7 +635,7 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
   }
 
   const activeResult = byNameResult ?? result;
-  const grade = activeResult ? GRADE_CONFIG[activeResult.alignmentGrade] ?? GRADE_CONFIG.B : null;
+  const grade = activeResult && !activeResult.gradeUnavailable ? GRADE_CONFIG[activeResult.alignmentGrade] ?? GRADE_CONFIG.B : null;
   const verdictCfg = activeResult ? VERDICT_CONFIG[activeResult.verdictLevel ?? 'caution'] : null;
   const hasOutcomeCards = !!(activeResult?.outcomeCards && activeResult.outcomeCards.length > 0);
   const isByName = activeResult?.analysisMethod === 'by_name';
@@ -665,16 +667,16 @@ export function IngredientIntelligenceSheet({ open, result, onClose, onRescan, o
     <AnimatePresence>
       {open && result && (
         <>
-          <motion.div
+          {!embedded && <motion.div
             key="overlay"
             className="fixed inset-0 bg-black/70 z-40"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={onClose}
-          />
+          />}
           <motion.div
             key="sheet"
-            className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl bg-gradient-to-b from-gray-950 to-black border-t border-white/10 max-h-[90vh] overflow-y-auto"
-            initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+            className={embedded ? "w-full" : "fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl bg-gradient-to-b from-gray-950 to-black border-t border-white/10 max-h-[90vh] overflow-y-auto"}
+            initial={{ y: embedded ? 0 : '100%' }} animate={{ y: 0 }} exit={{ y: embedded ? 0 : '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
           >
             <div className="px-4 pt-10 pb-8 max-w-lg mx-auto">
