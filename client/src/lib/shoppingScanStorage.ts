@@ -1,4 +1,6 @@
+// Never import unowned legacy history into the currently signed-in account.
 const STORAGE_KEY = "mpm.shopping.savedProducts";
+const storageKey = (owner: string) => `${STORAGE_KEY}:${owner}`;
 
 export type UserDecision = "added" | "saved" | "skipped";
 
@@ -27,9 +29,10 @@ export interface SavedProductScan {
   fullResult?: string;
 }
 
-function readAll(): SavedProductScan[] {
+function readAll(owner?: string | null): SavedProductScan[] {
+  if (!owner) return [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(storageKey(owner));
     return raw ? (JSON.parse(raw) as SavedProductScan[]) : [];
   } catch {
     return [];
@@ -40,27 +43,28 @@ function todayLocalDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function getSavedProducts(): SavedProductScan[] {
-  return readAll();
+export function getSavedProducts(owner?: string | null): SavedProductScan[] {
+  return readAll(owner);
 }
 
 /** Returns only shopping scans from today — the active session view. */
-export function getTodayShoppingScans(): SavedProductScan[] {
+export function getTodayShoppingScans(owner?: string | null): SavedProductScan[] {
   const today = todayLocalDate();
-  return readAll().filter(
+  return readAll(owner).filter(
     (s) => s.scanSource === "shopping" && s.scanDate.slice(0, 10) === today
   );
 }
 
-export function saveProductScan(scan: Omit<SavedProductScan, "id">): SavedProductScan {
+export function saveProductScan(scan: Omit<SavedProductScan, "id">, owner?: string | null): SavedProductScan {
+  if (!owner) throw new Error("Sign in before storing scan history.");
   const entry: SavedProductScan = {
     ...scan,
     id: `scan_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
   };
-  const existing = readAll();
+  const existing = readAll(owner);
   const updated = [entry, ...existing].slice(0, 200);
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    localStorage.setItem(storageKey(owner), JSON.stringify(updated));
   } catch {}
   return entry;
 }
@@ -71,28 +75,31 @@ export function saveProductScan(scan: Omit<SavedProductScan, "id">): SavedProduc
  * not a permanent archive. Called on shopping page mount.
  * Biometrics scans are left untouched (different retention needs).
  */
-export function clearExpiredShoppingScans(): void {
+export function clearExpiredShoppingScans(owner?: string | null): void {
+  if (!owner) return;
   const today = todayLocalDate();
-  const all = readAll();
+  const all = readAll(owner);
   const kept = all.filter(
     (s) => s.scanSource !== "shopping" || s.scanDate.slice(0, 10) === today
   );
   if (kept.length !== all.length) {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(kept));
+      localStorage.setItem(storageKey(owner), JSON.stringify(kept));
     } catch {}
   }
 }
 
-export function deleteProductScan(id: string): void {
-  const kept = readAll().filter((s) => s.id !== id);
+export function deleteProductScan(id: string, owner?: string | null): void {
+  if (!owner) return;
+  const kept = readAll(owner).filter((s) => s.id !== id);
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(kept));
+    localStorage.setItem(storageKey(owner), JSON.stringify(kept));
   } catch {}
 }
 
-export function clearSavedProducts(): void {
+export function clearSavedProducts(owner?: string | null): void {
+  if (!owner) return;
   try {
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(storageKey(owner));
   } catch {}
 }

@@ -35,7 +35,7 @@ export interface SavedGroceryItemSlim {
 
 export interface ComplianceFilterResult {
   compliant: SavedGroceryItemSlim[];
-  excluded: Array<SavedGroceryItemSlim & { exclusionReason: string }>;
+  excluded: Array<SavedGroceryItemSlim & { exclusionReason: string; exclusionCategory: "evidence_missing" | "incompatible" }>;
 }
 
 export function selectAuthoritativelyApprovedSavedItems<
@@ -191,10 +191,11 @@ export function filterSavedGroceriesForCompliance(
 ): ComplianceFilterResult {
   const { glp1Targets, isDiabetic, diabeticCarbCeiling } = options ?? {};
   const compliant: SavedGroceryItemSlim[] = [];
-  const excluded: Array<SavedGroceryItemSlim & { exclusionReason: string }> = [];
+  const excluded: ComplianceFilterResult["excluded"] = [];
 
   for (const item of savedItems) {
     let exclusionReason: string | null = null;
+    let exclusionCategory: "evidence_missing" | "incompatible" = "incompatible";
 
     // ── Tier 1: Dietary identity — outer wall ────────────────────────────────
     for (const identity of envelope.dietaryIdentity) {
@@ -205,6 +206,7 @@ export function filterSavedGroceriesForCompliance(
       );
 
       if (strictIdentity && (!item.ingredients || item.ingredients.length === 0)) {
+        exclusionCategory = "evidence_missing";
         exclusionReason =
           `Ingredient evidence unavailable — cannot verify ${identity} compatibility`;
         break;
@@ -217,6 +219,7 @@ export function filterSavedGroceriesForCompliance(
         break;
       }
       if (!hasRequiredCertification(item, identity)) {
+        exclusionCategory = "evidence_missing";
         exclusionReason =
           `Verified ${identity} certification evidence is unavailable for this product`;
         break;
@@ -250,6 +253,7 @@ export function filterSavedGroceriesForCompliance(
       envelope.allergies.length > 0 &&
       (!item.ingredients || item.ingredients.length === 0)
     ) {
+      exclusionCategory = "evidence_missing";
       exclusionReason =
         "Ingredient evidence unavailable — cannot verify safety against your allergy profile";
     }
@@ -268,6 +272,7 @@ export function filterSavedGroceriesForCompliance(
       envelope.avoidances.length > 0 &&
       (!item.ingredients || item.ingredients.length === 0)
     ) {
+      exclusionCategory = "evidence_missing";
       exclusionReason =
         "Ingredient evidence unavailable — cannot verify your avoidance preferences";
     }
@@ -282,6 +287,7 @@ export function filterSavedGroceriesForCompliance(
     if (!exclusionReason && glp1Targets) {
       const fat = item.nutritionJson ? Number(item.nutritionJson.fat) : NaN;
       if (!Number.isFinite(fat)) {
+        exclusionCategory = "evidence_missing";
         exclusionReason =
           "Nutrition data unavailable — cannot verify fat content against your GLP-1 limit";
       } else if (fat > glp1Targets.maximumToleratedFatGrams) {
@@ -296,6 +302,7 @@ export function filterSavedGroceriesForCompliance(
     if (!exclusionReason && isDiabetic && typeof diabeticCarbCeiling === "number") {
       const carbs = item.nutritionJson ? Number(item.nutritionJson.carbs) : NaN;
       if (!Number.isFinite(carbs)) {
+        exclusionCategory = "evidence_missing";
         exclusionReason =
           "Nutrition data unavailable — cannot verify carb content against your diabetic limit";
       } else if (carbs > diabeticCarbCeiling) {
@@ -306,7 +313,7 @@ export function filterSavedGroceriesForCompliance(
     }
 
     if (exclusionReason) {
-      excluded.push({ ...item, exclusionReason });
+      excluded.push({ ...item, exclusionReason, exclusionCategory });
     } else {
       compliant.push(item);
     }

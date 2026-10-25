@@ -44,7 +44,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { get, post } from "@/lib/api";
-import { BetterAlternativesSection } from "@/components/biometrics/IngredientIntelligenceSheet";
+import { BetterAlternativesSection, IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
+import RecommendedProductActions from "@/components/shopping/RecommendedProductActions";
 import SavedGroceriesSheet, { buildResultFromSavedItem } from "@/components/shopping/SavedGroceriesSheet";
 import {
   groceryProductLabel, recommendationIdentity, recommendationProductKey,
@@ -200,7 +201,7 @@ test("legacy saved rows still reopen with their stored brand and without new rec
     productMeta: null, nutritionJson: null, savedAt: "", compliance: { status: "approved", reason: null },
   });
   expect(result.productName).toBe("Kraft Peanut Butter");
-  expect(result.gradeUnavailable).toBeUndefined();
+  expect(result.gradeUnavailable).toBe(true);
 });
 
 test("separate supplied brand and product fields are retained without guessing or doubling the label", () => {
@@ -230,4 +231,72 @@ test("saved-library reopening retains the product, reasons and warnings, and re-
   await waitFor(() => expect(added).toEqual([alternatives[1].category]));
   expect(post).toHaveBeenCalledWith(`/api/saved-groceries/${row.id}/add-to-list`);
   expect(added).not.toContain("Juice");
+});
+
+test.each(["scanner", "grocery-coach"] as const)("the shared %s bookmark retains the original analysis and correct source", async source => {
+  const scan = { ...buildResultFromSavedItem({
+    productName: "Simply Orange Pulp Free", productMeta: null, nutritionJson: null,
+  } as any), alignmentGrade: "C" as const, gradeUnavailable: false, analysisMethod: "by_label" as const,
+    overallSummary: "Original personalized explanation", educationalFooter: warning,
+    extractedIngredients: ["orange juice"], barcode: undefined };
+  render(wrap(<IngredientIntelligenceSheet open result={scan} saveSource={source} onClose={jest.fn()} />));
+  fireEvent.click(screen.getByRole("button", { name: "Save to Groceries" }));
+  await waitFor(() => expect(writes).toHaveLength(1));
+  expect(writes[0].source).toBe(source);
+  expect(writes[0].productMeta.analysisSnapshot).toEqual(scan);
+  expect(buildResultFromSavedItem(rows["fixture-a"][0]).overallSummary).toBe("Original personalized explanation");
+  expect((apiRequest as jest.Mock).mock.calls.every(([url]) => url.startsWith("/api/saved-groceries"))).toBe(true);
+});
+
+test("a blocked legacy Coach product has a working View Analysis and label-verification action", async () => {
+  rows["fixture-a"] = [{
+    id: "legacy", productName: "Orange", brand: "Simply", source: "grocery-coach",
+    productMeta: { reason: "Original Coach explanation", verificationMessage: "Check the complete ingredient label." },
+    compliance: { status: "blocked", category: "evidence_missing", reason: "Ingredient evidence unavailable" },
+  }];
+  const verify = jest.fn();
+  render(wrap(<SavedGroceriesSheet open onOpenChange={jest.fn()} onVerifyProduct={verify} />));
+  fireEvent.click(await screen.findByRole("button", { name: "View Analysis: Simply Orange" }));
+  expect(await screen.findByText("Original Coach explanation")).toBeInTheDocument();
+  expect(screen.queryByText("ingredientSheet.howItScoresForYou")).not.toBeInTheDocument();
+  expect(screen.getAllByText(/Check the complete ingredient label/).length).toBeGreaterThan(0);
+  expect(screen.queryByRole("button", { name: "Add Simply Orange to List" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Scan current ingredient label" }));
+  expect(verify).toHaveBeenCalledWith(rows["fixture-a"][0]);
+  expect(post).not.toHaveBeenCalled();
+});
+
+test("an open saved analysis never follows the customer into another account", async () => {
+  rows["fixture-a"] = [{ id: "legacy", productName: "Private A product", source: "manual",
+    productMeta: { reason: "A-only explanation" }, compliance: { status: "approved" } }];
+  const view = render(wrap(<SavedGroceriesSheet open onOpenChange={jest.fn()} />));
+  fireEvent.click(await screen.findByRole("button", { name: "View Analysis: Private A product" }));
+  expect(await screen.findByText("A-only explanation")).toBeInTheDocument();
+  owner = "fixture-b";
+  view.rerender(wrap(<SavedGroceriesSheet open onOpenChange={jest.fn()} />));
+  await waitFor(() => expect(screen.queryByText("A-only explanation")).not.toBeInTheDocument());
+  expect(screen.queryByRole("button", { name: "View Analysis: Private A product" })).not.toBeInTheDocument();
+});
+
+test("a split-brand recommendation recognizes the same legacy full-name scan without a duplicate save", async () => {
+  rows["fixture-a"] = [{ id: "old-scan", productKey: "name::::simplyorangepulpfree", productName: "Simply Orange Pulp Free", brand: null }];
+  render(wrap(<RecommendedProductActions alternative={{
+    category: "Orange juice", brand: "Simply", productName: "Orange Pulp Free", whyBetter: [], targetCriteria: "",
+  }} query="Juice" educationalFooter={warning} />));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Save to Groceries: Simply Orange Pulp Free" })).toBeDisabled());
+  expect(writes).toHaveLength(0);
+});
+
+test.each([
+  [null, "new-upc", true],
+  ["old-upc", "new-upc", false],
+] as const)("scan bookmarks preserve name fallback without conflating conflicting UPCs", async (savedBarcode, currentBarcode, expectedSaved) => {
+  const item = { id: "old-scan", productKey: "name::simply::orangepulpfree", productName: "Orange Pulp Free",
+    brand: "Simply", barcode: savedBarcode, productMeta: null, nutritionJson: null };
+  rows["fixture-a"] = [item];
+  const scan = { ...buildResultFromSavedItem(item as any), barcode: currentBarcode };
+  render(wrap(<IngredientIntelligenceSheet open result={scan} onClose={jest.fn()} />));
+  await waitFor(() => expect(apiRequest).toHaveBeenCalledWith("/api/saved-groceries"));
+  if (expectedSaved) expect(await screen.findByRole("button", { name: "Saved to Groceries" })).toBeInTheDocument();
+  else expect(screen.getByRole("button", { name: "Save to Groceries" })).toBeInTheDocument();
 });

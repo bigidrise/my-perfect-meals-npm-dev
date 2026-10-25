@@ -19,10 +19,12 @@ interface SavedProduct {
 }
 
 /** A bookmark for this exact recommendation, independent of the parent scan. */
-export default function RecommendedProductActions({ alternative, query, educationalFooter }: {
+export default function RecommendedProductActions({ alternative, query, educationalFooter, source, subjectKind }: {
   alternative: BetterAlternative;
   query: string;
   educationalFooter: string;
+  source?: "scanner" | "grocery-coach";
+  subjectKind?: string;
 }) {
   const { user } = useAuth();
   const owner = user?.id ?? null;
@@ -41,7 +43,11 @@ export default function RecommendedProductActions({ alternative, query, educatio
     enabled: !!owner,
     staleTime: 0,
   });
-  const saved = !!owner && !!data?.items?.some(item => item.productKey === productKey);
+  const saved = !!owner && !!data?.items?.some(item =>
+    item.productKey === productKey ||
+    // Older scans stored the full brand/name in productName, not split fields.
+    groceryProductLabel(item).trim().toLowerCase() === groceryProductLabel(identity).trim().toLowerCase(),
+  );
   const saving = pending?.session === sessionRef.current && pending.key === productKey;
 
   async function save() {
@@ -55,7 +61,7 @@ export default function RecommendedProductActions({ alternative, query, educatio
     try {
       const response = await apiRequest<{ item?: SavedProduct }>("/api/saved-groceries", {
         method: "POST",
-        body: JSON.stringify(recommendationSavePayload(alternative, { query, educationalFooter })),
+        body: JSON.stringify(recommendationSavePayload(alternative, { query, educationalFooter, source, subjectKind })),
         headers: { "Content-Type": "application/json" },
       });
       if (sessionRef.current !== session || requestRef.current?.token !== token) return;

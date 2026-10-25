@@ -720,8 +720,10 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
   // ── Saved Groceries helpers ──────────────────────────────────────────────────
   const fetchSavedKeys = useCallback(async () => {
+    const generation = sessionGenRef.current;
     try {
       const data = await get<{ items: Array<{ productKey: string }> }>("/api/saved-groceries");
+      if (generation !== sessionGenRef.current) return;
       const keys = new Set<string>((data.items ?? []).map((i) => i.productKey));
       setSavedProductKeys(keys);
     } catch {
@@ -740,6 +742,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     brand: BrandRecommendation,
   ) => {
     const productKey = computeClientProductKey(brand.brand, ingredient);
+    const generation = sessionGenRef.current;
     if (savedProductKeys.has(productKey) || savingKey === productKey) return;
     setSavingKey(productKey);
     try {
@@ -759,6 +762,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
           wholeFoodNote: brand.wholeFoodNote,
         },
       });
+      if (generation !== sessionGenRef.current) return;
       setSavedProductKeys((prev) => new Set(Array.from(prev).concat(productKey)));
     } catch {
       // Silently fail — user can tap again
@@ -1202,6 +1206,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                       embedded
                       open
                       result={productSearch.analysis}
+                      saveSource="grocery-coach"
                       onClose={handleCompareAnother}
                       onAddProduct={(name) => handleProductAddToList(name, productSearch.query)}
                     />

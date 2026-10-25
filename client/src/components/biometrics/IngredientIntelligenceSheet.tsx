@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, ChevronDown, ChevronUp, ScanLine, ShoppingBag, Bookmark, ShoppingCart, Check } from 'lucide-react';
 import type { IngredientScanResult, ScoreVerdict, OutcomeVerdict, BetterAlternative } from '@/lib/photoIngredientCapture';
@@ -8,8 +8,14 @@ import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import RecommendedProductActions from '@/components/shopping/RecommendedProductActions';
 import { groceryProductLabel, recommendationIdentity, recommendationProductKey } from '@/lib/savedGroceryRecommendation';
+import { scanSavePayload } from '@/lib/savedGroceryAnalysis';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Props {
+  saveSource?: "scanner" | "grocery-coach";
+  savedContext?: import("react").ReactNode;
+  hideSaveAction?: boolean;
+  hideLegacyScoreCards?: boolean;
   open: boolean;
   /** Render existing results inside Grocery Coach's scrollable sheet. */
   embedded?: boolean;
@@ -224,6 +230,8 @@ export function BetterAlternativesSection({
   onAddToList,
   query,
   educationalFooter,
+  source,
+  subjectKind,
 }: {
   alternatives: BetterAlternative[];
   branded?: boolean;
@@ -231,6 +239,8 @@ export function BetterAlternativesSection({
   onAddToList?: (name: string) => void;
   query: string;
   educationalFooter: string;
+  source?: "scanner" | "grocery-coach";
+  subjectKind?: string;
 }) {
   const { t } = useTranslation();
   const [addedIndex, setAddedIndex] = useState<number | null>(null);
@@ -293,7 +303,7 @@ export function BetterAlternativesSection({
                 📍 {alt.targetCriteria}
               </p>
             )}
-            <RecommendedProductActions alternative={alt} query={query} educationalFooter={educationalFooter} />
+            <RecommendedProductActions alternative={alt} query={query} educationalFooter={educationalFooter} source={source} subjectKind={subjectKind} />
           </div>
         ))}
       </div>
@@ -514,12 +524,16 @@ function AnalysisProfileSection({ items }: { items: string[] }) {
   );
 }
 
-export function IngredientIntelligenceSheet({ open, embedded = false, result, onClose, onRescan, onAddProduct, onAddAnyway, onSaveForReview, onResultRefined, companionName }: Props) {
+export function IngredientIntelligenceSheet({ open, embedded = false, result, onClose, onRescan, onAddProduct, onAddAnyway, onSaveForReview, onResultRefined, companionName, saveSource = "scanner", savedContext, hideSaveAction = false, hideLegacyScoreCards = false }: Props) {
+  const { user } = useAuth();
+  const owner = user?.id ?? null;
+  const saveSession = useRef({ owner });
+  if (saveSession.current.owner !== owner) saveSession.current = { owner };
   const { t } = useTranslation();
   const { toast } = useToast();
   const [byNameLoading, setByNameLoading] = useState(false);
   const [byNameResult, setByNameResult] = useState<IngredientScanResult | null>(null);
-  const [savedGroceryId, setSavedGroceryId] = useState<string | null>(null);
+  const saveResult = byNameResult ?? result;
   const [savingGrocery, setSavingGrocery] = useState(false);
 
   useEffect(() => {
@@ -530,21 +544,18 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
   // Fetch the full saved-groceries list via React Query so any invalidation
   // (e.g. a delete from the Saved Groceries page) is picked up immediately.
   const { data: savedGroceriesData } = useQuery<{ items: any[] }>({
-    queryKey: ['/api/saved-groceries'],
-    enabled: open && !!result?.productName,
+    queryKey: ['/api/saved-groceries', owner],
+    queryFn: () => apiRequest('/api/saved-groceries'),
+    enabled: open && !!owner && !!result?.productName,
     staleTime: 0,
   });
 
   // Derive savedGroceryId from the cached list whenever the result or list changes
-  useEffect(() => {
-    const items = savedGroceriesData?.items ?? [];
-    const barcode = result?.barcode?.trim();
-    const match = items.find((item: any) => {
-      if (barcode && item.barcode === barcode) return true;
-      return item.productName?.toLowerCase() === result?.productName?.toLowerCase();
-    });
-    setSavedGroceryId(match ? match.id : null);
-  }, [savedGroceriesData, result?.productName, result?.barcode]);
+  const savedGroceryId = (savedGroceriesData?.items ?? []).find((item: any) => {
+    const barcode = saveResult?.barcode?.trim();
+    if (barcode && item.barcode) return item.barcode === barcode;
+    return groceryProductLabel(item).toLowerCase() === saveResult?.productName?.toLowerCase();
+  })?.id ?? null;
 
   // Invalidate saved-groceries when this tab regains visibility so a cross-tab
   // save is reflected as soon as the user switches back (recovery path).
@@ -572,13 +583,15 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
   }, [open, result?.productName]);
 
   async function handleSaveToGroceries() {
-    if (!activeResult?.productName || savingGrocery) return;
+    if (!owner || !activeResult?.productName || savingGrocery) return;
+    const session = saveSession.current;
     setSavingGrocery(true);
 
     // If already saved, unsave it
     if (savedGroceryId) {
       try {
         await apiRequest(`/api/saved-groceries/${savedGroceryId}`, { method: 'DELETE' });
+        if (saveSession.current !== session) return;
         queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries'] });
         try { new BroadcastChannel('mpm:grocery-saved').postMessage(null); } catch { /* unavailable */ }
         toast({
@@ -597,31 +610,10 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
       const barcode = result?.barcode?.trim() || undefined;
       const data = await apiRequest('/api/saved-groceries', {
         method: 'POST',
-        body: JSON.stringify({
-          productName: activeResult.productName,
-          source: 'scanner',
-          barcode: barcode || undefined,
-          nutritionJson: activeResult.scoreCards
-            ? { scoreCards: activeResult.scoreCards, outcomeCards: activeResult.outcomeCards }
-            : undefined,
-          productMeta: {
-            alignmentGrade: activeResult.alignmentGrade,
-            verdictLevel: activeResult.verdictLevel,
-            analysisMethod: activeResult.analysisMethod,
-            // Persist extracted ingredients so the server-side compliance filter
-            // can perform allergen/avoidance matching against actual ingredients,
-            // not just product name and brand.
-            ingredients: activeResult.extractedIngredients?.length
-              ? activeResult.extractedIngredients
-              : undefined,
-            // Persist barcode DB resolution metadata so the badge is available
-            // when a saved grocery is reopened in the sheet without a fresh scan.
-            resolvedFromDb: activeResult.resolvedFromDb,
-            resolvedName: activeResult.resolvedName ?? undefined,
-          },
-        }),
+        body: JSON.stringify(scanSavePayload({ ...activeResult, barcode: barcode || activeResult.barcode }, saveSource, companionName ?? undefined)),
         headers: { 'Content-Type': 'application/json' },
       }) as { item?: { id: string }; created?: boolean };
+      if (saveSession.current !== session) return;
       queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries'] });
       try { new BroadcastChannel('mpm:grocery-saved').postMessage(null); } catch { /* unavailable */ }
       toast({
@@ -878,6 +870,8 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
                     alternatives={activeResult.betterAlternatives ?? []}
                     query={activeResult.productName}
                     educationalFooter={activeResult.educationalFooter}
+                    source={saveSource}
+                    subjectKind={companionName ? "companion" : "human"}
                     branded={isByName || activeResult.analysisMethod === 'full_product_advisor'}
                     verdictLevel={activeResult.verdictLevel}
                     onAddToList={onAddProduct ? handleAddProduct : undefined}
@@ -898,7 +892,7 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
                   {hasOutcomeCards && <OutcomeCardsGrid cards={activeResult.outcomeCards} />}
 
                   {/* Legacy scoreCards */}
-                  {activeResult.scoreCards && <LegacyScoreCardsGrid scoreCards={activeResult.scoreCards} />}
+                  {!hideLegacyScoreCards && activeResult.scoreCards && <LegacyScoreCardsGrid scoreCards={activeResult.scoreCards} />}
 
                   {/* Analysis profile — moved to bottom as reference info */}
                   <AnalysisProfileSection items={activeResult.analysisProfile ?? []} />
@@ -967,17 +961,19 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
                         >
                           <Bookmark className="w-3.5 h-3.5" />
                           {t('ingredientSheet.saveScan')}
+                        <span className="text-[10px]">Temporary history on this device; not Saved Groceries</span>
                         </button>
                       )}
                     </div>
                   )}
 
+                  {savedContext}
                   {/* Save to Groceries */}
-                  {activeResult.productName && (
+                  {!hideSaveAction && activeResult.productName && (
                     <div className="mt-2 mb-4">
                       <button
                         onClick={handleSaveToGroceries}
-                        disabled={savingGrocery}
+                        disabled={savingGrocery || !owner}
                         className={`w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold border transition-all active:scale-[.98] ${
                           savedGroceryId
                             ? 'bg-orange-500/15 border-orange-500/30 text-orange-300'
