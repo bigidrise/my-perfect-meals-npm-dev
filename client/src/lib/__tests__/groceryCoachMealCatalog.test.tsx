@@ -11,23 +11,22 @@ jest.mock("framer-motion", () => ({
 }));
 jest.mock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: jest.fn() }) }));
 jest.mock("@/lib/api", () => ({ get: jest.fn(), post: jest.fn() }));
+jest.mock("@/lib/queryClient", () => ({ apiRequest: jest.fn(), queryClient: { invalidateQueries: jest.fn() } }));
+jest.mock("@tanstack/react-query", () => ({ useQuery: () => ({ data: { items: [] } }) }));
 jest.mock("@/stores/shoppingListStore", () => ({ useShoppingListStore: jest.fn() }));
 jest.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ user: { id: "catalog-user" } }) }));
 jest.mock("@/components/ui/pill-button", () => ({ PillButton: () => null }));
 jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
-jest.mock("@/components/biometrics/IngredientIntelligenceSheet", () => ({
-  IngredientIntelligenceSheet: ({ result }: any) => <div>{result.overallSummary}</div>,
-}));
 
 import React from "react";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act, within } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import GroceryStoreCoachSheet from "@/components/shopping/GroceryStoreCoachSheet";
 import MealIngredientBrands from "@/components/shopping/MealIngredientBrands";
 import { packagedProductEligibility, recipeShoppingQuantity } from "@/lib/groceryCoachPackagedIngredients";
 import { post, get } from "@/lib/api";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
-import SmartShoppingProductChoice from "@/components/shopping/SmartShoppingProductChoice";
+import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 
 const ingredient = { item: "Spaghetti sauce", quantity: "1.5", unit: "cups", category: "Pantry" };
 const meal = {
@@ -37,19 +36,26 @@ const meal = {
   shoppingList: [ingredient, { item: "Cucumber", quantity: "1", unit: "", category: "Produce" }],
   ownedIngredients: [{ item: "Parmesan cheese", quantity: "2", unit: "tbsp" }],
 };
-const product = {
-  productKey: "exact-record-1", brand: "Example", name: "Tomato Sauce", barcode: "012345678901",
-  ingredients: "Tomatoes, water", serving: "125 g", source: "USDA FoodData Central",
-  sourceRecordId: "record-1", catalogDate: null,
-  evidenceStatus: "needs_verification" as const, recommendationStatus: "review" as const,
-  verificationMessage: "Allergen precaution information unavailable. Check the label.",
-  nutrition: [{ statement: "Sodium 100 mg per 100 g", source: "USDA" }],
-};
-const catalog = { advice: [], profileUsed: ["Food allergy"], catalogMatches: [product], excludedReasons: ["Known milk conflict"] };
+function analysis(name = "Example Tomato Sauce"): IngredientScanResult {
+  return {
+    analysisMethod: "by_name", productName: "", alignmentGrade: "B",
+    overallSummary: "Personalized product guidance", verdict: "Consider after checking the current label.",
+    verdictLevel: "caution", analysisProfile: ["Food allergy"],
+    scoreCards: Object.fromEntries(["kids", "adults", "diet", "fitnessGoal"].map(k => [k, { verdict: "neutral", reason: "" }])) as any,
+    outcomeCards: [], profileFactorsUsed: ["Food allergy"], whatMattersMost: [],
+    betterAlternatives: [{ category: name, whyBetter: ["Compare sodium for your goals"], targetCriteria: "Check the current ingredient and allergen label." }],
+    ingredientDecoder: [], ingredientConsiderations: ["Do not consume until relevant safety information is confirmed."],
+    mayNotAlignWith: [], betterFor: [], householdNotes: [],
+    educationalFooter: "Not allergy or medical safety clearance.",
+    extractedIngredients: [], highRiskFindings: [], ocrConfidenceLow: false,
+    fallbackUsed: false, isFrontLabel: false, productNameMissing: false,
+  };
+}
+const response = (name?: string) => ({ ok: true, result: analysis(name) });
 const addItems = jest.fn();
-function seed() {
+function seed(shoppingList = meal.shoppingList) {
   localStorage.setItem("grocery-coach-session:catalog-user", JSON.stringify({
-    result: meal, conversation: [], savedAt: Date.now(),
+    result: { ...meal, shoppingList }, conversation: [], savedAt: Date.now(),
     cardPhase: "ready", mealCard: { id: "existing-card", destination: "/favorites" },
   }));
 }
@@ -58,7 +64,7 @@ beforeEach(() => {
   jest.restoreAllMocks();
   jest.clearAllMocks();
   (get as jest.Mock).mockResolvedValue({ items: [] });
-  (post as jest.Mock).mockResolvedValue(catalog);
+  (post as jest.Mock).mockResolvedValue(response());
   (useShoppingListStore as unknown as jest.Mock).mockReturnValue(addItems);
 });
 
@@ -74,113 +80,132 @@ describe("explicit packaged-product discovery eligibility", () => {
   });
 });
 
-describe("Development Grocery Coach catalog integration", () => {
-  it("never auto-searches; offers brands only for eligible items to buy, preserving the selected quantity and servings", async () => {
-    seed();
+describe("Development ingredient-level Product Scan reuse", () => {
+  it.each(["Parmesan cheese", "Whole wheat spaghetti", "Spaghetti sauce"])("analyzes the exact %s ingredient only after clicking", async item => {
+    render(<MealIngredientBrands ingredient={{ ...ingredient, item }} servings={2} onSelect={jest.fn()} onAddProduct={jest.fn()} />);
+    expect(post).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText("Find brands"));
+    await screen.findByText("Example Tomato Sauce");
+    expect(post).toHaveBeenCalledWith("/api/biometrics/ingredient-scan-by-name", { productName: item });
+    expect(screen.queryByTestId("catalog-product-match")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Choose for shopping/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Do not consume until/)).toBeInTheDocument();
+    expect(screen.getByText("Not allergy or medical safety clearance.")).toBeInTheDocument();
+  });
+
+  it("uses real shared cards and Add to transfer the ingredient, exact fraction, recipe and unverified choice", async () => {
+    seed([{ ...ingredient, quantity: "1/2" }, meal.shoppingList[1]]);
     render(<GroceryStoreCoachSheet open onOpenChange={jest.fn()} />);
     await screen.findByText("Turkey Spaghetti");
     expect(screen.getAllByText("Find brands")).toHaveLength(1);
     expect(post).not.toHaveBeenCalled();
     fireEvent.click(screen.getByText("Find brands"));
     await screen.findByText("Example Tomato Sauce");
-    expect(post).toHaveBeenCalledWith("/api/grocery-coach/product-advisor", {
-      ingredients: ["Spaghetti sauce"], mode: "find_product",
-    });
-    expect(screen.getByText(/Recipe amount: 1.5 cups · 2 servings/)).toBeInTheDocument();
-    expect(screen.getByText("Check the Label")).toBeInTheDocument();
-    expect(screen.getByText(/Allergen precaution information unavailable/)).toBeInTheDocument();
-    expect(screen.getByText(/Known milk conflict/)).toBeInTheDocument();
-    fireEvent.click(screen.getByText("Choose for shopping — label review needed"));
-    fireEvent.click(screen.getByText("Add All to Shopping List"));
+    expect(screen.getByText(/Recipe amount: 1\/2 cups · 2 servings/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "ingredientSheet.add" }));
     const selected = addItems.mock.calls[0][0][0];
     expect(selected).toMatchObject({
-      name: "Spaghetti sauce", quantity: 1.5, unit: "cups",
+      name: "Spaghetti sauce", quantity: .5, unit: "cups",
       ingredientMetadata: {
         ingredient: { originalName: "Spaghetti sauce" },
         selectedProduct: {
-          productKey: product.productKey, name: product.name, brand: product.brand,
-          assessment: { status: "review_required" },
+          name: "Example Tomato Sauce", evidence: [],
+          source: { source: "Product Scan by-name guidance" },
+          assessment: { status: "review_required", unresolvedRequirements: ["current_profile_and_label_review"] },
         },
       },
     });
     expect(selected.ingredientMetadata.contributions[0]).toMatchObject({
-      quantity: "1.5", unit: "cups", recipeId: "existing-card", recipeName: "Turkey Spaghetti",
+      quantity: "1/2", unit: "cups", recipeId: "existing-card", recipeName: "Turkey Spaghetti",
     });
-    expect(JSON.parse(selected.ingredientMetadata.selectedProduct.sourcePayloadJson)).toEqual(product);
+    expect(JSON.parse(selected.ingredientMetadata.selectedProduct.sourcePayloadJson)).toEqual(analysis());
+    expect(selected.ingredientMetadata.selectedProduct).not.toHaveProperty("upc");
     expect(selected.notes).toContain("2 servings");
-    expect(selected.notes).toContain("UPC 012345678901");
     expect(selected.notes).toContain("not medically revalidated");
     expect(meal.shoppingList[0]).toEqual(ingredient);
-    expect(meal.servingCount).toBe(2);
-    expect(screen.getByText(/Catalog serving: 125 g \(not the recipe quantity\)/)).toBeInTheDocument();
-    fireEvent.click(screen.getByText("Clear choice"));
-    expect(screen.queryByText(/Shopping choice:/)).not.toBeInTheDocument();
-    render(<SmartShoppingProductChoice item={selected} enabled hasAccess
-      onChoose={jest.fn()} onUpgrade={jest.fn()} onClear={jest.fn()} />);
-    expect(screen.getByText("Saved with review required")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Choose Product" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Change" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Clear" })).toBeInTheDocument();
+    const header = screen.getByText("ingredientSheet.header.intelligence").parentElement!.parentElement!;
+    fireEvent.click(within(header).getByRole("button"));
+    expect(screen.getByText("Turkey Spaghetti")).toBeInTheDocument();
+    expect(screen.getByText("1/2 cups")).toBeInTheDocument();
+    expect(screen.queryByText("Example Tomato Sauce")).not.toBeInTheDocument();
   });
 
-  it("leaves the non-Development transfer unchanged when metadata is disabled", async () => {
-    jest.replaceProperty(require("@/lib/shoppingMetadataGate"), "shoppingMetadataEnabled", false);
+  it("Find a Product and the original Add All transfer remain unchanged", async () => {
     seed();
-    render(<GroceryStoreCoachSheet open onOpenChange={jest.fn()} />);
-    fireEvent.click(await screen.findByText("Find brands"));
-    fireEvent.click(await screen.findByText("Choose for shopping — label review needed"));
-    fireEvent.click(screen.getByText("Add All to Shopping List"));
-    expect(addItems.mock.calls[0][0][0]).toMatchObject({ name: "Example Tomato Sauce", quantity: 1.5 });
-    expect(addItems.mock.calls[0][0][0].ingredientMetadata).toBeUndefined();
-  });
-
-  it("Find a Product reuses Product Scan without changing meal catalog lookup or the meal on return", async () => {
-    seed();
-    (post as jest.Mock).mockResolvedValueOnce({ ok: true, result: {
-      analysisMethod: "by_name", overallSummary: "Existing Product Scan analysis",
-    } });
     render(<GroceryStoreCoachSheet open onOpenChange={jest.fn()} />);
     await screen.findByText("Turkey Spaghetti");
     fireEvent.click(screen.getByTestId("tab-find-product"));
     fireEvent.change(screen.getByTestId("input-find-product"), { target: { value: "spaghetti sauce" } });
     fireEvent.click(screen.getByTestId("button-product-search"));
-    await waitFor(() => expect(post).toHaveBeenCalledWith("/api/biometrics/ingredient-scan-by-name", {
-      productName: "spaghetti sauce",
-    }));
-    await screen.findByText("Existing Product Scan analysis");
+    await screen.findByText("Example Tomato Sauce");
+    expect(post).toHaveBeenCalledWith("/api/biometrics/ingredient-scan-by-name", { productName: "spaghetti sauce" });
     fireEvent.click(screen.getByTestId("tab-build-meal"));
-    await screen.findByText("Turkey Spaghetti");
-    expect(screen.getByText("1.5 cups")).toBeInTheDocument();
+    expect(screen.getByText("Turkey Spaghetti")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Add All to Shopping List"));
+    expect(addItems.mock.calls[0][0][0]).toMatchObject({ name: "Spaghetti sauce", quantity: 1.5, unit: "cups" });
   });
 
-  it("keeps lookup errors local to the ingredient and permits retry without losing the meal", async () => {
+  it("keeps errors local and retries without losing the meal", async () => {
     seed();
     (post as jest.Mock).mockRejectedValueOnce(new Error("offline"));
     render(<GroceryStoreCoachSheet open onOpenChange={jest.fn()} />);
-    await screen.findByText("Turkey Spaghetti");
-    fireEvent.click(screen.getByText("Find brands"));
+    fireEvent.click(await screen.findByText("Find brands"));
     expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't look up brands for Spaghetti sauce");
     expect(screen.getByText("Turkey Spaghetti")).toBeInTheDocument();
     fireEvent.click(screen.getByText("Find brands"));
     await screen.findByText("Example Tomato Sauce");
   });
 
-  it("does not show invented replacements when no candidates pass", async () => {
-    (post as jest.Mock).mockResolvedValue({ ...catalog, catalogMatches: [] });
-    render(<MealIngredientBrands ingredient={ingredient} servings={2} onSelect={jest.fn()} />);
+  it("does not fabricate options for an empty result or show Add for an unknown amount", async () => {
+    const empty = analysis();
+    empty.betterAlternatives = [];
+    (post as jest.Mock).mockResolvedValue({ ok: true, result: empty });
+    render(<MealIngredientBrands ingredient={{ ...ingredient, quantity: "to taste" }} servings={2} onSelect={jest.fn()} onAddProduct={jest.fn()} />);
     fireEvent.click(screen.getByText("Find brands"));
-    await screen.findByText(/No suitable catalog options/);
-    expect(screen.queryByText(/Choose for shopping/)).not.toBeInTheDocument();
+    await screen.findByText("Personalized product guidance");
+    expect(screen.queryByRole("button", { name: "ingredientSheet.add" })).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Review the recipe amount");
   });
 
-  it("discards a late lookup after its ingredient is removed", async () => {
+  it("keeps simultaneous ingredients and their Add callbacks separate even when responses arrive out of order", async () => {
     let finish!: (data: any) => void;
-    (post as jest.Mock).mockImplementation(() => new Promise(resolve => { finish = resolve; }));
-    const onSelect = jest.fn();
-    const view = render(<MealIngredientBrands ingredient={ingredient} servings={2} onSelect={onSelect} />);
+    (post as jest.Mock).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }))
+      .mockResolvedValueOnce(response("Example Pasta"));
+    const firstAdd = jest.fn(), secondAdd = jest.fn();
+    render(<>
+      <section data-testid="sauce"><MealIngredientBrands ingredient={ingredient} servings={2} onSelect={jest.fn()} onAddProduct={firstAdd} /></section>
+      <section data-testid="pasta"><MealIngredientBrands ingredient={{ ...ingredient, item: "Whole wheat spaghetti" }} servings={2} onSelect={jest.fn()} onAddProduct={secondAdd} /></section>
+    </>);
+    fireEvent.click(within(screen.getByTestId("sauce")).getByText("Find brands"));
+    fireEvent.click(within(screen.getByTestId("pasta")).getByText("Find brands"));
+    await screen.findByText("Example Pasta");
+    await act(async () => { finish(response()); });
+    fireEvent.click(within(screen.getByTestId("pasta")).getByRole("button", { name: "ingredientSheet.add" }));
+    expect(secondAdd).toHaveBeenCalledWith("Example Pasta", analysis("Example Pasta"));
+    expect(firstAdd).not.toHaveBeenCalled();
+    expect(within(screen.getByTestId("sauce")).queryByText("Example Pasta")).not.toBeInTheDocument();
+  });
+
+  it("discards a late response after changing the ingredient on the same component", async () => {
+    let finish!: (data: any) => void;
+    (post as jest.Mock).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }))
+      .mockResolvedValueOnce(response("Example Pasta"));
+    const onAddProduct = jest.fn();
+    const view = render(<MealIngredientBrands ingredient={ingredient} servings={2} onSelect={jest.fn()} onAddProduct={onAddProduct} />);
     fireEvent.click(screen.getByText("Find brands"));
-    view.unmount();
-    await act(async () => { finish(catalog); });
-    expect(onSelect).not.toHaveBeenCalled();
+    view.rerender(<MealIngredientBrands ingredient={{ ...ingredient, item: "Whole wheat spaghetti" }} servings={2} onSelect={jest.fn()} onAddProduct={onAddProduct} />);
+    fireEvent.click(screen.getByText("Find brands"));
+    await screen.findByText("Example Pasta");
+    await act(async () => { finish(response()); });
+    expect(screen.queryByText("Example Tomato Sauce")).not.toBeInTheDocument();
+    expect(screen.getByText("Example Pasta")).toBeInTheDocument();
+  });
+
+  it("treats provider fallback as a retryable failure, not a recommendation", async () => {
+    (post as jest.Mock).mockResolvedValue({ ok: true, result: { ...analysis(), fallbackUsed: true } });
+    render(<MealIngredientBrands ingredient={ingredient} servings={2} onSelect={jest.fn()} onAddProduct={jest.fn()} />);
+    fireEvent.click(screen.getByText("Find brands"));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Couldn't look up brands"));
+    expect(screen.queryByText("Example Tomato Sauce")).not.toBeInTheDocument();
   });
 });

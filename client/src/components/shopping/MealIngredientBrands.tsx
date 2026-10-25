@@ -1,30 +1,34 @@
 import { useEffect, useRef, useState } from "react";
 import { post } from "@/lib/api";
-import type { GroceryIngredient } from "@/lib/groceryCoachPackagedIngredients";
-import type { CatalogProductMatch } from "./GroceryStoreCoachSheet";
-import ProductCatalogChoices from "./ProductCatalogChoices";
+import { recipeShoppingQuantity, type GroceryIngredient } from "@/lib/groceryCoachPackagedIngredients";
+import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
+import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
 
 interface Props {
   ingredient: GroceryIngredient;
   servings: number;
   selectedLabel?: string;
-  onSelect: (product: CatalogProductMatch | null) => void;
+  onSelect: (product: null) => void;
+  onAddProduct: (name: string, result: IngredientScanResult) => void;
 }
 
-/** Existing Grocery Coach picker behavior; review-needed choices remain selectable here. */
-export default function MealIngredientBrands({ ingredient, servings, selectedLabel, onSelect }: Props) {
-  const [products, setProducts] = useState<CatalogProductMatch[] | null>(null);
+/** Reuse Product Scan guidance, scoped to this recipe ingredient. */
+export default function MealIngredientBrands({ ingredient, servings, selectedLabel, onSelect, onAddProduct }: Props) {
+  const [analysis, setAnalysis] = useState<IngredientScanResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-  const [excluded, setExcluded] = useState<string[]>([]);
   const [expanded, setExpanded] = useState(false);
-  const active = useRef(true);
+  const generation = useRef(0);
   const busy = useRef(false);
   useEffect(() => {
-    active.current = true;
-    return () => { active.current = false; };
-  }, []);
+    generation.current += 1;
+    setAnalysis(null);
+    setExpanded(false);
+    setError("");
+    setLoading(false);
+    busy.current = false;
+    return () => { generation.current += 1; };
+  }, [ingredient.item]);
 
   async function lookup() {
     if (busy.current) return;
@@ -32,20 +36,23 @@ export default function MealIngredientBrands({ ingredient, servings, selectedLab
     setError("");
     busy.current = true;
     setLoading(true);
+    const requestGeneration = generation.current;
     try {
-      const data = await post("/api/grocery-coach/product-advisor", {
-        ingredients: [ingredient.item], mode: "find_product",
+      const data = await post("/api/biometrics/ingredient-scan-by-name", {
+        productName: ingredient.item,
       });
-      if (!active.current) return;
-      if (!Array.isArray(data?.catalogMatches)) throw new Error("Invalid catalog response");
-      setProducts(data.catalogMatches.slice(0, 3));
-      setNotice(data.catalogNotice || "");
-      setExcluded(data.excludedReasons || []);
+      if (requestGeneration !== generation.current) return;
+      if (!data?.ok || data?.result?.analysisMethod !== "by_name" || data.result.fallbackUsed) {
+        throw new Error("Product analysis unavailable");
+      }
+      setAnalysis(data.result);
     } catch {
-      if (active.current) setError(`Couldn't look up brands for ${ingredient.item}. Try again. Your meal and quantities have not changed.`);
+      if (requestGeneration === generation.current) setError(`Couldn't look up brands for ${ingredient.item}. Try again. Your meal and quantities have not changed.`);
     } finally {
-      busy.current = false;
-      if (active.current) setLoading(false);
+      if (requestGeneration === generation.current) {
+        busy.current = false;
+        setLoading(false);
+      }
     }
   }
 
@@ -53,7 +60,7 @@ export default function MealIngredientBrands({ ingredient, servings, selectedLab
   return (
     <div style={{ width: "100%", fontSize: 12, lineHeight: 1.5 }}>
       <button style={buttonStyle} disabled={loading} onClick={() => {
-        if (products && !error) setExpanded(!expanded);
+        if (analysis && !error) setExpanded(!expanded);
         else void lookup();
       }} aria-expanded={expanded}>
         {loading ? "Finding brands…" : "Find brands"}
@@ -65,13 +72,14 @@ export default function MealIngredientBrands({ ingredient, servings, selectedLab
       {expanded && <div style={{ marginTop: 8, color: "#ddd" }}>
         <p>Recipe amount: {ingredient.quantity} {ingredient.unit} · {servings} {servings === 1 ? "serving" : "servings"}. Package counts are not calculated.</p>
         {error && <p role="alert" style={{ color: "#fca5a5" }}>{error}</p>}
-        {products && <>
-          <p>{notice || "Catalog information is not a guarantee of medical or allergen safety. Check the current package label."}</p>
-          {!!excluded.length && <p>Excluded for known conflicts: {excluded.join(" ")}</p>}
-          {!products.length && <p>No suitable catalog options were found. Your ingredient is unchanged. Try a more specific search in Find a Product.</p>}
-          <ProductCatalogChoices products={products} selectedLabel={selectedLabel} onSelect={onSelect} />
-          <p>Choosing a product changes only your shopping choice. Recipe quantities, servings, and nutrition remain unchanged; the finished meal has not been medically revalidated.</p>
-        </>}
+        {analysis && recipeShoppingQuantity(ingredient.quantity) === null &&
+          <p role="alert">Review the recipe amount before adding a product. No package quantity has been assumed.</p>}
+        {analysis && <IngredientIntelligenceSheet
+          key={ingredient.item}
+          open embedded result={analysis}
+          onClose={() => setExpanded(false)}
+          onAddProduct={recipeShoppingQuantity(ingredient.quantity) === null ? undefined : (name) => onAddProduct(name, analysis)}
+        />}
       </div>}
     </div>
   );

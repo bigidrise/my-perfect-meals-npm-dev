@@ -38,7 +38,7 @@ import type { UniversalIngredient } from "@/stores/shoppingListStore";
 import { GroceryCoachMacroTiles, type GroceryCoachMacros } from "./GroceryCoachMacroTiles";
 import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
 import { groceryCoachCatalogEnabled } from "@/lib/groceryCoachCatalogGate";
-import { packagedProductEligibility, catalogProductLabel, recipeShoppingQuantity } from "@/lib/groceryCoachPackagedIngredients";
+import { packagedProductEligibility, recipeShoppingQuantity } from "@/lib/groceryCoachPackagedIngredients";
 import { shoppingMetadataEnabled } from "@/lib/shoppingMetadataGate";
 import { groceryCoachSelectedProductMetadata } from "@/lib/groceryCoachShoppingTransfer";
 import MealIngredientBrands from "./MealIngredientBrands";
@@ -1731,15 +1731,24 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                                           ingredient={s}
                                           servings={result.servingCount || result.meal?.servings || 1}
                                           selectedLabel={pickedBrands.get(s.item.toLowerCase())?.brand}
-                                          onSelect={(product) => setPickedBrands(prev => {
+                                          onAddProduct={(name, analysis) => {
+                                            const quantity = recipeShoppingQuantity(s.quantity);
+                                            if (quantity === null) {
+                                              throw new Error("Review the recipe amount before adding this product.");
+                                            }
+                                            addItems([{
+                                              name: s.item, quantity, unit: s.unit || "",
+                                              sourceMeals: [result.meal?.name || "Grocery Coach"],
+                                              notes: `Shopping suggestion: ${name}. For ${s.item}: ${s.quantity} ${s.unit}; ${result.servingCount || result.meal?.servings || 1} servings. Check the current label; not allergy or medical safety clearance. Finished meal not medically revalidated.`,
+                                              ingredientMetadata: groceryCoachSelectedProductMetadata(
+                                                s, { name, byNameAnalysis: analysis },
+                                                { id: mealCard?.id, name: result.meal?.name || "Grocery Coach" },
+                                              ),
+                                            }]);
+                                          }}
+                                          onSelect={() => setPickedBrands(prev => {
                                             const next = new Map(prev);
-                                            if (product) next.set(s.item.toLowerCase(), {
-                                              brand: catalogProductLabel(product), rank: 1, grade: "C",
-                                              reason: "Shopping choice only; review current label",
-                                              evidenceStatus: "unverified",
-                                              catalogProduct: product,
-                                            });
-                                            else next.delete(s.item.toLowerCase());
+                                            next.delete(s.item.toLowerCase());
                                             return next;
                                           })}
                                         />
