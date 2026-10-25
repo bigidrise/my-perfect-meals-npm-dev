@@ -2085,6 +2085,16 @@ export type ComplianceSnapshot = typeof complianceSnapshots.$inferSelect;
 // Persistent grocery preference library — distinct from shopping_list_items
 // (which is ephemeral/scoped). A saved item is a product the user liked and
 // wants Grocery Coach to remember and prioritize across future sessions.
+// This JSONB payload also retains scan cards and the label's serving basis.
+// Known label nutrients stay numeric; metadata is not a nutrient value.
+export interface SavedGroceryNutritionJson extends Record<string, unknown> {
+  fat?: number;
+  carbs?: number;
+  servingBasis?: string;
+  scoreCards?: unknown;
+  outcomeCards?: unknown;
+}
+
 export const userSavedGroceryItems = pgTable("user_saved_grocery_items", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -2098,7 +2108,7 @@ export const userSavedGroceryItems = pgTable("user_saved_grocery_items", {
   source: text("source").notNull(), // 'grocery-coach' | 'scanner' | 'manual'
   // Full product nutrition at save time — preserved verbatim so future compliance
   // re-checks can compare against today's GLP-1, diabetic, or other ceilings.
-  nutritionJson: jsonb("nutrition_json").$type<Record<string, number>>(),
+  nutritionJson: jsonb("nutrition_json").$type<SavedGroceryNutritionJson>(),
   // Raw advisor/scanner payload — gives us a path back into Product Intelligence
   // later rather than relying only on a product name six months later.
   productMeta: jsonb("product_meta"),

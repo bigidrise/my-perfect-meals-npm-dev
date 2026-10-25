@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { SavedGroceryNutritionJson } from "../../shared/schema";
 import { computeProductKey } from "../utils/productKey";
 
 export function savedEvidenceRevision(item: { productMeta?: unknown; nutritionJson?: unknown }) {
@@ -30,7 +31,7 @@ export function prepareSavedEvidenceUpdate(item: any, body: any) {
   const { evidenceHistory = [], ...previousMeta } = oldMeta;
   if (!Array.isArray(evidenceHistory) || evidenceHistory.length >= 10) throw new Error("Evidence history is full; no previous evidence was overwritten.");
   // Previous label values remain in history, not as claims about the new label.
-  const nutrition: Record<string, unknown> = {};
+  const nutrition: SavedGroceryNutritionJson = {};
   if (result.scoreCards) nutrition.scoreCards = result.scoreCards;
   if (result.outcomeCards) nutrition.outcomeCards = result.outcomeCards;
   if (body.nutrition) {
