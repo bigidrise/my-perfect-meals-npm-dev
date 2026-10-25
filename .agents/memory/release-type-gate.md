@@ -22,9 +22,9 @@ description: Policy for the release-check type-validation layers — safety slic
 
 Preflight ignored, generated build inputs before starting expensive isolated-worktree validation. A Development checkout can build successfully because it already contains generated inputs that a clean release worktree does not have.
 
-**Why:** Isolated Saved Groceries validation reached an unresolved generated build-version import only after expensive module transformation; repeated timeouts initially hid the actionable setup error.
+**Why:** Isolated Saved Groceries validation reached an unresolved generated build-version import only after expensive module transformation. After generation, a successful instrumented build still slightly exceeded the earlier four-minute cutoff; active compilation had been mistaken for an inconclusive stall.
 
-**How to apply:** Use the existing canonical build-input generator rather than inventing version exports. Preserve the customer release identity, exclude incidental tracked manifest updates from a feature-only release, and never treat a timed-out build as verified.
+**How to apply:** Use the existing canonical build-input generator rather than inventing version exports. Preserve the customer release identity and exclude incidental tracked manifest updates from a feature-only release. Run one supervised build with resource/progress diagnostics and sufficient timeout margin instead of overlapping or repeatedly restarting short builds. Never treat a timed-out build as verified.
 
 ## Interrupted checks
 
