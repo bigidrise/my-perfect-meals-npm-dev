@@ -1241,7 +1241,7 @@ export default function ShoppingListMasterView() {
 
         {/* Saved Groceries */}
         <SavedGroceriesSheet
-          key={user?.id || "signed-out"}
+          key={`saved-groceries:${user?.id || "signed-out"}`}
           onVerifyProduct={(item) => { setEvidenceTarget(item); setScanModalOpen(true); }}
           open={savedGroceriesOpen}
           onOpenChange={setSavedGroceriesOpen}
@@ -1262,7 +1262,7 @@ export default function ShoppingListMasterView() {
 
         {/* Shopping Ingredient Intelligence Sheet */}
         <IngredientIntelligenceSheet
-          key={user?.id || "signed-out"}
+          key={`shopping-analysis:${user?.id || "signed-out"}`}
           open={shoppingSheetOpen && scanOwner === (user?.id ?? null)}
           hideSaveAction={!!evidenceTarget}
           savedContext={evidenceTarget && shoppingSheetResult ? <SavedGroceryEvidenceUpdate

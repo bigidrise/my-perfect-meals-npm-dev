@@ -59,6 +59,14 @@ Do not automatically assign old device-only scans without ownership information 
 
 **How to apply:** Account-scope new temporary records and affected caches. Leave unowned historical storage untouched unless a separate, explicitly authorized recovery or deletion flow is requested.
 
+## Account-scoped panel identity
+
+Account isolation keys must distinguish sibling panel roles as well as the account. A user ID alone is not a unique sibling identity.
+
+**Why:** Duplicate account-only keys allowed neighboring shopping panels to remount during updates, repeatedly fetching Saved Groceries and resetting its loading state. Tests mounting the sheet alone did not exercise the parent reconciliation boundary.
+
+**How to apply:** Check panel identity and state retention under parent updates, not only standalone rendering. Keep account-change resets intact. A corrected Development module does not prove an already-open browser has loaded it; distinguish code verification from live-session recovery.
+
 ## Preferred library selection experience
 
 Saved Groceries is a reusable product library, not a second nutrition-analysis or product-verification system. Product Scan and Grocery Store Coach analyze products before saving. The founder wants exact product identity (brand and package size when known), search, scrolling, individual shopping-intent checkboxes, Add Selected to Shopping List, and deletion. No category tabs, Add All Shown, caution triangles, restriction badges, evidence messages, or repeated verification messaging in the saved list. Original analysis may remain accessible separately.
