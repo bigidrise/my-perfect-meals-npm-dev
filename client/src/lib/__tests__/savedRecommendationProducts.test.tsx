@@ -31,6 +31,8 @@ jest.mock("react-i18next", () => ({ useTranslation: () => ({
       "ingredientSheet.savedToGroceries": "Saved to Groceries",
       "ingredientSheet.add": "Add",
       "ingredientSheet.addNamedToList": `Add ${values?.name} to List`,
+      "ingredientSheet.grade.c": "Some Considerations",
+      "ingredientSheet.incomplete.title": "Analysis incomplete",
     };
     return labels[key] ?? key;
   },
@@ -246,6 +248,111 @@ test.each(["scanner", "grocery-coach"] as const)("the shared %s bookmark retains
   expect(writes[0].productMeta.analysisSnapshot).toEqual(scan);
   expect(buildResultFromSavedItem(rows["fixture-a"][0]).overallSummary).toBe("Original personalized explanation");
   expect((apiRequest as jest.Mock).mock.calls.every(([url]) => url.startsWith("/api/saved-groceries"))).toBe(true);
+});
+
+test("a newly saved full graded scan reopens with the original analysis content and grade presentation", async () => {
+  const scan = {
+    ...buildResultFromSavedItem({ productName: "Cheerios Toasted Whole Grain Oat Cereal", productMeta: null, nutritionJson: null } as any),
+    alignmentGrade: "C" as const, gradeUnavailable: false, fallbackUsed: false, analysisMethod: "by_label" as const,
+    verdict: "The original Chef explanation", overallSummary: "The original personalized summary",
+    profileFactorsUsed: ["Original profile factor"], whatMattersMost: ["Original priority"],
+    ingredientConsiderations: ["Original consideration"], betterAlternatives: [alternatives[1]],
+    extractedIngredients: ["whole grain oats"], educationalFooter: "Original educational footer",
+    scoreCards: {
+      kids: { verdict: "neutral" as const, reason: "Original kids assessment" },
+      adults: { verdict: "thumbsUp" as const, reason: "Original adult assessment" },
+      diet: { verdict: "neutral" as const, reason: "Original diet assessment" },
+      fitnessGoal: { verdict: "neutral" as const, reason: "Original fitness assessment" },
+    },
+  };
+  const original = render(wrap(<IngredientIntelligenceSheet open result={scan} onClose={jest.fn()} />));
+  const gradeMarkup = screen.getByText("C").parentElement!.outerHTML;
+  fireEvent.click(screen.getByRole("button", { name: "Save to Groceries" }));
+  await waitFor(() => expect(writes).toHaveLength(1));
+  original.unmount(); queryClient.clear();
+  render(wrap(<SavedGroceriesSheet open onOpenChange={jest.fn()} />));
+  fireEvent.click(await screen.findByRole("button", { name: `View Analysis: ${scan.productName}` }));
+  expect(screen.getByText("C").parentElement!.outerHTML).toBe(gradeMarkup);
+  for (const text of [scan.verdict, scan.overallSummary, scan.profileFactorsUsed[0], scan.whatMattersMost[0],
+    scan.ingredientConsiderations[0], scan.extractedIngredients[0], scan.educationalFooter,
+    alternatives[1].category, alternatives[1].whyBetter[0], alternatives[1].targetCriteria,
+    "Original kids assessment", "Original adult assessment"]) {
+    expect(screen.getAllByText(text, { exact: false }).length).toBeGreaterThan(0);
+  }
+  expect(screen.getByText("Some Considerations")).toBeInTheDocument();
+  expect(screen.queryByText("Analysis incomplete")).not.toBeInTheDocument();
+  expect(buildResultFromSavedItem(rows["fixture-a"][0])).toEqual(scan);
+  expect((apiRequest as jest.Mock).mock.calls.every(([url]) => url === "/api/saved-groceries")).toBe(true);
+  expect(post).not.toHaveBeenCalled();
+  expect(writes).toHaveLength(1);
+});
+
+test.each(["C", undefined])("legacy analysis with grade %s shows genuine historical content without scan-failure messaging", async grade => {
+  rows["fixture-a"] = [{ id: "legacy", productName: "Old cereal", productMeta: {
+    alignmentGrade: grade, analysisMethod: "by_label", verdict: "Stored Chef verdict",
+    overallSummary: "Stored personalized summary", whatMattersMost: ["Stored priority"],
+    ingredientConsiderations: ["Stored consideration"],
+  }, nutritionJson: null, compliance: { status: "approved" } }];
+  render(wrap(<SavedGroceriesSheet open onOpenChange={jest.fn()} />));
+  fireEvent.click(await screen.findByRole("button", { name: "View Analysis: Old cereal" }));
+  expect(screen.getByText("Saved historical analysis")).toBeInTheDocument();
+  expect(screen.getByText(/Historical details not saved at the time are unavailable/)).toBeInTheDocument();
+  for (const text of ["Stored Chef verdict", "Stored personalized summary", "Stored priority", "Stored consideration"]) {
+    expect(screen.getByText(text)).toBeInTheDocument();
+  }
+  if (grade) expect(screen.getByText("Some Considerations")).toBeInTheDocument();
+  else expect(screen.queryByText("Some Considerations")).not.toBeInTheDocument();
+  expect(document.querySelector(".text-6xl")?.textContent).toBe(grade);
+  expect(screen.queryByText("Analysis incomplete")).not.toBeInTheDocument();
+  expect(writes).toEqual([]);
+  expect((apiRequest as jest.Mock).mock.calls.every(([url]) => url === "/api/saved-groceries")).toBe(true);
+});
+
+test("saved recommendations retain identity, brand, package and criteria without a parent grade or failed-scan presentation", async () => {
+  rows["fixture-a"] = [{ id: "recommendation", productName: "Protein Bar", brand: "RXBAR", source: "grocery-coach",
+    productMeta: { recommendationWhyBetter: ["The bar's original reason"], recommendationTargetCriteria: "The bar's original criteria",
+      packageSize: "12 bars", alignmentGrade: "C", educationalFooter: "Saved recommendation note" },
+    nutritionJson: null, compliance: { status: "approved" } }];
+  render(wrap(<SavedGroceriesSheet open onOpenChange={jest.fn()} />));
+  fireEvent.click(await screen.findByRole("button", { name: "View Analysis: RXBAR Protein Bar" }));
+  expect(screen.getByText("Saved recommendation")).toBeInTheDocument();
+  expect(screen.getAllByText("RXBAR Protein Bar").length).toBeGreaterThan(0);
+  expect(screen.getByText("Package: 12 bars")).toBeInTheDocument();
+  expect(screen.getAllByText("The bar's original reason").length).toBeGreaterThan(0);
+  expect(screen.getByText("The bar's original criteria")).toBeInTheDocument();
+  expect(screen.getByText("Saved recommendation note")).toBeInTheDocument();
+  expect(screen.queryByText("Analysis incomplete")).not.toBeInTheDocument();
+  expect(screen.queryByText("Some Considerations")).not.toBeInTheDocument();
+  expect(document.querySelector(".text-6xl")).toBeNull();
+  expect(writes).toEqual([]);
+  expect((apiRequest as jest.Mock).mock.calls.every(([url]) => url === "/api/saved-groceries")).toBe(true);
+});
+
+test("a partial historical scorecard displays only the genuinely saved assessment", async () => {
+  rows["fixture-a"] = [{ id: "partial-scores", productName: "Older product",
+    productMeta: { analysisMethod: "by_label" },
+    nutritionJson: { scoreCards: { adults: { verdict: "neutral", reason: "The retained adult assessment" } } },
+    compliance: { status: "approved" } }];
+  render(wrap(<SavedGroceriesSheet open onOpenChange={jest.fn()} />));
+  fireEvent.click(await screen.findByRole("button", { name: "View Analysis: Older product" }));
+  expect(screen.getByText("The retained adult assessment")).toBeInTheDocument();
+  expect(screen.queryByText(/ingredientSheet.scoreCards.kids/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/ingredientSheet.scoreCards.diet/)).not.toBeInTheDocument();
+  expect(screen.queryByText("Analysis incomplete")).not.toBeInTheDocument();
+  expect(writes).toEqual([]);
+});
+
+test("reopening a saved front-label snapshot never offers or runs a new by-name analysis", async () => {
+  const snapshot = { ...buildResultFromSavedItem({ productName: "Saved front label", productMeta: null } as any),
+    isFrontLabel: true, gradeUnavailable: true, overallSummary: "Original front-label result" };
+  rows["fixture-a"] = [{ id: "front-label", productName: snapshot.productName,
+    productMeta: { analysisSnapshot: snapshot }, compliance: { status: "approved" } }];
+  render(wrap(<SavedGroceriesSheet open onOpenChange={jest.fn()} />));
+  fireEvent.click(await screen.findByRole("button", { name: "View Analysis: Saved front label" }));
+  expect(screen.getByText(snapshot.overallSummary)).toBeInTheDocument();
+  expect(document.querySelector(".text-6xl")).toBeNull();
+  expect(writes).toEqual([]);
+  expect((apiRequest as jest.Mock).mock.calls.every(([url]) => url === "/api/saved-groceries")).toBe(true);
 });
 
 test("a blocked legacy Coach product has a working View Analysis and label-verification action", async () => {

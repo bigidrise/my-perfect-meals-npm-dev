@@ -8,10 +8,11 @@ import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import RecommendedProductActions from '@/components/shopping/RecommendedProductActions';
 import { groceryProductLabel, recommendationIdentity, recommendationProductKey } from '@/lib/savedGroceryRecommendation';
-import { scanSavePayload } from '@/lib/savedGroceryAnalysis';
+import { scanSavePayload, type SavedAnalysisKind } from '@/lib/savedGroceryAnalysis';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface Props {
+  savedAnalysisKind?: SavedAnalysisKind;
   saveSource?: "scanner" | "grocery-coach";
   savedContext?: import("react").ReactNode;
   hideSaveAction?: boolean;
@@ -353,6 +354,7 @@ function LegacyScoreCardsGrid({ scoreCards }: { scoreCards: IngredientScanResult
       <div className="grid grid-cols-2 gap-2">
         {SCORE_CARDS_META.map(({ key, labelKey, icon }) => {
           const card = scoreCards[key];
+          if (!card) return null;
           return (
             <div key={key} className={`rounded-xl border p-3 ${LEGACY_SCORE_BG[card.verdict]}`}>
               <div className="flex items-center justify-between mb-1.5">
@@ -524,7 +526,7 @@ function AnalysisProfileSection({ items }: { items: string[] }) {
   );
 }
 
-export function IngredientIntelligenceSheet({ open, embedded = false, result, onClose, onRescan, onAddProduct, onAddAnyway, onSaveForReview, onResultRefined, companionName, saveSource = "scanner", savedContext, hideSaveAction = false, hideLegacyScoreCards = false }: Props) {
+export function IngredientIntelligenceSheet({ open, embedded = false, result, onClose, onRescan, onAddProduct, onAddAnyway, onSaveForReview, onResultRefined, companionName, saveSource = "scanner", savedContext, savedAnalysisKind, hideSaveAction = false, hideLegacyScoreCards = false }: Props) {
   const { user } = useAuth();
   const owner = user?.id ?? null;
   const saveSession = useRef({ owner });
@@ -634,11 +636,12 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
   }
 
   const activeResult = byNameResult ?? result;
-  const grade = activeResult && !activeResult.gradeUnavailable ? GRADE_CONFIG[activeResult.alignmentGrade] ?? GRADE_CONFIG.B : null;
+  const grade = activeResult && !activeResult.gradeUnavailable && savedAnalysisKind !== "recommendation"
+    ? GRADE_CONFIG[activeResult.alignmentGrade] ?? (savedAnalysisKind ? null : GRADE_CONFIG.B) : null;
   const verdictCfg = activeResult ? VERDICT_CONFIG[activeResult.verdictLevel ?? 'caution'] : null;
   const hasOutcomeCards = !!(activeResult?.outcomeCards && activeResult.outcomeCards.length > 0);
   const isByName = activeResult?.analysisMethod === 'by_name';
-  const showFrontLabelChoice = !!(result?.isFrontLabel && !byNameResult && !byNameLoading);
+  const showFrontLabelChoice = !savedAnalysisKind && !!(result?.isFrontLabel && !byNameResult && !byNameLoading);
 
   const handleAnalyzeByName = async () => {
     if (!result?.productName) return;
@@ -764,6 +767,18 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
               {/* ── PATH 3: Full result (back-label scan or completed by-name analysis) ── */}
               {!showFrontLabelChoice && !byNameLoading && activeResult && (
                 <>
+                  {savedAnalysisKind && savedAnalysisKind !== "full" && (
+                    <section className="rounded-xl border border-white/20 bg-white/5 p-3.5 mb-4">
+                      <p className="text-sm font-semibold text-white">
+                        {savedAnalysisKind === "recommendation" ? "Saved recommendation" : "Saved historical analysis"}
+                      </p>
+                      <p className="text-xs text-white/70 mt-1">
+                        {savedAnalysisKind === "recommendation"
+                          ? "These are the recommendation reasons and criteria saved for this product. A separate Product Scan grade was not saved."
+                          : "Only information retained with this older product is shown. Historical details not saved at the time are unavailable."}
+                      </p>
+                    </section>
+                  )}
                   {/* Confidence tier badge */}
                   <ConfidenceTierBadge
                     method={activeResult.analysisMethod}
@@ -782,7 +797,7 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
                   )}
 
                   {/* By-name accuracy banner */}
-                  {isByName && (
+                  {isByName && (!savedAnalysisKind || savedAnalysisKind === "full") && (
                     <div className="rounded-xl border border-amber-500/25 bg-amber-500/8 p-3.5 mb-4 flex items-start gap-2.5">
                       <span className="text-base shrink-0 mt-0.5">⚠️</span>
                       <div className="flex-1">
@@ -825,7 +840,7 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
                   )}
 
                   {/* Grade banner — only shown when a grade was actually calculated */}
-                  {activeResult.fallbackUsed ? (
+                  {activeResult.fallbackUsed && (!savedAnalysisKind || savedAnalysisKind === "full") ? (
                     <div className="rounded-2xl border border-white/15 bg-white/5 p-4 mb-3 flex items-start gap-3">
                       <div className="text-2xl shrink-0">🔍</div>
                       <div>

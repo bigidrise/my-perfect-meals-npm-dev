@@ -11,9 +11,9 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { restoreSavedAnalysis, savedProductStatus } from "@/lib/savedGroceryAnalysis";
+import { restoreSavedAnalysis, savedAnalysisKind, savedProductStatus } from "@/lib/savedGroceryAnalysis";
 import { queryClient } from "@/lib/queryClient";
-import { groceryProductLabel, savedRecommendationDetails } from "@/lib/savedGroceryRecommendation";
+import { groceryProductLabel } from "@/lib/savedGroceryRecommendation";
 import type { SavedRecommendationMetadata } from "@/lib/savedGroceryRecommendation";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -104,7 +104,6 @@ export function buildResultFromSavedItem(item: SavedGroceryItem): IngredientScan
     barcode: item.barcode ?? undefined,
     resolvedFromDb: meta.resolvedFromDb,
     resolvedName: meta.resolvedName,
-    ...savedRecommendationDetails(meta),
     ...restoreSavedAnalysis(item),
   };
 }
@@ -565,16 +564,19 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
   // Render the analysis sheet outside the main portal so it layers above it
   const historical = historyIndex >= 0 ? analysisItem?.productMeta?.evidenceHistory?.[historyIndex] : null;
   const displayedItem = historical && analysisItem ? { ...analysisItem, productMeta: historical.productMeta, nutritionJson: historical.nutritionJson } : analysisItem;
-  const storedScores = displayedItem?.productMeta?.analysisSnapshot?.scoreCards ?? displayedItem?.nutritionJson?.scoreCards;
+  const storedScores = displayedItem?.productMeta?.analysisSnapshot?.scoreCards
+    ?? displayedItem?.productMeta?.scoreCards ?? displayedItem?.nutritionJson?.scoreCards;
   const analysisSheet = analysisItem && loadedOwner === owner ? (
     <IngredientIntelligenceSheet
       key={`${analysisItem.id}:${historyIndex}`}
       open={!!analysisItem}
       hideSaveAction
-      hideLegacyScoreCards={!["kids", "adults", "diet", "fitnessGoal"].every(key => storedScores?.[key]?.verdict)}
+      savedAnalysisKind={savedAnalysisKind(displayedItem!)}
+      hideLegacyScoreCards={!["kids", "adults", "diet", "fitnessGoal"].some(key => storedScores?.[key]?.verdict)}
       result={buildResultFromSavedItem(displayedItem!)}
       savedContext={<section className="rounded-xl border border-white/20 p-3 my-3 text-sm space-y-2">
-        <p>{analysisItem.productMeta?.analysisSnapshot ? "Analysis saved" : analysisItem.productMeta?.reason || analysisItem.productMeta?.recommendationWhyBetter ? "Recommendation saved" : "Saved product — original analysis may be unavailable"}</p>
+        <p>{savedAnalysisKind(displayedItem!) === "full" ? "Analysis saved" : savedAnalysisKind(displayedItem!) === "recommendation" ? "Recommendation saved" : "Saved product — original analysis may be unavailable"}</p>
+        {itemPackageSize(displayedItem!) && <p>Package: {itemPackageSize(displayedItem!)}</p>}
         <p>{savedProductStatus(analysisItem)}</p>
         {analysisItem.compliance.reason && <p>{analysisItem.compliance.reason}</p>}
         <p>Saving analysis does not verify the current label. Historical analysis is not current safety approval.</p>
