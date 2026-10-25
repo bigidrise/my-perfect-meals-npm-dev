@@ -8,10 +8,18 @@ import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import RecommendedProductActions from '@/components/shopping/RecommendedProductActions';
 import { groceryProductLabel, recommendationIdentity, recommendationProductKey } from '@/lib/savedGroceryRecommendation';
-import { scanSavePayload } from '@/lib/savedGroceryAnalysis';
+import { scanSavePayload, restoreSavedAnalysis, type SavedAnalysisKind } from '@/lib/savedGroceryAnalysis';
+import { isCompleteIngredientAnalysis } from '@shared/ingredientAnalysisSnapshot';
 import { useAuth } from '@/contexts/AuthContext';
+import { PillButton } from '@/components/ui/pill-button';
+import { distinctAnalysisText, primaryAnalysisPoints, visibleAnalysisRestrictions } from '@/lib/ingredientAnalysisPresentation';
 
 interface Props {
+  /** Original human recommendation reasons; undefined preserves other presentations. */
+  savedRecommendationReasons?: string[];
+  savedAnalysisAction?: import("react").ReactNode;
+  savedRestriction?: string;
+  savedAnalysisKind?: SavedAnalysisKind;
   saveSource?: "scanner" | "grocery-coach";
   savedContext?: import("react").ReactNode;
   hideSaveAction?: boolean;
@@ -232,6 +240,7 @@ export function BetterAlternativesSection({
   educationalFooter,
   source,
   subjectKind,
+  showEvidenceNote = true,
 }: {
   alternatives: BetterAlternative[];
   branded?: boolean;
@@ -241,6 +250,7 @@ export function BetterAlternativesSection({
   educationalFooter: string;
   source?: "scanner" | "grocery-coach";
   subjectKind?: string;
+  showEvidenceNote?: boolean;
 }) {
   const { t } = useTranslation();
   const [addedIndex, setAddedIndex] = useState<number | null>(null);
@@ -307,11 +317,11 @@ export function BetterAlternativesSection({
           </div>
         ))}
       </div>
-      <p className="text-[10px] text-white/20 mt-2 pl-1">
+      {showEvidenceNote && <p className="text-[10px] text-white/20 mt-2 pl-1">
         {branded
           ? t('ingredientSheet.alternatives.brandedNote')
           : t('ingredientSheet.alternatives.categoryNote')}
-      </p>
+      </p>}
     </div>
   );
 }
@@ -353,6 +363,7 @@ function LegacyScoreCardsGrid({ scoreCards }: { scoreCards: IngredientScanResult
       <div className="grid grid-cols-2 gap-2">
         {SCORE_CARDS_META.map(({ key, labelKey, icon }) => {
           const card = scoreCards[key];
+          if (!card) return null;
           return (
             <div key={key} className={`rounded-xl border p-3 ${LEGACY_SCORE_BG[card.verdict]}`}>
               <div className="flex items-center justify-between mb-1.5">
@@ -456,7 +467,7 @@ function WhatMattersMostSection({ items }: { items: string[] }) {
   if (!items || items.length === 0) return null;
   return (
     <div className="rounded-2xl border border-orange-500/25 bg-orange-500/6 p-4 mb-4">
-      <p className="text-xs font-bold uppercase tracking-wide text-orange-400 mb-3">⚡ {t('ingredientSheet.whatMattersMost')}</p>
+      <p className="text-xs font-bold uppercase tracking-wide text-orange-400 mb-3">{t('ingredientSheet.simple.matters', { defaultValue: "What Matters for You" })}</p>
       <ul className="space-y-2.5">
         {items.slice(0, 3).map((item, i) => (
           <li key={i} className="flex items-start gap-2.5">
@@ -471,7 +482,6 @@ function WhatMattersMostSection({ items }: { items: string[] }) {
 
 function AnalysisProfileSection({ items }: { items: string[] }) {
   const { t } = useTranslation();
-  const showLabTeaser = items.length > 0 && hasLabRelevantCondition(items);
 
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 p-4 mb-3">
@@ -493,24 +503,6 @@ function AnalysisProfileSection({ items }: { items: string[] }) {
             ))}
           </div>
 
-          {showLabTeaser && (
-            <div className="rounded-lg bg-orange-500/8 border border-orange-500/20 px-3 py-2.5 mb-3 flex items-start gap-2.5">
-              <span className="text-orange-400 text-base leading-none mt-0.5 shrink-0">⚗️</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-white/75 mb-0.5">{t('ingredientSheet.analysisProfile.deeperTitle')}</p>
-                <p className="text-[11px] text-white/45 leading-snug mb-2">
-                  {t('ingredientSheet.analysisProfile.deeperBody')}
-                </p>
-                <a
-                  href="/biometrics"
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-orange-400 bg-orange-500/15 border border-orange-500/30 rounded-full px-2.5 py-1"
-                >
-                  {t('ingredientSheet.analysisProfile.updateProfile')}
-                </a>
-              </div>
-            </div>
-          )}
-
           <p className="text-[10px] text-white/25 leading-relaxed border-t border-white/8 pt-2.5">
             {t('ingredientSheet.analysisProfile.disclaimer')}
           </p>
@@ -524,26 +516,32 @@ function AnalysisProfileSection({ items }: { items: string[] }) {
   );
 }
 
-export function IngredientIntelligenceSheet({ open, embedded = false, result, onClose, onRescan, onAddProduct, onAddAnyway, onSaveForReview, onResultRefined, companionName, saveSource = "scanner", savedContext, hideSaveAction = false, hideLegacyScoreCards = false }: Props) {
+export function IngredientIntelligenceSheet({ open, embedded = false, result, onClose, onRescan, onAddProduct, onAddAnyway, onSaveForReview, onResultRefined, companionName, saveSource = "scanner", savedContext, savedRestriction, savedAnalysisKind, savedAnalysisAction, savedRecommendationReasons, hideSaveAction = false, hideLegacyScoreCards = false }: Props) {
   const { user } = useAuth();
   const owner = user?.id ?? null;
-  const saveSession = useRef({ owner });
-  if (saveSession.current.owner !== owner) saveSession.current = { owner };
+  const saveSession = useRef({ owner, result });
+  if (saveSession.current.owner !== owner || saveSession.current.result !== result) saveSession.current = { owner, result };
+  const savingSession = useRef<object | null>(null);
   const { t } = useTranslation();
   const { toast } = useToast();
   const [byNameLoading, setByNameLoading] = useState(false);
   const [byNameResult, setByNameResult] = useState<IngredientScanResult | null>(null);
   const saveResult = byNameResult ?? result;
   const [savingGrocery, setSavingGrocery] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   useEffect(() => {
     setByNameResult(null);
     setByNameLoading(false);
-  }, [result]);
+    setDetailsOpen(false);
+    setSavingGrocery(false);
+    setSaveError("");
+  }, [result, open, owner]);
 
   // Fetch the full saved-groceries list via React Query so any invalidation
   // (e.g. a delete from the Saved Groceries page) is picked up immediately.
-  const { data: savedGroceriesData } = useQuery<{ items: any[] }>({
+  const { data: savedGroceriesData } = useQuery<{ items: any[]; supportsSavedAnalysisAttachment?: boolean }>({
     queryKey: ['/api/saved-groceries', owner],
     queryFn: () => apiRequest('/api/saved-groceries'),
     enabled: open && !!owner && !!result?.productName,
@@ -551,11 +549,15 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
   });
 
   // Derive savedGroceryId from the cached list whenever the result or list changes
-  const savedGroceryId = (savedGroceriesData?.items ?? []).find((item: any) => {
+  const savedGroceryItem = (savedGroceriesData?.items ?? []).find((item: any) => {
     const barcode = saveResult?.barcode?.trim();
     if (barcode && item.barcode) return item.barcode === barcode;
     return groceryProductLabel(item).toLowerCase() === saveResult?.productName?.toLowerCase();
-  })?.id ?? null;
+  });
+  const savedGroceryId = savedGroceryItem?.id ?? null;
+  const hasSavedAnalysis = isCompleteIngredientAnalysis(savedGroceryItem?.productMeta?.analysisSnapshot);
+  const canAttachAnalysis = savedGroceriesData?.supportsSavedAnalysisAttachment === true &&
+    !!savedGroceryItem?.analysisRevision && isCompleteIngredientAnalysis(saveResult);
 
   // Invalidate saved-groceries when this tab regains visibility so a cross-tab
   // save is reflected as soon as the user switches back (recovery path).
@@ -583,47 +585,79 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
   }, [open, result?.productName]);
 
   async function handleSaveToGroceries() {
-    if (!owner || !activeResult?.productName || savingGrocery) return;
+    if (!owner || !activeResult?.productName || savingSession.current === saveSession.current) return;
     const session = saveSession.current;
-    setSavingGrocery(true);
-
-    // If already saved, unsave it
-    if (savedGroceryId) {
-      try {
-        await apiRequest(`/api/saved-groceries/${savedGroceryId}`, { method: 'DELETE' });
-        if (saveSession.current !== session) return;
-        queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries'] });
-        try { new BroadcastChannel('mpm:grocery-saved').postMessage(null); } catch { /* unavailable */ }
-        toast({
-          title: t('ingredientSheet.toast.removedTitle'),
-          description: t('ingredientSheet.toast.removedDesc', { name: activeResult.productName }),
-        });
-      } catch {
-        toast({ title: t('ingredientSheet.toast.removeFailTitle'), description: t('ingredientSheet.toast.tryAgain'), variant: 'destructive' });
-      } finally {
-        setSavingGrocery(false);
-      }
+    // Viewing an existing snapshot is local restoration, not regeneration or removal.
+    if (savedGroceryItem && hasSavedAnalysis) {
+      setByNameResult({ ...activeResult, ...restoreSavedAnalysis(savedGroceryItem) });
       return;
     }
-
+    if (savedGroceryItem && !canAttachAnalysis) return;
+    savingSession.current = session;
+    setSavingGrocery(true);
+    setSaveError("");
     try {
       const barcode = result?.barcode?.trim() || undefined;
-      const data = await apiRequest('/api/saved-groceries', {
+      let data = savedGroceryItem ? { item: savedGroceryItem, created: false, supportsSavedAnalysisAttachment: true }
+        : await apiRequest<{ item?: any; created?: boolean; supportsSavedAnalysisAttachment?: boolean }>('/api/saved-groceries', {
         method: 'POST',
         body: JSON.stringify(scanSavePayload({ ...activeResult, barcode: barcode || activeResult.barcode }, saveSource, companionName ?? undefined)),
         headers: { 'Content-Type': 'application/json' },
-      }) as { item?: { id: string }; created?: boolean };
+      });
       if (saveSession.current !== session) return;
-      queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries'] });
+      // Also handle a concurrent first save: POST returns the authoritative existing row.
+      if (data.created === false && data.item && !isCompleteIngredientAnalysis(data.item.productMeta?.analysisSnapshot) &&
+          isCompleteIngredientAnalysis(activeResult)) {
+        if (!data.supportsSavedAnalysisAttachment || !data.item.analysisRevision) {
+          throw new Error("Reopen this product before updating its saved analysis.");
+        }
+        const updated = await apiRequest<{ item: any }>(`/api/saved-groceries/${data.item.id}/analysis-snapshot`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            expectedAnalysisRevision: data.item.analysisRevision,
+            analysis: { ...activeResult, barcode: barcode || activeResult.barcode },
+            subjectKind: companionName ? "companion" : "human",
+          }),
+          headers: { 'Content-Type': 'application/json' },
+        });
+        data = { ...data, item: { ...data.item, ...updated.item } };
+      }
+      if (saveSession.current !== session) return;
+      if (data.item) queryClient.setQueryData<{ items: any[] }>(['/api/saved-groceries', owner], previous => ({
+        ...previous, items: [...(previous?.items ?? []).filter(item => item.id !== data.item.id), data.item],
+      }));
+      queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries', owner] });
       try { new BroadcastChannel('mpm:grocery-saved').postMessage(null); } catch { /* unavailable */ }
       toast({
         title: data?.created === false ? t('ingredientSheet.toast.alreadySaved') : t('ingredientSheet.toast.savedTitle'),
         description: t('ingredientSheet.toast.savedDesc', { name: activeResult.productName }),
       });
     } catch {
+      if (saveSession.current !== session) return;
+      setSaveError(t('ingredientSheet.simple.saveUnconfirmed', { defaultValue: "Saving could not be confirmed. Reopen Saved Groceries to check the current result; no newer analysis was intentionally replaced." }));
+      queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries', owner] });
       toast({ title: t('ingredientSheet.toast.saveFailTitle'), description: t('ingredientSheet.toast.tryAgain'), variant: 'destructive' });
     } finally {
-      setSavingGrocery(false);
+      if (savingSession.current === session) savingSession.current = null;
+      if (saveSession.current === session) setSavingGrocery(false);
+    }
+  }
+
+  async function handleRemoveFromGroceries() {
+    if (!owner || !savedGroceryId || savingSession.current === saveSession.current) return;
+    const session = saveSession.current;
+    savingSession.current = session; setSavingGrocery(true); setSaveError("");
+    try {
+      await apiRequest(`/api/saved-groceries/${savedGroceryId}`, { method: 'DELETE' });
+      if (saveSession.current !== session) return;
+      queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries', owner] });
+      try { new BroadcastChannel('mpm:grocery-saved').postMessage(null); } catch { /* unavailable */ }
+      toast({ title: t('ingredientSheet.toast.removedTitle'), description: t('ingredientSheet.toast.removedDesc', { name: activeResult!.productName }) });
+    } catch {
+      if (saveSession.current === session) setSaveError(t('ingredientSheet.toast.removeFailTitle'));
+    } finally {
+      if (savingSession.current === session) savingSession.current = null;
+      if (saveSession.current === session) setSavingGrocery(false);
     }
   }
 
@@ -634,11 +668,13 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
   }
 
   const activeResult = byNameResult ?? result;
-  const grade = activeResult && !activeResult.gradeUnavailable ? GRADE_CONFIG[activeResult.alignmentGrade] ?? GRADE_CONFIG.B : null;
+  const grade = activeResult && !activeResult.gradeUnavailable && savedAnalysisKind !== "recommendation"
+    ? GRADE_CONFIG[activeResult.alignmentGrade] ?? null : null;
   const verdictCfg = activeResult ? VERDICT_CONFIG[activeResult.verdictLevel ?? 'caution'] : null;
   const hasOutcomeCards = !!(activeResult?.outcomeCards && activeResult.outcomeCards.length > 0);
   const isByName = activeResult?.analysisMethod === 'by_name';
-  const showFrontLabelChoice = !!(result?.isFrontLabel && !byNameResult && !byNameLoading);
+  const isSavedRecommendation = savedAnalysisKind === "recommendation" && savedRecommendationReasons !== undefined;
+  const showFrontLabelChoice = !savedAnalysisKind && !!(result?.isFrontLabel && !byNameResult && !byNameLoading);
 
   const handleAnalyzeByName = async () => {
     if (!result?.productName) return;
@@ -702,7 +738,11 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
                     </div>
                   ) : result.productName ? (
                     <p className="text-[11px] text-white/35 mt-0.5">
-                      {showFrontLabelChoice ? t('ingredientSheet.header.frontLabelDetected') : isByName ? t('ingredientSheet.header.byNameAnalysis') : t('ingredientSheet.header.fullAnalysis')}
+                      {isSavedRecommendation
+                        ? saveSource === "grocery-coach"
+                          ? t('ingredientSheet.simple.savedFromCoach', { defaultValue: "Saved from Grocery Coach" })
+                          : t('ingredientSheet.simple.savedRecommendation', { defaultValue: "Saved recommendation" })
+                        : showFrontLabelChoice ? t('ingredientSheet.header.frontLabelDetected') : isByName ? t('ingredientSheet.header.byNameAnalysis') : t('ingredientSheet.header.fullAnalysis')}
                     </p>
                   ) : null}
                 </div>
@@ -764,43 +804,30 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
               {/* ── PATH 3: Full result (back-label scan or completed by-name analysis) ── */}
               {!showFrontLabelChoice && !byNameLoading && activeResult && (
                 <>
-                  {/* Confidence tier badge */}
-                  <ConfidenceTierBadge
-                    method={activeResult.analysisMethod}
-                    productName={activeResult.productName || undefined}
-                    productNameMissing={activeResult.productNameMissing}
-                    onScanLabel={onRescan}
-                  />
-
-                  {/* Barcode database source badge — shown for barcode scans and saved
-                      groceries whose productMeta preserved resolvedFromDb */}
-                  {activeResult.resolvedFromDb !== undefined && (
-                    <BarcodeDatabaseBadge
-                      resolvedFromDb={activeResult.resolvedFromDb}
-                      resolvedName={activeResult.resolvedName}
-                    />
+                  {savedAnalysisKind && savedAnalysisKind !== "full" && !isSavedRecommendation && (
+                    <section className="rounded-xl border border-white/20 bg-white/5 p-3.5 mb-4">
+                      <p className="text-sm font-semibold text-white">
+                        {savedAnalysisKind === "recommendation" ? "Saved recommendation" : "Saved historical analysis"}
+                      </p>
+                      <p className="text-xs text-white/70 mt-1">
+                        {savedAnalysisKind === "recommendation"
+                          ? "These are the recommendation reasons and criteria saved for this product. A separate Product Scan grade was not saved."
+                          : "Only information retained with this older product is shown. Historical details not saved at the time are unavailable."}
+                      </p>
+                    </section>
                   )}
-
-                  {/* By-name accuracy banner */}
-                  {isByName && (
-                    <div className="rounded-xl border border-amber-500/25 bg-amber-500/8 p-3.5 mb-4 flex items-start gap-2.5">
-                      <span className="text-base shrink-0 mt-0.5">⚠️</span>
-                      <div className="flex-1">
-                        <p className="text-xs font-semibold text-amber-300 mb-0.5">{t('ingredientSheet.byNameBanner.title')}</p>
-                        <p className="text-[11px] text-white/50 leading-snug">
-                          {t('ingredientSheet.byNameBanner.body')}{' '}
-                          {onRescan && (
-                            <button
-                              onClick={onRescan}
-                              className="text-orange-400 font-semibold underline"
-                            >
-                              {t('ingredientSheet.byNameBanner.scanLink')}
-                            </button>
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                  {isSavedRecommendation && <>
+                    <Section title={t('ingredientSheet.simple.whyRecommended', { defaultValue: "Why It Was Recommended" })}
+                      items={distinctAnalysisText(savedRecommendationReasons.length ? savedRecommendationReasons : [activeResult.overallSummary])} icon="" />
+                    {savedAnalysisAction}
+                  </>}
+                  <p className="text-xs text-white/70 mb-4" data-testid="analysis-source">
+                    {isSavedRecommendation
+                      ? t('ingredientSheet.simple.recommendationSource', { defaultValue: "Recommendation based on product knowledge. Check the current label for exact ingredients and nutrition." })
+                      : isByName
+                      ? t('ingredientSheet.simple.byName', { defaultValue: "By-name analysis · Label not verified. Check the current label." })
+                      : t('ingredientSheet.simple.byLabel', { defaultValue: "Ingredient-label analysis · Evidence as recorded at analysis." })}
+                  </p>
 
                   {/* Scan quality warning */}
                   {!isByName && !activeResult.isFrontLabel && activeResult.ocrConfidenceLow && (
@@ -825,7 +852,7 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
                   )}
 
                   {/* Grade banner — only shown when a grade was actually calculated */}
-                  {activeResult.fallbackUsed ? (
+                  {activeResult.fallbackUsed && (!savedAnalysisKind || savedAnalysisKind === "full") ? (
                     <div className="rounded-2xl border border-white/15 bg-white/5 p-4 mb-3 flex items-start gap-3">
                       <div className="text-2xl shrink-0">🔍</div>
                       <div>
@@ -849,6 +876,8 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
                         </p>
                       </div>
                     </div>
+                  ) : (!savedAnalysisKind || savedAnalysisKind === "full") && !activeResult.fallbackUsed ? (
+                    <p className="text-sm text-white/70 mb-4">{t('ingredientSheet.simple.noGrade', { defaultValue: "A grade is not available from the information provided." })}</p>
                   ) : null}
 
                   {/* Chef verdict */}
@@ -856,14 +885,24 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
                     <div className={`rounded-xl border p-3.5 mb-4 flex items-start gap-3 ${verdictCfg.bg}`}>
                       <img src="/icons/ChefMascotLogo.png" alt="" className="w-7 h-7 rounded-full shrink-0 mt-0.5 border border-orange-500/30" />
                       <div>
-                        <p className={`text-xs font-bold uppercase tracking-wide mb-0.5 ${verdictCfg.color}`}>{t(verdictCfg.labelKey)}</p>
+                        <p className={`text-xs font-bold uppercase tracking-wide mb-0.5 ${verdictCfg.color}`}>{t('ingredientSheet.simple.chef', { defaultValue: "Chef's Heads Up" })}</p>
                         <p className="text-sm text-white/85 leading-snug">{activeResult.verdict}</p>
                       </div>
                     </div>
                   )}
+                  {savedAnalysisKind === "recommendation" && !isSavedRecommendation && !activeResult.verdict && (
+                    <Section title={t('ingredientSheet.simple.recommendation', { defaultValue: "Saved recommendation reasons and criteria" })}
+                      items={distinctAnalysisText([activeResult.overallSummary, ...activeResult.ingredientConsiderations])} icon="" />
+                  )}
+                  {!isSavedRecommendation && savedAnalysisAction}
 
                   {/* What Matters Most For You — condition-tied, 3 bullets max */}
-                  <WhatMattersMostSection items={activeResult.whatMattersMost ?? []} />
+                  <WhatMattersMostSection items={primaryAnalysisPoints(activeResult)} />
+                  <Section title={t('ingredientSheet.simple.restrictions', { defaultValue: "Important for You" })}
+                    items={visibleAnalysisRestrictions(isSavedRecommendation
+                      ? { ...activeResult, ingredientConsiderations: savedRecommendationReasons }
+                      : activeResult)} icon="!" />
+                  {savedRestriction && <p className="text-sm text-amber-200 mb-4">{savedRestriction}</p>}
 
                   {/* Better Product Options — always shown immediately after verdict */}
                   <BetterAlternativesSection
@@ -872,12 +911,19 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
                     educationalFooter={activeResult.educationalFooter}
                     source={saveSource}
                     subjectKind={companionName ? "companion" : "human"}
+                    showEvidenceNote={false}
                     branded={isByName || activeResult.analysisMethod === 'full_product_advisor'}
                     verdictLevel={activeResult.verdictLevel}
                     onAddToList={onAddProduct ? handleAddProduct : undefined}
                   />
 
-                  {/* Profile factors driving this analysis */}
+                  <PillButton aria-expanded={detailsOpen} aria-controls="ingredient-analysis-details" onClick={() => setDetailsOpen(value => !value)}>
+                    {t('ingredientSheet.simple.details', { defaultValue: "More Analysis Details" })}
+                    {detailsOpen ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />}
+                  </PillButton>
+                  {detailsOpen && <div id="ingredient-analysis-details" className="mt-4" data-testid="analysis-details">
+                  {activeResult.resolvedFromDb !== undefined && <BarcodeDatabaseBadge resolvedFromDb={activeResult.resolvedFromDb} resolvedName={activeResult.resolvedName} />}
+                  {/* Original expanded information stays intact and optional. */}
                   <ProfileFactorsSection factors={activeResult.profileFactorsUsed ?? []} />
 
                   {/* Overall coach summary */}
@@ -905,6 +951,9 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
                   <Section title={t('ingredientSheet.sections.mayNotAlign')} items={activeResult.mayNotAlignWith} icon="⚠️" />
                   <Section title={t('ingredientSheet.sections.worksWellFor')} items={activeResult.betterFor} icon="✓" />
                   <Section title={t('ingredientSheet.sections.familyNotes')} items={activeResult.householdNotes} icon="🏠" />
+                  <Section title={t('ingredientSheet.simple.allPoints', { defaultValue: "Original personalized points" })} items={activeResult.whatMattersMost ?? []} icon="" />
+                  {activeResult.educationalFooter && <p className="text-xs text-white/65 mt-3">{activeResult.educationalFooter}</p>}
+                  {savedContext}
 
                   {/* Detected ingredients (collapsed) — back-label path only */}
                   {!isByName && activeResult.extractedIngredients.length > 0 && (
@@ -917,6 +966,7 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
                       </div>
                     </div>
                   )}
+                  </div>}
 
                   {/* Quick Analysis: scan label upgrade CTA */}
                   {isByName && onRescan && (
@@ -967,13 +1017,12 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
                     </div>
                   )}
 
-                  {savedContext}
                   {/* Save to Groceries */}
                   {!hideSaveAction && activeResult.productName && (
                     <div className="mt-2 mb-4">
                       <button
                         onClick={handleSaveToGroceries}
-                        disabled={savingGrocery || !owner}
+                        disabled={savingGrocery || !owner || (!!savedGroceryId && !hasSavedAnalysis && !canAttachAnalysis)}
                         className={`w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold border transition-all active:scale-[.98] ${
                           savedGroceryId
                             ? 'bg-orange-500/15 border-orange-500/30 text-orange-300'
@@ -984,18 +1033,20 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
                           className="w-4 h-4"
                           fill={savedGroceryId ? 'currentColor' : 'none'}
                         />
-                        {savedGroceryId ? t('ingredientSheet.savedToGroceries') : t('ingredientSheet.saveToGroceries')}
+                        {hasSavedAnalysis
+                          ? t('ingredientSheet.simple.viewSaved', { defaultValue: "View Saved Analysis" })
+                          : savedGroceryId && canAttachAnalysis
+                            ? t('ingredientSheet.simple.updateSaved', { defaultValue: "Update Saved Analysis" })
+                            : savedGroceryId ? t('ingredientSheet.savedToGroceries') : t('ingredientSheet.saveToGroceries')}
                       </button>
+                      {savedGroceryId && <button type="button" disabled={savingGrocery} onClick={handleRemoveFromGroceries}
+                        className="w-full mt-2 rounded-xl py-3 text-sm text-red-300 border border-red-400/25 disabled:opacity-50">
+                        {t('ingredientSheet.simple.removeSaved', { defaultValue: "Remove from Saved Groceries" })}
+                      </button>}
+                      {saveError && <p role="alert" className="text-sm text-amber-200 mt-2">{saveError}</p>}
                     </div>
                   )}
 
-                  {/* Footer */}
-                  <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-2 justify-center">
-                    <img src="/icons/ChefMascotLogo.png" alt="" className="w-5 h-5 rounded-full opacity-50" />
-                    <p className="text-[10px] text-white/25 leading-relaxed text-center">
-                      {activeResult.educationalFooter}
-                    </p>
-                  </div>
                 </>
               )}
             </div>

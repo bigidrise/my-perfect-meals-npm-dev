@@ -8,6 +8,17 @@ import { loadUserProtocolEnvelope } from "../services/protocolEnvelope";
 import { analyzeProductByName, analyzeFullProduct } from "../services/ingredientScanService";
 import { createHash } from "node:crypto";
 
+test("by-name service fails closed on a fabricated soy/TRT restriction without mutating historical results", async () => {
+  (loadUserProtocolEnvelope as jest.Mock).mockResolvedValue(profile());
+  (chatJson as jest.Mock).mockResolvedValue(analysis({
+    verdict: "Avoid soy sauce during testosterone replacement therapy due to phytoestrogens.",
+  }));
+  const result = await analyzeProductByName("Soy sauce", "synthetic-shopper");
+  expect(result.fallbackUsed).toBe(true);
+  expect(result.whatMattersMost).toEqual([]);
+  expect(result.verdict).not.toMatch(/phytoestrogen/i);
+});
+
 const profile = (extra: Record<string, unknown> = {}) => ({
   userId: "synthetic-shopper", dietaryIdentity: ["vegan"], allergies: [],
   medicalHardLimits: [], medicalOptimization: [], conditionGuidanceBlocks: [],

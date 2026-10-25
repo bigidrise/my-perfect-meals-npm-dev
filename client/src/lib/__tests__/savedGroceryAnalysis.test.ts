@@ -1,5 +1,5 @@
 /** @jest-environment jsdom */
-import { scanSavePayload, restoreSavedAnalysis, savedProductStatus } from "../savedGroceryAnalysis";
+import { scanSavePayload, restoreSavedAnalysis, savedAnalysisKind, savedProductStatus } from "../savedGroceryAnalysis";
 import { saveProductScan, getSavedProducts, clearExpiredShoppingScans } from "../shoppingScanStorage";
 import type { IngredientScanResult } from "../photoIngredientCapture";
 
@@ -25,6 +25,44 @@ test("knowledge-based analysis is preserved without claiming its ingredient gues
   const payload = scanSavePayload({ ...result, analysisMethod: "by_name", gradeUnavailable: true }, "grocery-coach");
   expect(payload.productMeta.ingredients).toBeUndefined();
   expect(restoreSavedAnalysis(payload).gradeUnavailable).toBe(true);
+});
+
+test("partial legacy scans retain their actual grade, explanations, and available analysis sections", () => {
+  const meta = { alignmentGrade: "C", verdict: "Original Chef explanation", overallSummary: "Original summary",
+    whatMattersMost: ["Original priority"], profileFactorsUsed: ["Original profile factor"],
+    ingredientConsiderations: ["Original consideration"], betterAlternatives: [{ category: "Original option", whyBetter: ["Reason"], targetCriteria: "Criteria" }],
+    educationalFooter: "Original footer" };
+  const item = { productName: "Original cereal", productMeta: meta };
+  expect(savedAnalysisKind(item)).toBe("legacy");
+  expect(restoreSavedAnalysis(item)).toMatchObject({ ...meta, gradeUnavailable: false, fallbackUsed: false });
+});
+
+test.each([undefined, "Z", ""])("legacy missing or invalid grade %s is unavailable, never a failed new scan", grade => {
+  const item = { productName: "Old cereal", productMeta: { alignmentGrade: grade } };
+  expect(restoreSavedAnalysis(item)).toMatchObject({
+    alignmentGrade: undefined, gradeUnavailable: true, fallbackUsed: false, overallSummary: "",
+  });
+});
+
+test("recommendations ignore stray parent grades and retain only their own saved recommendation content", () => {
+  const item = { productName: "Protein bar", brand: "RXBAR", productMeta: {
+    alignmentGrade: "C", grade: "A", evidenceStatus: "verified", recommendationWhyBetter: ["Its own reason"],
+    recommendationTargetCriteria: "Its own criteria", educationalFooter: "Original note",
+    verdict: "Parent verdict must not appear", profileFactorsUsed: ["Parent personalization"],
+  } };
+  expect(savedAnalysisKind(item)).toBe("recommendation");
+  expect(restoreSavedAnalysis(item)).toMatchObject({ gradeUnavailable: true, alignmentGrade: undefined,
+    fallbackUsed: false, overallSummary: "Its own reason", ingredientConsiderations: ["Its own reason", "Its own criteria"],
+    educationalFooter: "Original note" });
+  expect(restoreSavedAnalysis(item).verdict).toBeUndefined();
+  expect(restoreSavedAnalysis(item).profileFactorsUsed).toBeUndefined();
+});
+
+test("a full snapshot takes priority over older recommendation metadata without altering historical content", () => {
+  const payload = scanSavePayload(result, "scanner");
+  const item = { ...payload, productMeta: { ...payload.productMeta, recommendationWhyBetter: ["Older recommendation"] } };
+  expect(savedAnalysisKind(item)).toBe("full");
+  expect(restoreSavedAnalysis(item)).toMatchObject(result);
 });
 
 test("legacy Coach reasons and verification messages remain readable, with no invented grade", () => {

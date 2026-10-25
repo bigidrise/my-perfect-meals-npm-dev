@@ -11,9 +11,9 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { restoreSavedAnalysis, savedProductStatus } from "@/lib/savedGroceryAnalysis";
+import { restoreSavedAnalysis, savedAnalysisKind, savedProductStatus } from "@/lib/savedGroceryAnalysis";
 import { queryClient } from "@/lib/queryClient";
-import { groceryProductLabel, savedRecommendationDetails } from "@/lib/savedGroceryRecommendation";
+import { groceryProductLabel } from "@/lib/savedGroceryRecommendation";
 import type { SavedRecommendationMetadata } from "@/lib/savedGroceryRecommendation";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -31,6 +31,7 @@ import { get, post, apiJSON } from "@/lib/api";
 import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
 import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 import { PillButton } from "@/components/ui/pill-button";
+import { SavedProductAnalysisAction } from "./SavedProductAnalysisAction";
 
 interface SavedGroceryItemMeta extends SavedRecommendationMetadata {
   [key: string]: any;
@@ -104,7 +105,6 @@ export function buildResultFromSavedItem(item: SavedGroceryItem): IngredientScan
     barcode: item.barcode ?? undefined,
     resolvedFromDb: meta.resolvedFromDb,
     resolvedName: meta.resolvedName,
-    ...savedRecommendationDetails(meta),
     ...restoreSavedAnalysis(item),
   };
 }
@@ -144,12 +144,14 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
   const [analysisItem, setAnalysisItem] = useState<SavedGroceryItem | null>(null);
+  const [analysisSupported, setAnalysisSupported] = useState(false);
   useEffect(() => {
     setAnalysisItem(null); setHistoryIndex(-1);
     setSelectedIds(new Set());
     setBulkAdding(false);
     setRemovingId(null);
     setLoadedOwner(null); setItems([]);
+    setAnalysisSupported(false);
   }, [owner]);
 
   const fetchItems = useCallback(async () => {
@@ -158,9 +160,10 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
     setLoading(true);
     setError(null);
     try {
-      const data = await get<{ items: SavedGroceryItem[] }>("/api/saved-groceries");
+      const data = await get<{ items: SavedGroceryItem[]; supportsSavedProductAnalysis?: boolean }>("/api/saved-groceries");
       if (started !== session.current) return;
       setItems(data.items ?? []);
+      setAnalysisSupported(data.supportsSavedProductAnalysis === true);
       setSelectedIds(previous => new Set(
         Array.from(previous).filter(id => data.items?.some(
           item => item.id === id,
@@ -565,16 +568,35 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
   // Render the analysis sheet outside the main portal so it layers above it
   const historical = historyIndex >= 0 ? analysisItem?.productMeta?.evidenceHistory?.[historyIndex] : null;
   const displayedItem = historical && analysisItem ? { ...analysisItem, productMeta: historical.productMeta, nutritionJson: historical.nutritionJson } : analysisItem;
-  const storedScores = displayedItem?.productMeta?.analysisSnapshot?.scoreCards ?? displayedItem?.nutritionJson?.scoreCards;
+  const storedScores = displayedItem?.productMeta?.analysisSnapshot?.scoreCards
+    ?? displayedItem?.productMeta?.scoreCards ?? displayedItem?.nutritionJson?.scoreCards;
   const analysisSheet = analysisItem && loadedOwner === owner ? (
     <IngredientIntelligenceSheet
       key={`${analysisItem.id}:${historyIndex}`}
       open={!!analysisItem}
       hideSaveAction
-      hideLegacyScoreCards={!["kids", "adults", "diet", "fitnessGoal"].every(key => storedScores?.[key]?.verdict)}
+      savedAnalysisKind={savedAnalysisKind(displayedItem!)}
+      savedRecommendationReasons={savedAnalysisKind(displayedItem!) === "recommendation" && displayedItem!.productMeta?.subjectKind !== "companion"
+        ? (Array.isArray(displayedItem!.productMeta?.recommendationWhyBetter)
+          ? displayedItem!.productMeta.recommendationWhyBetter.filter((reason: unknown): reason is string => typeof reason === "string")
+          : [])
+        : undefined}
+      savedRestriction={savedAnalysisKind(displayedItem!) === "recommendation" && displayedItem!.productMeta?.subjectKind !== "companion"
+        && analysisItem.compliance.category === "evidence_missing" ? undefined : analysisItem.compliance.reason ?? undefined}
+      saveSource={analysisItem.source === "grocery-coach" ? "grocery-coach" : "scanner"}
+      savedAnalysisAction={analysisSupported && historyIndex === -1 && savedAnalysisKind(analysisItem) === "recommendation" && analysisItem.productMeta?.subjectKind !== "companion"
+        ? <SavedProductAnalysisAction key={`${owner}:${analysisItem.id}`} item={analysisItem} onUpdated={updated => {
+            if (session.current.owner !== owner) return;
+            setItems(previous => previous.map(item => item.id === updated.id ? updated : item));
+            setAnalysisItem(previous => previous?.id === updated.id ? updated : previous);
+            queryClient.invalidateQueries({ queryKey: ["/api/saved-groceries", owner] });
+          }} />
+        : undefined}
+      hideLegacyScoreCards={!["kids", "adults", "diet", "fitnessGoal"].some(key => storedScores?.[key]?.verdict)}
       result={buildResultFromSavedItem(displayedItem!)}
       savedContext={<section className="rounded-xl border border-white/20 p-3 my-3 text-sm space-y-2">
-        <p>{analysisItem.productMeta?.analysisSnapshot ? "Analysis saved" : analysisItem.productMeta?.reason || analysisItem.productMeta?.recommendationWhyBetter ? "Recommendation saved" : "Saved product — original analysis may be unavailable"}</p>
+        <p>{savedAnalysisKind(displayedItem!) === "full" ? "Analysis saved" : savedAnalysisKind(displayedItem!) === "recommendation" ? "Recommendation saved" : "Saved product — original analysis may be unavailable"}</p>
+        {itemPackageSize(displayedItem!) && <p>Package: {itemPackageSize(displayedItem!)}</p>}
         <p>{savedProductStatus(analysisItem)}</p>
         {analysisItem.compliance.reason && <p>{analysisItem.compliance.reason}</p>}
         <p>Saving analysis does not verify the current label. Historical analysis is not current safety approval.</p>

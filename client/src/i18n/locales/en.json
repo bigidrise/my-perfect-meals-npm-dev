@@ -2874,6 +2874,28 @@
     }
   },
   "ingredientSheet": {
+    "simple": {
+      "matters": "What Matters for You",
+      "chef": "Chef's Heads Up",
+      "details": "More Analysis Details",
+      "byName": "By-name analysis · Label not verified. Check the current label.",
+      "byLabel": "Ingredient-label analysis · Evidence as recorded at analysis.",
+      "noGrade": "A grade is not available from the information provided.",
+      "restrictions": "Important for You",
+      "allPoints": "Original personalized points",
+      "recommendation": "Saved recommendation reasons and criteria",
+      "savedFromCoach": "Saved from Grocery Coach",
+      "savedRecommendation": "Saved recommendation",
+      "whyRecommended": "Why It Was Recommended",
+      "recommendationSource": "Recommendation based on product knowledge. Check the current label for exact ingredients and nutrition.",
+      "analyzeNotice": "Generate {{name}}'s own personalized analysis. Saved results can be reopened without another analysis request.",
+      "analyzingProduct": "Analyzing This Product…",
+      "analyzeProduct": "Analyze This Product",
+      "viewSaved": "View Saved Analysis",
+      "updateSaved": "Update Saved Analysis",
+      "removeSaved": "Remove from Saved Groceries",
+      "saveUnconfirmed": "Saving could not be confirmed. Reopen Saved Groceries to check the current result; no newer analysis was intentionally replaced."
+    },
     "grade": {
       "a": "Excellent Alignment",
       "b": "Good Alignment",
