@@ -82,3 +82,11 @@ The founder approved separating saved-product shopping-list transfers from compa
 **Why:** Adding a specific owned product to a shopping list records purchase intent; it does not certify that the customer should consume it.
 
 **How to apply:** Preserve authenticated ownership, exact saved identity, duplicate prevention, atomic writes, and original evidence. Transferred evidence remains historical and review-required, never upgraded to medically eligible. Keep analysis and recommendation revalidation independent, including Grocery Coach's current-profile checks. The approved change concerns transfers, not the library-read compatibility contract or package-identity migrations. Production rollout requires separate approval.
+
+The founder confirmed the Development saved-product transfer works. Keep the library presentation compact: checkbox, exact brand/product/package identity, Analysis, and Delete share one horizontal row, with long names constrained rather than moving actions to a separate line.
+
+Analysis must look visibly clickable, not like muted descriptive text.
+
+**Why:** The founder tested the transfer successfully, requested removing the tall two-line card layout, and said they did not realize the muted analysis text could be pressed.
+
+**How to apply:** Preserve the shopping-intent and saved-analysis behavior when changing presentation. This confirmation does not authorize Production release.
