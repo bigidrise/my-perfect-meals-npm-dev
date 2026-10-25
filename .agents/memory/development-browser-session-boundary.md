@@ -34,3 +34,9 @@ Workspace shell credentials are not necessarily available to the isolated browse
 **Why:** An authenticated saved-image browser check was blocked by this separation while a normal, authorized cookie-and-CSRF API check could run from the workspace shell without exposing credentials.
 
 **How to apply:** Never print or return credentials to bridge the contexts. For backend contracts, use the existing authorized test account with credentials and cookies kept in process memory. Report that evidence as authenticated API coverage, not signed-in browser or placeholder-rendering coverage.
+
+For no-write browser verification, intercept every API request before navigation and block unmatched mutations, not just the feature's submission endpoint.
+
+**Why:** Synthetic authenticated UI state can trigger automatic timezone/profile updates and telemetry. Rapid clicks can also reach another control when an instant fixture response changes the layout. A mocked generation endpoint alone does not guarantee shared-database isolation.
+
+**How to apply:** Keep authentication and saved results synthetic, fulfill reads with appropriately shaped fixtures, and count blocked mutations. Report mocked snapshot reopening separately from real database persistence; never forward an unexpected write merely to remove a test warning.
