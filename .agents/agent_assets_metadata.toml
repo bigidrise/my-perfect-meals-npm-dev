@@ -537,3 +537,17 @@ mtime_ms = 1792803387057
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d0ce16b8-2b53-4034-95fa-1897a67c81da/d26d616f-9a6c-43c5-97f1-544faf4569b9"
 storage_version_token = "1792803478419716"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "JKco7mwycACQF6fEgYd1D"
+uri = "file://.local/reports/pr433-localization-investigation.html"
+type = "html"
+title = "PR #433 — Complete Check Investigation"
+description = "Production-versus-PR comparison, all 106 failed assertions, exact missing keys, protected clinical strings, all findings in 82 failing component files, and complete GitHub localization output."
+logical_id = "0b96a6a3-978a-4916-8806-2f27cbcb784a"
+content_hash = "sha256:7dadcfaa757b081da3557a003f82434652f9418d1cd3fdca723116930c610f7f"
+size = 344308
+mtime_ms = 1792895007823
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/0b96a6a3-978a-4916-8806-2f27cbcb784a/b11ef446-59c9-417c-a181-201b1d41ab7b"
+storage_version_token = "1792895008889307"
+content_type = "text/html"
