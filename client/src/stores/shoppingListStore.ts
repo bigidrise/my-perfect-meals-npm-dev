@@ -5,6 +5,7 @@ import { normalizeIngredient } from '@shared/ingredientNormalizer';
 import type { IngredientCategory } from '@/data/ingredientCategories';
 import { apiRequest } from '@/lib/apiRequest';
 import type { ShoppingIngredientMetadata } from '@shared/shoppingIngredientMetadata';
+import { groceryCoachProductMetadata, parseIngredientMetadata } from '@shared/shoppingIngredientMetadata';
 import { shoppingMetadataEnabled } from '@/lib/shoppingMetadataGate';
 import { createDevelopmentShoppingListStore } from './developmentShoppingListStore';
 
@@ -54,13 +55,13 @@ function findMergeable(
 ): number {
   const u = (unit || '').toLowerCase().trim();
   const exact = items.findIndex(
-    e => e.normalizedName === normalizedName && (e.unit || '').toLowerCase().trim() === u,
+    e => !e.ingredientMetadata && e.normalizedName === normalizedName && (e.unit || '').toLowerCase().trim() === u,
   );
   if (exact !== -1) return exact;
   const incomingType = getUnitType(unit);
   if (incomingType === 'count') return -1;
   return items.findIndex(
-    e => e.normalizedName === normalizedName && getUnitType(e.unit) === incomingType,
+    e => !e.ingredientMetadata && e.normalizedName === normalizedName && getUnitType(e.unit) === incomingType,
   );
 }
 
@@ -182,6 +183,7 @@ function mapServerItem(si: any): ShoppingListItem {
     id: si.id,
     serverId: si.id,
     productKey: si.productKey ?? undefined,
+    ingredientMetadata: parseIngredientMetadata(si.ingredientMetadata),
     name: si.name || '',
     normalizedName: classified.normalizedName,
     quantity: parseFloat(String(si.quantity)) || 1,
@@ -203,6 +205,7 @@ function deduplicateServerItems(items: ShoppingListItem[]): ShoppingListItem[] {
   for (const si of items) {
     const existingIdx = deduped.findIndex(
       e =>
+        !si.ingredientMetadata && !e.ingredientMetadata &&
         (si.productKey && e.productKey
           ? e.productKey === si.productKey
           : !si.productKey && !e.productKey &&
@@ -297,11 +300,11 @@ export const useShoppingListStore: UseBoundStore<StoreApi<ShoppingListStore>> = 
 
             const serverIdx = merged.findIndex(
               s =>
-                s.productKey && local.productKey
+                !s.ingredientMetadata && !local.ingredientMetadata && (s.productKey && local.productKey
                   ? s.productKey === local.productKey
                   : !s.productKey && !local.productKey &&
                     s.normalizedName === local.normalizedName &&
-                    (s.unit || '').toLowerCase() === (local.unit || '').toLowerCase(),
+                    (s.unit || '').toLowerCase() === (local.unit || '').toLowerCase()),
             );
 
             if (serverIdx !== -1) {
@@ -390,7 +393,8 @@ export const useShoppingListStore: UseBoundStore<StoreApi<ShoppingListStore>> = 
               normalizeForAggregation(item.name, item.quantity, item.unit));
           }
 
-          const existingIndex = findMergeable(state.items, normalizedName, normUnit);
+          const metadata = groceryCoachProductMetadata(item.ingredientMetadata, item.name);
+          const existingIndex = metadata ? -1 : findMergeable(state.items, normalizedName, normUnit);
 
           if (existingIndex !== -1) {
             const updated = [...state.items];
@@ -419,6 +423,7 @@ export const useShoppingListStore: UseBoundStore<StoreApi<ShoppingListStore>> = 
 
           const newEntry: ShoppingListItem = {
             ...item,
+            ...(metadata ? { ingredientMetadata: metadata } : {}),
             id: generateId(),
             name: canonicalName,
             normalizedName,
@@ -470,10 +475,11 @@ export const useShoppingListStore: UseBoundStore<StoreApi<ShoppingListStore>> = 
           const updatedItems = [...state.items];
 
           newItems.forEach((newItem) => {
+            const metadata = groceryCoachProductMetadata(newItem.ingredientMetadata, newItem.name);
             const { canonicalName, normalizedName, normQty, normUnit, category, isPantryStaple } =
               normalizeForAggregation(newItem.name, newItem.quantity || 1, newItem.unit || '');
 
-            const existingIndex = findMergeable(updatedItems, normalizedName, normUnit);
+            const existingIndex = metadata ? -1 : findMergeable(updatedItems, normalizedName, normUnit);
 
             if (existingIndex !== -1) {
               const existing = updatedItems[existingIndex];
@@ -497,10 +503,11 @@ export const useShoppingListStore: UseBoundStore<StoreApi<ShoppingListStore>> = 
             } else {
               const newEntry: ShoppingListItem = {
                 id: generateId(),
-                name: canonicalName,
+                name: metadata ? newItem.name : canonicalName,
                 normalizedName,
-                quantity: normQty,
-                unit: normUnit,
+                quantity: metadata ? newItem.quantity : normQty,
+                unit: metadata ? newItem.unit : normUnit,
+                ...(metadata ? { ingredientMetadata: metadata } : {}),
                 category: newItem.category || category,
                 isPantryStaple,
                 isChecked: false,

@@ -39,6 +39,7 @@ jest.mock("../services/ingredientScanService", () => ({
 import express from "express";
 import request from "supertest";
 import biometricsRouter from "../routes/biometricsRoutes";
+import { analyzeProductByName } from "../services/ingredientScanService";
 
 function app() {
   const instance = express();
@@ -52,6 +53,18 @@ function visionResult(payload: Record<string, unknown>) {
     choices: [{ message: { content: JSON.stringify(payload) } }],
   });
 }
+
+describe("existing Product Scan by-name API reused by Grocery Coach", () => {
+  it("passes the product request and authenticated subject to the existing service", async () => {
+    const result = { analysisMethod: "by_name", betterAlternatives: [{ category: "Example sauce" }] };
+    (analyzeProductByName as jest.Mock).mockResolvedValueOnce(result);
+    const response = await request(app()).post("/api/biometrics/ingredient-scan-by-name")
+      .send({ productName: "  I'm looking for spaghetti sauce.  ", userId: "untrusted-other-user" });
+    expect(response.status).toBe(200);
+    expect(analyzeProductByName).toHaveBeenCalledWith("I'm looking for spaghetti sauce.", "macro-scan-test-user");
+    expect(response.body).toEqual({ ok: true, result });
+  });
+});
 
 describe("POST /api/biometrics/analyze-photo", () => {
   beforeEach(() => {

@@ -170,6 +170,13 @@ shoppingRouter.patch("/:id", requireAuth, async (req: any, res: any) => {
     }
 
     if (shoppingMetadataDevelopment()) updates = developmentItemPatch(req.body, existing);
+    else if (existing.ingredientMetadata?.selectedProduct?.source?.source === "Product Scan by-name guidance") {
+      // Quantity/check edits cannot replace the original ingredient or its
+      // historical product association. Catalog selection remains disabled.
+      if (Object.keys(updates).some(key => !["quantity", "unit", "checked", "category"].includes(key))) {
+        return res.status(400).json({ error: "Grocery Coach ingredient association cannot be replaced by an item edit" });
+      }
+    }
 
     await db.update(shoppingListItems)
       .set(updates)
