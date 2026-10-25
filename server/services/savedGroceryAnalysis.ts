@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { IngredientScanResult } from "./ingredientScanService";
 import { savedEvidenceRevision } from "./savedGroceryEvidence";
+import { isCompleteIngredientAnalysis } from "../../shared/ingredientAnalysisSnapshot";
 
 export interface SavedAnalysisRow {
   id: string;
@@ -27,11 +28,65 @@ export class SavedAnalysisError extends Error {
 }
 
 export function completeSavedAnalysis(meta: Record<string, any>): boolean {
-  const result = meta.analysisSnapshot;
-  return !!result && typeof result === "object" && !Array.isArray(result) && !result.fallbackUsed &&
-    typeof result.overallSummary === "string" && !!result.overallSummary.trim() &&
-    typeof result.verdict === "string" && Array.isArray(result.betterAlternatives) &&
-    ["by_name", "by_label", "full_product_advisor"].includes(result.analysisMethod);
+  return isCompleteIngredientAnalysis(meta.analysisSnapshot);
+}
+
+/** Includes identity AND operation state; evidence-only revisions cannot detect a rename. */
+export function savedAnalysisRevision(
+  row: Pick<SavedAnalysisRow, "id" | "userId" | "productName" | "brand" | "barcode" | "productKey" | "source" | "nutritionJson"> & { productMeta?: unknown },
+): string {
+  return createHash("sha256").update(JSON.stringify([
+    row.id, row.userId, row.productName, row.brand, row.barcode, row.productKey,
+    row.source, row.productMeta ?? null, row.nutritionJson ?? null,
+  ])).digest("hex");
+}
+
+/** Store an existing result only. This path has no AI dependency or evidence mutation. */
+export async function attachSavedGroceryAnalysis(
+  store: SavedAnalysisStore, owner: string, id: string,
+  input: { expectedAnalysisRevision?: string; analysis?: IngredientScanResult & { barcode?: string }; subjectKind?: string },
+) {
+  const result = input.analysis;
+  if (!/^[a-f0-9]{64}$/.test(input.expectedAnalysisRevision ?? "") || !result ||
+      !isCompleteIngredientAnalysis(result) || JSON.stringify(result).length > 80000) {
+    throw new SavedAnalysisError(400, "invalid_snapshot", "A complete existing analysis and current saved-product revision are required.");
+  }
+  return store.withItem(owner, id, row => {
+    if (!row) throw new SavedAnalysisError(404, "not_found", "Saved product not found for this account.");
+    if (savedAnalysisRevision(row) !== input.expectedAnalysisRevision) {
+      throw new SavedAnalysisError(409, "stale_record", "This saved product changed. Reopen it; no analysis was overwritten.");
+    }
+    const meta = row.productMeta ?? {};
+    if (completeSavedAnalysis(meta)) {
+      throw new SavedAnalysisError(409, "analysis_already_saved", "A complete analysis is already saved. Reopen it; no analysis was overwritten.");
+    }
+    if (meta.analysisRequest?.state === "running") {
+      throw new SavedAnalysisError(409, "analysis_in_progress", "Analysis is already in progress. No existing result was overwritten.");
+    }
+    if ((meta.subjectKind ?? "human") !== (input.subjectKind ?? "human")) {
+      throw new SavedAnalysisError(409, "subject_mismatch", "The analysis subject must match this saved product.");
+    }
+    const normalize = (text: string) => text.trim().replace(/\s+/g, " ").toLocaleLowerCase();
+    const name = row.brand && !normalize(row.productName).startsWith(`${normalize(row.brand)} `) &&
+      normalize(row.productName) !== normalize(row.brand) ? `${row.brand} ${row.productName}` : row.productName;
+    if (typeof result.productName !== "string" || normalize(result.productName) !== normalize(name) ||
+        (row.barcode && result.barcode && row.barcode.trim() !== result.barcode.trim())) {
+      throw new SavedAnalysisError(409, "identity_mismatch", "The analyzed brand and product must match this saved item exactly.");
+    }
+    const history = meta.previousAnalysisSnapshots ?? [];
+    if (!Array.isArray(history) || (meta.analysisSnapshot && history.length >= 10)) {
+      throw new SavedAnalysisError(409, "history_full", "Previous analysis history cannot be replaced. Existing information is unchanged.");
+    }
+    const productMeta = {
+      ...meta,
+      ...(meta.analysisSnapshot ? { previousAnalysisSnapshots: [...history, meta.analysisSnapshot] } : {}),
+      analysisSnapshotVersion: 1,
+      analysisSnapshot: result,
+      analysisSavedAt: new Date().toISOString(),
+    };
+    // Do not copy ingredients, certification, status, source or nutrition out of the snapshot.
+    return { value: { ...row, productMeta }, productMeta };
+  });
 }
 
 function fingerprint(row: SavedAnalysisRow) {

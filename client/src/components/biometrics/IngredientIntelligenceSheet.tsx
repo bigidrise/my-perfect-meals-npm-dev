@@ -8,7 +8,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import RecommendedProductActions from '@/components/shopping/RecommendedProductActions';
 import { groceryProductLabel, recommendationIdentity, recommendationProductKey } from '@/lib/savedGroceryRecommendation';
-import { scanSavePayload, type SavedAnalysisKind } from '@/lib/savedGroceryAnalysis';
+import { scanSavePayload, restoreSavedAnalysis, type SavedAnalysisKind } from '@/lib/savedGroceryAnalysis';
+import { isCompleteIngredientAnalysis } from '@shared/ingredientAnalysisSnapshot';
 import { useAuth } from '@/contexts/AuthContext';
 import { PillButton } from '@/components/ui/pill-button';
 import { distinctAnalysisText, primaryAnalysisPoints, visibleAnalysisRestrictions } from '@/lib/ingredientAnalysisPresentation';
@@ -518,25 +519,29 @@ function AnalysisProfileSection({ items }: { items: string[] }) {
 export function IngredientIntelligenceSheet({ open, embedded = false, result, onClose, onRescan, onAddProduct, onAddAnyway, onSaveForReview, onResultRefined, companionName, saveSource = "scanner", savedContext, savedRestriction, savedAnalysisKind, savedAnalysisAction, savedRecommendationReasons, hideSaveAction = false, hideLegacyScoreCards = false }: Props) {
   const { user } = useAuth();
   const owner = user?.id ?? null;
-  const saveSession = useRef({ owner });
-  if (saveSession.current.owner !== owner) saveSession.current = { owner };
+  const saveSession = useRef({ owner, result });
+  if (saveSession.current.owner !== owner || saveSession.current.result !== result) saveSession.current = { owner, result };
+  const savingSession = useRef<object | null>(null);
   const { t } = useTranslation();
   const { toast } = useToast();
   const [byNameLoading, setByNameLoading] = useState(false);
   const [byNameResult, setByNameResult] = useState<IngredientScanResult | null>(null);
   const saveResult = byNameResult ?? result;
   const [savingGrocery, setSavingGrocery] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   useEffect(() => {
     setByNameResult(null);
     setByNameLoading(false);
     setDetailsOpen(false);
+    setSavingGrocery(false);
+    setSaveError("");
   }, [result, open, owner]);
 
   // Fetch the full saved-groceries list via React Query so any invalidation
   // (e.g. a delete from the Saved Groceries page) is picked up immediately.
-  const { data: savedGroceriesData } = useQuery<{ items: any[] }>({
+  const { data: savedGroceriesData } = useQuery<{ items: any[]; supportsSavedAnalysisAttachment?: boolean }>({
     queryKey: ['/api/saved-groceries', owner],
     queryFn: () => apiRequest('/api/saved-groceries'),
     enabled: open && !!owner && !!result?.productName,
@@ -544,11 +549,15 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
   });
 
   // Derive savedGroceryId from the cached list whenever the result or list changes
-  const savedGroceryId = (savedGroceriesData?.items ?? []).find((item: any) => {
+  const savedGroceryItem = (savedGroceriesData?.items ?? []).find((item: any) => {
     const barcode = saveResult?.barcode?.trim();
     if (barcode && item.barcode) return item.barcode === barcode;
     return groceryProductLabel(item).toLowerCase() === saveResult?.productName?.toLowerCase();
-  })?.id ?? null;
+  });
+  const savedGroceryId = savedGroceryItem?.id ?? null;
+  const hasSavedAnalysis = isCompleteIngredientAnalysis(savedGroceryItem?.productMeta?.analysisSnapshot);
+  const canAttachAnalysis = savedGroceriesData?.supportsSavedAnalysisAttachment === true &&
+    !!savedGroceryItem?.analysisRevision && isCompleteIngredientAnalysis(saveResult);
 
   // Invalidate saved-groceries when this tab regains visibility so a cross-tab
   // save is reflected as soon as the user switches back (recovery path).
@@ -576,47 +585,79 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
   }, [open, result?.productName]);
 
   async function handleSaveToGroceries() {
-    if (!owner || !activeResult?.productName || savingGrocery) return;
+    if (!owner || !activeResult?.productName || savingSession.current === saveSession.current) return;
     const session = saveSession.current;
-    setSavingGrocery(true);
-
-    // If already saved, unsave it
-    if (savedGroceryId) {
-      try {
-        await apiRequest(`/api/saved-groceries/${savedGroceryId}`, { method: 'DELETE' });
-        if (saveSession.current !== session) return;
-        queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries'] });
-        try { new BroadcastChannel('mpm:grocery-saved').postMessage(null); } catch { /* unavailable */ }
-        toast({
-          title: t('ingredientSheet.toast.removedTitle'),
-          description: t('ingredientSheet.toast.removedDesc', { name: activeResult.productName }),
-        });
-      } catch {
-        toast({ title: t('ingredientSheet.toast.removeFailTitle'), description: t('ingredientSheet.toast.tryAgain'), variant: 'destructive' });
-      } finally {
-        setSavingGrocery(false);
-      }
+    // Viewing an existing snapshot is local restoration, not regeneration or removal.
+    if (savedGroceryItem && hasSavedAnalysis) {
+      setByNameResult({ ...activeResult, ...restoreSavedAnalysis(savedGroceryItem) });
       return;
     }
-
+    if (savedGroceryItem && !canAttachAnalysis) return;
+    savingSession.current = session;
+    setSavingGrocery(true);
+    setSaveError("");
     try {
       const barcode = result?.barcode?.trim() || undefined;
-      const data = await apiRequest('/api/saved-groceries', {
+      let data = savedGroceryItem ? { item: savedGroceryItem, created: false, supportsSavedAnalysisAttachment: true }
+        : await apiRequest<{ item?: any; created?: boolean; supportsSavedAnalysisAttachment?: boolean }>('/api/saved-groceries', {
         method: 'POST',
         body: JSON.stringify(scanSavePayload({ ...activeResult, barcode: barcode || activeResult.barcode }, saveSource, companionName ?? undefined)),
         headers: { 'Content-Type': 'application/json' },
-      }) as { item?: { id: string }; created?: boolean };
+      });
       if (saveSession.current !== session) return;
-      queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries'] });
+      // Also handle a concurrent first save: POST returns the authoritative existing row.
+      if (data.created === false && data.item && !isCompleteIngredientAnalysis(data.item.productMeta?.analysisSnapshot) &&
+          isCompleteIngredientAnalysis(activeResult)) {
+        if (!data.supportsSavedAnalysisAttachment || !data.item.analysisRevision) {
+          throw new Error("Reopen this product before updating its saved analysis.");
+        }
+        const updated = await apiRequest<{ item: any }>(`/api/saved-groceries/${data.item.id}/analysis-snapshot`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            expectedAnalysisRevision: data.item.analysisRevision,
+            analysis: { ...activeResult, barcode: barcode || activeResult.barcode },
+            subjectKind: companionName ? "companion" : "human",
+          }),
+          headers: { 'Content-Type': 'application/json' },
+        });
+        data = { ...data, item: { ...data.item, ...updated.item } };
+      }
+      if (saveSession.current !== session) return;
+      if (data.item) queryClient.setQueryData<{ items: any[] }>(['/api/saved-groceries', owner], previous => ({
+        ...previous, items: [...(previous?.items ?? []).filter(item => item.id !== data.item.id), data.item],
+      }));
+      queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries', owner] });
       try { new BroadcastChannel('mpm:grocery-saved').postMessage(null); } catch { /* unavailable */ }
       toast({
         title: data?.created === false ? t('ingredientSheet.toast.alreadySaved') : t('ingredientSheet.toast.savedTitle'),
         description: t('ingredientSheet.toast.savedDesc', { name: activeResult.productName }),
       });
     } catch {
+      if (saveSession.current !== session) return;
+      setSaveError(t('ingredientSheet.simple.saveUnconfirmed', { defaultValue: "Saving could not be confirmed. Reopen Saved Groceries to check the current result; no newer analysis was intentionally replaced." }));
+      queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries', owner] });
       toast({ title: t('ingredientSheet.toast.saveFailTitle'), description: t('ingredientSheet.toast.tryAgain'), variant: 'destructive' });
     } finally {
-      setSavingGrocery(false);
+      if (savingSession.current === session) savingSession.current = null;
+      if (saveSession.current === session) setSavingGrocery(false);
+    }
+  }
+
+  async function handleRemoveFromGroceries() {
+    if (!owner || !savedGroceryId || savingSession.current === saveSession.current) return;
+    const session = saveSession.current;
+    savingSession.current = session; setSavingGrocery(true); setSaveError("");
+    try {
+      await apiRequest(`/api/saved-groceries/${savedGroceryId}`, { method: 'DELETE' });
+      if (saveSession.current !== session) return;
+      queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries', owner] });
+      try { new BroadcastChannel('mpm:grocery-saved').postMessage(null); } catch { /* unavailable */ }
+      toast({ title: t('ingredientSheet.toast.removedTitle'), description: t('ingredientSheet.toast.removedDesc', { name: activeResult!.productName }) });
+    } catch {
+      if (saveSession.current === session) setSaveError(t('ingredientSheet.toast.removeFailTitle'));
+    } finally {
+      if (savingSession.current === session) savingSession.current = null;
+      if (saveSession.current === session) setSavingGrocery(false);
     }
   }
 
@@ -981,7 +1022,7 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
                     <div className="mt-2 mb-4">
                       <button
                         onClick={handleSaveToGroceries}
-                        disabled={savingGrocery || !owner}
+                        disabled={savingGrocery || !owner || (!!savedGroceryId && !hasSavedAnalysis && !canAttachAnalysis)}
                         className={`w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold border transition-all active:scale-[.98] ${
                           savedGroceryId
                             ? 'bg-orange-500/15 border-orange-500/30 text-orange-300'
@@ -992,8 +1033,17 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
                           className="w-4 h-4"
                           fill={savedGroceryId ? 'currentColor' : 'none'}
                         />
-                        {savedGroceryId ? t('ingredientSheet.savedToGroceries') : t('ingredientSheet.saveToGroceries')}
+                        {hasSavedAnalysis
+                          ? t('ingredientSheet.simple.viewSaved', { defaultValue: "View Saved Analysis" })
+                          : savedGroceryId && canAttachAnalysis
+                            ? t('ingredientSheet.simple.updateSaved', { defaultValue: "Update Saved Analysis" })
+                            : savedGroceryId ? t('ingredientSheet.savedToGroceries') : t('ingredientSheet.saveToGroceries')}
                       </button>
+                      {savedGroceryId && <button type="button" disabled={savingGrocery} onClick={handleRemoveFromGroceries}
+                        className="w-full mt-2 rounded-xl py-3 text-sm text-red-300 border border-red-400/25 disabled:opacity-50">
+                        {t('ingredientSheet.simple.removeSaved', { defaultValue: "Remove from Saved Groceries" })}
+                      </button>}
+                      {saveError && <p role="alert" className="text-sm text-amber-200 mt-2">{saveError}</p>}
                     </div>
                   )}
 

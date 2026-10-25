@@ -1,4 +1,4 @@
-import { createSavedGroceryAnalyzer, type SavedAnalysisRow, type SavedAnalysisStore } from "../services/savedGroceryAnalysis";
+import { createSavedGroceryAnalyzer, attachSavedGroceryAnalysis, savedAnalysisRevision, type SavedAnalysisRow, type SavedAnalysisStore } from "../services/savedGroceryAnalysis";
 import { savedEvidenceRevision } from "../services/savedGroceryEvidence";
 
 const output = () => ({ productName: "Independently analyzed bar", alignmentGrade: "B", gradeUnavailable: false,
@@ -152,4 +152,85 @@ test("uncertain persistence leaves a durable claim to prevent another paid reque
   await expect(h.run("owner-a", "saved-bar", request)).rejects.toMatchObject({ code: "analysis_in_progress" });
   expect(h.row()!.productMeta!.analysisRequest.state).toBe("running");
   expect(h.ai).toHaveBeenCalledTimes(1);
+});
+
+function attachment(h: ReturnType<typeof harness>, method = "by_name") {
+  return { expectedAnalysisRevision: savedAnalysisRevision(h.row()!), subjectKind: "human",
+    analysis: { ...output(), productName: "RXBAR Protein Bar", analysisMethod: method } };
+}
+
+test.each(["by_name", "by_label", "full_product_advisor"])("attaches an existing %s snapshot to the same record without AI or altering original evidence", async method => {
+  const h = harness();
+  h.change(row => { row.productMeta!.evidenceStatus = "unverified"; });
+  const before = structuredClone(h.row()), input = attachment(h, method);
+  const saved = await attachSavedGroceryAnalysis(h.store, "owner-a", "saved-bar", input);
+  expect(saved).toMatchObject(before!);
+  expect(saved.id).toBe(before!.id);
+  expect(saved.productMeta!.analysisSnapshot).toEqual(input.analysis);
+  expect(saved.productMeta!.evidenceStatus).toBe("unverified");
+  expect(saved.productMeta!.ingredients).toEqual(["Known label ingredient"]);
+  expect(saved.nutritionJson).toEqual(before!.nutritionJson);
+  const reopened = await h.run("owner-a", "saved-bar", h.request());
+  expect(reopened.reused).toBe(true);
+  expect(reopened.item.productMeta!.analysisSnapshot).toEqual(input.analysis);
+  expect(h.ai).not.toHaveBeenCalled();
+});
+
+test("snapshot attachment rejects wrong accounts, missing IDs, another product and conflicting barcodes without any AI", async () => {
+  const h = harness(), input = attachment(h), before = structuredClone(h.row());
+  await expect(attachSavedGroceryAnalysis(h.store, "owner-b", "saved-bar", input)).rejects.toMatchObject({ status: 404 });
+  await expect(attachSavedGroceryAnalysis(h.store, "owner-a", "other-id", input)).rejects.toMatchObject({ status: 404 });
+  for (const analysis of [{ ...input.analysis, productName: "Parmesan" }, { ...input.analysis, barcode: "other-upc" }]) {
+    await expect(attachSavedGroceryAnalysis(h.store, "owner-a", "saved-bar", { ...input, analysis })).rejects.toMatchObject({ code: "identity_mismatch" });
+  }
+  expect(h.row()).toEqual(before);
+  expect(h.ai).not.toHaveBeenCalled();
+});
+
+test.each(["name", "brand", "barcode", "key", "source", "package", "analysis"])("snapshot attachment rejects a stale %s even when the old evidence token might not detect identity changes", async field => {
+  const h = harness(), input = attachment(h);
+  h.change(row => {
+    if (field === "name") row.productName = "Another product";
+    else if (field === "brand") row.brand = "Another brand";
+    else if (field === "barcode") row.barcode = "other-upc";
+    else if (field === "key") row.productKey = "other-key";
+    else if (field === "source") row.source = "scanner";
+    else if (field === "package") row.productMeta!.packageSize = "6 bars";
+    else row.productMeta!.analysisSnapshot = output();
+  });
+  const before = structuredClone(h.row());
+  await expect(attachSavedGroceryAnalysis(h.store, "owner-a", "saved-bar", input)).rejects.toMatchObject({ code: "stale_record" });
+  expect(h.row()).toEqual(before);
+  expect(h.ai).not.toHaveBeenCalled();
+});
+
+test("concurrent attachment requests cannot overwrite the winning snapshot", async () => {
+  const h = harness(), input = attachment(h);
+  const responses = await Promise.allSettled([
+    attachSavedGroceryAnalysis(h.store, "owner-a", "saved-bar", input),
+    attachSavedGroceryAnalysis(h.store, "owner-a", "saved-bar", { ...input, analysis: { ...input.analysis, verdict: "Other result" } }),
+  ]);
+  expect(responses.map(response => response.status)).toEqual(["fulfilled", "rejected"]);
+  expect(h.row()!.productMeta!.analysisSnapshot.verdict).toBe(input.analysis.verdict);
+  expect(h.ai).not.toHaveBeenCalled();
+});
+
+test("attachment never replaces a complete saved analysis or a running generation", async () => {
+  const h = harness();
+  h.change(row => { row.productMeta!.analysisSnapshot = output(); });
+  await expect(attachSavedGroceryAnalysis(h.store, "owner-a", "saved-bar", attachment(h))).rejects.toMatchObject({ code: "analysis_already_saved" });
+  h.change(row => { delete row.productMeta!.analysisSnapshot; row.productMeta!.analysisRequest = { state: "running" }; });
+  await expect(attachSavedGroceryAnalysis(h.store, "owner-a", "saved-bar", attachment(h))).rejects.toMatchObject({ code: "analysis_in_progress" });
+  expect(h.ai).not.toHaveBeenCalled();
+});
+
+test("attachment retains a partial historical snapshot and rejects incomplete or mixed-subject inputs", async () => {
+  const h = harness(), partial = { retained: "Original partial assessment" };
+  h.change(row => { row.productMeta!.analysisSnapshot = partial; });
+  const input = attachment(h);
+  await expect(attachSavedGroceryAnalysis(h.store, "owner-a", "saved-bar", { ...input, subjectKind: "companion" })).rejects.toMatchObject({ code: "subject_mismatch" });
+  await expect(attachSavedGroceryAnalysis(h.store, "owner-a", "saved-bar", { ...input, analysis: { ...input.analysis, fallbackUsed: true } })).rejects.toMatchObject({ code: "invalid_snapshot" });
+  await attachSavedGroceryAnalysis(h.store, "owner-a", "saved-bar", input);
+  expect(h.row()!.productMeta!.previousAnalysisSnapshots).toEqual([partial]);
+  expect(h.ai).not.toHaveBeenCalled();
 });

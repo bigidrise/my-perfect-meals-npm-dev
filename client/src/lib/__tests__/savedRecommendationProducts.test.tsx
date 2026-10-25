@@ -86,9 +86,20 @@ beforeEach(() => {
   (useShoppingListStore as unknown as jest.Mock).mockImplementation(selector => selector({ hydrate, items: list }));
   (apiRequest as jest.Mock).mockImplementation(async (_url, options) => {
     if (!owner) throw new Error("Not authenticated");
-    if (!options?.method || options.method === "GET") return { items: rows[owner] };
+    if (!options?.method || options.method === "GET") return { items: rows[owner], supportsSavedAnalysisAttachment: true };
+    if (options.method === "DELETE") {
+      rows[owner] = rows[owner].filter(row => _url !== `/api/saved-groceries/${row.id}`);
+      return {};
+    }
     const payload = JSON.parse(options.body);
     writes.push(payload);
+    if (options.method === "PATCH") {
+      const row = rows[owner].find(item => _url === `/api/saved-groceries/${item.id}/analysis-snapshot`);
+      if (!row) throw new Error("Missing fixture");
+      const updated = { ...row, productMeta: { ...row.productMeta, analysisSnapshot: payload.analysis } };
+      rows[owner] = rows[owner].map(item => item.id === row.id ? updated : item);
+      return { item: updated };
+    }
     const row = { ...payload, id: `saved-${owner}-${rows[owner].length}`, userId: owner,
       productKey: computeProductKey(null, payload.brand, payload.productName),
       compliance: { status: "approved" } };
@@ -572,4 +583,104 @@ test.each([
   await waitFor(() => expect(apiRequest).toHaveBeenCalledWith("/api/saved-groceries"));
   if (expectedSaved) expect(await screen.findByRole("button", { name: "Saved to Groceries" })).toBeInTheDocument();
   else expect(screen.getByRole("button", { name: "Save to Groceries" })).toBeInTheDocument();
+});
+
+function existingPrintout(name = "Grana Padano") {
+  return { ...buildResultFromSavedItem({ productName: name, productMeta: null } as any),
+    alignmentGrade: "B" as const, gradeUnavailable: false, analysisMethod: "by_name" as const,
+    overallSummary: "The existing full printout", verdict: "The existing Chef explanation", whatMattersMost: ["An existing useful point"] };
+}
+
+test("Update Saved Analysis attaches the already-generated result to the existing recommendation without deleting or calling AI", async () => {
+  const original = { id: "grana", productName: "Grana Padano", brand: null, source: "grocery-coach",
+    analysisRevision: "a".repeat(64), productMeta: { recommendationWhyBetter: ["Original benefit"],
+      packageSize: "200g", evidenceStatus: "unverified", ingredients: ["Original evidence"] } };
+  rows["fixture-a"] = [original];
+  const scan = existingPrintout();
+  render(wrap(<IngredientIntelligenceSheet open result={scan} onClose={jest.fn()} />));
+  const update = await screen.findByRole("button", { name: "Update Saved Analysis" });
+  fireEvent.click(update); fireEvent.click(update);
+  await screen.findByRole("button", { name: "View Saved Analysis" });
+  const patches = (apiRequest as jest.Mock).mock.calls.filter(([, options]) => options?.method === "PATCH");
+  expect(patches).toHaveLength(1);
+  expect(patches[0][0]).toBe("/api/saved-groceries/grana/analysis-snapshot");
+  expect(JSON.parse(patches[0][1].body)).toEqual({ expectedAnalysisRevision: original.analysisRevision, analysis: scan, subjectKind: "human" });
+  expect(rows["fixture-a"]).toHaveLength(1);
+  expect(rows["fixture-a"][0]).toMatchObject(original);
+  expect(rows["fixture-a"][0].productMeta.analysisSnapshot).toEqual(scan);
+  expect((apiRequest as jest.Mock).mock.calls.some(([, options]) => options?.method === "DELETE")).toBe(false);
+  expect(post).not.toHaveBeenCalled();
+});
+
+test("View Saved Analysis restores the saved printout locally and only the separate Remove action can delete it", async () => {
+  const stored = { ...existingPrintout(), verdict: "Stored Chef explanation" };
+  rows["fixture-a"] = [{ id: "grana", productName: "Grana Padano", productMeta: { analysisSnapshot: stored } }];
+  render(wrap(<IngredientIntelligenceSheet open result={existingPrintout()} onClose={jest.fn()} />));
+  fireEvent.click(await screen.findByRole("button", { name: "View Saved Analysis" }));
+  expect(await screen.findByText("Stored Chef explanation")).toBeInTheDocument();
+  expect((apiRequest as jest.Mock).mock.calls.every(([, options]) => !options?.method || options.method === "GET")).toBe(true);
+  expect(rows["fixture-a"]).toHaveLength(1);
+  fireEvent.click(screen.getByRole("button", { name: "Remove from Saved Groceries" }));
+  await waitFor(() => expect(rows["fixture-a"]).toHaveLength(0));
+  expect(post).not.toHaveBeenCalled();
+});
+
+test("a stale attachment shows uncertainty without silently retrying, deleting or generating another result", async () => {
+  rows["fixture-a"] = [{ id: "grana", productName: "Grana Padano", analysisRevision: "a".repeat(64),
+    productMeta: { recommendationWhyBetter: ["Retained original reason"] } }];
+  const originalRequest = (apiRequest as jest.Mock).getMockImplementation()!;
+  (apiRequest as jest.Mock).mockImplementation((url, options) => {
+    if (options?.method === "PATCH") return Promise.reject(new Error("Stale record"));
+    return originalRequest(url, options);
+  });
+  render(wrap(<IngredientIntelligenceSheet open result={existingPrintout()} onClose={jest.fn()} />));
+  fireEvent.click(await screen.findByRole("button", { name: "Update Saved Analysis" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("Saving could not be confirmed");
+  expect(rows["fixture-a"][0].productMeta.analysisSnapshot).toBeUndefined();
+  expect((apiRequest as jest.Mock).mock.calls.filter(([, options]) => options?.method === "PATCH")).toHaveLength(1);
+  expect((apiRequest as jest.Mock).mock.calls.some(([, options]) => options?.method === "DELETE")).toBe(false);
+  expect(post).not.toHaveBeenCalled();
+});
+
+test("a first-save race attaches to the returned authoritative recommendation instead of creating another product", async () => {
+  const row = { id: "concurrent-grana", productName: "Grana Padano", analysisRevision: "a".repeat(64),
+    productMeta: { recommendationWhyBetter: ["Concurrent saved reason"] } };
+  const originalRequest = (apiRequest as jest.Mock).getMockImplementation()!;
+  (apiRequest as jest.Mock).mockImplementation((url, options) => {
+    if (options?.method === "POST") {
+      rows["fixture-a"] = [row];
+      return Promise.resolve({ item: row, created: false, supportsSavedAnalysisAttachment: true });
+    }
+    return originalRequest(url, options);
+  });
+  const scan = existingPrintout();
+  render(wrap(<IngredientIntelligenceSheet open result={scan} onClose={jest.fn()} />));
+  fireEvent.click(screen.getByRole("button", { name: "Save to Groceries" }));
+  await screen.findByRole("button", { name: "View Saved Analysis" });
+  expect(rows["fixture-a"]).toHaveLength(1);
+  expect(rows["fixture-a"][0].id).toBe("concurrent-grana");
+  expect(rows["fixture-a"][0].productMeta.analysisSnapshot).toEqual(scan);
+  expect((apiRequest as jest.Mock).mock.calls.filter(([, options]) => options?.method === "PATCH")[0][0])
+    .toBe("/api/saved-groceries/concurrent-grana/analysis-snapshot");
+  expect(post).not.toHaveBeenCalled();
+});
+
+test("a late attachment response cannot update the next account's card or cache", async () => {
+  const row = { id: "grana", productName: "Grana Padano", analysisRevision: "a".repeat(64),
+    productMeta: { recommendationWhyBetter: ["Private A reason"] } };
+  rows["fixture-a"] = [row];
+  const originalRequest = (apiRequest as jest.Mock).getMockImplementation()!;
+  let finish!: (value: any) => void;
+  (apiRequest as jest.Mock).mockImplementation((url, options) =>
+    options?.method === "PATCH" ? new Promise(resolve => { finish = resolve; }) : originalRequest(url, options));
+  const scan = existingPrintout(), view = render(wrap(<IngredientIntelligenceSheet open result={scan} onClose={jest.fn()} />));
+  fireEvent.click(await screen.findByRole("button", { name: "Update Saved Analysis" }));
+  owner = "fixture-b";
+  view.rerender(wrap(<IngredientIntelligenceSheet open result={existingPrintout("Other product")} onClose={jest.fn()} />));
+  await act(async () => finish({ item: { ...row, productMeta: { ...row.productMeta, analysisSnapshot: scan } } }));
+  expect(screen.getByRole("button", { name: "Save to Groceries" })).toBeInTheDocument();
+  expect(screen.queryByText("Private A reason")).not.toBeInTheDocument();
+  expect(rows["fixture-b"]).toEqual([]);
+  expect(queryClient.getQueryData<{ items: any[] }>(["/api/saved-groceries", "fixture-b"])?.items).toEqual([]);
+  expect(post).not.toHaveBeenCalled();
 });

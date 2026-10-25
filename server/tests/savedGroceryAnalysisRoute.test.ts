@@ -8,6 +8,7 @@ import router from "../routes/savedGroceries";
 import { savedGroceryAnalysisStore } from "../services/savedGroceryAnalysisStore";
 import { analyzeProductByName } from "../services/ingredientScanService";
 import { savedEvidenceRevision } from "../services/savedGroceryEvidence";
+import { savedAnalysisRevision } from "../services/savedGroceryAnalysis";
 
 function app(owner: string | null, paid = true) {
   const server = express();
@@ -58,4 +59,42 @@ test("another account's missing record returns 404 without calling AI", async ()
   const response = await request(app("owner-b")).post("/api/saved-groceries/saved-id/analyze").send(body());
   expect(response.status).toBe(404);
   expect(analyzeProductByName).not.toHaveBeenCalled();
+});
+
+test("Development attachment uses the authenticated owner and existing row with no paid access or AI", async () => {
+  const previous = process.env.NODE_ENV;
+  process.env.NODE_ENV = "development";
+  try {
+    let row = structuredClone(item) as any;
+    (savedGroceryAnalysisStore.withItem as jest.Mock).mockImplementation(async (owner, id, change) => {
+      expect(owner).toBe("owner-a"); expect(id).toBe("saved-id");
+      const mutation = change(row);
+      if (mutation.productMeta) row.productMeta = mutation.productMeta;
+      return mutation.value;
+    });
+    const analysis = { productName: "RXBAR Protein Bar", overallSummary: "Already generated summary",
+      verdict: "Existing Chef explanation", betterAlternatives: [], analysisMethod: "by_name", alignmentGrade: "B" };
+    const response = await request(app("owner-a", false)).patch("/api/saved-groceries/saved-id/analysis-snapshot")
+      .send({ expectedAnalysisRevision: savedAnalysisRevision(row), analysis, userId: "owner-b",
+        productMeta: { evidenceStatus: "verified", ingredients: ["Invented"] } });
+    expect(response.status).toBe(200);
+    expect(response.body.item.id).toBe("saved-id");
+    expect(response.body.item.productMeta).toMatchObject({ ...item.productMeta, analysisSnapshot: analysis });
+    expect(row.productMeta.evidenceStatus).toBeUndefined();
+    expect(row.productMeta.ingredients).toBeUndefined();
+    expect(response.body.item.analysisRevision).toBe(savedAnalysisRevision(row));
+    expect(analyzeProductByName).not.toHaveBeenCalled();
+  } finally { process.env.NODE_ENV = previous; }
+});
+
+test("snapshot attachment is unavailable outside Development and anonymous requests never reach storage", async () => {
+  const previous = process.env.NODE_ENV;
+  try {
+    process.env.NODE_ENV = "production";
+    expect((await request(app("owner-a")).patch("/api/saved-groceries/saved-id/analysis-snapshot").send({})).status).toBe(404);
+    process.env.NODE_ENV = "development";
+    expect((await request(app(null)).patch("/api/saved-groceries/saved-id/analysis-snapshot").send({})).status).toBe(401);
+    expect(savedGroceryAnalysisStore.withItem).not.toHaveBeenCalled();
+    expect(analyzeProductByName).not.toHaveBeenCalled();
+  } finally { process.env.NODE_ENV = previous; }
 });

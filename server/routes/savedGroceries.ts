@@ -22,7 +22,7 @@ import { revalidateSavedGroceriesForUser } from "../services/savedGroceryRevalid
 import { prepareSavedEvidenceUpdate, savedEvidenceRevision } from "../services/savedGroceryEvidence";
 import { developmentSavedProductFields, shoppingMetadataDevelopment } from "../services/shopping-list/metadataPersistence";
 import { requireActiveAccess } from "../middleware/requireActiveAccess";
-import { createSavedGroceryAnalyzer, SavedAnalysisError } from "../services/savedGroceryAnalysis";
+import { createSavedGroceryAnalyzer, SavedAnalysisError, attachSavedGroceryAnalysis, savedAnalysisRevision } from "../services/savedGroceryAnalysis";
 import { savedGroceryAnalysisStore } from "../services/savedGroceryAnalysisStore";
 
 export { computeProductKey };
@@ -155,9 +155,11 @@ router.get("/", async (req, res) => {
     const decisionById = new Map(decisions.map((decision) => [decision.id, decision]));
     return res.json({
       supportsSavedProductAnalysis: true,
+      supportsSavedAnalysisAttachment: process.env.NODE_ENV === "development",
       items: items.map((item) => ({
         ...item,
         evidenceRevision: savedEvidenceRevision(item),
+        analysisRevision: savedAnalysisRevision(item),
         compliance: decisionById.get(item.id) ?? {
           status: "blocked",
           category: "profile_unavailable",
@@ -186,6 +188,20 @@ router.post("/:id/analyze", requireActiveAccess, async (req, res) => {
     if (error instanceof SavedAnalysisError) return res.status(error.status).json({ error: error.message, code: error.code });
     console.error("[SavedGroceries] Analysis request failed");
     return res.status(503).json({ error: "Analysis could not be started safely. Reopen the product before trying again.", code: "analysis_unavailable" });
+  }
+});
+
+// Development-only continuity: no AI, entitlement grant, or label-evidence update.
+router.patch("/:id/analysis-snapshot", async (req, res) => {
+  if (process.env.NODE_ENV !== "development") return res.sendStatus(404);
+  const owner = resolveUserId(req);
+  if (!owner) return res.status(401).json({ error: "Not authenticated" });
+  try {
+    const item = await attachSavedGroceryAnalysis(savedGroceryAnalysisStore, owner, req.params.id, req.body ?? {});
+    return res.json({ item: { ...item, evidenceRevision: savedEvidenceRevision(item), analysisRevision: savedAnalysisRevision(item) } });
+  } catch (error) {
+    if (error instanceof SavedAnalysisError) return res.status(error.status).json({ error: error.message, code: error.code });
+    return res.status(503).json({ error: "Saving could not be confirmed. Reopen the saved product before trying again.", code: "persistence_uncertain" });
   }
 });
 
@@ -262,7 +278,8 @@ router.post("/", async (req, res) => {
 
     if (created) {
       console.log(`[SavedGroceries] Saved: "${productName}" for user ${userId} (source: ${source})`);
-      return res.status(201).json({ item: created, created: true });
+      return res.status(201).json({ item: { ...created, analysisRevision: savedAnalysisRevision(created) }, created: true,
+        supportsSavedAnalysisAttachment: process.env.NODE_ENV === "development" });
     }
 
     // ON CONFLICT waits for a concurrent winner to commit. Re-read that row so
@@ -278,7 +295,8 @@ router.post("/", async (req, res) => {
     if (!existing) {
       throw new Error("Product-key conflict occurred but the saved row could not be reloaded");
     }
-    return res.json({ item: existing, created: false });
+    return res.json({ item: { ...existing, analysisRevision: savedAnalysisRevision(existing) }, created: false,
+      supportsSavedAnalysisAttachment: process.env.NODE_ENV === "development" });
   } catch (err: any) {
     console.error("[SavedGroceries] POST error:", err?.message);
     return res.status(500).json({ error: "Could not save grocery item." });
