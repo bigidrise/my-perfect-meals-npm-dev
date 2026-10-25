@@ -69,6 +69,35 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
+test("shopping-page updates do not remount Saved Groceries or restart its loading cycle", async () => {
+  const page = fs.readFileSync(path.join(process.cwd(), "client/src/pages/ShoppingListMasterView.tsx"), "utf8");
+  // Bind this regression to the real sibling identities, not just a test-only fix.
+  const savedKey = page.match(/<SavedGroceriesSheet\s+key=\{`([^`]+)`\}/)?.[1];
+  const analysisKey = page.match(/<IngredientIntelligenceSheet\s+key=\{`([^`]+)`\}/)?.[1];
+  expect(savedKey).toBeDefined();
+  expect(analysisKey).toBeDefined();
+  expect(savedKey).not.toBe(analysisKey);
+  const accountKey = (key: string) => key.replace('${user?.id || "signed-out"}', owner || "signed-out");
+  rows = [fixture("a")];
+  const p = props();
+  function Neighbors({ frame }: { frame: number }) {
+    return <>
+      <span key="page-status">{frame}</span>
+      {frame % 2 ? <div key="shopping-refresh">Shopping list updated</div> : null}
+      <SavedGroceriesSheet key={accountKey(savedKey!)} {...p} />
+      <section key={accountKey(analysisKey!)}>Separate analysis panel</section>
+    </>;
+  }
+  const view = render(<Neighbors frame={0} />);
+  await loaded();
+  fireEvent.click(select("a"));
+  for (let frame = 1; frame <= 8; frame++) view.rerender(<Neighbors frame={frame} />);
+  expect(select("a")).toBeChecked();
+  expect(screen.queryByText("Loading saved groceries…")).not.toBeInTheDocument();
+  expect(get).toHaveBeenCalledTimes(1);
+  expect(hydrate).toHaveBeenCalledTimes(1);
+});
+
 test("one eligible selection enables the primary action and adds only its exact saved ID", async () => {
   rows = [fixture("a"), fixture("b")];
   render(<SavedGroceriesSheet {...props()} />);
