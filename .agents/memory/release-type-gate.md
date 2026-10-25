@@ -26,6 +26,14 @@ When confirming that an approved correction is included in an isolated release b
 
 **How to apply:** Inspect the candidate's committed files as well as its working tree. Commit only the approved correction files locally before final candidate verification, preserve unrelated Development work, and keep pushing subject to separate authorization. Do not infer the cause of an external validation failure from local success alone.
 
+## Isolated release diagnostic context
+
+Do not import unrelated Development fixes merely to make an isolated release's TypeScript count match Development.
+
+**Why:** Production can retain existing diagnostic causes that unfinished Development work incidentally suppresses. An isolated candidate may therefore expose inherited Production errors even when every approved Development diagnostic is unchanged.
+
+**How to apply:** Compare the complete diagnostic sets, not just counts. Verify inherited differences against the actual Production source under the same compiler and dependencies, report the isolated candidate's actual count, and keep unrelated files and reviewed baseline gates unchanged.
+
 ## Fresh-worktree build inputs
 
 Preflight ignored, generated build inputs before starting expensive isolated-worktree validation. A Development checkout can build successfully because it already contains generated inputs that a clean release worktree does not have.
