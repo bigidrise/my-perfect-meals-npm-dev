@@ -27,6 +27,9 @@ export interface ProtocolOutcomeCard {
 
 export interface BetterAlternative {
   category: string;
+  /** Optional explicit identity; legacy responses use category as the full name. */
+  productName?: string;
+  brand?: string;
   whyBetter: string[];
   targetCriteria: string;
 }
