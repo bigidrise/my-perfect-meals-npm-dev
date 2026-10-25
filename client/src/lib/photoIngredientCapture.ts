@@ -33,6 +33,7 @@ export interface BetterAlternative {
 
 export interface IngredientScanResult {
   alignmentGrade: 'A' | 'B' | 'C' | 'D';
+  gradeUnavailable?: boolean;
   overallSummary: string;
   verdict: string;
   verdictLevel: 'buy' | 'caution' | 'skip';

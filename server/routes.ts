@@ -116,6 +116,7 @@ import groceryCoachRouter from "./routes/groceryCoach";
 import mealRefinementRouter from "./routes/mealRefinement";
 import savedGroceriesRouter from "./routes/savedGroceries";
 import { shoppingMetadataDevelopment, developmentShoppingPost } from "./services/shopping-list/metadataPersistence";
+import { groceryCoachProductMetadata } from "@shared/shoppingIngredientMetadata";
 import pregnancyCoachRouter from "./routes/pregnancyCoach";
 import coachingEngineRouter from "./routes/coachingEngine";
 import performanceNutritionRouter from "./routes/performanceNutrition";
@@ -3783,6 +3784,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Validate all Coach associations before a possible replace-scope write.
+      const coachMetadata = items.map((item: any) =>
+        groceryCoachProductMetadata(item.ingredientMetadata, item.name || item.item || ""));
+
       // Handle strategy
       if (strategy === "replace_scope") {
         // Delete all existing items for this scope
@@ -3795,7 +3800,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Prepare items for insertion
-      const itemsToInsert = items.map((item: any) => ({
+      const itemsToInsert = items.map((item: any, index: number) => ({
         userId,
         name: item.name || item.item,
         quantity: String((item.quantity || item.qty || 1) * multiplier),
@@ -3805,6 +3810,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         scopeKey: scope.key,
         sourceBuilder,
         checked: false,
+        ...(coachMetadata[index] ? { ingredientMetadata: coachMetadata[index] } : {}),
       }));
 
       // Insert items — return the inserted rows so the client can assign serverIds
@@ -3833,6 +3839,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }).catch((err) => console.error("[ActivityEvents]", err.message));
       }
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ ok: false, message: "Invalid Grocery Coach product association" });
+      }
       console.error("❌ Shopping list error:", error);
       res.status(500).json({ 
         ok: false, 

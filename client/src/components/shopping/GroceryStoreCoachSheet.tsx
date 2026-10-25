@@ -38,11 +38,13 @@ import type { UniversalIngredient } from "@/stores/shoppingListStore";
 import { GroceryCoachMacroTiles, type GroceryCoachMacros } from "./GroceryCoachMacroTiles";
 import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
 import { groceryCoachCatalogEnabled } from "@/lib/groceryCoachCatalogGate";
-import { packagedProductEligibility, catalogProductLabel, recipeShoppingQuantity } from "@/lib/groceryCoachPackagedIngredients";
+import { packagedProductEligibility, recipeShoppingQuantity } from "@/lib/groceryCoachPackagedIngredients";
 import { shoppingMetadataEnabled } from "@/lib/shoppingMetadataGate";
 import { groceryCoachSelectedProductMetadata } from "@/lib/groceryCoachShoppingTransfer";
 import MealIngredientBrands from "./MealIngredientBrands";
 import type { ShoppingCatalogDecision } from "@shared/shoppingProductSelection";
+import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
+import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 
 type Phase = "idle" | "loading" | "result";
 
@@ -167,6 +169,7 @@ type ProductPhase = "idle" | "loading" | "result";
 interface ProductSearchSession {
   query: string;
   advice: ProductAdviceResult;
+  analysis?: IngredientScanResult;
   savedAt: number;
 }
 
@@ -370,8 +373,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
   // Same session-restore pattern as the meal result, scoped per user.
   const PRODUCT_SESSION_KEY = useMemo(
-    // Do not restore pre-decision catalog cards with the old blanket label status.
-    () => `grocery-coach-product-search:decision-v3:${user?.id ?? "guest"}`,
+    // By-name analyses must not restore older catalog or brand-advisor results.
+    () => `grocery-coach-product-search:by-name:${user?.id ?? "guest"}`,
     [user?.id]
   );
 
@@ -553,7 +556,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         localStorage.removeItem(PRODUCT_SESSION_KEY);
         return;
       }
-      if (session.advice?.advice?.length && session.query) {
+      if (session.analysis?.analysisMethod === "by_name" && session.query) {
         setProductSearch(session);
         setProductSearchOwnerKey(PRODUCT_SESSION_KEY); // result now belongs to this user's key
         setProductPhase("result");
@@ -580,16 +583,16 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     setProductError(null);
     setProductAddedKeys(new Set());
     try {
-      const data = await post("/api/grocery-coach/product-advisor", { ingredients: [query], mode: "find_product" });
+      const data = await post("/api/biometrics/ingredient-scan-by-name", { productName: query });
       if (sessionGenRef.current !== gen) return; // identity changed — discard
       if (data?.error) throw new Error(data.error);
-      if (data?.advice?.length || data?.catalogMatches?.length || data?.excludedReasons?.length) {
-        setProductSearch({ query, advice: data as ProductAdviceResult, savedAt: Date.now() });
+      if (data?.ok && data?.result?.analysisMethod === "by_name" && !data.result.fallbackUsed) {
+        setProductSearch({ query, analysis: data.result, advice: { advice: [], profileUsed: [] }, savedAt: Date.now() });
         setProductSearchOwnerKey(PRODUCT_SESSION_KEY); // stamp ownership so persist effect may write
         setProductPhase("result");
       } else {
-        setProductError(data?.sourceFailures?.length && !data?.catalogSearchAvailable
-          ? "The product catalog is unavailable right now. Please try again."
+        setProductError(data?.result?.fallbackUsed
+          ? data.result.overallSummary || t("findProduct.errorGeneric")
           : t("findProduct.noResults"));
         setProductPhase("idle");
       }
@@ -1194,6 +1197,16 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                     {t("findProduct.resultsFor", { query: productSearch.query })}
                   </div>
 
+                  {productSearch.analysis && (
+                    <IngredientIntelligenceSheet
+                      embedded
+                      open
+                      result={productSearch.analysis}
+                      onClose={handleCompareAnother}
+                      onAddProduct={(name) => handleProductAddToList(name, productSearch.query)}
+                    />
+                  )}
+
                   {/* Protocol badges */}
                   {productSearch.advice.profileUsed.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -1713,20 +1726,29 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                                           Replace
                                         </button>
                                       </div>
-                                      {groceryCoachCatalogEnabled && packagedProductEligibility(s.item).eligible && (
+                                      {packagedProductEligibility(s.item).eligible && (
                                         <MealIngredientBrands
                                           ingredient={s}
                                           servings={result.servingCount || result.meal?.servings || 1}
                                           selectedLabel={pickedBrands.get(s.item.toLowerCase())?.brand}
-                                          onSelect={(product) => setPickedBrands(prev => {
+                                          onAddProduct={(name, analysis) => {
+                                            const quantity = recipeShoppingQuantity(s.quantity);
+                                            if (quantity === null) {
+                                              throw new Error("Review the recipe amount before adding this product.");
+                                            }
+                                            addItems([{
+                                              name: s.item, quantity, unit: s.unit || "",
+                                              sourceMeals: [result.meal?.name || "Grocery Coach"],
+                                              notes: `Shopping suggestion: ${name}. For ${s.item}: ${s.quantity} ${s.unit}; ${result.servingCount || result.meal?.servings || 1} servings. Check the current label; not allergy or medical safety clearance. Finished meal not medically revalidated.`,
+                                              ingredientMetadata: groceryCoachSelectedProductMetadata(
+                                                s, { name, byNameAnalysis: analysis },
+                                                { id: mealCard?.id, name: result.meal?.name || "Grocery Coach" },
+                                              ),
+                                            }]);
+                                          }}
+                                          onSelect={() => setPickedBrands(prev => {
                                             const next = new Map(prev);
-                                            if (product) next.set(s.item.toLowerCase(), {
-                                              brand: catalogProductLabel(product), rank: 1, grade: "C",
-                                              reason: "Shopping choice only; review current label",
-                                              evidenceStatus: "unverified",
-                                              catalogProduct: product,
-                                            });
-                                            else next.delete(s.item.toLowerCase());
+                                            next.delete(s.item.toLowerCase());
                                             return next;
                                           })}
                                         />

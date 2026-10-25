@@ -7,7 +7,7 @@
  *  1. The Build a Meal | Find a Product mode tabs are visible even when a
  *     restored meal session puts the sheet directly into the meal-result state.
  *  2. Switching to Find a Product from the meal-result state works, a search
- *     can be performed, and results (including a verified usual pick) render.
+ *     reaches Product Scan's by-name API and renders its existing results.
  *  3. Switching back to Build a Meal preserves the restored meal result.
  */
 
@@ -34,6 +34,16 @@ jest.mock('framer-motion', () => ({
 }));
 jest.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: jest.fn() }) }));
 jest.mock('@/lib/api', () => ({ get: jest.fn(), post: jest.fn() }));
+jest.mock('@/lib/queryClient', () => ({
+  apiRequest: jest.fn(),
+  queryClient: { invalidateQueries: jest.fn() },
+}));
+jest.mock('@tanstack/react-query', () => ({ useQuery: () => ({ data: { items: [] } }) }));
+jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+jest.mock('@/components/voice/VoiceInputButton', () => ({
+  __esModule: true,
+  default: ({ onChange }: any) => <button onClick={() => onChange("I'm looking for spaghetti sauce.")}>Dictate product</button>,
+}));
 jest.mock('@/stores/shoppingListStore', () => ({
   useShoppingListStore: jest.fn(() => jest.fn()),
 }));
@@ -80,19 +90,22 @@ const MEAL_RESULT = {
 };
 
 const PRODUCT_RESULT = {
-  advice: [
-    {
-      ingredient: 'Marinara Sauce',
-      category: 'Sauce',
-      usualPick: { brand: 'Carbone Marinara', reason: 'Your saved favorite' },
-      recommended: [
-        { brand: "Rao's Marinara", rank: 1, grade: 'A', reason: 'Low sodium' },
-        { brand: 'Victoria Marinara', rank: 2, grade: 'B', reason: 'Clean list' },
-      ],
-      avoid: [],
-    },
-  ],
-  profileUsed: ['Cardiac Protocol'],
+  ok: true,
+  result: {
+    productName: 'Spaghetti sauce', analysisMethod: 'by_name', alignmentGrade: 'B',
+    overallSummary: 'Compare sauces for your nutrition goals.', verdict: 'Check current sodium and serving size.',
+    verdictLevel: 'caution', analysisProfile: ['Cardiac Protocol'],
+    scoreCards: Object.fromEntries(['kids', 'adults', 'diet', 'fitnessGoal'].map(key => [key, { verdict: 'neutral', reason: 'Compare the current label.' }])),
+    betterAlternatives: [
+      { category: "Rao's Marinara", whyBetter: ['Compare sodium for your goals.'], targetCriteria: 'Check current sodium.' },
+      { category: 'Victoria Marinara', whyBetter: ['Compare ingredients.'], targetCriteria: 'Check current ingredients.' },
+      { category: 'Carbone Marinara', whyBetter: ['Compare serving size.'], targetCriteria: 'Check current serving size.' },
+    ],
+    ingredientConsiderations: ['Unverified options: confirm the current ingredient and allergen label.'],
+    educationalFooter: 'Not a verified label scan.', extractedIngredients: [], highRiskFindings: [],
+    outcomeCards: [], ingredientDecoder: [], mayNotAlignWith: [], betterFor: [], householdNotes: [],
+    profileFactorsUsed: ['Cardiac Protocol'], whatMattersMost: [], fallbackUsed: false,
+  },
 };
 
 beforeEach(() => {
@@ -138,15 +151,47 @@ describe('Find a Product mode navigation', () => {
     });
 
     await waitFor(() =>
-      expect(post).toHaveBeenCalledWith('/api/grocery-coach/product-advisor', {
-        ingredients: ['marinara sauce'],
+      expect(post).toHaveBeenCalledWith('/api/biometrics/ingredient-scan-by-name', {
+        productName: 'marinara sauce',
       }),
     );
 
-    // Results render, including the pinned verified usual pick
-    await waitFor(() => expect(screen.getByTestId('card-usual-pick')).toBeInTheDocument());
+    // The actual shared Product Scan result component renders options and warnings.
+    await screen.findByText('Compare sauces for your nutrition goals.');
     expect(screen.getByText('Carbone Marinara')).toBeInTheDocument();
     expect(screen.getByText("Rao's Marinara")).toBeInTheDocument();
+    expect(screen.getByText('Victoria Marinara')).toBeInTheDocument();
+    expect(screen.getByText('B')).toBeInTheDocument();
+    expect(screen.getByText(/Unverified options/)).toBeInTheDocument();
+    expect(screen.getByTestId('tab-build-meal')).toBeInTheDocument();
+  });
+
+  it('submits the editable voice transcript through the same by-name path', async () => {
+    (post as jest.Mock).mockResolvedValue(PRODUCT_RESULT);
+    render(<GroceryStoreCoachSheet open onOpenChange={jest.fn()} />);
+    fireEvent.click(screen.getByTestId('tab-find-product'));
+    fireEvent.click(screen.getByText('Dictate product'));
+    expect(screen.getByTestId('input-find-product')).toHaveValue("I'm looking for spaghetti sauce.");
+    expect(post).not.toHaveBeenCalled();
+    fireEvent.keyDown(screen.getByTestId('input-find-product'), { key: 'Enter' });
+    await screen.findByText('Compare sauces for your nutrition goals.');
+    expect(post).toHaveBeenCalledWith('/api/biometrics/ingredient-scan-by-name', {
+      productName: "I'm looking for spaghetti sauce.",
+    });
+  });
+
+  it('does not fabricate a grade or pad a short list when analysis lacks a supported grade', async () => {
+    (post as jest.Mock).mockResolvedValue({
+      ok: true, result: { ...PRODUCT_RESULT.result, gradeUnavailable: true,
+        betterAlternatives: PRODUCT_RESULT.result.betterAlternatives.slice(0, 1) },
+    });
+    render(<GroceryStoreCoachSheet open onOpenChange={jest.fn()} />);
+    fireEvent.click(screen.getByTestId('tab-find-product'));
+    fireEvent.change(screen.getByTestId('input-find-product'), { target: { value: 'spaghetti sauce' } });
+    fireEvent.click(screen.getByTestId('button-product-search'));
+    await screen.findByText("Rao's Marinara");
+    expect(screen.queryByText('B')).not.toBeInTheDocument();
+    expect(screen.queryByText('Victoria Marinara')).not.toBeInTheDocument();
   });
 
   it('preserves the meal result when toggling back to Build a Meal', async () => {

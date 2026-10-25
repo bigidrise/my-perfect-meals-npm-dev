@@ -15,7 +15,8 @@ interface Props {
 export default function SmartShoppingProductChoice({ item, enabled, hasAccess, onChoose, onUpgrade, onClear }: Props) {
   const [clearing, setClearing] = useState(false);
   const [error, setError] = useState("");
-  if (!enabled) return null;
+  const coachChoice = item.ingredientMetadata?.selectedProduct?.source.source === "Product Scan by-name guidance";
+  if (!enabled && !coachChoice) return null;
   const originalName = item.ingredientMetadata?.ingredient.originalName || item.name;
   if (!packagedProductEligibility(originalName).eligible) return null;
   const product = item.ingredientMetadata?.selectedProduct;
@@ -43,8 +44,8 @@ export default function SmartShoppingProductChoice({ item, enabled, hasAccess, o
           <span className="font-medium">{label}</span>
           {product.assessment.status === "review_required" && <span className="text-amber-100/75">Saved with review required</span>}
           <span className="text-white/40">Historical shopping choice; not a current safety assessment</span>
-          <button type="button" onClick={beginChoose} className="rounded-md border border-white/15 px-2 py-1 text-[11px] text-white/70 hover:bg-white/10">Change</button>
-          <button type="button" disabled={clearing} onClick={() => void clearChoice()} className="rounded-md border border-white/15 px-2 py-1 text-[11px] text-white/70 hover:bg-white/10 disabled:opacity-50">{clearing ? "Clearing…" : "Clear"}</button>
+          {enabled && <button type="button" onClick={beginChoose} className="rounded-md border border-white/15 px-2 py-1 text-[11px] text-white/70 hover:bg-white/10">Change</button>}
+          {enabled && <button type="button" disabled={clearing} onClick={() => void clearChoice()} className="rounded-md border border-white/15 px-2 py-1 text-[11px] text-white/70 hover:bg-white/10 disabled:opacity-50">{clearing ? "Clearing…" : "Clear"}</button>}
         </div>
       ) : (
         <button type="button" onClick={beginChoose} className="rounded-md border border-orange-200/25 bg-orange-200/[0.06] px-2 py-1 text-[11px] font-medium text-orange-100/90 hover:bg-orange-200/10">

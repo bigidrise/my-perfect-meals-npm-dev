@@ -116,7 +116,11 @@ export function buildConsolidatedItems(
   // 2. Group by normalizedName (case-insensitive)
   const groups = new Map<string, ShoppingListItem[]>();
   for (const item of filtered) {
-    const key = (item.normalizedName || item.name).toLowerCase().trim();
+    // Production keeps selected recipe rows distinct; do not let a display
+    // consolidation hide another ingredient's product or contribution.
+    const key = item.ingredientMetadata
+      ? `selected:${item.id}`
+      : (item.normalizedName || item.name).toLowerCase().trim();
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(item);
   }
