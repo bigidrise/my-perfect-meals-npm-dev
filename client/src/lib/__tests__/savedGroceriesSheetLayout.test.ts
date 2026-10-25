@@ -7,14 +7,15 @@ const source = fs.readFileSync(
 );
 
 describe("SavedGroceriesSheet item layout", () => {
-  it("keeps product information separate from wrapping item actions", () => {
-    expect(source).toContain('gridTemplateColumns: "auto minmax(0, 1fr)"');
-    expect(source).toContain('gridColumn: "1 / -1"');
-    expect(source).toContain('flexWrap: "wrap"');
+  it("keeps actions alongside a flexible product label without a second action row", () => {
+    expect(source).toContain('flex: "1 1 0", minWidth: 0');
+    expect(source).not.toContain('gridColumn: "1 / -1"');
+    expect(source).not.toContain("Saved analysis\n");
   });
 
   it("allows long grocery names to wrap without covering controls", () => {
     expect(source).toContain('overflowWrap: "anywhere"');
+    expect(source).toContain('className="line-clamp-2"');
   });
 
   it("labels the icon-only remove action", () => {

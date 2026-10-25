@@ -12,16 +12,22 @@ export interface SavedGroceryComplianceDecision {
   id: string;
   status: "approved" | "blocked";
   reason: string | null;
+  category?: "evidence_missing" | "incompatible" | "profile_unavailable";
 }
 
 function blockedDecisions(
   items: UserSavedGroceryItem[],
   reason: string,
 ): SavedGroceryComplianceDecision[] {
-  return items.map((item) => ({
+  return items.map<SavedGroceryComplianceDecision>((item) => (item.productMeta as any)?.subjectKind === "companion" ? ({
+    id: item.id, status: "blocked",
+    reason: "Companion product evidence cannot establish compatibility with a human dietary profile.",
+    category: "profile_unavailable",
+  }) : ({
     id: item.id,
     status: "blocked",
     reason,
+    category: "profile_unavailable",
   }));
 }
 
@@ -124,12 +130,13 @@ export async function revalidateSavedGroceriesForUser(
     },
   );
   const exclusionById = new Map(
-    excluded.map((item) => [item.id, item.exclusionReason]),
+    excluded.map((item) => [item.id, item]),
   );
 
   return items.map((item) => ({
     id: item.id,
     status: exclusionById.has(item.id) ? "blocked" : "approved",
-    reason: exclusionById.get(item.id) ?? null,
+    reason: exclusionById.get(item.id)?.exclusionReason ?? null,
+    category: exclusionById.get(item.id)?.exclusionCategory,
   }));
 }

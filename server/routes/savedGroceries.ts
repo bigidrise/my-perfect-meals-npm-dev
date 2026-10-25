@@ -19,7 +19,8 @@ import { userSavedGroceryItems, shoppingListItems } from "@shared/schema";
 import { eq, and, inArray, sql } from "drizzle-orm";
 import { computeProductKey } from "../utils/productKey";
 import { revalidateSavedGroceriesForUser } from "../services/savedGroceryRevalidation";
-import { developmentSavedProductFields } from "../services/shopping-list/metadataPersistence";
+import { prepareSavedEvidenceUpdate, savedEvidenceRevision } from "../services/savedGroceryEvidence";
+import { developmentSavedProductFields, shoppingMetadataDevelopment } from "../services/shopping-list/metadataPersistence";
 
 export { computeProductKey };
 
@@ -152,8 +153,10 @@ router.get("/", async (req, res) => {
     return res.json({
       items: items.map((item) => ({
         ...item,
+        evidenceRevision: savedEvidenceRevision(item),
         compliance: decisionById.get(item.id) ?? {
           status: "blocked",
+          category: "profile_unavailable",
           reason: "Current profile compatibility could not be verified.",
         },
       })),
@@ -161,6 +164,35 @@ router.get("/", async (req, res) => {
   } catch (err: any) {
     console.error("[SavedGroceries] GET error:", err?.message);
     return res.status(500).json({ error: "Could not load saved groceries." });
+  }
+});
+
+// Explicit, optimistic and owner-scoped evidence replacement. Never an upsert.
+router.patch("/:id/evidence", async (req, res) => {
+  const userId = resolveUserId(req);
+  if (!userId) return res.status(401).json({ error: "Not authenticated" });
+  try {
+    const updated = await db.transaction(async (tx) => {
+      const [item] = await tx.select().from(userSavedGroceryItems).where(and(
+        eq(userSavedGroceryItems.id, req.params.id),
+        eq(userSavedGroceryItems.userId, userId),
+      )).for("update");
+      if (!item) return null;
+      const changes = prepareSavedEvidenceUpdate(item, req.body);
+      const [row] = await tx.update(userSavedGroceryItems).set(changes).where(and(
+        eq(userSavedGroceryItems.id, item.id), eq(userSavedGroceryItems.userId, userId),
+      )).returning();
+      return row;
+    });
+    if (!updated) return res.status(404).json({ error: "Saved product not found for this account." });
+    return res.json({ item: { ...updated, evidenceRevision: savedEvidenceRevision(updated) } });
+  } catch (error: any) {
+    const message = error instanceof Error ? error.message : "Evidence update failed";
+    if (/Confirm|changed|Scan a|barcode|scanned|history is full|too large|nutrition|serving basis/.test(message)) {
+      return res.status(409).json({ error: message });
+    }
+    console.error("[SavedGroceries] Evidence update failed");
+    return res.status(500).json({ error: "Evidence could not be updated. Previous evidence is unchanged." });
   }
 });
 
@@ -262,16 +294,20 @@ router.post("/add-to-list", async (req, res) => {
       return res.status(404).json({ error: "One or more saved grocery items were not found" });
     }
 
-    const decisions = await revalidateSavedGroceriesForUser(userId, items);
+    // Development: explicit list inclusion is shopping intent, not permission
+    // to consume. Historical evidence remains review_required in list metadata;
+    // recommendation/analysis callers still revalidate independently.
+    const shoppingIntentOnly = shoppingMetadataDevelopment();
+    const decisions = shoppingIntentOnly ? [] : await revalidateSavedGroceriesForUser(userId, items);
     const decisionById = new Map(decisions.map((decision) => [decision.id, decision]));
-    const approvedItems = items
-      .filter((item) => decisionById.get(item.id)?.status === "approved")
+    const transferItems = items
+      .filter((item) => shoppingIntentOnly || decisionById.get(item.id)?.status === "approved")
       .sort((a, b) => a.productKey.localeCompare(b.productKey));
 
-    // Every approved write is one atomic unit. Advisory locks serialize
+    // Every transfer is one atomic unit. Advisory locks serialize
     // concurrent attempts for the same user/product identity.
     const writtenResults = await db.transaction(async (tx) => {
-      for (const item of approvedItems) {
+      for (const item of transferItems) {
         await tx.execute(sql`
           SELECT pg_advisory_xact_lock(
             hashtext(${userId}),
@@ -291,7 +327,7 @@ router.post("/add-to-list", async (req, res) => {
         .where(eq(shoppingListItems.userId, userId));
 
       const results = [];
-      for (const item of approvedItems) {
+      for (const item of transferItems) {
         results.push(await addSavedItemToShoppingList(tx, userId, item, existingRows));
       }
       return results;
@@ -376,14 +412,17 @@ router.post("/:id/add-to-list", async (req, res) => {
 
     if (!item) return res.status(404).json({ error: "Saved item not found" });
 
-    const [decision] = await revalidateSavedGroceriesForUser(userId, [item]);
-    if (!decision || decision.status === "blocked") {
-      return res.json({
-        success: false,
-        name: savedItemDisplayName(item),
-        status: "blocked",
-        reason: decision?.reason ?? "Current profile compatibility could not be verified.",
-      });
+    // Same Development-only shopping-intent boundary as the bulk endpoint.
+    if (!shoppingMetadataDevelopment()) {
+      const [decision] = await revalidateSavedGroceriesForUser(userId, [item]);
+      if (!decision || decision.status === "blocked") {
+        return res.json({
+          success: false,
+          name: savedItemDisplayName(item),
+          status: "blocked",
+          reason: decision?.reason ?? "Current profile compatibility could not be verified.",
+        });
+      }
     }
 
     const result = await db.transaction(async (tx) => {
