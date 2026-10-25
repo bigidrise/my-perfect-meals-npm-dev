@@ -57,6 +57,20 @@ Historical viewing must distinguish full saved scans, older partial scans, and r
 
 **How to apply:** Show genuine stored grades and explanations for partial scans; preserve the entire original result for full snapshots. Recommendation-only views show their own saved reasons and criteria. Never automatically upgrade old records or regenerate missing historical content.
 
+## Shared analysis and explicit generation
+
+The founder approved one four-section main experience across all existing Ingredient Intelligence entry points: prominent grade and meaning, Chef's Heads Up, up to three nonduplicative personalized points, and useful alternatives. Other original information belongs in optional collapsed details; meaningful restrictions remain visible and the lab-value promotion is excluded.
+
+**Why:** The Chef explanation should help customers make an informed food choice, rather than overwhelm them with repeated judgments or make them feel judged by the grade.
+
+**How to apply:** Preserve underlying historical content and original actions, including companion behavior. No extra AI is needed to simplify presentation.
+
+Saved recommendations may receive their own analysis only after an explicit user action through the existing engine. Complete snapshots are reused; never borrow a parent's grade, automatically analyze on save/open, or route companion records through human analysis.
+
+**Why:** The founder split presentation and generation into sequential stages to control paid usage and verify them separately.
+
+**How to apply:** Bind generation to the exact owned saved record, preserve original recommendation and label evidence, and keep duplicate-save behavior unchanged. An interrupted or uncertain paid operation must not automatically become retryable merely because time passed; confirming completion or safe recovery is a separate operational decision.
+
 ## Unowned device history
 
 Do not automatically assign old device-only scans without ownership information to whichever account signs in next. Keep temporary history separate from the permanent account-owned library.

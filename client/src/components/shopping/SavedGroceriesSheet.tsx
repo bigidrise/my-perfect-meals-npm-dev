@@ -31,6 +31,7 @@ import { get, post, apiJSON } from "@/lib/api";
 import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
 import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 import { PillButton } from "@/components/ui/pill-button";
+import { SavedProductAnalysisAction } from "./SavedProductAnalysisAction";
 
 interface SavedGroceryItemMeta extends SavedRecommendationMetadata {
   [key: string]: any;
@@ -143,12 +144,14 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
   const [analysisItem, setAnalysisItem] = useState<SavedGroceryItem | null>(null);
+  const [analysisSupported, setAnalysisSupported] = useState(false);
   useEffect(() => {
     setAnalysisItem(null); setHistoryIndex(-1);
     setSelectedIds(new Set());
     setBulkAdding(false);
     setRemovingId(null);
     setLoadedOwner(null); setItems([]);
+    setAnalysisSupported(false);
   }, [owner]);
 
   const fetchItems = useCallback(async () => {
@@ -157,9 +160,10 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
     setLoading(true);
     setError(null);
     try {
-      const data = await get<{ items: SavedGroceryItem[] }>("/api/saved-groceries");
+      const data = await get<{ items: SavedGroceryItem[]; supportsSavedProductAnalysis?: boolean }>("/api/saved-groceries");
       if (started !== session.current) return;
       setItems(data.items ?? []);
+      setAnalysisSupported(data.supportsSavedProductAnalysis === true);
       setSelectedIds(previous => new Set(
         Array.from(previous).filter(id => data.items?.some(
           item => item.id === id,
@@ -572,6 +576,16 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
       open={!!analysisItem}
       hideSaveAction
       savedAnalysisKind={savedAnalysisKind(displayedItem!)}
+      savedRestriction={analysisItem.compliance.reason ?? undefined}
+      saveSource={analysisItem.source === "grocery-coach" ? "grocery-coach" : "scanner"}
+      savedAnalysisAction={analysisSupported && historyIndex === -1 && savedAnalysisKind(analysisItem) === "recommendation" && analysisItem.productMeta?.subjectKind !== "companion"
+        ? <SavedProductAnalysisAction key={`${owner}:${analysisItem.id}`} item={analysisItem} onUpdated={updated => {
+            if (session.current.owner !== owner) return;
+            setItems(previous => previous.map(item => item.id === updated.id ? updated : item));
+            setAnalysisItem(previous => previous?.id === updated.id ? updated : previous);
+            queryClient.invalidateQueries({ queryKey: ["/api/saved-groceries", owner] });
+          }} />
+        : undefined}
       hideLegacyScoreCards={!["kids", "adults", "diet", "fitnessGoal"].some(key => storedScores?.[key]?.verdict)}
       result={buildResultFromSavedItem(displayedItem!)}
       savedContext={<section className="rounded-xl border border-white/20 p-3 my-3 text-sm space-y-2">

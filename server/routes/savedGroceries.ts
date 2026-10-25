@@ -21,6 +21,9 @@ import { computeProductKey } from "../utils/productKey";
 import { revalidateSavedGroceriesForUser } from "../services/savedGroceryRevalidation";
 import { prepareSavedEvidenceUpdate, savedEvidenceRevision } from "../services/savedGroceryEvidence";
 import { developmentSavedProductFields, shoppingMetadataDevelopment } from "../services/shopping-list/metadataPersistence";
+import { requireActiveAccess } from "../middleware/requireActiveAccess";
+import { createSavedGroceryAnalyzer, SavedAnalysisError } from "../services/savedGroceryAnalysis";
+import { savedGroceryAnalysisStore } from "../services/savedGroceryAnalysisStore";
 
 export { computeProductKey };
 
@@ -151,6 +154,7 @@ router.get("/", async (req, res) => {
     const decisions = await revalidateSavedGroceriesForUser(userId, items);
     const decisionById = new Map(decisions.map((decision) => [decision.id, decision]));
     return res.json({
+      supportsSavedProductAnalysis: true,
       items: items.map((item) => ({
         ...item,
         evidenceRevision: savedEvidenceRevision(item),
@@ -168,6 +172,23 @@ router.get("/", async (req, res) => {
 });
 
 // Explicit, optimistic and owner-scoped evidence replacement. Never an upsert.
+router.post("/:id/analyze", requireActiveAccess, async (req, res) => {
+  const owner = resolveUserId(req);
+  if (!owner) return res.status(401).json({ error: "Not authenticated" });
+  try {
+    const generate = createSavedGroceryAnalyzer(savedGroceryAnalysisStore, async (name, userId) => {
+      const { analyzeProductByName } = await import("../services/ingredientScanService");
+      return analyzeProductByName(name, userId);
+    });
+    const output = await generate(owner, req.params.id, req.body ?? {});
+    return res.json({ ...output, item: { ...output.item, evidenceRevision: savedEvidenceRevision(output.item) } });
+  } catch (error) {
+    if (error instanceof SavedAnalysisError) return res.status(error.status).json({ error: error.message, code: error.code });
+    console.error("[SavedGroceries] Analysis request failed");
+    return res.status(503).json({ error: "Analysis could not be started safely. Reopen the product before trying again.", code: "analysis_unavailable" });
+  }
+});
+
 router.patch("/:id/evidence", async (req, res) => {
   const userId = resolveUserId(req);
   if (!userId) return res.status(401).json({ error: "Not authenticated" });
