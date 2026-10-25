@@ -565,3 +565,17 @@ mtime_ms = 1792946098439
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/904a8c27-e0fc-4ae9-bb82-4d18c9d59f26/507765ca-70fc-4ef1-8717-644e6e377aa8"
 storage_version_token = "1792946173606721"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "m140LKgYp9qRdCS6BF0pq"
+uri = "file://.local/reports/saved-groceries-github-preparation.md"
+type = "text"
+title = "Saved Groceries — GitHub preparation report"
+description = "Exact 24-file scope, two isolated commits, shell diagnosis, verification results, and remaining blockers. The branch has not been pushed; no PR or Production merge was made."
+logical_id = "8b503508-cb30-4d5b-90ab-c21086f7a600"
+content_hash = "sha256:704fb1c8af39816b507558721dfd16e8836eb742a1118dc2d267867391c03823"
+size = 5581
+mtime_ms = 1792955644520
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/8b503508-cb30-4d5b-90ab-c21086f7a600/117f2208-3efa-4d6c-8035-0e1fd39d34a5"
+storage_version_token = "1792955675176707"
+content_type = "text/markdown"
