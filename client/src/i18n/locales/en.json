@@ -2890,7 +2890,11 @@
       "recommendationSource": "Recommendation based on product knowledge. Check the current label for exact ingredients and nutrition.",
       "analyzeNotice": "Generate {{name}}'s own personalized analysis. Saved results can be reopened without another analysis request.",
       "analyzingProduct": "Analyzing This Product…",
-      "analyzeProduct": "Analyze This Product"
+      "analyzeProduct": "Analyze This Product",
+      "viewSaved": "View Saved Analysis",
+      "updateSaved": "Update Saved Analysis",
+      "removeSaved": "Remove from Saved Groceries",
+      "saveUnconfirmed": "Saving could not be confirmed. Reopen Saved Groceries to check the current result; no newer analysis was intentionally replaced."
     },
     "grade": {
       "a": "Excellent Alignment",

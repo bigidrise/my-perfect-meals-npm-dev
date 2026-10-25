@@ -71,6 +71,14 @@ Saved recommendations may receive their own analysis only after an explicit user
 
 **How to apply:** Bind generation to the exact owned saved record, preserve original recommendation and label evidence, and keep duplicate-save behavior unchanged. An interrupted or uncertain paid operation must not automatically become retryable merely because time passed; confirming completion or safe recovery is a separate operational decision.
 
+## Existing-analysis continuity
+
+Saved Groceries is a personal library of the same Ingredient Intelligence cards, not a separate analysis system. When a complete result already exists, saving or attaching it must copy that result without AI. An existing recommendation receives the result on its original record; a complete saved result is reopened rather than overwritten.
+
+**Why:** The founder explicitly approved reuse after discovering that the main card treated an already-saved product as an unsave toggle and could not attach an existing printout.
+
+**How to apply:** Keep Save, Update Saved Analysis, View Saved Analysis and explicit removal distinct. Preserve identity, package details, recommendation context, source and authoritative ingredient evidence. Reject stale or competing attachments, and never promote a historical by-name result into verified label evidence. This continuity approval is Development-only and does not authorize release or migrations.
+
 ## Unowned device history
 
 Do not automatically assign old device-only scans without ownership information to whichever account signs in next. Keep temporary history separate from the permanent account-owned library.
