@@ -3,7 +3,7 @@ name: Saved grocery evidence governance
 description: Product-evidence priority and safety boundaries for permanent Saved Groceries and verified product discovery.
 ---
 
-Saved Groceries is the permanent library shared by Product Scan and Grocery Coach. A saved product is a preference, not a permanent safety approval: every surface must revalidate it against the current authoritative profile before adding or recommending it.
+Saved Groceries is the permanent library shared by Product Scan and Grocery Coach. A saved product is a preference, not permanent safety approval. Library membership and shopping intent are separate from medical approval; changing existing server-side safety enforcement requires explicit approval.
 
 ## Unified customer experience
 
@@ -61,8 +61,8 @@ Do not automatically assign old device-only scans without ownership information 
 
 ## Preferred library selection experience
 
-The founder prefers a clean, scrollable saved-product list with product/brand search, individual eligible-product checkboxes, and Add Selected as the primary bulk action, without an expanding category-button row or encouragement to add every saved brand.
+Saved Groceries is a reusable product library, not a second nutrition-analysis or product-verification system. Product Scan and Grocery Store Coach analyze products before saving. The founder wants exact product identity (brand and package size when known), search, scrolling, individual shopping-intent checkboxes, Add Selected to Shopping List, and deletion. No category tabs, Add All Shown, caution triangles, restriction badges, evidence messages, or repeated verification messaging in the saved list. Original analysis may remain accessible separately.
 
-**Why:** Customers should choose the specific products they intend to buy, not accidentally add multiple alternatives for the same grocery need.
+**Why:** The founder explicitly corrected the previous verification-heavy design: customers are remembering specific products to buy later, not declaring them medically safe to consume.
 
-**How to apply:** Preserve original analysis, permanent saved records, and server safety enforcement when simplifying the interface. Missing evidence, known incompatibility, and unavailable profile checks need clear explanations and distinct next actions rather than unexplained unusable selection controls.
+**How to apply:** Selection represents shopping intent, never safety approval. Do not add analysis steps or automatic paid AI calls. Preserve the analysis workflow's allergy/medical protections. Inspect existing saved-to-list restrictions and report conflicts with the simple Save → Select → Add experience; obtain separate approval before changing server enforcement. Do not silently skip selected products or claim rejected additions succeeded.

@@ -2,8 +2,8 @@
  * SavedGroceriesSheet
  *
  * Bottom sheet that displays the user's persistent grocery preference library.
- * Searchable product rows support eligible selection, saved analysis,
- * current-label verification, and an explicit trash/unsave action.
+ * Searchable product rows represent shopping intent, not safety approval.
+ * Saved analysis is separate; the server retains authority over list additions.
  *
  * This is intentionally separate from the shopping list — saved groceries
  * are persistent preferences, not a temporary scoped list.
@@ -20,12 +20,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
   Bookmark,
-  ShoppingCart,
   Trash2,
   Loader2,
   AlertTriangle,
-  CheckCircle2,
-  ChevronRight,
   Search,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -118,14 +115,14 @@ interface Props {
   onOpenChange: (v: boolean) => void;
 }
 
-const SOURCE_LABEL: Record<string, string> = {
-  "grocery-coach": "Coach",
-  "scanner": "Scanner",
-  "manual": "Manual",
-};
-
 function itemDisplayName(item: SavedGroceryItem): string {
   return groceryProductLabel(item);
+}
+
+function itemPackageSize(item: SavedGroceryItem): string {
+  // Package size is not serving size. Never infer a package from nutrition data.
+  const size = item.productMeta?.packageSize ?? item.nutritionJson?.packageSize;
+  return typeof size === "string" ? size.trim() : "";
 }
 
 export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduct }: Props) {
@@ -142,17 +139,16 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
   const [items, setItems] = useState<SavedGroceryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [addingId, setAddingId] = useState<string | null>(null);
   const [bulkAdding, setBulkAdding] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
-  const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
   const [analysisItem, setAnalysisItem] = useState<SavedGroceryItem | null>(null);
   useEffect(() => {
     setAnalysisItem(null); setHistoryIndex(-1);
-    setSelectedIds(new Set()); setAddedIds(new Set());
+    setSelectedIds(new Set());
     setBulkAdding(false);
+    setRemovingId(null);
     setLoadedOwner(null); setItems([]);
   }, [owner]);
 
@@ -167,7 +163,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
       setItems(data.items ?? []);
       setSelectedIds(previous => new Set(
         Array.from(previous).filter(id => data.items?.some(
-          item => item.id === id && item.compliance.status === "approved",
+          item => item.id === id,
         )),
       ));
       setLoadedOwner(owner);
@@ -182,7 +178,6 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
     if (open) {
       fetchItems();
       hydrate();
-      setAddedIds(new Set());
       setSelectedIds(new Set());
     }
   }, [open, fetchItems, hydrate]);
@@ -191,7 +186,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
     const query = searchTerm.trim().toLocaleLowerCase();
     return (loadedOwner === owner ? items : []).filter((item) => {
       if (!query) return true;
-      return itemDisplayName(item).toLocaleLowerCase().includes(query);
+      return `${itemDisplayName(item)} ${itemPackageSize(item)}`.toLocaleLowerCase().includes(query);
     });
   }, [items, searchTerm, loadedOwner, owner]);
 
@@ -217,7 +212,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
     const started = session.current;
     const uniqueIds = Array.from(new Set(ids)).filter(id =>
       loadedOwner === owner && items.some(item =>
-        item.id === id && item.compliance.status === "approved",
+        item.id === id,
       ),
     );
     if (uniqueIds.length === 0 || bulkAdding) return;
@@ -235,15 +230,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
         blockedCount?: number;
       }>("/api/saved-groceries/add-to-list", { ids: uniqueIds });
       if (started !== session.current) return;
-      const successfulIds = (data.items ?? [])
-        .filter((item) => item.status !== "blocked")
-        .map((item) => item.id);
-      setAddedIds((previous) => new Set([...Array.from(previous), ...successfulIds]));
       setSelectedIds(new Set());
-      // A profile may have changed since this sheet loaded. Refresh its
-      // authoritative reasons/eligibility rather than leaving rejected rows selectable.
-      if ((data.blockedCount ?? 0) > 0) await fetchItems();
-      if (started !== session.current) return;
       await hydrate();
       if (started !== session.current) return;
       const added = data.addedCount ?? 0;
@@ -254,15 +241,20 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
         added > 0 ? `${added} added` : "",
         restored > 0 ? `${restored} restored` : "",
         alreadyOnList > 0 ? `${alreadyOnList} already on list` : "",
-        blocked > 0 ? `${blocked} blocked by current profile` : "",
+        blocked > 0 ? `${blocked} not added` : "",
       ].filter(Boolean).join(" · ");
+      const rejected = (data.items ?? []).filter(item => item.status === "blocked");
+      const rejectionDetails = rejected.map(result => {
+        const product = items.find(item => item.id === result.id);
+        return `${product ? itemDisplayName(product) : "Selected product"}: ${result.reason || "The current server rules did not allow this addition."}`;
+      }).join(" ");
       toast({
         title: blocked > 0
-          ? "Some saved products need review"
+          ? "Some products were not added"
           : uniqueIds.length === 1
             ? "Added to list"
             : "Saved groceries updated",
-        description: details || "Your shopping list is up to date.",
+        description: [details, rejectionDetails].filter(Boolean).join(". ") || "Your shopping list is up to date.",
         variant: blocked > 0 && added + restored + alreadyOnList === 0
           ? "destructive"
           : undefined,
@@ -277,12 +269,11 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
     } finally {
       if (started === session.current) setBulkAdding(false);
     }
-  }, [hydrate, toast, items, loadedOwner, owner, bulkAdding, fetchItems]);
+  }, [hydrate, toast, items, loadedOwner, owner, bulkAdding]);
 
   const handleAddToList = useCallback(async (item: SavedGroceryItem) => {
     const started = session.current;
     if (isItemOnList(item)) return false;
-    setAddingId(item.id);
     try {
       const data = await post<{
         name?: string;
@@ -298,9 +289,6 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
         });
         return false;
       }
-      if (data.status !== "already_on_list") {
-        setAddedIds((prev) => new Set(Array.from(prev).concat(item.id)));
-      }
       await hydrate();
       toast({
         title: data.status === "already_on_list" ? "Already on list" : "Added to list!",
@@ -310,15 +298,15 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
     } catch {
       toast({ title: "Couldn't add to list", description: "Please try again.", variant: "destructive" });
       return false;
-    } finally {
-      setAddingId(null);
     }
   }, [hydrate, toast]);
 
   const handleRemove = useCallback(async (item: SavedGroceryItem) => {
+    const started = session.current;
     setRemovingId(item.id);
     try {
       await apiJSON(`/api/saved-groceries/${item.id}`, { method: "DELETE" });
+      if (started !== session.current) return;
       setItems((prev) => prev.filter((i) => i.id !== item.id));
       setSelectedIds((prev) => {
         const next = new Set(prev);
@@ -328,9 +316,10 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
       queryClient.invalidateQueries({ queryKey: ['/api/saved-groceries'] });
       toast({ title: "Removed", description: `${item.productName} removed from saved groceries.` });
     } catch {
+      if (started !== session.current) return;
       toast({ title: "Couldn't remove item", description: "Please try again.", variant: "destructive" });
     } finally {
-      setRemovingId(null);
+      if (started === session.current) setRemovingId(null);
     }
   }, [toast]);
 
@@ -440,7 +429,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
                         disabled={selectedIds.size === 0 || bulkAdding}
                         onClick={() => handleAddMany(Array.from(selectedIds))}
                       >
-                        {bulkAdding ? "Adding…" : `Add Selected${selectedIds.size ? ` (${selectedIds.size})` : ""}`}
+                        {bulkAdding ? "Adding…" : `Add Selected to Shopping List${selectedIds.size ? ` (${selectedIds.size})` : ""}`}
                       </PillButton>
                     </div>
                   </div>
@@ -487,14 +476,8 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
               {!loading && !error && (
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                       {visibleItems.map((item) => {
-                        const isAdding = addingId === item.id;
-                        const isAdded = addedIds.has(item.id);
-                        const onList = isItemOnList(item);
                         const isSelected = selectedIds.has(item.id);
-                        const isBlocked = item.compliance.status === "blocked";
                         const isRemoving = removingId === item.id;
-                        const hasAnalysis = !!(item.productMeta?.alignmentGrade || item.productMeta?.resolvedFromDb !== undefined
-                          || Array.isArray(item.productMeta?.recommendationWhyBetter));
 
                         return (
                           <div
@@ -510,23 +493,16 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
                               border: "1px solid rgba(255,255,255,0.07)",
                             }}
                           >
-                            {isBlocked ? (
-                              <AlertTriangle aria-hidden="true" style={{ width: 20, height: 20, color: "#fca5a5", marginTop: 3 }} />
-                            ) : (
                               <label style={{ display: "flex", alignItems: "center", justifyContent: "center", minWidth: 44, minHeight: 44, cursor: "pointer" }}>
-                                <input type="checkbox" aria-label={`Select ${itemDisplayName(item)}`}
+                                <input type="checkbox" aria-label={`Select ${itemDisplayName(item)}${itemPackageSize(item) ? ` (${itemPackageSize(item)})` : ""}`}
                                   style={{ width: 22, height: 22, accentColor: "#38bdf8", cursor: "pointer" }}
                                   checked={isSelected} disabled={bulkAdding}
                                   onChange={() => toggleSelected(item.id)} />
                               </label>
-                            )}
 
-                            {/* Tappable product info — opens analysis sheet if data exists */}
-                            <button
-                              onClick={() => { setHistoryIndex(-1); setAnalysisItem(item); }}
+                            <div
                               style={{
-                                flex: 1, minWidth: 0, background: "none", border: "none",
-                                cursor: hasAnalysis ? "pointer" : "default",
+                                flex: 1, minWidth: 0,
                                 textAlign: "left", padding: 0,
                               }}
                             >
@@ -540,9 +516,6 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
                                  }}>
                                   {item.productName}
                                 </div>
-                                {hasAnalysis && (
-                                   <ChevronRight style={{ width: 13, height: 13, marginTop: 3, color: "rgba(249,115,22,0.6)", flexShrink: 0 }} />
-                                )}
                               </div>
                                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
                                 {item.brand && (
@@ -550,41 +523,13 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
                                     {item.brand}
                                   </span>
                                 )}
-                                <span style={{
-                                  padding: "1px 6px", borderRadius: 999, fontSize: 10, fontWeight: 600,
-                                  background: "rgba(249,115,22,0.12)", color: "rgba(249,115,22,0.7)",
-                                  border: "1px solid rgba(249,115,22,0.2)",
-                                }}>
-                                  {SOURCE_LABEL[item.source] ?? item.source}
-                                </span>
-                                {item.productMeta?.resolvedFromDb === true && (
-                                  <span style={{
-                                    padding: "1px 6px", borderRadius: 999, fontSize: 10, fontWeight: 600,
-                                    background: "rgba(16,185,129,0.12)", color: "rgba(16,185,129,0.8)",
-                                    border: "1px solid rgba(16,185,129,0.2)",
-                                  }}>
-                                    ✓ DB
-                                  </span>
-                                )}
-                                {isBlocked && (
-                                  <span
-                                    title={item.compliance.reason ?? "Does not fit your current profile"}
-                                    style={{
-                                      padding: "1px 6px", borderRadius: 999, fontSize: 10, fontWeight: 600,
-                                      background: "rgba(239,68,68,0.14)", color: "#fca5a5",
-                                      border: "1px solid rgba(239,68,68,0.3)",
-                                    }}
-                                  >
-                                    {savedProductStatus(item)}
+                                {itemPackageSize(item) && (
+                                  <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>
+                                    {itemPackageSize(item)}
                                   </span>
                                 )}
                               </div>
-                              {isBlocked && (
-                                <div style={{ color: "#fca5a5", fontSize: 11, lineHeight: 1.35, marginTop: 5 }}>
-                                  {item.compliance.reason || "Current compatibility could not be verified. View Analysis for details."}
-                                </div>
-                              )}
-                            </button>
+                            </div>
 
                              <div
                                style={{
@@ -598,56 +543,14 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
                                  borderTop: "1px solid rgba(255,255,255,0.06)",
                                }}
                             >
-                               <PillButton
+                               <button
                                  type="button"
-                                 variant="sky"
                                  onClick={() => { setHistoryIndex(-1); setAnalysisItem(item); }}
                                  aria-label={`View Analysis: ${itemDisplayName(item)}`}
+                                 style={{ color: "rgba(255,255,255,0.55)", background: "none", border: "none", fontSize: 12, padding: "8px 0", cursor: "pointer" }}
                                >
-                                 View Analysis
-                               </PillButton>
-                               {isBlocked && item.compliance.category === "evidence_missing" && onVerifyProduct
-                                 && !/certif/i.test(item.compliance.reason || "") && (
-                                 <PillButton type="button" variant="amber" onClick={() => {
-                                   onOpenChange(false); onVerifyProduct(item);
-                                 }} aria-label={`Verify Label: ${itemDisplayName(item)}`}>
-                                   Verify Label
-                                 </PillButton>
-                               )}
-                               {isBlocked && item.compliance.category === "profile_unavailable" && (
-                                 <PillButton type="button" variant="amber" onClick={() => fetchItems()}
-                                   aria-label={`Retry Check: ${itemDisplayName(item)}`}>
-                                   Retry Check
-                                 </PillButton>
-                               )}
-                               {isBlocked && /certif/i.test(item.compliance.reason || "") && (
-                                 <p style={{ flexBasis: "100%", color: "#fca5a5", fontSize: 11 }}>
-                                   A label photo alone cannot verify independent certification.
-                                 </p>
-                               )}
-                               {/* Add to list */}
-                               {!isBlocked && (
-                               <PillButton
-                                 type="button"
-                                 variant={isBlocked ? "rose" : onList || isAdded ? "emerald" : "amber"}
-                                 active={onList || isAdded}
-                                 onClick={() => handleAddToList(item)}
-                                 disabled={isAdding || isAdded || onList || isBlocked || bulkAdding}
-                                 className="!px-3 !text-[9px] shrink-0"
-                               >
-                                 {isAdding ? (
-                                   <Loader2 style={{ width: 13, height: 13, animation: "spin 1s linear infinite" }} />
-                                 ) : onList ? (
-                                   <><CheckCircle2 style={{ width: 13, height: 13 }} /> Already on list</>
-                                 ) : isBlocked ? (
-                                   <><AlertTriangle style={{ width: 13, height: 13 }} /> Cannot add yet</>
-                                 ) : isAdded ? (
-                                   <><CheckCircle2 style={{ width: 13, height: 13 }} /> Added</>
-                                 ) : (
-                                   <><ShoppingCart style={{ width: 13, height: 13 }} /> Add</>
-                                 )}
-                               </PillButton>
-                               )}
+                                 Saved analysis
+                               </button>
 
                                {/* Unsave */}
                                <button
