@@ -34,7 +34,7 @@ jest.mock("react-i18next", () => ({ useTranslation: () => ({
       "ingredientSheet.grade.c": "Some Considerations",
       "ingredientSheet.incomplete.title": "Analysis incomplete",
     };
-    return labels[key] ?? key;
+    return labels[key] ?? values?.defaultValue ?? key;
   },
 }) }));
 
@@ -95,7 +95,7 @@ beforeEach(() => {
     rows[owner].push(row);
     return { item: row, created: true };
   });
-  (get as jest.Mock).mockImplementation(async () => ({ items: rows[owner!] }));
+  (get as jest.Mock).mockImplementation(async () => ({ items: rows[owner!], supportsSavedProductAnalysis: true }));
   (post as jest.Mock).mockImplementation(async (url: string) => {
     const item = rows[owner!].find(row => url === `/api/saved-groceries/${row.id}/add-to-list`);
     if (!item) throw new Error("Not found for this account");
@@ -273,6 +273,8 @@ test("a newly saved full graded scan reopens with the original analysis content 
   render(wrap(<SavedGroceriesSheet open onOpenChange={jest.fn()} />));
   fireEvent.click(await screen.findByRole("button", { name: `View Analysis: ${scan.productName}` }));
   expect(screen.getByText("C").parentElement!.outerHTML).toBe(gradeMarkup);
+  expect(screen.queryByTestId("analysis-details")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "More Analysis Details" }));
   for (const text of [scan.verdict, scan.overallSummary, scan.profileFactorsUsed[0], scan.whatMattersMost[0],
     scan.ingredientConsiderations[0], scan.extractedIngredients[0], scan.educationalFooter,
     alternatives[1].category, alternatives[1].whyBetter[0], alternatives[1].targetCriteria,
@@ -297,8 +299,9 @@ test.each(["C", undefined])("legacy analysis with grade %s shows genuine histori
   fireEvent.click(await screen.findByRole("button", { name: "View Analysis: Old cereal" }));
   expect(screen.getByText("Saved historical analysis")).toBeInTheDocument();
   expect(screen.getByText(/Historical details not saved at the time are unavailable/)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "More Analysis Details" }));
   for (const text of ["Stored Chef verdict", "Stored personalized summary", "Stored priority", "Stored consideration"]) {
-    expect(screen.getByText(text)).toBeInTheDocument();
+    expect(screen.getAllByText(text).length).toBeGreaterThan(0);
   }
   if (grade) expect(screen.getByText("Some Considerations")).toBeInTheDocument();
   else expect(screen.queryByText("Some Considerations")).not.toBeInTheDocument();
@@ -316,10 +319,11 @@ test("saved recommendations retain identity, brand, package and criteria without
   render(wrap(<SavedGroceriesSheet open onOpenChange={jest.fn()} />));
   fireEvent.click(await screen.findByRole("button", { name: "View Analysis: RXBAR Protein Bar" }));
   expect(screen.getByText("Saved recommendation")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "More Analysis Details" }));
   expect(screen.getAllByText("RXBAR Protein Bar").length).toBeGreaterThan(0);
   expect(screen.getByText("Package: 12 bars")).toBeInTheDocument();
   expect(screen.getAllByText("The bar's original reason").length).toBeGreaterThan(0);
-  expect(screen.getByText("The bar's original criteria")).toBeInTheDocument();
+  expect(screen.getAllByText("The bar's original criteria").length).toBeGreaterThan(0);
   expect(screen.getByText("Saved recommendation note")).toBeInTheDocument();
   expect(screen.queryByText("Analysis incomplete")).not.toBeInTheDocument();
   expect(screen.queryByText("Some Considerations")).not.toBeInTheDocument();
@@ -335,11 +339,128 @@ test("a partial historical scorecard displays only the genuinely saved assessmen
     compliance: { status: "approved" } }];
   render(wrap(<SavedGroceriesSheet open onOpenChange={jest.fn()} />));
   fireEvent.click(await screen.findByRole("button", { name: "View Analysis: Older product" }));
+  fireEvent.click(screen.getByRole("button", { name: "More Analysis Details" }));
   expect(screen.getByText("The retained adult assessment")).toBeInTheDocument();
   expect(screen.queryByText(/ingredientSheet.scoreCards.kids/)).not.toBeInTheDocument();
   expect(screen.queryByText(/ingredientSheet.scoreCards.diet/)).not.toBeInTheDocument();
   expect(screen.queryByText("Analysis incomplete")).not.toBeInTheDocument();
   expect(writes).toEqual([]);
+});
+
+test("a saved recommendation is analyzed only after an explicit click, then reopens its own persisted result without another request", async () => {
+  const row = { id: "rec-own", productName: "Protein Bar", brand: "RXBAR", source: "grocery-coach",
+    evidenceRevision: "a".repeat(64), productMeta: { subjectKind: "human", recommendationWhyBetter: ["Original reason"],
+      recommendationTargetCriteria: "Original criteria", packageSize: "12 bars" }, nutritionJson: null,
+    compliance: { status: "approved" } };
+  rows["fixture-a"] = [row];
+  let finish!: (result: any) => void;
+  (post as jest.Mock).mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  const view = render(wrap(<SavedGroceriesSheet open onOpenChange={jest.fn()} />));
+  fireEvent.click(await screen.findByRole("button", { name: "View Analysis: RXBAR Protein Bar" }));
+  expect(post).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Analyze This Product" }));
+  expect(screen.getByRole("button", { name: "Analyzing This Product…" })).toBeDisabled();
+  expect(post).toHaveBeenCalledTimes(1);
+  expect(post).toHaveBeenCalledWith("/api/saved-groceries/rec-own/analyze", {
+    expectedRevision: row.evidenceRevision, requestId: expect.any(String),
+  });
+  const snapshot = { ...buildResultFromSavedItem(row as any), productName: "RXBAR Protein Bar",
+    alignmentGrade: "C", gradeUnavailable: false, fallbackUsed: false, verdict: "This bar's own Chef explanation",
+    overallSummary: "This bar's own summary", whatMattersMost: ["This bar's own point"], analysisMethod: "by_name" };
+  const updated = { ...row, evidenceRevision: "b".repeat(64), productMeta: { ...row.productMeta, analysisSnapshot: snapshot } };
+  rows["fixture-a"] = [updated];
+  await act(async () => finish({ item: updated }));
+  expect(await screen.findByText("This bar's own Chef explanation")).toBeInTheDocument();
+  expect(screen.getByText("Some Considerations")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Analyze This Product" })).not.toBeInTheDocument();
+  view.unmount(); queryClient.clear();
+  render(wrap(<SavedGroceriesSheet open onOpenChange={jest.fn()} />));
+  fireEvent.click(await screen.findByRole("button", { name: "View Analysis: RXBAR Protein Bar" }));
+  expect(screen.getByText("This bar's own Chef explanation")).toBeInTheDocument();
+  expect(post).toHaveBeenCalledTimes(1);
+  expect(rows["fixture-a"][0].productMeta.recommendationWhyBetter).toEqual(["Original reason"]);
+});
+
+test("a late analysis result cannot follow the customer into another account", async () => {
+  rows["fixture-a"] = [{ id: "rec-a", productName: "Private A product", evidenceRevision: "a".repeat(64),
+    productMeta: { recommendationWhyBetter: ["Private A reason"] }, compliance: { status: "approved" } }];
+  let finish!: (value: any) => void;
+  (post as jest.Mock).mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  const view = render(wrap(<SavedGroceriesSheet open onOpenChange={jest.fn()} />));
+  fireEvent.click(await screen.findByRole("button", { name: "View Analysis: Private A product" }));
+  fireEvent.click(screen.getByRole("button", { name: "Analyze This Product" }));
+  owner = "fixture-b"; view.rerender(wrap(<SavedGroceriesSheet open onOpenChange={jest.fn()} />));
+  await act(async () => finish({ item: { ...rows["fixture-a"][0], productMeta: { analysisSnapshot: { verdict: "Private A generated explanation" } } } }));
+  expect(screen.queryByText("Private A generated explanation")).not.toBeInTheDocument();
+  expect(screen.queryByText("Private A reason")).not.toBeInTheDocument();
+  expect(rows["fixture-b"]).toEqual([]);
+});
+
+test("uncertain generation failures do not auto-retry and explicit retries retain the same operation ID", async () => {
+  rows["fixture-a"] = [{ id: "uncertain", productName: "Saved bar", evidenceRevision: "a".repeat(64),
+    productMeta: { recommendationWhyBetter: ["Original reason"] }, compliance: { status: "approved" } }];
+  (post as jest.Mock).mockRejectedValue({ body: JSON.stringify({ code: "persistence_uncertain" }) });
+  render(wrap(<SavedGroceriesSheet open onOpenChange={jest.fn()} />));
+  fireEvent.click(await screen.findByRole("button", { name: "View Analysis: Saved bar" }));
+  fireEvent.click(screen.getByRole("button", { name: "Analyze This Product" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("saving could not be confirmed");
+  expect(post).toHaveBeenCalledTimes(1);
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 310)); });
+  fireEvent.click(screen.getByRole("button", { name: "Analyze This Product" }));
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(2));
+  expect((post as jest.Mock).mock.calls[0][1]).toEqual((post as jest.Mock).mock.calls[1][1]);
+});
+
+test("companion saved recommendations never offer human analysis", async () => {
+  rows["fixture-a"] = [{ id: "companion-rec", productName: "Companion food", evidenceRevision: "a".repeat(64),
+    productMeta: { subjectKind: "companion", recommendationWhyBetter: ["Original companion reason"] }, compliance: { status: "approved" } }];
+  render(wrap(<SavedGroceriesSheet open onOpenChange={jest.fn()} />));
+  fireEvent.click(await screen.findByRole("button", { name: "View Analysis: Companion food" }));
+  expect(screen.queryByRole("button", { name: "Analyze This Product" })).not.toBeInTheDocument();
+  expect(post).not.toHaveBeenCalled();
+});
+
+test("an older backend without analysis capability keeps recommendation viewing working without exposing a broken paid action", async () => {
+  rows["fixture-a"] = [{ id: "old-backend", productName: "Saved bar", evidenceRevision: "a".repeat(64),
+    productMeta: { recommendationWhyBetter: ["Original recommendation"] }, compliance: { status: "approved" } }];
+  (get as jest.Mock).mockResolvedValue({ items: rows["fixture-a"] });
+  render(wrap(<SavedGroceriesSheet open onOpenChange={jest.fn()} />));
+  fireEvent.click(await screen.findByRole("button", { name: "View Analysis: Saved bar" }));
+  expect(screen.getAllByText("Original recommendation").length).toBeGreaterThan(0);
+  expect(screen.queryByRole("button", { name: "Analyze This Product" })).not.toBeInTheDocument();
+  expect(post).not.toHaveBeenCalled();
+});
+
+test.each([
+  ["Product Scan", {}], ["Grocery Coach", { embedded: true, saveSource: "grocery-coach" }],
+  ["Saved Groceries", { savedAnalysisKind: "full", hideSaveAction: true }],
+  ["Meal ingredient brands", { embedded: true, saveSource: "grocery-coach" }],
+  ["Biometrics", {}], ["Companion", { companionName: "Fixture companion" }],
+] as const)("%s uses the same four-section layout with optional details and visible restrictions", (_entry, props) => {
+  const result = { ...buildResultFromSavedItem({ productName: "Fixture food", productMeta: null } as any),
+    alignmentGrade: "C" as const, gradeUnavailable: false, fallbackUsed: false, verdict: "Concise Chef explanation",
+    overallSummary: "Expanded description", analysisMethod: "by_name" as const,
+    whatMattersMost: ["Concise Chef explanation", "Own useful point", "Own useful point!", "Second point", "Third point", "Detail-only point"],
+    betterAlternatives: [alternatives[1]], analysisProfile: ["Cardiac"], profileFactorsUsed: ["A saved profile factor"],
+    ingredientConsiderations: ["Avoid peanuts because of your allergy."], educationalFooter: "Original source notice" };
+  const view = render(wrap(<IngredientIntelligenceSheet open result={result} onClose={jest.fn()} {...props as any} />));
+  expect(screen.getByText("Some Considerations")).toBeInTheDocument();
+  expect(screen.getByText("Chef's Heads Up")).toBeInTheDocument();
+  expect(screen.getByText("What Matters for You")).toBeInTheDocument();
+  expect(screen.getByText("Own useful point")).toBeInTheDocument();
+  expect(screen.queryByText("Own useful point!")).not.toBeInTheDocument();
+  expect(screen.queryByText("Detail-only point")).not.toBeInTheDocument();
+  expect(screen.getByText("Avoid peanuts because of your allergy.")).toBeInTheDocument();
+  expect(screen.getAllByTestId("analysis-source")).toHaveLength(1);
+  expect(screen.queryByText("Expanded description")).not.toBeInTheDocument();
+  const details = screen.getByRole("button", { name: "More Analysis Details" });
+  expect(details).toHaveAttribute("aria-expanded", "false");
+  fireEvent.click(details);
+  expect(screen.getByText("Expanded description")).toBeInTheDocument();
+  expect(screen.getByText("Detail-only point")).toBeInTheDocument();
+  expect(screen.queryByRole("link", { name: /updateProfile|lab/i })).not.toBeInTheDocument();
+  expect(screen.queryByText("ingredientSheet.analysisProfile.deeperTitle")).not.toBeInTheDocument();
+  view.unmount();
 });
 
 test("reopening a saved front-label snapshot never offers or runs a new by-name analysis", async () => {
@@ -349,6 +470,7 @@ test("reopening a saved front-label snapshot never offers or runs a new by-name 
     productMeta: { analysisSnapshot: snapshot }, compliance: { status: "approved" } }];
   render(wrap(<SavedGroceriesSheet open onOpenChange={jest.fn()} />));
   fireEvent.click(await screen.findByRole("button", { name: "View Analysis: Saved front label" }));
+  fireEvent.click(screen.getByRole("button", { name: "More Analysis Details" }));
   expect(screen.getByText(snapshot.overallSummary)).toBeInTheDocument();
   expect(document.querySelector(".text-6xl")).toBeNull();
   expect(writes).toEqual([]);
@@ -368,6 +490,7 @@ test("a blocked legacy Coach product has a working View Analysis and label-verif
   expect(screen.queryByText("ingredientSheet.howItScoresForYou")).not.toBeInTheDocument();
   expect(screen.getAllByText(/Check the complete ingredient label/).length).toBeGreaterThan(0);
   expect(screen.queryByRole("button", { name: "Add Simply Orange to List" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "More Analysis Details" }));
   fireEvent.click(screen.getByRole("button", { name: "Scan current ingredient label" }));
   expect(verify).toHaveBeenCalledWith(rows["fixture-a"][0]);
   expect(post).not.toHaveBeenCalled();

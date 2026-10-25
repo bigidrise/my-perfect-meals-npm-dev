@@ -2874,6 +2874,20 @@
     }
   },
   "ingredientSheet": {
+    "simple": {
+      "matters": "What Matters for You",
+      "chef": "Chef's Heads Up",
+      "details": "More Analysis Details",
+      "byName": "By-name analysis · Label not verified. Check the current label.",
+      "byLabel": "Ingredient-label analysis · Evidence as recorded at analysis.",
+      "noGrade": "A grade is not available from the information provided.",
+      "restrictions": "Important for You",
+      "allPoints": "Original personalized points",
+      "recommendation": "Saved recommendation reasons and criteria",
+      "analyzeNotice": "Generate this product's own personalized by-name analysis using AI. This uses the paid AI service; opening saved results does not run it again.",
+      "analyzingProduct": "Analyzing This Product…",
+      "analyzeProduct": "Analyze This Product"
+    },
     "grade": {
       "a": "Excellent Alignment",
       "b": "Good Alignment",
