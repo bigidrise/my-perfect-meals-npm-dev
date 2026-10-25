@@ -2,6 +2,7 @@ import { openai, chatJson } from '../utils/openaiSafe';
 import { loadUserProtocolEnvelope, UserProtocolEnvelope } from './protocolEnvelope';
 import { scanTextForHighRiskIngredients } from './ingredientIntelligence';
 import { requiresVerifiedIngredientEvidence } from './foodCompositionEvidence';
+import { assertSupportedProductMedicalClaims } from './productMedicalClaimPolicy';
 import {
   appendWholeFoodStandardPrompt,
   evaluateWholeFoodCandidate,
@@ -907,6 +908,7 @@ Analyze how this product aligns with this specific user's health profile.`;
       temperature: 0.2,
     });
 
+    if (!isCompanionScan) assertSupportedProductMedicalClaims(alignment);
     const rawDecoder = Array.isArray(alignment.ingredientDecoder) ? alignment.ingredientDecoder : [];
     const ingredientDecoder = rawDecoder
       .filter((d: any) => d && typeof d.name === 'string' && typeof d.plain === 'string')
@@ -1033,6 +1035,7 @@ Assess this product or shopping-category request against this user's health prof
     if (typeof alignment?.overallSummary !== 'string' || !alignment.overallSummary.trim()) {
       throw new Error('Product analysis was empty.');
     }
+    assertSupportedProductMedicalClaims(alignment);
 
     const rawDecoder = Array.isArray(alignment.ingredientDecoder) ? alignment.ingredientDecoder : [];
     const ingredientDecoder = rawDecoder
@@ -1150,6 +1153,7 @@ You have TWO sources of information: your product knowledge AND verified label d
       temperature: 0.3,
     });
 
+    assertSupportedProductMedicalClaims(alignment);
     const rawDecoder = Array.isArray(alignment.ingredientDecoder) ? alignment.ingredientDecoder : [];
     const ingredientDecoder = rawDecoder
       .filter((d: any) => d && typeof d.name === 'string' && typeof d.plain === 'string')
