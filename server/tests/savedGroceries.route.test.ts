@@ -178,6 +178,23 @@ beforeEach(() => {
 });
 
 describe("Saved Groceries routes", () => {
+  test("Production advertises snapshot attachment for library reads, new saves and duplicate-save races", async () => {
+    const previousMode = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    try {
+      const app = buildApp();
+      const payload = { productName: "Protein Bar", brand: "RXBAR", source: "grocery-coach" };
+      const created = await request(app).post("/api/saved-groceries").send(payload);
+      const duplicate = await request(app).post("/api/saved-groceries").send(payload);
+      const library = await request(app).get("/api/saved-groceries");
+      expect([created.status, duplicate.status, library.status]).toEqual([201, 200, 200]);
+      for (const response of [created, duplicate, library]) expect(response.body.supportsSavedAnalysisAttachment).toBe(true);
+      expect(duplicate.body.item.id).toBe(created.body.item.id);
+      expect(library.body.items).toHaveLength(1);
+      expect(library.body.items[0].analysisRevision).toBe(created.body.item.analysisRevision);
+    } finally { process.env.NODE_ENV = previousMode; }
+  });
+
   test("Development list insertion retains saved product evidence and restoration does not erase it", async () => {
     const previousEnvironment = process.env.NODE_ENV;
     process.env.NODE_ENV = "development";
