@@ -225,7 +225,7 @@ test("saved-library reopening retains the product, reasons and warnings, and re-
   expect(result.educationalFooter).toBe(warning);
   expect(result.gradeUnavailable).toBe(true);
   render(wrap(<SavedGroceriesSheet open onOpenChange={jest.fn()} />));
-  const openProduct = await screen.findByText(alternatives[1].category);
+  const openProduct = await screen.findByRole("button", { name: `View Analysis: ${alternatives[1].category}` });
   fireEvent.click(openProduct);
   fireEvent.click(screen.getByRole("button", { name: `Add ${alternatives[1].category} to List` }));
   await waitFor(() => expect(added).toEqual([alternatives[1].category]));
