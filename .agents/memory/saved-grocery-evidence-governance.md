@@ -58,3 +58,11 @@ Do not automatically assign old device-only scans without ownership information 
 **Why:** A shared browser cannot establish which account created an unscoped local scan. Hiding unowned history avoids disclosure without deleting a customer's old device data.
 
 **How to apply:** Account-scope new temporary records and affected caches. Leave unowned historical storage untouched unless a separate, explicitly authorized recovery or deletion flow is requested.
+
+## Preferred library selection experience
+
+The founder prefers a clean, scrollable saved-product list with product/brand search, individual eligible-product checkboxes, and Add Selected as the primary bulk action, without an expanding category-button row or encouragement to add every saved brand.
+
+**Why:** Customers should choose the specific products they intend to buy, not accidentally add multiple alternatives for the same grocery need.
+
+**How to apply:** Preserve original analysis, permanent saved records, and server safety enforcement when simplifying the interface. Missing evidence, known incompatibility, and unavailable profile checks need clear explanations and distinct next actions rather than unexplained unusable selection controls.
