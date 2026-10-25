@@ -6,6 +6,8 @@ import type { IngredientScanResult, ScoreVerdict, OutcomeVerdict, BetterAlternat
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import RecommendedProductActions from '@/components/shopping/RecommendedProductActions';
+import { groceryProductLabel, recommendationIdentity, recommendationProductKey } from '@/lib/savedGroceryRecommendation';
 
 interface Props {
   open: boolean;
@@ -15,7 +17,7 @@ interface Props {
   onClose: () => void;
   onRescan?: () => void;
   /** Shopping List context: add a specific named product directly to the list */
-  onAddProduct?: (name: string) => void;
+  onAddProduct?: (name: string) => void | Promise<boolean | void>;
   /** Shopping List context: legacy fallback — show "Add to List" action button */
   onAddAnyway?: () => void;
   /** Shopping List context: show "Save Scan" action button */
@@ -215,16 +217,20 @@ function OutcomeCardsGrid({ cards }: { cards: IngredientScanResult['outcomeCards
   );
 }
 
-function BetterAlternativesSection({
+export function BetterAlternativesSection({
   alternatives,
   branded,
   verdictLevel,
   onAddToList,
+  query,
+  educationalFooter,
 }: {
   alternatives: BetterAlternative[];
   branded?: boolean;
   verdictLevel?: string;
   onAddToList?: (name: string) => void;
+  query: string;
+  educationalFooter: string;
 }) {
   const { t } = useTranslation();
   const [addedIndex, setAddedIndex] = useState<number | null>(null);
@@ -253,12 +259,12 @@ function BetterAlternativesSection({
       </div>
       <div className="space-y-2.5">
         {alternatives.map((alt, i) => (
-          <div key={i} className="rounded-xl border border-orange-500/25 bg-orange-500/8 p-3.5">
+          <div key={recommendationProductKey(recommendationIdentity(alt))} className="rounded-xl border border-orange-500/25 bg-orange-500/8 p-3.5">
             <div className="flex items-start justify-between gap-2 mb-2">
-              <p className="text-sm font-semibold text-white flex-1">{alt.category}</p>
+              <p className="text-sm font-semibold text-white flex-1">{groceryProductLabel(recommendationIdentity(alt))}</p>
               {onAddToList && (
                 <button
-                  onClick={() => handleAdd(alt.category, i)}
+                  onClick={() => handleAdd(groceryProductLabel(recommendationIdentity(alt)), i)}
                   className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all active:scale-95 ${
                     addedIndex === i
                       ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-300'
@@ -287,6 +293,7 @@ function BetterAlternativesSection({
                 📍 {alt.targetCriteria}
               </p>
             )}
+            <RecommendedProductActions alternative={alt} query={query} educationalFooter={educationalFooter} />
           </div>
         ))}
       </div>
@@ -628,9 +635,9 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
     }
   }
 
-  function handleAddProduct(name: string) {
+  async function handleAddProduct(name: string) {
     if (!onAddProduct) return;
-    onAddProduct(name);
+    if (await onAddProduct(name) === false) return;
     toast({ title: t('ingredientSheet.toast.addedToList'), description: name });
   }
 
@@ -869,6 +876,8 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
                   {/* Better Product Options — always shown immediately after verdict */}
                   <BetterAlternativesSection
                     alternatives={activeResult.betterAlternatives ?? []}
+                    query={activeResult.productName}
+                    educationalFooter={activeResult.educationalFooter}
                     branded={isByName || activeResult.analysisMethod === 'full_product_advisor'}
                     verdictLevel={activeResult.verdictLevel}
                     onAddToList={onAddProduct ? handleAddProduct : undefined}
