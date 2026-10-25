@@ -14,6 +14,8 @@ import { PillButton } from '@/components/ui/pill-button';
 import { distinctAnalysisText, primaryAnalysisPoints, visibleAnalysisRestrictions } from '@/lib/ingredientAnalysisPresentation';
 
 interface Props {
+  /** Original human recommendation reasons; undefined preserves other presentations. */
+  savedRecommendationReasons?: string[];
   savedAnalysisAction?: import("react").ReactNode;
   savedRestriction?: string;
   savedAnalysisKind?: SavedAnalysisKind;
@@ -513,7 +515,7 @@ function AnalysisProfileSection({ items }: { items: string[] }) {
   );
 }
 
-export function IngredientIntelligenceSheet({ open, embedded = false, result, onClose, onRescan, onAddProduct, onAddAnyway, onSaveForReview, onResultRefined, companionName, saveSource = "scanner", savedContext, savedRestriction, savedAnalysisKind, savedAnalysisAction, hideSaveAction = false, hideLegacyScoreCards = false }: Props) {
+export function IngredientIntelligenceSheet({ open, embedded = false, result, onClose, onRescan, onAddProduct, onAddAnyway, onSaveForReview, onResultRefined, companionName, saveSource = "scanner", savedContext, savedRestriction, savedAnalysisKind, savedAnalysisAction, savedRecommendationReasons, hideSaveAction = false, hideLegacyScoreCards = false }: Props) {
   const { user } = useAuth();
   const owner = user?.id ?? null;
   const saveSession = useRef({ owner });
@@ -630,6 +632,7 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
   const verdictCfg = activeResult ? VERDICT_CONFIG[activeResult.verdictLevel ?? 'caution'] : null;
   const hasOutcomeCards = !!(activeResult?.outcomeCards && activeResult.outcomeCards.length > 0);
   const isByName = activeResult?.analysisMethod === 'by_name';
+  const isSavedRecommendation = savedAnalysisKind === "recommendation" && savedRecommendationReasons !== undefined;
   const showFrontLabelChoice = !savedAnalysisKind && !!(result?.isFrontLabel && !byNameResult && !byNameLoading);
 
   const handleAnalyzeByName = async () => {
@@ -694,7 +697,11 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
                     </div>
                   ) : result.productName ? (
                     <p className="text-[11px] text-white/35 mt-0.5">
-                      {showFrontLabelChoice ? t('ingredientSheet.header.frontLabelDetected') : isByName ? t('ingredientSheet.header.byNameAnalysis') : t('ingredientSheet.header.fullAnalysis')}
+                      {isSavedRecommendation
+                        ? saveSource === "grocery-coach"
+                          ? t('ingredientSheet.simple.savedFromCoach', { defaultValue: "Saved from Grocery Coach" })
+                          : t('ingredientSheet.simple.savedRecommendation', { defaultValue: "Saved recommendation" })
+                        : showFrontLabelChoice ? t('ingredientSheet.header.frontLabelDetected') : isByName ? t('ingredientSheet.header.byNameAnalysis') : t('ingredientSheet.header.fullAnalysis')}
                     </p>
                   ) : null}
                 </div>
@@ -756,7 +763,7 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
               {/* ── PATH 3: Full result (back-label scan or completed by-name analysis) ── */}
               {!showFrontLabelChoice && !byNameLoading && activeResult && (
                 <>
-                  {savedAnalysisKind && savedAnalysisKind !== "full" && (
+                  {savedAnalysisKind && savedAnalysisKind !== "full" && !isSavedRecommendation && (
                     <section className="rounded-xl border border-white/20 bg-white/5 p-3.5 mb-4">
                       <p className="text-sm font-semibold text-white">
                         {savedAnalysisKind === "recommendation" ? "Saved recommendation" : "Saved historical analysis"}
@@ -768,8 +775,15 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
                       </p>
                     </section>
                   )}
+                  {isSavedRecommendation && <>
+                    <Section title={t('ingredientSheet.simple.whyRecommended', { defaultValue: "Why It Was Recommended" })}
+                      items={distinctAnalysisText(savedRecommendationReasons.length ? savedRecommendationReasons : [activeResult.overallSummary])} icon="" />
+                    {savedAnalysisAction}
+                  </>}
                   <p className="text-xs text-white/70 mb-4" data-testid="analysis-source">
-                    {isByName
+                    {isSavedRecommendation
+                      ? t('ingredientSheet.simple.recommendationSource', { defaultValue: "Recommendation based on product knowledge. Check the current label for exact ingredients and nutrition." })
+                      : isByName
                       ? t('ingredientSheet.simple.byName', { defaultValue: "By-name analysis · Label not verified. Check the current label." })
                       : t('ingredientSheet.simple.byLabel', { defaultValue: "Ingredient-label analysis · Evidence as recorded at analysis." })}
                   </p>
@@ -835,15 +849,18 @@ export function IngredientIntelligenceSheet({ open, embedded = false, result, on
                       </div>
                     </div>
                   )}
-                  {savedAnalysisKind === "recommendation" && !activeResult.verdict && (
+                  {savedAnalysisKind === "recommendation" && !isSavedRecommendation && !activeResult.verdict && (
                     <Section title={t('ingredientSheet.simple.recommendation', { defaultValue: "Saved recommendation reasons and criteria" })}
                       items={distinctAnalysisText([activeResult.overallSummary, ...activeResult.ingredientConsiderations])} icon="" />
                   )}
-                  {savedAnalysisAction}
+                  {!isSavedRecommendation && savedAnalysisAction}
 
                   {/* What Matters Most For You — condition-tied, 3 bullets max */}
                   <WhatMattersMostSection items={primaryAnalysisPoints(activeResult)} />
-                  <Section title={t('ingredientSheet.simple.restrictions', { defaultValue: "Important for You" })} items={visibleAnalysisRestrictions(activeResult)} icon="!" />
+                  <Section title={t('ingredientSheet.simple.restrictions', { defaultValue: "Important for You" })}
+                    items={visibleAnalysisRestrictions(isSavedRecommendation
+                      ? { ...activeResult, ingredientConsiderations: savedRecommendationReasons }
+                      : activeResult)} icon="!" />
                   {savedRestriction && <p className="text-sm text-amber-200 mb-4">{savedRestriction}</p>}
 
                   {/* Better Product Options — always shown immediately after verdict */}

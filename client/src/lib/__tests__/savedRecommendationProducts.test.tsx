@@ -318,7 +318,7 @@ test("saved recommendations retain identity, brand, package and criteria without
     nutritionJson: null, compliance: { status: "approved" } }];
   render(wrap(<SavedGroceriesSheet open onOpenChange={jest.fn()} />));
   fireEvent.click(await screen.findByRole("button", { name: "View Analysis: RXBAR Protein Bar" }));
-  expect(screen.getByText("Saved recommendation")).toBeInTheDocument();
+  expect(screen.getByText("Saved from Grocery Coach")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "More Analysis Details" }));
   expect(screen.getAllByText("RXBAR Protein Bar").length).toBeGreaterThan(0);
   expect(screen.getByText("Package: 12 bars")).toBeInTheDocument();
@@ -330,6 +330,47 @@ test("saved recommendations retain identity, brand, package and criteria without
   expect(document.querySelector(".text-6xl")).toBeNull();
   expect(writes).toEqual([]);
   expect((apiRequest as jest.Mock).mock.calls.every(([url]) => url === "/api/saved-groceries")).toBe(true);
+});
+
+test("an unanalyzed recommendation shows each benefit once, a prominent action and one short source notice without a failed-label warning", async () => {
+  const reasons = ["May have less sodium than some Parmesan products.", "Provides protein and calcium."];
+  const verification = "Based on product knowledge, not a verified label scan. Check the current label before buying.";
+  const row = { id: "grana", productName: "Grana Padano", source: "grocery-coach",
+    evidenceRevision: "a".repeat(64),
+    productMeta: { subjectKind: "human", recommendationWhyBetter: [...reasons, reasons[0]],
+      recommendationTargetCriteria: "Compare sodium on the current package.", verificationMessage: verification },
+    compliance: { status: "blocked", category: "evidence_missing",
+      reason: "Ingredient evidence unavailable — cannot verify safety against your allergy profile" } };
+  rows["fixture-a"] = [row];
+  render(wrap(<SavedGroceriesSheet open onOpenChange={jest.fn()} />));
+  fireEvent.click(await screen.findByRole("button", { name: "View Analysis: Grana Padano" }));
+  expect(screen.getByText("Saved from Grocery Coach")).toBeInTheDocument();
+  expect(screen.getByText("Why It Was Recommended")).toBeInTheDocument();
+  for (const reason of reasons) expect(screen.getAllByText(reason)).toHaveLength(1);
+  const action = screen.getByRole("button", { name: "Analyze This Product" });
+  expect(action).toHaveClass("w-full", "min-h-12", "text-base");
+  const source = screen.getByTestId("analysis-source");
+  expect(action.compareDocumentPosition(source) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(source).toHaveTextContent("Recommendation based on product knowledge. Check the current label for exact ingredients and nutrition.");
+  expect(screen.queryByText(/separate Product Scan grade was not saved/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/Ingredient evidence unavailable/)).not.toBeInTheDocument();
+  expect(screen.queryByText(verification)).not.toBeInTheDocument();
+  expect(screen.queryByText("Full Analysis")).not.toBeInTheDocument();
+  expect(document.querySelector(".text-6xl")).toBeNull();
+  expect(post).not.toHaveBeenCalled();
+  expect(row.compliance.status).toBe("blocked"); // Presentation does not upgrade compatibility.
+  fireEvent.click(screen.getByRole("button", { name: "More Analysis Details" }));
+  expect(screen.getAllByText(verification).length).toBeGreaterThan(0);
+});
+
+test.each(["incompatible", "profile_unavailable"])("recommendation cleanup preserves %s restrictions", async category => {
+  rows["fixture-a"] = [{ id: "restricted", productName: "Restricted recommendation",
+    productMeta: { subjectKind: "human", recommendationWhyBetter: ["Original benefit"] },
+    compliance: { status: "blocked", category, reason: "Avoid this product because it contains your known milk allergen." } }];
+  render(wrap(<SavedGroceriesSheet open onOpenChange={jest.fn()} />));
+  fireEvent.click(await screen.findByRole("button", { name: "View Analysis: Restricted recommendation" }));
+  expect(screen.getByText("Avoid this product because it contains your known milk allergen.")).toBeInTheDocument();
+  expect(post).not.toHaveBeenCalled();
 });
 
 test("a partial historical scorecard displays only the genuinely saved assessment", async () => {
@@ -488,9 +529,11 @@ test("a blocked legacy Coach product has a working View Analysis and label-verif
   fireEvent.click(await screen.findByRole("button", { name: "View Analysis: Simply Orange" }));
   expect(await screen.findByText("Original Coach explanation")).toBeInTheDocument();
   expect(screen.queryByText("ingredientSheet.howItScoresForYou")).not.toBeInTheDocument();
-  expect(screen.getAllByText(/Check the complete ingredient label/).length).toBeGreaterThan(0);
+  expect(screen.getByTestId("analysis-source")).toHaveTextContent("Check the current label for exact ingredients and nutrition.");
+  expect(screen.queryByText("Ingredient evidence unavailable")).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Add Simply Orange to List" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "More Analysis Details" }));
+  expect(screen.getAllByText(/Check the complete ingredient label/).length).toBeGreaterThan(0);
   fireEvent.click(screen.getByRole("button", { name: "Scan current ingredient label" }));
   expect(verify).toHaveBeenCalledWith(rows["fixture-a"][0]);
   expect(post).not.toHaveBeenCalled();

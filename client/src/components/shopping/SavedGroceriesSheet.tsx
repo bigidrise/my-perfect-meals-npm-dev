@@ -576,7 +576,13 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
       open={!!analysisItem}
       hideSaveAction
       savedAnalysisKind={savedAnalysisKind(displayedItem!)}
-      savedRestriction={analysisItem.compliance.reason ?? undefined}
+      savedRecommendationReasons={savedAnalysisKind(displayedItem!) === "recommendation" && displayedItem!.productMeta?.subjectKind !== "companion"
+        ? (Array.isArray(displayedItem!.productMeta?.recommendationWhyBetter)
+          ? displayedItem!.productMeta.recommendationWhyBetter.filter((reason: unknown): reason is string => typeof reason === "string")
+          : [])
+        : undefined}
+      savedRestriction={savedAnalysisKind(displayedItem!) === "recommendation" && displayedItem!.productMeta?.subjectKind !== "companion"
+        && analysisItem.compliance.category === "evidence_missing" ? undefined : analysisItem.compliance.reason ?? undefined}
       saveSource={analysisItem.source === "grocery-coach" ? "grocery-coach" : "scanner"}
       savedAnalysisAction={analysisSupported && historyIndex === -1 && savedAnalysisKind(analysisItem) === "recommendation" && analysisItem.productMeta?.subjectKind !== "companion"
         ? <SavedProductAnalysisAction key={`${owner}:${analysisItem.id}`} item={analysisItem} onUpdated={updated => {

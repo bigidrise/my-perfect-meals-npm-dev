@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { PillButton } from "@/components/ui/pill-button";
+import { groceryProductLabel } from "@/lib/savedGroceryRecommendation";
 import { post } from "@/lib/api";
 import type { SavedGroceryItem } from "./SavedGroceriesSheet";
 
@@ -49,14 +49,16 @@ export function SavedProductAnalysisAction({ item, onUpdated }: Props) {
     }
   }
 
-  return <section className="rounded-xl border border-orange-400/30 p-3 mb-4 space-y-2">
-    <p className="text-xs text-white/75">{t("ingredientSheet.simple.analyzeNotice", {
-      defaultValue: "Generate this product's own personalized by-name analysis using AI. This uses the paid AI service; opening saved results does not run it again.",
-    })}</p>
-    <PillButton disabled={pending || !item.evidenceRevision} onClick={analyze}>
+  return <section className="mb-4 space-y-2">
+    <button type="button" disabled={pending || !item.evidenceRevision} aria-busy={pending} onClick={analyze}
+      className="w-full min-h-12 rounded-xl bg-orange-600 px-4 py-3 text-base font-semibold text-white hover:bg-orange-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-400 disabled:opacity-50">
       {pending ? t("ingredientSheet.simple.analyzingProduct", { defaultValue: "Analyzing This Product…" })
         : t("ingredientSheet.simple.analyzeProduct", { defaultValue: "Analyze This Product" })}
-    </PillButton>
+    </button>
+    <p className="text-xs text-white/65 leading-relaxed">{t("ingredientSheet.simple.analyzeNotice", {
+      name: groceryProductLabel(item),
+      defaultValue: "Generate {{name}}'s own personalized analysis. Saved results can be reopened without another analysis request.",
+    })}</p>
     {error && <p role="alert" className="text-sm text-amber-200">{error}</p>}
   </section>;
 }
