@@ -483,17 +483,15 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
                           <div
                             key={item.id}
                             style={{
-                               display: "grid",
-                               gridTemplateColumns: "auto minmax(0, 1fr)",
-                               alignItems: "start",
-                               columnGap: 10,
-                               rowGap: 10,
-                              padding: "10px 12px", borderRadius: 10,
+                               display: "flex",
+                               alignItems: "center",
+                               gap: 4,
+                              padding: "8px 12px", borderRadius: 10,
                               background: "rgba(255,255,255,0.04)",
                               border: "1px solid rgba(255,255,255,0.07)",
                             }}
                           >
-                              <label style={{ display: "flex", alignItems: "center", justifyContent: "center", minWidth: 44, minHeight: 44, cursor: "pointer" }}>
+                              <label style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, flexShrink: 0, cursor: "pointer" }}>
                                 <input type="checkbox" aria-label={`Select ${itemDisplayName(item)}${itemPackageSize(item) ? ` (${itemPackageSize(item)})` : ""}`}
                                   style={{ width: 22, height: 22, accentColor: "#38bdf8", cursor: "pointer" }}
                                   checked={isSelected} disabled={bulkAdding}
@@ -501,76 +499,56 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
                               </label>
 
                             <div
+                              className="line-clamp-2"
+                              title={`${itemDisplayName(item)}${itemPackageSize(item) ? ` (${itemPackageSize(item)})` : ""}`}
                               style={{
-                                flex: 1, minWidth: 0,
-                                textAlign: "left", padding: 0,
+                                flex: "1 1 0", minWidth: 0, textAlign: "left",
+                                color: "white",
+                                fontWeight: 600,
+                                fontSize: 14,
+                                lineHeight: 1.35,
+                                overflowWrap: "anywhere",
+                                overflow: "hidden",
                               }}
                             >
-                               <div style={{ display: "flex", alignItems: "flex-start", gap: 4 }}>
-                                 <div style={{
-                                   color: "white",
-                                   fontWeight: 600,
-                                   fontSize: 14,
-                                   lineHeight: 1.35,
-                                   overflowWrap: "anywhere",
-                                 }}>
-                                  {item.productName}
-                                </div>
-                              </div>
-                               <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
-                                {item.brand && (
-                                  <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 12 }}>
-                                    {item.brand}
-                                  </span>
-                                )}
-                                {itemPackageSize(item) && (
-                                  <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>
-                                    {itemPackageSize(item)}
-                                  </span>
-                                )}
-                              </div>
+                              {itemDisplayName(item)}{itemPackageSize(item) ? ` (${itemPackageSize(item)})` : ""}
                             </div>
 
-                             <div
-                               style={{
-                                 gridColumn: "1 / -1",
-                                 display: "flex",
-                                 alignItems: "center",
-                                 justifyContent: "flex-end",
-                                 gap: 8,
-                                 flexWrap: "wrap",
-                                 paddingTop: 2,
-                                 borderTop: "1px solid rgba(255,255,255,0.06)",
-                               }}
+                            <button
+                              type="button"
+                              onClick={() => { setHistoryIndex(-1); setAnalysisItem(item); }}
+                              aria-label={`View Analysis: ${itemDisplayName(item)}`}
+                              className="hover:brightness-125 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
+                              style={{
+                                color: "#7dd3fc", background: "rgba(56,189,248,0.12)",
+                                border: "1px solid rgba(56,189,248,0.45)", borderRadius: 8,
+                                fontSize: 12, fontWeight: 600, textDecoration: "underline", textUnderlineOffset: 3,
+                                padding: "0 4px", minWidth: 52, height: 44, flexShrink: 0, cursor: "pointer",
+                              }}
                             >
-                               <button
-                                 type="button"
-                                 onClick={() => { setHistoryIndex(-1); setAnalysisItem(item); }}
-                                 aria-label={`View Analysis: ${itemDisplayName(item)}`}
-                                 style={{ color: "rgba(255,255,255,0.55)", background: "none", border: "none", fontSize: 12, padding: "8px 0", cursor: "pointer" }}
-                               >
-                                 Saved analysis
-                               </button>
+                              Analysis
+                            </button>
 
-                               {/* Unsave */}
-                               <button
-                                 onClick={() => handleRemove(item)}
-                                 disabled={isRemoving}
-                                 aria-label={`Remove ${itemDisplayName(item)} from saved groceries`}
-                                 title="Remove from saved groceries"
-                                 style={{
-                                   display: "flex", alignItems: "center", justifyContent: "center",
-                                   width: 32, height: 32, borderRadius: 8,
-                                   border: "1px solid rgba(239,68,68,0.18)",
-                                   background: "rgba(239,68,68,0.08)", cursor: "pointer", flexShrink: 0,
-                                 }}
-                               >
-                                 {isRemoving
-                                   ? <Loader2 style={{ width: 13, height: 13, color: "#ef4444", animation: "spin 1s linear infinite" }} />
-                                   : <Trash2 style={{ width: 13, height: 13, color: "rgba(239,68,68,0.7)" }} />
-                                 }
-                               </button>
-                             </div>
+                            {/* Unsave */}
+                            <button
+                              type="button"
+                              onClick={() => handleRemove(item)}
+                              disabled={isRemoving}
+                              aria-label={`Remove ${itemDisplayName(item)} from saved groceries`}
+                              title="Remove from saved groceries"
+                              style={{
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                gap: 4, minWidth: 44, height: 44, padding: "0 6px", borderRadius: 8,
+                                border: "1px solid rgba(239,68,68,0.18)",
+                                background: "rgba(239,68,68,0.08)", color: "rgba(239,68,68,0.8)", fontSize: 11, cursor: "pointer", flexShrink: 0,
+                              }}
+                            >
+                              {isRemoving
+                                ? <Loader2 style={{ width: 13, height: 13, color: "#ef4444", animation: "spin 1s linear infinite" }} />
+                                : <Trash2 style={{ width: 13, height: 13, color: "rgba(239,68,68,0.7)" }} />
+                              }
+                              Delete
+                            </button>
                           </div>
                         );
                       })}

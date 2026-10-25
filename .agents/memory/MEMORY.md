@@ -116,7 +116,6 @@
 - [Generated meal serving contract](generated-meal-serving-contract.md) — response nutrition is total-recipe; validators must normalize with the same requested serving count.
 - [One-Touch Creator authority](one-touch-creator-authority.md) — delegated choices require explicit diet authority and safety-equivalent checks; Menu stays separate from manual Creators.
 - [Creator Menu choice retention](creator-menu-choice-retention.md) — completing a recipe must keep its three Menu ideas available until the user explicitly replaces or removes them.
-- [Vite-only feature gates in Jest](vite-feature-gates-jest.md) — isolate import.meta.env gates from request helpers so CommonJS Jest can test them.
 - [Health protocol cutover](health-protocol-cutover.md) — GLP-1 is the sole new personal intent; existing clinical supports remain authoritative until reviewed all-surface migration.
 - [Optional support overlay freeze](optional-support-overlay-freeze.md) — Builder-first presentation pauses new personal stacking without deleting choices or suppressing clinical authority.
 - [Cardiac lab user choice](cardiac-lab-user-choice.md) — users can stop lab-derived Cardiac guidance without changing lab evidence; physician-owned protocols stay protected.
@@ -137,7 +136,6 @@
 - [Migration CLI lifecycle](migration-cli-lifecycle.md) — one-off commands must own their connection; the application DB keepalive can outlive a closed pool.
 - [Professional credential clearance](professional-credential-clearance.md) — bind genuine MFA-reviewed evidence to current identity; activation, pilots and demos remain separate.
 - [Grocery Coach workflow](grocery-coach-meal-card-workflow.md) — automatic Favorites/card continuity and Development-only, user-initiated packaged-product discovery.
-- [Focused Jest execution](focused-jest-execution.md) — use isolated test transpilation and a separate type gate to avoid loading the entire project twice.
 - [Studio loading release boundary](studio-loading-release-boundary.md) — loading corrections are Development-only; permission caching and restart/release need separate approval.
 - [Recipe carbohydrate categories](recipe-carb-category-boundary.md) — preserve explicit source estimates; dietary fiber and unknown carbohydrate remain distinct.
 - [Interrupted edit integrity](interrupted-edit-integrity.md) — check every affected file after a disconnected multi-file edit, including reported successes.
@@ -157,3 +155,4 @@
 - [Meal card source labels](meal-card-source-label-policy.md) — show the originating builder or creator, not a clinical condition such as Heart Failure.
 - [Dashboard menu colors](dashboard-menu-color-policy.md) — use visually distinct accents for unrelated dashboard tools, not merely different hex shades of the same hue.
 - [RHM client walkthrough](rhm-client-walkthrough-context.md) — staff need the actual first-time client experience before distributing a 30-day link to 8,000 clinic clients.
+- [Frontend test runtime](dom-snapshot-css-fidelity.md) — snapshot CSS fidelity, focused Jest execution, and Vite-only feature gates.

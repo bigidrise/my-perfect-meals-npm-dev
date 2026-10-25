@@ -239,7 +239,7 @@ test("server rejection is reported honestly without removing the saved product o
   await loaded(); fireEvent.click(select("a"));
   fireEvent.click(addSelected(1));
   await waitFor(() => expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({ variant: "destructive" })));
-  expect(screen.getByText("Product a")).toBeInTheDocument();
+  expect(screen.getByText("Fixture Brand Product a")).toBeInTheDocument();
   expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({
     title: "Some products were not added",
     description: expect.stringContaining("Current profile changed"),
@@ -274,8 +274,8 @@ test("stored brand and explicit package size remain visible and exact saved iden
   ];
   render(<SavedGroceriesSheet {...props()} />);
   await loaded();
-  expect(screen.getByText("500 g")).toBeInTheDocument();
-  expect(screen.getByText("1 kg")).toBeInTheDocument();
+  expect(screen.getByText("Exact Brand Rolled Oats (500 g)")).toBeInTheDocument();
+  expect(screen.getByText("Exact Brand Rolled Oats (1 kg)")).toBeInTheDocument();
   fireEvent.change(screen.getByRole("textbox"), { target: { value: "1 kg" } });
   fireEvent.click(screen.getByRole("checkbox", { name: "Select Exact Brand Rolled Oats (1 kg)" }));
   fireEvent.click(addSelected(1));
@@ -289,7 +289,7 @@ test("delete removes only the chosen saved product and clears its selection", as
   await loaded(); fireEvent.click(select("a"));
   fireEvent.click(screen.getByRole("button", { name: "Remove Fixture Brand Product a from saved groceries" }));
   await waitFor(() => expect(apiJSON).toHaveBeenCalledWith("/api/saved-groceries/a", { method: "DELETE" }));
-  await waitFor(() => expect(screen.queryByText("Product a")).not.toBeInTheDocument());
+  await waitFor(() => expect(screen.queryByText("Fixture Brand Product a")).not.toBeInTheDocument());
   expect(select("b")).toBeInTheDocument();
   expect(addSelected()).toBeDisabled();
   expect(rows.map(row => row.id)).toEqual(["b"]);
@@ -309,29 +309,60 @@ test("logout/login restores only the same account's persisted mock library witho
   owner = "synthetic-owner-b";
   view.rerender(<SavedGroceriesSheet {...p} />);
   await screen.findByRole("checkbox", { name: "Select Fixture Brand Product b" });
-  expect(screen.queryByText("Product a")).not.toBeInTheDocument();
+  expect(screen.queryByText("Fixture Brand Product a")).not.toBeInTheDocument();
   owner = null; view.rerender(<SavedGroceriesSheet {...p} />);
   owner = "synthetic-owner-a"; view.rerender(<SavedGroceriesSheet {...p} />);
   await screen.findByRole("checkbox", { name: "Select Fixture Brand Product a" });
   expect(select("a")).not.toBeChecked();
-  expect(screen.queryByText("Product b")).not.toBeInTheDocument();
+  expect(screen.queryByText("Fixture Brand Product b")).not.toBeInTheDocument();
   expect(persisted["synthetic-owner-a"]).toHaveLength(1);
   expect(post).not.toHaveBeenCalled();
   expect(apiJSON).not.toHaveBeenCalled();
 });
 
-test("mobile rows retain wrapping actions, a 44px selection target, and the existing vertical scroller", async () => {
+test("compact rows keep four ordered controls, 44px touch targets, exact names and the vertical scroller", async () => {
   rows = [
     fixture("oats", { productName: "Old-fashioned rolled oats" }),
     { ...restricted("evidence_missing", "Complete ingredient evidence is needed to check your current profile."), productName: "Chickpea pasta", productMeta: { packageSize: "400 g" } },
     { ...restricted("profile_unavailable", "Your current profile check is temporarily unavailable."), productName: "Marinara sauce" },
     { ...restricted("incompatible", "Contains milk, which conflicts with your dairy allergy."), productName: "Plain yogurt" },
-    fixture("long-name", { productName: "A very long saved product name with several descriptive words", brand: "Longer Fixture Brand" }),
+    fixture("long-name", {
+      productName: "A very long saved product name with several descriptive words",
+      brand: "Longer Fixture Brand",
+      productMeta: { packageSize: "Family multipack 12 × 500 g (6 kg)" },
+    }),
+    fixture("unbroken", {
+      productName: "UnbrokenExtraLongProductNameForNarrowScreenOverflowTesting",
+      brand: "AnExtraordinarilyLongBrandNameWithNoSpaces",
+      nutritionJson: { packageSize: "24 × 330 mL" },
+    }),
+    ...Array.from({ length: 12 }, (_, index) => fixture(`scroll-${index}`)),
   ];
   render(<SavedGroceriesSheet {...props()} />);
   await loaded();
   const checkbox = screen.getByRole("checkbox", { name: "Select Fixture Brand Old-fashioned rolled oats" });
-  expect(checkbox.parentElement).toHaveStyle({ minWidth: "44px", minHeight: "44px" });
+  for (const box of screen.getAllByRole("checkbox")) {
+    const label = box.parentElement!;
+    const row = label.parentElement!;
+    const [selection, name, analysis, remove] = Array.from(row.children);
+    expect(selection).toBe(label);
+    expect(row.children).toHaveLength(4);
+    expect(row).toHaveStyle({ display: "flex", alignItems: "center" });
+    expect(label).toHaveStyle({ width: "44px", height: "44px", flexShrink: 0 });
+    expect(name).toHaveStyle({ minWidth: 0, overflow: "hidden" });
+    expect(name.getAttribute("title")).toBe(box.getAttribute("aria-label")!.replace(/^Select /, ""));
+    expect(analysis).toHaveTextContent(/^Analysis$/);
+    expect(analysis).toHaveStyle({ minWidth: "52px", height: "44px", flexShrink: 0 });
+    expect(analysis).toHaveStyle({ color: "#7dd3fc", fontWeight: 600, textDecoration: "underline", borderRadius: "8px" });
+    expect(analysis).toHaveClass("focus-visible:outline-2");
+    expect(name).toHaveClass("line-clamp-2");
+    expect(remove).toHaveAttribute("aria-label", expect.stringMatching(/^Remove /));
+    expect(remove).toHaveStyle({ minWidth: "44px", height: "44px", flexShrink: 0 });
+  }
+  expect(checkbox).toBeEnabled();
+  expect(screen.queryByText("Saved analysis")).not.toBeInTheDocument();
+  expect(screen.getByText(/Longer Fixture Brand A very long saved product name/))
+    .toHaveTextContent("Family multipack 12 × 500 g (6 kg)");
   expect(document.querySelector('[style*="max-height: 88vh"]')).toHaveStyle({ overflowY: "auto" });
   // A static capture of the actual rendered component, not a hand-built mockup.
   // Served only from /tmp for narrow-screen visual inspection; no live APIs.
