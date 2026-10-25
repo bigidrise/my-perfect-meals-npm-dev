@@ -15,6 +15,9 @@ jest.mock("@/stores/shoppingListStore", () => ({ useShoppingListStore: jest.fn()
 jest.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ user: { id: "catalog-user" } }) }));
 jest.mock("@/components/ui/pill-button", () => ({ PillButton: () => null }));
 jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+jest.mock("@/components/biometrics/IngredientIntelligenceSheet", () => ({
+  IngredientIntelligenceSheet: ({ result }: any) => <div>{result.overallSummary}</div>,
+}));
 
 import React from "react";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
@@ -131,17 +134,20 @@ describe("Development Grocery Coach catalog integration", () => {
     expect(addItems.mock.calls[0][0][0].ingredientMetadata).toBeUndefined();
   });
 
-  it("Find a Product uses the same catalog endpoint and preserves the meal on return", async () => {
+  it("Find a Product reuses Product Scan without changing meal catalog lookup or the meal on return", async () => {
     seed();
+    (post as jest.Mock).mockResolvedValueOnce({ ok: true, result: {
+      analysisMethod: "by_name", overallSummary: "Existing Product Scan analysis",
+    } });
     render(<GroceryStoreCoachSheet open onOpenChange={jest.fn()} />);
     await screen.findByText("Turkey Spaghetti");
     fireEvent.click(screen.getByTestId("tab-find-product"));
     fireEvent.change(screen.getByTestId("input-find-product"), { target: { value: "spaghetti sauce" } });
     fireEvent.click(screen.getByTestId("button-product-search"));
-    await waitFor(() => expect(post).toHaveBeenCalledWith("/api/grocery-coach/product-advisor", {
-      ingredients: ["spaghetti sauce"], mode: "find_product",
+    await waitFor(() => expect(post).toHaveBeenCalledWith("/api/biometrics/ingredient-scan-by-name", {
+      productName: "spaghetti sauce",
     }));
-    await screen.findByText(/Example.*Tomato Sauce/);
+    await screen.findByText("Existing Product Scan analysis");
     fireEvent.click(screen.getByTestId("tab-build-meal"));
     await screen.findByText("Turkey Spaghetti");
     expect(screen.getByText("1.5 cups")).toBeInTheDocument();

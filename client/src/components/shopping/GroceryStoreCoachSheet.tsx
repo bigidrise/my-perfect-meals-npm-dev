@@ -43,6 +43,8 @@ import { shoppingMetadataEnabled } from "@/lib/shoppingMetadataGate";
 import { groceryCoachSelectedProductMetadata } from "@/lib/groceryCoachShoppingTransfer";
 import MealIngredientBrands from "./MealIngredientBrands";
 import type { ShoppingCatalogDecision } from "@shared/shoppingProductSelection";
+import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
+import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 
 type Phase = "idle" | "loading" | "result";
 
@@ -167,6 +169,7 @@ type ProductPhase = "idle" | "loading" | "result";
 interface ProductSearchSession {
   query: string;
   advice: ProductAdviceResult;
+  analysis?: IngredientScanResult;
   savedAt: number;
 }
 
@@ -370,8 +373,8 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
   // Same session-restore pattern as the meal result, scoped per user.
   const PRODUCT_SESSION_KEY = useMemo(
-    // Do not restore pre-decision catalog cards with the old blanket label status.
-    () => `grocery-coach-product-search:decision-v3:${user?.id ?? "guest"}`,
+    // By-name analyses must not restore older catalog or brand-advisor results.
+    () => `grocery-coach-product-search:by-name:${user?.id ?? "guest"}`,
     [user?.id]
   );
 
@@ -553,7 +556,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         localStorage.removeItem(PRODUCT_SESSION_KEY);
         return;
       }
-      if (session.advice?.advice?.length && session.query) {
+      if (session.analysis?.analysisMethod === "by_name" && session.query) {
         setProductSearch(session);
         setProductSearchOwnerKey(PRODUCT_SESSION_KEY); // result now belongs to this user's key
         setProductPhase("result");
@@ -580,16 +583,16 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     setProductError(null);
     setProductAddedKeys(new Set());
     try {
-      const data = await post("/api/grocery-coach/product-advisor", { ingredients: [query], mode: "find_product" });
+      const data = await post("/api/biometrics/ingredient-scan-by-name", { productName: query });
       if (sessionGenRef.current !== gen) return; // identity changed — discard
       if (data?.error) throw new Error(data.error);
-      if (data?.advice?.length || data?.catalogMatches?.length || data?.excludedReasons?.length) {
-        setProductSearch({ query, advice: data as ProductAdviceResult, savedAt: Date.now() });
+      if (data?.ok && data?.result?.analysisMethod === "by_name" && !data.result.fallbackUsed) {
+        setProductSearch({ query, analysis: data.result, advice: { advice: [], profileUsed: [] }, savedAt: Date.now() });
         setProductSearchOwnerKey(PRODUCT_SESSION_KEY); // stamp ownership so persist effect may write
         setProductPhase("result");
       } else {
-        setProductError(data?.sourceFailures?.length && !data?.catalogSearchAvailable
-          ? "The product catalog is unavailable right now. Please try again."
+        setProductError(data?.result?.fallbackUsed
+          ? data.result.overallSummary || t("findProduct.errorGeneric")
           : t("findProduct.noResults"));
         setProductPhase("idle");
       }
@@ -1193,6 +1196,16 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                   <div style={{ color: "#fb923c", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>
                     {t("findProduct.resultsFor", { query: productSearch.query })}
                   </div>
+
+                  {productSearch.analysis && (
+                    <IngredientIntelligenceSheet
+                      embedded
+                      open
+                      result={productSearch.analysis}
+                      onClose={handleCompareAnother}
+                      onAddProduct={(name) => handleProductAddToList(name, productSearch.query)}
+                    />
+                  )}
 
                   {/* Protocol badges */}
                   {productSearch.advice.profileUsed.length > 0 && (

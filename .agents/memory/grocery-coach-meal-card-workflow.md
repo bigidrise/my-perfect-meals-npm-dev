@@ -11,11 +11,19 @@ Grocery Coach must automatically turn a recommendation into a complete meal card
 
 ## Packaged-product discovery boundary
 
-Build a Meal and Find a Product share sourced catalog discovery, but ordinary ingredients do not need brand recommendations. Meal-row lookups must be user-initiated for eligible ingredients to buy, not automatic across the recipe or owned ingredients. This improvement is Development-only until separately approved for release; Product Scan remains outside its scope.
+Build a Meal's sourced catalog discovery remains user-initiated for eligible ingredients to buy, not automatic across the recipe or owned ingredients. Ordinary ingredients do not need brand recommendations. This improvement is Development-only until separately approved for release.
 
 **Why:** The user requested useful packaged-product choices within the existing meal experience without rebuilding generation, weakening profile restrictions, changing servings, or implying that choosing a brand medically revalidates the finished meal.
 
 **How to apply:** Preserve the original ingredient amount, unit, servings, and meal/card workflow. Display evidence and unresolved review needs with each choice, keep lookup errors local, and retain exact product identity and review qualifications when carrying a choice into shopping.
+
+## Find a Product and Product Scan
+
+Find a Product reuses the existing Product Scan by-name intelligence and results, not a new catalog, provider, AI engine, interface, or safety framework. Preserve Grocery Coach's tabs and text/voice submission. Human Product Scan opens with Choose Photo and Camera; its underlying text capability remains available to Grocery Coach. These changes are Development-only until separately approved.
+
+**Why:** The user clarified that missing verification should not automatically mean missing guidance. Find a Product helps customers discover options; Product Scan evaluates a specific photographed product.
+
+**How to apply:** Allow qualified knowledge-based suggestions without claiming verified ingredients, allergen absence, or medical safety. Explain current-label checks and do not invent products, nutrition values, availability, or grades to reach three options. Preserve known restrictions and the photo-analysis behavior; no broad redesign or nutrition-rule changes.
 
 ## Smart Grocery List foundation approval boundary
 

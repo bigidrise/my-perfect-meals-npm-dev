@@ -839,7 +839,7 @@ export default function InspirationCaptureModal({
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
                 </div>
-                {isSmartScan && (
+                {isCompanionScan && (
                   <>
                     <PillButton
                       active={mode === "voice"}
