@@ -5,6 +5,12 @@ description: Product-evidence priority and safety boundaries for permanent Saved
 
 Saved Groceries is the permanent library shared by Product Scan and Grocery Coach. A saved product is a preference, not a permanent safety approval: every surface must revalidate it against the current authoritative profile before adding or recommending it.
 
+Every product shown by Find a Product should be individually saveable for future addition to the user's shopping list, retaining the specific product and brand rather than only a generic category such as "Juice".
+
+**Why:** The user explicitly described this as the expected purpose of Saved Groceries after seeing a saved entry labeled only "Juice".
+
+**How to apply:** Preserve the selected recommendation's identity through saving, library display, and later shopping-list addition. This expectation does not authorize implementation during a diagnosis-only request or imply verified product safety.
+
 Evidence priority is:
 1. User-photographed label.
 2. USDA branded-product record.
