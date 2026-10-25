@@ -74,3 +74,11 @@ Saved Groceries is a reusable product library, not a second nutrition-analysis o
 **Why:** The founder explicitly corrected the previous verification-heavy design: customers are remembering specific products to buy later, not declaring them medically safe to consume.
 
 **How to apply:** Selection represents shopping intent, never safety approval. Do not add analysis steps or automatic paid AI calls. Preserve the analysis workflow's allergy/medical protections. Inspect existing saved-to-list restrictions and report conflicts with the simple Save → Select → Add experience; obtain separate approval before changing server enforcement. Do not silently skip selected products or claim rejected additions succeeded.
+
+## Approved Development shopping-intent boundary
+
+The founder approved separating saved-product shopping-list transfers from compatibility approval in Development, including products with unknown or conflicting compatibility. This is not permission to change Production enforcement or make a safety claim.
+
+**Why:** Adding a specific owned product to a shopping list records purchase intent; it does not certify that the customer should consume it.
+
+**How to apply:** Preserve authenticated ownership, exact saved identity, duplicate prevention, atomic writes, and original evidence. Transferred evidence remains historical and review-required, never upgraded to medically eligible. Keep analysis and recommendation revalidation independent, including Grocery Coach's current-profile checks. The approved change concerns transfers, not the library-read compatibility contract or package-identity migrations. Production rollout requires separate approval.

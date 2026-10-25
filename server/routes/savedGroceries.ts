@@ -20,7 +20,7 @@ import { eq, and, inArray, sql } from "drizzle-orm";
 import { computeProductKey } from "../utils/productKey";
 import { revalidateSavedGroceriesForUser } from "../services/savedGroceryRevalidation";
 import { prepareSavedEvidenceUpdate, savedEvidenceRevision } from "../services/savedGroceryEvidence";
-import { developmentSavedProductFields } from "../services/shopping-list/metadataPersistence";
+import { developmentSavedProductFields, shoppingMetadataDevelopment } from "../services/shopping-list/metadataPersistence";
 
 export { computeProductKey };
 
@@ -294,16 +294,20 @@ router.post("/add-to-list", async (req, res) => {
       return res.status(404).json({ error: "One or more saved grocery items were not found" });
     }
 
-    const decisions = await revalidateSavedGroceriesForUser(userId, items);
+    // Development: explicit list inclusion is shopping intent, not permission
+    // to consume. Historical evidence remains review_required in list metadata;
+    // recommendation/analysis callers still revalidate independently.
+    const shoppingIntentOnly = shoppingMetadataDevelopment();
+    const decisions = shoppingIntentOnly ? [] : await revalidateSavedGroceriesForUser(userId, items);
     const decisionById = new Map(decisions.map((decision) => [decision.id, decision]));
-    const approvedItems = items
-      .filter((item) => decisionById.get(item.id)?.status === "approved")
+    const transferItems = items
+      .filter((item) => shoppingIntentOnly || decisionById.get(item.id)?.status === "approved")
       .sort((a, b) => a.productKey.localeCompare(b.productKey));
 
-    // Every approved write is one atomic unit. Advisory locks serialize
+    // Every transfer is one atomic unit. Advisory locks serialize
     // concurrent attempts for the same user/product identity.
     const writtenResults = await db.transaction(async (tx) => {
-      for (const item of approvedItems) {
+      for (const item of transferItems) {
         await tx.execute(sql`
           SELECT pg_advisory_xact_lock(
             hashtext(${userId}),
@@ -323,7 +327,7 @@ router.post("/add-to-list", async (req, res) => {
         .where(eq(shoppingListItems.userId, userId));
 
       const results = [];
-      for (const item of approvedItems) {
+      for (const item of transferItems) {
         results.push(await addSavedItemToShoppingList(tx, userId, item, existingRows));
       }
       return results;
@@ -408,14 +412,17 @@ router.post("/:id/add-to-list", async (req, res) => {
 
     if (!item) return res.status(404).json({ error: "Saved item not found" });
 
-    const [decision] = await revalidateSavedGroceriesForUser(userId, [item]);
-    if (!decision || decision.status === "blocked") {
-      return res.json({
-        success: false,
-        name: savedItemDisplayName(item),
-        status: "blocked",
-        reason: decision?.reason ?? "Current profile compatibility could not be verified.",
-      });
+    // Same Development-only shopping-intent boundary as the bulk endpoint.
+    if (!shoppingMetadataDevelopment()) {
+      const [decision] = await revalidateSavedGroceriesForUser(userId, [item]);
+      if (!decision || decision.status === "blocked") {
+        return res.json({
+          success: false,
+          name: savedItemDisplayName(item),
+          status: "blocked",
+          reason: decision?.reason ?? "Current profile compatibility could not be verified.",
+        });
+      }
     }
 
     const result = await db.transaction(async (tx) => {
