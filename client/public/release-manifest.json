@@ -1,7 +1,7 @@
 {
-  "version": "1792603659626",
-  "gitSha": "58b8ec0e5",
-  "buildTimestamp": "2026-10-21T17:27:39.638Z",
+  "version": "1792985146500",
+  "gitSha": "29e54041a",
+  "buildTimestamp": "2026-10-26T03:25:46.616Z",
   "environment": "production",
   "storageBucketId": "replit-objstore-3ccef2ce-f691-43ed-bb6e-fd72e925a491",
   "releaseId": "2026-09-19-1",
