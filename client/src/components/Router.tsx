@@ -1,6 +1,5 @@
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Switch, Route, useLocation } from "wouter";
-import { developmentComingSoonEnabled } from "@/lib/developmentComingSoon";
 import { BUILDER_MAP, type BuilderKey } from "@/lib/builderMap";
 const GeneralNutritionBuilder = lazy(() => import("@/pages/pro/GeneralNutritionBuilder"));
 const GeneralNutritionBuilderEntry = lazy(() => import("@/pages/pro/GeneralNutritionBuilderEntry"));
@@ -1044,7 +1043,7 @@ export default function Router() {
   // Routes that DON'T require onboarding or macro completion
   const ungatedRoutes = [
     "/demo-physician",
-    ...(developmentComingSoonEnabled ? ["/lifestyle/ai-pairing-advisor"] : []),
+    "/lifestyle/ai-pairing-advisor",
     // Dev-only responsive regression harnesses — never gated in development
     ...(import.meta.env.DEV
       ? ["/test-modal-bounds", "/__modal-test__", "/__sheet-test__", "/rewardful/connect/confirm"]
@@ -1313,9 +1312,7 @@ export default function Router() {
         <Route path="/sushi-creator" component={GuardedSushiCreator} />
         <Route path="/lifestyle/chef-pairings" component={GuardedChefPairings} />
         <Route path="/lifestyle/pairings-hub" component={GuardedPairingsHub} />
-        {developmentComingSoonEnabled && (
-          <Route path="/lifestyle/ai-pairing-advisor" component={DrinkAdvisorComingSoon} />
-        )}
+        <Route path="/lifestyle/ai-pairing-advisor" component={DrinkAdvisorComingSoon} />
         <Route path="/lifestyle/pairings-ai" component={GuardedPairingsAI} />
         <Route path="/lifestyle/wine-list-helper" component={GuardedWineListHelper} />
         <Route path="/lifestyle/reduce-drinking-plan" component={GuardedReduceDrinkingPlan} />
