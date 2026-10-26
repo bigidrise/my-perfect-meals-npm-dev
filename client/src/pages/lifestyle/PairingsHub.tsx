@@ -129,7 +129,7 @@ export default function PairingsHub() {
               {developmentComingSoonEnabled && (
                 <Link
                   href="/lifestyle/ai-pairing-advisor"
-                  className="block rounded-xl border border-white/15 bg-black/20 p-3 text-sm text-white/80 hover:border-orange-400/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-400"
+                  className="block rounded-xl border border-white/10 bg-black/10 backdrop-blur-lg shadow-md overflow-hidden p-3 text-sm text-white/80 hover:border-orange-400/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-400"
                   data-testid="pairingshub-advisor-coming-soon"
                 >
                   <span className="font-semibold text-orange-300">AI Pairing Advisor — Coming Soon</span>
