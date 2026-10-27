@@ -151,7 +151,7 @@ it("preserves previously accepted ingredient subheadings and wrapped instruction
   mockCompletion.mockResolvedValue({ choices: [{ message: { content: text } }] });
   const meal = await generateMealFromPrompt("Baked apples", "dinner", { skipImage: true });
   expect(meal.ingredients[0].name).toBe("apples");
-  expect(meal.instructions).toEqual(["Bake the apples until tender."]);
+  expect(meal.instructions).toEqual(["Bake the apples until tender. Preparation note."]);
 });
 
 it("retains protocol rejection and redacts its diagnostic message", async () => {

@@ -65,8 +65,9 @@ import { PillButton } from "@/components/ui/pill-button";
 import { IconPillOption } from "@/components/ui/icon-pill-option";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import PhaseGate from "@/components/PhaseGate";
-import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { guardGatheringsCards } from "@/lib/gatheringsDisclosureGuard";
+import { normalizeRecipeInstructions } from "@shared/recipeInstructions";
+import { gatheringsCompletion, gatheringsCourseOutcome, gatheringsOutcomeLabel, gatheringsOutcomeMessage, type GatheringsCourseOutcome } from "@shared/gatheringsCourseOutcome";
 import DietStyleBadge from "@/components/DietStyleBadge";
 import MealClassificationPill from "@/components/MealClassificationPill";
 import KosherProTip from "@/components/KosherProTip";
@@ -105,7 +106,7 @@ interface CourseMeal {
     carbs?: number;
     fat?: number;
   };
-  instructions: string;
+  instructions: string | string[];
   cookingInstructions?: string[];
   reasoning: string;
   servingSize: string;
@@ -123,6 +124,7 @@ interface CourseMeal {
   isFamilySpecialty: boolean;
   servings: number;
   _fallback?: boolean;
+  outcome?: GatheringsCourseOutcome;
   nutritionResult?: GatheringsNutritionResult;
 }
 
@@ -205,6 +207,7 @@ type CachedExperienceState = {
   situation: Situation;
   eventType: string | null;
   generatedAtISO: string;
+  requestedCourses?: number;
 };
 
 function saveExperienceCache(state: CachedExperienceState) {
@@ -265,6 +268,8 @@ export default function UltimateExperiencesPage() {
   const [chefNotes, setChefNotes] = useState("");
   const [generatedCourses, setGeneratedCourses] = useState<CourseMeal[]>([]);
   const [generatedInSession, setGeneratedInSession] = useState(false);
+  const [requestedCourseCount, setRequestedCourseCount] = useState(0);
+  const courseCompletion = gatheringsCompletion(generatedCourses, requestedCourseCount || generatedCourses.length);
   const { loadingImages, hydrateImages } = useMealImages(setGeneratedCourses, { mealType: "dinner" });
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
@@ -329,6 +334,7 @@ export default function UltimateExperiencesPage() {
     if (cached?.courses?.length) {
       const safeCourses = guardGatheringsCards(cached.courses, cached.servings || 6);
       setGeneratedCourses(safeCourses);
+      setRequestedCourseCount(cached.requestedCourses || safeCourses.length);
       setServings(cached.servings || 6);
       if (cached.situation) setSituation(cached.situation);
       if (cached.eventType) setSelectedEvent(cached.eventType);
@@ -348,9 +354,10 @@ export default function UltimateExperiencesPage() {
         situation: situation || "holiday",
         eventType: selectedEvent,
         generatedAtISO: new Date().toISOString(),
+        requestedCourses: requestedCourseCount || generatedCourses.length,
       });
     }
-  }, [generatedCourses, servings]);
+  }, [generatedCourses, servings, requestedCourseCount]);
 
   // Starch guard runs on combined input
   useEffect(() => {
@@ -551,7 +558,10 @@ export default function UltimateExperiencesPage() {
       stopProgressTicker();
       setIsGenerating(false);
       const courses = guardGatheringsCards<CourseMeal>(data.courses || [], servings);
+      const requested = situation === "outdoor" ? 1 : totalCourses;
+      const completion = gatheringsCompletion(courses, requested);
       setGeneratedCourses(courses);
+      setRequestedCourseCount(requested);
       setHarvestGuide(data.harvestGuide || null);
       setHarvestGuideCollapsed(false);
       setGeneratedInSession(true);
@@ -562,6 +572,7 @@ export default function UltimateExperiencesPage() {
         situation,
         eventType: selectedEvent,
         generatedAtISO: new Date().toISOString(),
+        requestedCourses: requested,
       });
 
       // Fire image generation for all courses in parallel — non-blocking
@@ -571,10 +582,12 @@ export default function UltimateExperiencesPage() {
 
       toast({
         title:
+          completion.state !== "complete" ? completion.title :
           situation === "outdoor" && outdoorExperienceType === "simple"
             ? "Your preparation guide is ready!"
             : "Your experience is ready!",
         description:
+          completion.state !== "complete" ? completion.description :
           situation === "outdoor" && outdoorExperienceType === "simple"
             ? `Nature-to-Table Guide ready for ${proteinSource}.`
             : situation === "outdoor" && outdoorExperienceType === "complete"
@@ -1329,7 +1342,9 @@ export default function UltimateExperiencesPage() {
               <div className="flex items-center gap-3 mb-2">
                 <Sparkles className="h-5 w-5 text-amber-400" />
                 <h3 className="text-lg font-bold text-white">
-                  {situation === "outdoor" && outdoorExperienceType === "simple"
+                  {courseCompletion.state !== "complete"
+                    ? courseCompletion.title
+                    : situation === "outdoor" && outdoorExperienceType === "simple"
                     ? `Your ${proteinSource} Recipe`
                     : situation === "outdoor" && outdoorExperienceType === "complete"
                     ? "Your Great Outdoors Complete Meal"
@@ -1344,6 +1359,10 @@ export default function UltimateExperiencesPage() {
                       } Experience`}
                 </h3>
               </div>
+
+              <p role="status" className="text-sm text-white/80">
+                {courseCompletion.description}
+              </p>
 
               {substitutedStarchTerms.length > 0 && (
                 <StarchSubstitutionNotice
@@ -1370,7 +1389,7 @@ export default function UltimateExperiencesPage() {
                     </span>
                     {course._fallback && (
                       <span className="text-xs text-red-400 border border-red-400/30 bg-red-400/10 px-2 py-0.5 rounded-full">
-                        Needs retry
+                        {gatheringsOutcomeLabel[gatheringsCourseOutcome(course)]} — Needs retry
                       </span>
                     )}
                   </div>
@@ -1626,9 +1645,14 @@ export default function UltimateExperiencesPage() {
                       )}
 
                       {(() => {
-                        const steps = normalizeInstructions(
-                          course.instructions,
+                        const outcome = gatheringsCourseOutcome(course);
+                        if (outcome !== "success") return (
+                          <div className="mb-4 rounded-lg border border-amber-400/30 p-3 text-sm text-white/90">
+                            <h4 className="font-semibold">{gatheringsOutcomeLabel[outcome]}</h4>
+                            <p>{gatheringsOutcomeMessage[outcome]}</p>
+                          </div>
                         );
+                        const steps = normalizeRecipeInstructions(course.instructions);
                         if (steps.length === 0) return null;
                         const expanded = !!stepsExpanded[course.id];
                         const visibleSteps = expanded
