@@ -13,6 +13,16 @@ later repairs from this approval.
 **How to apply:** Reuse the existing USDA/conversion infrastructure. Never replace
 unknown nutrition with invented macros or zero, and do not infer frying absorption.
 
+Bounded source-verified normalization is approved only for isolated Phase A
+Development validation. Integration into the active Gatherings generation route
+requires meaningful improvement in complete-recipe coverage and separate explicit
+approval. Preserve the existing active route until both conditions are met.
+
+**Why:** The user explicitly separated isolated resolver validation from integration.
+
+**How to apply:** Do not treat completion of prototype tests, better identity-only
+coverage, or fewer network requests as approval to integrate. Stop after Phase A.
+
 Ingredient-coverage approval does not authorize guessing salmon identity, bone-in
 ham edible weight, coconut-milk formulation, or hydrated wakame composition.
 Keep those unresolved until defensible source evidence exists.
@@ -20,8 +30,9 @@ Keep those unresolved until defensible source evidence exists.
 **Why:** The user explicitly retained these ambiguities during the targeted
 Christmas ingredient-coverage repair approval.
 
-**How to apply:** Use reviewed, Gatherings-specific mappings and source-backed
-portion weights only; do not broaden shared generator matching or safety rules.
+**How to apply:** Keep active reviewed Gatherings mappings unchanged. Isolated
+normalization must use source-backed identity and compatible portion evidence;
+do not broaden shared generator matching or safety rules.
 
 Event-specific dietary/cuisine selections are removed from the roadmap. Preserve
 global profile personalization; do not add dietary/cuisine dropdowns to Gatherings
