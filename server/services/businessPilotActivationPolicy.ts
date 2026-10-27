@@ -15,6 +15,13 @@ export function businessPilotActivationEnabled(): boolean {
     && process.env.BUSINESS_PILOT_ACTIVATION_SCHEMA_APPROVED === "true";
 }
 
+/** This repair is not approved for deployed runtimes. */
+export function unifiedBusinessPilotDevelopmentEnabled(): boolean {
+  return process.env.NODE_ENV === "development"
+    && !["true", "1"].includes(process.env.REPLIT_DEPLOYMENT ?? "")
+    && businessPilotActivationEnabled();
+}
+
 export function finitePilotTimestamp(value: unknown): Date {
   // Do not coerce null to the epoch or accept PostgreSQL's numeric infinities.
   const date = value instanceof Date ? new Date(value.getTime())

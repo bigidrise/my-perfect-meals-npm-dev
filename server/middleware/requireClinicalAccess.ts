@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import type { AuthenticatedRequest } from "./requireAuth";
 import { getTierForLookupKey } from "@shared/planFeatures";
+import { hasActiveBusinessPilotAccess } from "@shared/businessPilotAccess";
 
 /**
  * requireClinicalAccess — blocks Essential and Pro users from Clinical-tier features.
@@ -29,6 +30,7 @@ export function requireClinicalAccess(
   }
 
   if (!BILLING_ENFORCED) return next();
+  if (hasActiveBusinessPilotAccess(authReq.authUser)) return next();
 
   const { accessTier, planLookupKey, pilotFullAccess } = authReq.authUser;
 

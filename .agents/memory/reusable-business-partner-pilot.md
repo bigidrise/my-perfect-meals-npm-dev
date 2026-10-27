@@ -14,3 +14,9 @@ Do not introduce forwarding restrictions now. The user said, “We'll worry abou
 **Why:** The user explicitly prioritized a working reusable link over safeguards against sharing it.
 
 **How to apply:** Treat forwarding controls as deferred scope, not a prerequisite for current partner enrollment. Do not imply that a public reusable URL authenticates or verifies someone as a practitioner.
+
+The Business Pilot is one complete experience: personal Clinical access, including Essential, Pro and Hydration capabilities, plus the appropriate Business workspace and role-appropriate Studio/client management. Existing accounts, expired personal trials and lower paid personal subscriptions must not reduce the granted experience. New personal and organization pilot access share one 30-day period beginning at successful authorized activation.
+
+**Why:** The user clarified that this is the link they give businesses to evaluate the whole product, not an organization-only trial requiring a separate personal purchase.
+
+**How to apply:** Ordinary sign-in does not activate the offer. Preserve purchased subscriptions, professional verification, MFA, readiness, consent, tenant isolation, paused features and affiliate restrictions. Never reset an existing organization's pilot to repair missing personal access; historical reconciliation requires separate, auditable approval and the original expiration.

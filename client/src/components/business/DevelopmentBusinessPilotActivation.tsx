@@ -3,13 +3,17 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAuthHeaders } from "@/lib/auth";
 import { BUSINESS_PARTNER_PILOT_TOKEN } from "@shared/businessPartnerPilot";
+import { PillButton } from "@/components/ui/pill-button";
 import {
   businessPilotAuthDestination, captureBusinessPilotInvitation,
   clearBusinessPilotInvitation, clearBusinessPilotOrganizationEntry,
   startBusinessPilotOrganizationEntry,
 } from "@/lib/businessPilotEntrance";
 
-type InvitationDetails = { available?: boolean; activated?: boolean; endsAt?: string };
+type InvitationDetails = {
+  available?: boolean; activated?: boolean; endsAt?: string;
+  unified?: boolean; organizations?: { id: string; name: string }[];
+};
 
 function readInvitationEntrance() {
   try {
@@ -30,6 +34,8 @@ export default function DevelopmentBusinessPilotActivation() {
   const [activatedFor, setActivatedFor] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [inspectVersion, setInspectVersion] = useState(0);
+  const [businessId, setBusinessId] = useState("");
+  const [organizationName, setOrganizationName] = useState("");
   const token = entrance.token;
   const reusable = token === BUSINESS_PARTNER_PILOT_TOKEN;
   const activated = !!user && activatedFor === user.id;
@@ -58,6 +64,8 @@ export default function DevelopmentBusinessPilotActivation() {
     let current = true;
     if (activated) return;
     setDetails(null);
+    setBusinessId("");
+    setOrganizationName("");
     if (!token || !user || loading) return;
     // The existing preview remains authenticated; anonymous visitors can choose
     // normal login/signup without first making this protected request.
@@ -69,6 +77,7 @@ export default function DevelopmentBusinessPilotActivation() {
       if (!response.ok) throw new Error(data.error || "Could not inspect invitation.");
       if (current) {
         setDetails(data);
+        if (data.organizations?.length === 1) setBusinessId(data.organizations[0].id);
         setError(!data.available && !data.activated
           ? "This invitation is expired or no longer available. No pilot was started." : "");
       }
@@ -84,7 +93,7 @@ export default function DevelopmentBusinessPilotActivation() {
       const response = await fetch("/api/business/pilot-activation/claim", {
         method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token, businessId: businessId || undefined, organizationName }),
       });
       const data = await response.json();
       if (actor.current !== userId) return;
@@ -96,7 +105,7 @@ export default function DevelopmentBusinessPilotActivation() {
       if (actor.current !== userId) return;
       if (!fresh || fresh.id !== userId) throw new Error("Sign in again to confirm your activated access.");
       clearBusinessPilotInvitation(sessionStorage);
-      setDetails(data); setActivatedFor(userId);
+      setDetails(previous => ({ ...previous, ...data })); setActivatedFor(userId);
     } catch (error: any) {
       if (actor.current === userId) setError(error.message);
     } finally { setBusy(false); }
@@ -117,9 +126,12 @@ export default function DevelopmentBusinessPilotActivation() {
           navigate(user?.onboardingCompletedAt ? "/dashboard" : "/onboarding");
         }}>Personal Onboarding &amp; Explore My Perfect Meals</button>
         <button className="w-full rounded-xl bg-white/10 p-3" onClick={() => {
-          startBusinessPilotOrganizationEntry(sessionStorage, user!.id);
-          navigate("/more");
-        }}>More → Start Your Organization</button>
+          if (details?.unified) navigate("/business-organizations");
+          else {
+            startBusinessPilotOrganizationEntry(sessionStorage, user!.id);
+            navigate("/more");
+          }
+        }}>{details?.unified ? "Open Your Business Workspace" : "More → Start Your Organization"}</button>
       </> : !user ? <>
         <button className="w-full rounded-xl bg-orange-600 p-3"
           onClick={() => navigate(businessPilotAuthDestination("login"))}>Sign In to My Existing Account</button>
@@ -127,7 +139,20 @@ export default function DevelopmentBusinessPilotActivation() {
           onClick={() => navigate(businessPilotAuthDestination("signup"))}>Create an Account</button>
       </> : <>
         <p>Signed in as {user.email}. {reusable ? "Activate your own business partner pilot." : "Use the email that received this invitation."}</p>
-        <button disabled={busy || !token || !details || (!details.available && !details.activated)}
+        {details?.unified && (details.organizations?.length ? <fieldset className="space-y-2">
+          <legend>Use your existing organization</legend>
+          {details.organizations.map(organization => <PillButton key={organization.id}
+            type="button" active={businessId === organization.id} aria-pressed={businessId === organization.id} disabled={busy}
+            onClick={() => setBusinessId(organization.id)}>{organization.name}</PillButton>)}
+          <p className="text-sm text-white/70">Existing pilot dates will not be reset. An older pilot may require an approved reconciliation.</p>
+        </fieldset> : <label className="block space-y-2">
+          <span>Organization name</span>
+          <input value={organizationName} onChange={event => setOrganizationName(event.target.value)}
+            maxLength={80} disabled={busy} className="w-full rounded-lg bg-white/10 p-3"
+            autoComplete="organization" />
+        </label>)}
+        <button disabled={busy || !token || !details || (!details.available && !details.activated)
+          || (details.unified && (details.organizations?.length ? !businessId : organizationName.trim().length < 2))}
           className="w-full rounded-xl bg-orange-600 p-3 disabled:opacity-50" onClick={activate}>
           {busy ? "Activating…" : "Activate My Complimentary Pilot"}
         </button>

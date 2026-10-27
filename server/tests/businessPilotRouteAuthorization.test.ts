@@ -2,7 +2,14 @@
 import express from "express";
 import request from "supertest";
 import pilotRoutes from "../routes/businessPilotActivationRoutes";
-import { issueBusinessPilotLink } from "../services/businessPilotActivationService";
+import { issueBusinessPilotLink, activateBusinessPilotLink } from "../services/businessPilotActivationService";
+import { ensureCanonicalWorkspaceForBusiness } from "../services/organizationWorkspaceService";
+import { unifiedBusinessPilotDevelopmentEnabled } from "../services/businessPilotActivationPolicy";
+
+jest.mock("../db", () => ({ db: { execute: jest.fn(async () => ({ rows: [] })) } }));
+jest.mock("../services/organizationWorkspaceService", () => ({
+  ensureCanonicalWorkspaceForBusiness: jest.fn(),
+}));
 
 jest.mock("../middleware/requireAuth", () => ({
   requireAuth: (req: any, res: any, next: any) => {
@@ -21,6 +28,7 @@ jest.mock("../middleware/requireMfa", () => ({
 jest.mock("../services/businessPilotActivationPolicy", () => ({
   ...jest.requireActual("../services/businessPilotActivationPolicy"),
   businessPilotActivationEnabled: () => true,
+  unifiedBusinessPilotDevelopmentEnabled: jest.fn(() => false),
 }));
 jest.mock("../services/businessPilotActivationService", () => ({
   issueBusinessPilotLink: jest.fn(),
@@ -54,4 +62,33 @@ test("MFA-verified admin without founder identity is still rejected", async () =
   expect(response.status).toBe(403);
   expect(response.body.error).toBe("Founder authorization required.");
   expect(issueBusinessPilotLink).not.toHaveBeenCalled();
+});
+
+test("ordinary authentication alone cannot claim an invitation or bypass MFA", async () => {
+  const anonymous = await request(app).post("/api/business/pilot-activation/claim").send({});
+  expect(anonymous.status).toBe(401);
+  const noMfa = await request(app).post("/api/business/pilot-activation/claim")
+    .set("x-test-role", "participant").send({});
+  expect(noMfa.status).toBe(403);
+  expect(activateBusinessPilotLink).not.toHaveBeenCalled();
+});
+
+test("partial canonical provisioning retries the same activation and business", async () => {
+  (unifiedBusinessPilotDevelopmentEnabled as jest.Mock).mockReturnValue(true);
+  const grant = { authorizationId: "grant", businessId: "business", startedAt: new Date(),
+    endsAt: new Date(Date.now() + 86400000), alreadyActivated: true };
+  (activateBusinessPilotLink as jest.Mock).mockResolvedValue(grant);
+  (ensureCanonicalWorkspaceForBusiness as jest.Mock).mockRejectedValueOnce(new Error("fixture failure"))
+    .mockResolvedValueOnce({ organizationId: "organization", locationId: "location" });
+  const claim = () => request(app).post("/api/business/pilot-activation/claim")
+    .set("x-test-role", "participant").set("x-test-mfa", "verified")
+    .send({ token: "synthetic-not-an-invitation", businessId: "business" });
+  expect((await claim()).status).toBe(503);
+  const recovered = await claim();
+  expect(recovered.status).toBe(200);
+  expect(recovered.body).toMatchObject({ businessId: "business", organizationId: "organization", alreadyActivated: true });
+  expect(recovered.body.endsAt).toBe(grant.endsAt.toISOString());
+  expect(ensureCanonicalWorkspaceForBusiness).toHaveBeenNthCalledWith(1, "business");
+  expect(ensureCanonicalWorkspaceForBusiness).toHaveBeenNthCalledWith(2, "business");
+  (unifiedBusinessPilotDevelopmentEnabled as jest.Mock).mockReturnValue(false);
 });

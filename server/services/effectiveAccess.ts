@@ -14,6 +14,8 @@
  */
 
 import { db } from "../db";
+import { users } from "@shared/schema";
+import { isCanonicalPractitionerRole } from "@shared/professionalRoles";
 import { businessMembers, businesses } from "../db/schema/business";
 import { eq, and, gt, isNull, ne, or } from "drizzle-orm";
 import { getActivePilotProCareGrant, getPilotClientSponsorshipState } from "./pilotProcareAccess";
@@ -32,6 +34,7 @@ export interface EffectiveAccess {
   /** Personal product access only; never a credential or Studio entitlement. */
   temporaryClinicalAccess?: boolean;
   businessPilotClinicalAccessEndsAt?: Date | string | null;
+  businessPilotUnifiedAccess?: boolean;
   planLookupKey: string | null;
   entitlements: string[];
   tier: PlanTier;
@@ -87,6 +90,13 @@ export async function computeEffectiveAccess(
   const businessOfferAccess = await getActiveBusinessOfferEntitlement(user.id);
   const founderClinical = await getActiveBusinessPilotClinicalAccess(user.id);
   const temporaryClinicalAccess = Boolean(clinicTrial || professionalTemporaryAccess || businessOfferAccess || founderClinical);
+  const businessPilotUnifiedAccess = founderClinical?.unifiedAccess === true;
+  // Role is read from persisted identity, never inferred from organization ownership.
+  const [pilotProfessional] = businessPilotUnifiedAccess
+    ? await db.select({ professionalRole: users.professionalRole }).from(users).where(eq(users.id, user.id)).limit(1)
+    : [];
+  const unifiedStudioAccess = businessPilotUnifiedAccess
+    && isCanonicalPractitionerRole(pilotProfessional?.professionalRole);
   const pilotClientSponsorship = user.trialAccessType === "client"
     ? await getPilotClientSponsorshipState(user.id)
     : { linked: false, active: false };
@@ -108,13 +118,16 @@ export async function computeEffectiveAccess(
     // Prefer the real plan key; treat empty strings as absent.
     const realKey = user.planLookupKey || user.personalPlanLookupKey || null;
     return {
+      temporaryClinicalAccess,
+      businessPilotUnifiedAccess,
+      businessPilotClinicalAccessEndsAt: founderClinical?.endsAt ?? null,
       planLookupKey: realKey ?? "mpm_ultimate_monthly",
       entitlements: ultimateEntitlements,
       tier: "ultimate",
       sponsoredByBusinessId: null,
       sponsoredByBusinessName: null,
       sponsoredProCareAccess: false,
-      pilotProCareAccess: Boolean(pilotGrant),
+      pilotProCareAccess: Boolean(pilotGrant || unifiedStudioAccess),
       pilotProCareGrantId: pilotGrant?.id ?? null,
       pilotProCareEndsAt: pilotGrant?.endsAt ?? null,
       pilotFullAccess: Boolean(pilotFullAccess),
@@ -166,13 +179,14 @@ export async function computeEffectiveAccess(
       return {
         temporaryClinicalAccess,
         businessPilotClinicalAccessEndsAt: founderClinical?.endsAt ?? null,
+        businessPilotUnifiedAccess,
         planLookupKey: effectiveLookupKey,
         entitlements: getEntitlementsForTier(tier) as string[],
         tier,
         sponsoredByBusinessId: null,
         sponsoredByBusinessName: null,
         sponsoredProCareAccess: false,
-        pilotProCareAccess: Boolean(pilotGrant),
+        pilotProCareAccess: Boolean(pilotGrant || unifiedStudioAccess),
         pilotProCareGrantId: pilotGrant?.id ?? null,
         pilotProCareEndsAt: pilotGrant?.endsAt ?? null,
         pilotFullAccess: Boolean(pilotFullAccess),
@@ -189,6 +203,7 @@ export async function computeEffectiveAccess(
     return {
       temporaryClinicalAccess,
       businessPilotClinicalAccessEndsAt: founderClinical?.endsAt ?? null,
+      businessPilotUnifiedAccess,
       planLookupKey: membership.plan,
       entitlements: getEntitlementsForTier(effectiveMembershipTier) as string[],
       tier: effectiveMembershipTier,
@@ -199,7 +214,7 @@ export async function computeEffectiveAccess(
           membership.businessOwnerUserId === user.id ||
           STUDIO_ELIGIBLE_BUSINESS_ROLES.has(membership.membershipRole)
         ),
-      pilotProCareAccess: Boolean(pilotGrant),
+      pilotProCareAccess: Boolean(pilotGrant || unifiedStudioAccess),
       pilotProCareGrantId: pilotGrant?.id ?? null,
       pilotProCareEndsAt: pilotGrant?.endsAt ?? null,
       pilotFullAccess: Boolean(pilotFullAccess),
@@ -231,13 +246,14 @@ export async function computeEffectiveAccess(
   return {
     temporaryClinicalAccess,
     businessPilotClinicalAccessEndsAt: founderClinical?.endsAt ?? null,
+    businessPilotUnifiedAccess,
     planLookupKey: effectiveLookupKey,
     entitlements: getEntitlementsForTier(effectiveTier) as string[],
     tier: effectiveTier,
     sponsoredByBusinessId: null,
     sponsoredByBusinessName: null,
     sponsoredProCareAccess: false,
-    pilotProCareAccess: Boolean(pilotGrant),
+    pilotProCareAccess: Boolean(pilotGrant || unifiedStudioAccess),
     pilotProCareGrantId: pilotGrant?.id ?? null,
     pilotProCareEndsAt: pilotGrant?.endsAt ?? null,
     pilotFullAccess: Boolean(pilotFullAccess),
