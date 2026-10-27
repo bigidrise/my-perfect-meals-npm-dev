@@ -17,6 +17,11 @@ import { computeEffectiveAccess } from "../services/effectiveAccess";
 import { resolveAccessTier } from "../lib/accessTier";
 import { organizationQuoteFromPrice, recordOrganizationCheckoutConsent } from "../services/organizationCheckoutConsent";
 import { invitationDestination } from "../../client/src/lib/businessPilotJourney";
+import { getActiveBusinessPilotClinicalReconciliation } from "../services/businessPilotClinicalReconciliation";
+
+jest.mock("../services/businessPilotClinicalReconciliation", () => ({
+  getActiveBusinessPilotClinicalReconciliation: jest.fn(async () => null),
+}));
 
 jest.mock("../db", () => {
   const query: any = {
@@ -61,6 +66,7 @@ beforeEach(() => {
   db.execute.mockReset();
   db.execute.mockResolvedValue({ rows: [] });
   clinic.getActiveClinicTrialEntitlement.mockResolvedValue(null);
+  (getActiveBusinessPilotClinicalReconciliation as jest.Mock).mockResolvedValue(null);
 });
 afterEach(() => jest.useRealTimers());
 
@@ -263,6 +269,25 @@ test("personal founder grant upgrades consumer access but never Studio sponsorsh
   expect(effective.pilotProCareAccess).toBe(false);
   expect(effective.sponsoredProCareAccess).toBe(false);
 });
+
+test.each(["mpm_basic_monthly", "mpm_premium_monthly", null])(
+  "a reconciliation elevates consumer access, not Studio or physician authority, with purchased key %s",
+  async planLookupKey => {
+    const endsAt = new Date("2026-11-11T15:41:27.737Z");
+    (getActiveBusinessPilotClinicalReconciliation as jest.Mock).mockResolvedValue({
+      reconciliationId: "fixture-reconciliation", endsAt,
+    });
+    const snapshot = { id: "user-fixture", planLookupKey, trialEndsAt: new Date("2026-08-21") };
+    const effective = await computeEffectiveAccess(snapshot);
+    expect(effective).toMatchObject({
+      tier: "ultimate", planLookupKey, temporaryClinicalAccess: true,
+      businessPilotUnifiedAccess: true, businessPilotClinicalAccessEndsAt: endsAt,
+      sponsoredProCareAccess: false, pilotProCareAccess: false,
+    });
+    expect(resolveAccessTier({ ...snapshot, hasTemporaryClinicalAccess: effective.temporaryClinicalAccess })).toBe("PAID_FULL");
+    expect(effective).not.toHaveProperty("professionalRole");
+  },
+);
 
 describe("unified Development pilot authority", () => {
   const priorMode = process.env.NODE_ENV;

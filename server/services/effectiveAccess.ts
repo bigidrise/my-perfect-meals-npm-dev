@@ -23,6 +23,7 @@ import { getActivePilotFullAccess } from "./pilotProgramAccess";
 import { getActiveClinicTrialEntitlement, getActiveProfessionalTemporaryAccess } from "./clinicPilotEnrollmentService";
 import { getActiveBusinessOfferEntitlement } from "./businessOfferLinkService";
 import { getActiveBusinessPilotClinicalAccess } from "./businessPilotActivationService";
+import { getActiveBusinessPilotClinicalReconciliation } from "./businessPilotClinicalReconciliation";
 import {
   getTierForLookupKey,
   getEntitlementsForTier,
@@ -89,13 +90,16 @@ export async function computeEffectiveAccess(
   const professionalTemporaryAccess = await getActiveProfessionalTemporaryAccess(user.id);
   const businessOfferAccess = await getActiveBusinessOfferEntitlement(user.id);
   const founderClinical = await getActiveBusinessPilotClinicalAccess(user.id);
-  const temporaryClinicalAccess = Boolean(clinicTrial || professionalTemporaryAccess || businessOfferAccess || founderClinical);
-  const businessPilotUnifiedAccess = founderClinical?.unifiedAccess === true;
+  const reconciledClinical = await getActiveBusinessPilotClinicalReconciliation(user.id, db);
+  const temporaryClinicalAccess = Boolean(clinicTrial || professionalTemporaryAccess || businessOfferAccess || founderClinical || reconciledClinical);
+  const businessPilotUnifiedAccess = founderClinical?.unifiedAccess === true || Boolean(reconciledClinical);
+  // Prefer an operational reconciliation's exact bound for consumer gates.
+  const businessPilotClinicalAccessEndsAt = reconciledClinical?.endsAt ?? founderClinical?.endsAt ?? null;
   // Role is read from persisted identity, never inferred from organization ownership.
-  const [pilotProfessional] = businessPilotUnifiedAccess
+  const [pilotProfessional] = founderClinical?.unifiedAccess === true
     ? await db.select({ professionalRole: users.professionalRole }).from(users).where(eq(users.id, user.id)).limit(1)
     : [];
-  const unifiedStudioAccess = businessPilotUnifiedAccess
+  const unifiedStudioAccess = founderClinical?.unifiedAccess === true
     && isCanonicalPractitionerRole(pilotProfessional?.professionalRole);
   const pilotClientSponsorship = user.trialAccessType === "client"
     ? await getPilotClientSponsorshipState(user.id)
@@ -120,7 +124,7 @@ export async function computeEffectiveAccess(
     return {
       temporaryClinicalAccess,
       businessPilotUnifiedAccess,
-      businessPilotClinicalAccessEndsAt: founderClinical?.endsAt ?? null,
+      businessPilotClinicalAccessEndsAt,
       planLookupKey: realKey ?? "mpm_ultimate_monthly",
       entitlements: ultimateEntitlements,
       tier: "ultimate",
@@ -178,7 +182,7 @@ export async function computeEffectiveAccess(
         : getTierForLookupKey(effectiveLookupKey);
       return {
         temporaryClinicalAccess,
-        businessPilotClinicalAccessEndsAt: founderClinical?.endsAt ?? null,
+        businessPilotClinicalAccessEndsAt,
         businessPilotUnifiedAccess,
         planLookupKey: effectiveLookupKey,
         entitlements: getEntitlementsForTier(tier) as string[],
@@ -202,7 +206,7 @@ export async function computeEffectiveAccess(
     const isOrganizationalPilotBusiness = membership.plan === "organizational_pilot";
     return {
       temporaryClinicalAccess,
-      businessPilotClinicalAccessEndsAt: founderClinical?.endsAt ?? null,
+      businessPilotClinicalAccessEndsAt,
       businessPilotUnifiedAccess,
       planLookupKey: membership.plan,
       entitlements: getEntitlementsForTier(effectiveMembershipTier) as string[],
@@ -245,7 +249,7 @@ export async function computeEffectiveAccess(
 
   return {
     temporaryClinicalAccess,
-    businessPilotClinicalAccessEndsAt: founderClinical?.endsAt ?? null,
+    businessPilotClinicalAccessEndsAt,
     businessPilotUnifiedAccess,
     planLookupKey: effectiveLookupKey,
     entitlements: getEntitlementsForTier(effectiveTier) as string[],
