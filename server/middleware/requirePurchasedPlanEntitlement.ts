@@ -6,6 +6,7 @@ import {
   tierIncludesEntitlement,
 } from "@shared/planFeatures";
 import type { AuthenticatedRequest } from "./requireAuth";
+import { hasActiveBusinessPilotAccess } from "@shared/businessPilotAccess";
 
 const TIER_LABELS = {
   free: "Free",
@@ -50,4 +51,13 @@ export function requirePurchasedPlanEntitlement(feature: Entitlement) {
       currentTier,
     });
   };
+}
+
+/** Keep the strict purchased-plan primitive unchanged for every other use. */
+export function requireHydrationCenterAccess(req: Request, res: Response, next: NextFunction): void {
+  if (hasActiveBusinessPilotAccess((req as AuthenticatedRequest).authUser)) {
+    next();
+    return;
+  }
+  requirePurchasedPlanEntitlement("hydration_center")(req, res, next);
 }

@@ -579,3 +579,17 @@ mtime_ms = 1792956722315
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/8b503508-cb30-4d5b-90ab-c21086f7a600/ef7628c7-842e-4425-88eb-fcbbcdc01a80"
 storage_version_token = "1792956739833199"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "fSTMQtXNMgOuCxnoExIwR"
+uri = "file://docs/business-pilot-unified-development-repair.md"
+type = "text"
+title = "Unified Business Pilot — Development Repair Report"
+description = "Exact changed files, activation and recovery behavior, test results, release prerequisites, and the separately approved reconciliation procedure proposed for Dr. Eric."
+logical_id = "ea2f6540-b51a-43c5-90d8-809c1029ad48"
+content_hash = "sha256:8618159370130b6667aaf93369d49c5d5750225028d08e152851ad276d7a3560"
+size = 7848
+mtime_ms = 1793110926973
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/ea2f6540-b51a-43c5-90d8-809c1029ad48/0d437d4c-db33-4855-824a-7c8614c38980"
+storage_version_token = "1793110941843378"
+content_type = "text/markdown"

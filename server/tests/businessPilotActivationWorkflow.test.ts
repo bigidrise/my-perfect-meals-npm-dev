@@ -1,4 +1,7 @@
 /** Hermetic: every DB/API dependency is mocked; no application bootstrap is imported. */
+jest.mock("../services/unifiedBusinessPilotProvisioning", () => ({
+  provisionUnifiedPilotBusiness: jest.fn(async () => ({})),
+}));
 import { PgDialect } from "drizzle-orm/pg-core";
 import {
   assertOrganizationChargeAllowed, businessPilotActivationEnabled,
@@ -259,6 +262,36 @@ test("personal founder grant upgrades consumer access but never Studio sponsorsh
   expect(effective.planLookupKey).toBe("mpm_premium_monthly");
   expect(effective.pilotProCareAccess).toBe(false);
   expect(effective.sponsoredProCareAccess).toBe(false);
+});
+
+describe("unified Development pilot authority", () => {
+  const priorMode = process.env.NODE_ENV;
+  const priorDeployment = process.env.REPLIT_DEPLOYMENT;
+  afterEach(() => {
+    process.env.NODE_ENV = priorMode;
+    if (priorDeployment === undefined) delete process.env.REPLIT_DEPLOYMENT;
+    else process.env.REPLIT_DEPLOYMENT = priorDeployment;
+  });
+  test.each([
+    ["business", false], [null, false], ["trainer", true], ["coach", false],
+    ["physician", true], ["dietitian", true], ["nurse_practitioner", true],
+  ])("persisted role %s receives only its appropriate Studio authority", async (professionalRole, studioAllowed) => {
+    process.env.NODE_ENV = "development"; delete process.env.REPLIT_DEPLOYMENT;
+    db.execute.mockResolvedValueOnce({ rows: [{
+      ...grant(), status: "active", business_id: "business-fixture", organization_consumed: true,
+      personal_access_started_at: now, personal_access_ends_at: new Date("2026-12-01T12:00:00Z"),
+    }] });
+    db.select().limit.mockResolvedValueOnce([{ professionalRole }]).mockResolvedValueOnce([]);
+    const effective = await computeEffectiveAccess({
+      id: "user-fixture", planLookupKey: "mpm_basic_monthly", trialEndsAt: new Date("2026-08-21"),
+    });
+    expect(effective.businessPilotUnifiedAccess).toBe(true);
+    expect(effective.tier).toBe("ultimate");
+    expect(effective.planLookupKey).toBe("mpm_basic_monthly");
+    expect(effective.pilotProCareAccess).toBe(studioAllowed);
+    expect(effective.sponsoredProCareAccess).toBe(false);
+    expect(effective.businessPilotClinicalAccessEndsAt).toEqual(new Date("2026-12-01T12:00:00Z"));
+  });
 });
 
 test("expired independent access falls back to Free without erasing identity", async () => {

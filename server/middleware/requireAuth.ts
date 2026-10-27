@@ -69,6 +69,7 @@ export interface AuthenticatedUser {
   pilotFullAccess: boolean;
   temporaryClinicalAccess?: boolean;
   businessPilotClinicalAccessEndsAt?: Date | string | null;
+  businessPilotUnifiedAccess?: boolean;
   pilotParticipantId: string | null;
   pilotProgramName: string | null;
   pilotFullAccessEndsAt: Date | null;
@@ -148,6 +149,7 @@ export async function buildAuthUserWithEffectiveAccess(user: any): Promise<Authe
       pilotFullAccess: effective.pilotFullAccess,
       temporaryClinicalAccess: effective.temporaryClinicalAccess ?? false,
       businessPilotClinicalAccessEndsAt: effective.businessPilotClinicalAccessEndsAt ?? null,
+      businessPilotUnifiedAccess: effective.businessPilotUnifiedAccess ?? false,
       pilotParticipantId: effective.pilotParticipantId,
       pilotProgramName: effective.pilotProgramName,
       pilotFullAccessEndsAt: effective.pilotFullAccessEndsAt,

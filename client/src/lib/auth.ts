@@ -162,6 +162,9 @@ export interface User {
   // ProCare Professional fields
 
   professionalRole?: AccountProfessionalRole | null;
+  businessPilotUnifiedAccess?: boolean;
+  businessPilotClinicalAccessEndsAt?: string | null;
+  temporaryClinicalAccess?: boolean;
   /** Server-resolved restriction; never an authorization grant from client state. */
   operatingStatus?: "demo_only" | null;
   /** Server-issued Development presentation choice; never a clinical entitlement. */

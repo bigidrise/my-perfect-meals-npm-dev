@@ -1,4 +1,5 @@
 import { getTierForLookupKey, PLAN_FEATURES } from "@shared/planFeatures";
+import { hasActiveBusinessPilotAccess } from "@shared/businessPilotAccess";
 
 interface UserForSubscriptionCheck {
   planLookupKey?: string | null;
@@ -26,6 +27,7 @@ export function isEssentialOrAbove(user: UserForSubscriptionCheck | null | undef
 
 export function isProOrAbove(user: UserForSubscriptionCheck | null | undefined): boolean {
   if (!user) return false;
+  if (hasActiveBusinessPilotAccess(user)) return true;
   if (user.isFounder) return true;
   if (!hasActivePaidSubscription(user)) return false;
   const tier = getTierForLookupKey(user.planLookupKey);
@@ -35,6 +37,7 @@ export function isProOrAbove(user: UserForSubscriptionCheck | null | undefined):
 
 export function isClinicalOrAbove(user: UserForSubscriptionCheck | null | undefined): boolean {
   if (!user) return false;
+  if (hasActiveBusinessPilotAccess(user)) return true;
   if (user.isFounder) return true;
   if (!hasActivePaidSubscription(user)) return false;
   const tier = getTierForLookupKey(user.planLookupKey);
@@ -48,6 +51,7 @@ export function isClinicalOrAbove(user: UserForSubscriptionCheck | null | undefi
  */
 function canAccessStrictClinical(user: UserForSubscriptionCheck | null | undefined): boolean {
   if (!user) return false;
+  if (hasActiveBusinessPilotAccess(user)) return true;
   if (user.isFounder) return true;
   if (!hasActivePaidSubscription(user)) return false;
   const tier = getTierForLookupKey(user.planLookupKey);

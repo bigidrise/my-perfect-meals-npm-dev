@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 import { z } from "zod";
 import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
 import { requireProAccess } from "../middleware/requireProAccess";
-import { requirePurchasedPlanEntitlement } from "../middleware/requirePurchasedPlanEntitlement";
+import { requireHydrationCenterAccess } from "../middleware/requirePurchasedPlanEntitlement";
 import { requirePhase1Cert } from "../middleware/requirePhase1Cert";
 import { requirePhase2Training } from "../middleware/requirePhase2Training";
 import { requireMfa } from "../middleware/requireMfa";
@@ -56,7 +56,7 @@ import {
 } from "../services/hydration/athleticHydrationCoachingService";
 
 const router = express.Router();
-const requireHydrationCenterPlan = requirePurchasedPlanEntitlement("hydration_center");
+const requireHydrationCenterPlan = requireHydrationCenterAccess;
 
 const hydrationHandoffSchema = z.object({
   door: z.enum(["everyday", "athletic", "liquid_nutrition"]),

@@ -2,7 +2,7 @@ import { ChevronRight, Droplets } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
-import { purchasedPlanIncludesFeature } from "@/lib/entitlements";
+import { canAccessHydration } from "@/lib/entitlements";
 
 export default function HydrationDashboardCard() {
   const [, navigate] = useLocation();
@@ -10,7 +10,7 @@ export default function HydrationDashboardCard() {
   const { requestUpgrade } = useUpgradeModal();
 
   const openHydration = () => {
-    if (purchasedPlanIncludesFeature(user, "hydration_center")) {
+    if (canAccessHydration(user)) {
       navigate("/hydration");
       return;
     }
