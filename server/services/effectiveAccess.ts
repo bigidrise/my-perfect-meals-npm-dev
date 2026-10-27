@@ -21,6 +21,7 @@ import { getActivePilotFullAccess } from "./pilotProgramAccess";
 import { getActiveClinicTrialEntitlement, getActiveProfessionalTemporaryAccess } from "./clinicPilotEnrollmentService";
 import { getActiveBusinessOfferEntitlement } from "./businessOfferLinkService";
 import { getActiveBusinessPilotClinicalAccess } from "./businessPilotActivationService";
+import { getActivePersonalClinicalReconciliation } from "./personalClinicalReconciliation";
 import {
   getTierForLookupKey,
   getEntitlementsForTier,
@@ -32,6 +33,7 @@ export interface EffectiveAccess {
   /** Personal product access only; never a credential or Studio entitlement. */
   temporaryClinicalAccess?: boolean;
   businessPilotClinicalAccessEndsAt?: Date | string | null;
+  personalClinicalReconciliationEndsAt?: Date | string | null;
   planLookupKey: string | null;
   entitlements: string[];
   tier: PlanTier;
@@ -86,7 +88,8 @@ export async function computeEffectiveAccess(
   const professionalTemporaryAccess = await getActiveProfessionalTemporaryAccess(user.id);
   const businessOfferAccess = await getActiveBusinessOfferEntitlement(user.id);
   const founderClinical = await getActiveBusinessPilotClinicalAccess(user.id);
-  const temporaryClinicalAccess = Boolean(clinicTrial || professionalTemporaryAccess || businessOfferAccess || founderClinical);
+  const reconciliation = await getActivePersonalClinicalReconciliation(user.id);
+  const temporaryClinicalAccess = Boolean(clinicTrial || professionalTemporaryAccess || businessOfferAccess || founderClinical || reconciliation);
   const pilotClientSponsorship = user.trialAccessType === "client"
     ? await getPilotClientSponsorshipState(user.id)
     : { linked: false, active: false };
@@ -166,6 +169,7 @@ export async function computeEffectiveAccess(
       return {
         temporaryClinicalAccess,
         businessPilotClinicalAccessEndsAt: founderClinical?.endsAt ?? null,
+        personalClinicalReconciliationEndsAt: reconciliation?.endsAt ?? null,
         planLookupKey: effectiveLookupKey,
         entitlements: getEntitlementsForTier(tier) as string[],
         tier,
@@ -189,6 +193,7 @@ export async function computeEffectiveAccess(
     return {
       temporaryClinicalAccess,
       businessPilotClinicalAccessEndsAt: founderClinical?.endsAt ?? null,
+      personalClinicalReconciliationEndsAt: reconciliation?.endsAt ?? null,
       planLookupKey: membership.plan,
       entitlements: getEntitlementsForTier(effectiveMembershipTier) as string[],
       tier: effectiveMembershipTier,
@@ -231,6 +236,7 @@ export async function computeEffectiveAccess(
   return {
     temporaryClinicalAccess,
     businessPilotClinicalAccessEndsAt: founderClinical?.endsAt ?? null,
+    personalClinicalReconciliationEndsAt: reconciliation?.endsAt ?? null,
     planLookupKey: effectiveLookupKey,
     entitlements: getEntitlementsForTier(effectiveTier) as string[],
     tier: effectiveTier,

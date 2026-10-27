@@ -77,6 +77,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           name: userData.username || userData.firstName,
           entitlements: userData.entitlements || [],
           planLookupKey: userData.planLookupKey,
+          personalClinicalReconciliationEndsAt: userData.personalClinicalReconciliationEndsAt ?? null,
           selectedMealBuilder: userData.selectedMealBuilder,
           isTester: userData.isTester || false,
           accessTier: userData.accessTier || "FREE",

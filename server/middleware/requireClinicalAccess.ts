@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import type { AuthenticatedRequest } from "./requireAuth";
 import { getTierForLookupKey } from "@shared/planFeatures";
+import { hasPersonalClinicalReconciliationAccess } from "../lib/personalClinicalReconciliationAccess";
 
 /**
  * requireClinicalAccess — blocks Essential and Pro users from Clinical-tier features.
@@ -41,6 +42,8 @@ export function requireClinicalAccess(
     });
     return;
   }
+
+  if (hasPersonalClinicalReconciliationAccess(authReq.authUser)) return next();
 
   if (pilotFullAccess && !planLookupKey) {
     res.status(403).json({

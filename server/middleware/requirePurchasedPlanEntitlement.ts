@@ -6,6 +6,7 @@ import {
   tierIncludesEntitlement,
 } from "@shared/planFeatures";
 import type { AuthenticatedRequest } from "./requireAuth";
+import { hasPersonalClinicalReconciliationAccess } from "../lib/personalClinicalReconciliationAccess";
 
 const TIER_LABELS = {
   free: "Free",
@@ -15,7 +16,8 @@ const TIER_LABELS = {
 } as const;
 
 /**
- * Enforces the entitlement attached to the customer's purchased plan.
+ * Enforces purchased entitlements, plus the explicitly reconciled personal
+ * Hydration grant. No other trial/internal entitlement bypass is introduced.
  *
  * This intentionally does not honor tester, founder, sandbox, trial, or the
  * global BILLING_ENFORCED=false bypass. It is for product boundaries that must
@@ -29,6 +31,11 @@ export function requirePurchasedPlanEntitlement(feature: Entitlement) {
         error: "Authentication required",
         code: "AUTH_REQUIRED",
       });
+      return;
+    }
+
+    if (feature === "hydration_center" && hasPersonalClinicalReconciliationAccess(authUser)) {
+      next();
       return;
     }
 

@@ -4443,6 +4443,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         procareEntryPath: user.procareEntryPath || null,
         attestedAt: user.attestedAt?.toISOString() || null,
         entitlements: authReq.authUser.entitlements,
+        // Fresh server-resolved personal grant, never persisted as a paid plan.
+        personalClinicalReconciliationEndsAt:
+          authReq.authUser.personalClinicalReconciliationEndsAt ?? null,
         // ── Explicit server-side entitlement flags ─────────────────────────
         // Use the same effective plan and policy as requireProCareAccess.
         // Never trust a stale DB entitlement here: it can make the UI claim
