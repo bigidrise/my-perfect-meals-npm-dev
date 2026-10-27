@@ -21,6 +21,24 @@ const IDENTITIES: Record<string, string> = {
   "glutinous rice flour": "Rice flour, white, glutinous",
 };
 
+// Reviewed USDA SR Legacy identities, scoped to this Development pilot.
+// Pin the record as well as its description; never strip preparation words or
+// infer salmon species, edible bone-in weight, milk formulation or hydration.
+const REVIEWED_IDENTITIES: Record<string, { description: string; fdcId: number; portionForm?: string }> = {
+  "ground ginger": { description: "Spices, ginger, ground", fdcId: 170926 },
+  "ground nutmeg": { description: "Spices, nutmeg, ground", fdcId: 171326 },
+  "sesame oil": { description: "Oil, sesame, salad or cooking", fdcId: 171016 },
+  "miso paste": { description: "Miso", fdcId: 172442 },
+  "finely chopped green onions": {
+    description: "Onions, spring or scallions (includes tops and bulb), raw",
+    fdcId: 170005, portionForm: "chopped",
+  },
+  "green onions, finely chopped": {
+    description: "Onions, spring or scallions (includes tops and bulb), raw",
+    fdcId: 170005, portionForm: "chopped",
+  },
+};
+
 export interface GatheringsLookup {
   lookup: (name: string) => Promise<IngredientComposition | null>;
   metrics: { lookups: number; httpRequests: number; sourceMs: number; cacheReuses: number };
@@ -69,7 +87,16 @@ export function createGatheringsLookup(fetcher: typeof fetch = fetch): Gathering
           metrics.sourceMs += Date.now() - started;
         }
       };
-      const source = await lookupUsdaIngredient(IDENTITIES[key] ?? name, boundedFetch);
+      const reviewed = REVIEWED_IDENTITIES[key];
+      let source = await lookupUsdaIngredient(reviewed?.description ?? IDENTITIES[key] ?? name, boundedFetch);
+      if (source && reviewed) {
+        // The existing converter already understands explicit portion forms.
+        // Supply "chopped" only for these reviewed aliases, not other callers.
+        source = source.fdcId === reviewed.fdcId && source.description === reviewed.description &&
+          source.dataType === "SR Legacy"
+          ? { ...source, ...(reviewed.portionForm ? { portionForm: reviewed.portionForm } : {}) }
+          : null;
+      }
       cache.set(key, source);
       return source;
     },

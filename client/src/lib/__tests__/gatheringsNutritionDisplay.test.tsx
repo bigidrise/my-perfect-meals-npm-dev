@@ -48,3 +48,35 @@ it("every numeric handoff and local medical badge is gated", () => {
   expect(source).toContain("if (!canUseGatheringsNutrition(course)) return;");
   expect(source).toContain("if (!canUseGatheringsNutrition(course)) return null;");
 });
+
+it.each([
+  ["identity_unresolved", "matching USDA food record"],
+  ["quantity_unresolved", "quantity or measurement unit"],
+  ["portion_unresolved", "compatible USDA portion weight"],
+  ["fat_consumption_unresolved", "cooking fat actually eaten"],
+  ["source_unavailable_or_budget", "USDA source was unavailable"],
+  ["calories_missing", "usable calorie data"],
+  ["protein_missing", "usable protein data"],
+  ["carbs_missing", "usable carbohydrate data"],
+  ["fat_missing", "usable fat data"],
+])("names the unresolved ingredient and explains %s without enabling numeric actions", (reason, explanation) => {
+  const meal = {
+    ...course, nutrition: undefined,
+    ingredients: [{ name: "bone-in ham", originalText: "3 pounds bone-in ham" }],
+    nutritionResult: { ...course.nutritionResult, status: "needs_review", reasons: [`ingredient.0.${reason}`] },
+  };
+  render(<GatheringsNutritionPanel course={meal} />);
+  const text = screen.getByRole("status").textContent;
+  expect(text).toContain("3 pounds bone-in ham");
+  expect(text).toContain(explanation);
+  expect(text).not.toContain(`ingredient.0.${reason}`);
+  expect(canUseGatheringsNutrition(meal)).toBe(false);
+  expect(gatheringsMealForPlan(meal)).toBeNull();
+});
+
+it("explains old cached reasons without inventing a missing ingredient name", () => {
+  render(<GatheringsNutritionPanel course={{
+    servings: 6, ingredients: [], nutritionResult: { status: "needs_review", reasons: ["ingredient.2.portion_unresolved"] },
+  }} />);
+  expect(screen.getByRole("status").textContent).toContain("Ingredient 3: No compatible USDA portion weight");
+});

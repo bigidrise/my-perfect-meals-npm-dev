@@ -40,3 +40,54 @@ export const christmasGatheringsRecipes = [
     ],
   },
 ] as const;
+
+/** Actual authenticated Development smoke-test lists. Instructions were not
+ * supplied; keep them absent rather than inventing cooking or safety guidance. */
+export const christmasSmokeGatheringsRecipes = [
+  {
+    name: "Japanese Salmon Sashimi with Wakame Salad", servings: 6,
+    ingredientLines: [
+      "12 oz sashimi-grade salmon",
+      "2 cups rehydrated wakame seaweed",
+      "1 cup thinly sliced cucumber",
+      "1/4 cup thinly sliced red onion",
+      "2 tbsp rice vinegar",
+      "1 tbsp soy sauce",
+      "1 tbsp mirin",
+      "1 tsp sesame oil",
+      "1 tbsp toasted sesame seeds",
+      "1 tbsp finely chopped fresh ginger",
+      "1 tbsp finely chopped green onions",
+    ],
+  },
+  {
+    name: "Honey Glazed Ham with Miso and Ginger", servings: 6,
+    ingredientLines: [
+      "3 pounds bone-in ham",
+      "1/4 cup honey",
+      "2 tbsp miso paste",
+      "2 tbsp soy sauce",
+      "1 tbsp fresh ginger, grated",
+      "1 tbsp rice vinegar",
+      "1 tbsp sesame oil",
+      "1 tbsp sesame seeds",
+      "1/4 cup green onions, finely chopped",
+    ],
+  },
+  {
+    name: "Japanese Sweet Potato Pie (Satsumaimo Pie)", servings: 6,
+    ingredientLines: [
+      "30 oz Japanese sweet potatoes, peeled and cubed",
+      "1/2 cup coconut milk",
+      "1/4 cup maple syrup",
+      "1 tsp vanilla extract",
+      "1 tsp ground cinnamon",
+      "1/2 tsp ground ginger",
+      "1/4 tsp ground nutmeg",
+      "2 large eggs",
+      "1 tbsp olive oil",
+      "1 cup almond flour",
+      "1/4 cup toasted walnuts, chopped",
+    ],
+  },
+] as const;

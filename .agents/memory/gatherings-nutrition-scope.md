@@ -13,6 +13,16 @@ later repairs from this approval.
 **How to apply:** Reuse the existing USDA/conversion infrastructure. Never replace
 unknown nutrition with invented macros or zero, and do not infer frying absorption.
 
+Ingredient-coverage approval does not authorize guessing salmon identity, bone-in
+ham edible weight, coconut-milk formulation, or hydrated wakame composition.
+Keep those unresolved until defensible source evidence exists.
+
+**Why:** The user explicitly retained these ambiguities during the targeted
+Christmas ingredient-coverage repair approval.
+
+**How to apply:** Use reviewed, Gatherings-specific mappings and source-backed
+portion weights only; do not broaden shared generator matching or safety rules.
+
 Event-specific dietary/cuisine selections are removed from the roadmap. Preserve
 global profile personalization; do not add dietary/cuisine dropdowns to Gatherings
 or Getaways.
