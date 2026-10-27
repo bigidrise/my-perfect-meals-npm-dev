@@ -9,6 +9,12 @@ Development and production use the same external Neon database; this project doe
 
 **How to apply:** Treat the arrangement as settled project context. Do not initiate database investigation or changes unless a future request explicitly requires them.
 
+The user identified `https://app.myperfectmeals.ai` as Dr. Eric's sign-in destination and `https://my-perfect-meals-new-prod.replit.app` as the published Production app. These are public app addresses, not Replit editor/workspace links.
+
+**Why:** The user supplied these addresses while identifying the authoritative customer-facing environment.
+
+**How to apply:** Verify deployment ownership before release. Current Development deployment metadata cannot establish access to the separate Production workspace; never infer its editor URL from a published hostname.
+
 A normal application restart is not necessarily migration-free. Account-maintenance suppression covers only part of boot mutations, not the entire startup sequence.
 
 **Why:** The Development entrypoint schedules migration hooks on startup; restarting it can conflict with an explicit no-migrations request.
