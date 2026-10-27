@@ -11,6 +11,8 @@ Development and production use the same external Neon database; this project doe
 
 The user identified `https://app.myperfectmeals.ai` as Dr. Eric's sign-in destination and `https://my-perfect-meals-new-prod.replit.app` as the published Production app. These are public app addresses, not Replit editor/workspace links.
 
+The user supplied the Production editor URL: `https://replit.com/@bigidrise/my-perfect-meals-new-prod`. Receiving this URL does not switch the current agent's workspace or provide access to that project's files.
+
 **Why:** The user supplied these addresses while identifying the authoritative customer-facing environment.
 
 **How to apply:** Verify deployment ownership before release. Current Development deployment metadata cannot establish access to the separate Production workspace; never infer its editor URL from a published hostname.
