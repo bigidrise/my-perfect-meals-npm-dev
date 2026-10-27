@@ -37,6 +37,7 @@ jest.mock("../services/mealImageGenerator", () => ({ generateMealImageUnified: j
 jest.mock("../services/allergyGuardrails", () => ({
   buildDietPromptBlock: () => "", violatesDietaryConstraints: () => ({ violates: false, reasons: [] }),
   AVOIDANCE_EXPANSION: {},
+  buildForbiddenIngredients: () => [], scanForViolations: () => [],
 }));
 jest.mock("../services/guardrails/promptPolicyGate", () => ({ getBaselineMacroPrompt: () => "" }));
 

@@ -3,9 +3,11 @@ import React from "react";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import { guardGatheringsCards } from "../gatheringsDisclosureGuard";
 import { SAFE_RECIPE_FAILURE, CLINICAL_RECIPE_WITHHELD } from "@shared/recipeDraftSafety";
+import { buildGatheringsValidationEvidence } from "../../../../server/services/gatheringsValidationEvidence";
 
 const PRIVATE = "INTERNAL_PROMPT_SENTINEL PROFILE_DATA_SENTINEL";
 const mockToast = jest.fn();
+const mockDietaryRestrictions: string[] = [];
 const previousFetch = global.fetch;
 const valid = {
   id: "synthetic-card", name: "Baked Apples", description: "A complete recipe.",
@@ -59,7 +61,7 @@ jest.doMock("@/components/ui/pill-button", () => ({
 jest.doMock("lucide-react", () => new Proxy({}, { get: () => Null }));
 jest.doMock("framer-motion", () => ({ motion: new Proxy({}, { get: () => Wrapper }) }));
 jest.doMock("wouter", () => ({ useLocation: () => ["/gatherings", jest.fn()] }));
-jest.doMock("@/contexts/AuthContext", () => ({ useAuth: () => ({ user: { id: "synthetic-owner", dietaryRestrictions: [] } }) }));
+jest.doMock("@/contexts/AuthContext", () => ({ useAuth: () => ({ user: { id: "synthetic-owner", dietaryRestrictions: mockDietaryRestrictions } }) }));
 jest.doMock("@/hooks/use-toast", () => ({ useToast: () => ({ toast: mockToast }) }));
 jest.doMock("@/hooks/useIsDesktop", () => ({ useIsDesktop: () => false }));
 jest.doMock("@/hooks/useMealImages", () => ({ useMealImages: () => ({ loadingImages: {}, hydrateImages: jest.fn() }) }));
@@ -91,6 +93,7 @@ beforeEach(() => {
   localStorage.clear();
   window.scrollTo = jest.fn();
   mockToast.mockClear();
+  mockDietaryRestrictions.splice(0);
   global.fetch = jest.fn();
 });
 afterEach(() => { cleanup(); global.fetch = previousFetch; });
@@ -183,4 +186,26 @@ it.each([
   expect(mockToast.mock.calls.at(-1)?.[0].title).toBe(title);
   expect(screen.getByRole("status").textContent).toContain(completed ? `${completed} of 3 recipes are ready` : "No complete recipes");
   expect(global.fetch).toHaveBeenCalledTimes(1);
+});
+
+it.each(["kosher", "halal", "vegan", "vegetarian"])("does not convert cached %s profile/classification flags into recipe verification", diet => {
+  mockDietaryRestrictions.push(diet);
+  cache([{ ...valid, medicalBadges: [diet, "cardiac"], dietaryComplianceVerified: true,
+    dietClassification: { kosherCategory: "pareve", veganFlags: { plantBased: true } } }]);
+  render(<GatheringsPage />);
+  expect(screen.getByLabelText("Recipe validation evidence")).toBeTruthy();
+  expect(screen.getByText(/selected preference, not recipe verification/)).toBeTruthy();
+  expect(screen.queryByText(/ingredient\/protocol checks passed/)).toBeNull();
+  expect(screen.queryByText("Medical Safety")).toBeNull();
+});
+it.each([false, true])("checks the exact cached recipe before showing supplied badge evidence; stale=%s", stale => {
+  const recipe = { ...valid, medicalBadges: ["kosher"], outcome: "success" };
+  const validationEvidence = buildGatheringsValidationEvidence(recipe, {
+    passed: true, violations: [], instructionViolations: [], message: "passed",
+  }, ["kosher"]);
+  cache([{ ...recipe, validationEvidence, instructions: stale ? ["Add pork and bake."] : recipe.instructions }]);
+  render(<GatheringsPage />);
+  const badge = screen.queryByText("Kosher ingredient/protocol checks passed");
+  if (stale) expect(badge).toBeNull();
+  else expect(badge).toBeTruthy();
 });

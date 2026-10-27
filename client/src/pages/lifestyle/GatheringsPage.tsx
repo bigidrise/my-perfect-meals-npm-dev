@@ -26,11 +26,7 @@ import {
   isAllergyRelatedError,
   formatAllergyAlertDescription,
 } from "@/utils/allergyAlert";
-import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
-import {
-  generateMedicalBadges,
-  getUserMedicalProfile,
-} from "@/utils/medicalPersonalization";
+import GatheringsValidationBadges from "@/components/GatheringsValidationBadges";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
@@ -46,7 +42,6 @@ import {
 } from "@/components/StarchGuardIntercept";
 import {
   DietGuardIntercept,
-  DietAdaptedNotice,
 } from "@/components/DietGuardIntercept";
 import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
@@ -68,9 +63,7 @@ import PhaseGate from "@/components/PhaseGate";
 import { guardGatheringsCards } from "@/lib/gatheringsDisclosureGuard";
 import { normalizeRecipeInstructions } from "@shared/recipeInstructions";
 import { gatheringsCompletion, gatheringsCourseOutcome, gatheringsOutcomeLabel, gatheringsOutcomeMessage, type GatheringsCourseOutcome } from "@shared/gatheringsCourseOutcome";
-import DietStyleBadge from "@/components/DietStyleBadge";
-import MealClassificationPill from "@/components/MealClassificationPill";
-import KosherProTip from "@/components/KosherProTip";
+import type { GatheringsValidationEvidence } from "@shared/gatheringsValidationEvidence";
 import {
   type DishCategory,
   type TraditionalDish,
@@ -117,6 +110,7 @@ interface CourseMeal {
     color: string;
   }>;
   dietaryComplianceVerified?: boolean;
+  validationEvidence?: GatheringsValidationEvidence | null;
   dietClassification?: import("@/components/MealClassificationPill").DietClassification | null;
   courseType: "appetizer" | "main" | "side" | "dessert";
   courseLabel: string;
@@ -1407,6 +1401,14 @@ export default function UltimateExperiencesPage() {
                             sourceType="create-dish"
                             mealData={{ ...course, sourceFeature: "my-perfect-gatherings", servings: course.servings ?? servings }}
                           />}
+                          <TrashButton
+                            size="sm"
+                            ariaLabel="Remove this course"
+                            title="Remove this course"
+                            confirm={true}
+                            confirmMessage="Remove this course?"
+                            onClick={() => setGeneratedCourses(prev => prev.filter((_, i) => i !== index))}
+                          />
                         </div>
                         <button
                           onClick={() => {
@@ -1423,21 +1425,14 @@ export default function UltimateExperiencesPage() {
                         </button>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2 mb-3">
-                        <DietStyleBadge />
-                        <MealClassificationPill
-                          dietClassification={course.dietClassification ?? null}
-                        />
-                        {dietAdaptedNotice && (
-                          <DietAdaptedNotice
-                            diet={normalizeDiet(user?.dietaryRestrictions)}
-                          />
-                        )}
-                        <KosherProTip
-                          dietClassification={course.dietClassification ?? null}
-                          isAdapted={!!dietAdaptedNotice}
-                        />
-                      </div>
+                      <GatheringsValidationBadges
+                        course={course}
+                        preferences={[
+                          ...(Array.isArray(user?.dietaryRestrictions) ? user.dietaryRestrictions : []),
+                          ...((user as any)?.dietType ? [(user as any).dietType] : []),
+                        ]}
+                      />
+                      {dietAdaptedNotice && <p className="mb-3 text-xs text-white/60">Diet adaptation requested.</p>}
 
                       <p className="text-white/90 mb-4">{course.description}</p>
 
@@ -1539,78 +1534,6 @@ export default function UltimateExperiencesPage() {
                         </div>
                       </div>
                       </>}
-
-                      {(() => {
-                        if (!canUseGatheringsNutrition(course)) return null;
-                        const profile = getUserMedicalProfile(1);
-                        const portion = gatheringsNutritionPilot ? getMealNutrition(course) : null;
-                        const mealForBadges = {
-                          name: course.name,
-                          calories:
-                            portion?.calories ?? course.nutrition?.calories ?? course.calories ?? 0,
-                          protein:
-                            portion?.protein ?? course.nutrition?.protein ?? course.protein ?? 0,
-                          carbs: portion?.carbs ?? course.nutrition?.carbs ?? course.carbs ?? 0,
-                          fat: portion?.fat ?? course.nutrition?.fat ?? course.fat ?? 0,
-                          ingredients: (course.ingredients ?? []).map(
-                            (ing: any) => ({
-                              name: ing.name ?? ing.item,
-                              amount:
-                                typeof ing.quantity === "number"
-                                  ? ing.quantity
-                                  : parseFloat(
-                                      String(ing.quantity ?? ing.amount ?? "1"),
-                                    ) || 1,
-                              unit: (ing.unit ?? "serving")
-                                .toString()
-                                .toLowerCase(),
-                            }),
-                          ),
-                        };
-
-                        const medicalBadges =
-                          (course as any).medicalBadges &&
-                          (course as any).medicalBadges.length
-                            ? (course as any).medicalBadges
-                            : generateMedicalBadges(
-                                mealForBadges as any,
-                                profile,
-                              );
-
-                        return medicalBadges && medicalBadges.length > 0 ? (
-                          <div className="mb-4">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="flex items-center gap-3">
-                                <HealthBadgesPopover
-                                  badges={medicalBadges.map((b: any) =>
-                                    typeof b === "string"
-                                      ? b
-                                      : b.badge ||
-                                        b.id ||
-                                        b.condition ||
-                                        b.label,
-                                  )}
-                                />
-                                <h3 className="font-semibold text-white">
-                                  Medical Safety
-                                </h3>
-                              </div>
-                              <TrashButton
-                                size="sm"
-                                ariaLabel="Remove this course"
-                                title="Remove this course"
-                                confirm={true}
-                                confirmMessage="Remove this course?"
-                                onClick={() => {
-                                  setGeneratedCourses((prev) =>
-                                    prev.filter((_, i) => i !== index),
-                                  );
-                                }}
-                              />
-                            </div>
-                          </div>
-                        ) : null;
-                      })()}
 
                       {course.ingredients && course.ingredients.length > 0 && (
                         <div className="mb-4">

@@ -5,6 +5,7 @@ import { loadGenerationProtocolEnvelope, scanGeneratedOutput } from "../services
 import { generateMealFromPrompt } from "../services/universalMealGenerator";
 import { calculateGatheringsNutrition, gatheringsNutritionEnabled } from "../services/gatheringsNutrition";
 import { SafeRecipeGenerationError } from "../../shared/recipeDraftSafety";
+import { readGatheringsValidationEvidence } from "../../shared/gatheringsValidationEvidence";
 
 jest.mock("../services/protocolEnvelope", () => ({
   loadGenerationProtocolEnvelope: jest.fn(),
@@ -154,4 +155,24 @@ it("normalizes historical structured cookingInstructions before safety scans and
   expect(response.body.completion).toMatchObject({ state: "complete", completed: 3 });
   expect(response.body.courses[0].instructions).toEqual(["Bake until tender."]);
   expect(jest.mocked(scanGeneratedOutput).mock.calls[0][0].instructions).toEqual(["Bake until tender."]);
+});
+it("returns recipe-bound evidence only for an explicit, scanned dietary badge", async () => {
+  jest.mocked(scanGeneratedOutput).mockReturnValue({
+    passed: true, violations: [], instructionViolations: [], message: "passed",
+  });
+  let count = 0;
+  jest.mocked(generateMealFromPrompt).mockImplementation(async () => ({
+    ...completeRecipe(["Soup Starter", "Roasted Chicken", "Fruit Finale"][count++]),
+    medicalBadges: ["kosher", "cardiac"], dietClassification: { kosherCategory: "pareve" },
+  }) as any);
+  const response = await generate();
+  for (const course of response.body.courses) {
+    expect(course.medicalBadges).toEqual(["kosher"]);
+    expect(readGatheringsValidationEvidence(course)?.dietaryBadges).toEqual(["kosher"]);
+    expect(course.dietClassification).toBeNull();
+  }
+  const scanned = jest.mocked(scanGeneratedOutput).mock.calls[0][0];
+  expect(scanned.ingredients).toEqual(expect.arrayContaining([{ name: "Bake until tender." }]));
+  expect(response.body.courses[0].ingredients).toHaveLength(1);
+  expect(response.body.courses[0].nutrition.calories).toBe(600);
 });

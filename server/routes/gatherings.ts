@@ -5,13 +5,14 @@ import { z } from "zod";
 import {
   loadGenerationProtocolEnvelope,
   enforceBeforeGenerate,
-  scanGeneratedOutput,
   buildGuestEnvelope,
 } from "../services/protocolEnvelope";
 import { generateMealImageUnified } from "../services/mealImageGenerator";
 import { assertRecipeDraft, SafeRecipeGenerationError } from "../services/universalRecipeContract";
 import { recipeInstructions } from "../../shared/recipeDraftSafety";
 import { gatheringsCompletion, gatheringsOutcomeMessage, type GatheringsCourseOutcome } from "../../shared/gatheringsCourseOutcome";
+import { buildGatheringsValidationEvidence } from "../services/gatheringsValidationEvidence";
+import { scanGatheringsCourse } from "../services/gatheringsProtocolScan";
 import {
   appendWholeFoodStandardPrompt,
   evaluateWholeFoodCandidate,
@@ -708,7 +709,10 @@ router.post("/generate", async (req: Request, res: Response) => {
         if ("cookingInstructions" in meal) meal.cookingInstructions = meal.instructions;
 
         // Post-generation protocol scan — reject and retry on medical/dietary violation
-        const protocolScan = scanGeneratedOutput(meal, gatheringsEnvelope, {
+        // Reuse the existing ingredient/protocol rules for ingredients named
+        // only in cooking steps as well. This scan view never enters USDA,
+        // nutrition calculation, or the returned recipe ingredient list.
+        const protocolScan = scanGatheringsCourse(meal, gatheringsEnvelope, {
           generatorName: "my_gatherings",
         });
         if (!protocolScan.passed) {
@@ -771,6 +775,14 @@ router.post("/generate", async (req: Request, res: Response) => {
           servings: servingSize,
           outcome: "success",
         };
+        courseMeal.validationEvidence = buildGatheringsValidationEvidence(
+          courseMeal, protocolScan, gatheringsEnvelope.dietaryIdentity,
+        );
+        // Only supported, explicitly supplied dietary badges survive a real
+        // scan. No medical badge can be inferred from a missing nutrient.
+        courseMeal.medicalBadges = courseMeal.validationEvidence?.dietaryBadges ?? [];
+        courseMeal.dietaryComplianceVerified = courseMeal.medicalBadges.length > 0;
+        courseMeal.dietClassification = null;
 
         console.log(
           `✅ [Gatherings] ${courseType} (${i + 1}/${courses.length}): "${meal.name}"${assignedDish ? ` [requested: ${assignedDish}]` : ""}`,
