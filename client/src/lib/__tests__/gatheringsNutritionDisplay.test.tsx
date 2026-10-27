@@ -40,13 +40,15 @@ it.each([[6, "16.7"], [3, "33.3"], [8, "12.5"], [4, "25"]])("percentages for %s 
   render(<ServingInstructionsBlock servings={servings as number} mealName="Baked dish" portionMethod="slice-based" />);
   expect(screen.getByText(new RegExp(`~${percent}% each`))).toBeTruthy();
 });
-it("every numeric handoff and local medical badge is gated", () => {
+it("keeps numeric handoffs gated and removes local medical badge inference", () => {
   const source = readFileSync("client/src/pages/lifestyle/GatheringsPage.tsx", "utf8");
   expect(source).toContain("canUseGatheringsNutrition(course) && <FavoriteButton");
   expect(source).toContain("canUseGatheringsNutrition(course) && <AddToMealPlanButton");
   expect(source).toContain("canUseGatheringsNutrition(course) && <ShareRecipeButton");
   expect(source).toContain("if (!canUseGatheringsNutrition(course)) return;");
-  expect(source).toContain("if (!canUseGatheringsNutrition(course)) return null;");
+  expect(source).toContain("<GatheringsValidationBadges");
+  expect(source).not.toContain("generateMedicalBadges(");
+  expect(source).not.toContain("getUserMedicalProfile(");
 });
 
 it.each([
