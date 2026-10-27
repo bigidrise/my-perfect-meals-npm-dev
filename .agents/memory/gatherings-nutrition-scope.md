@@ -13,15 +13,17 @@ later repairs from this approval.
 **How to apply:** Reuse the existing USDA/conversion infrastructure. Never replace
 unknown nutrition with invented macros or zero, and do not infer frying absorption.
 
-Bounded source-verified normalization is approved only for isolated Phase A
-Development validation. Integration into the active Gatherings generation route
-requires meaningful improvement in complete-recipe coverage and separate explicit
-approval. Preserve the existing active route until both conditions are met.
+Phase A USDA resolver work is stopped. Do not integrate it into the active
+Gatherings route, add USDA aliases, or expand ingredient normalization. Leave the
+isolated implementation in Development without activating it.
 
-**Why:** The user explicitly separated isolated resolver validation from integration.
+**Why:** The experiment did not meet the integration prerequisite, and the user
+explicitly closed this work in favor of restoring existing Gatherings functionality.
 
-**How to apply:** Do not treat completion of prototype tests, better identity-only
-coverage, or fewer network requests as approval to integrate. Stop after Phase A.
+**How to apply:** Preserve Stage 1 nutrition safeguards and accurate six-serving
+calculations. Do not change the release baseline or pre-existing starch-policy
+failures. Investigations of instructions, generation failures, disclosure, images,
+and badges are read-only until repairs receive separate approval.
 
 Ingredient-coverage approval does not authorize guessing salmon identity, bone-in
 ham edible weight, coconut-milk formulation, or hydrated wakame composition.
