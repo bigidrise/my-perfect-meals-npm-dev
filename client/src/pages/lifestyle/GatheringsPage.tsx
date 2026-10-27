@@ -66,6 +66,7 @@ import { IconPillOption } from "@/components/ui/icon-pill-option";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import PhaseGate from "@/components/PhaseGate";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
+import { guardGatheringsCards } from "@/lib/gatheringsDisclosureGuard";
 import DietStyleBadge from "@/components/DietStyleBadge";
 import MealClassificationPill from "@/components/MealClassificationPill";
 import KosherProTip from "@/components/KosherProTip";
@@ -326,12 +327,13 @@ export default function UltimateExperiencesPage() {
   useEffect(() => {
     const cached = loadExperienceCache();
     if (cached?.courses?.length) {
-      setGeneratedCourses(cached.courses);
+      const safeCourses = guardGatheringsCards(cached.courses, cached.servings || 6);
+      setGeneratedCourses(safeCourses);
       setServings(cached.servings || 6);
       if (cached.situation) setSituation(cached.situation);
       if (cached.eventType) setSelectedEvent(cached.eventType);
       // Re-fetch images for any courses without imageUrl — DB cache returns instantly
-      const needImages = cached.courses.filter((c: any) => !c.imageUrl);
+      const needImages = safeCourses.filter((c: any) => !c._fallback && !c.imageUrl);
       if (needImages.length > 0) {
         hydrateImages(needImages);
       }
@@ -548,7 +550,7 @@ export default function UltimateExperiencesPage() {
 
       stopProgressTicker();
       setIsGenerating(false);
-      const courses: CourseMeal[] = data.courses || [];
+      const courses = guardGatheringsCards<CourseMeal>(data.courses || [], servings);
       setGeneratedCourses(courses);
       setHarvestGuide(data.harvestGuide || null);
       setHarvestGuideCollapsed(false);

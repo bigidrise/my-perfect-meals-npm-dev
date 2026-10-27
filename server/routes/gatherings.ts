@@ -9,6 +9,7 @@ import {
   buildGuestEnvelope,
 } from "../services/protocolEnvelope";
 import { generateMealImageUnified } from "../services/mealImageGenerator";
+import { assertRecipeDraft, SAFE_RECIPE_FAILURE, SafeRecipeGenerationError } from "../services/universalRecipeContract";
 import {
   appendWholeFoodStandardPrompt,
   evaluateWholeFoodCandidate,
@@ -615,7 +616,10 @@ router.post("/generate", async (req: Request, res: Response) => {
   }).combined;
 
   console.log(
-    `🔒 [Gatherings] Protocol enforcement active: diet=[${gatheringsEnvelope.dietaryIdentity.join(",")}] medical=[${gatheringsEnvelope.medicalHardLimits.join(",")}]`,
+    "[Gatherings] Protocol enforcement active", {
+      dietaryRuleCount: gatheringsEnvelope.dietaryIdentity.length,
+      medicalRuleCount: gatheringsEnvelope.medicalHardLimits.length,
+    },
   );
 
   const { generateMealFromPrompt } = await import(
@@ -694,12 +698,16 @@ router.post("/generate", async (req: Request, res: Response) => {
           mealPreferences,
         );
 
+        // Reject incomplete/refused drafts before they can become recipe cards.
+        // Structural checks do not replace any clinical or dietary validation.
+        assertRecipeDraft(meal);
+
         // Post-generation protocol scan — reject and retry on medical/dietary violation
         const protocolScan = scanGeneratedOutput(meal, gatheringsEnvelope, {
           generatorName: "my_gatherings",
         });
         if (!protocolScan.passed) {
-          console.warn(`⚠️ [Gatherings] Protocol violation in ${courseType} (attempt ${attempt + 1}): ${protocolScan.message}`);
+          console.warn("[Gatherings] protocol_rejected", { courseType, attempt: attempt + 1 });
           continue; // treat as failed attempt — retry with stricter prompt
         }
 
@@ -761,8 +769,9 @@ router.post("/generate", async (req: Request, res: Response) => {
         break; // success — exit retry loop
       } catch (err) {
         console.error(
-          `❌ [Gatherings] ${courseType} attempt ${attempt + 1} failed:`,
-          err,
+          "[Gatherings] course_attempt_failed",
+          { courseType, attempt: attempt + 1,
+            category: err instanceof SafeRecipeGenerationError ? err.reason : "unexpected_error" },
         );
       }
     }
@@ -775,7 +784,7 @@ router.post("/generate", async (req: Request, res: Response) => {
       courseMeal = {
         id: crypto.randomUUID(),
         name: `${courseType.charAt(0).toUpperCase() + courseType.slice(1)} Course`,
-        description: `A ${courseType} dish for your ${eventType || situation} experience. Tap regenerate to try again.`,
+        description: SAFE_RECIPE_FAILURE,
         mealType: "dinner",
         courseType,
         courseLabel:
@@ -786,7 +795,7 @@ router.post("/generate", async (req: Request, res: Response) => {
         isFamilySpecialty: false,
         ingredients: [],
         instructions: [
-          "This course encountered an issue during generation. Please try again.",
+          SAFE_RECIPE_FAILURE,
         ],
         nutrition: { calories: 0, protein: 0, carbs: 0, fat: 0 },
         servings: servingSize,
