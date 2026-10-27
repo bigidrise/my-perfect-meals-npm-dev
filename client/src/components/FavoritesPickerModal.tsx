@@ -11,6 +11,8 @@ import { PillButton } from "@/components/ui/pill-button";
 import { useStarchGuardPrecheck } from "@/hooks/useStarchGuardPrecheck";
 import { StarchGuardIntercept } from "@/components/StarchGuardIntercept";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
+import { savedGatheringsNutritionPolicy } from "@/lib/gatheringsNutrition";
+import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
 
 /** Small thumbnail with the shared bounded recovery and neutral terminal state. */
 function FavThumbnail({ imageUrl, mealName }: { imageUrl: string; mealName: string }) {
@@ -188,6 +190,7 @@ export function FavoritesPickerModal({
 
   const handleUseThis = useCallback((row: SavedMealRow) => {
     const d = (row.mealData || {}) as any;
+    if (!savedGatheringsNutritionPolicy(d).allowed) return;
     const ingredientTexts = extractIngredientTexts(d);
     const ok = checkStarch(ingredientTexts);
     if (ok) {
@@ -200,7 +203,7 @@ export function FavoritesPickerModal({
 
   const handleStarchDecision = useCallback((decision: string) => {
     if (decision === "continue_anyway") {
-      if (pendingFavorite) {
+      if (pendingFavorite && savedGatheringsNutritionPolicy(pendingFavorite.mealData).allowed) {
         onSelect(pendingFavorite);
         onClose();
       }
@@ -271,8 +274,10 @@ export function FavoritesPickerModal({
 
               {filtered.map((row) => {
                 const d = (row.mealData || {}) as any;
-                const cal = Math.round(d?.nutrition?.calories || d?.calories || 0);
-                const prot = Math.round(d?.nutrition?.protein || d?.protein || 0);
+                const nutritionPolicy = savedGatheringsNutritionPolicy(d);
+                const portion = nutritionPolicy.applies && nutritionPolicy.allowed ? mealMacroSnapshot(d) : null;
+                const cal = nutritionPolicy.allowed ? Math.round(portion?.calories ?? d?.nutrition?.calories ?? d?.calories ?? 0) : 0;
+                const prot = nutritionPolicy.allowed ? Math.round(portion?.protein ?? d?.nutrition?.protein ?? d?.protein ?? 0) : 0;
 
                 return (
                   <div
@@ -284,6 +289,7 @@ export function FavoritesPickerModal({
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-sm font-medium truncate">{row.title}</p>
+                      {!nutritionPolicy.allowed && <p className="text-amber-300 text-xs">Nutrition unavailable — regenerate this gathering.</p>}
                       {(cal > 0 || prot > 0) && (
                         <p className="text-white/45 text-xs mt-0.5">
                           {cal > 0 ? `${cal} cal` : ""}
@@ -293,6 +299,7 @@ export function FavoritesPickerModal({
                       )}
                     </div>
                     <PillButton
+                      disabled={!nutritionPolicy.allowed}
                       onClick={() => handleUseThis(row)}
                       className="shrink-0"
                     >

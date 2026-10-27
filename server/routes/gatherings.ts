@@ -739,6 +739,9 @@ router.post("/generate", async (req: Request, res: Response) => {
         }
         courseMeal = {
           ...meal,
+          // Never preserve upstream AI/default nutrition when an ingredient
+          // estimate is unresolved, even if a future draft includes that field.
+          ...(ingredientNutrition ? { nutrition: undefined } : {}),
           ...(estimate ?? {}),
           ...(ingredientNutrition ? { servingSize: `${servingSize} servings` } : {}),
           wholeFoodDecision,

@@ -35,6 +35,8 @@ interface MealData {
 
 interface MealCardActionsProps {
   meal: MealData;
+  /** Optional one-portion share values; cooking keeps the recipe's totals/yield. */
+  shareNutrition?: MealData["nutrition"];
   onContentUpdate?: (updated: Partial<MealData>) => void;
   showTranslate?: boolean;
   showPrepareButton?: boolean;
@@ -44,6 +46,7 @@ interface MealCardActionsProps {
 
 export default function MealCardActions({
   meal,
+  shareNutrition,
   onContentUpdate,
   showTranslate = true,
   showPrepareButton = true,
@@ -147,7 +150,7 @@ export default function MealCardActions({
           recipe={{
             name: currentName,
             description: currentDescription,
-            nutrition: meal.nutrition,
+            nutrition: shareNutrition ?? meal.nutrition,
             ingredients: normalizedIngredients,
             instructions: meal.instructions,
           }}

@@ -10,6 +10,7 @@ import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
 import SavedMealRow from "@/components/SavedMealRow";
 import { savedMealSourceLabel } from "@/lib/savedMealSource";
 import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
+import { savedGatheringsNutritionPolicy } from "@/lib/gatheringsNutrition";
 
 export default function SavedMeals() {
   const [, setLocation] = useLocation();
@@ -101,6 +102,7 @@ export default function SavedMeals() {
 
   const handleAddToMacros = (row: any) => {
     const d = row.mealData || row;
+    if (!savedGatheringsNutritionPolicy(d).allowed) return;
     const { protein, carbs, fat, starchyCarbs, fibrousCarbs, calories } = mealMacroSnapshot(d);
 
     setQuickView({

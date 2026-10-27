@@ -1384,7 +1384,7 @@ export default function UltimateExperiencesPage() {
                           {canUseGatheringsNutrition(course) && <FavoriteButton
                             title={course.name}
                             sourceType="create-dish"
-                            mealData={{ ...course, servings: course.servings ?? servings }}
+                            mealData={{ ...course, sourceFeature: "my-perfect-gatherings", servings: course.servings ?? servings }}
                           />}
                         </div>
                         <button

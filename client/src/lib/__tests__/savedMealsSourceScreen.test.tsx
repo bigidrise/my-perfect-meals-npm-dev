@@ -7,6 +7,7 @@ import { withSavedMealBuilderOrigin } from "../savedMealSource";
 import english from "../../i18n/locales/en.json";
 
 const mockFeed = jest.fn();
+jest.mock("@/lib/gatheringsNutritionGate", () => ({ gatheringsNutritionPilot: true }));
 jest.mock("@/hooks/useSavedMeals", () => ({
   useSavedMealsFeed: () => mockFeed(),
   useDeleteSavedMeal: () => ({ mutateAsync: jest.fn() }),

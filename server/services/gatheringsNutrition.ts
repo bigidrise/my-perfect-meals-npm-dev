@@ -1,6 +1,6 @@
 import { lookupUsdaIngredient, type IngredientComposition } from "./productDiscovery/usdaIngredientAdapter";
 import { dessertIngredientGrams } from "./dessertNutrition";
-import { GATHERINGS_NUTRITION_VERSION, GATHERINGS_MACROS, type GatheringsMacros, type GatheringsNutritionResult } from "../../shared/gatheringsNutrition";
+import { GATHERINGS_NUTRITION_VERSION, GATHERINGS_MACROS, gatheringsRecipeSignature, type GatheringsMacros, type GatheringsNutritionResult } from "../../shared/gatheringsNutrition";
 import type { GatheringsIngredient } from "./gatheringsIngredientParser";
 
 export const GATHERINGS_USDA_BUDGET = { lookups: 32, httpRequests: 64, sourceMs: 30_000, fetchMs: 6_000, ingredients: 40 };
@@ -145,5 +145,6 @@ export async function calculateGatheringsNutrition(
     return unresolved("energy_macro_difference_requires_review");
   }
   result.status = "available";
+  result.recipeSignature = gatheringsRecipeSignature(recipe, servings, totals);
   return { nutrition: totals, nutritionResult: result };
 }

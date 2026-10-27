@@ -6,11 +6,14 @@ import GatheringsNutritionPanel from "@/components/GatheringsNutritionPanel";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import { creatorMealNutrition } from "@/lib/mealMacroSnapshot";
 import { canUseGatheringsNutrition, gatheringsMealForPlan } from "@/lib/gatheringsNutrition";
+import { gatheringsRecipeSignature } from "@shared/gatheringsNutrition";
 jest.mock("@/lib/gatheringsNutritionGate", () => ({ gatheringsNutritionPilot: true }));
 const course = {
   servings: 6, nutrition: { calories: 600, protein: 30, carbs: 90, fat: 12 },
-  nutritionResult: { version: "ingredient-recipe-v1", status: "available", basis: "whole_recipe", servings: 6, reasons: [], sources: [], assumptions: [] },
+  ingredients: [{ name: "apples", amount: 600, unit: "g", originalText: "600 g apples" }],
+  nutritionResult: { version: "ingredient-recipe-v2", status: "available", basis: "whole_recipe", servings: 6, reasons: [], sources: [{ ingredientIndex: 0, fdcId: 123, grams: 600 }], assumptions: [], recipeSignature: "" },
 };
+course.nutritionResult.recipeSignature = gatheringsRecipeSignature(course, 6, course.nutrition);
 afterEach(cleanup);
 it("displays one serving consistently with saved recipe yield and macro handoff", () => {
   render(<GatheringsNutritionPanel course={course} />);

@@ -22,3 +22,13 @@ successfully in both features and said additional selectors are unnecessary.
 
 **How to apply:** Keep the existing profile workflow unchanged. Future event UI
 changes require an explicit new request.
+
+Do not retroactively label every legacy Create a Dish favorite as a Gathering.
+Apply Gatherings-only nutrition restrictions to identifiable Gatherings records;
+leave ambiguous historical origins unresolved rather than rewriting saved meals.
+
+**Why:** Earlier Gatherings saves used the shared creator source label, and Stage
+1 explicitly prohibits unrelated generator changes and database backfills.
+
+**How to apply:** Preserve read-only recipe access and use exact origin evidence
+or the established Gatherings course shape for the scoped nutrition gates.
