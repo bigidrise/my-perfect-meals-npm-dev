@@ -14,6 +14,8 @@ import {
   evaluateWholeFoodCandidate,
 } from "../services/wholeFoodStandard";
 import OpenAI from "openai";
+import { calculateGatheringsNutrition, createGatheringsLookup, gatheringsNutritionEnabled } from "../services/gatheringsNutrition";
+import { GATHERINGS_NUTRITION_VERSION, type GatheringsNutritionResult } from "../../shared/gatheringsNutrition";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -621,6 +623,8 @@ router.post("/generate", async (req: Request, res: Response) => {
   );
 
   const generatedCourses: any[] = [];
+  const ingredientNutrition = gatheringsNutritionEnabled();
+  const nutritionLookup = ingredientNutrition ? createGatheringsLookup() : null;
 
   for (let i = 0; i < courses.length; i++) {
     const courseType = courses[i];
@@ -672,20 +676,22 @@ router.post("/generate", async (req: Request, res: Response) => {
           cookingMethod,
         );
 
-        const meal = await generateMealFromPrompt(
+        const mealPreferences = {
+          userId,
+          dietaryRestrictions: userDiet,
+          allergies: userAllergies,
+          mealTypes: ["dinner"],
+          medicalFlags: gatheringsEnvelope.medicalHardLimits,
+          skipPalate: !flavorPersonal,
+          strictMode: keepItSimple,
+        } as any;
+        const meal = ingredientNutrition
+          ? await generateMealFromPrompt(coursePrompt, COURSE_TO_MEAL_TYPE[courseType],
+            mealPreferences, { gatheringsIngredientNutrition: true })
+          : await generateMealFromPrompt(
           coursePrompt,
           COURSE_TO_MEAL_TYPE[courseType],
-          {
-            userId,
-            dietaryRestrictions: userDiet,
-            allergies: userAllergies,
-            mealTypes: ["dinner"],
-            medicalFlags: gatheringsEnvelope.medicalHardLimits,
-            skipPalate: !flavorPersonal,
-            strictMode: keepItSimple,
-            // skipImage removed — images are now generated server-side in batch
-            // after all courses are ready, before the response is returned.
-          } as any,
+          mealPreferences,
         );
 
         // Post-generation protocol scan — reject and retry on medical/dietary violation
@@ -714,8 +720,27 @@ router.post("/generate", async (req: Request, res: Response) => {
           continue; // trigger next attempt with stricter prompt
         }
 
+        const estimate = ingredientNutrition
+          ? await calculateGatheringsNutrition(meal as any, servingSize, nutritionLookup!.lookup)
+          : null;
+        // Ingredient/instruction safety scans above are unchanged. Unknown
+        // nutrition must not stand in for clearance of a quantitative protocol.
+        if (estimate && estimate.nutritionResult.status !== "available" &&
+            gatheringsEnvelope.medicalHardLimits.length > 0) {
+          courseMeal = {
+            id: meal.id, name: `${courseType.charAt(0).toUpperCase() + courseType.slice(1)} Course`,
+            description: "This course needs reliable nutrition before it can be checked against your medical requirements. Please try again.",
+            ingredients: [], instructions: [], medicalBadges: [], flags: [],
+            courseType, courseLabel: courseType === "side" ? "Side Dish" : courseType.charAt(0).toUpperCase() + courseType.slice(1),
+            servings: servingSize, servingSize: `${servingSize} servings`, _fallback: true,
+            nutritionResult: estimate.nutritionResult,
+          };
+          break;
+        }
         courseMeal = {
           ...meal,
+          ...(estimate ?? {}),
+          ...(ingredientNutrition ? { servingSize: `${servingSize} servings` } : {}),
           wholeFoodDecision,
           courseType,
           courseLabel:
@@ -769,6 +794,18 @@ router.post("/generate", async (req: Request, res: Response) => {
     }
 
     generatedCourses.push(courseMeal);
+  }
+  if (ingredientNutrition) {
+    for (const course of generatedCourses) {
+      if (course._fallback) {
+        delete course.nutrition;
+        course.nutritionResult ??= {
+          version: GATHERINGS_NUTRITION_VERSION, status: "unavailable", basis: "whole_recipe",
+          servings: servingSize, reasons: ["course_generation_failed"], assumptions: [], sources: [],
+        } satisfies GatheringsNutritionResult;
+      }
+    }
+    console.log("[GatheringsNutrition] USDA request summary", nutritionLookup!.metrics);
   }
 
   // ── Unified Image Pipeline: attach permanent imageUrls before responding ──

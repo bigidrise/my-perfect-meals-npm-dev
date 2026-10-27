@@ -6,6 +6,7 @@ import { MealType, WeeklyMealReq } from "./stableMealGenerator";
 import { randomUUID } from "crypto";
 import * as telemetry from "./aiTelemetry";
 import type { DebugMetadata } from "./aiTelemetry";
+import { parseGatheringsIngredient } from "./gatheringsIngredientParser";
 import { getBaselineMacroPrompt } from "./guardrails/promptPolicyGate";
 import { buildDietPromptBlock, violatesDietaryConstraints, AVOIDANCE_EXPANSION } from "./allergyGuardrails";
 import {
@@ -100,7 +101,13 @@ async function generateImageFromDalle(prompt: string): Promise<string | null> {
 const _isDev = process.env.NODE_ENV !== "production";
 
 // 🔁 Universal AI Meal Generator for any craving
-export async function generateMealFromPrompt(prompt: string, mealType: MealType, userPrefs?: Partial<WeeklyMealReq> & { skipImage?: boolean }): Promise<FinalMeal> {
+type UniversalPreferences = Partial<WeeklyMealReq> & { skipImage?: boolean };
+export function generateMealFromPrompt(prompt: string, mealType: MealType, userPrefs?: UniversalPreferences): Promise<FinalMeal>;
+export function generateMealFromPrompt(prompt: string, mealType: MealType, userPrefs: UniversalPreferences | undefined,
+  options: { gatheringsIngredientNutrition: true }): Promise<Omit<FinalMeal, "nutrition">>;
+export async function generateMealFromPrompt(prompt: string, mealType: MealType, userPrefs?: UniversalPreferences,
+  options?: { gatheringsIngredientNutrition: true }): Promise<FinalMeal | Omit<FinalMeal, "nutrition">> {
+  const ingredientNutrition = options?.gatheringsIngredientNutrition === true;
   if (_isDev) console.log("🌟 GPT-4 universal meal creation triggered with prompt:", prompt);
   
   const sessionId = telemetry.createSession("universalMealGenerator");
@@ -196,6 +203,11 @@ Fat: 12g`, { recommendationSurface: "universal_meal_generator" })
   // Parse ingredients into structured format with telemetry tracking
   let parsedIngredientCount = 0;
   const ingredients = ingredientLines.map(line => {
+    if (ingredientNutrition) {
+      const ingredient = parseGatheringsIngredient(line);
+      if (!ingredient.parseIssue) parsedIngredientCount++;
+      return ingredient;
+    }
     const cleaned = line.replace(/^[-•]\s*/, '').trim();
     
     // Match patterns like "6 oz tilapia fillet" or "1/2 cup brown rice"
@@ -254,7 +266,7 @@ Fat: 12g`, { recommendationSurface: "universal_meal_generator" })
   const parsedFat = nutritionLines.find(l => l.toLowerCase().includes("fat"))?.match(/\d+/)?.[0];
   
   // Track if we're using defaults
-  if (!parsedCalories || !parsedProtein || !parsedCarbs || !parsedFat) {
+  if (!ingredientNutrition && (!parsedCalories || !parsedProtein || !parsedCarbs || !parsedFat)) {
     const missing = [];
     if (!parsedCalories) missing.push("calories");
     if (!parsedProtein) missing.push("protein");
@@ -263,7 +275,7 @@ Fat: 12g`, { recommendationSurface: "universal_meal_generator" })
     telemetry.tagFallback(sessionId, "parse_default_nutrition", `Missing: ${missing.join(", ")}`);
   }
   
-  const nutrition = {
+  const nutrition = ingredientNutrition ? undefined : {
     calories: parseInt(parsedCalories || '400'),
     protein: parseInt(parsedProtein || '25'),
     carbs: parseInt(parsedCarbs || '30'),
@@ -328,7 +340,7 @@ Fat: 12g`, { recommendationSurface: "universal_meal_generator" })
     mealType,
     ingredients,
     instructions: finalInstructions,
-    nutrition,
+    ...(nutrition ? { nutrition } : {}),
     medicalBadges: [],
     flags: ["ai_generated"],
     servingSize: "1 serving",
