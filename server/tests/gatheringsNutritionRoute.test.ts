@@ -40,7 +40,8 @@ beforeEach(() => {
   jest.mocked(calculateGatheringsNutrition).mockResolvedValue(estimate("available") as any);
   let count = 0;
   jest.mocked(generateMealFromPrompt).mockImplementation(async () => ({
-    id: `course-${++count}`, name: ["Soup Starter", "Roasted Chicken", "Fruit Finale"][count - 1],
+    id: `course-${++count}`, name: ["Soup Starter", "Roasted Chicken", "Fruit Finale"][(count - 1) % 3],
+    description: "A complete recipe.",
     ingredients: [{ name: "apples", amount: 300, unit: "g", originalText: "300 g apples" }],
     instructions: ["Bake"], medicalBadges: [],
     nutrition: { calories: 53, protein: 1, carbs: 8, fat: 3 },

@@ -13,6 +13,18 @@ later repairs from this approval.
 **How to apply:** Reuse the existing USDA/conversion infrastructure. Never replace
 unknown nutrition with invented macros or zero, and do not infer frying absorption.
 
+Repair 1 alone is approved in Development: prevent malformed-generation prompt
+and profile disclosure, with shared-consumer compatibility tests. Repairs 2–4
+still require separate approval.
+
+**Why:** The user prioritized disclosure prevention and explicitly limited this
+authorization to Repair 1.
+
+**How to apply:** Reject incomplete drafts without inventing recipe content.
+Preserve nutrition, six-serving calculations, clinical withholding, and all
+existing safety rules. Do not expand instruction formatting, image behavior,
+badge validation, release baselines, or starch policy under this approval.
+
 Phase A USDA resolver work is stopped. Do not integrate it into the active
 Gatherings route, add USDA aliases, or expand ingredient normalization. Leave the
 isolated implementation in Development without activating it.
@@ -22,8 +34,8 @@ explicitly closed this work in favor of restoring existing Gatherings functional
 
 **How to apply:** Preserve Stage 1 nutrition safeguards and accurate six-serving
 calculations. Do not change the release baseline or pre-existing starch-policy
-failures. Investigations of instructions, generation failures, disclosure, images,
-and badges are read-only until repairs receive separate approval.
+failures. Instructions, generation reliability, images, and badges remain outside
+Repair 1 except for rejection/display handling necessary to prevent disclosure.
 
 Ingredient-coverage approval does not authorize guessing salmon identity, bone-in
 ham edible weight, coconut-milk formulation, or hydrated wakame composition.
