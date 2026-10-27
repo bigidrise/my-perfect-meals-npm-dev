@@ -156,3 +156,4 @@
 - [Dashboard menu colors](dashboard-menu-color-policy.md) — use visually distinct accents for unrelated dashboard tools, not merely different hex shades of the same hue.
 - [RHM client walkthrough](rhm-client-walkthrough-context.md) — staff need the actual first-time client experience before distributing a 30-day link to 8,000 clinic clients.
 - [Frontend test runtime](dom-snapshot-css-fidelity.md) — snapshot CSS fidelity, focused Jest execution, and Vite-only feature gates.
+- [Gatherings nutrition scope](gatherings-nutrition-scope.md) — Development-only nutrition approval; preserve global profiles and omit event-specific diet/cuisine selectors.
