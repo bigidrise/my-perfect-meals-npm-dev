@@ -13,17 +13,19 @@ later repairs from this approval.
 **How to apply:** Reuse the existing USDA/conversion infrastructure. Never replace
 unknown nutrition with invented macros or zero, and do not infer frying absorption.
 
-Repair 1 alone is approved in Development: prevent malformed-generation prompt
-and profile disclosure, with shared-consumer compatibility tests. Repairs 2–4
-still require separate approval.
+Repair 1 disclosure protection is accepted for continued Development work, not
+Production release. Repair 2 alone is now approved: source-preserving cooking
+instruction normalization, truthful course outcomes and completion, and validation
+of cached incomplete recipes. Repairs 3–4 still require separate approval.
 
-**Why:** The user prioritized disclosure prevention and explicitly limited this
-authorization to Repair 1.
+**Why:** The user accepted Repair 1 and separately authorized Repair 2 in
+Development, explicitly requiring a stop afterward.
 
 **How to apply:** Reject incomplete drafts without inventing recipe content.
 Preserve nutrition, six-serving calculations, clinical withholding, and all
-existing safety rules. Do not expand instruction formatting, image behavior,
-badge validation, release baselines, or starch policy under this approval.
+existing safety rules. Supported instruction normalization must not invent
+directions. Failed and withheld courses never count as successful recipes.
+Do not expand image behavior, badge validation, release baselines, or starch policy.
 
 Phase A USDA resolver work is stopped. Do not integrate it into the active
 Gatherings route, add USDA aliases, or expand ingredient normalization. Leave the
@@ -34,8 +36,8 @@ explicitly closed this work in favor of restoring existing Gatherings functional
 
 **How to apply:** Preserve Stage 1 nutrition safeguards and accurate six-serving
 calculations. Do not change the release baseline or pre-existing starch-policy
-failures. Instructions, generation reliability, images, and badges remain outside
-Repair 1 except for rejection/display handling necessary to prevent disclosure.
+failures. Wider generation reliability, image work and badge work remain outside
+the approved instruction/outcome repairs.
 
 Ingredient-coverage approval does not authorize guessing salmon identity, bone-in
 ham edible weight, coconut-milk formulation, or hydrated wakame composition.

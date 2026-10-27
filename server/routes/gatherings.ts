@@ -9,7 +9,9 @@ import {
   buildGuestEnvelope,
 } from "../services/protocolEnvelope";
 import { generateMealImageUnified } from "../services/mealImageGenerator";
-import { assertRecipeDraft, SAFE_RECIPE_FAILURE, SafeRecipeGenerationError } from "../services/universalRecipeContract";
+import { assertRecipeDraft, SafeRecipeGenerationError } from "../services/universalRecipeContract";
+import { recipeInstructions } from "../../shared/recipeDraftSafety";
+import { gatheringsCompletion, gatheringsOutcomeMessage, type GatheringsCourseOutcome } from "../../shared/gatheringsCourseOutcome";
 import {
   appendWholeFoodStandardPrompt,
   evaluateWholeFoodCandidate,
@@ -633,6 +635,7 @@ router.post("/generate", async (req: Request, res: Response) => {
   for (let i = 0; i < courses.length; i++) {
     const courseType = courses[i];
     let courseMeal: any = null;
+    let failureOutcome: GatheringsCourseOutcome = "generation_failed";
 
     // GUARDRAIL #4: Up to 3 attempts per course — first duplicate triggers strict retry
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -689,7 +692,7 @@ router.post("/generate", async (req: Request, res: Response) => {
           skipPalate: !flavorPersonal,
           strictMode: keepItSimple,
         } as any;
-        const meal = ingredientNutrition
+        const meal: any = ingredientNutrition
           ? await generateMealFromPrompt(coursePrompt, COURSE_TO_MEAL_TYPE[courseType],
             mealPreferences, { gatheringsIngredientNutrition: true })
           : await generateMealFromPrompt(
@@ -701,12 +704,15 @@ router.post("/generate", async (req: Request, res: Response) => {
         // Reject incomplete/refused drafts before they can become recipe cards.
         // Structural checks do not replace any clinical or dietary validation.
         assertRecipeDraft(meal);
+        meal.instructions = recipeInstructions(meal);
+        if ("cookingInstructions" in meal) meal.cookingInstructions = meal.instructions;
 
         // Post-generation protocol scan — reject and retry on medical/dietary violation
         const protocolScan = scanGeneratedOutput(meal, gatheringsEnvelope, {
           generatorName: "my_gatherings",
         });
         if (!protocolScan.passed) {
+          failureOutcome = "protocol_rejected";
           console.warn("[Gatherings] protocol_rejected", { courseType, attempt: attempt + 1 });
           continue; // treat as failed attempt — retry with stricter prompt
         }
@@ -717,6 +723,7 @@ router.post("/generate", async (req: Request, res: Response) => {
           recommendationSurface: "gatherings",
         });
         if (wholeFoodDecision.shouldBlock) {
+          failureOutcome = "protocol_rejected";
           console.warn(`⚠️ [Gatherings] Whole-food selection rejected "${meal.name}" (attempt ${attempt + 1}): ${wholeFoodDecision.reason}`);
           continue;
         }
@@ -724,6 +731,7 @@ router.post("/generate", async (req: Request, res: Response) => {
         // Server-side duplicate detection — if AI still produced a duplicate, force another attempt
         const existingNames = generatedCourses.map((c: any) => c.name).filter(Boolean);
         if (!assignedDish && isDuplicateDish(meal.name, existingNames)) {
+          failureOutcome = "duplicate_exhausted";
           console.warn(`⚠️ [Gatherings] Duplicate detected: "${meal.name}" matches previous courses — retrying`);
           continue; // trigger next attempt with stricter prompt
         }
@@ -740,7 +748,7 @@ router.post("/generate", async (req: Request, res: Response) => {
             description: "This course needs reliable nutrition before it can be checked against your medical requirements. Please try again.",
             ingredients: [], instructions: [], medicalBadges: [], flags: [],
             courseType, courseLabel: courseType === "side" ? "Side Dish" : courseType.charAt(0).toUpperCase() + courseType.slice(1),
-            servings: servingSize, servingSize: `${servingSize} servings`, _fallback: true,
+            servings: servingSize, servingSize: `${servingSize} servings`, _fallback: true, outcome: "clinical_withheld",
             nutritionResult: estimate.nutritionResult,
           };
           break;
@@ -761,6 +769,7 @@ router.post("/generate", async (req: Request, res: Response) => {
           assignedDish: assignedDish || null,
           isFamilySpecialty: isFamilySpecialty || false,
           servings: servingSize,
+          outcome: "success",
         };
 
         console.log(
@@ -768,6 +777,10 @@ router.post("/generate", async (req: Request, res: Response) => {
         );
         break; // success — exit retry loop
       } catch (err) {
+        failureOutcome = err instanceof SafeRecipeGenerationError
+          ? err.reason === "protocol_rejected" ? "protocol_rejected"
+            : ["provider_error", "provider_refusal"].includes(err.reason) ? "generation_failed" : "incomplete"
+          : "generation_failed";
         console.error(
           "[Gatherings] course_attempt_failed",
           { courseType, attempt: attempt + 1,
@@ -776,15 +789,15 @@ router.post("/generate", async (req: Request, res: Response) => {
       }
     }
 
-    // GUARDRAIL #4 hard fallback — never expose "something went wrong" to the user
+    // Preserve the course slot, but never fabricate a successful recipe.
     if (!courseMeal) {
       console.warn(
-        `⚠️ [Gatherings] Both attempts failed for ${courseType} — using minimal fallback`,
+        "[Gatherings] course_retries_exhausted", { courseType, attempts: 3, outcome: failureOutcome },
       );
       courseMeal = {
         id: crypto.randomUUID(),
         name: `${courseType.charAt(0).toUpperCase() + courseType.slice(1)} Course`,
-        description: SAFE_RECIPE_FAILURE,
+        description: gatheringsOutcomeMessage[failureOutcome],
         mealType: "dinner",
         courseType,
         courseLabel:
@@ -794,14 +807,13 @@ router.post("/generate", async (req: Request, res: Response) => {
         assignedDish: null,
         isFamilySpecialty: false,
         ingredients: [],
-        instructions: [
-          SAFE_RECIPE_FAILURE,
-        ],
+        instructions: [],
         nutrition: { calories: 0, protein: 0, carbs: 0, fat: 0 },
         servings: servingSize,
         medicalBadges: [],
         flags: [],
         _fallback: true,
+        outcome: failureOutcome,
       };
     }
 
@@ -859,6 +871,7 @@ router.post("/generate", async (req: Request, res: Response) => {
     flavorProfileSeed,
     harvestGuide: harvestGuide || null,
     courses: generatedCourses,
+    completion: gatheringsCompletion(generatedCourses, courses.length),
     aggregatedIngredients,
   });
 });

@@ -1,3 +1,4 @@
+import { hasGenuineRecipeInstructions, normalizeRecipeInstructions } from "./recipeInstructions";
 /** Structural/privacy boundary only; never nutrition or dietary clearance. */
 export const SAFE_RECIPE_FAILURE = "We couldn't prepare a complete recipe. Please try again.";
 export const CLINICAL_RECIPE_WITHHELD = "This course needs reliable nutrition before it can be checked against your medical requirements. Please try again.";
@@ -27,6 +28,13 @@ export interface RecipeDraft {
   description?: unknown;
   ingredients?: unknown;
   instructions?: unknown;
+  cookingInstructions?: unknown;
+}
+export function recipeInstructions(draft: RecipeDraft): string[] {
+  const primary = draft?.instructions;
+  const missing = primary == null || (typeof primary === "string" && !primary.trim()) ||
+    (Array.isArray(primary) && !primary.length);
+  return normalizeRecipeInstructions(missing ? draft?.cookingInstructions : primary);
 }
 export function assertRecipeDraft(draft: RecipeDraft): void {
   if (!cleanRecipeText(draft?.name)) throw new SafeRecipeGenerationError("missing_name");
@@ -36,10 +44,8 @@ export function assertRecipeDraft(draft: RecipeDraft): void {
     !draft.ingredients.every(row => row && typeof row === "object" && validIngredient(row.name))) {
     throw new SafeRecipeGenerationError("invalid_ingredients");
   }
-  // Cached/translated cards already support string steps; preserve that valid
-  // display contract without inventing or re-parsing missing instructions.
-  const instructions = typeof draft.instructions === "string" ? [draft.instructions] : draft.instructions;
-  if (!Array.isArray(instructions) || !instructions.length ||
+  const instructions = recipeInstructions(draft);
+  if (!hasGenuineRecipeInstructions(instructions) ||
     !instructions.every(step => cleanRecipeText(step) && safeRecipeText(step))) {
     throw new SafeRecipeGenerationError("missing_instructions");
   }

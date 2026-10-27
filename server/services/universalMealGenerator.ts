@@ -188,7 +188,7 @@ Fat: 12g`, { recommendationSurface: "universal_meal_generator" })
     throw error instanceof SafeRecipeGenerationError ? error : new SafeRecipeGenerationError("invalid_format");
   }
 
-  const { lines, name, description, ingredientLines, instructionLines, nutritionStart: nutritionStartIndex } = parsed;
+  const { lines, name, description, ingredientLines, instructions, nutritionStart: nutritionStartIndex } = parsed;
 
   // Parse ingredients into structured format with telemetry tracking
   let parsedIngredientCount = 0;
@@ -237,9 +237,6 @@ Fat: 12g`, { recommendationSurface: "universal_meal_generator" })
   
   // Track ingredient parsing success rate
   telemetry.recordIngredientParseRate(sessionId, parsedIngredientCount, ingredientLines.length);
-
-  // Extract instructions
-  const instructions = instructionLines.map(line => line.replace(/^\d+\.\s*/, '').trim());
 
   // Extract nutrition with fallback tracking
   const nutritionLines = lines.slice(nutritionStartIndex);

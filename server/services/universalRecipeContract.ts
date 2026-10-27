@@ -1,9 +1,10 @@
 import { assertRecipeDraft, SafeRecipeGenerationError, safeRecipeText } from "../../shared/recipeDraftSafety";
+import { normalizeRecipeInstructions } from "../../shared/recipeInstructions";
 export { assertRecipeDraft, SafeRecipeGenerationError, SAFE_RECIPE_FAILURE } from "../../shared/recipeDraftSafety";
 
 /** Accept the existing labeled-text contract, never arbitrary prose or JSON.
  * Missing fields are rejected rather than reconstructed from private prompts.
- * Instruction format expansion deliberately belongs to a separate repair. */
+ * Instruction formatting is normalized without supplying missing directions. */
 export function parseUniversalRecipeResponse(text: unknown, refusal?: unknown) {
   if (typeof refusal === "string" && refusal.trim()) throw new SafeRecipeGenerationError("provider_refusal");
   if (typeof text !== "string" || !text.trim()) throw new SafeRecipeGenerationError("empty_response");
@@ -18,7 +19,8 @@ export function parseUniversalRecipeResponse(text: unknown, refusal?: unknown) {
   const name = header(nameLines[0]).replace(/^(?:meal name|name):\s*/i, "").trim();
   const description = header(descriptions[0]).replace(/^description:\s*/i, "").trim();
   const ingredientStart = lines.findIndex(line => /^ingredients?:\s*$/i.test(header(line)));
-  const instructionStart = lines.findIndex(line => /^instructions?:\s*$/i.test(header(line)));
+  const instructionHeader = /^(?:instructions?|cooking\s*instructions?)\s*:/i;
+  const instructionStart = lines.findIndex(line => instructionHeader.test(header(line)));
   const nutritionStart = lines.findIndex(line => /^(?:nutrition:|calories:)/i.test(header(line)));
   if (ingredientStart < 0) throw new SafeRecipeGenerationError("invalid_ingredients");
   if (instructionStart <= ingredientStart) throw new SafeRecipeGenerationError("missing_instructions");
@@ -32,15 +34,18 @@ export function parseUniversalRecipeResponse(text: unknown, refusal?: unknown) {
   if (!ingredientLines.length || !ingredientLines.every(line => /^\s*[-•]\s+\S/.test(line))) {
     throw new SafeRecipeGenerationError("invalid_ingredients");
   }
-  const instructionLines = lines.slice(instructionStart + 1, nutritionStart > instructionStart ? nutritionStart : undefined)
-    .filter(line => /^\d+\./.test(line));
-  if (!instructionLines.length || !instructionLines.every(line => /^\d+\.\s*\S/.test(line))) {
+  const supplied = [
+    header(lines[instructionStart]).replace(instructionHeader, "").trim(),
+    ...lines.slice(instructionStart + 1, nutritionStart > instructionStart ? nutritionStart : undefined),
+  ].filter(Boolean).join("\n");
+  const instructions = normalizeRecipeInstructions(supplied);
+  if (!instructions.length) {
     throw new SafeRecipeGenerationError("missing_instructions");
   }
   assertRecipeDraft({
     name, description,
     ingredients: ingredientLines.map(line => ({ name: line.replace(/^\s*[-•]\s*/, "").trim() })),
-    instructions: instructionLines.map(line => line.replace(/^\d+\.\s*/, "").trim()),
+    instructions,
   });
-  return { lines, name, description, ingredientLines, instructionLines, nutritionStart };
+  return { lines, name, description, ingredientLines, instructions, nutritionStart };
 }
