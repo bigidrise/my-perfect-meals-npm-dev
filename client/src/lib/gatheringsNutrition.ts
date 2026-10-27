@@ -1,10 +1,14 @@
-import { hasGatheringsNutrition } from "@shared/gatheringsNutrition";
+import { hasGatheringsNutrition, isGatheringsMeal } from "@shared/gatheringsNutrition";
 import { creatorMealNutrition } from "./mealMacroSnapshot";
 import { gatheringsNutritionPilot } from "./gatheringsNutritionGate";
 export { gatheringsNutritionPilot };
 /** Preserve legacy behavior outside this explicitly Development-only pilot. */
 export function canUseGatheringsNutrition(course: unknown, pilot = gatheringsNutritionPilot): boolean {
   return !pilot || hasGatheringsNutrition(course);
+}
+export function savedGatheringsNutritionPolicy(meal: any, pilot = gatheringsNutritionPilot) {
+  const applies = pilot && isGatheringsMeal(meal);
+  return { applies, allowed: !applies || hasGatheringsNutrition(meal) };
 }
 /** Legacy board button copies top-level macros and drops yield. Supply one
  * eating portion explicitly, while retaining recipe quantities in the card. */

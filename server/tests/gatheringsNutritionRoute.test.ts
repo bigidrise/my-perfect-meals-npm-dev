@@ -29,7 +29,7 @@ const envelope = { dietaryIdentity: ["kosher"], allergies: ["nuts"], medicalHard
 const estimate = (status: string) => ({
   ...(status === "available" ? { nutrition: { calories: 600, protein: 30, carbs: 60, fat: 26.6667 } } : {}),
   nutritionResult: {
-    version: "ingredient-recipe-v1", status, basis: "whole_recipe", servings: 6,
+    version: "ingredient-recipe-v2", status, basis: "whole_recipe", servings: 6,
     reasons: status === "available" ? [] : ["source_missing"], sources: [], assumptions: [],
   },
 });
@@ -43,6 +43,7 @@ beforeEach(() => {
     id: `course-${++count}`, name: ["Soup Starter", "Roasted Chicken", "Fruit Finale"][count - 1],
     ingredients: [{ name: "apples", amount: 300, unit: "g", originalText: "300 g apples" }],
     instructions: ["Bake"], medicalBadges: [],
+    nutrition: { calories: 53, protein: 1, carbs: 8, fat: 3 },
   }) as any);
 });
 const generate = () => request(app).post("/api/gatherings/generate").send({
@@ -69,6 +70,15 @@ it("unknown nutrition cannot masquerade as clearance for medical hard limits", a
     expect(course._fallback).toBe(true);
     expect(course.ingredients).toEqual([]);
     expect(course.nutrition).toBeUndefined();
+  }
+});
+it("unknown nonclinical courses do not retain any upstream AI/default nutrition", async () => {
+  jest.mocked(calculateGatheringsNutrition).mockResolvedValue(estimate("needs_review") as any);
+  const response = await generate();
+  expect(response.status).toBe(200);
+  for (const course of response.body.courses) {
+    expect(course.nutrition).toBeUndefined();
+    expect(course.nutritionResult.status).toBe("needs_review");
   }
 });
 it("allergy/diet rejection still prevents returning the candidate", async () => {

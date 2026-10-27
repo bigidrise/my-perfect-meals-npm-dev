@@ -16,6 +16,27 @@ Use compatible USDA portions for volume/count; never generic cup-to-gram weights
 Unknown ingredient identity, preparation form, or quantity needs review. Missing
 composition/source failures are unavailable. There is no AI/default macro fallback.
 
+## Completion audit and saved recipes
+The Development route clears upstream nutrition before merging the ingredient
+estimate. An unresolved estimate cannot accidentally preserve an AI vector.
+Successful calculations now emit the v2 contract: complete ingredient-source
+coverage and a consistency signature binding ingredients, quantities, recipe
+name/instructions, saved yield and recipe macro totals. This is cache integrity,
+not cryptographic authentication or clinical clearance. Older v1/legacy caches
+must regenerate; no saved rows are migrated or backfilled.
+
+Gatherings cards, restored cache cards, Favorites rows and the Favorites picker
+apply the same scoped validity predicate. Unverified identifiable Gatherings
+remain readable/removable in Favorites, but numeric displays/actions are withheld.
+Favorites macro/plan/share values use one portion; stored/cooking values retain
+recipe totals and yield. Non-Gatherings records and published runtimes keep their
+existing paths.
+
+Historical saves without any remaining Gatherings origin/course metadata cannot
+reliably be distinguished from other creators. Do not guess their origin or
+claim they were audited/backfilled. Full historical repair needs separate approval.
+Corrected Christmas calorie totals require complete identity/portion evidence.
+
 Frying retention has no approved measured input contract or validated retention
 table in this pilot. Fried foods, including latkes, therefore need review. Neither
 100% pan oil nor zero oil is assumed. Quantified incorporated fats are counted
@@ -41,6 +62,21 @@ time. This is a small cold-process observation, not a latency guarantee. Missing
 generic apple evidence stays unresolved; the shared adapter was not loosened.
 
 ## Regression evidence boundaries
+Completion verification: 16 relevant suites / 313 unique tests were exercised.
+After correcting the new Favorites-picker test mock and rerunning its affected
+flow, 311 tests pass. Two unchanged serving-contract expectations still fail:
+they expect daily starch allowances to block release, while the current validator
+explicitly treats daily starch overages as planning/tracking guidance. Neither
+the policy nor those tests were changed for Stage 1.
+
+The frontend build passes. The release type gate still fails on the same
+114-diagnostic fingerprint observed before this completion pass, against a
+120-diagnostic stored baseline. No new diagnostic fingerprint or baseline refresh
+was introduced. Development was restarted once and its public welcome page
+rendered. Saved recipe interaction verification used actual React components with
+mocked account/feed/network dependencies, not an authenticated live browser save
+or paid recipe generation. These checks do not establish Production readiness.
+
 The user supplied the actual Christmas soup/cake ingredient lists and a yield of
 six. These are preserved verbatim in the Christmas regression fixtures. Cooking
 instructions were not supplied. Soup ambiguities include shell-on versus edible

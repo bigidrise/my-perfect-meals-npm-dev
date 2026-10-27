@@ -22,6 +22,8 @@ import AlphaGalBadge from "@/components/AlphaGalBadge";
 import DiabetesProtocolIndicator from "@/components/DiabetesProtocolIndicator";
 import { GroceryCoachMacroTiles } from "./shopping/GroceryCoachMacroTiles";
 import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
+import { savedGatheringsNutritionPolicy, gatheringsMealForPlan } from "@/lib/gatheringsNutrition";
+import GatheringsNutritionPanel from "@/components/GatheringsNutritionPanel";
 
 interface Props {
   row: any;
@@ -67,6 +69,7 @@ export default function SavedMealRow({
   );
 
   const d = row.mealData as any;
+  const nutritionPolicy = savedGatheringsNutritionPolicy(d);
   const perServingNutrition = mealMacroSnapshot(d);
 
   // ── Nutrition always from canonical record ─────────────────────────────
@@ -126,7 +129,9 @@ export default function SavedMealRow({
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Heart className="h-4 w-4 text-red-500 shrink-0" fill="currentColor" />
-          <span className="text-xs text-white/40">{Math.round(perServingNutrition.calories)} {t("savedMeals.cal")} / serving</span>
+          <span className="text-xs text-white/40">{nutritionPolicy.allowed
+            ? `${Math.round(perServingNutrition.calories)} ${t("savedMeals.cal")} / serving`
+            : "Nutrition unavailable"}</span>
           {isExpanded
             ? <ChevronDown className="h-4 w-4 text-white/40" />
             : <ChevronRight className="h-4 w-4 text-white/40" />}
@@ -179,11 +184,12 @@ export default function SavedMealRow({
           )}
 
           {/* Macro strip — always from canonical record */}
+          {nutritionPolicy.applies ? <GatheringsNutritionPanel course={d} /> :
           <GroceryCoachMacroTiles macros={perServingNutrition} servings={perServingNutrition.servings} labels={{
             Calories: t("savedMeals.cal"), Protein: t("savedMeals.protein"), Fat: t("savedMeals.fat"),
             "Starchy Carbs": t("biometrics.starchyCarbs"),
             "Fibrous Carbs": t("biometrics.fibrousCarbs"),
-          }} />
+          }} />}
 
           {/* Ingredients — item/notes from translation, amounts from canonical */}
           {d?.ingredients && d.ingredients.length > 0 && (
@@ -227,8 +233,8 @@ export default function SavedMealRow({
 
           {/* Actions */}
           <div className="flex flex-wrap gap-2 pt-2">
-            <AddToMealPlanButton
-              meal={{
+            {nutritionPolicy.allowed && <AddToMealPlanButton
+              meal={nutritionPolicy.applies ? { ...gatheringsMealForPlan(d), id: row.id, name: row.title } : {
                 id: row.id,
                 name: row.title,          // canonical title for plan slot
                 description: d?.description,
@@ -240,9 +246,10 @@ export default function SavedMealRow({
                 servingSize: d?.servingSize,
               }}
               onSuccess={onAddToPlanSuccess}
-            />
+            />}
             <button
-              onClick={() => onAddToMacros(row)}
+              disabled={!nutritionPolicy.allowed}
+              onClick={() => { if (nutritionPolicy.allowed) onAddToMacros(row); }}
               className="flex-1 bg-white/10 text-white text-sm py-2 px-3 rounded-lg active:scale-[0.98]"
             >
               {t("savedMeals.addToMacros")}
@@ -256,7 +263,7 @@ export default function SavedMealRow({
             </button>
           </div>
 
-          <MealCardActions
+          {nutritionPolicy.allowed && <MealCardActions
             meal={{
               id: row.id,
               name: row.title,
@@ -269,9 +276,10 @@ export default function SavedMealRow({
               servingSize: d?.servingSize,
             }}
             source={row.sourceType}
+            shareNutrition={nutritionPolicy.applies ? mealMacroSnapshot(d) : undefined}
             showTranslate={true}
             showPrepareButton={true}
-          />
+          />}
         </div>
       )}
     </div>
