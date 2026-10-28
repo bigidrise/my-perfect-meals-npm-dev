@@ -10,7 +10,7 @@ on:
       - "scripts/i18n-*.ts"
       - "scripts/pseudo-locale-gen.ts"
   push:
-    branches: [main]
+    branches: [dev]
     paths:
       - "client/src/i18n/**"
 
