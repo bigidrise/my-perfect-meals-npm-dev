@@ -69,12 +69,6 @@ An isolated, undeployed Development-only conversational UI prototype is approved
 
 Integration-readiness Increments A–C are a reviewed, frozen offline adapter/control checkpoint, not live activation approval. Keep the prototype unchanged, the existing Drink Pairing feature operating normally and the application advisor binding denied.
 
-The founder subsequently authorized a focused GitHub PR targeting Production for the AI Pairing Advisor **Coming Soon** hub link, informational page and matching black-glass styling. This presentation-only exception does not authorize replacing existing wine pairing, activating advisor intelligence, merging or publishing.
-
-**Why:** The user wants the placeholder available in Production while explicitly holding off on replacing the working wine-pairing feature.
-
-**How to apply:** Keep other Development-only presentations, Pregnancy, pricing and subscription behavior unchanged. Promote only the informational route and navigation needed for this placeholder; retain the frozen advisor runtime boundary.
-
 **Why:** The user reviewed the offline completion report and recommended freezing it. The next investment should prove that the intelligence works, not add infrastructure without a specific reason or begin another broad redesign.
 
 **How to apply:** Further conversational advisor development and paid evaluation are postponed until business revenue supports investment. Only the separately approved Development Coming Soon presentation/navigation and accurate subscription labeling may proceed; keep working Drink Pairing, prices, entitlements and billing unchanged. Preserve the frozen prototype and A–C. Offline success is not evidence of real language understanding, provider retry behavior or customer readiness.

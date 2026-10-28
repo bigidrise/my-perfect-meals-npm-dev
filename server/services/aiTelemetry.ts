@@ -91,7 +91,7 @@ export function createSession(source: string): string {
 export function logRawOutput(
   sessionId: string,
   rawOutput: string | null | undefined,
-  context?: { prompt?: string; model?: string; suppressContent?: boolean }
+  context?: { prompt?: string; model?: string }
 ): void {
   const session = sessions.get(sessionId);
   
@@ -112,7 +112,7 @@ export function logRawOutput(
     console.log(`📝 [AI_TELEMETRY] Output length: ${rawOutput.length} chars`);
     
     // In full debug mode, log first 500 chars of output
-    if (AI_DEBUG && !context?.suppressContent) {
+    if (AI_DEBUG) {
       const preview = rawOutput.length > 500 ? rawOutput.slice(0, 500) + "..." : rawOutput;
       console.log(`📝 [AI_TELEMETRY] Preview:\n${preview}`);
     }

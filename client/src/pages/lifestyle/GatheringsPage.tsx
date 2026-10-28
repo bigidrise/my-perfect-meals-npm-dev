@@ -26,7 +26,11 @@ import {
   isAllergyRelatedError,
   formatAllergyAlertDescription,
 } from "@/utils/allergyAlert";
-import GatheringsValidationBadges from "@/components/GatheringsValidationBadges";
+import HealthBadgesPopover from "@/components/badges/HealthBadgesPopover";
+import {
+  generateMedicalBadges,
+  getUserMedicalProfile,
+} from "@/utils/medicalPersonalization";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
@@ -42,6 +46,7 @@ import {
 } from "@/components/StarchGuardIntercept";
 import {
   DietGuardIntercept,
+  DietAdaptedNotice,
 } from "@/components/DietGuardIntercept";
 import { useDietGuardPrecheck } from "@/hooks/useDietGuardPrecheck";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
@@ -49,9 +54,6 @@ import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { setQuickView } from "@/lib/macrosQuickView";
 import { creatorMealNutrition as getMealNutrition } from "@/lib/mealMacroSnapshot";
-import { canUseGatheringsNutrition, gatheringsNutritionPilot, gatheringsMealForPlan } from "@/lib/gatheringsNutrition";
-import GatheringsNutritionPanel from "@/components/GatheringsNutritionPanel";
-import type { GatheringsNutritionResult } from "@shared/gatheringsNutrition";
 import TrashButton from "@/components/ui/TrashButton";
 import FavoriteButton from "@/components/FavoriteButton";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
@@ -60,10 +62,11 @@ import { PillButton } from "@/components/ui/pill-button";
 import { IconPillOption } from "@/components/ui/icon-pill-option";
 import ServingInstructionsBlock from "@/components/ServingInstructionsBlock";
 import PhaseGate from "@/components/PhaseGate";
-import { guardGatheringsCards } from "@/lib/gatheringsDisclosureGuard";
-import { normalizeRecipeInstructions } from "@shared/recipeInstructions";
-import { gatheringsCompletion, gatheringsCourseOutcome, gatheringsOutcomeLabel, gatheringsOutcomeMessage, type GatheringsCourseOutcome } from "@shared/gatheringsCourseOutcome";
-import type { GatheringsValidationEvidence } from "@shared/gatheringsValidationEvidence";
+import { normalizeInstructions } from "@/utils/normalizeInstructions";
+import DietStyleBadge from "@/components/DietStyleBadge";
+import MealClassificationPill from "@/components/MealClassificationPill";
+import KosherProTip from "@/components/KosherProTip";
+import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 import {
   type DishCategory,
   type TraditionalDish,
@@ -77,7 +80,6 @@ import {
 // ─────────────────────────────────────────────
 interface StructuredIngredient {
   name: string;
-  amount?: string | number;
   quantity?: string | number;
   unit?: string;
   category?: string;
@@ -99,7 +101,7 @@ interface CourseMeal {
     carbs?: number;
     fat?: number;
   };
-  instructions: string | string[];
+  instructions: string;
   cookingInstructions?: string[];
   reasoning: string;
   servingSize: string;
@@ -109,8 +111,8 @@ interface CourseMeal {
     reason: string;
     color: string;
   }>;
+  imageUrl?: string;
   dietaryComplianceVerified?: boolean;
-  validationEvidence?: GatheringsValidationEvidence | null;
   dietClassification?: import("@/components/MealClassificationPill").DietClassification | null;
   courseType: "appetizer" | "main" | "side" | "dessert";
   courseLabel: string;
@@ -118,8 +120,6 @@ interface CourseMeal {
   isFamilySpecialty: boolean;
   servings: number;
   _fallback?: boolean;
-  outcome?: GatheringsCourseOutcome;
-  nutritionResult?: GatheringsNutritionResult;
 }
 
 type Situation = "holiday" | "camping" | "tailgating" | "outdoor";
@@ -201,7 +201,6 @@ type CachedExperienceState = {
   situation: Situation;
   eventType: string | null;
   generatedAtISO: string;
-  requestedCourses?: number;
 };
 
 function saveExperienceCache(state: CachedExperienceState) {
@@ -262,8 +261,6 @@ export default function UltimateExperiencesPage() {
   const [chefNotes, setChefNotes] = useState("");
   const [generatedCourses, setGeneratedCourses] = useState<CourseMeal[]>([]);
   const [generatedInSession, setGeneratedInSession] = useState(false);
-  const [requestedCourseCount, setRequestedCourseCount] = useState(0);
-  const courseCompletion = gatheringsCompletion(generatedCourses, requestedCourseCount || generatedCourses.length);
   const { loadingImages, hydrateImages } = useMealImages(setGeneratedCourses, { mealType: "dinner" });
   const [progress, setProgress] = useState(0);
   const tickerRef = useRef<number | null>(null);
@@ -326,14 +323,12 @@ export default function UltimateExperiencesPage() {
   useEffect(() => {
     const cached = loadExperienceCache();
     if (cached?.courses?.length) {
-      const safeCourses = guardGatheringsCards(cached.courses, cached.servings || 6);
-      setGeneratedCourses(safeCourses);
-      setRequestedCourseCount(cached.requestedCourses || safeCourses.length);
+      setGeneratedCourses(cached.courses);
       setServings(cached.servings || 6);
       if (cached.situation) setSituation(cached.situation);
       if (cached.eventType) setSelectedEvent(cached.eventType);
       // Re-fetch images for any courses without imageUrl — DB cache returns instantly
-      const needImages = safeCourses.filter((c: any) => !c._fallback && !c.imageUrl);
+      const needImages = cached.courses.filter((c: any) => !c.imageUrl);
       if (needImages.length > 0) {
         hydrateImages(needImages);
       }
@@ -348,10 +343,9 @@ export default function UltimateExperiencesPage() {
         situation: situation || "holiday",
         eventType: selectedEvent,
         generatedAtISO: new Date().toISOString(),
-        requestedCourses: requestedCourseCount || generatedCourses.length,
       });
     }
-  }, [generatedCourses, servings, requestedCourseCount]);
+  }, [generatedCourses, servings]);
 
   // Starch guard runs on combined input
   useEffect(() => {
@@ -551,11 +545,8 @@ export default function UltimateExperiencesPage() {
 
       stopProgressTicker();
       setIsGenerating(false);
-      const courses = guardGatheringsCards<CourseMeal>(data.courses || [], servings);
-      const requested = situation === "outdoor" ? 1 : totalCourses;
-      const completion = gatheringsCompletion(courses, requested);
+      const courses: CourseMeal[] = data.courses || [];
       setGeneratedCourses(courses);
-      setRequestedCourseCount(requested);
       setHarvestGuide(data.harvestGuide || null);
       setHarvestGuideCollapsed(false);
       setGeneratedInSession(true);
@@ -566,7 +557,6 @@ export default function UltimateExperiencesPage() {
         situation,
         eventType: selectedEvent,
         generatedAtISO: new Date().toISOString(),
-        requestedCourses: requested,
       });
 
       // Fire image generation for all courses in parallel — non-blocking
@@ -576,12 +566,10 @@ export default function UltimateExperiencesPage() {
 
       toast({
         title:
-          completion.state !== "complete" ? completion.title :
           situation === "outdoor" && outdoorExperienceType === "simple"
             ? "Your preparation guide is ready!"
             : "Your experience is ready!",
         description:
-          completion.state !== "complete" ? completion.description :
           situation === "outdoor" && outdoorExperienceType === "simple"
             ? `Nature-to-Table Guide ready for ${proteinSource}.`
             : situation === "outdoor" && outdoorExperienceType === "complete"
@@ -615,9 +603,9 @@ export default function UltimateExperiencesPage() {
     (course.ingredients || []).map((ing: StructuredIngredient) => ({
       name: ing.name,
       qty:
-        typeof (ing.quantity ?? ing.amount) === "string"
-          ? parseFloat(String(ing.quantity ?? ing.amount)) || undefined
-          : (ing.quantity ?? ing.amount) as number | undefined,
+        typeof ing.quantity === "string"
+          ? parseFloat(ing.quantity) || undefined
+          : ing.quantity,
       unit: ing.unit,
     })),
   );
@@ -1336,9 +1324,7 @@ export default function UltimateExperiencesPage() {
               <div className="flex items-center gap-3 mb-2">
                 <Sparkles className="h-5 w-5 text-amber-400" />
                 <h3 className="text-lg font-bold text-white">
-                  {courseCompletion.state !== "complete"
-                    ? courseCompletion.title
-                    : situation === "outdoor" && outdoorExperienceType === "simple"
+                  {situation === "outdoor" && outdoorExperienceType === "simple"
                     ? `Your ${proteinSource} Recipe`
                     : situation === "outdoor" && outdoorExperienceType === "complete"
                     ? "Your Great Outdoors Complete Meal"
@@ -1353,10 +1339,6 @@ export default function UltimateExperiencesPage() {
                       } Experience`}
                 </h3>
               </div>
-
-              <p role="status" className="text-sm text-white/80">
-                {courseCompletion.description}
-              </p>
 
               {substitutedStarchTerms.length > 0 && (
                 <StarchSubstitutionNotice
@@ -1383,7 +1365,7 @@ export default function UltimateExperiencesPage() {
                     </span>
                     {course._fallback && (
                       <span className="text-xs text-red-400 border border-red-400/30 bg-red-400/10 px-2 py-0.5 rounded-full">
-                        {gatheringsOutcomeLabel[gatheringsCourseOutcome(course)]} — Needs retry
+                        Needs retry
                       </span>
                     )}
                   </div>
@@ -1396,18 +1378,10 @@ export default function UltimateExperiencesPage() {
                           <h3 className="text-xl font-bold text-white">
                             {course.name}
                           </h3>
-                          {canUseGatheringsNutrition(course) && <FavoriteButton
+                          <FavoriteButton
                             title={course.name}
                             sourceType="create-dish"
-                            mealData={{ ...course, sourceFeature: "my-perfect-gatherings", servings: course.servings ?? servings }}
-                          />}
-                          <TrashButton
-                            size="sm"
-                            ariaLabel="Remove this course"
-                            title="Remove this course"
-                            confirm={true}
-                            confirmMessage="Remove this course?"
-                            onClick={() => setGeneratedCourses(prev => prev.filter((_, i) => i !== index))}
+                            mealData={{ ...course, servings: course.servings ?? servings }}
                           />
                         </div>
                         <button
@@ -1425,14 +1399,21 @@ export default function UltimateExperiencesPage() {
                         </button>
                       </div>
 
-                      <GatheringsValidationBadges
-                        course={course}
-                        preferences={[
-                          ...(Array.isArray(user?.dietaryRestrictions) ? user.dietaryRestrictions : []),
-                          ...((user as any)?.dietType ? [(user as any).dietType] : []),
-                        ]}
-                      />
-                      {dietAdaptedNotice && <p className="mb-3 text-xs text-white/60">Diet adaptation requested.</p>}
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                        <DietStyleBadge />
+                        <MealClassificationPill
+                          dietClassification={course.dietClassification ?? null}
+                        />
+                        {dietAdaptedNotice && (
+                          <DietAdaptedNotice
+                            diet={normalizeDiet(user?.dietaryRestrictions)}
+                          />
+                        )}
+                        <KosherProTip
+                          dietClassification={course.dietClassification ?? null}
+                          isAdapted={!!dietAdaptedNotice}
+                        />
+                      </div>
 
                       <p className="text-white/90 mb-4">{course.description}</p>
 
@@ -1466,12 +1447,11 @@ export default function UltimateExperiencesPage() {
                       </div>
 
                       <ServingInstructionsBlock
-                        servings={gatheringsNutritionPilot ? (course.servings ?? servings) : servings}
+                        servings={servings}
                         mealName={course.name}
                         description={course.description}
                       />
 
-                      {gatheringsNutritionPilot ? <GatheringsNutritionPanel course={course} /> : <>
                       {servings > 1 && (
                         <div className="mb-3 p-2 bg-black/40 backdrop-blur-md rounded-lg border border-white/20">
                           <div className="text-xs text-white text-center">
@@ -1533,7 +1513,76 @@ export default function UltimateExperiencesPage() {
                           <div className="text-xs text-white">Fat</div>
                         </div>
                       </div>
-                      </>}
+
+                      {(() => {
+                        const profile = getUserMedicalProfile(1);
+                        const mealForBadges = {
+                          name: course.name,
+                          calories:
+                            course.nutrition?.calories ?? course.calories ?? 0,
+                          protein:
+                            course.nutrition?.protein ?? course.protein ?? 0,
+                          carbs: course.nutrition?.carbs ?? course.carbs ?? 0,
+                          fat: course.nutrition?.fat ?? course.fat ?? 0,
+                          ingredients: (course.ingredients ?? []).map(
+                            (ing: any) => ({
+                              name: ing.name ?? ing.item,
+                              amount:
+                                typeof ing.quantity === "number"
+                                  ? ing.quantity
+                                  : parseFloat(
+                                      String(ing.quantity ?? ing.amount ?? "1"),
+                                    ) || 1,
+                              unit: (ing.unit ?? "serving")
+                                .toString()
+                                .toLowerCase(),
+                            }),
+                          ),
+                        };
+
+                        const medicalBadges =
+                          (course as any).medicalBadges &&
+                          (course as any).medicalBadges.length
+                            ? (course as any).medicalBadges
+                            : generateMedicalBadges(
+                                mealForBadges as any,
+                                profile,
+                              );
+
+                        return medicalBadges && medicalBadges.length > 0 ? (
+                          <div className="mb-4">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-3">
+                                <HealthBadgesPopover
+                                  badges={medicalBadges.map((b: any) =>
+                                    typeof b === "string"
+                                      ? b
+                                      : b.badge ||
+                                        b.id ||
+                                        b.condition ||
+                                        b.label,
+                                  )}
+                                />
+                                <h3 className="font-semibold text-white">
+                                  Medical Safety
+                                </h3>
+                              </div>
+                              <TrashButton
+                                size="sm"
+                                ariaLabel="Remove this course"
+                                title="Remove this course"
+                                confirm={true}
+                                confirmMessage="Remove this course?"
+                                onClick={() => {
+                                  setGeneratedCourses((prev) =>
+                                    prev.filter((_, i) => i !== index),
+                                  );
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ) : null;
+                      })()}
 
                       {course.ingredients && course.ingredients.length > 0 && (
                         <div className="mb-4">
@@ -1568,14 +1617,9 @@ export default function UltimateExperiencesPage() {
                       )}
 
                       {(() => {
-                        const outcome = gatheringsCourseOutcome(course);
-                        if (outcome !== "success") return (
-                          <div className="mb-4 rounded-lg border border-amber-400/30 p-3 text-sm text-white/90">
-                            <h4 className="font-semibold">{gatheringsOutcomeLabel[outcome]}</h4>
-                            <p>{gatheringsOutcomeMessage[outcome]}</p>
-                          </div>
+                        const steps = normalizeInstructions(
+                          course.instructions,
                         );
-                        const steps = normalizeRecipeInstructions(course.instructions);
                         if (steps.length === 0) return null;
                         const expanded = !!stepsExpanded[course.id];
                         const visibleSteps = expanded
@@ -1652,9 +1696,7 @@ export default function UltimateExperiencesPage() {
 
                       <div className="space-y-2 mb-3">
                         <GlassButton
-                          disabled={!canUseGatheringsNutrition(course)}
                           onClick={() => {
-                            if (!canUseGatheringsNutrition(course)) return;
                             const macros = getMealNutrition(course, servings);
                             setQuickView({
                               protein: Math.round(macros.protein_g),
@@ -1676,9 +1718,7 @@ export default function UltimateExperiencesPage() {
                         </GlassButton>
 
                         <div className="grid grid-cols-2 gap-2">
-                          {canUseGatheringsNutrition(course) && <AddToMealPlanButton meal={
-                            gatheringsNutritionPilot ? gatheringsMealForPlan(course) : course
-                          } />}
+                          <AddToMealPlanButton meal={course} />
                           <TranslateToggle
                             content={{
                               name: course.name,
@@ -1704,13 +1744,6 @@ export default function UltimateExperiencesPage() {
                                         ingredients:
                                           (translated.ingredients as StructuredIngredient[]) ||
                                           c.ingredients,
-                                        ...(gatheringsNutritionPilot ? {
-                                          nutrition: undefined,
-                                          nutritionResult: c.nutritionResult ? {
-                                            ...c.nutritionResult, status: "needs_review" as const,
-                                            reasons: ["translated_recipe_requires_review"],
-                                          } : undefined,
-                                        } : {}),
                                       }
                                     : c,
                                 ),
@@ -1749,13 +1782,11 @@ export default function UltimateExperiencesPage() {
                           >
                             Guided Cooking
                           </GlassButton>
-                          {canUseGatheringsNutrition(course) && <ShareRecipeButton
+                          <ShareRecipeButton
                             recipe={{
                               name: course.name,
-                              description: gatheringsNutritionPilot
-                                ? `${course.description} Recipe makes ${course.servings} servings; nutrition is per serving.`
-                                : course.description,
-                              nutrition: gatheringsNutritionPilot ? getMealNutrition(course) : course.nutrition,
+                              description: course.description,
+                              nutrition: course.nutrition,
                               instructions: course.instructions,
                               ingredients: (course.ingredients ?? []).map(
                                 (ing: any) => ({
@@ -1766,7 +1797,7 @@ export default function UltimateExperiencesPage() {
                               ),
                             }}
                             className="flex-1"
-                          />}
+                          />
                         </div>
                       </div>
                     </CardContent>

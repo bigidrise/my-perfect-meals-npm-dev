@@ -5,21 +5,15 @@ import { z } from "zod";
 import {
   loadGenerationProtocolEnvelope,
   enforceBeforeGenerate,
+  scanGeneratedOutput,
   buildGuestEnvelope,
 } from "../services/protocolEnvelope";
 import { generateMealImageUnified } from "../services/mealImageGenerator";
-import { assertRecipeDraft, SafeRecipeGenerationError } from "../services/universalRecipeContract";
-import { recipeInstructions } from "../../shared/recipeDraftSafety";
-import { gatheringsCompletion, gatheringsOutcomeMessage, type GatheringsCourseOutcome } from "../../shared/gatheringsCourseOutcome";
-import { buildGatheringsValidationEvidence } from "../services/gatheringsValidationEvidence";
-import { scanGatheringsCourse } from "../services/gatheringsProtocolScan";
 import {
   appendWholeFoodStandardPrompt,
   evaluateWholeFoodCandidate,
 } from "../services/wholeFoodStandard";
 import OpenAI from "openai";
-import { calculateGatheringsNutrition, createGatheringsLookup, gatheringsNutritionEnabled } from "../services/gatheringsNutrition";
-import { GATHERINGS_NUTRITION_VERSION, type GatheringsNutritionResult } from "../../shared/gatheringsNutrition";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -619,10 +613,7 @@ router.post("/generate", async (req: Request, res: Response) => {
   }).combined;
 
   console.log(
-    "[Gatherings] Protocol enforcement active", {
-      dietaryRuleCount: gatheringsEnvelope.dietaryIdentity.length,
-      medicalRuleCount: gatheringsEnvelope.medicalHardLimits.length,
-    },
+    `🔒 [Gatherings] Protocol enforcement active: diet=[${gatheringsEnvelope.dietaryIdentity.join(",")}] medical=[${gatheringsEnvelope.medicalHardLimits.join(",")}]`,
   );
 
   const { generateMealFromPrompt } = await import(
@@ -630,13 +621,10 @@ router.post("/generate", async (req: Request, res: Response) => {
   );
 
   const generatedCourses: any[] = [];
-  const ingredientNutrition = gatheringsNutritionEnabled();
-  const nutritionLookup = ingredientNutrition ? createGatheringsLookup() : null;
 
   for (let i = 0; i < courses.length; i++) {
     const courseType = courses[i];
     let courseMeal: any = null;
-    let failureOutcome: GatheringsCourseOutcome = "generation_failed";
 
     // GUARDRAIL #4: Up to 3 attempts per course — first duplicate triggers strict retry
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -684,40 +672,28 @@ router.post("/generate", async (req: Request, res: Response) => {
           cookingMethod,
         );
 
-        const mealPreferences = {
-          userId,
-          dietaryRestrictions: userDiet,
-          allergies: userAllergies,
-          mealTypes: ["dinner"],
-          medicalFlags: gatheringsEnvelope.medicalHardLimits,
-          skipPalate: !flavorPersonal,
-          strictMode: keepItSimple,
-        } as any;
-        const meal: any = ingredientNutrition
-          ? await generateMealFromPrompt(coursePrompt, COURSE_TO_MEAL_TYPE[courseType],
-            mealPreferences, { gatheringsIngredientNutrition: true })
-          : await generateMealFromPrompt(
+        const meal = await generateMealFromPrompt(
           coursePrompt,
           COURSE_TO_MEAL_TYPE[courseType],
-          mealPreferences,
+          {
+            userId,
+            dietaryRestrictions: userDiet,
+            allergies: userAllergies,
+            mealTypes: ["dinner"],
+            medicalFlags: gatheringsEnvelope.medicalHardLimits,
+            skipPalate: !flavorPersonal,
+            strictMode: keepItSimple,
+            // skipImage removed — images are now generated server-side in batch
+            // after all courses are ready, before the response is returned.
+          } as any,
         );
 
-        // Reject incomplete/refused drafts before they can become recipe cards.
-        // Structural checks do not replace any clinical or dietary validation.
-        assertRecipeDraft(meal);
-        meal.instructions = recipeInstructions(meal);
-        if ("cookingInstructions" in meal) meal.cookingInstructions = meal.instructions;
-
         // Post-generation protocol scan — reject and retry on medical/dietary violation
-        // Reuse the existing ingredient/protocol rules for ingredients named
-        // only in cooking steps as well. This scan view never enters USDA,
-        // nutrition calculation, or the returned recipe ingredient list.
-        const protocolScan = scanGatheringsCourse(meal, gatheringsEnvelope, {
+        const protocolScan = scanGeneratedOutput(meal, gatheringsEnvelope, {
           generatorName: "my_gatherings",
         });
         if (!protocolScan.passed) {
-          failureOutcome = "protocol_rejected";
-          console.warn("[Gatherings] protocol_rejected", { courseType, attempt: attempt + 1 });
+          console.warn(`⚠️ [Gatherings] Protocol violation in ${courseType} (attempt ${attempt + 1}): ${protocolScan.message}`);
           continue; // treat as failed attempt — retry with stricter prompt
         }
 
@@ -727,7 +703,6 @@ router.post("/generate", async (req: Request, res: Response) => {
           recommendationSurface: "gatherings",
         });
         if (wholeFoodDecision.shouldBlock) {
-          failureOutcome = "protocol_rejected";
           console.warn(`⚠️ [Gatherings] Whole-food selection rejected "${meal.name}" (attempt ${attempt + 1}): ${wholeFoodDecision.reason}`);
           continue;
         }
@@ -735,35 +710,12 @@ router.post("/generate", async (req: Request, res: Response) => {
         // Server-side duplicate detection — if AI still produced a duplicate, force another attempt
         const existingNames = generatedCourses.map((c: any) => c.name).filter(Boolean);
         if (!assignedDish && isDuplicateDish(meal.name, existingNames)) {
-          failureOutcome = "duplicate_exhausted";
           console.warn(`⚠️ [Gatherings] Duplicate detected: "${meal.name}" matches previous courses — retrying`);
           continue; // trigger next attempt with stricter prompt
         }
 
-        const estimate = ingredientNutrition
-          ? await calculateGatheringsNutrition(meal as any, servingSize, nutritionLookup!.lookup)
-          : null;
-        // Ingredient/instruction safety scans above are unchanged. Unknown
-        // nutrition must not stand in for clearance of a quantitative protocol.
-        if (estimate && estimate.nutritionResult.status !== "available" &&
-            gatheringsEnvelope.medicalHardLimits.length > 0) {
-          courseMeal = {
-            id: meal.id, name: `${courseType.charAt(0).toUpperCase() + courseType.slice(1)} Course`,
-            description: "This course needs reliable nutrition before it can be checked against your medical requirements. Please try again.",
-            ingredients: [], instructions: [], medicalBadges: [], flags: [],
-            courseType, courseLabel: courseType === "side" ? "Side Dish" : courseType.charAt(0).toUpperCase() + courseType.slice(1),
-            servings: servingSize, servingSize: `${servingSize} servings`, _fallback: true, outcome: "clinical_withheld",
-            nutritionResult: estimate.nutritionResult,
-          };
-          break;
-        }
         courseMeal = {
           ...meal,
-          // Never preserve upstream AI/default nutrition when an ingredient
-          // estimate is unresolved, even if a future draft includes that field.
-          ...(ingredientNutrition ? { nutrition: undefined } : {}),
-          ...(estimate ?? {}),
-          ...(ingredientNutrition ? { servingSize: `${servingSize} servings` } : {}),
           wholeFoodDecision,
           courseType,
           courseLabel:
@@ -773,43 +725,29 @@ router.post("/generate", async (req: Request, res: Response) => {
           assignedDish: assignedDish || null,
           isFamilySpecialty: isFamilySpecialty || false,
           servings: servingSize,
-          outcome: "success",
         };
-        courseMeal.validationEvidence = buildGatheringsValidationEvidence(
-          courseMeal, protocolScan, gatheringsEnvelope.dietaryIdentity,
-        );
-        // Only supported, explicitly supplied dietary badges survive a real
-        // scan. No medical badge can be inferred from a missing nutrient.
-        courseMeal.medicalBadges = courseMeal.validationEvidence?.dietaryBadges ?? [];
-        courseMeal.dietaryComplianceVerified = courseMeal.medicalBadges.length > 0;
-        courseMeal.dietClassification = null;
 
         console.log(
           `✅ [Gatherings] ${courseType} (${i + 1}/${courses.length}): "${meal.name}"${assignedDish ? ` [requested: ${assignedDish}]` : ""}`,
         );
         break; // success — exit retry loop
       } catch (err) {
-        failureOutcome = err instanceof SafeRecipeGenerationError
-          ? err.reason === "protocol_rejected" ? "protocol_rejected"
-            : ["provider_error", "provider_refusal"].includes(err.reason) ? "generation_failed" : "incomplete"
-          : "generation_failed";
         console.error(
-          "[Gatherings] course_attempt_failed",
-          { courseType, attempt: attempt + 1,
-            category: err instanceof SafeRecipeGenerationError ? err.reason : "unexpected_error" },
+          `❌ [Gatherings] ${courseType} attempt ${attempt + 1} failed:`,
+          err,
         );
       }
     }
 
-    // Preserve the course slot, but never fabricate a successful recipe.
+    // GUARDRAIL #4 hard fallback — never expose "something went wrong" to the user
     if (!courseMeal) {
       console.warn(
-        "[Gatherings] course_retries_exhausted", { courseType, attempts: 3, outcome: failureOutcome },
+        `⚠️ [Gatherings] Both attempts failed for ${courseType} — using minimal fallback`,
       );
       courseMeal = {
         id: crypto.randomUUID(),
         name: `${courseType.charAt(0).toUpperCase() + courseType.slice(1)} Course`,
-        description: gatheringsOutcomeMessage[failureOutcome],
+        description: `A ${courseType} dish for your ${eventType || situation} experience. Tap regenerate to try again.`,
         mealType: "dinner",
         courseType,
         courseLabel:
@@ -819,29 +757,18 @@ router.post("/generate", async (req: Request, res: Response) => {
         assignedDish: null,
         isFamilySpecialty: false,
         ingredients: [],
-        instructions: [],
+        instructions: [
+          "This course encountered an issue during generation. Please try again.",
+        ],
         nutrition: { calories: 0, protein: 0, carbs: 0, fat: 0 },
         servings: servingSize,
         medicalBadges: [],
         flags: [],
         _fallback: true,
-        outcome: failureOutcome,
       };
     }
 
     generatedCourses.push(courseMeal);
-  }
-  if (ingredientNutrition) {
-    for (const course of generatedCourses) {
-      if (course._fallback) {
-        delete course.nutrition;
-        course.nutritionResult ??= {
-          version: GATHERINGS_NUTRITION_VERSION, status: "unavailable", basis: "whole_recipe",
-          servings: servingSize, reasons: ["course_generation_failed"], assumptions: [], sources: [],
-        } satisfies GatheringsNutritionResult;
-      }
-    }
-    console.log("[GatheringsNutrition] USDA request summary", nutritionLookup!.metrics);
   }
 
   // ── Unified Image Pipeline: attach permanent imageUrls before responding ──
@@ -883,7 +810,6 @@ router.post("/generate", async (req: Request, res: Response) => {
     flavorProfileSeed,
     harvestGuide: harvestGuide || null,
     courses: generatedCourses,
-    completion: gatheringsCompletion(generatedCourses, courses.length),
     aggregatedIngredients,
   });
 });

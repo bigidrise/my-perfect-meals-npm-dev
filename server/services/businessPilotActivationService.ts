@@ -4,12 +4,10 @@ import { db } from "../db";
 import { createBusinessPilotAuthorization } from "./businessPilotAuthorizationService";
 import { BUSINESS_PARTNER_PILOT_TOKEN } from "../../shared/businessPartnerPilot";
 import { inspectBusinessPartnerPilot, activateBusinessPartnerPilot } from "./businessPartnerPilotService";
-import { provisionUnifiedPilotBusiness, type PilotWorkspaceInput } from "./unifiedBusinessPilotProvisioning";
 import {
   businessPilotActivationEnabled, BusinessPilotActivationError,
   clinicalPilotWindow, requirePilotClaim, FOUNDER_ACTIVATION_WORKFLOW,
   finitePilotTimestamp, validateClinicalPilotWindow,
-  unifiedBusinessPilotDevelopmentEnabled,
 } from "./businessPilotActivationPolicy";
 
 const rows = (result: any): any[] => result.rows ?? result;
@@ -65,9 +63,9 @@ export async function inspectBusinessPilotLink(token: unknown) {
   };
 }
 
-export async function activateBusinessPilotLink(token: unknown, userId: string, workspace: PilotWorkspaceInput = {}) {
+export async function activateBusinessPilotLink(token: unknown, userId: string) {
   enabled();
-  if (token === BUSINESS_PARTNER_PILOT_TOKEN) return activateBusinessPartnerPilot(userId, workspace);
+  if (token === BUSINESS_PARTNER_PILOT_TOKEN) return activateBusinessPartnerPilot(userId);
   if (!validToken(token)) throw new BusinessPilotActivationError("Invitation not found.", "PILOT_NOT_FOUND", 404);
   return db.transaction(async (tx) => {
     const [row] = rows(await tx.execute(sql`SELECT l.*, a.normalized_authorized_email,
@@ -86,8 +84,7 @@ export async function activateBusinessPilotLink(token: unknown, userId: string, 
     }, now);
     if (row.activated_user_id) {
       const originalWindow = validateClinicalPilotWindow(row.personal_access_started_at, row.personal_access_ends_at);
-      const business = await provisionUnifiedPilotBusiness(tx, userId, { authorizationId: row.authorization_id, ...originalWindow }, workspace);
-      return { authorizationId: row.authorization_id, ...originalWindow, ...business, alreadyActivated: true };
+      return { authorizationId: row.authorization_id, ...originalWindow, alreadyActivated: true };
     }
     if (row.personal_access_started_at != null || row.personal_access_ends_at != null) {
       throw new BusinessPilotActivationError("Pilot activation state could not be verified.", "PILOT_WINDOW_INVALID", 503);
@@ -104,8 +101,7 @@ export async function activateBusinessPilotLink(token: unknown, userId: string, 
       claimed_user_id = ${userId}, claimed_at = COALESCE(claimed_at, ${now}),
       status = 'active', starts_at = ${window.startedAt}, expires_at = ${window.endsAt},
       updated_at = ${now} WHERE id = ${row.authorization_id}`);
-    const business = await provisionUnifiedPilotBusiness(tx, userId, { authorizationId: row.authorization_id, ...window }, workspace);
-    return { authorizationId: row.authorization_id, ...window, ...business, alreadyActivated: false };
+    return { authorizationId: row.authorization_id, ...window, alreadyActivated: false };
   });
 }
 
@@ -126,11 +122,7 @@ export async function getActiveBusinessPilotClinicalAccess(userId: string) {
   if (!row || !["active", "converted"].includes(row.status) ||
       new Date(row.personal_access_started_at) > new Date() ||
       new Date(row.personal_access_ends_at) <= new Date()) return null;
-  return {
-    authorizationId: row.authorization_id, endsAt: row.personal_access_ends_at,
-    unifiedAccess: unifiedBusinessPilotDevelopmentEnabled()
-      && Boolean(row.business_id && row.organization_consumed),
-  };
+  return { authorizationId: row.authorization_id, endsAt: row.personal_access_ends_at };
 }
 
 export async function founderOrganizationWindow(tx: any, userId: string) {

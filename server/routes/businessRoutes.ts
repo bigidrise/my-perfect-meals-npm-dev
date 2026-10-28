@@ -2829,7 +2829,6 @@ router.post("/create-org", requireAuth, async (req, res) => {
         }
 
         const founderWindow = await founderOrganizationWindow(tx, userId);
-        await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${"business-pilot-owner:" + userId}))`);
         const creationWindow = founderWindow ?? onboardingWindow;
         const [business] = await tx.insert(businesses).values({
           name: orgName,
@@ -2939,13 +2938,7 @@ router.post("/create-org", requireAuth, async (req, res) => {
     let newBiz: typeof businesses.$inferSelect;
     try {
       newBiz = await db.transaction(async (tx) => {
-        // Keep grant-row -> owner-lock ordering identical to pilot activation.
         const founderWindow = await founderOrganizationWindow(tx, userId);
-        // Coordinate first-org creation with explicit pilot activation. Recheck
-        // after taking the same lock; the earlier nontransactional read can race.
-        await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${"business-pilot-owner:" + userId}))`);
-        const [concurrent] = await tx.select().from(businesses).where(eq(businesses.ownerUserId, userId)).limit(1);
-        if (concurrent) return concurrent;
         const creationWindow = founderWindow ?? onboardingWindow;
         const [biz] = await tx.insert(businesses).values({
           name: orgName,

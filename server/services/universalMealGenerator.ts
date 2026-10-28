@@ -6,8 +6,6 @@ import { MealType, WeeklyMealReq } from "./stableMealGenerator";
 import { randomUUID } from "crypto";
 import * as telemetry from "./aiTelemetry";
 import type { DebugMetadata } from "./aiTelemetry";
-import { parseGatheringsIngredient } from "./gatheringsIngredientParser";
-import { parseUniversalRecipeResponse, SafeRecipeGenerationError } from "./universalRecipeContract";
 import { getBaselineMacroPrompt } from "./guardrails/promptPolicyGate";
 import { buildDietPromptBlock, violatesDietaryConstraints, AVOIDANCE_EXPANSION } from "./allergyGuardrails";
 import {
@@ -102,14 +100,8 @@ async function generateImageFromDalle(prompt: string): Promise<string | null> {
 const _isDev = process.env.NODE_ENV !== "production";
 
 // 🔁 Universal AI Meal Generator for any craving
-type UniversalPreferences = Partial<WeeklyMealReq> & { skipImage?: boolean };
-export function generateMealFromPrompt(prompt: string, mealType: MealType, userPrefs?: UniversalPreferences): Promise<FinalMeal>;
-export function generateMealFromPrompt(prompt: string, mealType: MealType, userPrefs: UniversalPreferences | undefined,
-  options: { gatheringsIngredientNutrition: true }): Promise<Omit<FinalMeal, "nutrition">>;
-export async function generateMealFromPrompt(prompt: string, mealType: MealType, userPrefs?: UniversalPreferences,
-  options?: { gatheringsIngredientNutrition: true }): Promise<FinalMeal | Omit<FinalMeal, "nutrition">> {
-  const ingredientNutrition = options?.gatheringsIngredientNutrition === true;
-  if (_isDev) console.log("[UniversalMealGenerator] generation_started", { mealType });
+export async function generateMealFromPrompt(prompt: string, mealType: MealType, userPrefs?: Partial<WeeklyMealReq> & { skipImage?: boolean }): Promise<FinalMeal> {
+  if (_isDev) console.log("🌟 GPT-4 universal meal creation triggered with prompt:", prompt);
   
   const sessionId = telemetry.createSession("universalMealGenerator");
 
@@ -161,43 +153,49 @@ Fat: 12g`, { recommendationSurface: "universal_meal_generator" })
     });
   } catch (error: any) {
     if (error?.status === 429) {
-      telemetry.tagFallback(sessionId, "api_rate_limit", "provider_rate_limit");
+      telemetry.tagFallback(sessionId, "api_rate_limit", error.message);
     } else if (error?.code === "ETIMEDOUT" || error?.code === "ECONNABORTED") {
-      telemetry.tagFallback(sessionId, "api_timeout", "provider_timeout");
+      telemetry.tagFallback(sessionId, "api_timeout", error.message);
     } else {
-      telemetry.tagFallback(sessionId, "api_error", "provider_error");
+      telemetry.tagFallback(sessionId, "api_error", error.message);
     }
     telemetry.closeSession(sessionId);
-    throw new SafeRecipeGenerationError("provider_error");
+    throw error;
   }
 
-  const message = gptResponse?.choices?.[0]?.message;
-  const text = message?.content;
+  const text = gptResponse.choices[0]?.message.content;
   
-  telemetry.logRawOutput(sessionId, typeof text === "string" ? text : null, {
-    model: "gpt-4o", suppressContent: true,
-  });
+  telemetry.logRawOutput(sessionId, text, { model: "gpt-4o", prompt });
   
-  let parsed;
-  try {
-    parsed = parseUniversalRecipeResponse(text, message?.refusal);
-  } catch (error) {
-    telemetry.tagFallback(sessionId, "parse_failed",
-      error instanceof SafeRecipeGenerationError ? error.reason : "invalid_format");
+  if (!text) {
+    telemetry.tagFallback(sessionId, "empty_response", "GPT-4 returned null content");
     telemetry.closeSession(sessionId);
-    throw error instanceof SafeRecipeGenerationError ? error : new SafeRecipeGenerationError("invalid_format");
+    throw new Error("GPT-4 did not return a valid response");
   }
 
-  const { lines, name, description, ingredientLines, instructions, nutritionStart: nutritionStartIndex } = parsed;
+  // Parse GPT response sections
+  const lines = text.split("\n").filter(line => line.trim());
+  
+  // Extract meal name and description
+  const name = lines.find(l => l.toLowerCase().includes("meal name:"))?.replace(/meal name:/i, '').trim() || 
+               lines.find(l => l.toLowerCase().includes("name:"))?.replace(/name:/i, '').trim() || 
+               lines[0]?.trim() || "Custom AI Meal";
+               
+  const description = lines.find(l => l.toLowerCase().includes("description:"))?.replace(/description:/i, '').trim() || 
+                     `A healthy ${mealType} created to satisfy your craving for ${prompt}.`;
+
+  // Extract ingredients section
+  const ingredientStartIndex = lines.findIndex(l => l.toLowerCase().includes("ingredient"));
+  const instructionStartIndex = lines.findIndex(l => l.toLowerCase().includes("instruction"));
+  
+  const ingredientLines = lines.slice(
+    ingredientStartIndex + 1, 
+    instructionStartIndex > ingredientStartIndex ? instructionStartIndex : lines.length
+  ).filter(l => l.trim().startsWith("-") || l.trim().startsWith("•"));
 
   // Parse ingredients into structured format with telemetry tracking
   let parsedIngredientCount = 0;
   const ingredients = ingredientLines.map(line => {
-    if (ingredientNutrition) {
-      const ingredient = parseGatheringsIngredient(line);
-      if (!ingredient.parseIssue) parsedIngredientCount++;
-      return ingredient;
-    }
     const cleaned = line.replace(/^[-•]\s*/, '').trim();
     
     // Match patterns like "6 oz tilapia fillet" or "1/2 cup brown rice"
@@ -238,6 +236,15 @@ Fat: 12g`, { recommendationSurface: "universal_meal_generator" })
   // Track ingredient parsing success rate
   telemetry.recordIngredientParseRate(sessionId, parsedIngredientCount, ingredientLines.length);
 
+  // Extract instructions
+  const nutritionStartIndex = lines.findIndex(l => l.toLowerCase().includes("nutrition") || l.toLowerCase().includes("calories"));
+  const instructionLines = lines.slice(
+    instructionStartIndex + 1, 
+    nutritionStartIndex > instructionStartIndex ? nutritionStartIndex : lines.length
+  ).filter(l => l.match(/^\d+\./));
+
+  const instructions = instructionLines.map(line => line.replace(/^\d+\.\s*/, '').trim());
+
   // Extract nutrition with fallback tracking
   const nutritionLines = lines.slice(nutritionStartIndex);
   
@@ -247,7 +254,7 @@ Fat: 12g`, { recommendationSurface: "universal_meal_generator" })
   const parsedFat = nutritionLines.find(l => l.toLowerCase().includes("fat"))?.match(/\d+/)?.[0];
   
   // Track if we're using defaults
-  if (!ingredientNutrition && (!parsedCalories || !parsedProtein || !parsedCarbs || !parsedFat)) {
+  if (!parsedCalories || !parsedProtein || !parsedCarbs || !parsedFat) {
     const missing = [];
     if (!parsedCalories) missing.push("calories");
     if (!parsedProtein) missing.push("protein");
@@ -256,15 +263,23 @@ Fat: 12g`, { recommendationSurface: "universal_meal_generator" })
     telemetry.tagFallback(sessionId, "parse_default_nutrition", `Missing: ${missing.join(", ")}`);
   }
   
-  const nutrition = ingredientNutrition ? undefined : {
+  const nutrition = {
     calories: parseInt(parsedCalories || '400'),
     protein: parseInt(parsedProtein || '25'),
     carbs: parseInt(parsedCarbs || '30'),
     fat: parseInt(parsedFat || '15')
   };
   
-  // The structural boundary guarantees real parsed steps; no invented fallback.
-  const finalInstructions = instructions;
+  // Track instruction fallback
+  const finalInstructions = instructions.length > 0 ? instructions : [
+    "Prepare all ingredients according to recipe",
+    "Cook using appropriate methods for each ingredient", 
+    "Season to taste and serve hot"
+  ];
+  
+  if (instructions.length === 0) {
+    telemetry.tagFallback(sessionId, "instruction_fallback", "No instructions parsed from AI response");
+  }
 
   // Generate image via canonical pipeline — skip if caller handles images separately
   let imageUrl: string | null = null;
@@ -283,7 +298,7 @@ Fat: 12g`, { recommendationSurface: "universal_meal_generator" })
     const fullMealText = [name, description, ...ingredients.map(i => i.name), ...finalInstructions].join(" ");
     const { violates, reasons } = violatesDietaryConstraints(fullMealText, dietaryRestrictions);
     if (violates) {
-      console.warn("[UniversalMealGenerator] dietary_scan_flagged", { violationCount: reasons.length });
+      console.warn(`⚠️ [DIET GUARD] universalMealGenerator produced a meal with dietary violations: ${reasons.join(", ")} — diet: ${dietaryRestrictions.join("|")}`);
     }
   }
 
@@ -296,10 +311,10 @@ Fat: 12g`, { recommendationSurface: "universal_meal_generator" })
   );
   if (wholeFoodDecision.shouldBlock) {
     console.warn(
-      "[WholeFoodStandard:universal_meal_generator] candidate_rejected",
+      `[WholeFoodStandard:universal_meal_generator] Rejected "${name}": ${wholeFoodDecision.matchedTerms.join(", ")}`,
     );
     telemetry.closeSession(sessionId);
-    throw new SafeRecipeGenerationError("protocol_rejected");
+    throw new Error(`Whole-Food Standard rejected generated meal: ${wholeFoodDecision.reason}`);
   }
 
   // Build debug metadata and close session
@@ -313,7 +328,7 @@ Fat: 12g`, { recommendationSurface: "universal_meal_generator" })
     mealType,
     ingredients,
     instructions: finalInstructions,
-    ...(nutrition ? { nutrition } : {}),
+    nutrition,
     medicalBadges: [],
     flags: ["ai_generated"],
     servingSize: "1 serving",

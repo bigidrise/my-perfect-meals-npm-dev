@@ -8,7 +8,6 @@ import {
 } from "@shared/planFeatures";
 
 export type { Entitlement };
-import { hasActiveBusinessPilotAccess } from "@shared/businessPilotAccess";
 
 export interface UserWithEntitlements {
   id: string;
@@ -25,7 +24,6 @@ export function hasFeature(
 ): boolean {
   if (!user) return false;
   if (user.isTester) return true;
-  if (hasActiveBusinessPilotAccess(user)) return tierIncludesEntitlement("ultimate", feature);
   if (user.accessTier === "PAID_FULL") {
     const tier = !user.planLookupKey
       ? "ultimate"
@@ -49,11 +47,6 @@ export function purchasedPlanIncludesFeature(
   if (!user?.planLookupKey) return false;
   const tier = getTierForLookupKey(user.planLookupKey);
   return tierIncludesEntitlement(tier, feature);
-}
-
-/** Hydration's only non-purchased exception is the validated unified pilot. */
-export function canAccessHydration(user: UserWithEntitlements | null | undefined): boolean {
-  return hasActiveBusinessPilotAccess(user) || purchasedPlanIncludesFeature(user, "hydration_center");
 }
 
 export function hasPlanFeature(
@@ -101,7 +94,6 @@ export function getPlanDisplayName(lookupKey: string | null | undefined): string
 
 export function getUserTier(user: UserWithEntitlements | null | undefined): PlanTier {
   if (!user) return "free";
-  if (hasActiveBusinessPilotAccess(user)) return "ultimate";
   if (user.isTester) return "ultimate";
   if (user.accessTier === "PAID_FULL") {
     return user.planLookupKey ? getTierForLookupKey(user.planLookupKey) : "ultimate";

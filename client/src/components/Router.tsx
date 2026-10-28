@@ -29,7 +29,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { openRouteUpgrade } from "@/lib/routeUpgrade";
-import { canAccessHydration } from "@/lib/entitlements";
+import { purchasedPlanIncludesFeature } from "@/lib/entitlements";
 import {
   createProfessionalLegalRecoveryUrl,
   type ProfessionalLegalRecoveryAction,
@@ -472,7 +472,7 @@ const HydrationCenter = () => {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { requestUpgrade } = useUpgradeModal();
-  const hasAccess = canAccessHydration(user);
+  const hasAccess = purchasedPlanIncludesFeature(user, "hydration_center");
   const requestHydrationUpgrade = useCallback(() => {
     requestUpgrade({
       requiredTier: "pro",

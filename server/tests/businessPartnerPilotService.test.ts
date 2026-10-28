@@ -2,9 +2,6 @@
 import { PgDialect } from "drizzle-orm/pg-core";
 import { inspectBusinessPartnerPilot, activateBusinessPartnerPilot } from "../services/businessPartnerPilotService";
 import { createBusinessPilotAuthorization } from "../services/businessPilotAuthorizationService";
-jest.mock("../services/unifiedBusinessPilotProvisioning", () => ({
-  provisionUnifiedPilotBusiness: jest.fn(async () => ({})),
-}));
 
 jest.mock("../db", () => {
   const db: any = { execute: jest.fn() };

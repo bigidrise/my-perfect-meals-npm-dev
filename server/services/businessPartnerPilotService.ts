@@ -2,7 +2,6 @@ import { randomBytes, createHash } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { db } from "../db";
 import { createBusinessPilotAuthorization } from "./businessPilotAuthorizationService";
-import { provisionUnifiedPilotBusiness, type PilotWorkspaceInput } from "./unifiedBusinessPilotProvisioning";
 import {
   businessPilotActivationEnabled, BusinessPilotActivationError,
   clinicalPilotWindow, validateClinicalPilotWindow, FOUNDER_ACTIVATION_WORKFLOW,
@@ -38,7 +37,7 @@ export async function inspectBusinessPartnerPilot() {
   return { available: true, activated: false, reusable: true, durationDays: 30 };
 }
 
-export async function activateBusinessPartnerPilot(userId: string, workspace: PilotWorkspaceInput = {}) {
+export async function activateBusinessPartnerPilot(userId: string) {
   requireDevelopmentCampaign();
   return db.transaction(async tx => {
     const founderId = await issuer(tx);
@@ -62,11 +61,9 @@ export async function activateBusinessPartnerPilot(userId: string, workspace: Pi
         throw new BusinessPilotActivationError("This account cannot start another pilot.", "PILOT_UNAVAILABLE", 403);
       }
       if (existing.activated_user_id) {
-        const originalWindow = validateClinicalPilotWindow(existing.personal_access_started_at, existing.personal_access_ends_at);
-        const business = await provisionUnifiedPilotBusiness(tx, userId, { authorizationId: existing.authorization_id, ...originalWindow }, workspace);
         return {
           authorizationId: existing.authorization_id,
-          ...originalWindow, ...business,
+          ...validateClinicalPilotWindow(existing.personal_access_started_at, existing.personal_access_ends_at),
           alreadyActivated: true,
         };
       }
@@ -108,7 +105,6 @@ export async function activateBusinessPartnerPilot(userId: string, workspace: Pi
       internal_metadata = COALESCE(internal_metadata, '{}'::jsonb) ||
         '{"enrollmentSource":"reusable_business_partner_link"}'::jsonb,
       updated_at = ${window.startedAt} WHERE id = ${authorizationId}`);
-    const business = await provisionUnifiedPilotBusiness(tx, userId, { authorizationId, ...window }, workspace);
-    return { authorizationId, ...window, ...business, alreadyActivated: false };
+    return { authorizationId, ...window, alreadyActivated: false };
   });
 }

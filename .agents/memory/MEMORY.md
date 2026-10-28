@@ -1,4 +1,5 @@
 - [Pregnancy release safety pause](pregnancy-release-safety-pause.md) — Coming Soon stays Clinical; retain saved support and other safety rules while activation and unreviewed guidance are paused.
+- [Git archive coverage](git-archive-verification.md) — verify remote-only backup tips and reachable objects before cleanup; supplemental bundles require their preserved base.
 - [Safe-area modal layout](safe-area-modal-layout-rule.md) — safe-area spacing fixes must not restructure modal flex or overflow behavior.
 - [Development startup log retention](development-startup-log-retention.md) — preview asset reloads can displace boot messages; capture early and qualify incomplete log evidence.
 - [Authenticated API cache identity](authenticated-api-client-cache-identity.md) — removing caller IDs from APIs must not erase client-side account partitions.
@@ -156,4 +157,3 @@
 - [Dashboard menu colors](dashboard-menu-color-policy.md) — use visually distinct accents for unrelated dashboard tools, not merely different hex shades of the same hue.
 - [RHM client walkthrough](rhm-client-walkthrough-context.md) — staff need the actual first-time client experience before distributing a 30-day link to 8,000 clinic clients.
 - [Frontend test runtime](dom-snapshot-css-fidelity.md) — snapshot CSS fidelity, focused Jest execution, and Vite-only feature gates.
-- [Gatherings nutrition scope](gatherings-nutrition-scope.md) — Development-only nutrition approval; preserve global profiles and omit event-specific diet/cuisine selectors.
