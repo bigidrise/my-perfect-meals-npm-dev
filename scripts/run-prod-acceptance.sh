@@ -10,7 +10,7 @@
 #    bash scripts/run-prod-acceptance.sh
 #    bash scripts/run-prod-acceptance.sh --sha a83f5d2   # verify specific SHA
 #
-#  The test always targets app.myperfectmeals.com. It is not configurable
+#  The test always targets app.myperfectmeals.ai. It is not configurable
 #  to another URL — that would defeat its purpose.
 # ============================================================================
 
@@ -25,8 +25,8 @@ fail()   { echo -e "${RED}  ❌ FAIL${NC}  $1"; FAILED=$((FAILED+1)); }
 warn()   { echo -e "${YELLOW}  ⚠️  WARN${NC}  $1"; WARNED=$((WARNED+1)); }
 header() { echo ""; echo -e "${CYAN}━━━ $1 ━━━${NC}"; }
 
-CANONICAL="https://app.myperfectmeals.com"
-ALIAS="https://app.myperfectmeals.ai"
+CANONICAL="https://app.myperfectmeals.ai"
+ALIAS="https://my-perfect-meals-new-prod.replit.app"
 PROD_BUCKET="replit-objstore-3ccef2ce-f691-43ed-bb6e-fd72e925a491"
 DEV_BUCKET="replit-objstore-2a68d585-4c50-4c2e-a7ff-a9973358bc5b"
 
@@ -134,10 +134,10 @@ fi
 
 # Confirm API origin from release endpoint
 LIVE_ORIGIN=$(echo "$RELEASE_JSON" | grep -o '"apiOrigin":"[^"]*"' | cut -d'"' -f4)
-if [ "$LIVE_ORIGIN" = "app.myperfectmeals.com" ]; then
-  pass "apiOrigin is app.myperfectmeals.com"
+if [ "$LIVE_ORIGIN" = "app.myperfectmeals.ai" ]; then
+  pass "apiOrigin is app.myperfectmeals.ai"
 elif [ -n "$LIVE_ORIGIN" ]; then
-  warn "apiOrigin is '$LIVE_ORIGIN' (expected app.myperfectmeals.com)"
+  warn "apiOrigin is '$LIVE_ORIGIN' (expected app.myperfectmeals.ai)"
 else
   warn "apiOrigin not present in /api/release"
 fi
@@ -178,16 +178,15 @@ fi
 # ─────────────────────────────────────────────────────────────────────────────
 header "Gate 6 — Domain alias (.ai == .com)"
 
-AI_SHA=$(curl -sf --max-time 10 "${ALIAS}/api/release" 2>/dev/null | grep -o '"gitSha":"[^"]*"' | cut -d'"' -f4 || echo "")
-COM_SHA="$LIVE_SHA"
+ALIAS_SHA=$(curl -sf --max-time 10 "${ALIAS}/api/release" 2>/dev/null | grep -o '"gitSha":"[^"]*"' | cut -d'"' -f4 || echo "")
 
-if [ -z "$AI_SHA" ]; then
+if [ -z "$ALIAS_SHA" ]; then
   warn "${ALIAS}/api/release did not respond or has no gitSha"
-  echo "       If .ai is not yet configured, this warning is expected"
-elif [ "$AI_SHA" = "$COM_SHA" ]; then
-  pass ".ai and .com are serving the same SHA: $AI_SHA"
+  echo "       Review the published Production alias before declaring the release healthy"
+elif [ "$ALIAS_SHA" = "$LIVE_SHA" ]; then
+  pass "Customer domain and published Production alias serve the same SHA: $ALIAS_SHA"
 else
-  fail "DOMAIN DIVERGENCE: .ai is serving $AI_SHA, .com is serving $COM_SHA"
+  fail "DOMAIN DIVERGENCE: customer domain serves $LIVE_SHA, published Production alias serves $ALIAS_SHA"
   echo "       Two customer domains are on different code. One of them will break."
 fi
 
