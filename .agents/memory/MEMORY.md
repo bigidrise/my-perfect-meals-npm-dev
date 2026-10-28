@@ -1,4 +1,5 @@
 - [Pregnancy release safety pause](pregnancy-release-safety-pause.md) — Coming Soon stays Clinical; retain saved support and other safety rules while activation and unreviewed guidance are paused.
+- [Git archive coverage](git-archive-verification.md) — verify remote-only backup tips and reachable objects before cleanup; supplemental bundles require their preserved base.
 - [Safe-area modal layout](safe-area-modal-layout-rule.md) — safe-area spacing fixes must not restructure modal flex or overflow behavior.
 - [Development startup log retention](development-startup-log-retention.md) — preview asset reloads can displace boot messages; capture early and qualify incomplete log evidence.
 - [Authenticated API cache identity](authenticated-api-client-cache-identity.md) — removing caller IDs from APIs must not erase client-side account partitions.
