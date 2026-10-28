@@ -1,6 +1,6 @@
 # Last Known-Good Production Deploy
 
-Update this file manually after every successful production deploy.
+Update this file manually only after live Production acceptance passes.
 It is your rollback anchor — the first thing to check when production breaks.
 
 ---
@@ -18,31 +18,29 @@ It is your rollback anchor — the first thing to check when production breaks.
 
 ## How to Roll Back Production
 
-If production breaks after a `git pull`, run this in the **production shell**:
+If production breaks after an update, follow `ROLLBACK.md`. Start with
+read-only inspection in the **Production workspace**:
 
 ```bash
-# 1. Check current state
+git status --short --branch
 git --no-optional-locks log --oneline -5
-
-# 2. Hard reset to the last known-good commit (copy hash from above)
-git reset --hard 6028c458
-
-# 3. Restart the production server
-# (however your production server is managed — restart the workflow or process)
 ```
 
-> ⚠️ `git reset --hard` discards any uncommitted changes. Only run this in the production space, never in dev.
+Preserve uncommitted work and obtain approval before restoring code or
+checkpoints. A workflow restart or Git push does not update the published app.
+Do not restore the shared database as part of a code rollback.
 
 ---
 
 ## How to Update This File After a Successful Deploy
 
-After you confirm production is healthy:
+Only after `bash scripts/run-prod-acceptance.sh --sha <published-commit-sha>`
+passes on the customer-facing Production app and warnings are reviewed:
 
 1. Open this file
-2. Replace the commit hash with the new one (get it from `git log --oneline -1` in the production shell)
+2. Replace the commit hash with the actual published SHA verified by acceptance, not an unverified local HEAD or a later documentation-only commit
 3. Update the date and deploy notes
-4. Commit and push the update: `git add LAST_STABLE.md && git commit -m "update LAST_STABLE to <hash>" && git push`
+4. In the Production workspace, confirm the branch is `production`, then review and commit only `LAST_STABLE.md` and push explicitly to `origin production`. Do not push this record to `main` or update the stable entry before live verification.
 
 ---
 

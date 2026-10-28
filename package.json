@@ -29,7 +29,7 @@
     "check:safety-types": "tsc -p tsconfig.safety-check.json",
     "check:release-types": "node scripts/check-release-type-baseline.mjs",
     "db:push": "drizzle-kit push",
-    "push": "git add -A && (git commit -m \"snapshot $(date -u +'%Y-%m-%dT%H:%M:%SZ')\" || echo 'nothing to commit') && git push -u origin main",
+    "push": "test "$(git branch --show-current)" = dev && git add -A && (git commit -m \"snapshot $(date -u +'%Y-%m-%dT%H:%M:%SZ')\" || echo 'nothing to commit') && git push -u origin dev",
     "validate": "bash scripts/validate.sh",
     "validate:i18n": "tsx scripts/i18n-value-quality-scan.ts --warn-identical-above=15 --fail-identical-above=40",
     "validate:i18n:phase0": "tsx scripts/i18n-phase0-validate.ts --ci",

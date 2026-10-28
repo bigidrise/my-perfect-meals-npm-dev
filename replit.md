@@ -117,22 +117,21 @@ git push --no-verify
 1. Make all changes in dev space only
 2. `npm run validate` — must pass
 3. `git push origin dev` (or `npm run push` for a timestamped snapshot commit)
-4. On GitHub: open a PR from `dev` → `main` and merge
-5. In the production shell: `git pull`
+4. On GitHub: review a PR from `dev` → `production` and merge only approved changes. A Git push is not a Replit publish.
+5. In the Production workspace: confirm `production` is checked out, inspect and preserve any local changes, then run `git pull --ff-only origin production` only when the update is approved.
 6. **Run `bash scripts/pre-publish-validate.sh`** — must pass before clicking Publish.
    Checks that production points at the correct storage bucket (not the dev bucket),
-   DATABASE_URL is a prod host, all critical secrets are set, storage and DB are reachable,
+   the approved external Neon database is reachable, critical secrets are set, storage is reachable,
    and the built client bundle contains no dev URLs. Exit non-zero = do NOT publish.
-7. Click Publish in Replit
-8. Confirm production is healthy: check `/api/health` in browser
-9. Update `LAST_STABLE.md` with the new commit hash
+7. With release approval, click Publish in the Production workspace. Publishing Development does not update the separate Production app.
+8. Run `bash scripts/run-prod-acceptance.sh --sha <published-commit-sha>` against the customer-facing app; a browser `/api/health` check alone is insufficient.
+9. Only after acceptance passes and warnings are reviewed, update `LAST_STABLE.md` with that verified live SHA and commit the record on `production`. Never record an unverified HEAD as stable.
    **If production is broken after publish:** follow `ROLLBACK.md` — do not improvise.
 
 **If production breaks after a pull:**
-Open `LAST_STABLE.md`, copy the last known-good commit hash, and run in the production shell:
-```bash
-git reset --hard <commit-hash>
-```
+Use the verified known-good revision in `LAST_STABLE.md` and follow `ROLLBACK.md`.
+Preserve local work and obtain approval before any code/checkpoint restore;
+do not automatically hard-reset or restore the shared database.
 
 **Never:**
 - Edit files directly in the production space (except emergency hotfixes)

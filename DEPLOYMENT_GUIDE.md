@@ -1,4 +1,50 @@
-# 🚀 DEPLOYMENT GUIDE: Two-Stage System
+# Deployment guide: current Development → Production workflow
+
+## Current release procedure
+
+The historical staging proposal below is **not the current deployment setup**.
+Use this procedure and `ROLLBACK.md` for releases:
+
+1. Build and test in the Development workspace on `dev`.
+2. Review and commit only the intended changes, run the required validation,
+   then push `dev`. A Git push does **not** publish an app.
+3. Review and merge the approved changes from `dev` into `production`.
+   `main` and `staging` are not the current release targets.
+4. In the separate Production workspace, confirm the branch is `production`,
+   inspect the working tree, and stop if changes need preserving. Once approved,
+   update with `git pull --ff-only origin production`.
+5. Obtain separate approval for any migration, configuration change or release
+   prerequisite. Run the Production pre-publish checks; do not bypass failures.
+6. Explicitly publish from the **Production workspace**, not this Development
+   workspace. Publishing here updates the Development project's deployment.
+7. Run `bash scripts/run-prod-acceptance.sh --sha <published-commit-sha>`.
+   A browser visit to `/api/health` alone is not release acceptance.
+8. Only after acceptance passes and warnings are reviewed, record the actual
+   published SHA and date in `LAST_STABLE.md`. Preserve the previous entry if
+   verification fails. Commit the record on `production`, not `main`.
+
+### Verified environment boundaries
+
+- Customer app: `https://app.myperfectmeals.ai`.
+- Published Production app: `https://my-perfect-meals-new-prod.replit.app`.
+- Production editor: `https://replit.com/@bigidrise/my-perfect-meals-new-prod`.
+- The workspaces share external Neon. Development is **not** a disposable test
+  database; account creation and database writes can affect real accounts.
+- Stripe modes and other settings must be verified in the intended runtime;
+  do not infer test mode from being in Development.
+- Ordinary `/auth` is sign-in, not a 30-day pilot invitation. A Development-only
+  campaign must not be distributed as a working Production invitation.
+- The legacy root `push.sh` stages all changes and pushes `staging`; it is not
+  the current release helper and does not publish Replit deployments.
+
+---
+
+## Archived staging proposal — not operational instructions
+
+The remainder records an earlier proposed setup, not verified current
+infrastructure. Its database isolation, Stripe test-mode and future-production
+claims do not describe the current project. Do not execute its setup commands
+or distribute its example URLs without a separately approved staging project.
 
 ## PURPOSE
 This guide shows how to set up and manage your **Development → Staging** workflow for My Perfect Meals, just like Facebook, Twitter, and other professional software companies.
@@ -26,7 +72,7 @@ This guide shows how to set up and manage your **Development → Staging** workf
 - **What it's for:** The real app
 - **Database:** Production database with real user data
 - **Stripe:** Live mode keys (real charges)
-- **URL:** app.myperfectmeals.com (or App Store download)
+- **URL:** The original proposed domain is obsolete; use the verified customer URL in the current procedure above.
 
 ---
 
@@ -118,9 +164,9 @@ If you want `staging.myperfectmeals.com`:
    ↓
 3. Commit to git: ./push.sh "Description of changes"
    ↓
-4. Replit automatically deploys to STAGING
+4. Review and merge the approved changes into the intended release branch
    ↓
-5. Beta testers test in STAGING
+5. Explicitly publish the intended project, then run live acceptance
    ↓
 6. They report bugs/feedback
    ↓
@@ -129,13 +175,12 @@ If you want `staging.myperfectmeals.com`:
 8. Repeat until stable
 ```
 
-### **Automatic Deployments:**
+### Publishing is separate from Git
 
-Replit can automatically deploy to staging when you push to git:
-
-1. **In Deployment Settings**, enable "Auto-deploy"
-2. **Choose trigger:** "On git push to main branch"
-3. **Now:** Every time you run `./push.sh`, staging updates automatically
+A Git push synchronizes repository history; it does not automatically publish
+this application. Use Replit's Publishing tool in the intended workspace after
+the required approvals and checks. Do not assume a branch-triggered deployment
+exists or enable one as part of following this guide.
 
 ---
 

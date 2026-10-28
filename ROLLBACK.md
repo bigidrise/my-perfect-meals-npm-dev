@@ -23,15 +23,15 @@ Before rolling back, confirm the failure is real and in production (not a fluke 
 
 ```bash
 # Check the live health endpoint
-curl -s https://app.myperfectmeals.com/api/health
+curl -s https://app.myperfectmeals.ai/api/health
 
 # If /api/release exists, confirm which SHA is live
-curl -s https://app.myperfectmeals.com/api/release | jq .
+curl -s https://app.myperfectmeals.ai/api/release | jq .
 ```
 
 **Confirm:**
 - The failure is reproducible (not a single transient error)
-- The failure is on `app.myperfectmeals.com` (not dev workspace)
+- The failure is on `app.myperfectmeals.ai` (not the Development workspace or its published deployment)
 - The failure affects a P0 surface (auth, meal generation, images, or payments)
 
 If confirmed: proceed to Step 2 immediately.
@@ -73,19 +73,18 @@ In the Replit production workspace, open **Checkpoints** (the history icon in th
 
 ## Step 4 — Roll back
 
-### Option A — Git reset (preferred when commit hash is known)
+### Option A — Approved code recovery to the known-good revision
 
-In the **production workspace** shell:
+In the **Production workspace**, confirm the intended `production` branch,
+capture the current commit and preserve uncommitted work first. Review a code
+restore or revert against the verified known-good revision and obtain approval
+before changing the working tree. Do not run `git reset --hard` as an automatic
+recovery step or force-push rewritten history.
 
-```bash
-# Reset to the last known-good commit
-git reset --hard <commit-hash-from-LAST_STABLE.md>
-
-# Confirm the reset landed on the right commit
-git log --oneline -3
-```
-
-Then click **Publish** in Replit to push the rolled-back code to production.
+Run the pre-publish checks on the approved recovery candidate, then explicitly
+publish from the Production workspace. A Git push alone does not publish.
+Do not assume an application rollback restores the database: these workspaces
+share external Neon, and a database restore requires separate approval.
 
 ### Option B — Replit Checkpoint restore (use when git reset is not viable)
 
@@ -108,12 +107,12 @@ After the rolled-back version has published, run the production acceptance test 
 bash scripts/run-prod-acceptance.sh --sha <known-good-hash-from-LAST_STABLE.md>
 ```
 
-This script hits `app.myperfectmeals.com` directly (never localhost) and checks:
+This script hits `app.myperfectmeals.ai` directly (never localhost) and checks:
 - Release identity — live SHA matches the known-good commit
 - Storage bucket — production bucket is in use, not the dev bucket
 - Auth wall — unauthenticated requests are rejected with HTTP 401
 - Storage canary — `migration-manifest.json` returns HTTP 200
-- Domain alias — `.ai` and `.com` serve the same SHA
+- Domain alias — the customer domain and published Production `replit.app` address serve the same SHA
 - Core routes — `/api/health`, `/api/weekly-board`, `/api/shopping-list` registered
 
 **All gates must pass (exit 0) before declaring rollback complete.** Warnings are acceptable; failures are not.
@@ -150,18 +149,23 @@ Follow-up:      <what change prevents recurrence>
 
 ## Last known-good checkpoint tagging convention
 
-After every successful publish — once `bash scripts/run-prod-acceptance.sh` passes:
+After every successful publish — once
+`bash scripts/run-prod-acceptance.sh --sha <published-commit-sha>` passes and
+warnings are reviewed:
 
 1. Open `LAST_STABLE.md` at the repo root
 2. Update the **Current Stable Commit** table: replace the commit hash, date, and deploy notes
 3. Append a row to the **Deploy History** table at the bottom
-4. Commit and push:
+4. Commit and push the record from the Production workspace on `production`.
+   Use the actual published SHA confirmed by acceptance, not an unverified
+   local HEAD or the later documentation-only commit:
 
 ```bash
-HASH=$(git rev-parse --short HEAD)
-git add LAST_STABLE.md
-git commit -m "update LAST_STABLE to $HASH"
-git push origin main
+# After editing LAST_STABLE.md with the verified live SHA:
+test "$(git branch --show-current)" = "production" &&
+  git add LAST_STABLE.md &&
+  git commit -m "Record verified production release" &&
+  git push origin production
 ```
 
 **Never update `LAST_STABLE.md` speculatively** — only update it after `run-prod-acceptance.sh` passes on the live site. If acceptance fails and you roll back, `LAST_STABLE.md` must still point to the previous healthy commit.
@@ -172,10 +176,10 @@ git push origin main
 
 | Step | Action | Time |
 |------|--------|------|
-| 1 | Confirm failure on `app.myperfectmeals.com` | 1–2 min |
+| 1 | Confirm failure on `app.myperfectmeals.ai` | 1–2 min |
 | 2 | Post status note to team | 30 sec |
 | 3 | Find last-known-good hash in `LAST_STABLE.md` or Checkpoints | 1 min |
-| 4A | `git reset --hard <hash>` then Publish | 3–5 min |
+| 4A | Preserve work, approve code recovery, validate, then Publish | Varies |
 | 4B | Restore Replit Checkpoint then Publish | 3–5 min |
 | 5 | `bash scripts/run-prod-acceptance.sh --sha <hash>` — must pass | 3–5 min |
 | 6 | Record the incident | 5 min |
