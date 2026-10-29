@@ -61,7 +61,7 @@ Key length (not value) is logged for the OpenAI key to confirm the key is presen
 | Branch | Purpose | Write access |
 |---|---|---|
 | `dev` | Active development; all changes land here first | Engineers |
-| `main` | Production-mirroring branch; reflects what is deployed | Merge only (no direct commits) |
+| `production` | Production-mirroring branch; reflects what is deployed | Merge only (no direct commits) |
 
 ### Standard Development Workflow
 
@@ -71,7 +71,7 @@ All changes are made exclusively in the development (Replit) space:
 1. Make all changes in dev space
 2. npm run validate                    # Must exit PASS
 3. git push origin dev                 # Triggers pre-push validation hook
-4. Open PR: dev → main on GitHub
+4. Open PR: dev → production on GitHub
 5. Review and merge PR
 6. In production shell: git pull
 7. Confirm: curl /api/health
@@ -97,7 +97,7 @@ The hook cannot be bypassed silently — `--no-verify` is an explicit override t
 
 ### Merge Patterns
 
-Merges are always `dev → main` via GitHub pull request. Rebase is explicitly prohibited in production — only merge commits are used. This preserves a linear, auditable production history where each production state corresponds to a specific merge commit.
+Merges are always `dev → production` via GitHub pull request. Rebase is explicitly prohibited in production — only merge commits are used. This preserves a linear, auditable production history where each production state corresponds to a specific merge commit.
 
 ### Rollback Philosophy
 
@@ -131,7 +131,7 @@ The deploy sequence is prescriptive and must not be deviated from:
 Step 1: Make all changes in dev space only
 Step 2: npm run validate                    # Exit PASS required
 Step 3: git push origin dev                 # Pre-push hook runs validate again
-Step 4: GitHub PR: dev → main (open + merge)
+Step 4: GitHub PR: dev → production (open + merge)
 Step 5: Production shell: git pull
 Step 6: Check /api/health in browser        # Verify production is healthy
 Step 7: Update LAST_STABLE.md              # Commit and push update
@@ -492,7 +492,7 @@ A request must pass all applicable layers. There is no shortcut path that grants
 
 Development and production are isolated at the network level (separate Replit deployments). They share a database — which is explicitly documented and managed through auth token stability design (tokens are reused, not regenerated on login).
 
-**Rule:** No direct production file edits except emergency hotfixes. All changes must flow through the dev → main pipeline. This is a process safeguard, not a technical one — enforcement is through discipline and `CHANGE_LOG.md` documentation.
+**Rule:** No direct production file edits except emergency hotfixes. All changes must flow through the dev → production pipeline. This is a process safeguard, not a technical one — enforcement is through discipline and `CHANGE_LOG.md` documentation.
 
 ### Moderation Safeguards
 
