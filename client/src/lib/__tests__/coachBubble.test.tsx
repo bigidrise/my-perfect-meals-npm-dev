@@ -126,6 +126,59 @@ test("Production-style display ignores the Development presentation", () => {
   expect(host.textContent).not.toContain("DEV_ONLY_MESSAGE");
 });
 
+test("Development renders bold, italic, nested emphasis and special characters safely", () => {
+  render(ordinary("Try **My Perfect Buffet**, *something light*, __another option__, _a snack_, and ***both***.\n**Bold and *italic*** & < > \" ' café 🥗"));
+  expect([...host.querySelectorAll("strong")].map(element => element.textContent))
+    .toEqual(["My Perfect Buffet", "another option", "both", "Bold and italic"]);
+  expect([...host.querySelectorAll("em")].map(element => element.textContent))
+    .toEqual(["something light", "a snack", "both", "italic"]);
+  expect(host.textContent).toContain('& < > " \' café 🥗');
+  expect(host.textContent).not.toMatch(/\*\*|__/);
+});
+
+test("paragraphs, line breaks, numbered explanations and bullet lists stay readable", () => {
+  render(ordinary("First **paragraph**.\n\nSecond paragraph.\n1. **One**\n2. Two\n\n* **Apples**\n* Pears\n- Carrots"));
+  expect(host.textContent).toBe("CoachFirst paragraph.\n\nSecond paragraph.\n1. One\n2. Two\n\n• Apples\n• Pears\n- Carrots");
+  expect(host.querySelector(".whitespace-pre-wrap span.whitespace-pre-wrap")).not.toBeNull();
+});
+
+test("ordinary, escaped and unmatched asterisks and underscores are not deleted", () => {
+  render(ordinary("2*3*4; 3 * 4 * 5; note*; * required; file_name_here; ****; **unfinished\n\\*literal\\*; \\_literal\\_; C++ & 50%"));
+  expect(host.textContent).toBe("Coach2*3*4; 3 * 4 * 5; note*; * required; file_name_here; ****; **unfinished\n*literal*; _literal_; C++ & 50%");
+  expect(host.querySelector("strong, em")).toBeNull();
+});
+
+test("generated HTML and executable-looking content stay text, including inside emphasis", () => {
+  const message = '**<img src=x onerror="alert(1)">**\n<script>alert(1)</script>\n[click](javascript:alert(1))\n&lt;b&gt; &amp; **safe & sound**';
+  render(ordinary(message));
+  expect(host.textContent).toContain('<img src=x onerror="alert(1)">');
+  expect(host.textContent).toContain("<script>alert(1)</script>");
+  expect(host.textContent).toContain("[click](javascript:alert(1))");
+  expect(host.textContent).toContain("&lt;b&gt; &amp; safe & sound");
+  expect(host.querySelector("img, script, a, iframe, svg")).toBeNull();
+});
+
+test("every Development structured-response text field formats without suppressing clinical guidance", () => {
+  render({
+    whatIFound: "**Finding**", whatItCouldMean: "*Explanation*", meta: { redFlag: true },
+    todayPlan: { why: "**Reason**", items: ["**First action**", { kind: "contact_care", text: "**Call your clinician**" }],
+      successMetric: "", nextCheckIn: "" },
+    learningOpportunity: "**Learning**",
+  });
+  expect([...host.querySelectorAll("strong")].map(element => element.textContent))
+    .toEqual(["Finding", "Reason", "First action", "Call your clinician", "Learning"]);
+  expect(host.querySelector("em")?.textContent).toBe("Explanation");
+  expect(host.textContent).toContain("please follow their guidance");
+});
+
+test("Production keeps original raw text and spacing behavior in all structured fields", () => {
+  const text = "**Original** *literal*";
+  render({ ...legacy, whatIFound: text, whatItCouldMean: text, learningOpportunity: text,
+    todayPlan: { ...legacy.todayPlan!, why: text, items: [text] } }, false);
+  expect((host.textContent!.match(/\*\*Original\*\*/g) ?? [])).toHaveLength(5);
+  expect(host.querySelector("strong, em, .whitespace-pre-wrap")).toBeNull();
+});
+
 test("the unchanged professional notice stays visible outside compact bubbles at the composer", () => {
   act(() => root.render(<>
     <CoachBubble structured={ordinary("Savory or sweet?")} enableConcierge />
