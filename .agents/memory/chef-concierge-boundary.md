@@ -52,3 +52,9 @@ Development Chef's Corner must open directly into natural conversation for new a
 **Why:** The user explicitly replaced the assessment-led experience with a ChatGPT-style food and nutrition concierge and authorized safe simplification of ordinary two-pass conversation.
 
 **How to apply:** Keep the historical assessment code and data and unrelated onboarding intact. Use one foreground conversational call with bounded history, authorized nutrition context and verified capabilities; do not reintroduce the legacy style/hypothesis pipeline or assessment editor into Development chat. Preserve authentication, safety escalation, clinical access boundaries, persistence and click-time feature access. Production promotion and paid-model acceptance still require separate authorization.
+
+Ordinary conversation is a complete outcome without a navigation decision or goal classification. Rejecting an action must not erase an independently valid conversational reply.
+
+**Why:** The user reported a normal tentative breakfast-shake request receiving a technical retry. Development logs proved a destination-readiness veto was being promoted to failure of the entire conversation.
+
+**How to apply:** Separate the model-authored conversational continuation from its proposed action within the same call. Preserve a safe independent continuation when rejecting an action, never the unchecked feature pitch. Keep genuine provider/parsing failures explicit; do not fabricate conversational success, add repair calls or force a button. Creator execution inside chat remains outside the authorized click-to-open scope.
