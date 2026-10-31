@@ -353,7 +353,7 @@ export default function CoachsCorner() {
   // state races (bootstrap re-run, invalidation) can't nullify the ID.
   const pendingClearId = useRef<string | null>(null);
   const followNewestRef = useRef(true);
-  const forceNewestRef = useRef(false);
+  const forceNewestRef = useRef(true);
   const [keyboardInsets, setKeyboardInsets] = useState({ top: 0, bottom: 0 });
 
   // Keep this bounded conversation pane inside the visible keyboard viewport.
@@ -390,6 +390,9 @@ export default function CoachsCorner() {
   // (e.g. after a profile patch invalidates the query).
   useEffect(() => {
     if (!bootstrapQuery.data || messagesInitialized.current) return;
+    // A return visit can have an older cached snapshot while the invalidated
+    // history refetches. Don't permanently initialize from that snapshot.
+    if (conversationEnabled && (bootstrapQuery.isFetching || !bootstrapQuery.isSuccess)) return;
     const { profileCompleted, conversationId: convId, messages: dbMessages, hasOlderMessages: hasOlder } = bootstrapQuery.data;
 
     if (!conversationEnabled && !profileCompleted) {
@@ -401,7 +404,7 @@ export default function CoachsCorner() {
     if (convId) setConversationId(convId);
     setMessages(dbMessages.map(mapDbMessage));
     setHasOlderMessages(hasOlder ?? false);
-  }, [bootstrapQuery.data, setLocation, conversationEnabled]);
+  }, [bootstrapQuery.data, bootstrapQuery.isFetching, bootstrapQuery.isSuccess, setLocation, conversationEnabled]);
 
   // Profile sync: runs on every bootstrap fetch (including re-fetches after a
   // profile patch). Kept separate from the one-shot messages effect so the
@@ -461,6 +464,9 @@ export default function CoachsCorner() {
   useEffect(() => {
     if (didLoadOlderRef.current) return;
     if (conversationEnabled) {
+      // Initial hydration updates messages on the next render; retain the
+      // one-time immediate positioning until that history actually exists.
+      if (!messages.length && !isLoading) return;
       if (!forceNewestRef.current && !followNewestRef.current) return;
       const container = scrollContainerRef.current;
       container?.scrollTo({ top: container.scrollHeight, behavior: forceNewestRef.current ? "auto" : "smooth" });
@@ -546,6 +552,10 @@ export default function CoachsCorner() {
         },
       ]);
       setIsLoading(false);
+      if (conversationEnabled) {
+        // Refresh on the next visit, not once per turn while chatting.
+        queryClient.invalidateQueries({ queryKey: ["/api/coach/bootstrap"], refetchType: "none" });
+      }
     },
     onError: () => {
       setIsLoading(false);
@@ -633,6 +643,11 @@ export default function CoachsCorner() {
   const deleteMsgMutation = useMutation({
     mutationFn: (msgId: string) =>
       apiRequest(`/api/coach/message/${msgId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      if (conversationEnabled) {
+        queryClient.invalidateQueries({ queryKey: ["/api/coach/bootstrap"], refetchType: "none" });
+      }
+    },
     onMutate: async (msgId: string) => {
       const previous = messages.find((m) => m.id === msgId);
       setMessages((prev) => prev.filter((m) => m.id !== msgId));
@@ -690,7 +705,9 @@ export default function CoachsCorner() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
-  const bootstrapLoading = bootstrapQuery.isLoading;
+  const bootstrapLoading = bootstrapQuery.isLoading ||
+    (conversationEnabled && !messagesInitialized.current && bootstrapQuery.isFetching);
+  const historyUnavailable = conversationEnabled && !messagesInitialized.current && bootstrapQuery.isError;
   const bootstrapReady = bootstrapQuery.isSuccess && (conversationEnabled || (bootstrapQuery.data?.profileCompleted ?? false));
   const hasMessages = messages.length > 0;
 
@@ -777,7 +794,14 @@ export default function CoachsCorner() {
           className={conversationEnabled
             ? "flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-5"
             : "flex-1 overflow-y-auto px-4 py-5"}>
-          {bootstrapLoading ? (
+          {historyUnavailable ? (
+            <div role="alert" className="py-8 text-center text-sm text-white/80">
+              <p>Your conversation couldn't be restored. Your saved messages have not been cleared.</p>
+              <button onClick={() => bootstrapQuery.refetch()} className="mt-3 underline">
+                Retry loading conversation
+              </button>
+            </div>
+          ) : bootstrapLoading ? (
             <div className="flex items-center justify-center min-h-[58vh]">
               <div className="flex items-center gap-1.5">
                 {[0, 1, 2].map((i) => (
@@ -855,7 +879,7 @@ export default function CoachsCorner() {
               onChange={handleTextareaChange}
               onKeyDown={handleKeyDown}
               placeholder={conversationEnabled ? "Ask Chef anything…" : "Ask Coach anything…"}
-              disabled={isLoading || bootstrapLoading}
+              disabled={isLoading || bootstrapLoading || historyUnavailable}
               rows={1}
               className="flex-1 resize-none bg-zinc-900 border border-white/25 text-white placeholder:text-white/45 text-sm rounded-xl py-3 px-4 focus:outline-none focus:ring-1 focus:ring-orange-500/60 focus:border-orange-500/50 disabled:opacity-50 transition-colors"
               style={{ lineHeight: "1.5", minHeight: "44px", maxHeight: "120px" }}
@@ -863,13 +887,13 @@ export default function CoachsCorner() {
             <VoiceInputButton
               value={inputText}
               onChange={setInputText}
-              disabled={isLoading || bootstrapLoading}
+              disabled={isLoading || bootstrapLoading || historyUnavailable}
               label={chefMemberText("Use voice input for Coach's Corner")}
               className="shrink-0"
             />
             <Button
               onClick={handleSend}
-              disabled={!inputText.trim() || isLoading || bootstrapLoading}
+              disabled={!inputText.trim() || isLoading || bootstrapLoading || historyUnavailable}
               size="icon"
               className="w-11 h-11 rounded-xl bg-orange-600 hover:bg-orange-700 disabled:opacity-40 disabled:bg-zinc-700 shrink-0 transition-colors"
               aria-label="Send message"

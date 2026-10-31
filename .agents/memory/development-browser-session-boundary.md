@@ -40,3 +40,9 @@ For no-write browser verification, intercept every API request before navigation
 **Why:** Synthetic authenticated UI state can trigger automatic timezone/profile updates and telemetry. Rapid clicks can also reach another control when an instant fixture response changes the layout. A mocked generation endpoint alone does not guarantee shared-database isolation.
 
 **How to apply:** Keep authentication and saved results synthetic, fulfill reads with appropriately shaped fixtures, and count blocked mutations. Report mocked snapshot reopening separately from real database persistence; never forward an unexpected write merely to remove a test warning.
+
+A browser document reused across a Development restart may still execute old components when its Vite websocket has disconnected. Fetching updated source text alone does not establish which component code is mounted.
+
+**Why:** A reused browser reproduced the old conversation-restoration bug after its fix; loading a fresh setup document resolved the false failure, and subsequent client-navigation round trips passed without reloads.
+
+**How to apply:** Establish the current bundle once during browser-test setup after a restart. For navigation-restoration checks, keep that document unchanged throughout the journey and verify document continuity separately from setup freshness.

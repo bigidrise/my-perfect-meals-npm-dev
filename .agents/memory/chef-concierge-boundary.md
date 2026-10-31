@@ -100,3 +100,9 @@ Ask Chef's Back action returns to Dashboard, not browser history or the newest m
 **Why:** The user reported Back returning to the conversation bottom and losing the input while scrolling, and explicitly requested these interaction rules in Development without changing Production.
 
 **How to apply:** Treat the conversation as a bounded tool pane with its own message scroller and persistent composer, preserving global page-scroll ownership and existing voice/submission controls. Account for the keyboard's visible viewport and safe areas locally, not by changing shared layouts.
+
+Returning to Ask Chef through client navigation must restore the saved conversation, its action buttons, and the newest exchange without a browser refresh. Restoring on return is distinct from a background update while a member is reading.
+
+**Why:** The user observed missing latest exchanges after visiting multiple destinations, while browser refresh restored them, and explicitly required reliable return through Restaurant Guide, Find Meals Near Me, and Dashboard.
+
+**How to apply:** Keep return-time restoration authoritative without adding per-turn history reads, full-page reloads, or repeated forced scrolling. A cached pre-mutation snapshot must not become the permanently initialized conversation.
