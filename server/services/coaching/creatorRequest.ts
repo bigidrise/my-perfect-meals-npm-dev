@@ -33,7 +33,7 @@ export function groundedCreatorRequest(
   // Do not silently drop negative constraints, even if the model omitted their
   // turn from its evidence. Conservative failure is preferable to inventing intent.
   for (const message of memberMessages) {
-    const constraints = message.match(/\b(?:no|not|without|avoid)\s+(?!sure\b|certain\b|decided\b)[^,.!?;]+/gi) ?? [];
+    const constraints: string[] = message.match(/\b(?:no|not|without|avoid)\s+(?!sure\b|certain\b|decided\b)[^,.!?;]+/gi) ?? [];
     if (constraints.some(constraint => !idea.toLocaleLowerCase().includes(constraint.toLocaleLowerCase()))) return undefined;
   }
   return request;
