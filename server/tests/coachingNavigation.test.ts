@@ -79,6 +79,14 @@ describe("server-validated Chef navigation", () => {
     expect(caps.find(cap => cap.id === "find_meals_near_me")?.description).toContain("has not chosen one");
     expect(COACH_DESTINATIONS).not.toHaveProperty("pregnancy_coach");
     expect(COACH_DESTINATIONS).not.toHaveProperty("wine_pairing_ai");
+    for (const cap of caps) {
+      expect(cap.description).toContain("Required inputs and handoff:");
+      expect(cap.description).toContain(`Verified destination: ${cap.route}`);
+      expect(cap.description).toContain("destination guards still apply");
+    }
+    expect(caps.find(cap => cap.id === "create_a_dish")?.description).toContain("chicken Caesar salad");
+    expect(caps.find(cap => cap.id === "beverage_creator")?.description).toContain("not manufacture/reuse");
+    expect(caps.some(cap => cap.id === "meal_planning" || cap.id === "clinical_hubs")).toBe(false);
   });
 
   test("current access guards are reused, not replaced with model eligibility", async () => {

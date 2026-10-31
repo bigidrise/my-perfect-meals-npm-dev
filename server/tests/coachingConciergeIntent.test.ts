@@ -29,6 +29,7 @@ import { renderReasoningBriefForPrompt } from "../services/coaching/reasoningFam
 import { extractAndPersistMemories } from "../services/coaching/memoryExtractor";
 import { ConciergeDecisionSchema, ReasoningResultSchema, type ConciergeDecision, type ConciergeGoal } from "../../shared/coaching/schemas";
 import { validateConciergeGoal } from "../services/coaching/conciergeGoal";
+import { CHEF_CONCIERGE_REVISION } from "../services/coaching/conciergeInstructions";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
 import { getCornerCapabilities } from "../services/coaching/capabilityRegistry";
 
@@ -491,7 +492,7 @@ test("full pipeline isolates ordinary discovery from coaching templates and appe
   const renderer = mockCreate.mock.calls[1][0];
   expect(renderer.messages[0].content).not.toMatch(/hypotheses|LOW:|Always close with what logging|EXPRESSION PIPELINE/);
   expect(renderer.messages[1].content).not.toMatch(/GAP_CONTEXT_SENTINEL|BEHAVIORAL_REFERENCE_SENTINEL|BEHAVIOR SIGNAL/);
-  expect(result.meta.concierge).toEqual({ revision: "conversation-v1", reasoning: "validated", rendering: "primary" });
+  expect(result.meta.concierge).toEqual({ revision: CHEF_CONCIERGE_REVISION, reasoning: "validated", rendering: "primary" });
   expect(db.execute).toHaveBeenCalled();
   expect(mockCreate).toHaveBeenCalledTimes(2);
 });
