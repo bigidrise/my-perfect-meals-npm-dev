@@ -14,3 +14,9 @@ Stage 1 approval is Development-only navigation and local testing. New request-p
 **Why:** The user separated navigation from request transfer and explicitly restricted release scope.
 
 **How to apply:** Keep destination-owned safeguards intact and do not treat passing fixtures as permission for live paid AI testing or Production release.
+
+Ordinary food assistance, nutrition education, and requested behavioral coaching are different conversational intents. The assessment shapes communication; it must not force ordinary food requests into psychological analysis or missing-log discussions.
+
+**Why:** The user reported that a live sushi request received irrelevant behavioral/nutrition-gap analysis and Craving Creator navigation despite Stage 1's clickable actions working.
+
+**How to apply:** Keep semantic interpretation in the existing conversational AI, give the reasoning pass the available features and relevant history, and preserve its validated destination through rendering. Low evidence must not automatically add logging advice to ordinary assistance or education. Fixtures establish pipeline behavior, not live-model accuracy; paid-model tests need cost approval.
