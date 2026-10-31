@@ -94,3 +94,9 @@ When multiple destinations genuinely fit and history has not settled the relevan
 **Why:** Live testing showed Chef prematurely choosing My Perfect Menu for an undecided member who had not established whether they wanted suggested ideas or had their own.
 
 **How to apply:** Use adaptive model guidance, not keyword rules or a mandatory decision tree. Apply the same principle to small versus full-sized desserts and ordinary versus workout beverages; use the latest corrections and explain verified differences on request. Deterministic mocked turns verify instructions and pipeline behavior, not actual model compliance.
+
+Ask Chef's Back action returns to Dashboard, not browser history or the newest message. Clearing stays in the conversation. The composer remains available while members review history; sending follows the newest exchange, but arriving/background updates must respect intentional history review.
+
+**Why:** The user reported Back returning to the conversation bottom and losing the input while scrolling, and explicitly requested these interaction rules in Development without changing Production.
+
+**How to apply:** Treat the conversation as a bounded tool pane with its own message scroller and persistent composer, preserving global page-scroll ownership and existing voice/submission controls. Account for the keyboard's visible viewport and safe areas locally, not by changing shared layouts.

@@ -16,7 +16,10 @@ jest.mock("wouter", () => ({
   Redirect: ({ to }: { to: string }) => { mockNavigate(to); return null; },
 }));
 jest.mock("@/lib/queryClient", () => ({ apiRequest: (...args: unknown[]) => mockAPI(...args) }));
-jest.mock("@/components/voice/VoiceInputButton", () => ({ VoiceInputButton: () => null }));
+jest.mock("@/components/voice/VoiceInputButton", () => ({
+  VoiceInputButton: ({ onChange, disabled, label }: any) =>
+    <button aria-label={label} disabled={disabled} onClick={() => onChange("Voice-entered question")}>Voice</button>,
+}));
 jest.mock("@/components/ui/dialog", () => ({
   Dialog: ({ open, children }: any) => open ? <div>{children}</div> : null,
   DialogContent: ({ children }: any) => <div>{children}</div>,
@@ -30,6 +33,7 @@ let client: QueryClient;
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   Element.prototype.scrollIntoView = jest.fn();
+  Element.prototype.scrollTo = jest.fn();
   mockConversationEnabled = true; mockNavigate.mockReset(); mockAPI.mockReset();
   host = document.createElement("div"); document.body.appendChild(host); root = createRoot(host);
   client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity,
@@ -106,6 +110,127 @@ test("historical assessment entry component redirects straight to conversation",
   act(() => root.render(<ChefConversationEntry />));
   expect(mockNavigate).toHaveBeenCalledWith("/coach-corner/home");
   expect(host.textContent).toBe("");
+});
+
+test("Development Back goes directly to Dashboard without scrolling or using browser history", async () => {
+  await renderPage(false);
+  const back = jest.spyOn(window.history, "back").mockImplementation(() => {});
+  (Element.prototype.scrollIntoView as jest.Mock).mockClear();
+  (Element.prototype.scrollTo as jest.Mock).mockClear();
+  act(() => (host.querySelector('[aria-label="Go back"]') as HTMLButtonElement).click());
+  expect(mockNavigate).toHaveBeenCalledWith("/dashboard");
+  expect(back).not.toHaveBeenCalled();
+  expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
+  expect(Element.prototype.scrollTo).not.toHaveBeenCalled();
+  back.mockRestore();
+});
+
+test("composer is outside the bounded message scroller with safe-area spacing", async () => {
+  await renderPage(false);
+  const pane = host.querySelector('[data-testid="ask-chef-pane"]')!;
+  const history = host.querySelector('[data-testid="ask-chef-history"]')!;
+  const composer = host.querySelector('[data-testid="ask-chef-composer"]')!;
+  expect(pane.className).toContain("fixed inset-0");
+  expect(pane.className).toContain("overflow-hidden");
+  expect(history.className).toContain("min-h-0 overflow-y-auto");
+  expect(history.contains(composer)).toBe(false);
+  expect(composer.parentElement).toBe(history.parentElement);
+  expect(composer.className).toContain("shrink-0");
+  expect(composer.getAttribute("style")).toContain("safe-area-inset-bottom");
+  expect(host.querySelector("textarea")?.placeholder).toBe("Ask Chef anything…");
+  // The existing Development controls occupy the mobile top-right corner.
+  expect(host.querySelector("h1")?.parentElement?.className).toContain("pr-28 lg:pr-4");
+});
+
+test("Production retains the existing layout, placeholder and history Back behavior", async () => {
+  mockConversationEnabled = false;
+  await renderPage(true);
+  expect(host.querySelector('[data-testid="ask-chef-pane"]')).toBeNull();
+  expect(host.querySelector("textarea")?.placeholder).toBe("Ask Coach anything…");
+  const back = jest.spyOn(window.history, "back").mockImplementation(() => {});
+  act(() => (host.querySelector('[aria-label="Go back"]') as HTMLButtonElement).click());
+  expect(mockNavigate).not.toHaveBeenCalledWith("/dashboard");
+  back.mockRestore();
+});
+
+test("keyboard viewport changes bound the pane and listeners are cleaned up", async () => {
+  const oldDescriptor = Object.getOwnPropertyDescriptor(window, "visualViewport");
+  const viewport = Object.assign(new EventTarget(), { height: window.innerHeight - 260, offsetTop: 0 });
+  const remove = jest.spyOn(viewport, "removeEventListener");
+  Object.defineProperty(window, "visualViewport", { configurable: true, value: viewport });
+  try {
+    await renderPage(false);
+    const pane = host.querySelector('[data-testid="ask-chef-pane"]') as HTMLElement;
+    expect(pane.style.bottom).toBe("260px");
+    act(() => { viewport.height = window.innerHeight; viewport.dispatchEvent(new Event("resize")); });
+    expect(pane.style.bottom).toBe("0px");
+    act(() => root.render(null));
+    expect(remove).toHaveBeenCalledWith("resize", expect.any(Function));
+    expect(remove).toHaveBeenCalledWith("scroll", expect.any(Function));
+  } finally {
+    if (oldDescriptor) Object.defineProperty(window, "visualViewport", oldDescriptor);
+    else delete (window as any).visualViewport;
+  }
+});
+
+test("sending follows the newest exchange, but an arriving reply respects intentional history review", async () => {
+  await renderPage(false);
+  const history = host.querySelector('[data-testid="ask-chef-history"]') as HTMLElement;
+  Object.defineProperties(history, {
+    scrollHeight: { configurable: true, value: 2000 },
+    clientHeight: { configurable: true, value: 400 },
+  });
+  history.scrollTop = 100;
+  act(() => Simulate.scroll(history));
+  let finish!: (value: any) => void;
+  mockAPI.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+  await act(async () => {
+    const textarea = host.querySelector("textarea")!;
+    textarea.value = "My question";
+    Simulate.change(textarea, { target: textarea } as any);
+  });
+  (Element.prototype.scrollTo as jest.Mock).mockClear();
+  await act(async () => (host.querySelector('[aria-label="Send message"]') as HTMLButtonElement).click());
+  expect(Element.prototype.scrollTo).toHaveBeenCalledWith({ top: 2000, behavior: "auto" });
+  expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
+  history.scrollTop = 100;
+  act(() => Simulate.scroll(history));
+  (Element.prototype.scrollTo as jest.Mock).mockClear();
+  await act(async () => finish({
+    conversationId: "conversation", messageId: "reply",
+    response: { presentation: { kind: "concierge", message: "Here is your reply." } },
+  }));
+  expect(host.textContent).toContain("Here is your reply.");
+  expect(Element.prototype.scrollTo).not.toHaveBeenCalled();
+  expect(host.querySelector("textarea")).not.toBeNull();
+  expect(mockNavigate).not.toHaveBeenCalled();
+});
+
+test("Clear removes the conversation without navigating away", async () => {
+  await renderPage(false, [{ id: "old", role: "user", content: "Old question", created_at: "2026-01-01" }]);
+  mockAPI.mockImplementation(async (path: string) => path === "/api/coach/bootstrap"
+    ? { profileCompleted: false, conversationId: null, messages: [], hasOlderMessages: false }
+    : { success: true });
+  act(() => (host.querySelector('[aria-label="Clear conversation"]') as HTMLButtonElement).click());
+  const confirm = [...host.querySelectorAll("button")].filter(button => button.textContent === "Clear").at(-1)!;
+  await act(async () => confirm.click());
+  expect(mockAPI).toHaveBeenCalledWith("/api/coach/conversation/stored-conversation", { method: "DELETE" });
+  expect(host.textContent).not.toContain("Old question");
+  expect(host.querySelector("textarea")?.disabled).toBe(false);
+  expect(mockNavigate).not.toHaveBeenCalled();
+});
+
+test("voice populates editable input and normal Send submits it", async () => {
+  await renderPage(false);
+  act(() => (host.querySelector('[aria-label="Use voice input for Ask Chef"]') as HTMLButtonElement).click());
+  expect(host.querySelector("textarea")?.value).toBe("Voice-entered question");
+  expect(mockAPI).not.toHaveBeenCalled();
+  mockAPI.mockResolvedValueOnce({ conversationId: "voice", messageId: "answer",
+    response: { presentation: { kind: "concierge", message: "Your answer." } } });
+  await act(async () => (host.querySelector('[aria-label="Send message"]') as HTMLButtonElement).click());
+  expect(mockAPI).toHaveBeenCalledWith("/api/coach/message", expect.objectContaining({
+    body: JSON.stringify({ message: "Voice-entered question", specialization: "corner" }),
+  }));
 });
 
 test("Production-mode page retains its historical assessment redirect", async () => {
