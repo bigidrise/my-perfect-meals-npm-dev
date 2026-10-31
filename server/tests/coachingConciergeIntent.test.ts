@@ -276,7 +276,7 @@ test("ambiguous hunger stays conversational through both passes without Fridge R
   expect(result.todayPlan.items[0].kind).toBe("other");
   expect(result.todayPlan.items.every(item => !item.destinationId)).toBe(true);
   expect(mockCreate.mock.calls[0][0].messages[0].content).toContain("rather than guessing a tool");
-  expect(mockCreate.mock.calls[1][0].messages[0].content).toContain("items may be [] for conversation without navigation");
+  expect(mockCreate.mock.calls[1][0].messages[0].content).toContain('{"message":"the complete member-facing conversation"}');
 });
 
 test("multi-turn discovery retains savory and burger choices until the member chooses going out", async () => {
@@ -466,7 +466,7 @@ test("full pipeline isolates ordinary discovery from coaching templates and appe
   const renderer = mockCreate.mock.calls[1][0];
   expect(renderer.messages[0].content).not.toMatch(/hypotheses|LOW:|Always close with what logging|EXPRESSION PIPELINE/);
   expect(renderer.messages[1].content).not.toMatch(/GAP_CONTEXT_SENTINEL|BEHAVIORAL_REFERENCE_SENTINEL|BEHAVIOR SIGNAL/);
-  expect(result.meta.concierge).toEqual({ revision: "stage1c", reasoning: "validated", rendering: "primary" });
+  expect(result.meta.concierge).toEqual({ revision: "stage1d", reasoning: "validated", rendering: "primary" });
   expect(db.execute).toHaveBeenCalled();
   expect(mockCreate).toHaveBeenCalledTimes(2);
 });
@@ -557,4 +557,83 @@ test("full pipeline preserves behavioral methodology rather than the concise con
   expect(renderer.messages[0].content).toContain("EXPRESSION PIPELINE");
   expect(renderer.messages[1].content).toContain("BEHAVIORAL_REFERENCE_SENTINEL");
   expect(result.learningOpportunity).toContain("log");
+});
+
+test("minimal discovery response stays one question through the full pipeline and stored JSON", async () => {
+  const run = prepareFullPipeline();
+  enqueue(reasoning({ mode: "clarification", destinationId: null }));
+  enqueue({ message: "All right! Are you in the mood for something savory, sweet, or light?" });
+  const result = await run("I'm hungry, but I don't know what I want to eat.");
+  expect(result.presentation).toEqual({
+    kind: "concierge", message: "All right! Are you in the mood for something savory, sweet, or light?",
+  });
+  expect(result.whatItCouldMean).toBe("");
+  expect(result.todayPlan.why).toBe("");
+  expect(result.todayPlan.items).toEqual([]);
+  expect(result.learningOpportunity).toBeNull();
+  expect(JSON.parse(JSON.stringify(result)).presentation).toEqual(result.presentation);
+  expect(mockCreate).toHaveBeenCalledTimes(2);
+});
+
+test("legacy-format provider rationale is internal, never promoted into the presentation", async () => {
+  enqueue(response(null, {
+    whatIFound: "Savory, sweet, or light?", whatItCouldMean: "INTERNAL_EXPLANATION",
+    todayPlan: { why: "To help you decide on a meal that satisfies your hunger.", items: [],
+      successMetric: "INTERNAL_METRIC", nextCheckIn: "INTERNAL_CHECK_IN" },
+  }));
+  const result = await render({ mode: "clarification", destinationId: null });
+  expect(result.todayPlan.why).toContain("To help you decide");
+  expect(result.presentation).toEqual({ kind: "concierge", message: "Savory, sweet, or light?" });
+  expect(JSON.stringify(result.presentation)).not.toMatch(/INTERNAL|satisfies your hunger/);
+});
+
+test.each([
+  ["I'll make spicy tofu lettuce wraps.", "create_a_dish"],
+  ["I want sushi.", "sushi_creator"],
+])("minimal completed decision retains one server-owned action: %s", async (message, id) => {
+  const run = prepareFullPipeline([{ role: "user", content: "Light, spicy, handheld and plant-based." }]);
+  enqueue(reasoning(ConciergeDecisionSchema.parse({ mode: "food_assistance", destinationId: id })));
+  enqueue({ message: id === "sushi_creator" ? "Let's head to Sushi Creator." : "Perfect! Let's make those in Create a Dish.",
+    destinationId: "https://evil.example" });
+  const result = await run(message);
+  expect(result.presentation?.destinationId).toBe(id);
+  expect(result.todayPlan.items).toHaveLength(1);
+  expect(result.todayPlan.items[0].destinationId).toBe(id);
+  expect(result.presentation?.message).not.toContain("?");
+  expect(mockCreate.mock.calls[1][0].messages[1].content).toContain("Light, spicy, handheld");
+});
+
+test("minimal education preserves detail in its one message without forcing navigation", async () => {
+  const message = "Protein supplies amino acids for tissue maintenance and repair.\n\nCarbohydrates supply energy. Both can contribute to a balanced eating pattern.";
+  enqueue({ message });
+  const result = await render({ mode: "nutrition_education", destinationId: null },
+    "What's the difference between protein and carbohydrates?");
+  expect(result.presentation?.message).toBe(message);
+  expect(result.todayPlan.items).toEqual([]);
+});
+
+test("minimal renderer care escalation bypasses compact presentation and navigation", async () => {
+  enqueue({ message: "Seek urgent medical help for these symptoms.", contactCare: "Call emergency services now." });
+  const result = await render({ mode: "food_assistance", destinationId: "sushi_creator" });
+  expect(result.presentation).toBeUndefined();
+  expect(result.todayPlan.items[0].kind).toBe("contact_care");
+  expect(result.todayPlan.items[0].destinationId).toBeUndefined();
+});
+
+test("mini fallback hides legacy plan fragments behind the same minimal presentation", async () => {
+  for (let i = 0; i < 3; i++) enqueue({ invalid: true });
+  enqueue({ whatIFound: "Would you prefer savory, sweet, or light?", whatItCouldMean: "FALLBACK_EXPLANATION",
+    planWhy: "DISCONNECTED_FALLBACK_RATIONALE", action1: "INTERNAL_ACTION" });
+  const result = await render({ mode: "clarification", destinationId: null });
+  expect(result.presentation).toEqual({ kind: "concierge", message: "Would you prefer savory, sweet, or light?" });
+  expect(result.todayPlan.why).toBe("DISCONNECTED_FALLBACK_RATIONALE");
+  expect(result.meta.concierge?.rendering).toBe("mini_fallback");
+});
+
+test("mini fallback accepts the new one-message response with no extra call", async () => {
+  for (let i = 0; i < 3; i++) enqueue({ invalid: true });
+  enqueue({ message: "What sounds better: warm or fresh?" });
+  const result = await render({ mode: "clarification", destinationId: null });
+  expect(result.presentation?.message).toBe("What sounds better: warm or fresh?");
+  expect(mockCreate).toHaveBeenCalledTimes(4);
 });
