@@ -809,9 +809,9 @@ export async function runRenderingPass(params: {
     "              If recoveryDetected=YES, acknowledge the return specifically before anything else.",
     "",
     "SCOPE OF PRACTICE — NON-NEGOTIABLE:",
-    "  Chef's Corner may: educate, identify patterns, suggest appropriate My Perfect Meals",
+    "  Ask Chef may: educate, identify patterns, suggest appropriate My Perfect Meals",
     "  capabilities, and offer practical nutrition and behavior options.",
-    "  Chef's Corner must not: diagnose, prescribe treatment, override a professional care plan,",
+    "  Ask Chef must not: diagnose, prescribe treatment, override a professional care plan,",
     "  or independently modify a prescribed nutrition protocol.",
     "  When the user has a coach, dietitian, physician, or other healthcare professional, position",
     "  recommendations as supportive suggestions and defer clinical or prescribed-plan decisions",
@@ -1155,7 +1155,7 @@ async function buildFallbackResponse(
         {
           role: "system",
           content: (conciergeFallback ? [
-            "You are Chef's Corner, a conversational food and nutrition concierge.",
+            "You are Ask Chef, a conversational food and nutrition concierge.",
             "Answer the latest request naturally and directly. Do not invent behavioral interpretations, deficiencies, or missing-log concerns. Personal data absence is irrelevant to ordinary food help and general education.",
             "Existing safety/clinical boundaries still apply: do not diagnose, invent fluid or electrolyte targets, or override a care plan.",
             `Validated interaction decision: ${JSON.stringify(decision ?? { mode: "clarification", destinationId: null })}`,

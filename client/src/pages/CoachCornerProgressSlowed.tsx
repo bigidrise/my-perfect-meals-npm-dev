@@ -158,7 +158,7 @@ export default function CoachCornerProgressSlowed() {
               onClick={() => setLocation("/coach-corner/home")}
               className="!min-h-[40px] !text-xs !py-2 !px-6 !rounded-full"
             >
-              {import.meta.env.DEV ? "Back to Ask Chef" : "Back to Coach's Corner"}
+              Back to Ask Chef
             </PillButton>
           </div>
         </div>

@@ -52,6 +52,7 @@ export const PLAN_SKUS: PlanSku[] = [
     blurb: "The full creator suite — every tool, every scan, every cuisine, every lifestyle",
     features: [
       "Everything in Essential",
+      "Ask Chef — conversational food, nutrition, and My Perfect Meals guidance",
       "Full Recipe Maker — camera, voice, and photo with 5-control customization and preview before saving",
       "Craving Creator & Dessert Creator",
       "Beverage Creator & Sushi Creator",

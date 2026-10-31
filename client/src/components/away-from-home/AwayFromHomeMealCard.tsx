@@ -366,7 +366,7 @@ export default function AwayFromHomeMealCard({
 
         {/* ── Macros ───────────────────────────────────────────────── */}
         <div className="mx-4 mt-3 rounded-xl bg-black/30 border border-white/8 px-4 py-3">
-          <div className="grid grid-cols-5 gap-1 text-center">
+          <div className="grid grid-cols-3 min-[480px]:grid-cols-5 gap-x-2 gap-y-3 text-center">
             <MacroCell label="Cal"     value={meal.calories}                       unit=""  status={nutritionStatus} />
             <MacroCell label="Protein" value={meal.proteinGrams}                   unit="g" status={nutritionStatus} />
             <MacroCell label="Starchy" value={meal.starchyCarbGrams ?? undefined}  unit="g" status={nutritionStatus} />

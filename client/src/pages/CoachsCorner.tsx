@@ -100,7 +100,7 @@ function ThinkingBubble() {
     <div className="flex justify-start">
       <div className="max-w-[90%]">
         <p className="text-[11px] font-semibold text-orange-400 mb-1.5 uppercase tracking-wider ml-1">
-          Coach
+          Chef
         </p>
         <div className="bg-zinc-900 border border-white/10 rounded-2xl rounded-tl-sm px-5 py-4">
           <div className="flex items-center gap-1.5">
@@ -209,7 +209,7 @@ function ProfileSheet({
             My Coaching Profile
           </DialogTitle>
           <p className="text-xs text-white/50 text-left">
-            These answers shape how Chef's Corner communicates with you — not what the data says.
+            These answers shape how Ask Chef communicates with you — not what the data says.
           </p>
         </DialogHeader>
 
@@ -744,13 +744,13 @@ export default function CoachsCorner() {
                 window.history.back();
               }
             }}
-            className="flex items-center gap-1 h-8 px-2 rounded-full text-white/60 hover:text-white transition-colors"
+            className="flex items-center gap-1 h-11 px-2 rounded-full text-white/60 hover:text-white transition-colors"
             aria-label="Go back"
           >
             <ArrowLeft className="w-4 h-4" />
             <span className="text-xs">Back</span>
           </button>
-          {conversationEnabled && <h1 className="text-base font-bold text-white">Ask Chef</h1>}
+          <h1 className="text-base font-bold text-white">Ask Chef</h1>
           <div className="flex items-center gap-2">
             {hasMessages && (
               <button
@@ -872,16 +872,16 @@ export default function CoachsCorner() {
           className="shrink-0 bg-black/50 backdrop-blur-md px-4 pt-3"
           style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom, 16px))" }}
         >
-          <div className="flex items-end gap-2.5">
+          <div className="flex items-end gap-2.5 max-[360px]:flex-wrap max-[360px]:justify-end">
             <Textarea
               ref={textareaRef}
               value={inputText}
               onChange={handleTextareaChange}
               onKeyDown={handleKeyDown}
-              placeholder={conversationEnabled ? "Ask Chef anything…" : "Ask Coach anything…"}
+              placeholder="Ask Chef anything…"
               disabled={isLoading || bootstrapLoading || historyUnavailable}
               rows={1}
-              className="flex-1 resize-none bg-zinc-900 border border-white/25 text-white placeholder:text-white/45 text-sm rounded-xl py-3 px-4 focus:outline-none focus:ring-1 focus:ring-orange-500/60 focus:border-orange-500/50 disabled:opacity-50 transition-colors"
+              className="min-w-0 flex-1 max-[360px]:basis-full resize-none bg-zinc-900 border border-white/25 text-white placeholder:text-white/45 text-sm rounded-xl py-3 px-4 focus:outline-none focus:ring-1 focus:ring-orange-500/60 focus:border-orange-500/50 disabled:opacity-50 transition-colors"
               style={{ lineHeight: "1.5", minHeight: "44px", maxHeight: "120px" }}
             />
             <VoiceInputButton
@@ -889,7 +889,7 @@ export default function CoachsCorner() {
               onChange={setInputText}
               disabled={isLoading || bootstrapLoading || historyUnavailable}
               label={chefMemberText("Use voice input for Coach's Corner")}
-              className="shrink-0"
+              className="shrink-0 [&_button]:min-h-11"
             />
             <Button
               onClick={handleSend}

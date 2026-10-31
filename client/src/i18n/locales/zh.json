@@ -1215,10 +1215,10 @@
     "tryAgain": "请重试"
   },
   "coachCorner": {
-    "title": "教练专区",
+    "title": "Ask Chef",
     "learningDesc": "厨师正在学习什么对您最有效。",
     "startDesc": "开始您与厨师的AI教练关系。",
-    "openBtn": "打开教练专区"
+    "openBtn": "打开Ask Chef"
   },
   "nutritionPlan": {
     "title": "您的营养生活计划",

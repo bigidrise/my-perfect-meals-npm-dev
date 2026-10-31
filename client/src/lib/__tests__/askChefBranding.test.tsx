@@ -25,11 +25,13 @@ beforeEach(() => {
 });
 afterEach(() => { act(() => root.unmount()); host.remove(); });
 
-test("Development brands visible text only, preserving routes and unrelated features", () => {
+test("release branding covers legacy spellings, preserving routes and unrelated features", () => {
   expect(chefMemberText("Chef's Corner and Coach’s Corner")).toBe("Ask Chef and Ask Chef");
   expect(chefMemberText("/coach-corner/home Parent's Corner Chef Studio")).toBe("/coach-corner/home Parent's Corner Chef Studio");
+  expect(chefMemberText("Chefs Corner / Chef Corner / Coach Corner / Coach's Corner"))
+    .toBe("Ask Chef / Ask Chef / Ask Chef / Ask Chef");
   mockDevelopment = false;
-  expect(chefMemberText("Chef's Corner")).toBe("Chef's Corner");
+  expect(chefMemberText("Chef's Corner")).toBe("Ask Chef");
 });
 
 test.each([false, true])("Development card reuses Flame Chef and preserves existing navigation; completed=%s", completed => {
@@ -46,10 +48,10 @@ test.each([false, true])("Development card reuses Flame Chef and preserves exist
   expect(mockNavigate).toHaveBeenCalledWith(completed ? "/coach-corner/home" : "/coach-corner/welcome");
 });
 
-test("Production retains its existing label and card", () => {
+test("release branding changes legacy card copy without activating the Development experience", () => {
   mockDevelopment = false;
   act(() => root.render(<CoachCornerCard />));
-  expect(host.querySelector("h3")?.textContent).toBe("Chef's Corner");
+  expect(host.querySelector("h3")?.textContent).toBe("Ask Chef");
   expect(host.querySelector("img")).toBeNull();
-  expect(host.querySelector("button")?.textContent).toBe("Open Chef's Corner");
+  expect(host.querySelector("button")?.textContent).toBe("Open Ask Chef");
 });

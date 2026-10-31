@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChefHat } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { isChefConversationEnabled } from "@/lib/chefCornerExperience";
+import { chefMemberText } from "@/lib/chefMemberBranding";
 
 interface CoachCornerStatus {
   completed: boolean;
@@ -84,7 +85,7 @@ export default function CoachCornerCard() {
               <ChefHat className="w-5 h-5 text-orange-300" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-bold text-white">{t("title")}</h3>
+              <h3 className="text-sm font-bold text-white">{chefMemberText(t("title"))}</h3>
               <p className="text-xs text-white/60">
                 {completed
                   ? t("learningDesc")
@@ -96,7 +97,7 @@ export default function CoachCornerCard() {
             onClick={() => setLocation(destination)}
             className="w-full py-2.5 rounded-xl bg-black border-2 border-orange-600 text-white text-[11px] font-semibold uppercase tracking-wide transition-colors"
           >
-            {t("openBtn")}
+            {chefMemberText(t("openBtn"))}
           </button>
         </div>
       </div>
