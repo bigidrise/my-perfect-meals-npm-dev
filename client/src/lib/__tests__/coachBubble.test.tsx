@@ -44,7 +44,11 @@ test("actual discovery bubble contains only its intended question with no fragme
 
 test.each(["create_a_dish", "sushi_creator"])("one validated %s button appears without duplicate recommendation text", async id => {
   const value = ordinary("Let's make that.");
-  value.presentation = { kind: "concierge", message: "Let's make that.", destinationId: id as any };
+  value.presentation = { kind: "concierge", message: "Let's make that.", destinationId: id as any,
+    navigation: { state: "navigation_confirmed", destinationId: id as any, goal: {
+      activity: "prepare", occasion: "meal", restaurant: "unknown", dishChosen: true,
+      specialty: "none", explicitFeatureId: null,
+    } } };
   value.todayPlan!.items = [
     { kind: "use_feature", text: "DUPLICATE_ACTION_TEXT", destinationId: id },
     { kind: "use_feature", text: "SECOND_DUPLICATE", destinationId: id },

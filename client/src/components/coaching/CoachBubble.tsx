@@ -54,7 +54,10 @@ export default function CoachBubble({
   const planItems = structured.todayPlan?.items ?? [];
   const planWhy = structured.todayPlan?.why;
   const target = compact ? structured.presentation?.destinationId : undefined;
-  const showButton = isCoachDestinationId(target) && planItems.some(item =>
+  const navigation = structured.presentation?.navigation;
+  const approvedNavigation = navigation?.state === "navigation_confirmed" || navigation?.state === "direct_navigation";
+  const showButton = approvedNavigation && navigation?.destinationId === target &&
+    isCoachDestinationId(target) && planItems.some(item =>
     typeof item !== "string" && item.kind === "use_feature" && item.destinationId === target);
   const escalation = planItems.some(item => typeof item !== "string" && item.kind === "contact_care");
   return (
@@ -76,7 +79,8 @@ export default function CoachBubble({
                 {planWhy && <p>{chefResponseText(planWhy, enableConcierge)}</p>}
                 {planItems.length > 0 && <ul className="space-y-1.5 mt-1">
                   {planItems.map((item, i) => enableConcierge && typeof item !== "string" &&
-                    item.kind === "use_feature" && isCoachDestinationId(item.destinationId) && !escalation
+                    item.kind === "use_feature" && isCoachDestinationId(item.destinationId) && !escalation &&
+                      (!enableConcierge || (approvedNavigation && navigation?.destinationId === item.destinationId))
                     ? <li key={i}><CoachFeatureAction destinationId={item.destinationId} /></li>
                     : <li key={i} className="flex items-start gap-2">
                       <span className="text-orange-400 mt-0.5 shrink-0 select-none">•</span>

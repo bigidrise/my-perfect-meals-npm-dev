@@ -10,6 +10,11 @@ import { chefNavigationRoute } from "@shared/coaching/creatorRequest";
 let mockConversationEnabled = true;
 const mockNavigate = jest.fn();
 const mockAPI = jest.fn();
+const approvedNavigation = (destinationId: string) => ({
+  state: "navigation_confirmed", destinationId,
+  goal: { activity: "unknown", occasion: "unknown", restaurant: "unknown", dishChosen: false,
+    specialty: "none", explicitFeatureId: null },
+});
 jest.mock("@/lib/chefCornerExperience", () => ({ isChefConversationEnabled: () => mockConversationEnabled }));
 jest.mock("wouter", () => ({
   useLocation: () => ["/coach-corner/home", mockNavigate],
@@ -117,7 +122,8 @@ test.each([
 ])("latest saved exchange restores after navigating to %s and back before cache expiry", async (destinationId, label, route) => {
   await renderPage(false);
   const response = {
-    presentation: { kind: "concierge", message: "Your latest saved answer.", ...(destinationId ? { destinationId } : {}) },
+    presentation: { kind: "concierge", message: "Your latest saved answer.",
+      ...(destinationId ? { destinationId, navigation: approvedNavigation(destinationId) } : {}) },
     whatIFound: "", whatItCouldMean: "",
     todayPlan: { items: destinationId ? [{ kind: "use_feature", destinationId }] : [] }, learningOpportunity: null,
   };
@@ -329,7 +335,8 @@ test.each([
   await renderPage(false, [{
     id: "soup-answer", role: "assistant", created_at: "2026-01-01T00:00:00Z",
     structured_payload: {
-      presentation: { kind: "concierge", message: "Let's use Create a Dish.", destinationId: "create_a_dish", creatorRequest },
+      presentation: { kind: "concierge", message: "Let's use Create a Dish.", destinationId: "create_a_dish",
+        navigation: approvedNavigation("create_a_dish"), creatorRequest },
       whatIFound: "", whatItCouldMean: "", learningOpportunity: null,
       todayPlan: { why: "", items: [{ kind: "use_feature", destinationId: "create_a_dish", text: "Open Create a Dish" }] },
     },
@@ -372,7 +379,8 @@ test("breakfast shake discovery renders naturally, then offers Beverage Creator 
   expect(mockNavigate).not.toHaveBeenCalled();
   mockAPI.mockResolvedValueOnce({
     conversationId: "breakfast-conversation", messageId: "breakfast-ready",
-    response: { presentation: { kind: "concierge", message: "Let's use Beverage Creator.", destinationId: "beverage_creator" },
+    response: { presentation: { kind: "concierge", message: "Let's use Beverage Creator.", destinationId: "beverage_creator",
+      navigation: approvedNavigation("beverage_creator") },
       whatIFound: "", whatItCouldMean: "", todayPlan: { items: [{ kind: "use_feature", destinationId: "beverage_creator" }] },
       learningOpportunity: null },
   });
