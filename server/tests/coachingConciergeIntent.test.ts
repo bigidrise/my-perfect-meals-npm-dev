@@ -1,4 +1,6 @@
-// Deterministic provider fixtures exercise the real two-pass prompt/selection code.
+// Historical structured-engine compatibility fixtures. The active Development
+// conversation path is exercised separately in chefConversation.test.ts.
+// Deterministic provider fixtures exercise the preserved two-pass prompt/selection code.
 // They do not establish that a live model understands these requests correctly.
 jest.mock("../db", () => ({ db: { execute: jest.fn() } }));
 jest.mock("../services/coaching/adapters", () => ({ getAdapter: jest.fn() }));
@@ -17,7 +19,7 @@ jest.mock("openai", () => ({
   default: jest.fn().mockImplementation(() => ({ chat: { completions: { create: mockCreate } } })),
 }));
 
-import { CoachingEngine, runReasoningPass, runRenderingPass } from "../services/coaching/engine";
+import { StructuredCoachingEngine as CoachingEngine, runReasoningPass, runRenderingPass } from "../services/coaching/engine";
 import { db } from "../db";
 import { getAdapter } from "../services/coaching/adapters";
 import { selectObservers, runObservers } from "../services/coaching/observers/stubs";
@@ -489,7 +491,7 @@ test("full pipeline isolates ordinary discovery from coaching templates and appe
   const renderer = mockCreate.mock.calls[1][0];
   expect(renderer.messages[0].content).not.toMatch(/hypotheses|LOW:|Always close with what logging|EXPRESSION PIPELINE/);
   expect(renderer.messages[1].content).not.toMatch(/GAP_CONTEXT_SENTINEL|BEHAVIORAL_REFERENCE_SENTINEL|BEHAVIOR SIGNAL/);
-  expect(result.meta.concierge).toEqual({ revision: "stage1e", reasoning: "validated", rendering: "primary" });
+  expect(result.meta.concierge).toEqual({ revision: "conversation-v1", reasoning: "validated", rendering: "primary" });
   expect(db.execute).toHaveBeenCalled();
   expect(mockCreate).toHaveBeenCalledTimes(2);
 });

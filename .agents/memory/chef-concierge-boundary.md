@@ -7,7 +7,7 @@ Chef's Corner is a conversational food and nutrition concierge, not a meal gener
 
 **Why:** The user explicitly wants to reuse the existing coaching intelligence and feature handoffs rather than duplicate creators or replace the behavioral methodology.
 
-**How to apply:** Preserve all 14 behavioral/lifestyle questions and the fifteenth goal question, conversational history, styles, and safety escalation. Recommendations must use validated internal destinations and require a member click; they never grant access.
+**How to apply:** Retain the historical assessment implementation, questions, answers and records, but do not expose or require them in Development Chef's Corner. Keep Production's historical behavior unchanged. Recommendations require validated internal destinations and a member click; they never grant access.
 
 Stage 1 approval is Development-only navigation and local testing. New request-prefill contracts, voice, external research, paused Pregnancy activation, and Production promotion/publication require separate approval. Do not repurpose Hydration's specialized tokens for unrelated requests.
 
@@ -44,3 +44,9 @@ The user confirmed the new concierge presentation works in authenticated Develop
 **Why:** A light-and-flavorful preference still produced premature Craving Creator navigation. The desired interaction is an experienced concierge, not a fixed questionnaire.
 
 **How to apply:** Distinguish preparation from eating out, small savory snacks from full meals, and restaurant discovery from ordering at a chosen restaurant. Let the existing reasoning call interpret readiness; validate capability fit without adding a keyword router, model call, or prescribed question sequence. Suggest food ideas when useful, honor changed intent, and report unsupported hub destinations instead of inventing or substituting links.
+
+Development Chef's Corner must open directly into natural conversation for new and existing members: no assessment, questionnaire, personality evaluation, mandatory intake, or style-result requirement.
+
+**Why:** The user explicitly replaced the assessment-led experience with a ChatGPT-style food and nutrition concierge and authorized safe simplification of ordinary two-pass conversation.
+
+**How to apply:** Keep the historical assessment code and data and unrelated onboarding intact. Use one foreground conversational call with bounded history, authorized nutrition context and verified capabilities; do not reintroduce the legacy style/hypothesis pipeline or assessment editor into Development chat. Preserve authentication, safety escalation, clinical access boundaries, persistence and click-time feature access. Production promotion and paid-model acceptance still require separate authorization.
