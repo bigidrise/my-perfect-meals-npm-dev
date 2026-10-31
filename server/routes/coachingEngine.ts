@@ -90,6 +90,7 @@ router.post("/message", requireAuth, async (req: Request, res: Response) => {
       conversationId: result.conversationId,
       messageId: result.messageId,
       response: {
+        ...(result.presentation ? { presentation: result.presentation } : {}),
         whatIFound: result.whatIFound,
         whatItCouldMean: result.whatItCouldMean,
         todayPlan: result.todayPlan,

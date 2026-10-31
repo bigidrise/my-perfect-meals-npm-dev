@@ -23,32 +23,11 @@ import {
 } from "@/components/ui/dialog";
 import type { CoachCornerQuestion } from "@shared/coachCornerTypes";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
-import CoachFeatureAction from "@/components/coaching/CoachFeatureAction";
-import { isCoachDestinationId } from "@shared/coaching/navigation";
+import CoachBubble, {
+  ProfessionalBoundaryNotice, isConciergeMessage, type CoachStructuredResponse,
+} from "@/components/coaching/CoachBubble";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-interface PlanItem {
-  text: string;
-  horizon?: string;
-  kind?: string;
-  dueAt?: string;
-  completionSignal?: string;
-  featureTarget?: string;
-  destinationId?: string;
-}
-
-interface CoachStructuredResponse {
-  whatIFound: string;
-  whatItCouldMean: string;
-  todayPlan: {
-    why: string;
-    items: Array<PlanItem | string>;
-    successMetric: string;
-    nextCheckIn: string;
-  } | null;
-  learningOpportunity: string | null;
-}
 
 interface UIMessage {
   id: string;
@@ -67,11 +46,6 @@ interface DbMessage {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function planItemText(item: PlanItem | string): string {
-  if (typeof item === "string") return item;
-  return item?.text ?? "";
-}
 
 function mapDbMessage(msg: DbMessage): UIMessage {
   if (msg.role === "user") {
@@ -112,70 +86,6 @@ function UserBubble({ content }: { content: string }) {
     <div className="flex justify-end">
       <div className="max-w-[80%] bg-orange-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap">
         {content}
-      </div>
-    </div>
-  );
-}
-
-// ─── CoachBubble ──────────────────────────────────────────────────────────────
-
-function CoachBubble({ structured }: { structured: CoachStructuredResponse }) {
-  const topParagraphs: string[] = [];
-  if (structured.whatIFound) topParagraphs.push(structured.whatIFound);
-  if (structured.whatItCouldMean) topParagraphs.push(structured.whatItCouldMean);
-
-  const planWhy = structured.todayPlan?.why ?? null;
-  const planItems = structured.todayPlan?.items ?? null;
-  const learningOpp = structured.learningOpportunity ?? null;
-
-  return (
-    <div className="flex justify-start">
-      <div className="max-w-[90%]">
-        <p className="text-[11px] font-semibold text-orange-400 mb-1.5 uppercase tracking-wider ml-1">
-          Coach
-        </p>
-        <div className="bg-zinc-900 border border-white/10 rounded-2xl rounded-tl-sm px-4 py-3.5 text-sm text-white/90 leading-relaxed space-y-3">
-          {topParagraphs.map((p, i) => (
-            <p key={i}>{p}</p>
-          ))}
-          {(planWhy || (planItems && planItems.length > 0)) && (
-            <div className="space-y-2">
-              {planWhy && <p>{planWhy}</p>}
-              {planItems && planItems.length > 0 && (
-                <ul className="space-y-1.5 mt-1">
-                  {planItems.map((item, i) => import.meta.env.DEV &&
-                    typeof item !== "string" && item.kind === "use_feature" &&
-                    isCoachDestinationId(item.destinationId) &&
-                    !planItems.some(planItem => typeof planItem !== "string" && planItem.kind === "contact_care")
-                    ? <li key={i}><CoachFeatureAction destinationId={item.destinationId} /></li>
-                    : (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="text-orange-400 mt-0.5 shrink-0 select-none">•</span>
-                      <span className="min-w-0">
-                        {planItemText(item)}
-                        {import.meta.env.DEV && typeof item !== "string" &&
-                          item.kind === "use_feature" &&
-                          !planItems.some(planItem => typeof planItem !== "string" && planItem.kind === "contact_care") &&
-                          <CoachFeatureAction destinationId={item.destinationId} />}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-          {learningOpp && (
-            <p className="text-white/60 italic text-[13px] border-t border-white/5 pt-3">
-              {learningOpp}
-            </p>
-          )}
-          {/* ── Permanent professional boundary footer ── */}
-          <p className="text-white/35 text-[11px] leading-snug border-t border-white/8 pt-3 mt-1">
-            These are suggestions to help you make an informed choice right now. If you're working with
-            a coach, dietitian, or physician, please follow their guidance and check with them about
-            concerns or changes to your nutrition or health plan.
-          </p>
-        </div>
       </div>
     </div>
   );
@@ -230,7 +140,7 @@ function MessageRow({
       {isUser ? (
         <UserBubble content={msg.content!} />
       ) : (
-        <CoachBubble structured={msg.structured!} />
+            <CoachBubble structured={msg.structured!} enableConcierge={import.meta.env.DEV} />
       )}
       {/* ⋯ row — sits below each bubble, aligned to match the bubble side */}
       <div className={`flex ${isUser ? "justify-end pr-1" : "justify-start pl-1"} mt-0.5`}>
@@ -910,6 +820,8 @@ export default function CoachsCorner() {
               <Send className="w-4 h-4 text-white" />
             </Button>
           </div>
+          {import.meta.env.DEV && messages.some(msg => msg.structured && isConciergeMessage(msg.structured)) &&
+            <div className="mt-2"><ProfessionalBoundaryNotice /></div>}
         </div>
 
       </div>

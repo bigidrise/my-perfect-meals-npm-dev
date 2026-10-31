@@ -32,3 +32,9 @@ Ordinary concierge expression must be isolated from mandatory behavioral hypothe
 **Why:** The user reported that authenticated ordinary-hunger conversations still received nutritional-gap analysis after the deterministic discovery tests passed. Those earlier fixtures did not exercise the full orchestration and synthetic reasoning-failure path.
 
 **How to apply:** Exercise the full engine with mocked external dependencies as well as individual calls; distinguish that evidence from paid-model accuracy. Treat a decision to make a named dish as completion, with a concise recommendation and member-click button rather than another recipe/open-feature question. Unsupported builder requests must not bypass their hubs; request-prefill expansion remains separately authorized.
+
+Ordinary concierge presentation is one conversational message and an optional validated action, not the internal coaching envelope. Empty plan fields alone are not a presentation boundary.
+
+**Why:** The user reported a live reply followed by a disconnected plan-rationale sentence after optional plan fields had already been introduced. They explicitly require ordinary replies not to display internal plans, rationales, evidence gaps, or hypotheses.
+
+**How to apply:** Test the real rendered bubble with deliberately populated internal fragments, including fallback and restored JSON. Keep legacy coaching and safety guidance readable; retain professional-boundary guidance visibly without repeating it inside every new ordinary reply. Live-model success must still be observed through an authenticated Development conversation, with paid calls approved beforehand.

@@ -10,6 +10,12 @@
 
 // ─── Enumerations ────────────────────────────────────────────────────────────
 
+export interface ConciergePresentation {
+  kind: "concierge";
+  message: string;
+  destinationId?: import("./navigation").CoachDestinationId;
+}
+
 export type CoachSpecialization = "corner" | "pregnancy" | "pediatric";
 
 export type SubjectType = "user" | "child";
@@ -319,6 +325,8 @@ export interface TodayPlan {
  * The server validates all fields before persisting or returning.
  */
 export interface CoachResponse {
+  /** Development-only display contract; legacy coaching fields remain internal. */
+  presentation?: ConciergePresentation;
   /** "I looked through your recent activity. I noticed..." */
   whatIFound: string;
   /** "This pattern often means..." */

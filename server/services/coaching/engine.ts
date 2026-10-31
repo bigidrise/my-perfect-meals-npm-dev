@@ -19,7 +19,7 @@ import OpenAI from "openai";
 import { db } from "../../db";
 import { getLanguageInstruction } from "../../utils/languageInstruction";
 import { sql } from "drizzle-orm";
-import { ReasoningResultSchema, CoachResponseSchema, ConciergeDecisionSchema, ConciergeResponseSchema, type ConciergeDecision } from "../../../shared/coaching/schemas";
+import { ReasoningResultSchema, CoachResponseSchema, ConciergeDecisionSchema, ConciergeResponseSchema, ConciergeMessageSchema, type ConciergeDecision } from "../../../shared/coaching/schemas";
 import { CHEF_CONCIERGE_REVISION, conciergeRenderingInstructions } from "./conciergeInstructions";
 import { runSafetyGate, buildSafetyResponse } from "./safety";
 import { scoreConfidence, getConfidenceInstructions } from "./confidence";
@@ -1002,7 +1002,21 @@ export async function runRenderingPass(params: {
       // Normalize completionSignal before Zod — the LLM often returns creative
       // strings that aren't in the enum. This metadata field must never discard
       // an otherwise valid coaching response.
-      const sanitized = sanitizeRenderingResponse(parsed);
+      const messageResult = nonBehavioral ? ConciergeMessageSchema.safeParse(parsed) : undefined;
+      const conversational = messageResult?.success ? messageResult.data : undefined;
+      const sanitized = conversational ? {
+        whatIFound: conversational.message, whatItCouldMean: "",
+        todayPlan: {
+          why: "",
+          items: conversational.contactCare
+            ? [{ horizon: "today", kind: "contact_care", text: conversational.contactCare }]
+            : decision?.destinationId
+              ? [{ horizon: "today", kind: "use_feature", text: `Open ${COACH_DESTINATIONS[decision.destinationId].label}`, featureTarget: decision.destinationId }]
+              : [],
+          successMetric: "The member received help.", nextCheckIn: "When ready",
+        },
+        learningOpportunity: null,
+      } : sanitizeRenderingResponse(parsed);
       const validated = (nonBehavioral ? ConciergeResponseSchema : CoachResponseSchema).parse(sanitized);
 
       // Enforce confidence restrictions programmatically
@@ -1063,6 +1077,14 @@ export async function runRenderingPass(params: {
       return {
         whatIFound: validated.whatIFound,
         whatItCouldMean: validated.whatItCouldMean,
+        ...(nonBehavioral && !escalation ? { presentation: {
+          kind: "concierge" as const,
+          message: conversational?.message ?? (decision?.mode === "nutrition_education"
+            ? [validated.whatIFound, validated.whatItCouldMean].filter(Boolean).join("\n\n")
+            : validated.whatIFound),
+          ...(typedItems.find(item => item.destinationId)?.destinationId
+            ? { destinationId: typedItems.find(item => item.destinationId)!.destinationId } : {}),
+        } } : {}),
         todayPlan: typedTodayPlan,
         learningOpportunity,
         meta: {
@@ -1124,7 +1146,7 @@ async function buildFallbackResponse(
             "Use supplied conversation context to retain preferences and avoid repeating answered questions. The latest explicit change wins. Ask one useful question at a time when practical, with no mandatory sequence. Hunger or indecision does not imply home cooking, restaurants, or available ingredients.",
             "If the member asks for suggestions rather than questions, give a few practical food ideas instead of another question or feature list. Keep everyday discovery concise; preserve useful educational detail. A conversational next step is valid without navigation.",
             "Do not choose destinations; the server preserves the validated selection. Do not discuss a different creator.",
-            "Respond ONLY in JSON with whatIFound, whatItCouldMean, planWhy, action1, action2, and learningOpportunity (null).",
+            'Respond ONLY in JSON: {"message":"the complete member-facing response"}. No planWhy, rationale, learning, or separate explanation fields. For ordinary discovery ask one useful question directly, without restating the member or adding introductions, motivations, or generic offers. For education preserve useful detail. If escalation is needed also return contactCare with the required care action.',
           ] : [
             "You are a nutrition coach with no access to this user's personal logged data.",
             "The user asked a question. Respond under LOW evidence rules:",
@@ -1158,12 +1180,23 @@ async function buildFallbackResponse(
     if (conciergeFallback) {
       const selected = decision?.mode === "food_assistance" && decision.destinationId
         ? decision.destinationId : undefined;
+      const minimal = ConciergeMessageSchema.safeParse(r);
+      const message = minimal.success ? minimal.data.message
+        : typeof r.whatIFound === "string"
+          ? (decision?.mode === "nutrition_education"
+            ? [r.whatIFound, typeof r.whatItCouldMean === "string" ? r.whatItCouldMean : ""].filter(Boolean).join("\n\n")
+            : r.whatIFound)
+          : "What would you like help with?";
+      const care = minimal.success ? minimal.data.contactCare : undefined;
       return {
-        whatIFound: typeof r.whatIFound === "string" ? r.whatIFound : "What would you like help with?",
+        whatIFound: message,
         whatItCouldMean: typeof r.whatItCouldMean === "string" ? r.whatItCouldMean : "",
+        ...(!care ? { presentation: {
+          kind: "concierge" as const, message, ...(selected ? { destinationId: selected } : {}),
+        } } : {}),
         todayPlan: {
           why: typeof r.planWhy === "string" ? r.planWhy : "Continue with the option that fits your request.",
-          items: selected ? [{
+          items: care ? [{ horizon: "today", kind: "contact_care", text: care }] : selected ? [{
             horizon: "today", kind: "use_feature", text: `Open ${COACH_DESTINATIONS[selected].label}`,
             featureTarget: selected, destinationId: selected,
           }] : [{
@@ -1200,6 +1233,7 @@ async function buildFallbackResponse(
       return {
         whatIFound: "I couldn't complete that response. Please try your request again.",
         whatItCouldMean: "",
+        presentation: { kind: "concierge", message: "I couldn't complete that response. Please try your request again." },
         todayPlan: {
           why: "Your conversation is still here.",
           items: [{ horizon: "today", kind: "other", text: "Try your request again." }],

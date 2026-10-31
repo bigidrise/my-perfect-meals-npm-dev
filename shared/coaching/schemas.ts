@@ -145,7 +145,14 @@ export const CoachResponseSchema = z.object({
 export type CoachResponseInput = z.infer<typeof CoachResponseSchema>;
 
 /** Development concierge conversation need not invent a coaching plan or analysis. */
+export const ConciergeMessageSchema = z.object({
+  message: z.string().min(1).max(8000),
+  // Preserve escalation in the minimal renderer without inventing a plan.
+  contactCare: z.string().min(1).max(1000).optional(),
+});
+
 export const ConciergeResponseSchema = CoachResponseSchema.extend({
+  whatIFound: z.string().min(1).max(8000),
   whatItCouldMean: z.string().max(600),
   todayPlan: TodayPlanSchema.extend({
     why: z.string().max(500),
