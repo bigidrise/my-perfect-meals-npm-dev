@@ -270,6 +270,83 @@ beforeEach(() => {
   mockResolveGLP1GlobalContext.mockResolvedValue(GLP1_CONTEXT_ACTIVE);
 });
 
+describe("Development Getaway grounding at the actual route boundary", () => {
+  let previousEnvironment: string | undefined;
+  beforeEach(() => {
+    previousEnvironment = process.env.NODE_ENV;
+    process.env.NODE_ENV = "development";
+  });
+  afterEach(() => {
+    process.env.NODE_ENV = previousEnvironment;
+    jest.requireMock("../services/locationContext/engine").assembleLocationContext.mockReturnValue(null);
+    const envelope = jest.requireMock("../services/protocolEnvelope");
+    envelope.loadUserProtocolEnvelope.mockResolvedValue(MOCK_PROTOCOL_ENVELOPE);
+    envelope.scanGeneratedOutput.mockReturnValue({ passed: true, message: "Passed" });
+  });
+
+  test.each(["Marriott Cancun", "The Farmhouse Kitchen and Grill"])(
+    "%s gets unverified ideas, not a model-inferred Disney venue or claimed menu", async name => {
+      const res = await request(testApp).post("/api/getaway/coach").send({
+        message: `What could I ask about at ${name}?`, discoveredVenue: { name, type: "resort" },
+      });
+      expect(res.status).toBe(200);
+      expect(res.body.venue).toBe(name);
+      expect(res.body.zone).toBeNull();
+      expect(res.body.evidence).toMatchObject({ menuStatus: "unverified", nutritionStatus: "unverified" });
+      expect(res.body.bestChoices[0].evidenceStatus).toBe("illustrative");
+      const instructions = capturedOpenAICalls[0].messages[0].content;
+      expect(instructions).toContain("No verified menu");
+      expect(instructions).not.toContain("You know real menus at");
+      expect(instructions).toContain("ALLERGY RULE");
+      expect(instructions).toContain("PROTOCOL RULE");
+      expect(capturedOpenAICalls).toHaveLength(1);
+    });
+
+  test("catalog identity overrides invented model venue and zone, without certifying a menu", async () => {
+    jest.requireMock("../services/locationContext/engine").assembleLocationContext.mockReturnValue({
+      venue: { name: "Carnival Cruise Ship" }, zone: { name: "Main Dining Room", type: "deck" },
+    });
+    const res = await request(testApp).post("/api/getaway/coach")
+      .send({ message: "What could I eat?", venueId: "carnival-cruise", zoneId: "main-dining-room" });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ venue: "Carnival Cruise Ship", zone: "Main Dining Room",
+      evidence: { menuStatus: "unverified" } });
+  });
+
+  test("unidentified locations cannot acquire a model-invented venue or terminal", async () => {
+    const res = await request(testApp).post("/api/getaway/coach")
+      .send({ message: "Where can I eat at an unknown airport?" });
+    expect(res.status).toBe(200);
+    expect(res.body.venue).toContain("Location not verified");
+    expect(res.body.zone).toBeNull();
+  });
+
+  test("existing clinical envelope failure still prevents the model call", async () => {
+    jest.requireMock("../services/protocolEnvelope").loadUserProtocolEnvelope.mockResolvedValue(null);
+    const res = await request(testApp).post("/api/getaway/coach").send({ message: "Resort food?" });
+    expect(res.status).toBe(503);
+    expect(capturedOpenAICalls).toHaveLength(0);
+  });
+
+  test("existing protocol output rejection remains fail-closed", async () => {
+    jest.requireMock("../services/protocolEnvelope").scanGeneratedOutput.mockReturnValue({
+      passed: false, message: "Synthetic dietary conflict",
+    });
+    const res = await request(testApp).post("/api/getaway/coach").send({ message: "Resort food?" });
+    expect(res.status).toBe(503);
+    expect(res.body.bestChoices).toBeUndefined();
+  });
+
+  test("Production retains its prior response and prompt contract", async () => {
+    process.env.NODE_ENV = "production";
+    const res = await request(testApp).post("/api/getaway/coach").send({ message: "Resort food?" });
+    expect(res.status).toBe(200);
+    expect(res.body.venue).toBe("Disney World");
+    expect(res.body.evidence).toBeUndefined();
+    expect(capturedOpenAICalls[0].messages[0].content).toContain("You know real menus at");
+  });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // PURE FUNCTION TESTS — buildGLP1RecommendationBlock
 // ─────────────────────────────────────────────────────────────────────────────

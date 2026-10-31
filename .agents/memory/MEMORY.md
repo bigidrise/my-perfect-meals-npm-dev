@@ -155,3 +155,4 @@
 - [RHM client walkthrough](rhm-client-walkthrough-context.md) — staff need the actual first-time client experience before distributing a 30-day link to 8,000 clinic clients.
 - [Frontend test runtime](dom-snapshot-css-fidelity.md) — snapshot CSS fidelity, focused Jest execution, and Vite-only feature gates.
 - [Chef concierge boundaries](chef-concierge-boundary.md) — preserve coaching; destinations own generation; navigation is member-confirmed and Development-only until approved.
+- [Getaway evidence boundary](getaway-reliability-boundary.md) — destination identity never proves menus; uncertainty stays explicit and reliability corrections remain Development-only.
