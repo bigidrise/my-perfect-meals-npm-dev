@@ -16,7 +16,7 @@ import { loadBoundedHistory } from "../services/coaching/conversationSummarizer"
 import { resolveStyle } from "../services/coaching/styleResolver";
 import { runObservers } from "../services/coaching/observers/stubs";
 import { extractAndPersistMemories } from "../services/coaching/memoryExtractor";
-import { getCornerCapabilities } from "../services/coaching/capabilityRegistry";
+import { getCapabilitiesForUser, getCornerCapabilities } from "../services/coaching/capabilityRegistry";
 import { getDevelopmentPlatformKnowledge } from "../services/coaching/platformKnowledge";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
 
@@ -105,6 +105,56 @@ test.each([
   expect(payload.history).toEqual(history);
   expect(payload.latestMemberMessage).toBe("Yes, let's do that.");
   expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+// Deterministic provider fixtures verify supplied knowledge and existing
+// validation, not a live model's interpretation of these member messages.
+test.each([
+  ["I'm going on a Carnival cruise next week. Can you help me figure out where I should eat?",
+    "my_perfect_getaway", { ...unknown, activity: "travel" }],
+  ["I'm at the Carnival buffet. Help me choose from the buffet foods.",
+    "my_perfect_buffet", { ...unknown, activity: "buffet" }],
+  ["I've selected the ship's steakhouse. Help me choose menu items there.",
+    "restaurant_guide", { ...unknown, activity: "eat_out", restaurant: "chosen" }],
+  ["I'm ashore and want to find nearby restaurants. I haven't chosen one.",
+    "find_meals_near_me", { ...unknown, activity: "eat_out", restaurant: "not_chosen" }],
+])("travel-dining knowledge reaches the active call and preserves validated navigation: %s", async (message, id, goal) => {
+  reply("That feature can help with your dining choices.", id, goal);
+  const result = await run(message);
+  const payload = JSON.parse(mockCreate.mock.calls[0][0].messages[1].content);
+  const knowledge = payload.availableFeatures.find((feature: any) => feature.id === "my_perfect_getaway").description;
+  for (const fact of ["Carnival", "Royal Caribbean", "NCL", "Disney Cruise", "onboard dining areas",
+    "airports", "theme parks", "resorts", "stadiums and arenas", "state fairs",
+    "main dining rooms", "specialty restaurants", "pool-deck dining",
+    "not an exhaustive list", "members can also search",
+    "identified buffet fits My Perfect Buffet", "already-selected restaurant fits Restaurant Guide",
+    "without one selected fits Find Meals Near Me", "not as keyword rules or mandatory navigation",
+    "without first collecting", "unless supported by reliable information", "No Chef prefill"]) {
+    expect(knowledge).toContain(fact);
+  }
+  expect(payload.latestMemberMessage).toBe(message);
+  expect(result.presentation?.destinationId).toBe(id);
+  expect(result.todayPlan.items).toEqual([
+    expect.objectContaining({ kind: "use_feature", destinationId: id }),
+  ]);
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+  expect(COACH_DESTINATIONS.my_perfect_getaway).toEqual({
+    label: "My Perfect Getaway", route: "/lifestyle/my-perfect-getaway", access: "clinical",
+  });
+});
+
+test("cruise context can stay conversational without mandatory Getaway navigation", async () => {
+  reply("Your cruise's current menus may vary; check the ship's current dining information.", null, unknown,
+    { conciergeDecision: null });
+  const result = await run("Do cruise menus change?");
+  expect(result.presentation?.destinationId).toBeUndefined();
+  expect(result.todayPlan.items).toEqual([]);
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+test("expanded Getaway knowledge does not change Production's capability registry", () => {
+  process.env.NODE_ENV = "production";
+  expect(getCornerCapabilities(["all"])).toEqual(getCapabilitiesForUser(["all"], true));
 });
 
 test("a requested comparison can explain the distinction without selecting either tool", async () => {
