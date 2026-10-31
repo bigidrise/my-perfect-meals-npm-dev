@@ -2,6 +2,7 @@
 // Refactored: Uses shared Restaurant Resolver (January 2026)
 // Phase 2: Restaurant Intelligence Engine integration
 import { Router } from "express";
+import { publishedRestaurantServing } from "../../shared/restaurantServing";
 import axios from "axios";
 import { resolveRestaurantsByZip } from "../services/restaurantResolver";
 import { coordsToZip } from "../services/zipToCoordsService";
@@ -580,6 +581,10 @@ router.post("/guide", async (req, res) => {
       ...(selectedVenue ? { selectedVenue } : {}),
       recommendations: finalRecommendations.map((meal: any) => ({
         ...meal,
+        ...(process.env.NODE_ENV === "development" ? { meal: { ...meal.meal,
+          serving: publishedRestaurantServing({ name: meal.meal.name,
+            calories: meal.meal.calories, protein: meal.meal.proteinGrams,
+            carbs: meal.meal.carbohydrateGrams, fat: meal.meal.fatGrams }) } } : {}),
         compositionEvidence: "menu-item-only",
       })),
       compositionEvidence: "menu-item-only",

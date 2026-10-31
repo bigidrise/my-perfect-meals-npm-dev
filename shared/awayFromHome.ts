@@ -288,6 +288,8 @@ export interface AwayFromHomeRecommendation {
     description?: string;
     category?: string;
     imageUrl?: string;
+    /** Development restaurant serving; Buffet's existing portion contract is unchanged. */
+    serving?: import("./restaurantServing").RestaurantServing;
 
     // Integer values — the primary display numbers
     calories?: number;

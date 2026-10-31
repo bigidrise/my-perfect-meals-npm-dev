@@ -4,6 +4,7 @@ import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useChefFlowImages, chefFlowMealId } from "@/hooks/useChefFlowImages";
 import { ChefFlowImage } from "@/components/ChefFlowImage";
+import RestaurantPortions from "@/components/away-from-home/RestaurantPortions";
 import { motion } from "framer-motion";
 import MealGenerationProgress from "@/components/MealGenerationProgress";
 import {
@@ -176,6 +177,7 @@ interface MealResult {
   matchLabel?: 'Exact match' | 'Matches your diet' | 'Limited match';
   photoUrl?: string;
   meal: {
+    serving?: import("@shared/restaurantServing").RestaurantServing;
     name: string;
     description: string;
     calories: number;
@@ -1036,6 +1038,7 @@ export default function MealFinder() {
                                         address: result.address,
                                         modifications: result.meal.modifications,
                                         imageUrl: result.meal.imageUrl,
+                                        serving: result.meal.serving,
                                       }}
                                       size={22}
                                     />
@@ -1088,6 +1091,7 @@ export default function MealFinder() {
                                     );
                                   })()}
                                   <p className="text-sm text-white/70">{result.meal.description}</p>
+                                  <RestaurantPortions serving={result.meal.serving} meal={result.meal} />
                                 </div>
 
                                 {/* Medical Safety Badges */}
@@ -1189,12 +1193,17 @@ export default function MealFinder() {
                                   <Button
                                     onClick={() => {
                                       setQuickView({
+                                        ...(result.meal.serving ? { restaurantServing: result.meal.serving,
+                                          title: result.meal.name } : {}),
                                         protein: Math.round(result.meal.protein || 0),
                                         carbs: Math.round(result.meal.carbs || 0),
                                         starchyCarbs: result.meal.starchyCarbs != null ? Math.round(result.meal.starchyCarbs) : undefined,
                                         fibrousCarbs: result.meal.fibrousCarbs != null ? Math.round(result.meal.fibrousCarbs) : undefined,
                                         fat: Math.round(result.meal.fat || 0),
                                         calories: Math.round(result.meal.calories || 0),
+                                        ...(result.meal.serving ? { protein: result.meal.protein,
+                                          carbs: result.meal.carbs, fat: result.meal.fat,
+                                          calories: result.meal.calories } : {}),
                                         dateISO: new Date().toISOString().slice(0, 10),
                                         mealSlot: "lunch",
                                       });

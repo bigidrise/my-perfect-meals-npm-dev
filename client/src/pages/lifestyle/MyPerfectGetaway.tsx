@@ -66,6 +66,7 @@ interface GetawayResult {
 interface PersistedState {
   result: GetawayResult;
   message: string;
+  activeVenueContext?: { venueId?: string; zoneId?: string; discoveredVenue?: Record<string, any> };
 }
 
 const QUICK_VENUES = [
@@ -134,6 +135,7 @@ export default function MyPerfectGetaway() {
   const [followUpMessage, setFollowUpMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GetawayResult | null>(null);
+  const [venueMealsActive, setVenueMealsActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -179,6 +181,7 @@ export default function MyPerfectGetaway() {
           }
           setResult(restored);
           setMessage(saved.message || "");
+          if (reliable) setActiveVenueContext(saved.activeVenueContext ?? null);
         }
       }
     } catch {}
@@ -223,6 +226,7 @@ export default function MyPerfectGetaway() {
     setLoading(true);
     setError(null);
     setResult(null);
+    setVenueMealsActive(false);
     setProgress(0);
     setShowZonePicker(false);
     setDiscoveryResult(null);
@@ -267,7 +271,8 @@ export default function MyPerfectGetaway() {
         setLoading(false);
         try {
           const key = getStorageKey(user?.id);
-          sessionStorage.setItem(key, JSON.stringify({ result: data, message: trimmed }));
+          sessionStorage.setItem(key, JSON.stringify({ result: data, message: trimmed,
+            ...(reliable ? { activeVenueContext: { venueId, zoneId, discoveredVenue: discoveredVenuePayload } } : {}) }));
         } catch {}
       }, 300);
     } catch (err: any) {
@@ -702,6 +707,7 @@ export default function MyPerfectGetaway() {
           const venueId = pendingVenue?.id || discoveryResult?.venueId || activeVenueContext?.venueId;
           const zoneId = selectedZone?.id || activeVenueContext?.zoneId;
           return <GetawayVenueMeals key={`${destinationName}:${venueId || ""}:${zoneId || ""}`}
+            onRecommendationsChange={setVenueMealsActive}
             destination={{ destinationName, ...(venueId ? { venueId } : {}), ...(zoneId ? { zoneId } : {}) }} />;
         })()}
 
@@ -753,6 +759,10 @@ export default function MyPerfectGetaway() {
               transition={{ duration: 0.5 }}
               className="space-y-4"
             >
+              {venueMealsActive && <p className="rounded-xl border border-white/15 p-3 text-xs text-white/70">
+                Earlier destination context — not meal recommendations for the selected dining venue.
+                The personalized meal cards above are your current meal choices.
+              </p>}
               {/* Venue + zone badge row */}
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-500/15 border border-orange-500/30 rounded-full">
@@ -773,7 +783,7 @@ export default function MyPerfectGetaway() {
               )}
 
               {/* Best Choices */}
-              {result.bestChoices?.length > 0 && (
+              {!venueMealsActive && result.bestChoices?.length > 0 && (
                 <div className="rounded-2xl bg-black/40 border border-orange-500/20 overflow-hidden">
                   <div className="px-4 py-3 border-b border-orange-500/15 flex items-center gap-2">
                     <Star className="h-4 w-4 text-orange-400" />
@@ -807,7 +817,7 @@ export default function MyPerfectGetaway() {
               )}
 
               {/* Why These Fit */}
-              {result.whyTheyFit?.length > 0 && (
+              {!venueMealsActive && result.whyTheyFit?.length > 0 && (
                 <div className="rounded-2xl bg-black/30 border border-white/10 px-4 py-4">
                   <h3 className="text-xs font-bold text-white/60 uppercase tracking-wide mb-3">Why These Fit You</h3>
                   <div className="space-y-2">
@@ -822,7 +832,7 @@ export default function MyPerfectGetaway() {
               )}
 
               {/* What to Avoid */}
-              {result.avoid?.length > 0 && (
+              {!venueMealsActive && result.avoid?.length > 0 && (
                 <div className="rounded-2xl bg-red-950/20 border border-red-500/20 px-4 py-4">
                   <h3 className="text-xs font-bold text-red-300/70 uppercase tracking-wide mb-3">What To Avoid</h3>
                   <div className="space-y-2">

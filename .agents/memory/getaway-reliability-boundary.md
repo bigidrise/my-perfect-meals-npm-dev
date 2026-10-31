@@ -20,3 +20,9 @@ description: Separate destination identity from menu evidence, with a Developmen
 **Why:** The user explicitly approved Development restaurant/Getaway alignment to reuse existing cuisine intelligence and meal actions, not replace it with a menu-only system or rebuild the platform.
 
 **How to apply:** Reject unvalidated legacy fallback meals, inferred nearby business locations, and guest/missing clinical authority. Preserve current dietary and cuisine profile settings without new override controls. A selected-venue request may reuse the existing recommendation call; do not add chained coaching, destination-wide generation, images, paid services, or extra AI stages without approval. Production activation still requires separate approval.
+
+**Rule:** Restaurant serving improvements are Development-only. Keep portions and nutrition attached to one declared plate; estimates are not independently calculated nutrition. Getaway uses the existing Flame Chef as its missing-image fallback, not paid generation. Preserve Buffet unchanged.
+
+**Why:** The user explicitly approved shared restaurant portions and Getaway presentation corrections, but prohibited additional model calls, image generation, speculative nutrient calculations, migrations, and Production activation.
+
+**How to apply:** Do not reuse guessed ingredient weights or generic food-density conversions as nutrient evidence. Keep selected-venue cards primary without deleting destination coaching. Favorites may retain serving JSON; permanent structured serving storage in Biometrics was not authorized as a schema change.

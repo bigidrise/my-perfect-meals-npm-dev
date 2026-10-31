@@ -1,5 +1,6 @@
 import type { AwayFromHomeRecommendation } from "./awayFromHome";
 import { z } from "zod";
+import { currentRestaurantServing } from "./restaurantServing";
 
 const Meal = z.object({
   id: z.string().min(1),
@@ -9,6 +10,8 @@ const Meal = z.object({
   carbs: z.number().finite().nonnegative(),
   fat: z.number().finite().nonnegative(),
   ingredients: z.array(z.string()).optional(),
+  imageUrl: z.string().optional(),
+  serving: z.unknown().optional(),
   description: z.string().optional(),
   reason: z.string().optional(),
   modifications: z.string().optional(),
@@ -48,6 +51,8 @@ export function getawayRestaurantCards(payload: any): AwayFromHomeRecommendation
       menuSourceDisclosure: rec?.menuSourceDisclosure || payload.compositionNote,
       meal: {
         name: meal.name, description: meal.description, calories: meal.calories,
+        imageUrl: meal.imageUrl,
+        serving: currentRestaurantServing(meal.serving, meal),
         proteinGrams: meal.protein, carbohydrateGrams: meal.carbs, fatGrams: meal.fat,
         ingredients: meal.ingredients, starchyCarbGrams: meal.starchyCarbs,
         fibrousCarbGrams: meal.fibrousCarbs,

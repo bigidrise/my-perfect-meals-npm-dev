@@ -32,6 +32,7 @@ import { generateMealImageUnified } from "../services/mealImageGenerator";
 import { buildGuestEnvelope } from "../services/protocolEnvelope";
 import { resolveGetawayRestaurantContext } from "../services/getawayRestaurantContext";
 import { getawayRestaurantCards } from "../../shared/getawayRestaurantMeals";
+import { bindRestaurantServing } from "../../shared/restaurantServing";
 import { assembleLocationContext } from "../services/locationContext/engine";
 
 const oldEnvironment = process.env.NODE_ENV;
@@ -77,6 +78,30 @@ async function guide(body: any) {
 const selected = (name = "Guy's Burger Joint") => ({
   restaurantName: name, craving: `Help me choose a meal at ${name}`,
   getawayVenue: { destinationName: "Carnival cruise" },
+});
+
+test.each(["Lido buffet", "Burger restaurant", "Heathrow Burger Bar", "Sakura Sushi"])(
+  "%s preserves same-call serving through Guide and Getaway with no extra calls", async name => {
+    const withPortions = { ...meal, serving: { label: "One suggested plate",
+      items: [{ food: "Beef", quantity: 4, unit: "oz", basis: "cooked" }] } };
+    mockCreate.mockResolvedValueOnce({ choices: [{ message: { content: JSON.stringify({ meals: [withPortions] }) } }] });
+    const response = await guide(selected(name));
+    expect(response.code).toBe(200);
+    expect(response.body.recommendations[0].serving).toEqual(bindRestaurantServing(withPortions.serving, meal));
+    expect(getawayRestaurantCards(response.body)[0].meal.serving?.items[0]).toMatchObject({ quantity: 4, unit: "oz", basis: "cooked" });
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(mockCreate.mock.calls[0][0])).toContain("SAME single suggested plate");
+  });
+
+test("unsafe supplemental portion content cannot bypass protocol validation", async () => {
+  envelope.dietaryIdentity = ["vegan"];
+  const vegan = { ...meal, name: "Lentil plate", description: "Lentils and vegetables",
+    ingredients: ["lentils", "vegetables"], serving: { label: "One plate",
+      items: [{ food: "Beef", quantity: 4, unit: "oz", basis: "cooked" }] } };
+  mockCreate.mockResolvedValueOnce({ choices: [{ message: { content: JSON.stringify({ meals: [vegan] }) } }] });
+  const response = await guide(selected());
+  expect(response.code).toBe(503);
+  expect(getawayRestaurantCards(response.body)).toEqual([]);
 });
 
 test("selected cruise burger concept reuses the actual Guide pipeline with one call and no false ZIP match", async () => {

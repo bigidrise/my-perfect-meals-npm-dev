@@ -57,6 +57,7 @@ import { readDraft, clearDraft } from "@/lib/macrosDraft";
 import { startQueueAutoFlush, queueOrPost } from "@/lib/queue";
 import { normalizeMacros } from "@/lib/macroNormalize";
 import { getQuickView, clearQuickView, QuickView } from "@/lib/macrosQuickView";
+import RestaurantPortions from "@/components/away-from-home/RestaurantPortions";
 import { logMacros } from "@/lib/logMacros";
 import { parseBiometricsParams, BIOMETRICS_SOURCES, SECTION_IDS } from "@/lib/biometricsNavigation";
 import { getMacroTargets, MacroTargets } from "@/lib/dailyLimits";
@@ -2212,6 +2213,13 @@ export default function MyBiometrics() {
               </div>
             )}
 
+            {qv?.restaurantServing && <div className="mb-4 rounded-lg border border-orange-400/30 bg-black/70 p-3">
+              <p className="text-xs text-white/65">Original recommendation. Editing your macro entry does not recalculate these portions. Review before logging.</p>
+              <RestaurantPortions serving={qv.restaurantServing} meal={{
+                name: qv.title || "", calories: qv.calories, protein: qv.protein,
+                carbs: qv.carbs, fat: qv.fat,
+              }} />
+            </div>}
             {/* Additional Macros selector */}
             {PROFILES_ENABLED && (
               <div className="flex items-center justify-between gap-2 mt-3">

@@ -22,6 +22,7 @@ import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useTranslation } from "react-i18next";
 import { useChefFlowImages, chefFlowMealId } from "@/hooks/useChefFlowImages";
 import { ChefFlowImage } from "@/components/ChefFlowImage";
+import RestaurantPortions from "@/components/away-from-home/RestaurantPortions";
 import { useAuth } from "@/contexts/AuthContext";
 import MealGenerationProgress from "@/components/MealGenerationProgress";
 import { normalizeDiet, filterMealsByDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
@@ -211,6 +212,7 @@ function normalizeCachedMeals(meals: any[]): any[] {
         modifications: m.meal.howToOrder || (m.modificationNotes || []).join(". ") || "",
         askFor: m.meal.howToOrder || "",
         dietBadge: m.meal.dietBadge || "",
+        serving: m.meal.serving,
       };
     }
     return m;
@@ -1265,6 +1267,8 @@ export default function RestaurantGuidePage() {
                                       fat: meal.fat,
                                       description: meal.description || meal.reason,
                                       ingredients: meal.ingredients || [],
+                                      serving: meal.serving,
+                                      imageUrl: meal.imageUrl,
                                     }}
                                   />
                                 </div>
@@ -1273,6 +1277,10 @@ export default function RestaurantGuidePage() {
                               <p className="text-white/80 mb-3">
                                 {displayMeal.description || displayMeal.reason}
                               </p>
+                              <RestaurantPortions serving={meal.serving} meal={{
+                                name: meal.name || meal.meal, calories: meal.calories,
+                                protein: meal.protein, carbs: meal.carbs, fat: meal.fat,
+                              }} />
 
                               {/* Nutrition Info */}
                               <div className="grid grid-cols-4 gap-2 text-sm mb-3">
@@ -1307,12 +1315,16 @@ export default function RestaurantGuidePage() {
                                 <Button
                                   onClick={() => {
                                     setQuickView({
+                                      ...(meal.serving ? { restaurantServing: meal.serving,
+                                        title: meal.name || meal.meal } : {}),
                                       protein: Math.round(meal.protein || 0),
                                       carbs: Math.round(meal.carbs || 0),
                                       starchyCarbs: meal.starchyCarbs != null ? Math.round(meal.starchyCarbs) : undefined,
                                       fibrousCarbs: meal.fibrousCarbs != null ? Math.round(meal.fibrousCarbs) : undefined,
                                       fat: Math.round(meal.fat || 0),
                                       calories: Math.round(meal.calories || 0),
+                                      ...(meal.serving ? { protein: meal.protein, carbs: meal.carbs,
+                                        fat: meal.fat, calories: meal.calories } : {}),
                                       dateISO: new Date().toISOString().slice(0, 10),
                                       mealSlot: "lunch",
                                     });
