@@ -1,5 +1,19 @@
 # Ask Chef focused release-blocker review
 
+## Approved correction follow-up
+
+The owner explicitly approved both focused corrections after reviewing the findings below.
+
+- The reviewed baseline is now 118 diagnostics / `186533e21953cfa70b9c0dfa04d41ffb0bb48f95c300f2a7f28958a7e63a7a9c`. The checker and its exact-match rule are unchanged.
+- The Getaway adapter explicitly projects the already schema-validated required name and nutrition fields into the serving helper. No cast, non-null assertion, invented default, schema relaxation or compiler-option change was used.
+- Regression assertions additionally reject missing/invalid names and missing, non-finite or negative nutrition values.
+- `npm run check:release-types`: PASS against the reviewed 118-diagnostic baseline.
+- `npm run validate -- --report`: PASS WITH WARNINGS. The remaining warning is the existing explicit-route-parity heuristic, which still requires applicable-route review during Production integration.
+- Focused Getaway integration, reliability and restaurant-serving suites: **3 suites / 259 tests passed**.
+- The normal application workflow was restarted once and is serving requests; isolated validation preserved it.
+
+The findings below describe the historical blocked state before these approved corrections. Passing these Development gates is not Production acceptance or publication. Production has a distinct reviewed baseline and it must not be blindly replaced by Development's baseline.
+
 ## Scope and source identity
 
 This review does not add features, repeat branding audits, change account permissions, or activate Ask Chef. The owner requested investigation without bypassing or resetting checks.

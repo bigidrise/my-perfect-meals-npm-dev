@@ -38,7 +38,12 @@ export function getawayRestaurantCards(payload: any): AwayFromHomeRecommendation
     } : value);
     if (!parsed.success) return [];
     const meal = parsed.data;
-    const serving = currentRestaurantServing(meal.serving, meal);
+    // safeParse above validates these required fields. Project them explicitly:
+    // Zod's object output marks keys optional with the legacy server tsconfig.
+    const serving = currentRestaurantServing(meal.serving, {
+      name: meal.name, calories: meal.calories, protein: meal.protein,
+      carbs: meal.carbs, fat: meal.fat,
+    });
     return [{
       id: meal.id, source: "restaurant_guide" as const,
       restaurantName: payload.restaurantName,
