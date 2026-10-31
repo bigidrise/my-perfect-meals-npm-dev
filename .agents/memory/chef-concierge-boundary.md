@@ -118,3 +118,9 @@ Travel-dining scope matters more than a cruise mention: exploring options across
 **Why:** The user approved a targeted Development knowledge correction after Chef overlooked Getaway for clear Carnival cruise-dining help, while explicitly preserving natural conversation and destination-owned inputs.
 
 **How to apply:** Do not turn these distinctions into keyword routing, mandatory questions or mandatory navigation. Quick-start venues are examples, and catalog/general cruise knowledge never proves a particular ship's current restaurants, menus or availability.
+
+After a member accepts a recommendation, Chef should naturally acknowledge the choice and offer concise verified first steps, not repeat feature benefits or ask permission again. Direct requests and members who already know the feature do not need a tutorial.
+
+**Why:** The user observed repetitive Getaway descriptions after confirming navigation and requested the same conversational improvement across existing approved destinations, without fixed scripts or changes to destination features.
+
+**How to apply:** Keep replies contextual and model-authored in the existing single-call Development flow. Use verified interface knowledge only, honor the latest correction, and preserve button validation, access checks and existing handoffs. This approval does not extend to Production or live paid-model tests.

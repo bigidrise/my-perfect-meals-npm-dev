@@ -46,6 +46,91 @@ const run = (message: string) => engine.run({
   specialization: "corner", subject, userMessage: message, conversationId: "",
 }, { authUser: user } as any);
 
+// Provider fixtures verify the real single-call pipeline and supplied guidance,
+// not whether a live model will always obey the conversational instructions.
+test.each([
+  ["my_perfect_getaway", "Sounds good. Search your destination or choose a Tap & Go option, then follow any location prompts."],
+  ["create_a_dish", "Great. Review the editable dish idea and use Create My Dish when ready."],
+  ["craving_creator", "Great. Describe your craving, choose servings, and use Create when ready."],
+  ["dessert_creator", "Sounds good. Describe your dessert or use the dessert-type and flavor controls."],
+  ["beverage_creator", "Great. Describe your drink or use the drink-type and flavor controls."],
+  ["athlete_beverage_creator", "Great. Describe your performance drink and review the Performance Goal controls."],
+  ["my_perfect_menu", "Sounds good. Choose Breakfast, Lunch, Dinner or Snack, then pick an idea that appeals to you."],
+  ["meal_builders", "Great. Review the available builder cards and continue through the appropriate builder's setup."],
+  ["restaurant_guide", "Sounds good. Follow the ordering prompts, starting with what you're craving."],
+  ["find_meals_near_me", "Great. Enter a ZIP code or use the location control, then search the area."],
+  ["my_perfect_buffet", "Great. Describe the available buffet foods and use Build My Plates."],
+  ["fridge_rescue", "Sounds good. Enter the ingredients you have and review the optional cooking preferences."],
+  ["my_perfect_gatherings", "Great. Choose the occasion and follow the form for that gathering."],
+] as const)("accepted %s uses model-authored first steps with the existing validated action", async (id, answer) => {
+  const label = COACH_DESTINATIONS[id].label;
+  const history = [
+    { role: "user", content: id === "create_a_dish"
+      ? "I'd like to use Create a Dish to make mushroom stew."
+      : `I'm interested in using ${label}.` },
+    { role: "assistant", content: `${label} can help with that. Would you like to go there?` },
+  ];
+  (loadBoundedHistory as jest.Mock).mockResolvedValue({
+    recentMessages: history, rollingContext: "The member has already heard the feature explanation.",
+  });
+  reply(answer, id, { ...unknown, explicitFeatureId: id }, id === "create_a_dish"
+    ? { creatorRequest: { idea: "mushroom stew", memberTurns: [0] } } : {});
+  const result = await run("Yes, let's do that.");
+  expect(result.presentation).toEqual(expect.objectContaining({ message: answer, destinationId: id }));
+  expect(result.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId: id })]);
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+  const wire = mockCreate.mock.calls[0][0];
+  expect(wire.messages[0].content).toContain("instead of repeating the feature's benefits");
+  expect(wire.messages[0].content).toContain("Do not ask permission again");
+  const payload = JSON.parse(wire.messages[1].content);
+  expect(payload.history).toEqual(history);
+  expect(payload.earlierConversation).toContain("already heard");
+  expect(payload.platformKnowledge.featureUsage[id]).toBeDefined();
+  expect(answer).not.toContain("?");
+  expect(answer.length).toBeLessThan(200);
+});
+
+test("direct familiar-feature request can omit instructions rather than forcing a tutorial", async () => {
+  reply("Of course—use the button below when you're ready.", "my_perfect_getaway",
+    { ...unknown, activity: "travel", explicitFeatureId: "my_perfect_getaway" });
+  const result = await run("Open My Perfect Getaway. I know how to use it; skip the instructions.");
+  expect(result.presentation?.message).toBe("Of course—use the button below when you're ready.");
+  expect(result.presentation?.destinationId).toBe("my_perfect_getaway");
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+  expect(mockCreate.mock.calls[0][0].messages[0].content).toContain("omit the tutorial");
+});
+
+test("latest corrected destination wins over an earlier accepted recommendation", async () => {
+  const history = [
+    { role: "user", content: "Help me with cruise dining." },
+    { role: "assistant", content: "My Perfect Getaway helps with travel dining. Want to open it?" },
+    { role: "user", content: "Actually, I'm already at a buffet. Use My Perfect Buffet instead." },
+  ];
+  (loadBoundedHistory as jest.Mock).mockResolvedValue({
+    recentMessages: history, rollingContext: "Earlier destination: Getaway.",
+  });
+  reply("Understood. Describe the foods available at the buffet, then use Build My Plates.",
+    "my_perfect_buffet", { ...unknown, activity: "buffet" });
+  const result = await run("Yes, open that one.");
+  expect(result.presentation?.destinationId).toBe("my_perfect_buffet");
+  const wire = mockCreate.mock.calls[0][0];
+  expect(JSON.parse(wire.messages[1].content).history).toEqual(history);
+  expect(wire.messages[0].content).toContain("honoring the latest correction");
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+test("ambiguous acceptance does not force a destination button", async () => {
+  (loadBoundedHistory as jest.Mock).mockResolvedValue({
+    recentMessages: [{ role: "assistant", content: "Would you prefer meal ideas or a builder?" }],
+    rollingContext: null,
+  });
+  reply("Would you like suggested ideas, or to start in a builder?", null, unknown, { conciergeDecision: null });
+  const result = await run("Yes.");
+  expect(result.todayPlan.items).toEqual([]);
+  expect(result.presentation?.destinationId).toBeUndefined();
+  expect(mockCreate.mock.calls[0][0].messages[0].content).toContain("an unclear acceptance does not settle");
+});
+
 test.each([
   ["I want to start making meals, but I'm not sure where to begin.",
     "Would you like suggested ideas, or do you have your own in mind?"],
