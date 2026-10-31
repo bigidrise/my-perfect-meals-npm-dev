@@ -1,6 +1,6 @@
 /**
- * Stage 1: internal navigation only. No member text, query parameters, generation,
- * pregnancy activation, or future pairing features belong in this contract.
+ * Fixed internal destinations only. The separate creatorRequest contract permits
+ * reviewed Create a Dish text prefill, never arbitrary routes or generation.
  */
 export const COACH_DESTINATIONS = {
   sushi_creator: { label: "Sushi Creator", route: "/lifestyle/sushi-creator", access: "pro" },

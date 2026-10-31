@@ -3,6 +3,7 @@ import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import CoachFeatureAction from "@/components/coaching/CoachFeatureAction";
 import { COACH_DESTINATIONS } from "@shared/coaching/navigation";
+import { chefNavigationRoute } from "@shared/coaching/creatorRequest";
 
 const mockNavigate = jest.fn();
 const mockRequest = jest.fn();
@@ -61,4 +62,32 @@ test("return/remount restores a saved action without auto-opening", () => {
   render("beverage_creator");
   expect(host.textContent).toBe("Open Beverage Creator");
   expect(mockRequest).not.toHaveBeenCalled();
+});
+
+test("click transfers the exact reviewed request using only the existing idea parameter", async () => {
+  const creatorRequest = { destinationId: "create_a_dish" as const,
+    idea: "Light, flavorful, savory, broth-based chicken soup to make at home." };
+  const route = chefNavigationRoute("create_a_dish", creatorRequest);
+  mockRequest.mockResolvedValue({ destinationId: "create_a_dish", route });
+  act(() => root.render(<CoachFeatureAction destinationId="create_a_dish" creatorRequest={creatorRequest} />));
+  expect(mockNavigate).not.toHaveBeenCalled();
+  await click();
+  expect(mockRequest).toHaveBeenCalledWith("/api/coach/navigation", {
+    method: "POST", body: JSON.stringify({ destinationId: "create_a_dish", creatorRequest }),
+  });
+  expect(mockNavigate).toHaveBeenCalledWith(route);
+  const parsed = new URL(route, "https://app.example");
+  expect(parsed.pathname).toBe("/lifestyle/create-a-dish");
+  expect([...parsed.searchParams.keys()]).toEqual(["idea"]);
+  expect(parsed.searchParams.get("idea")).toBe(creatorRequest.idea);
+});
+
+test("a server cannot append extra query parameters to a valid request", async () => {
+  const creatorRequest = { destinationId: "create_a_dish", idea: "Chicken soup." };
+  mockRequest.mockResolvedValue({ destinationId: "create_a_dish",
+    route: `${chefNavigationRoute("create_a_dish", creatorRequest)}&generate=true` });
+  act(() => root.render(<CoachFeatureAction destinationId="create_a_dish" creatorRequest={creatorRequest} />));
+  await click();
+  expect(mockNavigate).not.toHaveBeenCalled();
+  expect(host.querySelector('[role="alert"]')).not.toBeNull();
 });

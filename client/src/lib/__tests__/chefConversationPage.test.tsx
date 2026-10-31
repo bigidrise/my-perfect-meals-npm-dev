@@ -5,6 +5,7 @@ import { Simulate } from "react-dom/test-utils";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import CoachsCorner from "@/pages/CoachsCorner";
 import ChefConversationEntry from "@/components/coaching/ChefConversationEntry";
+import { chefNavigationRoute } from "@shared/coaching/creatorRequest";
 
 let mockConversationEnabled = true;
 const mockNavigate = jest.fn();
@@ -111,4 +112,29 @@ test("Production-mode page retains its historical assessment redirect", async ()
   mockConversationEnabled = false;
   await renderPage(false);
   expect(mockNavigate).toHaveBeenCalledWith("/coach-corner/intake");
+});
+
+test("restored Chef request reaches the validated Create a Dish prefill only after a member click", async () => {
+  const creatorRequest = { destinationId: "create_a_dish" as const,
+    idea: "Light, flavorful, savory, broth-based chicken soup to make at home." };
+  await renderPage(false, [{
+    id: "soup-answer", role: "assistant", created_at: "2026-01-01T00:00:00Z",
+    structured_payload: {
+      presentation: { kind: "concierge", message: "Let's use Create a Dish.", destinationId: "create_a_dish", creatorRequest },
+      whatIFound: "", whatItCouldMean: "", learningOpportunity: null,
+      todayPlan: { why: "", items: [{ kind: "use_feature", destinationId: "create_a_dish", text: "Open Create a Dish" }] },
+    },
+  }]);
+  const buttons = [...host.querySelectorAll("button")].filter(button => button.textContent === "Open Create a Dish");
+  expect(buttons).toHaveLength(1);
+  expect(mockAPI).not.toHaveBeenCalled();
+  expect(mockNavigate).not.toHaveBeenCalled();
+  const route = chefNavigationRoute("create_a_dish", creatorRequest);
+  mockAPI.mockResolvedValue({ destinationId: "create_a_dish", route });
+  await act(async () => buttons[0].click());
+  expect(mockAPI).toHaveBeenCalledTimes(1);
+  expect(mockAPI).toHaveBeenCalledWith("/api/coach/navigation", {
+    method: "POST", body: JSON.stringify({ destinationId: "create_a_dish", creatorRequest }),
+  });
+  expect(mockNavigate).toHaveBeenCalledWith(route);
 });

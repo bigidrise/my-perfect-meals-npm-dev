@@ -60,7 +60,7 @@ test("actual Development engine answers without assessment, styles, observers or
   expect(queries).not.toMatch(/coaching_profiles|coaching_memories/);
 });
 
-test("preferences, food ideas and changed intent remain in the actual one-call history", async () => {
+test("preferences and changed intent remain in the actual one-call history without inventing dishes", async () => {
   const history = [
     { role: "user", content: "I want something light." },
     { role: "assistant", content: "Spicy, tangy, or fresh?" },
@@ -69,9 +69,9 @@ test("preferences, food ideas and changed intent remain in the actual one-call h
   ];
   (loadBoundedHistory as jest.Mock).mockResolvedValue({ recentMessages: history,
     rollingContext: "The member wants something light, not a heavy meal." });
-  reply("How about spicy shrimp tacos or shrimp lettuce wraps?");
+  reply("Making it at home or going out?");
   const first = await run("Actually, I'd rather have seafood.");
-  expect(first.presentation?.message).toContain("shrimp");
+  expect(first.presentation?.message).toBe("Making it at home or going out?");
   expect(first.presentation?.destinationId).toBeUndefined();
   const sent = mockCreate.mock.calls[0][0].messages[1].content;
   for (const item of history) expect(sent).toContain(item.content);
@@ -79,6 +79,86 @@ test("preferences, food ideas and changed intent remain in the actual one-call h
   reply("Making them or going out?");
   expect((await run("Shrimp tacos sound good.")).presentation?.message).toContain("Making");
   expect(mockCreate).toHaveBeenCalledTimes(2); // One per turn, not two.
+});
+
+test("reference soup conversation retains member preferences and grounds the final Create a Dish prefill", async () => {
+  const history: Array<{ role: string; content: string }> = [];
+  const exchanges = [
+    ["I'm hungry, but I don't know what to eat.", "Are you in the mood for something light, a snack, or a full meal?"],
+    ["Something light but with a lot of flavor.", "Are you thinking a salad, soup, or something else?"],
+    ["Soup.", "Something creamy or more broth-based?"],
+    ["Broth.", "Spicy or more savory and mild?"],
+    ["Savory.", "Vegetables, chicken, or seafood?"],
+    ["Chicken.", "Making it at home or ordering out?"],
+  ];
+  for (const [message, answer] of exchanges) {
+    (loadBoundedHistory as jest.Mock).mockResolvedValue({ recentMessages: [...history], rollingContext: null });
+    reply(answer);
+    const response = await run(message);
+    expect(response.presentation).toEqual({ kind: "concierge", message: answer });
+    expect(response.todayPlan.items).toEqual([]);
+    history.push({ role: "user", content: message }, { role: "assistant", content: answer });
+  }
+  (loadBoundedHistory as jest.Mock).mockResolvedValue({ recentMessages: history, rollingContext: null });
+  const idea = "Light, flavorful, savory, broth-based chicken soup to make at home.";
+  reply("Let's use Create a Dish for your light, savory chicken broth soup.", "create_a_dish",
+    { ...unknown, activity: "prepare", occasion: "meal", dishChosen: true },
+    { creatorRequest: { idea, memberTurns: [1, 2, 3, 4, 5, 6] } });
+  const final = await run("Home.");
+  expect(final.presentation?.creatorRequest).toEqual({ destinationId: "create_a_dish", idea });
+  expect(final.todayPlan.items).toHaveLength(1);
+  expect(final.presentation?.destinationId).toBe("create_a_dish");
+  expect(mockCreate).toHaveBeenCalledTimes(7); // One call per member turn, no rendering/repair call.
+  const persisted = JSON.stringify((db.execute as jest.Mock).mock.calls);
+  expect(persisted).toContain("creatorRequest");
+  expect(persisted).toContain(idea);
+});
+
+test("a complete one-turn request immediately receives an editable grounded handoff", async () => {
+  const idea = "Savory chicken soup to make at home.";
+  reply("Let's use Create a Dish.", "create_a_dish",
+    { ...unknown, activity: "prepare", occasion: "meal", dishChosen: true },
+    { creatorRequest: { idea, memberTurns: [0] } });
+  const result = await run("I want to make savory chicken soup at home.");
+  expect(result.presentation?.creatorRequest?.idea).toBe(idea);
+  expect(result.todayPlan.items).toHaveLength(1);
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+test.each([
+  { idea: "Chicken soup with tomatoes.", memberTurns: [0] },
+  { idea: "Chicken soup.", memberTurns: [200] },
+  { idea: "Chicken soup.", memberTurns: [-1] },
+])("unverifiable request cannot introduce an invented prefill: %j", async creatorRequest => {
+  reply("Let's use Create a Dish.", "create_a_dish",
+    { ...unknown, activity: "prepare", occasion: "meal", dishChosen: true }, { creatorRequest });
+  const result = await run("Make chicken soup.");
+  expect(result.presentation?.destinationId).toBe("create_a_dish");
+  expect(result.presentation?.creatorRequest).toBeUndefined();
+  expect(result.presentation?.message).toContain("couldn't verify the request text");
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+test("assistant suggestions cannot supply handoff ingredients or override a changed member request", async () => {
+  (loadBoundedHistory as jest.Mock).mockResolvedValue({
+    recentMessages: [{ role: "assistant", content: "Try creamy chicken soup with tomatoes." }], rollingContext: null,
+  });
+  reply("Let's use Create a Dish.", "create_a_dish",
+    { ...unknown, activity: "prepare", occasion: "meal", dishChosen: true },
+    { creatorRequest: { idea: "Creamy chicken soup with tomatoes.", memberTurns: [0] } });
+  const result = await run("Actually, seafood soup without cream.");
+  expect(result.presentation?.creatorRequest).toBeUndefined();
+});
+
+test("the member's changed request replaces earlier preferences in the prefill", async () => {
+  (loadBoundedHistory as jest.Mock).mockResolvedValue({
+    recentMessages: [{ role: "user", content: "Make chicken soup." }], rollingContext: null,
+  });
+  reply("Let's use Create a Dish.", "create_a_dish",
+    { ...unknown, activity: "prepare", occasion: "meal", dishChosen: true },
+    { creatorRequest: { idea: "Seafood soup without cream.", memberTurns: [1] } });
+  const result = await run("Actually, seafood soup without cream.");
+  expect(result.presentation?.creatorRequest?.idea).toBe("Seafood soup without cream.");
 });
 
 test.each([

@@ -4,6 +4,7 @@ import { requireProAccess } from "../middleware/requireProAccess";
 import { requireClinicalAccess } from "../middleware/requireClinicalAccess";
 import { requirePurchasedPlanEntitlement } from "../middleware/requirePurchasedPlanEntitlement";
 import { COACH_DESTINATIONS, isCoachDestinationId } from "../../shared/coaching/navigation";
+import { chefNavigationRoute } from "../../shared/coaching/creatorRequest";
 
 const hydrationAccess = requirePurchasedPlanEntitlement("hydration_center");
 const router = Router();
@@ -20,7 +21,13 @@ const resolve: RequestHandler = (req, res, next) => {
     return;
   }
   const destination = COACH_DESTINATIONS[id];
-  const approved = () => res.json({ destinationId: id, route: destination.route });
+  let route: string;
+  try { route = chefNavigationRoute(id, req.body?.creatorRequest); }
+  catch {
+    res.status(400).json({ error: "That creator request is unavailable." });
+    return;
+  }
+  const approved = () => res.json({ destinationId: id, route });
   const guard = destination.access === "hydration" ? hydrationAccess
     : destination.access === "clinical" ? requireClinicalAccess
     : destination.access === "pro" ? requireProAccess : null;
