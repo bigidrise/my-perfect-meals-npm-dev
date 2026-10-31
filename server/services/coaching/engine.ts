@@ -19,12 +19,12 @@ import OpenAI from "openai";
 import { db } from "../../db";
 import { getLanguageInstruction } from "../../utils/languageInstruction";
 import { sql } from "drizzle-orm";
-import { ReasoningResultSchema, CoachResponseSchema } from "../../../shared/coaching/schemas";
+import { ReasoningResultSchema, CoachResponseSchema, ConciergeDecisionSchema, type ConciergeDecision } from "../../../shared/coaching/schemas";
 import { runSafetyGate, buildSafetyResponse } from "./safety";
 import { scoreConfidence, getConfidenceInstructions } from "./confidence";
 import { matchPatterns } from "./patternMatcher";
 import { resolveStyle } from "./styleResolver";
-import { validateCoachNavigationItems } from "../../../shared/coaching/navigation";
+import { COACH_DESTINATIONS, resolveCoachDestinationId, validateCoachNavigationItems } from "../../../shared/coaching/navigation";
 import { runObservers, selectObservers } from "./observers/stubs";
 import { getAdapter } from "./adapters";
 import type {
@@ -401,7 +401,7 @@ async function persistTurn(
 
 // ─── Reasoning Pass ───────────────────────────────────────────────────────────
 
-async function runReasoningPass(params: {
+export async function runReasoningPass(params: {
   userMessage: string;
   evidence: Array<Evidence & { id: string }>;
   patterns: MatchedPattern[];
@@ -413,6 +413,7 @@ async function runReasoningPass(params: {
   rollingContext?: string;
   specialization: string;
   preferredLanguage?: string;
+  availableTools?: Array<{ id: string; label: string; featureTarget: string; description: string }>;
 }): Promise<any> {
   const openai = getOpenAI();
 
@@ -446,6 +447,7 @@ async function runReasoningPass(params: {
   // Pregnancy Coach and Parent's Corner inject this directly into their own system prompts.
   const doctrineSectionForReasoning = generateDoctrineSystemPromptSection("corner");
   const reasoningLangInstruction = getLanguageInstruction(params.preferredLanguage);
+  const conciergeEnabled = process.env.NODE_ENV === "development" && params.specialization === "corner";
 
   const systemPrompt = [
     ...(reasoningLangInstruction ? [reasoningLangInstruction, ""] : []),
@@ -524,8 +526,26 @@ async function runReasoningPass(params: {
     "6. Set redFlag=true ONLY for acute medical emergencies not already caught by the safety gate.",
     "7. Respond ONLY in valid JSON. No markdown, no explanations outside the JSON.",
     "",
+    ...(conciergeEnabled ? [
+      "CHEF CONCIERGE — INTENT FIRST (takes precedence over generic hypothesis, reinforcement, and missing-data instructions, never over safety or clinical safeguards):",
+      "Use the latest member message together with relevant history to classify MEANING, not keywords. A changed preference supersedes an earlier destination.",
+      "Return conciergeDecision: { mode, destinationId }. Modes:",
+      "food_assistance: choosing, making, or finding food/drink. Prefer the most specific fitting available creator over generic Craving Creator. Select one exact available destination ID or null if no destination is needed.",
+      "nutrition_education: wants an explanation or facts. Answer the actual question with useful general nutrition science, no forced navigation; destinationId=null.",
+      "behavioral_coaching: asks for behavior support or personalized nutrition-pattern interpretation. Use the existing evidence, assessment, and coaching methodology; destinationId=null.",
+      "clarification: genuinely unresolved intent needs a useful natural question; destinationId=null. Do not ask unnecessary questions for a clear request.",
+      "For ordinary food assistance, education, and clarification, do NOT invent psychological interpretations, nutrient deficiencies, or discuss absent logs/check-ins just because data confidence is low.",
+      "A word such as 'craving' does not establish emotional eating. Interest in sushi is not a nutritional symptom. Dedicated sushi/dessert/beverage creators take precedence when appropriate; education about those foods remains conversational.",
+      "Assessment and behavioral signals shape communication, not the subject of every answer. Reinforce progress only when relevant to this request.",
+      "Retain the required reasoning fields, but use hypotheses/leadHypothesis to record the member's need and your useful response approach, not unsolicited causes. missingData=[] when personal logs are irrelevant.",
+      "Medical symptoms still require existing safety screening/escalation. Do not invent medical fluid/electrolyte targets. Never select paused Pregnancy Coach or future Wine Pairing AI.",
+    ] : []),
     "REQUIRED JSON SCHEMA:",
     JSON.stringify({
+      ...(conciergeEnabled ? { conciergeDecision: {
+        mode: "food_assistance | nutrition_education | behavioral_coaching | clarification",
+        destinationId: "exact available feature ID, or null",
+      } } : {}),
       primaryConcern: "string (what the user is actually asking about)",
       hypotheses: [{
         explanation: "string",
@@ -606,6 +626,11 @@ async function runReasoningPass(params: {
     params.history.map((m) => `${m.role.toUpperCase()}: ${m.content}`).join("\n"),
     "",
     `USER MESSAGE: ${params.userMessage}`,
+    ...(conciergeEnabled ? [
+      "",
+      "AVAILABLE CONCIERGE FEATURES (selection is not authorization; member click and access guards still required):",
+      JSON.stringify(params.availableTools ?? []),
+    ] : []),
   ].join("\n");
 
   const completion = await openai.chat.completions.create({
@@ -674,7 +699,7 @@ function sanitizeRenderingResponse(raw: any): any {
 
 // ─── Rendering Pass ───────────────────────────────────────────────────────────
 
-async function runRenderingPass(params: {
+export async function runRenderingPass(params: {
   userMessage: string;
   reasoning: any;
   styleResolution: { mode: StyleMode; instructions: string };
@@ -687,7 +712,13 @@ async function runRenderingPass(params: {
 }): Promise<CoachResponse> {
   const openai = getOpenAI();
 
-  const confidenceInstructions = getConfidenceInstructions(params.confidence.level);
+  const conciergeEnabled = process.env.NODE_ENV === "development" && params.specialization === "corner";
+  const decisionResult = ConciergeDecisionSchema.safeParse(params.reasoning.conciergeDecision);
+  const decision = conciergeEnabled && decisionResult.success ? decisionResult.data : undefined;
+  const nonBehavioral = conciergeEnabled && decision?.mode !== "behavioral_coaching";
+  const confidenceInstructions = nonBehavioral
+    ? "Evidence limits personalization, not ordinary food assistance or general education. Keep uncertainty and clinical safeguards. Do not require logs, speculate about deficiencies, or add behavioral analysis. At low confidence keep at most two plan items."
+    : getConfidenceInstructions(params.confidence.level);
 
   const patternTemplates =
     params.patterns.length > 0
@@ -812,11 +843,25 @@ async function runRenderingPass(params: {
     "   h. A condition appearing in the profile does NOT justify citing it for every question.",
     "   i. If the reasoning decision did not connect a condition to the current question, leave it out.",
     "7. Respond ONLY in valid JSON matching the four-section schema. No markdown.",
+    ...(conciergeEnabled ? [
+      "CONCIERGE INTENT AUTHORITY — overrides generic expression/evidence-gap/learning instructions, never safety, clinical, or evidence-truthfulness rules:",
+      "Answer the latest member request first, naturally and directly. Use the REASONING conciergeDecision; you may NOT select another destination.",
+      "food_assistance: friendly food help, not a diagnosis or behavioral assessment. If destinationId is selected, include exactly one use_feature item for that exact ID. Never substitute generic Craving Creator for a dedicated creator.",
+      "nutrition_education: provide useful accurate detail appropriate to the question (for sushi, relevant protein, carbohydrate, sodium, and preparation considerations). No use_feature item.",
+      "clarification: ask one useful natural question; no use_feature item. behavioral_coaching: retain the existing coaching methodology and personalization; no forced navigation.",
+      "For non-behavioral modes do not mention absent logs/check-ins, unsolicited stress/craving psychology, possible deficiencies, or irrelevant progress. learningOpportunity=null. Style still governs warmth and delivery, not topic.",
+      "If no valid conciergeDecision is present, answer or clarify the latest request without any navigation or assumptions from synthetic fallback hypotheses.",
+      "Keep the four-section JSON contract. whatIFound/whatItCouldMean are natural conversational paragraphs, not mandatory evidence-gap or hypothesis reports. No automatic content generation or claims a feature has opened.",
+    ] : []),
     "",
     "FOUR-SECTION RESPONSE SCHEMA:",
     JSON.stringify({
-      whatIFound: "What the coach observed in the platform. Grounded in evidence. Start with what was actually seen, not what the user said. If evidence is empty, acknowledge that openly.",
-      whatItCouldMean: "What the pattern suggests. Reasoning from evidence. Do not assert causation. Hedge appropriately per confidence level.",
+      whatIFound: nonBehavioral
+        ? "Answer the latest request directly and naturally, or ask a genuinely useful clarification. No irrelevant evidence-gap report."
+        : "What the coach observed in the platform. Grounded in evidence. Start with what was actually seen, not what the user said. If evidence is empty, acknowledge that openly.",
+      whatItCouldMean: nonBehavioral
+        ? "Relevant food assistance or useful nutrition education, with detail appropriate to the question. No invented deficiencies or unsolicited behavioral analysis."
+        : "What the pattern suggests. Reasoning from evidence. Do not assert causation. Hedge appropriately per confidence level.",
       todayPlan: {
         why: "Why this plan — grounded in the evidence (1–2 sentences)",
         items: [{ horizon: "today|tomorrow|next_check_in", kind: "drink|eat|avoid|log|activity|weigh|contact_care|use_feature|other", text: "Action text", completionSignal: "OPTIONAL — if provided, must be exactly one of: weight_logged | water_logged | meal_logged | macro_logged | restaurant_logged | exercise_logged | beverage_logged | self_reported | unknown — omit the field entirely when none of these fits cleanly", featureTarget: "optional — only for use_feature" }],
@@ -824,7 +869,8 @@ async function runRenderingPass(params: {
         nextCheckIn: "When to check in (human-readable)",
         followUpAt: "ISO date string (optional)",
       },
-      learningOpportunity: "What additional logging would improve future coaching. NULL if: high confidence already, or safety escalation, or would overwhelm the user.",
+      learningOpportunity: nonBehavioral ? null
+        : "What additional logging would improve future coaching. NULL if: high confidence already, or safety escalation, or would overwhelm the user.",
     }, null, 2),
   ].join("\n");
 
@@ -850,6 +896,7 @@ async function runRenderingPass(params: {
   delete (renderContextForJson as any).behaviorSignalBlock;
 
   const userPrompt = [
+    ...(conciergeEnabled ? [`LATEST MEMBER MESSAGE: ${params.userMessage}`, ""] : []),
     `STYLE GUIDE:`,
     params.styleResolution.instructions,
     "",
@@ -919,10 +966,28 @@ async function runRenderingPass(params: {
           : params.confidence.level === "moderate" && rawItems.length > 3
             ? rawItems.slice(0, 3)
             : rawItems;
+      // The language pass cannot silently replace the reasoning pass's selection.
+      // Unknown/absent decisions and non-navigation modes cannot produce actions.
+      const escalation = rawItems.some(item => item.kind === "contact_care");
+      const selectedItems = escalation && conciergeEnabled
+        ? rawItems.filter(item => item.kind === "contact_care").slice(0, 1)
+        : conciergeEnabled && (!decision || decision.mode !== "food_assistance" || !decision.destinationId)
+        ? cappedItems.filter(item => item.kind !== "use_feature")
+        : cappedItems;
+      if (conciergeEnabled && selectedItems.length === 0) {
+        throw new Error("Rendering omitted a conversational next step");
+      }
+      if (!escalation && conciergeEnabled && decision?.mode === "food_assistance" && decision.destinationId) {
+        const featureItems = selectedItems.filter(item => item.kind === "use_feature");
+        if (featureItems.length !== 1 ||
+            resolveCoachDestinationId(featureItems[0].featureTarget) !== decision.destinationId) {
+          throw new Error("Rendering changed or omitted the reasoning-selected destination");
+        }
+      }
 
       // Explicitly construct typed TodayPlanItem[] so the Zod-inferred shape
       // and the TodayPlanItem contract are unified at the type level.
-      const typedItems: TodayPlanItem[] = validateCoachNavigationItems(cappedItems.map((item) => ({
+      const typedItems: TodayPlanItem[] = validateCoachNavigationItems(selectedItems.map((item) => ({
         horizon: item.horizon,
         kind: item.kind,
         text: item.text,
@@ -940,7 +1005,7 @@ async function runRenderingPass(params: {
       };
 
       // Low confidence: learning opportunity is mandatory
-      const learningOpportunity =
+      const learningOpportunity = nonBehavioral ? null :
         params.confidence.level === "low" && !validated.learningOpportunity
           ? "The more you log, the better I can help. If you can log your meals consistently for the next few days, I'll be able to give you much more specific guidance."
           : validated.learningOpportunity;
@@ -963,21 +1028,24 @@ async function runRenderingPass(params: {
       retries++;
       if (retries > MAX_RETRIES) {
         console.error("[Engine] Rendering pass failed after retries:", err.message);
-        return await buildFallbackResponse(params.confidence.level, params.styleResolution.mode, params.specialization, params.userMessage);
+        return await buildFallbackResponse(params.confidence.level, params.styleResolution.mode, params.specialization, params.userMessage, decision);
       }
       console.warn(`[Engine] Rendering pass attempt ${retries} failed, retrying...`);
     }
   }
 
-  return await buildFallbackResponse(params.confidence.level, params.styleResolution.mode, params.specialization, params.userMessage);
+  return await buildFallbackResponse(params.confidence.level, params.styleResolution.mode, params.specialization, params.userMessage, decision);
 }
 
 async function buildFallbackResponse(
   confidence: any,
   style: any,
   specialization: any,
-  userMessage: string
+  userMessage: string,
+  decision?: ConciergeDecision,
 ): Promise<CoachResponse> {
+  const conciergeFallback = process.env.NODE_ENV === "development" && specialization === "corner"
+    && decision?.mode !== "behavioral_coaching";
   // The fallback fires when the rendering pass fails after retries.
   // We still need to give a useful, topic-aware response — not generic boilerplate
   // and never "I ran into a technical issue." Per the three-level evidence doctrine:
@@ -990,7 +1058,15 @@ async function buildFallbackResponse(
       messages: [
         {
           role: "system",
-          content: [
+          content: (conciergeFallback ? [
+            "You are Chef's Corner, a conversational food and nutrition concierge.",
+            "Answer the latest request naturally and directly. Do not invent behavioral interpretations, deficiencies, or missing-log concerns. Personal data absence is irrelevant to ordinary food help and general education.",
+            "Existing safety/clinical boundaries still apply: do not diagnose, invent fluid or electrolyte targets, or override a care plan.",
+            `Validated interaction decision: ${JSON.stringify(decision ?? { mode: "clarification", destinationId: null })}`,
+            "For education, give useful appropriate detail without navigation. If intent remains unclear, ask a natural relevant question. Do not generate recipes or claim navigation occurred.",
+            "Do not choose destinations; the server preserves the validated selection. Do not discuss a different creator.",
+            "Respond ONLY in JSON with whatIFound, whatItCouldMean, planWhy, action1, action2, and learningOpportunity (null).",
+          ] : [
             "You are a nutrition coach with no access to this user's personal logged data.",
             "The user asked a question. Respond under LOW evidence rules:",
             "1. Acknowledge in ONE brief sentence that you don't have their personal platform data to personalize this.",
@@ -1009,7 +1085,7 @@ async function buildFallbackResponse(
               action2: "Second specific action or logging step",
               learningOpportunity: "What specific logging would let you personalize this next time"
             })
-          ].join("\n"),
+          ]).join("\n"),
         },
         { role: "user", content: userMessage },
       ],
@@ -1019,6 +1095,28 @@ async function buildFallbackResponse(
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
     const r = JSON.parse(raw);
+    if (conciergeFallback) {
+      const selected = decision?.mode === "food_assistance" && decision.destinationId
+        ? decision.destinationId : undefined;
+      return {
+        whatIFound: typeof r.whatIFound === "string" ? r.whatIFound : "What would you like help with?",
+        whatItCouldMean: typeof r.whatItCouldMean === "string" ? r.whatItCouldMean : "",
+        todayPlan: {
+          why: typeof r.planWhy === "string" ? r.planWhy : "Continue with the option that fits your request.",
+          items: selected ? [{
+            horizon: "today", kind: "use_feature", text: `Open ${COACH_DESTINATIONS[selected].label}`,
+            featureTarget: selected, destinationId: selected,
+          }] : [{
+            horizon: "today", kind: "other",
+            text: typeof r.action1 === "string" ? r.action1 : "Continue the conversation here.",
+          }],
+          successMetric: "You received help with your request.",
+          nextCheckIn: "Whenever you need more help",
+        },
+        learningOpportunity: null,
+        meta: { specialization, confidence, styleMode: style, patternKeys: [], observersRun: [], redFlag: false },
+      };
+    }
 
     return {
       whatIFound: r.whatIFound ?? "I don't have your logged data available right now to personalize this.",
@@ -1036,6 +1134,21 @@ async function buildFallbackResponse(
       meta: { specialization, confidence, styleMode: style, patternKeys: [], observersRun: [], redFlag: false },
     };
   } catch {
+    if (conciergeFallback) {
+      // No fabricated interpretation or guessed navigation after provider failure.
+      return {
+        whatIFound: "I couldn't complete that response. Please try your request again.",
+        whatItCouldMean: "",
+        todayPlan: {
+          why: "Your conversation is still here.",
+          items: [{ horizon: "today", kind: "other", text: "Try your request again." }],
+          successMetric: "Your request is answered.",
+          nextCheckIn: "When you're ready",
+        },
+        learningOpportunity: null,
+        meta: { specialization, confidence, styleMode: style, patternKeys: [], observersRun: [], redFlag: false },
+      };
+    }
     // Last-resort static fallback — still topic-aware at minimum, never "technical issue"
     return {
       whatIFound: "I don't have your logged data available right now to personalize this answer.",
@@ -1178,6 +1291,7 @@ export class CoachingEngine {
         rollingContext: rollingContext ?? undefined,
         specialization,
         preferredLanguage: (req as any).authUser?.preferredLanguage,
+        availableTools: adapter.availableTools,
       });
     } catch (reasoningErr: any) {
       console.warn(`[Engine] Reasoning pass failed (${reasoningErr.message}) — using synthetic reasoning fallback`);

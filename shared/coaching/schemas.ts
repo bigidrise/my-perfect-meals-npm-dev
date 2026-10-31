@@ -7,6 +7,16 @@
  */
 
 import { z } from "zod";
+import { isCoachDestinationId } from "./navigation";
+
+/** Meaning is classified by the existing reasoning call, not keyword routing. */
+export const ConciergeDecisionSchema = z.object({
+  mode: z.enum(["food_assistance", "nutrition_education", "behavioral_coaching", "clarification"]),
+  destinationId: z.string().refine(isCoachDestinationId).nullable().default(null),
+}).refine(value => value.mode === "food_assistance" || value.destinationId === null, {
+  message: "Only a clear food-assistance request may select a navigation destination.",
+});
+export type ConciergeDecision = z.infer<typeof ConciergeDecisionSchema>;
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
@@ -60,6 +70,8 @@ export const MemoryCategorySchema = z.enum([
  * The server validates citations exist in the ObserverOutput before proceeding.
  */
 export const ReasoningResultSchema = z.object({
+  // Bad optional navigation metadata must never discard an otherwise valid redFlag.
+  conciergeDecision: ConciergeDecisionSchema.optional().catch(undefined),
   primaryConcern: z.string().min(1).max(300),
   hypotheses: z
     .array(

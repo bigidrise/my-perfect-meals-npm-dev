@@ -352,9 +352,9 @@ export function getCornerCapabilities(activeScopes: CapabilityScope[]): MPMCapab
   const existing = getCapabilitiesForUser(activeScopes, true);
   if (process.env.NODE_ENV !== "development") return existing;
   const descriptions: Record<CoachDestinationId, string> = {
-    sushi_creator: "Create sushi when the member knows they want sushi.",
-    craving_creator: "Create a specific craved food, including savory cravings.",
-    dessert_creator: "Create desserts such as a whole pie or pan of brownies.",
+    sushi_creator: "Dedicated sushi creation: rolls, nigiri, and other sushi. Prefer this over generic Craving Creator when the member wants sushi; nutrition questions about sushi stay in conversation.",
+    craving_creator: "Create other specific craved foods when no more specific creator fits. A desire for food is not evidence of emotional eating. Sushi, desserts, and drinks use their dedicated creators.",
+    dessert_creator: "Create desserts including cheesecake, cakes, pies, and brownies. Prefer this over generic Craving Creator for dessert creation, even when the member says 'craving'.",
     beverage_creator: "Create regular smoothies, shakes, drinks, cocktails, or mocktails; not workout-specific drinks.",
     athlete_beverage_creator: "Create pre-workout drinks, post-workout recovery shakes, or sports beverages.",
     hydration_center: "Get hydration education and support. Never invent fluid or electrolyte targets.",
