@@ -42,18 +42,40 @@ These are product requirements, **not evidence that complete platform knowledge
 or every handoff has already been implemented or verified**. Keep capability
 knowledge separate from permission to navigate or execute an action.
 
-### Current priority and implementation hold
+### Current priority and authorized Development knowledge
 
 The user prioritized the broader experience: Chef should welcome a new member,
 explain what My Perfect Meals can do, and naturally guide that person to the
 appropriate existing feature. Remaining creator handoffs are deferred and will be
 addressed individually afterward.
 
-Preserve the working Development version. Do not change runtime instructions,
-capability code, navigation, or handoffs under the current no-code instruction.
-The attached complete-feature-discovery request is deferred because the latest
-message explicitly says not to start another audit. Before expanded knowledge or
-navigation is implemented, the user must approve the feature list.
+Following the completed feature discovery, the user authorized focused
+Development-only platform knowledge and conversational guidance. The inventory is
+a discovery aid, not runtime authority: verified member-facing capabilities are
+curated separately from administration, business management and professional-only
+tools.
+
+The single conversational call now receives knowledge about builder selection,
+My Perfect Menu's idea-to-builder workflow, shopping and Grocery Store Coach,
+Favorites, Recipe Maker, biometrics, journaling, education, preferences, household
+profiles, personal Care Team access, companion nutrition and account support.
+Existing approved destinations remain supplied by the capability registry.
+Unavailable features carry explicit status; knowledge-only entry points are not
+URLs or new buttons. Platform guidance has no fixed welcome script or separate
+classification call.
+
+Corrected the Development descriptions: Craving Creator includes smaller dessert
+portions, while Dessert Creator serves larger recipes. Beverage Creator's actual
+Cocktail option and Dive Bar support are distinct from workout drink preparation.
+My Perfect Menu provides ideas tied to the existing builder; it does not independently
+generate a seven-day board. Grocery Store Coach supports both product and meal modes.
+
+No navigation IDs, access gates, handoff contracts, clinical safeguards or
+Production engine behavior were expanded. Meal Builders, My Perfect Menu,
+Shopping List/Grocery Store Coach, journals, biometrics and education remain
+knowledge-only from Chef where no approved button exists. Deterministic tests
+establish prompt wiring, response handling and validated actions, not live-model
+accuracy. No paid-model calls are authorized by this work.
 
 Leave `server/prod.ts` and the validator unchanged. Production activation, merging,
 publishing, deployment, and paid live-model testing remain separately authorized.
@@ -87,7 +109,8 @@ discussing it or asking about nutrition. A chosen chicken Caesar salad completes
 discovery for Create a Dish, without assuming location, portions or ingredients.
 The editable handoff remains grounded in the member's statements.
 
-Runtime revision: `conversation-outcomes-v1`. Privacy-limited decision-outcome logs
+Current runtime revision: `platform-guidance-v1` (following the breakfast correction
+in `conversation-outcomes-v1`). Privacy-limited decision-outcome logs
 distinguish model destinations, completed goals, no-navigation turns and invalid
 decisions; they do not contain conversation or clinical data.
 

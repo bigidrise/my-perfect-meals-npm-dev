@@ -21,11 +21,11 @@ The user accepted the route-parity audit and explicitly instructed leaving `serv
 
 **How to apply:** Prioritize Chef naturally welcoming new members, explaining what My Perfect Meals can do, and guiding them to the appropriate existing feature. Remaining handoffs come afterward, one at a time. Keep new handoff implementation and Production activation separately scoped and approved.
 
-The user wants the conversational principles documented before further implementation. Preserve the working Development version: no more code changes or another audit for now. Expanded capability knowledge and navigation require approval of the feature list first.
+The user authorized focused Development-only platform intelligence after the feature discovery: Chef should welcome new members, explain verified capabilities naturally, and guide their chosen activity. Do not use the inventory alone as proof of capability or availability.
 
-**Why:** The user explicitly redirected attention from the Beverage Creator handoff to the complete platform-wide vision and new-member experience.
+**Why:** The user explicitly redirected attention from the Beverage Creator handoff to the complete platform-wide vision and authorized accurate knowledge, not a hard-coded conversational engine or blanket navigation expansion.
 
-**How to apply:** Use the existing project guidance to distinguish product requirements from verified runtime capability. Welcome new or confused members naturally, skip introductions for clear requests, and treat the example welcome as tone rather than a script. Do not change live prompts or the capability registry, start the attached full-feature discovery task, or claim expanded knowledge is implemented under this hold.
+**How to apply:** Verify purpose, status, entry point, access and handoff support against current code. Welcome new or confused members naturally and skip introductions for clear requests; examples are tone references, not scripts. Keep admin, business-management and professional-only systems out of general member recommendations. Knowledge-only features may be explained but cannot create buttons or handoffs. Members choose their builder through the existing landing page; Chef never selects or activates a specialized builder. Preserve the single-call architecture and Development/Production separation.
 
 Ordinary food assistance, nutrition education, and requested behavioral coaching are different conversational intents. Historical assessment behavior must not force ordinary food requests into psychological analysis or missing-log discussions; Development conversation does not require assessment results.
 

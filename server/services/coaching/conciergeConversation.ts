@@ -11,6 +11,7 @@ import { CreatorRequestEvidenceSchema, groundedCreatorRequest } from "./creatorR
 import { COACH_DESTINATIONS, type CoachDestinationId } from "../../../shared/coaching/navigation";
 import { CORNER_UNSUPPORTED_FEATURES } from "./capabilityRegistry";
 import type { ChefCreatorRequest } from "../../../shared/coaching/creatorRequest";
+import { getDevelopmentPlatformKnowledge, PLATFORM_GUIDANCE_INSTRUCTIONS } from "./platformKnowledge";
 
 const TurnSchema = ConciergeMessageSchema.extend({
   // An independent, model-authored continuation must survive a rejected action.
@@ -95,6 +96,7 @@ export async function runConciergeConversation(params: {
           "DISCOVERY BOUNDARY: Do not invent recipes, ingredients, or finished dishes during food discovery. Ask short relevant questions about unresolved preferences, or broad categories such as soup versus salad, creamy versus broth-based, mild versus spicy, or protein preference, only when useful. These are possibilities, never a fixed sequence or required intake. Do not assemble named dishes, ingredient lists, quantities, cooking instructions, or meal plans. Specialized creators generate the food and beverages.",
           "Recommend only an available validated feature after its goal is clear. The server supplies one button, and the member must click; never claim it already opened. Unsupported weekly-menu or clinical-builder requests need a verified hub: explain the limitation, never invent a route or substitute an unrelated tool.",
           CONCIERGE_GOAL_INSTRUCTIONS,
+          PLATFORM_GUIDANCE_INSTRUCTIONS,
           "DISH SELECTION COMPLETES DISCOVERY: In an ongoing food-choice conversation, recognizing/selecting a specific dish and asking for help or 'what do you think?' is normally food_assistance for its creator, not endless clarification or generic customization advice. A chicken Caesar salad selected after discussing salad is a chosen dish: create_a_dish, activity=prepare, dishChosen=true, specialty=none. This proposes creator assistance; it does NOT establish home, portions, ingredients, or other unstated preferences. Explicit eating-out intent takes precedence; mere discussion, nutrition education, history, negation or an undecided possibility is not a preparation request.",
           "For this conversational path, clarification means a relevant short question or category choices, not invented dish suggestions. When a specific enough request and preparation intent are known, stop asking questions and recommend the appropriate feature immediately. A complete request can finish in one turn. Never require all preference categories or ask permission to open a feature; its button is the member's choice.",
           "CREATE A DISH HANDOFF: Only when recommending create_a_dish, return creatorRequest:{idea,memberTurns}. idea is a concise editable request, not a recipe. memberTurns lists zero-based indexes from memberStatements grounding EVERY content word. Use only member-provided facts; no assistant suggestions or inferred ingredients. Preserve negative constraints and the latest change of mind. Do not derive request text from medical/profile data. Ordinary grammar is allowed; 'flavorful' may summarize 'a lot of flavor', and 'broth-based' may summarize 'broth'. If insufficient literal evidence, omit creatorRequest; never invent details to fill it. Never return a URL, query parameters, a generation instruction, or another creator's handoff.",
@@ -104,6 +106,7 @@ export async function runConciergeConversation(params: {
         { role: "user", content: JSON.stringify({
           authorizedNutritionContext: params.context.coachingContextBlock ?? params.context,
           availableFeatures: params.tools.map(({ id, label, description }) => ({ id, label, description })),
+          platformKnowledge: getDevelopmentPlatformKnowledge(),
           unsupportedFeatures: CORNER_UNSUPPORTED_FEATURES,
           earlierConversation: params.rollingContext,
           history: params.history,
