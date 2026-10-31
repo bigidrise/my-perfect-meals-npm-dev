@@ -1,5 +1,5 @@
 import { ConciergeDecisionSchema, type ConciergeDecision, type ConciergeGoal } from "../../../shared/coaching/schemas";
-import { COACH_DESTINATIONS, type CoachDestinationId } from "../../../shared/coaching/navigation";
+import { COACH_DESTINATIONS, isCoachDestinationId, type CoachDestinationId } from "../../../shared/coaching/navigation";
 
 const unknownGoal: ConciergeGoal = {
   activity: "unknown", occasion: "unknown", restaurant: "unknown",
@@ -7,9 +7,10 @@ const unknownGoal: ConciergeGoal = {
 };
 
 /**
- * A veto, never a destination selector or keyword router. The existing reasoning
- * call interprets meaning and chooses its own question or food suggestions.
- * Known food preferences alone do not establish a preparation/restaurant goal.
+ * Validate readiness, never classify words. The model interprets the member's
+ * semantic goal. Opt-in Development completion can fill a missing ID only when
+ * exactly one available destination fits that goal under the same predicates.
+ * Known food preferences alone do not establish preparation/restaurant intent.
  */
 function goalFits(id: CoachDestinationId, goal: ConciergeGoal): boolean {
   switch (id) {
@@ -44,11 +45,21 @@ export function validateConciergeGoal(
   value: unknown,
   availableTools: Array<{ id: string }>,
   memberMessages: string[],
+  options: { completeMissingDestination?: boolean } = {},
 ): ConciergeDecision | undefined {
   const parsed = ConciergeDecisionSchema.safeParse(value);
   if (!parsed.success) return undefined;
   const decision = parsed.data;
-  if (decision.mode !== "food_assistance" || !decision.destinationId) return decision;
+  if (decision.mode !== "food_assistance") return decision;
+  // Development's single-call path must not lose a ready semantic goal merely
+  // because the model omitted its action ID. Reuse the existing readiness veto;
+  // never interpret words, infer preparation, or pick among competing matches.
+  if (!decision.destinationId && options.completeMissingDestination && decision.goal) {
+    const matches = [...new Set(availableTools.map(tool => tool.id))]
+      .filter(isCoachDestinationId).filter(id => goalFits(id, decision.goal!));
+    if (matches.length === 1) return { ...decision, destinationId: matches[0] };
+  }
+  if (!decision.destinationId) return decision;
   const id = decision.destinationId as CoachDestinationId;
   const goal = decision.goal;
   // A literal feature name is required for the explicit-request exception, but

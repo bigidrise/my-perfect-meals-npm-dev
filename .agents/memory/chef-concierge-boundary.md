@@ -31,7 +31,7 @@ Ordinary concierge expression must be isolated from mandatory behavioral hypothe
 
 **Why:** The user reported that authenticated ordinary-hunger conversations still received nutritional-gap analysis after the deterministic discovery tests passed. Those earlier fixtures did not exercise the full orchestration and synthetic reasoning-failure path.
 
-**How to apply:** Exercise the full engine with mocked external dependencies as well as individual calls; distinguish that evidence from paid-model accuracy. Treat a decision to make a named dish as completion, with a concise recommendation and member-click button rather than another recipe/open-feature question. Unsupported builder requests must not bypass their hubs; request-prefill expansion beyond Create a Dish remains separately authorized.
+**How to apply:** Exercise the full engine with mocked external dependencies as well as individual calls; distinguish that evidence from paid-model accuracy. Treat selecting a specific dish for help during ongoing food discovery as completion, even when phrased as "what do you think?", with a concise creator recommendation and member-click button rather than another recipe/open-feature question. Do not assume home, portions or ingredients; isolated dish discussion and nutrition questions remain conversational. Unsupported builder requests must not bypass their hubs; request-prefill expansion beyond Create a Dish remains separately authorized.
 
 Ordinary concierge presentation is one conversational message and an optional validated action, not the internal coaching envelope. Empty plan fields alone are not a presentation boundary.
 
@@ -42,6 +42,8 @@ Ordinary concierge presentation is one conversational message and an optional va
 The user confirmed the new concierge presentation works in authenticated Development. They then clarified that feature selection must follow the member's goal, not food preferences alone.
 
 **Why:** A light-and-flavorful preference still produced premature Craving Creator navigation. The desired interaction is an experienced concierge, not a fixed questionnaire.
+
+The user subsequently reported that selecting chicken Caesar salad produced generic customization advice with no action. A completed dish-selection request must yield the existing creator button and only the actual chosen dish as editable request text, not continued discovery.
 
 **How to apply:** Distinguish preparation from eating out, small savory snacks from full meals, and restaurant discovery from ordering at a chosen restaurant. Let the existing conversational call interpret readiness; validate capability fit without adding a keyword router, model call, or prescribed question sequence. Use broad category choices when useful, honor changed intent, and report unsupported hub destinations instead of inventing or substituting links. Transfer only member-grounded request text, not assistant-invented ingredients or inferred profile details.
 

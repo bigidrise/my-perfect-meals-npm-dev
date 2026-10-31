@@ -125,6 +125,99 @@ test("a complete one-turn request immediately receives an editable grounded hand
   expect(mockCreate).toHaveBeenCalledTimes(1);
 });
 
+test("exact chicken Caesar conversation completes the omitted action from the ready semantic goal", async () => {
+  (getAdapter as jest.Mock)().loadAdditionalContext.mockResolvedValue({ coachingContextBlock: "No dietary restrictions supplied." });
+  (loadBoundedHistory as jest.Mock).mockResolvedValue({
+    recentMessages: [
+      { role: "user", content: "I don't know, maybe a salad." },
+      { role: "assistant", content: "A salad sounds like a great option! Would you like something light and refreshing, or perhaps a more hearty salad with protein?" },
+    ], rollingContext: null,
+  });
+  reply("A chicken Caesar salad sounds delicious and satisfying! Let's help you prepare it just the way you like. You can customize it with your favorite ingredients and dressing.",
+    null, { ...unknown, activity: "prepare", occasion: "meal", dishChosen: true },
+    { creatorRequest: { idea: "Chicken Caesar salad", memberTurns: [0, 1] } });
+  const result = await run("Yeah, a chicken, that's like a chicken salad, a chicken Caesar, what do you think about that?");
+  expect(result.presentation).toEqual({
+    kind: "concierge", message: "Let's use Create a Dish for that.", destinationId: "create_a_dish",
+    creatorRequest: { destinationId: "create_a_dish", idea: "Chicken Caesar salad" },
+  });
+  expect(result.todayPlan.items).toHaveLength(1);
+  expect(result.todayPlan.items[0].destinationId).toBe("create_a_dish");
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+  const wire = mockCreate.mock.calls[0][0];
+  expect(wire.response_format.type).toBe("json_schema");
+  expect(wire.response_format.json_schema.strict).toBe(true);
+  const decisionSchema = wire.response_format.json_schema.schema.properties.conciergeDecision;
+  expect(decisionSchema.required).toEqual(expect.arrayContaining(["mode", "destinationId", "goal"]));
+  expect(wire.messages[1].content).toContain("chicken Caesar salad"); // Verified capability guidance is in this actual call.
+  expect(JSON.stringify((db.execute as jest.Mock).mock.calls)).toContain("Chicken Caesar salad");
+});
+
+test.each([
+  ["craving_creator", "Help me make a small savory snack.", { ...unknown, activity: "prepare", occasion: "snack" }],
+  ["dessert_creator", "I want to make a whole chocolate cake.", { ...unknown, activity: "prepare", occasion: "dessert" }],
+  ["sushi_creator", "Help me make sushi rolls.", { ...unknown, activity: "prepare", specialty: "sushi" }],
+  ["beverage_creator", "Make a regular fruit smoothie.", { ...unknown, activity: "prepare", occasion: "beverage" }],
+  ["athlete_beverage_creator", "Help me make a post-workout recovery drink.", { ...unknown, activity: "prepare", occasion: "beverage", specialty: "workout" }],
+  ["fridge_rescue", "Use the ingredients already in my fridge.", { ...unknown, activity: "use_ingredients" }],
+  ["restaurant_guide", "What should I order at the restaurant I chose?", { ...unknown, activity: "eat_out", restaurant: "chosen" }],
+  ["find_meals_near_me", "Find me somewhere nearby to eat.", { ...unknown, activity: "eat_out", restaurant: "not_chosen" }],
+  ["my_perfect_buffet", "Help me choose from this buffet.", { ...unknown, activity: "buffet" }],
+  ["hydration_center", "Open my hydration support.", { ...unknown, activity: "hydration" }],
+])("ready %s semantic goal cannot silently lose its destination", async (id, message, goal) => {
+  reply("Let's do that.", null, goal);
+  const result = await run(message);
+  expect(result.presentation?.destinationId).toBe(id);
+  expect(result.todayPlan.items).toHaveLength(1);
+  expect(result.presentation?.creatorRequest).toBeUndefined();
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+test.each([
+  ["I don't know, maybe a salad.", "clarification", unknown],
+  ["What nutrients are in chicken Caesar salad?", "nutrition_education", { ...unknown, dishChosen: true, activity: "prepare", occasion: "meal" }],
+  ["I had chicken Caesar salad yesterday.", "clarification", { ...unknown, dishChosen: false }],
+  ["Help me plan my week's meals.", "food_assistance", { ...unknown, activity: "plan_meals" }],
+  ["Explain diabetes meal planning.", "nutrition_education", unknown],
+])("no forced destination for discussion, education, uncertainty or unsupported intent: %s", async (message, mode, goal) => {
+  reply("Here's how I can help.", null, goal, { conciergeDecision: { mode, destinationId: null, goal } });
+  const result = await run(message);
+  expect(result.presentation?.destinationId).toBeUndefined();
+  expect(result.todayPlan.items).toEqual([]);
+  expect(result.meta.concierge?.rendering).toBe("primary");
+});
+
+test.each([undefined, { mode: "food_assistance", destinationId: null }])(
+  "missing decision or missing food goal fails explicitly instead of pretending discovery succeeded: %j", async conciergeDecision => {
+    reply("Let's help you prepare it.", null, unknown, { conciergeDecision });
+    const result = await run("Make chicken Caesar salad.");
+    expect(result.presentation?.destinationId).toBeUndefined();
+    expect(result.meta.concierge?.rendering).toBe("retry");
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+  },
+);
+
+test("strict provider null fields preserve ordinary conversation and care escalation", async () => {
+  reply("What sounds good?", null, unknown, { creatorRequest: null, redFlagReason: null, contactCare: null });
+  expect((await run("I'm hungry.")).presentation?.message).toBe("What sounds good?");
+  reply("Please get urgent care.", null, unknown, { creatorRequest: null, redFlag: true,
+    redFlagReason: null, contactCare: "Contact urgent medical care now." });
+  const result = await run("I feel unwell.");
+  expect(result.meta.redFlag).toBe(true);
+  expect(result.presentation).toBeUndefined();
+});
+
+test("goal completion never invents an unavailable destination or picks between competing matches", async () => {
+  (getAdapter as jest.Mock)().availableTools = [];
+  reply("This feature isn't available here.", null,
+    { ...unknown, activity: "prepare", occasion: "meal", dishChosen: true });
+  expect((await run("Help me make chicken Caesar salad.")).presentation?.destinationId).toBeUndefined();
+  (getAdapter as jest.Mock)().availableTools = getCornerCapabilities(["all"]);
+  reply("Which kind of preparation do you mean?", null,
+    { ...unknown, activity: "prepare", occasion: "dessert", specialty: "sushi" });
+  expect((await run("I'm undecided.")).presentation?.destinationId).toBeUndefined();
+});
+
 test.each([
   { idea: "Chicken soup with tomatoes.", memberTurns: [0] },
   { idea: "Chicken soup.", memberTurns: [200] },

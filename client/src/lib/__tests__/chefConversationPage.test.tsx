@@ -114,9 +114,12 @@ test("Production-mode page retains its historical assessment redirect", async ()
   expect(mockNavigate).toHaveBeenCalledWith("/coach-corner/intake");
 });
 
-test("restored Chef request reaches the validated Create a Dish prefill only after a member click", async () => {
+test.each([
+  "Light, flavorful, savory, broth-based chicken soup to make at home.",
+  "Chicken Caesar salad",
+])("restored Chef request reaches the validated Create a Dish prefill only after a member click: %s", async idea => {
   const creatorRequest = { destinationId: "create_a_dish" as const,
-    idea: "Light, flavorful, savory, broth-based chicken soup to make at home." };
+    idea };
   await renderPage(false, [{
     id: "soup-answer", role: "assistant", created_at: "2026-01-01T00:00:00Z",
     structured_payload: {
