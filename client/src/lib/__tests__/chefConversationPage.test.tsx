@@ -2,7 +2,7 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { notifyManager, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import CoachsCorner from "@/pages/CoachsCorner";
 import ChefConversationEntry from "@/components/coaching/ChefConversationEntry";
 import { chefNavigationRoute } from "@shared/coaching/creatorRequest";
@@ -31,6 +31,7 @@ let host: HTMLDivElement;
 let root: Root;
 let client: QueryClient;
 beforeEach(() => {
+  notifyManager.setScheduler(callback => callback());
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   Element.prototype.scrollIntoView = jest.fn();
   Element.prototype.scrollTo = jest.fn();
@@ -39,7 +40,10 @@ beforeEach(() => {
   client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity,
     queryFn: ({ queryKey }) => mockAPI(queryKey[0]) }, mutations: { retry: false } } });
 });
-afterEach(() => { act(() => root.unmount()); client.clear(); host.remove(); });
+afterEach(() => {
+  act(() => root.unmount()); client.clear(); host.remove();
+  notifyManager.setScheduler(callback => { setTimeout(callback, 0); });
+});
 async function renderPage(completed: boolean, messages: any[] = []) {
   client.setQueryData(["/api/coach/bootstrap"], {
     profileCompleted: completed, profile: completed ? { personality: "STORED_STYLE_SENTINEL" } : null,
@@ -106,10 +110,87 @@ test("stored conversations still render for an unassessed member", async () => {
   expect(mockNavigate).not.toHaveBeenCalled();
 });
 
+test.each([
+  ["restaurant_guide", "Restaurant Guide", "/social-hub/restaurant-guide"],
+  ["find_meals_near_me", "Find Meals Near Me", "/social-hub/restaurant-finder"],
+  [null, null, "/dashboard"],
+])("latest saved exchange restores after navigating to %s and back before cache expiry", async (destinationId, label, route) => {
+  await renderPage(false);
+  const response = {
+    presentation: { kind: "concierge", message: "Your latest saved answer.", ...(destinationId ? { destinationId } : {}) },
+    whatIFound: "", whatItCouldMean: "",
+    todayPlan: { items: destinationId ? [{ kind: "use_feature", destinationId }] : [] }, learningOpportunity: null,
+  };
+  let resolveBootstrap!: (value: any) => void;
+  mockAPI.mockImplementation((path: string) => {
+    if (path === "/api/coach/bootstrap") return new Promise(resolve => { resolveBootstrap = resolve; });
+    if (path === "/api/coach/navigation") return Promise.resolve({ destinationId, route });
+    return Promise.resolve({ conversationId: "saved-chat", messageId: "saved-answer", response });
+  });
+  await act(async () => {
+    const textarea = host.querySelector("textarea")!;
+    textarea.value = "Please help me choose.";
+    Simulate.change(textarea, { target: textarea } as any);
+  });
+  await act(async () => (host.querySelector('[aria-label="Send message"]') as HTMLButtonElement).click());
+  expect(host.textContent).toContain("Your latest saved answer.");
+  // No extra request while chatting; the saved snapshot is refreshed on return.
+  expect(mockAPI).not.toHaveBeenCalledWith("/api/coach/bootstrap");
+  await act(async () => {
+    const button = label
+      ? [...host.querySelectorAll("button")].find(button => button.textContent === `Open ${label}`)!
+      : host.querySelector('[aria-label="Go back"]') as HTMLButtonElement;
+    button.click();
+  });
+  expect(mockNavigate).toHaveBeenCalledWith(route);
+  act(() => root.render(null));
+  (Element.prototype.scrollTo as jest.Mock).mockClear();
+  await act(async () => root.render(<QueryClientProvider client={client}><CoachsCorner /></QueryClientProvider>));
+  expect(mockAPI).toHaveBeenCalledWith("/api/coach/bootstrap");
+  expect(host.querySelector("textarea")?.disabled).toBe(true); // Don't send with an unrestored conversation ID.
+  await act(async () => {
+    resolveBootstrap({
+    profileCompleted: false, profile: null, conversationId: "saved-chat", hasOlderMessages: false,
+    messages: [
+      { id: "saved-question", role: "user", content: "Please help me choose.", created_at: "2026-01-01" },
+      { id: "saved-answer", role: "coach", structured_payload: response, created_at: "2026-01-02" },
+    ],
+    });
+  });
+  expect(host.textContent).toContain("Please help me choose.");
+  expect(host.textContent).toContain("Your latest saved answer.");
+  if (label) expect(host.textContent).toContain(`Open ${label}`);
+  expect(host.querySelector("textarea")?.disabled).toBe(false);
+  expect(host.querySelector('[data-testid="ask-chef-composer"]')).not.toBeNull();
+  expect(Element.prototype.scrollTo).toHaveBeenLastCalledWith(expect.objectContaining({ behavior: "auto" }));
+  // A later profile/background refetch must not reset the mounted conversation.
+  (Element.prototype.scrollTo as jest.Mock).mockClear();
+  act(() => client.setQueryData(["/api/coach/bootstrap"], (previous: any) => ({ ...previous, profile: { refreshed: true } })));
+  expect(host.textContent).toContain("Your latest saved answer.");
+  expect(Element.prototype.scrollTo).not.toHaveBeenCalled();
+});
+
 test("historical assessment entry component redirects straight to conversation", () => {
   act(() => root.render(<ChefConversationEntry />));
   expect(mockNavigate).toHaveBeenCalledWith("/coach-corner/home");
   expect(host.textContent).toBe("");
+});
+
+test("failed return-time history loading is explicit and retry restores the saved conversation", async () => {
+  await renderPage(false, [{ id: "saved-user", role: "user", content: "My saved question.", created_at: "2026-01-01" }]);
+  const saved = client.getQueryData(["/api/coach/bootstrap"]);
+  act(() => root.render(null));
+  await client.invalidateQueries({ queryKey: ["/api/coach/bootstrap"], refetchType: "none" });
+  mockAPI.mockRejectedValueOnce(Object.assign(new Error("History temporarily unavailable"), { status: 403 }));
+  await act(async () => root.render(<QueryClientProvider client={client}><CoachsCorner /></QueryClientProvider>));
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("saved messages have not been cleared");
+  expect(host.querySelector("textarea")?.disabled).toBe(true);
+  expect(host.textContent).not.toContain("What can I help you with?");
+  mockAPI.mockResolvedValueOnce(saved);
+  await act(async () => [...host.querySelectorAll("button")].find(button =>
+    button.textContent === "Retry loading conversation")!.click());
+  expect(host.textContent).toContain("My saved question.");
+  expect(host.querySelector("textarea")?.disabled).toBe(false);
 });
 
 test("Development Back goes directly to Dashboard without scrolling or using browser history", async () => {
