@@ -39,12 +39,106 @@ beforeEach(() => {
 afterAll(() => { process.env.NODE_ENV = oldEnvironment; });
 function reply(message: string, id: string | null = null, goal = unknown, extra = {}) {
   mockCreate.mockResolvedValueOnce({ choices: [{ message: { content: JSON.stringify({
-    message, conciergeDecision: { mode: "food_assistance", destinationId: id, goal }, ...extra,
+    // Existing action-validation fixtures assume authorized navigation unless
+    // the test explicitly exercises recommendation/confirmation/unknown intent.
+    message, navigationIntent: "direct_request",
+    conciergeDecision: { mode: "food_assistance", destinationId: id, goal }, ...extra,
   }) } }] });
 }
 const run = (message: string) => engine.run({
   specialization: "corner", subject, userMessage: message, conversationId: "",
 }, { authUser: user } as any);
+
+test.each(Object.keys(COACH_DESTINATIONS))(
+  "recommendation metadata cannot display an early button for %s", async id => {
+    reply("This feature could help. Would you like to use it?", id,
+      { ...unknown, explicitFeatureId: id }, { navigationIntent: "recommendation" });
+    const result = await run("Can you help me figure out what to do?");
+    expect(result.presentation?.message).toBe("This feature could help. Would you like to use it?");
+    expect(result.presentation?.destinationId).toBeUndefined();
+    expect(result.todayPlan.items).toEqual([]);
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+  });
+
+test("recommendation cannot be auto-completed from a ready travel goal", async () => {
+  reply("Getaway could help with cruise dining. Would you like to use it?", null,
+    { ...unknown, activity: "travel" }, { navigationIntent: "recommendation" });
+  const result = await run("I'm going on a Carnival cruise next week. Can you help me figure out where I should eat?");
+  expect(result.todayPlan.items).toEqual([]);
+  expect(result.presentation?.destinationId).toBeUndefined();
+});
+
+test.each([
+  ["my_perfect_getaway", "I'm going on a Carnival cruise next week. Can you help me figure out where I should eat?",
+    "My Perfect Getaway can help explore cruise dining. Would you like to use it?",
+    "Great. Search your cruise or use Tap & Go, then choose a dining area if prompted.", "travel", "unknown"],
+  ["dessert_creator", "Can you help me make a whole cake for a party?",
+    "Dessert Creator can help with a larger dessert recipe. Would you like to use it?",
+    "Great. Describe the dessert or choose its type and flavor, then review the recipe yield.", "prepare", "dessert"],
+] as const)("%s recommendation then short agreement retains context and guides navigation", async (
+  id, request, recommendation, guidance, activity, occasion,
+) => {
+  const goal = { ...unknown, activity, occasion };
+  reply(recommendation, id, goal, { navigationIntent: "recommendation" });
+  const first = await run(request);
+  expect(first.todayPlan.items).toEqual([]);
+  expect(first.presentation?.message).toBe(recommendation);
+  const history = [{ role: "user", content: request }, { role: "assistant", content: recommendation }];
+  for (const confirmation of ["yes", "sure", "let's do it"]) {
+    (loadBoundedHistory as jest.Mock).mockResolvedValue({ recentMessages: history, rollingContext: null });
+    reply(guidance, id, goal, { navigationIntent: "confirmed" });
+    const result = await run(confirmation);
+    expect(result.presentation).toEqual(expect.objectContaining({ message: guidance, destinationId: id }));
+    expect(result.todayPlan.items).toEqual([expect.objectContaining({ destinationId: id, kind: "use_feature" })]);
+    expect(result.presentation?.message).not.toBe(recommendation);
+    const wire = mockCreate.mock.calls[mockCreate.mock.calls.length - 1][0];
+    expect(JSON.parse(wire.messages[1].content).history).toEqual(history);
+    expect(JSON.parse(wire.messages[1].content).latestMemberMessage).toBe(confirmation);
+  }
+  expect(mockCreate).toHaveBeenCalledTimes(4); // One call per turn, not a second reasoning pass.
+});
+
+test.each([
+  ["my_perfect_getaway", "Open My Perfect Getaway.", "travel", "unknown",
+    "Search your destination or choose a Tap & Go option."],
+  ["dessert_creator", "Take me to the Dessert Creator.", "prepare", "dessert",
+    "Describe the dessert or choose the dessert type and flavor."],
+  ["find_meals_near_me", "I want to use Find Meals Near Me.", "eat_out", "unknown",
+    "Enter a ZIP code or use the location control, then search."],
+] as const)("explicit navigation to %s needs no repeated permission", async (id, request, activity, occasion, answer) => {
+  reply(answer, id, { ...unknown, activity, occasion, explicitFeatureId: id }, { navigationIntent: "direct_request" });
+  const result = await run(request);
+  expect(result.presentation).toEqual(expect.objectContaining({ message: answer, destinationId: id }));
+  expect(result.presentation?.message).not.toContain("?");
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+test.each([undefined, "unknown", "yes", true])(
+  "missing or invalid navigation intent %s cannot authorize an otherwise ready goal", async intent => {
+    reply("Use the Open button.", "my_perfect_getaway", { ...unknown, activity: "travel" }, {
+      navigationIntent: intent, conversationMessage: "We can keep discussing your dining preferences.",
+    });
+    const result = await run("Help with cruise dining.");
+    expect(result.todayPlan.items).toEqual([]);
+    expect(result.presentation?.destinationId).toBeUndefined();
+    expect(result.presentation?.message).toBe("We can keep discussing your dining preferences.");
+  });
+
+test("confirmed navigation still honors changed intent and the existing goal validation", async () => {
+  (loadBoundedHistory as jest.Mock).mockResolvedValue({
+    recentMessages: [
+      { role: "user", content: "Can you help with my cruise?" },
+      { role: "assistant", content: "Would you like to use My Perfect Getaway?" },
+      { role: "user", content: "Actually, I want to make a whole cake using Dessert Creator." },
+      { role: "assistant", content: "Would you like to use Dessert Creator for that cake?" },
+    ], rollingContext: "Old suggestion: Getaway.",
+  });
+  reply("Great. Describe the cake and review the recipe yield.", "dessert_creator",
+    { ...unknown, activity: "prepare", occasion: "dessert" }, { navigationIntent: "confirmed" });
+  const result = await run("Sure.");
+  expect(result.presentation?.destinationId).toBe("dessert_creator");
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+});
 
 // Provider fixtures verify the real single-call pipeline and supplied guidance,
 // not whether a live model will always obey the conversational instructions.
@@ -73,8 +167,10 @@ test.each([
   (loadBoundedHistory as jest.Mock).mockResolvedValue({
     recentMessages: history, rollingContext: "The member has already heard the feature explanation.",
   });
-  reply(answer, id, { ...unknown, explicitFeatureId: id }, id === "create_a_dish"
-    ? { creatorRequest: { idea: "mushroom stew", memberTurns: [0] } } : {});
+  reply(answer, id, { ...unknown, explicitFeatureId: id }, {
+    navigationIntent: "confirmed",
+    ...(id === "create_a_dish" ? { creatorRequest: { idea: "mushroom stew", memberTurns: [0] } } : {}),
+  });
   const result = await run("Yes, let's do that.");
   expect(result.presentation).toEqual(expect.objectContaining({ message: answer, destinationId: id }));
   expect(result.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId: id })]);
@@ -203,8 +299,9 @@ test.each([
     "restaurant_guide", { ...unknown, activity: "eat_out", restaurant: "chosen" }],
   ["I'm ashore and want to find nearby restaurants. I haven't chosen one.",
     "find_meals_near_me", { ...unknown, activity: "eat_out", restaurant: "not_chosen" }],
-])("travel-dining knowledge reaches the active call and preserves validated navigation: %s", async (message, id, goal) => {
-  reply("That feature can help with your dining choices.", id, goal);
+])("travel-dining knowledge supports recommendation without premature navigation: %s", async (message, id, goal) => {
+  reply("That feature can help with your dining choices. Would you like to use it?", id, goal,
+    { navigationIntent: "recommendation" });
   const result = await run(message);
   const payload = JSON.parse(mockCreate.mock.calls[0][0].messages[1].content);
   const knowledge = payload.availableFeatures.find((feature: any) => feature.id === "my_perfect_getaway").description;
@@ -218,10 +315,8 @@ test.each([
     expect(knowledge).toContain(fact);
   }
   expect(payload.latestMemberMessage).toBe(message);
-  expect(result.presentation?.destinationId).toBe(id);
-  expect(result.todayPlan.items).toEqual([
-    expect.objectContaining({ kind: "use_feature", destinationId: id }),
-  ]);
+  expect(result.presentation?.destinationId).toBeUndefined();
+  expect(result.todayPlan.items).toEqual([]);
   expect(mockCreate).toHaveBeenCalledTimes(1);
   expect(COACH_DESTINATIONS.my_perfect_getaway).toEqual({
     label: "My Perfect Getaway", route: "/lifestyle/my-perfect-getaway", access: "clinical",
@@ -325,13 +420,13 @@ test("a complete one-turn request immediately receives an editable grounded hand
   reply("Let's use Create a Dish.", "create_a_dish",
     { ...unknown, activity: "prepare", occasion: "meal", dishChosen: true },
     { creatorRequest: { idea, memberTurns: [0] } });
-  const result = await run("I want to make savory chicken soup at home.");
+  const result = await run("Open Create a Dish to make savory chicken soup at home.");
   expect(result.presentation?.creatorRequest?.idea).toBe(idea);
   expect(result.todayPlan.items).toHaveLength(1);
   expect(mockCreate).toHaveBeenCalledTimes(1);
 });
 
-test("exact chicken Caesar conversation completes the omitted action from the ready semantic goal", async () => {
+test("chicken Caesar food choice alone cannot auto-complete an opening action", async () => {
   (getAdapter as jest.Mock)().loadAdditionalContext.mockResolvedValue({ coachingContextBlock: "No dietary restrictions supplied." });
   (loadBoundedHistory as jest.Mock).mockResolvedValue({
     recentMessages: [
@@ -339,21 +434,22 @@ test("exact chicken Caesar conversation completes the omitted action from the re
       { role: "assistant", content: "A salad sounds like a great option! Would you like something light and refreshing, or perhaps a more hearty salad with protein?" },
     ], rollingContext: null,
   });
-  const modelMessage = "You've settled on chicken Caesar salad. Create a Dish can take it from here.";
+  const modelMessage = "Chicken Caesar salad fits that idea. Would you like to use Create a Dish?";
   reply(modelMessage,
     null, { ...unknown, activity: "prepare", occasion: "meal", dishChosen: true },
-    { creatorRequest: { idea: "Chicken Caesar salad", memberTurns: [0, 1] } });
+    { navigationIntent: "recommendation", creatorRequest: { idea: "Chicken Caesar salad", memberTurns: [0, 1] } });
   const result = await run("Yeah, a chicken, that's like a chicken salad, a chicken Caesar, what do you think about that?");
   expect(result.presentation).toEqual({
-    kind: "concierge", message: modelMessage, destinationId: "create_a_dish",
-    creatorRequest: { destinationId: "create_a_dish", idea: "Chicken Caesar salad" },
+    kind: "concierge", message: modelMessage,
   });
-  expect(result.todayPlan.items).toHaveLength(1);
-  expect(result.todayPlan.items[0].destinationId).toBe("create_a_dish");
+  expect(result.todayPlan.items).toEqual([]);
   expect(mockCreate).toHaveBeenCalledTimes(1);
   const wire = mockCreate.mock.calls[0][0];
   expect(wire.response_format.type).toBe("json_schema");
   expect(wire.response_format.json_schema.strict).toBe(true);
+  expect(wire.response_format.json_schema.schema.required).toContain("navigationIntent");
+  expect(wire.response_format.json_schema.schema.properties.navigationIntent.enum)
+    .toEqual(["none", "recommendation", "confirmed", "direct_request"]);
   const decisionProperty = wire.response_format.json_schema.schema.properties.conciergeDecision;
   const decisionSchema = decisionProperty.anyOf.find((schema: any) => schema.type === "object");
   expect(decisionProperty.anyOf).toContainEqual({ type: "null" });
@@ -373,9 +469,9 @@ test.each([
   ["find_meals_near_me", "Find me somewhere nearby to eat.", { ...unknown, activity: "eat_out", restaurant: "not_chosen" }],
   ["my_perfect_buffet", "Help me choose from this buffet.", { ...unknown, activity: "buffet" }],
   ["hydration_center", "Open my hydration support.", { ...unknown, activity: "hydration" }],
-])("ready %s semantic goal cannot silently lose its destination", async (id, message, goal) => {
+])("authorized ready %s semantic goal cannot silently lose its destination", async (id, message, goal) => {
   reply("Let's do that.", null, goal);
-  const result = await run(message);
+  const result = await run(`${message} I'd like to use ${COACH_DESTINATIONS[id as keyof typeof COACH_DESTINATIONS].label}.`);
   expect(result.presentation?.destinationId).toBe(id);
   expect(result.todayPlan.items).toHaveLength(1);
   expect(result.presentation?.creatorRequest).toBeUndefined();

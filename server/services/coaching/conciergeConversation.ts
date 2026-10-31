@@ -14,6 +14,9 @@ import type { ChefCreatorRequest } from "../../../shared/coaching/creatorRequest
 import { getDevelopmentPlatformKnowledge, PLATFORM_GUIDANCE_INSTRUCTIONS } from "./platformKnowledge";
 
 const TurnSchema = ConciergeMessageSchema.extend({
+  // Semantic consent is separate from choosing a suitable food destination.
+  // Unknown/missing values cannot authorize a button.
+  navigationIntent: z.unknown().optional(),
   // An independent, model-authored continuation must survive a rejected action.
   conversationMessage: z.string().trim().min(1).max(8000).optional().catch(undefined),
   // Validate after safety escalation: malformed navigation must never erase care.
@@ -30,6 +33,7 @@ const destinationIds = Object.keys(COACH_DESTINATIONS) as [CoachDestinationId, .
 const ModelTurnSchema = z.object({
   message: z.string(),
   conversationMessage: z.string(),
+  navigationIntent: z.enum(["none", "recommendation", "confirmed", "direct_request"]),
   conciergeDecision: z.object({
     mode: z.enum(["food_assistance", "nutrition_education", "behavioral_coaching", "clarification"]),
     destinationId: z.enum(destinationIds).nullable(),
@@ -124,7 +128,7 @@ export async function runConciergeConversation(params: {
       console.info("[ChefConcierge] decision_outcome=no_navigation");
       return envelope(turn.message);
     }
-    const rejectAction = (reason: "decision_invalid" | "goal_not_ready"): CoachResponse => {
+    const rejectAction = (reason: "decision_invalid" | "goal_not_ready" | "navigation_not_authorized"): CoachResponse => {
       const message = independentConversation(turn.conversationMessage);
       if (!message) throw new Error(reason);
       console.info(`[ChefConcierge] decision_outcome=action_rejected_conversation_preserved reason=${reason}`);
@@ -133,6 +137,13 @@ export async function runConciergeConversation(params: {
     };
     const parsedDecision = ConciergeDecisionSchema.safeParse(turn.conciergeDecision);
     if (!parsedDecision.success) return rejectAction("decision_invalid");
+    if (turn.navigationIntent === "recommendation" || turn.navigationIntent === "none") {
+      console.info("[ChefConcierge] decision_outcome=recommendation_without_navigation");
+      return envelope(turn.message);
+    }
+    if (turn.navigationIntent !== "confirmed" && turn.navigationIntent !== "direct_request") {
+      return rejectAction("navigation_not_authorized");
+    }
     const decision = validateConciergeGoal(parsedDecision.data, params.tools,
       memberMessages, { completeMissingDestination: true });
     // Reject the action, not an independently valid conversational continuation.
