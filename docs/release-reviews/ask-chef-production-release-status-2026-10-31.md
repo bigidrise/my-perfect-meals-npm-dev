@@ -1,5 +1,7 @@
 # Ask Chef approved Production release — paused
 
+Follow-up: `ask-chef-release-blocker-review-2026-10-31.md` records the complete diagnostic comparison, identifies the original aggregate timeout, and documents the completed validator's separate server type failure. The release remains paused; no Production activation or publication occurred.
+
 ## Owner scope
 
 The owner approved shipping completed Ask Chef, Restaurant Guide, Find Meals Near Me, Getaway, serving-portion, branding and mobile work. No further feature expansion, permission changes, history overwrite, or unapproved native work is authorized. Stop when critical verification fails.

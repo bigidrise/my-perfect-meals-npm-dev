@@ -57,6 +57,20 @@ when their combined duration risks the tool limit. Clear only confirmed orphaned
 temporary state; keep the reviewed diagnostic baseline unchanged unless its
 delta has actually been reconciled.
 
+An empty final-stage test log can mean the aggregate command budget was already exhausted, not that the test hung.
+
+**Why:** File-creation timestamps showed the mocked authentication stage began with about one second remaining before the outer deadline; the unchanged suite subsequently passed and exited naturally.
+
+**How to apply:** Compare stage timestamps against the enclosing execution budget, then run unchanged focused checks and a sufficiently supervised full validator before attributing a timeout to assertions, resources or open handles.
+
+## Distinct compiler configurations
+
+A strict root diagnostic comparison does not replace the pre-push server compiler.
+
+**Why:** Schema-derived fields were required under the strict root configuration but inferred as optional under the server configuration with strict null checks disabled. A source delta with no new strict-root diagnostics still failed the server gate.
+
+**How to apply:** Verify both compiler contracts independently. Resolve schema-to-domain type boundaries without suppressing errors, relaxing compiler options or inferring release readiness solely from the strict-root diagnostic delta.
+
 ## Diagnostic display-order drift
 
 Literal-union ordering inside a compiler error message can change even when the diagnosed source and semantic error are unchanged.
@@ -90,6 +104,14 @@ Temporary compiler-comparison files may disappear when the execution environment
 **Why:** Separate capture/read attempts lost the reviewed diagnostic evidence during an environment continuation.
 
 **How to apply:** Capture both compiler outputs, verify the reviewed fingerprint, and compare full messages and multiplicities within one command. Return the comparison before proceeding; do not approve a baseline from a truncated failure preview.
+
+### Historical snapshot completeness
+
+Historical compiler snapshots must include imported configuration and source files outside the root tsconfig's include directories.
+
+**Why:** A directory-only historical snapshot introduced a missing-configuration diagnostic even though the original checkout contained that configuration. That artificial error prevented reproduction of the reviewed fingerprint.
+
+**How to apply:** Investigate snapshot-only missing imports, reconstruct their actual committed inputs, and rerun the compiler. Never remove the artificial diagnostic from the reported output and present the filtered result as authoritative verification.
 
 Sends an unauthenticated POST to `/api/meals/generate`. Correct response is 401 (gate reachable and auth-protected). Accepts 401/400/200 — timing-based checks are wrong here because unauthenticated probes return immediately.
 
