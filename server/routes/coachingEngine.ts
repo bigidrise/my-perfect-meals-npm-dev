@@ -23,8 +23,15 @@ import { emitActivityEvent } from "../services/coaching/activityEvents";
 import type { PlatformEventType, EventClass } from "../services/coaching/activityEvents";
 import { coachingProfiles } from "../db/schema/ace";
 import coachingNavigationRouter from "./coachingNavigation";
+import { CHEF_CONCIERGE_REVISION } from "../services/coaching/conciergeInstructions";
 
 const router = Router();
+router.use((_req, res, next) => {
+  if (process.env.NODE_ENV === "development") {
+    res.setHeader("X-Chef-Concierge-Revision", CHEF_CONCIERGE_REVISION);
+  }
+  next();
+});
 router.use(coachingNavigationRouter);
 
 // ─── POST /message ────────────────────────────────────────────────────────────

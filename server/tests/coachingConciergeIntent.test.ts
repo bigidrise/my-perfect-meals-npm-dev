@@ -17,7 +17,14 @@ jest.mock("openai", () => ({
   default: jest.fn().mockImplementation(() => ({ chat: { completions: { create: mockCreate } } })),
 }));
 
-import { runReasoningPass, runRenderingPass } from "../services/coaching/engine";
+import { CoachingEngine, runReasoningPass, runRenderingPass } from "../services/coaching/engine";
+import { db } from "../db";
+import { getAdapter } from "../services/coaching/adapters";
+import { selectObservers, runObservers } from "../services/coaching/observers/stubs";
+import { matchPatterns } from "../services/coaching/patternMatcher";
+import { loadBoundedHistory } from "../services/coaching/conversationSummarizer";
+import { renderReasoningBriefForPrompt } from "../services/coaching/reasoningFamilyMatcher";
+import { extractAndPersistMemories } from "../services/coaching/memoryExtractor";
 import { ConciergeDecisionSchema, ReasoningResultSchema, type ConciergeDecision } from "../../shared/coaching/schemas";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
 import { getCornerCapabilities } from "../services/coaching/capabilityRegistry";
@@ -269,7 +276,7 @@ test("ambiguous hunger stays conversational through both passes without Fridge R
   expect(result.todayPlan.items[0].kind).toBe("other");
   expect(result.todayPlan.items.every(item => !item.destinationId)).toBe(true);
   expect(mockCreate.mock.calls[0][0].messages[0].content).toContain("rather than guessing a tool");
-  expect(mockCreate.mock.calls[1][0].messages[0].content).toContain("NOT a navigation requirement");
+  expect(mockCreate.mock.calls[1][0].messages[0].content).toContain("items may be [] for conversation without navigation");
 });
 
 test("multi-turn discovery retains savory and burger choices until the member chooses going out", async () => {
@@ -410,4 +417,144 @@ test("Fridge Rescue discovery restriction exists only in the Development registr
   const original = getCornerCapabilities(["all"]).find(cap => cap.id === "fridge_rescue")!;
   expect(original.description).not.toContain("not hunger, indecision");
   expect(original.applicableSituations).toContain("meal_planning");
+});
+
+// Exercise subject authorization, safety, history/context loading, both actual
+// model-call functions, postprocessing and persistence; only dependencies are mocked.
+function prepareFullPipeline(history: Array<{ role: string; content: string }> = []) {
+  const subject = { subjectType: "user", subjectId: "fixture-member", ownerId: "fixture-member" };
+  (db.execute as jest.Mock).mockResolvedValue({ rows: [{ id: "fixture-row" }] });
+  (getAdapter as jest.Mock).mockReturnValue({
+    loadSubject: jest.fn().mockResolvedValue(subject), safetyRules: [], supportedObservers: [],
+    knowledgeScopes: ["all"], availableTools: tools(),
+    loadAdditionalContext: jest.fn().mockResolvedValue({
+      coachingContextBlock: "GAP_CONTEXT_SENTINEL: hypothetical missing platform data.",
+    }),
+  });
+  (selectObservers as jest.Mock).mockReturnValue([]);
+  (runObservers as jest.Mock).mockResolvedValue([]);
+  (matchPatterns as jest.Mock).mockResolvedValue([]);
+  (loadBoundedHistory as jest.Mock).mockResolvedValue({
+    recentMessages: history, rollingContext: "The member is choosing food.", totalCount: history.length,
+  });
+  (renderReasoningBriefForPrompt as jest.Mock).mockReturnValue("BEHAVIORAL_REFERENCE_SENTINEL");
+  (extractAndPersistMemories as jest.Mock).mockResolvedValue(undefined);
+  return (message: string) => new CoachingEngine().run({
+    specialization: "corner", subject: subject as any, conversationId: "", userMessage: message,
+  }, { authUser: { id: "fixture-member" } } as any);
+}
+
+function compactResponse(text: string, id: string | null = null) {
+  return response(id, {
+    whatIFound: text, whatItCouldMean: "",
+    todayPlan: {
+      why: "", items: id ? [{ horizon: "today", kind: "use_feature", text: "Open the feature", featureTarget: id }] : [],
+      successMetric: "Member chose a next step.", nextCheckIn: "When ready",
+    },
+  });
+}
+
+test("full pipeline isolates ordinary discovery from coaching templates and appends no logging reminder", async () => {
+  const run = prepareFullPipeline();
+  enqueue(reasoning({ mode: "clarification", destinationId: null }));
+  enqueue(compactResponse("What sounds good: something savory, sweet, or light?"));
+  const result = await run("I'm hungry, but I don't know what I want to eat.");
+  expect(result.whatIFound).toContain("savory");
+  expect(result.whatItCouldMean).toBe("");
+  expect(result.todayPlan.items).toEqual([]);
+  expect(result.learningOpportunity).toBeNull();
+  const renderer = mockCreate.mock.calls[1][0];
+  expect(renderer.messages[0].content).not.toMatch(/hypotheses|LOW:|Always close with what logging|EXPRESSION PIPELINE/);
+  expect(renderer.messages[1].content).not.toMatch(/GAP_CONTEXT_SENTINEL|BEHAVIORAL_REFERENCE_SENTINEL|BEHAVIOR SIGNAL/);
+  expect(result.meta.concierge).toEqual({ revision: "stage1c", reasoning: "validated", rendering: "primary" });
+  expect(db.execute).toHaveBeenCalled();
+  expect(mockCreate).toHaveBeenCalledTimes(2);
+});
+
+test("full pipeline reasoning failure uses neutral context rather than synthetic nutrient/log analysis", async () => {
+  const run = prepareFullPipeline();
+  mockCreate.mockRejectedValueOnce(new Error("fixture provider failure"));
+  enqueue(compactResponse("Would you prefer something warm or something fresh?"));
+  const result = await run("I'm hungry and undecided.");
+  const renderingContext = mockCreate.mock.calls[1][0].messages[1].content;
+  expect(renderingContext).not.toMatch(/Insufficient platform evidence|meal logs|prescription adherence|GAP_CONTEXT_SENTINEL/);
+  expect(result.learningOpportunity).toBeNull();
+  expect(result.todayPlan.items).toEqual([]);
+  expect(result.meta.concierge?.reasoning).toBe("unavailable");
+  expect(mockCreate).toHaveBeenCalledTimes(2);
+});
+
+test("missing semantic decision fails closed through the full pipeline without guessed navigation", async () => {
+  const run = prepareFullPipeline();
+  enqueue(reasoning());
+  enqueue(compactResponse("Would you like a few ideas or help narrowing down a preference?"));
+  const result = await run("Help me decide what to eat.");
+  expect(result.meta.concierge?.reasoning).toBe("unavailable");
+  expect(result.todayPlan.items).toEqual([]);
+});
+
+test.each([
+  ["I'll make the spicy tofu lettuce wraps.", "create_a_dish"],
+  ["I want sushi.", "sushi_creator"],
+  ["Let's make cheesecake.", "dessert_creator"],
+  ["Help me satisfy a general salty-food craving.", "craving_creator"],
+  ["I need a pre-workout drink.", "athlete_beverage_creator"],
+  ["Let's find somewhere serving a burger.", "find_meals_near_me"],
+  ["I want help choosing at the restaurant I picked.", "restaurant_guide"],
+])("full pipeline decision completion produces one validated click action: %s", async (message, id) => {
+  const run = prepareFullPipeline([
+    { role: "user", content: "Something light, handheld, spicy, and plant-based." },
+    { role: "assistant", content: "How about spicy tofu lettuce wraps or chickpea tacos?" },
+  ]);
+  enqueue(reasoning(ConciergeDecisionSchema.parse({ mode: "food_assistance", destinationId: id })));
+  enqueue(compactResponse(`You can continue in ${COACH_DESTINATIONS[id as keyof typeof COACH_DESTINATIONS].label}.`, id));
+  const result = await run(message);
+  expect(result.todayPlan.items).toHaveLength(1);
+  expect(result.todayPlan.items[0].destinationId).toBe(id);
+  expect(result.whatItCouldMean).toBe("");
+  expect(result.todayPlan.why).toBe("");
+  expect(result.whatIFound).not.toContain("?");
+  expect(mockCreate.mock.calls[1][0].messages[1].content).toContain("handheld, spicy, and plant-based");
+  expect(mockCreate).toHaveBeenCalledTimes(2);
+});
+
+test.each([
+  "Help me build meals.", "Plan my week in My Perfect Menu.", "Help me use a diabetes meal builder.",
+  "I need the GLP-1 meal builder.", "Open anti-inflammatory meal building.", "I want performance meal planning.",
+])("unsupported builder requests cannot bypass entry hubs: %s", async message => {
+  const run = prepareFullPipeline();
+  enqueue(reasoning({ mode: "food_assistance", destinationId: null }));
+  enqueue(compactResponse("That entry page is not supported by Chef's current navigation buttons."));
+  const result = await run(message);
+  expect(result.todayPlan.items).toEqual([]);
+  expect(mockCreate.mock.calls[0][0].messages[0].content).toContain("do not bypass a hub");
+  expect(tools().every(tool => Object.prototype.hasOwnProperty.call(COACH_DESTINATIONS, tool.id))).toBe(true);
+});
+
+test("full pipeline safety gate precedes both model calls", async () => {
+  const run = prepareFullPipeline();
+  const result = await run("I have chest pain and want a pre-workout drink.");
+  expect(result.meta.redFlag).toBe(true);
+  expect(result.todayPlan.items.every(item => !item.destinationId)).toBe(true);
+  expect(mockCreate).not.toHaveBeenCalled();
+});
+
+test("reasoning safety flag survives malformed concierge metadata in the full pipeline", async () => {
+  const run = prepareFullPipeline();
+  enqueue({ ...reasoning(), redFlag: true, redFlagReason: "fixture urgent concern",
+    conciergeDecision: { mode: "invalid-mode", destinationId: "made_up" } });
+  const result = await run("Help me with a concerning symptom.");
+  expect(result.meta.redFlag).toBe(true);
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+test("full pipeline preserves behavioral methodology rather than the concise concierge prompt", async () => {
+  const run = prepareFullPipeline();
+  enqueue(reasoning({ mode: "behavioral_coaching", destinationId: null }));
+  enqueue(response(null));
+  const result = await run("I want help changing my stress-eating pattern.");
+  const renderer = mockCreate.mock.calls[1][0];
+  expect(renderer.messages[0].content).toContain("EXPRESSION PIPELINE");
+  expect(renderer.messages[1].content).toContain("BEHAVIORAL_REFERENCE_SENTINEL");
+  expect(result.learningOpportunity).toContain("log");
 });

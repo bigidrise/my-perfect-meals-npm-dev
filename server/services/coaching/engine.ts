@@ -19,7 +19,8 @@ import OpenAI from "openai";
 import { db } from "../../db";
 import { getLanguageInstruction } from "../../utils/languageInstruction";
 import { sql } from "drizzle-orm";
-import { ReasoningResultSchema, CoachResponseSchema, ConciergeDecisionSchema, type ConciergeDecision } from "../../../shared/coaching/schemas";
+import { ReasoningResultSchema, CoachResponseSchema, ConciergeDecisionSchema, ConciergeResponseSchema, type ConciergeDecision } from "../../../shared/coaching/schemas";
+import { CHEF_CONCIERGE_REVISION, conciergeRenderingInstructions } from "./conciergeInstructions";
 import { runSafetyGate, buildSafetyResponse } from "./safety";
 import { scoreConfidence, getConfidenceInstructions } from "./confidence";
 import { matchPatterns } from "./patternMatcher";
@@ -449,7 +450,7 @@ export async function runReasoningPass(params: {
   const reasoningLangInstruction = getLanguageInstruction(params.preferredLanguage);
   const conciergeEnabled = process.env.NODE_ENV === "development" && params.specialization === "corner";
 
-  const systemPrompt = [
+  const behavioralSystemPrompt = [
     ...(reasoningLangInstruction ? [reasoningLangInstruction, ""] : []),
     "You are the REASONING LAYER of the MPM Coaching Engine.",
     "Your job: reason from the sealed evidence block and propose coaching hypotheses.",
@@ -566,6 +567,17 @@ export async function runReasoningPass(params: {
     }, null, 2),
   ].join("\n");
 
+  const systemPrompt = conciergeEnabled ? [
+    "PRIMARY TASK: Understand the member's current conversational intent before applying any coaching framework. This is a semantic decision using the latest message and relevant history, not a keyword router.",
+    "Ordinary hunger with indecision needs food discovery, not nutritional-gap or recent-meal analysis. Classify as clarification when a useful preference is missing, or food_assistance when offering requested suggestions or a destination. Nutrition questions remain nutrition_education; use behavioral_coaching only when the member actually seeks behavioral support or personalized pattern interpretation.",
+    "DECISION COMPLETION: A decision to make a specific dish is enough to recommend Create a Dish (unless a dedicated sushi/dessert/drink creator fits). Do not ask whether they want a recipe or want to open the tool after that decision. Select a single most appropriate supported ID.",
+    "The following legacy hypothesis, evidence-gap, reinforcement, and learning requirements apply ONLY after you classify the request as behavioral_coaching. For other modes, required hypothesis fields describe the actual conversational need and useful next step, not causes, missing logs, nutritional gaps, or deficiencies. missingData=[] when irrelevant.",
+    "Always return a valid conciergeDecision with mode and destinationId. Safety/redFlag checks remain mandatory in every mode, and all clinical/evidence-truthfulness safeguards still apply.",
+    "Only select IDs in AVAILABLE CONCIERGE FEATURES. If a requested builder or hub is unsupported there, destinationId=null: do not bypass a hub, select an internal builder, or substitute an unrelated creator.",
+    behavioralSystemPrompt,
+    "END REFERENCE. First determine semantic intent. The behavioral-only requirements above must not be applied to ordinary discovery, assistance, or education. Keep their reasoning focused on the member's actual request.",
+  ].join("\n") : behavioralSystemPrompt;
+
   // Inject the CoachingContextSnapshot block if the adapter produced one.
   // This replaces the raw additionalContext JSON dump with a structured,
   // human-readable evidence block the LLM can reason from directly.
@@ -653,6 +665,9 @@ export async function runReasoningPass(params: {
   const raw = completion.choices[0]?.message?.content ?? "{}";
   const parsed = JSON.parse(raw);
   const validated = ReasoningResultSchema.parse(parsed);
+  if (conciergeEnabled && !validated.redFlag && !validated.conciergeDecision) {
+    throw new Error("concierge_decision_unavailable");
+  }
   return validated;
 }
 
@@ -754,7 +769,7 @@ export async function runRenderingPass(params: {
   const doctrineSectionForRendering = generateDoctrineSystemPromptSection("corner");
   const renderingLangInstruction = getLanguageInstruction(params.preferredLanguage);
 
-  const systemPrompt = [
+  const behavioralSystemPrompt = [
     ...(renderingLangInstruction ? [renderingLangInstruction, ""] : []),
     ...(process.env.NODE_ENV === "development" ? [
       "CHEF CONCIERGE: Use the current conversation to understand food and drink intent, including changed preferences.",
@@ -900,6 +915,12 @@ export async function runRenderingPass(params: {
     }, null, 2),
   ].join("\n");
 
+  // Do not just append an override to the behavioral prompt. Ordinary conversation
+  // must never receive mandatory hypothesis/evidence-gap/learning instructions.
+  const systemPrompt = nonBehavioral
+    ? [renderingLangInstruction, conciergeRenderingInstructions(decision)].filter(Boolean).join("\n")
+    : behavioralSystemPrompt;
+
   // Inject the context snapshot block if available (Phase 1)
   const renderContextBlock = typeof params.additionalContext?.coachingContextBlock === "string"
     ? params.additionalContext.coachingContextBlock as string
@@ -930,17 +951,17 @@ export async function runRenderingPass(params: {
     `CONFIDENCE RESTRICTIONS:`,
     confidenceInstructions,
     "",
-    ...(renderContextBlock
+    ...(!nonBehavioral && renderContextBlock
       ? [`COACHING CONTEXT SNAPSHOT (use DATA CONFIDENCE to calibrate your opening):`, renderContextBlock, ""]
-      : [`USER CONTEXT:`, JSON.stringify(renderContextForJson, null, 2), ""]),
-    ...(renderBehaviorSignal
+      : nonBehavioral ? [] : [`USER CONTEXT:`, JSON.stringify(renderContextForJson, null, 2), ""]),
+    ...(!nonBehavioral && renderBehaviorSignal
       ? [
           `BEHAVIOR SIGNAL (server-classified — governs SUPPORT + REINFORCE steps in your response):`,
           renderBehaviorSignal,
           "",
         ]
       : []),
-    ...(renderReasoningBrief
+    ...(!nonBehavioral && renderReasoningBrief
       ? [
           `COACHING REASONING BRIEF (approved actions and forbidden conclusions — honour these exactly):`,
           renderReasoningBrief,
@@ -948,10 +969,12 @@ export async function runRenderingPass(params: {
         ]
       : []),
     `REASONING DECISION (express this):`,
-    JSON.stringify(params.reasoning, null, 2),
+    JSON.stringify(nonBehavioral && !decision
+      ? { primaryConcern: "Respond to the latest request or ask a useful clarification; do not infer missing data." }
+      : params.reasoning, null, 2),
     "",
     `PATTERN TEMPLATES AND INTERPRETATION BOUNDARIES:`,
-    patternTemplates,
+    nonBehavioral ? "Not applicable to ordinary conversation." : patternTemplates,
     "",
     `AVAILABLE TOOLS (use ONLY these for feature redirects — do not invent feature names):`,
     JSON.stringify(params.availableTools.map((t) => ({ id: t.id, label: t.label, featureTarget: t.featureTarget, description: t.description })), null, 2),
@@ -980,7 +1003,7 @@ export async function runRenderingPass(params: {
       // strings that aren't in the enum. This metadata field must never discard
       // an otherwise valid coaching response.
       const sanitized = sanitizeRenderingResponse(parsed);
-      const validated = CoachResponseSchema.parse(sanitized);
+      const validated = (nonBehavioral ? ConciergeResponseSchema : CoachResponseSchema).parse(sanitized);
 
       // Enforce confidence restrictions programmatically
       // LOW: max 2 items — the doctrine calls for "safe actions" (plural); 1 was too restrictive
@@ -1001,7 +1024,7 @@ export async function runRenderingPass(params: {
         : conciergeEnabled && (!decision || decision.mode !== "food_assistance" || !decision.destinationId)
         ? cappedItems.filter(item => item.kind !== "use_feature")
         : cappedItems;
-      if (conciergeEnabled && selectedItems.length === 0) {
+      if (conciergeEnabled && selectedItems.length === 0 && (!nonBehavioral || decision?.destinationId)) {
         throw new Error("Rendering omitted a conversational next step");
       }
       if (!escalation && conciergeEnabled && decision?.mode === "food_assistance" && decision.destinationId) {
@@ -1049,12 +1072,18 @@ export async function runRenderingPass(params: {
           patternKeys: params.patterns.map((p) => p.patternKey),
           observersRun: [],
           redFlag: false,
+          ...(conciergeEnabled ? { concierge: {
+            revision: CHEF_CONCIERGE_REVISION,
+            reasoning: decision ? "validated" as const : "unavailable" as const,
+            rendering: "primary" as const,
+          } } : {}),
         },
       };
     } catch (err: any) {
       retries++;
       if (retries > MAX_RETRIES) {
-        console.error("[Engine] Rendering pass failed after retries:", err.message);
+        console.error("[Engine] Rendering pass failed after retries:",
+          conciergeEnabled ? "concierge_response_invalid" : err.message);
         return await buildFallbackResponse(params.confidence.level, params.styleResolution.mode, params.specialization, params.userMessage, decision, conversationContext);
       }
       console.warn(`[Engine] Rendering pass attempt ${retries} failed, retrying...`);
@@ -1145,7 +1174,8 @@ async function buildFallbackResponse(
           nextCheckIn: "Whenever you need more help",
         },
         learningOpportunity: null,
-        meta: { specialization, confidence, styleMode: style, patternKeys: [], observersRun: [], redFlag: false },
+        meta: { specialization, confidence, styleMode: style, patternKeys: [], observersRun: [], redFlag: false,
+          concierge: { revision: CHEF_CONCIERGE_REVISION, reasoning: decision ? "validated" : "unavailable", rendering: "mini_fallback" } },
       };
     }
 
@@ -1177,7 +1207,8 @@ async function buildFallbackResponse(
           nextCheckIn: "When you're ready",
         },
         learningOpportunity: null,
-        meta: { specialization, confidence, styleMode: style, patternKeys: [], observersRun: [], redFlag: false },
+        meta: { specialization, confidence, styleMode: style, patternKeys: [], observersRun: [], redFlag: false,
+          concierge: { revision: CHEF_CONCIERGE_REVISION, reasoning: decision ? "validated" : "unavailable", rendering: "retry" } },
       };
     }
     // Last-resort static fallback — still topic-aware at minimum, never "technical issue"
@@ -1211,6 +1242,7 @@ export class CoachingEngine {
     req: Request
   ): Promise<CoachResponse & { conversationId: string; messageId: string }> {
     const { specialization, userMessage } = request;
+    const developmentConcierge = process.env.NODE_ENV === "development" && specialization === "corner";
 
     console.log(`[Engine] run — specialization=${specialization}, intent detection starting`);
 
@@ -1219,12 +1251,14 @@ export class CoachingEngine {
 
     // 2. Load and authorize subject
     const subject = await adapter.loadSubject(req);
-    console.log(`[Engine] subject loaded — type=${subject.subjectType}, id=${subject.subjectId}`);
+    console.log(developmentConcierge ? "[Engine] subject authorized"
+      : `[Engine] subject loaded — type=${subject.subjectType}, id=${subject.subjectId}`);
 
     // 3. Safety gate — runs before EVERYTHING else
     const safety = await runSafetyGate(userMessage, adapter.safetyRules);
     if (safety.triggered) {
-      console.log(`[Engine] Safety gate triggered: ${safety.reason} (class: ${safety.class})`);
+      console.log(developmentConcierge ? "[Engine] Safety gate triggered"
+        : `[Engine] Safety gate triggered: ${safety.reason} (class: ${safety.class})`);
       // Still need a conversationId for persistence
       const conversationId = await resolveConversation(
         request.conversationId, subject, specialization
@@ -1251,7 +1285,7 @@ export class CoachingEngine {
 
     // 6. Intent detection
     const intent = detectIntent(userMessage, history);
-    console.log(`[Engine] intent detected: ${intent}`);
+    console.log(developmentConcierge ? "[Engine] observer selection complete" : `[Engine] intent detected: ${intent}`);
 
     // 7. Select and run Observers
     const selectedObserverIds = selectObservers(intent, adapter.supportedObservers);
@@ -1273,7 +1307,8 @@ export class CoachingEngine {
     const patterns = await matchPatterns(
       intent, observerOutputs, adapter.knowledgeScopes, specialization
     );
-    console.log(`[Engine] patterns matched: ${patterns.map((p) => p.patternKey).join(", ") || "none"}`);
+    console.log(developmentConcierge ? "[Engine] pattern matching complete"
+      : `[Engine] patterns matched: ${patterns.map((p) => p.patternKey).join(", ") || "none"}`);
 
     // 11. Confidence scoring (server-side, LLM cannot override)
     const confidence = scoreConfidence(observerOutputs, patterns);
@@ -1281,7 +1316,8 @@ export class CoachingEngine {
 
     // 12. Style resolution
     const styleResolution = await resolveStyle(subject.ownerId);
-    console.log(`[Engine] style: ${styleResolution.mode} (profile found: ${styleResolution.profileFound})`);
+    console.log(developmentConcierge ? "[Engine] communication style resolved"
+      : `[Engine] style: ${styleResolution.mode} (profile found: ${styleResolution.profileFound})`);
 
     // 12.5. Reasoning Library — match a coaching family and build the server-controlled brief
     // This runs after observers (have trending evidence) and context (have today's snapshot).
@@ -1292,7 +1328,8 @@ export class CoachingEngine {
       : { primary: null, modifier: null };
     const reasoningBriefBlock = renderReasoningBriefForPrompt(reasoningLibraryMatch);
     if (reasoningLibraryMatch.primary) {
-      console.log(`[Engine] reasoning family: ${reasoningLibraryMatch.primary.familyId}${reasoningLibraryMatch.modifier ? " + reinforcement modifier" : ""}`);
+      console.log(developmentConcierge ? "[Engine] reasoning reference prepared"
+        : `[Engine] reasoning family: ${reasoningLibraryMatch.primary.familyId}${reasoningLibraryMatch.modifier ? " + reinforcement modifier" : ""}`);
     }
     // Attach to additionalContext so both LLM passes receive it
     (additionalContext as any).reasoningBriefBlock = reasoningBriefBlock || null;
@@ -1301,7 +1338,8 @@ export class CoachingEngine {
     // Describes the EVIDENCE PATTERN (not the person). governs HOW the coach approaches them.
     const behaviorSignal = classifyBehaviorProgress(observerOutputs, coachingContextSnapshot);
     const behaviorSignalBlock = renderBehaviorSignalBlock(behaviorSignal);
-    console.log(`[Engine] behavior pattern: ${behaviorSignal.evidencePattern}${behaviorSignal.recoveryDetected ? " (recovery detected)" : ""}`);
+    console.log(developmentConcierge ? "[Engine] behavioral context prepared"
+      : `[Engine] behavior pattern: ${behaviorSignal.evidencePattern}${behaviorSignal.recoveryDetected ? " (recovery detected)" : ""}`);
     (additionalContext as any).behaviorSignalBlock = behaviorSignalBlock;
 
     // 13. Reasoning pass (LLM call 1 — internal JSON, not shown to user)
@@ -1325,8 +1363,17 @@ export class CoachingEngine {
         availableTools: adapter.availableTools,
       });
     } catch (reasoningErr: any) {
-      console.warn(`[Engine] Reasoning pass failed (${reasoningErr.message}) — using synthetic reasoning fallback`);
-      rawReasoning = {
+      console.warn(developmentConcierge ? "[Engine] Reasoning unavailable — neutral conversational fallback"
+        : `[Engine] Reasoning pass failed (${reasoningErr.message}) — using synthetic reasoning fallback`);
+      rawReasoning = developmentConcierge ? {
+        primaryConcern: "Respond to the member's latest request.",
+        hypotheses: [{
+          explanation: "Provide a useful answer or clarification without guessing intent or a destination.",
+          evidenceCitationIds: [], likelihood: "possible" as const,
+        }],
+        leadHypothesis: "Use the latest message and conversation history; do not infer behavioral or nutritional gaps.",
+        proposedConfidence: "low" as const, redFlag: false, missingData: [],
+      } : {
         primaryConcern: userMessage,
         hypotheses: [{
           explanation: "Insufficient platform evidence to form a specific hypothesis at this time.",
@@ -1345,12 +1392,14 @@ export class CoachingEngine {
       rawReasoning, evidenceIdSet
     );
     if (hallucinated.length > 0) {
-      console.warn(`[Engine] Citation validation: ${stripped} hallucinated citation(s) stripped: ${hallucinated.join(", ")}`);
+      console.warn(developmentConcierge ? "[Engine] Invalid evidence citations removed"
+        : `[Engine] Citation validation: ${stripped} hallucinated citation(s) stripped: ${hallucinated.join(", ")}`);
     }
 
     // If red flag from reasoning (not caught by safety gate — rare edge case)
     if (validatedReasoning.redFlag) {
-      console.log(`[Engine] Red flag from reasoning pass: ${validatedReasoning.redFlagReason}`);
+      console.log(developmentConcierge ? "[Engine] Reasoning safety escalation"
+        : `[Engine] Red flag from reasoning pass: ${validatedReasoning.redFlagReason}`);
       const safeResponse = buildSafetyResponse({
         triggered: true,
         class: "escalate",
@@ -1387,7 +1436,8 @@ export class CoachingEngine {
       selectedObserverIds
     );
 
-    console.log(`[Engine] turn complete — conversationId=${conversationId}, messageId=${assistantMessageId}`);
+    console.log(developmentConcierge ? "[Engine] turn complete"
+      : `[Engine] turn complete — conversationId=${conversationId}, messageId=${assistantMessageId}`);
 
     // 17. Phase 5: Fire-and-forget memory extraction (non-blocking)
     extractAndPersistMemories({

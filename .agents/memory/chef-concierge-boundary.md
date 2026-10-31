@@ -26,3 +26,9 @@ Discovery is conversational, not a mandatory questionnaire: hunger and indecisio
 **Why:** The user confirmed the sushi test works, but reported that an undecided hungry member was prematurely directed to Fridge Rescue without expressing an ingredient-use need.
 
 **How to apply:** Retain developing preferences and answered questions across reasoning, expression, and fallback. Use one useful question at a time when practical, not a fixed question count. Clarification is a valid next step without feature navigation; meal-prep education must not become an invented platform capability. Platform-guidance knowledge and onboarding changes remain separately scoped.
+
+Ordinary concierge expression must be isolated from mandatory behavioral hypothesis/evidence-gap templates, not merely given a later contradictory override. A reasoning failure must not introduce synthetic missing-log analysis.
+
+**Why:** The user reported that authenticated ordinary-hunger conversations still received nutritional-gap analysis after the deterministic discovery tests passed. Those earlier fixtures did not exercise the full orchestration and synthetic reasoning-failure path.
+
+**How to apply:** Exercise the full engine with mocked external dependencies as well as individual calls; distinguish that evidence from paid-model accuracy. Treat a decision to make a named dish as completion, with a concise recommendation and member-click button rather than another recipe/open-feature question. Unsupported builder requests must not bypass their hubs; request-prefill expansion remains separately authorized.

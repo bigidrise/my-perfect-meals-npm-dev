@@ -144,6 +144,15 @@ export const CoachResponseSchema = z.object({
 
 export type CoachResponseInput = z.infer<typeof CoachResponseSchema>;
 
+/** Development concierge conversation need not invent a coaching plan or analysis. */
+export const ConciergeResponseSchema = CoachResponseSchema.extend({
+  whatItCouldMean: z.string().max(600),
+  todayPlan: TodayPlanSchema.extend({
+    why: z.string().max(500),
+    items: z.array(TodayPlanItemSchema).max(3),
+  }),
+});
+
 // ─── Memory Candidate Schema ──────────────────────────────────────────────────
 
 /**
