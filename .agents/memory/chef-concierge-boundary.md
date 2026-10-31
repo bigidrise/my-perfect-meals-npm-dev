@@ -112,3 +112,9 @@ Chef response formatting is a display concern: use safe text/React emphasis, pre
 **Why:** The user requested a small Development-only correction for visible Markdown asterisks, without new heavy dependencies, unsafe content, or changes to the AI and clinical behavior.
 
 **How to apply:** Apply the same limited formatting to conversational and structured response text, including saved messages; leave action validation, stored payloads, and Production rendering unchanged.
+
+Travel-dining scope matters more than a cruise mention: exploring options across a cruise or travel venue fits Getaway; choosing from an identified buffet fits Buffet; ordering at a selected restaurant fits Restaurant Guide; general nearby restaurant discovery fits Find Meals Near Me.
+
+**Why:** The user approved a targeted Development knowledge correction after Chef overlooked Getaway for clear Carnival cruise-dining help, while explicitly preserving natural conversation and destination-owned inputs.
+
+**How to apply:** Do not turn these distinctions into keyword routing, mandatory questions or mandatory navigation. Quick-start venues are examples, and catalog/general cruise knowledge never proves a particular ship's current restaurants, menus or availability.
