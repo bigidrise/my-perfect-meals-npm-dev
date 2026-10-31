@@ -19,8 +19,8 @@ The active code had two demonstrated gaps:
    feature. Rendering correctly requires a destination and matching action item.
 
 The Development correction uses the existing provider's strict structured-output
-format in the same single call. Decisions are validated after care escalation.
-Missing/malformed decisions fail explicitly. A missing ID may be completed only
+format in the same single call. Actions are validated after care escalation.
+Ordinary conversation requires no action. A missing ID may be completed only
 from a valid semantic goal that matches exactly one available, allowlisted feature
 under the existing readiness predicates. It never classifies words, guesses
 preparation from a food mention, repairs a rejected explicit destination, or picks
@@ -32,9 +32,32 @@ discussing it or asking about nutrition. A chosen chicken Caesar salad completes
 discovery for Create a Dish, without assuming location, portions or ingredients.
 The editable handoff remains grounded in the member's statements.
 
-Runtime revision: `feature-intelligence-v1`. Privacy-limited decision-outcome logs
+Runtime revision: `conversation-outcomes-v1`. Privacy-limited decision-outcome logs
 distinguish model destinations, completed goals, no-navigation turns and invalid
 decisions; they do not contain conversation or clinical data.
+
+## Verified breakfast-shake runtime failure
+
+The Development log matching the supplied breakfast-and-shake transcription records
+`decision_outcome=goal_not_ready`, followed by a successful HTTP response containing
+the retry message. That marker is emitted only after the provider returns, JSON
+and the conversational payload parse, and decision validation rejects a proposed
+destination. The exact proposed ID/goal values were not logged; do not infer them.
+This was not evidence of an OpenAI outage, strict-schema rejection or render error.
+
+The defect was treating action readiness as a prerequisite for a whole successful
+conversation. Valid no-navigation replies were already accepted, but the rejected
+action branch threw away the entire reply. The revised single-call contract makes
+the action nullable and includes an independent model-authored conversational
+continuation. If an action is rejected, only that independent continuation can be
+used; the unchecked pitch and handoff are discarded. Its output must contain no
+known feature names/routes or navigation links. If no safe continuation is present,
+the response remains an explicit failure rather than a fabricated successful reply.
+Provider failures and malformed conversational payloads still fail explicitly,
+with privacy-limited failure-stage and HTTP-status diagnostics.
+
+This does not introduce another call, hidden retry, intent keyword router,
+automatic navigation, direct creator execution, new handoffs or new permissions.
 
 ## Approved Chef destinations
 

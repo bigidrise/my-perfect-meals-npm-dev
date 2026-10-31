@@ -147,7 +147,9 @@ test("exact chicken Caesar conversation completes the omitted action from the re
   const wire = mockCreate.mock.calls[0][0];
   expect(wire.response_format.type).toBe("json_schema");
   expect(wire.response_format.json_schema.strict).toBe(true);
-  const decisionSchema = wire.response_format.json_schema.schema.properties.conciergeDecision;
+  const decisionProperty = wire.response_format.json_schema.schema.properties.conciergeDecision;
+  const decisionSchema = decisionProperty.anyOf.find((schema: any) => schema.type === "object");
+  expect(decisionProperty.anyOf).toContainEqual({ type: "null" });
   expect(decisionSchema.required).toEqual(expect.arrayContaining(["mode", "destinationId", "goal"]));
   expect(wire.messages[1].content).toContain("chicken Caesar salad"); // Verified capability guidance is in this actual call.
   expect(JSON.stringify((db.execute as jest.Mock).mock.calls)).toContain("Chicken Caesar salad");
@@ -187,15 +189,99 @@ test.each([
   expect(result.meta.concierge?.rendering).toBe("primary");
 });
 
-test.each([undefined, { mode: "food_assistance", destinationId: null }])(
-  "missing decision or missing food goal fails explicitly instead of pretending discovery succeeded: %j", async conciergeDecision => {
-    reply("Let's help you prepare it.", null, unknown, { conciergeDecision });
-    const result = await run("Make chicken Caesar salad.");
+test.each([undefined, null, { mode: "food_assistance", destinationId: null }])(
+  "ordinary conversation needs no action or food-goal classification: %j", async conciergeDecision => {
+    reply("What flavor sounds good?", null, unknown, { conciergeDecision });
+    const result = await run("Maybe a shake.");
     expect(result.presentation?.destinationId).toBeUndefined();
-    expect(result.meta.concierge?.rendering).toBe("retry");
+    expect(result.presentation?.message).toBe("What flavor sounds good?");
+    expect(result.meta.concierge?.rendering).toBe("primary");
+    expect(result.todayPlan.items).toEqual([]);
     expect(mockCreate).toHaveBeenCalledTimes(1);
   },
 );
+
+const breakfastRequest = "I'm in the mood. I need to eat breakfast, but I don't want nothing heavy. I want maybe a shake. What do you think?";
+const breakfastReply = "A shake sounds great for a light breakfast! Are you thinking something fruity and refreshing or something creamy and filling?";
+
+test("exact live breakfast failure preserves a same-call conversation when its premature action is vetoed", async () => {
+  const uncheckedPitch = "UNCHECKED_PITCH Open Beverage Creator now.";
+  reply(uncheckedPitch, "beverage_creator", { ...unknown, occasion: "meal" },
+    { conversationMessage: breakfastReply, creatorRequest: { idea: "Invented recipe", memberTurns: [0] } });
+  const result = await run(breakfastRequest);
+  expect(result.presentation).toEqual({ kind: "concierge", message: breakfastReply });
+  expect(result.todayPlan.items).toEqual([]);
+  expect(result.meta.concierge?.rendering).toBe("primary");
+  const persisted = JSON.stringify((db.execute as jest.Mock).mock.calls);
+  expect(persisted).toContain(breakfastReply);
+  expect(persisted).not.toContain("UNCHECKED_PITCH");
+  expect(persisted).not.toContain("Invented recipe");
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+
+  (loadBoundedHistory as jest.Mock).mockResolvedValue({
+    recentMessages: [{ role: "user", content: breakfastRequest }, { role: "assistant", content: breakfastReply }],
+    rollingContext: null,
+  });
+  reply("Let's use Beverage Creator.", "beverage_creator",
+    { ...unknown, activity: "prepare", occasion: "beverage" },
+    { conversationMessage: "A fruity, light shake sounds good." });
+  const ready = await run("Fruity and refreshing. Help me make a light breakfast shake.");
+  expect(ready.presentation?.destinationId).toBe("beverage_creator");
+  expect(ready.todayPlan.items).toHaveLength(1);
+  expect(ready.presentation?.creatorRequest).toBeUndefined(); // No invented general beverage handoff.
+  expect(mockCreate).toHaveBeenCalledTimes(2); // One call per turn, no repair call.
+  const context = mockCreate.mock.calls[1][0].messages[1].content;
+  expect(context).toContain(breakfastRequest);
+  expect(context).toContain(breakfastReply);
+  expect(context).toContain("availableFeatures");
+  expect(context).toContain("beverage_creator");
+});
+
+test("breakfast discovery with a null action is a complete response through the active engine", async () => {
+  reply(breakfastReply, null, unknown, { conciergeDecision: null, conversationMessage: breakfastReply });
+  const result = await run(breakfastRequest);
+  expect(result.presentation).toEqual({ kind: "concierge", message: breakfastReply });
+  expect(result.todayPlan.items).toEqual([]);
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+test("malformed action metadata cannot erase an independently valid model conversation", async () => {
+  reply("UNSAFE_FEATURE_PITCH", null, unknown, {
+    conciergeDecision: { mode: "not_a_mode", destinationId: "https://untrusted.example" },
+    conversationMessage: breakfastReply,
+  });
+  const result = await run(breakfastRequest);
+  expect(result.presentation).toEqual({ kind: "concierge", message: breakfastReply });
+  expect(result.todayPlan.items).toEqual([]);
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+test.each([
+  undefined, "", "Open Beverage Creator now.", "Go to /auth.", "Use https://untrusted.example.",
+])("a rejected action without a safe independent reply stays an explicit failure: %j", async conversationMessage => {
+  reply("UNSAFE_FEATURE_PITCH", "beverage_creator", unknown, { conversationMessage });
+  const result = await run(breakfastRequest);
+  expect(result.meta.concierge?.rendering).toBe("retry");
+  expect(result.presentation?.message).not.toContain("UNSAFE_FEATURE_PITCH");
+  expect(result.todayPlan.items).toEqual([]);
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+test("provider and parsing failures never become fabricated successful food replies", async () => {
+  const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+  try {
+    mockCreate.mockRejectedValueOnce(Object.assign(new Error("PRIVATE_PROVIDER_PAYLOAD"), { status: 429 }));
+    const provider = await run(breakfastRequest);
+    expect(provider.meta.concierge?.rendering).toBe("retry");
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("failure_stage=provider provider_status=429"));
+    mockCreate.mockResolvedValueOnce({ choices: [{ message: { content: "invalid JSON" } }] });
+    const parsing = await run(breakfastRequest);
+    expect(parsing.meta.concierge?.rendering).toBe("retry");
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("failure_stage=parsing"));
+    expect(JSON.stringify(warn.mock.calls)).not.toContain("PRIVATE_PROVIDER_PAYLOAD");
+    expect(mockCreate).toHaveBeenCalledTimes(2);
+  } finally { warn.mockRestore(); }
+});
 
 test("strict provider null fields preserve ordinary conversation and care escalation", async () => {
   reply("What sounds good?", null, unknown, { creatorRequest: null, redFlagReason: null, contactCare: null });

@@ -141,3 +141,45 @@ test.each([
   });
   expect(mockNavigate).toHaveBeenCalledWith(route);
 });
+
+test("breakfast shake discovery renders naturally, then offers Beverage Creator only when ready", async () => {
+  await renderPage(false);
+  const question = "A shake sounds great for a light breakfast! Are you thinking something fruity and refreshing or something creamy and filling?";
+  mockAPI.mockResolvedValueOnce({
+    conversationId: "breakfast-conversation", messageId: "breakfast-discovery",
+    response: { presentation: { kind: "concierge", message: question },
+      whatIFound: question, whatItCouldMean: "", todayPlan: { items: [] }, learningOpportunity: null },
+  });
+  const send = async (message: string) => {
+    await act(async () => {
+      const textarea = host.querySelector("textarea")!;
+      textarea.value = message;
+      Simulate.change(textarea, { target: textarea } as any);
+    });
+    await act(async () => { (host.querySelector('[aria-label="Send message"]') as HTMLButtonElement).click(); });
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+  };
+  await send("I'm in the mood. I need to eat breakfast, but I don't want nothing heavy. I want maybe a shake. What do you think?");
+  expect(host.textContent).toContain(question);
+  expect(host.textContent).not.toContain("I couldn't complete");
+  expect([...host.querySelectorAll("button")].some(button => button.textContent === "Open Beverage Creator")).toBe(false);
+  expect(mockNavigate).not.toHaveBeenCalled();
+  mockAPI.mockResolvedValueOnce({
+    conversationId: "breakfast-conversation", messageId: "breakfast-ready",
+    response: { presentation: { kind: "concierge", message: "Let's use Beverage Creator.", destinationId: "beverage_creator" },
+      whatIFound: "", whatItCouldMean: "", todayPlan: { items: [{ kind: "use_feature", destinationId: "beverage_creator" }] },
+      learningOpportunity: null },
+  });
+  await send("Fruity and refreshing. Help me make a light breakfast shake.");
+  const buttons = [...host.querySelectorAll("button")].filter(button => button.textContent === "Open Beverage Creator");
+  expect(buttons).toHaveLength(1);
+  expect(mockNavigate).not.toHaveBeenCalled();
+  expect(mockAPI).toHaveBeenNthCalledWith(2, "/api/coach/message", expect.objectContaining({
+    body: JSON.stringify({ message: "Fruity and refreshing. Help me make a light breakfast shake.",
+      specialization: "corner", conversationId: "breakfast-conversation" }),
+  }));
+  mockAPI.mockResolvedValueOnce({ destinationId: "beverage_creator", route: "/lifestyle/beverage-creator" });
+  await act(async () => buttons[0].click());
+  expect(mockNavigate).toHaveBeenCalledWith("/lifestyle/beverage-creator");
+  expect(mockAPI).toHaveBeenCalledTimes(3); // Two messages, one click-time access check; no generation.
+});

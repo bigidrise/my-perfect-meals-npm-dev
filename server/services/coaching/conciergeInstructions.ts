@@ -2,7 +2,7 @@ import type { ConciergeDecision } from "../../../shared/coaching/schemas";
 import { CONCIERGE_GOAL_INSTRUCTIONS } from "./conciergeGoal";
 
 // Static runtime identity only: never include account, profile, or conversation data.
-export const CHEF_CONCIERGE_REVISION = "feature-intelligence-v1";
+export const CHEF_CONCIERGE_REVISION = "conversation-outcomes-v1";
 if (process.env.NODE_ENV === "development") {
   console.info(`[ChefConcierge] runtime_revision=${CHEF_CONCIERGE_REVISION}`);
 }
