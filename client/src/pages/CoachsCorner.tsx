@@ -352,6 +352,27 @@ export default function CoachsCorner() {
   // Captured at the moment the trash icon is tapped so that confirm-time
   // state races (bootstrap re-run, invalidation) can't nullify the ID.
   const pendingClearId = useRef<string | null>(null);
+  const followNewestRef = useRef(true);
+  const forceNewestRef = useRef(false);
+  const [keyboardInsets, setKeyboardInsets] = useState({ top: 0, bottom: 0 });
+
+  // Keep this bounded conversation pane inside the visible keyboard viewport.
+  // No global viewport/scroll-owner changes; native resize already yields zero.
+  useEffect(() => {
+    if (!conversationEnabled || !window.visualViewport) return;
+    const viewport = window.visualViewport;
+    const update = () => setKeyboardInsets({
+      top: Math.max(0, viewport.offsetTop),
+      bottom: Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop),
+    });
+    update();
+    viewport.addEventListener("resize", update);
+    viewport.addEventListener("scroll", update);
+    return () => {
+      viewport.removeEventListener("resize", update);
+      viewport.removeEventListener("scroll", update);
+    };
+  }, [conversationEnabled]);
 
   // ── Bootstrap query ────────────────────────────────────────────────────────
   const bootstrapQuery = useQuery<BootstrapData>({
@@ -439,8 +460,15 @@ export default function CoachsCorner() {
   // Skipped when didLoadOlderRef is true — scroll preservation handles that case.
   useEffect(() => {
     if (didLoadOlderRef.current) return;
+    if (conversationEnabled) {
+      if (!forceNewestRef.current && !followNewestRef.current) return;
+      const container = scrollContainerRef.current;
+      container?.scrollTo({ top: container.scrollHeight, behavior: forceNewestRef.current ? "auto" : "smooth" });
+      forceNewestRef.current = false;
+      return;
+    }
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading]);
+  }, [messages, isLoading, conversationEnabled]);
 
   // ── Restore scroll position after older messages are prepended ────────────
   useEffect(() => {
@@ -542,6 +570,10 @@ export default function CoachsCorner() {
     const text = inputText.trim();
     if (!text || isLoading) return;
 
+    if (conversationEnabled) {
+      followNewestRef.current = true;
+      forceNewestRef.current = true;
+    }
     setInputText("");
     setMessages((prev) => [
       ...prev,
@@ -559,7 +591,7 @@ export default function CoachsCorner() {
     }
 
     sendMutation.mutate({ text, cid: conversationId });
-  }, [inputText, isLoading, conversationId, sendMutation]);
+  }, [inputText, isLoading, conversationId, sendMutation, conversationEnabled]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -664,8 +696,12 @@ export default function CoachsCorner() {
 
   return (
     <div
-      className="text-white flex flex-col h-full"
+      className={conversationEnabled
+        ? "text-white flex flex-col fixed inset-0 z-40 min-h-0 overflow-hidden lg:absolute"
+        : "text-white flex flex-col h-full"}
+      data-testid={conversationEnabled ? "ask-chef-pane" : undefined}
       style={{
+        ...(conversationEnabled ? { top: keyboardInsets.top, bottom: keyboardInsets.bottom } : {}),
         paddingTop: "env(safe-area-inset-top, 0px)",
         backgroundImage:
           "linear-gradient(rgba(0,0,0,0.30), rgba(0,0,0,0.25)), url('/images/chefs-corner-bg.jpg')",
@@ -676,9 +712,15 @@ export default function CoachsCorner() {
       <div className="flex-1 flex flex-col w-full max-w-2xl mx-auto min-h-0">
 
         {/* Header */}
-        <div className="shrink-0 bg-black/50 backdrop-blur-md flex items-center justify-between px-4 h-14">
+        <div className={conversationEnabled
+          ? "shrink-0 bg-black/50 backdrop-blur-md flex items-center justify-between pl-4 pr-28 lg:pr-4 h-14"
+          : "shrink-0 bg-black/50 backdrop-blur-md flex items-center justify-between px-4 h-14"}>
           <button
             onClick={() => {
+              if (conversationEnabled) {
+                setLocation("/dashboard");
+                return;
+              }
               if (window.history.length <= 1) {
                 setLocation("/");
               } else {
@@ -725,7 +767,16 @@ export default function CoachsCorner() {
         </div>
 
         {/* Message area */}
-        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-5">
+        <div ref={scrollContainerRef}
+          data-testid={conversationEnabled ? "ask-chef-history" : undefined}
+          onScroll={conversationEnabled ? () => {
+            const container = scrollContainerRef.current;
+            if (container) followNewestRef.current =
+              container.scrollHeight - container.clientHeight - container.scrollTop < 80;
+          } : undefined}
+          className={conversationEnabled
+            ? "flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-5"
+            : "flex-1 overflow-y-auto px-4 py-5"}>
           {bootstrapLoading ? (
             <div className="flex items-center justify-center min-h-[58vh]">
               <div className="flex items-center gap-1.5">
@@ -793,6 +844,7 @@ export default function CoachsCorner() {
 
         {/* Input bar */}
         <div
+          data-testid={conversationEnabled ? "ask-chef-composer" : undefined}
           className="shrink-0 bg-black/50 backdrop-blur-md px-4 pt-3"
           style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom, 16px))" }}
         >
@@ -802,7 +854,7 @@ export default function CoachsCorner() {
               value={inputText}
               onChange={handleTextareaChange}
               onKeyDown={handleKeyDown}
-              placeholder="Ask Coach anything…"
+              placeholder={conversationEnabled ? "Ask Chef anything…" : "Ask Coach anything…"}
               disabled={isLoading || bootstrapLoading}
               rows={1}
               className="flex-1 resize-none bg-zinc-900 border border-white/25 text-white placeholder:text-white/45 text-sm rounded-xl py-3 px-4 focus:outline-none focus:ring-1 focus:ring-orange-500/60 focus:border-orange-500/50 disabled:opacity-50 transition-colors"
