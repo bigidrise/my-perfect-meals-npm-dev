@@ -121,6 +121,8 @@ Travel-dining scope matters more than a cruise mention: exploring options across
 
 After a member accepts a recommendation, Chef should naturally acknowledge the choice and offer concise verified first steps, not repeat feature benefits or ask permission again. Direct requests and members who already know the feature do not need a tutorial.
 
-**Why:** The user observed repetitive Getaway descriptions after confirming navigation and requested the same conversational improvement across existing approved destinations, without fixed scripts or changes to destination features.
+Asking for help with an activity is not permission to open a feature. A new feature recommendation should briefly explain its purpose and naturally ask whether the member wants to use it, without a navigation button. Contextual agreement to that recommendation or an explicit request to open/use the feature can authorize the existing button.
 
-**How to apply:** Keep replies contextual and model-authored in the existing single-call Development flow. Use verified interface knowledge only, honor the latest correction, and preserve button validation, access checks and existing handoffs. This approval does not extend to Production or live paid-model tests.
+**Why:** The user observed both repetitive explanations after confirming and premature Getaway buttons for a Carnival activity-help request. They explicitly distinguish destination suitability from navigation consent across all approved destinations.
+
+**How to apply:** Keep replies and intent interpretation contextual and model-authored in the existing single-call Development flow, not keyword routing or fixed scripts. A ready food goal alone must not authorize a button. Use verified first-step knowledge, honor the latest correction, and preserve button validation, access checks and existing handoffs. This approval does not extend to Production or live paid-model tests.
