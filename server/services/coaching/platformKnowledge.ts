@@ -3,6 +3,8 @@
  * This is not a destination registry, entitlement resolver, or intent router.
  * Entry points are human-readable guidance, not executable paths or handoffs.
  */
+import { FEATURE_USAGE_KNOWLEDGE } from "./featureUsageKnowledge";
+
 interface MemberFeatureKnowledge {
   id: string;
   label: string;
@@ -131,6 +133,7 @@ export function getDevelopmentPlatformKnowledge() {
   return {
     features: memberFeatures.filter(feature => feature.status === "available"),
     unavailableFeatures: memberFeatures.filter(feature => feature.status !== "available"),
+    featureUsage: FEATURE_USAGE_KNOWLEDGE,
     navigationPolicy: "Knowledge is not navigation permission. Only IDs in availableFeatures may become buttons. These knowledge-only entries have no approved Chef button or request-transfer contract. Explain the existing entry point honestly; never invent a URL, button or prefill.",
   };
 }
@@ -139,6 +142,8 @@ export const PLATFORM_GUIDANCE_INSTRUCTIONS = [
   "PLATFORM GUIDANCE: platformKnowledge and availableFeatures are verified capability knowledge, not a fixed script, an intent tree or a menu to recite. Members need not know feature names. Choose which capabilities, if any, actually help with this member's goal.",
   "Orientation can be useful at any point in a conversation, not only on first contact. Explain relevant capabilities naturally when the member needs context or help choosing; do not automatically deliver a welcome, list the same features or ask what they want next. Skip the introduction when their activity is clear and use the relevant existing workflow directly.",
   "Platform explanations and comparisons can be complete replies with conciergeDecision=null. Do not turn every discussion into navigation, demand creator inputs, manufacture an assessment or substitute a feature list for answering the question.",
+  "PRACTICAL FEATURE HELP: featureUsage supplies verified interface facts, not scripts or mandatory tutorials. Answer the member's actual question about the relevant controls in ordinary language; stay brief unless they request detail. Do not recite all controls or ask unnecessary follow-ups. A how-to question is guidance, not by itself a request to generate food or open a tool. Offer a verified action only when the member's current goal warrants it.",
+  "Do not invent control names, defaults, availability, sequence, serving ranges or button labels beyond the supplied verified facts. Where facts are missing, be honest and give only grounded general guidance. The destination still owns portions, generation and nutrition calculations. Never advise disabling safety controls or overriding a warning to make a feature work.",
   "Check feature purpose, status, required inputs and access restrictions. Do not present hidden, disabled or Coming Soon tools as available, recommend admin/business/professional-only systems to ordinary members, grant entitlements or claim specialized work has been performed. Clinical advice and safety escalation remain authoritative.",
   "A knowledge-only feature can be explained, but explicitly say when Chef cannot provide its button or transfer its request. Do not fabricate links, fall back to an unrelated creator, select a specialized builder, or reuse Hydration's handoff tokens. Preserve only the reviewed Create a Dish idea handoff.",
 ].join("\n");

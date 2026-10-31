@@ -70,3 +70,9 @@ Ordinary conversation is a complete outcome without a navigation decision or goa
 **Why:** The user reported a normal tentative breakfast-shake request receiving a technical retry. Development logs proved a destination-readiness veto was being promoted to failure of the entire conversation.
 
 **How to apply:** Separate the model-authored conversational continuation from its proposed action within the same call. Preserve a safe independent continuation when rejecting an action, never the unchecked feature pitch. Keep genuine provider/parsing failures explicit; do not fabricate conversational success, add repair calls or force a button. Creator execution inside chat remains outside the authorized click-to-open scope.
+
+Progressive text must preserve the same clinical, action-validation and persistence authority as a completed reply. Do not expose raw structured tokens or simulate streaming by replaying an already completed response.
+
+**Why:** In the streaming request, preserving safety took priority over forcing a substantial protocol redesign. A visible provisional reply cannot be undone if the complete response later requires care escalation or rejection.
+
+**How to apply:** Revisit genuine streaming only with a reviewed pre-display validation boundary and explicit interrupted-turn/recovery behavior. Do not treat provider streaming support or JSON field reordering alone as proof that provisional display is safe. Keep one conversational model call and the existing voice architecture.

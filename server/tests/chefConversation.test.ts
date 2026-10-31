@@ -287,6 +287,30 @@ test("adaptive conversation instructions apply to every turn without old questio
   expect(system).not.toMatch(/For simple food discovery use one or two|Breakfast and 'maybe a shake'|DISH SELECTION COMPLETES DISCOVERY|then ask what they would like to do|A chicken Caesar salad selected/);
 });
 
+test.each([
+  ["How do I use Craving Creator?", "Describe what you're craving, choose your servings, and use Create when you're ready. Cooking method and Craving Category are optional."],
+  ["Is the cooking method required there?", "No. Cooking method is optional; you can leave it unselected."],
+  ["What does dessert recipe yield mean?", "It's how much the whole recipe makes, not how much one person eats."],
+])("contextual feature help is model-authored guidance, not automatic generation: %s", async (question, answer) => {
+  (loadBoundedHistory as jest.Mock).mockResolvedValue({
+    recentMessages: [{ role: "user", content: "I'm learning to use Craving Creator." },
+      { role: "assistant", content: "I can explain the controls you're looking at." }],
+    rollingContext: null,
+  });
+  reply(answer, null, unknown, { conciergeDecision: null });
+  const result = await run(question);
+  expect(result.presentation).toEqual({ kind: "concierge", message: answer });
+  expect(result.todayPlan.items).toEqual([]);
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+  const wire = mockCreate.mock.calls[0][0];
+  const context = JSON.parse(wire.messages[1].content);
+  expect(context.platformKnowledge.featureUsage.craving_creator.controls.join(" ")).toContain("Cooking method is optional");
+  expect(context.history[0].content).toContain("learning to use Craving Creator");
+  expect(wire.messages[0].content).toContain("not scripts or mandatory tutorials");
+  expect(wire.messages[0].content).toContain("Never advise disabling safety controls");
+  expect(wire.messages[0].content).toContain("A how-to question is guidance");
+});
+
 test("later turns retain model-authored explanations, corrections, orientation and a direct action", async () => {
   const history = [
     { role: "user", content: "I like spicy food and want help using the app." },
@@ -447,6 +471,29 @@ test("provider and parsing failures never become fabricated successful food repl
     expect(JSON.stringify(warn.mock.calls)).not.toContain("PRIVATE_PROVIDER_PAYLOAD");
     expect(mockCreate).toHaveBeenCalledTimes(2);
   } finally { warn.mockRestore(); }
+});
+
+test("an incomplete structured response cannot publish partial conversation or an action", async () => {
+  mockCreate.mockResolvedValueOnce({ choices: [{ message: {
+    content: '{"message":"PARTIAL_PRIVATE_REPLY","conciergeDecision":{"mode":"food_assistance","destinationId":"create_a_dish"',
+  } }] });
+  const result = await run("How do I use Create a Dish?");
+  expect(result.meta.concierge?.rendering).toBe("retry");
+  expect(result.presentation?.message).not.toContain("PARTIAL_PRIVATE_REPLY");
+  expect(result.presentation?.destinationId).toBeUndefined();
+  expect(result.todayPlan.items).toEqual([]);
+  expect(JSON.stringify((db.execute as jest.Mock).mock.calls)).not.toContain("PARTIAL_PRIVATE_REPLY");
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+test("a provider connection interruption stays truthful without replay or a second call", async () => {
+  mockCreate.mockRejectedValueOnce(Object.assign(new Error("simulated connection interruption"), { code: "ECONNRESET" }));
+  const result = await run("Explain the servings control.");
+  expect(result.meta.concierge?.rendering).toBe("retry");
+  expect(result.presentation?.destinationId).toBeUndefined();
+  expect(result.presentation?.message).toContain("try your request again");
+  expect(result.todayPlan.items).toEqual([]);
+  expect(mockCreate).toHaveBeenCalledTimes(1);
 });
 
 test("strict provider null fields preserve ordinary conversation and care escalation", async () => {

@@ -10,6 +10,31 @@ Chef's target experience is a natural conversational guide to the entire My
 Perfect Meals platform, not just a creator-button recommender. Members should not
 need to know feature names or how the platform is organized.
 
+### Practical feature help and streaming boundary
+
+Development capability context now includes verified interface facts for Craving
+Creator, Create a Dish, Fridge Rescue, both beverage creators and Dessert Creator.
+These are controls and action facts, not fixed tutorials. Chef answers the actual
+question briefly unless detail is requested, leaves generation and calculations
+with the destination, and does not invent unreviewed controls or advise bypassing
+safety warnings. No destination UI, navigation contract or voice integration changed.
+
+True streaming is **blocked in the current architecture**, not implemented or
+simulated. The single model call returns structured JSON with message text before
+later care/action fields. Whole-response parsing, clinical escalation, navigation
+validation and request grounding can replace the proposed text; persistence and
+the page's JSON mutation follow that validation. Emitting raw partial output would
+bypass that boundary and risk exposing internal fields. Safe streaming needs a
+reviewed delivery protocol that preserves those decisions before displaying text,
+plus cancellation, incomplete-turn persistence and recovery semantics—not merely
+an SDK streaming flag or replay of a completed response.
+
+Focused fixtures cover usage knowledge, contextual how-to replies, existing
+navigation and clinical safeguards, truncated provider output and connection
+failure. They do not establish live-model accuracy or progressive text delivery.
+Chef's existing voice control populates the editable input and uses ordinary
+submission; no provider, capture, playback or realtime voice work is included.
+
 The supplied **Chef's Conversational Experience Principles** establish:
 
 - Respond naturally throughout the conversation, not just the first welcome.
