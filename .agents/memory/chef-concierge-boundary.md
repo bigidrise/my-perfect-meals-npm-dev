@@ -15,6 +15,12 @@ Approval remains Development-only navigation and local testing, now including a 
 
 **How to apply:** Keep destination-owned safeguards intact and do not treat passing fixtures as permission for live paid AI testing or Production release.
 
+The user accepted the route-parity audit and explicitly instructed leaving `server/prod.ts` and the validator unchanged for now. Chef testing takes priority over cleaning up the warning. A Production merge or deployment is not authorized.
+
+**Why:** The audit traced shared registration rather than treating missing explicit mounts as demonstrated routing failures. The user requires a deliberate, reviewed Production activation; merging code alone must not be assumed to activate the new experience.
+
+**How to apply:** First verify Beverage Creator request-field transfer, then natural conversations and correct recommendations, then review Development-to-Production activation requirements. Keep new handoff implementation and Production activation separately scoped and approved.
+
 Ordinary food assistance, nutrition education, and requested behavioral coaching are different conversational intents. Historical assessment behavior must not force ordinary food requests into psychological analysis or missing-log discussions; Development conversation does not require assessment results.
 
 **Why:** The user reported that a live sushi request received irrelevant behavioral/nutrition-gap analysis and Craving Creator navigation despite Stage 1's clickable actions working.
