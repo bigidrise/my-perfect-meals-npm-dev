@@ -69,10 +69,14 @@ test("stored JSON actions survive restoration and chat is not cleared on navigat
   expect(page).toContain('isChefConversationEnabled()');
 });
 
-test("hydration prefill remains in its own flow; Chef navigation carries IDs only", () => {
+test("hydration prefill remains separate from the reviewed Chef creator request contract", () => {
   const button = source("client/src/components/coaching/CoachFeatureAction.tsx");
   expect(button).not.toContain("hydrationHandoff");
-  expect(button).toContain("JSON.stringify({ destinationId })");
+  expect(button).toContain("chefNavigationRoute(destinationId, creatorRequest)");
+  const contract = source("shared/coaching/creatorRequest.ts");
+  expect(contract).toContain('request.destinationId !== "create_a_dish"');
+  expect(contract).toContain("new URLSearchParams({ idea: request.idea })");
+  expect(contract).not.toContain("hydrationHandoff");
   expect(source("client/src/components/HydrationFourDoorPanels.tsx"))
     .toContain("hydrationHandoff: handoff.token");
   expect(source("client/src/pages/BeverageCreator.tsx"))

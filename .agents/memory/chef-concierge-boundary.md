@@ -9,21 +9,21 @@ Chef's Corner is a conversational food and nutrition concierge, not a meal gener
 
 **How to apply:** Retain the historical assessment implementation, questions, answers and records, but do not expose or require them in Development Chef's Corner. Keep Production's historical behavior unchanged. Recommendations require validated internal destinations and a member click; they never grant access.
 
-Stage 1 approval is Development-only navigation and local testing. New request-prefill contracts, voice, external research, paused Pregnancy activation, and Production promotion/publication require separate approval. Do not repurpose Hydration's specialized tokens for unrelated requests.
+Approval remains Development-only navigation and local testing, now including a safe Create a Dish request transfer through its existing editable `idea` prefill. Other new creator handoffs, voice, external research, paused Pregnancy activation, and Production promotion/publication require separate approval. Do not repurpose Hydration's specialized tokens for unrelated requests.
 
-**Why:** The user separated navigation from request transfer and explicitly restricted release scope.
+**Why:** The user initially separated navigation from request transfer, then explicitly authorized Create a Dish request transfer while asking only for an inspection/report on other creators.
 
 **How to apply:** Keep destination-owned safeguards intact and do not treat passing fixtures as permission for live paid AI testing or Production release.
 
-Ordinary food assistance, nutrition education, and requested behavioral coaching are different conversational intents. The assessment shapes communication; it must not force ordinary food requests into psychological analysis or missing-log discussions.
+Ordinary food assistance, nutrition education, and requested behavioral coaching are different conversational intents. Historical assessment behavior must not force ordinary food requests into psychological analysis or missing-log discussions; Development conversation does not require assessment results.
 
 **Why:** The user reported that a live sushi request received irrelevant behavioral/nutrition-gap analysis and Craving Creator navigation despite Stage 1's clickable actions working.
 
 **How to apply:** Keep semantic interpretation in the existing conversational AI, give the reasoning pass the available features and relevant history, and preserve its validated destination through rendering. Food type alone does not establish preparation intent. Low evidence must not automatically add logging advice to ordinary assistance or education. Fixtures establish pipeline behavior, not live-model accuracy; paid-model tests need cost approval.
 
-Discovery is conversational, not a mandatory questionnaire: hunger and indecision do not establish home cooking, restaurant intent, or a wish to use ingredients. Offer practical ideas when requested, and do not delay a clear food or explicit available-feature request with unnecessary questions.
+Discovery is conversational, not a mandatory questionnaire: hunger and indecision do not establish home cooking, restaurant intent, or a wish to use ingredients. Use helpful broad category choices, not invented recipes, ingredients or finished dishes. Do not delay a clear food or explicit available-feature request with unnecessary questions.
 
-**Why:** The user confirmed the sushi test works, but reported that an undecided hungry member was prematurely directed to Fridge Rescue without expressing an ingredient-use need.
+**Why:** The user confirmed the sushi test works, but reported premature Fridge Rescue navigation for an undecided member. They subsequently clarified that specialized creators, not discovery conversation, must invent the food.
 
 **How to apply:** Retain developing preferences and answered questions across reasoning, expression, and fallback. Use one useful question at a time when practical, not a fixed question count. Clarification is a valid next step without feature navigation; meal-prep education must not become an invented platform capability. Platform-guidance knowledge and onboarding changes remain separately scoped.
 
@@ -31,7 +31,7 @@ Ordinary concierge expression must be isolated from mandatory behavioral hypothe
 
 **Why:** The user reported that authenticated ordinary-hunger conversations still received nutritional-gap analysis after the deterministic discovery tests passed. Those earlier fixtures did not exercise the full orchestration and synthetic reasoning-failure path.
 
-**How to apply:** Exercise the full engine with mocked external dependencies as well as individual calls; distinguish that evidence from paid-model accuracy. Treat a decision to make a named dish as completion, with a concise recommendation and member-click button rather than another recipe/open-feature question. Unsupported builder requests must not bypass their hubs; request-prefill expansion remains separately authorized.
+**How to apply:** Exercise the full engine with mocked external dependencies as well as individual calls; distinguish that evidence from paid-model accuracy. Treat a decision to make a named dish as completion, with a concise recommendation and member-click button rather than another recipe/open-feature question. Unsupported builder requests must not bypass their hubs; request-prefill expansion beyond Create a Dish remains separately authorized.
 
 Ordinary concierge presentation is one conversational message and an optional validated action, not the internal coaching envelope. Empty plan fields alone are not a presentation boundary.
 
@@ -43,7 +43,7 @@ The user confirmed the new concierge presentation works in authenticated Develop
 
 **Why:** A light-and-flavorful preference still produced premature Craving Creator navigation. The desired interaction is an experienced concierge, not a fixed questionnaire.
 
-**How to apply:** Distinguish preparation from eating out, small savory snacks from full meals, and restaurant discovery from ordering at a chosen restaurant. Let the existing reasoning call interpret readiness; validate capability fit without adding a keyword router, model call, or prescribed question sequence. Suggest food ideas when useful, honor changed intent, and report unsupported hub destinations instead of inventing or substituting links.
+**How to apply:** Distinguish preparation from eating out, small savory snacks from full meals, and restaurant discovery from ordering at a chosen restaurant. Let the existing conversational call interpret readiness; validate capability fit without adding a keyword router, model call, or prescribed question sequence. Use broad category choices when useful, honor changed intent, and report unsupported hub destinations instead of inventing or substituting links. Transfer only member-grounded request text, not assistant-invented ingredients or inferred profile details.
 
 Development Chef's Corner must open directly into natural conversation for new and existing members: no assessment, questionnaire, personality evaluation, mandatory intake, or style-result requirement.
 

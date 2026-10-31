@@ -3,9 +3,12 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
 import { COACH_DESTINATIONS, isCoachDestinationId } from "@shared/coaching/navigation";
+import { chefNavigationRoute } from "@shared/coaching/creatorRequest";
 
-/** No URL or text from the model is ever used for navigation. */
-export default function CoachFeatureAction({ destinationId }: { destinationId: unknown }) {
+/** Fixed routes only; reviewed request text can populate an editable creator field. */
+export default function CoachFeatureAction({ destinationId, creatorRequest }: {
+  destinationId: unknown; creatorRequest?: unknown;
+}) {
   const [, navigate] = useLocation();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -16,13 +19,15 @@ export default function CoachFeatureAction({ destinationId }: { destinationId: u
     setPending(true);
     setError("");
     try {
+      const expectedRoute = chefNavigationRoute(destinationId, creatorRequest);
       const result = await apiRequest("/api/coach/navigation", {
-        method: "POST", body: JSON.stringify({ destinationId }),
+        method: "POST", body: JSON.stringify({ destinationId,
+          ...(creatorRequest !== undefined ? { creatorRequest } : {}) }),
       }) as { destinationId?: unknown; route?: unknown };
-      if (result.destinationId !== destinationId || result.route !== destination.route) {
+      if (result.destinationId !== destinationId || result.route !== expectedRoute) {
         throw new Error("This recommendation is unavailable. Please ask Chef again.");
       }
-      navigate(destination.route);
+      navigate(expectedRoute);
     } catch (failure) {
       const message = failure instanceof Error ? failure.message : "";
       setError(message.includes("403")

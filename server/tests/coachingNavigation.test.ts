@@ -144,4 +144,30 @@ describe("server-validated Chef navigation", () => {
     expect((await request(app()).post("/api/coach/navigation").send({ destinationId: "sushi_creator" })).status).toBe(404);
     expect(getCornerCapabilities(["all"]).some(cap => cap.id === "athlete_beverage_creator")).toBe(false);
   });
+
+  test("Create a Dish handoff returns only an encoded editable idea after authentication", async () => {
+    const creatorRequest = { destinationId: "create_a_dish", idea: "Chicken soup & herbs? #1" };
+    const response = await request(app()).post("/api/coach/navigation")
+      .send({ destinationId: "create_a_dish", creatorRequest });
+    expect(response.status).toBe(200);
+    const route = new URL(response.body.route, "https://app.example");
+    expect(route.pathname).toBe("/lifestyle/create-a-dish");
+    expect([...route.searchParams.keys()]).toEqual(["idea"]);
+    expect(route.searchParams.get("idea")).toBe(creatorRequest.idea);
+    expect((await request(app(null)).post("/api/coach/navigation")
+      .send({ destinationId: "create_a_dish", creatorRequest })).status).toBe(401);
+  });
+
+  test.each([
+    { destinationId: "sushi_creator", creatorRequest: { destinationId: "create_a_dish", idea: "Soup" } },
+    { destinationId: "create_a_dish", creatorRequest: { destinationId: "create_a_dish", idea: "" } },
+    { destinationId: "create_a_dish", creatorRequest: { destinationId: "create_a_dish", idea: "x".repeat(601) } },
+    { destinationId: "create_a_dish", creatorRequest: { destinationId: "create_a_dish", idea: "Soup\n" } },
+    { destinationId: "create_a_dish", creatorRequest: { destinationId: "create_a_dish", idea: "Soup", generate: true } },
+    { destinationId: "create_a_dish", creatorRequest: { destinationId: "create_a_dish", idea: "Soup", redirect: "https://evil.example" } },
+  ])("rejects unsupported or unsafe request metadata %j", async body => {
+    const response = await request(app()).post("/api/coach/navigation").send(body);
+    expect(response.status).toBe(400);
+    expect(response.body).not.toHaveProperty("route");
+  });
 });

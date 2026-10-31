@@ -65,7 +65,8 @@ export default function CoachBubble({
         <div className="bg-zinc-900 border border-white/10 rounded-2xl rounded-tl-sm px-4 py-3.5 text-sm text-white/90 leading-relaxed space-y-3">
           {compact ? <>
             <p className="whitespace-pre-wrap">{structured.presentation!.message}</p>
-            {showButton && <CoachFeatureAction destinationId={target} />}
+            {showButton && <CoachFeatureAction destinationId={target}
+              creatorRequest={structured.presentation?.creatorRequest} />}
           </> : <>
             {[structured.whatIFound, structured.whatItCouldMean].filter(Boolean).map((text, i) => <p key={i}>{text}</p>)}
             {(planWhy || planItems.length > 0) && (

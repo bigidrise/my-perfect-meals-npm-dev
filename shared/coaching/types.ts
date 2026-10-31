@@ -14,6 +14,7 @@ export interface ConciergePresentation {
   kind: "concierge";
   message: string;
   destinationId?: import("./navigation").CoachDestinationId;
+  creatorRequest?: import("./creatorRequest").ChefCreatorRequest;
 }
 
 export type CoachSpecialization = "corner" | "pregnancy" | "pediatric";
