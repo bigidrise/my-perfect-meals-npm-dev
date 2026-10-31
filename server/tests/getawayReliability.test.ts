@@ -65,6 +65,94 @@ test("Heathrow uses existing external discovery without fabricated terminals or 
   expect(get).toHaveBeenCalledTimes(2);
 });
 
+test.each([
+  "I'm at Heathrow Airport in London, and I'm hungry. I don't know what restaurants are available or what I should eat. Can you help me find something that fits my nutrition goals?",
+  "Heathrow Airport, London, United Kingdom",
+  "Heathrow Airport, London, U.K.",
+])("Heathrow lookup separates conversational help and equivalent country spelling: %s", async query => {
+  places([place("Heathrow Airport")]);
+  const result = await discoverVenue(query);
+  expect(result).toMatchObject({ found: true, source: "google", name: "Heathrow Airport", zones: [] });
+  expect(result.venueId).toBeUndefined();
+  expect(get).toHaveBeenCalledTimes(2);
+  const searchQuery = get.mock.calls[0][1].params.query;
+  expect(searchQuery).not.toMatch(/hungry|nutrition goals|what restaurants/i);
+});
+
+test("London qualifier can be proven by existing details rather than guessed from Hounslow", async () => {
+  get.mockResolvedValueOnce({ data: { status: "OK", results: [
+    place("Heathrow Airport", "heathrow", ["airport"], "Hounslow TW6 1QG, UK"),
+  ] } });
+  get.mockResolvedValueOnce({ data: { status: "OK", result: {
+    types: ["airport"],
+    address_components: [
+      { long_name: "Greater London", short_name: "Greater London" },
+      { long_name: "United Kingdom", short_name: "GB" },
+    ],
+  } } });
+  expect(await discoverVenue("Heathrow Airport, London, United Kingdom"))
+    .toMatchObject({ found: true, placeId: "heathrow", zones: [] });
+  expect(get).toHaveBeenCalledTimes(2);
+  expect(get.mock.calls[1][1].params.fields).toBe("types,name,address_components");
+});
+
+test.each(["Paris, France", "Hounslow, UK"])(
+  "a named Heathrow result cannot erase an unproven London qualifier: %s", async address => {
+    places([place("Heathrow Airport", "heathrow", ["airport"], address)]);
+    expect(await discoverVenue("Heathrow Airport, London, United Kingdom"))
+      .toMatchObject({ found: false, zones: [] });
+  });
+
+test.each(["United States", "USA", "U.S.", "US"])("country constraint %s is retained, not filtered as the pronoun us", async country => {
+  places([place("Sunrise Airport", "sunrise", ["airport"], "London, Canada")]);
+  expect((await discoverVenue(`Sunrise Airport, London, ${country}`)).found).toBe(false);
+});
+
+test("country normalization does not turn conversational help us into a geographic constraint", async () => {
+  expect(await discoverVenue("Can you help us at DFW Airport?"))
+    .toMatchObject({ source: "catalog", venueId: "dfw-airport" });
+  expect(get).not.toHaveBeenCalled();
+});
+
+test("full conversational wrapper does not block an exact curated venue", async () => {
+  const result = await discoverVenue("I'm at DFW Airport, and I'm hungry. What can I eat that fits my nutrition goals?");
+  expect(result).toMatchObject({ source: "catalog", venueId: "dfw-airport" });
+  expect(get).not.toHaveBeenCalled();
+});
+
+test("same-name places missing a verified city stay ambiguous, not first-result defaults", async () => {
+  places([place("Sunrise Airport", "one", ["airport"], "York, UK"),
+    place("Sunrise Airport", "two", ["airport"], "Bath, UK")]);
+  expect((await discoverVenue("Sunrise Airport, London, UK")).found).toBe(false);
+  expect(get).toHaveBeenCalledTimes(1);
+});
+
+test("provider denial is retryable and is not cached as a missing venue", async () => {
+  get.mockResolvedValueOnce({ data: { status: "REQUEST_DENIED", error_message: "PRIVATE_PROVIDER_DETAIL" } });
+  expect(await discoverVenue("Heathrow Airport")).toMatchObject({
+    found: false, uncertainty: expect.stringContaining("temporarily unavailable"),
+  });
+  places([place("Heathrow Airport")]);
+  expect((await discoverVenue("Heathrow Airport")).found).toBe(true);
+  expect(get).toHaveBeenCalledTimes(3);
+});
+
+test("discovery diagnostics keep static provider reasons and correlation, not queries or raw errors", async () => {
+  const info = jest.spyOn(console, "info").mockImplementation(() => {});
+  const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+  try {
+    get.mockResolvedValueOnce({ data: { status: "REQUEST_DENIED", error_message: "PRIVATE_PROVIDER_DETAIL" } });
+    await discoverVenue("PRIVATE_MEMBER_QUERY", "11111111-1111-4111-8111-111111111111");
+    get.mockRejectedValueOnce(new Error("PRIVATE_SECRET_IN_PROVIDER_URL"));
+    await discoverVenue("PRIVATE_MEMBER_QUERY");
+    const logs = [...info.mock.calls, ...warn.mock.calls].flat().join("\n");
+    expect(logs).toContain("provider_status=REQUEST_DENIED");
+    expect(logs).toContain("outcome=provider_unavailable");
+    expect(logs).toContain("request_id=11111111-1111-4111-8111-111111111111");
+    expect(logs).not.toContain("PRIVATE_");
+  } finally { info.mockRestore(); warn.mockRestore(); }
+});
+
 test.each(["Unknown Sunrise Airport", "Unknown Sunrise Resort", "The Farmhouse Kitchen and Grill"])(
   "an unrelated provider result cannot silently satisfy %s", async query => {
     places([place("Dallas/Fort Worth International Airport", "dfw")]);

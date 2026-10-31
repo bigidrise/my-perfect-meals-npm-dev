@@ -18,6 +18,29 @@ export function venueIdentityTokens(text: string): string[] {
   return normalizeVenueIdentity(text).split(/\s+/).filter(token => token && !SEARCH_FILLER.has(token));
 }
 
+/** Bounded conversational wrapper removal, not a guessed venue or geocoder.
+ * Keep location qualifiers and conflicting names; discard only a separate
+ * first-person food/help clause. In particular, do not split St. Louis or U.K. */
+export function venueSearchIdentity(text: string): string {
+  return text.trim()
+    .replace(/^(?:i(?:['’]m| am)|we(?:['’]re| are))\s+(?:currently\s+)?(?:at|in)\s+/i, "")
+    .split(/(?:[.!?;]\s+|,\s*(?:and\s+)?)(?=(?:i|im|we|what|where|can|could|how)\b)/i)[0]
+    .replace(/\s+and\s+(?:i(?:['’]m| am)\s+)?hungry\b.*$/i, "")
+    .trim();
+}
+
+/** Equivalent country spellings only, not geographic inference (e.g. England
+ * is not interchangeable with every location in the UK). */
+export function venueLookupTokens(text: string): string[] {
+  // Preserve uppercase country US without turning conversational "help us"
+  // into a country constraint; lower-case "us" remains ordinary filler.
+  const canonical = normalizeVenueIdentity(text.replace(/\bUS\b/g, "unitedstates"))
+    .replace(/\b(?:united kingdom|great britain|u k)\b/g, "uk")
+    .replace(/\b(?:united states(?: of america)?|u s a|u s|usa)\b/g, "unitedstates")
+    .replace(/\b(?:united arab emirates|u a e)\b/g, "uae");
+  return venueIdentityTokens(canonical);
+}
+
 export function hasNamedVenueIdentity(text: string): boolean {
   const categories = new Set(["airport", "terminal", "international", "hotel", "resort", "cruise",
     "ship", "theme", "park", "stadium", "arena", "state", "fair", "restaurant", "city", "location", "venue"]);
@@ -25,14 +48,15 @@ export function hasNamedVenueIdentity(text: string): boolean {
 }
 
 export function findVenueByIdentity(text: string): VenueSearchResult | null {
-  const query = ` ${normalizeVenueIdentity(text)} `;
-  if (!hasNamedVenueIdentity(text)) return null;
-  const requested = venueIdentityTokens(text);
+  const identity = venueSearchIdentity(text);
+  const query = ` ${normalizeVenueIdentity(identity)} `;
+  if (!hasNamedVenueIdentity(identity)) return null;
+  const requested = venueLookupTokens(identity);
   const matches = VENUE_CATALOG.filter(venue => {
     if (!venue.active) return false;
     const identities = [venue.name, ...venue.aliases].map(normalizeVenueIdentity);
     if (!identities.some(identity => identity && query.includes(` ${identity} `))) return false;
-    const supported = new Set(venueIdentityTokens([
+    const supported = new Set(venueLookupTokens([
       venue.name, ...venue.aliases, venue.city, venue.state,
       ...venue.zones.filter(zone => zone.active).map(zone => zone.name),
     ].join(" ")));

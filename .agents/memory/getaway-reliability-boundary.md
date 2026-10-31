@@ -9,6 +9,12 @@ description: Separate destination identity from menu evidence, with a Developmen
 
 **How to apply:** Keep destination evidence and menu evidence separate across discovery, generated responses, UI labels, and restored suggestions. Do not treat model knowledge or a place-directory match as verified menu information. Preserve dietary and clinical protections; no evidence label grants safety clearance.
 
+**Rule:** Venue identity matching must exclude separate food-help clauses and recognize equivalent country spellings without dropping geographic constraints. A wider-city qualifier needs provider evidence, not assumptions based on a famous venue's name.
+
+**Why:** The user approved a Development repair after both conversational and precise Heathrow searches failed under literal all-word matching.
+
+**How to apply:** Use the existing lookup/details path to establish identity and geography; retain ambiguity and conflicting-location rejection. Provider denial is an availability failure, not proof the user supplied a bad name or that the venue does not exist. Mocked lookup success does not establish live provider availability.
+
 **Rule:** Preserve cuisine-based recommendations without a current menu when the member's existing ingredient-evidence requirements permit them. A verified menu is not universally required. Connect an explicitly selected dining venue to existing restaurant intelligence, not the entire destination to a guessed cuisine. Keep advice-only content separate from validated, actionable meal cards.
 
 **Why:** The user explicitly approved Development restaurant/Getaway alignment to reuse existing cuisine intelligence and meal actions, not replace it with a menu-only system or rebuild the platform.

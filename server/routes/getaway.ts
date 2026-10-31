@@ -30,7 +30,7 @@ router.get("/venues/discover", async (req, res) => {
     return res.status(400).json({ error: "q is required" });
   }
   try {
-    const result = await discoverVenue(q);
+    const result = await discoverVenue(q, (req as any).id);
     res.json(result);
   } catch (err: any) {
     console.error("[Getaway] Venue discover error:", err);
