@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import type { CoachCornerQuestion } from "@shared/coachCornerTypes";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { isChefConversationEnabled } from "@/lib/chefCornerExperience";
 import CoachBubble, {
   ProfessionalBoundaryNotice, isConciergeMessage, type CoachStructuredResponse,
 } from "@/components/coaching/CoachBubble";
@@ -140,7 +141,7 @@ function MessageRow({
       {isUser ? (
         <UserBubble content={msg.content!} />
       ) : (
-            <CoachBubble structured={msg.structured!} enableConcierge={import.meta.env.DEV} />
+            <CoachBubble structured={msg.structured!} enableConcierge={isChefConversationEnabled()} />
       )}
       {/* ⋯ row — sits below each bubble, aligned to match the bubble side */}
       <div className={`flex ${isUser ? "justify-end pr-1" : "justify-start pl-1"} mt-0.5`}>
@@ -323,6 +324,7 @@ interface BootstrapData {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function CoachsCorner() {
+  const conversationEnabled = isChefConversationEnabled();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
 
@@ -368,7 +370,7 @@ export default function CoachsCorner() {
     if (!bootstrapQuery.data || messagesInitialized.current) return;
     const { profileCompleted, conversationId: convId, messages: dbMessages, hasOlderMessages: hasOlder } = bootstrapQuery.data;
 
-    if (!profileCompleted) {
+    if (!conversationEnabled && !profileCompleted) {
       setLocation("/coach-corner/intake");
       return;
     }
@@ -377,7 +379,7 @@ export default function CoachsCorner() {
     if (convId) setConversationId(convId);
     setMessages(dbMessages.map(mapDbMessage));
     setHasOlderMessages(hasOlder ?? false);
-  }, [bootstrapQuery.data, setLocation]);
+  }, [bootstrapQuery.data, setLocation, conversationEnabled]);
 
   // Profile sync: runs on every bootstrap fetch (including re-fetches after a
   // profile patch). Kept separate from the one-shot messages effect so the
@@ -390,6 +392,7 @@ export default function CoachsCorner() {
 
   // ── Async follow-up delivery ───────────────────────────────────────────────
   useEffect(() => {
+    if (conversationEnabled) return;
     const data = bootstrapQuery.data;
     if (!data?.dueFollowup?.id || followupFired.current) return;
     if (!messagesInitialized.current) return;
@@ -415,7 +418,7 @@ export default function CoachsCorner() {
         // Non-fatal — follow-up will arrive on next cron tick
       }
     })();
-  }, [bootstrapQuery.data]);
+  }, [bootstrapQuery.data, conversationEnabled]);
 
   // ── Close ⋯ menu on outside click ─────────────────────────────────────────
   useEffect(() => {
@@ -428,7 +431,7 @@ export default function CoachsCorner() {
   // ── Questions (loaded on demand for profile sheet) ─────────────────────────
   const questionsQuery = useQuery<{ questions: CoachCornerQuestion[] }>({
     queryKey: ["/api/coach-corner/questions"],
-    enabled: showProfile,
+    enabled: !conversationEnabled && showProfile,
   });
 
   // ── Auto-scroll to bottom on new messages ──────────────────────────────────
@@ -655,7 +658,7 @@ export default function CoachsCorner() {
   // ─── Render ────────────────────────────────────────────────────────────────
 
   const bootstrapLoading = bootstrapQuery.isLoading;
-  const bootstrapReady = bootstrapQuery.isSuccess && (bootstrapQuery.data?.profileCompleted ?? false);
+  const bootstrapReady = bootstrapQuery.isSuccess && (conversationEnabled || (bootstrapQuery.data?.profileCompleted ?? false));
   const hasMessages = messages.length > 0;
 
   return (
@@ -707,7 +710,7 @@ export default function CoachsCorner() {
                 Clear
               </button>
             )}
-            <button
+            {!conversationEnabled && <button
               onClick={() => setShowProfile(true)}
               disabled={!bootstrapReady}
               className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-white/8 border border-white/15 text-white/70 text-xs hover:text-white hover:bg-white/12 transition-colors disabled:opacity-40 disabled:cursor-default"
@@ -715,7 +718,7 @@ export default function CoachsCorner() {
             >
               <Settings className="w-3.5 h-3.5" />
               Edit profile
-            </button>
+            </button>}
           </div>
         </div>
 
@@ -746,7 +749,7 @@ export default function CoachsCorner() {
                 What's on your mind?
               </h2>
               <p className="text-sm text-white max-w-[240px] leading-relaxed drop-shadow-md">
-                Your data, your patterns — let's figure it out together.
+                {conversationEnabled ? "What can I help you with?" : "Your data, your patterns — let's figure it out together."}
               </p>
             </div>
           ) : (
@@ -820,14 +823,14 @@ export default function CoachsCorner() {
               <Send className="w-4 h-4 text-white" />
             </Button>
           </div>
-          {import.meta.env.DEV && messages.some(msg => msg.structured && isConciergeMessage(msg.structured)) &&
+          {isChefConversationEnabled() && messages.some(msg => msg.structured && isConciergeMessage(msg.structured)) &&
             <div className="mt-2"><ProfessionalBoundaryNotice /></div>}
         </div>
 
       </div>
 
       {/* Behavioral Profile sheet */}
-      <ProfileSheet
+      {!conversationEnabled && <ProfileSheet
         open={showProfile}
         onClose={() => setShowProfile(false)}
         profile={localProfile}
@@ -838,7 +841,7 @@ export default function CoachsCorner() {
           setLocation("/coach-corner/intake");
         }}
         isSaving={patchMutation.isPending}
-      />
+      />}
 
       {/* Clear conversation confirmation */}
       <Dialog open={showClearConfirm} onOpenChange={(v) => !v && setShowClearConfirm(false)}>
@@ -847,7 +850,9 @@ export default function CoachsCorner() {
             <DialogTitle className="text-white text-base">Clear this conversation?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-white/55 mt-1 leading-relaxed">
-            All messages will be permanently deleted. Your coaching profile stays intact — only the chat history is removed.
+            {conversationEnabled
+              ? "All messages will be permanently deleted. Only the chat history is removed."
+              : "All messages will be permanently deleted. Your coaching profile stays intact — only the chat history is removed."}
           </p>
           <div className="flex gap-3 mt-5">
             <button

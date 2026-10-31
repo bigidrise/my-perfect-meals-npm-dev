@@ -22,6 +22,7 @@ import { sql } from "drizzle-orm";
 import { ReasoningResultSchema, CoachResponseSchema, ConciergeResponseSchema, ConciergeMessageSchema, type ConciergeDecision } from "../../../shared/coaching/schemas";
 import { CHEF_CONCIERGE_REVISION, conciergeRenderingInstructions } from "./conciergeInstructions";
 import { CONCIERGE_GOAL_INSTRUCTIONS, validateConciergeGoal } from "./conciergeGoal";
+import { runConciergeConversation } from "./conciergeConversation";
 import { runSafetyGate, buildSafetyResponse } from "./safety";
 import { scoreConfidence, getConfidenceInstructions } from "./confidence";
 import { matchPatterns } from "./patternMatcher";
@@ -1285,7 +1286,7 @@ async function buildFallbackResponse(
 
 // ─── Engine ───────────────────────────────────────────────────────────────────
 
-export class CoachingEngine {
+export class StructuredCoachingEngine {
   async run(
     request: CoachRequest,
     req: Request
@@ -1498,6 +1499,42 @@ export class CoachingEngine {
       observerOutputs,
     }).catch((err: Error) => console.warn("[Engine] Memory extraction failed:", err.message));
 
+    return { ...response, conversationId, messageId: assistantMessageId };
+  }
+}
+
+/** Production and other specializations retain the historical engine unchanged. */
+export class CoachingEngine {
+  async run(request: CoachRequest, req: Request): Promise<CoachResponse & { conversationId: string; messageId: string }> {
+    if (process.env.NODE_ENV !== "development" || request.specialization !== "corner") {
+      return new StructuredCoachingEngine().run(request, req);
+    }
+    const adapter = getAdapter(request.specialization);
+    const subject = await adapter.loadSubject(req);
+    const safety = await runSafetyGate(request.userMessage, adapter.safetyRules);
+    const conversationId = await resolveConversation(request.conversationId, subject, request.specialization);
+    const confidence: ConfidenceAssessment = {
+      level: "low", coverageScore: 0, evidenceSatisfied: [], evidenceMissing: [],
+      hasConflict: false, suppressCausal: true,
+    };
+    let response: CoachResponse;
+    if (safety.triggered) {
+      response = buildSafetyResponse(safety) as CoachResponse;
+    } else {
+      const { history, rollingContext } = await loadConversationHistory(
+        conversationId, subject.ownerId, request.specialization,
+      );
+      const context = await adapter.loadAdditionalContext(subject);
+      response = await runConciergeConversation({
+        client: getOpenAI(), userMessage: request.userMessage, history, rollingContext,
+        context, tools: [...adapter.availableTools],
+        preferredLanguage: (req as any).authUser?.preferredLanguage,
+      });
+    }
+    const { assistantMessageId } = await persistTurn(
+      conversationId, subject, request.userMessage, response, [], [], confidence,
+      response.meta.redFlag ? "safety_escalation" : "conversation", {}, [],
+    );
     return { ...response, conversationId, messageId: assistantMessageId };
   }
 }

@@ -55,20 +55,21 @@ router.post("/message", requireAuth, async (req: Request, res: Response) => {
   const { specialization, message, conversationId } = parsed.data;
 
   // ── Server-side intake gate ────────────────────────────────────────────────
-  // The UI redirect is UX — this is the governance boundary.
-  // The engine depends on coach_profile_completed_at to know HOW to communicate
-  // with this person. Reject anyone who hasn't completed behavioral intake.
-  const [profile] = await db
-    .select({ completedAt: coachingProfiles.coachProfileCompletedAt })
-    .from(coachingProfiles)
-    .where(eq(coachingProfiles.userId, userId))
-    .limit(1);
+  // Historical intake governance remains unchanged in Production. Development's
+  // conversational engine does not read or require assessment results.
+  if (process.env.NODE_ENV !== "development") {
+    const [profile] = await db
+      .select({ completedAt: coachingProfiles.coachProfileCompletedAt })
+      .from(coachingProfiles)
+      .where(eq(coachingProfiles.userId, userId))
+      .limit(1);
 
-  if (!profile?.completedAt) {
-    return res.status(403).json({
-      error: "Coaching profile not completed",
-      code: "INTAKE_REQUIRED",
-    });
+    if (!profile?.completedAt) {
+      return res.status(403).json({
+        error: "Coaching profile not completed",
+        code: "INTAKE_REQUIRED",
+      });
+    }
   }
 
   try {
@@ -383,7 +384,9 @@ router.get("/bootstrap", requireAuth, async (req: Request, res: Response) => {
   try {
     // ── Phase 1: profile + conversation in parallel ────────────────────────
     const [profileRows, convResult] = await Promise.all([
-      db.select().from(coachingProfiles).where(eq(coachingProfiles.userId, userId)).limit(1),
+      process.env.NODE_ENV === "development"
+        ? Promise.resolve([])
+        : db.select().from(coachingProfiles).where(eq(coachingProfiles.userId, userId)).limit(1),
       db.execute<{
         id: string;
         specialization: string;
@@ -429,6 +432,7 @@ router.get("/bootstrap", requireAuth, async (req: Request, res: Response) => {
           `)
         : Promise.resolve({ rows: [] as any[] }),
       (async () => {
+        if (process.env.NODE_ENV === "development") return null;
         try {
           const { findDueFollowupForUser } = await import("../services/coaching/followupWorker");
           return await findDueFollowupForUser(userId);

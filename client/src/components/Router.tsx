@@ -1,5 +1,7 @@
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Switch, Route, useLocation } from "wouter";
+import ChefConversationEntry from "./coaching/ChefConversationEntry";
+import { isChefConversationEnabled } from "@/lib/chefCornerExperience";
 import { developmentComingSoonEnabled } from "@/lib/developmentComingSoon";
 import { BUILDER_MAP, type BuilderKey } from "@/lib/builderMap";
 const GeneralNutritionBuilder = lazy(() => import("@/pages/pro/GeneralNutritionBuilder"));
@@ -1247,9 +1249,9 @@ export default function Router() {
         <Route path="/procare-certified" component={CertifiedProfessionalUnlock} />
         <Route path="/procare-training" component={LegacyProCareTrainingRedirect} />
         <Route path="/ace-profile" component={lazy(() => import("@/pages/AceProfilePage"))} />
-        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/welcome" component={lazy(() => import("@/pages/CoachCornerWelcome"))} />}
-        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/intake" component={lazy(() => import("@/pages/CoachCornerIntake"))} />}
-        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/complete" component={lazy(() => import("@/pages/CoachCornerComplete"))} />}
+        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/welcome" component={isChefConversationEnabled() ? ChefConversationEntry : lazy(() => import("@/pages/CoachCornerWelcome"))} />}
+        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/intake" component={isChefConversationEnabled() ? ChefConversationEntry : lazy(() => import("@/pages/CoachCornerIntake"))} />}
+        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/complete" component={isChefConversationEnabled() ? ChefConversationEntry : lazy(() => import("@/pages/CoachCornerComplete"))} />}
         {COACHES_CORNER_ENABLED && <Route path="/coach-corner/home" component={lazy(() => import("@/pages/CoachsCorner"))} />}
         {COACHES_CORNER_ENABLED && <Route path="/coach-corner/progress-slowed" component={lazy(() => import("@/pages/CoachCornerProgressSlowed"))} />}
         {COACHES_CORNER_ENABLED && <Route path="/coach-corner/tired" component={lazy(() => import("@/pages/CoachCornerTired"))} />}

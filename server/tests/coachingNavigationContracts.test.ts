@@ -66,7 +66,7 @@ test("stored JSON actions survive restoration and chat is not cleared on navigat
   const button = source("client/src/components/coaching/CoachFeatureAction.tsx");
   expect(button).not.toMatch(/DELETE|localStorage|sessionStorage|generate|setMessages/);
   const page = source("client/src/pages/CoachsCorner.tsx");
-  expect(page).toContain('import.meta.env.DEV');
+  expect(page).toContain('isChefConversationEnabled()');
 });
 
 test("hydration prefill remains in its own flow; Chef navigation carries IDs only", () => {
