@@ -1532,6 +1532,7 @@ export class CoachingEngine {
         context, tools: [...adapter.availableTools],
         pendingRecommendation,
         preferredLanguage: (req as any).authUser?.preferredLanguage,
+        requestId: (req as any).id,
       });
     }
     const { assistantMessageId } = await persistTurn(

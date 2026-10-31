@@ -77,6 +77,12 @@ Ordinary conversation is a complete outcome without a navigation decision or goa
 
 **How to apply:** Separate the model-authored conversational continuation from its proposed action within the same call. Preserve a safe independent continuation when rejecting an action, never the unchecked feature pitch. Keep genuine provider/parsing failures explicit; do not fabricate conversational success, add repair calls or force a button. Creator execution inside chat remains outside the authorized click-to-open scope.
 
+Response wording requirements are state-specific, not a requirement that every turn contain every message variant. Recovering useful model-authored text must never authorize navigation; harmless feature mentions alone are not grounds to discard conversation.
+
+**Why:** The user explicitly required repairing the nullable wording contract without weakening the server-owned recommendation/confirmation sequence, adding repair calls, or repeating a prompt-only correction.
+
+**How to apply:** Exercise incomplete provider-valid wording through the actual decision/persistence/rendering path, not only fully populated fixtures. Retain privacy-safe reason codes and request correlation rather than raw responses. Passing mocked tests is not live-model acceptance.
+
 Progressive text must preserve the same clinical, action-validation and persistence authority as a completed reply. Do not expose raw structured tokens or simulate streaming by replaying an already completed response.
 
 **Why:** In the streaming request, preserving safety took priority over forcing a substantial protocol redesign. A visible provisional reply cannot be undone if the complete response later requires care escalation or rejection.
