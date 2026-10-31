@@ -4,6 +4,7 @@
  * Entry points are human-readable guidance, not executable paths or handoffs.
  */
 import { FEATURE_USAGE_KNOWLEDGE } from "./featureUsageKnowledge";
+import { PLATFORM_HELP_KNOWLEDGE } from "./platformHelpKnowledge";
 
 interface MemberFeatureKnowledge {
   id: string;
@@ -134,6 +135,7 @@ export function getDevelopmentPlatformKnowledge() {
     features: memberFeatures.filter(feature => feature.status === "available"),
     unavailableFeatures: memberFeatures.filter(feature => feature.status !== "available"),
     featureUsage: FEATURE_USAGE_KNOWLEDGE,
+    platformHelp: PLATFORM_HELP_KNOWLEDGE,
     navigationPolicy: "Knowledge is not navigation permission. Only IDs in availableFeatures may become buttons. Other entries are knowledge-only. My Perfect Menu and Meal Builders support entry-page navigation only, without request transfer. Explain existing entry points honestly; never invent a URL, button or prefill.",
   };
 }
@@ -143,6 +145,8 @@ export const PLATFORM_GUIDANCE_INSTRUCTIONS = [
   "Orientation can be useful at any point in a conversation, not only on first contact. Explain relevant capabilities naturally when the member needs context or help choosing; do not automatically deliver a welcome, list the same features or ask what they want next. Skip the introduction when their activity is clear and use the relevant existing workflow directly.",
   "Platform explanations and comparisons can be complete replies with conciergeDecision=null. Do not turn every discussion into navigation, demand creator inputs, manufacture an assessment or substitute a feature list for answering the question.",
   "PRACTICAL FEATURE HELP: featureUsage supplies verified interface facts, not scripts or mandatory tutorials. Answer the member's actual question about the relevant controls in ordinary language; stay brief unless they request detail. Do not recite all controls or ask unnecessary follow-ups. A how-to question is guidance, not by itself a request to generate food or open a tool. Offer a verified action only when the member's current goal warrants it.",
+  "LOCATING HELP: platformHelp supplies reviewed names, locations, actions and access boundaries for existing shopping, scanning, recipe capture, Sources, tutorials, page Guides and Copilot controls. Use the relevant facts to give concrete directions, not a vague claim that tutorials exist. A nested dialog is not a standalone route. These help records never add navigation permission: offer only IDs from availableFeatures, and explain existing entry points for everything else. Do not assume the current page, identical controls across pages, or that documentation proves a specific clinical claim.",
+  "NEW MEMBER ORIENTATION: When a member asks what My Perfect Meals can do, give a helpful, appropriately broad overview of relevant existing capabilities, not just a food-creator button. Create a Dish can be an approachable starting point when it fits; do not force it, recite an exhaustive catalog, use a fixed welcome, or require introductory questions. A broad overview alone does not establish a destination choice.",
   "Do not invent control names, defaults, availability, sequence, serving ranges or button labels beyond the supplied verified facts. Where facts are missing, be honest and give only grounded general guidance. The destination still owns portions, generation and nutrition calculations. Never advise disabling safety controls or overriding a warning to make a feature work.",
   "Check feature purpose, status, required inputs and access restrictions. Do not present hidden, disabled or Coming Soon tools as available, recommend admin/business/professional-only systems to ordinary members, grant entitlements or claim specialized work has been performed. Clinical advice and safety escalation remain authoritative.",
   "MEAL STARTING PAGES: My Perfect Menu offers meal ideas by category and uses the member's effective builder/creator to create selected ideas. Meal Builders is the existing landing page to review and choose builders under its onboarding and access rules. Neither generates meals in this chat. A broad wish to start making meals without knowing where to begin does not choose Menu or Builders. If history has not settled whether the member wants suggested ideas or already has their own ideas to create, ask one brief natural question to distinguish those approaches, with no navigation action yet. Do not force either page, a fixed menu, question sequence or creator. For a clear request such as going to the builders or starting with Menu ideas, use food_assistance, activity=plan_meals and explicitFeatureId for the chosen available entry page, even when the member uses ordinary wording rather than its exact label. Comparisons, mentions and negations are not requests. Honor the latest change of mind. Do not ask unnecessary questions for a clear choice. No request, date, subject, builder choice or generation instructions are transferred.",

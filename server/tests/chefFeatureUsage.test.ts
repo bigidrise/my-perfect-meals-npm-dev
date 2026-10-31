@@ -1,4 +1,5 @@
 import { getDevelopmentPlatformKnowledge } from "../services/coaching/platformKnowledge";
+import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
 
 const oldEnvironment = process.env.NODE_ENV;
 afterAll(() => { process.env.NODE_ENV = oldEnvironment; });
@@ -25,4 +26,27 @@ test("Development provides reviewed controls, not a canned Craving Creator tutor
 test("Production does not receive Development interface knowledge", () => {
   process.env.NODE_ENV = "production";
   expect(getDevelopmentPlatformKnowledge()).toBeUndefined();
+});
+
+test("platform help describes verified nested controls without extending navigation authority", () => {
+  process.env.NODE_ENV = "development";
+  const help = getDevelopmentPlatformKnowledge()!.platformHelp;
+  expect(help.shopping.route).toBe("/shopping-list-v2");
+  expect(help.shopping.controls.join(" ")).toContain("Product Scan");
+  expect(help.shopping.access).toContain("grocery_coach");
+  expect(help.recipeMaker.entryPoint).toContain("dashboard");
+  expect(help.recipeMaker.controls.join(" ")).toContain("Choose Photo");
+  expect(help.recipeMaker.controls.join(" ")).toContain("Camera");
+  expect(help.recipeMaker.route).toBeNull();
+  expect(help.sources.entryPoint).toContain("Sources & Medical Information");
+  expect(help.sources.limits.join(" ")).toContain("not proof");
+  expect(help.sources.route).toBeNull();
+  expect(help.tutorialsAndGuides.entryPoint).toContain("upper action-control area");
+  expect(help.tutorialsAndGuides.controls.join(" ")).toContain("does not render a Guide button");
+  expect(help.copilot.entryPoint).toContain("lower-right");
+  expect(help.copilot.controls.join(" ")).toContain("Autoplay");
+  expect(Object.keys(COACH_DESTINATIONS)).toHaveLength(17);
+  for (const id of ["shopping_list", "grocery_coach", "product_scan", "recipe_maker", "sources", "tutorials", "learn", "copilot"]) {
+    expect(COACH_DESTINATIONS).not.toHaveProperty(id);
+  }
 });

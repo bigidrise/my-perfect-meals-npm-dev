@@ -948,6 +948,14 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
 };
 
 export function getPageExplanation(pathname: string): PageExplanation | null {
+  if (import.meta.env.DEV && pathname === "/coach-corner/home") {
+    return {
+      ...PAGE_EXPLANATIONS[pathname],
+      title: "Ask Chef",
+      description: "Ask about food, nutrition concepts, or how to use existing My Perfect Meals features.",
+      spokenText: "Ask Chef is your conversational food and platform guide. You can ask a question directly, compare existing tools, or get help finding their controls. There is no coaching questionnaire here. Existing features still create your meals and handle their own access and safety checks. Any navigation recommendation needs your tap.",
+    };
+  }
   // First try exact match
   if (PAGE_EXPLANATIONS[pathname]) {
     return PAGE_EXPLANATIONS[pathname];

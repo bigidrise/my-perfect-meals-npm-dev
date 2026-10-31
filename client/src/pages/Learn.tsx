@@ -1,4 +1,6 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import { chefMemberText } from "@/lib/chefMemberBranding";
+import { isChefConversationEnabled } from "@/lib/chefCornerExperience";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import {
@@ -3113,12 +3115,29 @@ const LIBRARY_SECTIONS: LibrarySection[] = [
 ];
 
 function LibraryItem({
-  topic,
+  topic: originalTopic,
   initialExpanded = false,
 }: {
   topic: LibraryTopic;
   initialExpanded?: boolean;
 }) {
+  const topic = useMemo(() => ({
+    ...originalTopic,
+    title: chefMemberText(originalTopic.title),
+    subtitle: originalTopic.subtitle ? chefMemberText(originalTopic.subtitle) : originalTopic.subtitle,
+    content: {
+      ...originalTopic.content,
+      sections: originalTopic.content.sections.map(section => ({
+        ...section,
+        heading: chefMemberText(section.heading),
+        ...(section.text ? { text: originalTopic.id === "chefs-corner" &&
+          isChefConversationEnabled() && section.text.startsWith("The first time you open")
+          ? "Ask Chef opens directly into conversation. Ask about food, nutrition concepts, or existing platform tools; no coaching questionnaire is required."
+          : chefMemberText(section.text) } : {}),
+        ...(section.list ? { list: section.list.map(chefMemberText) } : {}),
+      })),
+    },
+  }), [originalTopic]);
   const [isExpanded, setIsExpanded] = useState(initialExpanded);
   const [mode, setMode] = useState<"read" | "listen">("read");
   const [showTranscript, setShowTranscript] = useState(false);

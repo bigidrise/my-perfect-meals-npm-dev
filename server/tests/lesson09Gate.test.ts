@@ -15,6 +15,8 @@
  * not yet completed.
  */
 
+// This content module includes browser-only Development branding.
+jest.mock("@/lib/chefCornerExperience", () => ({ isChefConversationEnabled: () => false }));
 import { LESSON_IDS, getPrerequisiteId } from "../routes/academyLessonIds";
 import { PLATFORM_MASTERY_LESSONS } from "@/data/platformMasteryLessons";
 
