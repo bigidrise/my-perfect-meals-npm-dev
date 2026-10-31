@@ -13,6 +13,55 @@ interface FeatureUsageKnowledge {
  * that have not been reviewed; the model must not fill gaps by guessing.
  */
 export const FEATURE_USAGE_KNOWLEDGE: Partial<Record<CoachDestinationId, FeatureUsageKnowledge>> = {
+  // client/src/pages/lifestyle/MyPerfectGetaway.tsx
+  my_perfect_getaway: {
+    descriptionInput: "Search location or venue, or choose one of the Tap & Go destinations.",
+    controls: ["A matched catalog venue can offer a location or dining-area picker.", "Uncertain locations can be refined and searched again."],
+    generationAction: "Follow the location prompts to request personalized food guidance.",
+    notes: ["Only select a location or dining area if offered; not every venue has a picker. Suggestions are not verified current menus, ingredients, preparation, availability or nutrition.", "No Chef destination-prefill handoff exists."],
+  },
+  // client/src/pages/MyPerfectMenu.tsx (the /foods-i-enjoy route)
+  my_perfect_menu: {
+    descriptionInput: "Pick an idea type: Breakfast, Lunch, Dinner or Snack.",
+    controls: ["Choose from the personalized ideas.", "Try 3 More requests different ideas.", "How It Works explains the workflow."],
+    generationAction: "Choose an idea and follow the destination's date and meal-slot prompts to create it in the existing builder.",
+    notes: ["The destination owns builder resolution, planning and generation; Chef does not select a builder or transfer a planning request."],
+  },
+  // client/src/pages/Builders.tsx
+  meal_builders: {
+    descriptionInput: "Review the builder choices on the Meal Builders landing page.",
+    controls: ["Choose an available builder card; eligibility and setup can restrict choices."],
+    generationAction: "Continue through the selected builder's own setup and meal workflow.",
+    notes: ["Do not select or activate a specialized clinical builder for the member, bypass onboarding, or promise locked access."],
+  },
+  // client/src/pages/SocialRestaurantGuide.tsx
+  restaurant_guide: {
+    descriptionInput: "Follow the guided ordering flow, beginning with what you are craving.",
+    controls: ["The introduction leads into the craving field.", "Later steps collect the restaurant and ZIP code."],
+    generationAction: "Follow the guided prompts to request restaurant meal guidance.",
+    notes: ["Do not promise Chef has transferred a craving or restaurant. Actual menu availability and accommodations require confirmation with the restaurant."],
+  },
+  // client/src/pages/RestaurantFinderPage.tsx
+  find_meals_near_me: {
+    descriptionInput: "Enter a ZIP code or use the location control.",
+    controls: ["Use my location requests device location.", "Search finds restaurants for the selected area."],
+    generationAction: "Search the chosen area, then review the restaurant results.",
+    notes: ["Location permission may be required. Discovery does not verify current menus or guarantee a particular dish."],
+  },
+  // client/src/pages/MyPerfectBuffetPage.tsx
+  my_perfect_buffet: {
+    descriptionInput: "Describe the foods actually available in the What's at the buffet? field, by typing or using its voice control.",
+    controls: ["Add by category is optional.", "Build My Plates requests plate options."],
+    generationAction: "Use Build My Plates after entering the available buffet foods.",
+    notes: ["The member reviews the options and logs what they actually ate; opening this page does not log consumption."],
+  },
+  // client/src/pages/lifestyle/GatheringsPage.tsx
+  my_perfect_gatherings: {
+    descriptionInput: "Start with What's the occasion? and choose the gathering situation.",
+    controls: ["The form changes with the selected situation.", "Servings and additional notes are available."],
+    generationAction: "Follow the situation-specific form before using the page's creation action.",
+    notes: ["Do not invent a universal sequence or promise Chef transferred event details. The destination owns food creation and safety checks."],
+  },
   // client/src/pages/craving-creator.tsx
   craving_creator: {
     descriptionInput: "A craving-description text area accepts typing or the existing voice input.",
