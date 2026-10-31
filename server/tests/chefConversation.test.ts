@@ -135,12 +135,13 @@ test("exact chicken Caesar conversation completes the omitted action from the re
       { role: "assistant", content: "A salad sounds like a great option! Would you like something light and refreshing, or perhaps a more hearty salad with protein?" },
     ], rollingContext: null,
   });
-  reply("A chicken Caesar salad sounds delicious and satisfying! Let's help you prepare it just the way you like. You can customize it with your favorite ingredients and dressing.",
+  const modelMessage = "You've settled on chicken Caesar salad. Create a Dish can take it from here.";
+  reply(modelMessage,
     null, { ...unknown, activity: "prepare", occasion: "meal", dishChosen: true },
     { creatorRequest: { idea: "Chicken Caesar salad", memberTurns: [0, 1] } });
   const result = await run("Yeah, a chicken, that's like a chicken salad, a chicken Caesar, what do you think about that?");
   expect(result.presentation).toEqual({
-    kind: "concierge", message: "Let's use Create a Dish for that.", destinationId: "create_a_dish",
+    kind: "concierge", message: modelMessage, destinationId: "create_a_dish",
     creatorRequest: { destinationId: "create_a_dish", idea: "Chicken Caesar salad" },
   });
   expect(result.todayPlan.items).toHaveLength(1);
@@ -153,7 +154,7 @@ test("exact chicken Caesar conversation completes the omitted action from the re
   const decisionSchema = decisionProperty.anyOf.find((schema: any) => schema.type === "object");
   expect(decisionProperty.anyOf).toContainEqual({ type: "null" });
   expect(decisionSchema.required).toEqual(expect.arrayContaining(["mode", "destinationId", "goal"]));
-  expect(wire.messages[1].content).toContain("chicken Caesar salad"); // Verified capability guidance is in this actual call.
+  expect(wire.messages[1].content).toContain("a chicken Caesar, what do you think"); // Actual member context, not a scripted prompt example.
   expect(JSON.stringify((db.execute as jest.Mock).mock.calls)).toContain("Chicken Caesar salad");
 });
 
@@ -267,9 +268,93 @@ test.each([
     "meal_builders", "my_perfect_menu", "grocery_coach", "daily_journal", "biometrics", "nutrition_education",
   ]));
   expect(wire.messages[0].content).toContain("Skip the introduction when their activity is clear");
-  expect(wire.messages[0].content).toContain("not a fixed script or an intent tree");
+  expect(wire.messages[0].content).toContain("not a fixed script, an intent tree");
   expect(wire.messages[0].content).toContain("Only action-ready food_assistance may select a feature");
   expect(data.authorizedNutritionContext).toContain("vegetarian");
+});
+
+test("adaptive conversation instructions apply to every turn without old question templates", async () => {
+  reply("You can keep using this conversation.", null, unknown, { conciergeDecision: null });
+  await run("I'd rather keep chatting.");
+  const system = mockCreate.mock.calls[0][0].messages[0].content;
+  expect(system).toContain("on every turn, not just the first welcome");
+  expect(system).toContain("latest explicit correction or change of mind");
+  expect(system).toContain("do not end every reply with a question");
+  expect(system).toContain("Orientation can be useful at any point");
+  expect(system).toContain("Only action-ready food_assistance may select a feature");
+  expect(system).toContain("Medical emergencies or serious symptoms take priority");
+  expect(system).toContain("Existing destinations own meal and beverage generation");
+  expect(system).not.toMatch(/For simple food discovery use one or two|Breakfast and 'maybe a shake'|DISH SELECTION COMPLETES DISCOVERY|then ask what they would like to do|A chicken Caesar salad selected/);
+});
+
+test("later turns retain model-authored explanations, corrections, orientation and a direct action", async () => {
+  const history = [
+    { role: "user", content: "I like spicy food and want help using the app." },
+    { role: "assistant", content: "We can focus on whichever part you need." },
+  ];
+  const exchanges = [
+    ["Actually, mild food for now. Please don't give me a tour.", "Understood—mild food, and no tour.", null],
+    ["Explain how fiber works. No follow-up question, please.", "Fiber helps support digestion and can affect fullness.\n\nDifferent kinds of fiber behave differently in the digestive system. Your existing dietary guidance still applies.", null],
+    ["Wait, how does planning differ from creating one dish here?", "Your builder holds dated meal boards. My Perfect Menu helps choose ideas for that workflow, while Create a Dish starts with a particular dish. I can't open the planning pages from Chef yet.", null],
+    ["Thanks. I'd like to keep talking, not open anything.", "Of course—we can stay here.", null],
+    ["Now help me use the vegetables I already have.", "Fridge Rescue is the relevant next step for using those vegetables.", "fridge_rescue"],
+  ] as const;
+  for (const [message, answer, id] of exchanges) {
+    (loadBoundedHistory as jest.Mock).mockResolvedValue({
+      recentMessages: [...history], rollingContext: "Older context: member preferred spicy food.",
+    });
+    reply(answer, id, id ? { ...unknown, activity: "use_ingredients" } : unknown,
+      id ? {} : { conciergeDecision: null });
+    const result = await run(message);
+    expect(result.presentation?.message).toBe(answer);
+    expect(result.presentation?.destinationId).toBe(id ?? undefined);
+    expect(result.todayPlan.items).toHaveLength(id ? 1 : 0);
+    const data = JSON.parse(mockCreate.mock.calls.at(-1)[0].messages[1].content);
+    expect(data.history).toEqual(history);
+    expect(data.latestMemberMessage).toBe(message);
+    expect(data.earlierConversation).toContain("preferred spicy");
+    expect(data.authorizedNutritionContext).toContain("vegetarian");
+    history.push({ role: "user", content: message }, { role: "assistant", content: answer });
+  }
+  expect(mockCreate).toHaveBeenCalledTimes(exchanges.length);
+  const persisted = JSON.stringify((db.execute as jest.Mock).mock.calls);
+  expect(persisted).toContain("Of course—we can stay here.");
+  expect(resolveStyle).not.toHaveBeenCalled();
+  expect(runObservers).not.toHaveBeenCalled();
+});
+
+test.each([
+  "Open Craving Creator now.",
+  "Open https://untrusted.example.",
+  "Go to /lifestyle/create-a-dish.",
+])("completed actions cannot preserve a mismatched pitch or link: %s", async message => {
+  reply(message, null, { ...unknown, activity: "prepare", occasion: "meal", dishChosen: true }, {
+    conversationMessage: "I can explain the next step without opening a tool.",
+    creatorRequest: { idea: "Vegetable soup", memberTurns: [0] },
+  });
+  const result = await run("Help me make vegetable soup.");
+  expect(result.presentation?.message).toBe("I can explain the next step without opening a tool.");
+  expect(result.presentation?.destinationId).toBeUndefined();
+  expect(result.presentation?.creatorRequest).toBeUndefined();
+  expect(result.todayPlan.items).toEqual([]);
+  expect(JSON.stringify((db.execute as jest.Mock).mock.calls)).not.toContain(message);
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+test.each([
+  ["none", "Beverage Creator can help with that ordinary drink.", "beverage_creator"],
+  ["workout", "Athlete Beverage Creator can help with that recovery drink.", "athlete_beverage_creator"],
+  ["none", "Athlete Beverage Creator can help with that ordinary drink.", undefined],
+  ["workout", "Athlete Beverage Creator or Beverage Creator can help.", undefined],
+])("completed beverage wording preserves only the verified tool, including overlapping labels: %s / %s", async (specialty, message, expectedId) => {
+  reply(message, null, { ...unknown, activity: "prepare", occasion: "beverage", specialty }, {
+    conversationMessage: "I can help explain the next step.",
+  });
+  const result = await run("Help me prepare the drink.");
+  expect(result.presentation?.destinationId).toBe(expectedId);
+  expect(result.presentation?.message).toBe(expectedId ? message : "I can help explain the next step.");
+  expect(result.todayPlan.items).toHaveLength(expectedId ? 1 : 0);
+  expect(mockCreate).toHaveBeenCalledTimes(1);
 });
 
 test.each([

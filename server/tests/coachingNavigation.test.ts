@@ -84,7 +84,10 @@ describe("server-validated Chef navigation", () => {
       expect(cap.description).toContain(`Verified destination: ${cap.route}`);
       expect(cap.description).toContain("destination guards still apply");
     }
-    expect(caps.find(cap => cap.id === "create_a_dish")?.description).toContain("chicken Caesar salad");
+    const dishDescription = caps.find(cap => cap.id === "create_a_dish")?.description;
+    expect(dishDescription).toContain("specific dish selected for preparation help in context");
+    expect(dishDescription).toContain("Mere dish discussion");
+    expect(dishDescription).not.toContain("chicken Caesar salad");
     expect(caps.find(cap => cap.id === "beverage_creator")?.description).toContain("not manufacture/reuse");
     expect(caps.some(cap => cap.id === "meal_planning" || cap.id === "clinical_hubs")).toBe(false);
   });

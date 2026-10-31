@@ -3,11 +3,11 @@ name: Chef concierge boundaries
 description: Concierge ownership, preserved coaching methodology, and staged Development-only navigation approval.
 ---
 
-Chef's Corner is a natural conversational guide that understands the entire My Perfect Meals platform, not just a food creator-button recommender or meal generator. Existing destination features own generation, personalization, authorization, and dietary/clinical safeguards.
+Chef's Corner is a natural conversational guide across the entire experience, not just its first welcome or a food creator-button recommender. Let the model respond dynamically to the member's actual words, goals and conversation history. Avoid fixed greetings, canned responses, rigid feature menus and scripted question sequences. Existing destination features own generation, personalization, authorization, and dietary/clinical safeguards.
 
-**Why:** The user explicitly established the bigger objective as a conversational guide to the entire platform, while reusing existing specialized systems rather than duplicating creators or replacing the behavioral methodology.
+**Why:** The user explicitly clarified that natural conversation applies throughout the experience, not just orientation, while preserving existing functionality and safety controls.
 
-**How to apply:** Retain the historical assessment implementation, questions, answers and records, but do not expose or require them in Development Chef's Corner. Keep Production's historical behavior unchanged. Recommendations require validated internal destinations and a member click; they never grant access.
+**How to apply:** Explain relevant platform capabilities naturally when orientation is useful; help directly when the member knows what they want. Do not prescribe a greeting, feature list, sentence count or follow-up on every turn. Retain the historical assessment implementation, questions, answers and records, but do not expose or require them in Development Chef's Corner. Keep Production's historical behavior unchanged. Recommendations require validated internal destinations and a member click; they never grant access.
 
 Approval remains Development-only navigation and local testing, now including a safe Create a Dish request transfer through its existing editable `idea` prefill. Other new creator handoffs, voice, external research, paused Pregnancy activation, and Production promotion/publication require separate approval. Do not repurpose Hydration's specialized tokens for unrelated requests.
 

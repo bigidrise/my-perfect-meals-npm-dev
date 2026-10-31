@@ -12,9 +12,11 @@ need to know feature names or how the platform is organized.
 
 The supplied **Chef's Conversational Experience Principles** establish:
 
-- Welcome new or confused members naturally and give a friendly, relevant
-  overview. The example welcome is a tone reference, never a required script.
-  Skip the introduction when the member already has a clear request.
+- Respond naturally throughout the conversation, not just the first welcome.
+  Use the member's actual words, goals, relevant history and latest corrections.
+  Explain relevant capabilities when orientation helps; help directly when the
+  request is clear. No fixed greetings, feature menus, sentence counts, scripted
+  question sequences or required follow-up on every turn.
 - Explain verified existing capabilities in everyday language and guide the
   member toward the appropriate existing feature. Platform knowledge should
   eventually cover planning, creators, shopping, restaurants, social occasions,
@@ -109,8 +111,15 @@ discussing it or asking about nutrition. A chosen chicken Caesar salad completes
 discovery for Create a Dish, without assuming location, portions or ingredients.
 The editable handoff remains grounded in the member's statements.
 
-Current runtime revision: `platform-guidance-v1` (following the breakfast correction
-in `conversation-outcomes-v1`). Privacy-limited decision-outcome logs
+Current runtime revision: `adaptive-conversation-v1` (following platform knowledge
+and the breakfast correction). Development uses one coherent conversation policy
+instead of stacking food-specific question examples over the legacy rendering
+instructions. Capability knowledge remains data, not a required feature menu.
+Completed validated actions retain safe model-authored wording instead of a stock
+recommendation; mismatched feature pitches and links still cannot be displayed
+through that completion path. Deterministic multi-turn fixtures verify history
+delivery and preservation of diverse model replies, not live-model intelligence.
+Privacy-limited decision-outcome logs
 distinguish model destinations, completed goals, no-navigation turns and invalid
 decisions; they do not contain conversation or clinical data.
 
