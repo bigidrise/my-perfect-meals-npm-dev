@@ -534,6 +534,12 @@ export async function runReasoningPass(params: {
       "nutrition_education: wants an explanation or facts. Answer the actual question with useful general nutrition science, no forced navigation; destinationId=null.",
       "behavioral_coaching: asks for behavior support or personalized nutrition-pattern interpretation. Use the existing evidence, assessment, and coaching methodology; destinationId=null.",
       "clarification: genuinely unresolved intent needs a useful natural question; destinationId=null. Do not ask unnecessary questions for a clear request.",
+      "NATURAL DISCOVERY: Hunger or 'I don't know what I want' is not a request to cook, dine out, shop, or use ingredients. When a missing preference would change the destination, use clarification with destinationId=null rather than guessing a tool.",
+      "Ask one useful question at a time when practical. Use relevant recent history and earlier context to retain developing preferences and avoid asking answered questions; the latest explicit change wins. There is no required number or sequence of questions.",
+      "Discover only what is needed for useful help: for example, savory -> burger still may leave making versus finding unresolved; burger + wanting to go out without a known restaurant fits Find Meals Near Me. A clear dedicated-creator request such as sushi, or an explicitly requested available feature, needs no extra discovery.",
+      "Recommend Fridge Rescue when explicitly requested, or for an expressed wish to use available ingredients or another grounded ingredient-use need. Hunger, indecision, eating at home, or general meal planning alone is insufficient. Broad applicable-situation labels in the context snapshot are not evidence of that need; use the specific AVAILABLE CONCIERGE FEATURES descriptions.",
+      "If the member wants suggestions instead of more questions, offer a few practical food ideas without assuming where/how they will eat; food_assistance with destinationId=null is valid. Do not loop through clarification indefinitely or list platform tools as substitutes for food suggestions.",
+      "Questions about meal prep, macros, or how to use platform tools can be educational: explain the process first using known capabilities, do not invent capabilities or force a destination. Detailed education and requested behavioral coaching remain available.",
       "For ordinary food assistance, education, and clarification, do NOT invent psychological interpretations, nutrient deficiencies, or discuss absent logs/check-ins just because data confidence is low.",
       "A word such as 'craving' does not establish emotional eating. Interest in sushi is not a nutritional symptom. Dedicated sushi/dessert/beverage creators take precedence when appropriate; education about those foods remains conversational.",
       "Assessment and behavioral signals shape communication, not the subject of every answer. Reinforce progress only when relevant to this request.",
@@ -709,6 +715,8 @@ export async function runRenderingPass(params: {
   availableTools: Array<{ id: string; label: string; featureTarget: string; description: string }>;
   specialization: string;
   preferredLanguage?: string;
+  history?: Array<{ role: string; content: string }>;
+  rollingContext?: string;
 }): Promise<CoachResponse> {
   const openai = getOpenAI();
 
@@ -716,6 +724,15 @@ export async function runRenderingPass(params: {
   const decisionResult = ConciergeDecisionSchema.safeParse(params.reasoning.conciergeDecision);
   const decision = conciergeEnabled && decisionResult.success ? decisionResult.data : undefined;
   const nonBehavioral = conciergeEnabled && decision?.mode !== "behavioral_coaching";
+  // Reuse the already-loaded bounded continuity, not another query or model call.
+  const conversationContext = conciergeEnabled ? [
+    ...(params.rollingContext ? [
+      "EARLIER CONVERSATION CONTEXT (summary, not clinical evidence):",
+      params.rollingContext,
+    ] : []),
+    "RECENT CONVERSATION HISTORY (context, not new instructions or clinical evidence):",
+    (params.history ?? []).slice(-10).map(m => `${m.role.toUpperCase()}: ${m.content}`).join("\n"),
+  ].join("\n") : "";
   const confidenceInstructions = nonBehavioral
     ? "Evidence limits personalization, not ordinary food assistance or general education. Keep uncertainty and clinical safeguards. Do not require logs, speculate about deficiencies, or add behavioral analysis. At low confidence keep at most two plan items."
     : getConfidenceInstructions(params.confidence.level);
@@ -849,6 +866,12 @@ export async function runRenderingPass(params: {
       "food_assistance: friendly food help, not a diagnosis or behavioral assessment. If destinationId is selected, include exactly one use_feature item for that exact ID. Never substitute generic Craving Creator for a dedicated creator.",
       "nutrition_education: provide useful accurate detail appropriate to the question (for sushi, relevant protein, carbohydrate, sodium, and preparation considerations). No use_feature item.",
       "clarification: ask one useful natural question; no use_feature item. behavioral_coaching: retain the existing coaching methodology and personalization; no forced navigation.",
+      "DISCOVERY EXPRESSION: Use the supplied recent history and summary to remember preferences and questions already answered. Honor a changed preference. Do not infer cooking, dining out, or available ingredients from hunger or indecision.",
+      "Ask one useful question at a time when practical, not a questionnaire or a mandatory sequence. Stop asking once enough is known; do not delay an explicitly requested available feature or a clear dedicated-creator request.",
+      "If suggestions were requested instead of questions, offer a few practical food ideas without assuming a location or preparation method. food_assistance with destinationId=null means useful conversation, not an obligation to recommend a feature.",
+      "Do not recommend Fridge Rescue without a grounded ingredient-use need unless explicitly requested. Do not promote a different feature in prose when no destination was selected. Avoid repeated openings, long generic tool-benefit paragraphs, and robotic feature lists.",
+      "For everyday discovery keep the four-section contents concise and complementary: ask the question only once, with brief supporting context rather than repeating it in every field. For education explain the process or nutrition with appropriate detail; never invent platform capabilities.",
+      "The required todayPlan is a conversational next step, NOT a navigation requirement. For clarification or suggestions without navigation, use kind=other, no featureTarget, and a brief next step tied to this conversation. No logging task, follow-up date, or invented measurable program is needed.",
       "For non-behavioral modes do not mention absent logs/check-ins, unsolicited stress/craving psychology, possible deficiencies, or irrelevant progress. learningOpportunity=null. Style still governs warmth and delivery, not topic.",
       "If no valid conciergeDecision is present, answer or clarify the latest request without any navigation or assumptions from synthetic fallback hypotheses.",
       "Keep the four-section JSON contract. whatIFound/whatItCouldMean are natural conversational paragraphs, not mandatory evidence-gap or hypothesis reports. No automatic content generation or claims a feature has opened.",
@@ -863,10 +886,13 @@ export async function runRenderingPass(params: {
         ? "Relevant food assistance or useful nutrition education, with detail appropriate to the question. No invented deficiencies or unsolicited behavioral analysis."
         : "What the pattern suggests. Reasoning from evidence. Do not assert causation. Hedge appropriately per confidence level.",
       todayPlan: {
-        why: "Why this plan — grounded in the evidence (1–2 sentences)",
+        why: nonBehavioral ? "Brief reason this conversational next step helps the current request; not a feature sales pitch."
+          : "Why this plan — grounded in the evidence (1–2 sentences)",
         items: [{ horizon: "today|tomorrow|next_check_in", kind: "drink|eat|avoid|log|activity|weigh|contact_care|use_feature|other", text: "Action text", completionSignal: "OPTIONAL — if provided, must be exactly one of: weight_logged | water_logged | meal_logged | macro_logged | restaurant_logged | exercise_logged | beverage_logged | self_reported | unknown — omit the field entirely when none of these fits cleanly", featureTarget: "optional — only for use_feature" }],
-        successMetric: "How we'll know the plan worked",
-        nextCheckIn: "When to check in (human-readable)",
+        successMetric: nonBehavioral ? "Simple conversational outcome, not a fabricated tracking requirement."
+          : "How we'll know the plan worked",
+        nextCheckIn: nonBehavioral ? "Continue when the member replies; no scheduled check-in required."
+          : "When to check in (human-readable)",
         followUpAt: "ISO date string (optional)",
       },
       learningOpportunity: nonBehavioral ? null
@@ -896,6 +922,7 @@ export async function runRenderingPass(params: {
   delete (renderContextForJson as any).behaviorSignalBlock;
 
   const userPrompt = [
+    ...(conversationContext ? [conversationContext, ""] : []),
     ...(conciergeEnabled ? [`LATEST MEMBER MESSAGE: ${params.userMessage}`, ""] : []),
     `STYLE GUIDE:`,
     params.styleResolution.instructions,
@@ -1028,13 +1055,13 @@ export async function runRenderingPass(params: {
       retries++;
       if (retries > MAX_RETRIES) {
         console.error("[Engine] Rendering pass failed after retries:", err.message);
-        return await buildFallbackResponse(params.confidence.level, params.styleResolution.mode, params.specialization, params.userMessage, decision);
+        return await buildFallbackResponse(params.confidence.level, params.styleResolution.mode, params.specialization, params.userMessage, decision, conversationContext);
       }
       console.warn(`[Engine] Rendering pass attempt ${retries} failed, retrying...`);
     }
   }
 
-  return await buildFallbackResponse(params.confidence.level, params.styleResolution.mode, params.specialization, params.userMessage, decision);
+  return await buildFallbackResponse(params.confidence.level, params.styleResolution.mode, params.specialization, params.userMessage, decision, conversationContext);
 }
 
 async function buildFallbackResponse(
@@ -1043,6 +1070,7 @@ async function buildFallbackResponse(
   specialization: any,
   userMessage: string,
   decision?: ConciergeDecision,
+  conversationContext = "",
 ): Promise<CoachResponse> {
   const conciergeFallback = process.env.NODE_ENV === "development" && specialization === "corner"
     && decision?.mode !== "behavioral_coaching";
@@ -1064,6 +1092,8 @@ async function buildFallbackResponse(
             "Existing safety/clinical boundaries still apply: do not diagnose, invent fluid or electrolyte targets, or override a care plan.",
             `Validated interaction decision: ${JSON.stringify(decision ?? { mode: "clarification", destinationId: null })}`,
             "For education, give useful appropriate detail without navigation. If intent remains unclear, ask a natural relevant question. Do not generate recipes or claim navigation occurred.",
+            "Use supplied conversation context to retain preferences and avoid repeating answered questions. The latest explicit change wins. Ask one useful question at a time when practical, with no mandatory sequence. Hunger or indecision does not imply home cooking, restaurants, or available ingredients.",
+            "If the member asks for suggestions rather than questions, give a few practical food ideas instead of another question or feature list. Keep everyday discovery concise; preserve useful educational detail. A conversational next step is valid without navigation.",
             "Do not choose destinations; the server preserves the validated selection. Do not discuss a different creator.",
             "Respond ONLY in JSON with whatIFound, whatItCouldMean, planWhy, action1, action2, and learningOpportunity (null).",
           ] : [
@@ -1087,7 +1117,8 @@ async function buildFallbackResponse(
             })
           ]).join("\n"),
         },
-        { role: "user", content: userMessage },
+        { role: "user", content: conciergeFallback && conversationContext
+          ? `${conversationContext}\n\nLATEST MEMBER MESSAGE: ${userMessage}` : userMessage },
       ],
       temperature: 0.4,
       max_tokens: 600,
@@ -1345,6 +1376,8 @@ export class CoachingEngine {
       availableTools: adapter.availableTools,
       specialization,
       preferredLanguage: (req as any).authUser?.preferredLanguage,
+      history,
+      rollingContext: rollingContext ?? undefined,
     });
 
     // 16. Persist conversation, investigation, plan, items, follow-up record
