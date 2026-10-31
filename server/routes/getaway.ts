@@ -16,6 +16,7 @@ import { buildCravingInstructions, buildRemainingMacrosBlock } from "../services
 import { resolveGLP1GlobalContext, buildGLP1RecommendationBlock } from "../services/glp1/resolveGLP1GlobalContext";
 import { appendWholeFoodStandardPrompt, evaluateWholeFoodCandidate } from "../services/wholeFoodStandard";
 import { loadUserProtocolEnvelope, enforceBeforeGenerate, scanGeneratedOutput } from "../services/protocolEnvelope";
+import { GETAWAY_EVIDENCE_INSTRUCTIONS, qualifyGetawayAdvice } from "../../shared/getawayEvidence";
 
 const router = Router();
 
@@ -39,6 +40,7 @@ router.get("/venues/discover", async (req, res) => {
 
 router.post("/coach", async (req, res) => {
   try {
+    const reliable = process.env.NODE_ENV === "development";
     const { message, venueId, zoneId, discoveredVenue } = req.body;
     const userId = (req as AuthenticatedRequest).authUser.id;
 
@@ -128,7 +130,7 @@ router.post("/coach", async (req, res) => {
       locationBlock = lines.join("\n");
     }
 
-    const systemPrompt = appendWholeFoodStandardPrompt(`You are a personal nutrition coach in the My Perfect Meals app called the Getaway Coach. Your specialty: helping users find the BEST food options wherever life takes them — Disney, Universal, airports, cruise ships, resorts, arenas, state fairs, and more.
+    const legacyPrompt = `You are a personal nutrition coach in the My Perfect Meals app called the Getaway Coach. Your specialty: helping users find the BEST food options wherever life takes them — Disney, Universal, airports, cruise ships, resorts, arenas, state fairs, and more.
 
 When a user tells you where they are, you:
 1. Draw on your detailed knowledge of that venue's actual food outlets, restaurants, and stands
@@ -181,7 +183,21 @@ RESPONSE FORMAT — return valid JSON only, no markdown, no code fences:
   "coachNote": "1-2 sentences. Warm and practical. Remind them vacation is about living, just smarter."
 }
 
-Keep bestChoices to 2-3 items. The avoid array should be [] if nothing is specifically problematic for this user. The familyNote array should have 1-2 practical tips about eating at this venue with family or children. For venues like theme parks, cruises, and resorts this is almost always relevant. For a solo business airport context it can be []. The zone field should be null when no zone was specified.`, {
+Keep bestChoices to 2-3 items. The avoid array should be [] if nothing is specifically problematic for this user. The familyNote array should have 1-2 practical tips about eating at this venue with family or children. For venues like theme parks, cruises, and resorts this is almost always relevant. For a solo business airport context it can be []. The zone field should be null when no zone was specified.`;
+    const evidencePrompt = reliable ? legacyPrompt
+      .replace("Draw on your detailed knowledge of that venue's actual food outlets, restaurants, and stands",
+        "Use supplied location context to offer conditional, illustrative food guidance; actual outlets and menus are unverified")
+      .replace("VENUE KNOWLEDGE: You know real menus at:", "GENERAL VENUE BACKGROUND ONLY — not verified menus or current outlet availability:")
+      .replace(/3\. Recommend[^\n]*/, "3. Offer conditional illustrative food types to ask about; neither named dishes nor outlets are confirmed offerings")
+      .replace(/LOCATION CONTEXT RULE:[^\n]*/, "LOCATION CONTEXT RULE: Respect the member's supplied area, but no current outlets or menus have been verified. Do not invent an area's food outlets or availability.")
+      .replace(/DISCOVERED VENUE RULE:[^\n]*/, "DISCOVERED VENUE RULE: A Places result identifies a location, not its restaurants or menus. Give qualified general suggestions without inventing venue-specific facts.")
+      .replace('"name": "Specific menu item name"', '"name": "Illustrative food type to ask about"')
+      .replace('"where": "Restaurant or stand name at the venue, including zone if known"', '"where": "Possible location to ask about (unverified), or empty string"')
+      .replace('"estimatedCalories": 0', '"estimatedCalories": null')
+      .replace('"estimatedProteinGrams": 0', '"estimatedProteinGrams": null')
+      .replace('"estimatedFatGrams": 0', '"estimatedFatGrams": null')
+      + `\n\n${GETAWAY_EVIDENCE_INSTRUCTIONS}` : legacyPrompt;
+    const systemPrompt = appendWholeFoodStandardPrompt(evidencePrompt, {
       purposes: profileLines.some((line) => line.startsWith("Health conditions:")) ? ["clinical"] : [],
       recommendationSurface: "getaway_coach",
     });
@@ -314,6 +330,17 @@ Based on where this person is right now, give them their best food guidance.`;
       }
     }
 
+    if (reliable) {
+      if (!Array.isArray(result.bestChoices) || !result.bestChoices.length) {
+        return res.status(503).json({ error: "No suitable meal ideas are available. Please refine your request or ask venue staff.", retryable: true });
+      }
+      // Model venue/zone guesses cannot replace the supplied location.
+      const selected = typeof venueId === "string" ? assembleLocationContext(venueId, zoneId) : null;
+      result.venue = selected?.venue.name || (typeof discoveredVenue?.name === "string"
+        ? discoveredVenue.name : "Location not verified — refine your venue");
+      result.zone = selected?.zone?.name || (typeof discoveredVenue?.zoneName === "string" ? discoveredVenue.zoneName : null);
+      return res.json({ ok: true, ...qualifyGetawayAdvice(result) });
+    }
     res.json({ ok: true, ...result });
   } catch (error: any) {
     console.error("[Getaway] Error:", error);

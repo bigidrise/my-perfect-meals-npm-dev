@@ -1,5 +1,5 @@
 import axios from "axios";
-import { findVenueByText } from "./engine";
+import { findVenueByText, findVenueByIdentity, hasNamedVenueIdentity, venueIdentityTokens } from "./engine";
 import type { VenueType } from "./types";
 
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
@@ -26,6 +26,7 @@ export interface VenueDiscoveryResult {
   coordinates?: { lat: number; lng: number };
   zones: DiscoveredZone[];
   confidence: "high" | "medium" | "low";
+  uncertainty?: string;
 }
 
 function classifyVenueType(googleTypes: string[]): VenueType {
@@ -67,12 +68,19 @@ function getGenericZones(venueType: VenueType): DiscoveredZone[] {
 }
 
 export async function discoverVenue(query: string): Promise<VenueDiscoveryResult> {
+  const reliable = process.env.NODE_ENV === "development";
   const normalized = query.toLowerCase().trim();
+  const cacheKey = reliable ? `development-reliable:${normalized}` : normalized;
+  const unresolved = (): VenueDiscoveryResult => ({
+    source: "none", found: false, name: query, type: "other", zones: [], confidence: "low",
+    ...(reliable ? { uncertainty: "We couldn't confidently identify this venue. Add its city, country, or full name and search again." } : {}),
+  });
   if (!normalized) {
     return { source: "none", found: false, name: query, type: "other", zones: [], confidence: "low" };
   }
 
-  const catalogResult = findVenueByText(query);
+  if (reliable && !hasNamedVenueIdentity(query)) return unresolved();
+  const catalogResult = reliable ? findVenueByIdentity(query) : findVenueByText(query);
   if (catalogResult) {
     const { venue } = catalogResult;
     return {
@@ -89,13 +97,13 @@ export async function discoverVenue(query: string): Promise<VenueDiscoveryResult
     };
   }
 
-  const cached = discoveryCache.get(normalized);
+  const cached = discoveryCache.get(cacheKey);
   if (cached && Date.now() - cached.ts < CACHE_TTL) {
     return cached.result;
   }
 
   if (!GOOGLE_PLACES_API_KEY) {
-    return { source: "none", found: false, name: query, type: "other", zones: [], confidence: "low" };
+    return unresolved();
   }
 
   try {
@@ -105,14 +113,24 @@ export async function discoverVenue(query: string): Promise<VenueDiscoveryResult
     });
 
     if (searchResp.data.status !== "OK" || !searchResp.data.results?.length) {
-      const notFound: VenueDiscoveryResult = {
-        source: "none", found: false, name: query, type: "other", zones: [], confidence: "low",
-      };
-      discoveryCache.set(normalized, { result: notFound, ts: Date.now() });
+      const notFound = unresolved();
+      discoveryCache.set(cacheKey, { result: notFound, ts: Date.now() });
       return notFound;
     }
 
-    const place = searchResp.data.results[0];
+    let place = searchResp.data.results[0];
+    if (reliable) {
+      const requested = venueIdentityTokens(query);
+      const matches = searchResp.data.results.filter((candidate: any) => {
+        if (!candidate.place_id || !candidate.name) return false;
+        const identity = new Set(venueIdentityTokens(`${candidate.name} ${candidate.formatted_address || ""}`));
+        if (requested.includes("airport") && !candidate.types?.includes("airport")) return false;
+        return requested.every(token => identity.has(token));
+      });
+      const unique = [...new Map<string, any>(matches.map((candidate: any) => [candidate.place_id, candidate])).values()];
+      if (unique.length !== 1) return unresolved();
+      place = unique[0];
+    }
     const placeId: string = place.place_id;
     const placeName: string = place.name;
     const placeAddress: string = place.formatted_address || "";
@@ -126,8 +144,10 @@ export async function discoverVenue(query: string): Promise<VenueDiscoveryResult
     });
 
     const googleTypes: string[] = detailsResp.data.result?.types || place.types || [];
-    const venueType = classifyVenueType(googleTypes);
-    const genericZones = getGenericZones(venueType);
+    const venueType = reliable && googleTypes.includes("cruise_terminal")
+      ? "other" : classifyVenueType(googleTypes);
+    // Places establishes a place, not its terminals, decks, or menu inventory.
+    const genericZones = reliable ? [] : getGenericZones(venueType);
 
     const result: VenueDiscoveryResult = {
       source: "google",
@@ -141,13 +161,13 @@ export async function discoverVenue(query: string): Promise<VenueDiscoveryResult
       confidence: "medium",
     };
 
-    discoveryCache.set(normalized, { result, ts: Date.now() });
+    discoveryCache.set(cacheKey, { result, ts: Date.now() });
     console.log(`[VenueDiscovery] Discovered: "${placeName}" type=${venueType} zones=${genericZones.length}`);
     return result;
 
   } catch (err) {
     console.warn("[VenueDiscovery] Google Places error:", err instanceof Error ? err.message : err);
-    return { source: "none", found: false, name: query, type: "other", zones: [], confidence: "low" };
+    return unresolved();
   }
 }
 
