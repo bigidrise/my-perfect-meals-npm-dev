@@ -350,8 +350,6 @@ export function getCapabilitiesForUser(
 
 /** Knowledge only, never an extension of the approved destination allowlist. */
 export const CORNER_UNSUPPORTED_FEATURES = [
-  { id: "meal_planning", label: "Meal planning and My Perfect Menu",
-    description: "Builders hold dated meal boards; My Perfect Menu provides category ideas and hands selected ideas to the subject's effective creator/builder. Requires the correct member, date, category and builder context. Chef has no approved navigation or request-transfer contract for these workflows. Explain that limitation without substituting Create a Dish or bypassing a builder hub." },
   { id: "clinical_hubs", label: "Clinical and nutrition protocol hubs",
     description: "Diabetes, GLP-1, anti-inflammatory and professional clinical workflows use their own authorized hub, profile, consent, protocol and builder context. Chef cannot activate support, read unauthorized clinical evidence, invent medical targets or deep-link directly into a clinical builder. These are not approved Chef destinations." },
   { id: "performance_hub", label: "Performance Hub",
@@ -378,6 +376,8 @@ export function getCornerCapabilities(activeScopes: CapabilityScope[]): MPMCapab
     create_a_dish: "Create meal options for a member-selected specific dish or full meal from an editable dish description. A specific dish selected for preparation help in context is a complete creator request; do not prolong discovery. The creator collects servings and preparation inputs. Mere dish discussion, nutrition questions, undecided preferences or eating-out intent do not establish preparation. Small cravings (including small desserts), sushi, larger desserts and drinks have dedicated creators. Transfer only the member's chosen dish, with no invented ingredients or preparation location.",
     macro_calculator: "Optionally open the calculator after explaining macros; do not force navigation for an explanation.",
     my_perfect_beginning: "Open the child-selection hub for child feeding questions; select an authorized child before Parent's Corner. Never assume a child.",
+    my_perfect_menu: "Start with meal ideas by category, retaining three choices until replaced; a selected idea is created by the member's effective builder/creator. Not an independent seven-day plan generator. Open only the existing Menu entry page; no Chef prefill, date/category/subject selection or automatic generation.",
+    meal_builders: "Open the Meal Builders landing page so the member can review their existing builder choices, access rules and tutorials. Existing onboarding and builder-switch restrictions still apply. Never choose or activate a specialized builder, open a clinical hub directly, or overwrite the assigned builder.",
   };
   const inputs: Record<CoachDestinationId, string> = {
     create_a_dish: "Dish/request description; servings and preferences are collected by the creator. Reviewed Chef handoff: editable idea text only; generation still requires the member's action.",
@@ -395,6 +395,8 @@ export function getCornerCapabilities(activeScopes: CapabilityScope[]): MPMCapab
     my_perfect_beginning: "Authorized child selection in the existing hub before child-specific help. No Chef prefill; do not fabricate child context or treat adult nutrition advice as a child plan.",
     my_perfect_getaway: "Travel situation/location and preferences collected by the destination. No Chef prefill. Travel assistance, not general cravings or a replacement for a clinical hub.",
     my_perfect_gatherings: "Gathering occasion, guests, preferences and constraints collected by the destination. No Chef prefill. Hosting assistance, not personal meal-board planning.",
+    my_perfect_menu: "No Chef inputs or request transfer. Menu resolves its own authorized subject, category, date and effective builder context. Member chooses ideas and initiates creation there.",
+    meal_builders: "No Chef inputs or request transfer. The member chooses on the existing landing page; existing selection/onboarding and destination guards remain authoritative.",
   };
   const additions: MPMCapability[] = (Object.keys(COACH_DESTINATIONS) as CoachDestinationId[])
     .map(id => ({

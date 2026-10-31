@@ -19,6 +19,9 @@ export const COACH_DESTINATIONS = {
   macro_calculator: { label: "Macro Calculator", route: "/macro-counter", access: "authenticated" },
   // Never guess a child. The existing hub establishes child context first.
   my_perfect_beginning: { label: "My Perfect Beginnings", route: "/lifestyle/my-perfect-beginning", access: "pro" },
+  // Entry pages only: no builder selection, clinical activation or request transfer.
+  my_perfect_menu: { label: "My Perfect Menu", route: "/foods-i-enjoy", access: "essential" },
+  meal_builders: { label: "Meal Builders", route: "/builders", access: "meal_builders" },
 } as const;
 
 export type CoachDestinationId = keyof typeof COACH_DESTINATIONS;

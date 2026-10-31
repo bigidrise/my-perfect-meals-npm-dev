@@ -16,6 +16,9 @@ import { getCornerCapabilities } from "../services/coaching/capabilityRegistry";
 import { requireProAccess } from "../middleware/requireProAccess";
 import { requireClinicalAccess } from "../middleware/requireClinicalAccess";
 import { requirePurchasedPlanEntitlement } from "../middleware/requirePurchasedPlanEntitlement";
+import { requireEssentialAccess } from "../middleware/requireEssentialAccess";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 function app(user: unknown = { accessTier: "PAID_FULL", planLookupKey: "mpm_premium_monthly" }) {
   const instance = express();
@@ -29,6 +32,38 @@ beforeEach(() => { process.env.NODE_ENV = "development"; });
 afterAll(() => { process.env.NODE_ENV = originalEnv; });
 
 describe("server-validated Chef navigation", () => {
+  test("new destinations match the guarded member entry routes, not specialized builders", () => {
+    const router = readFileSync(join(process.cwd(), "client/src/components/Router.tsx"), "utf8");
+    expect(COACH_DESTINATIONS.my_perfect_menu.route).toBe("/foods-i-enjoy");
+    expect(COACH_DESTINATIONS.meal_builders.route).toBe("/builders");
+    expect(router).toContain('<Route path="/foods-i-enjoy" component={GuardedMyPerfectMenu}');
+    expect(router).toContain('<Route path="/builders" component={GuardedBuilders}');
+    expect(router).toContain("const GuardedMyPerfectMenu = () => <PaywallGuard");
+    expect(router).toContain("const GuardedBuilders = () => <MealBuildersGuard");
+  });
+
+  test.each(["my_perfect_menu", "meal_builders"])("%s enforces access and disallows handoffs or Production use", async id => {
+    for (const user of [null, { accessTier: "FREE", planLookupKey: null }]) {
+      const denied = await request(app(user)).post("/api/coach/navigation").send({ destinationId: id });
+      expect(denied.status).toBe(user ? 403 : 401);
+      expect(denied.body.route).toBeUndefined();
+    }
+    for (const planLookupKey of ["mpm_basic_monthly", "mpm_premium_monthly", "mpm_ultimate_monthly"]) {
+      const allowed = await request(app({ accessTier: "PAID_FULL", planLookupKey }))
+        .post("/api/coach/navigation").send({ destinationId: id });
+      expect(allowed.status).toBe(200);
+      expect(allowed.body.route).toBe(COACH_DESTINATIONS[id as keyof typeof COACH_DESTINATIONS].route);
+    }
+    const transfer = await request(app()).post("/api/coach/navigation").send({
+      destinationId: id, creatorRequest: { destinationId: "create_a_dish", idea: "Chicken soup" },
+    });
+    expect(transfer.status).toBe(400);
+    process.env.NODE_ENV = "production";
+    const production = await request(app()).post("/api/coach/navigation").send({ destinationId: id });
+    expect(production.status).toBe(404);
+    expect(getCornerCapabilities(["all"]).some(cap => cap.id === id)).toBe(false);
+  });
+
   test.each(Object.entries(COACH_DESTINATIONS))("%s resolves only its fixed route", (id, destination) => {
     const items = validateCoachNavigationItems([
       { kind: "use_feature", featureTarget: id, destinationId: "untrusted" },
@@ -103,6 +138,7 @@ describe("server-validated Chef navigation", () => {
     for (const [id, destination] of Object.entries(COACH_DESTINATIONS)) {
       const response = await request(app(user)).post("/api/coach/navigation").send({ destinationId: id });
       const guard = destination.access === "hydration" ? requirePurchasedPlanEntitlement("hydration_center")
+        : destination.access === "essential" ? requireEssentialAccess
         : destination.access === "clinical" ? requireClinicalAccess
         : destination.access === "pro" ? requireProAccess : null;
       if (!guard || invoke(guard).allowed) {
