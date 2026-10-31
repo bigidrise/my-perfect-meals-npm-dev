@@ -17,6 +17,8 @@ import { resolveStyle } from "../services/coaching/styleResolver";
 import { runObservers } from "../services/coaching/observers/stubs";
 import { extractAndPersistMemories } from "../services/coaching/memoryExtractor";
 import { getCornerCapabilities } from "../services/coaching/capabilityRegistry";
+import { getDevelopmentPlatformKnowledge } from "../services/coaching/platformKnowledge";
+import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
 
 const oldEnvironment = process.env.NODE_ENV;
 const user = { id: "fixture-user" };
@@ -243,6 +245,85 @@ test("breakfast discovery with a null action is a complete response through the 
   expect(result.presentation).toEqual({ kind: "concierge", message: breakfastReply });
   expect(result.todayPlan.items).toEqual([]);
   expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+test.each([
+  ["I don't know how to use My Perfect Meals.", "There are several ways to get started. Would you like help making meals, shopping, or tracking your nutrition?"],
+  ["How do I make my meals?", "Meal Builders, Create a Dish and Fridge Rescue help with different starting points. Do you have a dish in mind or ingredients you want to use?"],
+  ["Help me plan seven days of meals.", "Your existing builder holds dated meal boards. My Perfect Menu helps choose ideas for that workflow. I can't open those planning tools from Chef yet."],
+  ["Find grocery products that fit my nutrition needs.", "Grocery Store Coach's product mode is inside Shopping List. I can't provide its navigation button here yet."],
+  ["Where can I keep a private daily journal?", "Use Daily Journal & Inspiration. I can't open it from Chef yet."],
+  ["How do I track my weight?", "My Biometrics includes weight tracking and trends. I can't open that page from Chef yet."],
+])("platform guidance stays conversational without a forced action: %s", async (question, answer) => {
+  reply(answer, null, unknown, { conciergeDecision: null, conversationMessage: answer });
+  const result = await run(question);
+  expect(result.presentation).toEqual({ kind: "concierge", message: answer });
+  expect(result.todayPlan.items).toEqual([]);
+  expect(result.meta.concierge?.rendering).toBe("primary");
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+  const wire = mockCreate.mock.calls[0][0];
+  const data = JSON.parse(wire.messages[1].content);
+  expect(data.platformKnowledge.features.map((feature: any) => feature.id)).toEqual(expect.arrayContaining([
+    "meal_builders", "my_perfect_menu", "grocery_coach", "daily_journal", "biometrics", "nutrition_education",
+  ]));
+  expect(wire.messages[0].content).toContain("Skip the introduction when their activity is clear");
+  expect(wire.messages[0].content).toContain("not a fixed script or an intent tree");
+  expect(wire.messages[0].content).toContain("Only action-ready food_assistance may select a feature");
+  expect(data.authorizedNutritionContext).toContain("vegetarian");
+});
+
+test.each([
+  ["I want to use the chicken and vegetables in my refrigerator.", "fridge_rescue", { ...unknown, activity: "use_ingredients" }],
+  ["Help me make chicken nuggets.", "create_a_dish", { ...unknown, activity: "prepare", occasion: "meal", dishChosen: true }],
+  ["Help me make a small brownie snack.", "craving_creator", { ...unknown, activity: "prepare", occasion: "snack" }],
+  ["I want to bake a whole chocolate cake.", "dessert_creator", { ...unknown, activity: "prepare", occasion: "dessert" }],
+  ["Make an everyday fruit shake.", "beverage_creator", { ...unknown, activity: "prepare", occasion: "beverage" }],
+  ["Help me make a cocktail.", "beverage_creator", { ...unknown, activity: "prepare", occasion: "beverage" }],
+  ["Make a post-workout recovery drink.", "athlete_beverage_creator", { ...unknown, activity: "prepare", occasion: "beverage", specialty: "workout" }],
+  ["Plan food for my holiday gathering.", "my_perfect_gatherings", { ...unknown, activity: "gathering" }],
+  ["Help with food for an airport trip.", "my_perfect_getaway", { ...unknown, activity: "travel" }],
+])("clear member activity preserves its existing approved recommendation: %s", async (question, destinationId, goal) => {
+  reply("Let's use the appropriate tool.", destinationId, goal);
+  const result = await run(question);
+  expect(result.presentation?.destinationId).toBe(destinationId);
+  expect(result.todayPlan.items).toHaveLength(1);
+  expect(result.todayPlan.items[0].destinationId).toBe(destinationId);
+  expect(result.presentation?.creatorRequest).toBeUndefined();
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+test("knowledge-only destinations never extend button authority or the handoff allowlist", async () => {
+  const before = Object.keys(COACH_DESTINATIONS);
+  const knowledge = getDevelopmentPlatformKnowledge()!;
+  expect(knowledge.features.find(feature => feature.id === "meal_builders")?.purpose).toContain("Do not choose or activate");
+  expect(knowledge.features.find(feature => feature.id === "my_perfect_menu")?.purpose).toContain("not an independent seven-day");
+  expect(knowledge.features.find(feature => feature.id === "grocery_coach")?.purpose).toContain("both meal help and product help");
+  expect(knowledge.features.every(feature => feature.status === "available")).toBe(true);
+  expect(knowledge.unavailableFeatures.map(feature => feature.id)).toEqual(expect.arrayContaining([
+    "pregnancy", "ai_pairing_advisor", "cafeteria", "templates",
+  ]));
+  expect(JSON.stringify(knowledge)).not.toMatch(/\/admin|professional_dashboard|business_dashboard|https?:\/\//);
+  reply("UNCHECKED BUILDER PITCH", null, unknown, {
+    conciergeDecision: { mode: "food_assistance", destinationId: "meal_builders", goal: unknown },
+    conversationMessage: "I can't provide that button here. Your existing Meal Builders page lets you review the choices.",
+    creatorRequest: { idea: "Invented request", memberTurns: [0] },
+  });
+  const result = await run("Choose a specialized builder for me.");
+  expect(result.presentation?.destinationId).toBeUndefined();
+  expect(result.presentation?.creatorRequest).toBeUndefined();
+  expect(result.presentation?.message).not.toContain("UNCHECKED");
+  expect(result.todayPlan.items).toEqual([]);
+  expect(Object.keys(COACH_DESTINATIONS)).toEqual(before);
+});
+
+test("Development knowledge refines portion-size distinctions without changing Production capabilities", () => {
+  const development = getCornerCapabilities(["all"]);
+  expect(development.find(feature => feature.id === "craving_creator")?.description).toContain("including small dessert portions");
+  expect(development.find(feature => feature.id === "dessert_creator")?.description).toContain("larger dessert recipes");
+  process.env.NODE_ENV = "production";
+  expect(getDevelopmentPlatformKnowledge()).toBeUndefined();
+  expect(getCornerCapabilities(["all"]).find(feature => feature.id === "dessert_creator")?.description)
+    .not.toContain("Small dessert cravings belong to Craving Creator");
 });
 
 test("malformed action metadata cannot erase an independently valid model conversation", async () => {
