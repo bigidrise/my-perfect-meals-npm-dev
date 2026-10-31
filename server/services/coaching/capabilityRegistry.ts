@@ -353,7 +353,7 @@ export function getCornerCapabilities(activeScopes: CapabilityScope[]): MPMCapab
   if (process.env.NODE_ENV !== "development") return existing;
   const descriptions: Record<CoachDestinationId, string> = {
     sushi_creator: "Dedicated sushi creation: rolls, nigiri, and other sushi. Prefer this over generic Craving Creator when the member wants sushi; nutrition questions about sushi stay in conversation.",
-    craving_creator: "Create other specific craved foods when no more specific creator fits. A desire for food is not evidence of emotional eating. Sushi, desserts, and drinks use their dedicated creators.",
+    craving_creator: "Help satisfy a general food craving when no more specific creator fits. A decision to make a named dish ordinarily uses Create a Dish. A desire for food is not evidence of emotional eating. Sushi, desserts, and drinks use their dedicated creators.",
     dessert_creator: "Create desserts including cheesecake, cakes, pies, and brownies. Prefer this over generic Craving Creator for dessert creation, even when the member says 'craving'.",
     beverage_creator: "Create regular smoothies, shakes, drinks, cocktails, or mocktails; not workout-specific drinks.",
     athlete_beverage_creator: "Create pre-workout drinks, post-workout recovery shakes, or sports beverages.",
@@ -364,7 +364,7 @@ export function getCornerCapabilities(activeScopes: CapabilityScope[]): MPMCapab
     my_perfect_getaway: "Help with food while traveling, at an airport, theme park, or Disneyland.",
     my_perfect_gatherings: "Plan food for a gathering or dinner party.",
     fridge_rescue: "Help make food from ingredients the member wants to use, such as chicken, rice, and broccoli already in their refrigerator. Recommend when explicitly requested or for an expressed or grounded ingredient-use need, not hunger, indecision, eating at home, or general meal-prep education alone.",
-    create_a_dish: "Prepare a particular dish using the existing dish creator.",
+    create_a_dish: "Make a particular dish the member has chosen, including spicy tofu lettuce wraps, tacos, or lasagna. Once they decide to make it, offer this feature without asking whether they want a recipe or want to open a tool. Dedicated sushi, dessert, and drink creators remain more specific.",
     macro_calculator: "Optionally open the calculator after explaining macros; do not force navigation for an explanation.",
     my_perfect_beginning: "Open the child-selection hub for child feeding questions; select an authorized child before Parent's Corner. Never assume a child.",
   };
@@ -375,10 +375,9 @@ export function getCornerCapabilities(activeScopes: CapabilityScope[]): MPMCapab
       applicableSituations: id === "fridge_rescue" ? ["has_ingredients", "use_available_ingredients"] : ["general_inquiry"], scopes: ["all"], recommendable: true,
       eligibilityNote: "Navigation does not grant access; current access is checked on click.",
     }));
-  return [
-    ...existing.filter(cap => !additions.some(added => added.id === cap.id)),
-    ...additions,
-  ];
+  // Legacy registry entries include internal builders that are not approved
+  // concierge destinations. Do not advertise them as callable navigation.
+  return additions;
 }
 
 /**

@@ -24,6 +24,7 @@ import {
 import type { CoachCornerQuestion } from "@shared/coachCornerTypes";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import CoachFeatureAction from "@/components/coaching/CoachFeatureAction";
+import { isCoachDestinationId } from "@shared/coaching/navigation";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -137,12 +138,17 @@ function CoachBubble({ structured }: { structured: CoachStructuredResponse }) {
           {topParagraphs.map((p, i) => (
             <p key={i}>{p}</p>
           ))}
-          {planWhy && (
+          {(planWhy || (planItems && planItems.length > 0)) && (
             <div className="space-y-2">
-              <p>{planWhy}</p>
+              {planWhy && <p>{planWhy}</p>}
               {planItems && planItems.length > 0 && (
                 <ul className="space-y-1.5 mt-1">
-                  {planItems.map((item, i) => (
+                  {planItems.map((item, i) => import.meta.env.DEV &&
+                    typeof item !== "string" && item.kind === "use_feature" &&
+                    isCoachDestinationId(item.destinationId) &&
+                    !planItems.some(planItem => typeof planItem !== "string" && planItem.kind === "contact_care")
+                    ? <li key={i}><CoachFeatureAction destinationId={item.destinationId} /></li>
+                    : (
                     <li key={i} className="flex items-start gap-2">
                       <span className="text-orange-400 mt-0.5 shrink-0 select-none">•</span>
                       <span className="min-w-0">

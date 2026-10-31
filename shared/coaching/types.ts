@@ -333,6 +333,12 @@ export interface CoachResponse {
   learningOpportunity: string | null;
   /** Internal metadata — not shown to user */
   meta: {
+    /** Development-only technical trace; no member or clinical data. */
+    concierge?: {
+      revision: string;
+      reasoning: "validated" | "unavailable";
+      rendering: "primary" | "mini_fallback" | "retry";
+    };
     specialization: CoachSpecialization;
     confidence: ConfidenceLevel;
     styleMode: StyleMode;
