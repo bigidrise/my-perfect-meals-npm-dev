@@ -62,6 +62,8 @@ interface RestaurantResult {
     ingredients: string[];
     imageUrl?: string;
     serving?: RestaurantServing;
+    buffetItems?: RestaurantServing["buffetItems"];
+    portionGuidance?: string;
     medicalWaiterScript?: string;
   };
   medicalBadges?: Array<{
@@ -415,7 +417,8 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
               modifications: meal.modifications,
               ingredients: meal.ingredients,
               imageUrl: meal.imageUrl,
-              ...(meal.serving ? { serving: meal.serving } : {}),
+              ...(meal.serving ? { serving: meal.serving, buffetItems: meal.serving.buffetItems,
+                portionGuidance: meal.serving.portionGuidance } : {}),
               medicalWaiterScript: meal.medicalWaiterScript,
             },
             medicalBadges: meal.medicalBadges,
@@ -494,7 +497,8 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
             modifications: meal.modifications,
             ingredients: meal.ingredients,
             imageUrl: meal.imageUrl,
-            ...(meal.serving ? { serving: meal.serving } : {}),
+            ...(meal.serving ? { serving: meal.serving, buffetItems: meal.serving.buffetItems,
+              portionGuidance: meal.serving.portionGuidance } : {}),
             medicalWaiterScript: meal.medicalWaiterScript,
           },
           medicalBadges: meal.medicalBadges,

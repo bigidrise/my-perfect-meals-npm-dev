@@ -26,3 +26,9 @@ description: Separate destination identity from menu evidence, with a Developmen
 **Why:** The user explicitly approved shared restaurant portions and Getaway presentation corrections, but prohibited additional model calls, image generation, speculative nutrient calculations, migrations, and Production activation.
 
 **How to apply:** Do not reuse guessed ingredient weights or generic food-density conversions as nutrient evidence. Keep selected-venue cards primary without deleting destination coaching. Favorites may retain serving JSON; permanent structured serving storage in Biometrics was not authorized as a schema change.
+
+**Rule:** Restaurant Guide, Find Meals Near Me and Getaway must provide Buffet-style, food-by-food practical quantities for ordinary suggested plates. “One restaurant serving; size not independently established” is not a successful equivalent.
+
+**Why:** The user corrected the optional-portion implementation after a live taco recommendation displayed only a generic serving disclaimer, despite Buffet showing useful quantities.
+
+**How to apply:** Require the Buffet-compatible plate in the model's actual output instructions, not merely an optional accepted schema. Distinguish a missing model breakdown from a genuinely unknown serving. Preserve the single-call limit, honest estimates, and Buffet's existing behavior.

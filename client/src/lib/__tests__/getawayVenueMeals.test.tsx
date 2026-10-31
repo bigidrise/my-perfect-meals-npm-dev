@@ -21,6 +21,7 @@ jest.mock("@/components/away-from-home/AwayFromHomeMealCard", () => ({
   __esModule: true, default: ({ recommendation }: any) => <div data-testid="existing-restaurant-card">{recommendation.meal.name}</div>,
 }));
 import GetawayVenueMeals from "@/components/away-from-home/GetawayVenueMeals";
+import { bindRestaurantServing } from "@shared/restaurantServing";
 const payload = {
   restaurantName: "Guy's Burger Joint", cuisine: "Burger", compositionEvidence: "unverified",
   selectedVenue: { destinationName: "Carnival" },
@@ -74,6 +75,26 @@ test("editing a venue immediately removes old actionable meals", async () => {
   fireEvent.change(screen.getByLabelText("Restaurant or dining venue"), { target: { value: "Lido buffet" } });
   expect(onRecommendationsChange).toHaveBeenLastCalledWith(false);
   expect(screen.queryByTestId("getaway-structured-meal")).toBeNull();
+});
+
+test("Favorites and explicit Biometrics review retain the Buffet-compatible plate and its nutrition", async () => {
+  const meal = { ...payload.recommendations[0],
+    buffetItems: [{ food: "Burger patty", portion: "4 oz cooked" },
+      { food: "Vegetables", portion: "1 cup", note: "Steamed" }],
+    portionGuidance: "This estimate includes the patty and side." };
+  const serving = bindRestaurantServing(meal, meal)!;
+  mockRequest.mockResolvedValueOnce({ ...payload, recommendations: [{ ...meal, serving }] });
+  render(<GetawayVenueMeals destination={{ destinationName: "Carnival" }} />);
+  await chooseVenue();
+  fireEvent.click(screen.getByRole("button", { name: "Save to favorites" }));
+  expect(mockFavorite).toHaveBeenCalledWith(expect.objectContaining({
+    mealData: expect.objectContaining({ serving, calories: meal.calories, protein: meal.protein,
+      carbs: meal.carbs, fat: meal.fat }),
+  }), expect.anything());
+  expect(mockQuickView).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Review in Biometrics" }));
+  expect(mockQuickView).toHaveBeenCalledWith(expect.objectContaining({ restaurantServing: serving,
+    calories: meal.calories, protein: meal.protein, carbs: meal.carbs, fat: meal.fat }));
 });
 test("failed clinical validation and advice-only payloads never show saving or tracking controls", async () => {
   mockRequest.mockResolvedValueOnce({ bestChoices: payload.recommendations });

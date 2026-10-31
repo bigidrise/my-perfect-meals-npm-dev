@@ -2,14 +2,15 @@ import { bindRestaurantServing, currentRestaurantServing, displayRestaurantPorti
 import { getawayRestaurantCards } from "../../shared/getawayRestaurantMeals";
 
 const meal = { id: "salmon", name: "Salmon plate", calories: 490, protein: 40, carbs: 30, fat: 23 };
-const assumption = { label: "One suggested salmon plate", guidance: "Ask for sauce separately.",
-  items: [{ food: "Salmon", quantity: 170, unit: "g", basis: "cooked" },
-    { food: "Rice", quantity: 0.5, unit: "cup", basis: "cooked" },
-    { food: "Dressing", quantity: 15, unit: "ml", basis: "as_served" }] };
+const assumption = { portionGuidance: "Ask for sauce separately.",
+  buffetItems: [{ food: "Salmon", portion: "170 g cooked" },
+    { food: "Rice", portion: "½ cup cooked" },
+    { food: "Dressing", portion: "15 ml" }] };
 
 test("same-call quantities freeze the actual serving nutrition, never independently calculated", () => {
   const serving = bindRestaurantServing(assumption, meal)!;
-  expect(serving.items).toHaveLength(3);
+  expect(serving.buffetItems).toHaveLength(3);
+  expect(serving.status).toBe("complete");
   expect(serving.basis).toBe("model_estimated");
   expect(serving.nutrition).toEqual({ calories: 490, protein: 40, carbs: 30, fat: 23 });
   expect(currentRestaurantServing(serving, meal)).toEqual(serving);
@@ -19,8 +20,9 @@ test.each([undefined, null, {}, { label: "Plate", items: [{ food: "Fish", unit: 
   { label: "Plate", items: [{ food: "Fish", quantity: 6, unit: "oz", basis: "unknown" }] },
 ])("missing or unsupported assumptions use general guidance with no default amounts: %p", raw => {
   const serving = bindRestaurantServing(raw, meal)!;
-  expect(serving.items).toEqual([]);
-  expect(serving.guidance).toMatch(/not supplied/);
+  expect(serving.buffetItems).toEqual([]);
+  expect(serving.status).toBe("model_omitted");
+  expect(serving.portionGuidance).toMatch(/limited recommendation/);
   expect(serving.nutrition.calories).toBe(meal.calories);
 });
 test("unknown nutrition is not filled with zeros or default servings", () => {
@@ -42,13 +44,26 @@ test("known volumes convert to canonical household units", () => {
 });
 test("no inferred food density or unsupported measurement conversion", () => {
   const raw = { label: "Plate", items: [{ food: "Rice", quantity: 170, unit: "grams_to_cups", basis: "cooked" }] };
-  expect(bindRestaurantServing(raw, meal)!.items).toEqual([]);
+  expect(bindRestaurantServing(raw, meal)!.buffetItems).toEqual([]);
 });
 test("menu-source nutrition is unchanged and substitutions are not called recalculated", () => {
   const serving = publishedRestaurantServing(meal)!;
-  expect(serving.items).toEqual([]);
+  expect(serving.buffetItems).toEqual([]);
   expect(serving.nutrition).toEqual(bindRestaurantServing(undefined, meal)!.nutrition);
-  expect(serving.guidance).toMatch(/not been nutritionally recalculated/);
+  expect(serving.portionGuidance).toMatch(/not been nutritionally recalculated/);
+});
+test.each(["one serving", "some", "0 cups", "1/0 cup", "6", "6 grams_to_cups"])(
+  "an unusable component amount is explicitly a model omission: %s", portion => {
+    const serving = bindRestaurantServing({ buffetItems: [{ food: "Chicken", portion }] }, meal)!;
+    expect(serving.status).toBe("model_omitted");
+    expect(serving.buffetItems).toEqual([]);
+  });
+test("a genuinely unknown portion has a distinct explained limited outcome", () => {
+  const serving = bindRestaurantServing({ buffetItems: [], portionStatus: "unknown",
+    portionReason: "The venue's proprietary mixed platter has no usable composition information" }, meal)!;
+  expect(serving.status).toBe("unknown");
+  expect(serving.portionGuidance).toContain("proprietary mixed platter");
+  expect(serving.buffetItems).toEqual([]);
 });
 test("Getaway preserves both image and full serving from flat and menu-backed meals", () => {
   const serving = bindRestaurantServing(assumption, meal)!;

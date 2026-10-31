@@ -5,18 +5,20 @@ import RestaurantPortions from "@/components/away-from-home/RestaurantPortions";
 import GetawayMealImage from "@/components/away-from-home/GetawayMealImage";
 import { bindRestaurantServing } from "@shared/restaurantServing";
 import { getQuickView, setQuickView } from "@/lib/macrosQuickView";
+import { ChefHat } from "lucide-react";
+import PlateItems from "@/components/away-from-home/PlateItems";
 
 const meal = { name: "Salmon plate", calories: 490.5, protein: 40.1, carbs: 30, fat: 23 };
-const serving = bindRestaurantServing({ label: "One suggested plate", items: [
-  { food: "Salmon", quantity: 170, unit: "g", basis: "cooked" },
-  { food: "Vegetables", quantity: 240, unit: "ml", basis: "as_served" },
+const serving = bindRestaurantServing({ buffetItems: [
+  { food: "Salmon", portion: "170 g cooked" },
+  { food: "Vegetables", portion: "240 ml" },
 ] }, meal)!;
 afterEach(() => { cleanup(); localStorage.clear(); });
 test("all restaurant consumers can render practical portions with honest nutrition disclosure", () => {
   render(<RestaurantPortions serving={serving} meal={meal} />);
   expect(screen.getByText("Your plate")).toBeTruthy();
-  expect(screen.getByText(/Salmon — about 6 oz cooked/)).toBeTruthy();
-  expect(screen.getByText(/Vegetables — about 1 cup/)).toBeTruthy();
+  expect(screen.getByText(/about 6 oz cooked/)).toBeTruthy();
+  expect(screen.getByText(/about 1 cup/)).toBeTruthy();
   expect(screen.getByText(/not independently calculated or verified/)).toBeTruthy();
 });
 test("cached portions disappear if nutrition changes; absence does not invent a plate", () => {
@@ -43,4 +45,24 @@ test("Biometrics preview round-trip preserves serving and decimal nutrition with
   setQuickView({ ...meal, restaurantServing: serving, title: meal.name, dateISO: "2026-10-31" });
   expect(getQuickView()).toMatchObject({ restaurantServing: serving, calories: 490.5, protein: 40.1 });
   expect(localStorage.length).toBe(1);
+});
+test("extracted Buffet plate markup preserves its existing portions, notes and translation behavior exactly", () => {
+  const items = [{ food: "Chicken", portion: "1 cup shredded", note: "Lean protein source" },
+    { food: "Corn", portion: "½ cup", note: "Moderate starchy carbs" }];
+  const translatedFoods = ["Pollo", "Maíz"];
+  // Reference markup from Buffet's previous shared card, unchanged by extraction.
+  const reference = <div className="flex flex-col gap-1.5">
+    {items.map((item, i) => <div key={i} className="flex items-start gap-2">
+      <ChefHat className="w-3 h-3 text-orange-400/60 mt-0.5 shrink-0" />
+      <div className="min-w-0">
+        <span className="text-xs text-white font-medium">{translatedFoods[i] || item.food}</span>
+        <span className="text-xs text-white/80"> · {item.portion}</span>
+        {item.note && <p className="text-[10px] text-white/70 leading-snug">{item.note}</p>}
+      </div>
+    </div>)}
+  </div>;
+  const view = render(<PlateItems items={items} translatedFoods={translatedFoods} />);
+  const extracted = view.container.innerHTML;
+  view.rerender(reference);
+  expect(view.container.innerHTML).toBe(extracted);
 });
