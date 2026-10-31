@@ -363,7 +363,7 @@ export function getCornerCapabilities(activeScopes: CapabilityScope[]): MPMCapab
     my_perfect_buffet: "Help choose food at a buffet.",
     my_perfect_getaway: "Help with food while traveling, at an airport, theme park, or Disneyland.",
     my_perfect_gatherings: "Plan food for a gathering or dinner party.",
-    fridge_rescue: "Use ingredients already in the refrigerator or at home.",
+    fridge_rescue: "Help make food from ingredients the member wants to use, such as chicken, rice, and broccoli already in their refrigerator. Recommend when explicitly requested or for an expressed or grounded ingredient-use need, not hunger, indecision, eating at home, or general meal-prep education alone.",
     create_a_dish: "Prepare a particular dish using the existing dish creator.",
     macro_calculator: "Optionally open the calculator after explaining macros; do not force navigation for an explanation.",
     my_perfect_beginning: "Open the child-selection hub for child feeding questions; select an authorized child before Parent's Corner. Never assume a child.",
@@ -372,7 +372,7 @@ export function getCornerCapabilities(activeScopes: CapabilityScope[]): MPMCapab
     .map(id => ({
       id, label: COACH_DESTINATIONS[id].label, route: COACH_DESTINATIONS[id].route,
       description: descriptions[id],
-      applicableSituations: ["general_inquiry"], scopes: ["all"], recommendable: true,
+      applicableSituations: id === "fridge_rescue" ? ["has_ingredients", "use_available_ingredients"] : ["general_inquiry"], scopes: ["all"], recommendable: true,
       eligibilityNote: "Navigation does not grant access; current access is checked on click.",
     }));
   return [
