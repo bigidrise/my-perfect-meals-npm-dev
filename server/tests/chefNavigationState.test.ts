@@ -125,6 +125,24 @@ test("dessert recommendation and short agreement retain dessert without text his
   expect(html(result)).toContain("<button");
 });
 
+test("Find Meals assistance confirms into the meal-generating screen, not the listing-only route", async () => {
+  const question = "Find Meals Near Me can suggest nearby restaurants and meals. Would you like to use it?";
+  const handoff = "Describe your craving, then enter a ZIP code or share your location and submit the meal search.";
+  model({ conciergeDecision: { mode: "food_assistance", destinationId: "find_meals_near_me",
+    goal: { ...unknown, activity: "eat_out", restaurant: "not_chosen" } },
+    recommendationMessage: question, handoffMessage: handoff });
+  const first = await run("I don't know where to eat near me.");
+  expect(first.presentation?.message).toBe(question);
+  expect(html(first)).not.toContain("<button");
+  model({ navigationIntent: "confirmed", conciergeDecision: null, handoffMessage: handoff });
+  const second = await run("Yes.");
+  expect(second.presentation?.destinationId).toBe("find_meals_near_me");
+  expect(second.presentation?.message).toBe(handoff);
+  expect(html(second)).toContain("<button");
+  expect(COACH_DESTINATIONS.find_meals_near_me.route).toBe("/social-hub/find");
+  expect(COACH_DESTINATIONS.find_meals_near_me.access).toBe("pro");
+});
+
 test("a correction replaces pending intent rather than confirming the old destination", async () => {
   model(); await run(request);
   model({ navigationIntent: "recommendation",

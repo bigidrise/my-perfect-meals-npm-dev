@@ -117,7 +117,7 @@ test("stored conversations still render for an unassessed member", async () => {
 
 test.each([
   ["restaurant_guide", "Restaurant Guide", "/social-hub/restaurant-guide"],
-  ["find_meals_near_me", "Find Meals Near Me", "/social-hub/restaurant-finder"],
+  ["find_meals_near_me", "Find Meals Near Me", "/social-hub/find"],
   [null, null, "/dashboard"],
 ])("latest saved exchange restores after navigating to %s and back before cache expiry", async (destinationId, label, route) => {
   await renderPage(false);

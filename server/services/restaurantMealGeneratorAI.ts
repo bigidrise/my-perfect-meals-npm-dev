@@ -4,6 +4,8 @@
 import { type User } from "@shared/schema";
 import type { DailyNutritionState } from "../../shared/dailyNutritionPrescription";
 import OpenAI from 'openai';
+import { z } from "zod";
+import { requiresVerifiedIngredientEvidence } from "./foodCompositionEvidence";
 import { generateMealImageUnified } from './mealImageGenerator';
 import { generateRestaurantMeals as generateFallbackMeals } from './restaurantMealGenerator';
 import { enforceCarbs } from '../utils/carbClassifier';
@@ -350,10 +352,22 @@ UNIVERSAL RULE FOR ALL MEDICAL CONDITIONS:
 
 /**
  * Generate restaurant-specific meals using AI
- * Falls back to locked generator if AI fails
+ * Production retains its legacy fallback; Development fails unavailable.
  */
 export async function generateRestaurantMealsAI(request: RestaurantMealRequest): Promise<RestaurantMeal[]> {
   const { restaurantName, cuisine, user, cravingContext, skipImages, protocolBlock, protocolEnvelope, builderBlock } = request;
+  const development = process.env.NODE_ENV === "development";
+  // Preserve the unreleased Production behavior. Development failures must never
+  // turn rejected food into the legacy generator's unvalidated fixed meals.
+  const unavailable = () => {
+    if (!development) return generateFallbackMeals(request);
+    console.warn("[RestaurantRecommendations] unavailable; legacy fallback disabled in Development");
+    return Promise.resolve([]);
+  };
+  if (development && (
+    !protocolEnvelope || protocolEnvelope.userId === "guest" ||
+    (protocolEnvelope && requiresVerifiedIngredientEvidence(protocolEnvelope))
+  )) return [];
   const userConditions: string[] = [
     ...(user?.healthConditions || []),
     // Alpha-gal is stored as a dedicated profile object, not in healthConditions.
@@ -400,7 +414,7 @@ export async function generateRestaurantMealsAI(request: RestaurantMealRequest):
     ? `This is a ${archetypeResult.chainName} location.`
     : `This restaurant is classified as: ${archetype.label}.`;
 
-  const archetypeRealism = `
+  const archetypeRealism = development && archetype.id === "buffet" ? archetype.menuRealism : `
 RESTAURANT REALISM RULES (CRITICAL — do NOT violate these):
 ${chainNote}
 ${archetype.menuRealism}
@@ -587,7 +601,7 @@ Make the meals sound like something you would genuinely see on the menu at ${res
 
     if (!responseText) {
       console.warn('⚠️ AI returned empty response, falling back to locked generator');
-      return generateFallbackMeals(request);
+      return unavailable();
     }
 
     // Parse AI response
@@ -606,22 +620,43 @@ Make the meals sound like something you would genuinely see on the menu at ${res
       console.error('❌ Failed to parse AI response:', parseError);
       console.error('Response text:', responseText);
       console.warn('⚠️ Falling back to locked generator');
-      return generateFallbackMeals(request);
+      return unavailable();
     }
 
     // Validate and transform AI meals
     if (!Array.isArray(aiMeals) || aiMeals.length === 0) {
       console.warn('⚠️ AI returned invalid meal array, falling back to locked generator');
-      return generateFallbackMeals(request);
+      return unavailable();
     }
 
+    // One estimated restaurant serving; absence is not permission to fabricate
+    // ingredient lists, calories, protein or fat. No new clinical thresholds.
+    if (development) {
+      const estimate = z.object({
+        name: z.string().trim().min(1),
+        ingredients: z.array(z.string().trim().min(1)).min(1),
+        calories: z.number().finite().positive(),
+        protein: z.number().finite().nonnegative(),
+        fat: z.number().finite().nonnegative(),
+        servings: z.literal(1).optional(),
+        carbs: z.number().finite().nonnegative().nullish(),
+        starchyCarbs: z.number().finite().nonnegative().nullish(),
+        fibrousCarbs: z.number().finite().nonnegative().nullish(),
+      }).passthrough();
+      aiMeals = aiMeals.filter((meal: unknown) => {
+        if (!estimate.safeParse(meal).success) return false;
+        const carbs = resolveAICarbsStrict(meal as any);
+        return typeof carbs === "number" && Number.isFinite(carbs) && carbs >= 0;
+      });
+      if (!aiMeals.length) return unavailable();
+    }
     // Transform AI meals to our format
     const meals: RestaurantMeal[] = aiMeals.slice(0, 3).map((meal, index) => {
       const mealId = `${restaurantName.toLowerCase().replace(/\s+/g, '-')}-ai-meal-${index + 1}-${Date.now()}`;
       
       // Extract starchyCarbs and fibrousCarbs from AI response
-      const starchyCarbs = meal.starchyCarbs ?? 0;
-      const fibrousCarbs = meal.fibrousCarbs ?? 0;
+      const starchyCarbs = development ? meal.starchyCarbs ?? undefined : meal.starchyCarbs ?? 0;
+      const fibrousCarbs = development ? meal.fibrousCarbs ?? undefined : meal.fibrousCarbs ?? 0;
       const totalCarbs = resolveAICarbsStrict(meal);
       
       const rawHowToOrder = meal.howToOrder;
@@ -637,15 +672,15 @@ Make the meals sound like something you would genuinely see on the menu at ${res
         id: mealId,
         name: meal.name || `${cuisine} Specialty ${index + 1}`,
         description: meal.description || "A delicious and healthy option",
-        calories: meal.calories || 400,
-        protein: meal.protein || 25,
+        calories: development ? meal.calories : meal.calories || 400,
+        protein: development ? meal.protein : meal.protein || 25,
         carbs: totalCarbs ?? 0,
         starchyCarbs: starchyCarbs,
         fibrousCarbs: fibrousCarbs,
-        fat: meal.fat || 12,
+        fat: development ? meal.fat : meal.fat || 12,
         reason: meal.reason || "Balanced nutrition with quality ingredients",
         modifications: meal.modifications || "Request healthy preparation",
-        ingredients: Array.isArray(meal.ingredients) ? meal.ingredients : ["protein", "vegetables", "whole grains"],
+        ingredients: Array.isArray(meal.ingredients) ? meal.ingredients : development ? [] : ["protein", "vegetables", "whole grains"],
         medicalBadges: getMedicalBadges(meal, userConditions),
         menuAnchorItem: meal.menuAnchorItem || undefined,
         howToOrder,
@@ -661,7 +696,7 @@ Make the meals sound like something you would genuinely see on the menu at ${res
     // group (e.g. pasta + pasta), regenerate the later one with an explicit
     // instruction that prevents "different sauce, same dish" tricks.
     const seenGroups = new Map<string, number>(); // group → first meal index
-    for (let i = 0; i < meals.length; i++) {
+    for (let i = 0; !development && i < meals.length; i++) {
       const group = detectFormatGroup(meals[i].name);
       if (!group) continue;
       if (seenGroups.has(group)) {
@@ -739,7 +774,7 @@ Return ONLY a single JSON object (not an array) with this exact structure:
 
       if (safeMeals.length === 0) {
         console.warn(`⚠️ [ALLERGY FILTER] All meals removed due to allergen matches — falling back to locked generator`);
-        return generateFallbackMeals(request);
+        return unavailable();
       }
 
       meals.length = 0;
@@ -764,7 +799,7 @@ Return ONLY a single JSON object (not an array) with this exact structure:
 
       if (dietSafeMeals.length === 0) {
         console.warn(`⚠️ [DIET FILTER] All meals violated dietary constraints — falling back to locked generator`);
-        return generateFallbackMeals(request);
+        return unavailable();
       }
 
       meals.length = 0;
@@ -772,7 +807,7 @@ Return ONLY a single JSON object (not an array) with this exact structure:
     }
 
     // ENFORCE CARBS: If AI returned 0s, derive from ingredients (data-layer enforcement)
-    const enforcedMeals = meals.map(meal => enforceCarbs(meal));
+    const enforcedMeals = development ? meals : meals.map(meal => enforceCarbs(meal));
 
     // ── Post-gen protocol scan (filter any meals that slip through the prompt) ──
     if (protocolEnvelope) {
@@ -793,7 +828,7 @@ Return ONLY a single JSON object (not an array) with this exact structure:
       }
       if (protocolSafeMeals.length === 0) {
         console.warn(`⚠️ [PROTOCOL SCAN] All meals failed protocol scan — falling back to locked generator`);
-        return generateFallbackMeals(request);
+        return unavailable();
       }
       enforcedMeals.length = 0;
       enforcedMeals.push(...protocolSafeMeals);
@@ -836,6 +871,8 @@ Return ONLY a single JSON object (not an array) with this exact structure:
           validatedMeals.push(meal);
           continue;
         }
+        // Do not add paid repair calls in the Development reliability path.
+        if (development) continue;
 
         // Violations found — log and retry with explicit failure context
         console.warn(`🚫 [DIABETIC VALIDATOR] "${meal.name}" failed: ${result.violations.join('; ')}`);
@@ -936,7 +973,7 @@ Return ONLY a single JSON object (not an array):
 
       if (validatedMeals.length === 0 && enforcedMeals.length > 0) {
         console.warn(`⚠️ [DIABETIC VALIDATOR] All meals failed diabetic validation — falling back to locked generator`);
-        return generateFallbackMeals(request);
+        return unavailable();
       }
 
       if (validatedMeals.length < enforcedMeals.length) {
@@ -973,6 +1010,25 @@ Return ONLY a single JSON object (not an array):
     }
     enforcedMeals.length = 0;
     enforcedMeals.push(...wholeFoodSafeMeals);
+    if (development) {
+      // Final boundary after every transform/repair. The structured envelope owns
+      // diet, avoidances, clinical and provider restrictions; no prompt-only pass.
+      const safe = enforcedMeals.filter(meal => {
+        const text = `${meal.name} ${meal.description} ${meal.ingredients.join(" ")}`.toLowerCase();
+        if (userAvoidedFoods.some(food => typeof food === "string" && text.includes(food.toLowerCase()))) return false;
+        if (violatesDietaryConstraints(text, userDietaryRestrictions).violates) return false;
+        if (protocolEnvelope && !scanGeneratedOutput({
+          name: meal.name, description: meal.description, ingredients: meal.ingredients,
+          instructions: meal.modifications, preparationEvidence: "unknown",
+        }, protocolEnvelope, { generatorName: "restaurant_meals" }).passed) return false;
+        return !protocolEnvelope?.hasDiabetes || validateDiabeticMeal({
+          name: meal.name, description: meal.description, ingredients: meal.ingredients,
+          macros: { carbs: meal.carbs },
+        }, { glucoseState: protocolEnvelope.diabeticGlucoseState ?? undefined }).isValid;
+      });
+      enforcedMeals.length = 0;
+      enforcedMeals.push(...safe);
+    }
 
     // Image generation — skipped when caller has client-side image rendering (ChefFlow)
     if (skipImages) {
@@ -1000,6 +1056,6 @@ Return ONLY a single JSON object (not an array):
   } catch (error) {
     console.error('❌ AI meal generation error:', error);
     console.warn('⚠️ Falling back to locked generator');
-    return generateFallbackMeals(request);
+    return unavailable();
   }
 }
