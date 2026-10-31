@@ -11,6 +11,7 @@
 
 import { resolveRestaurantsByZip, ResolvedRestaurant } from './restaurantResolver';
 import { generateRestaurantMealsAI } from './restaurantMealGeneratorAI';
+import type { RestaurantServing } from "../../shared/restaurantServing";
 import { requiresVerifiedIngredientEvidence } from "./foodCompositionEvidence";
 import type { User } from '@shared/schema';
 import { violatesDietaryConstraints, getPrimaryDiet } from './allergyGuardrails';
@@ -60,6 +61,7 @@ interface RestaurantResult {
     modifications: string;
     ingredients: string[];
     imageUrl?: string;
+    serving?: RestaurantServing;
     medicalWaiterScript?: string;
   };
   medicalBadges?: Array<{
@@ -413,6 +415,7 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
               modifications: meal.modifications,
               ingredients: meal.ingredients,
               imageUrl: meal.imageUrl,
+              ...(meal.serving ? { serving: meal.serving } : {}),
               medicalWaiterScript: meal.medicalWaiterScript,
             },
             medicalBadges: meal.medicalBadges,
@@ -491,6 +494,7 @@ export async function findMealsNearby(request: MealFinderRequest): Promise<Resta
             modifications: meal.modifications,
             ingredients: meal.ingredients,
             imageUrl: meal.imageUrl,
+            ...(meal.serving ? { serving: meal.serving } : {}),
             medicalWaiterScript: meal.medicalWaiterScript,
           },
           medicalBadges: meal.medicalBadges,

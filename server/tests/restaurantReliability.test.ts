@@ -109,10 +109,16 @@ test("real discovered restaurants retain cuisine/rating ordering and three-by-tw
       cuisine: "Thai", address: `${n} Verified Street`, rating: n, location: { lat: 40, lng: -73 } })),
   });
   for (let i = 0; i < 3; i++) reply([meal, { ...meal, name: "Basil chicken with vegetables" },
-    { ...meal, name: "Ginger chicken" }]);
+    { ...meal, name: "Ginger chicken" }].map(m => ({ ...m,
+      serving: { label: "One suggested plate", items: [
+        { food: "Chicken", quantity: 4, unit: "oz", basis: "cooked" },
+      ] },
+    })));
   const results = await findMealsNearby({ mealQuery: "chicken", zipCode: "10001", user: { id: "member" } as any,
     cuisinePreference: "Thai", protocolEnvelope: memberEnvelope() });
   expect(results).toHaveLength(6);
+  expect(results.every(result => result.meal.serving?.items[0].quantity === 4)).toBe(true);
+  expect(results.every(result => result.meal.serving?.nutrition.calories === result.meal.calories)).toBe(true);
   expect([...new Set(results.map(r => r.restaurantName))])
     .toEqual(["Verified restaurant 4", "Verified restaurant 3", "Verified restaurant 2"]);
   expect(mockCreate).toHaveBeenCalledTimes(3);

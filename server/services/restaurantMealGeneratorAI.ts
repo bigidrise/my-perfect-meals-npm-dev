@@ -4,6 +4,7 @@
 import { type User } from "@shared/schema";
 import type { DailyNutritionState } from "../../shared/dailyNutritionPrescription";
 import OpenAI from 'openai';
+import { bindRestaurantServing, currentRestaurantServing, RESTAURANT_SERVING_INSTRUCTIONS, servingSafetyText, type RestaurantServing } from "../../shared/restaurantServing";
 import { z } from "zod";
 import { requiresVerifiedIngredientEvidence } from "./foodCompositionEvidence";
 import { generateMealImageUnified } from './mealImageGenerator';
@@ -144,6 +145,7 @@ interface RestaurantMeal {
     color: string;
   }>;
   imageUrl?: string;
+  serving?: RestaurantServing;
   menuAnchorItem?: string;
   howToOrder?: {
     askFor: string;
@@ -528,6 +530,7 @@ Generate 3 specific meal recommendations that a person could walk into this rest
 3. Include approximate macro estimates (calories, protein, carbs, fat); these are not verified menu nutrition or proof of clinical compliance
 4. Include structured ordering instructions (howToOrder)
 5. List the main ingredients
+${development ? RESTAURANT_SERVING_INSTRUCTIONS : ""}
 6. Be anchored to a real-world recognizable item (menuAnchorItem)
 
 Request ID: ${varietyTimestamp}
@@ -681,6 +684,10 @@ Make the meals sound like something you would genuinely see on the menu at ${res
         reason: meal.reason || "Balanced nutrition with quality ingredients",
         modifications: meal.modifications || "Request healthy preparation",
         ingredients: Array.isArray(meal.ingredients) ? meal.ingredients : development ? [] : ["protein", "vegetables", "whole grains"],
+        ...(development ? { serving: bindRestaurantServing(meal.serving, {
+          name: meal.name, calories: meal.calories, protein: meal.protein,
+          carbs: totalCarbs ?? 0, fat: meal.fat,
+        }) } : {}),
         medicalBadges: getMedicalBadges(meal, userConditions),
         menuAnchorItem: meal.menuAnchorItem || undefined,
         howToOrder,
@@ -944,6 +951,7 @@ Return ONLY a single JSON object (not an array):
               const rawHowToOrder = retryMeal.howToOrder;
               validatedMeals.push({
                 ...meal,
+                ...(development ? { serving: undefined } : {}),
                 name: retryMeal.name || meal.name,
                 description: retryMeal.description || meal.description,
                 calories: retryMeal.calories || meal.calories,
@@ -1014,15 +1022,26 @@ Return ONLY a single JSON object (not an array):
       // Final boundary after every transform/repair. The structured envelope owns
       // diet, avoidances, clinical and provider restrictions; no prompt-only pass.
       const safe = enforcedMeals.filter(meal => {
-        const text = `${meal.name} ${meal.description} ${meal.ingredients.join(" ")}`.toLowerCase();
+        meal.serving = currentRestaurantServing(meal.serving, meal) ?? bindRestaurantServing(undefined, meal);
+        const scanDescription = `${meal.description} ${servingSafetyText(meal.serving)}`;
+        // Structured-ingredient validators intentionally prefer ingredient
+        // evidence over prose. Include the new components in that evidence,
+        // without changing image cache identity or the stored ingredient list.
+        const scanIngredients = [...meal.ingredients,
+          ...(meal.serving?.items.map(item => `${item.food} ${item.note || ""}`) ?? [])];
+        if (evaluateWholeFoodCandidate(
+          { ...meal, description: scanDescription, ingredients: scanIngredients, preparationEvidence: "unknown" },
+          { purposes: wholeFoodPurposes, recommendationSurface: "restaurant_ai_fallback" },
+        ).shouldBlock) return false;
+        const text = `${meal.name} ${scanDescription} ${meal.ingredients.join(" ")}`.toLowerCase();
         if (userAvoidedFoods.some(food => typeof food === "string" && text.includes(food.toLowerCase()))) return false;
         if (violatesDietaryConstraints(text, userDietaryRestrictions).violates) return false;
         if (protocolEnvelope && !scanGeneratedOutput({
-          name: meal.name, description: meal.description, ingredients: meal.ingredients,
+          name: meal.name, description: scanDescription, ingredients: scanIngredients,
           instructions: meal.modifications, preparationEvidence: "unknown",
         }, protocolEnvelope, { generatorName: "restaurant_meals" }).passed) return false;
         return !protocolEnvelope?.hasDiabetes || validateDiabeticMeal({
-          name: meal.name, description: meal.description, ingredients: meal.ingredients,
+          name: meal.name, description: scanDescription, ingredients: scanIngredients,
           macros: { carbs: meal.carbs },
         }, { glucoseState: protocolEnvelope.diabeticGlucoseState ?? undefined }).isValid;
       });

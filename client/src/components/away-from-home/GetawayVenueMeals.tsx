@@ -4,6 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { setQuickView } from "@/lib/macrosQuickView";
 import FavoriteButton from "@/components/FavoriteButton";
 import AwayFromHomeMealCard from "./AwayFromHomeMealCard";
+import GetawayMealImage from "./GetawayMealImage";
 import { getawayRestaurantCards } from "@shared/getawayRestaurantMeals";
 import type { AwayFromHomeRecommendation } from "@shared/awayFromHome";
 
@@ -11,7 +12,9 @@ export interface GetawayDiningDestination {
   destinationName: string; venueId?: string; zoneId?: string;
 }
 
-export default function GetawayVenueMeals({ destination }: { destination: GetawayDiningDestination }) {
+export default function GetawayVenueMeals({ destination, onRecommendationsChange }: {
+  destination: GetawayDiningDestination; onRecommendationsChange?: (hasMeals: boolean) => void;
+}) {
   const [, navigate] = useLocation();
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -19,6 +22,7 @@ export default function GetawayVenueMeals({ destination }: { destination: Getawa
   const [cards, setCards] = useState<AwayFromHomeRecommendation[]>([]);
   const [evidence, setEvidence] = useState("");
   const request = useRef(0);
+  useEffect(() => { onRecommendationsChange?.(cards.length > 0); }, [cards.length, onRecommendationsChange]);
   useEffect(() => () => { request.current++; }, []);
   // The parent keys this panel by destination/area. Never keep another venue's
   // recommendations actionable while its name is edited or a request is pending.
@@ -53,6 +57,7 @@ export default function GetawayVenueMeals({ destination }: { destination: Getawa
   function sendToBiometrics(rec: AwayFromHomeRecommendation) {
     const meal = rec.meal;
     setQuickView({
+      restaurantServing: meal.serving, title: meal.name,
       protein: meal.proteinGrams!, carbs: meal.carbohydrateGrams!, fat: meal.fatGrams!,
       calories: meal.calories!, starchyCarbs: meal.starchyCarbGrams ?? undefined,
       fibrousCarbs: meal.fibrousCarbGrams ?? undefined, dateISO: new Date().toISOString().slice(0, 10),
@@ -80,9 +85,11 @@ export default function GetawayVenueMeals({ destination }: { destination: Getawa
           id: rec.id, name: rec.meal.name, description: rec.meal.description,
           calories: rec.meal.calories, protein: rec.meal.proteinGrams, carbs: rec.meal.carbohydrateGrams,
           fat: rec.meal.fatGrams, ingredients: rec.meal.ingredients, nutritionStatus: rec.nutritionStatus,
+          serving: rec.meal.serving, imageUrl: rec.meal.imageUrl,
         }} />
       </div>
-      <AwayFromHomeMealCard recommendation={rec} />
+      <AwayFromHomeMealCard recommendation={rec}
+        mealImage={<GetawayMealImage key={rec.meal.imageUrl || rec.id} src={rec.meal.imageUrl} name={rec.meal.name} />} />
       <button onClick={() => sendToBiometrics(rec)} className="mt-2 text-sm text-orange-300 underline">
         Review in Biometrics
       </button>

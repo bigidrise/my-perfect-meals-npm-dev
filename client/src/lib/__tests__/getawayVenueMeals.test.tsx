@@ -67,9 +67,12 @@ test("existing Favorites receives the actual meal and Biometrics requires an exp
   expect(mockNavigate).toHaveBeenCalledWith("/biometrics?section=macros");
 });
 test("editing a venue immediately removes old actionable meals", async () => {
-  render(<GetawayVenueMeals destination={{ destinationName: "Carnival" }} />);
+  const onRecommendationsChange = jest.fn();
+  render(<GetawayVenueMeals destination={{ destinationName: "Carnival" }} onRecommendationsChange={onRecommendationsChange} />);
   await chooseVenue();
+  expect(onRecommendationsChange).toHaveBeenLastCalledWith(true);
   fireEvent.change(screen.getByLabelText("Restaurant or dining venue"), { target: { value: "Lido buffet" } });
+  expect(onRecommendationsChange).toHaveBeenLastCalledWith(false);
   expect(screen.queryByTestId("getaway-structured-meal")).toBeNull();
 });
 test("failed clinical validation and advice-only payloads never show saving or tracking controls", async () => {

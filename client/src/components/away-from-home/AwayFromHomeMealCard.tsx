@@ -38,6 +38,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { setQuickView } from "@/lib/macrosQuickView";
 import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
 import { ChefFlowImage } from "@/components/ChefFlowImage";
+import RestaurantPortions from "./RestaurantPortions";
 
 // ── Translation types ─────────────────────────────────────────────────────────
 
@@ -149,6 +150,8 @@ function DisclosureRow({ status }: { status: NutritionDataStatus }) {
 // ── Main Card ─────────────────────────────────────────────────────────────────
 
 interface AwayFromHomeMealCardProps {
+  /** Getaway supplies a static-only image fallback without changing other consumers. */
+  mealImage?: import("react").ReactNode;
   recommendation: AwayFromHomeRecommendation;
   /** True while the page enriches this recommendation with a generated image. */
   imageLoading?: boolean;
@@ -165,6 +168,7 @@ export default function AwayFromHomeMealCard({
   actionsDisabled = false,
   logOnly = false,
   className,
+  mealImage,
 }: AwayFromHomeMealCardProps) {
   const [, setLocation] = useLocation();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -259,12 +263,14 @@ export default function AwayFromHomeMealCard({
     const calories = Math.round(p * 4 + totalCarbs * 4 + f * 9);
     const dateISO = new Date().toISOString().slice(0, 10);
     setQuickView({
+      ...(meal.serving ? { restaurantServing: meal.serving, title: meal.name } : {}),
       protein: p,
       carbs: totalCarbs,
       starchyCarbs: sc ?? undefined,
       fibrousCarbs: fc ?? undefined,
       fat: f,
       calories,
+      ...(meal.serving ? { calories: meal.calories ?? calories } : {}),
       dateISO,
     });
     setLocation(buildBiometricsUrl({ section: "macros", from: "buffet" }));
@@ -337,12 +343,12 @@ export default function AwayFromHomeMealCard({
         {/* ── Meal name + description ───────────────────────────────── */}
         <div className="px-4 pt-3">
           <div className="flex items-start gap-2">
-            <ChefFlowImage
+            {mealImage ?? <ChefFlowImage
               src={meal.imageUrl}
               alt={meal.name}
               isLoading={imageLoading}
               className="w-16 h-16 rounded-xl shrink-0 border border-white/10"
-            />
+            />}
             <div className="min-w-0">
               <p className="font-semibold text-white leading-snug">{displayName}</p>
               {displayDescription && (
@@ -435,6 +441,10 @@ export default function AwayFromHomeMealCard({
         )}
 
         {/* ── Portion guidance ─────────────────────────────────────── */}
+        {meal.serving && <div className="px-4"><RestaurantPortions serving={meal.serving} meal={{
+          name: meal.name, calories: meal.calories!, protein: meal.proteinGrams!,
+          carbs: meal.carbohydrateGrams!, fat: meal.fatGrams!,
+        }} /></div>}
         {recommendation.portionGuidance && (
           <div className="px-4 mt-3">
             <p className="text-xs text-orange-300/70 leading-relaxed">
