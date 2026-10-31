@@ -19,6 +19,7 @@ import { extractAndPersistMemories } from "../services/coaching/memoryExtractor"
 import { getCapabilitiesForUser, getCornerCapabilities } from "../services/coaching/capabilityRegistry";
 import { getDevelopmentPlatformKnowledge } from "../services/coaching/platformKnowledge";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
+import { validateConciergeGoal } from "../services/coaching/conciergeGoal";
 
 const oldEnvironment = process.env.NODE_ENV;
 const user = { id: "fixture-user" };
@@ -37,11 +38,27 @@ beforeEach(() => {
   });
 });
 afterAll(() => { process.env.NODE_ENV = oldEnvironment; });
-function reply(message: string, id: string | null = null, goal = unknown, extra = {}) {
+function reply(message: string, id: string | null = null, goal = unknown, extra: Record<string, unknown> = {}) {
+  // These legacy goal/handoff fixtures start after a recommendation. The new
+  // state-machine suite separately tests initial requests and actual persistence.
+  if (extra.navigationIntent === undefined || extra.navigationIntent === "confirmed") {
+    const candidate = validateConciergeGoal({ mode: "food_assistance", destinationId: id, goal },
+      (getAdapter as jest.Mock)().availableTools, [], { completeMissingDestination: true });
+    const pendingId = id && id in COACH_DESTINATIONS ? id : candidate?.destinationId;
+    (db.execute as jest.Mock).mockResolvedValue({ rows: [{
+      id: "fixture-row", structured_payload: { presentation: { navigation: pendingId
+        ? { state: "recommendation_pending", destinationId: pendingId, goal }
+        : undefined } },
+    }] });
+  }
   mockCreate.mockResolvedValueOnce({ choices: [{ message: { content: JSON.stringify({
     // Existing action-validation fixtures assume authorized navigation unless
     // the test explicitly exercises recommendation/confirmation/unknown intent.
-    message, navigationIntent: "direct_request",
+    message, navigationIntent: "confirmed",
+    recommendationMessage: extra.navigationIntent === "recommendation" ||
+      (extra.navigationIntent !== undefined && !["confirmed", "direct_request"].includes(String(extra.navigationIntent)))
+      ? message : `Would you like to use this feature? ${message}`,
+    handoffMessage: message,
     conciergeDecision: { mode: "food_assistance", destinationId: id, goal }, ...extra,
   }) } }] });
 }
@@ -53,7 +70,7 @@ test.each(Object.keys(COACH_DESTINATIONS))(
   "recommendation metadata cannot display an early button for %s", async id => {
     reply("This feature could help. Would you like to use it?", id,
       { ...unknown, explicitFeatureId: id }, { navigationIntent: "recommendation" });
-    const result = await run("Can you help me figure out what to do?");
+    const result = await run(`Can you explain ${COACH_DESTINATIONS[id as keyof typeof COACH_DESTINATIONS].label}?`);
     expect(result.presentation?.message).toBe("This feature could help. Would you like to use it?");
     expect(result.presentation?.destinationId).toBeUndefined();
     expect(result.todayPlan.items).toEqual([]);
@@ -441,6 +458,8 @@ test("chicken Caesar food choice alone cannot auto-complete an opening action", 
   const result = await run("Yeah, a chicken, that's like a chicken salad, a chicken Caesar, what do you think about that?");
   expect(result.presentation).toEqual({
     kind: "concierge", message: modelMessage,
+    navigation: { state: "recommendation_pending", destinationId: "create_a_dish",
+      goal: { ...unknown, activity: "prepare", occasion: "meal", dishChosen: true } },
   });
   expect(result.todayPlan.items).toEqual([]);
   expect(mockCreate).toHaveBeenCalledTimes(1);

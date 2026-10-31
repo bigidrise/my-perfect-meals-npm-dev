@@ -15,6 +15,12 @@ export interface ConciergePresentation {
   message: string;
   destinationId?: import("./navigation").CoachDestinationId;
   creatorRequest?: import("./creatorRequest").ChefCreatorRequest;
+  /** Server-owned turn state, persisted with the existing assistant payload. */
+  navigation?: {
+    state: "recommendation_pending" | "navigation_confirmed" | "direct_navigation";
+    destinationId: import("./navigation").CoachDestinationId;
+    goal: import("./schemas").ConciergeGoal;
+  };
 }
 
 export type CoachSpecialization = "corner" | "pregnancy" | "pediatric";

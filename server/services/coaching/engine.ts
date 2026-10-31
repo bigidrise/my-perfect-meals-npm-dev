@@ -156,6 +156,7 @@ function validateCitations(
 // ─── Phase 5 imports ─────────────────────────────────────────────────────────
 
 import { loadBoundedHistory } from "./conversationSummarizer";
+import { loadPendingRecommendation } from "./conciergeNavigationState";
 import { extractAndPersistMemories } from "./memoryExtractor";
 
 // ─── Phase 2 (Reasoning Library) imports ─────────────────────────────────────
@@ -1525,9 +1526,11 @@ export class CoachingEngine {
         conversationId, subject.ownerId, request.specialization,
       );
       const context = await adapter.loadAdditionalContext(subject);
+      const pendingRecommendation = await loadPendingRecommendation(conversationId, subject.ownerId);
       response = await runConciergeConversation({
         client: getOpenAI(), userMessage: request.userMessage, history, rollingContext,
         context, tools: [...adapter.availableTools],
+        pendingRecommendation,
         preferredLanguage: (req as any).authUser?.preferredLanguage,
       });
     }
