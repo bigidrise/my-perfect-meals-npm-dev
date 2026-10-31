@@ -10,9 +10,23 @@ import { z } from "zod";
 import { isCoachDestinationId } from "./navigation";
 
 /** Meaning is classified by the existing reasoning call, not keyword routing. */
+export const ConciergeGoalSchema = z.object({
+  activity: z.enum(["unknown", "prepare", "eat_out", "use_ingredients", "plan_meals",
+    "hydration", "buffet", "travel", "gathering", "calculator", "child_feeding"]),
+  occasion: z.enum(["unknown", "snack", "meal", "dessert", "beverage"]),
+  restaurant: z.enum(["unknown", "chosen", "not_chosen"]),
+  dishChosen: z.boolean(),
+  specialty: z.enum(["none", "sushi", "workout"]),
+  // An explicit request for a feature can be complete without ordinary discovery.
+  explicitFeatureId: z.string().refine(isCoachDestinationId).nullable().default(null),
+});
+export type ConciergeGoal = z.infer<typeof ConciergeGoalSchema>;
+
 export const ConciergeDecisionSchema = z.object({
   mode: z.enum(["food_assistance", "nutrition_education", "behavioral_coaching", "clarification"]),
   destinationId: z.string().refine(isCoachDestinationId).nullable().default(null),
+  // Optional for compatibility; missing/invalid goal evidence cannot authorize navigation.
+  goal: ConciergeGoalSchema.optional().catch(undefined),
 }).refine(value => value.mode === "food_assistance" || value.destinationId === null, {
   message: "Only a clear food-assistance request may select a navigation destination.",
 });

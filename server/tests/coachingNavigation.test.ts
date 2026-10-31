@@ -75,8 +75,8 @@ describe("server-validated Chef navigation", () => {
   test("registry provides clear destination distinctions without activating paused coaches", () => {
     const caps = getCornerCapabilities(["all"]);
     for (const id of Object.keys(COACH_DESTINATIONS)) expect(caps.some(cap => cap.id === id)).toBe(true);
-    expect(caps.find(cap => cap.id === "restaurant_guide")?.description).toContain("known restaurant");
-    expect(caps.find(cap => cap.id === "find_meals_near_me")?.description).toContain("not which restaurant");
+    expect(caps.find(cap => cap.id === "restaurant_guide")?.description).toContain("already chosen");
+    expect(caps.find(cap => cap.id === "find_meals_near_me")?.description).toContain("has not chosen one");
     expect(COACH_DESTINATIONS).not.toHaveProperty("pregnancy_coach");
     expect(COACH_DESTINATIONS).not.toHaveProperty("wine_pairing_ai");
   });

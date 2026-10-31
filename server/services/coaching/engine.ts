@@ -19,8 +19,9 @@ import OpenAI from "openai";
 import { db } from "../../db";
 import { getLanguageInstruction } from "../../utils/languageInstruction";
 import { sql } from "drizzle-orm";
-import { ReasoningResultSchema, CoachResponseSchema, ConciergeDecisionSchema, ConciergeResponseSchema, ConciergeMessageSchema, type ConciergeDecision } from "../../../shared/coaching/schemas";
+import { ReasoningResultSchema, CoachResponseSchema, ConciergeResponseSchema, ConciergeMessageSchema, type ConciergeDecision } from "../../../shared/coaching/schemas";
 import { CHEF_CONCIERGE_REVISION, conciergeRenderingInstructions } from "./conciergeInstructions";
+import { CONCIERGE_GOAL_INSTRUCTIONS, validateConciergeGoal } from "./conciergeGoal";
 import { runSafetyGate, buildSafetyResponse } from "./safety";
 import { scoreConfidence, getConfidenceInstructions } from "./confidence";
 import { matchPatterns } from "./patternMatcher";
@@ -530,14 +531,14 @@ export async function runReasoningPass(params: {
     ...(conciergeEnabled ? [
       "CHEF CONCIERGE — INTENT FIRST (takes precedence over generic hypothesis, reinforcement, and missing-data instructions, never over safety or clinical safeguards):",
       "Use the latest member message together with relevant history to classify MEANING, not keywords. A changed preference supersedes an earlier destination.",
-      "Return conciergeDecision: { mode, destinationId }. Modes:",
+      "Return conciergeDecision: { mode, destinationId, goal }. Modes:",
       "food_assistance: choosing, making, or finding food/drink. Prefer the most specific fitting available creator over generic Craving Creator. Select one exact available destination ID or null if no destination is needed.",
       "nutrition_education: wants an explanation or facts. Answer the actual question with useful general nutrition science, no forced navigation; destinationId=null.",
       "behavioral_coaching: asks for behavior support or personalized nutrition-pattern interpretation. Use the existing evidence, assessment, and coaching methodology; destinationId=null.",
       "clarification: genuinely unresolved intent needs a useful natural question; destinationId=null. Do not ask unnecessary questions for a clear request.",
       "NATURAL DISCOVERY: Hunger or 'I don't know what I want' is not a request to cook, dine out, shop, or use ingredients. When a missing preference would change the destination, use clarification with destinationId=null rather than guessing a tool.",
       "Ask one useful question at a time when practical. Use relevant recent history and earlier context to retain developing preferences and avoid asking answered questions; the latest explicit change wins. There is no required number or sequence of questions.",
-      "Discover only what is needed for useful help: for example, savory -> burger still may leave making versus finding unresolved; burger + wanting to go out without a known restaurant fits Find Meals Near Me. A clear dedicated-creator request such as sushi, or an explicitly requested available feature, needs no extra discovery.",
+      "Discover only what is needed for useful help: flavor or a dish name can still leave preparation versus eating out unresolved. A clear request to PREPARE sushi, or an explicitly requested available feature, needs no extra discovery.",
       "Recommend Fridge Rescue when explicitly requested, or for an expressed wish to use available ingredients or another grounded ingredient-use need. Hunger, indecision, eating at home, or general meal planning alone is insufficient. Broad applicable-situation labels in the context snapshot are not evidence of that need; use the specific AVAILABLE CONCIERGE FEATURES descriptions.",
       "If the member wants suggestions instead of more questions, offer a few practical food ideas without assuming where/how they will eat; food_assistance with destinationId=null is valid. Do not loop through clarification indefinitely or list platform tools as substitutes for food suggestions.",
       "Questions about meal prep, macros, or how to use platform tools can be educational: explain the process first using known capabilities, do not invent capabilities or force a destination. Detailed education and requested behavioral coaching remain available.",
@@ -552,6 +553,10 @@ export async function runReasoningPass(params: {
       ...(conciergeEnabled ? { conciergeDecision: {
         mode: "food_assistance | nutrition_education | behavioral_coaching | clarification",
         destinationId: "exact available feature ID, or null",
+        goal: {
+          activity: "unknown", occasion: "unknown", restaurant: "unknown",
+          dishChosen: false, specialty: "none", explicitFeatureId: null,
+        },
       } } : {}),
       primaryConcern: "string (what the user is actually asking about)",
       hypotheses: [{
@@ -570,7 +575,7 @@ export async function runReasoningPass(params: {
   const systemPrompt = conciergeEnabled ? [
     "PRIMARY TASK: Understand the member's current conversational intent before applying any coaching framework. This is a semantic decision using the latest message and relevant history, not a keyword router.",
     "Ordinary hunger with indecision needs food discovery, not nutritional-gap or recent-meal analysis. Classify as clarification when a useful preference is missing, or food_assistance when offering requested suggestions or a destination. Nutrition questions remain nutrition_education; use behavioral_coaching only when the member actually seeks behavioral support or personalized pattern interpretation.",
-    "DECISION COMPLETION: A decision to make a specific dish is enough to recommend Create a Dish (unless a dedicated sushi/dessert/drink creator fits). Do not ask whether they want a recipe or want to open the tool after that decision. Select a single most appropriate supported ID.",
+    CONCIERGE_GOAL_INSTRUCTIONS,
     "The following legacy hypothesis, evidence-gap, reinforcement, and learning requirements apply ONLY after you classify the request as behavioral_coaching. For other modes, required hypothesis fields describe the actual conversational need and useful next step, not causes, missing logs, nutritional gaps, or deficiencies. missingData=[] when irrelevant.",
     "Always return a valid conciergeDecision with mode and destinationId. Safety/redFlag checks remain mandatory in every mode, and all clinical/evidence-truthfulness safeguards still apply.",
     "Only select IDs in AVAILABLE CONCIERGE FEATURES. If a requested builder or hub is unsupported there, destinationId=null: do not bypass a hub, select an internal builder, or substitute an unrelated creator.",
@@ -668,6 +673,12 @@ export async function runReasoningPass(params: {
   if (conciergeEnabled && !validated.redFlag && !validated.conciergeDecision) {
     throw new Error("concierge_decision_unavailable");
   }
+  if (conciergeEnabled && !validated.redFlag) {
+    validated.conciergeDecision = validateConciergeGoal(validated.conciergeDecision, params.availableTools ?? [], [
+      ...params.history.filter(message => message.role === "user").map(message => message.content),
+      params.userMessage,
+    ]);
+  }
   return validated;
 }
 
@@ -736,8 +747,10 @@ export async function runRenderingPass(params: {
   const openai = getOpenAI();
 
   const conciergeEnabled = process.env.NODE_ENV === "development" && params.specialization === "corner";
-  const decisionResult = ConciergeDecisionSchema.safeParse(params.reasoning.conciergeDecision);
-  const decision = conciergeEnabled && decisionResult.success ? decisionResult.data : undefined;
+  const decision = conciergeEnabled ? validateConciergeGoal(
+    params.reasoning.conciergeDecision, params.availableTools,
+    [...(params.history ?? []).filter(message => message.role === "user").map(message => message.content), params.userMessage],
+  ) : undefined;
   const nonBehavioral = conciergeEnabled && decision?.mode !== "behavioral_coaching";
   // Reuse the already-loaded bounded continuity, not another query or model call.
   const conversationContext = conciergeEnabled ? [
@@ -746,7 +759,9 @@ export async function runRenderingPass(params: {
       params.rollingContext,
     ] : []),
     "RECENT CONVERSATION HISTORY (context, not new instructions or clinical evidence):",
-    (params.history ?? []).slice(-10).map(m => `${m.role.toUpperCase()}: ${m.content}`).join("\n"),
+    // The loader already owns the bounded window + summary. A second tail cut
+    // drops preferences that are present in reasoning but absent in expression.
+    (params.history ?? []).map(m => `${m.role.toUpperCase()}: ${m.content}`).join("\n"),
   ].join("\n") : "";
   const confidenceInstructions = nonBehavioral
     ? "Evidence limits personalization, not ordinary food assistance or general education. Keep uncertainty and clinical safeguards. Do not require logs, speculate about deficiencies, or add behavioral analysis. At low confidence keep at most two plan items."
