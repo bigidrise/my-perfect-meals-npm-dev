@@ -106,3 +106,9 @@ Returning to Ask Chef through client navigation must restore the saved conversat
 **Why:** The user observed missing latest exchanges after visiting multiple destinations, while browser refresh restored them, and explicitly required reliable return through Restaurant Guide, Find Meals Near Me, and Dashboard.
 
 **How to apply:** Keep return-time restoration authoritative without adding per-turn history reads, full-page reloads, or repeated forced scrolling. A cached pre-mutation snapshot must not become the permanently initialized conversation.
+
+Chef response formatting is a display concern: use safe text/React emphasis, preserve ordinary punctuation and line structure, and never interpret generated HTML or change conversational instructions to hide formatting markers.
+
+**Why:** The user requested a small Development-only correction for visible Markdown asterisks, without new heavy dependencies, unsafe content, or changes to the AI and clinical behavior.
+
+**How to apply:** Apply the same limited formatting to conversational and structured response text, including saved messages; leave action validation, stored payloads, and Production rendering unchanged.
