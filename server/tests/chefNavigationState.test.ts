@@ -54,7 +54,7 @@ beforeEach(() => {
 afterAll(() => { process.env.NODE_ENV = originalEnvironment; });
 const run = (message: string) => engine.run({
   specialization: "corner", subject, userMessage: message, conversationId: "owned-conversation",
-}, { authUser: { id: "member" } } as any);
+}, { authUser: { id: "member" }, id: "11111111-1111-4111-8111-111111111111" } as any);
 const html = (response: any) => renderToStaticMarkup(React.createElement(CoachBubble, {
   structured: response, enableConcierge: true,
 }));
@@ -225,4 +225,116 @@ test("legacy or mismatched navigation metadata cannot render a Development butto
   expect(html(value)).not.toContain("<button");
   value.presentation.navigation = { state: "navigation_confirmed", destinationId: "dessert_creator" };
   expect(html(value)).not.toContain("<button");
+});
+
+test("ordinary conversation needs neither navigation wording variant nor a rejection continuation", async () => {
+  const message = "My Perfect Getaway helps explore travel dining; its menus may not be current.";
+  model({ navigationIntent: "none", conciergeDecision: null, message,
+    recommendationMessage: null, handoffMessage: null, conversationMessage: null });
+  const result = await run("What does My Perfect Getaway do?");
+  expect(result.presentation?.message).toBe(message);
+  expect(result.meta.concierge?.rendering).toBe("primary");
+  expect(html(result)).not.toContain("<button");
+});
+
+test.each(["message", "conversationMessage"])("missing dedicated recommendation recovers from %s without a button", async field => {
+  model({ navigationIntent: "recommendation", recommendationMessage: null, handoffMessage: null,
+    [field]: invitation });
+  const result = await run(request);
+  expect(result.presentation?.message).toBe(invitation);
+  expect(stored.presentation.navigation.state).toBe("recommendation_pending");
+  expect(result.todayPlan.items).toEqual([]);
+  expect(html(result)).not.toContain("<button");
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+test("a feature-naming independent explanation survives missing recommendation wording", async () => {
+  const message = "My Perfect Getaway helps explore cruise dining, but current menus may differ.";
+  model({ recommendationMessage: null, handoffMessage: null, conversationMessage: message });
+  const result = await run(request);
+  expect(result.presentation?.message).toBe(message);
+  expect(result.presentation?.navigation).toBeUndefined();
+  expect(result.meta.concierge?.rendering).toBe("primary");
+  expect(html(result)).not.toContain("<button");
+});
+
+test("ordinary conversation can recover a feature-naming continuation without creating pending state", async () => {
+  const message = "My Perfect Getaway is for exploring travel dining.";
+  model({ message: " ", conversationMessage: message, navigationIntent: "none",
+    conciergeDecision: null, recommendationMessage: null, handoffMessage: null });
+  const result = await run("What is Getaway?");
+  expect(result.presentation?.message).toBe(message);
+  expect(result.presentation?.navigation).toBeUndefined();
+  expect(html(result)).not.toContain("<button");
+});
+
+test("a false initial confirmed label can recover a proposal, never confirmation", async () => {
+  model({ navigationIntent: "confirmed", recommendationMessage: null, message: invitation });
+  const result = await run(request);
+  expect(result.presentation?.navigation?.state).toBe("recommendation_pending");
+  expect(html(result)).not.toContain("<button");
+});
+
+test("missing handoff preserves owned pending state even when no safe continuation exists", async () => {
+  model(); await run(request);
+  model({ navigationIntent: "confirmed", handoffMessage: null,
+    conversationMessage: "Open My Perfect Getaway now." });
+  const result = await run("Yes.");
+  expect(result.meta.concierge?.rendering).toBe("retry");
+  expect(html(result)).not.toContain("<button");
+  expect(await loadPendingRecommendation("owned-conversation", "member"))
+    .toMatchObject({ state: "recommendation_pending" });
+});
+
+test("a direct request without handoff wording remains conversational, not button-authorizing", async () => {
+  const message = "My Perfect Getaway supports travel dining exploration.";
+  model({ handoffMessage: null, conversationMessage: message });
+  const result = await run("Open My Perfect Getaway.");
+  expect(result.presentation?.message).toBe(message);
+  expect(result.presentation?.destinationId).toBeUndefined();
+  expect(html(result)).not.toContain("<button");
+});
+
+test("failed handoff for a new direct destination never resurrects the old pending destination", async () => {
+  model(); await run(request);
+  model({ navigationIntent: "direct_request", handoffMessage: null,
+    conciergeDecision: { mode: "food_assistance", destinationId: "dessert_creator",
+      goal: { ...dessert, explicitFeatureId: "dessert_creator" } },
+    conversationMessage: "Open Dessert Creator now." });
+  const result = await run("Open Dessert Creator.");
+  expect(result.presentation?.navigation).toBeUndefined();
+  expect(await loadPendingRecommendation("owned-conversation", "member")).toBeUndefined();
+  expect(html(result)).not.toContain("<button");
+});
+
+test("an invalid destination preserves conversation without restoring an invalid action", async () => {
+  model({ conciergeDecision: { mode: "food_assistance", destinationId: "unregistered_destination", goal: travel },
+    conversationMessage: "Which kind of dining experience interests you?" });
+  const result = await run(request);
+  expect(result.presentation?.message).toBe("Which kind of dining experience interests you?");
+  expect(result.presentation?.navigation).toBeUndefined();
+  expect(html(result)).not.toContain("<button");
+});
+
+test("diagnostics retain rejection reasons and correlation, never private text or model errors", async () => {
+  const info = jest.spyOn(console, "info").mockImplementation(() => {});
+  const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+  try {
+    model({ recommendationMessage: null, handoffMessage: null,
+      conversationMessage: "My Perfect Getaway supports travel dining exploration." });
+    await run("PRIVATE_MEMBER_TEXT");
+    model({ conciergeDecision: { mode: "food_assistance", destinationId: "unregistered_destination", goal: travel },
+      conversationMessage: "Open My Perfect Getaway now." });
+    await run("PRIVATE_MEMBER_TEXT");
+    mockCreate.mockRejectedValueOnce(Object.assign(new Error("PRIVATE_PROVIDER_TEXT"), { status: 429 }));
+    await run("PRIVATE_MEMBER_TEXT");
+    const logs = [...info.mock.calls, ...warn.mock.calls].flat().join("\n");
+    expect(logs).toContain("reason=missing_recommendation_wording");
+    expect(logs).toContain("decision_outcome=invalid_destination failure_stage=decision");
+    expect(logs).toContain("reason=unusable_conversational_response");
+    expect(logs).toContain("provider_status=429");
+    expect(logs).toContain("request_id=11111111-1111-4111-8111-111111111111");
+    expect(logs).not.toContain("PRIVATE_");
+    expect(logs).not.toContain("My Perfect Getaway");
+  } finally { info.mockRestore(); warn.mockRestore(); }
 });
