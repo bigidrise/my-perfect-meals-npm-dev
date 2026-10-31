@@ -22,8 +22,10 @@ import type { CoachSpecialization } from "../../shared/coaching/types";
 import { emitActivityEvent } from "../services/coaching/activityEvents";
 import type { PlatformEventType, EventClass } from "../services/coaching/activityEvents";
 import { coachingProfiles } from "../db/schema/ace";
+import coachingNavigationRouter from "./coachingNavigation";
 
 const router = Router();
+router.use(coachingNavigationRouter);
 
 // ─── POST /message ────────────────────────────────────────────────────────────
 

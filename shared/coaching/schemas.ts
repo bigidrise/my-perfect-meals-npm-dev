@@ -90,6 +90,7 @@ export const TodayPlanItemSchema = z.object({
   text: z.string().min(1).max(300),
   dueAt: z.string().optional(),
   completionSignal: CompletionSignalSchema.optional(),
+  // Model output is untrusted. The engine resolves this against its server allowlist.
   featureTarget: z.string().max(100).optional(),
 });
 
