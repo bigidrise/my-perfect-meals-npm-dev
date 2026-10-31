@@ -82,3 +82,9 @@ My Perfect Menu and Meal Builders are approved starting-page navigation, not aut
 **Why:** The user explicitly approved these two existing entry points while prohibiting specialized-builder deep links, new handoffs, scripted menus, and changes to the destinations themselves.
 
 **How to apply:** Explain the actual difference when useful, accept clear choices in ordinary language without mandatory clarification, honor changed intent, and retain click-time subscription checks and destination-owned onboarding. Live paid-model conversational acceptance and Production activation remain separately authorized.
+
+When multiple destinations genuinely fit and history has not settled the relevant distinction, Chef should ask one brief natural question without a navigation action. Clear requests and answered distinctions should proceed without another interview.
+
+**Why:** Live testing showed Chef prematurely choosing My Perfect Menu for an undecided member who had not established whether they wanted suggested ideas or had their own.
+
+**How to apply:** Use adaptive model guidance, not keyword rules or a mandatory decision tree. Apply the same principle to small versus full-sized desserts and ordinary versus workout beverages; use the latest corrections and explain verified differences on request. Deterministic mocked turns verify instructions and pipeline behavior, not actual model compliance.

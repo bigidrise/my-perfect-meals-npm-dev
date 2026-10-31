@@ -46,6 +46,75 @@ const run = (message: string) => engine.run({
   specialization: "corner", subject, userMessage: message, conversationId: "",
 }, { authUser: user } as any);
 
+test.each([
+  ["I want to start making meals, but I'm not sure where to begin.",
+    "Would you like suggested ideas, or do you have your own in mind?"],
+  ["I want to make something sweet, but I don't know how much.",
+    "Are you thinking of a small treat or a larger dessert?"],
+  ["I want to make a drink, but I'm not sure what kind.",
+    "Is it an everyday drink or something for a workout?"],
+])("unresolved destination choice stays conversational without a premature action: %s", async (message, question) => {
+  reply(question, null, unknown, { conciergeDecision: null });
+  const result = await run(message);
+  expect(result.presentation).toEqual({ kind: "concierge", message: question });
+  expect(result.todayPlan.items).toEqual([]);
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+  const instructions = mockCreate.mock.calls[0][0].messages[0].content;
+  expect(instructions).toContain("UNRESOLVED DESTINATION CHOICE");
+  expect(instructions).toContain("set conciergeDecision=null for that clarification");
+  expect(instructions).toContain("does not choose Menu or Builders");
+  expect(instructions).toContain("small craving-sized dessert portions");
+  expect(instructions).toContain("ordinary beverage versus an athletic-performance/workout beverage");
+  expect(instructions).toContain("never repeat a distinction already answered");
+});
+
+test.each([
+  ["Please open My Perfect Menu.", "my_perfect_menu", { ...unknown, activity: "plan_meals", explicitFeatureId: "my_perfect_menu" }],
+  ["Take me to the builders.", "meal_builders", { ...unknown, activity: "plan_meals", explicitFeatureId: "meal_builders" }],
+  ["I'd like to make a small sweet treat.", "craving_creator", { ...unknown, activity: "prepare", occasion: "snack" }],
+  ["I want to bake a whole cake.", "dessert_creator", { ...unknown, activity: "prepare", occasion: "dessert" }],
+  ["I'd like to make an ordinary lemonade.", "beverage_creator", { ...unknown, activity: "prepare", occasion: "beverage" }],
+  ["I want to make a post-workout recovery drink.", "athlete_beverage_creator", { ...unknown, activity: "prepare", occasion: "beverage", specialty: "workout" }],
+])("clear intent retains direct validated navigation: %s", async (message, id, goal) => {
+  reply("You can create it there.", id, goal);
+  const result = await run(message);
+  expect(result.presentation?.destinationId).toBe(id);
+  expect(result.presentation?.message).toBe("You can create it there.");
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+test.each([
+  ["Would you like suggested ideas, or do you have your own in mind?", "I already have my own ideas.",
+    "meal_builders", { ...unknown, activity: "plan_meals", explicitFeatureId: "meal_builders" }],
+  ["Small treat or a larger dessert?", "Actually, a full cake for a party, not a small treat.",
+    "dessert_creator", { ...unknown, activity: "prepare", occasion: "dessert" }],
+  ["Everyday drink or workout drink?", "Not for workouts. Just an ordinary drink.",
+    "beverage_creator", { ...unknown, activity: "prepare", occasion: "beverage" }],
+])("an answered distinction or correction retains history and does not restart discovery: %s", async (question, correction, id, goal) => {
+  const history = [
+    { role: "user", content: "I'm not sure which experience to use." },
+    { role: "assistant", content: question },
+    { role: "user", content: correction },
+  ];
+  (loadBoundedHistory as jest.Mock).mockResolvedValue({ recentMessages: history, rollingContext: null });
+  reply("You can start there.", id, goal);
+  const result = await run("Yes, let's do that.");
+  expect(result.presentation?.destinationId).toBe(id);
+  expect(result.presentation?.message).toBe("You can start there.");
+  const payload = JSON.parse(mockCreate.mock.calls[0][0].messages[1].content);
+  expect(payload.history).toEqual(history);
+  expect(payload.latestMemberMessage).toBe("Yes, let's do that.");
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+test("a requested comparison can explain the distinction without selecting either tool", async () => {
+  const explanation = "Craving Creator is for smaller treats; Dessert Creator is for larger recipes such as a whole cake.";
+  reply(explanation, null, unknown, { conciergeDecision: null });
+  const result = await run("What's the difference between Craving Creator and Dessert Creator?");
+  expect(result.presentation).toEqual({ kind: "concierge", message: explanation });
+  expect(result.todayPlan.items).toEqual([]);
+});
+
 test("actual Development engine answers without assessment, styles, observers or background extraction in one call", async () => {
   reply("Thinking savory, sweet, or something light?");
   const result = await run("I'm hungry, but I don't know what I want.");
