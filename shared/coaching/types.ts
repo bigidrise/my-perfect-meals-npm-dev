@@ -291,6 +291,8 @@ export interface TodayPlanItem {
   completionSignal?: CompletionSignal;
   /** For use_feature items: which MPM feature to redirect to */
   featureTarget?: string;
+  /** Server-validated Stage 1 destination; never accepted from model output. */
+  destinationId?: import("./navigation").CoachDestinationId;
 }
 
 /**

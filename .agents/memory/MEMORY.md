@@ -32,9 +32,7 @@
 - [Release type gate](release-type-gate.md) — use the layered release check so newly introduced type errors cannot hide in debt.
 - [Process environment types](process-environment-type-contracts.md) — named-key Pick and Partial Pick can reject an index-signature-only environment dictionary.
 - [Drizzle schema migration fallback](drizzle-kit-push-instability.md) — use small idempotent SQL migrations when schema-pull tooling is unreliable.
-- [Drizzle array columns](ace-drizzle-array-rule.md) — SQL templates expand arrays; use explicit per-value conditions for membership queries.
-- [PostgreSQL parameter gaps](postgres-parameter-gaps.md) — mocked writes can pass while live updates fail if SQL leaves unused leading placeholders.
-- [Neon pooler read-only queries](neon-pooler-read-only-queries.md) — pooled connection rejects read-only startup options; use an explicit read-only transaction.
+- [PostgreSQL runtime references](postgres-runtime-reference-index.md) — SQL array expansion, parameter gaps, catalog decoding, and pooled read-only transactions.
 - [Studio media lifecycle](studio-media-reference-index.md) — video retention, MIME compatibility, participant deletion, failed media, transcription result scope and voice queue integrity.
 - [OpenAI server upload runtime](openai-server-upload-runtime.md) — server-side uploads must not rely on ambient web globals from the OpenAI SDK auto shim.
 - [Bundled-first iOS startup](bundled-first-ios-startup.md) — native startup must use packaged web assets; remote APIs are a separate, explicit dependency.
@@ -146,7 +144,6 @@
 - [Craving quality standard](craving-quality-standard.md) — preserve adapted food identity without rigid ingredients, routine extra AI checks, or overrejecting legitimate variations.
 - [Pilot erasure and receipt retention](pilot-erasure-and-receipt-retention.md) — operational capabilities and financial consent have different erasure purposes; no receipt retention period was established.
 - [Neon preflight default privileges](neon-preflight-default-privileges.md) — scope default ACL checks to the actual creator, schema, and object type; provider defaults need not apply.
-- [PostgreSQL catalog array decoding](postgres-catalog-array-decoding.md) — cast catalog identifier arrays to text[] for node-postgres; name[] may arrive as raw strings.
 - [Drizzle billing insert defaults](drizzle-billing-insert-defaults.md) — billing-column names alone cannot distinguish free inserts from paid writes; test actual Drizzle SQL.
 - [Reusable business partner pilot](reusable-business-partner-pilot.md) — one shared link, independent per-account pilot clocks; forwarding restrictions are explicitly deferred.
 - [Guided Journey authority](guided-journey-authority.md) — explain existing tasks and verify saved work; guidance never owns navigation, access, or nutrition decisions.
@@ -157,3 +154,4 @@
 - [Dashboard menu colors](dashboard-menu-color-policy.md) — use visually distinct accents for unrelated dashboard tools, not merely different hex shades of the same hue.
 - [RHM client walkthrough](rhm-client-walkthrough-context.md) — staff need the actual first-time client experience before distributing a 30-day link to 8,000 clinic clients.
 - [Frontend test runtime](dom-snapshot-css-fidelity.md) — snapshot CSS fidelity, focused Jest execution, and Vite-only feature gates.
+- [Chef concierge boundaries](chef-concierge-boundary.md) — preserve coaching; destinations own generation; navigation is member-confirmed and Development-only until approved.

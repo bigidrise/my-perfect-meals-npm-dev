@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import type { CoachCornerQuestion } from "@shared/coachCornerTypes";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import CoachFeatureAction from "@/components/coaching/CoachFeatureAction";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,6 +34,7 @@ interface PlanItem {
   dueAt?: string;
   completionSignal?: string;
   featureTarget?: string;
+  destinationId?: string;
 }
 
 interface CoachStructuredResponse {
@@ -143,7 +145,13 @@ function CoachBubble({ structured }: { structured: CoachStructuredResponse }) {
                   {planItems.map((item, i) => (
                     <li key={i} className="flex items-start gap-2">
                       <span className="text-orange-400 mt-0.5 shrink-0 select-none">•</span>
-                      <span>{planItemText(item)}</span>
+                      <span className="min-w-0">
+                        {planItemText(item)}
+                        {import.meta.env.DEV && typeof item !== "string" &&
+                          item.kind === "use_feature" &&
+                          !planItems.some(planItem => typeof planItem !== "string" && planItem.kind === "contact_care") &&
+                          <CoachFeatureAction destinationId={item.destinationId} />}
+                      </span>
                     </li>
                   ))}
                 </ul>

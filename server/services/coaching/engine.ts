@@ -24,6 +24,7 @@ import { runSafetyGate, buildSafetyResponse } from "./safety";
 import { scoreConfidence, getConfidenceInstructions } from "./confidence";
 import { matchPatterns } from "./patternMatcher";
 import { resolveStyle } from "./styleResolver";
+import { validateCoachNavigationItems } from "../../../shared/coaching/navigation";
 import { runObservers, selectObservers } from "./observers/stubs";
 import { getAdapter } from "./adapters";
 import type {
@@ -707,6 +708,14 @@ async function runRenderingPass(params: {
 
   const systemPrompt = [
     ...(renderingLangInstruction ? [renderingLangInstruction, ""] : []),
+    ...(process.env.NODE_ENV === "development" ? [
+      "CHEF CONCIERGE: Use the current conversation to understand food and drink intent, including changed preferences.",
+      "For a clear request, optionally include a use_feature plan item with featureTarget set to the exact available feature ID. Never invent URLs or destinations.",
+      "For genuinely ambiguous intent, ask one relevant natural follow-up without a use_feature item yet. Do not ask unnecessary questions for clear intent.",
+      "Explain nutrition directly when asked; do not force navigation. Creators generate food, not this coach.",
+      "Navigation requires a member click, transfers no request, and grants no access. Never claim a feature has opened or content has generated.",
+      "Pregnancy Coach and future Wine Pairing AI are unavailable; never recommend them as operational destinations. Medical escalation always takes precedence.",
+    ] : []),
     "You are the LANGUAGE LAYER of the MPM Coaching Engine.",
     "The coaching decision has been made. Your job: express it as natural, helpful conversation.",
     "",
@@ -913,14 +922,14 @@ async function runRenderingPass(params: {
 
       // Explicitly construct typed TodayPlanItem[] so the Zod-inferred shape
       // and the TodayPlanItem contract are unified at the type level.
-      const typedItems: TodayPlanItem[] = cappedItems.map((item) => ({
+      const typedItems: TodayPlanItem[] = validateCoachNavigationItems(cappedItems.map((item) => ({
         horizon: item.horizon,
         kind: item.kind,
         text: item.text,
         ...(item.dueAt !== undefined && { dueAt: item.dueAt }),
         ...(item.completionSignal !== undefined && { completionSignal: item.completionSignal }),
         ...(item.featureTarget !== undefined && { featureTarget: item.featureTarget }),
-      }));
+      })), process.env.NODE_ENV === "development") as TodayPlanItem[];
 
       const typedTodayPlan: TodayPlan = {
         why: validated.todayPlan.why,

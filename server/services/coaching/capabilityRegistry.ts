@@ -17,6 +17,8 @@
  * Adding a new feature: add one entry here. No other file changes needed.
  */
 
+import { COACH_DESTINATIONS, type CoachDestinationId } from "../../../shared/coaching/navigation";
+
 export type CapabilityScope =
   | "all"            // any authenticated user
   | "performance"    // user with performance_mode_enabled
@@ -343,6 +345,40 @@ export function getCapabilitiesForUser(
     const recMatch = !onlyRecommendable || cap.recommendable;
     return scopeMatch && recMatch;
   });
+}
+
+/** Development-only concierge extension; other coaches and Production stay unchanged. */
+export function getCornerCapabilities(activeScopes: CapabilityScope[]): MPMCapability[] {
+  const existing = getCapabilitiesForUser(activeScopes, true);
+  if (process.env.NODE_ENV !== "development") return existing;
+  const descriptions: Record<CoachDestinationId, string> = {
+    sushi_creator: "Create sushi when the member knows they want sushi.",
+    craving_creator: "Create a specific craved food, including savory cravings.",
+    dessert_creator: "Create desserts such as a whole pie or pan of brownies.",
+    beverage_creator: "Create regular smoothies, shakes, drinks, cocktails, or mocktails; not workout-specific drinks.",
+    athlete_beverage_creator: "Create pre-workout drinks, post-workout recovery shakes, or sports beverages.",
+    hydration_center: "Get hydration education and support. Never invent fluid or electrolyte targets.",
+    restaurant_guide: "Help choose food at a known restaurant.",
+    find_meals_near_me: "Find where to eat nearby when the member knows what food they want, but not which restaurant.",
+    my_perfect_buffet: "Help choose food at a buffet.",
+    my_perfect_getaway: "Help with food while traveling, at an airport, theme park, or Disneyland.",
+    my_perfect_gatherings: "Plan food for a gathering or dinner party.",
+    fridge_rescue: "Use ingredients already in the refrigerator or at home.",
+    create_a_dish: "Prepare a particular dish using the existing dish creator.",
+    macro_calculator: "Optionally open the calculator after explaining macros; do not force navigation for an explanation.",
+    my_perfect_beginning: "Open the child-selection hub for child feeding questions; select an authorized child before Parent's Corner. Never assume a child.",
+  };
+  const additions: MPMCapability[] = (Object.keys(COACH_DESTINATIONS) as CoachDestinationId[])
+    .map(id => ({
+      id, label: COACH_DESTINATIONS[id].label, route: COACH_DESTINATIONS[id].route,
+      description: descriptions[id],
+      applicableSituations: ["general_inquiry"], scopes: ["all"], recommendable: true,
+      eligibilityNote: "Navigation does not grant access; current access is checked on click.",
+    }));
+  return [
+    ...existing.filter(cap => !additions.some(added => added.id === cap.id)),
+    ...additions,
+  ];
 }
 
 /**

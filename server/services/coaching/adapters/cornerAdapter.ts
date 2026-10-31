@@ -21,7 +21,7 @@ import type {
   CoachingTool,
 } from "../../../../shared/coaching/types";
 import {
-  getCapabilitiesForUser,
+  getCornerCapabilities,
   type CapabilityScope,
 } from "../capabilityRegistry";
 import {
@@ -38,12 +38,12 @@ function buildCornerTools(userId: string): CoachingTool[] {
   // Corner gets all "all"-scoped capabilities — overlay-specific ones are
   // added dynamically after we know the user's specialtyConditions.
   // For the static tool list (loaded before context), return "all" scope only.
-  const caps = getCapabilitiesForUser(["all"], true);
+  const caps = getCornerCapabilities(["all"]);
   return caps.map((cap) => ({
     id: cap.id,
     scope: "adult" as const,
     label: cap.label,
-    featureTarget: cap.route,
+    featureTarget: process.env.NODE_ENV === "development" ? cap.id : cap.route,
     description: cap.description,
   }));
 }
@@ -100,14 +100,14 @@ export const cornerAdapter: CoachSpecializationAdapter = {
       if (snapshot.overlays.diabeticActive)         activeScopes.push("diabetic");
       // Not pregnancy — corner specialization does not expose pregnancy coaching
 
-      const userCaps = getCapabilitiesForUser(activeScopes, true);
+      const userCaps = getCornerCapabilities(activeScopes);
       // Mutate availableTools on the adapter so the engine's rendering pass
       // gets the correct filtered capability set for this user.
       cornerAdapter.availableTools = userCaps.map((cap) => ({
         id: cap.id,
         scope: "adult" as const,
         label: cap.label,
-        featureTarget: cap.route,
+        featureTarget: process.env.NODE_ENV === "development" ? cap.id : cap.route,
         description: cap.description,
       }));
 
