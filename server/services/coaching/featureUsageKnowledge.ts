@@ -41,12 +41,12 @@ export const FEATURE_USAGE_KNOWLEDGE: Partial<Record<CoachDestinationId, Feature
     generationAction: "Follow the guided prompts to request restaurant meal guidance.",
     notes: ["Do not promise Chef has transferred a craving or restaurant. Actual menu availability and accommodations require confirmation with the restaurant."],
   },
-  // client/src/pages/RestaurantFinderPage.tsx
+  // client/src/pages/SocialFindMeals.tsx
   find_meals_near_me: {
-    descriptionInput: "Enter a ZIP code or use the location control.",
-    controls: ["Use my location requests device location.", "Search finds restaurants for the selected area."],
-    generationAction: "Search the chosen area, then review the restaurant results.",
-    notes: ["Location permission may be required. Discovery does not verify current menus or guarantee a particular dish."],
+    descriptionInput: "Follow the guided flow, describe the meal you are craving, and enter a ZIP code or use the location control.",
+    controls: ["Location sharing can fill the ZIP code.", "The existing price filter is optional."],
+    generationAction: "Submit the meal search, then review personalized meal cards for up to three nearby restaurants, with up to two meals per restaurant.",
+    notes: ["Location permission may be required. Cuisine-based suggestions do not verify current menu offerings. Favorites, Add to Meal Plan and the Biometrics handoff are available on meal cards; consumption is not logged automatically."],
   },
   // client/src/pages/MyPerfectBuffetPage.tsx
   my_perfect_buffet: {

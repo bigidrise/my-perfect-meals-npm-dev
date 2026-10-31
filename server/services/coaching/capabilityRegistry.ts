@@ -166,7 +166,7 @@ export const MPM_CAPABILITIES: MPMCapability[] = [
     id: "find_meals_near_me",
     label: "Find Meals Near Me",
     description: "Discover nearby restaurants and menu items that fit the current nutrition plan.",
-    route: "/social-hub/restaurant-finder",
+    route: "/social-hub/find",
     applicableSituations: [
       "restaurant_eating",
       "eating_out",

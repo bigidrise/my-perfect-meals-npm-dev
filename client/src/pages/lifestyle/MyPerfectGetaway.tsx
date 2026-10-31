@@ -11,6 +11,7 @@ import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { GETAWAY_MENU_NOTICE, qualifyGetawayAdvice } from "@shared/getawayEvidence";
+import GetawayVenueMeals from "@/components/away-from-home/GetawayVenueMeals";
 
 interface CatalogZone {
   id: string;
@@ -693,6 +694,16 @@ export default function MyPerfectGetaway() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {reliable && !loading && (pendingVenue || discoveryResult?.found || result) && (() => {
+          const destinationName = pendingVenue?.name || discoveryResult?.name ||
+            activeVenueContext?.discoveredVenue?.name || result?.venue;
+          if (!destinationName) return null;
+          const venueId = pendingVenue?.id || discoveryResult?.venueId || activeVenueContext?.venueId;
+          const zoneId = selectedZone?.id || activeVenueContext?.zoneId;
+          return <GetawayVenueMeals key={`${destinationName}:${venueId || ""}:${zoneId || ""}`}
+            destination={{ destinationName, ...(venueId ? { venueId } : {}), ...(zoneId ? { zoneId } : {}) }} />;
+        })()}
 
         {/* Loading */}
         <AnimatePresence>

@@ -273,6 +273,18 @@ export function classifyRestaurantArchetype(
   const nameLower = restaurantName.toLowerCase().trim();
   const typesLower = placeTypes.map((t) => t.toLowerCase());
   const queryLower = (searchQuery || "").toLowerCase();
+  if (process.env.NODE_ENV === "development" && /\bbuffet\b/.test(nameLower)) {
+    return {
+      confidence: "name",
+      archetype: {
+        id: "buffet", label: "Buffet-style dining",
+        mustIncludeTerms: [],
+        anchorItems: [],
+        realistExample: "A meal combination using foods the diner confirms are available",
+        menuRealism: "Suggest buffet-style combinations, not a fixed restaurant menu. Name useful meal ideas but never assert that particular proteins, sides or ingredients are currently available. Do not infer the buffet's entire cuisine from its cruise ship or resort.",
+      },
+    };
+  }
 
   // Priority 1 — chain name match
   for (const chain of FAST_FOOD_CHAINS) {
