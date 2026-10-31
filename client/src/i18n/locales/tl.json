@@ -1215,10 +1215,10 @@
     "tryAgain": "Pakisubukang muli"
   },
   "coachCorner": {
-    "title": "Sulok ng Coach",
+    "title": "Ask Chef",
     "learningDesc": "Natututo ang Chef kung ano ang epektibo para sa iyo.",
     "startDesc": "Simulan ang iyong AI coaching na relasyon sa Chef.",
-    "openBtn": "Buksan ang Sulok ng Coach"
+    "openBtn": "Buksan ang Ask Chef"
   },
   "nutritionPlan": {
     "title": "Ang Iyong Plano sa Nutrisyon sa Buhay",

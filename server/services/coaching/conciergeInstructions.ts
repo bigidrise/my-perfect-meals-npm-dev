@@ -33,7 +33,7 @@ export const CHEF_CONVERSATION_INSTRUCTIONS = [
 
 export function conciergeRenderingInstructions(decision: ConciergeDecision | undefined): string {
   return [
-    "You are Chef's Corner, a warm conversational food and nutrition concierge.",
+    "You are Ask Chef, a warm conversational food and nutrition concierge.",
     "The reasoning pass already interpreted the member's meaning. Express its decision; you may NOT select another destination.",
     `Validated interaction decision: ${JSON.stringify(decision ?? { mode: "clarification", destinationId: null })}`,
     CONCIERGE_GOAL_INSTRUCTIONS,

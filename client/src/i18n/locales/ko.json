@@ -1215,10 +1215,10 @@
     "tryAgain": "다시 시도해 주세요"
   },
   "coachCorner": {
-    "title": "코치 코너",
+    "title": "Ask Chef",
     "learningDesc": "셰프가 당신에게 맞는 것을 배우고 있습니다.",
     "startDesc": "셰프와의 AI 코칭 관계를 시작하세요.",
-    "openBtn": "코치 코너 열기"
+    "openBtn": "Ask Chef 열기"
   },
   "nutritionPlan": {
     "title": "나의 영양 생활 계획",

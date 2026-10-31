@@ -1215,10 +1215,10 @@
     "tryAgain": "Vui lòng thử lại"
   },
   "coachCorner": {
-    "title": "Góc Huấn Luyện Viên",
+    "title": "Ask Chef",
     "learningDesc": "Đầu bếp đang học những gì phù hợp với bạn.",
     "startDesc": "Bắt đầu mối quan hệ huấn luyện AI với Đầu Bếp.",
-    "openBtn": "Mở Góc Huấn Luyện Viên"
+    "openBtn": "Mở Ask Chef"
   },
   "nutritionPlan": {
     "title": "Kế Hoạch Dinh Dưỡng Cuộc Đời Của Bạn",

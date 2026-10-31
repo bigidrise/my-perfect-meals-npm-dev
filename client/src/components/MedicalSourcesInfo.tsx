@@ -17,8 +17,8 @@ import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
 import { apiRequest } from "@/lib/queryClient";
 
-const chefDisplayName = isChefConversationEnabled() ? "Ask Chef" : "Chef's Corner";
-const coachDisplayName = isChefConversationEnabled() ? "Ask Chef" : "Coach's Corner";
+const chefDisplayName = "Ask Chef";
+const coachDisplayName = "Ask Chef";
 
 interface MedicalSourcesInfoProps {
   trigger?: React.ReactNode;
@@ -946,7 +946,7 @@ export function MedicalSourcesInfo({
             </h3>
             <p className="text-white/60 text-xs mb-3">
               {isChefConversationEnabled() ? <>Ask Chef opens directly into conversation without a Behavioral Profile intake. These references describe general coaching concepts; they do not independently validate a specific answer or medical recommendation.</> : <>
-              Chef's Corner collects a Behavioral Profile — a short coaching intake that
+              Ask Chef collects a Behavioral Profile — a short coaching intake that
               learns how you make decisions, what motivates you, how you respond to setbacks,
               and how you prefer to be coached. This is not a psychological assessment or
               clinical instrument. It is a coaching tool, designed to feel like a coach
@@ -1039,7 +1039,7 @@ export function MedicalSourcesInfo({
             </ul>
 
             <p className="text-white/60 text-xs leading-relaxed">
-              {isChefConversationEnabled() ? "Ask Chef does not require a coaching intake. It does not diagnose, prescribe treatment, or replace professional care." : "The Behavioral Profile collected during the Chef's Corner intake is a coaching tool, not a psychological test or clinical assessment. Its purpose is to shape how the system communicates with you — not to diagnose, categorize, or make clinical inferences from your answers. No behavioral response in the intake is used to draw clinical conclusions."}
+              {isChefConversationEnabled() ? "Ask Chef does not require a coaching intake. It does not diagnose, prescribe treatment, or replace professional care." : "The Behavioral Profile collected during the Ask Chef intake is a coaching tool, not a psychological test or clinical assessment. Its purpose is to shape how the system communicates with you — not to diagnose, categorize, or make clinical inferences from your answers. No behavioral response in the intake is used to draw clinical conclusions."}
             </p>
           </section>
 

@@ -1258,10 +1258,10 @@
     "mealAddedDesc": "{{name}} added successfully"
   },
   "coachCorner": {
-    "title": "Chef's Corner",
+    "title": "Ask Chef",
     "learningDesc": "Chef is learning what works for you.",
     "startDesc": "Start your AI coaching relationship with Chef.",
-    "openBtn": "Open Chef's Corner"
+    "openBtn": "Open Ask Chef"
   },
   "nutritionPlan": {
     "title": "Your Nutrition Life Plan",

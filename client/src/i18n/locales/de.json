@@ -1215,10 +1215,10 @@
     "tryAgain": "Bitte versuchen Sie es erneut"
   },
   "coachCorner": {
-    "title": "Coaches Ecke",
+    "title": "Ask Chef",
     "learningDesc": "Der Koch lernt, was für Sie funktioniert.",
     "startDesc": "Beginnen Sie Ihre KI-Coaching-Beziehung mit dem Koch.",
-    "openBtn": "Coaches Ecke öffnen"
+    "openBtn": "Ask Chef öffnen"
   },
   "nutritionPlan": {
     "title": "Ihr Ernährungs-Lebensplan",

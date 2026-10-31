@@ -1227,10 +1227,10 @@
     "mealAddedDesc": "[{{name}} áãddéèd sûüccéèssfûülly ŦŦŦ]"
   },
   "coachCorner": {
-    "title": "[Chéèf's Côörnéèr ŦŦŦ]",
+    "title": "Ask Chef",
     "learningDesc": "[Chéèf íïs léèáãrníïng wháãt wôörks fôör yôöûü. ŦŦŦ]",
     "startDesc": "[Stáãrt yôöûür ÁÃÍÏ côöáãchíïng réèláãtíïôönshíïp wíïth Chéèf. ŦŦŦ]",
-    "openBtn": "[ÔÖpéèn Chéèf's Côörnéèr ŦŦŦ]"
+    "openBtn": "[ÔÖpéèn Ask Chef ŦŦŦ]"
   },
   "nutritionPlan": {
     "title": "[Yôöûür Nûütríïtíïôön Líïféè Pláãn ŦŦŦ]",

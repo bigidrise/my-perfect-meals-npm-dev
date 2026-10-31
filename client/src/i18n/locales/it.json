@@ -1215,10 +1215,10 @@
     "tryAgain": "Per favore riprova"
   },
   "coachCorner": {
-    "title": "Angolo del Coach",
+    "title": "Ask Chef",
     "learningDesc": "Lo chef sta imparando cosa funziona per te.",
     "startDesc": "Inizia la tua relazione di coaching AI con lo Chef.",
-    "openBtn": "Apri Angolo del Coach"
+    "openBtn": "Apri Ask Chef"
   },
   "nutritionPlan": {
     "title": "Il Tuo Piano di Vita Nutrizionale",

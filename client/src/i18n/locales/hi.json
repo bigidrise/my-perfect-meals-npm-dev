@@ -1215,10 +1215,10 @@
     "tryAgain": "कृपया पुन: प्रयास करें"
   },
   "coachCorner": {
-    "title": "कोच का कोना",
+    "title": "Ask Chef",
     "learningDesc": "शेफ सीख रहे हैं कि आपके लिए क्या काम करता है।",
     "startDesc": "शेफ के साथ अपना AI कोचिंग संबंध शुरू करें।",
-    "openBtn": "कोच का कोना खोलें"
+    "openBtn": "Ask Chef खोलें"
   },
   "nutritionPlan": {
     "title": "आपका पोषण जीवन योजना",
