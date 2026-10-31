@@ -38,6 +38,11 @@ function goalFits(id: CoachDestinationId, goal: ConciergeGoal): boolean {
     case "my_perfect_gatherings": return goal.activity === "gathering";
     case "macro_calculator": return goal.activity === "calculator";
     case "my_perfect_beginning": return goal.activity === "child_feeding";
+    // Planning alone cannot choose between these starting pages. The existing
+    // model must resolve the member's chosen approach (including natural aliases).
+    case "my_perfect_menu":
+    case "meal_builders":
+      return goal.activity === "plan_meals" && goal.explicitFeatureId === id;
   }
 }
 

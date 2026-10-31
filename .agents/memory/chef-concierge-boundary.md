@@ -9,7 +9,7 @@ Chef's Corner is a natural conversational guide across the entire experience, no
 
 **How to apply:** Explain relevant platform capabilities naturally when orientation is useful; help directly when the member knows what they want. Do not prescribe a greeting, feature list, sentence count or follow-up on every turn. Retain the historical assessment implementation, questions, answers and records, but do not expose or require them in Development Chef's Corner. Keep Production's historical behavior unchanged. Recommendations require validated internal destinations and a member click; they never grant access.
 
-Approval remains Development-only navigation and local testing, now including a safe Create a Dish request transfer through its existing editable `idea` prefill. Other new creator handoffs, voice, external research, paused Pregnancy activation, and Production promotion/publication require separate approval. Do not repurpose Hydration's specialized tokens for unrelated requests.
+Approval remains Development-only navigation and local testing, including a safe Create a Dish request transfer through its existing editable `idea` prefill and entry-page navigation to My Perfect Menu and Meal Builders. Other new creator handoffs, voice, external research, paused Pregnancy activation, and Production promotion/publication require separate approval. Do not repurpose Hydration's specialized tokens for unrelated requests.
 
 **Why:** The user initially separated navigation from request transfer, then explicitly authorized Create a Dish request transfer while asking only for an inspection/report on other creators.
 
@@ -76,3 +76,9 @@ Progressive text must preserve the same clinical, action-validation and persiste
 **Why:** In the streaming request, preserving safety took priority over forcing a substantial protocol redesign. A visible provisional reply cannot be undone if the complete response later requires care escalation or rejection.
 
 **How to apply:** Revisit genuine streaming only with a reviewed pre-display validation boundary and explicit interrupted-turn/recovery behavior. Do not treat provider streaming support or JSON field reordering alone as proof that provisional display is safe. Keep one conversational model call and the existing voice architecture.
+
+My Perfect Menu and Meal Builders are approved starting-page navigation, not authority to choose or activate a builder, transfer a planning request, or generate food in chat. A general wish to make meals does not choose either approach.
+
+**Why:** The user explicitly approved these two existing entry points while prohibiting specialized-builder deep links, new handoffs, scripted menus, and changes to the destinations themselves.
+
+**How to apply:** Explain the actual difference when useful, accept clear choices in ordinary language without mandatory clarification, honor changed intent, and retain click-time subscription checks and destination-owned onboarding. Live paid-model conversational acceptance and Production activation remain separately authorized.

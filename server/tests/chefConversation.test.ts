@@ -401,7 +401,7 @@ test.each([
   expect(mockCreate).toHaveBeenCalledTimes(1);
 });
 
-test("knowledge-only destinations never extend button authority or the handoff allowlist", async () => {
+test("entry-page approval never authorizes choosing a specialized builder or a new handoff", async () => {
   const before = Object.keys(COACH_DESTINATIONS);
   const knowledge = getDevelopmentPlatformKnowledge()!;
   expect(knowledge.features.find(feature => feature.id === "meal_builders")?.purpose).toContain("Do not choose or activate");
@@ -414,7 +414,7 @@ test("knowledge-only destinations never extend button authority or the handoff a
   expect(JSON.stringify(knowledge)).not.toMatch(/\/admin|professional_dashboard|business_dashboard|https?:\/\//);
   reply("UNCHECKED BUILDER PITCH", null, unknown, {
     conciergeDecision: { mode: "food_assistance", destinationId: "meal_builders", goal: unknown },
-    conversationMessage: "I can't provide that button here. Your existing Meal Builders page lets you review the choices.",
+    conversationMessage: "You can review the choices on the existing selection page.",
     creatorRequest: { idea: "Invented request", memberTurns: [0] },
   });
   const result = await run("Choose a specialized builder for me.");
@@ -423,6 +423,59 @@ test("knowledge-only destinations never extend button authority or the handoff a
   expect(result.presentation?.message).not.toContain("UNCHECKED");
   expect(result.todayPlan.items).toEqual([]);
   expect(Object.keys(COACH_DESTINATIONS)).toEqual(before);
+});
+
+test.each([
+  ["Take me to the builders.", "meal_builders"],
+  ["I'd like to start with menu ideas.", "my_perfect_menu"],
+])("chosen planning approach supports ordinary wording without another question: %s", async (message, id) => {
+  reply("You can start there.", id, { ...unknown, activity: "plan_meals", explicitFeatureId: id }, {
+    creatorRequest: { idea: "Invented meal", memberTurns: [0] },
+  });
+  const result = await run(message);
+  expect(result.presentation?.destinationId).toBe(id);
+  expect(result.presentation?.message).toBe("You can start there.");
+  expect(result.presentation?.creatorRequest).toBeUndefined();
+  expect(result.todayPlan.items).toHaveLength(1);
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+test.each(["my_perfect_menu", "meal_builders"])("general planning cannot authorize an unchosen %s", async id => {
+  reply("UNCHECKED PITCH", id, { ...unknown, activity: "plan_meals" }, {
+    conversationMessage: "Would you like ideas first, or to review your planning tools?",
+  });
+  const result = await run("I want to make some meals.");
+  expect(result.presentation?.destinationId).toBeUndefined();
+  expect(result.presentation?.message).not.toContain("UNCHECKED");
+});
+
+test("comparison is conversation; latest choice replaces a previous Menu request", async () => {
+  (loadBoundedHistory as jest.Mock).mockResolvedValue({
+    recentMessages: [
+      { role: "user", content: "Open My Perfect Menu." },
+      { role: "assistant", content: "You can start with ideas there." },
+    ], rollingContext: null,
+  });
+  reply("Menu starts with ideas; builders create and hold your meals.", null, unknown);
+  const comparison = await run("What's the difference?");
+  expect(comparison.presentation?.destinationId).toBeUndefined();
+  reply("You can review the builders instead.", "meal_builders",
+    { ...unknown, activity: "plan_meals", explicitFeatureId: "meal_builders" });
+  const changed = await run("Actually, take me to the builders instead.");
+  expect(changed.presentation?.destinationId).toBe("meal_builders");
+  expect(mockCreate).toHaveBeenCalledTimes(2);
+  const payload = JSON.parse(mockCreate.mock.calls[1][0].messages[1].content);
+  expect(payload.history[0].content).toBe("Open My Perfect Menu.");
+  expect(payload.latestMemberMessage).toContain("instead");
+});
+
+test.each(["my_perfect_menu", "meal_builders"])("care escalation suppresses %s even for a clear request", async id => {
+  reply("Please get urgent medical help.", id,
+    { ...unknown, activity: "plan_meals", explicitFeatureId: id },
+    { redFlag: true, redFlagReason: "Please get urgent medical help." });
+  const result = await run("Open it, but I have serious chest pain.");
+  expect(result.meta.redFlag).toBe(true);
+  expect(result.presentation?.destinationId).toBeUndefined();
 });
 
 test("Development knowledge refines portion-size distinctions without changing Production capabilities", () => {
