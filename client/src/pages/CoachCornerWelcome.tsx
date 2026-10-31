@@ -4,6 +4,8 @@ import { Play, Pause, ChevronLeft } from "lucide-react";
 import { voiceManager } from "@/voice/VoiceManager";
 import { PillButton } from "@/components/ui/pill-button";
 
+import { chefMemberText } from "@/lib/chefMemberBranding";
+
 const CHEF_SCRIPT = `Hi, I'm Chef. Welcome to Chef's Corner.
 
 No matter how much we read, how many videos we watch, or how much we think we know about nutrition, there are still moments when we're just not sure what to do.
@@ -79,7 +81,7 @@ export default function CoachCornerWelcome() {
       setIsPlaying(true);
       voiceRef.current = true;
       await voiceManager.preload();
-      const result = await voiceManager.speak(CHEF_SCRIPT, () => {
+      const result = await voiceManager.speak(chefMemberText(CHEF_SCRIPT), () => {
         setIsPlaying(false);
         voiceRef.current = false;
       });
@@ -113,7 +115,7 @@ export default function CoachCornerWelcome() {
             Hi, I'm Chef.
           </h1>
           <p className="text-white/70 text-sm leading-relaxed text-center mt-1 max-w-xs">
-            Welcome to Chef's Corner.
+            {chefMemberText("Welcome to Chef's Corner.")}
           </p>
         </div>
 
@@ -136,14 +138,14 @@ export default function CoachCornerWelcome() {
                 {isPlaying ? "Listening to Chef..." : "Hear from Chef"}
               </p>
               <p className="text-xs text-white/60">
-                {isPlaying ? "Tap to stop" : "A quick intro to Chef's Corner"}
+                {isPlaying ? "Tap to stop" : chefMemberText("A quick intro to Chef's Corner")}
               </p>
             </div>
           </button>
         </div>
 
         <div className="rounded-xl border border-white/10 bg-black/30 backdrop-blur-sm p-5 mb-6 whitespace-pre-line text-sm text-white/80 leading-relaxed">
-          {CHEF_SCRIPT}
+          {chefMemberText(CHEF_SCRIPT)}
         </div>
 
         <div className="flex justify-center pb-6">

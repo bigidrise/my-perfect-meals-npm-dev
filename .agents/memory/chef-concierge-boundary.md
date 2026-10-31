@@ -5,6 +5,12 @@ description: Concierge ownership, preserved coaching methodology, and staged Dev
 
 Chef's Corner is a natural conversational guide across the entire experience, not just its first welcome or a food creator-button recommender. Let the model respond dynamically to the member's actual words, goals and conversation history. Avoid fixed greetings, canned responses, rigid feature menus and scripted question sequences. Existing destination features own generation, personalization, authorization, and dietary/clinical safeguards.
 
+The member-facing Development name is **Ask Chef**. Keep internal identifiers, routes, API names, entitlements and Production branding unchanged. Use the established Flame Chef character, not a new mascot.
+
+**Why:** The user requested consistent member-facing branding and an inviting dashboard entry while explicitly preserving the existing feature and Development-only boundary.
+
+**How to apply:** Describe verified platform controls concretely, including nested dialogs and page-specific help. Sources documentation is not claim-level medical validation. New help knowledge does not authorize navigation buttons; proposed destinations need separate approval beyond the existing seventeen.
+
 **Why:** The user explicitly clarified that natural conversation applies throughout the experience, not just orientation, while preserving existing functionality and safety controls.
 
 **How to apply:** Explain relevant platform capabilities naturally when orientation is useful; help directly when the member knows what they want. Do not prescribe a greeting, feature list, sentence count or follow-up on every turn. Retain the historical assessment implementation, questions, answers and records, but do not expose or require them in Development Chef's Corner. Keep Production's historical behavior unchanged. Recommendations require validated internal destinations and a member click; they never grant access.

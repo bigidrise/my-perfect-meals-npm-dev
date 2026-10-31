@@ -24,6 +24,7 @@ import {
 import type { CoachCornerQuestion } from "@shared/coachCornerTypes";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { isChefConversationEnabled } from "@/lib/chefCornerExperience";
+import { chefMemberText } from "@/lib/chefMemberBranding";
 import CoachBubble, {
   ProfessionalBoundaryNotice, isConciergeMessage, type CoachStructuredResponse,
 } from "@/components/coaching/CoachBubble";
@@ -690,6 +691,7 @@ export default function CoachsCorner() {
             <ArrowLeft className="w-4 h-4" />
             <span className="text-xs">Back</span>
           </button>
+          {conversationEnabled && <h1 className="text-base font-bold text-white">Ask Chef</h1>}
           <div className="flex items-center gap-2">
             {hasMessages && (
               <button
@@ -740,7 +742,7 @@ export default function CoachsCorner() {
             <div className="flex flex-col items-center justify-center min-h-[58vh] text-center select-none">
               <img
                 src="/assets/ChefBlackApron.png"
-                alt="Coach"
+                alt={conversationEnabled ? "Flame Chef" : "Coach"}
                 width={176}
                 height={176}
                 className="w-44 h-44 mb-3 object-contain"
@@ -810,7 +812,7 @@ export default function CoachsCorner() {
               value={inputText}
               onChange={setInputText}
               disabled={isLoading || bootstrapLoading}
-              label="Use voice input for Coach's Corner"
+              label={chefMemberText("Use voice input for Coach's Corner")}
               className="shrink-0"
             />
             <Button

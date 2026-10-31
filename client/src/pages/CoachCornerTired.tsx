@@ -157,7 +157,7 @@ export default function CoachCornerTired() {
               onClick={() => setLocation("/coach-corner/home")}
               className="!min-h-[40px] !text-xs !py-2 !px-6 !rounded-full"
             >
-              Back to Coach's Corner
+              {import.meta.env.DEV ? "Back to Ask Chef" : "Back to Coach's Corner"}
             </PillButton>
           </div>
         </div>
