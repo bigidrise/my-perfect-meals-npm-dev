@@ -4,6 +4,61 @@ Development review only. This audit does not authorize Production release or add
 navigation destinations. Access classes below are the current Chef click-time
 checks, not grants; destination page/API guards remain authoritative.
 
+## Product direction: conversation first, platform-wide guidance
+
+Chef's target experience is a natural conversational guide to the entire My
+Perfect Meals platform, not just a creator-button recommender. Members should not
+need to know feature names or how the platform is organized.
+
+The supplied **Chef's Conversational Experience Principles** establish:
+
+- Welcome new or confused members naturally and give a friendly, relevant
+  overview. The example welcome is a tone reference, never a required script.
+  Skip the introduction when the member already has a clear request.
+- Explain verified existing capabilities in everyday language and guide the
+  member toward the appropriate existing feature. Platform knowledge should
+  eventually cover planning, creators, shopping, restaurants, social occasions,
+  exercise nutrition, education, biometrics, applicable clinical support, and
+  other approved user-facing tools—not just destinations currently allowlisted
+  for Chef navigation.
+- Ask only useful unresolved questions. Do not impose an assessment, mandatory
+  questionnaire, fixed sequence, or continued discovery after a clear choice.
+- Distinguish nutrition questions, platform guidance, food exploration, chosen
+  food requests, planning, shopping, and health-related nutrition goals.
+- A natural answer is complete without a button. Offer only validated actions,
+  require the member's click, and preserve a safe independent conversational
+  reply when an action is rejected. Report genuine technical failures honestly.
+- Preserve member-grounded request text in a destination's editable input only
+  through a verified, approved handoff contract. Do not invent ingredients,
+  portions, supplements, preferences, or unsupported transfers.
+- Leave generation, ingredient-backed nutrition, macro calculations, portions,
+  dietary compliance, access enforcement, and clinical protocols with their
+  existing specialized systems. Preserve safety escalation and care boundaries.
+- Teach through the member's actual activity, not forced tutorials or feature
+  pitches. Do not present hidden, disabled, Coming Soon, unsupported, or
+  inaccessible functionality as available.
+
+These are product requirements, **not evidence that complete platform knowledge
+or every handoff has already been implemented or verified**. Keep capability
+knowledge separate from permission to navigate or execute an action.
+
+### Current priority and implementation hold
+
+The user prioritized the broader experience: Chef should welcome a new member,
+explain what My Perfect Meals can do, and naturally guide that person to the
+appropriate existing feature. Remaining creator handoffs are deferred and will be
+addressed individually afterward.
+
+Preserve the working Development version. Do not change runtime instructions,
+capability code, navigation, or handoffs under the current no-code instruction.
+The attached complete-feature-discovery request is deferred because the latest
+message explicitly says not to start another audit. Before expanded knowledge or
+navigation is implemented, the user must approve the feature list.
+
+Leave `server/prod.ts` and the validator unchanged. Production activation, merging,
+publishing, deployment, and paid live-model testing remain separately authorized.
+This documentation update does not activate or expand Chef in either environment.
+
 ## Missing chicken Caesar action: findings and correction
 
 The supplied live reply establishes that the action was missing, but does not

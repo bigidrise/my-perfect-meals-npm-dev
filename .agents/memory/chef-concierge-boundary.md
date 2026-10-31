@@ -3,9 +3,9 @@ name: Chef concierge boundaries
 description: Concierge ownership, preserved coaching methodology, and staged Development-only navigation approval.
 ---
 
-Chef's Corner is a conversational food and nutrition concierge, not a meal generator. Existing destination features own generation, personalization, authorization, and dietary/clinical safeguards.
+Chef's Corner is a natural conversational guide that understands the entire My Perfect Meals platform, not just a food creator-button recommender or meal generator. Existing destination features own generation, personalization, authorization, and dietary/clinical safeguards.
 
-**Why:** The user explicitly wants to reuse the existing coaching intelligence and feature handoffs rather than duplicate creators or replace the behavioral methodology.
+**Why:** The user explicitly established the bigger objective as a conversational guide to the entire platform, while reusing existing specialized systems rather than duplicating creators or replacing the behavioral methodology.
 
 **How to apply:** Retain the historical assessment implementation, questions, answers and records, but do not expose or require them in Development Chef's Corner. Keep Production's historical behavior unchanged. Recommendations require validated internal destinations and a member click; they never grant access.
 
@@ -19,7 +19,13 @@ The user accepted the route-parity audit and explicitly instructed leaving `serv
 
 **Why:** The audit traced shared registration rather than treating missing explicit mounts as demonstrated routing failures. The user requires a deliberate, reviewed Production activation; merging code alone must not be assumed to activate the new experience.
 
-**How to apply:** First verify Beverage Creator request-field transfer, then natural conversations and correct recommendations, then review Development-to-Production activation requirements. Keep new handoff implementation and Production activation separately scoped and approved.
+**How to apply:** Prioritize Chef naturally welcoming new members, explaining what My Perfect Meals can do, and guiding them to the appropriate existing feature. Remaining handoffs come afterward, one at a time. Keep new handoff implementation and Production activation separately scoped and approved.
+
+The user wants the conversational principles documented before further implementation. Preserve the working Development version: no more code changes or another audit for now. Expanded capability knowledge and navigation require approval of the feature list first.
+
+**Why:** The user explicitly redirected attention from the Beverage Creator handoff to the complete platform-wide vision and new-member experience.
+
+**How to apply:** Use the existing project guidance to distinguish product requirements from verified runtime capability. Welcome new or confused members naturally, skip introductions for clear requests, and treat the example welcome as tone rather than a script. Do not change live prompts or the capability registry, start the attached full-feature discovery task, or claim expanded knowledge is implemented under this hold.
 
 Ordinary food assistance, nutrition education, and requested behavioral coaching are different conversational intents. Historical assessment behavior must not force ordinary food requests into psychological analysis or missing-log discussions; Development conversation does not require assessment results.
 
