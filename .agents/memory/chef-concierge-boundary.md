@@ -19,7 +19,7 @@ Ordinary food assistance, nutrition education, and requested behavioral coaching
 
 **Why:** The user reported that a live sushi request received irrelevant behavioral/nutrition-gap analysis and Craving Creator navigation despite Stage 1's clickable actions working.
 
-**How to apply:** Keep semantic interpretation in the existing conversational AI, give the reasoning pass the available features and relevant history, and preserve its validated destination through rendering. Low evidence must not automatically add logging advice to ordinary assistance or education. Fixtures establish pipeline behavior, not live-model accuracy; paid-model tests need cost approval.
+**How to apply:** Keep semantic interpretation in the existing conversational AI, give the reasoning pass the available features and relevant history, and preserve its validated destination through rendering. Food type alone does not establish preparation intent. Low evidence must not automatically add logging advice to ordinary assistance or education. Fixtures establish pipeline behavior, not live-model accuracy; paid-model tests need cost approval.
 
 Discovery is conversational, not a mandatory questionnaire: hunger and indecision do not establish home cooking, restaurant intent, or a wish to use ingredients. Offer practical ideas when requested, and do not delay a clear food or explicit available-feature request with unnecessary questions.
 
@@ -38,3 +38,9 @@ Ordinary concierge presentation is one conversational message and an optional va
 **Why:** The user reported a live reply followed by a disconnected plan-rationale sentence after optional plan fields had already been introduced. They explicitly require ordinary replies not to display internal plans, rationales, evidence gaps, or hypotheses.
 
 **How to apply:** Test the real rendered bubble with deliberately populated internal fragments, including fallback and restored JSON. Keep legacy coaching and safety guidance readable; retain professional-boundary guidance visibly without repeating it inside every new ordinary reply. Live-model success must still be observed through an authenticated Development conversation, with paid calls approved beforehand.
+
+The user confirmed the new concierge presentation works in authenticated Development. They then clarified that feature selection must follow the member's goal, not food preferences alone.
+
+**Why:** A light-and-flavorful preference still produced premature Craving Creator navigation. The desired interaction is an experienced concierge, not a fixed questionnaire.
+
+**How to apply:** Distinguish preparation from eating out, small savory snacks from full meals, and restaurant discovery from ordering at a chosen restaurant. Let the existing reasoning call interpret readiness; validate capability fit without adding a keyword router, model call, or prescribed question sequence. Suggest food ideas when useful, honor changed intent, and report unsupported hub destinations instead of inventing or substituting links.

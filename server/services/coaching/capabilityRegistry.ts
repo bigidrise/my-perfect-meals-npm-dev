@@ -352,19 +352,19 @@ export function getCornerCapabilities(activeScopes: CapabilityScope[]): MPMCapab
   const existing = getCapabilitiesForUser(activeScopes, true);
   if (process.env.NODE_ENV !== "development") return existing;
   const descriptions: Record<CoachDestinationId, string> = {
-    sushi_creator: "Dedicated sushi creation: rolls, nigiri, and other sushi. Prefer this over generic Craving Creator when the member wants sushi; nutrition questions about sushi stay in conversation.",
-    craving_creator: "Help satisfy a general food craving when no more specific creator fits. A decision to make a named dish ordinarily uses Create a Dish. A desire for food is not evidence of emotional eating. Sushi, desserts, and drinks use their dedicated creators.",
-    dessert_creator: "Create desserts including cheesecake, cakes, pies, and brownies. Prefer this over generic Craving Creator for dessert creation, even when the member says 'craving'.",
+    sushi_creator: "Prepare sushi: rolls, nigiri, and other sushi. Requires preparation intent or an explicit Sushi Creator request; wanting to eat sushi alone may need making-versus-going-out clarification. Sushi education stays conversational.",
+    craving_creator: "Prepare a SMALL savory craving or snack. Requires snack intent and preparation intent (or an explicit Craving Creator request). Not a default for light, flavorful, spicy, hunger, general cravings, full meals, or restaurant food. Desserts and drinks have dedicated creators.",
+    dessert_creator: "Prepare a dessert, including a small dessert or a whole cake, pie, or pan of brownies. Requires dessert preparation intent or an explicit Dessert Creator request. Sweet preference alone is insufficient.",
     beverage_creator: "Create regular smoothies, shakes, drinks, cocktails, or mocktails; not workout-specific drinks.",
     athlete_beverage_creator: "Create pre-workout drinks, post-workout recovery shakes, or sports beverages.",
     hydration_center: "Get hydration education and support. Never invent fluid or electrolyte targets.",
-    restaurant_guide: "Help choose food at a known restaurant.",
-    find_meals_near_me: "Find where to eat nearby when the member knows what food they want, but not which restaurant.",
+    restaurant_guide: "Help choose what to order at a restaurant the member has already chosen. Do not use for finding a restaurant.",
+    find_meals_near_me: "Discover somewhere to eat when the member wants to find a restaurant or has not chosen one. Consider their food preferences, location and budget when relevant; do not use for ordering at an already-selected restaurant.",
     my_perfect_buffet: "Help choose food at a buffet.",
     my_perfect_getaway: "Help with food while traveling, at an airport, theme park, or Disneyland.",
     my_perfect_gatherings: "Plan food for a gathering or dinner party.",
     fridge_rescue: "Help make food from ingredients the member wants to use, such as chicken, rice, and broccoli already in their refrigerator. Recommend when explicitly requested or for an expressed or grounded ingredient-use need, not hunger, indecision, eating at home, or general meal-prep education alone.",
-    create_a_dish: "Make a particular dish the member has chosen, including spicy tofu lettuce wraps, tacos, or lasagna. Once they decide to make it, offer this feature without asking whether they want a recipe or want to open a tool. Dedicated sushi, dessert, and drink creators remain more specific.",
+    create_a_dish: "Prepare a chosen dish or full meal, including tacos, lasagna, or spicy tofu lettuce wraps. Requires preparation intent, not merely liking a food idea. Small savory snacks use Craving Creator; sushi, dessert, and drinks have dedicated creators. Once preparation is decided, do not ask whether they want a recipe or want to open a tool.",
     macro_calculator: "Optionally open the calculator after explaining macros; do not force navigation for an explanation.",
     my_perfect_beginning: "Open the child-selection hub for child feeding questions; select an authorized child before Parent's Corner. Never assume a child.",
   };

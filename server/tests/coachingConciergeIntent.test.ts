@@ -25,7 +25,8 @@ import { matchPatterns } from "../services/coaching/patternMatcher";
 import { loadBoundedHistory } from "../services/coaching/conversationSummarizer";
 import { renderReasoningBriefForPrompt } from "../services/coaching/reasoningFamilyMatcher";
 import { extractAndPersistMemories } from "../services/coaching/memoryExtractor";
-import { ConciergeDecisionSchema, ReasoningResultSchema, type ConciergeDecision } from "../../shared/coaching/schemas";
+import { ConciergeDecisionSchema, ReasoningResultSchema, type ConciergeDecision, type ConciergeGoal } from "../../shared/coaching/schemas";
+import { validateConciergeGoal } from "../services/coaching/conciergeGoal";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
 import { getCornerCapabilities } from "../services/coaching/capabilityRegistry";
 
@@ -39,6 +40,28 @@ const confidence = {
 const tools = () => getCornerCapabilities(["all"]).map(cap => ({
   id: cap.id, label: cap.label, description: cap.description, featureTarget: cap.id,
 }));
+const unknownGoal: ConciergeGoal = {
+  activity: "unknown", occasion: "unknown", restaurant: "unknown",
+  dishChosen: false, specialty: "none", explicitFeatureId: null,
+};
+// Provider fixtures declare semantic goals; they do not prove live interpretation.
+function fixtureGoal(id: string | null): ConciergeGoal {
+  const goal = { ...unknownGoal };
+  switch (id) {
+    case "craving_creator": return { ...goal, activity: "prepare", occasion: "snack" };
+    case "create_a_dish": return { ...goal, activity: "prepare", occasion: "meal", dishChosen: true };
+    case "dessert_creator": return { ...goal, activity: "prepare", occasion: "dessert" };
+    case "sushi_creator": return { ...goal, activity: "prepare", specialty: "sushi", dishChosen: true };
+    case "beverage_creator": return { ...goal, activity: "prepare", occasion: "beverage" };
+    case "athlete_beverage_creator": return { ...goal, activity: "prepare", occasion: "beverage", specialty: "workout" };
+    case "restaurant_guide": return { ...goal, activity: "eat_out", restaurant: "chosen" };
+    case "find_meals_near_me": return { ...goal, activity: "eat_out", restaurant: "not_chosen" };
+    case "fridge_rescue": return { ...goal, activity: "use_ingredients" };
+    case "hydration_center": return { ...goal, activity: "hydration" };
+    case "my_perfect_buffet": return { ...goal, activity: "buffet" };
+    default: return goal;
+  }
+}
 const reasoning = (decision?: ConciergeDecision) => ({
   primaryConcern: "Help with the member's current request.",
   hypotheses: [{
@@ -47,7 +70,9 @@ const reasoning = (decision?: ConciergeDecision) => ({
   }],
   leadHypothesis: "Respond to the current request without unrelated interpretation.",
   proposedConfidence: "low", redFlag: false, missingData: [],
-  ...(decision ? { conciergeDecision: decision } : {}),
+  ...(decision ? { conciergeDecision: {
+    ...decision, goal: decision.goal ?? fixtureGoal(decision.destinationId),
+  } } : {}),
 });
 const response = (destinationId: string | null, overrides: Record<string, unknown> = {}) => ({
   whatIFound: "That sounds good. I can help you with that.",
@@ -94,14 +119,14 @@ async function reason(
 }
 
 test.each([
-  ["I want sushi.", "sushi_creator"],
-  ["I'm craving cheesecake.", "dessert_creator"],
-  ["I want a smoothie.", "beverage_creator"],
-  ["I want a cocktail.", "beverage_creator"],
+  ["I want to make sushi.", "sushi_creator"],
+  ["I want to bake cheesecake.", "dessert_creator"],
+  ["I want to make a smoothie.", "beverage_creator"],
+  ["I want to make a cocktail.", "beverage_creator"],
   ["I need a pre-workout drink.", "athlete_beverage_creator"],
   ["I need a post-workout recovery shake.", "athlete_beverage_creator"],
   ["I feel dehydrated.", "hydration_center"],
-  ["I'm going out to eat.", "restaurant_guide"],
+  ["I've chosen Chili's. Help me decide what to order.", "restaurant_guide"],
   ["I know what food I want but not where to get it.", "find_meals_near_me"],
   ["I'm at a buffet.", "my_perfect_buffet"],
   ["I want to make lasagna.", "create_a_dish"],
@@ -288,7 +313,7 @@ test("multi-turn discovery retains savory and burger choices until the member ch
       answer: "Would a burger, pasta, or seafood sound good?" },
     { message: "A burger sounds good.", mode: "clarification", id: null,
       answer: "Would you like to make one or find somewhere to get one?" },
-    { message: "I'd rather go out.", mode: "food_assistance", id: "find_meals_near_me",
+    { message: "I'd rather go out. Help me find somewhere.", mode: "food_assistance", id: "find_meals_near_me",
       answer: "Let's find you a burger. You can open Find Meals Near Me." },
   ] as const;
   for (const [index, turn] of turns.entries()) {
@@ -363,7 +388,7 @@ test("changed beverage preference reaches both reasoning and expression", async 
   }
 });
 
-test("rolling summary reaches both passes and rendering keeps only ten recent history messages", async () => {
+test("rolling summary and the already-bounded history reach both passes without a second tail cut", async () => {
   const history = Array.from({ length: 12 }, (_, i) => ({ role: "user", content: `context-item-${i};` }));
   const summary = "Earlier the member chose savory food and a burger, not seafood.";
   enqueue(reasoning({ mode: "clarification", destinationId: null }));
@@ -372,9 +397,7 @@ test("rolling summary reaches both passes and rendering keeps only ten recent hi
   await render(first.conciergeDecision, "What next?", history, summary);
   for (const call of mockCreate.mock.calls) expect(call[0].messages[1].content).toContain(summary);
   const renderPrompt = mockCreate.mock.calls[1][0].messages[1].content;
-  expect(renderPrompt).not.toContain("context-item-0;");
-  expect(renderPrompt).toContain("context-item-2;");
-  expect(renderPrompt).toContain("context-item-11;");
+  for (const message of history) expect(renderPrompt).toContain(message.content);
 });
 
 test("clarification cannot acquire an unsolicited feature action from rendering", async () => {
@@ -466,7 +489,7 @@ test("full pipeline isolates ordinary discovery from coaching templates and appe
   const renderer = mockCreate.mock.calls[1][0];
   expect(renderer.messages[0].content).not.toMatch(/hypotheses|LOW:|Always close with what logging|EXPRESSION PIPELINE/);
   expect(renderer.messages[1].content).not.toMatch(/GAP_CONTEXT_SENTINEL|BEHAVIORAL_REFERENCE_SENTINEL|BEHAVIOR SIGNAL/);
-  expect(result.meta.concierge).toEqual({ revision: "stage1d", reasoning: "validated", rendering: "primary" });
+  expect(result.meta.concierge).toEqual({ revision: "stage1e", reasoning: "validated", rendering: "primary" });
   expect(db.execute).toHaveBeenCalled();
   expect(mockCreate).toHaveBeenCalledTimes(2);
 });
@@ -635,5 +658,179 @@ test("mini fallback accepts the new one-message response with no extra call", as
   enqueue({ message: "What sounds better: warm or fresh?" });
   const result = await render({ mode: "clarification", destinationId: null });
   expect(result.presentation?.message).toBe("What sounds better: warm or fresh?");
+  expect(mockCreate).toHaveBeenCalledTimes(4);
+});
+
+test.each([
+  ["I'm hungry, but I don't know what I want.", unknownGoal, "Thinking savory, sweet, or something light?"],
+  ["I want something light, but with a lot of flavor. Nothing too heavy.", unknownGoal, "Spicy, tangy, or savory?"],
+  ["Spicy.", unknownGoal, "Seafood, chicken, or plant-based?"],
+  ["Something small and spicy.", { ...unknownGoal, occasion: "snack" as const }, "Thinking crunchy or soft?"],
+])("Stage 1E orchestration vetoes premature Craving Creator: %s", async (message, goal, answer) => {
+  const run = prepareFullPipeline();
+  // Deliberately reproduce the bad destination, not a pre-corrected decision.
+  enqueue(reasoning({ mode: "food_assistance", destinationId: "craving_creator", goal }));
+  enqueue({ message: answer });
+  const result = await run(message);
+  expect(result.presentation).toEqual({ kind: "concierge", message: answer });
+  expect(result.todayPlan.items).toEqual([]);
+  expect(result.learningOpportunity).toBeNull();
+  const expression = mockCreate.mock.calls[1][0].messages[0].content;
+  expect(expression).toContain('"mode":"clarification"');
+  expect(expression).toContain('"destinationId":null');
+  expect(mockCreate).toHaveBeenCalledTimes(2);
+});
+
+test("Stage 1E actual reasoning rejects a legacy destination with no goal proof", async () => {
+  const raw = reasoning({ mode: "food_assistance", destinationId: "craving_creator" });
+  delete (raw.conciergeDecision as any).goal;
+  enqueue(raw);
+  const result = await reason("Light and flavorful.");
+  expect(result.conciergeDecision.mode).toBe("clarification");
+  expect(result.conciergeDecision.destinationId).toBeNull();
+  expect(mockCreate).toHaveBeenCalledTimes(1); // No repair/classifier call added.
+});
+
+test.each([
+  ["I want to prepare spicy chickpeas as a small snack.", "craving_creator"],
+  ["I want to make shrimp tacos for dinner.", "create_a_dish"],
+  ["I want to prepare a full meal.", "create_a_dish"],
+  ["I want to bake a small dessert.", "dessert_creator"],
+  ["I want to bake a whole pie.", "dessert_creator"],
+  ["I want to make sushi.", "sushi_creator"],
+  ["I want to make a smoothie.", "beverage_creator"],
+  ["Make a pre-workout drink.", "athlete_beverage_creator"],
+  ["Use my leftover chicken and rice.", "fridge_rescue"],
+  ["I'm going to Chili's tonight. Help me choose a light meal.", "restaurant_guide"],
+  ["Help me find a restaurant for dinner. I haven't chosen one.", "find_meals_near_me"],
+])("Stage 1E complete goal immediately retains one appropriate action: %s", async (message, id) => {
+  const run = prepareFullPipeline();
+  enqueue(reasoning({ mode: "food_assistance", destinationId: id, goal: fixtureGoal(id) }));
+  enqueue({ message: "Let's do that." });
+  const result = await run(message);
+  expect(result.presentation).toEqual({ kind: "concierge", message: "Let's do that.", destinationId: id });
+  expect(result.todayPlan.items).toHaveLength(1);
+  expect(result.todayPlan.items[0].destinationId).toBe(id);
+  expect(result.presentation?.message).not.toContain("?");
+  expect(mockCreate).toHaveBeenCalledTimes(2);
+});
+
+test.each([
+  ["craving_creator", { ...unknownGoal, activity: "prepare", occasion: "meal", dishChosen: true }],
+  ["create_a_dish", { ...unknownGoal, activity: "prepare", occasion: "snack", dishChosen: true }],
+  ["restaurant_guide", { ...unknownGoal, activity: "eat_out", restaurant: "not_chosen" }],
+  ["find_meals_near_me", { ...unknownGoal, activity: "eat_out", restaurant: "chosen" }],
+  ["restaurant_guide", { ...unknownGoal, activity: "eat_out", restaurant: "unknown" }],
+  ["sushi_creator", { ...unknownGoal, activity: "eat_out", restaurant: "not_chosen", specialty: "sushi" }],
+  ["dessert_creator", { ...unknownGoal, occasion: "dessert" }],
+  ["fridge_rescue", { ...unknownGoal, activity: "prepare", occasion: "meal" }],
+])("Stage 1E expression independently vetoes inconsistent %s readiness", async (id, goal) => {
+  enqueue({ message: "Making it or going out?" });
+  const result = await render({
+    mode: "food_assistance", destinationId: id, goal: goal as ConciergeGoal,
+  }, "Help me choose.");
+  expect(result.presentation?.destinationId).toBeUndefined();
+  expect(result.todayPlan.items).toEqual([]);
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+test("Stage 1E multi-turn discovery retains preferences and budget, offers ideas, then opens only after destination is clear", async () => {
+  const history: Array<{ role: string; content: string }> = [];
+  const turns: Array<{ message: string; answer: string; proposed: string | null; goal: ConciergeGoal; expected: string | null }> = [
+    { message: "I'm hungry, but I don't know what I want.", answer: "Thinking savory, sweet, or something light?",
+      proposed: "craving_creator", goal: { ...unknownGoal }, expected: null },
+    { message: "Something light, but with a lot of flavor.", answer: "Spicy, tangy, or savory?",
+      proposed: "craving_creator", goal: { ...unknownGoal }, expected: null },
+    { message: "Spicy.", answer: "Seafood, chicken, or plant-based?",
+      proposed: null, goal: { ...unknownGoal }, expected: null },
+    { message: "Seafood.", answer: "How about spicy shrimp tacos or shrimp lettuce wraps?",
+      proposed: null, goal: { ...unknownGoal }, expected: null },
+    { message: "Shrimp tacos sound good.", answer: "Making them or going out?",
+      proposed: "create_a_dish", goal: { ...unknownGoal, dishChosen: true }, expected: null },
+    { message: "Going out. I'd like to stay under $20.", answer: "Already have a restaurant in mind?",
+      proposed: "restaurant_guide", goal: { ...unknownGoal, activity: "eat_out", dishChosen: true }, expected: null },
+    { message: "No, let's find somewhere.", answer: "Let's find one.",
+      proposed: "find_meals_near_me", goal: fixtureGoal("find_meals_near_me"), expected: "find_meals_near_me" },
+  ];
+  for (const [index, turn] of turns.entries()) {
+    const run = prepareFullPipeline([...history]);
+    enqueue(reasoning({ mode: "food_assistance", destinationId: turn.proposed, goal: turn.goal }));
+    enqueue({ message: turn.answer });
+    const result = await run(turn.message);
+    expect(result.presentation?.message).toBe(turn.answer);
+    expect(result.presentation?.destinationId).toBe(turn.expected ?? undefined);
+    expect(result.todayPlan.items).toHaveLength(turn.expected ? 1 : 0);
+    const expression = mockCreate.mock.calls[index * 2 + 1][0].messages[1].content;
+    for (const previous of history) expect(expression).toContain(previous.content);
+    if (index === turns.length - 1) {
+      expect(expression).toContain("under $20");
+      expect(mockCreate.mock.calls[index * 2][0].messages[1].content).toContain("under $20");
+    }
+    history.push({ role: "user", content: turn.message }, { role: "assistant", content: turn.answer });
+  }
+  expect(mockCreate).toHaveBeenCalledTimes(turns.length * 2);
+});
+
+test("Stage 1E a changed mind replaces the prior snack destination with the chosen restaurant", async () => {
+  const history = [
+    { role: "user", content: "I want to make a small spicy snack." },
+    { role: "assistant", content: "Let's use Craving Creator." },
+  ];
+  const run = prepareFullPipeline(history);
+  enqueue(reasoning({ mode: "food_assistance", destinationId: "restaurant_guide",
+    goal: fixtureGoal("restaurant_guide") }));
+  enqueue({ message: "Let's choose something there." });
+  const result = await run("Actually, I'm going to Chili's. Help me order instead.");
+  expect(result.presentation?.destinationId).toBe("restaurant_guide");
+  expect(result.todayPlan.items).toHaveLength(1);
+  expect(result.presentation?.message).not.toContain("Craving Creator");
+  expect(mockCreate.mock.calls[1][0].messages[1].content).toContain("Actually, I'm going to Chili's");
+});
+
+test("Stage 1E explicit available-feature requests need no discovery checklist", async () => {
+  const run = prepareFullPipeline();
+  enqueue(reasoning({ mode: "food_assistance", destinationId: "craving_creator",
+    goal: { ...unknownGoal, explicitFeatureId: "craving_creator" } }));
+  enqueue({ message: "Let's open Craving Creator." });
+  expect((await run("Please open Craving Creator.")).presentation?.destinationId).toBe("craving_creator");
+  expect(mockCreate).toHaveBeenCalledTimes(2);
+});
+
+test("Stage 1E an assistant mention or invented explicit request cannot bypass goal readiness", async () => {
+  enqueue(reasoning({ mode: "food_assistance", destinationId: "craving_creator",
+    goal: { ...unknownGoal, explicitFeatureId: "craving_creator" } }));
+  const result = await reason("Light and flavorful.", [
+    { role: "assistant", content: "Let's use Craving Creator." },
+  ]);
+  expect(result.conciergeDecision.destinationId).toBeNull();
+});
+
+test("Stage 1E the allowlist alone cannot authorize an unavailable capability", () => {
+  expect(validateConciergeGoal({
+    mode: "food_assistance", destinationId: "sushi_creator", goal: fixtureGoal("sushi_creator"),
+  }, [], ["I want to make sushi."])?.destinationId).toBeNull();
+});
+
+test("Stage 1E invalid goal metadata never suppresses a genuine reasoning red flag", async () => {
+  const run = prepareFullPipeline();
+  enqueue({ ...reasoning({ mode: "food_assistance", destinationId: "craving_creator" }),
+    redFlag: true, redFlagReason: "Urgent symptoms.",
+    conciergeDecision: { mode: "food_assistance", destinationId: "craving_creator", goal: { activity: "invented" } } });
+  const result = await run("I need help with concerning symptoms.");
+  expect(result.meta.redFlag).toBe(true);
+  expect(result.presentation).toBeUndefined();
+  expect(result.todayPlan.items.every(item => !item.destinationId)).toBe(true);
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+test("Stage 1E mini fallback cannot resurrect a destination rejected for insufficient goal context", async () => {
+  for (let i = 0; i < 3; i++) enqueue({ invalid: true });
+  enqueue({ message: "Spicy, tangy, or savory?", destinationId: "craving_creator" });
+  const result = await render({
+    mode: "food_assistance", destinationId: "craving_creator", goal: { ...unknownGoal },
+  }, "Something light and flavorful.");
+  expect(result.presentation).toEqual({ kind: "concierge", message: "Spicy, tangy, or savory?" });
+  expect(result.todayPlan.items.every(item => item.kind !== "use_feature" && !item.destinationId)).toBe(true);
+  expect(result.meta.concierge?.rendering).toBe("mini_fallback");
   expect(mockCreate).toHaveBeenCalledTimes(4);
 });
