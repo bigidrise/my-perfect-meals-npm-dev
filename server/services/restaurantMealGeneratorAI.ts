@@ -146,6 +146,8 @@ interface RestaurantMeal {
   }>;
   imageUrl?: string;
   serving?: RestaurantServing;
+  buffetItems?: RestaurantServing["buffetItems"];
+  portionGuidance?: string;
   menuAnchorItem?: string;
   howToOrder?: {
     askFor: string;
@@ -555,6 +557,11 @@ Return ONLY a JSON object with this exact structure (the meals array MUST be wra
     "reason": "How this meal supports the user's energy, satiety, and macro goals",
     "modifications": "Brief summary of key ordering modifications",
     "ingredients": ["ingredient1", "ingredient2", "ingredient3"],
+    ${development ? `"buffetItems": [{"food": "each actual plate component", "portion": "suggested quantity with practical unit and cooked/raw basis", "note": "preparation guidance"}],
+    "portionGuidance": "Guidance for this entire suggested plate, matching the nutrition estimates",
+    "portionStatus": "complete",
+    "portionReason": "",
+    ` : ""}
     "menuAnchorItem": "The recognizable real-world menu item this is based on",
     "howToOrder": {
       "askFor": "Exact item name to say at the counter or to the server",
@@ -684,7 +691,7 @@ Make the meals sound like something you would genuinely see on the menu at ${res
         reason: meal.reason || "Balanced nutrition with quality ingredients",
         modifications: meal.modifications || "Request healthy preparation",
         ingredients: Array.isArray(meal.ingredients) ? meal.ingredients : development ? [] : ["protein", "vegetables", "whole grains"],
-        ...(development ? { serving: bindRestaurantServing(meal.serving, {
+        ...(development ? { serving: bindRestaurantServing(meal, {
           name: meal.name, calories: meal.calories, protein: meal.protein,
           carbs: totalCarbs ?? 0, fat: meal.fat,
         }) } : {}),
@@ -715,8 +722,9 @@ The previous meal results contained duplicate meal formats. The current meals ar
 The previous result duplicated an existing meal format. Return a meal that is clearly a different type and structure from the previous results.
 It must NOT be another ${group} dish. It must fill the "alternative format" slot — for example a bowl, a wrap, a salad, or another non-traditional option.
 ${dietaryContext}${dietBehaviorBlock}
+${development ? RESTAURANT_SERVING_INSTRUCTIONS : ""}
 Return ONLY a single JSON object (not an array) with this exact structure:
-{"name":"...","description":"...","calories":0,"protein":0,"starchyCarbs":0,"fibrousCarbs":0,"fat":0,"reason":"...","modifications":"...","ingredients":[]}`, {
+{"name":"...","description":"...","calories":0,"protein":0,"starchyCarbs":0,"fibrousCarbs":0,"fat":0,"reason":"...","modifications":"...","ingredients":[]${development ? ',"buffetItems":[{"food":"actual component","portion":"quantity and practical unit","note":"preparation"}],"portionGuidance":"same-plate guidance"' : ""}}`, {
             purposes: wholeFoodPurposes,
             recommendationSurface: "restaurant_ai_fallback",
           });
@@ -749,6 +757,7 @@ Return ONLY a single JSON object (not an array) with this exact structure:
               medicalBadges: meals[i].medicalBadges,
             };
             console.log(`✅ [VARIETY] Replaced duplicate with "${meals[i].name}"`);
+            if (development) meals[i].serving = bindRestaurantServing(fixedMeal, meals[i]);
           }
         } catch (e) {
           console.warn(`⚠️ [VARIETY] Fallback regeneration failed — keeping original`, e);
@@ -916,7 +925,8 @@ HARD RULES for this replacement meal:
 - Non-starchy vegetables are required
 
 Return ONLY a single JSON object (not an array):
-{"name":"...","description":"...","calories":0,"protein":0,"starchyCarbs":0,"fibrousCarbs":0,"fat":0,"reason":"...","modifications":"...","ingredients":[],"menuAnchorItem":"...","howToOrder":{"askFor":"...","modify":[],"swap":[]},"medicalWaiterScript":""}`, {
+${development ? RESTAURANT_SERVING_INSTRUCTIONS : ""}
+{"name":"...","description":"...","calories":0,"protein":0,"starchyCarbs":0,"fibrousCarbs":0,"fat":0,"reason":"...","modifications":"...","ingredients":[],"menuAnchorItem":"...","howToOrder":{"askFor":"...","modify":[],"swap":[]},"medicalWaiterScript":""${development ? ',"buffetItems":[{"food":"actual component","portion":"quantity and practical unit","note":"preparation"}],"portionGuidance":"same-plate guidance"' : ""}}`, {
           purposes: wholeFoodPurposes,
           recommendationSurface: "restaurant_ai_fallback",
         });
@@ -1023,12 +1033,14 @@ Return ONLY a single JSON object (not an array):
       // diet, avoidances, clinical and provider restrictions; no prompt-only pass.
       const safe = enforcedMeals.filter(meal => {
         meal.serving = currentRestaurantServing(meal.serving, meal) ?? bindRestaurantServing(undefined, meal);
+        meal.buffetItems = meal.serving?.buffetItems;
+        meal.portionGuidance = meal.serving?.portionGuidance;
         const scanDescription = `${meal.description} ${servingSafetyText(meal.serving)}`;
         // Structured-ingredient validators intentionally prefer ingredient
         // evidence over prose. Include the new components in that evidence,
         // without changing image cache identity or the stored ingredient list.
         const scanIngredients = [...meal.ingredients,
-          ...(meal.serving?.items.map(item => `${item.food} ${item.note || ""}`) ?? [])];
+          ...(meal.serving?.buffetItems.map(item => `${item.food} ${item.portion} ${item.note || ""}`) ?? [])];
         if (evaluateWholeFoodCandidate(
           { ...meal, description: scanDescription, ingredients: scanIngredients, preparationEvidence: "unknown" },
           { purposes: wholeFoodPurposes, recommendationSurface: "restaurant_ai_fallback" },

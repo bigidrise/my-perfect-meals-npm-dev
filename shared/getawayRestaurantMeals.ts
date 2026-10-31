@@ -38,6 +38,7 @@ export function getawayRestaurantCards(payload: any): AwayFromHomeRecommendation
     } : value);
     if (!parsed.success) return [];
     const meal = parsed.data;
+    const serving = currentRestaurantServing(meal.serving, meal);
     return [{
       id: meal.id, source: "restaurant_guide" as const,
       restaurantName: payload.restaurantName,
@@ -52,13 +53,15 @@ export function getawayRestaurantCards(payload: any): AwayFromHomeRecommendation
       meal: {
         name: meal.name, description: meal.description, calories: meal.calories,
         imageUrl: meal.imageUrl,
-        serving: currentRestaurantServing(meal.serving, meal),
+        serving,
         proteinGrams: meal.protein, carbohydrateGrams: meal.carbs, fatGrams: meal.fat,
         ingredients: meal.ingredients, starchyCarbGrams: meal.starchyCarbs,
         fibrousCarbGrams: meal.fibrousCarbs,
       },
       recommendation: { reason: meal.reason, modifications: meal.modifications,
+        portionGuidance: serving?.buffetItems.length ? serving.portionGuidance : undefined,
         howToOrder: meal.howToOrder, medicalWaiterScript: meal.medicalWaiterScript },
+      buffetItems: serving?.buffetItems,
       // Never manufacture a clinical compliance badge from a destination match.
       protocol: {},
     }];

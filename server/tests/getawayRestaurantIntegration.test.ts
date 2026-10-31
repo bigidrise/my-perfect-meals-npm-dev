@@ -33,6 +33,10 @@ import { buildGuestEnvelope } from "../services/protocolEnvelope";
 import { resolveGetawayRestaurantContext } from "../services/getawayRestaurantContext";
 import { getawayRestaurantCards } from "../../shared/getawayRestaurantMeals";
 import { bindRestaurantServing } from "../../shared/restaurantServing";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import PlateItems from "../../client/src/components/away-from-home/PlateItems";
+import RestaurantPortions from "../../client/src/components/away-from-home/RestaurantPortions";
 import { assembleLocationContext } from "../services/locationContext/engine";
 
 const oldEnvironment = process.env.NODE_ENV;
@@ -82,13 +86,17 @@ const selected = (name = "Guy's Burger Joint") => ({
 
 test.each(["Lido buffet", "Burger restaurant", "Heathrow Burger Bar", "Sakura Sushi"])(
   "%s preserves same-call serving through Guide and Getaway with no extra calls", async name => {
-    const withPortions = { ...meal, serving: { label: "One suggested plate",
-      items: [{ food: "Beef", quantity: 4, unit: "oz", basis: "cooked" }] } };
+    const withPortions = { ...meal, buffetItems: [{ food: "Beef", portion: "4 oz cooked" },
+      { food: "Vegetable side", portion: "1 cup", note: "Steamed" }],
+      portionGuidance: "This suggested plate includes the sides." };
     mockCreate.mockResolvedValueOnce({ choices: [{ message: { content: JSON.stringify({ meals: [withPortions] }) } }] });
     const response = await guide(selected(name));
     expect(response.code).toBe(200);
-    expect(response.body.recommendations[0].serving).toEqual(bindRestaurantServing(withPortions.serving, meal));
-    expect(getawayRestaurantCards(response.body)[0].meal.serving?.items[0]).toMatchObject({ quantity: 4, unit: "oz", basis: "cooked" });
+    expect(response.body.recommendations[0].serving).toEqual(bindRestaurantServing(withPortions, meal));
+    const card = getawayRestaurantCards(response.body)[0];
+    expect(card.buffetItems?.[0]).toEqual({ food: "Beef", portion: "4 oz cooked" });
+    expect(card.recommendation.portionGuidance).toBe(withPortions.portionGuidance);
+    expect(renderToStaticMarkup(React.createElement(PlateItems, { items: card.buffetItems! }))).toContain("4 oz cooked");
     expect(mockCreate).toHaveBeenCalledTimes(1);
     expect(JSON.stringify(mockCreate.mock.calls[0][0])).toContain("SAME single suggested plate");
   });
@@ -96,12 +104,44 @@ test.each(["Lido buffet", "Burger restaurant", "Heathrow Burger Bar", "Sakura Su
 test("unsafe supplemental portion content cannot bypass protocol validation", async () => {
   envelope.dietaryIdentity = ["vegan"];
   const vegan = { ...meal, name: "Lentil plate", description: "Lentils and vegetables",
-    ingredients: ["lentils", "vegetables"], serving: { label: "One plate",
-      items: [{ food: "Beef", quantity: 4, unit: "oz", basis: "cooked" }] } };
+    ingredients: ["lentils", "vegetables"],
+    buffetItems: [{ food: "Beef", portion: "4 oz cooked" }] };
   mockCreate.mockResolvedValueOnce({ choices: [{ message: { content: JSON.stringify({ meals: [vegan] }) } }] });
   const response = await guide(selected());
   expect(response.code).toBe(503);
   expect(getawayRestaurantCards(response.body)).toEqual([]);
+});
+
+test("realistic tacos generate food-by-food quantities through Guide, Getaway and the actual plate renderer", async () => {
+  const tacos = { ...meal, name: "Grilled Chicken Tacos", description: "Chicken tacos with onion, cilantro and lime",
+    ingredients: ["chicken", "corn tortillas", "onion", "cilantro", "lime"],
+    buffetItems: [
+      { food: "Grilled chicken", portion: "4 oz cooked" }, { food: "Corn tortillas", portion: "3 small" },
+      { food: "Diced onions", portion: "2 tablespoons" }, { food: "Cilantro", portion: "1 tablespoon" },
+      { food: "Lime", portion: "1 wedge" },
+    ], portionGuidance: "These suggested quantities and nutrition describe all three tacos." };
+  mockCreate.mockResolvedValueOnce({ choices: [{ message: { content: JSON.stringify({ meals: [tacos] }) } }] });
+  const response = await guide(selected("Lido buffet"));
+  expect(response.code).toBe(200);
+  const card = getawayRestaurantCards(response.body)[0];
+  expect(card.buffetItems).toEqual(tacos.buffetItems);
+  const html = renderToStaticMarkup(React.createElement(PlateItems, { items: card.buffetItems! }));
+  for (const item of tacos.buffetItems) expect(html).toContain(item.portion);
+  expect(html).not.toContain("One restaurant serving");
+  expect(card.meal.serving?.nutrition).toEqual({ calories: meal.calories, protein: meal.protein, carbs: meal.carbs, fat: meal.fat });
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+test("a realistic model omission is explicitly limited, not a successful Your plate or a repair call", async () => {
+  const response = await guide(selected("Lido buffet")); // default model fixture has macros but no portions
+  const result = response.body.recommendations[0];
+  expect(result.serving.status).toBe("model_omitted");
+  expect(result.buffetItems).toEqual([]);
+  const html = renderToStaticMarkup(React.createElement(RestaurantPortions, { serving: result.serving, meal: result }));
+  expect(html).toContain("limited recommendation");
+  expect(html).not.toContain("Your plate");
+  expect(html).not.toContain("One restaurant serving");
+  expect(mockCreate).toHaveBeenCalledTimes(1);
 });
 
 test("selected cruise burger concept reuses the actual Guide pipeline with one call and no false ZIP match", async () => {

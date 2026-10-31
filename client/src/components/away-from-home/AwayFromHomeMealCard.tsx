@@ -39,6 +39,7 @@ import { setQuickView } from "@/lib/macrosQuickView";
 import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
 import { ChefFlowImage } from "@/components/ChefFlowImage";
 import RestaurantPortions from "./RestaurantPortions";
+import PlateItems from "./PlateItems";
 
 // ── Translation types ─────────────────────────────────────────────────────────
 
@@ -441,7 +442,7 @@ export default function AwayFromHomeMealCard({
         )}
 
         {/* ── Portion guidance ─────────────────────────────────────── */}
-        {meal.serving && <div className="px-4"><RestaurantPortions serving={meal.serving} meal={{
+        {meal.serving && <div className="px-4"><RestaurantPortions noticeOnly serving={meal.serving} meal={{
           name: meal.name, calories: meal.calories!, protein: meal.proteinGrams!,
           carbs: meal.carbohydrateGrams!, fat: meal.fatGrams!,
         }} /></div>}
@@ -468,25 +469,7 @@ export default function AwayFromHomeMealCard({
         {buffetItems && buffetItems.length > 0 && (
           <div className="px-4 mt-4">
             <SectionLabel>Your plate</SectionLabel>
-            <div className="flex flex-col gap-1.5">
-              {buffetItems.map((item, i) => {
-                const translatedFood = translated?.buffetFoods?.[i];
-                return (
-                  <div key={i} className="flex items-start gap-2">
-                    <ChefHat className="w-3 h-3 text-orange-400/60 mt-0.5 shrink-0" />
-                    <div className="min-w-0">
-                      <span className="text-xs text-white font-medium">
-                        {translatedFood || item.food}
-                      </span>
-                      <span className="text-xs text-white/80"> · {item.portion}</span>
-                      {item.note && (
-                        <p className="text-[10px] text-white/70 leading-snug">{item.note}</p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <PlateItems items={buffetItems} translatedFoods={translated?.buffetFoods} />
           </div>
         )}
 
