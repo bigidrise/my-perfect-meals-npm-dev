@@ -7,7 +7,7 @@ jest.mock("../routes/coachingNavigation", () => ({ __esModule: true, default: re
 jest.mock("../middleware/requireAuth", () => ({
   requireAuth: (req: any, res: any, next: any) => {
     if (!req.headers["x-test-user"]) return res.status(401).json({ error: "Unauthorized" });
-    req.authUser = { id: req.headers["x-test-user"] }; next();
+    req.authUser = { id: req.headers["x-test-user"], accessTier: "PAID_FULL", planLookupKey: "mpm_premium" }; next();
   },
 }));
 import router from "../routes/coachingEngine";

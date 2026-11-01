@@ -61,6 +61,8 @@ const COACHING_ADMIN_USER_ID = "6796ce88-dff8-4336-adcb-e53986830f3f";
 
 function getFeatureNameFromPath(path: string): string {
   const map: Record<string, string> = {
+    "/foods-i-enjoy": "My Perfect Menu",
+    "/coach-corner": "Ask Chef",
     "/saved-meals": "Saved Meals",
     "/shopping-list-v2": "Shopping List",
     "/craving-creator": "Craving Creator",
@@ -793,6 +795,18 @@ const GuardedProWeeklyBuilder = () => <ProCareStudioGuard component={SafeWeeklyM
 const GuardedProBeachBodyBuilder = () => <ProCareStudioGuard component={BeachBodyMealBoard} />;
 const GuardedWeeklyMealBoard = () => <BuilderAccessGuard builderKey="weekly" component={SafeWeeklyMealBoard} />;
 const GuardedMyPerfectMenu = () => <PaywallGuard component={MyPerfectMenu} />;
+const ChefHome = lazy(() => import("@/pages/CoachsCorner"));
+const ChefWelcome = lazy(() => import("@/pages/CoachCornerWelcome"));
+const ChefIntake = lazy(() => import("@/pages/CoachCornerIntake"));
+const ChefComplete = lazy(() => import("@/pages/CoachCornerComplete"));
+const ChefProgressSlowed = lazy(() => import("@/pages/CoachCornerProgressSlowed"));
+const ChefTired = lazy(() => import("@/pages/CoachCornerTired"));
+const GuardedChefHome = () => <ProGuard component={ChefHome} />;
+const GuardedChefWelcome = () => <ProGuard component={isChefConversationEnabled() ? ChefConversationEntry : ChefWelcome} />;
+const GuardedChefIntake = () => <ProGuard component={isChefConversationEnabled() ? ChefConversationEntry : ChefIntake} />;
+const GuardedChefComplete = () => <ProGuard component={isChefConversationEnabled() ? ChefConversationEntry : ChefComplete} />;
+const GuardedChefProgressSlowed = () => <ProGuard component={ChefProgressSlowed} />;
+const GuardedChefTired = () => <ProGuard component={ChefTired} />;
 const GuardedShoppingList = () => <PaywallGuard component={SafeShoppingList} />;
 const GuardedBeachBodyBuilder = () => <BuilderAccessGuard builderKey="beach_body" component={BeachBodyMealBoard} />;
 const GuardedAntiInflammatoryBuilder = () => <BuilderAccessGuard builderKey="anti_inflammatory" component={SafeAntiInflammatoryMenuBuilder} />;
@@ -1249,12 +1263,12 @@ export default function Router() {
         <Route path="/procare-certified" component={CertifiedProfessionalUnlock} />
         <Route path="/procare-training" component={LegacyProCareTrainingRedirect} />
         <Route path="/ace-profile" component={lazy(() => import("@/pages/AceProfilePage"))} />
-        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/welcome" component={isChefConversationEnabled() ? ChefConversationEntry : lazy(() => import("@/pages/CoachCornerWelcome"))} />}
-        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/intake" component={isChefConversationEnabled() ? ChefConversationEntry : lazy(() => import("@/pages/CoachCornerIntake"))} />}
-        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/complete" component={isChefConversationEnabled() ? ChefConversationEntry : lazy(() => import("@/pages/CoachCornerComplete"))} />}
-        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/home" component={lazy(() => import("@/pages/CoachsCorner"))} />}
-        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/progress-slowed" component={lazy(() => import("@/pages/CoachCornerProgressSlowed"))} />}
-        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/tired" component={lazy(() => import("@/pages/CoachCornerTired"))} />}
+        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/welcome" component={GuardedChefWelcome} />}
+        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/intake" component={GuardedChefIntake} />}
+        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/complete" component={GuardedChefComplete} />}
+        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/home" component={GuardedChefHome} />}
+        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/progress-slowed" component={GuardedChefProgressSlowed} />}
+        {COACHES_CORNER_ENABLED && <Route path="/coach-corner/tired" component={GuardedChefTired} />}
         {/* DELETED: CommunityTestPage, CommunityPage routes */}
         <Route path="/onboarding" component={SafeOnboarding} />
         <Route path="/onboarding-v2" component={SafeOnboardingV2} />

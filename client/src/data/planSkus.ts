@@ -32,6 +32,7 @@ export const PLAN_SKUS: PlanSku[] = [
     blurb: "Daily adaptive nutrition — AI meal generation, Recipe Maker, unlimited Ingredient Intelligence, and grocery organization",
     features: [
       "Create a Dish — AI meals built around your full profile",
+      "My Perfect Menu — choose from 3 personalized ideas, then create your meal and add it to your plan",
       "Snack Creator (built into every Meal Builder)",
       "Recipe Maker — photo or text import, rebuilt for your macros and protocols",
       "Ingredient Intelligence (unlimited — protocol-aware personalization)",
