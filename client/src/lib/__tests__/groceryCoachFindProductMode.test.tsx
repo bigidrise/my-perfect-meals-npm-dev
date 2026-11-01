@@ -157,7 +157,7 @@ describe('Find a Product mode navigation', () => {
     );
 
     // The actual shared Product Scan result component renders options and warnings.
-    await screen.findByText('Compare sauces for your nutrition goals.');
+    await screen.findByText('Check current sodium and serving size.');
     expect(screen.getByText('Carbone Marinara')).toBeInTheDocument();
     expect(screen.getByText("Rao's Marinara")).toBeInTheDocument();
     expect(screen.getByText('Victoria Marinara')).toBeInTheDocument();
@@ -174,7 +174,7 @@ describe('Find a Product mode navigation', () => {
     expect(screen.getByTestId('input-find-product')).toHaveValue("I'm looking for spaghetti sauce.");
     expect(post).not.toHaveBeenCalled();
     fireEvent.keyDown(screen.getByTestId('input-find-product'), { key: 'Enter' });
-    await screen.findByText('Compare sauces for your nutrition goals.');
+    await screen.findByText('Check current sodium and serving size.');
     expect(post).toHaveBeenCalledWith('/api/biometrics/ingredient-scan-by-name', {
       productName: "I'm looking for spaghetti sauce.",
     });

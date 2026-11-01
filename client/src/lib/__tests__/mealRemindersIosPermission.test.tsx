@@ -301,6 +301,34 @@ describe("iOS repaired settings — failed save", () => {
   });
 });
 
+describe("website reminder enrollment remains separate", () => {
+  afterEach(() => { cleanup(); });
+  it("enrolls and saves a web reminder without native permission, scheduling or cancellation", async () => {
+    jest.clearAllMocks();
+    mockIOSRepair = false;
+    mockIsNativePlatform.mockReturnValue(false);
+    mockLoadRemindersFromServer.mockResolvedValue([
+      { id: "synthetic", label: "Breakfast", time: "08:00", enabled: false },
+    ]);
+    mockSaveRemindersToServer.mockImplementation(async slots => slots);
+    mockGetWebPushPermission.mockReturnValue("default");
+    mockCheckWebPushPipeline.mockResolvedValue({ steps: [], ready: false });
+    const service = await import("@/services/mealReminderService");
+    (service.enrollWebPush as jest.Mock).mockResolvedValueOnce({ success: true });
+    const { container, queryByTestId } = await renderComponent();
+    expect(queryByTestId("ios-reminder-schedule")).toBeNull();
+    const toggle = container.querySelector('[aria-pressed="false"]') as HTMLElement;
+    await act(async () => { toggle.click(); });
+    expect(service.enrollWebPush).toHaveBeenCalledTimes(1);
+    expect(mockSaveRemindersToServer.mock.calls[0][0][0]).toMatchObject({ enabled: true, time: "08:00" });
+    expect(mockCheckNotificationPermission).not.toHaveBeenCalled();
+    expect(mockRequestNotificationPermission).not.toHaveBeenCalled();
+    expect(mockSyncToiOS).not.toHaveBeenCalled();
+    expect(service.canceliOSReminders).not.toHaveBeenCalled();
+    expect(container.querySelector('[aria-pressed="true"]')).not.toBeNull();
+  });
+});
+
 describe('MealReminders — slot-toggle after iOS permission revoke/restore', () => {
   const SLOT = { id: '1', label: 'Breakfast', time: '08:00', enabled: false };
 

@@ -1,14 +1,10 @@
 import { useEffect } from "react";
 import ComingSoonPresentation from "@/components/coming-soon/ComingSoonPresentation";
-import { developmentComingSoonEnabled } from "@/lib/developmentComingSoon";
 
 export default function DrinkAdvisorComingSoon() {
   useEffect(() => {
-    if (developmentComingSoonEnabled) {
-      document.title = "AI Pairing Advisor — Coming Soon | My Perfect Meals";
-    }
+    document.title = "AI Pairing Advisor — Coming Soon | My Perfect Meals";
   }, []);
-  if (!developmentComingSoonEnabled) return null;
   const fromPricing = new URLSearchParams(window.location.search).get("from") === "pricing";
   return (
     <ComingSoonPresentation

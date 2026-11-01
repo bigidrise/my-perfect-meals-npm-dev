@@ -5,6 +5,12 @@ description: getConfidenceInstructions() in confidence.ts is the authoritative L
 
 ## The rule
 
+**Scope:** this doctrine controls the legacy structured/behavioral coaching renderer, not the released Ask Chef primary conversation.
+
+**Why:** Ask Chef's approved conversational path uses a separate instruction and safety contract. Editing the old confidence prompt does not control that primary conversation.
+
+**How to apply:** establish which engine path actually serves the request before changing tone or evidence instructions; retain this doctrine for consumers of the structured renderer.
+
 `server/services/coaching/confidence.ts` → `getConfidenceInstructions(level)` injects text directly into the rendering pass prompt under **CONFIDENCE RESTRICTIONS**. The LLM treats this block as overriding the system prompt instructions in `engine.ts`.
 
 **Why this matters:** System prompt changes to the rendering pass (e.g. "give general education at LOW confidence") are silently defeated if `getConfidenceInstructions("low")` still says "exactly 1 action item — focused on gathering more information." The LLM follows the injected restriction, not the system prompt intention.

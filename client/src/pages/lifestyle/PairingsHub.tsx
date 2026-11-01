@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import PhaseGate from "@/components/PhaseGate";
 import { useCopilotPageExplanation } from "@/components/copilot/useCopilotPageExplanation";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
-import { developmentComingSoonEnabled } from "@/lib/developmentComingSoon";
+import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 
 interface PairingFeature {
   title: string;
@@ -73,12 +73,25 @@ export default function PairingsHub() {
           backgroundPosition: "center 30%",
         }}
       >
+        <MobileHeaderGuard>
+          <header
+            aria-label="Pairings Hub"
+            className="fixed top-0 left-0 right-0 z-50 bg-black/30 backdrop-blur-lg border-b border-white/10"
+            style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+          >
+            <div className="px-8 py-3 flex items-center gap-3">
+              <Wine className="h-6 w-6 text-orange-500" aria-hidden="true" />
+              <h1 className="text-lg font-bold text-white">Pairings Hub</h1>
+            </div>
+          </header>
+        </MobileHeaderGuard>
         <div
           className="flex-1 px-4 py-8"
+          data-testid="pairingshub-content"
           style={{
             paddingTop: isDesktop
               ? "0"
-              : "calc(env(safe-area-inset-top, 0px) + 1rem)",
+              : "calc(env(safe-area-inset-top, 0px) + 6rem)",
           }}
         >
           <div className="max-w-2xl mx-auto space-y-4">
@@ -126,16 +139,14 @@ export default function PairingsHub() {
                   </Card>
                 );
               })}
-              {developmentComingSoonEnabled && (
-                <Link
+              <Link
                   href="/lifestyle/ai-pairing-advisor"
                   className="block rounded-xl border border-white/10 bg-black/10 backdrop-blur-lg shadow-md overflow-hidden p-3 text-sm text-white/80 hover:border-orange-400/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-400"
                   data-testid="pairingshub-advisor-coming-soon"
                 >
                   <span className="font-semibold text-orange-300">AI Pairing Advisor — Coming Soon</span>
                   <span className="mt-1 block text-xs">A future conversational experience. Existing drink pairing tools remain available above.</span>
-                </Link>
-              )}
+              </Link>
             </div>
           </div>
         </div>

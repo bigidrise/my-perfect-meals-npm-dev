@@ -1,5 +1,4 @@
 import { ObjectStorageService, StorageUnavailableError } from "../objectStorage";
-import { canonicalDevelopmentMealImageUrl } from "./developmentMealImageUrls";
 import {
   getActiveMealImageBucket,
   publicMealImageUrl,
@@ -15,7 +14,6 @@ export function parseMealImageObjectUrl(
   url: string | null | undefined,
 ): { bucketId: string; objectName: string } | null {
   if (!url) return null;
-  url = canonicalDevelopmentMealImageUrl(url);
   const match = url.match(
     /^\/public-objects\/(replit-objstore-[0-9a-f-]+)\/(meal-images\/[^?#]+)$/i,
   );

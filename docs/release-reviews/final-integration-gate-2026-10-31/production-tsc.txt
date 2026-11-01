@@ -1,0 +1,193 @@
+client/src/components/CulturalRecipeEditor.tsx(295,16): error TS2322: Type '{ children: (string | Element)[]; onImageUploaded: (url: any) => void; className: string; }' is not assignable to type 'IntrinsicAttributes & { value?: string | undefined; onChange: (url: string) => void; folder?: string | undefined; }'.
+  Property 'children' does not exist on type 'IntrinsicAttributes & { value?: string | undefined; onChange: (url: string) => void; folder?: string | undefined; }'.
+client/src/components/CulturalRecipeEditor.tsx(296,35): error TS7006: Parameter 'url' implicitly has an 'any' type.
+client/src/components/DailyMotivation.tsx(29,24): error TS2339: Property 'personalized' does not exist on type '{}'.
+client/src/components/DailyMotivation.tsx(48,31): error TS2339: Property 'quote' does not exist on type '{}'.
+client/src/components/DailyMotivation.tsx(52,28): error TS2339: Property 'personalized' does not exist on type '{}'.
+client/src/components/FlavorToggle.tsx(26,7): error TS2322: Type '"ghost"' is not assignable to type 'PillButtonVariant | undefined'.
+client/src/components/MobileVoiceRecorder.tsx(85,11): error TS18046: 'err' is of type 'unknown'.
+client/src/components/MobileVoiceRecorder.tsx(87,18): error TS18046: 'err' is of type 'unknown'.
+client/src/components/MobileVoiceRecorder.tsx(90,38): error TS18046: 'err' is of type 'unknown'.
+client/src/components/RecipeEditorPro.tsx(333,16): error TS2322: Type '{ children: (string | Element)[]; onImageUploaded: (url: any) => void; className: string; }' is not assignable to type 'IntrinsicAttributes & { value?: string | undefined; onChange: (url: string) => void; folder?: string | undefined; }'.
+  Property 'children' does not exist on type 'IntrinsicAttributes & { value?: string | undefined; onChange: (url: string) => void; folder?: string | undefined; }'.
+client/src/components/RecipeEditorPro.tsx(334,35): error TS7006: Parameter 'url' implicitly has an 'any' type.
+client/src/components/SimpleVoiceRecorder.tsx(288,11): error TS2322: Type '"microphone"' is not assignable to type 'boolean | "environment" | "user" | undefined'.
+client/src/components/VoiceControlButton.tsx(108,54): error TS18046: 'error' is of type 'unknown'.
+client/src/components/biometrics/QuickLogMacrosButton.tsx(5,15): error TS2459: Module '"@/lib/macrosDraft"' declares 'MacroDraft' locally, but it is not exported.
+client/src/components/diabetic/GLP1CompanionModal.tsx(44,15): error TS2322: Type '"default"' is not assignable to type 'PillButtonVariant | undefined'.
+client/src/components/diabetic/GLP1CompanionModal.tsx(130,23): error TS2322: Type '"default"' is not assignable to type 'PillButtonVariant | undefined'.
+client/src/components/macro-targeting/BodyCompositionSheet.tsx(166,55): error TS2304: Cannot find name 'Method'.
+client/src/components/mealCreatorSteps/Step1.tsx(36,38): error TS2322: Type '(event: React.ChangeEvent<{ value: unknown; }>) => void' is not assignable to type '(event: ChangeEvent<Omit<HTMLInputElement, "value"> & { value: string; }> | (Event & { target: { value: string; name: string; }; }), child: ReactNode) => void'.
+  Types of parameters 'event' and 'event' are incompatible.
+    Type 'ChangeEvent<Omit<HTMLInputElement, "value"> & { value: string; }> | (Event & { target: { value: string; name: string; }; })' is not assignable to type 'ChangeEvent<{ value: unknown; }>'.
+      Type 'Event & { target: { value: string; name: string; }; }' is missing the following properties from type 'ChangeEvent<{ value: unknown; }>': nativeEvent, isDefaultPrevented, isPropagationStopped, persist
+client/src/components/mealCreatorSteps/Step2.tsx(26,10): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+client/src/components/mealCreatorSteps/Step2.tsx(37,10): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+client/src/components/mealCreatorSteps/Step4.tsx(57,12): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: { component: ElementType<any, keyof IntrinsicElements>; } & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<...> & Omit<...>): Element | null', gave the following error.
+    Property 'component' is missing in type '{ children: Element; item: true; xs: number; sm: number; key: string; }' but required in type '{ component: ElementType<any, keyof IntrinsicElements>; }'.
+  Overload 2 of 2, '(props: DefaultComponentProps<GridTypeMap<{}, "div">>): Element | null', gave the following error.
+    Type '{ children: Element; item: true; xs: number; sm: number; key: string; }' is not assignable to type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+      Property 'item' does not exist on type 'IntrinsicAttributes & GridBaseProps & { sx?: SxProps<Theme> | undefined; } & SystemProps<Theme> & Omit<...>'.
+client/src/components/performance/PerformanceNutritionSetupForm.tsx(265,73): error TS2367: This comparison appears to be unintentional because the types 'APNSessionType' and '""' have no overlap.
+client/src/components/pro/ClinicalInterventionPanel.tsx(76,17): error TS2367: This comparison appears to be unintentional because the types '"moderate" | "mild" | "severe"' and '"none"' have no overlap.
+client/src/components/pro/ProClientFolderModal.tsx(992,7): error TS2322: Type 'RefObject<HTMLDivElement | null>' is not assignable to type 'LegacyRef<HTMLDivElement> | undefined'.
+  Type 'RefObject<HTMLDivElement | null>' is not assignable to type 'RefObject<HTMLDivElement>'.
+    Type 'HTMLDivElement | null' is not assignable to type 'HTMLDivElement'.
+      Type 'null' is not assignable to type 'HTMLDivElement'.
+client/src/components/pro/ProClientFolderModal.tsx(1581,7): error TS2322: Type '{ steps: TourStep[]; isOpen: boolean; onClose: (dontShowAgain: boolean) => void; tourKey: string; }' is not assignable to type 'IntrinsicAttributes & QuickTourModalProps'.
+  Property 'tourKey' does not exist on type 'IntrinsicAttributes & QuickTourModalProps'.
+client/src/components/shopping/ProductCatalogChoices.tsx(20,10): error TS2367: This comparison appears to be unintentional because the types '"selectable" | undefined' and '"label_review"' have no overlap.
+client/src/components/shopping/ShoppingProductPicker.tsx(100,94): error TS2367: This comparison appears to be unintentional because the types '"selectable" | undefined' and '"label_review"' have no overlap.
+client/src/data/diabeticAiPremades.dinner.ts(11,8): error TS2304: Cannot find name 'fat'.
+client/src/data/diabeticMenu.breakfast.ts(2,32): error TS2307: Cannot find module './smartMenu.types' or its corresponding type declarations.
+client/src/data/diabeticMenu.dinner.ts(1,32): error TS2307: Cannot find module './smartMenu.types' or its corresponding type declarations.
+client/src/data/diabeticMenu.lunch.ts(1,32): error TS2307: Cannot find module './smartMenu.types' or its corresponding type declarations.
+client/src/data/diabeticMenu.snacks.ts(1,32): error TS2307: Cannot find module './smartMenu.types' or its corresponding type declarations.
+client/src/data/lifestyleDietPickerConfig.ts(689,3): error TS2353: Object literal may only specify known properties, and 'carnivore' does not exist in type 'Record<LifestyleDietKey, DietIngredients>'.
+client/src/hooks/usePushNotifications.ts(79,9): error TS2322: Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'string | BufferSource | null | undefined'.
+  Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'ArrayBufferView<ArrayBuffer>'.
+    Types of property 'buffer' are incompatible.
+      Type 'ArrayBufferLike' is not assignable to type 'ArrayBuffer'.
+        Type 'SharedArrayBuffer' is missing the following properties from type 'ArrayBuffer': resizable, resize, detached, transfer, transferToFixedLength
+client/src/layout/AppLayout.tsx(57,11): error TS2339: Property 'isAuthenticated' does not exist on type 'AuthContextType'.
+client/src/legacy/audio/AudioTestPanel.tsx(2,29): error TS2307: Cannot find module './AudioProvider' or its corresponding type declarations.
+client/src/legacy/audio/AudioTestPanel.tsx(3,24): error TS2307: Cannot find module './useSfx' or its corresponding type declarations.
+client/src/legacy/chef/ChefNavigationExample.tsx(3,62): error TS2307: Cannot find module './chefNavigator' or its corresponding type declarations.
+client/src/legacy/features/breakfast/BreakfastMealsHub.tsx(40,33): error TS2339: Property 'find' does not exist on type '{ classic: MealTemplate; light: MealTemplate; highProtein: MealTemplate; }'.
+client/src/legacy/features/breakfast/BreakfastMealsHub.tsx(40,39): error TS7006: Parameter 't' implicitly has an 'any' type.
+client/src/legacy/features/breakfast/BreakfastMealsHub.tsx(64,72): error TS2339: Property 'unit' does not exist on type '{ quantity: number; }'.
+client/src/legacy/features/breakfast/BreakfastMealsHub.tsx(64,84): error TS2339: Property 'item' does not exist on type '{ quantity: number; }'.
+client/src/legacy/features/breakfast/BreakfastMealsHub.tsx(112,25): error TS2339: Property 'map' does not exist on type '{ classic: MealTemplate; light: MealTemplate; highProtein: MealTemplate; }'.
+client/src/legacy/features/breakfast/BreakfastMealsHub.tsx(112,30): error TS7006: Parameter 't' implicitly has an 'any' type.
+client/src/legacy/features/breakfast/BreakfastMealsHub.tsx(122,54): error TS7006: Parameter 'b' implicitly has an 'any' type.
+client/src/legacy/features/breakfast/BreakfastMealsHub.tsx(186,64): error TS2339: Property 'item' does not exist on type '{ quantity: number; }'.
+client/src/legacy/features/breakfast/BreakfastMealsHub.tsx(188,49): error TS2339: Property 'unit' does not exist on type '{ quantity: number; }'.
+client/src/legacy/features/breakfast/BreakfastMealsHub.tsx(202,55): error TS7006: Parameter 'step' implicitly has an 'any' type.
+client/src/legacy/features/breakfast/BreakfastMealsHub.tsx(202,61): error TS7006: Parameter 'i' implicitly has an 'any' type.
+client/src/legacy/features/breakfast/BreakfastMealsHub.tsx(213,53): error TS7006: Parameter 'badge' implicitly has an 'any' type.
+client/src/legacy/pages/CoachCornerHome.tsx(30,12): error TS2304: Cannot find name 'ChevronLeft'.
+client/src/legacy/pages/_future/potluck-planner.tsx(54,94): error TS2307: Cannot find module '@/data/potluckMealsData' or its corresponding type declarations.
+client/src/legacy/pages/_future/potluck-planner.tsx(100,33): error TS7006: Parameter 'ingredient' implicitly has an 'any' type.
+client/src/legacy/pages/_future/potluck-planner.tsx(242,51): error TS7006: Parameter 'instruction' implicitly has an 'any' type.
+client/src/legacy/pages/_future/potluck-planner.tsx(242,64): error TS7006: Parameter 'index' implicitly has an 'any' type.
+client/src/legacy/pages/_future/potluck-planner.tsx(346,36): error TS7006: Parameter 'meal' implicitly has an 'any' type.
+client/src/legacy/studio-retired/RETIRED_CravingStudio.tsx(370,59): error TS2304: Cannot find name 'getAuthHeaders'.
+client/src/lib/__tests__/groceryCoachBrandPick.test.tsx(429,6): error TS2352: Conversion of type 'UseBoundStore<StoreApi<ShoppingListStore>>' to type 'Mock<any, any, any>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ (): ShoppingListStore; <U>(selector: (state: ShoppingListStore) => U): U; } & StoreApi<ShoppingListStore>' is missing the following properties from type 'Mock<any, any, any>': getMockName, mock, mockClear, mockReset, and 13 more.
+client/src/lib/__tests__/groceryCoachSummaryBarReopenCycle.test.tsx(168,4): error TS2352: Conversion of type 'UseBoundStore<StoreApi<ShoppingListStore>>' to type 'Mock<any, any, any>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ (): ShoppingListStore; <U>(selector: (state: ShoppingListStore) => U): U; } & StoreApi<ShoppingListStore>' is missing the following properties from type 'Mock<any, any, any>': getMockName, mock, mockClear, mockReset, and 13 more.
+client/src/lib/__tests__/mealRemindersIosPermission.test.tsx(49,37): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+client/src/lib/__tests__/mealRemindersIosPermission.test.tsx(51,39): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+client/src/lib/__tests__/mealRemindersIosPermission.test.tsx(53,36): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+client/src/lib/__tests__/mealRemindersIosPermission.test.tsx(55,33): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+client/src/lib/__tests__/mealRemindersIosPermission.test.tsx(57,70): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+client/src/lib/__tests__/mealRemindersIosPermission.test.tsx(58,72): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+client/src/lib/__tests__/studioVideoMessageComposer.test.tsx(125,7): error TS2345: Argument of type '(type: string) => type is "video/webm;codecs=vp8,opus"' is not assignable to parameter of type '() => boolean'.
+  Target signature provides too few arguments. Expected 1 or more, but got 0.
+client/src/lib/__tests__/studioVideoMessageComposer.test.tsx(133,7): error TS2345: Argument of type '(type: string) => type is "video/mp4"' is not assignable to parameter of type '() => boolean'.
+  Target signature provides too few arguments. Expected 1 or more, but got 0.
+client/src/lib/__tests__/studioVideoMessageComposer.test.tsx(246,7): error TS2345: Argument of type '(type: string) => type is "video/webm;codecs=vp8,opus"' is not assignable to parameter of type '() => boolean'.
+  Target signature provides too few arguments. Expected 1 or more, but got 0.
+client/src/lib/__tests__/studioVideoMessageComposer.test.tsx(268,7): error TS2345: Argument of type '(type: string) => type is "video/quicktime"' is not assignable to parameter of type '() => boolean'.
+  Target signature provides too few arguments. Expected 1 or more, but got 0.
+client/src/lib/entitlements.ts(71,3): error TS2322: Type '"mpm_basic_monthly"' is not assignable to type 'CheckoutLookupKey'.
+client/src/lib/entitlements.ts(72,3): error TS2322: Type '"mpm_basic_monthly"' is not assignable to type 'CheckoutLookupKey'.
+client/src/lib/entitlements.ts(73,3): error TS2322: Type '"mpm_premium_monthly"' is not assignable to type 'CheckoutLookupKey'.
+client/src/lib/entitlements.ts(74,3): error TS2322: Type '"mpm_ultimate_monthly"' is not assignable to type 'CheckoutLookupKey'.
+client/src/lib/fallbackMeals.ts(1,10): error TS2305: Module '"@/hooks/useWeeklyPlan"' has no exported member 'getWeekKey'.
+client/src/lib/platform.ts(36,9): error TS2774: This condition will always return true since this function is always defined. Did you mean to call it instead?
+client/src/pages/CompanionNutritionHub.tsx(658,10): error TS2741: Property 'open' is missing in type '{ message: string; onClose: () => void; }' but required in type 'UpgradeLockModalProps'.
+client/src/pages/FastFoodGuidePage.tsx(504,55): error TS2322: Type 'unknown' is not assignable to type '{ name?: string | undefined; description?: string | undefined; ingredients?: string[] | undefined; }'.
+client/src/pages/JoinStudio.tsx(334,26): error TS2304: Cannot find name 'requestUpgrade'.
+client/src/pages/MacroCalculator.tsx(92,3): error TS2440: Import declaration conflicts with local declaration of 'CutIntensity'.
+client/src/pages/MacroCalculator.tsx(93,3): error TS2440: Import declaration conflicts with local declaration of 'CutStyle'.
+client/src/pages/MacroCalculator.tsx(1046,9): error TS2322: Type '"lean_gain"' is not assignable to type 'Goal'.
+client/src/pages/PromoRedemption.tsx(40,11): error TS2339: Property 'isAuthenticated' does not exist on type 'AuthContextType'.
+client/src/pages/SocialFindMeals.tsx(254,11): error TS2741: Property 'step3' is missing in type '{ entry: string; step1: string; step2: string; generating: string; results: string; }' but required in type 'Record<GuidedStep, string>'.
+client/src/pages/SocialFindMeals.tsx(386,58): error TS2322: Type 'unknown' is not assignable to type '{ name?: string | undefined; description?: string | undefined; ingredients?: string[] | undefined; }'.
+client/src/pages/SocialRestaurantGuide.tsx(562,55): error TS2322: Type 'unknown' is not assignable to type '{ name?: string | undefined; description?: string | undefined; ingredients?: string[] | undefined; }'.
+client/src/pages/TrainingNutritionHub.tsx(1130,65): error TS2551: Property 'starchy_carbs_g' does not exist on type 'ResolvedTargets'. Did you mean 'starchyCarbs_g'?
+client/src/pages/TrainingNutritionHub.tsx(1130,114): error TS2551: Property 'starchy_carbs_g' does not exist on type 'ResolvedTargets'. Did you mean 'starchyCarbs_g'?
+client/src/pages/TrainingNutritionHub.tsx(1131,65): error TS2551: Property 'fibrous_carbs_g' does not exist on type 'ResolvedTargets'. Did you mean 'fibrousCarbs_g'?
+client/src/pages/TrainingNutritionHub.tsx(1131,114): error TS2551: Property 'fibrous_carbs_g' does not exist on type 'ResolvedTargets'. Did you mean 'fibrousCarbs_g'?
+client/src/pages/WhiteLabelSolutions.tsx(509,21): error TS2339: Property 'content' does not exist on type '{ readonly number: 1; readonly title: "Why We Built This"; readonly subtitle: "The problem we set out to solve."; readonly content: readonly [{ readonly heading: "Existing software organizes people. It doesn't manage nutrition."; readonly body: "Coaches, dietitians, and healthcare professionals spend enormous amount...'.
+  Property 'content' does not exist on type '{ readonly number: 14; readonly title: "White Label Partnership Application"; readonly subtitle: "Before we connect, confirm you've read and understood this program."; readonly isApplication: true; readonly checkboxes: readonly [...]; readonly ack: null; }'.
+client/src/pages/admin/AdminCertifications.tsx(340,24): error TS2345: Argument of type '{ total: number; notified: number; pending: number; previewEmails: string[]; }' is not assignable to parameter of type 'SetStateAction<{ total: number; notified: number; pending: number; oldestEntry: string | null; newestEntry: string | null; previewEmails: string[]; } | null>'.
+  Type '{ total: number; notified: number; pending: number; previewEmails: string[]; }' is missing the following properties from type '{ total: number; notified: number; pending: number; oldestEntry: string | null; newestEntry: string | null; previewEmails: string[]; }': oldestEntry, newestEntry
+client/src/pages/biometrics/sleep.tsx(192,34): error TS7006: Parameter 'item' implicitly has an 'any' type.
+client/src/pages/certification/CertificationLesson.tsx(124,13): error TS2322: Type 'LessonSection[]' is not assignable to type 'NarrationSection[]'.
+  Type 'LessonSection' is not assignable to type 'NarrationSection'.
+    Index signature for type 'string' is missing in type 'LessonSection'.
+client/src/pages/companion/CatNutritionHub.tsx(454,10): error TS2741: Property 'open' is missing in type '{ message: string; onClose: () => void; }' but required in type 'UpgradeLockModalProps'.
+client/src/pages/lifestyle/GatheringsPage.tsx(10,10): error TS2300: Duplicate identifier 'useCopilotPageExplanation'.
+client/src/pages/lifestyle/GatheringsPage.tsx(69,10): error TS2300: Duplicate identifier 'useCopilotPageExplanation'.
+client/src/pages/lifestyle/GatheringsPage.tsx(91,3): error TS2300: Duplicate identifier 'imageUrl'.
+client/src/pages/lifestyle/GatheringsPage.tsx(114,3): error TS2300: Duplicate identifier 'imageUrl'.
+client/src/pages/physician/DiabeticHub.tsx(380,21): error TS2322: Type '"default"' is not assignable to type 'PillButtonVariant | undefined'.
+client/src/pages/physician/DiabeticHub.tsx(405,19): error TS2322: Type '"default"' is not assignable to type 'PillButtonVariant | undefined'.
+client/src/pages/profile/EditProfilePage.tsx(899,31): error TS2339: Property 'nickname' does not exist on type 'EditProfilePayload'.
+client/src/pages/profile/EditProfilePage.tsx(2088,23): error TS2339: Property 'nickname' does not exist on type 'EditProfilePayload'.
+client/src/pages/profile/EditProfilePage.tsx(2090,43): error TS2339: Property 'nickname' does not exist on type 'EditProfilePayload'.
+client/src/pages/profile/LanguagePreferencesPage.tsx(48,25): error TS2367: This comparison appears to be unintentional because the types '"fr" | "en" | "ar" | "es" | "de" | "it" | "pt" | "zh" | "ja" | "ko" | "hi" | "ru" | "vi" | "tl" | "auto"' and '"null"' have no overlap.
+client/src/services/mealReminderService.ts(188,7): error TS2322: Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'string | BufferSource | null | undefined'.
+  Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'ArrayBufferView<ArrayBuffer>'.
+    Types of property 'buffer' are incompatible.
+      Type 'ArrayBufferLike' is not assignable to type 'ArrayBuffer'.
+        Type 'SharedArrayBuffer' is missing the following properties from type 'ArrayBuffer': resizable, resize, detached, transfer, transferToFixedLength
+client/src/utils/athleteIngredientMapper.ts(1,59): error TS2304: Cannot find name 'UniversalIngredient'.
+server/routes/generation.ts(51,26): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ breakfast: [number, number]; lunch: [number, number]; dinner: [number, number]; snack: [number, number]; }'.
+server/routes/marketingCenterRoutes.ts(125,41): error TS2554: Expected 0 arguments, but got 2.
+server/routes/marketingCenterRoutes.ts(136,35): error TS2339: Property 'toBuffer' does not exist on type '{ toCanvas: (canvas: HTMLCanvasElement, text: string, options?: QRCodeOptions | undefined) => Promise<void>; toDataURL: (text: string, options?: QRCodeOptions | undefined) => Promise<...>; }'.
+server/routes/proBiometricsRoutes.ts(12,3): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: BoardAccessRequest, res: Response<any, Record<string, any>, number>) => Promise<void>' is not assignable to parameter of type 'RequestHandlerParams<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+      Type '(req: BoardAccessRequest, res: Response<any, Record<string, any>, number>) => Promise<void>' is not assignable to type 'RequestHandler<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+        Types of parameters 'req' and 'req' are incompatible.
+          Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is not assignable to type 'BoardAccessRequest'.
+            Types of property 'authUser' are incompatible.
+              Type 'AuthenticatedUser | undefined' is not assignable to type 'AuthenticatedUser'.
+                Type 'undefined' is not assignable to type 'AuthenticatedUser'.
+server/routes/proProgramHistory.ts(12,3): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '(req: BoardAccessRequest, res: Response<any, Record<string, any>, number>) => Promise<void>' is not assignable to parameter of type 'RequestHandlerParams<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+      Type '(req: BoardAccessRequest, res: Response<any, Record<string, any>, number>) => Promise<void>' is not assignable to type 'RequestHandler<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+        Types of parameters 'req' and 'req' are incompatible.
+          Type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is not assignable to type 'BoardAccessRequest'.
+            Types of property 'authUser' are incompatible.
+              Type 'AuthenticatedUser | undefined' is not assignable to type 'AuthenticatedUser'.
+                Type 'undefined' is not assignable to type 'AuthenticatedUser'.
+server/routes/procareRoutes.ts(1504,49): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'QueryResult<Record<string, unknown>>'.
+  Property '0' does not exist on type 'QueryResult<Record<string, unknown>>'.
+server/routes/studioGenerator.ts(233,12): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(left: PgColumn<{ name: "studio"; tableName: "meal_library_items"; dataType: "string"; columnType: "PgEnumColumn"; data: "dessert" | "fridge" | "craving"; driverParam: string; notNull: true; hasDefault: false; ... 6 more ...; generated: undefined; }, {}, {}>, right: "dessert" | ... 2 more ... | SQLWrapper): SQL<...>', gave the following error.
+    Argument of type 'StudioType | undefined' is not assignable to parameter of type '"dessert" | "fridge" | "craving" | SQLWrapper'.
+      Type 'undefined' is not assignable to type '"dessert" | "fridge" | "craving" | SQLWrapper'.
+  Overload 2 of 3, '(left: Aliased<"dessert" | "fridge" | "craving" | undefined>, right: "dessert" | "fridge" | "craving" | SQLWrapper | undefined): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "studio"; tableName: "meal_library_items"; dataType: "string"; columnType: "PgEnumColumn"; data: "dessert" | "fridge" | "craving"; driverParam: string; notNull: true; hasDefault: false; ... 6 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'Aliased<"dessert" | "fridge" | "craving" | undefined>'.
+      Type 'PgColumn<{ name: "studio"; tableName: "meal_library_items"; dataType: "string"; columnType: "PgEnumColumn"; data: "dessert" | "fridge" | "craving"; driverParam: string; notNull: true; hasDefault: false; ... 6 more ...; generated: undefined; }, {}, {}>' is missing the following properties from type 'Aliased<"dessert" | "fridge" | "craving" | undefined>': sql, fieldAlias
+  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.
+    Argument of type 'PgColumn<{ name: "studio"; tableName: "meal_library_items"; dataType: "string"; columnType: "PgEnumColumn"; data: "dessert" | "fridge" | "craving"; driverParam: string; notNull: true; hasDefault: false; ... 6 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'never'.
+server/routes/studioGenerator.ts(264,5): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(value: { userId: string | SQL<unknown> | Placeholder<string, any>; studio: "dessert" | "fridge" | "craving" | SQL<unknown> | Placeholder<string, any>; id?: string | ... 2 more ... | undefined; ... 6 more ...; errorMessage?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.
+    Type 'StudioType | undefined' is not assignable to type '"dessert" | "fridge" | "craving" | SQL<unknown> | Placeholder<string, any>'.
+      Type 'undefined' is not assignable to type '"dessert" | "fridge" | "craving" | SQL<unknown> | Placeholder<string, any>'.
+  Overload 2 of 2, '(values: { userId: string | SQL<unknown> | Placeholder<string, any>; studio: "dessert" | "fridge" | "craving" | SQL<unknown> | Placeholder<string, any>; id?: string | ... 2 more ... | undefined; ... 6 more ...; errorMessage?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.
+    Object literal may only specify known properties, and 'studio' does not exist in type '{ userId: string | SQL<unknown> | Placeholder<string, any>; studio: "dessert" | "fridge" | "craving" | SQL<unknown> | Placeholder<string, any>; id?: string | SQL<...> | Placeholder<...> | undefined; ... 6 more ...; errorMessage?: string | ... 3 more ... | undefined; }[]'.
+server/routes/voice.ts(19,11): error TS2339: Property 'buffer' does not exist on type 'File | undefined'.
+server/services/generators/cravingCreatorWrapped.ts(35,48): error TS7006: Parameter 'ing' implicitly has an 'any' type.
+server/services/guardrails/validators/antiInflammatoryValidator.ts(109,28): error TS18048: 'result.blockedIngredients' is possibly 'undefined'.
+server/services/hubCoupling/hubModules/competitionPro.ts(130,35): error TS18047: 'meal.carbs' is possibly 'null'.
+server/services/hubCoupling/hubModules/competitionPro.ts(135,9): error TS2322: Type 'number | null' is not assignable to type 'string | number | undefined'.
+  Type 'null' is not assignable to type 'string | number | undefined'.
+server/services/notificationScheduler.ts(29,7): error TS2322: Type 'null' is not assignable to type 'string | undefined'.

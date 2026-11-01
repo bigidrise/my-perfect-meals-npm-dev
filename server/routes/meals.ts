@@ -7,11 +7,10 @@ import { users, mealInstances, userRecipes } from "@shared/schema";
 import { requireAuth } from "../middleware/requireAuth";
 import { createApiRateLimit } from "../middleware/rateLimit";
 import { getAuthUserId } from "../utils/getAuthUserId";
-import { generateMealImageResult, type ImageSourceType } from "../services/mealImageGenerator";
+import { generateMealImageUnified, type ImageSourceType } from "../services/mealImageGenerator";
 import { createHumanFoodRequestScope } from "../services/humanFoodContext/requestScope";
 import { validateHumanFoodCandidate } from "../services/humanFoodContext/finalValidation";
 import { pediatricImageContextSchema, recipeImageStatus } from "../../shared/pediatricMealImage";
-import { generatedMealPhotographResponse, serializeGeneratedMealPhotograph } from "../services/developmentMealImageUrls";
 
 const imageRateLimit = createApiRateLimit();
 
@@ -127,8 +126,8 @@ router.post("/generate-image", requireAuth, imageRateLimit, async (req: any, res
   }
 
   try {
-    const image = serializeGeneratedMealPhotograph(await generateMealImageResult(mealName.trim(), normalizedIngredients, sourceType, pediatricContext));
-    return res.json({ ...generatedMealPhotographResponse(image), imageStatus: recipeImageStatus(image.url) });
+    const imageUrl = await generateMealImageUnified(mealName.trim(), normalizedIngredients, sourceType, pediatricContext);
+    return res.json({ imageUrl, imageStatus: recipeImageStatus(imageUrl) });
   } catch (err: any) {
     console.error(`[generate-image] failed for "${mealName}":`, err.message);
     return res.json({ imageUrl: null });

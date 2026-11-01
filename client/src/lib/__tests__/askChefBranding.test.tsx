@@ -48,6 +48,36 @@ test.each([false, true])("Development card reuses Flame Chef and preserves exist
   expect(mockNavigate).toHaveBeenCalledWith(completed ? "/coach-corner/home" : "/coach-corner/welcome");
 });
 
+test("Ask Chef CTA keeps its layout and has white centered text, a dimensional orange gradient and accessible interaction states", () => {
+  act(() => root.render(<CoachCornerCard />));
+  const button = host.querySelector("button")!;
+  for (const token of [
+    "w-full", "rounded-xl", "border", "px-4", "py-3", "text-[11px]",
+    "font-bold", "uppercase", "tracking-[0.14em]", "text-center", "text-[#FFFFFF]",
+    "bg-gradient-to-r", "border-orange-200/80",
+    "focus-visible:ring-2", "focus-visible:ring-orange-200", "focus-visible:ring-offset-2",
+  ]) expect(button.classList.contains(token)).toBe(true);
+  expect(button.className).toMatch(/shadow-\[inset_/);
+  expect(button.className).toMatch(/hover:via-/);
+  expect(button.className).toMatch(/active:via-/);
+  expect(button.textContent).toBe("Open Ask Chef");
+});
+
+test("white CTA text meets WCAG AA against every normal, hover and pressed gradient stop", () => {
+  act(() => root.render(<CoachCornerCard />));
+  const classes = host.querySelector("button")!.className;
+  const stops = [...classes.matchAll(/(?:^| )(?:hover:|active:)?(?:from|via|to)-\[#([0-9a-f]{6})\]/gi)];
+  expect(stops).toHaveLength(9);
+  for (const [, hex] of stops) {
+    const [r, g, b] = [0, 2, 4].map(offset => {
+      const channel = parseInt(hex.slice(offset, offset + 2), 16) / 255;
+      return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+    });
+    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    expect(1.05 / (luminance + 0.05)).toBeGreaterThanOrEqual(4.5);
+  }
+});
+
 test("release branding changes legacy card copy without activating the Development experience", () => {
   mockDevelopment = false;
   act(() => root.render(<CoachCornerCard />));

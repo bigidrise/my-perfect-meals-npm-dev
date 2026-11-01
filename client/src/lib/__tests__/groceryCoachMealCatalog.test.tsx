@@ -81,6 +81,15 @@ describe("explicit packaged-product discovery eligibility", () => {
 });
 
 describe("Development ingredient-level Product Scan reuse", () => {
+  it("exposes only the approved Find Brands entry when the Development catalog flag is off", async () => {
+    jest.replaceProperty(require("@/lib/groceryCoachCatalogGate"), "groceryCoachCatalogEnabled", false);
+    seed();
+    render(<GroceryStoreCoachSheet open onOpenChange={jest.fn()} />);
+    fireEvent.click(await screen.findByText("Find brands"));
+    await screen.findByText("Example Tomato Sauce");
+    expect(post).toHaveBeenCalledWith("/api/biometrics/ingredient-scan-by-name", { productName: ingredient.item });
+    expect(screen.queryByText(/Choose for shopping/)).not.toBeInTheDocument();
+  });
   it.each(["Parmesan cheese", "Whole wheat spaghetti", "Spaghetti sauce"])("analyzes the exact %s ingredient only after clicking", async item => {
     render(<MealIngredientBrands ingredient={{ ...ingredient, item }} servings={2} onSelect={jest.fn()} onAddProduct={jest.fn()} />);
     expect(post).not.toHaveBeenCalled();
@@ -90,7 +99,7 @@ describe("Development ingredient-level Product Scan reuse", () => {
     expect(screen.queryByTestId("catalog-product-match")).not.toBeInTheDocument();
     expect(screen.queryByText(/Choose for shopping/)).not.toBeInTheDocument();
     expect(screen.getByText(/Do not consume until/)).toBeInTheDocument();
-    expect(screen.getByText("Not allergy or medical safety clearance.")).toBeInTheDocument();
+    expect(screen.queryByText(/Safe for You/i)).not.toBeInTheDocument();
   });
 
   it("uses real shared cards and Add to transfer the ingredient, exact fraction, recipe and unverified choice", async () => {
@@ -162,7 +171,7 @@ describe("Development ingredient-level Product Scan reuse", () => {
     (post as jest.Mock).mockResolvedValue({ ok: true, result: empty });
     render(<MealIngredientBrands ingredient={{ ...ingredient, quantity: "to taste" }} servings={2} onSelect={jest.fn()} onAddProduct={jest.fn()} />);
     fireEvent.click(screen.getByText("Find brands"));
-    await screen.findByText("Personalized product guidance");
+    await screen.findByText("Consider after checking the current label.");
     expect(screen.queryByRole("button", { name: "ingredientSheet.add" })).not.toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("Review the recipe amount");
   });

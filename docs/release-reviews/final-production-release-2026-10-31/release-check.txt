@@ -1,0 +1,335 @@
+
+> rest-express@1.0.0 release-check
+> bash scripts/release-check.sh
+
+
+╔══════════════════════════════════════════════╗
+║   MPM Release Health Check                   ║
+║   Target: https://5b503fbf-1926-4592-8a37-99d9960f359a-00-3unrnbifr57t0.worf.replit.dev
+╚══════════════════════════════════════════════╝
+
+━━━ 0. Supported Build and Type Contracts ━━━
+
+> rest-express@1.0.0 build:client
+> cd client && vite build
+
+vite v6.4.2 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 7 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 5039 modules transformed.
+rendering chunks...
+[plugin vite:reporter]
+(!) /home/runner/workspace/client/src/lib/auth.ts is dynamically imported by /home/runner/workspace/client/src/components/JustDescribeItModal.tsx, /home/runner/workspace/client/src/pages/my-biometrics.tsx but also statically imported by /home/runner/workspace/client/src/App.tsx, /home/runner/workspace/client/src/components/AddToMealPlanButton.tsx, /home/runner/workspace/client/src/components/BuilderShoppingBar.tsx, /home/runner/workspace/client/src/components/CreateWithChefModal.tsx, /home/runner/workspace/client/src/components/DevNavigator.tsx, /home/runner/workspace/client/src/components/IdleTimeoutModal.tsx, /home/runner/workspace/client/src/components/InspirationCaptureModal.tsx, /home/runner/workspace/client/src/components/MacroScanModal.tsx, /home/runner/workspace/client/src/components/MealPlanDestinationPicker.tsx, /home/runner/workspace/client/src/components/MfaChallengeModal.tsx, /home/runner/workspace/client/src/components/MfaSetupSection.tsx, /home/runner/workspace/client/src/components/OrganizationAccessCard.tsx, /home/runner/workspace/client/src/components/ProfileSheet.tsx, /home/runner/workspace/client/src/components/ProtocolStatusBadge.tsx, /home/runner/workspace/client/src/components/SafetyPinSettings.tsx, /home/runner/workspace/client/src/components/ShareRecipeButton.tsx, /home/runner/workspace/client/src/components/SponsorEndedBanner.tsx, /home/runner/workspace/client/src/components/StudioAccessCard.tsx, /home/runner/workspace/client/src/components/WorkspaceChooser.tsx, /home/runner/workspace/client/src/components/away-from-home/MacroConfirmSheet.tsx, /home/runner/workspace/client/src/components/biometrics/ClinicalLabsCard.tsx, /home/runner/workspace/client/src/components/biometrics/TherapeuticNutritionCard.tsx, /home/runner/workspace/client/src/components/business/BusinessPilotWindowNotice.tsx, /home/runner/workspace/client/src/components/business/DevelopmentBusinessPilotActivation.tsx, /home/runner/workspace/client/src/components/business/FounderPilotInvitation.tsx, /home/runner/workspace/client/src/components/business/GuidedBusinessPilot.tsx, /home/runner/workspace/client/src/components/business/MemberClientAccountingModal.tsx, /home/runner/workspace/client/src/components/business/OrganizationInvitationsAccess.tsx, /home/runner/workspace/client/src/components/business/OrganizationPaidContinuation.tsx, /home/runner/workspace/client/src/components/clinical/ProtocolDowngradeModal.tsx, /home/runner/workspace/client/src/components/clinical/ProtocolRecommendationModal.tsx, /home/runner/workspace/client/src/components/clinical/ThyroidRecommendationModal.tsx, /home/runner/workspace/client/src/components/elevenLabsClient.ts, /home/runner/workspace/client/src/components/macro-targeting/BodyCompositionSection.tsx, /home/runner/workspace/client/src/components/macro-targeting/BodyCompositionSheet.tsx, /home/runner/workspace/client/src/components/partner-center/ReferralTools.tsx, /home/runner/workspace/client/src/components/performance/PerformanceNutritionSetupForm.tsx, /home/runner/workspace/client/src/components/pickers/AddOwnMealButton.tsx, /home/runner/workspace/client/src/components/pro/CheckInAlertPreferences.tsx, /home/runner/workspace/client/src/components/pro/CheckInOverviewPanel.tsx, /home/runner/workspace/client/src/components/pro/ClientLegalModal.tsx, /home/runner/workspace/client/src/components/pro/CycleProtocolControl.tsx, /home/runner/workspace/client/src/components/pro/PendingActivationQueue.tsx, /home/runner/workspace/client/src/components/pro/ProBloodGlucosePanel.tsx, /home/runner/workspace/client/src/components/pro/ProClientFolderModal.tsx, /home/runner/workspace/client/src/components/pro/ProClientProgramHistory.tsx, /home/runner/workspace/client/src/components/pro/ProClientWeightSnapshot.tsx, /home/runner/workspace/client/src/components/pro/ProNutritionStrategyCard.tsx, /home/runner/workspace/client/src/components/pro/ProfessionalLegalModal.tsx, /home/runner/workspace/client/src/components/pro/StudioVideoMessageComposer.tsx, /home/runner/workspace/client/src/components/pro/WeeklyWeightTrendCard.tsx, /home/runner/workspace/client/src/components/protocol/ClinicalProtocolCard.tsx, /home/runner/workspace/client/src/contexts/AuthContext.tsx, /home/runner/workspace/client/src/contexts/FontSizeContext.tsx, /home/runner/workspace/client/src/contexts/HouseholdContext.tsx, /home/runner/workspace/client/src/contexts/NarrationSpeedContext.tsx, /home/runner/workspace/client/src/hooks/useBodyFatStarchAdjustment.ts, /home/runner/workspace/client/src/hooks/useChefFlowImages.ts, /home/runner/workspace/client/src/hooks/useChefMealImage.ts, /home/runner/workspace/client/src/hooks/useCreateWithChefRequest.ts, /home/runner/workspace/client/src/hooks/useCreatorConceptMenu.ts, /home/runner/workspace/client/src/hooks/useMealImages.ts, /home/runner/workspace/client/src/hooks/useMyPerfectMenuBuilder.ts, /home/runner/workspace/client/src/hooks/useNutritionSummary.ts, /home/runner/workspace/client/src/hooks/usePatternAlerts.ts, /home/runner/workspace/client/src/hooks/useProUnreadCount.ts, /home/runner/workspace/client/src/hooks/useSafetyGuardPrecheck.ts, /home/runner/workspace/client/src/hooks/useSnackCreatorRequest.ts, /home/runner/workspace/client/src/hooks/useTodayMacros.ts, /home/runner/workspace/client/src/hooks/useWeeklyBoard.ts, /home/runner/workspace/client/src/lib/api.ts, /home/runner/workspace/client/src/lib/apiRequest.ts, /home/runner/workspace/client/src/lib/assignBuilderToClient.ts, /home/runner/workspace/client/src/lib/careInvitationClient.ts, /home/runner/workspace/client/src/lib/checkout.ts, /home/runner/workspace/client/src/lib/logMacros.ts, /home/runner/workspace/client/src/lib/mealBuilderSelection.ts, /home/runner/workspace/client/src/lib/oneTouchCreate.ts, /home/runner/workspace/client/src/lib/photoIngredientCapture.ts, /home/runner/workspace/client/src/lib/professionalOnboarding.ts, /home/runner/workspace/client/src/lib/queryClient.ts, /home/runner/workspace/client/src/lib/storekit.ts, /home/runner/workspace/client/src/lib/tts.ts, /home/runner/workspace/client/src/lib/workspaceAvailability.ts, /home/runner/workspace/client/src/pages/AdminDashboard.tsx, /home/runner/workspace/client/src/pages/ApplyGuidance.tsx, /home/runner/workspace/client/src/pages/AthleteBeverageCreator.tsx, /home/runner/workspace/client/src/pages/Auth.tsx, /home/runner/workspace/client/src/pages/BeverageCreator.tsx, /home/runner/workspace/client/src/pages/BusinessDashboard.tsx, /home/runner/workspace/client/src/pages/BusinessInviteAccept.tsx, /home/runner/workspace/client/src/pages/BusinessPilotActivation.tsx, /home/runner/workspace/client/src/pages/BusinessSetup.tsx, /home/runner/workspace/client/src/pages/BusinessStart.tsx, /home/runner/workspace/client/src/pages/CheckoutSuccess.tsx, /home/runner/workspace/client/src/pages/CoachesComingSoon.tsx, /home/runner/workspace/client/src/pages/CompanionNutritionHub.tsx, /home/runner/workspace/client/src/pages/CravingDessertCreator.tsx, /home/runner/workspace/client/src/pages/DashboardNew.tsx, /home/runner/workspace/client/src/pages/FoodsIEnjoy.tsx, /home/runner/workspace/client/src/pages/LifestyleLandingPage.tsx, /home/runner/workspace/client/src/pages/MacroCalculator.tsx, /home/runner/workspace/client/src/pages/MealBuilderSelection.tsx, /home/runner/workspace/client/src/pages/More.tsx, /home/runner/workspace/client/src/pages/MyPerfectMenu.tsx, /home/runner/workspace/client/src/pages/OnboardingV3.tsx, /home/runner/workspace/client/src/pages/OrganizationSuccessCenter.tsx, /home/runner/workspace/client/src/pages/PricingPage.tsx, /home/runner/workspace/client/src/pages/ProClientNutritionPlan.tsx, /home/runner/workspace/client/src/pages/TrainingNutritionHub.tsx, /home/runner/workspace/client/src/pages/Welcome.tsx, /home/runner/workspace/client/src/pages/academy/PlatformMasteryComplete.tsx, /home/runner/workspace/client/src/pages/admin/ChefKitchensAdmin.tsx, /home/runner/workspace/client/src/pages/biometrics/body-composition.tsx, /home/runner/workspace/client/src/pages/certification/CertificationCertificateView.tsx, /home/runner/workspace/client/src/pages/certification/CertificationComplete.tsx, /home/runner/workspace/client/src/pages/companion/CatIngredientScanner.tsx, /home/runner/workspace/client/src/pages/companion/CatNutritionHub.tsx, /home/runner/workspace/client/src/pages/companion/CatProfileSetup.tsx, /home/runner/workspace/client/src/pages/companion/CompanionMealGenerator.tsx, /home/runner/workspace/client/src/pages/companion/DogIngredientScanner.tsx, /home/runner/workspace/client/src/pages/companion/DogProfileSetup.tsx, /home/runner/workspace/client/src/pages/creator/CreatorSetupPage.tsx, /home/runner/workspace/client/src/pages/creator/CreatorStudioPage.tsx, /home/runner/workspace/client/src/pages/fridge-rescue.tsx, /home/runner/workspace/client/src/pages/kitchen/SignatureKitchenHubPage.tsx, /home/runner/workspace/client/src/pages/kitchen/SignatureKitchenPage.tsx, /home/runner/workspace/client/src/pages/lifestyle/ChefsKitchenPage.tsx, /home/runner/workspace/client/src/pages/lifestyle/GatheringsPage.tsx, /home/runner/workspace/client/src/pages/lifestyle/MyPerfectGetaway.tsx, /home/runner/workspace/client/src/pages/lifestyle/PairingsAI.tsx, /home/runner/workspace/client/src/pages/lifestyle/ReduceDrinkingPlan.tsx, /home/runner/workspace/client/src/pages/lifestyle/WineListHelper.tsx, /home/runner/workspace/client/src/pages/my-biometrics.tsx, /home/runner/workspace/client/src/pages/onboarding/ExtendedOnboarding.tsx, /home/runner/workspace/client/src/pages/pro/ClinicianClientDashboard.tsx, /home/runner/workspace/client/src/pages/pro/DemoPhysicianWorkspace.tsx, /home/runner/workspace/client/src/pages/pro/ProBoardViewer.tsx, /home/runner/workspace/client/src/pages/pro/ProClientDashboard.tsx, /home/runner/workspace/client/src/pages/pro/ProClients.tsx, /home/runner/workspace/client/src/pages/pro/TrainerClientDashboard.tsx, /home/runner/workspace/client/src/pages/pro/WorkspaceShell.tsx, /home/runner/workspace/client/src/pages/procare/ProCareAttestation.tsx, /home/runner/workspace/client/src/pages/procare/ProCareIdentity.tsx, /home/runner/workspace/client/src/pages/profile/EditProfilePage.tsx, /home/runner/workspace/client/src/voice/VoiceManager.ts, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter]
+(!) /home/runner/workspace/client/src/lib/api.ts is dynamically imported by /home/runner/workspace/client/src/components/MealCard.tsx, /home/runner/workspace/client/src/components/biometrics/MacroBridgeButton.tsx, /home/runner/workspace/client/src/hooks/useSavedMeals.ts, /home/runner/workspace/client/src/pages/WeeklyMealBoard.tsx, /home/runner/workspace/client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx, /home/runner/workspace/client/src/pages/physician/DiabeticMenuBuilder.tsx, /home/runner/workspace/client/src/pages/physician/GLP1MealBuilder.tsx, /home/runner/workspace/client/src/pages/pro/GeneralNutritionBuilder.tsx but also statically imported by /home/runner/workspace/client/src/components/MealRefinementSheet.tsx, /home/runner/workspace/client/src/components/my-perfect-beginning/ParentsCorner.tsx, /home/runner/workspace/client/src/components/shopping/GroceryStoreCoachSheet.tsx, /home/runner/workspace/client/src/components/shopping/MealIngredientBrands.tsx, /home/runner/workspace/client/src/components/shopping/SavedGroceriesSheet.tsx, /home/runner/workspace/client/src/components/shopping/SavedProductAnalysisAction.tsx, /home/runner/workspace/client/src/components/shopping/ShoppingProductPicker.tsx, /home/runner/workspace/client/src/components/ui/MealImageSlot.tsx, /home/runner/workspace/client/src/hooks/useDiabetes.ts, /home/runner/workspace/client/src/hooks/useGLP1.ts, /home/runner/workspace/client/src/hooks/useGlp1Shots.ts, /home/runner/workspace/client/src/hooks/useGlycemicSettings.ts, /home/runner/workspace/client/src/hooks/useSavedMeals.ts, /home/runner/workspace/client/src/hooks/useTranslatedMeal.ts, /home/runner/workspace/client/src/lib/boardApi.ts, /home/runner/workspace/client/src/pages/ABTestingDemo.tsx, /home/runner/workspace/client/src/pages/ChefPairings.tsx, /home/runner/workspace/client/src/pages/MyPerfectPregnancyPage.tsx, /home/runner/workspace/client/src/pages/glp1/ShotTrackerPanel.tsx, /home/runner/workspace/client/src/pages/lifestyle/MyPerfectBeginningCreateMealPage.tsx, /home/runner/workspace/client/src/utils/crossWeekDuplicate.ts, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter]
+(!) /home/runner/workspace/client/src/lib/boardApi.ts is dynamically imported by /home/runner/workspace/client/src/lib/guidedJourney/mealBoard.ts but also statically imported by /home/runner/workspace/client/src/components/BuilderShoppingBar.tsx, /home/runner/workspace/client/src/pages/BeachBodyMealBoard.tsx, /home/runner/workspace/client/src/pages/WeeklyMealBoard.tsx, /home/runner/workspace/client/src/pages/physician/AntiInflammatoryMenuBuilder.tsx, /home/runner/workspace/client/src/pages/physician/DiabeticMenuBuilder.tsx, /home/runner/workspace/client/src/pages/physician/GLP1MealBuilder.tsx, /home/runner/workspace/client/src/pages/pro/GeneralNutritionBuilder.tsx, /home/runner/workspace/client/src/pages/pro/PerformanceCompetitionBuilder.tsx, /home/runner/workspace/client/src/utils/crossWeekDuplicate.ts, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter]
+(!) /home/runner/workspace/client/src/data/templateSets.ts is dynamically imported by /home/runner/workspace/client/src/lib/api.ts but also statically imported by /home/runner/workspace/client/src/components/pickers/MealPickerDrawer.tsx, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter]
+(!) /home/runner/workspace/client/src/components/InspirationCaptureModal.tsx is dynamically imported by /home/runner/workspace/client/src/pages/ModalBoundsTestPage.tsx but also statically imported by /home/runner/workspace/client/src/pages/CompanionNutritionHub.tsx, /home/runner/workspace/client/src/pages/DashboardNew.tsx, /home/runner/workspace/client/src/pages/ShoppingListMasterView.tsx, dynamic import will not move module into another chunk.
+
+[plugin vite:reporter]
+(!) /home/runner/workspace/client/src/lib/storekit.ts is dynamically imported by /home/runner/workspace/client/src/components/ProfileSheet.tsx but also statically imported by /home/runner/workspace/client/src/lib/checkout.ts, /home/runner/workspace/client/src/pages/PricingPage.tsx, dynamic import will not move module into another chunk.
+
+computing gzip size...
+dist/index.html                                               6.46 kB │ gzip:     2.04 kB
+dist/assets/app-entry-CDxS0Qx4.css                          387.22 kB │ gzip:    54.66 kB
+dist/assets/web-DZFroCto.js                                   0.12 kB │ gzip:     0.12 kB
+dist/assets/web-BJ1esCT0.js                                   0.19 kB │ gzip:     0.17 kB
+dist/assets/replacementContext-BQFSAKWh.js                    0.19 kB │ gzip:     0.16 kB
+dist/assets/BusinessCenterShell-DEdYUsX5.js                   0.20 kB │ gzip:     0.17 kB
+dist/assets/PhaseGate-SEwxUVTm.js                             0.23 kB │ gzip:     0.20 kB
+dist/assets/_commonjsHelpers-Cpj98o6Y.js                      0.24 kB │ gzip:     0.18 kB
+dist/assets/myPerfectBeginningChildSelection-lK-mt3xs.js      0.28 kB │ gzip:     0.17 kB
+dist/assets/index-D3YwtQtI.js                                 0.32 kB │ gzip:     0.22 kB
+dist/assets/index-4IdZ4Pm7.js                                 0.32 kB │ gzip:     0.22 kB
+dist/assets/coachEvents-ColzY0ae.js                           0.32 kB │ gzip:     0.25 kB
+dist/assets/clock-3-DerWiAJ-.js                               0.35 kB │ gzip:     0.28 kB
+dist/assets/trending-down-Cbf_AT9M.js                         0.36 kB │ gzip:     0.28 kB
+dist/assets/web-3mvT1a1G.js                                   0.36 kB │ gzip:     0.25 kB
+dist/assets/authoritativeTextInput-DU-fyZcT.js                0.38 kB │ gzip:     0.25 kB
+dist/assets/dollar-sign-CrZEuO56.js                           0.40 kB │ gzip:     0.30 kB
+dist/assets/upload-COkvZlIG.js                                0.41 kB │ gzip:     0.30 kB
+dist/assets/GlassCard-CiFdTt3K.js                             0.41 kB │ gzip:     0.26 kB
+dist/assets/history-BT4_ZTE2.js                               0.42 kB │ gzip:     0.31 kB
+dist/assets/ProClientsPhysician-BL3a-M0u.js                   0.42 kB │ gzip:     0.28 kB
+dist/assets/percent-cefS1l0y.js                               0.42 kB │ gzip:     0.30 kB
+dist/assets/link-2-B1lQLlqY.js                                0.42 kB │ gzip:     0.31 kB
+dist/assets/circle-question-mark-Dvv2t9fF.js                  0.43 kB │ gzip:     0.32 kB
+dist/assets/archive-Bc_7QYJX.js                               0.43 kB │ gzip:     0.32 kB
+dist/assets/GLP1TrainingPage-DUuFCLWW.js                      0.44 kB │ gzip:     0.29 kB
+dist/assets/user-round-plus-3yZYasbT.js                       0.44 kB │ gzip:     0.32 kB
+dist/assets/DiabeticTrainingPage-D3okEg40.js                  0.45 kB │ gzip:     0.29 kB
+dist/assets/glass-water-D6AZRCnz.js                           0.46 kB │ gzip:     0.33 kB
+dist/assets/GeneralNutritionTrainingPage-ByJu79SW.js          0.47 kB │ gzip:     0.29 kB
+dist/assets/link-2-off-CJWnkE4Y.js                            0.47 kB │ gzip:     0.32 kB
+dist/assets/AntiInflammatoryTrainingPage-p-yap-zH.js          0.48 kB │ gzip:     0.30 kB
+dist/assets/calendar-check-B6WZNMis.js                        0.48 kB │ gzip:     0.33 kB
+dist/assets/tag-BD1cqiI1.js                                   0.50 kB │ gzip:     0.35 kB
+dist/assets/heart-pulse-CsQ6zJzA.js                           0.51 kB │ gzip:     0.36 kB
+dist/assets/icon-pill-option-sTZ4rOkd.js                      0.51 kB │ gzip:     0.34 kB
+dist/assets/AcademyBackButton-hHzaY-A6.js                     0.51 kB │ gzip:     0.36 kB
+dist/assets/index-srqgjI97.js                                 0.52 kB │ gzip:     0.38 kB
+dist/assets/useWeeklyPlan-C3y9hPGd.js                         0.52 kB │ gzip:     0.35 kB
+dist/assets/gift-C_p2Nf2U.js                                  0.53 kB │ gzip:     0.36 kB
+dist/assets/shield-x-CUol9rYW.js                              0.54 kB │ gzip:     0.37 kB
+dist/assets/index-g_MshmIt.js                                 0.57 kB │ gzip:     0.34 kB
+dist/assets/clipboard-list-C4G7PQIl.js                        0.59 kB │ gzip:     0.37 kB
+dist/assets/FlavorToggle-B2wOd-b9.js                          0.59 kB │ gzip:     0.40 kB
+dist/assets/web-BV0uM3Ed.js                                   0.60 kB │ gzip:     0.27 kB
+dist/assets/clipboard-pen-cRg-Ya-o.js                         0.61 kB │ gzip:     0.41 kB
+dist/assets/client-DcUChe9D.js                                0.62 kB │ gzip:     0.42 kB
+dist/assets/beer-BLgctENK.js                                  0.65 kB │ gzip:     0.40 kB
+dist/assets/GlassButton-BCueWYmH.js                           0.66 kB │ gzip:     0.40 kB
+dist/assets/careInvitationClient-C5mzERPU.js                  0.74 kB │ gzip:     0.41 kB
+dist/assets/web-tNt8NuEn.js                                   0.76 kB │ gzip:     0.35 kB
+dist/assets/qr-code-CPELLuGB.js                               0.83 kB │ gzip:     0.42 kB
+dist/assets/web-Byyx1SQ7.js                                   0.90 kB │ gzip:     0.47 kB
+dist/assets/MyPerfectPregnancyPage-D01yaBGF.js                1.01 kB │ gzip:     0.53 kB
+dist/assets/wifi-DX-4IDCr.js                                  1.04 kB │ gzip:     0.43 kB
+dist/assets/ProtocolStatusBadge-B1449e70.js                   1.07 kB │ gzip:     0.60 kB
+dist/assets/BusinessPilotWindowNotice-BEzNQOFM.js             1.10 kB │ gzip:     0.66 kB
+dist/assets/PerformanceNutritionSetupPage-D48SlFiY.js         1.40 kB │ gzip:     0.71 kB
+dist/assets/ProActionLock-B8R6QFHn.js                         1.40 kB │ gzip:     0.73 kB
+dist/assets/clinicalModeResolver-C8Rj8zri.js                  1.41 kB │ gzip:     0.64 kB
+dist/assets/CometBar-1ZtgFCgi.js                              1.46 kB │ gzip:     0.75 kB
+dist/assets/GenerationFailureBanner-Wsn0RU-i.js               1.47 kB │ gzip:     0.69 kB
+dist/assets/DietCuisineControlRow-BLbzpyrZ.js                 1.48 kB │ gzip:     0.66 kB
+dist/assets/ChefFlowImage-JQmTcJEl.js                         1.55 kB │ gzip:     0.83 kB
+dist/assets/CoachCornerComplete-DZ-ouVgL.js                   1.61 kB │ gzip:     0.88 kB
+dist/assets/FeatureUpgradeModal-D4rGNQjz.js                   1.61 kB │ gzip:     0.74 kB
+dist/assets/BusinessCenterSection-D3id6AiP.js                 1.68 kB │ gzip:     0.77 kB
+dist/assets/DrinkAdvisorComingSoon-BLGBHm9P.js                1.74 kB │ gzip:     0.88 kB
+dist/assets/capacitorLocation-Dj8WDneo.js                     1.88 kB │ gzip:     0.94 kB
+dist/assets/RewardfulConnectionConfirm-NOi62qnU.js            1.90 kB │ gzip:     1.00 kB
+dist/assets/ProPortal-CRqlC0sy.js                             2.07 kB │ gzip:     0.90 kB
+dist/assets/ClinicPilotJoinPage-DZVUTcDl.js                   2.22 kB │ gzip:     1.03 kB
+dist/assets/BusinessOfferJoinPage-DUf4x1Mb.js                 2.46 kB │ gzip:     1.12 kB
+dist/assets/RewardfulPayoutGuidance-DkSCC8aI.js               2.47 kB │ gzip:     0.92 kB
+dist/assets/PendingActivationQueue-DOw4dc4Z.js                2.58 kB │ gzip:     1.21 kB
+dist/assets/PhysicianPortal-U2SS4p6M.js                       2.72 kB │ gzip:     1.11 kB
+dist/assets/ProClientNutritionPlan-AJthsak6.js                2.79 kB │ gzip:     1.30 kB
+dist/assets/DemoCareInvitation-BR2wrnF3.js                    2.84 kB │ gzip:     1.28 kB
+dist/assets/ServingInstructionsBlock-CEEmrcau.js              2.89 kB │ gzip:     1.27 kB
+dist/assets/CoachCornerIntake-By0BKmCe.js                     2.89 kB │ gzip:     1.35 kB
+dist/assets/BusinessPilotActivation-BhMy9tji.js               3.07 kB │ gzip:     1.55 kB
+dist/assets/MyPerfectBeginning-CQEvkGkb.js                    3.28 kB │ gzip:     1.45 kB
+dist/assets/BeverageChoiceCards-4SJ8loPL.js                   3.35 kB │ gzip:     1.48 kB
+dist/assets/PetsHub-CsENX-v9.js                               3.38 kB │ gzip:     1.46 kB
+dist/assets/web-DZ-CJSBi.js                                   3.44 kB │ gzip:     1.10 kB
+dist/assets/MyPerfectBeginningStub-DaxnOYIY.js                3.54 kB │ gzip:     1.47 kB
+dist/assets/PilotActivation-DZVw9-is.js                       3.59 kB │ gzip:     1.57 kB
+dist/assets/SocializingHub-DYuo-u6q.js                        3.61 kB │ gzip:     1.54 kB
+dist/assets/CheckInOverviewPanel-CIFdDSo_.js                  3.67 kB │ gzip:     1.59 kB
+dist/assets/CheckInAlertPreferences-JuiQbFcE.js               3.87 kB │ gzip:     1.57 kB
+dist/assets/CreatorStartPage-C2Hs_DtX.js                      3.88 kB │ gzip:     1.35 kB
+dist/assets/PairingsHub-BVY_gHV9.js                           4.09 kB │ gzip:     1.75 kB
+dist/assets/CreatorStudioPage-CmYc4UUn.js                     4.15 kB │ gzip:     1.57 kB
+dist/assets/BeverageCreatorHub-CwxN3fcp.js                    4.22 kB │ gzip:     1.81 kB
+dist/assets/CoachCornerWelcome-SP7jh5gA.js                    4.22 kB │ gzip:     1.87 kB
+dist/assets/ShoppingAggregateBar-BOCcSKfk.js                  4.31 kB │ gzip:     1.75 kB
+dist/assets/AffiliatePathPage-DTz8eKM8.js                     4.34 kB │ gzip:     1.52 kB
+dist/assets/ProfessionalIdentityRequests-DAwZe5gA.js          4.36 kB │ gzip:     1.74 kB
+dist/assets/CravingCreatorLanding-Del6sAnY.js                 4.37 kB │ gzip:     1.82 kB
+dist/assets/PairingResultCard-HeRX8h02.js                     4.42 kB │ gzip:     1.44 kB
+dist/assets/ProClientComplianceSnapshot-B6naivmD.js           4.76 kB │ gzip:     1.52 kB
+dist/assets/GeneralNutritionBuilderEntry-CFaa7xr2.js          4.96 kB │ gzip:     1.63 kB
+dist/assets/BusinessStart-B0f92uIv.js                         5.01 kB │ gzip:     2.12 kB
+dist/assets/socialDiningScripts-Uz6T2YTe.js                   5.02 kB │ gzip:     2.19 kB
+dist/assets/BusinessCenter-D7KaG36u.js                        5.03 kB │ gzip:     1.82 kB
+dist/assets/PublicPartnersHub-B4TOmQkT.js                     5.10 kB │ gzip:     2.01 kB
+dist/assets/SharedMealPage-yU0MguUL.js                        5.17 kB │ gzip:     2.00 kB
+dist/assets/GLP1BuilderEntry-C0wkPT7j.js                      5.22 kB │ gzip:     1.85 kB
+dist/assets/DiabeticBuilderEntry-DYvsPeA4.js                  5.23 kB │ gzip:     1.84 kB
+dist/assets/AntiInflammatoryBuilderEntry-DHWpxtwo.js          5.33 kB │ gzip:     1.85 kB
+dist/assets/CoachCornerProgressSlowed-BiApqnXo.js             5.36 kB │ gzip:     2.00 kB
+dist/assets/ABTestingDemo-2jh3pTTh.js                         5.38 kB │ gzip:     1.67 kB
+dist/assets/CreatorStudioLanding-DK1lZGAR.js                  5.50 kB │ gzip:     1.83 kB
+dist/assets/CoachCornerTired-CQ86pUTB.js                      5.69 kB │ gzip:     1.97 kB
+dist/assets/WorkspaceShell-BVtApTbg.js                        5.79 kB │ gzip:     1.64 kB
+dist/assets/CertificationCertificateView-D_FPVchW.js          5.91 kB │ gzip:     2.23 kB
+dist/assets/WeeklyWeightTrendCard-CH1raD6o.js                 5.93 kB │ gzip:     2.03 kB
+dist/assets/ClinicalAdvisoryDrawer-DhNK06a8.js                6.13 kB │ gzip:     2.18 kB
+dist/assets/UpdatesInbox-hitzp0Vu.js                          6.15 kB │ gzip:     1.88 kB
+dist/assets/PartnerProgramsHub-Btga5iVg.js                    6.44 kB │ gzip:     2.18 kB
+dist/assets/PromoRedemption-BgsQfzh9.js                       6.56 kB │ gzip:     2.18 kB
+dist/assets/CertificationLesson-CvCnN1Em.js                   6.79 kB │ gzip:     2.17 kB
+dist/assets/medicalPersonalization-CmeVadxC.js                6.95 kB │ gzip:     2.01 kB
+dist/assets/supplement-hub-WfBkwWsv.js                        7.09 kB │ gzip:     2.44 kB
+dist/assets/ProBoardViewer-zMYeLp2A.js                        7.13 kB │ gzip:     2.78 kB
+dist/assets/PlatformMasteryComplete-DNwwfnwa.js               7.18 kB │ gzip:     2.27 kB
+dist/assets/PlatformCertQuiz-n_iIhwZy.js                      7.43 kB │ gzip:     2.63 kB
+dist/assets/LearningHub-CeNvEmrT.js                           7.62 kB │ gzip:     2.23 kB
+dist/assets/PairingsAI-DQZ3hfnu.js                            7.91 kB │ gzip:     3.26 kB
+dist/assets/AffiliateOpportunities-bp8DypRk.js                7.92 kB │ gzip:     2.55 kB
+dist/assets/ProNutritionStrategyCard-D5dZo7Kp.js              7.93 kB │ gzip:     2.57 kB
+dist/assets/WineListHelper-DBHc_r2T.js                        7.96 kB │ gzip:     3.27 kB
+dist/assets/MyPerfectBuffetPage-DNQ8iaBY.js                   8.14 kB │ gzip:     3.10 kB
+dist/assets/ReduceDrinkingPlan-Rtn2_Nif.js                    8.16 kB │ gzip:     2.63 kB
+dist/assets/CertificationQuiz-BKSaIH9F.js                     8.21 kB │ gzip:     2.80 kB
+dist/assets/BugReportsDashboard-Cbzu4XBv.js                   8.23 kB │ gzip:     2.72 kB
+dist/assets/IndustryPartnerships-BiZLynMa.js                  8.24 kB │ gzip:     2.71 kB
+dist/assets/PlatformCertComplete-9klPC2tm.js                  8.36 kB │ gzip:     2.59 kB
+dist/assets/RestaurantFinderPage-Cz0Y8bha.js                  8.40 kB │ gzip:     2.96 kB
+dist/assets/DevelopmentPhysicianStudio-D9lVJfEr.js            8.52 kB │ gzip:     3.50 kB
+dist/assets/ClientLegalModal-BTP-0Bzy.js                      9.04 kB │ gzip:     3.26 kB
+dist/assets/PlatformCertVideo-BbmbWyPj.js                     9.16 kB │ gzip:     3.05 kB
+dist/assets/AceProfilePage-C9YMyXHb.js                        9.32 kB │ gzip:     2.62 kB
+dist/assets/BusinessSetup-BTe0-Z-A.js                         9.39 kB │ gzip:     3.19 kB
+dist/assets/TrainerCareTeam-YZOR3dVq.js                       9.56 kB │ gzip:     2.98 kB
+dist/assets/supplement-education-CsHyqjeA.js                 10.03 kB │ gzip:     3.09 kB
+dist/assets/JoinStudio-DPHP7ptC.js                           10.35 kB │ gzip:     2.88 kB
+dist/assets/FoundingAffiliatePage-DBqp-8Oa.js                10.79 kB │ gzip:     3.25 kB
+dist/assets/Founders-CJUMmeV9.js                             10.89 kB │ gzip:     3.24 kB
+dist/assets/DogIngredientScanner-up1885K_.js                 10.97 kB │ gzip:     3.69 kB
+dist/assets/CatIngredientScanner-BzEX1v6K.js                 11.24 kB │ gzip:     3.80 kB
+dist/assets/CertificationDashboard-B14boMzS.js               11.35 kB │ gzip:     3.54 kB
+dist/assets/HowPartnershipsWork-DRXNbG7Z.js                  11.57 kB │ gzip:     3.74 kB
+dist/assets/PlatformMasteryDashboard-Bx2rNGr-.js             11.61 kB │ gzip:     3.74 kB
+dist/assets/SavedMeals-CHzxzoMp.js                           11.62 kB │ gzip:     3.73 kB
+dist/assets/oneTouchCreate-C8Ffwa4o.js                       11.69 kB │ gzip:     3.85 kB
+dist/assets/weaning-off-tool-B1QGyxfs.js                     11.76 kB │ gzip:     3.33 kB
+dist/assets/DiabetesSupportPage-BTY-WPZB.js                  11.90 kB │ gzip:     3.12 kB
+dist/assets/CoachesComingSoon-CYaFUYTN.js                    11.94 kB │ gzip:     4.39 kB
+dist/assets/PlatformCertDashboard-Cx6d_6lb.js                12.39 kB │ gzip:     4.03 kB
+dist/assets/OrganizationHub-DNp4NwFz.js                      12.51 kB │ gzip:     4.43 kB
+dist/assets/CatNutritionHub-BusNVRE_.js                      12.54 kB │ gzip:     3.75 kB
+dist/assets/useGLP1-CknfWoT4.js                              13.12 kB │ gzip:     4.29 kB
+dist/assets/ChefPairings-D38xxaw_.js                         13.16 kB │ gzip:     4.55 kB
+dist/assets/CertificationComplete-3qXpsiQ7.js                13.18 kB │ gzip:     3.84 kB
+dist/assets/CreatorSetupPage-06EM6uhi.js                     13.52 kB │ gzip:     4.28 kB
+dist/assets/AcademyHome-CuEPNtol.js                          13.77 kB │ gzip:     3.85 kB
+dist/assets/MyPerfectBeginningPage-49Qw86_6.js               14.41 kB │ gzip:     4.65 kB
+dist/assets/AdminCampaignManager-ihd7EUMl.js                 14.94 kB │ gzip:     4.32 kB
+dist/assets/CompanionMealGenerator-paadfcgr.js               15.59 kB │ gzip:     4.60 kB
+dist/assets/proClientIdentity-AwZOuSP9.js                    15.68 kB │ gzip:     5.35 kB
+dist/assets/PilotProgramAdmin-BSX8vOMR.js                    15.80 kB │ gzip:     4.66 kB
+dist/assets/CareTeam-C_fWZr5M.js                             16.18 kB │ gzip:     5.13 kB
+dist/assets/CatProfileSetup-CM3kTVX1.js                      16.75 kB │ gzip:     5.04 kB
+dist/assets/DogProfileSetup-DAkl5iN0.js                      18.33 kB │ gzip:     5.35 kB
+dist/assets/MyPerfectBeginningParentsCorner-DxD52S1v.js      18.42 kB │ gzip:     5.63 kB
+dist/assets/PromotionsHub-B4QqIx3o.js                        19.04 kB │ gzip:     5.48 kB
+dist/assets/FastFoodGuidePage-BOq8Qlia.js                    19.43 kB │ gzip:     6.63 kB
+dist/assets/AcademyLandingPage-mMGAt7vS.js                   19.50 kB │ gzip:     6.28 kB
+dist/assets/CoachsCorner-B7QLjS7v.js                         19.79 kB │ gzip:     6.92 kB
+dist/assets/AwayFromHomeMealCard-iXBa61yq.js                 20.25 kB │ gzip:     6.22 kB
+dist/assets/CompanionNutritionHub-CP7--INu.js                20.39 kB │ gzip:     6.15 kB
+dist/assets/BusinessInviteAccept-DcJSB7Go.js                 20.83 kB │ gzip:     5.22 kB
+dist/assets/PartnerCenter-giGFaxzl.js                        21.00 kB │ gzip:     5.85 kB
+dist/assets/PhysicianCareTeam-DMIMEcUf.js                    21.22 kB │ gzip:     5.86 kB
+dist/assets/MyPerfectGetaway-Duv3Gqy1.js                     21.40 kB │ gzip:     6.63 kB
+dist/assets/AffiliateProgramOverview-BIKmJofR.js             21.80 kB │ gzip:     5.70 kB
+dist/assets/ProClients-D1cFKQoN.js                           22.14 kB │ gzip:     7.08 kB
+dist/assets/ProClientDashboard-BFnq8NFL.js                   22.87 kB │ gzip:     6.03 kB
+dist/assets/MyPerfectBeginningProfilePage-n02K2Ni3.js        23.38 kB │ gzip:     7.24 kB
+dist/assets/browser-B7KUq2Y-.js                              25.40 kB │ gzip:     9.85 kB
+dist/assets/PublicHealthcarePartnerships-DrlnbdPB.js         27.23 kB │ gzip:     7.05 kB
+dist/assets/AthleteBeverageCreator-CI1PxPXX.js               27.33 kB │ gzip:     8.93 kB
+dist/assets/WhiteLabelSolutions-B7Jqx5ah.js                  27.34 kB │ gzip:     9.16 kB
+dist/assets/PartnerManagement-cBGuUPrK.js                    27.65 kB │ gzip:     6.74 kB
+dist/assets/TipsStrategiesPage-lZmAwsOd.js                   28.23 kB │ gzip:    10.74 kB
+dist/assets/GLP1Hub-7oyMVwET.js                              28.91 kB │ gzip:     6.51 kB
+dist/assets/SocialRestaurantGuide-BVqjLArt.js                29.64 kB │ gzip:     9.32 kB
+dist/assets/BeverageCreator-BKtnj6qA.js                      31.89 kB │ gzip:    10.36 kB
+dist/assets/FoundingPartnerProgram-Cr006a39.js               32.00 kB │ gzip:     6.89 kB
+dist/assets/CravingDessertCreator-D5vVrbIu.js                32.50 kB │ gzip:    10.78 kB
+dist/assets/GLP1MealBuilder-BpwWlfc-.js                      32.58 kB │ gzip:     9.53 kB
+dist/assets/SushiCreator-Dbp7M7jy.js                         32.79 kB │ gzip:    10.49 kB
+dist/assets/DiabeticMenuBuilder-Cc-diTiR.js                  32.83 kB │ gzip:     9.57 kB
+dist/assets/ChefsKitchenPage-RCwjGNZ7.js                     33.56 kB │ gzip:    10.09 kB
+dist/assets/AntiInflammatoryMenuBuilder-DFsRd62X.js          34.19 kB │ gzip:    10.26 kB
+dist/assets/fridge-rescue-BEpsP0Ia.js                        34.62 kB │ gzip:    10.98 kB
+dist/assets/GeneralNutritionBuilder-CGkmdarV.js              34.77 kB │ gzip:    10.38 kB
+dist/assets/SocialFindMeals-D_-7oyp1.js                      34.84 kB │ gzip:    10.29 kB
+dist/assets/DemoPhysicianWorkspace-DShb7fQC.js               36.44 kB │ gzip:    10.56 kB
+dist/assets/OrganizationSuccessCenter-B6yvFOoc.js            36.80 kB │ gzip:     9.05 kB
+dist/assets/TrainerClientDashboard-Bp3XgfVZ.js               38.83 kB │ gzip:    10.68 kB
+dist/assets/AdminDashboard-0ujG7yVe.js                       39.92 kB │ gzip:     9.74 kB
+dist/assets/craving-creator-f8gjOdHP.js                      42.19 kB │ gzip:    12.96 kB
+dist/assets/GatheringsPage-NLALGvZ3.js                       42.32 kB │ gzip:    12.17 kB
+dist/assets/AdminCertifications-Dlo6eOec.js                  43.83 kB │ gzip:     9.04 kB
+dist/assets/PerformanceCompetitionBuilder-CGftVqau.js        46.01 kB │ gzip:    11.68 kB
+dist/assets/AffiliateDashboard-cPewoPUk.js                   47.49 kB │ gzip:    11.77 kB
+dist/assets/CreateDishPage-CA1NXv4h.js                       47.79 kB │ gzip:    14.98 kB
+dist/assets/More-CDcSArKZ.js                                 48.68 kB │ gzip:    11.04 kB
+dist/assets/DiabeticHub-DBybnA-v.js                          48.79 kB │ gzip:    11.79 kB
+dist/assets/HydrationCenter-BHqUMF2U.js                      54.07 kB │ gzip:    14.19 kB
+dist/assets/ClinicianClientDashboard-D24R3qA9.js             71.61 kB │ gzip:    19.67 kB
+dist/assets/TrainingNutritionHub-DVGzMHNL.js                 73.09 kB │ gzip:    18.20 kB
+dist/assets/MyPerfectBeginningCreateMealPage-DOSypkMd.js     79.45 kB │ gzip:    19.83 kB
+dist/assets/BusinessDashboard-D9m8ld5R.js                    92.46 kB │ gzip:    21.81 kB
+dist/assets/ProClientFolderModal-BRKcSFIj.js                 96.76 kB │ gzip:    26.13 kB
+dist/assets/index-BGyg3Nuw.js                               134.66 kB │ gzip:    43.24 kB
+dist/assets/LessonReader-yY-bI5sZ.js                        136.13 kB │ gzip:    40.86 kB
+dist/assets/affiliateCertification-BUrD_gfa.js              143.38 kB │ gzip:    44.42 kB
+dist/assets/sentry-Cp8VH4op.js                              478.67 kB │ gzip:   157.92 kB
+dist/assets/index-CEZ5uE_W.js                             3,098.29 kB │ gzip:   941.38 kB
+dist/assets/app-entry-C4mWameP.js                         4,090.78 kB │ gzip: 1,062.18 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 28.32s
+  ✅ PASS  Client production build completed
+
+> rest-express@1.0.0 build:server
+> esbuild server/prod.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --sourcemap
+
+
+  dist/prod.js       8.1mb ⚠️
+  dist/prod.js.map  14.7mb
+
+⚡ Done in 529ms
+  ✅ PASS  Server production build completed
+
+> rest-express@1.0.0 check:safety-types
+> tsc -p tsconfig.safety-check.json
+
+  ✅ PASS  Strict safety typecheck completed
+
+> rest-express@1.0.0 check:release-types
+> node scripts/check-release-type-baseline.mjs
+
+Root strict TypeScript debt matches the reviewed baseline (118 diagnostics).
+  ✅ PASS  Root TypeScript debt matches its reviewed baseline
+
+━━━ 1. Server Reachability ━━━
+  ✅ PASS  Health endpoint responding
+  ✅ PASS  OpenAI API key configured
+Object Storage configuration and read access verified; uploads not tested
+  ✅ PASS  Object Storage configuration and read access verified (uploads not tested)
+
+━━━ 2. Authentication Gate ━━━
+  ✅ PASS  Auth middleware working (returns 401 without credentials)
+
+━━━ 3. Body Composition Route ━━━
+  ✅ PASS  Body composition route is registered (status: 401)
+
+━━━ 4. Meal Generation Endpoint ━━━
+  ✅ PASS  Meal generation endpoint reached authentication (401 AUTH_REQUIRED)
+
+━━━ 5. Shopping List Route ━━━
+  ✅ PASS  Shopping list route is registered (status: 401)
+
+━━━ 6. Weekly Board Route ━━━
+  ✅ PASS  Weekly board route is registered (status: 401)
+
+━━━ 7. AI Generation Smoke Test ━━━
+  ✅ PASS  AI generation gate reached authentication (401 AUTH_REQUIRED)
+
+╔══════════════════════════════════════════════╗
+║   RELEASE CHECK SUMMARY                      ║
+╚══════════════════════════════════════════════╝
+  Passed:   13
+  Warnings: 0
+  Failed:   0
+
+  ✅ All release checks passed — safe to build for TestFlight

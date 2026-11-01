@@ -272,19 +272,19 @@ test("total provider failure gives an explicit retry without invented advice or 
   expect(result.todayPlan.items.every(item => !item.destinationId)).toBe(true);
 });
 
-test("Production retains the original prompt and rendering behavior", async () => {
+test("Production uses the released conversation reasoning, history, and validated navigation", async () => {
   process.env.NODE_ENV = "production";
-  enqueue(reasoning());
+  enqueue(reasoning({ mode: "food_assistance", destinationId: "sushi_creator" }));
   await reason("I want sushi.");
-  expect(mockCreate.mock.calls[0][0].messages[0].content).not.toContain("CONCIERGE — INTENT FIRST");
-  enqueue(response("craving_creator"));
+  expect(mockCreate.mock.calls[0][0].messages[0].content).toContain("CONCIERGE — INTENT FIRST");
+  enqueue(response("sushi_creator"));
   const result = await render({ mode: "food_assistance", destinationId: "sushi_creator" },
     "I want sushi.", [{ role: "user", content: "DEV_ONLY_HISTORY_SENTINEL" }], "DEV_ONLY_SUMMARY_SENTINEL");
-  expect(result.todayPlan.items[0].featureTarget).toBe("craving_creator");
-  expect(result.todayPlan.items[0].destinationId).toBeUndefined();
-  expect(result.learningOpportunity).toContain("log");
+  expect(result.todayPlan.items[0].featureTarget).toBe("sushi_creator");
+  expect(result.todayPlan.items[0].destinationId).toBe("sushi_creator");
   const prompts = JSON.stringify(mockCreate.mock.calls);
-  expect(prompts).not.toMatch(/NATURAL DISCOVERY|DISCOVERY EXPRESSION|DEV_ONLY_HISTORY_SENTINEL|DEV_ONLY_SUMMARY_SENTINEL/);
+  expect(prompts).toContain("DEV_ONLY_HISTORY_SENTINEL");
+  expect(prompts).toContain("DEV_ONLY_SUMMARY_SENTINEL");
 });
 
 // Stage 1B: provider responses below are scripted fixtures, not model accuracy tests.
@@ -435,14 +435,14 @@ test("mini fallback retains discovery history and no-navigation authority", asyn
   expect(result.learningOpportunity).toBeNull();
 });
 
-test("Fridge Rescue discovery restriction exists only in the Development registry", () => {
+test("Fridge Rescue's grounded-ingredient restriction also applies in Production", () => {
   const cap = getCornerCapabilities(["all"]).find(cap => cap.id === "fridge_rescue")!;
   expect(cap.description).toContain("not hunger, indecision");
   expect(cap.applicableSituations).toEqual(["has_ingredients", "use_available_ingredients"]);
   process.env.NODE_ENV = "production";
   const original = getCornerCapabilities(["all"]).find(cap => cap.id === "fridge_rescue")!;
-  expect(original.description).not.toContain("not hunger, indecision");
-  expect(original.applicableSituations).toContain("meal_planning");
+  expect(original.description).toContain("not hunger, indecision");
+  expect(original.applicableSituations).toEqual(["has_ingredients", "use_available_ingredients"]);
 });
 
 // Exercise subject authorization, safety, history/context loading, both actual

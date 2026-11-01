@@ -1,0 +1,23 @@
+{
+  "buildCommand": "env -u VITE_COACHES_CORNER_ENABLED NODE_ENV=production NODE_OPTIONS=--max-old-space-size=4096 npm run release-check",
+  "actualFrontendModuleCompilation": {
+    "defines": {
+      "PROD": true,
+      "DEV": false,
+      "VITE_COACHES_CORNER_ENABLED": "undefined"
+    },
+    "visibilityEnabled": true,
+    "conversationEnabled": true
+  },
+  "emittedConversationChunk": "client/dist/assets/CoachsCorner-DpkdbLvn.js",
+  "conversationInterfaceMarker": "Ask Chef anything",
+  "runningPreview": {
+    "ok": true,
+    "initialized": true,
+    "initError": null,
+    "billingEnforced": true,
+    "anonymousBootstrapStatus": 401,
+    "anonymousConversationStatus": 401,
+    "conversationRevision": "adaptive-conversation-v2-response-contract"
+  }
+}

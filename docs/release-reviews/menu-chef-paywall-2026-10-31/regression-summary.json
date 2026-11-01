@@ -1,0 +1,1099 @@
+{
+  "passedSuites": 17,
+  "failedSuites": 0,
+  "passedTests": 247,
+  "failedTests": 0,
+  "pendingTests": 0,
+  "suites": [
+    {
+      "file": "server/tests/menuChefAccessMatrix.test.ts",
+      "status": "passed",
+      "tests": [
+        {
+          "name": "Free has matching Menu/Chef frontend and backend access",
+          "status": "passed"
+        },
+        {
+          "name": "Essential has matching Menu/Chef frontend and backend access",
+          "status": "passed"
+        },
+        {
+          "name": "Pro has matching Menu/Chef frontend and backend access",
+          "status": "passed"
+        },
+        {
+          "name": "Clinical has matching Menu/Chef frontend and backend access",
+          "status": "passed"
+        },
+        {
+          "name": "legacy Essential has matching Menu/Chef frontend and backend access",
+          "status": "passed"
+        },
+        {
+          "name": "legacy Pro has matching Menu/Chef frontend and backend access",
+          "status": "passed"
+        },
+        {
+          "name": "legacy Clinical has matching Menu/Chef frontend and backend access",
+          "status": "passed"
+        },
+        {
+          "name": "Family Essential has matching Menu/Chef frontend and backend access",
+          "status": "passed"
+        },
+        {
+          "name": "Family Pro has matching Menu/Chef frontend and backend access",
+          "status": "passed"
+        },
+        {
+          "name": "Family Clinical has matching Menu/Chef frontend and backend access",
+          "status": "passed"
+        },
+        {
+          "name": "provider Clinical has matching Menu/Chef frontend and backend access",
+          "status": "passed"
+        },
+        {
+          "name": "provider Studio has matching Menu/Chef frontend and backend access",
+          "status": "passed"
+        },
+        {
+          "name": "post /message rejects anonymous, Free and Essential before reads or writes",
+          "status": "passed"
+        },
+        {
+          "name": "get /conversation rejects anonymous, Free and Essential before reads or writes",
+          "status": "passed"
+        },
+        {
+          "name": "get /conversation/fixture/messages rejects anonymous, Free and Essential before reads or writes",
+          "status": "passed"
+        },
+        {
+          "name": "get /bootstrap rejects anonymous, Free and Essential before reads or writes",
+          "status": "passed"
+        },
+        {
+          "name": "get /messages/older?conversationId=fixture&beforeId=fixture rejects anonymous, Free and Essential before reads or writes",
+          "status": "passed"
+        },
+        {
+          "name": "get /plans rejects anonymous, Free and Essential before reads or writes",
+          "status": "passed"
+        },
+        {
+          "name": "post /plans/fixture/items/fixture/complete rejects anonymous, Free and Essential before reads or writes",
+          "status": "passed"
+        },
+        {
+          "name": "get /followup/due rejects anonymous, Free and Essential before reads or writes",
+          "status": "passed"
+        },
+        {
+          "name": "post /followup/fixture/deliver rejects anonymous, Free and Essential before reads or writes",
+          "status": "passed"
+        },
+        {
+          "name": "delete /message/fixture rejects anonymous, Free and Essential before reads or writes",
+          "status": "passed"
+        },
+        {
+          "name": "delete /conversation/fixture rejects anonymous, Free and Essential before reads or writes",
+          "status": "passed"
+        },
+        {
+          "name": "Menu outer guard protects /concepts",
+          "status": "passed"
+        },
+        {
+          "name": "Menu outer guard protects /context-status",
+          "status": "passed"
+        },
+        {
+          "name": "Menu outer guard protects /effective-builder",
+          "status": "passed"
+        },
+        {
+          "name": "Menu outer guard protects /validate-selection",
+          "status": "passed"
+        },
+        {
+          "name": "existing server-resolved full access remains authorized: {\"accessTier\":\"PAID_FULL\",\"planLookupKey\":null}",
+          "status": "passed"
+        },
+        {
+          "name": "existing server-resolved full access remains authorized: {\"accessTier\":\"PAID_FULL\",\"planLookupKey\":\"mpm_basic\",\"pilotFullAccess\":true}",
+          "status": "passed"
+        },
+        {
+          "name": "existing server-resolved full access remains authorized: {\"accessTier\":\"PAID_FULL\",\"planLookupKey\":\"mpm_basic\",\"temporaryClinicalAccess\":true}",
+          "status": "passed"
+        },
+        {
+          "name": "activation is unchanged and destination authorization remains independent",
+          "status": "passed"
+        },
+        {
+          "name": "guard wiring and minimum-tier upgrade names match the matrix",
+          "status": "passed"
+        },
+        {
+          "name": "both subscription listings and discovery copy state the correct minimum tiers",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/weeklyBoardAddMeal.auth.route.test.ts",
+      "status": "passed",
+      "tests": [
+        {
+          "name": "weekly board add-meal authorization rejects unauthenticated writes before board access",
+          "status": "passed"
+        },
+        {
+          "name": "weekly board add-meal authorization writes only to the authenticated owner's board",
+          "status": "passed"
+        },
+        {
+          "name": "weekly board add-meal authorization keeps board namespaces isolated between authenticated users",
+          "status": "passed"
+        },
+        {
+          "name": "weekly board add-meal authorization reads canonical Builder key general_nutrition from board namespace generalNutrition",
+          "status": "passed"
+        },
+        {
+          "name": "weekly board add-meal authorization reads canonical Builder key diabetic from board namespace diabetic",
+          "status": "passed"
+        },
+        {
+          "name": "weekly board add-meal authorization reads canonical Builder key glp1 from board namespace glp1",
+          "status": "passed"
+        },
+        {
+          "name": "weekly board add-meal authorization reads canonical Builder key anti_inflammatory from board namespace antiInflammatory",
+          "status": "passed"
+        },
+        {
+          "name": "weekly board add-meal authorization reads canonical Builder key performance_competition from board namespace performanceCompetition",
+          "status": "passed"
+        },
+        {
+          "name": "weekly board add-meal authorization persists canonical Builder key general_nutrition into board namespace generalNutrition",
+          "status": "passed"
+        },
+        {
+          "name": "weekly board add-meal authorization persists canonical Builder key diabetic into board namespace diabetic",
+          "status": "passed"
+        },
+        {
+          "name": "weekly board add-meal authorization persists canonical Builder key glp1 into board namespace glp1",
+          "status": "passed"
+        },
+        {
+          "name": "weekly board add-meal authorization persists canonical Builder key anti_inflammatory into board namespace antiInflammatory",
+          "status": "passed"
+        },
+        {
+          "name": "weekly board add-meal authorization persists canonical Builder key performance_competition into board namespace performanceCompetition",
+          "status": "passed"
+        },
+        {
+          "name": "weekly board add-meal authorization rejects unsupported or storage-namespace mpmBuilderKey unknown_builder",
+          "status": "passed"
+        },
+        {
+          "name": "weekly board add-meal authorization rejects unsupported or storage-namespace mpmBuilderKey generalNutrition",
+          "status": "passed"
+        },
+        {
+          "name": "weekly board add-meal authorization rejects unsupported or storage-namespace mpmBuilderKey antiInflammatory",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/myPerfectMenuContract.test.ts",
+      "status": "passed",
+      "tests": [
+        {
+          "name": "My Perfect Menu persistence contract starts with independent empty category sets",
+          "status": "passed"
+        },
+        {
+          "name": "My Perfect Menu persistence contract accepts bounded structured concept evidence without becoming a recipe",
+          "status": "passed"
+        },
+        {
+          "name": "My Perfect Menu persistence contract requires exactly three concepts in each persisted category",
+          "status": "passed"
+        },
+        {
+          "name": "My Perfect Menu persistence contract rejects unbounded concept metadata",
+          "status": "passed"
+        },
+        {
+          "name": "My Perfect Menu persistence contract keeps maximum-length structured culinary history schema-valid and compact",
+          "status": "passed"
+        },
+        {
+          "name": "My Perfect Menu persistence contract round-trips non-Latin culinary history without losing preferences",
+          "status": "passed"
+        },
+        {
+          "name": "My Perfect Menu persistence contract round-trips non-Latin culinary history without losing preferences",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/accessTier.test.ts",
+      "status": "passed",
+      "tests": [
+        {
+          "name": "resolveAccessTier — trial window (a) grants PAID_FULL when trialEndsAt is a future Date",
+          "status": "passed"
+        },
+        {
+          "name": "resolveAccessTier — trial window (a) grants PAID_FULL when trialEndsAt is a future ISO string",
+          "status": "passed"
+        },
+        {
+          "name": "resolveAccessTier — trial window (a) grants PAID_FULL when trial expires far in the future (7 days ahead)",
+          "status": "passed"
+        },
+        {
+          "name": "resolveAccessTier — trial window (b) returns FREE when trialEndsAt is in the past",
+          "status": "passed"
+        },
+        {
+          "name": "resolveAccessTier — trial window (b) returns FREE when trialEndsAt is a past ISO string",
+          "status": "passed"
+        },
+        {
+          "name": "resolveAccessTier — trial window (b) returns FREE when trialEndsAt equals now exactly (boundary: not strictly less than)",
+          "status": "passed"
+        },
+        {
+          "name": "resolveAccessTier — trial window (b) returns FREE when trial expired long ago (30 days past)",
+          "status": "passed"
+        },
+        {
+          "name": "resolveAccessTier — trial window (c) returns FREE for a new user with no trialEndsAt field",
+          "status": "passed"
+        },
+        {
+          "name": "resolveAccessTier — trial window (c) returns FREE when trialEndsAt is null",
+          "status": "passed"
+        },
+        {
+          "name": "resolveAccessTier — trial window (c) returns FREE when trialEndsAt is undefined",
+          "status": "passed"
+        },
+        {
+          "name": "resolveAccessTier — trial window founders bypass trial logic entirely and always get PAID_FULL",
+          "status": "passed"
+        },
+        {
+          "name": "resolveAccessTier — trial window an active paid plan short-circuits before the trial check",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/myPerfectMenuBuilderResolver.test.ts",
+      "status": "passed",
+      "tests": [
+        {
+          "name": "My Perfect Menu builder authority maps every supported builder to its final board route",
+          "status": "passed"
+        },
+        {
+          "name": "My Perfect Menu builder authority uses assignment unless an authorized explicit override is supplied",
+          "status": "passed"
+        },
+        {
+          "name": "My Perfect Menu builder authority rejects invalid and unauthorized explicit values",
+          "status": "passed"
+        },
+        {
+          "name": "My Perfect Menu builder authority unassigned accounts safely default to general nutrition",
+          "status": "passed"
+        },
+        {
+          "name": "My Perfect Menu builder authority authorizes the assigned Performance builder through the existing policy",
+          "status": "passed"
+        },
+        {
+          "name": "My Perfect Menu builder authority normalizes legacy beach_body assignments to Performance authority",
+          "status": "passed"
+        },
+        {
+          "name": "My Perfect Menu builder authority exposes one canonical display name on every effective context",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/myPerfectMenuCandidateCompletion.test.ts",
+      "status": "passed",
+      "tests": [
+        {
+          "name": "My Perfect Menu bounded candidate completion requests only the missing concepts after retaining 0",
+          "status": "passed"
+        },
+        {
+          "name": "My Perfect Menu bounded candidate completion requests only the missing concepts after retaining 1",
+          "status": "passed"
+        },
+        {
+          "name": "My Perfect Menu bounded candidate completion requests only the missing concepts after retaining 2",
+          "status": "passed"
+        },
+        {
+          "name": "My Perfect Menu bounded candidate completion requests only the missing concepts after retaining 3",
+          "status": "passed"
+        },
+        {
+          "name": "My Perfect Menu bounded candidate completion allows two additional bounded attempts only when valid progress exists",
+          "status": "passed"
+        },
+        {
+          "name": "My Perfect Menu bounded candidate completion does not blame food needs for technical metadata failure",
+          "status": "passed"
+        },
+        {
+          "name": "My Perfect Menu bounded candidate completion keeps genuine authority rejection distinct",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "client/src/lib/__tests__/routeUpgrade.test.ts",
+      "status": "passed",
+      "tests": [
+        {
+          "name": "page-level upgrade prompts leaves /foods-i-enjoy on an accessible page before showing the modal",
+          "status": "passed"
+        },
+        {
+          "name": "page-level upgrade prompts leaves /saved-meals on an accessible page before showing the modal",
+          "status": "passed"
+        },
+        {
+          "name": "page-level upgrade prompts leaves /select-builder on an accessible page before showing the modal",
+          "status": "passed"
+        },
+        {
+          "name": "page-level upgrade prompts leaves /clinical-labs on an accessible page before showing the modal",
+          "status": "passed"
+        },
+        {
+          "name": "page-level upgrade prompts leaves /lifestyle/dessert-creator on an accessible page before showing the modal",
+          "status": "passed"
+        },
+        {
+          "name": "page-level upgrade prompts leaves /lifestyle/beverage-creator on an accessible page before showing the modal",
+          "status": "passed"
+        },
+        {
+          "name": "page-level upgrade prompts leaves /lifestyle/sushi-creator on an accessible page before showing the modal",
+          "status": "passed"
+        },
+        {
+          "name": "page-level upgrade prompts keeps View Plans navigation independent of the safe return page",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/stripeEntitlementPipeline.test.ts",
+      "status": "passed",
+      "tests": [
+        {
+          "name": "trusted Stripe entitlement pipeline maps configured price IDs and rejects metadata that disagrees with the price",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline does not depend on a Stripe lookup_key when the configured price is trusted",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline rejects a conflicting Stripe lookup_key even when the price ID is configured",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline exposes duplicate configured price mappings as invalid configuration",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline blocks a live Stripe key outside the production billing owner",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline has one durable raw-body webhook with event claiming and stale-write ordering",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline keeps Clinical Business billing wholly separate from the owner's personal subscription",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline makes stale subscription events no-ops for destructive and business side effects",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline routes business checkout through the same trusted catalog as consumer checkout",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline keeps later Organization seat management separate from initial owner checkout",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline serializes professional invite acceptance with seat reductions",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline database-enforces unique Stripe ownership for users and businesses",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline prevents generic user routes from becoming a paid-entitlement authority",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline fails closed instead of trusting client-supplied iOS purchase claims",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline serializes business checkout and atomically binds organization billing",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline uses one cross-table registry for immutable Stripe identity ownership",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline routes business checkout reconciliation through the atomic business transition",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline retires the self-service ProCare paid-entitlement grant",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline keeps checkout success client data non-authoritative",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline prevents duplicate consumer subscriptions at the authoritative server boundary",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline keeps the canonical webhook outside user auth while requiring raw-body signatures",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline runs the billing migration in development and production boot paths",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/csrfProtection.test.ts",
+      "status": "passed",
+      "tests": [
+        {
+          "name": "U4 CSRF protection rejects an unsafe request from an untrusted origin before authentication",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection rejects an originless browser form but permits a marked API client",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection does not trust arbitrary Vercel or Replit application origins",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection does not reintroduce browser-reachable localhost in production CORS",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection accepts an exact same-origin request",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection rejects a cookie-authenticated mutation without a synchronizer token",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection cannot bypass a cookie session's CSRF token with a dummy bearer header",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection rejects a mismatched token and accepts the exact token",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection issues CSRF protection for an authenticated MFA-enrollment-pending session",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection requires the issued CSRF token for MFA enrollment mutations",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection preserves the Production login to mandatory-MFA CSRF lifecycle",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection allows exact-origin pre-authentication requests with a stale session",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection still rejects stale-session login from an untrusted origin",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection allows an exact-origin MFA challenge for a pending-MFA session: /api/auth/mfa/challenge",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection allows an exact-origin MFA challenge for a pending-MFA session: /api/auth/mfa/challenge/backup",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection still rejects a pending-MFA challenge from an untrusted origin",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection allows safe methods, public callbacks, and explicit bearer requests",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/coachingNavigation.test.ts",
+      "status": "passed",
+      "tests": [
+        {
+          "name": "server-validated Chef navigation grocery_find_product keeps its existing access boundary and parent-only route",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation grocery_create_meal keeps its existing access boundary and parent-only route",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation product_scan keeps its existing access boundary and parent-only route",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation new destinations match the guarded member entry routes, not specialized builders",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation my_perfect_menu enforces access and disallows handoffs or Production use",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation meal_builders enforces access and disallows handoffs or Production use",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation grocery_find_product resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation product_scan resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation grocery_create_meal resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation sushi_creator resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation craving_creator resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation dessert_creator resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation beverage_creator resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation athlete_beverage_creator resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation hydration_center resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation restaurant_guide resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation find_meals_near_me resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation my_perfect_buffet resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation my_perfect_getaway resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation my_perfect_gatherings resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation fridge_rescue resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation create_a_dish resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation macro_calculator resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation my_perfect_beginning resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation my_perfect_menu resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation meal_builders resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation rejects unknown, paused, or injected target https://evil.example",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation rejects unknown, paused, or injected target //evil.example",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation rejects unknown, paused, or injected target javascript:alert(1)",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation rejects unknown, paused, or injected target /auth",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation rejects unknown, paused, or injected target /lifestyle/beverage-creator?generate=true",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation rejects unknown, paused, or injected target pregnancy_coach",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation rejects unknown, paused, or injected target wine_pairing_ai",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation rejects unknown, paused, or injected target __proto__",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation rejects unknown, paused, or injected target constructor",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation rejects unknown, paused, or injected target made_up_feature",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation clarification needs no navigation; changed preference replaces the action",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation safety escalation suppresses every navigation action",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation non-feature items cannot carry navigation, and production never adds it",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation registry provides clear destination distinctions without activating paused coaches",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation current access guards are reused, not replaced with model eligibility",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation unpaid hydration access is denied even in development",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation enforced Pro/Clinical locks deny navigation and still honor existing temporary access",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation requires authentication, rejects unknown IDs, and stays off outside Development",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation Create a Dish handoff returns only an encoded editable idea after authentication",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation rejects unsupported or unsafe request metadata {\"destinationId\":\"sushi_creator\",\"creatorRequest\":{\"destinationId\":\"create_a_dish\",\"idea\":\"Soup\"}}",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation rejects unsupported or unsafe request metadata {\"destinationId\":\"create_a_dish\",\"creatorRequest\":{\"destinationId\":\"create_a_dish\",\"idea\":\"\"}}",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation rejects unsupported or unsafe request metadata {\"destinationId\":\"create_a_dish\",\"creatorRequest\":{\"destinationId\":\"create_a_dish\",\"idea\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}}",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation rejects unsupported or unsafe request metadata {\"destinationId\":\"create_a_dish\",\"creatorRequest\":{\"destinationId\":\"create_a_dish\",\"idea\":\"Soup\\n\"}}",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation rejects unsupported or unsafe request metadata {\"destinationId\":\"create_a_dish\",\"creatorRequest\":{\"destinationId\":\"create_a_dish\",\"idea\":\"Soup\",\"generate\":true}}",
+          "status": "passed"
+        },
+        {
+          "name": "server-validated Chef navigation rejects unsupported or unsafe request metadata {\"destinationId\":\"create_a_dish\",\"creatorRequest\":{\"destinationId\":\"create_a_dish\",\"idea\":\"Soup\",\"redirect\":\"https://evil.example\"}}",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/authSessionProbe.test.ts",
+      "status": "passed",
+      "tests": [
+        {
+          "name": "Studio-to-Personal session probe accepts the valid browser session without a token",
+          "status": "passed"
+        },
+        {
+          "name": "a stale legacy browser token cannot override the valid cookie session",
+          "status": "passed"
+        },
+        {
+          "name": "native bearer authentication remains supported without a browser session",
+          "status": "passed"
+        },
+        {
+          "name": "anonymous and pending-MFA sessions are not treated as completed logins",
+          "status": "passed"
+        },
+        {
+          "name": "changed security state still revokes the browser session",
+          "status": "passed"
+        },
+        {
+          "name": "the existing idle timeout remains enforced",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/chefConversationRoutes.test.ts",
+      "status": "passed",
+      "tests": [
+        {
+          "name": "new-member can send an authenticated message without any assessment lookup",
+          "status": "passed"
+        },
+        {
+          "name": "existing-member can send an authenticated message without any assessment lookup",
+          "status": "passed"
+        },
+        {
+          "name": "Development bootstrap restores stored structured conversation without an assessment lookup",
+          "status": "passed"
+        },
+        {
+          "name": "authentication remains required",
+          "status": "passed"
+        },
+        {
+          "name": "Production still enforces its historical intake gate",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/authCredentialPrecedence.test.ts",
+      "status": "passed",
+      "tests": [
+        {
+          "name": "authentication credential precedence uses a valid cookie session even when an old bearer token is present",
+          "status": "passed"
+        },
+        {
+          "name": "authentication credential precedence rejects an invalid token when no cookie session is present",
+          "status": "passed"
+        },
+        {
+          "name": "authentication credential precedence continues to support a valid native bearer token",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/coachingNavigationContracts.test.ts",
+      "status": "passed",
+      "tests": [
+        {
+          "name": "all 14 behavioral questions plus the goal question remain in the questionnaire",
+          "status": "passed"
+        },
+        {
+          "name": "existing behavioral style resolution remains operational",
+          "status": "passed"
+        },
+        {
+          "name": "existing behavioral style resolution remains operational",
+          "status": "passed"
+        },
+        {
+          "name": "existing behavioral style resolution remains operational",
+          "status": "passed"
+        },
+        {
+          "name": "existing behavioral style resolution remains operational",
+          "status": "passed"
+        },
+        {
+          "name": "model-output fixture for I want sushi. yields the validated action",
+          "status": "passed"
+        },
+        {
+          "name": "model-output fixture for I want dessert. yields the validated action",
+          "status": "passed"
+        },
+        {
+          "name": "model-output fixture for I want a smoothie. yields the validated action",
+          "status": "passed"
+        },
+        {
+          "name": "model-output fixture for I want a cocktail. yields the validated action",
+          "status": "passed"
+        },
+        {
+          "name": "model-output fixture for I need a pre-workout drink. yields the validated action",
+          "status": "passed"
+        },
+        {
+          "name": "model-output fixture for I need a post-workout shake. yields the validated action",
+          "status": "passed"
+        },
+        {
+          "name": "model-output fixture for I need hydration guidance. yields the validated action",
+          "status": "passed"
+        },
+        {
+          "name": "an actual safety match returns before ordinary engine rendering",
+          "status": "passed"
+        },
+        {
+          "name": "stored JSON actions survive restoration and chat is not cleared on navigation",
+          "status": "passed"
+        },
+        {
+          "name": "hydration prefill remains separate from the reviewed Chef creator request contract",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "client/src/lib/__tests__/askChefReleaseCopy.test.ts",
+      "status": "passed",
+      "tests": [
+        {
+          "name": "both Pro pricing sources include Ask Chef without adding an entitlement key",
+          "status": "passed"
+        },
+        {
+          "name": "ar.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "de.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "en.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "es.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "fr.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "hi.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "it.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "ja.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "ko.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "pt.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "ru.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "tl.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "vi.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "xq.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "zh.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "legacy member copy Chef's Corner resolves to Ask Chef",
+          "status": "passed"
+        },
+        {
+          "name": "legacy member copy Chef’s Corner resolves to Ask Chef",
+          "status": "passed"
+        },
+        {
+          "name": "legacy member copy Chefs Corner resolves to Ask Chef",
+          "status": "passed"
+        },
+        {
+          "name": "legacy member copy Chef Corner resolves to Ask Chef",
+          "status": "passed"
+        },
+        {
+          "name": "legacy member copy Coach's Corner resolves to Ask Chef",
+          "status": "passed"
+        },
+        {
+          "name": "legacy member copy Coach’s Corner resolves to Ask Chef",
+          "status": "passed"
+        },
+        {
+          "name": "legacy member copy Coachs Corner resolves to Ask Chef",
+          "status": "passed"
+        },
+        {
+          "name": "legacy member copy Coach Corner resolves to Ask Chef",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/myPerfectMenuEssentialAccess.test.ts",
+      "status": "passed",
+      "tests": [
+        {
+          "name": "My Perfect Menu Essential access begins at Essential and remains included in higher consumer tiers",
+          "status": "passed"
+        },
+        {
+          "name": "My Perfect Menu Essential access appears in Essential subscription copy on web and iOS",
+          "status": "passed"
+        },
+        {
+          "name": "My Perfect Menu Essential access uses Essential access guards on both server and client",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/procareConsumerAccess.test.ts",
+      "status": "passed",
+      "tests": [
+        {
+          "name": "consumer ProCare eligibility allows Pro-or-higher plan mpm_premium to connect with a trainer",
+          "status": "passed"
+        },
+        {
+          "name": "consumer ProCare eligibility allows Pro-or-higher plan mpm_premium_monthly to connect with a trainer",
+          "status": "passed"
+        },
+        {
+          "name": "consumer ProCare eligibility allows Pro-or-higher plan mpm_ultimate to connect with a trainer",
+          "status": "passed"
+        },
+        {
+          "name": "consumer ProCare eligibility allows Pro-or-higher plan mpm_ultimate_monthly to connect with a trainer",
+          "status": "passed"
+        },
+        {
+          "name": "consumer ProCare eligibility requires Pro for plan mpm_free to connect with a trainer",
+          "status": "passed"
+        },
+        {
+          "name": "consumer ProCare eligibility requires Pro for plan mpm_basic to connect with a trainer",
+          "status": "passed"
+        },
+        {
+          "name": "consumer ProCare eligibility requires Pro for plan mpm_basic_monthly to connect with a trainer",
+          "status": "passed"
+        },
+        {
+          "name": "consumer ProCare eligibility keeps physician, dietitian, and nurse-practitioner relationships Clinical-only",
+          "status": "passed"
+        },
+        {
+          "name": "consumer ProCare eligibility fails closed for unsupported provider roles",
+          "status": "passed"
+        },
+        {
+          "name": "coach client-data filtering withholds Clinical-only fields from coaches and trainers",
+          "status": "passed"
+        },
+        {
+          "name": "coach client-data filtering preserves the authorized Clinical summary for physicians",
+          "status": "passed"
+        }
+      ]
+    }
+  ]
+}

@@ -14,15 +14,17 @@
 
 import crypto from "crypto";
 
+// Pure prompt/cache contracts must not initialize a live database or storage SDK.
+jest.mock("../db", () => ({ db: {} }));
+jest.mock("../objectStorage", () => ({
+  ObjectStorageService: jest.fn(),
+}));
+
 // mealImageGenerator transitively imports imageLifecycle → @replit/object-storage
 // → gaxios (ESM-only), which Jest cannot parse. The prompt/cache-key functions
 // under test never touch storage, so stub the lifecycle module out entirely.
 jest.mock("../services/imageLifecycle", () => ({
   ingestImageToPermanentStorage: jest.fn(),
-}));
-jest.mock("../db", () => ({ db: {} }));
-jest.mock("../services/mealImageAuthority", () => ({
-  validateMealImageAuthority: jest.fn(),
 }));
 
 import {
@@ -115,13 +117,13 @@ describe("ambiguous savory-side recovery contract", () => {
     ).toEqual([]);
   });
 
-  it("retains deterministic simplified prompt construction without increasing the two-attempt budget", () => {
+  it("uses one deterministic simplified third-attempt prompt", () => {
     const prompt = __testables.buildSimplifiedRecoveryPrompt(
       mealName,
       ingredients,
       "a plated entrée with steak as the central subject",
     );
-    expect(MAX_IMAGE_GENERATION_ATTEMPTS).toBe(2);
+    expect(MAX_IMAGE_GENERATION_ATTEMPTS).toBe(3);
     expect(prompt).toContain(`MEAL: ${mealName}`);
     expect(prompt).toContain("PRIMARY MAIN FOOD: flank steak");
     expect(prompt).toContain("REQUIRED VISIBLE SAVORY SIDE: cauliflower mash");
@@ -516,10 +518,10 @@ describe("buildMealImagePrompt — structural identity in CONTRACT 1", () => {
 });
 
 describe("buildStableCacheKey — v8 cache flush + full-list hashing", () => {
-  it("produces a stable Development-scoped digest and differs across names, ingredients, and source types", () => {
+  it("produces a stable 32-char hex key and differs across names, ingredients, and source types", () => {
     const key = buildStableCacheKey("Tuna Salad", ["tuna", "greens"], "meal");
-    // Development must never query or upsert an existing Production digest.
-    expect(/^dev-meal-image:v1:[0-9a-f]{32}$/.test(key)).toBe(true);
+    // 32-char hex
+    expect(/^[0-9a-f]{32}$/.test(key)).toBe(true);
     // Deterministic across multiple calls
     expect(buildStableCacheKey("Tuna Salad", ["tuna", "greens"], "meal")).toBe(key);
     // Case/whitespace/order stable

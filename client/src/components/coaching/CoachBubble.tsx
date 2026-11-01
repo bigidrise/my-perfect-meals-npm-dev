@@ -60,6 +60,12 @@ export default function CoachBubble({
     isCoachDestinationId(target) && planItems.some(item =>
     typeof item !== "string" && item.kind === "use_feature" && item.destinationId === target);
   const escalation = planItems.some(item => typeof item !== "string" && item.kind === "contact_care");
+  // Historical safety envelopes copied the same guidance into paragraphs and
+  // contact_care items. Preserve every distinct instruction, but show it once.
+  const safetyTexts = [...new Set([
+    structured.whatIFound, structured.whatItCouldMean, planWhy,
+    ...planItems.map(item => typeof item === "string" ? item : item.text),
+  ].filter((text): text is string => !!text?.trim()).map(text => text.trim()))];
   return (
     <div className="flex justify-start">
       <div className="max-w-[90%]">
@@ -67,7 +73,10 @@ export default function CoachBubble({
           Coach
         </p>
         <div className="bg-zinc-900 border border-white/10 rounded-2xl rounded-tl-sm px-4 py-3.5 text-sm text-white/90 leading-relaxed space-y-3">
-          {compact ? <>
+          {escalation ? <>
+            {safetyTexts.map((text, i) =>
+              <p key={i} className="whitespace-pre-wrap">{chefResponseText(text, enableConcierge)}</p>)}
+          </> : compact ? <>
             <p className="whitespace-pre-wrap">{chefResponseText(structured.presentation!.message, enableConcierge)}</p>
             {showButton && <CoachFeatureAction destinationId={target}
               creatorRequest={structured.presentation?.creatorRequest} />}

@@ -455,127 +455,15 @@ storage_version_token = "1792467262416157"
 content_type = "text/markdown"
 
 [[outputs]]
-id = "5sRZ6AQCGoZRl3T86F_m-"
-uri = "file://.local/reports/pr429-localization-comparison.csv"
-type = "table"
-title = "PR #429 — Complete localization comparison"
-description = "Every CI failure classified against clean Production, with complete before/after messages, affected files, all missing locale keys, the unchanged warning, and the additional unregistered translation-key finding."
-logical_id = "21e82081-c6d8-4cfe-87e9-38226a011eb4"
-content_hash = "sha256:f0a48f8929b5661ff8b683cd4783172877688d304782eb423de58db8b5aa9b34"
-size = 72287
-mtime_ms = 1792620299211
-storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/21e82081-c6d8-4cfe-87e9-38226a011eb4/1d078b15-bcae-42d2-b9e4-b943b837d88d"
-storage_version_token = "1792620306194697"
-content_type = "text/csv"
-
-[[outputs]]
-id = "wcIGuSVYDETAeGLJX-VqI"
-uri = "file://generated-artifacts/image-comparison/frozen-prompts.html"
+id = "z3n_aG9YtWFIUzYQcZ2lA"
+uri = "file://generated-artifacts/ask-chef-platform-coverage.html"
 type = "html"
-title = "Phase 2C corrected prompts, hashes and change audit"
-description = "Exact corrected prompts and verification prompts for all eight recipes, unchanged recipe evidence, original Phase 2B prompts, old/new SHA-256 hashes, and per-recipe corrections. No live requests were made."
-logical_id = "68bfaeaf-5fe8-4b62-a9c2-e02654c67128"
-content_hash = "sha256:8e581bd1bf77e4b00bd51397af81f2b869519673b3366b227247af2513963090"
-size = 67425
-mtime_ms = 1792796645319
-storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/68bfaeaf-5fe8-4b62-a9c2-e02654c67128/a18184b0-3115-43f8-ac52-f8b49b15aa0b"
-storage_version_token = "1792796987157633"
+title = "Ask Chef platform knowledge coverage"
+description = "Source-backed workflow records, retained knowledge, paused features and all 244 literal routes, with partial and uncertain coverage marked explicitly."
+logical_id = "6050442a-e121-47c7-96f3-975a8990d61e"
+content_hash = "sha256:fa036fd25188e7440f3aa4b867f5cc8abbbbf52da09427b2b0e02bb9f6388120"
+size = 96185
+mtime_ms = 1793506848781
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:5b503fbf-1926-4592-8a37-99d9960f359a/6050442a-e121-47c7-96f3-975a8990d61e/3496cded-072b-4ade-acb7-6541fd616a63"
+storage_version_token = "1793507116437310"
 content_type = "text/html"
-
-[[outputs]]
-id = "J7ciksSnfYS1SX9R4UfQr"
-uri = "file://generated-artifacts/image-comparison/phase2d-results.html"
-type = "html"
-title = "Phase 2D — image comparison results"
-description = "Side-by-side fidelity findings, per-recipe latency, actual reported usage, estimated charges, all request IDs and image digests. Metadata only; no photographs. Temporary images were deleted after review and the one-use authorization marker was retained."
-logical_id = "a1759549-2fb5-4cd0-bb93-a28aea15b3e9"
-content_hash = "sha256:2e45e7cc944ad6b61003b86441654cf568fd6bfd96d46f1577f91bce82b43a6f"
-size = 58955
-mtime_ms = 1792797771752
-storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/a1759549-2fb5-4cd0-bb93-a28aea15b3e9/2dd1a0e8-7a65-492e-9f76-bb76adbee8d5"
-storage_version_token = "1792797785892241"
-content_type = "text/html"
-
-[[outputs]]
-id = "6OV5y_irup2UMMXjMvlhU"
-uri = "file://generated-artifacts/image-comparison/stage3a-preparation-report.html"
-type = "html"
-title = "Stage 3A — Development preparation and verification"
-description = "Implementation and compatibility findings, complete changed-file list, 231 passing mocked tests, TypeScript limitations, inactive monitoring, and remaining activation risks."
-logical_id = "4e4fe941-b770-4dc2-8877-8792f7a00726"
-content_hash = "sha256:3bfb9f354f99ed3716bc16c905f4665d7906dcf4ac05dec45ad48bacf7cab2c5"
-size = 9629
-mtime_ms = 1792799297054
-storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/4e4fe941-b770-4dc2-8877-8792f7a00726/16b6f7b9-76a1-47de-a06a-53130fe49ccc"
-storage_version_token = "1792799324909905"
-content_type = "text/html"
-
-[[outputs]]
-id = "GMdDw7ilKZZk-sQf4gRiY"
-uri = "file://generated-artifacts/image-comparison/stage3b-activation-verification.html"
-type = "html"
-title = "Stage 3B — Development activation verification"
-description = "Exact running commit and source-file manifest, safe-start evidence, before/after recovery counts, 98 passing mocked tests, live endpoint results, warnings and verification limits."
-logical_id = "fbe5e1e0-5c3c-463c-8f60-a6f425a53c76"
-content_hash = "sha256:05fb05df82f8c67368670dc5ebf01bc0e8786a8767e8b4ba51d3c75f4a4a6cc5"
-size = 7097
-mtime_ms = 1792799947670
-storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/fbe5e1e0-5c3c-463c-8f60-a6f425a53c76/8cae8ba1-3db7-4bc8-a81a-1caacad72263"
-storage_version_token = "1792799954076545"
-content_type = "text/html"
-
-[[outputs]]
-id = "l0KZxurCprO8cpmTDcmBz"
-uri = "file://generated-artifacts/stage3c1/bd0ecc12-86de-4de4-9eae-cd0a5facf62d/display.jpg"
-type = "image"
-title = "Berry Coconut Chia Parfait — controlled Development test"
-description = "The persisted display image from the single verified Flare generation."
-logical_id = "d0ce16b8-2b53-4034-95fa-1897a67c81da"
-content_hash = "sha256:c4b5c9c8629f3574c7fb51d0f7c52e9e88a0209b8e0796f74d8482dc4a8a02af"
-size = 150380
-mtime_ms = 1792803387057
-storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/d0ce16b8-2b53-4034-95fa-1897a67c81da/d26d616f-9a6c-43c5-97f1-544faf4569b9"
-storage_version_token = "1792803478419716"
-content_type = "image/jpeg"
-
-[[outputs]]
-id = "JKco7mwycACQF6fEgYd1D"
-uri = "file://.local/reports/pr433-localization-investigation.html"
-type = "html"
-title = "PR #433 — Complete Check Investigation"
-description = "Production-versus-PR comparison, all 106 failed assertions, exact missing keys, protected clinical strings, all findings in 82 failing component files, and complete GitHub localization output."
-logical_id = "0b96a6a3-978a-4916-8806-2f27cbcb784a"
-content_hash = "sha256:7dadcfaa757b081da3557a003f82434652f9418d1cd3fdca723116930c610f7f"
-size = 344308
-mtime_ms = 1792895007823
-storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/0b96a6a3-978a-4916-8806-2f27cbcb784a/b11ef446-59c9-417c-a181-201b1d41ab7b"
-storage_version_token = "1792895008889307"
-content_type = "text/html"
-
-[[outputs]]
-id = "S30RW1ZrJtrReD8cSqrlg"
-uri = "file://docs/reviews/unified-saved-groceries-development.md"
-type = "text"
-title = "Unified Saved Groceries — Development review"
-description = "Complete 22-file inventory, implementation details, test results, compatibility notes, and remaining release blockers."
-logical_id = "904a8c27-e0fc-4ae9-bb82-4d18c9d59f26"
-content_hash = "sha256:ed3869a4a326a1fa56e59f98a1af4eecb46c9956cff5dc306a6b35f38335b170"
-size = 10902
-mtime_ms = 1792946098439
-storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/904a8c27-e0fc-4ae9-bb82-4d18c9d59f26/507765ca-70fc-4ef1-8717-644e6e377aa8"
-storage_version_token = "1792946173606721"
-content_type = "text/markdown"
-
-[[outputs]]
-id = "m140LKgYp9qRdCS6BF0pq"
-uri = "file://.local/reports/saved-groceries-github-preparation.md"
-type = "text"
-title = "Saved Groceries — final verification report"
-description = "Client build passed in 4m 10s. Exact 24-file scope preserved. Normal pre-push TypeScript check found one Saved Groceries error, so the branch was not pushed. Includes commits, diagnostics, and remaining blocker."
-logical_id = "8b503508-cb30-4d5b-90ab-c21086f7a600"
-content_hash = "sha256:0773d244b7c80f678d27316131da7ab07a404e2508fe4ddde024a01403dd2989"
-size = 6778
-mtime_ms = 1792956722315
-storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/8b503508-cb30-4d5b-90ab-c21086f7a600/ef7628c7-842e-4425-88eb-fcbbcdc01a80"
-storage_version_token = "1792956739833199"
-content_type = "text/markdown"

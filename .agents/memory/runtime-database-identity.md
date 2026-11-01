@@ -37,7 +37,7 @@ Signal delivery alone does not establish that the Development server stopped gra
 
 **Why:** An observed SIGTERM was intercepted by notification cleanup while both HTTP and Vite listeners remained open beyond the shutdown wait.
 
-**How to apply:** Confirm process exit and release of both ports before launching a replacement. Do not assume a shutdown hook terminates the server, or substitute forced termination without approval. A source-only shutdown fix protects newly loaded runtimes, not the legacy process already running; if that process cannot drain cleanly, obtain approval for a specific one-time stop procedure rather than silently changing signals or allowing escalation.
+**How to apply:** Confirm process exit and release of both ports before launching a replacement. Do not assume a shutdown hook terminates the server, or substitute forced termination without approval.
 
 Request-wiring verification need not wait for a migration-free application startup.
 
@@ -68,9 +68,3 @@ The user identifies `https://my-perfect-meals-npm-dev-1.replit.app` as the Devel
 **Why:** The user clarified this distinction after initially calling a screenshot from that URL a Production issue.
 
 **How to apply:** Distinguish the published Development app from the Development preview and the separate Production workspace. Verify current deployment metadata rather than inferring workspace scope from a public `.replit.app` URL.
-
-The Production workspace tracks `origin/production`, not `origin/main` or `origin/dev`. A local Production publication commit can exist only in that workspace and must not be discarded when promoting an approved repair.
-
-**Why:** The user confirmed the upstream through read-only inspection of the actual Production workspace. Its local publication commit was not available from GitHub, so inspecting Development's remote branches alone could not establish its ancestry or contents.
-
-**How to apply:** Fetch current refs and verify the approved patch against `origin/production`. Before integration, confirm local Production ancestry, clean status, and publication-only paths there. Preserve the original publication commit; obtain approval for any scoped integration rather than resetting, rebasing, or pushing publication metadata implicitly.

@@ -204,8 +204,8 @@ export default function MealReminders() {
         if (isIOS) {
           setLoadFailed(true);
           toast({
-          title: "Could not load saved meal reminders",
-          description: "Existing iPhone reminders were left unchanged. Reopen settings to try again.",
+          title: t("mealReminders.loadFailedTitle"),
+          description: t("mealReminders.loadFailedDescription"),
           variant: "destructive",
           });
         }
@@ -257,8 +257,8 @@ export default function MealReminders() {
         } catch (error) {
           if (!isIOS) throw error;
           toast({
-            title: "Saved, but iPhone scheduling could not be confirmed",
-            description: "Check notification permissions and retry the iPhone reminder check below.",
+            title: t("mealReminders.scheduleUnconfirmedTitle"),
+            description: t("mealReminders.scheduleUnconfirmedDescription"),
             variant: "destructive",
           });
         }
@@ -364,8 +364,8 @@ export default function MealReminders() {
 
   if (isIOS && loadFailed) return (
     <div role="alert" className="bg-white/5 rounded-xl p-3 space-y-2 text-sm text-amber-300">
-      <p>Could not load saved meal reminders. Your existing iPhone schedule was left unchanged.</p>
-      <button type="button" className="underline" onClick={() => setLoadRetry(value => value + 1)}>Retry loading reminders</button>
+      <p>{t("mealReminders.loadFailedMessage")}</p>
+      <button type="button" className="underline" onClick={() => setLoadRetry(value => value + 1)}>{t("mealReminders.retryLoading")}</button>
     </div>
   );
 
@@ -398,7 +398,7 @@ export default function MealReminders() {
             <>
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
               <span className="text-emerald-400 text-xs font-medium" data-testid="ios-permission-label">
-                {isIOS ? t("mealReminders.permissionAllowed", { defaultValue: "Notifications allowed" }) : t("mealReminders.statusConnected")}
+              {isIOS ? t("mealReminders.permissionAllowed") : t("mealReminders.statusConnected")}
               </span>
             </>
           ) : (
@@ -416,17 +416,17 @@ export default function MealReminders() {
       {isIOS && (
         <div className="space-y-2 text-xs" role="status" data-testid="ios-reminder-schedule">
           <p className={iosSchedule.state === "error" || iosSchedule.state === "blocked" ? "text-amber-300" : "text-white/80"}>
-            {iosSchedule.state === "scheduled" ? `${iosSchedule.count} meal reminder${iosSchedule.count === 1 ? "" : "s"} confirmed on this iPhone.`
-              : iosSchedule.state === "off" ? "No meal reminders scheduled on this iPhone."
-              : iosSchedule.state === "blocked" ? "iPhone notifications are not allowed. Enable them in Settings, then check again."
-              : iosSchedule.state === "error" ? "Could not confirm iPhone scheduling. Existing reminders may still be pending."
-              : "Checking this iPhone's reminder schedule…"}
+            {iosSchedule.state === "scheduled" ? t("mealReminders.iosScheduleConfirmed", { count: iosSchedule.count })
+              : iosSchedule.state === "off" ? t("mealReminders.iosScheduleOff")
+              : iosSchedule.state === "blocked" ? t("mealReminders.iosScheduleBlocked")
+              : iosSchedule.state === "error" ? t("mealReminders.iosScheduleError")
+              : t("mealReminders.iosScheduleChecking")}
           </p>
           <button type="button" className="text-orange-300 underline" disabled={iosSchedule.state === "checking" || saving}
             onClick={() => { void iosMealReminderScheduler.restore().catch(() => {}); }}>
-            Check iPhone reminders
+            {t("mealReminders.checkIOSReminders")}
           </button>
-          <p className="text-white/50">iOS notification settings and Focus can affect when alerts appear.</p>
+          <p className="text-white/50">{t("mealReminders.iosDeliveryNote")}</p>
         </div>
       )}
       {!isNative && (

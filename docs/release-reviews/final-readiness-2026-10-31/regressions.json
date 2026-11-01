@@ -1,0 +1,1921 @@
+{
+  "originalCatalogReproduction": {
+    "passedSuites": 0,
+    "failedSuites": 1,
+    "passedTests": 1,
+    "failedTests": 2,
+    "pendingTests": 0,
+    "suites": [
+      {
+        "file": "client/src/lib/__tests__/groceryCatalogAdd.test.tsx",
+        "status": "failed",
+        "assertions": [
+          {
+            "name": "catalog Add puts the exact branded Profile-Matched Pick on the shopping list without changing its package status",
+            "status": "failed",
+            "failures": [
+              "Error: Unable to find an element by: [data-testid=\"catalog-product-match\"]\n\nIgnored nodes: comments, script, style\n\u001b[36m<body>\u001b[39m\n  \u001b[36m<div>\u001b[39m\n    \u001b[36m<div\u001b[39m\n      \u001b[33mstyle\u001b[39m=\u001b[32m\"position: fixed; inset: 0; z-index: 9998; background: rgba(0, 0, 0, 0.7);\"\u001b[39m"
+            ]
+          },
+          {
+            "name": "catalog Save keeps exact brand, variant, UPC, and review evidence in Saved Groceries without adding to list",
+            "status": "failed",
+            "failures": [
+              "Error: Unable to find an element by: [data-testid=\"catalog-product-match\"]\n\nIgnored nodes: comments, script, style\n\u001b[36m<body>\u001b[39m\n  \u001b[36m<div>\u001b[39m\n    \u001b[36m<div\u001b[39m\n      \u001b[33mstyle\u001b[39m=\u001b[32m\"position: fixed; inset: 0; z-index: 9998; background: rgba(0, 0, 0, 0.7);\"\u001b[39m"
+            ]
+          },
+          {
+            "name": "different UPC variants remain distinct through shopping-list hydration keys",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      }
+    ]
+  },
+  "finalMainSelection": {
+    "passedSuites": 22,
+    "failedSuites": 1,
+    "passedTests": 299,
+    "failedTests": 1,
+    "pendingTests": 0,
+    "suites": [
+      {
+        "file": "server/tests/savedGroceries.route.test.ts",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "Saved Groceries routes Grocery Coach save/list/reopen roundtrip retains identity, analysis and owner without caller-controlled ownership",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Saved Groceries routes Production advertises snapshot attachment for library reads, new saves and duplicate-save races",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Saved Groceries routes Development list insertion retains saved product evidence and restoration does not erase it",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Saved Groceries routes Product Scan and Grocery Coach save through the same permanent table",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Saved Groceries routes single Add uses product identity instead of display-name equality",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Saved Groceries routes parallel identical saves both succeed and persist one row",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Saved Groceries routes bulk Add is atomic when a database write fails",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Saved Groceries routes blocked items remain saved and are reported without insertion",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Development saved-product shopping intent three saved cheeses transfer despite unavailable ingredient evidence without claiming approval",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Development saved-product shopping intent single transfer records shopping intent even for a known conflict or unavailable resolver",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Development saved-product shopping intent only requested products transfer; repeated additions deduplicate and checked rows restore",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Development saved-product shopping intent unauthenticated, foreign-account, and mixed-owner requests cannot transfer products",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Development saved-product shopping intent invalid bulk IDs are rejected before writes",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Development saved-product shopping intent Development bulk transfer still rolls back every write on failure",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Development saved-product shopping intent production retains compatibility enforcement for both endpoints",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Development saved-product shopping intent test retains compatibility enforcement for both endpoints",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Development saved-product shopping intent Production remains fail-closed during profile outages",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Development saved-product shopping intent reading the library still uses its existing compatibility contract",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      },
+      {
+        "file": "server/tests/pregnancyCoachPaywall.test.ts",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "Pregnancy temporary customer availability blocks post /setup before any database work",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Pregnancy temporary customer availability blocks post /ask before any database work",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Pregnancy temporary customer availability blocks delete /setup before any database work",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Pregnancy temporary customer availability does not turn an unauthenticated request into an authenticated one",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "POST /api/pregnancy/ask — paywall guard returns 401 when there is no authenticated user",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "POST /api/pregnancy/ask — paywall guard returns 403 for a FREE user with null planLookupKey (expired trial or no plan)",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "POST /api/pregnancy/ask — paywall guard returns 403 for a FREE user with mpm_free planLookupKey",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "POST /api/pregnancy/ask — paywall guard returns 403 for a PAID_FULL basic subscriber",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "POST /api/pregnancy/ask — paywall guard returns 403 for a PAID_FULL premium subscriber",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "POST /api/pregnancy/ask — paywall guard does NOT return 403 for a PAID_FULL ultimate subscriber",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "POST /api/pregnancy/ask — paywall guard does NOT return 403 for a clinical_business_monthly subscriber",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "POST /api/pregnancy/ask — paywall guard does NOT return 403 for an internal/founder account (PAID_FULL + null planLookupKey)",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "POST /api/pregnancy/ask — paywall guard does NOT return 403 when BILLING_ENFORCED is false, regardless of plan",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Pregnancy bootstrap stage/date preservation preserves breastfeeding and its breastfeeding flag with an old due date",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Pregnancy bootstrap stage/date preservation preserves postpartum and its breastfeeding flag with an old due date",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Pregnancy bootstrap stage/date preservation does not turn an invalid due date into third-trimester guidance",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "pregnancyCoach.ts — paywall guard structure imports getTierForLookupKey from shared planFeatures",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "pregnancyCoach.ts — paywall guard structure checks accessTier !== PAID_FULL (free-user rejection)",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "pregnancyCoach.ts — paywall guard structure returns 403 CLINICAL_REQUIRED for non-PAID_FULL users",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "pregnancyCoach.ts — paywall guard structure null planLookupKey bypass is guarded by PAID_FULL check (guard order)",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "pregnancyCoach.ts — paywall guard structure non-null planLookupKey requires ultimate tier",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      },
+      {
+        "file": "server/tests/apiRoutingStorageRepair.test.ts",
+        "status": "failed",
+        "assertions": [
+          {
+            "name": "development routing and meal-image storage repair web API resolver always uses the browser's own origin",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "development routing and meal-image storage repair native API routing uses the approved production .com origin",
+            "status": "failed",
+            "failures": [
+              "Error: expect(received).toBe(expected) // Object.is equality\n\nExpected: \"https://app.myperfectmeals.com\"\nReceived: \"https://app.myperfectmeals.ai\"\n    at Object.<anonymous> (/home/runner/workspace/server/tests/apiRoutingStorageRepair.test.ts:37:42)"
+            ]
+          },
+          {
+            "name": "development routing and meal-image storage repair development NODE_ENV defaults to the Development bucket without an override",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "development routing and meal-image storage repair a published runtime can explicitly select isolated Development storage",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "development routing and meal-image storage repair production requires its exact explicit environment and bucket",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "development routing and meal-image storage repair production runtime fails closed when storage environment is missing or invalid",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "development routing and meal-image storage repair explicit Development storage rejects the Production bucket",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "development routing and meal-image storage repair DEV keeps legacy URLs unchanged and all health handlers resolve the active context",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "development routing and meal-image storage repair production client source no longer contains retired Dev-1 or localhost API URLs",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      },
+      {
+        "file": "client/src/lib/__tests__/groceryCoachProductionStore.test.tsx",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "Production store saves and reloads exact ingredient/product associations without the Development store",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "different selections and recipes cannot overwrite each other or merge into generic ingredients",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "ordinary shopping additions retain their existing merge behavior",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "saved Coach choices remain visible without activating catalog Change/Clear/Choose experiments",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      },
+      {
+        "file": "client/src/lib/__tests__/savedGroceriesSelection.test.tsx",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "shopping-page updates do not remount Saved Groceries or restart its loading cycle",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "one eligible selection enables the primary action and adds only its exact saved ID",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "multiple choices survive brand search and clearing search; only selected products are added",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "an explicit deselection does not add the unchecked product",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "all saved products are selectable shopping intentions without analysis or verification clutter",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "selecting a saved recommendation does not start another verification or analysis request",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "missing profile checks do not prevent shopping-intent selection or trigger retry requests",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "known conflicts and certification limitations do not offer a misleading photo fix",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "10 saved categories produce a flat searchable list without category or Add All controls",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "30 saved categories produce a flat searchable list without category or Add All controls",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "100 saved categories produce a flat searchable list without category or Add All controls",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "account switching clears old selections and ignores a late bulk result",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server rejection is reported honestly without removing the saved product or adding list clutter",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "all explicitly selected IDs reach the unchanged server gate, including previously blocked products",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "stored brand and explicit package size remain visible and exact saved identity is submitted",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "delete removes only the chosen saved product and clears its selection",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "logout/login restores only the same account's persisted mock library without carrying selection",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "compact rows keep four ordered controls, 44px touch targets, exact names and the vertical scroller",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      },
+      {
+        "file": "client/src/lib/__tests__/groceryCoachFindProductMode.test.tsx",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "Find a Product mode navigation shows mode tabs on a restored meal-result state and allows switching to Find a Product",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Find a Product mode navigation submits the editable voice transcript through the same by-name path",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Find a Product mode navigation does not fabricate a grade or pad a short list when analysis lacks a supported grade",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Find a Product mode navigation preserves the meal result when toggling back to Build a Meal",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Find a Product mode navigation surfaces the server 503 clinical-unavailable message instead of a generic error",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Find a Product mode navigation explains unverified products without exposing an HTTP error or recommending a brand",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      },
+      {
+        "file": "client/src/lib/__tests__/groceryCatalogAdd.test.tsx",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "by-name Add keeps the exact brand, variant and UPC without claiming verified package evidence or inserting duplicates",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "by-name Save retains exact identity and unverified analysis, and retrieves it after reopening without adding to the list",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "different UPC variants remain distinct through shopping-list hydration keys",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      },
+      {
+        "file": "server/tests/menuChefAccessMatrix.test.ts",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "Free has matching Menu/Chef frontend and backend access",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Essential has matching Menu/Chef frontend and backend access",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Pro has matching Menu/Chef frontend and backend access",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Clinical has matching Menu/Chef frontend and backend access",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "legacy Essential has matching Menu/Chef frontend and backend access",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "legacy Pro has matching Menu/Chef frontend and backend access",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "legacy Clinical has matching Menu/Chef frontend and backend access",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Family Essential has matching Menu/Chef frontend and backend access",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Family Pro has matching Menu/Chef frontend and backend access",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Family Clinical has matching Menu/Chef frontend and backend access",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "provider Clinical has matching Menu/Chef frontend and backend access",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "provider Studio has matching Menu/Chef frontend and backend access",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "post /message rejects anonymous, Free and Essential before reads or writes",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "get /conversation rejects anonymous, Free and Essential before reads or writes",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "get /conversation/fixture/messages rejects anonymous, Free and Essential before reads or writes",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "get /bootstrap rejects anonymous, Free and Essential before reads or writes",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "get /messages/older?conversationId=fixture&beforeId=fixture rejects anonymous, Free and Essential before reads or writes",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "get /plans rejects anonymous, Free and Essential before reads or writes",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "post /plans/fixture/items/fixture/complete rejects anonymous, Free and Essential before reads or writes",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "get /followup/due rejects anonymous, Free and Essential before reads or writes",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "post /followup/fixture/deliver rejects anonymous, Free and Essential before reads or writes",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "delete /message/fixture rejects anonymous, Free and Essential before reads or writes",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "delete /conversation/fixture rejects anonymous, Free and Essential before reads or writes",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Menu outer guard protects /concepts",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Menu outer guard protects /context-status",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Menu outer guard protects /effective-builder",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Menu outer guard protects /validate-selection",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "existing server-resolved full access remains authorized: {\"accessTier\":\"PAID_FULL\",\"planLookupKey\":null}",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "existing server-resolved full access remains authorized: {\"accessTier\":\"PAID_FULL\",\"planLookupKey\":\"mpm_basic\",\"pilotFullAccess\":true}",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "existing server-resolved full access remains authorized: {\"accessTier\":\"PAID_FULL\",\"planLookupKey\":\"mpm_basic\",\"temporaryClinicalAccess\":true}",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "activation is unchanged and destination authorization remains independent",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "guard wiring and minimum-tier upgrade names match the matrix",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "both subscription listings and discovery copy state the correct minimum tiers",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      },
+      {
+        "file": "server/tests/storageHealthReadOnly.test.ts",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "valid configuration and an empty readable bucket pass without any mutation",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "permission denied fails closed without leaking SDK details",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "credential failure fails closed without leaking SDK details",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "storage unavailable fails closed without leaking SDK details",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "SDK exceptions fail closed",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "invalid bucket/environment configuration fails before constructing a client",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "release validator rejects non-authoritative or failed response 503 {\"objectStorage\":\"readable\",\"probe\":\"read-only\",\"writeVerified\":false}",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "release validator rejects non-authoritative or failed response 200 {\"hasS3\":true}",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "release validator rejects non-authoritative or failed response 200 {\"storageBucketId\":\"configured-but-not-probed\"}",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "release validator rejects non-authoritative or failed response 200 {\"objectStorage\":\"unhealthy\",\"probe\":\"read-only\",\"writeVerified\":false}",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "release validator rejects non-authoritative or failed response 200 {\"objectStorage\":\"readable\"}",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "release validator rejects non-authoritative or failed response 200 null",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "release validator accepts exactly the new read-only contract",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "release client rejects network failure",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "release client rejects invalid JSON",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "release client uses a bounded, non-redirecting GET to the read-only route",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "both entrypoints mount the same probe and the release script no longer infers S3 readiness",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      },
+      {
+        "file": "server/tests/coachingNavigation.test.ts",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "server-validated Chef navigation grocery_find_product keeps its existing access boundary and parent-only route",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation grocery_create_meal keeps its existing access boundary and parent-only route",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation product_scan keeps its existing access boundary and parent-only route",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation new destinations match the guarded member entry routes, not specialized builders",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation my_perfect_menu enforces access and disallows handoffs or Production use",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation meal_builders enforces access and disallows handoffs or Production use",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation grocery_find_product resolves only its fixed route",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation product_scan resolves only its fixed route",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation grocery_create_meal resolves only its fixed route",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation sushi_creator resolves only its fixed route",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation craving_creator resolves only its fixed route",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation dessert_creator resolves only its fixed route",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation beverage_creator resolves only its fixed route",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation athlete_beverage_creator resolves only its fixed route",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation hydration_center resolves only its fixed route",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation restaurant_guide resolves only its fixed route",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation find_meals_near_me resolves only its fixed route",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation my_perfect_buffet resolves only its fixed route",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation my_perfect_getaway resolves only its fixed route",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation my_perfect_gatherings resolves only its fixed route",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation fridge_rescue resolves only its fixed route",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation create_a_dish resolves only its fixed route",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation macro_calculator resolves only its fixed route",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation my_perfect_beginning resolves only its fixed route",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation my_perfect_menu resolves only its fixed route",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation meal_builders resolves only its fixed route",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation rejects unknown, paused, or injected target https://evil.example",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation rejects unknown, paused, or injected target //evil.example",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation rejects unknown, paused, or injected target javascript:alert(1)",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation rejects unknown, paused, or injected target /auth",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation rejects unknown, paused, or injected target /lifestyle/beverage-creator?generate=true",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation rejects unknown, paused, or injected target pregnancy_coach",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation rejects unknown, paused, or injected target wine_pairing_ai",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation rejects unknown, paused, or injected target __proto__",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation rejects unknown, paused, or injected target constructor",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation rejects unknown, paused, or injected target made_up_feature",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation clarification needs no navigation; changed preference replaces the action",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation safety escalation suppresses every navigation action",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation non-feature items cannot carry navigation, and production never adds it",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation registry provides clear destination distinctions without activating paused coaches",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation current access guards are reused, not replaced with model eligibility",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation unpaid hydration access is denied even in development",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation enforced Pro/Clinical locks deny navigation and still honor existing temporary access",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation requires authentication, rejects unknown IDs, and stays off outside Development",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation Create a Dish handoff returns only an encoded editable idea after authentication",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation rejects unsupported or unsafe request metadata {\"destinationId\":\"sushi_creator\",\"creatorRequest\":{\"destinationId\":\"create_a_dish\",\"idea\":\"Soup\"}}",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation rejects unsupported or unsafe request metadata {\"destinationId\":\"create_a_dish\",\"creatorRequest\":{\"destinationId\":\"create_a_dish\",\"idea\":\"\"}}",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation rejects unsupported or unsafe request metadata {\"destinationId\":\"create_a_dish\",\"creatorRequest\":{\"destinationId\":\"create_a_dish\",\"idea\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}}",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation rejects unsupported or unsafe request metadata {\"destinationId\":\"create_a_dish\",\"creatorRequest\":{\"destinationId\":\"create_a_dish\",\"idea\":\"Soup\\n\"}}",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation rejects unsupported or unsafe request metadata {\"destinationId\":\"create_a_dish\",\"creatorRequest\":{\"destinationId\":\"create_a_dish\",\"idea\":\"Soup\",\"generate\":true}}",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "server-validated Chef navigation rejects unsupported or unsafe request metadata {\"destinationId\":\"create_a_dish\",\"creatorRequest\":{\"destinationId\":\"create_a_dish\",\"idea\":\"Soup\",\"redirect\":\"https://evil.example\"}}",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      },
+      {
+        "file": "server/tests/stripeEntitlementPipeline.test.ts",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "trusted Stripe entitlement pipeline maps configured price IDs and rejects metadata that disagrees with the price",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "trusted Stripe entitlement pipeline does not depend on a Stripe lookup_key when the configured price is trusted",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "trusted Stripe entitlement pipeline rejects a conflicting Stripe lookup_key even when the price ID is configured",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "trusted Stripe entitlement pipeline exposes duplicate configured price mappings as invalid configuration",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "trusted Stripe entitlement pipeline blocks a live Stripe key outside the production billing owner",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "trusted Stripe entitlement pipeline has one durable raw-body webhook with event claiming and stale-write ordering",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "trusted Stripe entitlement pipeline keeps Clinical Business billing wholly separate from the owner's personal subscription",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "trusted Stripe entitlement pipeline makes stale subscription events no-ops for destructive and business side effects",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "trusted Stripe entitlement pipeline routes business checkout through the same trusted catalog as consumer checkout",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "trusted Stripe entitlement pipeline keeps later Organization seat management separate from initial owner checkout",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "trusted Stripe entitlement pipeline serializes professional invite acceptance with seat reductions",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "trusted Stripe entitlement pipeline database-enforces unique Stripe ownership for users and businesses",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "trusted Stripe entitlement pipeline prevents generic user routes from becoming a paid-entitlement authority",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "trusted Stripe entitlement pipeline fails closed instead of trusting client-supplied iOS purchase claims",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "trusted Stripe entitlement pipeline serializes business checkout and atomically binds organization billing",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "trusted Stripe entitlement pipeline uses one cross-table registry for immutable Stripe identity ownership",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "trusted Stripe entitlement pipeline routes business checkout reconciliation through the atomic business transition",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "trusted Stripe entitlement pipeline retires the self-service ProCare paid-entitlement grant",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "trusted Stripe entitlement pipeline keeps checkout success client data non-authoritative",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "trusted Stripe entitlement pipeline prevents duplicate consumer subscriptions at the authoritative server boundary",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "trusted Stripe entitlement pipeline keeps the canonical webhook outside user auth while requiring raw-body signatures",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "trusted Stripe entitlement pipeline runs the billing migration in development and production boot paths",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      },
+      {
+        "file": "server/tests/savedGroceryEvidenceRoute.test.ts",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "only the authenticated owner can update the exact saved record",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "stale and failed writes leave previous evidence unchanged",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      },
+      {
+        "file": "server/tests/authSessionProbe.test.ts",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "Studio-to-Personal session probe accepts the valid browser session without a token",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "a stale legacy browser token cannot override the valid cookie session",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "native bearer authentication remains supported without a browser session",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "anonymous and pending-MFA sessions are not treated as completed logins",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "changed security state still revokes the browser session",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "the existing idle timeout remains enforced",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      },
+      {
+        "file": "server/tests/clinicalGLP1Authority.test.ts",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "clinician GLP-1 current authority reports only a verified provider claim as current, not the old array",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "clinician GLP-1 current authority binds a clinician claim to an active verified clinic without erasing legacy history",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "clinician GLP-1 current authority does not grant authority without a verified active relationship",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "clinician GLP-1 current authority does not read shadow claims outside Development",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      },
+      {
+        "file": "server/tests/authCredentialPrecedence.test.ts",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "authentication credential precedence uses a valid cookie session even when an old bearer token is present",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "authentication credential precedence rejects an invalid token when no cookie session is present",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "authentication credential precedence continues to support a valid native bearer token",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      },
+      {
+        "file": "server/tests/csrfProtection.test.ts",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "U4 CSRF protection rejects an unsafe request from an untrusted origin before authentication",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "U4 CSRF protection rejects an originless browser form but permits a marked API client",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "U4 CSRF protection does not trust arbitrary Vercel or Replit application origins",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "U4 CSRF protection does not reintroduce browser-reachable localhost in production CORS",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "U4 CSRF protection accepts an exact same-origin request",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "U4 CSRF protection rejects a cookie-authenticated mutation without a synchronizer token",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "U4 CSRF protection cannot bypass a cookie session's CSRF token with a dummy bearer header",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "U4 CSRF protection rejects a mismatched token and accepts the exact token",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "U4 CSRF protection issues CSRF protection for an authenticated MFA-enrollment-pending session",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "U4 CSRF protection requires the issued CSRF token for MFA enrollment mutations",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "U4 CSRF protection preserves the Production login to mandatory-MFA CSRF lifecycle",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "U4 CSRF protection allows exact-origin pre-authentication requests with a stale session",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "U4 CSRF protection still rejects stale-session login from an untrusted origin",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "U4 CSRF protection allows an exact-origin MFA challenge for a pending-MFA session: /api/auth/mfa/challenge",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "U4 CSRF protection allows an exact-origin MFA challenge for a pending-MFA session: /api/auth/mfa/challenge/backup",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "U4 CSRF protection still rejects a pending-MFA challenge from an untrusted origin",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "U4 CSRF protection allows safe methods, public callbacks, and explicit bearer requests",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      },
+      {
+        "file": "server/tests/resolveClinicalMealAuthority.test.ts",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "shadow canonical clinical meal authority (not connected to food reads) never converts a condition label or Builder strategy into an exact hard restriction",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "shadow canonical clinical meal authority (not connected to food reads) holds ambiguous earlier claims for review instead of promoting or silently dropping them",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "shadow canonical clinical meal authority (not connected to food reads) treats a subject-confirmed support source as guidance, not a hard food rule",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "shadow canonical clinical meal authority (not connected to food reads) requires an explicit exact rule and current verified provider ownership",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "shadow canonical clinical meal authority (not connected to food reads) cannot be cleared by a patient's source-level review of an active provider claim",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "shadow canonical clinical meal authority (not connected to food reads) retains a subject-confirmed exact restriction independently of condition guidance",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "shadow canonical clinical meal authority (not connected to food reads) requires review if an active provider directive expires or is discontinued without ending its source",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "shadow canonical clinical meal authority (not connected to food reads) rejects a foreign actor's terminal decision even when another guidance decision exists",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "shadow canonical clinical meal authority (not connected to food reads) keeps superseded provider history while activating only the reviewed replacement",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "shadow canonical clinical meal authority (not connected to food reads) rejects cross-subject decisions, source mismatches and untyped nutrition",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      },
+      {
+        "file": "server/tests/productScanByNameReuse.test.ts",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "by-name service fails closed on a fabricated soy/TRT restriction without mutating historical results",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "existing by-name analysis uses the current subject's profile and supports a category request",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "allergy receives qualified guidance, never unconditional safety clearance",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Alpha-Gal receives qualified guidance, never unconditional safety clearance",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "pregnancy receives qualified guidance, never unconditional safety clearance",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "retains a skip verdict rather than upgrading a conflict to a suggestion",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "unsupported grades do not reject useful guidance or fabricate extra options",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "unavailable profile does not become an unrestricted shopper",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "provider failure remains a retryable analysis failure, not made-up guidance",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "photo-based full-product analysis keeps its exact pre-change prompt",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      },
+      {
+        "file": "client/src/lib/__tests__/savedGroceryAnalysis.test.ts",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "full scanner analysis survives saving and restoring without another lookup",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "full grocery-coach analysis survives saving and restoring without another lookup",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "knowledge-based analysis is preserved without claiming its ingredient guesses are label evidence",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "partial legacy scans retain their actual grade, explanations, and available analysis sections",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "legacy missing or invalid grade undefined is unavailable, never a failed new scan",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "legacy missing or invalid grade Z is unavailable, never a failed new scan",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "legacy missing or invalid grade  is unavailable, never a failed new scan",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "recommendations ignore stray parent grades and retain only their own saved recommendation content",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "a full snapshot takes priority over older recommendation metadata without altering historical content",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "legacy Coach reasons and verification messages remain readable, with no invented grade",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "eligibility language separates missing evidence, incompatibility and resolver availability",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "temporary history is account-owned across logout/login and never imports unowned legacy history",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      },
+      {
+        "file": "server/tests/currentGLP1MealAuthority.test.ts",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "Development GLP-1 meal authority ignores ambiguous and historical legacy data under anti_inflammatory",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Development GLP-1 meal authority ignores ambiguous and historical legacy data under diabetic",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Development GLP-1 meal authority activates from GLP-1 Builder, then stops when it is left, without editing medical history",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Development GLP-1 meal authority keeps a verified current provider source under another Builder",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Development GLP-1 meal authority keeps a verified current medication source under another Builder",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Development GLP-1 meal authority does not transfer owner medication or clinician authority to a household member",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Development GLP-1 meal authority fails closed if current clinical authority cannot be checked",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Development GLP-1 meal authority does not read shadow claims in Production",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      },
+      {
+        "file": "server/tests/accessTier.test.ts",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "resolveAccessTier — trial window (a) grants PAID_FULL when trialEndsAt is a future Date",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "resolveAccessTier — trial window (a) grants PAID_FULL when trialEndsAt is a future ISO string",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "resolveAccessTier — trial window (a) grants PAID_FULL when trial expires far in the future (7 days ahead)",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "resolveAccessTier — trial window (b) returns FREE when trialEndsAt is in the past",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "resolveAccessTier — trial window (b) returns FREE when trialEndsAt is a past ISO string",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "resolveAccessTier — trial window (b) returns FREE when trialEndsAt equals now exactly (boundary: not strictly less than)",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "resolveAccessTier — trial window (b) returns FREE when trial expired long ago (30 days past)",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "resolveAccessTier — trial window (c) returns FREE for a new user with no trialEndsAt field",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "resolveAccessTier — trial window (c) returns FREE when trialEndsAt is null",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "resolveAccessTier — trial window (c) returns FREE when trialEndsAt is undefined",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "resolveAccessTier — trial window founders bypass trial logic entirely and always get PAID_FULL",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "resolveAccessTier — trial window an active paid plan short-circuits before the trial check",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      },
+      {
+        "file": "server/tests/myPerfectMenuEssentialAccess.test.ts",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "My Perfect Menu Essential access begins at Essential and remains included in higher consumer tiers",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "My Perfect Menu Essential access appears in Essential subscription copy on web and iOS",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "My Perfect Menu Essential access uses Essential access guards on both server and client",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      },
+      {
+        "file": "server/tests/procareConsumerAccess.test.ts",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "consumer ProCare eligibility allows Pro-or-higher plan mpm_premium to connect with a trainer",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "consumer ProCare eligibility allows Pro-or-higher plan mpm_premium_monthly to connect with a trainer",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "consumer ProCare eligibility allows Pro-or-higher plan mpm_ultimate to connect with a trainer",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "consumer ProCare eligibility allows Pro-or-higher plan mpm_ultimate_monthly to connect with a trainer",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "consumer ProCare eligibility requires Pro for plan mpm_free to connect with a trainer",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "consumer ProCare eligibility requires Pro for plan mpm_basic to connect with a trainer",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "consumer ProCare eligibility requires Pro for plan mpm_basic_monthly to connect with a trainer",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "consumer ProCare eligibility keeps physician, dietitian, and nurse-practitioner relationships Clinical-only",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "consumer ProCare eligibility fails closed for unsupported provider roles",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "coach client-data filtering withholds Clinical-only fields from coaches and trainers",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "coach client-data filtering preserves the authorized Clinical summary for physicians",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      }
+    ]
+  },
+  "additionalRecommendationSelection": {
+    "passedSuites": 1,
+    "failedSuites": 0,
+    "passedTests": 43,
+    "failedTests": 0,
+    "pendingTests": 0,
+    "suites": [
+      {
+        "file": "client/src/lib/__tests__/savedRecommendationProducts.test.tsx",
+        "status": "passed",
+        "assertions": [
+          {
+            "name": "Juice: saving the second card stores only the second exact product and its own explanation",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "each existing Add action passes that card's complete product identity",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "reopening after logout/login fetches the persisted second product, not a local saved flag",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "a different account never inherits another account's saved badge",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "a late save response from the previous account cannot populate the current account cache",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "failed saves remain retryable and do not show a saved badge",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "rapid repeated saves create only one write for that card",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "a response for a different product cannot mark the clicked recommendation saved",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "legacy saved rows still reopen with their stored brand and without new recommendation metadata",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "separate supplied brand and product fields are retained without guessing or doubling the label",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "saved-library reopening retains the product, reasons and warnings, and re-adding uses its saved ID",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "the shared scanner bookmark retains the original analysis and correct source",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "the shared grocery-coach bookmark retains the original analysis and correct source",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "a newly saved full graded scan reopens with the original analysis content and grade presentation",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "legacy analysis with grade C shows genuine historical content without scan-failure messaging",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "legacy analysis with grade undefined shows genuine historical content without scan-failure messaging",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "saved recommendations retain identity, brand, package and criteria without a parent grade or failed-scan presentation",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "an unanalyzed recommendation shows each benefit once, a prominent action and one short source notice without a failed-label warning",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "recommendation cleanup preserves incompatible restrictions",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "recommendation cleanup preserves profile_unavailable restrictions",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "a partial historical scorecard displays only the genuinely saved assessment",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "a saved recommendation is analyzed only after an explicit click, then reopens its own persisted result without another request",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "a late analysis result cannot follow the customer into another account",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "uncertain generation failures do not auto-retry and explicit retries retain the same operation ID",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "companion saved recommendations never offer human analysis",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "an older backend without analysis capability keeps recommendation viewing working without exposing a broken paid action",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Product Scan uses the same four-section layout with optional details and visible restrictions",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Grocery Coach uses the same four-section layout with optional details and visible restrictions",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Saved Groceries uses the same four-section layout with optional details and visible restrictions",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Meal ingredient brands uses the same four-section layout with optional details and visible restrictions",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Biometrics uses the same four-section layout with optional details and visible restrictions",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Companion uses the same four-section layout with optional details and visible restrictions",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "reopening a saved front-label snapshot never offers or runs a new by-name analysis",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "a blocked legacy Coach product has a working View Analysis and label-verification action",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "an open saved analysis never follows the customer into another account",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "a split-brand recommendation recognizes the same legacy full-name scan without a duplicate save",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "scan bookmarks preserve name fallback without conflating conflicting UPCs",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "scan bookmarks preserve name fallback without conflating conflicting UPCs",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "Update Saved Analysis attaches the already-generated result to the existing recommendation without deleting or calling AI",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "View Saved Analysis restores the saved printout locally and only the separate Remove action can delete it",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "a stale attachment shows uncertainty without silently retrying, deleting or generating another result",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "a first-save race attaches to the returned authoritative recommendation instead of creating another product",
+            "status": "passed",
+            "failures": []
+          },
+          {
+            "name": "a late attachment response cannot update the next account's card or cache",
+            "status": "passed",
+            "failures": []
+          }
+        ]
+      }
+    ]
+  },
+  "combinedFinal": {
+    "passedSuites": 23,
+    "failedSuites": 1,
+    "passedTests": 342,
+    "failedTests": 1
+  }
+}

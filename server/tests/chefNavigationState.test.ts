@@ -20,6 +20,7 @@ import { getCornerCapabilities } from "../services/coaching/capabilityRegistry";
 import { loadPendingRecommendation } from "../services/coaching/conciergeNavigationState";
 import CoachBubble from "../../client/src/components/coaching/CoachBubble";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
+import { FEATURE_USAGE_KNOWLEDGE } from "../services/coaching/featureUsageKnowledge";
 
 const originalEnvironment = process.env.NODE_ENV;
 const subject = { subjectType: "user" as const, subjectId: "member", ownerId: "member" };
@@ -27,6 +28,9 @@ const unknown = { activity: "unknown", occasion: "unknown", restaurant: "unknown
   dishChosen: false, specialty: "none", explicitFeatureId: null };
 const travel = { ...unknown, activity: "travel" };
 const dessert = { ...unknown, activity: "prepare", occasion: "dessert" };
+const craving = { ...unknown, activity: "prepare", occasion: "snack" };
+const cravingQuestion = "Would you like to open the Craving Creator to make a small portion of ice cream?";
+const cravingHandoff = "To begin making your small portion of ice cream, open the Craving Creator and describe your craving.";
 const request = "I'm going on a Carnival cruise. Can you help me find somewhere to eat?";
 const invitation = "My Perfect Getaway can help explore your cruise dining options. Would you like to use it?";
 const guidance = "Great. Search your cruise or destination, then choose a dining area if prompted.";
@@ -244,6 +248,141 @@ test("Find Meals assistance confirms into the meal-generating screen, not the li
   expect(COACH_DESTINATIONS.find_meals_near_me.access).toBe("pro");
 });
 
+test.each(["development", "production"])(
+  "%s: the four-turn small ice-cream sequence persists a Craving recommendation and confirms on the first yes", async environment => {
+    process.env.NODE_ENV = environment;
+    const history: Array<{ role: string; content: string }> = [];
+    const turns = [
+      { input: "I want some ice cream.", output: {
+        message: "Are you looking to buy some ice cream from the store, or are you interested in making your own ice cream at home?",
+        navigationIntent: "none", conciergeDecision: null,
+      } },
+      { input: "make it myself", output: {
+        message: "You can use Craving Creator for a small portion or Dessert Creator for a larger batch. Would you like a small portion or larger dessert recipe?",
+        navigationIntent: "none", conciergeDecision: null,
+      } },
+      { input: "small", output: {
+        message: cravingQuestion, navigationIntent: "recommendation", recommendationMessage: cravingQuestion,
+        conciergeDecision: { mode: "food_assistance", destinationId: "craving_creator", goal: craving },
+      } },
+      { input: "yes", output: {
+        message: cravingHandoff, handoffMessage: cravingHandoff,
+        navigationIntent: "confirmed", conciergeDecision: null,
+      } },
+    ];
+    for (const [index, turn] of turns.entries()) {
+      (loadBoundedHistory as jest.Mock).mockResolvedValue({ recentMessages: [...history], rollingContext: null });
+      model({ conversationMessage: null, recommendationMessage: null, handoffMessage: null, ...turn.output });
+      const response = await run(turn.input);
+      expect(response.meta.redFlag).toBe(false);
+      const wire = JSON.parse(mockCreate.mock.calls[index][0].messages[1].content);
+      expect(wire.latestMemberMessage).toBe(turn.input);
+      expect(wire.history).toEqual(history);
+      if (index < 2) {
+        expect(response.presentation?.navigation).toBeUndefined();
+        expect(html(response)).not.toContain("<button");
+      } else if (index === 2) {
+        expect(response.presentation?.navigation).toMatchObject({
+          state: "recommendation_pending", destinationId: "craving_creator", goal: craving,
+        });
+        expect(stored.presentation.navigation.destinationId).toBe("craving_creator");
+        expect(await loadPendingRecommendation("owned-conversation", "member"))
+          .toMatchObject({ state: "recommendation_pending", destinationId: "craving_creator" });
+        expect(html(response)).not.toContain("<button");
+      } else {
+        expect(wire.pendingRecommendation).toMatchObject({
+          state: "recommendation_pending", destinationId: "craving_creator",
+        });
+        expect(response.presentation?.navigation?.state).toBe("navigation_confirmed");
+        expect(response.presentation?.destinationId).toBe("craving_creator");
+        expect(response.todayPlan.items).toEqual([expect.objectContaining({
+          kind: "use_feature", destinationId: "craving_creator", featureTarget: "craving_creator",
+        })]);
+        expect(response.presentation?.message).toBe(cravingHandoff);
+        expect(html(response).match(/<button/g)).toHaveLength(1);
+        expect(html(response)).toContain("Open craving_creator");
+        expect(stored.presentation.navigation.state).toBe("navigation_confirmed");
+        expect(await loadPendingRecommendation("owned-conversation", "member")).toBeUndefined();
+      }
+      history.push({ role: "user", content: turn.input },
+        { role: "assistant", content: response.presentation?.message ?? "" });
+    }
+    expect(mockCreate).toHaveBeenCalledTimes(4);
+  });
+
+test.each([
+  { recommendationMessage: undefined, destinationId: "craving_creator", navigationIntent: "recommendation" },
+  { recommendationMessage: null, destinationId: "craving_creator", navigationIntent: "recommendation" },
+  { recommendationMessage: null, destinationId: null, navigationIntent: "recommendation" },
+  { recommendationMessage: null, destinationId: "craving_creator", navigationIntent: "none" },
+])("ready structured craving goals recover omitted recommendation variants without early consent: %j", async variant => {
+  model({ navigationIntent: variant.navigationIntent, message: cravingQuestion,
+    recommendationMessage: variant.recommendationMessage, conversationMessage: null,
+    conciergeDecision: { mode: "food_assistance", destinationId: variant.destinationId, goal: craving } });
+  const offer = await run("I want to make a small portion of ice cream.");
+  expect(offer.presentation?.message).toBe(cravingQuestion);
+  expect(offer.presentation?.navigation).toMatchObject({
+    state: "recommendation_pending", destinationId: "craving_creator",
+  });
+  expect(offer.presentation?.destinationId).toBeUndefined();
+  expect(html(offer)).not.toContain("<button");
+  model({ navigationIntent: "confirmed", conciergeDecision: null, handoffMessage: null,
+    message: cravingHandoff, recommendationMessage: null });
+  const confirmed = await run("yes");
+  expect(confirmed.presentation?.destinationId).toBe("craving_creator");
+  expect(confirmed.presentation?.navigation?.state).toBe("navigation_confirmed");
+  expect(confirmed.todayPlan.items[0]).toMatchObject({ kind: "use_feature", destinationId: "craving_creator" });
+  expect(html(confirmed).match(/<button/g)).toHaveLength(1);
+});
+
+test.each([undefined, null])(
+  "naming Craving Creator without any structured decision cannot manufacture a pending recommendation: %s", async decision => {
+    model({ navigationIntent: "recommendation", conciergeDecision: decision,
+      message: cravingQuestion, recommendationMessage: cravingQuestion, conversationMessage: null });
+    const response = await run("small");
+    expect(response.presentation?.message).not.toBe(cravingQuestion);
+    expect(response.presentation?.navigation).toBeUndefined();
+    expect(response.presentation?.destinationId).toBeUndefined();
+    expect(await loadPendingRecommendation("owned-conversation", "member")).toBeUndefined();
+    model({ navigationIntent: "confirmed", conciergeDecision: null,
+      message: "What would you like help with?", handoffMessage: cravingHandoff });
+    const unboundYes = await run("yes");
+    expect(unboundYes.presentation?.destinationId).toBeUndefined();
+    expect(html(unboundYes)).not.toContain("<button");
+  });
+
+test("a Craving label cannot override incompatible goal metadata", async () => {
+  model({ navigationIntent: "recommendation", message: cravingQuestion,
+    recommendationMessage: cravingQuestion, conversationMessage: null,
+    conciergeDecision: { mode: "food_assistance", destinationId: "craving_creator", goal: dessert } });
+  const response = await run("small");
+  expect(response.presentation?.navigation).toBeUndefined();
+  expect(response.presentation?.destinationId).toBeUndefined();
+  expect(html(response)).not.toContain("<button");
+});
+
+test("Craving confirmation recovery cannot bypass newly revoked access", async () => {
+  model({ navigationIntent: "recommendation", message: cravingQuestion, recommendationMessage: cravingQuestion,
+    conciergeDecision: { mode: "food_assistance", destinationId: "craving_creator", goal: craving } });
+  await run("Help me make a small portion of ice cream.");
+  (getAdapter as jest.Mock)().availableTools = [];
+  model({ navigationIntent: "confirmed", conciergeDecision: null, handoffMessage: null,
+    message: cravingHandoff, conversationMessage: "This feature is not available in your current access." });
+  expect(html(await run("yes"))).not.toContain("<button");
+});
+
+test("an emergency after a Craving offer clears the offer before model confirmation or rendering", async () => {
+  model({ navigationIntent: "recommendation", message: cravingQuestion, recommendationMessage: cravingQuestion,
+    conciergeDecision: { mode: "food_assistance", destinationId: "craving_creator", goal: craving } });
+  await run("Help me make a small portion of ice cream.");
+  const response = await run("yes, but I have chest pain");
+  expect(response.meta.redFlag).toBe(true);
+  expect(response.presentation?.destinationId).toBeUndefined();
+  expect(html(response)).not.toContain("<button");
+  expect(await loadPendingRecommendation("owned-conversation", "member")).toBeUndefined();
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
 test("a correction replaces pending intent rather than confirming the old destination", async () => {
   model(); await run(request);
   model({ navigationIntent: "recommendation",
@@ -287,18 +426,124 @@ test.each([null, "Let's get you started."])("invalid recommendation wording fail
   expect(result.presentation?.message).not.toContain("get you started");
 });
 
-test("confirmation cannot show a button without model-authored handoff guidance", async () => {
+test("confirmed consent survives a missing handoff variant using verified starting instructions", async () => {
   model(); await run(request);
   model({ navigationIntent: "confirmed", handoffMessage: null });
   const result = await run("Yes.");
-  expect(html(result)).not.toContain("<button");
-  expect(result.presentation?.navigation?.state).toBe("recommendation_pending");
+  expect(html(result)).toContain("<button");
+  expect(result.presentation?.navigation?.state).toBe("navigation_confirmed");
+  expect(result.presentation?.message).toBe(FEATURE_USAGE_KNOWLEDGE.my_perfect_getaway!.descriptionInput);
 });
 
-test("a button cannot reuse the recommendation pitch as its handoff", async () => {
+test("a repeated recommendation pitch is replaced with verified guidance after consent", async () => {
   model(); await run(request);
   model({ navigationIntent: "confirmed", handoffMessage: invitation });
-  expect(html(await run("Yes."))).not.toContain("<button");
+  const result = await run("Yes.");
+  expect(html(result)).toContain("<button");
+  expect(result.presentation?.message).not.toContain(invitation);
+  expect(result.presentation?.message).toBe(FEATURE_USAGE_KNOWLEDGE.my_perfect_getaway!.descriptionInput);
+});
+
+test.each(["development", "production"])(
+  "%s: restaurant permission question persists atomically and one yes renders exactly one button", async environment => {
+    process.env.NODE_ENV = environment;
+    const question = "I can help explore nearby restaurants. Would you like me to assist you in discovering options?";
+    const goal = { ...unknown, activity: "eat_out", restaurant: "not_chosen" };
+    model({ navigationIntent: "recommendation",
+      conciergeDecision: { mode: "food_assistance", destinationId: "find_meals_near_me", goal },
+      recommendationMessage: question });
+    const offer = await run("I wanna go to a restaurant to get ice cream.");
+    expect(offer.presentation?.message).toBe(question);
+    expect(offer.presentation?.navigation?.state).toBe("recommendation_pending");
+    expect(stored.presentation.navigation.destinationId).toBe("find_meals_near_me");
+    expect(html(offer)).not.toContain("<button");
+    model({ navigationIntent: "confirmed", conciergeDecision: null, handoffMessage: null,
+      recommendationMessage: question, message: "Would you like to proceed with finding some options?",
+      conversationMessage: ":)" });
+    const confirmed = await run("yes");
+    expect(confirmed.presentation?.navigation?.state).toBe("navigation_confirmed");
+    expect(confirmed.presentation?.destinationId).toBe("find_meals_near_me");
+    expect(confirmed.presentation?.message).toBe(FEATURE_USAGE_KNOWLEDGE.find_meals_near_me!.descriptionInput);
+    expect(confirmed.presentation?.message).not.toMatch(/[?？؟]/u);
+    expect(html(confirmed).match(/<button/g)).toHaveLength(1);
+    expect(confirmed.meta.redFlag).toBe(false);
+    expect(mockCreate).toHaveBeenCalledTimes(2);
+    // Completed handoffs are not new pending recommendations.
+    model({ navigationIntent: "confirmed", conciergeDecision: null, message: "What would you like help with?" });
+    expect((await run("yes")).presentation?.destinationId).toBeUndefined();
+  });
+
+test.each([
+  "Would you like to open Find Meals Near Me?",
+  "Would you like me to assist you in discovering nearby restaurants?",
+  "Would you like to proceed with finding some options?",
+])("unstructured permission questions cannot be displayed or persisted as confirmable offers: %s", async message => {
+  model({ navigationIntent: "none", conciergeDecision: null, message, conversationMessage: null });
+  const response = await run("I wanna go to a restaurant to get ice cream.");
+  expect(response.presentation?.message).not.toBe(message);
+  expect(response.presentation?.navigation).toBeUndefined();
+  expect(response.presentation?.destinationId).toBeUndefined();
+  expect(stored.presentation.navigation).toBeUndefined();
+  model({ navigationIntent: "confirmed", conciergeDecision: null, message: "What would you like help with?" });
+  expect(html(await run("yes"))).not.toContain("<button");
+});
+
+test("a recommendation intent without its decision cannot display an unconfirmable permission question", async () => {
+  model({ navigationIntent: "recommendation", conciergeDecision: null,
+    message: "Would you like to use Find Meals Near Me?", conversationMessage: null });
+  const response = await run("Help me find somewhere nearby.");
+  expect(response.meta.concierge?.rendering).toBe("retry");
+  expect(response.presentation?.navigation).toBeUndefined();
+});
+
+test.each([null, ":)", "Would you like to proceed?"])(
+  "unusable confirmed handoff %s cannot trigger another permission cycle", async handoffMessage => {
+    model(); await run(request);
+    model({ navigationIntent: "confirmed", conciergeDecision: null, handoffMessage,
+      message: "Would you like to proceed?", conversationMessage: null });
+    const result = await run("Yes.");
+    expect(result.presentation?.navigation?.state).toBe("navigation_confirmed");
+    expect(result.presentation?.message).toBe(FEATURE_USAGE_KNOWLEDGE.my_perfect_getaway!.descriptionInput);
+    expect(html(result).match(/<button/g)).toHaveLength(1);
+  });
+
+test.each([
+  undefined,
+  { presentation: { navigation: { state: "recommendation_pending", destinationId: "unapproved", goal: travel } } },
+  { presentation: { navigation: { state: "recommendation_pending", destinationId: "my_perfect_getaway", goal: {} } } },
+  { presentation: { navigation: { state: "navigation_confirmed", destinationId: "my_perfect_getaway", goal: travel } } },
+])("missing, invalid and consumed pending records cannot obtain a fallback-authorized button: %j", async record => {
+  stored = record;
+  model({ navigationIntent: "confirmed", conciergeDecision: null, handoffMessage: null,
+    message: "What would you like help with?", conversationMessage: null });
+  const result = await run("yes");
+  expect(result.presentation?.destinationId).toBeUndefined();
+  expect(html(result)).not.toContain("<button");
+});
+
+test("handoff recovery cannot bypass access revoked since the recommendation", async () => {
+  model(); await run(request);
+  (getAdapter as jest.Mock)().availableTools = [];
+  model({ navigationIntent: "confirmed", conciergeDecision: null, handoffMessage: null,
+    message: "Would you like to proceed?", conversationMessage: "This feature is not available in your current access." });
+  const result = await run("yes");
+  expect(result.presentation?.destinationId).toBeUndefined();
+  expect(result.presentation?.navigation).toBeUndefined();
+  expect(html(result)).not.toContain("<button");
+});
+
+test("a confirmed destination without reviewed control guidance uses only its existing button label", async () => {
+  model({ navigationIntent: "recommendation", conciergeDecision: {
+    mode: "food_assistance", destinationId: "sushi_creator",
+    goal: { ...unknown, activity: "prepare", specialty: "sushi" },
+  }, recommendationMessage: "Would you like to use Sushi Creator?" });
+  await run("Help me make sushi.");
+  model({ navigationIntent: "confirmed", conciergeDecision: null,
+    handoffMessage: null, message: ":)", conversationMessage: null });
+  const result = await run("yes");
+  expect(result.presentation?.destinationId).toBe("sushi_creator");
+  expect(result.presentation?.message).toBe("Use the Open Sushi Creator button.");
+  expect(html(result).match(/<button/g)).toHaveLength(1);
 });
 
 test("a model cannot turn competing named direct choices into one approved destination", async () => {
@@ -376,15 +621,15 @@ test("a false initial confirmed label can recover a proposal, never confirmation
   expect(html(result)).not.toContain("<button");
 });
 
-test("missing handoff preserves owned pending state even when no safe continuation exists", async () => {
+test("missing handoff uses verified instructions even when no safe model continuation exists", async () => {
   model(); await run(request);
   model({ navigationIntent: "confirmed", handoffMessage: null,
     conversationMessage: "Open My Perfect Getaway now." });
   const result = await run("Yes.");
-  expect(result.meta.concierge?.rendering).toBe("retry");
-  expect(html(result)).not.toContain("<button");
-  expect(await loadPendingRecommendation("owned-conversation", "member"))
-    .toMatchObject({ state: "recommendation_pending" });
+  expect(result.meta.concierge?.rendering).toBe("primary");
+  expect(html(result)).toContain("<button");
+  expect(result.presentation?.message).toBe(FEATURE_USAGE_KNOWLEDGE.my_perfect_getaway!.descriptionInput);
+  expect(await loadPendingRecommendation("owned-conversation", "member")).toBeUndefined();
 });
 
 test("a direct request without handoff wording remains conversational, not button-authorizing", async () => {

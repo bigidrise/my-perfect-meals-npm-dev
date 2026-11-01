@@ -9,24 +9,6 @@ Run focused Jest checks with isolated transpilation and perform TypeScript check
 
 **How to apply:** Enable ts-jest's isolated compilation mode for the test invocation, without changing the app's TypeScript configuration. Keep the separate release type gate. On the current Jest setup, the invocation-level override `--globals='{"ts-jest":{"isolatedModules":true}}'` works, though ts-jest warns that this configuration form is deprecated.
 
-Temporary inline Jest configurations must preserve narrow test roots; explicit test-file arguments do not replace limiting discovery.
-
-**Why:** A temporary configuration without roots spent its time before test results appeared. An inline configuration with bounded roots and transformer-level isolated compilation completed the regression checks without changing project configuration.
-
-**How to apply:** Retain the relevant configured test roots in diagnostic overrides. If a run emits only configuration warnings, do not report tests as passed; preserve its log and use a bounded configuration.
-
-Do not apply a focused-test heap limit to the root TypeScript release check.
-
-**Why:** A 2 GB heap exhausted on both an untouched Production-source base and its isolated candidate before either produced diagnostics. That is an execution-resource failure, not evidence of changed TypeScript debt.
-
-**How to apply:** Give the root compiler an adequate separate heap budget, such as 6 GB, and rerun only the failed type layer. Preserve valid build and safety-check results; never refresh a diagnostic baseline to address an out-of-memory failure.
-
-Verify a nested worktree's actual repository root and revision before editing or using Git there.
-
-**Why:** A restored nested worktree lost its `.git` link while its files and registration survived. `git -C` silently fell through to the parent repository instead of reporting the candidate revision.
-
-**How to apply:** Check `rev-parse --show-toplevel` and the expected commit, not just directory existence. Repair the existing Development worktree registration before proceeding; never substitute edits or commits in the parent checkout.
-
 Do not rely on a release-check wrapper's cleanup when an external shell deadline
 can kill it during synchronous compilation. Preserve ignored generated build
 metadata before imposing such a deadline; remove only a confirmed abandoned lock.

@@ -13,6 +13,8 @@ import { CORNER_UNSUPPORTED_FEATURES } from "./capabilityRegistry";
 import type { ChefCreatorRequest } from "../../../shared/coaching/creatorRequest";
 import { getDevelopmentPlatformKnowledge, PLATFORM_GUIDANCE_INSTRUCTIONS } from "./platformKnowledge";
 import type { PendingRecommendation } from "./conciergeNavigationState";
+import type { ChefKnowledgeAccess } from "./platformKnowledgeAccess";
+import { FEATURE_USAGE_KNOWLEDGE } from "./featureUsageKnowledge";
 
 const TurnSchema = ConciergeMessageSchema.extend({
   // Semantic consent is separate from choosing a suitable food destination.
@@ -28,6 +30,8 @@ const TurnSchema = ConciergeMessageSchema.extend({
   redFlag: z.boolean().default(false),
   redFlagReason: z.string().max(1000).nullish().transform(value => value ?? undefined),
   contactCare: z.string().max(1000).nullish().transform(value => value ?? undefined),
+  // Missing/invalid classification retains the legacy fail-closed referral path.
+  careDisposition: z.enum(["none", "routine_caveat", "referral", "emergency"]).optional().catch(undefined),
   creatorRequest: CreatorRequestEvidenceSchema.optional().catch(undefined),
 });
 
@@ -35,26 +39,29 @@ const destinationIds = Object.keys(COACH_DESTINATIONS) as [CoachDestinationId, .
 // Provider-enforced structure, not another reasoning/rendering pass. Nullable
 // fields are explicit because strict structured output requires every key.
 const ModelTurnSchema = z.object({
-  message: z.string(),
+  message: z.string().describe("Actual useful reply. A question offering to open/use a feature or help carry out its workflow MUST include the corresponding food_assistance conciergeDecision, ready goal and recommendation navigationIntent. Never ask unstructured permission to assist."),
   conversationMessage: z.string().nullable(),
   navigationIntent: z.enum(["none", "recommendation", "confirmed", "direct_request"]),
   recommendationMessage: z.string().nullable(),
-  handoffMessage: z.string().nullable(),
+  handoffMessage: z.string().nullable().describe("Required on confirmed/direct navigation: concise acknowledgement and verified starting instructions, no repeated permission question. Null only when no handoff is intended."),
   conciergeDecision: z.object({
     mode: z.enum(["food_assistance", "nutrition_education", "behavioral_coaching", "clarification"]),
     destinationId: z.enum(destinationIds).nullable(),
     goal: ConciergeGoalSchema.extend({ explicitFeatureId: z.enum(destinationIds).nullable() }),
-  }).nullable(),
+  }).nullable().describe("Required for every feature/workflow permission offer, even before consent. Null only for ordinary discussion or unresolved clarification, never for an offer to proceed with a single ready workflow."),
   creatorRequest: z.object({ idea: z.string(), memberTurns: z.array(z.number().int()) }).nullable(),
   redFlag: z.boolean(),
   redFlagReason: z.string().nullable(),
   contactCare: z.string().nullable(),
+  careDisposition: z.enum(["none", "routine_caveat", "referral", "emergency"]),
 });
 
 /** Output isolation, not intent routing: never reuse a rejected feature pitch. */
 function independentConversation(message: string | null | undefined, allowedDestinationId?: CoachDestinationId,
   allowFeatureMentions = false): string | undefined {
-  if (!message) return undefined;
+  // Symbol-only nullable-field placeholders are not useful conversation or
+  // consent. This is output validation, not classification of food intent.
+  if (!message || !/[\p{L}\p{N}]/u.test(message)) return undefined;
   const lower = message.toLocaleLowerCase();
   // Match longer labels first: "Athlete Beverage Creator" includes "Beverage
   // Creator", but authorizing one must not authorize an additional other tool.
@@ -72,12 +79,27 @@ function independentConversation(message: string | null | undefined, allowedDest
   return message;
 }
 
+/** Screen model OUTPUT only. This never interprets a member's yes, chooses a
+ * destination, infers a goal or grants consent. Prevent unconfirmable bridge
+ * questions from bypassing the structured recommendation contract. */
+function navigationPermissionQuestion(message: string | null | undefined): boolean {
+  return !!message && message.split(/[.!?？؟\n]/u).some(sentence =>
+    !/\b(?:or|rather than|instead of)\b/i.test(sentence) &&
+    /^\s*(?:would you like|do you want|shall (?:I|we)|should (?:I|we)|may I|can I (?:help|assist)|ready to)\b/i.test(sentence) &&
+    /\b(?:open|use|launch|proceed|continue|start|find|search|discover|explore|assist|help)\b/i.test(sentence));
+}
+
+function ordinaryConversation(message: string | null | undefined): string | undefined {
+  return navigationPermissionQuestion(message) ? undefined : independentConversation(message, undefined, true);
+}
+
 // Output screening only, never interpretation of member intent or authorization.
 // A feature name is harmless in a standalone explanation. Opening/transfer claims
 // and instructions are not an independent continuation of a rejected action.
-function conversationalContinuation(message: string | null | undefined): string | undefined {
+function conversationalContinuation(message: string | null | undefined, structuredOffer = false): string | undefined {
   const text = independentConversation(message, undefined, true);
-  if (!text || /\b(?:open|launch|navigate|click|tap|press|redirect|transfer|take you|taking you|send you|get you started|getting you started|button)\b/i.test(text)) {
+  if (!text || (!structuredOffer && navigationPermissionQuestion(text)) ||
+    /\b(?:open|launch|navigate|click|tap|press|redirect|transfer|take you|taking you|send you|get you started|getting you started|button)\b/i.test(text)) {
     return undefined;
   }
   return text;
@@ -116,6 +138,7 @@ export async function runConciergeConversation(params: {
   rollingContext: string | null; context: Record<string, unknown>; tools: CoachingTool[];
   preferredLanguage?: string;
   pendingRecommendation?: PendingRecommendation;
+  knowledgeAccess?: ChefKnowledgeAccess;
   requestId?: string;
 }): Promise<CoachResponse> {
   const memberMessages = [...params.history.filter(m => m.role === "user").map(m => m.content), params.userMessage];
@@ -138,7 +161,7 @@ export async function runConciergeConversation(params: {
         { role: "user", content: JSON.stringify({
           authorizedNutritionContext: params.context.coachingContextBlock ?? params.context,
           availableFeatures: params.tools.map(({ id, label, description }) => ({ id, label, description })),
-          platformKnowledge: getDevelopmentPlatformKnowledge(),
+          platformKnowledge: getDevelopmentPlatformKnowledge(params.knowledgeAccess),
           unsupportedFeatures: CORNER_UNSUPPORTED_FEATURES,
           earlierConversation: params.rollingContext,
           pendingRecommendation: params.pendingRecommendation ?? null,
@@ -150,17 +173,26 @@ export async function runConciergeConversation(params: {
     });
     stage = "parsing";
     const turn = TurnSchema.parse(JSON.parse(completion.choices[0]?.message?.content ?? "{}"));
-    if (turn.redFlag || turn.contactCare) {
+    const classifiedCare = turn.careDisposition === "referral" || turn.careDisposition === "emergency";
+    // Explicit no-care classifications own inactive fields. Live structured
+    // outputs can fill unused nullable strings with placeholders; presence alone
+    // is not a clinical decision. Unclassified legacy care still fails closed.
+    const requiredCare = !!turn.contactCare?.trim() && turn.careDisposition === undefined;
+    if (turn.redFlag || classifiedCare || requiredCare) {
       diagnostic("safety_rejected_navigation", "safety_escalation");
       return buildSafetyResponse({
-        triggered: true, class: "escalate", reason: "concierge_care_escalation",
-        suggestedResponse: turn.contactCare ? [turn.message, turn.contactCare].filter(Boolean).join("\n\n") : turn.redFlagReason ?? turn.message ?? undefined,
+        triggered: true, class: turn.careDisposition === "emergency" ? "emergency" : "escalate",
+        reason: "concierge_care_escalation",
+        suggestedResponse: turn.contactCare
+          ? [...new Set([turn.message, turn.contactCare].filter(Boolean))].join("\n\n")
+          : turn.redFlagReason ?? turn.message ?? undefined,
       }) as CoachResponse;
     }
     stage = "decision";
     const acceptingPending = turn.navigationIntent === "confirmed" && params.pendingRecommendation;
     if (turn.conciergeDecision == null && !acceptingPending) {
-      const message = turn.message ?? conversationalContinuation(turn.conversationMessage);
+      const message = (turn.navigationIntent === "recommendation" ? undefined : ordinaryConversation(turn.message)) ??
+        conversationalContinuation(turn.conversationMessage);
       if (!message) throw new DecisionFailure("unusable_conversational_response");
       diagnostic("no_navigation", turn.navigationIntent === "confirmed" ? "missing_pending_recommendation" : undefined);
       return envelope(message);
@@ -206,7 +238,8 @@ export async function runConciergeConversation(params: {
     }
     const destinationId = decision?.destinationId as NonNullable<CoachResponse["presentation"]>["destinationId"];
     if (!destinationId || !decision?.goal) {
-      const message = turn.message ?? conversationalContinuation(turn.conversationMessage);
+      const message = ordinaryConversation(turn.message) ??
+        conversationalContinuation(turn.conversationMessage);
       if (!message) throw new DecisionFailure("unusable_conversational_response");
       return envelope(message);
     }
@@ -232,7 +265,7 @@ export async function runConciergeConversation(params: {
         .map((text, index) => ({ text: independentConversation(text, destinationId), dedicated: index === 0 }))
         .find(({ text, dedicated }) => text && /[?？؟]/u.test(text) &&
           (dedicated || mentionsCoachDestination(text, destinationId)) &&
-          conversationalContinuation(text.replace(/\b(?:open|use)\b/gi, "")));
+          conversationalContinuation(text.replace(/\b(?:open|use)\b/gi, ""), true));
       if (!recommendation) return rejectAction("missing_recommendation_wording");
       if (!recommendation.dedicated) diagnostic("recommendation_recovered", "missing_recommendation_wording");
       const response = envelope(recommendation.text!);
@@ -242,9 +275,26 @@ export async function runConciergeConversation(params: {
       diagnostic("recommendation_pending");
       return response;
     }
-    // No recovery from message/conversationMessage may manufacture a handoff.
-    const handoff = independentConversation(turn.handoffMessage, destinationId);
-    if (!handoff || handoff === turn.recommendationMessage) return rejectAction("missing_handoff_wording", !!confirmed);
+    // Consent, readiness, destination and current entitlement have already been
+    // validated above. Missing model wording must not ask for that consent again.
+    // Recovery changes text ONLY, never destination or authorization.
+    // Unsafe links or mismatched destinations remain rejected; this recovery is
+    // for absent/unusable wording and repeat permission, not rejected content.
+    if (turn.handoffMessage && /[\p{L}\p{N}]/u.test(turn.handoffMessage) &&
+      !independentConversation(turn.handoffMessage, destinationId)) {
+      return rejectAction("missing_handoff_wording", !!confirmed);
+    }
+    const handoffText = (text: string | null | undefined) => {
+      const safe = independentConversation(text, destinationId);
+      return safe && safe !== turn.recommendationMessage && !/[?？؟¿]/u.test(safe) &&
+        !navigationPermissionQuestion(safe) ? safe : undefined;
+    };
+    const destination = COACH_DESTINATIONS[destinationId];
+    const handoff = handoffText(turn.handoffMessage) ?? (confirmed
+      ? FEATURE_USAGE_KNOWLEDGE[destinationId]?.descriptionInput ?? handoffText(turn.message) ??
+        `Use the Open ${"navigationLabel" in destination ? destination.navigationLabel : destination.label} button.`
+      : undefined);
+    if (!handoff) return rejectAction("missing_handoff_wording", !!confirmed);
     const completed = !!destinationId && !parsedDecision.data.destinationId;
     diagnostic(completed ? "completed_from_goal" : "validated_destination");
     const request = groundedCreatorRequest(turn.creatorRequest, destinationId, memberMessages);

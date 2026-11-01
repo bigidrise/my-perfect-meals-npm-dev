@@ -7,7 +7,6 @@ import { resolveAccessTier, type AccessTier } from "../lib/accessTier";
 import { loadOrgContext } from "../lib/orgContext";
 import { computeEffectiveAccess } from "../services/effectiveAccess";
 import { findUserByValidAuthToken } from "../services/authTokenService";
-import { withDevelopmentImageTestSubject } from "../services/images/developmentImageTestScope";
 
 // ── Idle session timeout thresholds ───────────────────────────────────────────
 // Clinical roles require a 15-minute timeout per HIPAA §164.312(a)(2)(iii).
@@ -69,6 +68,7 @@ export interface AuthenticatedUser {
   pilotFullAccess: boolean;
   temporaryClinicalAccess?: boolean;
   businessPilotClinicalAccessEndsAt?: Date | string | null;
+  personalClinicalReconciliationEndsAt?: Date | string | null;
   pilotParticipantId: string | null;
   pilotProgramName: string | null;
   pilotFullAccessEndsAt: Date | null;
@@ -148,6 +148,7 @@ export async function buildAuthUserWithEffectiveAccess(user: any): Promise<Authe
       pilotFullAccess: effective.pilotFullAccess,
       temporaryClinicalAccess: effective.temporaryClinicalAccess ?? false,
       businessPilotClinicalAccessEndsAt: effective.businessPilotClinicalAccessEndsAt ?? null,
+      personalClinicalReconciliationEndsAt: effective.personalClinicalReconciliationEndsAt ?? null,
       pilotParticipantId: effective.pilotParticipantId,
       pilotProgramName: effective.pilotProgramName,
       pilotFullAccessEndsAt: effective.pilotFullAccessEndsAt,
@@ -232,7 +233,7 @@ export async function requireAuth(
 
         (req as AuthenticatedRequest).authUser = await buildAuthUserWithEffectiveAccess(user);
         (req as any).orgContext = await loadOrgContext(user.organizationId ?? null);
-        return withDevelopmentImageTestSubject((req as AuthenticatedRequest).authUser, () => next());
+        return next();
       }
 
       // Do not fall through to a bearer token when a session identity is
@@ -260,7 +261,7 @@ export async function requireAuth(
           user.authTokenMfaVerifiedAt.getTime() >= user.authTokenCreatedAt.getTime();
         (req as AuthenticatedRequest).authUser = await buildAuthUserWithEffectiveAccess(user);
         (req as any).orgContext = await loadOrgContext(user.organizationId ?? null);
-        return withDevelopmentImageTestSubject((req as AuthenticatedRequest).authUser, () => next());
+        return next();
       }
 
       // Token present but not found in DB

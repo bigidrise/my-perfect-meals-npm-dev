@@ -77,6 +77,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           name: userData.username || userData.firstName,
           entitlements: userData.entitlements || [],
           planLookupKey: userData.planLookupKey,
+          personalClinicalReconciliationEndsAt: userData.personalClinicalReconciliationEndsAt ?? null,
           selectedMealBuilder: userData.selectedMealBuilder,
           isTester: userData.isTester || false,
           accessTier: userData.accessTier || "FREE",
@@ -387,6 +388,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             clearUserContext();
             clearNutritionCache();
             if (window.location.pathname !== "/auth" && window.location.pathname !== "/login" && window.location.pathname !== "/welcome" &&
+                window.location.pathname !== "/lifestyle/ai-pairing-advisor" &&
                 !DEVELOPMENT_AUTH_PUBLIC_PATHS.includes(window.location.pathname)) {
               window.location.href = "/auth";
             }
@@ -459,6 +461,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           "/partners",
           "/join/clinic",
           "/join/studio",
+          "/lifestyle/ai-pairing-advisor",
           ...DEVELOPMENT_AUTH_PUBLIC_PATHS,
         ];
         const isPublicPath =

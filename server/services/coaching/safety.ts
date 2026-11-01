@@ -196,10 +196,12 @@ export async function runSafetyGate(
  */
 export function buildSafetyResponse(assessment: SafetyAssessment) {
   return {
-    whatIFound: "I noticed something in your message that I want to address directly.",
-    whatItCouldMean: assessment.suggestedResponse ?? "This needs immediate attention from a qualified professional.",
+    // A care action owns the complete guidance. Do not copy it into multiple
+    // legacy fields: old and new clients render each of those fields separately.
+    whatIFound: "",
+    whatItCouldMean: "",
     todayPlan: {
-      why: "Your safety comes first — always.",
+      why: "",
       items: [
         {
           horizon: "today" as const,

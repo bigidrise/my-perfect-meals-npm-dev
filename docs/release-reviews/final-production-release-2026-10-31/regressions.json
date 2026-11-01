@@ -1,0 +1,339 @@
+{
+  "passedSuites": 66,
+  "failedSuites": 0,
+  "passedTests": 1629,
+  "failedTests": 0,
+  "pendingTests": 0,
+  "suites": [
+    {
+      "file": "client/src/lib/__tests__/coachFeatureAction.test.tsx",
+      "status": "passed",
+      "passedTests": 29
+    },
+    {
+      "file": "client/src/lib/__tests__/savedRecommendationProducts.test.tsx",
+      "status": "passed",
+      "passedTests": 43
+    },
+    {
+      "file": "client/src/lib/__tests__/savedGroceriesSelection.test.tsx",
+      "status": "passed",
+      "passedTests": 18
+    },
+    {
+      "file": "server/tests/chefConversation.test.ts",
+      "status": "passed",
+      "passedTests": 314
+    },
+    {
+      "file": "server/tests/getawayRestaurantIntegration.test.ts",
+      "status": "passed",
+      "passedTests": 27
+    },
+    {
+      "file": "client/src/lib/__tests__/mealImagePhase1Regression.test.tsx",
+      "status": "passed",
+      "passedTests": 39
+    },
+    {
+      "file": "server/tests/coachingNavigation.test.ts",
+      "status": "passed",
+      "passedTests": 102
+    },
+    {
+      "file": "client/src/lib/__tests__/groceryCoachMealCatalog.test.tsx",
+      "status": "passed",
+      "passedTests": 36
+    },
+    {
+      "file": "server/tests/glp1GetawayBuffetPrompt.test.ts",
+      "status": "passed",
+      "passedTests": 33
+    },
+    {
+      "file": "server/tests/coachingConciergeIntent.test.ts",
+      "status": "passed",
+      "passedTests": 94
+    },
+    {
+      "file": "client/src/lib/__tests__/chefConversationPage.test.tsx",
+      "status": "passed",
+      "passedTests": 23
+    },
+    {
+      "file": "server/tests/chefNavigationState.test.ts",
+      "status": "passed",
+      "passedTests": 42
+    },
+    {
+      "file": "client/src/lib/__tests__/groceryCoachFindProductMode.test.tsx",
+      "status": "passed",
+      "passedTests": 6
+    },
+    {
+      "file": "server/tests/menuChefAccessMatrix.test.ts",
+      "status": "passed",
+      "passedTests": 33
+    },
+    {
+      "file": "client/src/lib/__tests__/groceryCatalogAdd.test.tsx",
+      "status": "passed",
+      "passedTests": 3
+    },
+    {
+      "file": "client/src/lib/__tests__/mealRemindersIosPermission.test.tsx",
+      "status": "passed",
+      "passedTests": 12
+    },
+    {
+      "file": "server/tests/weeklyBoardAddMeal.auth.route.test.ts",
+      "status": "passed",
+      "passedTests": 16
+    },
+    {
+      "file": "client/src/lib/__tests__/smartShoppingProductPicker.test.tsx",
+      "status": "passed",
+      "passedTests": 17
+    },
+    {
+      "file": "server/tests/savedGroceries.route.test.ts",
+      "status": "passed",
+      "passedTests": 18
+    },
+    {
+      "file": "server/tests/pregnancyCoachPaywall.test.ts",
+      "status": "passed",
+      "passedTests": 21
+    },
+    {
+      "file": "server/tests/restaurantReliability.test.ts",
+      "status": "passed",
+      "passedTests": 24
+    },
+    {
+      "file": "client/src/lib/__tests__/getawayVenueMeals.test.tsx",
+      "status": "passed",
+      "passedTests": 5
+    },
+    {
+      "file": "server/tests/serviceBillingStatus.test.ts",
+      "status": "passed",
+      "passedTests": 11
+    },
+    {
+      "file": "server/tests/getawayReliability.test.ts",
+      "status": "passed",
+      "passedTests": 207
+    },
+    {
+      "file": "server/tests/authSessionProbe.test.ts",
+      "status": "passed",
+      "passedTests": 6
+    },
+    {
+      "file": "server/tests/mealImagePromptContract.test.ts",
+      "status": "passed",
+      "passedTests": 61
+    },
+    {
+      "file": "server/tests/savedGroceryEvidenceRoute.test.ts",
+      "status": "passed",
+      "passedTests": 2
+    },
+    {
+      "file": "server/tests/storageHealthReadOnly.test.ts",
+      "status": "passed",
+      "passedTests": 17
+    },
+    {
+      "file": "server/tests/studioStripeBillingPipeline.test.ts",
+      "status": "passed",
+      "passedTests": 3
+    },
+    {
+      "file": "server/tests/apiRoutingStorageRepair.test.ts",
+      "status": "passed",
+      "passedTests": 11
+    },
+    {
+      "file": "server/tests/myPerfectMenuBuilderResolver.test.ts",
+      "status": "passed",
+      "passedTests": 7
+    },
+    {
+      "file": "client/src/lib/__tests__/restaurantServingPresentation.test.tsx",
+      "status": "passed",
+      "passedTests": 6
+    },
+    {
+      "file": "server/tests/personalClinicalReconciliation.test.ts",
+      "status": "passed",
+      "passedTests": 29
+    },
+    {
+      "file": "server/tests/chefConversationRoutes.test.ts",
+      "status": "passed",
+      "passedTests": 8
+    },
+    {
+      "file": "client/src/lib/__tests__/groceryCoachProductionStore.test.tsx",
+      "status": "passed",
+      "passedTests": 4
+    },
+    {
+      "file": "server/tests/clinicalGLP1Authority.test.ts",
+      "status": "passed",
+      "passedTests": 4
+    },
+    {
+      "file": "server/tests/csrfProtection.test.ts",
+      "status": "passed",
+      "passedTests": 17
+    },
+    {
+      "file": "server/tests/pediatricImagePipeline.test.ts",
+      "status": "passed",
+      "passedTests": 7
+    },
+    {
+      "file": "server/tests/authCredentialPrecedence.test.ts",
+      "status": "passed",
+      "passedTests": 3
+    },
+    {
+      "file": "client/src/lib/__tests__/shoppingProductChoice.test.ts",
+      "status": "passed",
+      "passedTests": 9
+    },
+    {
+      "file": "client/src/lib/__tests__/askChefBranding.test.tsx",
+      "status": "passed",
+      "passedTests": 4
+    },
+    {
+      "file": "client/src/lib/__tests__/flareImageClients.test.tsx",
+      "status": "passed",
+      "passedTests": 7
+    },
+    {
+      "file": "client/src/lib/__tests__/coachBubble.test.tsx",
+      "status": "passed",
+      "passedTests": 18
+    },
+    {
+      "file": "client/src/lib/__tests__/iosMealReminderScheduler.test.ts",
+      "status": "passed",
+      "passedTests": 20
+    },
+    {
+      "file": "client/src/lib/__tests__/iosMealReminderSync.test.tsx",
+      "status": "passed",
+      "passedTests": 3
+    },
+    {
+      "file": "client/src/lib/__tests__/askChefReleaseCopy.test.ts",
+      "status": "passed",
+      "passedTests": 24
+    },
+    {
+      "file": "server/tests/restaurantServing.test.ts",
+      "status": "passed",
+      "passedTests": 25
+    },
+    {
+      "file": "server/tests/stripeEntitlementPipeline.test.ts",
+      "status": "passed",
+      "passedTests": 22
+    },
+    {
+      "file": "server/tests/coachingNavigationContracts.test.ts",
+      "status": "passed",
+      "passedTests": 15
+    },
+    {
+      "file": "server/tests/resolveClinicalMealAuthority.test.ts",
+      "status": "passed",
+      "passedTests": 10
+    },
+    {
+      "file": "server/tests/myPerfectMenuContract.test.ts",
+      "status": "passed",
+      "passedTests": 7
+    },
+    {
+      "file": "server/tests/productScanByNameReuse.test.ts",
+      "status": "passed",
+      "passedTests": 10
+    },
+    {
+      "file": "client/src/lib/__tests__/savedGroceryAnalysis.test.ts",
+      "status": "passed",
+      "passedTests": 12
+    },
+    {
+      "file": "server/tests/lesson09Gate.test.ts",
+      "status": "passed",
+      "passedTests": 15
+    },
+    {
+      "file": "client/src/lib/__tests__/routeUpgrade.test.ts",
+      "status": "passed",
+      "passedTests": 8
+    },
+    {
+      "file": "server/tests/accessTier.test.ts",
+      "status": "passed",
+      "passedTests": 12
+    },
+    {
+      "file": "server/tests/procareConsumerAccess.test.ts",
+      "status": "passed",
+      "passedTests": 11
+    },
+    {
+      "file": "server/tests/currentGLP1MealAuthority.test.ts",
+      "status": "passed",
+      "passedTests": 8
+    },
+    {
+      "file": "client/src/lib/__tests__/iosMealReminderService.test.ts",
+      "status": "passed",
+      "passedTests": 5
+    },
+    {
+      "file": "server/tests/chefFeatureUsage.test.ts",
+      "status": "passed",
+      "passedTests": 4
+    },
+    {
+      "file": "client/src/lib/__tests__/resolveApiBase.test.ts",
+      "status": "passed",
+      "passedTests": 3
+    },
+    {
+      "file": "server/tests/myPerfectMenuCandidateCompletion.test.ts",
+      "status": "passed",
+      "passedTests": 7
+    },
+    {
+      "file": "server/tests/askChefProductionActivation.test.ts",
+      "status": "passed",
+      "passedTests": 4
+    },
+    {
+      "file": "server/tests/myPerfectMenuEssentialAccess.test.ts",
+      "status": "passed",
+      "passedTests": 3
+    },
+    {
+      "file": "server/tests/authAttemptTracker.test.ts",
+      "status": "passed",
+      "passedTests": 3
+    },
+    {
+      "file": "client/src/lib/__tests__/personalClinicalReconciliationEntitlements.test.ts",
+      "status": "passed",
+      "passedTests": 2
+    }
+  ]
+}

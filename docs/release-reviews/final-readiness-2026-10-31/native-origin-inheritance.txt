@@ -1,0 +1,8 @@
+For each path: starting-commit content hash, followed by current file hash.
+Production-to-starting resolver diff is empty.
+client/src/lib/resolveApiBase.ts
+59ca60388b795e8090691437add83dcf16f5e9a8717cc67d907211978d361386  -
+59ca60388b795e8090691437add83dcf16f5e9a8717cc67d907211978d361386  client/src/lib/resolveApiBase.ts
+server/tests/apiRoutingStorageRepair.test.ts
+3aaba25bc865b89e40f8a7b63a542fea082d1fda27b26bfb82859d41477f5024  -
+3aaba25bc865b89e40f8a7b63a542fea082d1fda27b26bfb82859d41477f5024  server/tests/apiRoutingStorageRepair.test.ts

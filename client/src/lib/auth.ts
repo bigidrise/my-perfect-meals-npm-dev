@@ -63,6 +63,8 @@ export interface User {
   entitlements?: string[];
 
   planLookupKey?: string | null;
+  /** Server-resolved personal access; not a subscription or practitioner credential. */
+  personalClinicalReconciliationEndsAt?: string | null;
 
   selectedMealBuilder?: MealBuilderType | null;
 

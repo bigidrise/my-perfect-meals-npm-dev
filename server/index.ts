@@ -1913,17 +1913,7 @@ async function start() {
 
   if (NODE_ENV === "development") {
     // Vite dev middleware for client with proper server instance
-    const vite = await setupVite(app, server);
-    if (!process.env.REPLIT_DEPLOYMENT) {
-      const { installDevelopmentShutdown } = await import("./bootstrap/developmentShutdown");
-      const { pool } = await import("./db");
-      installDevelopmentShutdown({
-        server,
-        closeVite: () => vite.close(),
-        closeDatabase: () => pool.end(),
-        stopWarmup: () => warmupService.stop(),
-      });
-    }
+    await setupVite(app, server);
   } else {
     // Serve built client
     const clientDist = path.resolve(import.meta.dirname, "../client/dist");

@@ -15,6 +15,7 @@
  * permittedClinicalScopes = [] enforces this at the context service level.
  */
 
+import { isAskChefConversationEnabled } from "../../../../shared/coaching/askChefRelease";
 import type {
   CoachSpecializationAdapter,
   CoachSubject,
@@ -43,7 +44,7 @@ function buildCornerTools(userId: string): CoachingTool[] {
     id: cap.id,
     scope: "adult" as const,
     label: cap.label,
-    featureTarget: process.env.NODE_ENV === "development" ? cap.id : cap.route,
+    featureTarget: isAskChefConversationEnabled(process.env.NODE_ENV) ? cap.id : cap.route,
     description: cap.description,
   }));
 }
@@ -107,7 +108,7 @@ export const cornerAdapter: CoachSpecializationAdapter = {
         id: cap.id,
         scope: "adult" as const,
         label: cap.label,
-        featureTarget: process.env.NODE_ENV === "development" ? cap.id : cap.route,
+        featureTarget: isAskChefConversationEnabled(process.env.NODE_ENV) ? cap.id : cap.route,
         description: cap.description,
       }));
 

@@ -28,21 +28,3 @@ Keep browser notebook operations short; a long wait can reset the browser and de
 **Why:** A pairing browser check timed out while waiting for a response that Development server logs showed had completed with HTTP 503 in about 1.5 seconds. The harness timeout did not establish an application timeout.
 
 **How to apply:** Correlate existing server completion logs before repeating a submission. Report missing final UI evidence separately from the known HTTP result, and re-establish normal authorized sign-in if a notebook reset lost the session.
-
-Workspace shell credentials are not necessarily available to the isolated browser notebook; a shell environment variable does not establish notebook access to `process.env`.
-
-**Why:** An authenticated saved-image browser check was blocked by this separation while a normal, authorized cookie-and-CSRF API check could run from the workspace shell without exposing credentials.
-
-**How to apply:** Never print or return credentials to bridge the contexts. For backend contracts, use the existing authorized test account with credentials and cookies kept in process memory. Report that evidence as authenticated API coverage, not signed-in browser or placeholder-rendering coverage.
-
-For no-write browser verification, intercept every API request before navigation and block unmatched mutations, not just the feature's submission endpoint.
-
-**Why:** Synthetic authenticated UI state can trigger automatic timezone/profile updates and telemetry. Rapid clicks can also reach another control when an instant fixture response changes the layout. A mocked generation endpoint alone does not guarantee shared-database isolation.
-
-**How to apply:** Keep authentication and saved results synthetic, fulfill reads with appropriately shaped fixtures, and count blocked mutations. Report mocked snapshot reopening separately from real database persistence; never forward an unexpected write merely to remove a test warning.
-
-A browser document reused across a Development restart may still execute old components when its Vite websocket has disconnected. Fetching updated source text alone does not establish which component code is mounted.
-
-**Why:** A reused browser reproduced the old conversation-restoration bug after its fix; loading a fresh setup document resolved the false failure, and subsequent client-navigation round trips passed without reloads.
-
-**How to apply:** Establish the current bundle once during browser-test setup after a restart. For navigation-restoration checks, keep that document unchanged throughout the journey and verify document continuity separately from setup freshness.

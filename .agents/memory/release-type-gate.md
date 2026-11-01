@@ -18,30 +18,6 @@ description: Policy for the release-check type-validation layers — safety slic
 
 **Safety slice:** Add any new safety-sensitive surface to `tsconfig.safety-check.json` before relying on the release check for that surface.
 
-## Committed candidate verification
-
-When confirming that an approved correction is included in an isolated release branch, distinguish its committed source from uncommitted worktree edits. Identify the actual tested commit and verify that the release checkout is clean.
-
-**Why:** A Saved Groceries correction passed local checks while remaining uncommitted in the isolated checkout; the branch's committed schema still contained the old declaration. The user explicitly required the correction in the release branch, not merely in Development.
-
-**How to apply:** Inspect the candidate's committed files as well as its working tree. Commit only the approved correction files locally before final candidate verification, preserve unrelated Development work, and keep pushing subject to separate authorization. Do not infer the cause of an external validation failure from local success alone.
-
-## Isolated release diagnostic context
-
-Do not import unrelated Development fixes merely to make an isolated release's TypeScript count match Development.
-
-**Why:** Production can retain existing diagnostic causes that unfinished Development work incidentally suppresses. An isolated candidate may therefore expose inherited Production errors even when every approved Development diagnostic is unchanged.
-
-**How to apply:** Compare the complete diagnostic sets, not just counts. Verify inherited differences against the actual Production source under the same compiler and dependencies, report the isolated candidate's actual count, and keep unrelated files and reviewed baseline gates unchanged.
-
-## Fresh-worktree build inputs
-
-Preflight ignored, generated build inputs before starting expensive isolated-worktree validation. A Development checkout can build successfully because it already contains generated inputs that a clean release worktree does not have.
-
-**Why:** Isolated Saved Groceries validation reached an unresolved generated build-version import only after expensive module transformation. After generation, a successful instrumented build still slightly exceeded the earlier four-minute cutoff; active compilation had been mistaken for an inconclusive stall.
-
-**How to apply:** Use the existing canonical build-input generator rather than inventing version exports. Preserve the customer release identity and exclude incidental tracked manifest updates from a feature-only release. Run one supervised build with resource/progress diagnostics and sufficient timeout margin instead of overlapping or repeatedly restarting short builds. Never treat a timed-out build as verified.
-
 ## Interrupted checks
 
 A tool timeout does not guarantee validator cleanup. Confirm the compiler and
@@ -56,20 +32,6 @@ though the earlier processes had exited.
 when their combined duration risks the tool limit. Clear only confirmed orphaned
 temporary state; keep the reviewed diagnostic baseline unchanged unless its
 delta has actually been reconciled.
-
-An empty final-stage test log can mean the aggregate command budget was already exhausted, not that the test hung.
-
-**Why:** File-creation timestamps showed the mocked authentication stage began with about one second remaining before the outer deadline; the unchanged suite subsequently passed and exited naturally.
-
-**How to apply:** Compare stage timestamps against the enclosing execution budget, then run unchanged focused checks and a sufficiently supervised full validator before attributing a timeout to assertions, resources or open handles.
-
-## Distinct compiler configurations
-
-A strict root diagnostic comparison does not replace the pre-push server compiler.
-
-**Why:** Schema-derived fields were required under the strict root configuration but inferred as optional under the server configuration with strict null checks disabled. A source delta with no new strict-root diagnostics still failed the server gate.
-
-**How to apply:** Verify both compiler contracts independently. Resolve schema-to-domain type boundaries without suppressing errors, relaxing compiler options or inferring release readiness solely from the strict-root diagnostic delta.
 
 ## Diagnostic display-order drift
 
@@ -91,6 +53,16 @@ An interrupted release-type check can leave a temporary lock after its compiler 
 
 ### Full-root compiler memory
 
+Historical snapshots must include imported configuration outside the root
+tsconfig's include directories, not only the listed source trees.
+
+**Why:** TypeScript follows imports into root Vite configuration; omitting that
+file introduces artificial missing-module diagnostics into an otherwise matching
+source snapshot.
+
+**How to apply:** Include imported root configuration and reproduce the exact
+historical fingerprint before treating the snapshot as authoritative evidence.
+
 Use a 4 GB Node heap for full-root historical diagnostic comparisons in this workspace, rather than the smaller heap used for isolated policy checks.
 
 **Why:** A 1.5 GB heap exhausted memory before returning diagnostics; a 4 GB heap reproduced the reviewed fingerprint from a temporary historical source snapshot.
@@ -104,14 +76,6 @@ Temporary compiler-comparison files may disappear when the execution environment
 **Why:** Separate capture/read attempts lost the reviewed diagnostic evidence during an environment continuation.
 
 **How to apply:** Capture both compiler outputs, verify the reviewed fingerprint, and compare full messages and multiplicities within one command. Return the comparison before proceeding; do not approve a baseline from a truncated failure preview.
-
-### Historical snapshot completeness
-
-Historical compiler snapshots must include imported configuration and source files outside the root tsconfig's include directories.
-
-**Why:** A directory-only historical snapshot introduced a missing-configuration diagnostic even though the original checkout contained that configuration. That artificial error prevented reproduction of the reviewed fingerprint.
-
-**How to apply:** Investigate snapshot-only missing imports, reconstruct their actual committed inputs, and rerun the compiler. Never remove the artificial diagnostic from the reported output and present the filtered result as authoritative verification.
 
 Sends an unauthenticated POST to `/api/meals/generate`. Correct response is 401 (gate reachable and auth-protected). Accepts 401/400/200 — timing-based checks are wrong here because unauthenticated probes return immediately.
 

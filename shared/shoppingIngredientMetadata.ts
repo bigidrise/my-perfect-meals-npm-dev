@@ -77,6 +77,29 @@ export const shoppingIngredientMetadataSchema = z.object({
 
 export type ShoppingIngredientMetadata = z.infer<typeof shoppingIngredientMetadataSchema>;
 
+/**
+ * Narrow compatibility contract for Coach's knowledge-based Add action.
+ * This does not enable the Development catalog or confer product eligibility.
+ */
+export function groceryCoachProductMetadata(value: unknown, ingredientName: string): ShoppingIngredientMetadata | undefined {
+  if (value == null) return undefined;
+  const metadata = shoppingIngredientMetadataSchema.parse(value);
+  const product = metadata.selectedProduct;
+  if (
+    ingredientMatchingName(metadata.ingredient.originalName) !== ingredientMatchingName(ingredientName) ||
+    !product || product.source.source !== "Product Scan by-name guidance" ||
+    product.productKey !== `by_name:${JSON.stringify([metadata.ingredient.originalName.toLowerCase(), product.name.toLowerCase()])}` ||
+    product.assessment.status !== "review_required" ||
+    !product.assessment.unresolvedRequirements.includes("current_profile_and_label_review") ||
+    product.evidence.length !== 0 ||
+    !metadata.contributions.length ||
+    metadata.contributions.some(c => c.source !== "grocery_coach")
+  ) {
+    throw new z.ZodError([{ code: "custom", path: ["ingredientMetadata"], message: "Invalid Grocery Coach product association" }]);
+  }
+  return metadata;
+}
+
 const qualifierPatterns: Array<[RegExp, string]> = [
   [/\blow[\s-]+sodium\b/i, "low sodium"],
   [/\breduced[\s-]+sodium\b/i, "reduced sodium"],

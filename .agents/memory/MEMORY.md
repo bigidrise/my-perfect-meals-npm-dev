@@ -1,5 +1,4 @@
 - [Pregnancy release safety pause](pregnancy-release-safety-pause.md) — Coming Soon stays Clinical; retain saved support and other safety rules while activation and unreviewed guidance are paused.
-- [Git archive coverage](git-archive-verification.md) — verify remote-only backup tips and reachable objects before cleanup; supplemental bundles require their preserved base.
 - [Safe-area modal layout](safe-area-modal-layout-rule.md) — safe-area spacing fixes must not restructure modal flex or overflow behavior.
 - [Development startup log retention](development-startup-log-retention.md) — preview asset reloads can displace boot messages; capture early and qualify incomplete log evidence.
 - [Authenticated API cache identity](authenticated-api-client-cache-identity.md) — removing caller IDs from APIs must not erase client-side account partitions.
@@ -15,10 +14,10 @@
 - [ProCare effective access](business-effective-access.md) — compute access at runtime from membership or personal plan; never persist merged entitlement.
 - [Universal modal system](universal-modal-system.md) — use typed universal modals and follow the DialogContent import rule.
 - [Coaching engine contracts](coaching-engine-phase1.md) — coaching evidence and typed contracts are the shared foundation for its observers and UI.
-- [Coaching confidence doctrine](coaching-engine-confidence-doctrine.md) — confidence.ts is the authoritative LLM control surface for coaching tone.
-- [Object storage architecture](object-storage-architecture.md) — Object Storage Client is the working server upload path; do not rely on signed URL sidecars.
+- [Coaching confidence doctrine](coaching-engine-confidence-doctrine.md) — legacy structured-renderer confidence controls, not the released Ask Chef primary conversation.
+- [Object storage verification](object-storage-architecture.md) — resolve current environment authority; no-write readiness does not attest upload durability.
 - [Canonical media assets](media-asset-architecture.md) — media lifecycle gates must protect every referencing surface before object deletion.
-- [Meal image references](meal-image-reference-index.md) — read-only saved-image viewing, recipe fidelity, production delivery, controlled recovery, and board media identity.
+- [Meal image references](meal-image-reference-index.md) — recipe fidelity, pediatric prepared-food expectations, production delivery, bounded recovery, and board media identity.
 - [Daily prescription hierarchy](daily-prescription-hierarchy.md) — one endpoint owns macro targets; clinical overlays are applied in documented order.
 - [Nutrition decision engine entry points](nde-food-entry-points.md) — all food intake surfaces must consult NDE before presenting results.
 - [GLP-1 canonical context](glp1-canonical-context.md) — canonical signals stay separate from the user's Builder-and-Menu-only portion-support policy.
@@ -32,11 +31,12 @@
 - [Release type gate](release-type-gate.md) — use the layered release check so newly introduced type errors cannot hide in debt.
 - [Process environment types](process-environment-type-contracts.md) — named-key Pick and Partial Pick can reject an index-signature-only environment dictionary.
 - [Drizzle schema migration fallback](drizzle-kit-push-instability.md) — use small idempotent SQL migrations when schema-pull tooling is unreliable.
-- [PostgreSQL runtime references](postgres-runtime-reference-index.md) — SQL array expansion, parameter gaps, catalog decoding, and pooled read-only transactions.
+- [Drizzle array columns](ace-drizzle-array-rule.md) — SQL templates expand arrays; use explicit per-value conditions for membership queries.
+- [PostgreSQL parameter gaps](postgres-parameter-gaps.md) — mocked writes can pass while live updates fail if SQL leaves unused leading placeholders.
+- [Neon pooler read-only queries](neon-pooler-read-only-queries.md) — pooled connection rejects read-only startup options; use an explicit read-only transaction.
 - [Studio media lifecycle](studio-media-reference-index.md) — video retention, MIME compatibility, participant deletion, failed media, transcription result scope and voice queue integrity.
 - [OpenAI server upload runtime](openai-server-upload-runtime.md) — server-side uploads must not rely on ambient web globals from the OpenAI SDK auto shim.
 - [Bundled-first iOS startup](bundled-first-ios-startup.md) — native startup must use packaged web assets; remote APIs are a separate, explicit dependency.
-- [iOS reminder release boundary](ios-reminder-release-boundary.md) — repair the existing native scheduler, preserve web push, and require TestFlight evidence before Production.
 - [iOS capture diagnosis](ios-capture-diagnosis.md) — diagnose Grocery Voice Add separately from Studio capture, and sync the native bundle before device evidence.
 - [Shared Neon and workspace release boundary](runtime-database-identity.md) — both workspaces share Neon, but Development Publish does not update Production.
 - [Studio browser verification access](studio-browser-verification-access.md) — DEV browser recording checks can be blocked by workspace entitlements or browser media permissions.
@@ -103,11 +103,7 @@
 - [Foods I Enjoy boundary](foods-i-enjoy-boundary.md) — explicit subject-owned enjoyment stays separate from legacy likes, inference, and safety governance.
 - [Future food date context](future-food-date-context.md) — destination dates must reach every nutrition and clinical resolver, not only meal-budget logic.
 - [Snack occasion semantics](snack-occasion-semantics.md) — snack is an eating occasion; dessert is one valid family, and personalization must not default to shrinking it.
-- [My Perfect Menu culinary breadth](my-perfect-menu-culinary-breadth.md) — use shared culinary identity and soft subject-scoped history, never quotas or protein-swap novelty.
-- [My Perfect Menu context authority](my-perfect-menu-context-authority.md) — revalidate opaque per-category authority before selection; household boards use server-derived namespaces.
-- [My Perfect Menu builder authority](my-perfect-menu-builder-authority.md) — one server-resolved builder governs generation, board scope, cache events, and destination.
-- [My Perfect Menu stable choices](my-perfect-menu-stable-choices.md) — keep one stable set of three; Builders create meals and Favorites preserves them.
-- [My Perfect Menu restoration payloads](my-perfect-menu-restoration-payloads.md) — remount APIs must return full authoritative JSON and never treat transport failure as an empty set.
+- [My Perfect Menu references](my-perfect-menu-reference-index.md) — culinary breadth, subject/context authority, builder ownership, stable choices and restoration payloads.
 - [Restrictive-diet generation contract](restrictive-diet-generation-contract.md) — generation and validation must share the same dietary universe; diversity stays inside it.
 - [Customer release identity](customer-release-identity.md) — build metadata stays separate; one explicit release ID owns notes, timestamp, comparison, and dismissal.
 - [Nutrition Priorities authority](nutrition-priorities-authority.md) — subject-owned optional food inclusion guidance enters HFC identity; release DDL stays explicitly gated.
@@ -115,6 +111,7 @@
 - [Generated meal serving contract](generated-meal-serving-contract.md) — response nutrition is total-recipe; validators must normalize with the same requested serving count.
 - [One-Touch Creator authority](one-touch-creator-authority.md) — delegated choices require explicit diet authority and safety-equivalent checks; Menu stays separate from manual Creators.
 - [Creator Menu choice retention](creator-menu-choice-retention.md) — completing a recipe must keep its three Menu ideas available until the user explicitly replaces or removes them.
+- [Vite-only feature gates in Jest](vite-feature-gates-jest.md) — isolate import.meta.env gates from request helpers so CommonJS Jest can test them.
 - [Health protocol cutover](health-protocol-cutover.md) — GLP-1 is the sole new personal intent; existing clinical supports remain authoritative until reviewed all-surface migration.
 - [Optional support overlay freeze](optional-support-overlay-freeze.md) — Builder-first presentation pauses new personal stacking without deleting choices or suppressing clinical authority.
 - [Cardiac lab user choice](cardiac-lab-user-choice.md) — users can stop lab-derived Cardiac guidance without changing lab evidence; physician-owned protocols stay protected.
@@ -135,6 +132,8 @@
 - [Migration CLI lifecycle](migration-cli-lifecycle.md) — one-off commands must own their connection; the application DB keepalive can outlive a closed pool.
 - [Professional credential clearance](professional-credential-clearance.md) — bind genuine MFA-reviewed evidence to current identity; activation, pilots and demos remain separate.
 - [Grocery Coach workflow](grocery-coach-meal-card-workflow.md) — automatic Favorites/card continuity and Development-only, user-initiated packaged-product discovery.
+- [Ask Chef parent navigation](ask-chef-parent-navigation.md) — Grocery Store Coach buttons name the parent feature; conversation names the nested function.
+- [Focused Jest execution](focused-jest-execution.md) — use isolated test transpilation and a separate type gate to avoid loading the entire project twice.
 - [Studio loading release boundary](studio-loading-release-boundary.md) — loading corrections are Development-only; permission caching and restart/release need separate approval.
 - [Recipe carbohydrate categories](recipe-carb-category-boundary.md) — preserve explicit source estimates; dietary fiber and unknown carbohydrate remain distinct.
 - [Interrupted edit integrity](interrupted-edit-integrity.md) — check every affected file after a disconnected multi-file edit, including reported successes.
@@ -144,6 +143,7 @@
 - [Craving quality standard](craving-quality-standard.md) — preserve adapted food identity without rigid ingredients, routine extra AI checks, or overrejecting legitimate variations.
 - [Pilot erasure and receipt retention](pilot-erasure-and-receipt-retention.md) — operational capabilities and financial consent have different erasure purposes; no receipt retention period was established.
 - [Neon preflight default privileges](neon-preflight-default-privileges.md) — scope default ACL checks to the actual creator, schema, and object type; provider defaults need not apply.
+- [PostgreSQL catalog array decoding](postgres-catalog-array-decoding.md) — cast catalog identifier arrays to text[] for node-postgres; name[] may arrive as raw strings.
 - [Drizzle billing insert defaults](drizzle-billing-insert-defaults.md) — billing-column names alone cannot distinguish free inserts from paid writes; test actual Drizzle SQL.
 - [Reusable business partner pilot](reusable-business-partner-pilot.md) — one shared link, independent per-account pilot clocks; forwarding restrictions are explicitly deferred.
 - [Guided Journey authority](guided-journey-authority.md) — explain existing tasks and verify saved work; guidance never owns navigation, access, or nutrition decisions.
@@ -153,7 +153,5 @@
 - [Meal card source labels](meal-card-source-label-policy.md) — show the originating builder or creator, not a clinical condition such as Heart Failure.
 - [Dashboard menu colors](dashboard-menu-color-policy.md) — use visually distinct accents for unrelated dashboard tools, not merely different hex shades of the same hue.
 - [RHM client walkthrough](rhm-client-walkthrough-context.md) — staff need the actual first-time client experience before distributing a 30-day link to 8,000 clinic clients.
-- [Frontend test runtime](dom-snapshot-css-fidelity.md) — snapshot CSS fidelity, focused Jest execution, and Vite-only feature gates.
-- [Focused Jest execution](focused-jest-execution.md) — isolated transpilation for focused server/client suites; run whole-project type checks separately.
-- [Chef concierge boundaries](chef-concierge-boundary.md) — preserve coaching; destinations own generation; navigation is member-confirmed and Development-only until approved.
-- [Getaway evidence boundary](getaway-reliability-boundary.md) — destination identity never proves menus; uncertainty stays explicit and reliability corrections remain Development-only.
+- [Integration activation boundary](integration-activation-boundary.md) — review automatic merges and dependent gates; source integration alone never grants experimental activation or baseline replacement.
+- [Ask Chef response authority](ask-chef-response-authority.md) — typed care states govern unused model fields; meaningful continuations and honest role-scoped knowledge require separate evidence.

@@ -21,13 +21,14 @@ import { getDevelopmentPlatformKnowledge } from "../services/coaching/platformKn
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
 import { validateConciergeGoal } from "../services/coaching/conciergeGoal";
 
+describe.each(["development", "production"])("%s released Ask Chef", runtimeEnvironment => {
 const oldEnvironment = process.env.NODE_ENV;
 const user = { id: "fixture-user" };
 const subject = { subjectType: "user" as const, subjectId: user.id, ownerId: user.id };
 const unknown = { activity: "unknown", occasion: "unknown", restaurant: "unknown",
   dishChosen: false, specialty: "none", explicitFeatureId: null };
 beforeEach(() => {
-  process.env.NODE_ENV = "development";
+  process.env.NODE_ENV = runtimeEnvironment;
   jest.clearAllMocks(); mockCreate.mockReset();
   (db.execute as jest.Mock).mockResolvedValue({ rows: [{ id: "fixture-row" }] });
   (loadBoundedHistory as jest.Mock).mockResolvedValue({ recentMessages: [], rollingContext: null });
@@ -349,9 +350,10 @@ test("cruise context can stay conversational without mandatory Getaway navigatio
   expect(mockCreate).toHaveBeenCalledTimes(1);
 });
 
-test("expanded Getaway knowledge does not change Production's capability registry", () => {
+test("Production receives the same reviewed Getaway capability as the conversation", () => {
+  const conversationCapabilities = getCornerCapabilities(["all"]);
   process.env.NODE_ENV = "production";
-  expect(getCornerCapabilities(["all"])).toEqual(getCapabilitiesForUser(["all"], true));
+  expect(getCornerCapabilities(["all"])).toEqual(conversationCapabilities);
 });
 
 test("a requested comparison can explain the distinction without selecting either tool", async () => {
@@ -796,14 +798,14 @@ test.each(["my_perfect_menu", "meal_builders"])("care escalation suppresses %s e
   expect(result.presentation?.destinationId).toBeUndefined();
 });
 
-test("Development knowledge refines portion-size distinctions without changing Production capabilities", () => {
+test("released knowledge keeps the same portion-size distinctions in Production", () => {
   const development = getCornerCapabilities(["all"]);
   expect(development.find(feature => feature.id === "craving_creator")?.description).toContain("including small dessert portions");
   expect(development.find(feature => feature.id === "dessert_creator")?.description).toContain("larger dessert recipes");
   process.env.NODE_ENV = "production";
-  expect(getDevelopmentPlatformKnowledge()).toBeUndefined();
+  expect(getDevelopmentPlatformKnowledge()).toBeDefined();
   expect(getCornerCapabilities(["all"]).find(feature => feature.id === "dessert_creator")?.description)
-    .not.toContain("Small dessert cravings belong to Craving Creator");
+    .toContain("Small dessert cravings belong to Craving Creator");
 });
 
 test("malformed action metadata cannot erase an independently valid model conversation", async () => {
@@ -993,10 +995,14 @@ test("subject authorization cannot be bypassed by removing assessment", async ()
   expect(mockCreate).not.toHaveBeenCalled();
 });
 
-test("Production delegates to the preserved structured engine", async () => {
+test("Production uses the released conversation rather than the old assessment engine", async () => {
   process.env.NODE_ENV = "production";
-  const spy = jest.spyOn(StructuredCoachingEngine.prototype, "run").mockResolvedValueOnce({ legacy: true } as any);
-  expect(await run("Hello")).toEqual({ legacy: true });
-  expect(mockCreate).not.toHaveBeenCalled();
+  const spy = jest.spyOn(StructuredCoachingEngine.prototype, "run").mockRejectedValueOnce(new Error("Legacy engine must not run"));
+  reply("What would you like help with?");
+  const result = await run("Hello");
+  expect(result.presentation).toEqual({ kind: "concierge", message: "What would you like help with?" });
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+  expect(spy).not.toHaveBeenCalled();
   spy.mockRestore();
+});
 });

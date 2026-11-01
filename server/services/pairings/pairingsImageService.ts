@@ -1,6 +1,5 @@
 import { generateMealImageUnified, type ImageSourceType } from "../mealImageGenerator";
 import { log } from "../../vite";
-import { isPlaceholderImage } from "../../../shared/imageResult";
 
 // Drink pairing images are inherently name-driven — no recipe exists for a pairing
 // suggestion, so no ingredient contract can be enforced. This is an accepted
@@ -29,7 +28,7 @@ export async function generatePairingImage(
       "beverage"
     );
 
-    if (imageUrl && !isPlaceholderImage(imageUrl)) {
+    if (imageUrl) {
       log(`[PairingsImage] Generated image for ${drinkName}`, "info");
     }
 

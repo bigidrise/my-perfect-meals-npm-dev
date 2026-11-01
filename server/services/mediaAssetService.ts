@@ -17,9 +17,7 @@ import { Client as ReplitStorageClient } from "@replit/object-storage";
 import { db } from "../db";
 import { mediaAssets } from "../db/schema/mediaAssets";
 import { validateMealImageAuthority } from "./mealImageAuthority";
-import { canonicalDevelopmentMealImageUrl } from "./developmentMealImageUrls";
 import crypto from "crypto";
-import { developmentImageTestScope, assertDevelopmentImageTestSource } from "./images/developmentImageTestScope";
 import {
   assertActiveMealImageWriteBucket,
   getActiveMealImageBucket,
@@ -89,7 +87,7 @@ async function fetchImageBytes(source: string): Promise<{ buffer: Buffer; conten
 /** Build an object-storage key for a meal image variant. */
 function buildObjectKey(mealName: string, variant: "thumb" | "display" | "orig", hash: string, ext: string): string {
   const slug = mealName.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40).replace(/^-|-$/g, "");
-  return `${developmentImageTestScope()?.storagePrefix ?? "meal-images/"}${slug}-${variant}-${hash}.${ext}`;
+  return `meal-images/${slug}-${variant}-${hash}.${ext}`;
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
@@ -115,12 +113,6 @@ export async function processImageForMeal(
   source: string | null | undefined,
   mealName: string,
 ): Promise<MediaAsset> {
-  // A returned Development HTTPS URL still names the same canonical object.
-  // Normalize before classification so saving never downloads/re-ingests it.
-  if (source) source = canonicalDevelopmentMealImageUrl(source);
-  const testScope = developmentImageTestScope();
-  // A scoped request may not wrap historical/local images as its own test asset.
-  assertDevelopmentImageTestSource(source);
   // ── Case 1: No source ───────────────────────────────────────────────────────
   if (!source) {
     const [record] = await db.insert(mediaAssets).values({
@@ -144,7 +136,7 @@ export async function processImageForMeal(
       const [record] = await db.insert(mediaAssets).values({
         status: "failed",
         validationStatus: "failed",
-        sourceType: testScope ? "development-image-test" : "object-storage",
+        sourceType: "object-storage",
         processingError,
         retryCount: 0,
       }).returning();
@@ -171,7 +163,7 @@ export async function processImageForMeal(
       displayObjectKey: authority.objectName,
       displayUrl: canonicalUrl,
       originalObjectKey: authority.objectName,
-      sourceType: testScope ? "development-image-test" : "object-storage",
+      sourceType: "object-storage",
     }).returning();
     logMedia("media_processed", {
       status: "ready",
@@ -239,14 +231,14 @@ export async function processImageForMeal(
         displayObjectKey: displayKey,
         displayUrl,
         originalObjectKey: origKey,
-        sourceType: testScope ? "development-image-test" : isBase64 ? "base64" : "url",
+        sourceType: isBase64 ? "base64" : "url",
         mimeType: contentType,
       }).returning();
 
       logMedia("media_processed", {
         status: "ready",
         mealName,
-        sourceType: testScope ? "development-image-test" : isBase64 ? "base64" : "url",
+        sourceType: isBase64 ? "base64" : "url",
         thumbBytes: thumbBuffer.length,
         displayBytes: displayBuffer.length,
         origBytes: original.length,
@@ -261,10 +253,10 @@ export async function processImageForMeal(
       const [record] = await db.insert(mediaAssets).values({
         status: "failed",
         validationStatus: "failed",
-        sourceType: testScope ? "development-image-test" : isBase64 ? "base64" : "url",
+        sourceType: isBase64 ? "base64" : "url",
         processingError,
         retryCount: 0,
-        nextRetryAt: testScope ? null : new Date(Date.now() + 5 * 60 * 1000), // no automatic test recovery
+        nextRetryAt: new Date(Date.now() + 5 * 60 * 1000), // retry eligibility in 5 min
       }).returning();
 
       // CRITICAL: base64 bytes are NOT returned. Caller stores null imageUrl.

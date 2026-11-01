@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import type { AuthenticatedRequest } from "./requireAuth";
 import { getTierForLookupKey } from "@shared/planFeatures";
+import { hasPersonalClinicalReconciliationAccess } from "../lib/personalClinicalReconciliationAccess";
 
 /**
  * requireClinicalLabsAccess — stricter gate for Clinical Lab Values.
@@ -47,6 +48,8 @@ export function requireClinicalLabsAccess(
     });
     return;
   }
+
+  if (hasPersonalClinicalReconciliationAccess(authReq.authUser)) return next();
 
   // No planLookupKey with PAID_FULL = sandbox/internal account — grant access
   if (!planLookupKey) return next();

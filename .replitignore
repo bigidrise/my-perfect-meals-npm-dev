@@ -24,7 +24,4 @@ artifacts/
 
 # Project documentation is not required at runtime.
 docs/
-
-# Offline tools and generated comparison outputs never ship with the app.
-tools/image-comparison/
-generated-artifacts/
+/generated-artifacts/

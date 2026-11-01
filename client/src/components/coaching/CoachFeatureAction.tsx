@@ -14,6 +14,8 @@ export default function CoachFeatureAction({ destinationId, creatorRequest }: {
   const [error, setError] = useState("");
   if (!isCoachDestinationId(destinationId)) return null;
   const destination = COACH_DESTINATIONS[destinationId];
+  // Name the feature being opened, not a nested function that still needs selection.
+  const navigationLabel = "navigationLabel" in destination ? destination.navigationLabel : destination.label;
   const open = async () => {
     if (pending) return;
     setPending(true);
@@ -44,7 +46,7 @@ export default function CoachFeatureAction({ destinationId, creatorRequest }: {
       <Button type="button" onClick={() => void open()} disabled={pending}
         className="h-auto min-h-10 max-w-full whitespace-normal text-left"
         aria-busy={pending}>
-        {pending ? "Checking access…" : `Open ${destination.label}`}
+        {pending ? "Checking access…" : `Open ${navigationLabel}`}
       </Button>
       {error && <p role="alert" className="mt-2 text-sm text-orange-200">{error}</p>}
     </div>

@@ -1578,7 +1578,7 @@ const SECTION_SPECIALIZED: LibraryTopic[] = [
   {
     id: "my-perfect-menu",
     title: "My Perfect Menu",
-    subtitle: "Need help building your meal plan?",
+    subtitle: "Included with Essential, Pro, and Clinical",
     icon: Sparkles,
     content: {
       sections: [

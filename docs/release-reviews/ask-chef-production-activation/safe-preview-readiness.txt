@@ -1,0 +1,4 @@
+[production-preview-startup] DIAGNOSTIC: automatic migrations, seeding, recovery, schedules and workers suppressed before application imports; security and read-only readiness remain active.
+🎉 [INIT] Full initialization complete in 8688ms
+✅ [INIT] Server fully ready at: 2026-11-01T02:34:46.146Z
+[production-preview-startup] Ready: automatic background and deferred release maintenance suppressed.

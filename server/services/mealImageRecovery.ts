@@ -10,11 +10,6 @@ import { savedMeals } from "@shared/schema";
 import { processMealImageForSave } from "./imageLifecycle";
 import type { ImageSourceType, MealImageRequest } from "./mealImageGenerator";
 import { isFirstPartyPermanentImageUrl } from "@shared/mediaImageUrls";
-import { checkSavedImageDelivery, verifyRecoveryPhotograph } from "./savedImageVerification";
-
-// Non-serializable server-only capability. No HTTP route accepts or creates it.
-// A future repair script must explicitly opt in, with separately approved IDs.
-export const CONTROLLED_MEAL_IMAGE_REPAIR = Symbol("controlled-meal-image-repair");
 
 const JOB_LEASE_MS = 2 * 60 * 1000;
 const JOB_LEASE_HEARTBEAT_MS = 30 * 1000;
@@ -46,12 +41,6 @@ export interface MealImageRecoveryResult {
 
 function isRecoverablePermanentImageUrl(url: string | undefined | null): boolean {
   return isFirstPartyPermanentImageUrl(url, process.env.S3_BUCKET_NAME);
-}
-
-function isSuccessfulRecoveryImageUrl(url: string | undefined | null): boolean {
-  // First-party classification also includes intentional static illustrations.
-  // A generic fallback is not a recovered photograph and must never replace it.
-  return isRecoverablePermanentImageUrl(url) && !url?.startsWith("/images/fallback/");
 }
 
 function normalizeIngredients(ingredients: IngredientInput[] | undefined): string[] {
@@ -100,12 +89,7 @@ function toRecoveryResult(job: {
   resultImageUrl: string | null;
   error: string | null;
 }): MealImageRecoveryResult {
-  if (job.status === "ready") {
-    if (!isSuccessfulRecoveryImageUrl(job.resultImageUrl)) {
-      return { status: "failed", error: "Image recovery did not produce a permanent non-fallback image" };
-    }
-    return { status: "ready", imageUrl: job.resultImageUrl ?? undefined };
-  }
+  if (job.status === "ready") return { status: "ready", imageUrl: job.resultImageUrl ?? undefined };
   if (job.status === "failed") return { status: "failed", error: job.error ?? "Image recovery failed" };
   return { status: "pending" };
 }
@@ -113,7 +97,7 @@ function toRecoveryResult(job: {
 async function failJob(jobId: string, leaseToken: string, error: unknown): Promise<void> {
   const message = (error instanceof Error ? error.message : String(error || "Image recovery failed")).slice(0, 300);
   const failed = await db.update(mealImageRecoveryJobs)
-    .set({ status: "failed", resultImageUrl: null, error: message, leaseExpiresAt: null, updatedAt: new Date() })
+    .set({ status: "failed", error: message, leaseExpiresAt: null, updatedAt: new Date() })
     .where(and(
       eq(mealImageRecoveryJobs.id, jobId),
       eq(mealImageRecoveryJobs.status, "processing"),
@@ -123,11 +107,7 @@ async function failJob(jobId: string, leaseToken: string, error: unknown): Promi
   if (failed.length > 0) console.error(`[IMG-RECOVERY] ${jobId} failed: ${message}`);
 }
 
-export async function runControlledMealImageRecoveryJob(
-  jobId: string,
-  approval?: typeof CONTROLLED_MEAL_IMAGE_REPAIR,
-): Promise<void> {
-  if (approval !== CONTROLLED_MEAL_IMAGE_REPAIR) return;
+async function runMealImageRecoveryJob(jobId: string): Promise<void> {
   const now = new Date();
   const leaseToken = crypto.randomUUID();
   const leaseExpiresAt = new Date(Date.now() + JOB_LEASE_MS);
@@ -170,10 +150,6 @@ export async function runControlledMealImageRecoveryJob(
     if (!asset || (asset.thumbnailUrl !== job.reportedUrl && asset.displayUrl !== job.reportedUrl)) {
       throw new Error("Saved meal no longer references the reported image URL");
     }
-    const delivery = await checkSavedImageDelivery(job.reportedUrl, asset);
-    if (delivery.status !== "unavailable" || delivery.reason !== "missing") {
-      throw new Error("Original photograph is accessible or its absence is unconfirmed");
-    }
 
     const ingredients = normalizeIngredients(((meal.mealData ?? {}) as Record<string, unknown>).ingredients as IngredientInput[] | undefined);
     if (ingredients.length === 0) throw new Error("Saved recipe has no ingredients for image recovery");
@@ -182,23 +158,13 @@ export async function runControlledMealImageRecoveryJob(
     const request: MealImageRequest = { mealName: meal.title, ingredients, sourceType };
     await generator.invalidateMealImageCache(request);
     const imageUrl = await generator.generateMealImageUnified(meal.title, ingredients, sourceType);
-    if (!isSuccessfulRecoveryImageUrl(imageUrl)) {
-      throw new Error("Image recovery did not produce a permanent non-fallback image");
-    }
-    if (!await verifyRecoveryPhotograph(imageUrl!)) {
-      throw new Error("Replacement photograph failed independent verification");
+    if (!isRecoverablePermanentImageUrl(imageUrl)) {
+      throw new Error("Regeneration did not produce a permanent Object Storage URL");
     }
 
     const persisted = await processMealImageForSave(imageUrl, meal.title);
-    if (!isSuccessfulRecoveryImageUrl(persisted.imageUrl) || !persisted.mediaAssetId || persisted.imagePending) {
+    if (!persisted.imageUrl || !persisted.mediaAssetId) {
       throw new Error("Regenerated image could not be persisted");
-    }
-    if (!await verifyRecoveryPhotograph(persisted.imageUrl!)) {
-      throw new Error("Persisted replacement failed independent verification");
-    }
-    const latestDelivery = await checkSavedImageDelivery(job.reportedUrl, asset);
-    if (latestDelivery.status !== "unavailable" || latestDelivery.reason !== "missing") {
-      throw new Error("Original photograph became accessible or its absence is unconfirmed");
     }
 
     // Re-read immediately before write. The user may have edited this meal
@@ -245,17 +211,11 @@ export async function runControlledMealImageRecoveryJob(
 }
 
 /** Queue one authenticated recovery and return the durable job ID for polling. */
-export async function queueMealImageRecovery(
-  input: MealImageRecoveryInput,
-  approval?: typeof CONTROLLED_MEAL_IMAGE_REPAIR,
-): Promise<{
+export async function queueMealImageRecovery(input: MealImageRecoveryInput): Promise<{
   accepted: boolean;
   recoveryId?: string;
   reason?: string;
 }> {
-  if (approval !== CONTROLLED_MEAL_IMAGE_REPAIR) {
-    return { accepted: false, reason: "Controlled server-side repair approval is required" };
-  }
   if (!isRecoverablePermanentImageUrl(input.imageUrl)) {
     return { accepted: false, reason: "Only permanent first-party image failures can be recovered" };
   }
@@ -273,10 +233,6 @@ export async function queueMealImageRecovery(
   if (!asset) return { accepted: false, reason: "Image asset was not found" };
   if (asset.thumbnailUrl !== input.imageUrl && asset.displayUrl !== input.imageUrl) {
     return { accepted: false, reason: "Reported URL is not the saved meal's current image" };
-  }
-  const delivery = await checkSavedImageDelivery(input.imageUrl, asset);
-  if (delivery.status !== "unavailable" || delivery.reason !== "missing") {
-    return { accepted: false, reason: "Original photograph is accessible or its absence is unconfirmed" };
   }
   const deliveryState = asset.validationStatus ?? "unvalidated";
   if (asset.status !== "failed" && deliveryState !== "failed" && deliveryState !== "unvalidated") {
@@ -310,7 +266,18 @@ export async function queueMealImageRecovery(
     return { accepted: false, reason: "Image recovery could not be queued" };
   }
 
-  void runControlledMealImageRecoveryJob(created.id, approval);
+  await db.update(mediaAssets)
+    .set({
+      status: "failed",
+      validationStatus: "failed",
+      processingError: "Permanent Object Storage URL failed to load in client",
+      retryCount: sql`COALESCE(${mediaAssets.retryCount}, 0) + 1`,
+      nextRetryAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(mediaAssets.id, asset.id));
+
+  void runMealImageRecoveryJob(created.id);
   return { accepted: true, recoveryId: created.id };
 }
 
@@ -329,12 +296,21 @@ export async function getMealImageRecoveryStatus(
   return job ? toRecoveryResult(job) : null;
 }
 
-/** Boot must never turn historical pending/expired jobs into new generation.
- * Leave rows untouched. A future approved repair selects individual IDs through
- * runControlledMealImageRecoveryJob; never enable a global queue drain.
- */
+/** Restart-safe recovery worker: resumes pending jobs and expired leases on boot. */
 export async function resumePendingMealImageRecoveries(): Promise<void> {
-  return;
+  const now = new Date();
+  while (true) {
+    const jobs = await db.select({ id: mealImageRecoveryJobs.id })
+      .from(mealImageRecoveryJobs)
+      .where(or(
+        eq(mealImageRecoveryJobs.status, "pending"),
+        and(eq(mealImageRecoveryJobs.status, "processing"), sql`${mealImageRecoveryJobs.leaseExpiresAt} < ${now}`),
+      ))
+      .limit(20);
+    if (jobs.length === 0) return;
+    await Promise.all(jobs.map((job) => runMealImageRecoveryJob(job.id)));
+    if (jobs.length < 20) return;
+  }
 }
 
 export const mealImageRecoveryInternals = {

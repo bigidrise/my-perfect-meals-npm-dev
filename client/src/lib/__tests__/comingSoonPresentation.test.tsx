@@ -104,26 +104,42 @@ it("planned features are not presented as purchasable/current benefits", () => {
   expect(screen.getByText(/not currently available subscription benefits/)).toBeTruthy();
   expect(screen.queryByRole("button")).toBeNull();
 });
-it("Production hides the page and subscription notice", () => {
+it("Production shows only the approved informational advisor page, without exposing the subscription notice", () => {
   mockDevelopment = false;
   const { container } = render(<><Advisor /><Notice /></>);
-  expect(container.textContent).toBe("");
+  expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("AI Pairing Advisor — Coming Soon.");
+  expect(screen.getByRole("link", { name: "Back to Drink Intelligence" }).getAttribute("href")).toBe("/lifestyle/pairings-hub");
+  expect(container.textContent).not.toContain("not available yet");
+  expect(useAuth).not.toHaveBeenCalled();
+  expect(post).not.toHaveBeenCalled();
+  expect(screen.queryByRole("button")).toBeNull();
 });
-it("the route and hub entry are Development gated, existing Drink Pairing route is preserved", () => {
+it("the advisor route and glass hub entry are Production-visible while existing pairing tools and other Coming Soon gates stay intact", () => {
   const router = fs.readFileSync("client/src/components/Router.tsx", "utf8");
-  expect(router).toMatch(/developmentComingSoonEnabled && \(\s*<Route path="\/lifestyle\/ai-pairing-advisor"/);
+  expect(router).toContain('<Route path="/lifestyle/ai-pairing-advisor" component={DrinkAdvisorComingSoon} />');
+  expect(router).not.toContain("developmentComingSoonEnabled");
   expect(router).toContain('<Route path="/lifestyle/pairings-ai" component={GuardedPairingsAI} />');
   const hub = fs.readFileSync("client/src/pages/lifestyle/PairingsHub.tsx", "utf8");
   expect(hub).toContain('route: "/lifestyle/pairings-ai"');
-  expect(hub).toMatch(/developmentComingSoonEnabled && \(\s*<Link/);
+  expect(hub).toContain('route: "/lifestyle/wine-list-helper"');
+  expect(hub).toContain('route: "/lifestyle/reduce-drinking-plan"');
+  expect(hub).not.toContain("developmentComingSoonEnabled");
+  const advisorLink = hub.match(/<Link[\s\S]*?data-testid="pairingshub-advisor-coming-soon"/)?.[0];
+  expect(advisorLink).toContain('href="/lifestyle/ai-pairing-advisor"');
+  for (const style of ["bg-black/10", "backdrop-blur-lg", "border-white/10", "rounded-xl", "shadow-md"]) {
+    expect(advisorLink).toContain(style);
+  }
   const pricing = fs.readFileSync("client/src/pages/PricingPage.tsx", "utf8");
   expect(pricing.match(/<PlannedFeaturesNotice \/>/g)).toHaveLength(2);
   const gate = fs.readFileSync("client/src/lib/developmentComingSoon.ts", "utf8");
   expect(gate).toContain("import.meta.env.DEV && !import.meta.env.PROD");
   const publicRoutes = fs.readFileSync("client/src/lib/developmentAuthRoutes.ts", "utf8");
   expect(publicRoutes).toContain('"/lifestyle/ai-pairing-advisor"');
-  expect(router).toContain('...(developmentComingSoonEnabled ? ["/lifestyle/ai-pairing-advisor"] : [])');
   const appRouter = fs.readFileSync("client/src/components/AppRouter.tsx", "utf8");
-  expect(appRouter).toContain('(developmentComingSoonEnabled && path === "/lifestyle/ai-pairing-advisor")');
-  expect(appRouter).toContain('!(developmentComingSoonEnabled && location === "/lifestyle/ai-pairing-advisor")');
+  expect(appRouter).toContain('path === "/lifestyle/ai-pairing-advisor"');
+  expect(appRouter).toContain('location !== "/lifestyle/ai-pairing-advisor"');
+  expect(appRouter).not.toContain("developmentComingSoonEnabled");
+  const auth = fs.readFileSync("client/src/contexts/AuthContext.tsx", "utf8");
+  expect(auth).toContain('window.location.pathname !== "/lifestyle/ai-pairing-advisor"');
+  expect(auth).toContain('"/lifestyle/ai-pairing-advisor",\n          ...DEVELOPMENT_AUTH_PUBLIC_PATHS');
 });

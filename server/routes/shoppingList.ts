@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth } from "../middleware/requireAuth";
 import { getAuthUserId } from "../utils/getAuthUserId";
+import { groceryCoachProductMetadata } from "@shared/shoppingIngredientMetadata";
 import { shoppingMetadataDevelopment, developmentShoppingPost, developmentItemPatch, metadataInputFailure, aggregateDevelopmentShoppingItems } from "../services/shopping-list/metadataPersistence";
 
 const router = Router();
@@ -31,16 +32,21 @@ router.post("/shopping-list", requireAuth, async (req, res) => {
       scopeKey,
       sourceBuilder: item.source || item.sourceBuilder || null,
       checked: false,
+      ...(item.ingredientMetadata != null ? {
+        ingredientMetadata: groceryCoachProductMetadata(item.ingredientMetadata, item.name || ""),
+      } : {}),
     }));
     
-    await db.insert(shoppingListItems).values(toInsert);
+    const inserted = await db.insert(shoppingListItems).values(toInsert).returning();
     
     return res.json({ 
       ok: true, 
       added: toInsert.length, 
+      ...(toInsert.some(item => item.ingredientMetadata) ? { items: inserted } : {}),
       message: `${toInsert.length} items added to shopping list` 
     });
   } catch (error) {
+    if (metadataInputFailure(error, res)) return;
     console.error("Shopping list POST error:", error);
     return res.status(500).json({ ok: false, message: "Failed to add items" });
   }
@@ -68,7 +74,7 @@ router.get("/shopping-list", requireAuth, async (req, res) => {
     const aggregateMap = new Map<string, any>();
     
     for (const item of items) {
-      const key = `${item.name?.toLowerCase()}|${item.unit || ''}|${item.category || ''}`;
+      const key = item.ingredientMetadata ? `selected:${item.id}` : `${item.name?.toLowerCase()}|${item.unit || ''}|${item.category || ''}`;
       
       if (aggregateMap.has(key)) {
         const existing = aggregateMap.get(key);
@@ -82,6 +88,7 @@ router.get("/shopping-list", requireAuth, async (req, res) => {
           quantity: item.quantity,
           ids: [item.id],
           checked: item.checked,
+          ...(item.ingredientMetadata ? { ingredientMetadata: item.ingredientMetadata } : {}),
         });
       }
     }

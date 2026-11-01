@@ -5,22 +5,31 @@ import { Router } from 'express';
 import { requireAuth } from '../middleware/requireAuth';
 import { createApiRateLimit } from '../middleware/rateLimit';
 import { generateMealImage, generateMealImages, getCachedImage, getImageCacheStats } from '../services/mealImageGenerator';
-import { getMealImageRecoveryStatus } from '../services/mealImageRecovery';
-import { isVerifiedPhotograph } from "../../shared/imageResult";
-import { serializeGeneratedMealPhotograph } from "../services/developmentMealImageUrls";
+import { getMealImageRecoveryStatus, queueMealImageRecovery } from '../services/mealImageRecovery';
 
 const imageRateLimit = createApiRateLimit();
 
 export const mealImagesRouter = Router();
 
-// Keep the route contract, but fail closed even for stale clients or forged
-// approval fields. Future controlled repair must be a server-owned workflow.
-mealImagesRouter.post('/meal-images/recover', requireAuth, (_req, res) => {
-  return res.status(403).json({
-    accepted: false,
-    reason: "Saved image recovery requires separately approved controlled repair",
-    code: "CONTROLLED_IMAGE_REPAIR_REQUIRED",
-  });
+// A browser can prove that a permanent Object Storage URL is no longer
+// deliverable. Queue one replacement job and let the image slot poll it once;
+// this never silently falls back to a photograph of another dish.
+mealImagesRouter.post('/meal-images/recover', requireAuth, imageRateLimit, async (req, res) => {
+  try {
+    const result = await queueMealImageRecovery({
+      userId: req.authUser!.id,
+      imageUrl: req.body?.imageUrl,
+      mealName: req.body?.mealName,
+      ingredients: req.body?.ingredients,
+      sourceType: req.body?.sourceType,
+      mediaAssetId: req.body?.mediaAssetId,
+      savedMealId: req.body?.savedMealId,
+    });
+    return res.status(result.accepted ? 202 : 400).json(result);
+  } catch (error: any) {
+    console.error("[IMG-RECOVERY] Could not queue recovery:", error);
+    return res.status(500).json({ accepted: false, reason: "Could not queue image recovery" });
+  }
 });
 
 mealImagesRouter.get('/meal-images/recover/:recoveryId', requireAuth, async (req, res) => {
@@ -40,16 +49,16 @@ mealImagesRouter.post('/meal-images/generate', requireAuth, imageRateLimit, asyn
       });
     }
     
-    const result = serializeGeneratedMealPhotograph(await generateMealImage({
+    const result = await generateMealImage({
       mealName,
       ingredients,
       style,
       templateRef,
       mealType // 🍎 Pass mealType to enable snack firewall
-    }));
+    });
     
     res.json({ 
-      success: isVerifiedPhotograph(result.imageResult),
+      success: true,
       image: result
     });
     
@@ -81,10 +90,10 @@ mealImagesRouter.post('/meal-images/generate-batch', requireAuth, imageRateLimit
       mealType: meal.mealType // 🍎 Pass mealType to enable snack firewall
     }));
     
-    const results = (await generateMealImages(requests)).map(result => serializeGeneratedMealPhotograph(result));
+    const results = await generateMealImages(requests);
     
     res.json({ 
-      success: results.every(result => isVerifiedPhotograph(result.imageResult)),
+      success: true,
       images: results,
       count: results.length
     });
@@ -109,12 +118,11 @@ mealImagesRouter.post('/meal-images/cached', requireAuth, imageRateLimit, (req, 
       });
     }
     
-    const rawCached = getCachedImage({ mealName, ingredients, style, mealType });
-    const cached = rawCached ? serializeGeneratedMealPhotograph(rawCached) : null;
+    const cached = getCachedImage({ mealName, ingredients, style, mealType });
     
     if (cached) {
       res.json({ 
-        success: cached === rawCached || isVerifiedPhotograph(cached.imageResult),
+        success: true,
         image: cached,
         cached: true
       });
@@ -182,10 +190,7 @@ mealImagesRouter.post('/meal-images/hydrate-with-image', requireAuth, imageRateL
           mealType: (validated as any).mealType // 🍎 Pass mealType to enable snack firewall
         });
         
-        const serialized = serializeGeneratedMealPhotograph(imageResult);
-        imageUrl = serialized.url;
-        // Recipe success and image success are independent.
-        (validated as any).imageResult = serialized.imageResult;
+        imageUrl = imageResult.url;
       } catch (error) {
         console.warn('Image generation failed, using fallback:', error);
       }

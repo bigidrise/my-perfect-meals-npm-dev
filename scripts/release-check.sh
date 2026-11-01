@@ -134,10 +134,10 @@ else
   fail "OpenAI NOT configured — meal generation will fail"
 fi
 
-if echo "$HEALTH" | grep -q '"hasS3":true'; then
-  pass "S3 image storage configured"
+if node scripts/check-object-storage-health.cjs "$BASE_URL"; then
+  pass "Object Storage configuration and read access verified (uploads not tested)"
 else
-  warn "S3 not configured — meal images may not persist"
+  fail "Object Storage configuration/read readiness failed"
 fi
 
 # ──────────────────────────────────────────────────

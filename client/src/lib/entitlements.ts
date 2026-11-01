@@ -13,6 +13,7 @@ export interface UserWithEntitlements {
   id: string;
   entitlements?: string[];
   planLookupKey?: string | null;
+  personalClinicalReconciliationEndsAt?: string | null;
   accessTier?: string;
   isTester?: boolean;
   [key: string]: any;
@@ -24,6 +25,13 @@ export function hasFeature(
 ): boolean {
   if (!user) return false;
   if (user.isTester) return true;
+  // A server-issued reconciliation opens personal product features while the
+  // original window is active. It does not make someone a ProCare provider.
+  if (feature !== "procare" && user.accessTier === "PAID_FULL"
+    && user.personalClinicalReconciliationEndsAt
+    && Date.parse(user.personalClinicalReconciliationEndsAt) > Date.now()) {
+    return tierIncludesEntitlement("ultimate", feature);
+  }
   if (user.accessTier === "PAID_FULL") {
     const tier = !user.planLookupKey
       ? "ultimate"
@@ -44,6 +52,9 @@ export function purchasedPlanIncludesFeature(
   user: UserWithEntitlements | null | undefined,
   feature: Entitlement,
 ): boolean {
+  if (feature === "hydration_center" && user?.accessTier === "PAID_FULL"
+    && user.personalClinicalReconciliationEndsAt
+    && Date.parse(user.personalClinicalReconciliationEndsAt) > Date.now()) return true;
   if (!user?.planLookupKey) return false;
   const tier = getTierForLookupKey(user.planLookupKey);
   return tierIncludesEntitlement(tier, feature);

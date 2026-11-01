@@ -1731,7 +1731,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
                                           Replace
                                         </button>
                                       </div>
-                                      {groceryCoachCatalogEnabled && packagedProductEligibility(s.item).eligible && (
+                                      {packagedProductEligibility(s.item).eligible && (
                                         <MealIngredientBrands
                                           ingredient={s}
                                           servings={result.servingCount || result.meal?.servings || 1}

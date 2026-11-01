@@ -5,11 +5,36 @@ import { Simulate } from "react-dom/test-utils";
 import { notifyManager, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import CoachsCorner from "@/pages/CoachsCorner";
 import ChefConversationEntry from "@/components/coaching/ChefConversationEntry";
+import CoachBubble from "@/components/coaching/CoachBubble";
 import { chefNavigationRoute } from "@shared/coaching/creatorRequest";
 
 let mockConversationEnabled = true;
 const mockNavigate = jest.fn();
 const mockAPI = jest.fn();
+test.each([false, true])("care guidance renders once, including historical duplicated envelopes=%s", historical => {
+  const guidance = "Call emergency services now for these symptoms.";
+  const structured = {
+    whatIFound: historical ? guidance : "",
+    whatItCouldMean: historical ? guidance : "",
+    todayPlan: { why: "", items: [{ kind: "contact_care", text: guidance }],
+      successMetric: "", nextCheckIn: "" },
+    learningOpportunity: null, meta: { redFlag: true },
+  };
+  act(() => root.render(<CoachBubble structured={structured} enableConcierge />));
+  expect(host.textContent?.split(guidance)).toHaveLength(2);
+  expect(host.textContent).not.toContain("These are suggestions");
+  expect(host.querySelector("button")).toBeNull();
+});
+
+test("ordinary conversation has neither care template nor professional boilerplate", () => {
+  act(() => root.render(<CoachBubble enableConcierge structured={{
+    presentation: { kind: "concierge", message: "Do you want to make it or buy it?" },
+    whatIFound: "", whatItCouldMean: "", todayPlan: null, learningOpportunity: null,
+  }} />));
+  expect(host.textContent).toContain("Do you want to make it or buy it?");
+  expect(host.textContent).not.toMatch(/Your safety comes first|I noticed something|These are suggestions/);
+});
+
 const approvedNavigation = (destinationId: string) => ({
   state: "navigation_confirmed", destinationId,
   goal: { activity: "unknown", occasion: "unknown", restaurant: "unknown", dishChosen: false,
@@ -57,6 +82,89 @@ async function renderPage(completed: boolean, messages: any[] = []) {
   });
   await act(async () => { root.render(<QueryClientProvider client={client}><CoachsCorner /></QueryClientProvider>); });
 }
+
+test("the four-turn small ice-cream conversation renders Open Craving Creator after the first yes", async () => {
+  await renderPage(false);
+  const goal = { activity: "prepare", occasion: "snack", restaurant: "unknown",
+    dishChosen: false, specialty: "none", explicitFeatureId: null };
+  const question = "Would you like to open the Craving Creator to make a small portion of ice cream?";
+  const handoff = "To begin making your small portion of ice cream, open the Craving Creator and describe your craving.";
+  const turns = [
+    { input: "I want some ice cream.", message: "Are you looking to buy some ice cream from the store, or are you interested in making your own ice cream at home?" },
+    { input: "make it myself", message: "You can use Craving Creator for a small portion or Dessert Creator for a larger batch. Would you like a small portion or larger dessert recipe?" },
+    { input: "small", message: question },
+    { input: "yes", message: handoff },
+  ];
+  for (const [index, turn] of turns.entries()) {
+    mockAPI.mockResolvedValueOnce({ conversationId: "craving-conversation", messageId: `craving-${index}`,
+      response: { presentation: { kind: "concierge", message: turn.message,
+        ...(index === 2 ? { navigation: { state: "recommendation_pending", destinationId: "craving_creator", goal } } : {}),
+        ...(index === 3 ? { destinationId: "craving_creator", navigation: {
+          state: "navigation_confirmed", destinationId: "craving_creator", goal,
+        } } : {}) },
+        whatIFound: "", whatItCouldMean: "", meta: { redFlag: false }, learningOpportunity: null,
+        todayPlan: { items: index === 3 ? [{ kind: "use_feature", destinationId: "craving_creator" }] : [] } } });
+    await act(async () => {
+      const textarea = host.querySelector("textarea")!;
+      textarea.value = turn.input;
+      Simulate.change(textarea, { target: textarea } as any);
+    });
+    await act(async () => { (host.querySelector('[aria-label="Send message"]') as HTMLButtonElement).click(); });
+    const buttons = [...host.querySelectorAll("button")].filter(button => button.textContent === "Open Craving Creator");
+    expect(buttons).toHaveLength(index === 3 ? 1 : 0);
+    expect(host.textContent).toContain(turn.message);
+    expect(mockNavigate).not.toHaveBeenCalled();
+  }
+  expect(mockAPI).toHaveBeenCalledTimes(4);
+  const button = [...host.querySelectorAll("button")].find(button => button.textContent === "Open Craving Creator")!;
+  mockAPI.mockResolvedValueOnce({ destinationId: "craving_creator", route: chefNavigationRoute("craving_creator") });
+  await act(async () => button.click());
+  expect(mockAPI).toHaveBeenLastCalledWith("/api/coach/navigation", expect.objectContaining({
+    method: "POST", body: JSON.stringify({ destinationId: "craving_creator" }),
+  }));
+  expect(mockNavigate).toHaveBeenCalledWith(chefNavigationRoute("craving_creator"));
+  expect(mockAPI).toHaveBeenCalledTimes(5);
+});
+
+test("restaurant recommendation followed by one yes displays the real validated navigation control", async () => {
+  await renderPage(false);
+  const send = async (message: string) => {
+    await act(async () => {
+      const textarea = host.querySelector("textarea")!;
+      textarea.value = message;
+      Simulate.change(textarea, { target: textarea } as any);
+    });
+    await act(async () => { (host.querySelector('[aria-label="Send message"]') as HTMLButtonElement).click(); });
+  };
+  const goal = { activity: "eat_out", occasion: "dessert", restaurant: "not_chosen",
+    dishChosen: false, specialty: "none", explicitFeatureId: null };
+  const question = "Find Meals Near Me searches nearby restaurants. Would you like to open it?";
+  mockAPI.mockResolvedValueOnce({ conversationId: "restaurant-conversation", messageId: "restaurant-offer",
+    response: { presentation: { kind: "concierge", message: question,
+      navigation: { state: "recommendation_pending", destinationId: "find_meals_near_me", goal } },
+      whatIFound: "", whatItCouldMean: "", todayPlan: { items: [] }, learningOpportunity: null } });
+  await send("I wanna go to a restaurant to get ice cream.");
+  expect(host.textContent).toContain(question);
+  expect([...host.querySelectorAll("button")].filter(button => button.textContent === "Open Find Meals Near Me")).toHaveLength(0);
+  const instructions = "Follow the guided flow, describe your craving, and enter a ZIP code or use the location control.";
+  mockAPI.mockResolvedValueOnce({ conversationId: "restaurant-conversation", messageId: "restaurant-handoff",
+    response: { presentation: { kind: "concierge", message: instructions, destinationId: "find_meals_near_me",
+      navigation: { state: "navigation_confirmed", destinationId: "find_meals_near_me", goal } },
+      whatIFound: "", whatItCouldMean: "", todayPlan: { items: [{ kind: "use_feature", destinationId: "find_meals_near_me" }] },
+      learningOpportunity: null } });
+  await send("yes");
+  const buttons = [...host.querySelectorAll("button")].filter(button => button.textContent === "Open Find Meals Near Me");
+  expect(buttons).toHaveLength(1);
+  expect(host.textContent).toContain(instructions);
+  expect(mockNavigate).not.toHaveBeenCalled();
+  expect(mockAPI).toHaveBeenCalledTimes(2);
+  mockAPI.mockResolvedValueOnce({ destinationId: "find_meals_near_me", route: chefNavigationRoute("find_meals_near_me") });
+  await act(async () => buttons[0].click());
+  expect(mockAPI).toHaveBeenLastCalledWith("/api/coach/navigation", expect.objectContaining({
+    method: "POST", body: JSON.stringify({ destinationId: "find_meals_near_me" }),
+  }));
+  expect(mockNavigate).toHaveBeenCalledWith(chefNavigationRoute("find_meals_near_me"));
+});
 
 test.each([false, true])("actual chat page is immediately usable with assessment completion=%s", async completed => {
   await renderPage(completed);
@@ -113,6 +221,39 @@ test("stored conversations still render for an unassessed member", async () => {
   expect(host.textContent).toContain("Your previous conversation is here.");
   expect(host.textContent).not.toMatch(/Edit profile|Retake full assessment/);
   expect(mockNavigate).not.toHaveBeenCalled();
+});
+
+test.each([
+  ["grocery_find_product", "Find a Product"],
+  ["grocery_create_meal", "Create a Meal"],
+  ["grocery_create_meal", "Build a Meal"],
+])("%s opens Grocery Store Coach while preserving the %s explanation", async (destinationId, functionName) => {
+  const explanation = `Open Grocery Store Coach and select ${functionName}.`;
+  await renderPage(false, [{
+    id: "grocery-guidance", role: "assistant", created_at: "2026-01-01T00:00:00Z",
+    structured_payload: {
+      presentation: { kind: "concierge", message: explanation,
+        destinationId, navigation: approvedNavigation(destinationId) },
+      whatIFound: "", whatItCouldMean: "",
+      todayPlan: { items: [{ kind: "use_feature", destinationId }] }, learningOpportunity: null,
+    },
+  }]);
+  expect(host.textContent).toContain(explanation);
+  const buttons = [...host.querySelectorAll("button")];
+  const open = buttons.find(button => button.textContent === "Open Grocery Store Coach");
+  expect(open).toBeDefined();
+  expect(buttons.some(button => button.textContent === `Open ${functionName}`)).toBe(false);
+  expect(mockAPI).not.toHaveBeenCalled();
+  expect(mockNavigate).not.toHaveBeenCalled();
+  mockAPI.mockResolvedValueOnce({ destinationId, route: "/shopping-list-v2" });
+  await act(async () => open!.click());
+  expect(mockAPI).toHaveBeenCalledTimes(1);
+  expect(mockAPI).toHaveBeenCalledWith("/api/coach/navigation", {
+    method: "POST", body: JSON.stringify({ destinationId }),
+  });
+  expect(mockNavigate).toHaveBeenCalledTimes(1);
+  expect(mockNavigate).toHaveBeenCalledWith("/shopping-list-v2");
+  expect(host.textContent).toContain(explanation);
 });
 
 test.each([

@@ -158,3 +158,73 @@ test("serialized restores finish with the latest queued settings", async () => {
   expect(f.pending().filter(n => n.id !== 9000).every(n =>
     n.schedule?.on?.hour === 9 && n.schedule?.on?.minute === 30)).toBe(true);
 });
+
+test("reconciles all legacy meal IDs without touching IDs outside the reserved ranges", async () => {
+  const f = fixture();
+  const unrelated = [1000, 1004, 1999, 2006, 9000];
+  f.seed([...unrelated, 1001, 1002, 1003].map(id => ({ id, title: "Existing", body: "Keep unless meal" })));
+  await f.scheduler.restore();
+  expect(f.pending().map(n => n.id).sort((a, b) => a - b))
+    .toEqual([...unrelated, 2000, 2001, 2002].sort((a, b) => a - b));
+});
+
+test("failed pending inspection does not alter working schedules, and retry recovers", async () => {
+  const f = fixture();
+  await f.scheduler.restore();
+  const before = JSON.stringify(f.pending());
+  f.plugin.schedule.mockClear();
+  f.plugin.getPending.mockRejectedValueOnce(new Error("inspection failed"));
+  await expect(f.scheduler.restore()).rejects.toThrow("inspection failed");
+  expect(f.scheduler.getStatus().state).toBe("error");
+  expect(JSON.stringify(f.pending())).toBe(before);
+  expect(f.plugin.schedule).not.toHaveBeenCalled();
+  expect(f.plugin.cancel).not.toHaveBeenCalled();
+  await f.scheduler.restore();
+  expect(f.scheduler.getStatus()).toMatchObject({ state: "scheduled", count: 3 });
+});
+
+test("failed legacy cancellation reports failure and retries only obsolete meal IDs", async () => {
+  const f = fixture();
+  f.seed([...f.pending(), { id: 1001, title: "Legacy", body: "Breakfast" }]);
+  f.plugin.cancel.mockRejectedValueOnce(new Error("cancellation failed"));
+  await expect(f.scheduler.restore()).rejects.toThrow("cancellation failed");
+  expect(f.scheduler.getStatus().state).toBe("error");
+  expect(f.pending().some(n => n.id === 9000)).toBe(true);
+  expect(f.pending().some(n => n.id === 1001)).toBe(true);
+  await f.scheduler.restore();
+  expect(f.plugin.cancel.mock.calls[1][0].notifications).toEqual([{ id: 1001 }]);
+  expect(f.plugin.schedule).toHaveBeenCalledTimes(1);
+  expect(f.scheduler.getStatus()).toMatchObject({ state: "scheduled", count: 3 });
+});
+
+test("permission recovery restores once and remains duplicate-free on further resumes", async () => {
+  const f = fixture();
+  f.plugin.checkPermissions.mockResolvedValueOnce({ display: "denied" });
+  await f.scheduler.restore();
+  expect(f.scheduler.getStatus().state).toBe("blocked");
+  await f.scheduler.restore();
+  await f.scheduler.restore();
+  expect(f.plugin.schedule).toHaveBeenCalledTimes(1);
+  expect(f.pending().map(n => n.id).sort()).toEqual([2000, 2001, 2002, 9000]);
+});
+
+test("account switching during an in-flight native write cleans up before restoring the new account", async () => {
+  const f = fixture();
+  let finish: (() => void) | undefined;
+  f.plugin.schedule.mockImplementationOnce(async ({ notifications }) => {
+    await new Promise<void>(resolve => { finish = resolve; });
+    f.seed([...f.pending().filter(n => !notifications.some(update => update.id === n.id)), ...notifications]);
+    return { notifications: notifications.map(({ id }) => ({ id })) };
+  });
+  const old = f.scheduler.restore();
+  for (let i = 0; i < 30 && !finish; i++) await Promise.resolve();
+  expect(finish).toBeDefined();
+  f.scheduler.setOwner(null);
+  f.scheduler.setOwner("synthetic-b");
+  const next = f.scheduler.restore();
+  finish!();
+  await Promise.all([old, next]);
+  expect(f.pending().filter(n => n.id !== 9000).every(n => n.extra?.owner === "synthetic-b")).toBe(true);
+  expect(f.pending().map(n => n.id).sort()).toEqual([2000, 2001, 2002, 9000]);
+  expect(f.plugin.cancel.mock.calls[0][0].notifications.map(n => n.id).sort()).toEqual([2000, 2001, 2002]);
+});
