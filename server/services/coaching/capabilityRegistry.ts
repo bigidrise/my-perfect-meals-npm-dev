@@ -19,6 +19,7 @@
  */
 
 import { COACH_DESTINATIONS, type CoachDestinationId } from "../../../shared/coaching/navigation";
+import { isAskChefConversationEnabled } from "../../../shared/coaching/askChefRelease";
 
 export type CapabilityScope =
   | "all"            // any authenticated user
@@ -359,7 +360,7 @@ export const CORNER_UNSUPPORTED_FEATURES = [
 /** Development-only concierge extension; other coaches and Production stay unchanged. */
 export function getCornerCapabilities(activeScopes: CapabilityScope[]): MPMCapability[] {
   const existing = getCapabilitiesForUser(activeScopes, true);
-  if (process.env.NODE_ENV !== "development") return existing;
+  if (!isAskChefConversationEnabled(process.env.NODE_ENV)) return existing;
   const descriptions: Record<CoachDestinationId, string> = {
     grocery_find_product: "Grocery Coach > Find a Product uses onboarding and the member's nutrition profile to find three suitable grocery product recommendations when the member wants something to buy. Discovery, not evaluation of an actual product. Chef explains this workflow; the existing feature owns recommendations and safeguards.",
     product_scan: "Evaluate a specific grocery product the member has or is looking at by scanning its label against their profile and nutritional needs. Explain suitability and offer three alternatives through the existing Product Scan workflow, not brand recommendations in Chef.",

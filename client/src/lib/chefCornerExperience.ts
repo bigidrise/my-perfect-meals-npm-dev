@@ -1,4 +1,4 @@
-/** Separate from the page so rendered-interface tests can supply either mode. */
+/** Released conversation experience; independent of Development build settings. */
 export function isChefConversationEnabled(): boolean {
-  return import.meta.env.DEV;
+  return true;
 }

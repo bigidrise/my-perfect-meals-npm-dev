@@ -1,0 +1,3930 @@
+{
+  "passedSuites": 35,
+  "passedTests": 928,
+  "failedTests": 0,
+  "pendingTests": 0,
+  "suites": [
+    {
+      "file": "server/tests/coachingConciergeIntent.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "two-pass fixture retains the selected destination for I want to make sushi.",
+          "status": "passed"
+        },
+        {
+          "name": "two-pass fixture retains the selected destination for I want to bake cheesecake.",
+          "status": "passed"
+        },
+        {
+          "name": "two-pass fixture retains the selected destination for I want to make a smoothie.",
+          "status": "passed"
+        },
+        {
+          "name": "two-pass fixture retains the selected destination for I want to make a cocktail.",
+          "status": "passed"
+        },
+        {
+          "name": "two-pass fixture retains the selected destination for I need a pre-workout drink.",
+          "status": "passed"
+        },
+        {
+          "name": "two-pass fixture retains the selected destination for I need a post-workout recovery shake.",
+          "status": "passed"
+        },
+        {
+          "name": "two-pass fixture retains the selected destination for I feel dehydrated.",
+          "status": "passed"
+        },
+        {
+          "name": "two-pass fixture retains the selected destination for I've chosen Chili's. Help me decide what to order.",
+          "status": "passed"
+        },
+        {
+          "name": "two-pass fixture retains the selected destination for I know what food I want but not where to get it.",
+          "status": "passed"
+        },
+        {
+          "name": "two-pass fixture retains the selected destination for I'm at a buffet.",
+          "status": "passed"
+        },
+        {
+          "name": "two-pass fixture retains the selected destination for I want to make lasagna.",
+          "status": "passed"
+        },
+        {
+          "name": "renderer cannot switch a sushi decision to Craving Creator",
+          "status": "passed"
+        },
+        {
+          "name": "nutrition education retains a useful answer and removes forced navigation",
+          "status": "passed"
+        },
+        {
+          "name": "an ambiguous salty-food request can clarify without navigation or a logging reminder",
+          "status": "passed"
+        },
+        {
+          "name": "changed preference is preserved in reasoning history and replaces the earlier destination",
+          "status": "passed"
+        },
+        {
+          "name": "requested behavioral coaching keeps evidence instructions, styles, and learning support",
+          "status": "passed"
+        },
+        {
+          "name": "bad optional intent metadata cannot suppress a reasoning safety flag",
+          "status": "passed"
+        },
+        {
+          "name": "a rendered care escalation overrides even a valid food destination",
+          "status": "passed"
+        },
+        {
+          "name": "unknown rendering targets are rejected, not silently relabeled",
+          "status": "passed"
+        },
+        {
+          "name": "missing reasoning decision cannot produce a guessed navigation",
+          "status": "passed"
+        },
+        {
+          "name": "mini fallback preserves the selection instead of reintroducing logging or another creator",
+          "status": "passed"
+        },
+        {
+          "name": "total provider failure gives an explicit retry without invented advice or navigation",
+          "status": "passed"
+        },
+        {
+          "name": "Production uses the released conversation reasoning, history, and validated navigation",
+          "status": "passed"
+        },
+        {
+          "name": "ambiguous hunger stays conversational through both passes without Fridge Rescue",
+          "status": "passed"
+        },
+        {
+          "name": "multi-turn discovery retains savory and burger choices until the member chooses going out",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1B two-pass fixture: I have chicken, rice, and broccoli in my refrigerator. What can I make?",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1B two-pass fixture: Please open Fridge Rescue.",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1B two-pass fixture: Just give me a few ideas, no more questions.",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1B two-pass fixture: What's the difference between protein, carbohydrates, and fats?",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1B two-pass fixture: How do I meal prep for the week?",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1B two-pass fixture: I keep stress-eating at night.",
+          "status": "passed"
+        },
+        {
+          "name": "changed beverage preference reaches both reasoning and expression",
+          "status": "passed"
+        },
+        {
+          "name": "rolling summary and the already-bounded history reach both passes without a second tail cut",
+          "status": "passed"
+        },
+        {
+          "name": "clarification cannot acquire an unsolicited feature action from rendering",
+          "status": "passed"
+        },
+        {
+          "name": "mini fallback retains discovery history and no-navigation authority",
+          "status": "passed"
+        },
+        {
+          "name": "Fridge Rescue's grounded-ingredient restriction also applies in Production",
+          "status": "passed"
+        },
+        {
+          "name": "full pipeline isolates ordinary discovery from coaching templates and appends no logging reminder",
+          "status": "passed"
+        },
+        {
+          "name": "full pipeline reasoning failure uses neutral context rather than synthetic nutrient/log analysis",
+          "status": "passed"
+        },
+        {
+          "name": "missing semantic decision fails closed through the full pipeline without guessed navigation",
+          "status": "passed"
+        },
+        {
+          "name": "full pipeline decision completion produces one validated click action: I'll make the spicy tofu lettuce wraps.",
+          "status": "passed"
+        },
+        {
+          "name": "full pipeline decision completion produces one validated click action: I want sushi.",
+          "status": "passed"
+        },
+        {
+          "name": "full pipeline decision completion produces one validated click action: Let's make cheesecake.",
+          "status": "passed"
+        },
+        {
+          "name": "full pipeline decision completion produces one validated click action: Help me satisfy a general salty-food craving.",
+          "status": "passed"
+        },
+        {
+          "name": "full pipeline decision completion produces one validated click action: I need a pre-workout drink.",
+          "status": "passed"
+        },
+        {
+          "name": "full pipeline decision completion produces one validated click action: Let's find somewhere serving a burger.",
+          "status": "passed"
+        },
+        {
+          "name": "full pipeline decision completion produces one validated click action: I want help choosing at the restaurant I picked.",
+          "status": "passed"
+        },
+        {
+          "name": "unsupported builder requests cannot bypass entry hubs: Help me build meals.",
+          "status": "passed"
+        },
+        {
+          "name": "unsupported builder requests cannot bypass entry hubs: Plan my week in My Perfect Menu.",
+          "status": "passed"
+        },
+        {
+          "name": "unsupported builder requests cannot bypass entry hubs: Help me use a diabetes meal builder.",
+          "status": "passed"
+        },
+        {
+          "name": "unsupported builder requests cannot bypass entry hubs: I need the GLP-1 meal builder.",
+          "status": "passed"
+        },
+        {
+          "name": "unsupported builder requests cannot bypass entry hubs: Open anti-inflammatory meal building.",
+          "status": "passed"
+        },
+        {
+          "name": "unsupported builder requests cannot bypass entry hubs: I want performance meal planning.",
+          "status": "passed"
+        },
+        {
+          "name": "full pipeline safety gate precedes both model calls",
+          "status": "passed"
+        },
+        {
+          "name": "reasoning safety flag survives malformed concierge metadata in the full pipeline",
+          "status": "passed"
+        },
+        {
+          "name": "full pipeline preserves behavioral methodology rather than the concise concierge prompt",
+          "status": "passed"
+        },
+        {
+          "name": "minimal discovery response stays one question through the full pipeline and stored JSON",
+          "status": "passed"
+        },
+        {
+          "name": "legacy-format provider rationale is internal, never promoted into the presentation",
+          "status": "passed"
+        },
+        {
+          "name": "minimal completed decision retains one server-owned action: I'll make spicy tofu lettuce wraps.",
+          "status": "passed"
+        },
+        {
+          "name": "minimal completed decision retains one server-owned action: I want sushi.",
+          "status": "passed"
+        },
+        {
+          "name": "minimal education preserves detail in its one message without forcing navigation",
+          "status": "passed"
+        },
+        {
+          "name": "minimal renderer care escalation bypasses compact presentation and navigation",
+          "status": "passed"
+        },
+        {
+          "name": "mini fallback hides legacy plan fragments behind the same minimal presentation",
+          "status": "passed"
+        },
+        {
+          "name": "mini fallback accepts the new one-message response with no extra call",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E orchestration vetoes premature Craving Creator: I'm hungry, but I don't know what I want.",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E orchestration vetoes premature Craving Creator: I want something light, but with a lot of flavor. Nothing too heavy.",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E orchestration vetoes premature Craving Creator: Spicy.",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E orchestration vetoes premature Craving Creator: Something small and spicy.",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E actual reasoning rejects a legacy destination with no goal proof",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E complete goal immediately retains one appropriate action: I want to prepare spicy chickpeas as a small snack.",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E complete goal immediately retains one appropriate action: I want to make shrimp tacos for dinner.",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E complete goal immediately retains one appropriate action: I want to prepare a full meal.",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E complete goal immediately retains one appropriate action: I want to bake a small dessert.",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E complete goal immediately retains one appropriate action: I want to bake a whole pie.",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E complete goal immediately retains one appropriate action: I want to make sushi.",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E complete goal immediately retains one appropriate action: I want to make a smoothie.",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E complete goal immediately retains one appropriate action: Make a pre-workout drink.",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E complete goal immediately retains one appropriate action: Use my leftover chicken and rice.",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E complete goal immediately retains one appropriate action: I'm going to Chili's tonight. Help me choose a light meal.",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E complete goal immediately retains one appropriate action: Help me find a restaurant for dinner. I haven't chosen one.",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E expression independently vetoes inconsistent craving_creator readiness",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E expression independently vetoes inconsistent create_a_dish readiness",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E expression independently vetoes inconsistent restaurant_guide readiness",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E expression independently vetoes inconsistent find_meals_near_me readiness",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E expression independently vetoes inconsistent restaurant_guide readiness",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E expression independently vetoes inconsistent sushi_creator readiness",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E expression independently vetoes inconsistent dessert_creator readiness",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E expression independently vetoes inconsistent fridge_rescue readiness",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E multi-turn discovery retains preferences and budget, offers ideas, then opens only after destination is clear",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E a changed mind replaces the prior snack destination with the chosen restaurant",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E explicit available-feature requests need no discovery checklist",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E an assistant mention or invented explicit request cannot bypass goal readiness",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E the allowlist alone cannot authorize an unavailable capability",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E invalid goal metadata never suppresses a genuine reasoning red flag",
+          "status": "passed"
+        },
+        {
+          "name": "Stage 1E mini fallback cannot resurrect a destination rejected for insufficient goal context",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/coachingNavigation.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "development server-validated Chef navigation grocery_find_product keeps its Pro boundary and parent-only route in both environments",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation grocery_create_meal keeps its Pro boundary and parent-only route in both environments",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation product_scan keeps its Pro boundary and parent-only route in both environments",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation new destinations match the guarded member entry routes, not specialized builders",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation my_perfect_menu enforces Pro access, rejects handoffs, and supports Production",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation meal_builders enforces Pro access, rejects handoffs, and supports Production",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation grocery_find_product resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation product_scan resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation grocery_create_meal resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation sushi_creator resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation craving_creator resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation dessert_creator resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation beverage_creator resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation athlete_beverage_creator resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation hydration_center resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation restaurant_guide resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation find_meals_near_me resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation my_perfect_buffet resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation my_perfect_getaway resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation my_perfect_gatherings resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation fridge_rescue resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation create_a_dish resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation macro_calculator resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation my_perfect_beginning resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation my_perfect_menu resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation meal_builders resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation rejects unknown, paused, or injected target https://evil.example",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation rejects unknown, paused, or injected target //evil.example",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation rejects unknown, paused, or injected target javascript:alert(1)",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation rejects unknown, paused, or injected target /auth",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation rejects unknown, paused, or injected target /lifestyle/beverage-creator?generate=true",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation rejects unknown, paused, or injected target pregnancy_coach",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation rejects unknown, paused, or injected target wine_pairing_ai",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation rejects unknown, paused, or injected target __proto__",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation rejects unknown, paused, or injected target constructor",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation rejects unknown, paused, or injected target made_up_feature",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation clarification needs no navigation; changed preference replaces the action",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation safety escalation suppresses every navigation action",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation non-feature items cannot carry navigation, and production never adds it",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation registry provides clear destination distinctions without activating paused coaches",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation current access guards are reused, not replaced with model eligibility",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation unpaid hydration access is denied even in development",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation enforced Pro/Clinical locks deny navigation and still honor existing temporary access",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation requires authentication, rejects unknown IDs, and supports the Production conversation",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation Create a Dish handoff returns only an encoded editable idea after authentication",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation rejects unsupported or unsafe request metadata {\"destinationId\":\"sushi_creator\",\"creatorRequest\":{\"destinationId\":\"create_a_dish\",\"idea\":\"Soup\"}}",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation rejects unsupported or unsafe request metadata {\"destinationId\":\"create_a_dish\",\"creatorRequest\":{\"destinationId\":\"create_a_dish\",\"idea\":\"\"}}",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation rejects unsupported or unsafe request metadata {\"destinationId\":\"create_a_dish\",\"creatorRequest\":{\"destinationId\":\"create_a_dish\",\"idea\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}}",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation rejects unsupported or unsafe request metadata {\"destinationId\":\"create_a_dish\",\"creatorRequest\":{\"destinationId\":\"create_a_dish\",\"idea\":\"Soup\\n\"}}",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation rejects unsupported or unsafe request metadata {\"destinationId\":\"create_a_dish\",\"creatorRequest\":{\"destinationId\":\"create_a_dish\",\"idea\":\"Soup\",\"generate\":true}}",
+          "status": "passed"
+        },
+        {
+          "name": "development server-validated Chef navigation rejects unsupported or unsafe request metadata {\"destinationId\":\"create_a_dish\",\"creatorRequest\":{\"destinationId\":\"create_a_dish\",\"idea\":\"Soup\",\"redirect\":\"https://evil.example\"}}",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation grocery_find_product keeps its Pro boundary and parent-only route in both environments",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation grocery_create_meal keeps its Pro boundary and parent-only route in both environments",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation product_scan keeps its Pro boundary and parent-only route in both environments",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation new destinations match the guarded member entry routes, not specialized builders",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation my_perfect_menu enforces Pro access, rejects handoffs, and supports Production",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation meal_builders enforces Pro access, rejects handoffs, and supports Production",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation grocery_find_product resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation product_scan resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation grocery_create_meal resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation sushi_creator resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation craving_creator resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation dessert_creator resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation beverage_creator resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation athlete_beverage_creator resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation hydration_center resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation restaurant_guide resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation find_meals_near_me resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation my_perfect_buffet resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation my_perfect_getaway resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation my_perfect_gatherings resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation fridge_rescue resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation create_a_dish resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation macro_calculator resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation my_perfect_beginning resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation my_perfect_menu resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation meal_builders resolves only its fixed route",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation rejects unknown, paused, or injected target https://evil.example",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation rejects unknown, paused, or injected target //evil.example",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation rejects unknown, paused, or injected target javascript:alert(1)",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation rejects unknown, paused, or injected target /auth",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation rejects unknown, paused, or injected target /lifestyle/beverage-creator?generate=true",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation rejects unknown, paused, or injected target pregnancy_coach",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation rejects unknown, paused, or injected target wine_pairing_ai",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation rejects unknown, paused, or injected target __proto__",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation rejects unknown, paused, or injected target constructor",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation rejects unknown, paused, or injected target made_up_feature",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation clarification needs no navigation; changed preference replaces the action",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation safety escalation suppresses every navigation action",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation non-feature items cannot carry navigation, and production never adds it",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation registry provides clear destination distinctions without activating paused coaches",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation current access guards are reused, not replaced with model eligibility",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation unpaid hydration access is denied even in development",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation enforced Pro/Clinical locks deny navigation and still honor existing temporary access",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation requires authentication, rejects unknown IDs, and supports the Production conversation",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation Create a Dish handoff returns only an encoded editable idea after authentication",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation rejects unsupported or unsafe request metadata {\"destinationId\":\"sushi_creator\",\"creatorRequest\":{\"destinationId\":\"create_a_dish\",\"idea\":\"Soup\"}}",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation rejects unsupported or unsafe request metadata {\"destinationId\":\"create_a_dish\",\"creatorRequest\":{\"destinationId\":\"create_a_dish\",\"idea\":\"\"}}",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation rejects unsupported or unsafe request metadata {\"destinationId\":\"create_a_dish\",\"creatorRequest\":{\"destinationId\":\"create_a_dish\",\"idea\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}}",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation rejects unsupported or unsafe request metadata {\"destinationId\":\"create_a_dish\",\"creatorRequest\":{\"destinationId\":\"create_a_dish\",\"idea\":\"Soup\\n\"}}",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation rejects unsupported or unsafe request metadata {\"destinationId\":\"create_a_dish\",\"creatorRequest\":{\"destinationId\":\"create_a_dish\",\"idea\":\"Soup\",\"generate\":true}}",
+          "status": "passed"
+        },
+        {
+          "name": "production server-validated Chef navigation rejects unsupported or unsafe request metadata {\"destinationId\":\"create_a_dish\",\"creatorRequest\":{\"destinationId\":\"create_a_dish\",\"idea\":\"Soup\",\"redirect\":\"https://evil.example\"}}",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "client/src/lib/__tests__/savedRecommendationProducts.test.tsx",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "Juice: saving the second card stores only the second exact product and its own explanation",
+          "status": "passed"
+        },
+        {
+          "name": "each existing Add action passes that card's complete product identity",
+          "status": "passed"
+        },
+        {
+          "name": "reopening after logout/login fetches the persisted second product, not a local saved flag",
+          "status": "passed"
+        },
+        {
+          "name": "a different account never inherits another account's saved badge",
+          "status": "passed"
+        },
+        {
+          "name": "a late save response from the previous account cannot populate the current account cache",
+          "status": "passed"
+        },
+        {
+          "name": "failed saves remain retryable and do not show a saved badge",
+          "status": "passed"
+        },
+        {
+          "name": "rapid repeated saves create only one write for that card",
+          "status": "passed"
+        },
+        {
+          "name": "a response for a different product cannot mark the clicked recommendation saved",
+          "status": "passed"
+        },
+        {
+          "name": "legacy saved rows still reopen with their stored brand and without new recommendation metadata",
+          "status": "passed"
+        },
+        {
+          "name": "separate supplied brand and product fields are retained without guessing or doubling the label",
+          "status": "passed"
+        },
+        {
+          "name": "saved-library reopening retains the product, reasons and warnings, and re-adding uses its saved ID",
+          "status": "passed"
+        },
+        {
+          "name": "the shared scanner bookmark retains the original analysis and correct source",
+          "status": "passed"
+        },
+        {
+          "name": "the shared grocery-coach bookmark retains the original analysis and correct source",
+          "status": "passed"
+        },
+        {
+          "name": "a newly saved full graded scan reopens with the original analysis content and grade presentation",
+          "status": "passed"
+        },
+        {
+          "name": "legacy analysis with grade C shows genuine historical content without scan-failure messaging",
+          "status": "passed"
+        },
+        {
+          "name": "legacy analysis with grade undefined shows genuine historical content without scan-failure messaging",
+          "status": "passed"
+        },
+        {
+          "name": "saved recommendations retain identity, brand, package and criteria without a parent grade or failed-scan presentation",
+          "status": "passed"
+        },
+        {
+          "name": "an unanalyzed recommendation shows each benefit once, a prominent action and one short source notice without a failed-label warning",
+          "status": "passed"
+        },
+        {
+          "name": "recommendation cleanup preserves incompatible restrictions",
+          "status": "passed"
+        },
+        {
+          "name": "recommendation cleanup preserves profile_unavailable restrictions",
+          "status": "passed"
+        },
+        {
+          "name": "a partial historical scorecard displays only the genuinely saved assessment",
+          "status": "passed"
+        },
+        {
+          "name": "a saved recommendation is analyzed only after an explicit click, then reopens its own persisted result without another request",
+          "status": "passed"
+        },
+        {
+          "name": "a late analysis result cannot follow the customer into another account",
+          "status": "passed"
+        },
+        {
+          "name": "uncertain generation failures do not auto-retry and explicit retries retain the same operation ID",
+          "status": "passed"
+        },
+        {
+          "name": "companion saved recommendations never offer human analysis",
+          "status": "passed"
+        },
+        {
+          "name": "an older backend without analysis capability keeps recommendation viewing working without exposing a broken paid action",
+          "status": "passed"
+        },
+        {
+          "name": "Product Scan uses the same four-section layout with optional details and visible restrictions",
+          "status": "passed"
+        },
+        {
+          "name": "Grocery Coach uses the same four-section layout with optional details and visible restrictions",
+          "status": "passed"
+        },
+        {
+          "name": "Saved Groceries uses the same four-section layout with optional details and visible restrictions",
+          "status": "passed"
+        },
+        {
+          "name": "Meal ingredient brands uses the same four-section layout with optional details and visible restrictions",
+          "status": "passed"
+        },
+        {
+          "name": "Biometrics uses the same four-section layout with optional details and visible restrictions",
+          "status": "passed"
+        },
+        {
+          "name": "Companion uses the same four-section layout with optional details and visible restrictions",
+          "status": "passed"
+        },
+        {
+          "name": "reopening a saved front-label snapshot never offers or runs a new by-name analysis",
+          "status": "passed"
+        },
+        {
+          "name": "a blocked legacy Coach product has a working View Analysis and label-verification action",
+          "status": "passed"
+        },
+        {
+          "name": "an open saved analysis never follows the customer into another account",
+          "status": "passed"
+        },
+        {
+          "name": "a split-brand recommendation recognizes the same legacy full-name scan without a duplicate save",
+          "status": "passed"
+        },
+        {
+          "name": "scan bookmarks preserve name fallback without conflating conflicting UPCs",
+          "status": "passed"
+        },
+        {
+          "name": "scan bookmarks preserve name fallback without conflating conflicting UPCs",
+          "status": "passed"
+        },
+        {
+          "name": "Update Saved Analysis attaches the already-generated result to the existing recommendation without deleting or calling AI",
+          "status": "passed"
+        },
+        {
+          "name": "View Saved Analysis restores the saved printout locally and only the separate Remove action can delete it",
+          "status": "passed"
+        },
+        {
+          "name": "a stale attachment shows uncertainty without silently retrying, deleting or generating another result",
+          "status": "passed"
+        },
+        {
+          "name": "a first-save race attaches to the returned authoritative recommendation instead of creating another product",
+          "status": "passed"
+        },
+        {
+          "name": "a late attachment response cannot update the next account's card or cache",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "client/src/lib/__tests__/savedGroceriesSelection.test.tsx",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "shopping-page updates do not remount Saved Groceries or restart its loading cycle",
+          "status": "passed"
+        },
+        {
+          "name": "one eligible selection enables the primary action and adds only its exact saved ID",
+          "status": "passed"
+        },
+        {
+          "name": "multiple choices survive brand search and clearing search; only selected products are added",
+          "status": "passed"
+        },
+        {
+          "name": "an explicit deselection does not add the unchecked product",
+          "status": "passed"
+        },
+        {
+          "name": "all saved products are selectable shopping intentions without analysis or verification clutter",
+          "status": "passed"
+        },
+        {
+          "name": "selecting a saved recommendation does not start another verification or analysis request",
+          "status": "passed"
+        },
+        {
+          "name": "missing profile checks do not prevent shopping-intent selection or trigger retry requests",
+          "status": "passed"
+        },
+        {
+          "name": "known conflicts and certification limitations do not offer a misleading photo fix",
+          "status": "passed"
+        },
+        {
+          "name": "10 saved categories produce a flat searchable list without category or Add All controls",
+          "status": "passed"
+        },
+        {
+          "name": "30 saved categories produce a flat searchable list without category or Add All controls",
+          "status": "passed"
+        },
+        {
+          "name": "100 saved categories produce a flat searchable list without category or Add All controls",
+          "status": "passed"
+        },
+        {
+          "name": "account switching clears old selections and ignores a late bulk result",
+          "status": "passed"
+        },
+        {
+          "name": "server rejection is reported honestly without removing the saved product or adding list clutter",
+          "status": "passed"
+        },
+        {
+          "name": "all explicitly selected IDs reach the unchanged server gate, including previously blocked products",
+          "status": "passed"
+        },
+        {
+          "name": "stored brand and explicit package size remain visible and exact saved identity is submitted",
+          "status": "passed"
+        },
+        {
+          "name": "delete removes only the chosen saved product and clears its selection",
+          "status": "passed"
+        },
+        {
+          "name": "logout/login restores only the same account's persisted mock library without carrying selection",
+          "status": "passed"
+        },
+        {
+          "name": "compact rows keep four ordered controls, 44px touch targets, exact names and the vertical scroller",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/chefConversation.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "development released Ask Chef recommendation metadata cannot display an early button for grocery_find_product",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef recommendation metadata cannot display an early button for product_scan",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef recommendation metadata cannot display an early button for grocery_create_meal",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef recommendation metadata cannot display an early button for sushi_creator",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef recommendation metadata cannot display an early button for craving_creator",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef recommendation metadata cannot display an early button for dessert_creator",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef recommendation metadata cannot display an early button for beverage_creator",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef recommendation metadata cannot display an early button for athlete_beverage_creator",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef recommendation metadata cannot display an early button for hydration_center",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef recommendation metadata cannot display an early button for restaurant_guide",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef recommendation metadata cannot display an early button for find_meals_near_me",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef recommendation metadata cannot display an early button for my_perfect_buffet",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef recommendation metadata cannot display an early button for my_perfect_getaway",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef recommendation metadata cannot display an early button for my_perfect_gatherings",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef recommendation metadata cannot display an early button for fridge_rescue",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef recommendation metadata cannot display an early button for create_a_dish",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef recommendation metadata cannot display an early button for macro_calculator",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef recommendation metadata cannot display an early button for my_perfect_beginning",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef recommendation metadata cannot display an early button for my_perfect_menu",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef recommendation metadata cannot display an early button for meal_builders",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef recommendation cannot be auto-completed from a ready travel goal",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef my_perfect_getaway recommendation then short agreement retains context and guides navigation",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef dessert_creator recommendation then short agreement retains context and guides navigation",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef explicit navigation to my_perfect_getaway needs no repeated permission",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef explicit navigation to dessert_creator needs no repeated permission",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef explicit navigation to find_meals_near_me needs no repeated permission",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef missing or invalid navigation intent undefined cannot authorize an otherwise ready goal",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef missing or invalid navigation intent unknown cannot authorize an otherwise ready goal",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef missing or invalid navigation intent yes cannot authorize an otherwise ready goal",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef missing or invalid navigation intent true cannot authorize an otherwise ready goal",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef confirmed navigation still honors changed intent and the existing goal validation",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef accepted my_perfect_getaway uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef accepted create_a_dish uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef accepted craving_creator uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef accepted dessert_creator uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef accepted beverage_creator uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef accepted athlete_beverage_creator uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef accepted my_perfect_menu uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef accepted meal_builders uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef accepted restaurant_guide uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef accepted find_meals_near_me uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef accepted my_perfect_buffet uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef accepted fridge_rescue uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef accepted my_perfect_gatherings uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef direct familiar-feature request can omit instructions rather than forcing a tutorial",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef latest corrected destination wins over an earlier accepted recommendation",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef ambiguous acceptance does not force a destination button",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef unresolved destination choice stays conversational without a premature action: I want to start making meals, but I'm not sure where to begin.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef unresolved destination choice stays conversational without a premature action: I want to make something sweet, but I don't know how much.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef unresolved destination choice stays conversational without a premature action: I want to make a drink, but I'm not sure what kind.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef clear intent retains direct validated navigation: Please open My Perfect Menu.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef clear intent retains direct validated navigation: Take me to the builders.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef clear intent retains direct validated navigation: I'd like to make a small sweet treat.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef clear intent retains direct validated navigation: I want to bake a whole cake.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef clear intent retains direct validated navigation: I'd like to make an ordinary lemonade.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef clear intent retains direct validated navigation: I want to make a post-workout recovery drink.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef an answered distinction or correction retains history and does not restart discovery: Would you like suggested ideas, or do you have your own in mind?",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef an answered distinction or correction retains history and does not restart discovery: Small treat or a larger dessert?",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef an answered distinction or correction retains history and does not restart discovery: Everyday drink or workout drink?",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef travel-dining knowledge supports recommendation without premature navigation: I'm going on a Carnival cruise next week. Can you help me figure out where I should eat?",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef travel-dining knowledge supports recommendation without premature navigation: I'm at the Carnival buffet. Help me choose from the buffet foods.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef travel-dining knowledge supports recommendation without premature navigation: I've selected the ship's steakhouse. Help me choose menu items there.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef travel-dining knowledge supports recommendation without premature navigation: I'm ashore and want to find nearby restaurants. I haven't chosen one.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef cruise context can stay conversational without mandatory Getaway navigation",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef Production receives the same reviewed Getaway capability as the conversation",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef a requested comparison can explain the distinction without selecting either tool",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef actual Development engine answers without assessment, styles, observers or background extraction in one call",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef preferences and changed intent remain in the actual one-call history without inventing dishes",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef reference soup conversation retains member preferences and grounds the final Create a Dish prefill",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef a complete one-turn request immediately receives an editable grounded handoff",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef chicken Caesar food choice alone cannot auto-complete an opening action",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef authorized ready craving_creator semantic goal cannot silently lose its destination",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef authorized ready dessert_creator semantic goal cannot silently lose its destination",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef authorized ready sushi_creator semantic goal cannot silently lose its destination",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef authorized ready beverage_creator semantic goal cannot silently lose its destination",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef authorized ready athlete_beverage_creator semantic goal cannot silently lose its destination",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef authorized ready fridge_rescue semantic goal cannot silently lose its destination",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef authorized ready restaurant_guide semantic goal cannot silently lose its destination",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef authorized ready find_meals_near_me semantic goal cannot silently lose its destination",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef authorized ready my_perfect_buffet semantic goal cannot silently lose its destination",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef authorized ready hydration_center semantic goal cannot silently lose its destination",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef no forced destination for discussion, education, uncertainty or unsupported intent: I don't know, maybe a salad.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef no forced destination for discussion, education, uncertainty or unsupported intent: What nutrients are in chicken Caesar salad?",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef no forced destination for discussion, education, uncertainty or unsupported intent: I had chicken Caesar salad yesterday.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef no forced destination for discussion, education, uncertainty or unsupported intent: Help me plan my week's meals.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef no forced destination for discussion, education, uncertainty or unsupported intent: Explain diabetes meal planning.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef ordinary conversation needs no action or food-goal classification: undefined",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef ordinary conversation needs no action or food-goal classification: null",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef ordinary conversation needs no action or food-goal classification: {\"mode\":\"food_assistance\",\"destinationId\":null}",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef exact live breakfast failure preserves a same-call conversation when its premature action is vetoed",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef breakfast discovery with a null action is a complete response through the active engine",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef platform guidance stays conversational without a forced action: I don't know how to use My Perfect Meals.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef platform guidance stays conversational without a forced action: How do I make my meals?",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef platform guidance stays conversational without a forced action: Help me plan seven days of meals.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef platform guidance stays conversational without a forced action: Where can I keep a private daily journal?",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef platform guidance stays conversational without a forced action: How do I track my weight?",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef adaptive conversation instructions apply to every turn without old question templates",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef contextual feature help is model-authored guidance, not automatic generation: How do I use Craving Creator?",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef contextual feature help is model-authored guidance, not automatic generation: Is the cooking method required there?",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef contextual feature help is model-authored guidance, not automatic generation: What does dessert recipe yield mean?",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef later turns retain model-authored explanations, corrections, orientation and a direct action",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef completed actions cannot preserve a mismatched pitch or link: Open Craving Creator now.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef completed actions cannot preserve a mismatched pitch or link: Open https://untrusted.example.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef completed actions cannot preserve a mismatched pitch or link: Go to /lifestyle/create-a-dish.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef completed beverage wording preserves only the verified tool, including overlapping labels: none / Beverage Creator can help with that ordinary drink.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef completed beverage wording preserves only the verified tool, including overlapping labels: workout / Athlete Beverage Creator can help with that recovery drink.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef completed beverage wording preserves only the verified tool, including overlapping labels: none / Athlete Beverage Creator can help with that ordinary drink.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef completed beverage wording preserves only the verified tool, including overlapping labels: workout / Athlete Beverage Creator or Beverage Creator can help.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef clear member activity preserves its existing approved recommendation: I want to use the chicken and vegetables in my refrigerator.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef clear member activity preserves its existing approved recommendation: Help me make chicken nuggets.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef clear member activity preserves its existing approved recommendation: Help me make a small brownie snack.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef clear member activity preserves its existing approved recommendation: I want to bake a whole chocolate cake.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef clear member activity preserves its existing approved recommendation: Make an everyday fruit shake.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef clear member activity preserves its existing approved recommendation: Help me make a cocktail.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef clear member activity preserves its existing approved recommendation: Make a post-workout recovery drink.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef clear member activity preserves its existing approved recommendation: Plan food for my holiday gathering.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef clear member activity preserves its existing approved recommendation: Help with food for an airport trip.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef entry-page approval never authorizes choosing a specialized builder or a new handoff",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef chosen planning approach supports ordinary wording without another question: Take me to the builders.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef chosen planning approach supports ordinary wording without another question: I'd like to start with menu ideas.",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef general planning cannot authorize an unchosen my_perfect_menu",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef general planning cannot authorize an unchosen meal_builders",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef comparison is conversation; latest choice replaces a previous Menu request",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef care escalation suppresses my_perfect_menu even for a clear request",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef care escalation suppresses meal_builders even for a clear request",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef released knowledge keeps the same portion-size distinctions in Production",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef malformed action metadata cannot erase an independently valid model conversation",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef a rejected action without a safe independent reply stays an explicit failure: undefined",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef a rejected action without a safe independent reply stays an explicit failure: \"\"",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef a rejected action without a safe independent reply stays an explicit failure: \"Open Beverage Creator now.\"",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef a rejected action without a safe independent reply stays an explicit failure: \"Go to /auth.\"",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef a rejected action without a safe independent reply stays an explicit failure: \"Use https://untrusted.example.\"",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef provider and parsing failures never become fabricated successful food replies",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef an incomplete structured response cannot publish partial conversation or an action",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef a provider connection interruption stays truthful without replay or a second call",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef strict provider null fields preserve ordinary conversation and care escalation",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef goal completion never invents an unavailable destination or picks between competing matches",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef unverifiable request cannot introduce an invented prefill: {\"idea\":\"Chicken soup with tomatoes.\",\"memberTurns\":[0]}",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef unverifiable request cannot introduce an invented prefill: {\"idea\":\"Chicken soup.\",\"memberTurns\":[200]}",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef unverifiable request cannot introduce an invented prefill: {\"idea\":\"Chicken soup.\",\"memberTurns\":[-1]}",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef assistant suggestions cannot supply handoff ingredients or override a changed member request",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef the member's changed request replaces earlier preferences in the prefill",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef one-call craving_creator selection retains exactly one validated action and stored presentation",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef one-call create_a_dish selection retains exactly one validated action and stored presentation",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef one-call dessert_creator selection retains exactly one validated action and stored presentation",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef one-call sushi_creator selection retains exactly one validated action and stored presentation",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef one-call restaurant_guide selection retains exactly one validated action and stored presentation",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef one-call find_meals_near_me selection retains exactly one validated action and stored presentation",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef one-call athlete_beverage_creator selection retains exactly one validated action and stored presentation",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef one-call fridge_rescue selection retains exactly one validated action and stored presentation",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef premature navigation fails explicitly without an unchecked feature pitch or extra call",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef substantive nutrition education remains detailed and does not require logs or a profile",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef safety screening precedes history, assessment and AI",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef model-recognized escalation wins over malformed navigation and preserves care guidance",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef provider failure returns an explicit retry and keeps the turn persisted without another paid attempt",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef subject authorization cannot be bypassed by removing assessment",
+          "status": "passed"
+        },
+        {
+          "name": "development released Ask Chef Production uses the released conversation rather than the old assessment engine",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef recommendation metadata cannot display an early button for grocery_find_product",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef recommendation metadata cannot display an early button for product_scan",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef recommendation metadata cannot display an early button for grocery_create_meal",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef recommendation metadata cannot display an early button for sushi_creator",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef recommendation metadata cannot display an early button for craving_creator",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef recommendation metadata cannot display an early button for dessert_creator",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef recommendation metadata cannot display an early button for beverage_creator",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef recommendation metadata cannot display an early button for athlete_beverage_creator",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef recommendation metadata cannot display an early button for hydration_center",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef recommendation metadata cannot display an early button for restaurant_guide",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef recommendation metadata cannot display an early button for find_meals_near_me",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef recommendation metadata cannot display an early button for my_perfect_buffet",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef recommendation metadata cannot display an early button for my_perfect_getaway",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef recommendation metadata cannot display an early button for my_perfect_gatherings",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef recommendation metadata cannot display an early button for fridge_rescue",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef recommendation metadata cannot display an early button for create_a_dish",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef recommendation metadata cannot display an early button for macro_calculator",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef recommendation metadata cannot display an early button for my_perfect_beginning",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef recommendation metadata cannot display an early button for my_perfect_menu",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef recommendation metadata cannot display an early button for meal_builders",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef recommendation cannot be auto-completed from a ready travel goal",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef my_perfect_getaway recommendation then short agreement retains context and guides navigation",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef dessert_creator recommendation then short agreement retains context and guides navigation",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef explicit navigation to my_perfect_getaway needs no repeated permission",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef explicit navigation to dessert_creator needs no repeated permission",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef explicit navigation to find_meals_near_me needs no repeated permission",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef missing or invalid navigation intent undefined cannot authorize an otherwise ready goal",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef missing or invalid navigation intent unknown cannot authorize an otherwise ready goal",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef missing or invalid navigation intent yes cannot authorize an otherwise ready goal",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef missing or invalid navigation intent true cannot authorize an otherwise ready goal",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef confirmed navigation still honors changed intent and the existing goal validation",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef accepted my_perfect_getaway uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef accepted create_a_dish uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef accepted craving_creator uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef accepted dessert_creator uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef accepted beverage_creator uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef accepted athlete_beverage_creator uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef accepted my_perfect_menu uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef accepted meal_builders uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef accepted restaurant_guide uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef accepted find_meals_near_me uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef accepted my_perfect_buffet uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef accepted fridge_rescue uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef accepted my_perfect_gatherings uses model-authored first steps with the existing validated action",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef direct familiar-feature request can omit instructions rather than forcing a tutorial",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef latest corrected destination wins over an earlier accepted recommendation",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef ambiguous acceptance does not force a destination button",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef unresolved destination choice stays conversational without a premature action: I want to start making meals, but I'm not sure where to begin.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef unresolved destination choice stays conversational without a premature action: I want to make something sweet, but I don't know how much.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef unresolved destination choice stays conversational without a premature action: I want to make a drink, but I'm not sure what kind.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef clear intent retains direct validated navigation: Please open My Perfect Menu.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef clear intent retains direct validated navigation: Take me to the builders.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef clear intent retains direct validated navigation: I'd like to make a small sweet treat.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef clear intent retains direct validated navigation: I want to bake a whole cake.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef clear intent retains direct validated navigation: I'd like to make an ordinary lemonade.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef clear intent retains direct validated navigation: I want to make a post-workout recovery drink.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef an answered distinction or correction retains history and does not restart discovery: Would you like suggested ideas, or do you have your own in mind?",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef an answered distinction or correction retains history and does not restart discovery: Small treat or a larger dessert?",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef an answered distinction or correction retains history and does not restart discovery: Everyday drink or workout drink?",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef travel-dining knowledge supports recommendation without premature navigation: I'm going on a Carnival cruise next week. Can you help me figure out where I should eat?",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef travel-dining knowledge supports recommendation without premature navigation: I'm at the Carnival buffet. Help me choose from the buffet foods.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef travel-dining knowledge supports recommendation without premature navigation: I've selected the ship's steakhouse. Help me choose menu items there.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef travel-dining knowledge supports recommendation without premature navigation: I'm ashore and want to find nearby restaurants. I haven't chosen one.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef cruise context can stay conversational without mandatory Getaway navigation",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef Production receives the same reviewed Getaway capability as the conversation",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef a requested comparison can explain the distinction without selecting either tool",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef actual Development engine answers without assessment, styles, observers or background extraction in one call",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef preferences and changed intent remain in the actual one-call history without inventing dishes",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef reference soup conversation retains member preferences and grounds the final Create a Dish prefill",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef a complete one-turn request immediately receives an editable grounded handoff",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef chicken Caesar food choice alone cannot auto-complete an opening action",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef authorized ready craving_creator semantic goal cannot silently lose its destination",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef authorized ready dessert_creator semantic goal cannot silently lose its destination",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef authorized ready sushi_creator semantic goal cannot silently lose its destination",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef authorized ready beverage_creator semantic goal cannot silently lose its destination",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef authorized ready athlete_beverage_creator semantic goal cannot silently lose its destination",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef authorized ready fridge_rescue semantic goal cannot silently lose its destination",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef authorized ready restaurant_guide semantic goal cannot silently lose its destination",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef authorized ready find_meals_near_me semantic goal cannot silently lose its destination",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef authorized ready my_perfect_buffet semantic goal cannot silently lose its destination",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef authorized ready hydration_center semantic goal cannot silently lose its destination",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef no forced destination for discussion, education, uncertainty or unsupported intent: I don't know, maybe a salad.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef no forced destination for discussion, education, uncertainty or unsupported intent: What nutrients are in chicken Caesar salad?",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef no forced destination for discussion, education, uncertainty or unsupported intent: I had chicken Caesar salad yesterday.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef no forced destination for discussion, education, uncertainty or unsupported intent: Help me plan my week's meals.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef no forced destination for discussion, education, uncertainty or unsupported intent: Explain diabetes meal planning.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef ordinary conversation needs no action or food-goal classification: undefined",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef ordinary conversation needs no action or food-goal classification: null",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef ordinary conversation needs no action or food-goal classification: {\"mode\":\"food_assistance\",\"destinationId\":null}",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef exact live breakfast failure preserves a same-call conversation when its premature action is vetoed",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef breakfast discovery with a null action is a complete response through the active engine",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef platform guidance stays conversational without a forced action: I don't know how to use My Perfect Meals.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef platform guidance stays conversational without a forced action: How do I make my meals?",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef platform guidance stays conversational without a forced action: Help me plan seven days of meals.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef platform guidance stays conversational without a forced action: Where can I keep a private daily journal?",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef platform guidance stays conversational without a forced action: How do I track my weight?",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef adaptive conversation instructions apply to every turn without old question templates",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef contextual feature help is model-authored guidance, not automatic generation: How do I use Craving Creator?",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef contextual feature help is model-authored guidance, not automatic generation: Is the cooking method required there?",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef contextual feature help is model-authored guidance, not automatic generation: What does dessert recipe yield mean?",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef later turns retain model-authored explanations, corrections, orientation and a direct action",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef completed actions cannot preserve a mismatched pitch or link: Open Craving Creator now.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef completed actions cannot preserve a mismatched pitch or link: Open https://untrusted.example.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef completed actions cannot preserve a mismatched pitch or link: Go to /lifestyle/create-a-dish.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef completed beverage wording preserves only the verified tool, including overlapping labels: none / Beverage Creator can help with that ordinary drink.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef completed beverage wording preserves only the verified tool, including overlapping labels: workout / Athlete Beverage Creator can help with that recovery drink.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef completed beverage wording preserves only the verified tool, including overlapping labels: none / Athlete Beverage Creator can help with that ordinary drink.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef completed beverage wording preserves only the verified tool, including overlapping labels: workout / Athlete Beverage Creator or Beverage Creator can help.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef clear member activity preserves its existing approved recommendation: I want to use the chicken and vegetables in my refrigerator.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef clear member activity preserves its existing approved recommendation: Help me make chicken nuggets.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef clear member activity preserves its existing approved recommendation: Help me make a small brownie snack.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef clear member activity preserves its existing approved recommendation: I want to bake a whole chocolate cake.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef clear member activity preserves its existing approved recommendation: Make an everyday fruit shake.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef clear member activity preserves its existing approved recommendation: Help me make a cocktail.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef clear member activity preserves its existing approved recommendation: Make a post-workout recovery drink.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef clear member activity preserves its existing approved recommendation: Plan food for my holiday gathering.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef clear member activity preserves its existing approved recommendation: Help with food for an airport trip.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef entry-page approval never authorizes choosing a specialized builder or a new handoff",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef chosen planning approach supports ordinary wording without another question: Take me to the builders.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef chosen planning approach supports ordinary wording without another question: I'd like to start with menu ideas.",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef general planning cannot authorize an unchosen my_perfect_menu",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef general planning cannot authorize an unchosen meal_builders",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef comparison is conversation; latest choice replaces a previous Menu request",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef care escalation suppresses my_perfect_menu even for a clear request",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef care escalation suppresses meal_builders even for a clear request",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef released knowledge keeps the same portion-size distinctions in Production",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef malformed action metadata cannot erase an independently valid model conversation",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef a rejected action without a safe independent reply stays an explicit failure: undefined",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef a rejected action without a safe independent reply stays an explicit failure: \"\"",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef a rejected action without a safe independent reply stays an explicit failure: \"Open Beverage Creator now.\"",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef a rejected action without a safe independent reply stays an explicit failure: \"Go to /auth.\"",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef a rejected action without a safe independent reply stays an explicit failure: \"Use https://untrusted.example.\"",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef provider and parsing failures never become fabricated successful food replies",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef an incomplete structured response cannot publish partial conversation or an action",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef a provider connection interruption stays truthful without replay or a second call",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef strict provider null fields preserve ordinary conversation and care escalation",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef goal completion never invents an unavailable destination or picks between competing matches",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef unverifiable request cannot introduce an invented prefill: {\"idea\":\"Chicken soup with tomatoes.\",\"memberTurns\":[0]}",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef unverifiable request cannot introduce an invented prefill: {\"idea\":\"Chicken soup.\",\"memberTurns\":[200]}",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef unverifiable request cannot introduce an invented prefill: {\"idea\":\"Chicken soup.\",\"memberTurns\":[-1]}",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef assistant suggestions cannot supply handoff ingredients or override a changed member request",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef the member's changed request replaces earlier preferences in the prefill",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef one-call craving_creator selection retains exactly one validated action and stored presentation",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef one-call create_a_dish selection retains exactly one validated action and stored presentation",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef one-call dessert_creator selection retains exactly one validated action and stored presentation",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef one-call sushi_creator selection retains exactly one validated action and stored presentation",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef one-call restaurant_guide selection retains exactly one validated action and stored presentation",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef one-call find_meals_near_me selection retains exactly one validated action and stored presentation",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef one-call athlete_beverage_creator selection retains exactly one validated action and stored presentation",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef one-call fridge_rescue selection retains exactly one validated action and stored presentation",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef premature navigation fails explicitly without an unchecked feature pitch or extra call",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef substantive nutrition education remains detailed and does not require logs or a profile",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef safety screening precedes history, assessment and AI",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef model-recognized escalation wins over malformed navigation and preserves care guidance",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef provider failure returns an explicit retry and keeps the turn persisted without another paid attempt",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef subject authorization cannot be bypassed by removing assessment",
+          "status": "passed"
+        },
+        {
+          "name": "production released Ask Chef Production uses the released conversation rather than the old assessment engine",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/pregnancyCoachPaywall.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "Pregnancy temporary customer availability blocks post /setup before any database work",
+          "status": "passed"
+        },
+        {
+          "name": "Pregnancy temporary customer availability blocks post /ask before any database work",
+          "status": "passed"
+        },
+        {
+          "name": "Pregnancy temporary customer availability blocks delete /setup before any database work",
+          "status": "passed"
+        },
+        {
+          "name": "Pregnancy temporary customer availability does not turn an unauthenticated request into an authenticated one",
+          "status": "passed"
+        },
+        {
+          "name": "POST /api/pregnancy/ask — paywall guard returns 401 when there is no authenticated user",
+          "status": "passed"
+        },
+        {
+          "name": "POST /api/pregnancy/ask — paywall guard returns 403 for a FREE user with null planLookupKey (expired trial or no plan)",
+          "status": "passed"
+        },
+        {
+          "name": "POST /api/pregnancy/ask — paywall guard returns 403 for a FREE user with mpm_free planLookupKey",
+          "status": "passed"
+        },
+        {
+          "name": "POST /api/pregnancy/ask — paywall guard returns 403 for a PAID_FULL basic subscriber",
+          "status": "passed"
+        },
+        {
+          "name": "POST /api/pregnancy/ask — paywall guard returns 403 for a PAID_FULL premium subscriber",
+          "status": "passed"
+        },
+        {
+          "name": "POST /api/pregnancy/ask — paywall guard does NOT return 403 for a PAID_FULL ultimate subscriber",
+          "status": "passed"
+        },
+        {
+          "name": "POST /api/pregnancy/ask — paywall guard does NOT return 403 for a clinical_business_monthly subscriber",
+          "status": "passed"
+        },
+        {
+          "name": "POST /api/pregnancy/ask — paywall guard does NOT return 403 for an internal/founder account (PAID_FULL + null planLookupKey)",
+          "status": "passed"
+        },
+        {
+          "name": "POST /api/pregnancy/ask — paywall guard does NOT return 403 when BILLING_ENFORCED is false, regardless of plan",
+          "status": "passed"
+        },
+        {
+          "name": "Pregnancy bootstrap stage/date preservation preserves breastfeeding and its breastfeeding flag with an old due date",
+          "status": "passed"
+        },
+        {
+          "name": "Pregnancy bootstrap stage/date preservation preserves postpartum and its breastfeeding flag with an old due date",
+          "status": "passed"
+        },
+        {
+          "name": "Pregnancy bootstrap stage/date preservation does not turn an invalid due date into third-trimester guidance",
+          "status": "passed"
+        },
+        {
+          "name": "pregnancyCoach.ts — paywall guard structure imports getTierForLookupKey from shared planFeatures",
+          "status": "passed"
+        },
+        {
+          "name": "pregnancyCoach.ts — paywall guard structure checks accessTier !== PAID_FULL (free-user rejection)",
+          "status": "passed"
+        },
+        {
+          "name": "pregnancyCoach.ts — paywall guard structure returns 403 CLINICAL_REQUIRED for non-PAID_FULL users",
+          "status": "passed"
+        },
+        {
+          "name": "pregnancyCoach.ts — paywall guard structure null planLookupKey bypass is guarded by PAID_FULL check (guard order)",
+          "status": "passed"
+        },
+        {
+          "name": "pregnancyCoach.ts — paywall guard structure non-null planLookupKey requires ultimate tier",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/menuChefAccessMatrix.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "Free has matching Menu/Chef frontend and backend access",
+          "status": "passed"
+        },
+        {
+          "name": "Essential has matching Menu/Chef frontend and backend access",
+          "status": "passed"
+        },
+        {
+          "name": "Pro has matching Menu/Chef frontend and backend access",
+          "status": "passed"
+        },
+        {
+          "name": "Clinical has matching Menu/Chef frontend and backend access",
+          "status": "passed"
+        },
+        {
+          "name": "legacy Essential has matching Menu/Chef frontend and backend access",
+          "status": "passed"
+        },
+        {
+          "name": "legacy Pro has matching Menu/Chef frontend and backend access",
+          "status": "passed"
+        },
+        {
+          "name": "legacy Clinical has matching Menu/Chef frontend and backend access",
+          "status": "passed"
+        },
+        {
+          "name": "Family Essential has matching Menu/Chef frontend and backend access",
+          "status": "passed"
+        },
+        {
+          "name": "Family Pro has matching Menu/Chef frontend and backend access",
+          "status": "passed"
+        },
+        {
+          "name": "Family Clinical has matching Menu/Chef frontend and backend access",
+          "status": "passed"
+        },
+        {
+          "name": "provider Clinical has matching Menu/Chef frontend and backend access",
+          "status": "passed"
+        },
+        {
+          "name": "provider Studio has matching Menu/Chef frontend and backend access",
+          "status": "passed"
+        },
+        {
+          "name": "post /message rejects anonymous, Free and Essential before reads or writes",
+          "status": "passed"
+        },
+        {
+          "name": "get /conversation rejects anonymous, Free and Essential before reads or writes",
+          "status": "passed"
+        },
+        {
+          "name": "get /conversation/fixture/messages rejects anonymous, Free and Essential before reads or writes",
+          "status": "passed"
+        },
+        {
+          "name": "get /bootstrap rejects anonymous, Free and Essential before reads or writes",
+          "status": "passed"
+        },
+        {
+          "name": "get /messages/older?conversationId=fixture&beforeId=fixture rejects anonymous, Free and Essential before reads or writes",
+          "status": "passed"
+        },
+        {
+          "name": "get /plans rejects anonymous, Free and Essential before reads or writes",
+          "status": "passed"
+        },
+        {
+          "name": "post /plans/fixture/items/fixture/complete rejects anonymous, Free and Essential before reads or writes",
+          "status": "passed"
+        },
+        {
+          "name": "get /followup/due rejects anonymous, Free and Essential before reads or writes",
+          "status": "passed"
+        },
+        {
+          "name": "post /followup/fixture/deliver rejects anonymous, Free and Essential before reads or writes",
+          "status": "passed"
+        },
+        {
+          "name": "delete /message/fixture rejects anonymous, Free and Essential before reads or writes",
+          "status": "passed"
+        },
+        {
+          "name": "delete /conversation/fixture rejects anonymous, Free and Essential before reads or writes",
+          "status": "passed"
+        },
+        {
+          "name": "Menu outer guard protects /concepts",
+          "status": "passed"
+        },
+        {
+          "name": "Menu outer guard protects /context-status",
+          "status": "passed"
+        },
+        {
+          "name": "Menu outer guard protects /effective-builder",
+          "status": "passed"
+        },
+        {
+          "name": "Menu outer guard protects /validate-selection",
+          "status": "passed"
+        },
+        {
+          "name": "existing server-resolved full access remains authorized: {\"accessTier\":\"PAID_FULL\",\"planLookupKey\":null}",
+          "status": "passed"
+        },
+        {
+          "name": "existing server-resolved full access remains authorized: {\"accessTier\":\"PAID_FULL\",\"planLookupKey\":\"mpm_basic\",\"pilotFullAccess\":true}",
+          "status": "passed"
+        },
+        {
+          "name": "existing server-resolved full access remains authorized: {\"accessTier\":\"PAID_FULL\",\"planLookupKey\":\"mpm_basic\",\"temporaryClinicalAccess\":true}",
+          "status": "passed"
+        },
+        {
+          "name": "Production Ask Chef is activated while destination authorization remains independent",
+          "status": "passed"
+        },
+        {
+          "name": "guard wiring and minimum-tier upgrade names match the matrix",
+          "status": "passed"
+        },
+        {
+          "name": "both subscription listings and discovery copy state the correct minimum tiers",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "client/src/lib/__tests__/groceryCoachFindProductMode.test.tsx",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "Find a Product mode navigation shows mode tabs on a restored meal-result state and allows switching to Find a Product",
+          "status": "passed"
+        },
+        {
+          "name": "Find a Product mode navigation submits the editable voice transcript through the same by-name path",
+          "status": "passed"
+        },
+        {
+          "name": "Find a Product mode navigation does not fabricate a grade or pad a short list when analysis lacks a supported grade",
+          "status": "passed"
+        },
+        {
+          "name": "Find a Product mode navigation preserves the meal result when toggling back to Build a Meal",
+          "status": "passed"
+        },
+        {
+          "name": "Find a Product mode navigation surfaces the server 503 clinical-unavailable message instead of a generic error",
+          "status": "passed"
+        },
+        {
+          "name": "Find a Product mode navigation explains unverified products without exposing an HTTP error or recommending a brand",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "client/src/lib/__tests__/groceryCatalogAdd.test.tsx",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "by-name Add keeps the exact brand, variant and UPC without claiming verified package evidence or inserting duplicates",
+          "status": "passed"
+        },
+        {
+          "name": "by-name Save retains exact identity and unverified analysis, and retrieves it after reopening without adding to the list",
+          "status": "passed"
+        },
+        {
+          "name": "different UPC variants remain distinct through shopping-list hydration keys",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/savedGroceries.route.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "Saved Groceries routes Grocery Coach save/list/reopen roundtrip retains identity, analysis and owner without caller-controlled ownership",
+          "status": "passed"
+        },
+        {
+          "name": "Saved Groceries routes Production advertises snapshot attachment for library reads, new saves and duplicate-save races",
+          "status": "passed"
+        },
+        {
+          "name": "Saved Groceries routes Development list insertion retains saved product evidence and restoration does not erase it",
+          "status": "passed"
+        },
+        {
+          "name": "Saved Groceries routes Product Scan and Grocery Coach save through the same permanent table",
+          "status": "passed"
+        },
+        {
+          "name": "Saved Groceries routes single Add uses product identity instead of display-name equality",
+          "status": "passed"
+        },
+        {
+          "name": "Saved Groceries routes parallel identical saves both succeed and persist one row",
+          "status": "passed"
+        },
+        {
+          "name": "Saved Groceries routes bulk Add is atomic when a database write fails",
+          "status": "passed"
+        },
+        {
+          "name": "Saved Groceries routes blocked items remain saved and are reported without insertion",
+          "status": "passed"
+        },
+        {
+          "name": "Development saved-product shopping intent three saved cheeses transfer despite unavailable ingredient evidence without claiming approval",
+          "status": "passed"
+        },
+        {
+          "name": "Development saved-product shopping intent single transfer records shopping intent even for a known conflict or unavailable resolver",
+          "status": "passed"
+        },
+        {
+          "name": "Development saved-product shopping intent only requested products transfer; repeated additions deduplicate and checked rows restore",
+          "status": "passed"
+        },
+        {
+          "name": "Development saved-product shopping intent unauthenticated, foreign-account, and mixed-owner requests cannot transfer products",
+          "status": "passed"
+        },
+        {
+          "name": "Development saved-product shopping intent invalid bulk IDs are rejected before writes",
+          "status": "passed"
+        },
+        {
+          "name": "Development saved-product shopping intent Development bulk transfer still rolls back every write on failure",
+          "status": "passed"
+        },
+        {
+          "name": "Development saved-product shopping intent production retains compatibility enforcement for both endpoints",
+          "status": "passed"
+        },
+        {
+          "name": "Development saved-product shopping intent test retains compatibility enforcement for both endpoints",
+          "status": "passed"
+        },
+        {
+          "name": "Development saved-product shopping intent Production remains fail-closed during profile outages",
+          "status": "passed"
+        },
+        {
+          "name": "Development saved-product shopping intent reading the library still uses its existing compatibility contract",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/chefNavigationState.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "grocery_find_product: recommend, persist, then confirm the same workflow without another AI pass",
+          "status": "passed"
+        },
+        {
+          "name": "product_scan: recommend, persist, then confirm the same workflow without another AI pass",
+          "status": "passed"
+        },
+        {
+          "name": "grocery_create_meal: recommend, persist, then confirm the same workflow without another AI pass",
+          "status": "passed"
+        },
+        {
+          "name": "grocery_find_product: explicit named request can navigate immediately",
+          "status": "passed"
+        },
+        {
+          "name": "product_scan: explicit named request can navigate immediately",
+          "status": "passed"
+        },
+        {
+          "name": "grocery_create_meal: explicit named request can navigate immediately",
+          "status": "passed"
+        },
+        {
+          "name": "grocery_create_meal: explicit named request can navigate immediately",
+          "status": "passed"
+        },
+        {
+          "name": "grocery_find_product: declining clears the offer and a later Yes cannot resurrect it",
+          "status": "passed"
+        },
+        {
+          "name": "product_scan: declining clears the offer and a later Yes cannot resurrect it",
+          "status": "passed"
+        },
+        {
+          "name": "grocery_create_meal: declining clears the offer and a later Yes cannot resurrect it",
+          "status": "passed"
+        },
+        {
+          "name": "a falsely explicit shopping request cannot skip consent",
+          "status": "passed"
+        },
+        {
+          "name": "grocery_find_product: a different shopping task cannot authorize this workflow",
+          "status": "passed"
+        },
+        {
+          "name": "product_scan: a different shopping task cannot authorize this workflow",
+          "status": "passed"
+        },
+        {
+          "name": "grocery_create_meal: a different shopping task cannot authorize this workflow",
+          "status": "passed"
+        },
+        {
+          "name": "exact live failure goes through engine persistence, then restored Yes renders the handoff button",
+          "status": "passed"
+        },
+        {
+          "name": "direct named navigation to my_perfect_getaway does not require a pending record",
+          "status": "passed"
+        },
+        {
+          "name": "direct named navigation to dessert_creator does not require a pending record",
+          "status": "passed"
+        },
+        {
+          "name": "dessert recommendation and short agreement retain dessert without text history",
+          "status": "passed"
+        },
+        {
+          "name": "Find Meals assistance confirms into the meal-generating screen, not the listing-only route",
+          "status": "passed"
+        },
+        {
+          "name": "a correction replaces pending intent rather than confirming the old destination",
+          "status": "passed"
+        },
+        {
+          "name": "declines and unresolved choices clear pending navigation: I changed my mind.",
+          "status": "passed"
+        },
+        {
+          "name": "declines and unresolved choices clear pending navigation: Which of those would you suggest?",
+          "status": "passed"
+        },
+        {
+          "name": "multiple feature suggestions cannot be accepted as one pending destination",
+          "status": "passed"
+        },
+        {
+          "name": "a stored recommendation still cannot bypass the current available-tool check",
+          "status": "passed"
+        },
+        {
+          "name": "invalid recommendation wording fails closed: null",
+          "status": "passed"
+        },
+        {
+          "name": "invalid recommendation wording fails closed: Let's get you started.",
+          "status": "passed"
+        },
+        {
+          "name": "confirmation cannot show a button without model-authored handoff guidance",
+          "status": "passed"
+        },
+        {
+          "name": "a button cannot reuse the recommendation pitch as its handoff",
+          "status": "passed"
+        },
+        {
+          "name": "a model cannot turn competing named direct choices into one approved destination",
+          "status": "passed"
+        },
+        {
+          "name": "clinical escalation clears pending state and suppresses every navigation surface",
+          "status": "passed"
+        },
+        {
+          "name": "legacy or mismatched navigation metadata cannot render a Development button",
+          "status": "passed"
+        },
+        {
+          "name": "ordinary conversation needs neither navigation wording variant nor a rejection continuation",
+          "status": "passed"
+        },
+        {
+          "name": "missing dedicated recommendation recovers from message without a button",
+          "status": "passed"
+        },
+        {
+          "name": "missing dedicated recommendation recovers from conversationMessage without a button",
+          "status": "passed"
+        },
+        {
+          "name": "a feature-naming independent explanation survives missing recommendation wording",
+          "status": "passed"
+        },
+        {
+          "name": "ordinary conversation can recover a feature-naming continuation without creating pending state",
+          "status": "passed"
+        },
+        {
+          "name": "a false initial confirmed label can recover a proposal, never confirmation",
+          "status": "passed"
+        },
+        {
+          "name": "missing handoff preserves owned pending state even when no safe continuation exists",
+          "status": "passed"
+        },
+        {
+          "name": "a direct request without handoff wording remains conversational, not button-authorizing",
+          "status": "passed"
+        },
+        {
+          "name": "failed handoff for a new direct destination never resurrects the old pending destination",
+          "status": "passed"
+        },
+        {
+          "name": "an invalid destination preserves conversation without restoring an invalid action",
+          "status": "passed"
+        },
+        {
+          "name": "diagnostics retain rejection reasons and correlation, never private text or model errors",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/apiRoutingStorageRepair.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "development routing and meal-image storage repair web API resolver always uses the browser's own origin",
+          "status": "passed"
+        },
+        {
+          "name": "development routing and meal-image storage repair native API routing preserves the Production .ai alias regardless of web origin capacitor://localhost",
+          "status": "passed"
+        },
+        {
+          "name": "development routing and meal-image storage repair native API routing preserves the Production .ai alias regardless of web origin https://app.myperfectmeals.com",
+          "status": "passed"
+        },
+        {
+          "name": "development routing and meal-image storage repair native API routing preserves the Production .ai alias regardless of web origin https://preview.example.test",
+          "status": "passed"
+        },
+        {
+          "name": "development routing and meal-image storage repair development NODE_ENV defaults to the Development bucket without an override",
+          "status": "passed"
+        },
+        {
+          "name": "development routing and meal-image storage repair a published runtime can explicitly select isolated Development storage",
+          "status": "passed"
+        },
+        {
+          "name": "development routing and meal-image storage repair production requires its exact explicit environment and bucket",
+          "status": "passed"
+        },
+        {
+          "name": "development routing and meal-image storage repair production runtime fails closed when storage environment is missing or invalid",
+          "status": "passed"
+        },
+        {
+          "name": "development routing and meal-image storage repair explicit Development storage rejects the Production bucket",
+          "status": "passed"
+        },
+        {
+          "name": "development routing and meal-image storage repair DEV keeps legacy URLs unchanged and all health handlers resolve the active context",
+          "status": "passed"
+        },
+        {
+          "name": "development routing and meal-image storage repair production client source no longer contains retired Dev-1 or localhost API URLs",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/askChefProductionActivation.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "Production visibility does not need a Development-only environment variable",
+          "status": "passed"
+        },
+        {
+          "name": "conversation activation is explicit in both real runtime environments",
+          "status": "passed"
+        },
+        {
+          "name": "dashboard, App Library, and legacy intake links resolve to the released experience",
+          "status": "passed"
+        },
+        {
+          "name": "the Production entry uses the same Pro-guarded conversation and navigation routers",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/savedGroceryEvidenceRoute.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "only the authenticated owner can update the exact saved record",
+          "status": "passed"
+        },
+        {
+          "name": "stale and failed writes leave previous evidence unchanged",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "client/src/lib/__tests__/chefConversationPage.test.tsx",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "actual chat page is immediately usable with assessment completion=false",
+          "status": "passed"
+        },
+        {
+          "name": "actual chat page is immediately usable with assessment completion=true",
+          "status": "passed"
+        },
+        {
+          "name": "a member without assessment can send, see the concise reply, and continue the conversation",
+          "status": "passed"
+        },
+        {
+          "name": "stored conversations still render for an unassessed member",
+          "status": "passed"
+        },
+        {
+          "name": "latest saved exchange restores after navigating to restaurant_guide and back before cache expiry",
+          "status": "passed"
+        },
+        {
+          "name": "latest saved exchange restores after navigating to find_meals_near_me and back before cache expiry",
+          "status": "passed"
+        },
+        {
+          "name": "latest saved exchange restores after navigating to null and back before cache expiry",
+          "status": "passed"
+        },
+        {
+          "name": "historical assessment entry component redirects straight to conversation",
+          "status": "passed"
+        },
+        {
+          "name": "failed return-time history loading is explicit and retry restores the saved conversation",
+          "status": "passed"
+        },
+        {
+          "name": "Development Back goes directly to Dashboard without scrolling or using browser history",
+          "status": "passed"
+        },
+        {
+          "name": "composer is outside the bounded message scroller with safe-area spacing",
+          "status": "passed"
+        },
+        {
+          "name": "Production retains the existing layout, placeholder and history Back behavior",
+          "status": "passed"
+        },
+        {
+          "name": "keyboard viewport changes bound the pane and listeners are cleaned up",
+          "status": "passed"
+        },
+        {
+          "name": "sending follows the newest exchange, but an arriving reply respects intentional history review",
+          "status": "passed"
+        },
+        {
+          "name": "Clear removes the conversation without navigating away",
+          "status": "passed"
+        },
+        {
+          "name": "voice populates editable input and normal Send submits it",
+          "status": "passed"
+        },
+        {
+          "name": "Production-mode page retains its historical assessment redirect",
+          "status": "passed"
+        },
+        {
+          "name": "restored Chef request reaches the validated Create a Dish prefill only after a member click: Light, flavorful, savory, broth-based chicken soup to make at home.",
+          "status": "passed"
+        },
+        {
+          "name": "restored Chef request reaches the validated Create a Dish prefill only after a member click: Chicken Caesar salad",
+          "status": "passed"
+        },
+        {
+          "name": "breakfast shake discovery renders naturally, then offers Beverage Creator only when ready",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/authSessionProbe.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "Studio-to-Personal session probe accepts the valid browser session without a token",
+          "status": "passed"
+        },
+        {
+          "name": "a stale legacy browser token cannot override the valid cookie session",
+          "status": "passed"
+        },
+        {
+          "name": "native bearer authentication remains supported without a browser session",
+          "status": "passed"
+        },
+        {
+          "name": "anonymous and pending-MFA sessions are not treated as completed logins",
+          "status": "passed"
+        },
+        {
+          "name": "changed security state still revokes the browser session",
+          "status": "passed"
+        },
+        {
+          "name": "the existing idle timeout remains enforced",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/chefConversationRoutes.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "development new-member can send an authenticated message without any assessment lookup",
+          "status": "passed"
+        },
+        {
+          "name": "development existing-member can send an authenticated message without any assessment lookup",
+          "status": "passed"
+        },
+        {
+          "name": "production new-member can send an authenticated message without any assessment lookup",
+          "status": "passed"
+        },
+        {
+          "name": "production existing-member can send an authenticated message without any assessment lookup",
+          "status": "passed"
+        },
+        {
+          "name": "development bootstrap restores stored structured conversation without an assessment lookup",
+          "status": "passed"
+        },
+        {
+          "name": "production bootstrap restores stored structured conversation without an assessment lookup",
+          "status": "passed"
+        },
+        {
+          "name": "authentication remains required",
+          "status": "passed"
+        },
+        {
+          "name": "Production does not fall back to an intake for a newly eligible member",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "client/src/lib/__tests__/groceryCoachProductionStore.test.tsx",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "Production store saves and reloads exact ingredient/product associations without the Development store",
+          "status": "passed"
+        },
+        {
+          "name": "different selections and recipes cannot overwrite each other or merge into generic ingredients",
+          "status": "passed"
+        },
+        {
+          "name": "ordinary shopping additions retain their existing merge behavior",
+          "status": "passed"
+        },
+        {
+          "name": "saved Coach choices remain visible without activating catalog Change/Clear/Choose experiments",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/csrfProtection.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "U4 CSRF protection rejects an unsafe request from an untrusted origin before authentication",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection rejects an originless browser form but permits a marked API client",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection does not trust arbitrary Vercel or Replit application origins",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection does not reintroduce browser-reachable localhost in production CORS",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection accepts an exact same-origin request",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection rejects a cookie-authenticated mutation without a synchronizer token",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection cannot bypass a cookie session's CSRF token with a dummy bearer header",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection rejects a mismatched token and accepts the exact token",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection issues CSRF protection for an authenticated MFA-enrollment-pending session",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection requires the issued CSRF token for MFA enrollment mutations",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection preserves the Production login to mandatory-MFA CSRF lifecycle",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection allows exact-origin pre-authentication requests with a stale session",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection still rejects stale-session login from an untrusted origin",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection allows an exact-origin MFA challenge for a pending-MFA session: /api/auth/mfa/challenge",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection allows an exact-origin MFA challenge for a pending-MFA session: /api/auth/mfa/challenge/backup",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection still rejects a pending-MFA challenge from an untrusted origin",
+          "status": "passed"
+        },
+        {
+          "name": "U4 CSRF protection allows safe methods, public callbacks, and explicit bearer requests",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/storageHealthReadOnly.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "valid configuration and an empty readable bucket pass without any mutation",
+          "status": "passed"
+        },
+        {
+          "name": "permission denied fails closed without leaking SDK details",
+          "status": "passed"
+        },
+        {
+          "name": "credential failure fails closed without leaking SDK details",
+          "status": "passed"
+        },
+        {
+          "name": "storage unavailable fails closed without leaking SDK details",
+          "status": "passed"
+        },
+        {
+          "name": "SDK exceptions fail closed",
+          "status": "passed"
+        },
+        {
+          "name": "invalid bucket/environment configuration fails before constructing a client",
+          "status": "passed"
+        },
+        {
+          "name": "release validator rejects non-authoritative or failed response 503 {\"objectStorage\":\"readable\",\"probe\":\"read-only\",\"writeVerified\":false}",
+          "status": "passed"
+        },
+        {
+          "name": "release validator rejects non-authoritative or failed response 200 {\"hasS3\":true}",
+          "status": "passed"
+        },
+        {
+          "name": "release validator rejects non-authoritative or failed response 200 {\"storageBucketId\":\"configured-but-not-probed\"}",
+          "status": "passed"
+        },
+        {
+          "name": "release validator rejects non-authoritative or failed response 200 {\"objectStorage\":\"unhealthy\",\"probe\":\"read-only\",\"writeVerified\":false}",
+          "status": "passed"
+        },
+        {
+          "name": "release validator rejects non-authoritative or failed response 200 {\"objectStorage\":\"readable\"}",
+          "status": "passed"
+        },
+        {
+          "name": "release validator rejects non-authoritative or failed response 200 null",
+          "status": "passed"
+        },
+        {
+          "name": "release validator accepts exactly the new read-only contract",
+          "status": "passed"
+        },
+        {
+          "name": "release client rejects network failure",
+          "status": "passed"
+        },
+        {
+          "name": "release client rejects invalid JSON",
+          "status": "passed"
+        },
+        {
+          "name": "release client uses a bounded, non-redirecting GET to the read-only route",
+          "status": "passed"
+        },
+        {
+          "name": "both entrypoints mount the same probe and the release script no longer infers S3 readiness",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/clinicalGLP1Authority.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "clinician GLP-1 current authority reports only a verified provider claim as current, not the old array",
+          "status": "passed"
+        },
+        {
+          "name": "clinician GLP-1 current authority binds a clinician claim to an active verified clinic without erasing legacy history",
+          "status": "passed"
+        },
+        {
+          "name": "clinician GLP-1 current authority does not grant authority without a verified active relationship",
+          "status": "passed"
+        },
+        {
+          "name": "clinician GLP-1 current authority does not read shadow claims outside Development",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/authCredentialPrecedence.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "authentication credential precedence uses a valid cookie session even when an old bearer token is present",
+          "status": "passed"
+        },
+        {
+          "name": "authentication credential precedence rejects an invalid token when no cookie session is present",
+          "status": "passed"
+        },
+        {
+          "name": "authentication credential precedence continues to support a valid native bearer token",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/stripeEntitlementPipeline.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "trusted Stripe entitlement pipeline maps configured price IDs and rejects metadata that disagrees with the price",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline does not depend on a Stripe lookup_key when the configured price is trusted",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline rejects a conflicting Stripe lookup_key even when the price ID is configured",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline exposes duplicate configured price mappings as invalid configuration",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline blocks a live Stripe key outside the production billing owner",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline has one durable raw-body webhook with event claiming and stale-write ordering",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline keeps Clinical Business billing wholly separate from the owner's personal subscription",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline makes stale subscription events no-ops for destructive and business side effects",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline routes business checkout through the same trusted catalog as consumer checkout",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline keeps later Organization seat management separate from initial owner checkout",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline serializes professional invite acceptance with seat reductions",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline database-enforces unique Stripe ownership for users and businesses",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline prevents generic user routes from becoming a paid-entitlement authority",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline fails closed instead of trusting client-supplied iOS purchase claims",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline serializes business checkout and atomically binds organization billing",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline uses one cross-table registry for immutable Stripe identity ownership",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline routes business checkout reconciliation through the atomic business transition",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline retires the self-service ProCare paid-entitlement grant",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline keeps checkout success client data non-authoritative",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline prevents duplicate consumer subscriptions at the authoritative server boundary",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline keeps the canonical webhook outside user auth while requiring raw-body signatures",
+          "status": "passed"
+        },
+        {
+          "name": "trusted Stripe entitlement pipeline runs the billing migration in development and production boot paths",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "client/src/lib/__tests__/askChefBranding.test.tsx",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "release branding covers legacy spellings, preserving routes and unrelated features",
+          "status": "passed"
+        },
+        {
+          "name": "Development card reuses Flame Chef and preserves existing navigation; completed=false",
+          "status": "passed"
+        },
+        {
+          "name": "Development card reuses Flame Chef and preserves existing navigation; completed=true",
+          "status": "passed"
+        },
+        {
+          "name": "release branding changes legacy card copy without activating the Development experience",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/coachingNavigationContracts.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "all 14 behavioral questions plus the goal question remain in the questionnaire",
+          "status": "passed"
+        },
+        {
+          "name": "existing behavioral style resolution remains operational",
+          "status": "passed"
+        },
+        {
+          "name": "existing behavioral style resolution remains operational",
+          "status": "passed"
+        },
+        {
+          "name": "existing behavioral style resolution remains operational",
+          "status": "passed"
+        },
+        {
+          "name": "existing behavioral style resolution remains operational",
+          "status": "passed"
+        },
+        {
+          "name": "model-output fixture for I want sushi. yields the validated action",
+          "status": "passed"
+        },
+        {
+          "name": "model-output fixture for I want dessert. yields the validated action",
+          "status": "passed"
+        },
+        {
+          "name": "model-output fixture for I want a smoothie. yields the validated action",
+          "status": "passed"
+        },
+        {
+          "name": "model-output fixture for I want a cocktail. yields the validated action",
+          "status": "passed"
+        },
+        {
+          "name": "model-output fixture for I need a pre-workout drink. yields the validated action",
+          "status": "passed"
+        },
+        {
+          "name": "model-output fixture for I need a post-workout shake. yields the validated action",
+          "status": "passed"
+        },
+        {
+          "name": "model-output fixture for I need hydration guidance. yields the validated action",
+          "status": "passed"
+        },
+        {
+          "name": "an actual safety match returns before ordinary engine rendering",
+          "status": "passed"
+        },
+        {
+          "name": "stored JSON actions survive restoration and chat is not cleared on navigation",
+          "status": "passed"
+        },
+        {
+          "name": "hydration prefill remains separate from the reviewed Chef creator request contract",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "client/src/lib/__tests__/askChefReleaseCopy.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "both Pro pricing sources include Ask Chef without adding an entitlement key",
+          "status": "passed"
+        },
+        {
+          "name": "ar.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "de.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "en.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "es.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "fr.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "hi.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "it.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "ja.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "ko.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "pt.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "ru.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "tl.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "vi.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "xq.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "zh.json keeps the feature brand in its translated title and open button",
+          "status": "passed"
+        },
+        {
+          "name": "legacy member copy Chef's Corner resolves to Ask Chef",
+          "status": "passed"
+        },
+        {
+          "name": "legacy member copy Chef’s Corner resolves to Ask Chef",
+          "status": "passed"
+        },
+        {
+          "name": "legacy member copy Chefs Corner resolves to Ask Chef",
+          "status": "passed"
+        },
+        {
+          "name": "legacy member copy Chef Corner resolves to Ask Chef",
+          "status": "passed"
+        },
+        {
+          "name": "legacy member copy Coach's Corner resolves to Ask Chef",
+          "status": "passed"
+        },
+        {
+          "name": "legacy member copy Coach’s Corner resolves to Ask Chef",
+          "status": "passed"
+        },
+        {
+          "name": "legacy member copy Coachs Corner resolves to Ask Chef",
+          "status": "passed"
+        },
+        {
+          "name": "legacy member copy Coach Corner resolves to Ask Chef",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/chefFeatureUsage.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "Development provides reviewed controls, not a canned Craving Creator tutorial",
+          "status": "passed"
+        },
+        {
+          "name": "Production receives the same reviewed Ask Chef interface knowledge",
+          "status": "passed"
+        },
+        {
+          "name": "approved navigation destinations have verified starting actions, not confirmation scripts",
+          "status": "passed"
+        },
+        {
+          "name": "platform help describes verified nested controls without extending navigation authority",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/procareConsumerAccess.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "consumer ProCare eligibility allows Pro-or-higher plan mpm_premium to connect with a trainer",
+          "status": "passed"
+        },
+        {
+          "name": "consumer ProCare eligibility allows Pro-or-higher plan mpm_premium_monthly to connect with a trainer",
+          "status": "passed"
+        },
+        {
+          "name": "consumer ProCare eligibility allows Pro-or-higher plan mpm_ultimate to connect with a trainer",
+          "status": "passed"
+        },
+        {
+          "name": "consumer ProCare eligibility allows Pro-or-higher plan mpm_ultimate_monthly to connect with a trainer",
+          "status": "passed"
+        },
+        {
+          "name": "consumer ProCare eligibility requires Pro for plan mpm_free to connect with a trainer",
+          "status": "passed"
+        },
+        {
+          "name": "consumer ProCare eligibility requires Pro for plan mpm_basic to connect with a trainer",
+          "status": "passed"
+        },
+        {
+          "name": "consumer ProCare eligibility requires Pro for plan mpm_basic_monthly to connect with a trainer",
+          "status": "passed"
+        },
+        {
+          "name": "consumer ProCare eligibility keeps physician, dietitian, and nurse-practitioner relationships Clinical-only",
+          "status": "passed"
+        },
+        {
+          "name": "consumer ProCare eligibility fails closed for unsupported provider roles",
+          "status": "passed"
+        },
+        {
+          "name": "coach client-data filtering withholds Clinical-only fields from coaches and trainers",
+          "status": "passed"
+        },
+        {
+          "name": "coach client-data filtering preserves the authorized Clinical summary for physicians",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/resolveClinicalMealAuthority.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "shadow canonical clinical meal authority (not connected to food reads) never converts a condition label or Builder strategy into an exact hard restriction",
+          "status": "passed"
+        },
+        {
+          "name": "shadow canonical clinical meal authority (not connected to food reads) holds ambiguous earlier claims for review instead of promoting or silently dropping them",
+          "status": "passed"
+        },
+        {
+          "name": "shadow canonical clinical meal authority (not connected to food reads) treats a subject-confirmed support source as guidance, not a hard food rule",
+          "status": "passed"
+        },
+        {
+          "name": "shadow canonical clinical meal authority (not connected to food reads) requires an explicit exact rule and current verified provider ownership",
+          "status": "passed"
+        },
+        {
+          "name": "shadow canonical clinical meal authority (not connected to food reads) cannot be cleared by a patient's source-level review of an active provider claim",
+          "status": "passed"
+        },
+        {
+          "name": "shadow canonical clinical meal authority (not connected to food reads) retains a subject-confirmed exact restriction independently of condition guidance",
+          "status": "passed"
+        },
+        {
+          "name": "shadow canonical clinical meal authority (not connected to food reads) requires review if an active provider directive expires or is discontinued without ending its source",
+          "status": "passed"
+        },
+        {
+          "name": "shadow canonical clinical meal authority (not connected to food reads) rejects a foreign actor's terminal decision even when another guidance decision exists",
+          "status": "passed"
+        },
+        {
+          "name": "shadow canonical clinical meal authority (not connected to food reads) keeps superseded provider history while activating only the reviewed replacement",
+          "status": "passed"
+        },
+        {
+          "name": "shadow canonical clinical meal authority (not connected to food reads) rejects cross-subject decisions, source mismatches and untyped nutrition",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "client/src/lib/__tests__/savedGroceryAnalysis.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "full scanner analysis survives saving and restoring without another lookup",
+          "status": "passed"
+        },
+        {
+          "name": "full grocery-coach analysis survives saving and restoring without another lookup",
+          "status": "passed"
+        },
+        {
+          "name": "knowledge-based analysis is preserved without claiming its ingredient guesses are label evidence",
+          "status": "passed"
+        },
+        {
+          "name": "partial legacy scans retain their actual grade, explanations, and available analysis sections",
+          "status": "passed"
+        },
+        {
+          "name": "legacy missing or invalid grade undefined is unavailable, never a failed new scan",
+          "status": "passed"
+        },
+        {
+          "name": "legacy missing or invalid grade Z is unavailable, never a failed new scan",
+          "status": "passed"
+        },
+        {
+          "name": "legacy missing or invalid grade  is unavailable, never a failed new scan",
+          "status": "passed"
+        },
+        {
+          "name": "recommendations ignore stray parent grades and retain only their own saved recommendation content",
+          "status": "passed"
+        },
+        {
+          "name": "a full snapshot takes priority over older recommendation metadata without altering historical content",
+          "status": "passed"
+        },
+        {
+          "name": "legacy Coach reasons and verification messages remain readable, with no invented grade",
+          "status": "passed"
+        },
+        {
+          "name": "eligibility language separates missing evidence, incompatibility and resolver availability",
+          "status": "passed"
+        },
+        {
+          "name": "temporary history is account-owned across logout/login and never imports unowned legacy history",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/productScanByNameReuse.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "by-name service fails closed on a fabricated soy/TRT restriction without mutating historical results",
+          "status": "passed"
+        },
+        {
+          "name": "existing by-name analysis uses the current subject's profile and supports a category request",
+          "status": "passed"
+        },
+        {
+          "name": "allergy receives qualified guidance, never unconditional safety clearance",
+          "status": "passed"
+        },
+        {
+          "name": "Alpha-Gal receives qualified guidance, never unconditional safety clearance",
+          "status": "passed"
+        },
+        {
+          "name": "pregnancy receives qualified guidance, never unconditional safety clearance",
+          "status": "passed"
+        },
+        {
+          "name": "retains a skip verdict rather than upgrading a conflict to a suggestion",
+          "status": "passed"
+        },
+        {
+          "name": "unsupported grades do not reject useful guidance or fabricate extra options",
+          "status": "passed"
+        },
+        {
+          "name": "unavailable profile does not become an unrestricted shopper",
+          "status": "passed"
+        },
+        {
+          "name": "provider failure remains a retryable analysis failure, not made-up guidance",
+          "status": "passed"
+        },
+        {
+          "name": "photo-based full-product analysis keeps its exact pre-change prompt",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/currentGLP1MealAuthority.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "Development GLP-1 meal authority ignores ambiguous and historical legacy data under anti_inflammatory",
+          "status": "passed"
+        },
+        {
+          "name": "Development GLP-1 meal authority ignores ambiguous and historical legacy data under diabetic",
+          "status": "passed"
+        },
+        {
+          "name": "Development GLP-1 meal authority activates from GLP-1 Builder, then stops when it is left, without editing medical history",
+          "status": "passed"
+        },
+        {
+          "name": "Development GLP-1 meal authority keeps a verified current provider source under another Builder",
+          "status": "passed"
+        },
+        {
+          "name": "Development GLP-1 meal authority keeps a verified current medication source under another Builder",
+          "status": "passed"
+        },
+        {
+          "name": "Development GLP-1 meal authority does not transfer owner medication or clinician authority to a household member",
+          "status": "passed"
+        },
+        {
+          "name": "Development GLP-1 meal authority fails closed if current clinical authority cannot be checked",
+          "status": "passed"
+        },
+        {
+          "name": "Development GLP-1 meal authority does not read shadow claims in Production",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/accessTier.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "resolveAccessTier — trial window (a) grants PAID_FULL when trialEndsAt is a future Date",
+          "status": "passed"
+        },
+        {
+          "name": "resolveAccessTier — trial window (a) grants PAID_FULL when trialEndsAt is a future ISO string",
+          "status": "passed"
+        },
+        {
+          "name": "resolveAccessTier — trial window (a) grants PAID_FULL when trial expires far in the future (7 days ahead)",
+          "status": "passed"
+        },
+        {
+          "name": "resolveAccessTier — trial window (b) returns FREE when trialEndsAt is in the past",
+          "status": "passed"
+        },
+        {
+          "name": "resolveAccessTier — trial window (b) returns FREE when trialEndsAt is a past ISO string",
+          "status": "passed"
+        },
+        {
+          "name": "resolveAccessTier — trial window (b) returns FREE when trialEndsAt equals now exactly (boundary: not strictly less than)",
+          "status": "passed"
+        },
+        {
+          "name": "resolveAccessTier — trial window (b) returns FREE when trial expired long ago (30 days past)",
+          "status": "passed"
+        },
+        {
+          "name": "resolveAccessTier — trial window (c) returns FREE for a new user with no trialEndsAt field",
+          "status": "passed"
+        },
+        {
+          "name": "resolveAccessTier — trial window (c) returns FREE when trialEndsAt is null",
+          "status": "passed"
+        },
+        {
+          "name": "resolveAccessTier — trial window (c) returns FREE when trialEndsAt is undefined",
+          "status": "passed"
+        },
+        {
+          "name": "resolveAccessTier — trial window founders bypass trial logic entirely and always get PAID_FULL",
+          "status": "passed"
+        },
+        {
+          "name": "resolveAccessTier — trial window an active paid plan short-circuits before the trial check",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "server/tests/myPerfectMenuEssentialAccess.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "My Perfect Menu Essential access begins at Essential and remains included in higher consumer tiers",
+          "status": "passed"
+        },
+        {
+          "name": "My Perfect Menu Essential access appears in Essential subscription copy on web and iOS",
+          "status": "passed"
+        },
+        {
+          "name": "My Perfect Menu Essential access uses Essential access guards on both server and client",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "client/src/lib/__tests__/resolveApiBase.test.ts",
+      "status": "passed",
+      "assertions": [
+        {
+          "name": "resolveApiBaseForRuntime keeps bundled native API calls on the canonical production API origin",
+          "status": "passed"
+        },
+        {
+          "name": "resolveApiBaseForRuntime keeps web calls on their current document origin",
+          "status": "passed"
+        },
+        {
+          "name": "resolveApiBaseForRuntime does not modify an already absolute API URL",
+          "status": "passed"
+        }
+      ]
+    }
+  ]
+}

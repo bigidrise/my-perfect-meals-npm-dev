@@ -9,8 +9,8 @@ Review automatically merged dependencies and environment gates, not only explici
 
 **How to apply:** Preserve the coherent authorized Production subsystem unless its replacement is approved and compatible. Trace excluded bootstrap/authentication modules through their consumers. Report dormant feature gates and failing release checks explicitly rather than treating a successful source merge or smaller diagnostic count as release approval.
 
-Entitlement verification and feature activation require separate authorization.
+Entitlement verification and feature activation require separate authorization. Ask Chef's Production visibility and conversational experience now have explicit owner approval; this is not approval for other Development-only experiments.
 
-**Why:** The owner explicitly requested pre-release paywall corrections while requiring Ask Chef to remain off. Correct pricing copy or a passing access matrix is not activation approval.
+**Why:** The owner initially required Ask Chef to remain off during entitlement audits, then separately approved its Production activation. Correct pricing copy or passing access tests alone never authorized that transition.
 
-**How to apply:** Keep existing environment gates intact during entitlement audits. Treat eligible-tier access as conditional on a later approved activation, and preserve existing family and provider/client access rather than replacing those policies with a personal-plan-only rule.
+**How to apply:** Preserve unrelated environment gates, the Pro/Clinical paywall, destination-specific permissions, clinical safeguards, and established family/provider access. Do not activate Ask Chef by making Production behave globally like Development. Its released entry must open conversation rather than the former assessment.

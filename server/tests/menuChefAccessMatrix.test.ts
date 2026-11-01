@@ -126,10 +126,8 @@ test.each([
   expect(response.status).toBe(200);
 });
 
-test("activation is unchanged and destination authorization remains independent", async () => {
+test("Production Ask Chef is activated while destination authorization remains independent", async () => {
   const user = { id: "fixture-pro", accessTier: "PAID_FULL", planLookupKey: "mpm_premium" };
-  expect((await request(app(user)).post("/api/coach/navigation").send({ destinationId: "my_perfect_menu" })).status).toBe(404);
-  process.env.NODE_ENV = "development";
   const allowed = await request(app(user)).post("/api/coach/navigation").send({ destinationId: "my_perfect_menu" });
   expect(allowed.status).toBe(200);
   expect(allowed.body.route).toBe("/foods-i-enjoy");

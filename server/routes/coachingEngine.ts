@@ -25,10 +25,11 @@ import type { PlatformEventType, EventClass } from "../services/coaching/activit
 import { coachingProfiles } from "../db/schema/ace";
 import coachingNavigationRouter from "./coachingNavigation";
 import { CHEF_CONCIERGE_REVISION } from "../services/coaching/conciergeInstructions";
+import { isAskChefConversationEnabled } from "../../shared/coaching/askChefRelease";
 
 const router = Router();
 router.use((_req, res, next) => {
-  if (process.env.NODE_ENV === "development") {
+  if (isAskChefConversationEnabled(process.env.NODE_ENV)) {
     res.setHeader("X-Chef-Concierge-Revision", CHEF_CONCIERGE_REVISION);
   }
   next();
@@ -56,9 +57,8 @@ router.post("/message", requireAuth, requireProAccess, async (req: Request, res:
   const { specialization, message, conversationId } = parsed.data;
 
   // ── Server-side intake gate ────────────────────────────────────────────────
-  // Historical intake governance remains unchanged in Production. Development's
-  // conversational engine does not read or require assessment results.
-  if (process.env.NODE_ENV !== "development") {
+  // The released conversation does not read or require the legacy assessment.
+  if (!isAskChefConversationEnabled(process.env.NODE_ENV)) {
     const [profile] = await db
       .select({ completedAt: coachingProfiles.coachProfileCompletedAt })
       .from(coachingProfiles)
@@ -385,7 +385,7 @@ router.get("/bootstrap", requireAuth, requireProAccess, async (req: Request, res
   try {
     // ── Phase 1: profile + conversation in parallel ────────────────────────
     const [profileRows, convResult] = await Promise.all([
-      process.env.NODE_ENV === "development"
+      isAskChefConversationEnabled(process.env.NODE_ENV)
         ? Promise.resolve([])
         : db.select().from(coachingProfiles).where(eq(coachingProfiles.userId, userId)).limit(1),
       db.execute<{
@@ -433,7 +433,7 @@ router.get("/bootstrap", requireAuth, requireProAccess, async (req: Request, res
           `)
         : Promise.resolve({ rows: [] as any[] }),
       (async () => {
-        if (process.env.NODE_ENV === "development") return null;
+        if (isAskChefConversationEnabled(process.env.NODE_ENV)) return null;
         try {
           const { findDueFollowupForUser } = await import("../services/coaching/followupWorker");
           return await findDueFollowupForUser(userId);

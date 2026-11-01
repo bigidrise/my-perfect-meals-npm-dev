@@ -23,9 +23,9 @@ test("Development provides reviewed controls, not a canned Craving Creator tutor
   expect(usage).not.toHaveProperty("clinical_builder");
 });
 
-test("Production does not receive Development interface knowledge", () => {
+test("Production receives the same reviewed Ask Chef interface knowledge", () => {
   process.env.NODE_ENV = "production";
-  expect(getDevelopmentPlatformKnowledge()).toBeUndefined();
+  expect(getDevelopmentPlatformKnowledge()).toBeDefined();
 });
 
 test("approved navigation destinations have verified starting actions, not confirmation scripts", () => {

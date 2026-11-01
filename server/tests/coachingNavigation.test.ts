@@ -28,21 +28,18 @@ function app(user: unknown = { accessTier: "PAID_FULL", planLookupKey: "mpm_prem
   return instance;
 }
 const originalEnv = process.env.NODE_ENV;
-beforeEach(() => { process.env.NODE_ENV = "development"; });
 afterAll(() => { process.env.NODE_ENV = originalEnv; });
 
-describe("server-validated Chef navigation", () => {
-  test.each([
-    ["grocery_find_product", false],
-    ["grocery_create_meal", false],
-    ["product_scan", true],
-  ] as const)("%s keeps its existing access boundary and parent-only route", async (id, essentialAllowed) => {
+describe.each(["development", "production"])("%s server-validated Chef navigation", runtimeEnvironment => {
+  beforeEach(() => { process.env.NODE_ENV = runtimeEnvironment; });
+  test.each(["grocery_find_product", "grocery_create_meal", "product_scan"] as const)(
+    "%s keeps its Pro boundary and parent-only route in both environments", async id => {
     const anonymous = await request(app(null)).post("/api/coach/navigation").send({ destinationId: id });
     expect(anonymous.status).toBe(401);
     for (const planLookupKey of ["mpm_basic_monthly", "mpm_premium_monthly", "mpm_ultimate_monthly"]) {
       const response = await request(app({ accessTier: "PAID_FULL", planLookupKey }))
         .post("/api/coach/navigation").send({ destinationId: id });
-      const allowed = planLookupKey !== "mpm_basic_monthly" || essentialAllowed;
+      const allowed = planLookupKey !== "mpm_basic_monthly";
       expect(response.status).toBe(allowed ? 200 : 403);
       expect(response.body.route).toBe(allowed ? "/shopping-list-v2" : undefined);
     }
@@ -53,8 +50,9 @@ describe("server-validated Chef navigation", () => {
     expect(resolveCoachDestinationId("/shopping-list-v2")).toBeUndefined();
     process.env.NODE_ENV = "production";
     const production = await request(app()).post("/api/coach/navigation").send({ destinationId: id });
-    expect(production.status).toBe(404);
-    expect(getCornerCapabilities(["all"]).some(cap => cap.id === id)).toBe(false);
+    expect(production.status).toBe(200);
+    expect(production.body.route).toBe("/shopping-list-v2");
+    expect(getCornerCapabilities(["all"]).some(cap => cap.id === id)).toBe(true);
   });
 
   test("new destinations match the guarded member entry routes, not specialized builders", () => {
@@ -67,13 +65,14 @@ describe("server-validated Chef navigation", () => {
     expect(router).toContain("const GuardedBuilders = () => <MealBuildersGuard");
   });
 
-  test.each(["my_perfect_menu", "meal_builders"])("%s enforces access and disallows handoffs or Production use", async id => {
-    for (const user of [null, { accessTier: "FREE", planLookupKey: null }]) {
+  test.each(["my_perfect_menu", "meal_builders"])("%s enforces Pro access, rejects handoffs, and supports Production", async id => {
+    for (const user of [null, { accessTier: "FREE", planLookupKey: null },
+      { accessTier: "PAID_FULL", planLookupKey: "mpm_basic_monthly" }]) {
       const denied = await request(app(user)).post("/api/coach/navigation").send({ destinationId: id });
       expect(denied.status).toBe(user ? 403 : 401);
       expect(denied.body.route).toBeUndefined();
     }
-    for (const planLookupKey of ["mpm_basic_monthly", "mpm_premium_monthly", "mpm_ultimate_monthly"]) {
+    for (const planLookupKey of ["mpm_premium_monthly", "mpm_ultimate_monthly"]) {
       const allowed = await request(app({ accessTier: "PAID_FULL", planLookupKey }))
         .post("/api/coach/navigation").send({ destinationId: id });
       expect(allowed.status).toBe(200);
@@ -85,8 +84,9 @@ describe("server-validated Chef navigation", () => {
     expect(transfer.status).toBe(400);
     process.env.NODE_ENV = "production";
     const production = await request(app()).post("/api/coach/navigation").send({ destinationId: id });
-    expect(production.status).toBe(404);
-    expect(getCornerCapabilities(["all"]).some(cap => cap.id === id)).toBe(false);
+    expect(production.status).toBe(200);
+    expect(production.body.route).toBe(COACH_DESTINATIONS[id as keyof typeof COACH_DESTINATIONS].route);
+    expect(getCornerCapabilities(["all"]).some(cap => cap.id === id)).toBe(true);
   });
 
   test.each(Object.entries(COACH_DESTINATIONS))("%s resolves only its fixed route", (id, destination) => {
@@ -210,12 +210,12 @@ describe("server-validated Chef navigation", () => {
     }
   });
 
-  test("requires authentication, rejects unknown IDs, and stays off outside Development", async () => {
+  test("requires authentication, rejects unknown IDs, and supports the Production conversation", async () => {
     expect((await request(app(null)).post("/api/coach/navigation").send({ destinationId: "sushi_creator" })).status).toBe(401);
     expect((await request(app()).post("/api/coach/navigation").send({ destinationId: "https://evil.example" })).status).toBe(400);
     process.env.NODE_ENV = "production";
-    expect((await request(app()).post("/api/coach/navigation").send({ destinationId: "sushi_creator" })).status).toBe(404);
-    expect(getCornerCapabilities(["all"]).some(cap => cap.id === "athlete_beverage_creator")).toBe(false);
+    expect((await request(app()).post("/api/coach/navigation").send({ destinationId: "sushi_creator" })).status).toBe(200);
+    expect(getCornerCapabilities(["all"]).some(cap => cap.id === "athlete_beverage_creator")).toBe(true);
   });
 
   test("Create a Dish handoff returns only an encoded editable idea after authentication", async () => {

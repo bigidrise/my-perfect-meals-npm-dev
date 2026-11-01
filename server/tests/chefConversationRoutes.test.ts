@@ -32,7 +32,11 @@ beforeEach(() => {
     whatIFound: "Savory or sweet?", whatItCouldMean: "", todayPlan: { items: [] }, learningOpportunity: null,
   });
 });
-test.each(["new-member", "existing-member"])("%s can send an authenticated message without any assessment lookup", async id => {
+test.each([
+  ["development", "new-member"], ["development", "existing-member"],
+  ["production", "new-member"], ["production", "existing-member"],
+])("%s %s can send an authenticated message without any assessment lookup", async (environment, id) => {
+  process.env.NODE_ENV = environment;
   const result = await fetch(`${base}/message`, { method: "POST",
     headers: { "Content-Type": "application/json", "x-test-user": id }, body: JSON.stringify({ message: "I'm hungry." }) });
   expect(result.status).toBe(200);
@@ -40,7 +44,8 @@ test.each(["new-member", "existing-member"])("%s can send an authenticated messa
   expect(db.select).not.toHaveBeenCalled();
   expect(engine.run).toHaveBeenCalledTimes(1);
 });
-test("Development bootstrap restores stored structured conversation without an assessment lookup", async () => {
+test.each(["development", "production"])("%s bootstrap restores stored structured conversation without an assessment lookup", async environment => {
+  process.env.NODE_ENV = environment;
   const payload = { presentation: { kind: "concierge", message: "A previous reply." } };
   (db.execute as jest.Mock).mockResolvedValueOnce({ rows: [{ id: "saved-conversation" }] })
     .mockResolvedValueOnce({ rows: [{ id: "saved-message", role: "assistant", structured_payload: payload }] });
@@ -57,13 +62,12 @@ test("authentication remains required", async () => {
     body: JSON.stringify({ message: "Hello" }) })).status).toBe(401);
   expect(engine.run).not.toHaveBeenCalled();
 });
-test("Production still enforces its historical intake gate", async () => {
+test("Production does not fall back to an intake for a newly eligible member", async () => {
   process.env.NODE_ENV = "production";
-  const builder: any = { from: () => builder, where: () => builder, limit: () => Promise.resolve([]) };
-  (db.select as jest.Mock).mockReturnValue(builder);
   const result = await fetch(`${base}/message`, { method: "POST", headers: { "Content-Type": "application/json",
     "x-test-user": "new-member" }, body: JSON.stringify({ message: "Hello" }) });
-  expect(result.status).toBe(403);
-  expect((await result.json()).code).toBe("INTAKE_REQUIRED");
-  expect(engine.run).not.toHaveBeenCalled();
+  expect(result.status).toBe(200);
+  expect((await result.json()).response.presentation.kind).toBe("concierge");
+  expect(db.select).not.toHaveBeenCalled();
+  expect(engine.run).toHaveBeenCalledTimes(1);
 });

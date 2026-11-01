@@ -5,6 +5,7 @@
  */
 import { FEATURE_USAGE_KNOWLEDGE } from "./featureUsageKnowledge";
 import { PLATFORM_HELP_KNOWLEDGE } from "./platformHelpKnowledge";
+import { isAskChefConversationEnabled } from "../../../shared/coaching/askChefRelease";
 
 interface MemberFeatureKnowledge {
   id: string;
@@ -135,7 +136,7 @@ const memberFeatures: MemberFeatureKnowledge[] = [
 ];
 
 export function getDevelopmentPlatformKnowledge() {
-  if (process.env.NODE_ENV !== "development") return undefined;
+  if (!isAskChefConversationEnabled(process.env.NODE_ENV)) return undefined;
   return {
     features: memberFeatures.filter(feature => feature.status === "available"),
     unavailableFeatures: memberFeatures.filter(feature => feature.status !== "available"),

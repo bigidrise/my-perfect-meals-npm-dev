@@ -14,7 +14,7 @@
 - [ProCare effective access](business-effective-access.md) — compute access at runtime from membership or personal plan; never persist merged entitlement.
 - [Universal modal system](universal-modal-system.md) — use typed universal modals and follow the DialogContent import rule.
 - [Coaching engine contracts](coaching-engine-phase1.md) — coaching evidence and typed contracts are the shared foundation for its observers and UI.
-- [Coaching confidence doctrine](coaching-engine-confidence-doctrine.md) — confidence.ts is the authoritative LLM control surface for coaching tone.
+- [Coaching confidence doctrine](coaching-engine-confidence-doctrine.md) — legacy structured-renderer confidence controls, not the released Ask Chef primary conversation.
 - [Object storage verification](object-storage-architecture.md) — resolve current environment authority; no-write readiness does not attest upload durability.
 - [Canonical media assets](media-asset-architecture.md) — media lifecycle gates must protect every referencing surface before object deletion.
 - [Meal image references](meal-image-reference-index.md) — recipe fidelity, pediatric prepared-food expectations, production delivery, bounded recovery, and board media identity.

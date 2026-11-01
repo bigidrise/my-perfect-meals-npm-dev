@@ -30,6 +30,7 @@ import { resolveStyle } from "./styleResolver";
 import { COACH_DESTINATIONS, resolveCoachDestinationId, validateCoachNavigationItems } from "../../../shared/coaching/navigation";
 import { runObservers, selectObservers } from "./observers/stubs";
 import { getAdapter } from "./adapters";
+import { isAskChefConversationEnabled } from "../../../shared/coaching/askChefRelease";
 import type {
   CoachRequest,
   CoachResponse,
@@ -451,7 +452,7 @@ export async function runReasoningPass(params: {
   // Pregnancy Coach and Parent's Corner inject this directly into their own system prompts.
   const doctrineSectionForReasoning = generateDoctrineSystemPromptSection("corner");
   const reasoningLangInstruction = getLanguageInstruction(params.preferredLanguage);
-  const conciergeEnabled = process.env.NODE_ENV === "development" && params.specialization === "corner";
+  const conciergeEnabled = isAskChefConversationEnabled(process.env.NODE_ENV) && params.specialization === "corner";
 
   const behavioralSystemPrompt = [
     ...(reasoningLangInstruction ? [reasoningLangInstruction, ""] : []),
@@ -748,7 +749,7 @@ export async function runRenderingPass(params: {
 }): Promise<CoachResponse> {
   const openai = getOpenAI();
 
-  const conciergeEnabled = process.env.NODE_ENV === "development" && params.specialization === "corner";
+  const conciergeEnabled = isAskChefConversationEnabled(process.env.NODE_ENV) && params.specialization === "corner";
   const decision = conciergeEnabled ? validateConciergeGoal(
     params.reasoning.conciergeDecision, params.availableTools,
     [...(params.history ?? []).filter(message => message.role === "user").map(message => message.content), params.userMessage],
@@ -788,7 +789,7 @@ export async function runRenderingPass(params: {
 
   const behavioralSystemPrompt = [
     ...(renderingLangInstruction ? [renderingLangInstruction, ""] : []),
-    ...(process.env.NODE_ENV === "development" ? [
+    ...(isAskChefConversationEnabled(process.env.NODE_ENV) && params.specialization === "corner" ? [
       "CHEF CONCIERGE: Use the current conversation to understand food and drink intent, including changed preferences.",
       "For a clear request, optionally include a use_feature plan item with featureTarget set to the exact available feature ID. Never invent URLs or destinations.",
       "For genuinely ambiguous intent, ask one relevant natural follow-up without a use_feature item yet. Do not ask unnecessary questions for clear intent.",
@@ -1075,7 +1076,7 @@ export async function runRenderingPass(params: {
         ...(item.dueAt !== undefined && { dueAt: item.dueAt }),
         ...(item.completionSignal !== undefined && { completionSignal: item.completionSignal }),
         ...(item.featureTarget !== undefined && { featureTarget: item.featureTarget }),
-      })), process.env.NODE_ENV === "development") as TodayPlanItem[];
+      })), isAskChefConversationEnabled(process.env.NODE_ENV) && params.specialization === "corner") as TodayPlanItem[];
 
       const typedTodayPlan: TodayPlan = {
         why: validated.todayPlan.why,
@@ -1140,7 +1141,7 @@ async function buildFallbackResponse(
   decision?: ConciergeDecision,
   conversationContext = "",
 ): Promise<CoachResponse> {
-  const conciergeFallback = process.env.NODE_ENV === "development" && specialization === "corner"
+  const conciergeFallback = isAskChefConversationEnabled(process.env.NODE_ENV) && specialization === "corner"
     && decision?.mode !== "behavioral_coaching";
   // The fallback fires when the rendering pass fails after retries.
   // We still need to give a useful, topic-aware response — not generic boilerplate
@@ -1293,7 +1294,7 @@ export class StructuredCoachingEngine {
     req: Request
   ): Promise<CoachResponse & { conversationId: string; messageId: string }> {
     const { specialization, userMessage } = request;
-    const developmentConcierge = process.env.NODE_ENV === "development" && specialization === "corner";
+    const developmentConcierge = isAskChefConversationEnabled(process.env.NODE_ENV) && specialization === "corner";
 
     console.log(`[Engine] run — specialization=${specialization}, intent detection starting`);
 
@@ -1507,7 +1508,7 @@ export class StructuredCoachingEngine {
 /** Production and other specializations retain the historical engine unchanged. */
 export class CoachingEngine {
   async run(request: CoachRequest, req: Request): Promise<CoachResponse & { conversationId: string; messageId: string }> {
-    if (process.env.NODE_ENV !== "development" || request.specialization !== "corner") {
+    if (!isAskChefConversationEnabled(process.env.NODE_ENV) || request.specialization !== "corner") {
       return new StructuredCoachingEngine().run(request, req);
     }
     const adapter = getAdapter(request.specialization);

@@ -8,6 +8,7 @@ import { chefNavigationRoute } from "../../shared/coaching/creatorRequest";
 import { requireEssentialAccess } from "../middleware/requireEssentialAccess";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
 import { getTierForLookupKey, PLAN_FEATURES } from "../../shared/planFeatures";
+import { isAskChefConversationEnabled } from "../../shared/coaching/askChefRelease";
 
 const hydrationAccess = requirePurchasedPlanEntitlement("hydration_center");
 // Match the existing MealBuildersGuard permission matrix, including established
@@ -27,7 +28,7 @@ const router = Router();
 
 // Recheck current authoritative access at click time. Destination guards still run.
 const resolve: RequestHandler = (req, res, next) => {
-  if (process.env.NODE_ENV !== "development") {
+  if (!isAskChefConversationEnabled(process.env.NODE_ENV)) {
     res.status(404).json({ error: "Chef navigation is not available in this environment." });
     return;
   }
@@ -53,5 +54,5 @@ const resolve: RequestHandler = (req, res, next) => {
   try { guard(req, res, approved); } catch (error) { next(error); }
 };
 
-router.post("/navigation", requireAuth, resolve);
+router.post("/navigation", requireAuth, requireProAccess, resolve);
 export default router;

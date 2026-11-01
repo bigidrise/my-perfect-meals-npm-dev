@@ -1,14 +1,9 @@
-/**
- * Coach's Corner Feature Flag
- *
- * Controls visibility of Coach's Corner across the entire app.
- * SAFE DEFAULT: hidden (false) — only shown when explicitly enabled.
- *
- * To enable in a workspace: set VITE_COACHES_CORNER_ENABLED=true
- * Production spaces: leave unset → hidden automatically.
- */
+import { isAskChefVisible } from "@shared/coaching/askChefRelease";
+
+// Owner-approved Production activation. Development still requires opt-in;
+// an explicit false can hide the feature without restoring the old assessment.
 export const COACHES_CORNER_ENABLED =
-  import.meta.env.VITE_COACHES_CORNER_ENABLED === "true";
+  isAskChefVisible(import.meta.env.PROD, import.meta.env.VITE_COACHES_CORNER_ENABLED);
 
 export function isCoachesCornerEnabled(): boolean {
   return COACHES_CORNER_ENABLED;
