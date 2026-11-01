@@ -94,3 +94,15 @@ preserving useful feature offers and the implemented features' limits.
 **How to apply:** Keep underlying need, proposed drink format, verified capability
 and conversational timing separate. The approved correction is Development-only;
 live model acceptance and any Production release need separate authorization.
+
+Ask Chef's product role is practical food-decision coaching, not a diagnostic
+interview. Favor useful food options and, only when needed, one food-choice
+question; do not automatically investigate symptoms or medication effects.
+Necessary care and genuinely safety-critical questions still take priority.
+
+**Why:** The founder explicitly refined the goal to "Coach first. Food decision
+next. Feature when useful. Medical care when necessary."
+
+**How to apply:** Do not treat naming familiar food options as recipe generation.
+Use answered preferences without restarting discovery, retain verified feature
+limits, and keep serious warning signs ahead of food or navigation suggestions.

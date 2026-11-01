@@ -54,6 +54,104 @@ function expectActionFree(result: Awaited<ReturnType<typeof reply>>["result"]) {
   expect(result.todayPlan.items).toEqual([]);
 }
 
+describe("Development practical food-decision contracts (not live model judgment)", () => {
+  const options = "Soup, crackers, oatmeal or a small smoothie may be options if they fit your restrictions and feel tolerable.";
+  const foodChoice = "Would you prefer something warm or something cool?";
+
+  it("preserves practical options and one food-choice question in the canonical visible answer", async () => {
+    const message = `${options} ${foodChoice}`;
+    const { result, request } = await reply(message, { responsePurpose: "clarify" });
+    expect(result.presentation?.message).toBe(message);
+    expect(result.whatIFound).toBe(message);
+    expect(result.presentation?.message?.match(/\?/g)).toHaveLength(1);
+    expectActionFree(result);
+    expect(request.messages[0].content).toContain("Naming practical food or beverage options is coaching, not recipe generation");
+    expect(request.messages[0].content).toContain("Prioritize a simple food-choice question when useful");
+    expect(request.messages[0].content).not.toContain("Do not invent finished dishes");
+  });
+
+  it("keeps appropriate nonemergency care, practical options and the food-choice question together", async () => {
+    const message = `${referral} ${options} ${foodChoice}`;
+    const { result } = await reply(message, {
+      responsePurpose: "care", careDisposition: "referral", contactCare: message,
+    }, { userMessage: persistent });
+    // The care renderer owns the full reply; no unsafe navigation or duplicated
+    // legacy fields. Engine persistence is exercised in chefConversation.test.
+    expect(result.whatIFound).toBe("");
+    expect(result.whatItCouldMean).toBe("");
+    expect(result.presentation).toBeUndefined();
+    const visible = result.todayPlan.items[0];
+    expect(visible.kind).toBe("contact_care");
+    expect(visible.text).toBe(message);
+    expect(visible.text).toContain(referral);
+    expect(visible.text).toContain(options);
+    expect(visible.text).toContain(foodChoice);
+    expect(visible.text.match(/\?/g)).toHaveLength(1);
+    expect(visible.text).not.toContain("Beverage Creator");
+    expect(result.todayPlan.items).toHaveLength(1);
+  });
+
+  it("uses a supplied warm-food answer after a care turn without restarting discovery", async () => {
+    const careMessage = `${referral} ${options} ${foodChoice}`;
+    const message = "Then a little warm soup or oatmeal may be a practical starting point if tolerated. Keep the medical follow-up discussed earlier.";
+    const history = [{ role: "user", content: persistent }, { role: "assistant", content: careMessage }];
+    const { result, wire } = await reply(message, {}, {
+      userMessage: "Something warm sounds easier.", history,
+    });
+    expect(wire.history).toEqual(history);
+    expect(wire.latestMemberMessage).toBe("Something warm sounds easier.");
+    expect(result.presentation?.message).toBe(message);
+    expect(result.presentation?.message).not.toContain(foodChoice);
+    expect(result.presentation?.message).not.toContain(fluidQuestion);
+    expectActionFree(result);
+  });
+
+  it("uses an answered cool-drink choice for an appropriate offer without another medical interview", async () => {
+    const message = "A cool smoothie is the option you chose. Beverage Creator can help you prepare one within your saved restrictions. Would you like to open it?";
+    const history = [{ role: "user", content: "I can tolerate breakfast and fluids; I just want a cool homemade option." },
+      { role: "assistant", content: `${options} ${foodChoice}` }];
+    const { result, wire } = await reply(message, {
+      responsePurpose: "answer_with_offer", navigationIntent: "recommendation", conciergeDecision: decision,
+    }, { userMessage: "Cool, and I'd like to make a smoothie.", history });
+    expect(wire.history).toEqual(history);
+    expect(result.presentation?.message).toBe(message);
+    expect(result.presentation?.navigation?.state).toBe("recommendation_pending");
+    expect(result.presentation?.navigation?.destinationId).toBe("beverage_creator");
+    expect(result.presentation?.destinationId).toBeUndefined();
+    expect(result.todayPlan.items).toEqual([]);
+  });
+
+  it("does not require clarification before a clear ordinary drink creation request", async () => {
+    const message = "Beverage Creator can help you make the chocolate shake you chose. Would you like to open it?";
+    const { result } = await reply(message, {
+      responsePurpose: "answer_with_offer", navigationIntent: "recommendation", conciergeDecision: decision,
+    }, { userMessage: "I want to make a chocolate protein shake." });
+    expect(result.presentation?.message).toBe(message);
+    expect(result.presentation?.navigation?.state).toBe("recommendation_pending");
+    expect(result.presentation?.message).not.toMatch(/warm|cool|fluids|symptom/i);
+  });
+
+  it("supplies practical-coaching priorities without changing provider settings or Production instructions", async () => {
+    const { request } = await reply(options);
+    const system = request.messages[0].content;
+    for (const requirement of [
+      "do not require multiple rounds of questioning before useful guidance",
+      "Do not automatically investigate symptoms, medication effects, medical history or timing",
+      "Questions needed to identify urgent warning signs or avoid unsafe advice remain appropriate",
+      "Serious warning signs take priority over food suggestions or feature offers",
+      "impose a universal delay before care",
+      "Use the member's food-choice answer immediately",
+      "Avoid generic closing invitations",
+      "featureUsage.suitability",
+      "When care is genuinely needed, no navigation may be offered",
+    ]) expect(system).toContain(requirement);
+    expect(request.model).toBe("gpt-4o");
+    expect(request.temperature).toBe(0.4);
+    expect(request.max_tokens).toBe(2000);
+    expect(getChefConversationInstructions("production")).toBe(CHEF_CONVERSATION_INSTRUCTIONS);
+  });
+});
+
 describe("Development clarification judgment contracts (not live model judgment)", () => {
   it.each([
     ["What does dietary fiber do?", "Dietary fiber supports bowel regularity and can help with fullness."],
