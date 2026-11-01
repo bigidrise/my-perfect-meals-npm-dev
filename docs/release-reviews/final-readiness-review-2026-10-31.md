@@ -1,5 +1,7 @@
 # Final release readiness review
 
+**Follow-up:** the inherited native-origin mismatch documented below was subsequently verified as a test-only defect and corrected. See [Native API origin verification](native-api-origin-verification.md) for independent Production evidence and current results. Original run results below are retained for audit history.
+
 ## Scope
 
 - Branch: `integration/all-approved-development-20261031`.

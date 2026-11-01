@@ -29,16 +29,20 @@ describe("development routing and meal-image storage repair", () => {
     }
   });
 
-  test("native API routing uses the approved production .com origin", async () => {
+  test.each([
+    "capacitor://localhost",
+    "https://app.myperfectmeals.com",
+    "https://preview.example.test",
+  ])("native API routing preserves the Production .ai alias regardless of web origin %s", async webOrigin => {
     const { resolveApiBaseForRuntime, NATIVE_PRODUCTION_API_ORIGIN } = await import(
       "../../client/src/lib/resolveApiBase"
     );
 
-    expect(NATIVE_PRODUCTION_API_ORIGIN).toBe("https://app.myperfectmeals.com");
+    expect(NATIVE_PRODUCTION_API_ORIGIN).toBe("https://app.myperfectmeals.ai");
     expect(resolveApiBaseForRuntime({
       isNative: true,
-      webOrigin: "https://app.myperfectmeals.ai",
-    })).toBe("https://app.myperfectmeals.com");
+      webOrigin,
+    })).toBe("https://app.myperfectmeals.ai");
   });
 
   test("development NODE_ENV defaults to the Development bucket without an override", () => {
