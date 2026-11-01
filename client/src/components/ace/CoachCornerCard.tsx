@@ -55,10 +55,13 @@ export default function CoachCornerCard() {
                 Your food &amp; platform guide
               </span>
               <h3 className="font-bold leading-none tracking-tight text-white">
-                <span className="text-[1.65rem] sm:text-3xl">Ask</span>{" "}
-                <span className="ml-2 inline-block -rotate-2 rounded-lg bg-orange-500 px-2 py-1 text-[1.65rem] text-[#1d1009] shadow-sm sm:text-3xl">
-                  Chef
-                </span>
+                <img
+                  src="/assets/ask-chef-wordmark.webp"
+                  alt="Ask Chef"
+                  width={600}
+                  height={200}
+                  className="h-[2.15rem] w-auto max-w-full object-contain object-left sm:h-[2.75rem]"
+                />
               </h3>
               <p className="mt-2 text-xs leading-relaxed text-orange-50/65 sm:text-sm">
                 Ask about food, explore meal ideas, or find your way around My Perfect Meals.
