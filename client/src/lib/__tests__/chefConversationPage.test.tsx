@@ -116,6 +116,39 @@ test("stored conversations still render for an unassessed member", async () => {
 });
 
 test.each([
+  ["grocery_find_product", "Find a Product"],
+  ["grocery_create_meal", "Create a Meal"],
+  ["grocery_create_meal", "Build a Meal"],
+])("%s opens Grocery Store Coach while preserving the %s explanation", async (destinationId, functionName) => {
+  const explanation = `Open Grocery Store Coach and select ${functionName}.`;
+  await renderPage(false, [{
+    id: "grocery-guidance", role: "assistant", created_at: "2026-01-01T00:00:00Z",
+    structured_payload: {
+      presentation: { kind: "concierge", message: explanation,
+        destinationId, navigation: approvedNavigation(destinationId) },
+      whatIFound: "", whatItCouldMean: "",
+      todayPlan: { items: [{ kind: "use_feature", destinationId }] }, learningOpportunity: null,
+    },
+  }]);
+  expect(host.textContent).toContain(explanation);
+  const buttons = [...host.querySelectorAll("button")];
+  const open = buttons.find(button => button.textContent === "Open Grocery Store Coach");
+  expect(open).toBeDefined();
+  expect(buttons.some(button => button.textContent === `Open ${functionName}`)).toBe(false);
+  expect(mockAPI).not.toHaveBeenCalled();
+  expect(mockNavigate).not.toHaveBeenCalled();
+  mockAPI.mockResolvedValueOnce({ destinationId, route: "/shopping-list-v2" });
+  await act(async () => open!.click());
+  expect(mockAPI).toHaveBeenCalledTimes(1);
+  expect(mockAPI).toHaveBeenCalledWith("/api/coach/navigation", {
+    method: "POST", body: JSON.stringify({ destinationId }),
+  });
+  expect(mockNavigate).toHaveBeenCalledTimes(1);
+  expect(mockNavigate).toHaveBeenCalledWith("/shopping-list-v2");
+  expect(host.textContent).toContain(explanation);
+});
+
+test.each([
   ["restaurant_guide", "Restaurant Guide", "/social-hub/restaurant-guide"],
   ["find_meals_near_me", "Find Meals Near Me", "/social-hub/find"],
   [null, null, "/dashboard"],

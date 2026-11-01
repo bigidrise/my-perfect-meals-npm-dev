@@ -3,9 +3,9 @@
  * reviewed Create a Dish text prefill, never arbitrary routes or generation.
  */
 export const COACH_DESTINATIONS = {
-  grocery_find_product: { label: "Find a Product", route: "/shopping-list-v2", access: "pro" },
+  grocery_find_product: { label: "Find a Product", navigationLabel: "Grocery Store Coach", route: "/shopping-list-v2", access: "pro" },
   product_scan: { label: "Product Scan", route: "/shopping-list-v2", access: "essential" },
-  grocery_create_meal: { label: "Grocery Coach — Create a Meal", route: "/shopping-list-v2", access: "pro" },
+  grocery_create_meal: { label: "Grocery Coach — Create a Meal", navigationLabel: "Grocery Store Coach", route: "/shopping-list-v2", access: "pro" },
   sushi_creator: { label: "Sushi Creator", route: "/lifestyle/sushi-creator", access: "pro" },
   craving_creator: { label: "Craving Creator", route: "/craving-creator", access: "pro" },
   dessert_creator: { label: "Dessert Creator", route: "/craving-desserts", access: "pro" },

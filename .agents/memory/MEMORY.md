@@ -103,11 +103,7 @@
 - [Foods I Enjoy boundary](foods-i-enjoy-boundary.md) — explicit subject-owned enjoyment stays separate from legacy likes, inference, and safety governance.
 - [Future food date context](future-food-date-context.md) — destination dates must reach every nutrition and clinical resolver, not only meal-budget logic.
 - [Snack occasion semantics](snack-occasion-semantics.md) — snack is an eating occasion; dessert is one valid family, and personalization must not default to shrinking it.
-- [My Perfect Menu culinary breadth](my-perfect-menu-culinary-breadth.md) — use shared culinary identity and soft subject-scoped history, never quotas or protein-swap novelty.
-- [My Perfect Menu context authority](my-perfect-menu-context-authority.md) — revalidate opaque per-category authority before selection; household boards use server-derived namespaces.
-- [My Perfect Menu builder authority](my-perfect-menu-builder-authority.md) — one server-resolved builder governs generation, board scope, cache events, and destination.
-- [My Perfect Menu stable choices](my-perfect-menu-stable-choices.md) — keep one stable set of three; Builders create meals and Favorites preserves them.
-- [My Perfect Menu restoration payloads](my-perfect-menu-restoration-payloads.md) — remount APIs must return full authoritative JSON and never treat transport failure as an empty set.
+- [My Perfect Menu references](my-perfect-menu-reference-index.md) — culinary breadth, subject/context authority, builder ownership, stable choices and restoration payloads.
 - [Restrictive-diet generation contract](restrictive-diet-generation-contract.md) — generation and validation must share the same dietary universe; diversity stays inside it.
 - [Customer release identity](customer-release-identity.md) — build metadata stays separate; one explicit release ID owns notes, timestamp, comparison, and dismissal.
 - [Nutrition Priorities authority](nutrition-priorities-authority.md) — subject-owned optional food inclusion guidance enters HFC identity; release DDL stays explicitly gated.
@@ -136,6 +132,7 @@
 - [Migration CLI lifecycle](migration-cli-lifecycle.md) — one-off commands must own their connection; the application DB keepalive can outlive a closed pool.
 - [Professional credential clearance](professional-credential-clearance.md) — bind genuine MFA-reviewed evidence to current identity; activation, pilots and demos remain separate.
 - [Grocery Coach workflow](grocery-coach-meal-card-workflow.md) — automatic Favorites/card continuity and Development-only, user-initiated packaged-product discovery.
+- [Ask Chef parent navigation](ask-chef-parent-navigation.md) — Grocery Store Coach buttons name the parent feature; conversation names the nested function.
 - [Focused Jest execution](focused-jest-execution.md) — use isolated test transpilation and a separate type gate to avoid loading the entire project twice.
 - [Studio loading release boundary](studio-loading-release-boundary.md) — loading corrections are Development-only; permission caching and restart/release need separate approval.
 - [Recipe carbohydrate categories](recipe-carb-category-boundary.md) — preserve explicit source estimates; dietary fiber and unknown carbohydrate remain distinct.
