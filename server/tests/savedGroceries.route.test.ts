@@ -40,6 +40,18 @@ jest.mock("../db", () => {
   function createExecutor() {
     return {
       execute: jest.fn(async () => []),
+      delete: jest.fn((table: unknown) => ({
+        where: async (condition: any) => {
+          const { sql, params } = new PgDialect().sqlToQuery(condition);
+          const id = sql.match(/"id"\s*=\s*\$(\d+)/);
+          const owner = sql.match(/"user_id"\s*=\s*\$(\d+)/);
+          if (table !== schema.userSavedGroceryItems || !id || !owner) {
+            throw new Error("Saved Grocery deletion must bind both row and owner");
+          }
+          mockState.savedRows = mockState.savedRows.filter(row =>
+            row.id !== params[Number(id[1]) - 1] || row.userId !== params[Number(owner[1]) - 1]);
+        },
+      })),
       select: jest.fn(() => ({
         from: (table: unknown) => ({
           where: (condition: any) => {
@@ -178,6 +190,41 @@ beforeEach(() => {
 });
 
 describe("Saved Groceries routes", () => {
+  test("Grocery Coach save/list/reopen roundtrip retains identity, analysis and owner without caller-controlled ownership", async () => {
+    const app = buildApp();
+    const snapshot = {
+      analysisMethod: "by_name", productName: "Synthetic Peanut Butter Smooth · UPC 000000000001",
+      barcode: "000000000001", educationalFooter: "Check the current label; not verified.",
+      extractedIngredients: [], fallbackUsed: false,
+    };
+    const payload = {
+      productName: snapshot.productName, barcode: snapshot.barcode, source: "grocery-coach",
+      userId: "foreign-account",
+      productMeta: { analysisSnapshotVersion: 1, analysisSnapshot: snapshot, evidenceStatus: "unverified" },
+    };
+    const saved = await request(app).post("/api/saved-groceries").send(payload);
+    expect(saved.status).toBe(201);
+    expect(mockState.savedRows).toHaveLength(1);
+    expect(mockState.savedRows[0].userId).toBe(USER_ID);
+    for (let read = 0; read < 2; read++) {
+      const restored = await request(buildApp()).get("/api/saved-groceries");
+      expect(restored.status).toBe(200);
+      expect(restored.body.items).toHaveLength(1);
+      expect(restored.body.items[0]).toMatchObject({
+        id: saved.body.item.id, productName: snapshot.productName, barcode: snapshot.barcode,
+        source: "grocery-coach",
+        productMeta: { analysisSnapshot: snapshot, evidenceStatus: "unverified" },
+      });
+    }
+    const other = await request(buildApp("foreign-account")).get("/api/saved-groceries");
+    expect(other.status).toBe(200);
+    expect(other.body.items).toEqual([]);
+    expect((await request(buildApp("foreign-account"))
+      .delete(`/api/saved-groceries/${saved.body.item.id}`)).status).toBe(200);
+    expect(mockState.savedRows).toHaveLength(1);
+    expect(mockState.insertedListRows).toEqual([]);
+  });
+
   test("Production advertises snapshot attachment for library reads, new saves and duplicate-save races", async () => {
     const previousMode = process.env.NODE_ENV;
     process.env.NODE_ENV = "production";

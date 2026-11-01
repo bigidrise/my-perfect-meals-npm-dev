@@ -16,6 +16,7 @@ import { getDatabaseTlsConfig } from "./lib/databaseTls";
 import { sessionCookieSecurity } from "./lib/sessionSecurity";
 import { startupMaintenanceEnabled } from "./bootstrap/developmentStartupMaintenance";
 import { resolveMealImageStorageContext } from "./services/mealImageBucket";
+import storageHealthRouter from "./routes/storageHealth";
 import {
   createStaticFileMiddleware,
   registerFreshMetadataRoutes,
@@ -123,6 +124,7 @@ app.get("/google0c1c00ed46ab3246.html", (_req, res) => {
     .send("google-site-verification: google0c1c00ed46ab3246.html\n");
 });
 
+app.use("/api/health/storage", storageHealthRouter);
 app.get("/api/health", (_req, res) => {
   res.json({
     ok: true,

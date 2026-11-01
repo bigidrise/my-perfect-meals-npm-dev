@@ -37,6 +37,7 @@ import { checkDailyQuota, checkAndIncrementQuota, incrementDailyUsage, AiFeature
 import { requireActiveAccess } from "./middleware/requireActiveAccess";
 import { requirePremiumAccess } from "./middleware/requirePremiumAccess";
 import { requireEssentialAccess } from "./middleware/requireEssentialAccess";
+import storageHealthRouter from "./routes/storageHealth";
 import { requireProAccess } from "./middleware/requireProAccess";
 import { requireClinicalAccess, requireStrictClinicalAccess } from "./middleware/requireClinicalAccess";
 import { requirePhase1Cert } from "./middleware/requirePhase1Cert";
@@ -385,6 +386,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/household", householdFoodsIEnjoyRouter);
   app.use("/api/my-perfect-menu", requireAuth, requireEssentialAccess, myPerfectMenuRouter);
   // Health endpoint for network testing
+  app.use("/api/health/storage", storageHealthRouter);
   app.get("/api/health", (_req, res) => {
     res.json({
       ok: true,
