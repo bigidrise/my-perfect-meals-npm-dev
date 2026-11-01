@@ -60,7 +60,7 @@ export default function CoachCornerCard() {
                   alt="Ask Chef"
                   width={600}
                   height={200}
-                  className="h-[2.15rem] w-auto max-w-full object-contain object-left sm:h-[2.75rem]"
+                  className="h-[2.6rem] w-auto max-w-full object-contain object-left sm:h-[3.3rem]"
                 />
               </h3>
               <p className="mt-2 text-xs leading-relaxed text-orange-50/65 sm:text-sm">
