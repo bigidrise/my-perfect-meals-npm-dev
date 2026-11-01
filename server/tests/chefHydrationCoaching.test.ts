@@ -92,7 +92,7 @@ describe("Ask Chef verified Hydration knowledge", () => {
     expect(instructions).toContain("message is the one complete visible reply");
     expect(instructions).toContain("an informational answer needs no feature");
     expect(instructions).toContain("A navigation-only request needs no nutrition lecture");
-    expect(instructions).toContain("without assuming a shake is suitable");
+    expect(instructions).toContain("without assuming a proposed food is suitable");
   });
 });
 
