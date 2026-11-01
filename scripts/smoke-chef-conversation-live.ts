@@ -12,18 +12,24 @@ async function main() {
     throw new Error("Live tests incur provider usage; explicit opt-in is required.");
   }
   const sdk = new OpenAI({ maxRetries: 0, timeout: 30_000 });
+  const restaurantConfirmation = process.argv.includes("--restaurant-confirmation");
   let totalTokens = 0;
   const client = { chat: { completions: { create: async (args: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming) => {
     const result = await sdk.chat.completions.create({ ...args, max_tokens: 600 });
     totalTokens += result.usage?.total_tokens ?? 0;
     const turn = JSON.parse(result.choices[0]?.message?.content ?? "{}");
     // Only synthetic classification metadata; no credentials or member data.
-    console.log(JSON.stringify({ synthetic: true, careDisposition: turn.careDisposition, redFlag: turn.redFlag }));
+    console.log(JSON.stringify({ synthetic: true, careDisposition: turn.careDisposition, redFlag: turn.redFlag,
+      navigationIntent: turn.navigationIntent, decision: turn.conciergeDecision }));
     return result;
   } } } };
   const history: Array<{ role: string; content: string }> = [];
   let pendingRecommendation: PendingRecommendation | undefined;
-  for (const message of ["I want ice cream.", "I want to make it.", "Actually, I'm buying it at Walmart."]) {
+  const messages = restaurantConfirmation
+    ? ["I want some ice cream.", "I wanna go to a restaurant to get ice cream.", "yes"]
+    : ["I want ice cream.", "I want to make it.", "Actually, I'm buying it at Walmart."];
+  let completedRestaurantHandoff = false;
+  for (const message of messages) {
     const response = await runConciergeConversation({
       client: client as unknown as OpenAI, userMessage: message, history,
       pendingRecommendation, rollingContext: null,
@@ -39,9 +45,14 @@ async function main() {
     }
     pendingRecommendation = response.presentation?.navigation?.state === "recommendation_pending"
       ? response.presentation.navigation : undefined;
+    completedRestaurantHandoff = response.presentation?.destinationId === "find_meals_near_me" &&
+      response.presentation?.navigation?.state === "navigation_confirmed";
     history.push({ role: "user", content: message }, { role: "assistant", content: reply });
   }
-  console.log(JSON.stringify({ liveTurns: 3, totalTokens, persisted: false }));
+  console.log(JSON.stringify({ liveTurns: 3, totalTokens, persisted: false, completedRestaurantHandoff }));
+  if (restaurantConfirmation && !completedRestaurantHandoff) {
+    throw new Error("One affirmative did not complete the restaurant handoff.");
+  }
 }
 main().catch(() => {
   console.error("Controlled live test failed or provider unavailable. No retries or saved conversations.");

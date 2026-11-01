@@ -83,6 +83,46 @@ async function renderPage(completed: boolean, messages: any[] = []) {
   await act(async () => { root.render(<QueryClientProvider client={client}><CoachsCorner /></QueryClientProvider>); });
 }
 
+test("restaurant recommendation followed by one yes displays the real validated navigation control", async () => {
+  await renderPage(false);
+  const send = async (message: string) => {
+    await act(async () => {
+      const textarea = host.querySelector("textarea")!;
+      textarea.value = message;
+      Simulate.change(textarea, { target: textarea } as any);
+    });
+    await act(async () => { (host.querySelector('[aria-label="Send message"]') as HTMLButtonElement).click(); });
+  };
+  const goal = { activity: "eat_out", occasion: "dessert", restaurant: "not_chosen",
+    dishChosen: false, specialty: "none", explicitFeatureId: null };
+  const question = "Find Meals Near Me searches nearby restaurants. Would you like to open it?";
+  mockAPI.mockResolvedValueOnce({ conversationId: "restaurant-conversation", messageId: "restaurant-offer",
+    response: { presentation: { kind: "concierge", message: question,
+      navigation: { state: "recommendation_pending", destinationId: "find_meals_near_me", goal } },
+      whatIFound: "", whatItCouldMean: "", todayPlan: { items: [] }, learningOpportunity: null } });
+  await send("I wanna go to a restaurant to get ice cream.");
+  expect(host.textContent).toContain(question);
+  expect([...host.querySelectorAll("button")].filter(button => button.textContent === "Open Find Meals Near Me")).toHaveLength(0);
+  const instructions = "Follow the guided flow, describe your craving, and enter a ZIP code or use the location control.";
+  mockAPI.mockResolvedValueOnce({ conversationId: "restaurant-conversation", messageId: "restaurant-handoff",
+    response: { presentation: { kind: "concierge", message: instructions, destinationId: "find_meals_near_me",
+      navigation: { state: "navigation_confirmed", destinationId: "find_meals_near_me", goal } },
+      whatIFound: "", whatItCouldMean: "", todayPlan: { items: [{ kind: "use_feature", destinationId: "find_meals_near_me" }] },
+      learningOpportunity: null } });
+  await send("yes");
+  const buttons = [...host.querySelectorAll("button")].filter(button => button.textContent === "Open Find Meals Near Me");
+  expect(buttons).toHaveLength(1);
+  expect(host.textContent).toContain(instructions);
+  expect(mockNavigate).not.toHaveBeenCalled();
+  expect(mockAPI).toHaveBeenCalledTimes(2);
+  mockAPI.mockResolvedValueOnce({ destinationId: "find_meals_near_me", route: chefNavigationRoute("find_meals_near_me") });
+  await act(async () => buttons[0].click());
+  expect(mockAPI).toHaveBeenLastCalledWith("/api/coach/navigation", expect.objectContaining({
+    method: "POST", body: JSON.stringify({ destinationId: "find_meals_near_me" }),
+  }));
+  expect(mockNavigate).toHaveBeenCalledWith(chefNavigationRoute("find_meals_near_me"));
+});
+
 test.each([false, true])("actual chat page is immediately usable with assessment completion=%s", async completed => {
   await renderPage(completed);
   const textarea = host.querySelector("textarea")!;

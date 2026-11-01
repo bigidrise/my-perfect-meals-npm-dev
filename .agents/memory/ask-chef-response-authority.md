@@ -31,3 +31,19 @@ navigation permissions through knowledge, and report incomplete coverage
 explicitly. Synthetic live observations and deterministic tests establish
 different kinds of evidence; never present mocked tests as proof of natural
 conversation quality.
+
+Ask Chef must not require repeated confirmation for the same destination.
+Permission offers must carry a validated pending recommendation before display;
+acceptance of that recommendation must not depend on an optional model wording
+variant being populated.
+
+**Why:** A synthetic replay stored the correct recommendation and recognized the
+member's acceptance, but an unusable handoff variant still prevented the button.
+Plain conversational permission offers also could bypass pending-state creation.
+
+**How to apply:** Preserve semantic consent, current tool eligibility and
+latest-owned pending-state checks. Only after those checks, recover missing or
+repeated handoff wording from verified destination instructions (or the existing
+button label when controls are unreviewed). Keep unsafe links and mismatched
+destinations rejected. Never choose a destination from a permission question,
+reconstruct pending state from text history, or authorize a bare yes by keyword.
