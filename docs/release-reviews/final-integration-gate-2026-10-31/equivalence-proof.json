@@ -1,0 +1,57 @@
+{
+  "productionFingerprintReproduced": "283431248046ac278862cc53df08c7c583c71f9bb878f957a7380333358ab87f",
+  "reconstructedHistoricalCount": 120,
+  "reconstructedHistoricalFingerprint": "283431248046ac278862cc53df08c7c583c71f9bb878f957a7380333358ab87f",
+  "currentCount": 118,
+  "currentFingerprint": "a7f4fc91dbc777d1e4bcf367f76d03e38691d59d7be32770b3edf88465f0f717",
+  "addedDiagnostics": 0,
+  "changedFullMessages": 0,
+  "removedDiagnostics": 2,
+  "relocations": [
+    {
+      "file": "client/src/pages/SocialFindMeals.tsx",
+      "from": [
+        254,
+        11
+      ],
+      "to": [
+        256,
+        11
+      ],
+      "mappedLine": 256,
+      "diagnosticLineModified": false,
+      "sourceLineIdentical": true
+    },
+    {
+      "file": "client/src/pages/SocialFindMeals.tsx",
+      "from": [
+        386,
+        58
+      ],
+      "to": [
+        388,
+        58
+      ],
+      "mappedLine": 388,
+      "diagnosticLineModified": false,
+      "sourceLineIdentical": true
+    },
+    {
+      "file": "client/src/pages/SocialRestaurantGuide.tsx",
+      "from": [
+        562,
+        55
+      ],
+      "to": [
+        564,
+        55
+      ],
+      "mappedLine": 564,
+      "diagnosticLineModified": false,
+      "sourceLineIdentical": true
+    }
+  ],
+  "removedPredicateEquivalenceCases": 24,
+  "compilerSettingsChanged": false,
+  "validatorChanged": false
+}

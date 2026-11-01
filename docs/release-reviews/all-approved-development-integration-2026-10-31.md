@@ -1,5 +1,9 @@
 # Development-to-Production integration review
 
+This document preserves the original integration result. The subsequent,
+conditionally authorized baseline review and final validation are recorded in
+[`final-integration-release-gate-review-2026-10-31.md`](final-integration-release-gate-review-2026-10-31.md).
+
 ## Scope and authority
 
 - Integration branch: `integration/all-approved-development-20261031`.

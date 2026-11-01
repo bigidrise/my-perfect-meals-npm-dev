@@ -1,5 +1,31 @@
 # Release Typecheck Baseline
 
+## Reviewed integration refresh — 2026-10-31
+
+The owner conditionally authorized an integration-branch refresh only after exact
+historical comparison demonstrated legitimate fixes and no newly introduced
+diagnostics. That condition was verified against the preserved Production source:
+
+| Set | Count | SHA-256 |
+| --- | ---: | --- |
+| Historical Production | 120 | `283431248046ac278862cc53df08c7c583c71f9bb878f957a7380333358ab87f` |
+| Reviewed integration | 118 | `a7f4fc91dbc777d1e4bcf367f76d03e38691d59d7be32770b3edf88465f0f717` |
+
+Two TS2367 diagnostics were removed by equivalent simplifications of redundant
+`label_review` comparisons in `ProductCatalogChoices` and `ShoppingProductPicker`.
+Three existing diagnostics moved down two lines because of imports in
+`SocialFindMeals` and `SocialRestaurantGuide`. No new diagnostic or changed full
+message was found. Source-diff mapping and reconstruction reproduce the exact
+historical fingerprint, including multiplicities.
+
+Only count/fingerprint metadata changed. Compiler settings, diagnostic extraction,
+and the validator's exact-match acceptance rule are unchanged. The Production
+branch itself was not changed.
+
+Complete original compiler outputs, the original baseline, source-location and
+predicate-equivalence proofs are retained in
+[`release-reviews/final-integration-gate-2026-10-31/`](release-reviews/final-integration-gate-2026-10-31/).
+
 The repository-wide `npm run check` remains strict and is intentionally kept
 outside the release build path until its historical contract debt is remediated.
 The current reviewed diagnostic set is fingerprinted in

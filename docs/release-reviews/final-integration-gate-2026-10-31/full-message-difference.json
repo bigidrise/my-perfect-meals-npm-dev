@@ -1,0 +1,77 @@
+{
+  "productionBlocks": 120,
+  "integratedBlocks": 118,
+  "changes": [
+    {
+      "kind": "relocated",
+      "old": {
+        "file": "client/src/pages/SocialFindMeals.tsx",
+        "line": 254,
+        "column": 11,
+        "code": "TS2741",
+        "message": "Property 'step3' is missing in type '{ entry: string; step1: string; step2: string; generating: string; results: string; }' but required in type 'Record<GuidedStep, string>'."
+      },
+      "new": {
+        "file": "client/src/pages/SocialFindMeals.tsx",
+        "line": 256,
+        "column": 11,
+        "code": "TS2741",
+        "message": "Property 'step3' is missing in type '{ entry: string; step1: string; step2: string; generating: string; results: string; }' but required in type 'Record<GuidedStep, string>'."
+      }
+    },
+    {
+      "kind": "relocated",
+      "old": {
+        "file": "client/src/pages/SocialFindMeals.tsx",
+        "line": 386,
+        "column": 58,
+        "code": "TS2322",
+        "message": "Type 'unknown' is not assignable to type '{ name?: string | undefined; description?: string | undefined; ingredients?: string[] | undefined; }'."
+      },
+      "new": {
+        "file": "client/src/pages/SocialFindMeals.tsx",
+        "line": 388,
+        "column": 58,
+        "code": "TS2322",
+        "message": "Type 'unknown' is not assignable to type '{ name?: string | undefined; description?: string | undefined; ingredients?: string[] | undefined; }'."
+      }
+    },
+    {
+      "kind": "relocated",
+      "old": {
+        "file": "client/src/pages/SocialRestaurantGuide.tsx",
+        "line": 562,
+        "column": 55,
+        "code": "TS2322",
+        "message": "Type 'unknown' is not assignable to type '{ name?: string | undefined; description?: string | undefined; ingredients?: string[] | undefined; }'."
+      },
+      "new": {
+        "file": "client/src/pages/SocialRestaurantGuide.tsx",
+        "line": 564,
+        "column": 55,
+        "code": "TS2322",
+        "message": "Type 'unknown' is not assignable to type '{ name?: string | undefined; description?: string | undefined; ingredients?: string[] | undefined; }'."
+      }
+    },
+    {
+      "kind": "removed",
+      "old": {
+        "file": "client/src/components/shopping/ProductCatalogChoices.tsx",
+        "line": 20,
+        "column": 10,
+        "code": "TS2367",
+        "message": "This comparison appears to be unintentional because the types '\"selectable\" | undefined' and '\"label_review\"' have no overlap."
+      }
+    },
+    {
+      "kind": "removed",
+      "old": {
+        "file": "client/src/components/shopping/ShoppingProductPicker.tsx",
+        "line": 100,
+        "column": 94,
+        "code": "TS2367",
+        "message": "This comparison appears to be unintentional because the types '\"selectable\" | undefined' and '\"label_review\"' have no overlap."
+      }
+    }
+  ]
+}
