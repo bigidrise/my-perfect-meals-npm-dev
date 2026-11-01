@@ -45,8 +45,8 @@ test("the approved artwork is the single accessible heading with bounded proport
   expect(image.alt).toBe("Ask Chef");
   expect(image.width).toBe(600);
   expect(image.height).toBe(200);
-  expect(image.className).toContain("h-[2.15rem]");
-  expect(image.className).toContain("sm:h-[2.75rem]");
+  expect(image.className).toContain("h-[2.6rem]");
+  expect(image.className).toContain("sm:h-[3.3rem]");
   for (const constraint of ["w-auto", "max-w-full", "object-contain"]) {
     expect(image.classList.contains(constraint)).toBe(true);
   }
