@@ -49,6 +49,20 @@ interface DbMessage {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function logClearDiagnostic(
+  outcome: "started" | "succeeded" | "failed" | "missing_id" | "duplicate_ignored",
+  details: { status?: number; elapsedMs?: number;
+    reason?: "http_error" | "network_error" | "unconfirmed_response" | "unexpected_error" } = {},
+) {
+  // Never include conversation/account IDs, message text, URLs or raw errors.
+  const data = {
+    outcome, ...details, online: navigator.onLine,
+    touch: navigator.maxTouchPoints > 0, visibility: document.visibilityState,
+  };
+  if (outcome === "failed" || outcome === "missing_id") console.warn("[AskChefClear]", data);
+  else console.info("[AskChefClear]", data);
+}
+
 function mapDbMessage(msg: DbMessage): UIMessage {
   if (msg.role === "user") {
     return { id: msg.id, role: "user", content: msg.content, createdAt: msg.created_at };
@@ -335,6 +349,7 @@ export default function CoachsCorner() {
   const [isLoading, setIsLoading] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [clearError, setClearError] = useState<string | null>(null);
   const [localProfile, setLocalProfile] = useState<Record<string, unknown> | null>(null);
   const [hasOlderMessages, setHasOlderMessages] = useState(false);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
@@ -352,6 +367,8 @@ export default function CoachsCorner() {
   // Captured at the moment the trash icon is tapped so that confirm-time
   // state races (bootstrap re-run, invalidation) can't nullify the ID.
   const pendingClearId = useRef<string | null>(null);
+  const clearInFlight = useRef(false);
+  const clearStartedAt = useRef(0);
   const followNewestRef = useRef(true);
   const forceNewestRef = useRef(true);
   const [keyboardInsets, setKeyboardInsets] = useState({ top: 0, bottom: 0 });
@@ -578,7 +595,7 @@ export default function CoachsCorner() {
 
   const handleSend = useCallback(() => {
     const text = inputText.trim();
-    if (!text || isLoading) return;
+    if (!text || isLoading || clearInFlight.current) return;
 
     if (conversationEnabled) {
       followNewestRef.current = true;
@@ -676,30 +693,67 @@ export default function CoachsCorner() {
 
   // ── Clear conversation ─────────────────────────────────────────────────────
   const clearMutation = useMutation({
-    mutationFn: (cid: string) =>
-      apiRequest(`/api/coach/conversation/${cid}`, { method: "DELETE" }),
-    onSuccess: () => {
+    retry: false,
+    mutationFn: async (cid: string) => {
+      const result = await apiRequest<{ success?: boolean }>(
+        `/api/coach/conversation/${encodeURIComponent(cid)}`, { method: "DELETE" },
+      );
+      if (result?.success !== true) throw new Error("Deletion was not confirmed");
+      return result;
+    },
+    onSuccess: async () => {
+      await queryClient.cancelQueries({ queryKey: ["/api/coach/bootstrap"] });
+      // Remove the old cached snapshot before allowing initialization again.
+      queryClient.setQueryData<BootstrapData>(["/api/coach/bootstrap"], (previous) =>
+        previous ? { ...previous, conversationId: null, messages: [], hasOlderMessages: false,
+          dueFollowup: null } : previous);
       // Reset all local state — page returns to empty state immediately
       setMessages([]);
       setConversationId(null);
       setHasOlderMessages(false);
       setShowClearConfirm(false);
+      setClearError(null);
       pendingClearId.current = null;
       messagesInitialized.current = false;
       followupFired.current = false;
-      queryClient.invalidateQueries({ queryKey: ["/api/coach/bootstrap"] });
+      logClearDiagnostic("succeeded", { elapsedMs: Date.now() - clearStartedAt.current });
+      void queryClient.invalidateQueries({ queryKey: ["/api/coach/bootstrap"] });
     },
-    onError: () => {
-      pendingClearId.current = null;
-      setShowClearConfirm(false);
+    onError: (error) => {
+      const match = error instanceof Error ? /^(\d{3}):/.exec(error.message) : null;
+      const status = match ? Number(match[1]) : undefined;
+      setClearError(status === 401
+        ? "Your session may have expired. Your messages are still shown. Sign in again, then retry."
+        : status === 403
+          ? "Clearing wasn't authorized. Your messages are still shown. Check your access, then retry."
+          : "We couldn't confirm that the conversation was cleared. Your messages are still shown. Please try again.");
+      const reason = status ? "http_error"
+        : error instanceof TypeError ? "network_error"
+          : error instanceof Error && error.message === "Deletion was not confirmed"
+            ? "unconfirmed_response" : "unexpected_error";
+      logClearDiagnostic("failed", { status, reason, elapsedMs: Date.now() - clearStartedAt.current });
     },
+    onSettled: () => { clearInFlight.current = false; },
   });
 
   const handleClear = () => {
+    if (clearInFlight.current || clearMutation.isPending) {
+      logClearDiagnostic("duplicate_ignored");
+      return;
+    }
     // Prefer the ID captured when the trash icon was tapped.
     // Fall back to live state / bootstrap data for safety.
     const cid = pendingClearId.current ?? conversationId ?? bootstrapQuery.data?.conversationId ?? null;
-    if (!cid) return;
+    if (!cid) {
+      setClearError("This conversation isn't ready to clear. Close this dialog and let your conversation finish restoring, then try again. Your messages are still shown.");
+      logClearDiagnostic("missing_id");
+      return;
+    }
+    pendingClearId.current = cid;
+    clearInFlight.current = true;
+    clearStartedAt.current = Date.now();
+    setClearError(null);
+    logClearDiagnostic("started");
     clearMutation.mutate(cid);
   };
 
@@ -755,15 +809,17 @@ export default function CoachsCorner() {
             {hasMessages && (
               <button
                 onClick={() => {
+                  if (clearInFlight.current) return;
                   // Capture the ID now, while the conversation is definitely
                   // present (button is only rendered when hasMessages is true).
                   // This avoids the race where state / bootstrap data could be
                   // stale by the time the confirm button fires.
                   pendingClearId.current =
                     conversationId ?? bootstrapQuery.data?.conversationId ?? null;
+                  setClearError(null);
                   setShowClearConfirm(true);
                 }}
-                disabled={clearMutation.isPending}
+                disabled={clearMutation.isPending || isLoading || isLoadingOlder}
                 className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-white/8 border border-white/15 text-white/50 text-xs hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10 transition-colors disabled:opacity-40"
                 aria-label="Clear conversation"
               >
@@ -879,7 +935,7 @@ export default function CoachsCorner() {
               onChange={handleTextareaChange}
               onKeyDown={handleKeyDown}
               placeholder="Ask Chef anything…"
-              disabled={isLoading || bootstrapLoading || historyUnavailable}
+              disabled={isLoading || clearMutation.isPending || bootstrapLoading || historyUnavailable}
               rows={1}
               className="min-w-0 flex-1 max-[360px]:basis-full resize-none bg-zinc-900 border border-white/25 text-white placeholder:text-white/45 text-sm rounded-xl py-3 px-4 focus:outline-none focus:ring-1 focus:ring-orange-500/60 focus:border-orange-500/50 disabled:opacity-50 transition-colors"
               style={{ lineHeight: "1.5", minHeight: "44px", maxHeight: "120px" }}
@@ -887,13 +943,13 @@ export default function CoachsCorner() {
             <VoiceInputButton
               value={inputText}
               onChange={setInputText}
-              disabled={isLoading || bootstrapLoading || historyUnavailable}
+              disabled={isLoading || clearMutation.isPending || bootstrapLoading || historyUnavailable}
               label={chefMemberText("Use voice input for Coach's Corner")}
               className="shrink-0 [&_button]:min-h-11"
             />
             <Button
               onClick={handleSend}
-              disabled={!inputText.trim() || isLoading || bootstrapLoading || historyUnavailable}
+              disabled={!inputText.trim() || isLoading || clearMutation.isPending || bootstrapLoading || historyUnavailable}
               size="icon"
               className="w-11 h-11 rounded-xl bg-orange-600 hover:bg-orange-700 disabled:opacity-40 disabled:bg-zinc-700 shrink-0 transition-colors"
               aria-label="Send message"
@@ -922,16 +978,24 @@ export default function CoachsCorner() {
       />}
 
       {/* Clear conversation confirmation */}
-      <Dialog open={showClearConfirm} onOpenChange={(v) => !v && setShowClearConfirm(false)}>
-        <DialogContent className="bg-zinc-950 border border-white/10 text-white max-w-sm w-full p-6">
+      <Dialog open={showClearConfirm} onOpenChange={(v) => {
+        if (!v && !clearInFlight.current) {
+          setShowClearConfirm(false);
+          setClearError(null);
+          pendingClearId.current = null;
+        }
+      }}>
+        <DialogContent showCloseButton={!clearMutation.isPending} aria-describedby="chef-clear-description"
+          className="bg-zinc-950 border border-white/10 text-white max-w-sm w-full p-6">
           <DialogHeader>
             <DialogTitle className="text-white text-base">Clear this conversation?</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-white/55 mt-1 leading-relaxed">
+          <p id="chef-clear-description" className="text-sm text-white/55 mt-1 leading-relaxed">
             {conversationEnabled
               ? "All messages will be permanently deleted. Only the chat history is removed."
               : "All messages will be permanently deleted. Your coaching profile stays intact — only the chat history is removed."}
           </p>
+          {clearError && <p role="alert" className="mt-3 text-sm text-red-300">{clearError}</p>}
           <div className="flex gap-3 mt-5">
             <button
               onClick={() => setShowClearConfirm(false)}
@@ -945,7 +1009,7 @@ export default function CoachsCorner() {
               disabled={clearMutation.isPending}
               className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
             >
-              {clearMutation.isPending ? "Clearing…" : "Clear"}
+              {clearMutation.isPending ? "Clearing…" : clearError ? "Try again" : "Clear"}
             </button>
           </div>
         </DialogContent>
