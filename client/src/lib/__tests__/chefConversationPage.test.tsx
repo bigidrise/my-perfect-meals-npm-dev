@@ -5,11 +5,36 @@ import { Simulate } from "react-dom/test-utils";
 import { notifyManager, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import CoachsCorner from "@/pages/CoachsCorner";
 import ChefConversationEntry from "@/components/coaching/ChefConversationEntry";
+import CoachBubble from "@/components/coaching/CoachBubble";
 import { chefNavigationRoute } from "@shared/coaching/creatorRequest";
 
 let mockConversationEnabled = true;
 const mockNavigate = jest.fn();
 const mockAPI = jest.fn();
+test.each([false, true])("care guidance renders once, including historical duplicated envelopes=%s", historical => {
+  const guidance = "Call emergency services now for these symptoms.";
+  const structured = {
+    whatIFound: historical ? guidance : "",
+    whatItCouldMean: historical ? guidance : "",
+    todayPlan: { why: "", items: [{ kind: "contact_care", text: guidance }],
+      successMetric: "", nextCheckIn: "" },
+    learningOpportunity: null, meta: { redFlag: true },
+  };
+  act(() => root.render(<CoachBubble structured={structured} enableConcierge />));
+  expect(host.textContent?.split(guidance)).toHaveLength(2);
+  expect(host.textContent).not.toContain("These are suggestions");
+  expect(host.querySelector("button")).toBeNull();
+});
+
+test("ordinary conversation has neither care template nor professional boilerplate", () => {
+  act(() => root.render(<CoachBubble enableConcierge structured={{
+    presentation: { kind: "concierge", message: "Do you want to make it or buy it?" },
+    whatIFound: "", whatItCouldMean: "", todayPlan: null, learningOpportunity: null,
+  }} />));
+  expect(host.textContent).toContain("Do you want to make it or buy it?");
+  expect(host.textContent).not.toMatch(/Your safety comes first|I noticed something|These are suggestions/);
+});
+
 const approvedNavigation = (destinationId: string) => ({
   state: "navigation_confirmed", destinationId,
   goal: { activity: "unknown", occasion: "unknown", restaurant: "unknown", dishChosen: false,

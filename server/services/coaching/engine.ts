@@ -23,6 +23,8 @@ import { ReasoningResultSchema, CoachResponseSchema, ConciergeResponseSchema, Co
 import { CHEF_CONCIERGE_REVISION, conciergeRenderingInstructions } from "./conciergeInstructions";
 import { CONCIERGE_GOAL_INSTRUCTIONS, validateConciergeGoal } from "./conciergeGoal";
 import { runConciergeConversation } from "./conciergeConversation";
+import { loadChefKnowledgeAccess } from "./platformKnowledgeAccess";
+import { isMfaVerifiedForUser } from "../../lib/sessionSecurity";
 import { runSafetyGate, buildSafetyResponse } from "./safety";
 import { scoreConfidence, getConfidenceInstructions } from "./confidence";
 import { matchPatterns } from "./patternMatcher";
@@ -1526,11 +1528,16 @@ export class CoachingEngine {
       const { history, rollingContext } = await loadConversationHistory(
         conversationId, subject.ownerId, request.specialization,
       );
-      const context = await adapter.loadAdditionalContext(subject);
-      const pendingRecommendation = await loadPendingRecommendation(conversationId, subject.ownerId);
+      const [context, pendingRecommendation, knowledgeAccess] = await Promise.all([
+        adapter.loadAdditionalContext(subject),
+        loadPendingRecommendation(conversationId, subject.ownerId),
+        loadChefKnowledgeAccess(subject.ownerId, (req as any).authUser?.professionalRole,
+          isMfaVerifiedForUser(req, subject.ownerId) || (req as any).bearerMfaVerified === true),
+      ]);
       response = await runConciergeConversation({
         client: getOpenAI(), userMessage: request.userMessage, history, rollingContext,
         context, tools: [...adapter.availableTools],
+        knowledgeAccess,
         pendingRecommendation,
         preferredLanguage: (req as any).authUser?.preferredLanguage,
         requestId: (req as any).id,

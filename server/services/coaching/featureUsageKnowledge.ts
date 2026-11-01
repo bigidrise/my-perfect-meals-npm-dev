@@ -64,7 +64,8 @@ export const FEATURE_USAGE_KNOWLEDGE: Partial<Record<CoachDestinationId, Feature
     descriptionInput: "Follow the guided flow, describe the meal you are craving, and enter a ZIP code or use the location control.",
     controls: ["Location sharing can fill the ZIP code.", "The existing price filter is optional."],
     generationAction: "Submit the meal search, then review personalized meal cards for up to three nearby restaurants, with up to two meals per restaurant.",
-    notes: ["Location permission may be required. Cuisine-based suggestions do not verify current menu offerings. Favorites, Add to Meal Plan and the Biometrics handoff are available on meal cards; consumption is not logged automatically."],
+    notes: ["Location permission may be required. Cuisine-based suggestions do not verify current menu offerings. Favorites, Add to Meal Plan and the Biometrics handoff are available on meal cards; consumption is not logged automatically.",
+      "Restaurant discovery is verified; dedicated ice cream shop, bar or grocery-store discovery is not verified. Explain that limit instead of promising comprehensive specialty-shop coverage."],
   },
   // client/src/pages/MyPerfectBuffetPage.tsx
   my_perfect_buffet: {

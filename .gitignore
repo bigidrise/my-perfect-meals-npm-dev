@@ -80,3 +80,4 @@ docs/localization/screenshots/
 client/.demo-studio-runtime/
 test-results/
 .agents/outputs/
+/generated-artifacts/

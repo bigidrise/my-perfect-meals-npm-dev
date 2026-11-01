@@ -453,3 +453,17 @@ mtime_ms = 1792467253340
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/a26ddad3-52e7-45e1-93dd-a37b9b262fdd/3c3cfb37-5f88-42fe-aeac-3d6033ef603b"
 storage_version_token = "1792467262416157"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "z3n_aG9YtWFIUzYQcZ2lA"
+uri = "file://generated-artifacts/ask-chef-platform-coverage.html"
+type = "html"
+title = "Ask Chef platform knowledge coverage"
+description = "Source-backed workflow records, retained knowledge, paused features and all 244 literal routes, with partial and uncertain coverage marked explicitly."
+logical_id = "6050442a-e121-47c7-96f3-975a8990d61e"
+content_hash = "sha256:fa036fd25188e7440f3aa4b867f5cc8abbbbf52da09427b2b0e02bb9f6388120"
+size = 96185
+mtime_ms = 1793506848781
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:5b503fbf-1926-4592-8a37-99d9960f359a/6050442a-e121-47c7-96f3-975a8990d61e/3496cded-072b-4ade-acb7-6541fd616a63"
+storage_version_token = "1793507116437310"
+content_type = "text/html"

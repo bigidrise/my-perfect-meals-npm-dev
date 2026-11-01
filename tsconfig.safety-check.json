@@ -1,6 +1,10 @@
 {
   "extends": "./tsconfig.json",
   "include": [
+    "server/services/coaching/safety.ts",
+    "server/services/coaching/conciergeConversation.ts",
+    "server/services/coaching/platformFeatureCatalog.ts",
+    "server/services/coaching/platformKnowledgeAccess.ts",
     "shared/starchPreferences.ts",
     "server/routes/studioStarchPreferences.ts",
     "server/services/studioStarchPreferenceWrite.ts",
