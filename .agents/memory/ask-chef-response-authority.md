@@ -68,9 +68,15 @@ answered, and a shorter pitch must never replace substantive advice.
 **Why:** Founder Development acceptance still produced a feature-only reply
 after a coaching-instruction enhancement passed mocked regressions. The previous
 diagnostics could not distinguish advice discarded during selection from advice
-the model never generated.
+the model never generated. Subsequent founder Development conversations confirmed
+that answer-first behavior improved, but follow-ups describing persistent symptoms
+and difficulty eating still received general advice and feature offers without
+meaningful clarification or appropriate medical follow-up.
 
 **How to apply:** Exercise the actual selected reply with adversarial split-field
 and conflicting-purpose fixtures, not just ideal model outputs. Retain
 privacy-limited instruction identity and selection diagnostics. Live coaching
 quality remains a separate founder acceptance gate; do not claim it from mocks.
+Evaluate meaningful context changes and the use of already answered questions,
+not only complete wording or knowledge of available features. Keep conversational
+clarification distinct from changing clinical thresholds or expanding data access.
