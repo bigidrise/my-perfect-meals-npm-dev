@@ -132,6 +132,22 @@ export const FEATURE_USAGE_KNOWLEDGE: Partial<Record<CoachDestinationId, Feature
     generationAction: "Create My Drink starts the destination's beverage workflow.",
     notes: ["The page validates required inputs. Performance Goal is about the drink's purpose, not permission to invent personal electrolyte, fluid or macro targets."],
   },
+  // client/src/pages/HydrationCenter.tsx and components/HydrationFourDoorPanels.tsx
+  hydration_center: {
+    descriptionInput: "Open My Perfect Hydration Center, then choose the section that matches your need. Chef opens the Hub, not a preselected section.",
+    controls: [
+      "Everyday Hydration: log fluids, review intake, and use optional preferences and practical barrier support.",
+      "Athletic Hydration: supply activity context for practical support and an optional Athlete Beverage Creator handoff, not a fluid-replacement formula.",
+      "Sick-Day Hydration: select what makes fluids difficult, review tolerability guidance and heed warning signs. This may help with difficulty tolerating fluids, not every report of nausea.",
+      "Liquid Nutrition Support: enter only the explicit temporary liquid-diet instructions received. User-entered instructions remain unverified; Creator handoffs require complete, active, professionally verified instructions.",
+    ],
+    generationAction: "Hydration Center does not itself generate recipes. Its existing Everyday/Athletic Creator links can lead to beverage creation, which still requires the member's action in the destination.",
+    notes: [
+      "For making a regular shake, Beverage Creator is more appropriate. A shake is not automatically suitable for nausea or a prescribed liquid diet, and hydration is not a replacement for necessary nutrition.",
+      "Chef does not transfer symptoms, prefill requests, select a section, activate protocols or manufacture Hydration handoff tokens. Current access and destination safeguards still apply.",
+      "Do not invent fluid/electrolyte prescriptions or comprehensive medication checks. Preserve current clinical instructions; necessary medical assessment or urgent care takes priority over navigation.",
+    ],
+  },
   // client/src/pages/CravingDessertCreator.tsx
   dessert_creator: {
     descriptionInput: "Describe the dessert or use the dessert-type and flavor controls.",
