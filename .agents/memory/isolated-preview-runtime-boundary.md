@@ -14,3 +14,9 @@ Isolated React UI tests must not require changing application environment settin
 **Why:** The inherited React runtime did not support test actions. Selecting a development React fixture runtime inside the isolated test transform preserved the no-environment-change requirement and the existing no-network/provider guards.
 
 **How to apply:** Keep this test-only runtime selection confined to the isolated UI suite. Do not alter application dependencies, global environment variables or the offline I/O guards to make component tests pass.
+
+For visual checks of an authenticated dashboard, render the actual component with isolated fixed query/router fixtures and the compiled application stylesheet; do not bypass the application's authentication.
+
+**Why:** The screenshot browser does not inherit the member's session, and browser-dependent routing hooks cannot be assumed to work in a server-rendered fixture.
+
+**How to apply:** Supply an explicit fixture router/SSR context, compare responsive geometry and interaction styles against the real component, and describe this as component-fixture verification rather than live signed-in dashboard verification.

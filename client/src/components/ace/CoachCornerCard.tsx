@@ -69,7 +69,7 @@ export default function CoachCornerCard() {
             <button
               type="button"
               onClick={() => setLocation(destination)}
-              className="w-full rounded-xl border border-orange-400/60 bg-orange-500 px-4 py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[#1d1009] transition-colors hover:bg-orange-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#17110d] active:bg-orange-300"
+              className="w-full rounded-xl border border-orange-200/80 bg-gradient-to-r from-[#9a3412] via-[#c64f08] to-[#9a3412] px-4 py-3 text-center text-[11px] font-bold uppercase tracking-[0.14em] text-[#FFFFFF] shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_2px_5px_rgba(0,0,0,0.22)] transition-all hover:border-orange-100 hover:from-[#7c2d12] hover:via-[#b84609] hover:to-[#7c2d12] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_3px_8px_rgba(0,0,0,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#17110d] active:from-[#7c2d12] active:via-[#9a3412] active:to-[#7c2d12] active:shadow-[inset_0_2px_4px_rgba(0,0,0,0.28)]"
             >
               Open Ask Chef
             </button>
