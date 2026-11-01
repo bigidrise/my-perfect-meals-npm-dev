@@ -141,10 +141,19 @@ export function getDevelopmentPlatformKnowledge(access?: ChefKnowledgeAccess) {
   if (!isAskChefConversationEnabled(process.env.NODE_ENV)) return undefined;
   return {
     featureCatalog: getMemberPlatformCatalog(access),
-    features: memberFeatures.filter(feature => feature.status === "available"),
+    features: memberFeatures.filter(feature => feature.status === "available").map(feature =>
+      process.env.NODE_ENV === "development" && feature.id === "grocery_coach"
+        ? { ...feature, purpose: "Inside Shopping List, Grocery Store Coach supports both meal help and product help through two tabs: Build a Meal and Find a Product. Build a Meal helps plan a meal and ingredients to purchase, generating the meal and corresponding grocery list. A member who simply wants to prepare a chosen dish instead fits Create a Dish. Find a Product discovers grocery products to buy using onboarding and the nutrition profile; Product Scan separately evaluates an actual product. Activity and context, not food keywords, determine fit. Existing access and food safeguards govern results; never invent products, guarantee suitability or promise live inventory." }
+        : feature),
     unavailableFeatures: memberFeatures.filter(feature => feature.status !== "available"),
     featureUsage: getFeatureUsageKnowledge(process.env.NODE_ENV),
-    platformHelp: PLATFORM_HELP_KNOWLEDGE,
+    platformHelp: process.env.NODE_ENV === "development" ? {
+      ...PLATFORM_HELP_KNOWLEDGE,
+      shopping: { ...PLATFORM_HELP_KNOWLEDGE.shopping,
+        controls: PLATFORM_HELP_KNOWLEDGE.shopping.controls.map(control =>
+          control.replace("Build a Meal (also called Create a Meal)", "Build a Meal")),
+      },
+    } : PLATFORM_HELP_KNOWLEDGE,
     navigationPolicy: "Knowledge is not navigation permission. Only IDs in availableFeatures may become buttons. Other entries are knowledge-only. My Perfect Menu and Meal Builders support entry-page navigation only, without request transfer. Explain existing entry points honestly; never invent a URL, button or prefill.",
   };
 }
