@@ -362,7 +362,9 @@ test("Production receives the same reviewed Getaway capability as the conversati
     // Reviewed suitability/terminology increments stay Development-only; every
     // other capability (including Getaway) must retain exact release parity.
     if (!["beverage_creator", "athlete_beverage_creator", "hydration_center",
-      "create_a_dish", "grocery_create_meal", "grocery_find_product"].includes(capability.id)) {
+      "create_a_dish", "grocery_create_meal", "grocery_find_product",
+      "craving_creator", "dessert_creator", "my_perfect_gatherings", "sushi_creator",
+      "restaurant_guide", "find_meals_near_me"].includes(capability.id)) {
       expect(productionCapabilities.find(cap => cap.id === capability.id)).toEqual(capability);
     }
     expect(productionCapabilities.find(cap => cap.id === capability.id)?.route).toBe(capability.route);

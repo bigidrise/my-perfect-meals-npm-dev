@@ -54,15 +54,75 @@ subscription, onboarding, professional, household or clinical access.
 |---|---|---|
 | Focused food/shopping | Create a Dish; Grocery Store Coach — Build a Meal; Find a Product | Source-reviewed purpose, exclusions, missing-information judgment, offer/defer timing, safety and related-workflow guidance added in Development. Grocery destinations remain parent-page handoffs. |
 | Beverages/hydration | Beverage Creator; Athlete Beverage Creator; Hydration Center | Existing Development suitability retained: ordinary drinks, performance drinks, fluid support and organization of explicit liquid instructions remain distinct. Hydration does not independently generate recipes or authorize treatment. |
-| Other creators | Craving Creator; Dessert Creator; Fridge Rescue; Sushi Creator | Existing activity/readiness descriptions distinguish small cravings, larger desserts, using available ingredients and sushi. First three have reviewed usage controls; Sushi lacks a dedicated usage record. No new rich suitability records or transfers added here. |
+| Other creators | Craving Creator; Dessert Creator; Fridge Rescue; Sushi Creator | Development suitability now distinguishes personal cravings (including multiple servings), complete desserts, chosen family dishes, occasions and sushi preparation. Sushi now has reviewed usage controls in Development. Fridge Rescue retains its existing ingredient-use descriptions; no new transfers are added. |
 | Dining/lifestyle | Restaurant Guide; Find Meals Near Me; My Perfect Buffet; My Perfect Getaway; My Perfect Gatherings | Existing purpose/readiness and usage facts cover ordering at a chosen restaurant, restaurant discovery, buffet choices, travel dining and gatherings. No live menus, specialty-store completeness, availability or universal restaurant accommodations are verified. |
 | Meal starting pages | My Perfect Menu; Meal Builders | Reviewed entry-page guidance distinguishes suggested ideas from builder selection. Destination-owned subject/date/builder resolution and onboarding remain authoritative. No Chef planning payload or clinical-builder activation. |
 | Other approved entries | Macro Calculator; My Perfect Beginnings | Existing description/readiness and access boundaries, but no dedicated usage-control records. Calculator does not automatically replace saved targets. Beginnings opens the child-selection hub, never an inferred child's context. |
 
-Detailed decision/timing suitability is now present for six destinations in
-Development. Other allowlisted destinations have varying existing descriptive
-knowledge, not equivalent new suitability review. The allowlist and access
-classes were not expanded or replaced.
+Detailed decision/timing suitability is now present for twelve destinations in
+Development, including the occasion and direct-to-feature refinement below.
+Other allowlisted destinations have varying existing descriptive knowledge, not
+equivalent new suitability review. The allowlist and access classes were not
+expanded or replaced.
+
+## Direct-to-feature and occasion refinement
+
+### Navigation verification
+
+The existing single call produces the canonical reply and structured decision.
+A validated offer stores `recommendation_pending` but does not display a
+navigation button. Confirmation must bind to the latest owned pending state;
+conversation history alone cannot authorize a bare “yes.” The accepted response
+uses `navigation_confirmed`, or `direct_navigation` for a qualifying explicit
+named-feature request. `CoachBubble` requires matching approved state,
+destination and `use_feature` item before rendering the action.
+
+`CoachFeatureAction` displays **Open [feature name]** (the parent **Grocery Store
+Coach** name for its two workflows). The click calls `/api/coach/navigation` and
+rechecks the returned destination/route and current access before navigation.
+These contracts, persistence and frontend logic were inspected, not changed.
+No missing-button defect was established.
+
+Existing `handoffMessage` supports concise destination instructions. Development
+guidance now explicitly defers tutorials and destination-owned inputs until they
+are useful, stops discovery when the destination is clear, and uses the original
+member request through the existing grounded Create a Dish idea transfer.
+Instructions retain latest-correction precedence and reject ambiguous acceptance.
+
+### Founder positioning versus verified implementation
+
+| Feature | Founder-intended fit | Verified implementation and terminology |
+|---|---|---|
+| Craving Creator | Immediate personal sweet or savory craving, including nuggets and several servings; not exclusively single-serving. | Editable craving, optional category/cooking preferences, diet/cuisine controls, flavor and ingredient controls; current Servings options are 1–10. This UI range is **not a routing cutoff**. The existing creation action owns recipe generation and safety. Pro navigation class. |
+| Dessert Creator | A complete cake, pie or shareable dessert; not every sweet craving. | Description/type/flavor inputs, type-dependent recipe yield, additional notes, diet/cuisine controls and optional **Dietary Requirements**; **Create My Dessert**. Yield is not a personal consumption prescription. Pro navigation class. |
+| Create a Dish | A chosen recipe or dish, including a family-dinner dish. | Editable dish description, servings, preparation/preferences and notes, Ingredient Control / Keep It Simple; **Create My Dish**. Existing member-grounded editable idea transfer only; destination generation still requires action. Authenticated navigation class, with existing page/generation guards. |
+| My Perfect Gatherings | The whole occasion's food experience, not every holiday dish or pie. | **What's the occasion?**, situation-specific forms, **Serving size** stepper (1–50), notes and **Create My Experience**; the page explicitly describes full multi-course meals. Profile dietary information is sent to `/api/gatherings/generate`. Do not invent universal cuisine or dietary-override selectors. Pro navigation class. |
+| Sushi Creator | Preparing sushi at home, not finding a restaurant. | Editable sushi description, optional **Dietary Preference**, **Number of Servings** (1–10), **Flavor Preference**, **Create My Sushi**. No cuisine selector was verified. Existing recipe-generation pipeline and Pro navigation class; no general Chef prefill. |
+| Restaurant Guide | Help ordering at an already chosen restaurant. | Guided craving, restaurant and ZIP inputs; destination-owned meal guidance. Pro navigation class. Current menus, allergen accommodations and availability still require confirmation with the restaurant. |
+| Find Meals Near Me | Discover somewhere to eat, including a sushi restaurant. | Guided craving and ZIP/location inputs, optional filters, restaurant/meal suggestions. Pro navigation class. No guaranteed specialty-shop coverage or live menus. No Chef location/craving transfer or automatic search. |
+
+These are capability boundaries, not claims of universal dietary or medical
+suitability. All existing dietary, allergy, clinical, physician and access guards
+remain authoritative. No underlying feature functionality was changed.
+
+### Navigation limitations and coverage gaps
+
+- Original Create a Dish text can transfer only when the supplied member turns
+  support it under existing provenance checks. Missing or unverifiable evidence
+  retains the honest no-prefill fallback; no new transfer or history store was
+  introduced. Other creators do not receive general Chef request prefill.
+- A personal craving, a family recipe, a whole dessert and a complete event may
+  share food words or serving counts. Clarification is useful only while that
+  activity distinction remains unresolved; neither holidays nor quantities
+  independently select a destination.
+- Macro Calculator and My Perfect Beginnings still lack dedicated usage-control
+  records. Fridge Rescue and remaining approved destinations retain varying
+  descriptive guidance rather than equivalent rich suitability.
+- Professional/business coverage gaps and the navigation freeze documented below
+  remain unchanged. No new affiliate, white-label or organization pathway exists.
+- Mocked regression fixtures distinguish instruction delivery, response
+  preservation, original-idea grounding and server state enforcement from live
+  model judgment. Live acceptance remains a separate founder-approval gate.
 
 ## Knowledge-only, role-limited, missing and unverified pathways
 

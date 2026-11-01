@@ -386,6 +386,7 @@ export function getCornerCapabilities(activeScopes: CapabilityScope[], environme
     meal_builders: "Open the Meal Builders landing page so the member can review their existing builder choices, access rules and tutorials. Existing onboarding and builder-switch restrictions still apply. Never choose or activate a specialized builder, open a clinical hub directly, or overwrite the assigned builder.",
   };
   if (environment === "development") {
+    descriptions.craving_creator = "Prepare an immediate personal sweet or savory craving, including small dessert portions, often a smaller or individually portioned choice. Multiple recipe servings are supported; serving count alone never selects this feature. Use occasion=snack for this workflow. A full dessert fits Dessert Creator; a chosen family-dinner dish fits Create a Dish; the whole occasion fits My Perfect Gatherings. Sushi, beverages, restaurant visits and grocery shopping remain separate activities. Use context and reviewed suitability, not food keywords.";
     descriptions.grocery_create_meal = "Grocery Store Coach > Build a Meal helps plan a meal and the ingredients to purchase. Choose it for grocery-shopping meal help, including a named dish when shopping is the actual goal; a clear dish preparation request instead fits Create a Dish. Decide from the member's activity and history, never food keywords.";
   }
   const inputs: Record<CoachDestinationId, string> = {
