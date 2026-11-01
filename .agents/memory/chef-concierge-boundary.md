@@ -91,9 +91,9 @@ Progressive text must preserve the same clinical, action-validation and persiste
 
 ## Shopping workflow approval boundary
 
-The shopping knowledge and navigation correction is Development-only. It is not implicitly covered by the earlier Production release authorization. Do not commit, push, merge or publish this correction without separate approval.
+The owner approved the completed shopping knowledge and navigation correction for the upcoming Production release and authorized committing and pushing it to GitHub dev after validation. This workspace must not merge Production, change feature flags or publish; the release will be performed from the separate Production Replit workspace.
 
-**Why:** The owner approved the limited Development-only correction after explicitly restricting Git and Production actions.
+**Why:** The owner explicitly expanded the correction's approval to the upcoming release while keeping Production operations separate.
 
 **How to apply:** Ask Chef distinguishes finding products to buy, evaluating an actual product, and choosing a meal with groceries. The existing shopping features own personalization and safeguards; Chef does not become another product recommendation engine. Use the parent Shopping List with section instructions, not invented subsection links or automatic generation.
 
