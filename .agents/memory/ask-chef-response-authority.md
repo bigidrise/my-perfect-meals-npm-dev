@@ -95,14 +95,21 @@ preserving useful feature offers and the implemented features' limits.
 and conversational timing separate. The approved correction is Development-only;
 live model acceptance and any Production release need separate authorization.
 
-Ask Chef's product role is practical food-decision coaching, not a diagnostic
-interview. Favor useful food options and, only when needed, one food-choice
-question; do not automatically investigate symptoms or medication effects.
-Necessary care and genuinely safety-critical questions still take priority.
+Ask Chef's primary role is the conversational front door to My Perfect Meals:
+understand the member's goal, ask only what identifies the right verified
+destination, and help them get there. This product goal includes consumer,
+lifestyle, clinical, professional, business and organizational services, but does
+not imply that all pathways are implemented or approved. Within food guidance,
+favor practical choices rather than a diagnostic interview; do not automatically
+investigate symptoms or medication effects. Necessary care and genuinely
+safety-critical questions still take priority.
 
-**Why:** The founder explicitly refined the goal to "Coach first. Food decision
-next. Feature when useful. Medical care when necessary."
+**Why:** The founder established the broader conversational-front-door purpose
+while preserving "Coach first. Food decision next. Feature when useful. Medical
+care when necessary."
 
 **How to apply:** Do not treat naming familiar food options as recipe generation.
 Use answered preferences without restarting discovery, retain verified feature
 limits, and keep serious warning signs ahead of food or navigation suggestions.
+Business or professional interest never proves role authority, enrollment
+availability or an approved navigation destination.

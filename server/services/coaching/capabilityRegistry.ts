@@ -385,6 +385,9 @@ export function getCornerCapabilities(activeScopes: CapabilityScope[], environme
     my_perfect_menu: "Start with meal ideas by category, retaining three choices until replaced; a selected idea is created by the member's effective builder/creator. Not an independent seven-day plan generator. Open only the existing Menu entry page; no Chef prefill, date/category/subject selection or automatic generation.",
     meal_builders: "Open the Meal Builders landing page so the member can review their existing builder choices, access rules and tutorials. Existing onboarding and builder-switch restrictions still apply. Never choose or activate a specialized builder, open a clinical hub directly, or overwrite the assigned builder.",
   };
+  if (environment === "development") {
+    descriptions.grocery_create_meal = "Grocery Store Coach > Build a Meal helps plan a meal and the ingredients to purchase. Choose it for grocery-shopping meal help, including a named dish when shopping is the actual goal; a clear dish preparation request instead fits Create a Dish. Decide from the member's activity and history, never food keywords.";
+  }
   const inputs: Record<CoachDestinationId, string> = {
     grocery_find_product: "Open Shopping List, then select Grocery Store Coach > Find a Product. Member enters their product request there. Parent page only; no automatic tab opening, prefill or generation. Grocery Coach's Pro entitlement and existing profile/safety checks still apply.",
     product_scan: "Open Shopping List, then select Product Scan and capture the actual product. Parent page only; no automatic capture or request transfer. Existing paid access, profile and product safeguards still apply.",
@@ -409,9 +412,11 @@ export function getCornerCapabilities(activeScopes: CapabilityScope[], environme
   };
   const additions: MPMCapability[] = (Object.keys(COACH_DESTINATIONS) as CoachDestinationId[])
     .map(id => ({
-      id, label: COACH_DESTINATIONS[id].label, route: COACH_DESTINATIONS[id].route,
+      id, label: environment === "development" && id === "grocery_create_meal"
+        ? "Grocery Store Coach — Build a Meal" : COACH_DESTINATIONS[id].label,
+      route: COACH_DESTINATIONS[id].route,
       description: `${descriptions[id]}${usage[id]?.suitability
-        ? ` Suitability and timing: ${usage[id]!.suitability!.purpose} Distinguish the member's underlying need from the proposed drink format using featureUsage.suitability. Preparation readiness does not settle unresolved health concerns, and feature fit is not permission to navigate.`
+        ? ` Suitability and timing: ${usage[id]!.suitability!.purpose} Distinguish the member's underlying need from the proposed food or drink format using featureUsage.suitability. Preparation readiness does not settle unresolved health concerns, and feature fit is not permission to navigate.`
         : ""} Required inputs and handoff: ${inputs[id]} Verified destination: ${COACH_DESTINATIONS[id].route}. Navigation access class: ${COACH_DESTINATIONS[id].access}; current access is rechecked on click and destination guards still apply.`,
       applicableSituations: id === "fridge_rescue" ? ["has_ingredients", "use_available_ingredients"] : ["general_inquiry"], scopes: ["all"], recommendable: true,
       eligibilityNote: "Navigation does not grant access; current access is checked on click.",

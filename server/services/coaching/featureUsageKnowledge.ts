@@ -216,13 +216,60 @@ const DEVELOPMENT_DRINK_SUITABILITY = {
   },
 } satisfies Partial<Record<CoachDestinationId, FeatureSuitability>>;
 
+/** Source-reviewed activity distinctions; never keyword routing or new access. */
+const DEVELOPMENT_FOOD_SUITABILITY = {
+  create_a_dish: {
+    purpose: "Create recipes for a chosen dish or full meal the member wants to prepare, rather than plan a grocery-shopping trip.",
+    suitableNeeds: ["Preparation help for a particular dish, such as making chicken soup; the activity, not the food name, establishes fit."],
+    notFor: ["Planning what groceries to purchase for a meal, product discovery, product-label evaluation, or choosing restaurant food.", "Existing dedicated creators still own small cravings, larger desserts, sushi and drinks."],
+    informationNeeded: ["Whether the goal is preparing a dish or shopping for a meal, only if unresolved in the member's words and history.", "The destination collects servings and preparation preferences; do not interview for these before offering it."],
+    offerWhen: "A chosen dish and preparation intent are sufficient for a relevant offer. Do not divert a clear cooking request to Grocery Store Coach or ask a shopping question already answered.",
+    deferWhen: "Clarify only a genuinely unresolved activity or destination choice, and prioritize necessary care or safety concerns.",
+    safetyBoundaries: ["Existing recipe, dietary, allergy, clinical and physician safeguards remain authoritative.", "The approved handoff carries only a member-grounded editable idea; opening does not generate food or grant access."],
+    relatedFeatures: ["Grocery Store Coach > Build a Meal serves grocery-shopping meal planning.", "Find a Product discovers groceries to buy; Product Scan evaluates an actual product."],
+    verifiedSources: ["client/src/pages/lifestyle/CreateDishPage.tsx", "server/routes.ts", "server/services/coaching/conciergeGoal.ts", "shared/coaching/navigation.ts"],
+  },
+  grocery_create_meal: {
+    purpose: "Grocery Store Coach > Build a Meal helps plan a meal and the ingredients to purchase, with a generated meal and corresponding shopping list.",
+    suitableNeeds: ["Grocery shopping or planning what to purchase for a meal, including a named dish when shopping is the actual goal."],
+    notFor: ["Merely wanting to prepare a chosen dish without a shopping goal.", "Finding a packaged product, scanning a label, or generating a weekly meal board."],
+    informationNeeded: ["Whether the member needs meal-shopping help rather than dish preparation, only if context has not settled it.", "How many people? and the meal request are entered in the destination; Chef need not collect them first."],
+    offerWhen: "Recommend when the member's shopping or purchase-planning goal is clear; the exact UI tab is Build a Meal, not Create a Meal.",
+    deferWhen: "Do not infer grocery shopping from soup or another food mention. Ask one activity question only when needed; use prior answers.",
+    safetyBoundaries: ["Existing Pro access, authorized nutrition context, dietary, allergy, clinical and final food validation remain authoritative.", "Chef opens Shopping List only: no automatic Coach sheet, tab selection, request transfer, list writes or meal generation."],
+    relatedFeatures: ["Create a Dish serves a chosen dish preparation request.", "Find a Product is the other Grocery Store Coach tab; Product Scan is separate."],
+    verifiedSources: ["client/src/components/shopping/GroceryStoreCoachSheet.tsx", "client/src/i18n/locales/en.json", "server/routes/groceryCoach.ts", "server/routes.ts", "shared/coaching/navigation.ts"],
+  },
+  grocery_find_product: {
+    purpose: "Grocery Store Coach > Find a Product discovers grocery products to buy using the member's onboarding and nutrition profile.",
+    suitableNeeds: ["Locating or choosing a type of grocery product while shopping or planning a purchase."],
+    notFor: ["Evaluating the label of an actual product the member has or is considering; that is Product Scan.", "Preparing a recipe, meal-shopping planning, or verifying live retailer inventory."],
+    informationNeeded: ["Discovery of something to buy versus evaluation of an actual product, only if genuinely unresolved.", "The member enters the product request in Find a Product; Chef does not collect every product detail."],
+    offerWhen: "The goal is grocery product discovery, not merely a food or brand mention. Explain that the member opens Grocery Store Coach and selects Find a Product after arriving in Shopping List.",
+    deferWhen: "Clarify discovery versus label evaluation only when needed. Do not replace a clear meal or dish request with product search.",
+    safetyBoundaries: ["Grocery Store Coach's Pro entry and the product endpoint's active-access, current-profile and evidence safeguards still apply.", "The workflow seeks three suitable recommendations; never invent products to reach three, guarantee medical suitability or promise stock. No Chef product prefill or automatic tab opening."],
+    relatedFeatures: ["Build a Meal plans a meal and ingredients to purchase.", "Product Scan is a separate Shopping List control for actual-product evaluation."],
+    verifiedSources: ["client/src/components/shopping/GroceryStoreCoachSheet.tsx", "client/src/i18n/locales/en.json", "server/routes/biometricsRoutes.ts", "shared/coaching/navigation.ts"],
+  },
+} satisfies Partial<Record<CoachDestinationId, FeatureSuitability>>;
+
+const DEVELOPMENT_FEATURE_SUITABILITY = {
+  ...DEVELOPMENT_DRINK_SUITABILITY,
+  ...DEVELOPMENT_FOOD_SUITABILITY,
+};
+
 export function getFeatureUsageKnowledge(environment: string | undefined) {
   if (environment !== "development") return FEATURE_USAGE_KNOWLEDGE;
   const knowledge = { ...FEATURE_USAGE_KNOWLEDGE };
-  for (const id of Object.keys(DEVELOPMENT_DRINK_SUITABILITY) as Array<keyof typeof DEVELOPMENT_DRINK_SUITABILITY>) {
+  // Correct member-facing terminology only in this authorized Development review.
+  knowledge.grocery_create_meal = {
+    ...FEATURE_USAGE_KNOWLEDGE.grocery_create_meal!,
+    descriptionInput: "In Shopping List, select Grocery Store Coach, then Build a Meal. Describe the meal you want shopping help with.",
+  };
+  for (const id of Object.keys(DEVELOPMENT_FEATURE_SUITABILITY) as Array<keyof typeof DEVELOPMENT_FEATURE_SUITABILITY>) {
     // Source evidence is maintained here, not sent to the conversation model.
-    const { verifiedSources: _sources, ...suitability } = DEVELOPMENT_DRINK_SUITABILITY[id];
-    knowledge[id] = { ...FEATURE_USAGE_KNOWLEDGE[id]!, suitability };
+    const { verifiedSources: _sources, ...suitability } = DEVELOPMENT_FEATURE_SUITABILITY[id];
+    knowledge[id] = { ...knowledge[id]!, suitability };
   }
   return knowledge;
 }

@@ -359,9 +359,13 @@ test("Production receives the same reviewed Getaway capability as the conversati
   process.env.NODE_ENV = "production";
   const productionCapabilities = getCornerCapabilities(["all"]);
   for (const capability of conversationCapabilities) {
-    if (!["beverage_creator", "athlete_beverage_creator", "hydration_center"].includes(capability.id)) {
+    // Reviewed suitability/terminology increments stay Development-only; every
+    // other capability (including Getaway) must retain exact release parity.
+    if (!["beverage_creator", "athlete_beverage_creator", "hydration_center",
+      "create_a_dish", "grocery_create_meal", "grocery_find_product"].includes(capability.id)) {
       expect(productionCapabilities.find(cap => cap.id === capability.id)).toEqual(capability);
     }
+    expect(productionCapabilities.find(cap => cap.id === capability.id)?.route).toBe(capability.route);
   }
   expect(productionCapabilities.map(cap => cap.id)).toEqual(conversationCapabilities.map(cap => cap.id));
 });
