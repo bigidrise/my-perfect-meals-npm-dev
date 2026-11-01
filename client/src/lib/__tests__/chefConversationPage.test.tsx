@@ -233,7 +233,7 @@ test("Production retains the existing layout, placeholder and history Back behav
   mockConversationEnabled = false;
   await renderPage(true);
   expect(host.querySelector('[data-testid="ask-chef-pane"]')).toBeNull();
-  expect(host.querySelector("textarea")?.placeholder).toBe("Ask Coach anything…");
+  expect(host.querySelector("textarea")?.placeholder).toBe("Ask Chef anything…");
   const back = jest.spyOn(window.history, "back").mockImplementation(() => {});
   act(() => (host.querySelector('[aria-label="Go back"]') as HTMLButtonElement).click());
   expect(mockNavigate).not.toHaveBeenCalledWith("/dashboard");
