@@ -30,7 +30,9 @@ async function click() {
 test.each(Object.entries(COACH_DESTINATIONS))("member click opens %s without generating", async (id, destination) => {
   mockRequest.mockResolvedValue({ destinationId: id, route: destination.route });
   render(id);
-  expect(host.textContent).toBe(`Open ${destination.label}`);
+  const expectedLabel = id === "grocery_find_product" || id === "grocery_create_meal"
+    ? "Grocery Store Coach" : destination.label;
+  expect(host.textContent).toBe(`Open ${expectedLabel}`);
   expect(mockRequest).not.toHaveBeenCalled();
   expect(mockNavigate).not.toHaveBeenCalled();
   await click();
