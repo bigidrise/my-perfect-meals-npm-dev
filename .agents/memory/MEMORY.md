@@ -155,3 +155,4 @@
 - [RHM client walkthrough](rhm-client-walkthrough-context.md) — staff need the actual first-time client experience before distributing a 30-day link to 8,000 clinic clients.
 - [Integration activation boundary](integration-activation-boundary.md) — review automatic merges and dependent gates; source integration alone never grants experimental activation or baseline replacement.
 - [Ask Chef response authority](ask-chef-response-authority.md) — typed care states govern unused model fields; meaningful continuations and honest role-scoped knowledge require separate evidence.
+- [Ask Chef wordmark](ask-chef-wordmark.md) — founder selected the silver/orange swoosh wordmark without a chef hat; the adjacent mascot already wears one.
