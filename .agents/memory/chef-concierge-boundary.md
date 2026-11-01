@@ -89,11 +89,19 @@ Progressive text must preserve the same clinical, action-validation and persiste
 
 **How to apply:** Revisit genuine streaming only with a reviewed pre-display validation boundary and explicit interrupted-turn/recovery behavior. Do not treat provider streaming support or JSON field reordering alone as proof that provisional display is safe. Keep one conversational model call and the existing voice architecture.
 
+## Production visibility approval
+
+The user now authorizes unhiding Ask Chef in the separate Production workspace. Earlier Development-only activation restrictions no longer prohibit this specific correction. Preserve Pro/Clinical access checks and destination-owned permissions; this is not blanket approval for unrelated releases or publication.
+
+**Why:** After confirming that prior work had not changed Production visibility, the user explicitly asked to fix it so they can see Ask Chef in Production.
+
+**How to apply:** Apply and verify the correction against the actual Production integration revision, not by claiming a Development edit changed Production. Check both feature visibility and the conversational experience: showing the card alone must not restore the historical assessment flow. Never change the entire application's environment to Development to enable Chef.
+
 ## Shopping workflow approval boundary
 
-The shopping knowledge and navigation correction is Development-only. It is not implicitly covered by the earlier Production release authorization. Do not commit, push, merge or publish this correction without separate approval.
+The owner approved the completed shopping knowledge and navigation correction for the upcoming Production release and authorized committing and pushing it to GitHub dev after validation. This workspace must not merge Production, change feature flags or publish; the release will be performed from the separate Production Replit workspace.
 
-**Why:** The owner approved the limited Development-only correction after explicitly restricting Git and Production actions.
+**Why:** The owner explicitly expanded the correction's approval to the upcoming release while keeping Production operations separate.
 
 **How to apply:** Ask Chef distinguishes finding products to buy, evaluating an actual product, and choosing a meal with groceries. The existing shopping features own personalization and safeguards; Chef does not become another product recommendation engine. Use the parent Shopping List with section instructions, not invented subsection links or automatic generation.
 
