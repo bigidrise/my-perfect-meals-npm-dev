@@ -20,6 +20,7 @@
 
 import { COACH_DESTINATIONS, type CoachDestinationId } from "../../../shared/coaching/navigation";
 import { isAskChefConversationEnabled } from "../../../shared/coaching/askChefRelease";
+import { getFeatureUsageKnowledge } from "./featureUsageKnowledge";
 
 export type CapabilityScope =
   | "all"            // any authenticated user
@@ -358,9 +359,10 @@ export const CORNER_UNSUPPORTED_FEATURES = [
 ];
 
 /** Development-only concierge extension; other coaches and Production stay unchanged. */
-export function getCornerCapabilities(activeScopes: CapabilityScope[]): MPMCapability[] {
+export function getCornerCapabilities(activeScopes: CapabilityScope[], environment = process.env.NODE_ENV): MPMCapability[] {
   const existing = getCapabilitiesForUser(activeScopes, true);
-  if (!isAskChefConversationEnabled(process.env.NODE_ENV)) return existing;
+  if (!isAskChefConversationEnabled(environment)) return existing;
+  const usage = getFeatureUsageKnowledge(environment);
   const descriptions: Record<CoachDestinationId, string> = {
     grocery_find_product: "Grocery Coach > Find a Product uses onboarding and the member's nutrition profile to find three suitable grocery product recommendations when the member wants something to buy. Discovery, not evaluation of an actual product. Chef explains this workflow; the existing feature owns recommendations and safeguards.",
     product_scan: "Evaluate a specific grocery product the member has or is looking at by scanning its label against their profile and nutritional needs. Explain suitability and offer three alternatives through the existing Product Scan workflow, not brand recommendations in Chef.",
@@ -408,7 +410,9 @@ export function getCornerCapabilities(activeScopes: CapabilityScope[]): MPMCapab
   const additions: MPMCapability[] = (Object.keys(COACH_DESTINATIONS) as CoachDestinationId[])
     .map(id => ({
       id, label: COACH_DESTINATIONS[id].label, route: COACH_DESTINATIONS[id].route,
-      description: `${descriptions[id]} Required inputs and handoff: ${inputs[id]} Verified destination: ${COACH_DESTINATIONS[id].route}. Navigation access class: ${COACH_DESTINATIONS[id].access}; current access is rechecked on click and destination guards still apply.`,
+      description: `${descriptions[id]}${usage[id]?.suitability
+        ? ` Suitability and timing: ${usage[id]!.suitability!.purpose} Distinguish the member's underlying need from the proposed drink format using featureUsage.suitability. Preparation readiness does not settle unresolved health concerns, and feature fit is not permission to navigate.`
+        : ""} Required inputs and handoff: ${inputs[id]} Verified destination: ${COACH_DESTINATIONS[id].route}. Navigation access class: ${COACH_DESTINATIONS[id].access}; current access is rechecked on click and destination guards still apply.`,
       applicableSituations: id === "fridge_rescue" ? ["has_ingredients", "use_available_ingredients"] : ["general_inquiry"], scopes: ["all"], recommendable: true,
       eligibilityNote: "Navigation does not grant access; current access is checked on click.",
     }));

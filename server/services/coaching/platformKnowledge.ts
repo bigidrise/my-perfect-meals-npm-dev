@@ -3,7 +3,7 @@
  * This is not a destination registry, entitlement resolver, or intent router.
  * Entry points are human-readable guidance, not executable paths or handoffs.
  */
-import { FEATURE_USAGE_KNOWLEDGE } from "./featureUsageKnowledge";
+import { getFeatureUsageKnowledge } from "./featureUsageKnowledge";
 import { PLATFORM_HELP_KNOWLEDGE } from "./platformHelpKnowledge";
 import { isAskChefConversationEnabled } from "../../../shared/coaching/askChefRelease";
 import { getMemberPlatformCatalog } from "./platformFeatureCatalog";
@@ -143,7 +143,7 @@ export function getDevelopmentPlatformKnowledge(access?: ChefKnowledgeAccess) {
     featureCatalog: getMemberPlatformCatalog(access),
     features: memberFeatures.filter(feature => feature.status === "available"),
     unavailableFeatures: memberFeatures.filter(feature => feature.status !== "available"),
-    featureUsage: FEATURE_USAGE_KNOWLEDGE,
+    featureUsage: getFeatureUsageKnowledge(process.env.NODE_ENV),
     platformHelp: PLATFORM_HELP_KNOWLEDGE,
     navigationPolicy: "Knowledge is not navigation permission. Only IDs in availableFeatures may become buttons. Other entries are knowledge-only. My Perfect Menu and Meal Builders support entry-page navigation only, without request transfer. Explain existing entry points honestly; never invent a URL, button or prefill.",
   };
@@ -164,3 +164,11 @@ export const PLATFORM_GUIDANCE_INSTRUCTIONS = [
   "OTHER RELEVANT DISTINCTIONS: When unresolved and relevant to choosing a destination, clarify small craving-sized dessert portions versus a larger or full-sized dessert recipe, or an ordinary beverage versus an athletic-performance/workout beverage. Craving Creator handles smaller cravings including small sweets; Dessert Creator handles larger desserts and full-sized creations. Beverage Creator handles general beverages; Athlete Beverage Creator handles workout/performance beverages. A sweet preference or a drink name alone does not settle those distinctions. Use member-provided context and corrections rather than guessing size or performance purpose. Do not collect exact servings, all optional controls or medical targets just to choose a destination; do not re-ask when context already makes the appropriate experience clear.",
   "A knowledge-only feature can be explained, but explicitly say when Chef cannot provide its button or transfer its request. Do not fabricate links, fall back to an unrelated creator, select a specialized builder, or reuse Hydration's handoff tokens. Preserve only the reviewed Create a Dish idea handoff.",
 ].join("\n");
+
+export function getPlatformGuidanceInstructions(environment: string | undefined): string {
+  if (environment !== "development") return PLATFORM_GUIDANCE_INSTRUCTIONS;
+  return PLATFORM_GUIDANCE_INSTRUCTIONS.replace(
+    "Skip the introduction when their activity is clear and use the relevant existing workflow directly.",
+    "Skip unnecessary introductions when the activity is clear, but do not confuse a clear drink format with a resolved underlying need. Use reviewed featureUsage.suitability to distinguish ordinary beverage creation, performance drink creation and circumstance-related hydration support. An existing workflow is appropriate only when it helps the member's current need and material uncertainty or required care does not take priority. This does not require an interview, prohibit suitable nutrition-answer-plus-offer replies, or add navigation permission.",
+  );
+}

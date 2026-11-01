@@ -13,7 +13,7 @@ import { CreatorRequestEvidenceSchema, groundedCreatorRequest } from "./creatorR
 import { COACH_DESTINATIONS, mentionsCoachDestination, type CoachDestinationId } from "../../../shared/coaching/navigation";
 import { CORNER_UNSUPPORTED_FEATURES } from "./capabilityRegistry";
 import type { ChefCreatorRequest } from "../../../shared/coaching/creatorRequest";
-import { getDevelopmentPlatformKnowledge, PLATFORM_GUIDANCE_INSTRUCTIONS } from "./platformKnowledge";
+import { getDevelopmentPlatformKnowledge, getPlatformGuidanceInstructions } from "./platformKnowledge";
 import type { PendingRecommendation } from "./conciergeNavigationState";
 import type { ChefKnowledgeAccess } from "./platformKnowledgeAccess";
 import { FEATURE_USAGE_KNOWLEDGE } from "./featureUsageKnowledge";
@@ -149,6 +149,7 @@ export async function runConciergeConversation(params: {
   const memberMessages = [...params.history.filter(m => m.role === "user").map(m => m.content), params.userMessage];
   const developmentPurpose = process.env.NODE_ENV === "development";
   const instructions = getChefConversationInstructions(process.env.NODE_ENV);
+  const platformInstructions = getPlatformGuidanceInstructions(process.env.NODE_ENV);
   const schema = developmentPurpose ? ModelTurnSchema.extend({
     memberNeed: MemberNeedSchema.describe("The member's actual need, independent of any feature being proposed. A request for nutrition advice is nutrition_guidance, not feature_help."),
     responsePurpose: ResponsePurposeSchema,
@@ -157,7 +158,7 @@ export async function runConciergeConversation(params: {
   }) : ModelTurnSchema;
   const responseFormat = zodResponseFormat(schema, "chef_conversation");
   const fingerprint = developmentPurpose ? createHash("sha256")
-    .update(instructions + PLATFORM_GUIDANCE_INSTRUCTIONS + JSON.stringify(responseFormat)).digest("hex").slice(0, 16) : undefined;
+    .update(instructions + platformInstructions + JSON.stringify(responseFormat)).digest("hex").slice(0, 16) : undefined;
   let purpose: string = "unavailable";
   let selectedField = "none";
   let metrics = responseFieldMetrics();
@@ -176,7 +177,7 @@ export async function runConciergeConversation(params: {
         { role: "system", content: [
           instructions,
           getLanguageInstruction(params.preferredLanguage),
-          PLATFORM_GUIDANCE_INSTRUCTIONS,
+          platformInstructions,
         ].filter(Boolean).join("\n") },
         { role: "user", content: JSON.stringify({
           authorizedNutritionContext: params.context.coachingContextBlock ?? params.context,

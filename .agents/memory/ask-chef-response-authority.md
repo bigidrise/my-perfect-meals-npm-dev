@@ -80,3 +80,17 @@ quality remains a separate founder acceptance gate; do not claim it from mocks.
 Evaluate meaningful context changes and the use of already answered questions,
 not only complete wording or knowledge of available features. Keep conversational
 clarification distinct from changing clinical thresholds or expanding data access.
+
+For drink-related recommendations, the founder wants better suitability and
+timing, not fewer recommendations at all costs. Do not replace poor Beverage
+Creator offers with a blanket prohibition during nutrition guidance or an
+automatic symptom-to-Hydration rule. Liquid Nutrition Support must not be
+positioned as independently designing a medical liquid diet.
+
+**Why:** The founder approved the feature-understanding audit's distinction
+between making a drink and needing help with eating or drinking, while explicitly
+preserving useful feature offers and the implemented features' limits.
+
+**How to apply:** Keep underlying need, proposed drink format, verified capability
+and conversational timing separate. The approved correction is Development-only;
+live model acceptance and any Production release need separate authorization.
