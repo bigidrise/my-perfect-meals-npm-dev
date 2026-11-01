@@ -5,7 +5,7 @@ jest.mock("../db", () => ({
 
 import { getCornerCapabilities } from "../services/coaching/capabilityRegistry";
 import { FEATURE_USAGE_KNOWLEDGE } from "../services/coaching/featureUsageKnowledge";
-import { CHEF_CONVERSATION_INSTRUCTIONS } from "../services/coaching/conciergeInstructions";
+import { getChefConversationInstructions } from "../services/coaching/conciergeInstructions";
 import { runConciergeConversation } from "../services/coaching/conciergeConversation";
 import { HYDRATION_DOOR_DEFINITIONS } from "../../shared/hydration/fourDoor";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
@@ -42,6 +42,9 @@ async function turn(extra: Record<string, unknown>, options: {
   history?: Array<{ role: string; content: string }>;
 } = {}) {
   const create = jest.fn().mockResolvedValue({ choices: [{ message: { content: JSON.stringify({
+    memberNeed: ["confirmed", "direct_request"].includes(String(extra.navigationIntent)) ? "navigation" : "nutrition_guidance",
+    responsePurpose: ["confirmed", "direct_request"].includes(String(extra.navigationIntent)) ? "handoff" :
+      extra.navigationIntent === "recommendation" ? "answer_with_offer" : "answer",
     message: advice, conversationMessage: null, recommendationMessage: null,
     handoffMessage: null, conciergeDecision: null, creatorRequest: null,
     navigationIntent: "none", careDisposition: "none",
@@ -84,11 +87,12 @@ describe("Ask Chef verified Hydration knowledge", () => {
     expect(wire.availableFeatures.find((feature: { id: string }) => feature.id === "hydration_center").description)
       .toBe(hydration.description);
     expect(wire.platformKnowledge.featureUsage.hydration_center).toEqual(usage);
-    expect(create.mock.calls[0][0].messages[0].content).toContain(CHEF_CONVERSATION_INSTRUCTIONS);
-    expect(CHEF_CONVERSATION_INSTRUCTIONS).toContain("make recommendationMessage the complete useful reply");
-    expect(CHEF_CONVERSATION_INSTRUCTIONS).toContain("An ordinary informational answer needs no feature");
-    expect(CHEF_CONVERSATION_INSTRUCTIONS).toContain("a navigation-only request needs no added nutrition lecture");
-    expect(CHEF_CONVERSATION_INSTRUCTIONS).toContain("do not automatically select Hydration Center from nausea alone");
+    const instructions = getChefConversationInstructions("development");
+    expect(create.mock.calls[0][0].messages[0].content).toContain(instructions);
+    expect(instructions).toContain("message is the one complete visible reply");
+    expect(instructions).toContain("an informational answer needs no feature");
+    expect(instructions).toContain("A navigation-only request needs no nutrition lecture");
+    expect(instructions).toContain("without assuming a shake is suitable");
   });
 });
 
@@ -97,7 +101,7 @@ describe("advice plus a validated feature recommendation", () => {
   // not that a live model independently produces the desired conversational tone.
   it("keeps the nutrition answer in the visible recommendation, without concatenating unchecked fields", async () => {
     const { result } = await turn({
-      message: "UNUSED_PRIMARY_SENTINEL", recommendationMessage: offer,
+      message: offer, recommendationMessage: "UNUSED_RECOMMENDATION_SENTINEL",
       conversationMessage: "UNUSED_CONTINUATION_SENTINEL",
       navigationIntent: "recommendation", conciergeDecision: decision("beverage_creator", shakeGoal),
     });
@@ -113,7 +117,7 @@ describe("advice plus a validated feature recommendation", () => {
 
   it("needs only one acceptance of the pending recommendation and does not repeat advice or permission", async () => {
     const first = await turn({
-      recommendationMessage: offer, navigationIntent: "recommendation",
+      message: offer, recommendationMessage: null, navigationIntent: "recommendation",
       conciergeDecision: decision("beverage_creator", shakeGoal),
     });
     const handoff = "Describe the shake you want in the drink field, then use the page's creation action.";

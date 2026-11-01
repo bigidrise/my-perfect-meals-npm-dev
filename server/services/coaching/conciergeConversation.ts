@@ -1,10 +1,12 @@
 import type OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
 import { z } from "zod";
+import { createHash } from "node:crypto";
 import type { CoachResponse, CoachingTool } from "../../../shared/coaching/types";
 import { ConciergeDecisionSchema, ConciergeGoalSchema, ConciergeMessageSchema } from "../../../shared/coaching/schemas";
 import { validateConciergeGoal } from "./conciergeGoal";
-import { CHEF_CONCIERGE_REVISION, CHEF_CONVERSATION_INSTRUCTIONS } from "./conciergeInstructions";
+import { CHEF_CONCIERGE_REVISION, getChefConversationInstructions } from "./conciergeInstructions";
+import { inspectConversationPurpose, MemberNeedSchema, ResponsePurposeSchema, responseFieldMetrics } from "./conversationPurpose";
 import { buildSafetyResponse } from "./safety";
 import { getLanguageInstruction } from "../../utils/languageInstruction";
 import { CreatorRequestEvidenceSchema, groundedCreatorRequest } from "./creatorRequest";
@@ -21,6 +23,8 @@ const TurnSchema = ConciergeMessageSchema.extend({
   // Unknown/missing values cannot authorize a button.
   message: z.string().trim().min(1).max(8000).nullish().catch(undefined),
   navigationIntent: z.unknown().optional(),
+  responsePurpose: z.unknown().optional(),
+  memberNeed: z.unknown().optional(),
   recommendationMessage: z.string().trim().min(1).max(8000).nullish().catch(undefined),
   handoffMessage: z.string().trim().min(1).max(8000).nullish().catch(undefined),
   // An independent, model-authored continuation must survive a rejected action.
@@ -107,7 +111,8 @@ function conversationalContinuation(message: string | null | undefined, structur
 
 type DecisionReason = "missing_recommendation_wording" | "missing_handoff_wording" |
   "navigation_not_authorized" | "missing_pending_recommendation" | "decision_invalid" |
-  "invalid_destination" | "entitlement_rejected" | "goal_not_ready" | "unusable_conversational_response";
+  "invalid_destination" | "entitlement_rejected" | "goal_not_ready" | "unusable_conversational_response" |
+  "purpose_missing" | "purpose_invalid" | "purpose_conflict";
 class DecisionFailure extends Error {
   constructor(readonly reason: DecisionReason) { super(reason); }
 }
@@ -142,19 +147,34 @@ export async function runConciergeConversation(params: {
   requestId?: string;
 }): Promise<CoachResponse> {
   const memberMessages = [...params.history.filter(m => m.role === "user").map(m => m.content), params.userMessage];
+  const developmentPurpose = process.env.NODE_ENV === "development";
+  const instructions = getChefConversationInstructions(process.env.NODE_ENV);
+  const schema = developmentPurpose ? ModelTurnSchema.extend({
+    memberNeed: MemberNeedSchema.describe("The member's actual need, independent of any feature being proposed. A request for nutrition advice is nutrition_guidance, not feature_help."),
+    responsePurpose: ResponsePurposeSchema,
+    message: z.string().describe("Canonical complete reply. For answer_with_offer, answer the nutrition question FIRST and include the relevant permission offer in this SAME message. Never replace guidance with a feature pitch."),
+    recommendationMessage: z.null().describe("Unused: the canonical message contains the entire answer and any feature offer."),
+  }) : ModelTurnSchema;
+  const responseFormat = zodResponseFormat(schema, "chef_conversation");
+  const fingerprint = developmentPurpose ? createHash("sha256")
+    .update(instructions + PLATFORM_GUIDANCE_INSTRUCTIONS + JSON.stringify(responseFormat)).digest("hex").slice(0, 16) : undefined;
+  let purpose: string = "unavailable";
+  let selectedField = "none";
+  let metrics = responseFieldMetrics();
   let stage: "provider" | "parsing" | "decision" = "provider";
   let retainPendingOnFailure = false;
   // Only correlation IDs in the existing UUID format are safe for logs.
   const correlation = /^[a-f0-9-]{36}$/i.test(params.requestId ?? "") ? ` request_id=${params.requestId}` : "";
   const diagnostic = (outcome: string, reason?: DecisionReason | "safety_escalation") =>
-    console.info(`[ChefConcierge] decision_outcome=${outcome}${reason ? ` reason=${reason}` : ""}${correlation}`);
+    console.info(`[ChefConcierge] decision_outcome=${outcome}${reason ? ` reason=${reason}` : ""}${correlation}` +
+      (developmentPurpose ? ` ${JSON.stringify({ implementation: "conversation-purpose-v1", fingerprint, purpose, selectedField, fields: metrics })}` : ""));
   try {
     const completion = await params.client.chat.completions.create({
-      model: "gpt-4o", response_format: zodResponseFormat(ModelTurnSchema, "chef_conversation"),
+      model: "gpt-4o", response_format: responseFormat,
       temperature: 0.4, max_tokens: 2000,
       messages: [
         { role: "system", content: [
-          CHEF_CONVERSATION_INSTRUCTIONS,
+          instructions,
           getLanguageInstruction(params.preferredLanguage),
           PLATFORM_GUIDANCE_INSTRUCTIONS,
         ].filter(Boolean).join("\n") },
@@ -172,13 +192,20 @@ export async function runConciergeConversation(params: {
       ],
     });
     stage = "parsing";
-    const turn = TurnSchema.parse(JSON.parse(completion.choices[0]?.message?.content ?? "{}"));
+    const rawTurn = JSON.parse(completion.choices[0]?.message?.content ?? "{}");
+    if (developmentPurpose) metrics = responseFieldMetrics(rawTurn);
+    const turn = TurnSchema.parse(rawTurn);
+    if (developmentPurpose) {
+      purpose = ResponsePurposeSchema.safeParse(turn.responsePurpose).success
+        ? String(turn.responsePurpose) : turn.responsePurpose === undefined ? "missing" : "invalid";
+    }
     const classifiedCare = turn.careDisposition === "referral" || turn.careDisposition === "emergency";
     // Explicit no-care classifications own inactive fields. Live structured
     // outputs can fill unused nullable strings with placeholders; presence alone
     // is not a clinical decision. Unclassified legacy care still fails closed.
     const requiredCare = !!turn.contactCare?.trim() && turn.careDisposition === undefined;
     if (turn.redFlag || classifiedCare || requiredCare) {
+      selectedField = "care";
       diagnostic("safety_rejected_navigation", "safety_escalation");
       return buildSafetyResponse({
         triggered: true, class: turn.careDisposition === "emergency" ? "emergency" : "escalate",
@@ -190,10 +217,28 @@ export async function runConciergeConversation(params: {
     }
     stage = "decision";
     const acceptingPending = turn.navigationIntent === "confirmed" && params.pendingRecommendation;
+    if (developmentPurpose) {
+      const inspected = inspectConversationPurpose(turn);
+      if (!inspected.valid) {
+        retainPendingOnFailure = !!acceptingPending && inspected.reason !== "purpose_conflict";
+        // Screen the entire independent reply; never strip an unsafe offer out
+        // of a field or rescue it with an unchecked recommendation variant.
+        const continuation = conversationalContinuation(turn.conversationMessage) ??
+          conversationalContinuation(turn.message);
+        selectedField = conversationalContinuation(turn.conversationMessage) ? "conversationMessage" :
+          continuation ? "message" : "retry";
+        diagnostic("purpose_rejected", inspected.reason);
+        if (!continuation) throw new DecisionFailure(inspected.reason!);
+        const response = envelope(continuation);
+        if (retainPendingOnFailure && acceptingPending) response.presentation!.navigation = acceptingPending;
+        return response;
+      }
+    }
     if (turn.conciergeDecision == null && !acceptingPending) {
       const message = (turn.navigationIntent === "recommendation" ? undefined : ordinaryConversation(turn.message)) ??
         conversationalContinuation(turn.conversationMessage);
       if (!message) throw new DecisionFailure("unusable_conversational_response");
+      selectedField = ordinaryConversation(turn.message) === message ? "message" : "conversationMessage";
       diagnostic("no_navigation", turn.navigationIntent === "confirmed" ? "missing_pending_recommendation" : undefined);
       return envelope(message);
     }
@@ -204,6 +249,7 @@ export async function runConciergeConversation(params: {
         diagnostic("conversation_rejected", "unusable_conversational_response");
         throw new DecisionFailure(reason);
       }
+      selectedField = "conversationMessage";
       diagnostic("action_rejected_conversation_preserved", reason);
       // Neither the unchecked pitch nor its request text reaches display/persistence.
       const response = envelope(message);
@@ -241,6 +287,8 @@ export async function runConciergeConversation(params: {
       const message = ordinaryConversation(turn.message) ??
         conversationalContinuation(turn.conversationMessage);
       if (!message) throw new DecisionFailure("unusable_conversational_response");
+      selectedField = ordinaryConversation(turn.message) === message ? "message" : "conversationMessage";
+      if (developmentPurpose) diagnostic("no_navigation");
       return envelope(message);
     }
     const confirmed = !!acceptingPending && acceptingPending.destinationId === destinationId &&
@@ -261,17 +309,30 @@ export async function runConciergeConversation(params: {
       // Reuse existing model wording only as a proposal, never as consent.
       // A primary reply must name the validated target so an unrelated question
       // cannot silently create a pending destination.
-      const recommendation = [turn.recommendationMessage, turn.message, turn.conversationMessage]
+      const candidates = developmentPurpose ? [turn.message] :
+        [turn.recommendationMessage, turn.message, turn.conversationMessage];
+      const recommendation = candidates
         .map((text, index) => ({ text: independentConversation(text, destinationId), dedicated: index === 0 }))
         .find(({ text, dedicated }) => text && /[?？؟]/u.test(text) &&
           (dedicated || mentionsCoachDestination(text, destinationId)) &&
           conversationalContinuation(text.replace(/\b(?:open|use)\b/gi, ""), true));
-      if (!recommendation) return rejectAction("missing_recommendation_wording");
+      if (!recommendation) {
+        // The canonical answer can stand without an offer. Never append or
+        // substitute the shorter recommendationMessage to manufacture one.
+        const answer = developmentPurpose && conversationalContinuation(turn.message);
+        if (answer) {
+          selectedField = "message";
+          diagnostic("answer_preserved_without_action", "missing_recommendation_wording");
+          return envelope(answer);
+        }
+        return rejectAction("missing_recommendation_wording");
+      }
       if (!recommendation.dedicated) diagnostic("recommendation_recovered", "missing_recommendation_wording");
       const response = envelope(recommendation.text!);
       response.presentation!.navigation = {
         state: "recommendation_pending", destinationId, goal: decision.goal,
       };
+      selectedField = developmentPurpose || !recommendation.dedicated ? "message" : "recommendationMessage";
       diagnostic("recommendation_pending");
       return response;
     }
@@ -310,6 +371,7 @@ export async function runConciergeConversation(params: {
     response.presentation!.navigation = {
       state: confirmed ? "navigation_confirmed" : "direct_navigation", destinationId, goal: decision.goal,
     };
+    selectedField = handoff === turn.handoffMessage ? "handoffMessage" : "verified_handoff_recovery";
     diagnostic(response.presentation!.navigation.state);
     return response;
   } catch (error) {
@@ -318,8 +380,10 @@ export async function runConciergeConversation(params: {
     const status = stage === "provider" && error && typeof error === "object" && "status" in error &&
       typeof error.status === "number" && error.status >= 400 && error.status <= 599 ? error.status : undefined;
     console.warn(`[ChefConcierge] decision_outcome=${outcome} failure_stage=${stage}${status ? ` provider_status=${status}` : ""}${correlation}`);
+    if (developmentPurpose) { selectedField = "retry"; diagnostic("response_rejected", error instanceof DecisionFailure ? error.reason : undefined); }
     const response = envelope("I couldn't complete that response. Please try your request again.");
-    if (retainPendingOnFailure && error instanceof DecisionFailure && error.reason === "missing_handoff_wording" &&
+    if (retainPendingOnFailure && error instanceof DecisionFailure &&
+      ["missing_handoff_wording", "purpose_missing", "purpose_invalid"].includes(error.reason) &&
       params.pendingRecommendation && params.pendingRecommendation.state === "recommendation_pending") {
       response.presentation!.navigation = params.pendingRecommendation;
     }

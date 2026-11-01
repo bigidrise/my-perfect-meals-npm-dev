@@ -63,9 +63,14 @@ const html = (response: any) => renderToStaticMarkup(React.createElement(CoachBu
   structured: response, enableConcierge: true,
 }));
 function model(extra: Record<string, any> = {}) {
+  const intent = extra.navigationIntent ?? "direct_request";
   mockCreate.mockResolvedValueOnce({ choices: [{ message: { content: JSON.stringify({
-    message: "Let's get you started with My Perfect Getaway.",
+    // Existing navigation fixtures now put their complete offer in the canonical
+    // field. Explicit malformed message overrides below remain untouched.
+    message: extra.recommendationMessage ?? invitation,
     navigationIntent: "direct_request",
+    memberNeed: intent === "recommendation" || intent === "none" ? "feature_help" : "navigation",
+    responsePurpose: intent === "recommendation" ? "feature_only_offer" : intent === "none" ? "answer" : "handoff",
     // Also simulate a falsely explicit model goal; there is no named feature in
     // the actual member request, so neither field may self-authorize navigation.
     conciergeDecision: { mode: "food_assistance", destinationId: "my_perfect_getaway",
@@ -314,7 +319,6 @@ test.each([
   { recommendationMessage: undefined, destinationId: "craving_creator", navigationIntent: "recommendation" },
   { recommendationMessage: null, destinationId: "craving_creator", navigationIntent: "recommendation" },
   { recommendationMessage: null, destinationId: null, navigationIntent: "recommendation" },
-  { recommendationMessage: null, destinationId: "craving_creator", navigationIntent: "none" },
 ])("ready structured craving goals recover omitted recommendation variants without early consent: %j", async variant => {
   model({ navigationIntent: variant.navigationIntent, message: cravingQuestion,
     recommendationMessage: variant.recommendationMessage, conversationMessage: null,
@@ -583,9 +587,9 @@ test("ordinary conversation needs neither navigation wording variant nor a rejec
   expect(html(result)).not.toContain("<button");
 });
 
-test.each(["message", "conversationMessage"])("missing dedicated recommendation recovers from %s without a button", async field => {
+test("missing dedicated recommendation uses the canonical message without a button", async () => {
   model({ navigationIntent: "recommendation", recommendationMessage: null, handoffMessage: null,
-    [field]: invitation });
+    message: invitation });
   const result = await run(request);
   expect(result.presentation?.message).toBe(invitation);
   expect(stored.presentation.navigation.state).toBe("recommendation_pending");
@@ -596,7 +600,7 @@ test.each(["message", "conversationMessage"])("missing dedicated recommendation 
 
 test("a feature-naming independent explanation survives missing recommendation wording", async () => {
   const message = "My Perfect Getaway helps explore cruise dining, but current menus may differ.";
-  model({ recommendationMessage: null, handoffMessage: null, conversationMessage: message });
+  model({ message: null, recommendationMessage: null, handoffMessage: null, conversationMessage: message });
   const result = await run(request);
   expect(result.presentation?.message).toBe(message);
   expect(result.presentation?.navigation).toBeUndefined();
@@ -666,7 +670,7 @@ test("diagnostics retain rejection reasons and correlation, never private text o
   const info = jest.spyOn(console, "info").mockImplementation(() => {});
   const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
   try {
-    model({ recommendationMessage: null, handoffMessage: null,
+    model({ message: null, recommendationMessage: null, handoffMessage: null,
       conversationMessage: "My Perfect Getaway supports travel dining exploration." });
     await run("PRIVATE_MEMBER_TEXT");
     model({ conciergeDecision: { mode: "food_assistance", destinationId: "unregistered_destination", goal: travel },
