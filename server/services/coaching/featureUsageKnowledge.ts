@@ -5,6 +5,19 @@ interface FeatureUsageKnowledge {
   controls: string[];
   generationAction: string;
   notes: string[];
+  suitability?: Omit<FeatureSuitability, "verifiedSources">;
+}
+
+interface FeatureSuitability {
+  purpose: string;
+  suitableNeeds: string[];
+  notFor: string[];
+  informationNeeded: string[];
+  offerWhen: string;
+  deferWhen: string;
+  safetyBoundaries: string[];
+  relatedFeatures: string[];
+  verifiedSources: string[];
 }
 
 /**
@@ -161,3 +174,55 @@ export const FEATURE_USAGE_KNOWLEDGE: Partial<Record<CoachDestinationId, Feature
     notes: ["Yield options depend on the chosen dessert. Do not invent a universal serving range or instruct one person to eat an entire recipe."],
   },
 };
+
+/**
+ * Development-only review of three existing features, not a routing engine.
+ * These are source-verified capability facts and judgment guidance, never
+ * medical eligibility, consent, or permission to navigate.
+ */
+const DEVELOPMENT_DRINK_SUITABILITY = {
+  beverage_creator: {
+    purpose: "Create ordinary beverage recipes for enjoyment, variety or a chosen drink, including smoothies, protein shakes, coffee and low-sugar drink requests.",
+    suitableNeeds: ["Ordinary homemade beverage creation or variety, with preparation intent established in context."],
+    notFor: ["Assessing impaired food or fluid tolerance, prescribing liquid nutrition, treating illness, or calculating hydration targets.", "Workout-specific formulation belongs to Athlete Beverage Creator."],
+    informationNeeded: ["Whether the member wants beverage preparation rather than advice, ordering or buying, only if unresolved.", "Whether a circumstance affecting intake leaves a material safety or usefulness question unresolved; a drink format alone does not settle that."],
+    offerWhen: "Offer naturally when ordinary beverage creation is useful and relevant uncertainty is resolved. A useful nutrition answer may include a suitable offer; not every answer needs one.",
+    deferWhen: "A shake proposed as a way to cope with difficulty eating or drinking does not by itself establish ordinary beverage creation as the next step. Address the concern and any material uncertainty or necessary care before offering a recipe tool.",
+    safetyBoundaries: ["The destination runs current dietary, allergy and clinical checks; a requested shake is not automatically tolerable or nutritionally adequate.", "Low-sugar controls do not guarantee sugar-free output. No medication-specific treatment or new personal targets."],
+    relatedFeatures: ["Hydration Center may help an established fluid-intake barrier, not every symptom or drink mention.", "Athlete Beverage Creator serves actual performance-oriented drink creation."],
+    verifiedSources: ["client/src/pages/BeverageCreator.tsx", "server/routes/beverage-creator.ts"],
+  },
+  athlete_beverage_creator: {
+    purpose: "Create performance-oriented beverage recipes for training, endurance or recovery; not an individualized hydration prescription.",
+    suitableNeeds: ["A member wants to prepare a pre-workout drink, post-workout recovery shake or other performance beverage."],
+    notFor: ["Ordinary beverage variety without a performance purpose.", "Fluid-intake tracking, personalized sweat-loss replacement, electrolyte dosing, or treatment of symptoms."],
+    informationNeeded: ["Whether the goal is performance beverage creation or help managing hydration around activity, only if context has not settled it.", "The destination collects drink, flavor, serving and preference details; Chef need not interview for all of them."],
+    offerWhen: "A clear recovery-shake or other performance drink creation request can receive a natural offer without a detour through Hydration Center.",
+    deferWhen: "For difficulty staying hydrated during activity, first consider Athletic Hydration support rather than assuming a recipe request. Defer any offer while a material safety question or necessary care remains.",
+    safetyBoundaries: ["Preset macro ranges and electrolyte language in the form are recipe directions, not measured individual requirements or fluid-replacement calculations.", "Current destination dietary, allergy, clinical and access safeguards still apply."],
+    relatedFeatures: ["Hydration Center's Athletic Hydration section organizes activity timing, type, optional duration and environment, and can hand off to this Creator.", "Beverage Creator handles ordinary drinks."],
+    verifiedSources: ["client/src/pages/AthleteBeverageCreator.tsx", "client/src/components/HydrationFourDoorPanels.tsx", "server/routes/beverage-creator.ts"],
+  },
+  hydration_center: {
+    purpose: "Support fluid intake and practical hydration barriers through Everyday Hydration, Athletic Hydration, Sick-Day Hydration and organization of explicit temporary liquid-diet instructions.",
+    suitableNeeds: ["Fluid tracking or practical barriers, including low appetite.", "Difficulty staying hydrated around activity.", "Difficulty tolerating fluids while unwell, when support is appropriate alongside any required care.", "Organizing temporary liquid-diet instructions the member actually received."],
+    notFor: ["Ordinary drink creation alone.", "Designing a specialized medical liquid-nutrition plan simply because someone struggles to eat.", "Diagnosis, treatment, comprehensive medication checks or independently prescribed fluid/electrolyte targets."],
+    informationNeeded: ["Which underlying fluid-intake or instruction-organization need is present; nausea alone does not establish a hydration goal.", "Clarify food versus fluid tolerance or existing instructions only when it materially changes the next useful recommendation; do not assume a liquid diet was prescribed."],
+    offerWhen: "Offer when a verified section addresses the established need and conversational readiness permits it. For long-workout hydration difficulties, Athletic Hydration can be the initial fit; a recovery-shake recipe request instead fits Athlete Beverage Creator.",
+    deferWhen: "Prioritize useful coaching, material clarification and necessary medical follow-up over navigation. Do not automatically swap Beverage Creator for Hydration Center after a symptom mention, or repeat an earlier offer after circumstances change.",
+    safetyBoundaries: ["Sick-Day Hydration has basic tolerability suggestions and warning signs, not a detailed symptom-adaptive treatment plan.", "Liquid Nutrition Support preserves existing instructions; user confirmation is not professional verification. Creator eligibility requires complete, active, professionally verified instructions; do not promise a complete professional verification workflow or a liquid recipe button.", "No comprehensive medication checks or newly activated pregnancy-specific guidance; preserve existing care instructions and current availability restrictions.", "Necessary care is never delayed for a question, Hub visit or drink recipe."],
+    relatedFeatures: ["Everyday support can lead to Beverage Creator and Athletic support can lead to Athlete Beverage Creator through the Hub's own signed handoffs.", "Chef opens the Hub only: no section selection, symptom transfer, protocol activation or manufactured handoff tokens."],
+    verifiedSources: ["client/src/pages/HydrationCenter.tsx", "client/src/components/HydrationFourDoorPanels.tsx", "server/services/hydration/hydrationHubService.ts", "shared/hydration/fourDoor.ts", "shared/pregnancyAvailability.ts"],
+  },
+} satisfies Partial<Record<CoachDestinationId, FeatureSuitability>>;
+
+export function getFeatureUsageKnowledge(environment: string | undefined) {
+  if (environment !== "development") return FEATURE_USAGE_KNOWLEDGE;
+  const knowledge = { ...FEATURE_USAGE_KNOWLEDGE };
+  for (const id of Object.keys(DEVELOPMENT_DRINK_SUITABILITY) as Array<keyof typeof DEVELOPMENT_DRINK_SUITABILITY>) {
+    // Source evidence is maintained here, not sent to the conversation model.
+    const { verifiedSources: _sources, ...suitability } = DEVELOPMENT_DRINK_SUITABILITY[id];
+    knowledge[id] = { ...FEATURE_USAGE_KNOWLEDGE[id]!, suitability };
+  }
+  return knowledge;
+}
