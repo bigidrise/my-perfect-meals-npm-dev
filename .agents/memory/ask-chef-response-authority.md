@@ -60,3 +60,17 @@ alone does not prove that a response carries an authorized action.
 **How to apply:** Base recovery on existing structured goal/access validation.
 Verify saved pending state, first acceptance and the real rendered control—not
 just natural-sounding handoff text.
+
+Nutrition coaching must remain independent of feature suitability. A valid
+feature proposal is not evidence that the member's nutrition question was
+answered, and a shorter pitch must never replace substantive advice.
+
+**Why:** Founder Development acceptance still produced a feature-only reply
+after a coaching-instruction enhancement passed mocked regressions. The previous
+diagnostics could not distinguish advice discarded during selection from advice
+the model never generated.
+
+**How to apply:** Exercise the actual selected reply with adversarial split-field
+and conflicting-purpose fixtures, not just ideal model outputs. Retain
+privacy-limited instruction identity and selection diagnostics. Live coaching
+quality remains a separate founder acceptance gate; do not claim it from mocks.

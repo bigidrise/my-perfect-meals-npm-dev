@@ -56,6 +56,9 @@ function reply(message: string, id: string | null = null, goal = unknown, extra:
     // Existing action-validation fixtures assume authorized navigation unless
     // the test explicitly exercises recommendation/confirmation/unknown intent.
     message, navigationIntent: "confirmed",
+    memberNeed: ["none", "recommendation"].includes(String(extra.navigationIntent)) ? "feature_help" : "navigation",
+    responsePurpose: extra.navigationIntent === "none" ? "answer" :
+      extra.navigationIntent === "recommendation" ? "feature_only_offer" : "handoff",
     recommendationMessage: extra.navigationIntent === "recommendation" ||
       (extra.navigationIntent !== undefined && !["confirmed", "direct_request"].includes(String(extra.navigationIntent)))
       ? message : `Would you like to use this feature? ${message}`,
