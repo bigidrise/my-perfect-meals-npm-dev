@@ -113,3 +113,16 @@ Use answered preferences without restarting discovery, retain verified feature
 limits, and keep serious warning signs ahead of food or navigation suggestions.
 Business or professional interest never proves role authority, enrollment
 availability or an approved navigation destination.
+
+Treat serving counts and occasion words as context, never standalone routing
+rules. The founder positions Craving Creator around immediate sweet or savory
+cravings, including multiple servings; Dessert Creator around a complete dessert;
+Create a Dish around a chosen recipe; Gatherings around the full occasion.
+
+**Why:** The founder explicitly rejected single-serving-only craving assumptions
+and holiday-keyword routing. More specific requests should require fewer questions.
+
+**How to apply:** Leave destination-owned settings to the destination. Preserve the
+original member request through existing grounded transfer only, with concise
+guidance after consent; no repeated permission or request restatement. Actual
+feature capability, access and necessary care still override conversational speed.

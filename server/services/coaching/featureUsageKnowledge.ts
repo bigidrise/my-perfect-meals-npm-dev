@@ -218,6 +218,72 @@ const DEVELOPMENT_DRINK_SUITABILITY = {
 
 /** Source-reviewed activity distinctions; never keyword routing or new access. */
 const DEVELOPMENT_FOOD_SUITABILITY = {
+  craving_creator: {
+    purpose: "Satisfy an immediate personal sweet or savory food craving, often a smaller or individually portioned choice, including chicken nuggets or a dessert treat.",
+    suitableNeeds: ["A chosen personal craving to prepare, including one, two or several recipe servings."],
+    notFor: ["A complete cake or pie, an explicitly chosen family-dinner recipe, full occasion planning, restaurant discovery, sushi or beverage preparation."],
+    informationNeeded: ["Personal craving versus a complete dessert or shared meal, only when genuinely unresolved. Do not collect exact servings to choose the feature."],
+    offerWhen: "Personal craving and preparation intent are clear. Multiple servings do not disqualify a craving; use occasion=snack for this workflow, including sweet cravings.",
+    deferWhen: "A food name or generic dessert wish alone may leave intent unclear. Ask one useful distinction, then use the answer without a fixed question count.",
+    safetyBoundaries: ["The current form offers 1–10 recipe servings; this is a UI range, not a routing threshold or a single-serving restriction.", "Existing dietary, allergy, clinical and physician safeguards remain authoritative. No general Chef prefill or automatic generation."],
+    relatedFeatures: ["Dessert Creator makes a full dessert; Create a Dish serves a chosen dish or family meal. My Perfect Gatherings plans the full occasion, not every holiday food."],
+    verifiedSources: ["client/src/pages/craving-creator.tsx", "server/services/coaching/conciergeGoal.ts", "shared/coaching/navigation.ts"],
+  },
+  dessert_creator: {
+    purpose: "Create a complete dessert such as a whole cake, pie or shareable dessert recipe.",
+    suitableNeeds: ["A whole apple pie, cake, or complete dessert to share with family or at an event."],
+    notFor: ["Automatically handling every sweet craving or planning an entire holiday meal."],
+    informationNeeded: ["Personal treat versus full dessert, only if not already clear. Serving count may inform intent but is never the sole routing rule."],
+    offerWhen: "The member explicitly wants a complete dessert; a whole pie or cake request needs no repeated size question, even when it is for a holiday.",
+    deferWhen: "An unspecified dessert wish still needs a useful intent distinction; do not interrogate for the destination's category, flavor, yield or dietary inputs.",
+    safetyBoundaries: ["Yield options depend on dessert type, not a universal portion range. A whole recipe is not an instruction for one person to consume it.", "Existing diet, allergy and clinical validation applies; no Chef recipe generation or general request transfer."],
+    relatedFeatures: ["Craving Creator serves personal sweet or savory cravings, including multiple servings. My Perfect Gatherings serves complete occasion meals."],
+    verifiedSources: ["client/src/pages/CravingDessertCreator.tsx", "server/services/coaching/conciergeGoal.ts", "shared/coaching/navigation.ts"],
+  },
+  my_perfect_gatherings: {
+    purpose: "Plan a complete food experience or multi-course meal for a gathering, holiday or group occasion.",
+    suitableNeeds: ["A complete Thanksgiving or Christmas dinner, cookout, birthday celebration, reunion or dinner party when the full occasion is the task."],
+    notFor: ["A single Thanksgiving side dish, a single holiday pie, or ordinary family-dish preparation merely because a group or holiday is mentioned."],
+    informationNeeded: ["The complete occasion versus one dish or dessert, only if unresolved. The destination collects its situation-specific details and serving size."],
+    offerWhen: "The member clearly wants help with the whole occasion; do not ask for courses, cuisine or guest count before offering the verified destination.",
+    deferWhen: "A holiday word alone does not establish an occasion-planning goal. Choose the dish or dessert creator when that is the actual task.",
+    safetyBoundaries: ["The page has What's the occasion?, situation-specific forms, Serving size and Create My Experience; do not invent universal cuisine or dietary-override controls.", "Profile dietary information and existing dietary, allergy, clinical and physician safeguards govern generation. No general Chef request transfer or automatic generation."],
+    relatedFeatures: ["Create a Dish handles a chosen dish; Dessert Creator handles a complete dessert. Group size alone does not select Gatherings."],
+    verifiedSources: ["client/src/pages/lifestyle/GatheringsPage.tsx", "server/routes/gatherings.ts", "shared/coaching/navigation.ts"],
+  },
+  sushi_creator: {
+    purpose: "Prepare sushi at home using the dedicated Sushi Creator.",
+    suitableNeeds: ["An explicit request to make sushi, rolls or nigiri at home."],
+    notFor: ["Finding a sushi restaurant, ordering at a chosen restaurant, or interpreting a sushi preference as preparation intent."],
+    informationNeeded: ["Making sushi versus going out, only when the member and history have not already settled that distinction."],
+    offerWhen: "Sushi preparation intent is clear. Do not re-ask home versus restaurant or collect servings and preferences before offering it.",
+    deferWhen: "Being in the mood for sushi alone leaves the activity unresolved. If eating out, distinguish a chosen restaurant from restaurant discovery only if needed.",
+    safetyBoundaries: ["The form has a sushi description, optional Dietary Preference, Number of Servings (1–10), Flavor Preference and Create My Sushi. Do not invent cuisine controls.", "Existing recipe, allergy, dietary, clinical and access safeguards remain authoritative; no general Chef prefill or promise that raw fish is universally safe."],
+    relatedFeatures: ["Find Meals Near Me discovers restaurants; Restaurant Guide helps choose food at an already selected restaurant."],
+    verifiedSources: ["client/src/pages/SushiCreator.tsx", "server/services/coaching/conciergeGoal.ts", "shared/coaching/navigation.ts"],
+  },
+  restaurant_guide: {
+    purpose: "Help choose what to order at a restaurant the member has already selected.",
+    suitableNeeds: ["Ordering sushi or another meal at an identified restaurant, not finding somewhere to eat."],
+    notFor: ["Sushi preparation, recipe creation, or discovery when no restaurant has been selected."],
+    informationNeeded: ["Whether the restaurant is already chosen, only if unresolved. The destination collects craving, restaurant and ZIP inputs."],
+    offerWhen: "Restaurant-ordering intent and a chosen restaurant are clear; do not repeat a home-versus-restaurant question.",
+    deferWhen: "If the goal is to find a restaurant, consider Find Meals Near Me instead. Food names alone establish neither destination.",
+    safetyBoundaries: ["Existing nutrition, allergy, clinical and access checks apply. Confirm current menu items and accommodations with the restaurant; guidance is not guaranteed menu or allergen verification.", "No Chef location/craving transfer, automatic search, order placement or purchase."],
+    relatedFeatures: ["Find Meals Near Me discovers restaurants; Sushi Creator prepares sushi at home."],
+    verifiedSources: ["client/src/pages/SocialRestaurantGuide.tsx", "shared/coaching/navigation.ts"],
+  },
+  find_meals_near_me: {
+    purpose: "Discover nearby restaurants and suggested meals when the member wants somewhere to eat.",
+    suitableNeeds: ["Finding a sushi restaurant or another restaurant when none is selected."],
+    notFor: ["Preparing sushi at home, ordering at an already chosen restaurant, grocery discovery or guaranteed specialty-store coverage."],
+    informationNeeded: ["Discovery versus ordering at a selected restaurant, only if unresolved. ZIP/location and optional filters belong to the destination."],
+    offerWhen: "A restaurant-discovery request is clear. Do not ask whether the member wants to cook when they already asked to find a restaurant.",
+    deferWhen: "An unexplained sushi craving may require a making-versus-eating-out distinction. Use prior answers rather than restarting discovery.",
+    safetyBoundaries: ["Suggestions do not verify live menus, stock or accommodations; preserve dietary, allergy, clinical and access safeguards.", "No Chef location/craving transfer, automatic search or completed order. Existing search is restaurant-filtered, not guaranteed dedicated-shop coverage."],
+    relatedFeatures: ["Restaurant Guide serves ordering at a selected restaurant; Sushi Creator serves home preparation."],
+    verifiedSources: ["client/src/pages/SocialFindMeals.tsx", "shared/coaching/navigation.ts"],
+  },
   create_a_dish: {
     purpose: "Create recipes for a chosen dish or full meal the member wants to prepare, rather than plan a grocery-shopping trip.",
     suitableNeeds: ["Preparation help for a particular dish, such as making chicken soup; the activity, not the food name, establishes fit."],
@@ -261,6 +327,12 @@ const DEVELOPMENT_FEATURE_SUITABILITY = {
 export function getFeatureUsageKnowledge(environment: string | undefined) {
   if (environment !== "development") return FEATURE_USAGE_KNOWLEDGE;
   const knowledge = { ...FEATURE_USAGE_KNOWLEDGE };
+  knowledge.sushi_creator = {
+    descriptionInput: "Describe the sushi you want in the sushi-description field.",
+    controls: ["Optional Dietary Preference.", "Number of Servings: 1–10 recipe servings.", "Flavor Preference."],
+    generationAction: "Create My Sushi starts the destination's creation workflow.",
+    notes: ["The destination owns recipe generation and food safeguards. No general Chef sushi prefill or automatic generation."],
+  };
   // Correct member-facing terminology only in this authorized Development review.
   knowledge.grocery_create_meal = {
     ...FEATURE_USAGE_KNOWLEDGE.grocery_create_meal!,
