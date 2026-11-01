@@ -72,6 +72,107 @@ function model(extra: Record<string, any> = {}) {
   }) } }] });
 }
 
+const shoppingWorkflows = [
+  {
+    id: "grocery_find_product", activity: "find_product",
+    question: "What tomato sauce should I buy?",
+    proposal: "Grocery Coach's Find a Product uses your nutrition profile to find three suitable options. Would you like to use it?",
+    handoff: "Shopping List opens first. Select Grocery Store Coach, then Find a Product, and enter your request there.",
+    direct: "Open Find a Product.",
+  },
+  {
+    id: "product_scan", activity: "evaluate_product",
+    question: "Can I scan this Ragu sauce to see whether it's good for me?",
+    proposal: "Product Scan evaluates the actual product against your profile and can offer three alternatives. Would you like to use it?",
+    handoff: "Shopping List opens first. Select Product Scan and capture the product you want evaluated.",
+    direct: "Open Product Scan.",
+  },
+  {
+    id: "grocery_create_meal", activity: "shop_for_meal",
+    question: "I don't know what to eat for dinner. Can you help me shop?",
+    proposal: "Grocery Coach's Create a Meal helps choose a meal and creates its grocery list. Would you like to use it?",
+    handoff: "Shopping List opens first. Select Grocery Store Coach, then Build a Meal, and request your meal there.",
+    direct: "Open Create a Meal.",
+  },
+];
+
+test.each(shoppingWorkflows)("$id: recommend, persist, then confirm the same workflow without another AI pass", async workflow => {
+  model({ message: workflow.proposal, navigationIntent: "recommendation",
+    conciergeDecision: { mode: "food_assistance", destinationId: workflow.id,
+      goal: { ...unknown, activity: workflow.activity } },
+    recommendationMessage: workflow.proposal, handoffMessage: workflow.handoff });
+  const first = await run(workflow.question);
+  expect(first.presentation?.navigation).toMatchObject({
+    state: "recommendation_pending", destinationId: workflow.id, goal: { activity: workflow.activity },
+  });
+  expect(first.todayPlan.items).toHaveLength(0);
+  model({ message: workflow.handoff, navigationIntent: "confirmed", conciergeDecision: null,
+    handoffMessage: workflow.handoff });
+  const confirmed = await run("Yes, please.");
+  expect(confirmed.presentation?.destinationId).toBe(workflow.id);
+  expect(confirmed.presentation?.message).toBe(workflow.handoff);
+  expect(confirmed.todayPlan.items).toHaveLength(1);
+  expect(confirmed.todayPlan.items[0].destinationId).toBe(workflow.id);
+  expect(mockCreate).toHaveBeenCalledTimes(2);
+  const wire = mockCreate.mock.calls[0][0];
+  const data = JSON.parse(wire.messages[1].content);
+  expect(data.availableFeatures.some((feature: any) => feature.id === workflow.id)).toBe(true);
+  expect(wire.messages[0].content).toContain("Interpret the intended outcome");
+  expect(wire.messages[0].content).toContain("not this chat");
+});
+
+test.each(shoppingWorkflows.flatMap(workflow => workflow.id === "grocery_create_meal"
+  ? [workflow, { ...workflow, direct: "Open Build a Meal." }] : [workflow]))("$id: explicit named request can navigate immediately", async workflow => {
+  model({ message: workflow.handoff, navigationIntent: "direct_request",
+    conciergeDecision: { mode: "food_assistance", destinationId: workflow.id,
+      goal: { ...unknown, activity: workflow.activity, explicitFeatureId: workflow.id } },
+    handoffMessage: workflow.handoff });
+  const response = await run(workflow.direct);
+  expect(response.presentation?.destinationId).toBe(workflow.id);
+  expect(response.todayPlan.items).toHaveLength(1);
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+});
+
+test.each(shoppingWorkflows)("$id: declining clears the offer and a later Yes cannot resurrect it", async workflow => {
+  model({ message: workflow.proposal, navigationIntent: "recommendation",
+    conciergeDecision: { mode: "food_assistance", destinationId: workflow.id,
+      goal: { ...unknown, activity: workflow.activity } },
+    recommendationMessage: workflow.proposal, handoffMessage: workflow.handoff });
+  await run(workflow.question);
+  model({ message: "We can keep talking about what you need.", navigationIntent: "none", conciergeDecision: null });
+  const declined = await run("No thanks, I'd rather keep talking.");
+  expect(declined.presentation?.navigation).toBeUndefined();
+  expect(declined.todayPlan.items).toHaveLength(0);
+  model({ message: "What would you like help with?", navigationIntent: "confirmed", conciergeDecision: null });
+  const stale = await run("Yes.");
+  expect(stale.presentation?.destinationId).toBeUndefined();
+  expect(stale.todayPlan.items).toHaveLength(0);
+});
+
+test("a falsely explicit shopping request cannot skip consent", async () => {
+  const workflow = shoppingWorkflows[0];
+  model({ message: workflow.proposal, navigationIntent: "direct_request",
+    conciergeDecision: { mode: "food_assistance", destinationId: workflow.id,
+      goal: { ...unknown, activity: workflow.activity, explicitFeatureId: workflow.id } },
+    recommendationMessage: workflow.proposal, handoffMessage: workflow.handoff });
+  const response = await run(workflow.question);
+  expect(response.presentation?.destinationId).toBeUndefined();
+  expect(response.presentation?.navigation?.destinationId).toBe(workflow.id);
+  expect(response.todayPlan.items).toHaveLength(0);
+});
+
+test.each(shoppingWorkflows)("$id: a different shopping task cannot authorize this workflow", async workflow => {
+  const other = shoppingWorkflows.find(candidate => candidate.id !== workflow.id)!;
+  model({ message: workflow.proposal, navigationIntent: "recommendation",
+    conciergeDecision: { mode: "food_assistance", destinationId: workflow.id,
+      goal: { ...unknown, activity: other.activity } },
+    recommendationMessage: workflow.proposal, handoffMessage: workflow.handoff });
+  const response = await run(other.question);
+  expect(response.presentation?.destinationId).toBeUndefined();
+  expect(response.presentation?.navigation).toBeUndefined();
+  expect(response.todayPlan.items).toHaveLength(0);
+});
+
 test("exact live failure goes through engine persistence, then restored Yes renders the handoff button", async () => {
   model();
   const first = await run(request);

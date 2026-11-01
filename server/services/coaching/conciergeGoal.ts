@@ -1,5 +1,5 @@
 import { ConciergeDecisionSchema, type ConciergeDecision, type ConciergeGoal } from "../../../shared/coaching/schemas";
-import { COACH_DESTINATIONS, isCoachDestinationId, type CoachDestinationId } from "../../../shared/coaching/navigation";
+import { mentionsCoachDestination, isCoachDestinationId, type CoachDestinationId } from "../../../shared/coaching/navigation";
 
 const unknownGoal: ConciergeGoal = {
   activity: "unknown", occasion: "unknown", restaurant: "unknown",
@@ -14,6 +14,9 @@ const unknownGoal: ConciergeGoal = {
  */
 function goalFits(id: CoachDestinationId, goal: ConciergeGoal): boolean {
   switch (id) {
+    case "grocery_find_product": return goal.activity === "find_product";
+    case "product_scan": return goal.activity === "evaluate_product";
+    case "grocery_create_meal": return goal.activity === "shop_for_meal";
     case "craving_creator":
       return goal.activity === "prepare" && goal.occasion === "snack" && goal.specialty === "none";
     case "create_a_dish":
@@ -70,18 +73,25 @@ export function validateConciergeGoal(
   // A literal feature name is required for the explicit-request exception, but
   // the model still decides whether it is a request, negation, or discussion.
   const explicitlyRequested = goal?.explicitFeatureId === id && memberMessages.some(message =>
-    message.toLocaleLowerCase().includes(COACH_DESTINATIONS[id].label.toLocaleLowerCase()));
+    mentionsCoachDestination(message, id));
   if (availableTools.some(tool => tool.id === id) && goal && (explicitlyRequested || goalFits(id, goal))) {
     return decision;
   }
   return { mode: "clarification", destinationId: null, goal: goal ?? { ...unknownGoal } };
 }
 
+/** Shared by the active single call and preserved compatibility prompts. */
+export const SHOPPING_GOAL_INSTRUCTIONS = [
+  "SHOPPING TASKS: Interpret the intended outcome, not food names, brands or keyword triggers. Wanting the platform to find a grocery product to buy fits find_product and grocery_find_product. Evaluating an actual product the member has or is considering fits evaluate_product and product_scan. Wanting a meal idea AND ingredients to purchase fits shop_for_meal and grocery_create_meal, not a generic dish creator. A food mention alone establishes none of these. If discovery versus evaluation is genuinely unresolved, clarify naturally.",
+  "Shopping destinations open only Shopping List. Explain the appropriate control and tab: Grocery Store Coach > Find a Product, Product Scan, or Grocery Store Coach > Build a Meal (also called Create a Meal). Never claim a dialog/tab was opened, a product/request transferred, or shopping completed. Personalized product recommendations, label evaluation, meals and lists are performed by those existing features, not this chat.",
+].join("\n");
+
 /** Shared by reasoning and expression; no fixed question sequence or quotas. */
 export const CONCIERGE_GOAL_INSTRUCTIONS = [
   "GOAL READINESS: Interpret the current goal from the latest member message and relevant history. Never select a feature from food/flavor words alone.",
   "Return goal with activity, occasion, restaurant, dishChosen, specialty, explicitFeatureId. Unknown is valid: do not invent a value to justify a destination.",
-  "activity: unknown | prepare | eat_out | use_ingredients | plan_meals | hydration | buffet | travel | gathering | calculator | child_feeding.",
+  "activity: unknown | prepare | eat_out | use_ingredients | plan_meals | hydration | buffet | travel | gathering | calculator | child_feeding | find_product | evaluate_product | shop_for_meal.",
+  SHOPPING_GOAL_INSTRUCTIONS,
   "occasion: unknown | snack | meal | dessert | beverage. restaurant: unknown | chosen | not_chosen. specialty: none | sushi | workout. dishChosen: true only for an actual chosen dish.",
   "explicitFeatureId: exact available ID only when the member explicitly asks to use/open that named feature; otherwise null. A discussion, food mention, or previous assistant recommendation is not a member request.",
   "Food preference (light, flavorful, spicy, seafood, sushi, sweet, etc.) does not by itself establish activity or occasion. Unknown critical distinctions mean clarification and destinationId=null.",

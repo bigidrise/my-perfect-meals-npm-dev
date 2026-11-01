@@ -8,15 +8,15 @@ export const PLATFORM_HELP_KNOWLEDGE = {
     route: "/shopping-list-v2",
     access: "Essential access; Grocery Store Coach separately requires the grocery_coach entitlement (Pro) or existing FULL_ACCESS.",
     controls: [
-      "Grocery Store Coach is a labeled control on the Shopping List page. It opens a sheet with meal and product assistance, not another page.",
-      "Product Scan is a separate labeled control on Shopping List. It opens the product-label capture dialog to evaluate a product against the authorized profile.",
+      "Grocery Store Coach is a labeled control on Shopping List. It opens a sheet, not another page. Find a Product uses onboarding and the personal nutrition profile to find three suitable product recommendations to buy. Build a Meal (also called Create a Meal) generates a meal and its grocery list.",
+      "Product Scan is a separate labeled control on Shopping List. It opens the product-label capture dialog to evaluate an actual product against the authorized profile, explain suitability and potentially recommend three alternatives.",
       "Saved Groceries opens saved products, distinct from saved meal recipes in Favorites.",
       "Shopping List supports meal/date-derived needs and a separate My List for personal additions, checked items, barcode lookup, voice additions and grocery export.",
     ],
     limits: [
       "Do not promise live retailer stock, completed checkout or automatic purchases.",
       "Product Scan label analysis, barcode lookup and Recipe Maker are different tools. Product Scan is not a button on every builder.",
-      "The Shopping List route exists, but Chef has no approved navigation button or prefill for it or its nested controls.",
+      "The three approved shopping workflow destinations open only Shopping List. Tell the member which control and tab to select. No approved subsection deep link, automatic dialog/tab opening, product prefill or request transfer exists. Recommendations require permission before a button; explicit named-feature requests use the existing direct-request validation.",
     ],
   },
   recipeMaker: {

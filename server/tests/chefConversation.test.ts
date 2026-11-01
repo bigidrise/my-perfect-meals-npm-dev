@@ -571,7 +571,6 @@ test.each([
   ["I don't know how to use My Perfect Meals.", "There are several ways to get started. Would you like help making meals, shopping, or tracking your nutrition?"],
   ["How do I make my meals?", "Meal Builders, Create a Dish and Fridge Rescue help with different starting points. Do you have a dish in mind or ingredients you want to use?"],
   ["Help me plan seven days of meals.", "Your existing builder holds dated meal boards. My Perfect Menu helps choose ideas for that workflow. I can't open those planning tools from Chef yet."],
-  ["Find grocery products that fit my nutrition needs.", "Grocery Store Coach's product mode is inside Shopping List. I can't provide its navigation button here yet."],
   ["Where can I keep a private daily journal?", "Use Daily Journal & Inspiration. I can't open it from Chef yet."],
   ["How do I track my weight?", "My Biometrics includes weight tracking and trends. I can't open that page from Chef yet."],
 ])("platform guidance stays conversational without a forced action: %s", async (question, answer) => {

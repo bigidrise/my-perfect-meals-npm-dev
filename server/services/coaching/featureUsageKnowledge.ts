@@ -13,6 +13,24 @@ interface FeatureUsageKnowledge {
  * that have not been reviewed; the model must not fill gaps by guessing.
  */
 export const FEATURE_USAGE_KNOWLEDGE: Partial<Record<CoachDestinationId, FeatureUsageKnowledge>> = {
+  grocery_find_product: {
+    descriptionInput: "In Shopping List, select Grocery Store Coach, then Find a Product. Enter the kind of grocery product you want to buy.",
+    controls: ["Find a Product is a tab inside Grocery Store Coach, not Product Scan.", "Text and voice input remain owned by Grocery Coach."],
+    generationAction: "Submit the request there for three personalized product recommendations using onboarding and the member's nutrition profile.",
+    notes: ["Chef opens only Shopping List and must explain these next steps. No automatic tab opening or prefill.", "Existing Pro access and product safeguards govern results. Never invent products, evidence, availability or medical suitability to reach three options."],
+  },
+  product_scan: {
+    descriptionInput: "In Shopping List, select Product Scan and capture the actual grocery product you want evaluated.",
+    controls: ["Product Scan is separate from Grocery Store Coach's Find a Product tab."],
+    generationAction: "Scan the product there for profile-based evaluation, an explanation of suitability and potentially three alternative products.",
+    notes: ["Chef opens only Shopping List, not the scan dialog. No automatic scan or transfer.", "The existing product workflow owns label evidence, nutrition checks and alternatives; Chef must not perform that evaluation in chat."],
+  },
+  grocery_create_meal: {
+    descriptionInput: "In Shopping List, select Grocery Store Coach, then Build a Meal (also called Create a Meal). Describe the meal help you want.",
+    controls: ["Build a Meal and Find a Product are separate tabs in the same Coach sheet."],
+    generationAction: "Request the meal there to generate a meal and corresponding grocery list.",
+    notes: ["Chef opens only Shopping List, not the Coach sheet or its meal tab. No automatic generation or request transfer.", "Existing Pro access, profile and food safeguards remain authoritative."],
+  },
   // client/src/pages/lifestyle/MyPerfectGetaway.tsx
   my_perfect_getaway: {
     descriptionInput: "Search location or venue, or choose one of the Tap & Go destinations.",

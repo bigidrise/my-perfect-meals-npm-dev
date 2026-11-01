@@ -67,8 +67,14 @@ test("platform help describes verified nested controls without extending navigat
   expect(help.tutorialsAndGuides.controls.join(" ")).toContain("does not render a Guide button");
   expect(help.copilot.entryPoint).toContain("lower-right");
   expect(help.copilot.controls.join(" ")).toContain("Autoplay");
-  expect(Object.keys(COACH_DESTINATIONS)).toHaveLength(17);
-  for (const id of ["shopping_list", "grocery_coach", "product_scan", "recipe_maker", "sources", "tutorials", "learn", "copilot"]) {
+  expect(Object.keys(COACH_DESTINATIONS)).toHaveLength(20);
+  for (const id of ["grocery_find_product", "product_scan", "grocery_create_meal"] as const) {
+    expect(COACH_DESTINATIONS[id].route).toBe("/shopping-list-v2");
+    expect(getDevelopmentPlatformKnowledge()!.featureUsage[id]?.notes.join(" ")).toContain("Chef opens only Shopping List");
+  }
+  expect(help.shopping.controls.join(" ")).toContain("three");
+  expect(help.shopping.controls.join(" ")).toContain("nutrition profile");
+  for (const id of ["shopping_list", "grocery_coach", "recipe_maker", "sources", "tutorials", "learn", "copilot"]) {
     expect(COACH_DESTINATIONS).not.toHaveProperty(id);
   }
 });

@@ -3,6 +3,9 @@
  * reviewed Create a Dish text prefill, never arbitrary routes or generation.
  */
 export const COACH_DESTINATIONS = {
+  grocery_find_product: { label: "Find a Product", route: "/shopping-list-v2", access: "pro" },
+  product_scan: { label: "Product Scan", route: "/shopping-list-v2", access: "essential" },
+  grocery_create_meal: { label: "Grocery Coach — Create a Meal", route: "/shopping-list-v2", access: "pro" },
   sushi_creator: { label: "Sushi Creator", route: "/lifestyle/sushi-creator", access: "pro" },
   craving_creator: { label: "Craving Creator", route: "/craving-creator", access: "pro" },
   dessert_creator: { label: "Dessert Creator", route: "/craving-desserts", access: "pro" },
@@ -26,16 +29,26 @@ export const COACH_DESTINATIONS = {
 
 export type CoachDestinationId = keyof typeof COACH_DESTINATIONS;
 
+/** Reviewed feature names bind explicit requests; never classify product words. */
+export function mentionsCoachDestination(message: string, id: CoachDestinationId): boolean {
+  const names = id === "grocery_create_meal"
+    ? [COACH_DESTINATIONS[id].label, "Create a Meal", "Build a Meal"]
+    : [COACH_DESTINATIONS[id].label];
+  return names.some(name => message.toLocaleLowerCase().includes(name.toLocaleLowerCase()));
+}
+
 export function isCoachDestinationId(value: unknown): value is CoachDestinationId {
   return typeof value === "string" &&
     Object.prototype.hasOwnProperty.call(COACH_DESTINATIONS, value);
 }
 
-/** Exact legacy routes are accepted for existing model output, never arbitrary URLs. */
+/** Unambiguous exact legacy routes only; never arbitrary URLs or guessed workflows. */
 export function resolveCoachDestinationId(value: unknown): CoachDestinationId | undefined {
   if (isCoachDestinationId(value)) return value;
-  return (Object.keys(COACH_DESTINATIONS) as CoachDestinationId[])
-    .find(id => COACH_DESTINATIONS[id].route === value);
+  const matches = (Object.keys(COACH_DESTINATIONS) as CoachDestinationId[])
+    .filter(id => COACH_DESTINATIONS[id].route === value);
+  // A shared parent URL cannot establish which nested workflow was chosen.
+  return matches.length === 1 ? matches[0] : undefined;
 }
 
 /** Only the server calls this on model output before persistence/response. */
