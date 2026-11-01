@@ -1,3 +1,5 @@
+import { chefMemberText } from "@/lib/chefMemberBranding";
+
 export interface QuizQuestion {
   id: string;
   question: string;
@@ -437,7 +439,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
           "A user wants to plan meals for Thursday. What does she do first inside her builder?",
         options: [
           "Tap the Preferences panel to unlock Thursday's slots.",
-          "Open Coach's Corner and select Thursday from the schedule.",
+          chefMemberText("Open Coach's Corner and select Thursday from the schedule."),
           "Tap the Thursday tab, then tap any empty meal slot.",
           "Generate a full week at once using the Save Plan screen.",
         ],
@@ -930,7 +932,7 @@ export const PLATFORM_MASTERY_LESSONS: PlatformMasteryLesson[] = [
       },
       {
         heading: "Daily Wellbeing — Energy, Sleep, Stress, Hydration",
-        body: "The Daily Wellbeing check-in is a short four-question log you can complete in under a minute.\n\n- **Energy level** — How your body feels physically (1-5 scale)\n- **Sleep quality** — How you slept the previous night\n- **Stress level** — Psychological and lifestyle stress\n- **Hydration** — Estimated daily water intake\n\nWhy this matters for nutrition:\n\nPoor sleep raises cortisol, which promotes fat storage and increases cravings for high-calorie foods. Chronic stress depletes recovery capacity. Dehydration affects metabolic efficiency and hunger signaling. These factors explain why two people on the same meal plan can experience different results.\n\nCoach's Corner reads your daily wellbeing logs and uses them to contextualize your guidance. Log honestly — it's not a judgment, it's data.",
+        body: chefMemberText("The Daily Wellbeing check-in is a short four-question log you can complete in under a minute.\n\n- **Energy level** — How your body feels physically (1-5 scale)\n- **Sleep quality** — How you slept the previous night\n- **Stress level** — Psychological and lifestyle stress\n- **Hydration** — Estimated daily water intake\n\nWhy this matters for nutrition:\n\nPoor sleep raises cortisol, which promotes fat storage and increases cravings for high-calorie foods. Chronic stress depletes recovery capacity. Dehydration affects metabolic efficiency and hunger signaling. These factors explain why two people on the same meal plan can experience different results.\n\nCoach's Corner reads your daily wellbeing logs and uses them to contextualize your guidance. Log honestly — it's not a judgment, it's data."),
       },
       {
         heading: "Reading Your Dashboard — Macro Check-In",

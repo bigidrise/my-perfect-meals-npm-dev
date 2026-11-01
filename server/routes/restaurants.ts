@@ -2,6 +2,7 @@
 // Refactored: Uses shared Restaurant Resolver (January 2026)
 // Phase 2: Restaurant Intelligence Engine integration
 import { Router } from "express";
+import { publishedRestaurantServing } from "../../shared/restaurantServing";
 import axios from "axios";
 import { resolveRestaurantsByZip } from "../services/restaurantResolver";
 import { coordsToZip } from "../services/zipToCoordsService";
@@ -30,6 +31,8 @@ import { createHumanFoodRequestScope } from "../services/humanFoodContext/reques
 import { requiresVerifiedIngredientEvidence } from "../services/foodCompositionEvidence";
 import { buildHumanFoodPromptBlock } from "../services/humanFoodContext/buildHumanFoodPromptBlock";
 import { applyRestaurantGlucoseProduceAdvisory } from "../services/restaurantGlucoseAdvisory";
+import { resolveGetawayRestaurantContext } from "../services/getawayRestaurantContext";
+import { validateDiabeticMeal } from "../services/guardrails/validators/diabeticValidator";
 
 // ── Alpha-gal condition detection keys (mirrors medicalBadges.ts) ─────────────
 const ALPHA_GAL_KEYS = [
@@ -109,7 +112,7 @@ router.post("/guide", async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).authUser.id;
     const {
-      restaurantName,
+      restaurantName: requestedRestaurantName,
       craving,
       cuisine,
       zipCode,
@@ -117,6 +120,17 @@ router.post("/guide", async (req, res) => {
       governanceOverrideToken,
       governanceAction = "restaurant-guide",
     } = req.body;
+    let selectedVenue: ReturnType<typeof resolveGetawayRestaurantContext> | undefined;
+    if (process.env.NODE_ENV === "development" && req.body.getawayVenue !== undefined) {
+      try {
+        selectedVenue = resolveGetawayRestaurantContext(req.body.getawayVenue, requestedRestaurantName);
+      } catch {
+        return res.status(400).json({
+          error: "Please select the destination again and enter the restaurant or dining venue you want.",
+        });
+      }
+    }
+    const restaurantName = selectedVenue?.restaurantName ?? requestedRestaurantName;
     
     if (!restaurantName || !craving) {
       return res.status(400).json({ 
@@ -124,7 +138,7 @@ router.post("/guide", async (req, res) => {
       });
     }
 
-    if (!zipCode || !/^\d{5}$/.test(zipCode)) {
+    if (!selectedVenue && (!zipCode || !/^\d{5}$/.test(zipCode))) {
       return res.status(400).json({ 
         error: "Valid 5-digit ZIP code is required" 
       });
@@ -203,7 +217,7 @@ router.post("/guide", async (req, res) => {
     const effectiveAllergies: string[] = (user?.allergies as string[]) || [];
 
     // ── Step 1: Resolve location (for display, not for engine routing) ─────────
-    const resolverResult = await resolveRestaurantsByZip({
+    const resolverResult = selectedVenue ? { success: false, restaurants: [] } : await resolveRestaurantsByZip({
       query: restaurantName,
       zipCode,
       radiusMiles: 10,
@@ -212,7 +226,7 @@ router.post("/guide", async (req, res) => {
     });
 
     let restaurantInfo: { name: string; address: string; rating?: number; photoUrl?: string };
-    let detectedCuisine = cuisine || 'American';
+    let detectedCuisine = selectedVenue?.cuisine || cuisine || 'American';
 
     if (resolverResult.success && resolverResult.restaurants.length > 0) {
       const r = resolverResult.restaurants[0];
@@ -221,7 +235,7 @@ router.post("/guide", async (req, res) => {
       console.log(`📍 [Guide] Resolver found: ${restaurantInfo.name} at ${restaurantInfo.address}`);
     } else {
       console.warn(`⚠️ [Guide] Resolver found nothing for "${restaurantName}" — using input name`);
-      restaurantInfo = { name: restaurantName, address: `Near ${zipCode}` };
+      restaurantInfo = { name: restaurantName, address: selectedVenue?.destinationName ?? `Near ${zipCode}` };
     }
 
     // ── Step 2: Restaurant Intelligence Engine ────────────────────────────────
@@ -235,6 +249,12 @@ router.post("/guide", async (req, res) => {
     });
 
     if (engineResult.status === "unavailable") {
+      if (selectedVenue && !selectedVenue.cuisineKnown) {
+        releaseClaimedGovernanceToken();
+        return res.status(422).json({
+          error: "This venue's dining category could not be identified. Enter an identifiable restaurant or dining concept, such as a burger restaurant or buffet. General Getaway advice remains available.",
+        });
+      }
       // Engine has no verified menu data for this restaurant.
       // Fall back to AI generation so Restaurant Guide and Fast Food Hub always work.
       console.log(
@@ -324,6 +344,7 @@ router.post("/guide", async (req, res) => {
         protocolEnvelope: fallbackActionEnvelope,
         builderBlock: fallbackContext?.builderBlock || undefined,
         remainingMacrosBlock: fallbackRemainingMacrosBlock || undefined,
+        skipImages: process.env.NODE_ENV === "development",
       });
 
       // ── GLP-1 post-gen meal filtering ─────────────────────────────────────────
@@ -334,6 +355,8 @@ router.post("/guide", async (req, res) => {
         const t = fallbackGlp1Ctx.resolvedTargets;
         filteredAiRecs = aiRecs.filter((rec: any) => {
           const fat = Number(rec.fat ?? rec.fatGrams);
+          if (process.env.NODE_ENV === "development" &&
+            (!Number.isFinite(rec.fat ?? rec.fatGrams) || !Number.isFinite(rec.calories))) return false;
           const cal = Number(rec.calories ?? rec.estimatedCalories);
           if (Number.isFinite(fat) && fat > t.maximumToleratedFatGrams) {
             console.warn(`[Guide/AI/GLP-1] Filtered "${rec.name}" — fat ${fat}g > ceiling ${t.maximumToleratedFatGrams}g`);
@@ -357,6 +380,14 @@ router.post("/guide", async (req, res) => {
         })),
         isAlphaGalActive(user),
       );
+      if (process.env.NODE_ENV === "development" && aiRecsWithBadges.length === 0) {
+        releaseClaimedGovernanceToken();
+        return res.status(503).json({
+          code: "RESTAURANT_RECOMMENDATIONS_UNAVAILABLE",
+          error: "Suitable meal recommendations could not be verified. Please try again or confirm ingredients with the restaurant.",
+          retryable: true,
+        });
+      }
 
       if (aiRecsWithBadges.length > 0 && claimedGovernanceToken) {
         commitAdvisoryOverrideToken(claimedGovernanceToken);
@@ -366,6 +397,7 @@ router.post("/guide", async (req, res) => {
       }
       res.json({
         recommendations: aiRecsWithBadges,
+        ...(selectedVenue ? { selectedVenue } : {}),
         compositionEvidence: "unverified",
         compositionNote: "Menu availability, complete ingredients, preparation, and nutrition were not verified. Nutrition numbers are estimates; confirm details with the restaurant.",
         restaurantInfo,
@@ -427,6 +459,13 @@ router.post("/guide", async (req, res) => {
     const [guideContext] = await Promise.all([
       getActiveNutritionContext(userId),
     ]);
+    if (process.env.NODE_ENV === "development" &&
+      (!guideContext?.envelope || guideContext.envelope.userId === "guest")) {
+      releaseClaimedGovernanceToken();
+      return res.status(503).json({
+        error: "Your active food-safety information is unavailable. Please try again.", retryable: true,
+      });
+    }
     const guideGlp1Block = guideGlp1Ctx ? buildGLP1RecommendationBlock(guideGlp1Ctx) : "";
     console.log(
       `🔒 [Guide] Nutrition context: diet=[${guideContext.diet.join(",")}] ` +
@@ -434,10 +473,23 @@ router.post("/guide", async (req, res) => {
       `glp1=${guideGlp1Ctx?.isActive ? `ACTIVE[${guideGlp1Ctx.activationSources.join(",")}]` : "inactive"}`
     );
 
+    let guideRemainingBudget = "";
+    if (process.env.NODE_ENV === "development") {
+      try {
+        const state = await resolveDailyNutritionState(userId, todayISO);
+        guideRemainingBudget = buildRemainingMacrosBlock(state?.consumedRemaining ?? state?.remaining);
+        if (state?.resolution?.status === "NEEDS_REVIEW") {
+          guideRemainingBudget += "\nNUTRITION STATE NEEDS REVIEW: Do not claim starch is available or exhausted.";
+        }
+      } catch {
+        guideRemainingBudget = "NUTRITION STATE UNAVAILABLE: Do not make remaining-macro or starch-availability claims.";
+      }
+    }
     // Combine protocol block with GLP-1 recommendation guidance
     const guideProtocolBlock = [
       guideContext.combinedBlock,
       guideGlp1Block,
+      guideRemainingBudget,
       humanFoodPrompt,
       nutritionPriorityEvidenceBoundary,
     ].filter(Boolean).join("\n\n") || guideContext.combinedBlock;
@@ -482,13 +534,25 @@ router.post("/guide", async (req, res) => {
     // ── GLP-1 post-gen meal filtering (verified-menu branch) ─────────────────
     // Filter any recommendation whose fat or calorie estimate exceeds the
     // patient-specific ceiling — verified menu items carry calorie/fat fields.
-    let verifiedFiltered: typeof recommendations = recommendations;
+    const diabeticSafeRecommendations = process.env.NODE_ENV === "development" && guideActionEnvelope.hasDiabetes
+      ? recommendations.filter((rec: any) => {
+          const meal = rec.meal ?? rec;
+          return validateDiabeticMeal({
+            name: meal.name, description: meal.description, ingredients: meal.ingredients,
+            macros: { carbs: meal.carbohydrateGrams ?? meal.carbs },
+          }, { glucoseState: guideActionEnvelope.diabeticGlucoseState ?? undefined }).isValid;
+        })
+      : recommendations;
+    let verifiedFiltered: typeof recommendations = diabeticSafeRecommendations;
     if (guideGlp1Ctx.isActive && guideGlp1Ctx.resolvedTargets) {
       const t = guideGlp1Ctx.resolvedTargets;
       const beforeLen = recommendations.length;
-      verifiedFiltered = recommendations.filter((rec: any) => {
-        const fat = Number(rec.fat ?? rec.fatGrams);
-        const cal = Number(rec.calories);
+      verifiedFiltered = diabeticSafeRecommendations.filter((rec: any) => {
+        const meal = process.env.NODE_ENV === "development" ? rec.meal ?? rec : rec;
+        const fat = Number(meal.fat ?? meal.fatGrams);
+        const cal = Number(meal.calories);
+        if (process.env.NODE_ENV === "development" &&
+          (!Number.isFinite(meal.fat ?? meal.fatGrams) || !Number.isFinite(meal.calories))) return false;
         if (Number.isFinite(fat) && fat > t.maximumToleratedFatGrams) {
           console.warn(`[Guide/GLP-1] Filtered "${rec.name}" — fat ${fat}g > ceiling ${t.maximumToleratedFatGrams}g`);
           return false;
@@ -514,8 +578,13 @@ router.post("/guide", async (req, res) => {
     }
     res.json({
       status: "ok",
+      ...(selectedVenue ? { selectedVenue } : {}),
       recommendations: finalRecommendations.map((meal: any) => ({
         ...meal,
+        ...(process.env.NODE_ENV === "development" ? { meal: { ...meal.meal,
+          serving: publishedRestaurantServing({ name: meal.meal.name,
+            calories: meal.meal.calories, protein: meal.meal.proteinGrams,
+            carbs: meal.meal.carbohydrateGrams, fat: meal.meal.fatGrams }) } } : {}),
         compositionEvidence: "menu-item-only",
       })),
       compositionEvidence: "menu-item-only",

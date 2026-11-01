@@ -10,6 +10,8 @@ import { getAuthHeaders } from "@/lib/auth";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { GETAWAY_MENU_NOTICE, qualifyGetawayAdvice } from "@shared/getawayEvidence";
+import GetawayVenueMeals from "@/components/away-from-home/GetawayVenueMeals";
 
 interface CatalogZone {
   id: string;
@@ -26,6 +28,7 @@ interface CatalogVenue {
 }
 
 interface DiscoveryResult {
+  uncertainty?: string;
   source: "catalog" | "google" | "none";
   found: boolean;
   venueId?: string;
@@ -49,6 +52,7 @@ interface AvoidItem {
 }
 
 interface GetawayResult {
+  evidence?: { version?: number; menuStatus?: string };
   venue: string;
   venueType: string;
   zone?: string | null;
@@ -62,6 +66,7 @@ interface GetawayResult {
 interface PersistedState {
   result: GetawayResult;
   message: string;
+  activeVenueContext?: { venueId?: string; zoneId?: string; discoveredVenue?: Record<string, any> };
 }
 
 const QUICK_VENUES = [
@@ -111,6 +116,8 @@ function getStorageKey(userId?: number | string) {
 }
 
 export default function MyPerfectGetaway() {
+  const reliable = import.meta.env.DEV;
+  const venueSearchRequestRef = useRef(0);
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { requestUpgrade } = useUpgradeModal();
@@ -128,6 +135,7 @@ export default function MyPerfectGetaway() {
   const [followUpMessage, setFollowUpMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GetawayResult | null>(null);
+  const [venueMealsActive, setVenueMealsActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -166,8 +174,14 @@ export default function MyPerfectGetaway() {
       if (raw) {
         const saved: PersistedState = JSON.parse(raw);
         if (saved?.result) {
-          setResult(saved.result);
+          const restored = reliable ? qualifyGetawayAdvice(saved.result) : saved.result;
+          if (reliable && saved.result.evidence?.version !== 1) {
+            restored.venue = "Saved location not verified — search your venue again";
+            restored.zone = null;
+          }
+          setResult(restored);
           setMessage(saved.message || "");
+          if (reliable) setActiveVenueContext(saved.activeVenueContext ?? null);
         }
       }
     } catch {}
@@ -212,6 +226,7 @@ export default function MyPerfectGetaway() {
     setLoading(true);
     setError(null);
     setResult(null);
+    setVenueMealsActive(false);
     setProgress(0);
     setShowZonePicker(false);
     setDiscoveryResult(null);
@@ -243,7 +258,8 @@ export default function MyPerfectGetaway() {
         throw new Error(body2.error || "Something went wrong");
       }
 
-      const data: GetawayResult = await res.json();
+      const payload: GetawayResult = await res.json();
+      const data = reliable ? qualifyGetawayAdvice(payload) : payload;
       // Capture venue context for follow-up conversation turns
       setActiveVenueContext({
         venueId: venueId,
@@ -255,7 +271,8 @@ export default function MyPerfectGetaway() {
         setLoading(false);
         try {
           const key = getStorageKey(user?.id);
-          sessionStorage.setItem(key, JSON.stringify({ result: data, message: trimmed }));
+          sessionStorage.setItem(key, JSON.stringify({ result: data, message: trimmed,
+            ...(reliable ? { activeVenueContext: { venueId, zoneId, discoveredVenue: discoveredVenuePayload } } : {}) }));
         } catch {}
       }, 300);
     } catch (err: any) {
@@ -322,6 +339,14 @@ export default function MyPerfectGetaway() {
 
     setVenueSearchLoading(true);
     setDiscoveryResult(null);
+    const requestId = ++venueSearchRequestRef.current;
+    if (reliable) {
+      setResult(null);
+      setActiveVenueContext(null);
+      setPendingVenue(null);
+      setShowZonePicker(false);
+      try { sessionStorage.removeItem(getStorageKey(user?.id)); } catch {}
+    }
 
     try {
       const res = await fetch(
@@ -329,6 +354,8 @@ export default function MyPerfectGetaway() {
         { headers: getAuthHeaders() }
       );
       const data: DiscoveryResult = await res.json();
+      if (reliable && requestId !== venueSearchRequestRef.current) return;
+      if (reliable && !res.ok) throw new Error("Venue search unavailable");
       setDiscoveryResult(data);
 
       if (data.found && data.zones.length === 0) {
@@ -346,9 +373,10 @@ export default function MyPerfectGetaway() {
         }
       }
     } catch {
+      if (reliable && requestId !== venueSearchRequestRef.current) return;
       setDiscoveryResult({ source: "none", found: false, name: q, type: "other", zones: [], confidence: "low" });
     } finally {
-      setVenueSearchLoading(false);
+      if (!reliable || requestId === venueSearchRequestRef.current) setVenueSearchLoading(false);
     }
   };
 
@@ -480,7 +508,13 @@ export default function MyPerfectGetaway() {
                   ref={venueSearchRef}
                   type="text"
                   value={venueSearchText}
-                  onChange={e => { setVenueSearchText(e.target.value); setDiscoveryResult(null); }}
+                  onChange={e => {
+                    setVenueSearchText(e.target.value); setDiscoveryResult(null);
+                    if (reliable) {
+                      venueSearchRequestRef.current++;
+                      setVenueSearchLoading(false);
+                    }
+                  }}
                   onKeyDown={handleSearchKeyDown}
                   placeholder="Search location or venue…"
                   className="w-full bg-black/40 border border-orange-500/30 rounded-xl pl-10 pr-14 py-3.5 text-white text-sm placeholder-white/30 focus:outline-none focus:border-orange-400/60 focus:ring-1 focus:ring-orange-400/30"
@@ -546,7 +580,9 @@ export default function MyPerfectGetaway() {
             {discoveryResult && !discoveryResult.found && (
               <div className="mb-4 rounded-xl bg-black/40 border border-orange-500/20 px-4 py-4">
                 <p className="text-white/60 text-xs mb-3">
-                  We couldn't find that venue. Your coach can still help — just tap below.
+                  {reliable
+                    ? (discoveryResult.uncertainty || "We couldn't confidently identify this venue. Refine its name and city, or ask for general guidance with an unverified location.")
+                    : "We couldn't find that venue. Your coach can still help — just tap below."}
                 </p>
                 <button
                   onClick={() => {
@@ -664,6 +700,17 @@ export default function MyPerfectGetaway() {
           )}
         </AnimatePresence>
 
+        {reliable && !loading && (pendingVenue || discoveryResult?.found || result) && (() => {
+          const destinationName = pendingVenue?.name || discoveryResult?.name ||
+            activeVenueContext?.discoveredVenue?.name || result?.venue;
+          if (!destinationName) return null;
+          const venueId = pendingVenue?.id || discoveryResult?.venueId || activeVenueContext?.venueId;
+          const zoneId = selectedZone?.id || activeVenueContext?.zoneId;
+          return <GetawayVenueMeals key={`${destinationName}:${venueId || ""}:${zoneId || ""}`}
+            onRecommendationsChange={setVenueMealsActive}
+            destination={{ destinationName, ...(venueId ? { venueId } : {}), ...(zoneId ? { zoneId } : {}) }} />;
+        })()}
+
         {/* Loading */}
         <AnimatePresence>
           {loading && (
@@ -712,6 +759,10 @@ export default function MyPerfectGetaway() {
               transition={{ duration: 0.5 }}
               className="space-y-4"
             >
+              {venueMealsActive && <p className="rounded-xl border border-white/15 p-3 text-xs text-white/70">
+                Earlier destination context — not meal recommendations for the selected dining venue.
+                The personalized meal cards above are your current meal choices.
+              </p>}
               {/* Venue + zone badge row */}
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-500/15 border border-orange-500/30 rounded-full">
@@ -725,12 +776,18 @@ export default function MyPerfectGetaway() {
                 )}
               </div>
 
+              {reliable && (
+                <p role="note" className="rounded-xl border border-orange-400/40 bg-black/50 px-4 py-3 text-sm text-orange-100">
+                  {GETAWAY_MENU_NOTICE}
+                </p>
+              )}
+
               {/* Best Choices */}
-              {result.bestChoices?.length > 0 && (
+              {!venueMealsActive && result.bestChoices?.length > 0 && (
                 <div className="rounded-2xl bg-black/40 border border-orange-500/20 overflow-hidden">
                   <div className="px-4 py-3 border-b border-orange-500/15 flex items-center gap-2">
                     <Star className="h-4 w-4 text-orange-400" />
-                    <h3 className="text-sm font-bold text-white">Best Choices For You</h3>
+                    <h3 className="text-sm font-bold text-white">{reliable ? "Ideas To Ask About — Menu Unverified" : "Best Choices For You"}</h3>
                   </div>
                   <div className="divide-y divide-white/8">
                     {result.bestChoices.map((choice, i) => (
@@ -741,10 +798,11 @@ export default function MyPerfectGetaway() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-white font-semibold text-sm leading-tight">{choice.name}</p>
+                            {reliable && <p className="text-orange-100/80 text-xs mt-1">Illustrative option — confirm whether offered</p>}
                             {choice.where && (
                               <p className="text-orange-300/80 text-xs mt-0.5 flex items-center gap-1">
                                 <MapPin className="h-2.5 w-2.5 flex-shrink-0" />
-                                {choice.where}
+                                {reliable ? `Possible location to ask about (unverified): ${choice.where}` : choice.where}
                               </p>
                             )}
                             {choice.why && (
@@ -759,7 +817,7 @@ export default function MyPerfectGetaway() {
               )}
 
               {/* Why These Fit */}
-              {result.whyTheyFit?.length > 0 && (
+              {!venueMealsActive && result.whyTheyFit?.length > 0 && (
                 <div className="rounded-2xl bg-black/30 border border-white/10 px-4 py-4">
                   <h3 className="text-xs font-bold text-white/60 uppercase tracking-wide mb-3">Why These Fit You</h3>
                   <div className="space-y-2">
@@ -774,7 +832,7 @@ export default function MyPerfectGetaway() {
               )}
 
               {/* What to Avoid */}
-              {result.avoid?.length > 0 && (
+              {!venueMealsActive && result.avoid?.length > 0 && (
                 <div className="rounded-2xl bg-red-950/20 border border-red-500/20 px-4 py-4">
                   <h3 className="text-xs font-bold text-red-300/70 uppercase tracking-wide mb-3">What To Avoid</h3>
                   <div className="space-y-2">

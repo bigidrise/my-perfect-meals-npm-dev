@@ -10,6 +10,19 @@
 
 // ─── Enumerations ────────────────────────────────────────────────────────────
 
+export interface ConciergePresentation {
+  kind: "concierge";
+  message: string;
+  destinationId?: import("./navigation").CoachDestinationId;
+  creatorRequest?: import("./creatorRequest").ChefCreatorRequest;
+  /** Server-owned turn state, persisted with the existing assistant payload. */
+  navigation?: {
+    state: "recommendation_pending" | "navigation_confirmed" | "direct_navigation";
+    destinationId: import("./navigation").CoachDestinationId;
+    goal: import("./schemas").ConciergeGoal;
+  };
+}
+
 export type CoachSpecialization = "corner" | "pregnancy" | "pediatric";
 
 export type SubjectType = "user" | "child";
@@ -291,6 +304,8 @@ export interface TodayPlanItem {
   completionSignal?: CompletionSignal;
   /** For use_feature items: which MPM feature to redirect to */
   featureTarget?: string;
+  /** Server-validated Stage 1 destination; never accepted from model output. */
+  destinationId?: import("./navigation").CoachDestinationId;
 }
 
 /**
@@ -317,6 +332,8 @@ export interface TodayPlan {
  * The server validates all fields before persisting or returning.
  */
 export interface CoachResponse {
+  /** Development-only display contract; legacy coaching fields remain internal. */
+  presentation?: ConciergePresentation;
   /** "I looked through your recent activity. I noticed..." */
   whatIFound: string;
   /** "This pattern often means..." */
@@ -331,6 +348,12 @@ export interface CoachResponse {
   learningOpportunity: string | null;
   /** Internal metadata — not shown to user */
   meta: {
+    /** Development-only technical trace; no member or clinical data. */
+    concierge?: {
+      revision: string;
+      reasoning: "validated" | "unavailable";
+      rendering: "primary" | "mini_fallback" | "retry";
+    };
     specialization: CoachSpecialization;
     confidence: ConfidenceLevel;
     styleMode: StyleMode;

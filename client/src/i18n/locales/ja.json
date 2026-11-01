@@ -1215,10 +1215,10 @@
     "tryAgain": "もう一度お試しください"
   },
   "coachCorner": {
-    "title": "コーチのコーナー",
+    "title": "Ask Chef",
     "learningDesc": "シェフはあなたに合ったものを学んでいます。",
     "startDesc": "シェフとのAIコーチング関係を始めましょう。",
-    "openBtn": "コーチのコーナーを開く"
+    "openBtn": "Ask Chefを開く"
   },
   "nutritionPlan": {
     "title": "あなたの栄養生活プラン",

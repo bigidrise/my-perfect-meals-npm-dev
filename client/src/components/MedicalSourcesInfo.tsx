@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { isChefConversationEnabled } from "@/lib/chefCornerExperience";
 import {
   Sheet,
   SheetContent,
@@ -15,6 +16,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
 import { apiRequest } from "@/lib/queryClient";
+
+const chefDisplayName = "Ask Chef";
+const coachDisplayName = "Ask Chef";
 
 interface MedicalSourcesInfoProps {
   trigger?: React.ReactNode;
@@ -157,7 +161,7 @@ export function MedicalSourcesInfo({
 
             <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Nutrition During GI Symptoms</p>
             <p className="text-white/40 text-xs mb-2">
-              Drives: GLP-1 Builder · Snack Creator · Meal Builders · Grocery Coach · Beverage Creator · Coach's Corner · Craving Creator · Fridge Rescue · Restaurant Guide · Getaways &amp; Travel Dining · Buffet Guidance · Find Your Meals · Weekly Meal Plan
+              Drives: GLP-1 Builder · Snack Creator · Meal Builders · Grocery Coach · Beverage Creator · {coachDisplayName} · Craving Creator · Fridge Rescue · Restaurant Guide · Getaways &amp; Travel Dining · Buffet Guidance · Find Your Meals · Weekly Meal Plan
             </p>
             <ul className="space-y-3 mb-5">
               <SourceItem
@@ -191,7 +195,7 @@ export function MedicalSourcesInfo({
 
             <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">GI Symptom Management — Reflux &amp; Diarrhea</p>
             <p className="text-white/40 text-xs mb-2">
-              Drives: Daily Tolerance Check-in · GLP-1 Builder · Coach's Corner
+              Drives: Daily Tolerance Check-in · GLP-1 Builder · {coachDisplayName}
             </p>
             <ul className="space-y-3 mb-5">
               <SourceItem
@@ -803,7 +807,7 @@ export function MedicalSourcesInfo({
 
             <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Nutrition During GI Symptoms</p>
             <p className="text-white/40 text-xs mb-2">
-              Drives: GLP-1 Builder · Snack Creator · Meal Builders · Grocery Coach · Beverage Creator · Coach's Corner · Craving Creator · Fridge Rescue · Restaurant Guide · Getaways &amp; Travel Dining · Buffet Guidance · Find Your Meals · Weekly Meal Plan
+              Drives: GLP-1 Builder · Snack Creator · Meal Builders · Grocery Coach · Beverage Creator · {coachDisplayName} · Craving Creator · Fridge Rescue · Restaurant Guide · Getaways &amp; Travel Dining · Buffet Guidance · Find Your Meals · Weekly Meal Plan
             </p>
             <ul className="space-y-3 mb-5">
               <SourceItem
@@ -837,7 +841,7 @@ export function MedicalSourcesInfo({
 
             <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">GI Symptom Management — Reflux &amp; Diarrhea</p>
             <p className="text-white/40 text-xs mb-2">
-              Drives: Daily Tolerance Check-in · GLP-1 Builder · Coach's Corner
+              Drives: Daily Tolerance Check-in · GLP-1 Builder · {coachDisplayName}
             </p>
             <ul className="space-y-3 mb-5">
               <SourceItem
@@ -941,14 +945,15 @@ export function MedicalSourcesInfo({
               🧠 Behavior &amp; Coaching Science
             </h3>
             <p className="text-white/60 text-xs mb-3">
-              Chef's Corner collects a Behavioral Profile — a short coaching intake that
+              {isChefConversationEnabled() ? <>Ask Chef opens directly into conversation without a Behavioral Profile intake. These references describe general coaching concepts; they do not independently validate a specific answer or medical recommendation.</> : <>
+              Ask Chef collects a Behavioral Profile — a short coaching intake that
               learns how you make decisions, what motivates you, how you respond to setbacks,
               and how you prefer to be coached. This is not a psychological assessment or
               clinical instrument. It is a coaching tool, designed to feel like a coach
               getting to know you before your first session. The behavioral constructs
               it uses are grounded in the following established frameworks. Each source
               is listed with the specific concept it supports and how that concept appears
-              in the system.
+              in the system.</>}
             </p>
 
             <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Self-Efficacy</p>
@@ -994,12 +999,12 @@ export function MedicalSourcesInfo({
 
             <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Motivational Interviewing</p>
             <p className="text-white/40 text-xs mb-2">
-              Concept: A collaborative, goal-oriented conversational style that draws out a person's own motivation rather than prescribing change. Drives: Chef's Corner conversational approach · explore-don't-prescribe coaching philosophy · craving-aware and emotional eating interventions.
+              Concept: A collaborative, goal-oriented conversational style that draws out a person's own motivation rather than prescribing change. Drives: {chefDisplayName} conversational approach · explore-don't-prescribe coaching philosophy · craving-aware and emotional eating interventions.
             </p>
             <ul className="space-y-3 mb-5">
               <SourceItem
                 title="Miller, W.R. & Rollnick, S. — Motivational Interviewing: Helping People Change (3rd ed., 2013)"
-                description="The primary reference for motivational interviewing as a coaching communication framework. Chef's Corner is designed to draw out the user's own context and reasoning rather than prescribe behavior — asking what they want, reflecting their situation, and offering options rather than instructions."
+                description={`The primary reference for motivational interviewing as a coaching communication framework. ${chefDisplayName} is designed to draw out the user's own context and reasoning rather than prescribe behavior — asking what they want, reflecting their situation, and offering options rather than instructions.`}
                 url="https://www.motivationalinterviewing.org/"
               />
             </ul>
@@ -1023,7 +1028,7 @@ export function MedicalSourcesInfo({
 
             <p className="text-white/50 text-xs font-semibold uppercase tracking-wide mb-2">Recovery &amp; Non-Judgmental Framing</p>
             <p className="text-white/40 text-xs mb-2">
-              Concept: Off-plan days are normal and expected — framing them as failure increases the risk of full abandonment. Effective coaching treats them as data, not character flaws. Drives: off-plan day language in ACE · Chef's Corner recovery responses · avoidance of restriction-based framing.
+              Concept: Off-plan days are normal and expected — framing them as failure increases the risk of full abandonment. Effective coaching treats them as data, not character flaws. Drives: off-plan day language in ACE · {chefDisplayName} recovery responses · avoidance of restriction-based framing.
             </p>
             <ul className="space-y-3 mb-5">
               <SourceItem
@@ -1034,7 +1039,7 @@ export function MedicalSourcesInfo({
             </ul>
 
             <p className="text-white/60 text-xs leading-relaxed">
-              The Behavioral Profile collected during the Chef's Corner intake is a coaching tool, not a psychological test or clinical assessment. Its purpose is to shape how the system communicates with you — not to diagnose, categorize, or make clinical inferences from your answers. No behavioral response in the intake is used to draw clinical conclusions.
+              {isChefConversationEnabled() ? "Ask Chef does not require a coaching intake. It does not diagnose, prescribe treatment, or replace professional care." : "The Behavioral Profile collected during the Ask Chef intake is a coaching tool, not a psychological test or clinical assessment. Its purpose is to shape how the system communicates with you — not to diagnose, categorize, or make clinical inferences from your answers. No behavioral response in the intake is used to draw clinical conclusions."}
             </p>
           </section>
 

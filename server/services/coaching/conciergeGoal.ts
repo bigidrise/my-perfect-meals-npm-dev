@@ -1,0 +1,104 @@
+import { ConciergeDecisionSchema, type ConciergeDecision, type ConciergeGoal } from "../../../shared/coaching/schemas";
+import { mentionsCoachDestination, isCoachDestinationId, type CoachDestinationId } from "../../../shared/coaching/navigation";
+
+const unknownGoal: ConciergeGoal = {
+  activity: "unknown", occasion: "unknown", restaurant: "unknown",
+  dishChosen: false, specialty: "none", explicitFeatureId: null,
+};
+
+/**
+ * Validate readiness, never classify words. The model interprets the member's
+ * semantic goal. Opt-in Development completion can fill a missing ID only when
+ * exactly one available destination fits that goal under the same predicates.
+ * Known food preferences alone do not establish preparation/restaurant intent.
+ */
+function goalFits(id: CoachDestinationId, goal: ConciergeGoal): boolean {
+  switch (id) {
+    case "grocery_find_product": return goal.activity === "find_product";
+    case "product_scan": return goal.activity === "evaluate_product";
+    case "grocery_create_meal": return goal.activity === "shop_for_meal";
+    case "craving_creator":
+      return goal.activity === "prepare" && goal.occasion === "snack" && goal.specialty === "none";
+    case "create_a_dish":
+      return goal.activity === "prepare" && goal.specialty === "none" &&
+        (goal.occasion === "meal" || (goal.dishChosen && goal.occasion === "unknown"));
+    case "dessert_creator":
+      return goal.activity === "prepare" && goal.occasion === "dessert";
+    case "sushi_creator":
+      return goal.activity === "prepare" && goal.specialty === "sushi";
+    case "beverage_creator":
+      return goal.activity === "prepare" && goal.occasion === "beverage" && goal.specialty !== "workout";
+    case "athlete_beverage_creator":
+      return goal.activity === "prepare" && goal.occasion === "beverage" && goal.specialty === "workout";
+    case "restaurant_guide":
+      return goal.activity === "eat_out" && goal.restaurant === "chosen";
+    case "find_meals_near_me":
+      return goal.activity === "eat_out" && goal.restaurant === "not_chosen";
+    case "fridge_rescue": return goal.activity === "use_ingredients";
+    case "hydration_center": return goal.activity === "hydration";
+    case "my_perfect_buffet": return goal.activity === "buffet";
+    case "my_perfect_getaway": return goal.activity === "travel";
+    case "my_perfect_gatherings": return goal.activity === "gathering";
+    case "macro_calculator": return goal.activity === "calculator";
+    case "my_perfect_beginning": return goal.activity === "child_feeding";
+    // Planning alone cannot choose between these starting pages. The existing
+    // model must resolve the member's chosen approach (including natural aliases).
+    case "my_perfect_menu":
+    case "meal_builders":
+      return goal.activity === "plan_meals" && goal.explicitFeatureId === id;
+  }
+}
+
+export function validateConciergeGoal(
+  value: unknown,
+  availableTools: Array<{ id: string }>,
+  memberMessages: string[],
+  options: { completeMissingDestination?: boolean } = {},
+): ConciergeDecision | undefined {
+  const parsed = ConciergeDecisionSchema.safeParse(value);
+  if (!parsed.success) return undefined;
+  const decision = parsed.data;
+  if (decision.mode !== "food_assistance") return decision;
+  // Development's single-call path must not lose a ready semantic goal merely
+  // because the model omitted its action ID. Reuse the existing readiness veto;
+  // never interpret words, infer preparation, or pick among competing matches.
+  if (!decision.destinationId && options.completeMissingDestination && decision.goal) {
+    const matches = [...new Set(availableTools.map(tool => tool.id))]
+      .filter(isCoachDestinationId).filter(id => goalFits(id, decision.goal!));
+    if (matches.length === 1) return { ...decision, destinationId: matches[0] };
+  }
+  if (!decision.destinationId) return decision;
+  const id = decision.destinationId as CoachDestinationId;
+  const goal = decision.goal;
+  // A literal feature name is required for the explicit-request exception, but
+  // the model still decides whether it is a request, negation, or discussion.
+  const explicitlyRequested = goal?.explicitFeatureId === id && memberMessages.some(message =>
+    mentionsCoachDestination(message, id));
+  if (availableTools.some(tool => tool.id === id) && goal && (explicitlyRequested || goalFits(id, goal))) {
+    return decision;
+  }
+  return { mode: "clarification", destinationId: null, goal: goal ?? { ...unknownGoal } };
+}
+
+/** Shared by the active single call and preserved compatibility prompts. */
+export const SHOPPING_GOAL_INSTRUCTIONS = [
+  "SHOPPING TASKS: Interpret the intended outcome, not food names, brands or keyword triggers. Wanting the platform to find a grocery product to buy fits find_product and grocery_find_product. Evaluating an actual product the member has or is considering fits evaluate_product and product_scan. Wanting a meal idea AND ingredients to purchase fits shop_for_meal and grocery_create_meal, not a generic dish creator. A food mention alone establishes none of these. If discovery versus evaluation is genuinely unresolved, clarify naturally.",
+  "Shopping destinations open only Shopping List. Explain the appropriate control and tab: Grocery Store Coach > Find a Product, Product Scan, or Grocery Store Coach > Build a Meal (also called Create a Meal). Never claim a dialog/tab was opened, a product/request transferred, or shopping completed. Personalized product recommendations, label evaluation, meals and lists are performed by those existing features, not this chat.",
+].join("\n");
+
+/** Shared by reasoning and expression; no fixed question sequence or quotas. */
+export const CONCIERGE_GOAL_INSTRUCTIONS = [
+  "GOAL READINESS: Interpret the current goal from the latest member message and relevant history. Never select a feature from food/flavor words alone.",
+  "Return goal with activity, occasion, restaurant, dishChosen, specialty, explicitFeatureId. Unknown is valid: do not invent a value to justify a destination.",
+  "activity: unknown | prepare | eat_out | use_ingredients | plan_meals | hydration | buffet | travel | gathering | calculator | child_feeding | find_product | evaluate_product | shop_for_meal.",
+  SHOPPING_GOAL_INSTRUCTIONS,
+  "occasion: unknown | snack | meal | dessert | beverage. restaurant: unknown | chosen | not_chosen. specialty: none | sushi | workout. dishChosen: true only for an actual chosen dish.",
+  "explicitFeatureId: exact available ID only when the member explicitly asks to use/open that named feature; otherwise null. A discussion, food mention, or previous assistant recommendation is not a member request.",
+  "Food preference (light, flavorful, spicy, seafood, sushi, sweet, etc.) does not by itself establish activity or occasion. Unknown critical distinctions mean clarification and destinationId=null.",
+  "A desire to prepare a small savory snack fits Craving Creator. Preparing a chosen dish or full meal fits Create a Dish. Preparing dessert, sushi, or a drink uses its dedicated creator. A food name alone does not imply preparation.",
+  "For eating out, chosen restaurant means Restaurant Guide; explicitly wanting to find somewhere or having no restaurant chosen means Find Meals Near Me. If restaurant choice is unresolved, ask naturally; never assume a restaurant or that none is chosen.",
+  "Use available ingredients only when that is the member's expressed goal. Weekly meal planning and clinical workflows require their verified hubs; if not available, explain that limitation with no substitute button.",
+  "These are internal semantic considerations, not a checklist to collect from the member. Ask only one useful unresolved question, or offer a few practical food ideas. Flavor, protein, occasion, activity, budget, time, and ingredients matter only when relevant. Do not ask all of them or repeat answered questions.",
+  "Keep food preferences, budget and practical constraints in the conversation; a change of mind replaces the earlier activity/restaurant/destination. Reassess readiness on this turn, not from a stale feature recommendation.",
+  "Act immediately once the member's actual goal fits an available feature. A sufficiently clear preparation request needs no extra recipe/open-feature question. Keep final recommendations brief, without benefit paragraphs or a 'ready to try?' question.",
+].join("\n");

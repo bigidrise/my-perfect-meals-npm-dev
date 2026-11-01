@@ -22,8 +22,17 @@ import type { CoachSpecialization } from "../../shared/coaching/types";
 import { emitActivityEvent } from "../services/coaching/activityEvents";
 import type { PlatformEventType, EventClass } from "../services/coaching/activityEvents";
 import { coachingProfiles } from "../db/schema/ace";
+import coachingNavigationRouter from "./coachingNavigation";
+import { CHEF_CONCIERGE_REVISION } from "../services/coaching/conciergeInstructions";
 
 const router = Router();
+router.use((_req, res, next) => {
+  if (process.env.NODE_ENV === "development") {
+    res.setHeader("X-Chef-Concierge-Revision", CHEF_CONCIERGE_REVISION);
+  }
+  next();
+});
+router.use(coachingNavigationRouter);
 
 // ─── POST /message ────────────────────────────────────────────────────────────
 
@@ -46,20 +55,21 @@ router.post("/message", requireAuth, async (req: Request, res: Response) => {
   const { specialization, message, conversationId } = parsed.data;
 
   // ── Server-side intake gate ────────────────────────────────────────────────
-  // The UI redirect is UX — this is the governance boundary.
-  // The engine depends on coach_profile_completed_at to know HOW to communicate
-  // with this person. Reject anyone who hasn't completed behavioral intake.
-  const [profile] = await db
-    .select({ completedAt: coachingProfiles.coachProfileCompletedAt })
-    .from(coachingProfiles)
-    .where(eq(coachingProfiles.userId, userId))
-    .limit(1);
+  // Historical intake governance remains unchanged in Production. Development's
+  // conversational engine does not read or require assessment results.
+  if (process.env.NODE_ENV !== "development") {
+    const [profile] = await db
+      .select({ completedAt: coachingProfiles.coachProfileCompletedAt })
+      .from(coachingProfiles)
+      .where(eq(coachingProfiles.userId, userId))
+      .limit(1);
 
-  if (!profile?.completedAt) {
-    return res.status(403).json({
-      error: "Coaching profile not completed",
-      code: "INTAKE_REQUIRED",
-    });
+    if (!profile?.completedAt) {
+      return res.status(403).json({
+        error: "Coaching profile not completed",
+        code: "INTAKE_REQUIRED",
+      });
+    }
   }
 
   try {
@@ -81,6 +91,7 @@ router.post("/message", requireAuth, async (req: Request, res: Response) => {
       conversationId: result.conversationId,
       messageId: result.messageId,
       response: {
+        ...(result.presentation ? { presentation: result.presentation } : {}),
         whatIFound: result.whatIFound,
         whatItCouldMean: result.whatItCouldMean,
         todayPlan: result.todayPlan,
@@ -373,7 +384,9 @@ router.get("/bootstrap", requireAuth, async (req: Request, res: Response) => {
   try {
     // ── Phase 1: profile + conversation in parallel ────────────────────────
     const [profileRows, convResult] = await Promise.all([
-      db.select().from(coachingProfiles).where(eq(coachingProfiles.userId, userId)).limit(1),
+      process.env.NODE_ENV === "development"
+        ? Promise.resolve([])
+        : db.select().from(coachingProfiles).where(eq(coachingProfiles.userId, userId)).limit(1),
       db.execute<{
         id: string;
         specialization: string;
@@ -419,6 +432,7 @@ router.get("/bootstrap", requireAuth, async (req: Request, res: Response) => {
           `)
         : Promise.resolve({ rows: [] as any[] }),
       (async () => {
+        if (process.env.NODE_ENV === "development") return null;
         try {
           const { findDueFollowupForUser } = await import("../services/coaching/followupWorker");
           return await findDueFollowupForUser(userId);

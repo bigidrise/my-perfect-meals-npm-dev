@@ -928,26 +928,34 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
 
   "/coach-corner/home": {
     pageId: "chefs-corner",
-    title: "Chef's Corner",
+    title: "Ask Chef",
     description:
       "Your conversational nutrition coaching space. Ask about meals, food choices, substitutions, goals, or how to use the app — and get answers grounded in your active Nutrition Life Plan.",
     spokenText:
-      "Welcome to Chef's Corner. This is your personal coaching space inside My Perfect Meals, and it works differently from every other part of the app. When you ask me something here, I already know your plan. I know your macro targets, your dietary preferences, your allergens, your health protocols, and any clinical guardrails on your account. You never have to explain your situation from scratch. Just ask. You can ask about a specific food or ingredient, whether something fits your plan, how to handle a meal when you are eating out, what a substitution would look like, or how any part of the app works. The more specific you are, the more useful the answer will be. Think of this as the place you come when the question is real and the answer actually needs to fit your life. Before we go any further, if you have not yet completed your coaching profile, I will prompt you to do that first. It takes about two minutes and it shapes how I communicate with you going forward. You can always update it using the Edit Profile button in the top right corner.",
+      "Welcome to Ask Chef. This is your personal coaching space inside My Perfect Meals, and it works differently from every other part of the app. When you ask me something here, I already know your plan. I know your macro targets, your dietary preferences, your allergens, your health protocols, and any clinical guardrails on your account. You never have to explain your situation from scratch. Just ask. You can ask about a specific food or ingredient, whether something fits your plan, how to handle a meal when you are eating out, what a substitution would look like, or how any part of the app works. The more specific you are, the more useful the answer will be. Think of this as the place you come when the question is real and the answer actually needs to fit your life. Before we go any further, if you have not yet completed your coaching profile, I will prompt you to do that first. It takes about two minutes and it shapes how I communicate with you going forward. You can always update it using the Edit Profile button in the top right corner.",
     autoClose: true,
   },
 
   "/coach-corner/welcome": {
     pageId: "chefs-corner-welcome",
-    title: "Chef's Corner",
+    title: "Ask Chef",
     description:
-      "Set up your coaching profile so Chef's Corner can communicate in the way that works best for you.",
+      "Set up your coaching profile so Ask Chef can communicate in the way that works best for you.",
     spokenText:
-      "Welcome to Chef's Corner. Before your first conversation, I want to learn a little about how you like to be coached. The questions on this screen take about two minutes and they shape how I communicate with you — how direct I am, what you are focused on right now, and how much detail you want in my responses. There are no wrong answers. Just be honest, and we will figure out the rest together.",
+      "Welcome to Ask Chef. Before your first conversation, I want to learn a little about how you like to be coached. The questions on this screen take about two minutes and they shape how I communicate with you — how direct I am, what you are focused on right now, and how much detail you want in my responses. There are no wrong answers. Just be honest, and we will figure out the rest together.",
     autoClose: true,
   },
 };
 
 export function getPageExplanation(pathname: string): PageExplanation | null {
+  if (import.meta.env.DEV && pathname === "/coach-corner/home") {
+    return {
+      ...PAGE_EXPLANATIONS[pathname],
+      title: "Ask Chef",
+      description: "Ask about food, nutrition concepts, or how to use existing My Perfect Meals features.",
+      spokenText: "Ask Chef is your conversational food and platform guide. You can ask a question directly, compare existing tools, or get help finding their controls. There is no coaching questionnaire here. Existing features still create your meals and handle their own access and safety checks. Any navigation recommendation needs your tap.",
+    };
+  }
   // First try exact match
   if (PAGE_EXPLANATIONS[pathname]) {
     return PAGE_EXPLANATIONS[pathname];

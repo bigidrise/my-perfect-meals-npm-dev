@@ -27,12 +27,12 @@ export default function CoachCornerComplete() {
           </p>
           <p>
             When you're tired, stressed, traveling, plateaued, or just craving
-            dessert, Coach's Corner will use this to help guide the next best
+            dessert, Ask Chef will use this to help guide the next best
             decision — not just the "perfect" one.
           </p>
           <p>
             I'll keep learning as we go. You can always update how I coach you
-            from Coach's Corner.
+            from Ask Chef.
           </p>
         </div>
 

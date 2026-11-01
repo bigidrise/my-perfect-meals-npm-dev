@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { isPermanentImageUrl } from "@/lib/imageUrlUtils";
+import { photographFromResponse, isPlaceholderImage } from "@shared/imageResult";
 
 export interface HasMealImage {
   id: string;
@@ -23,6 +24,7 @@ const IMAGE_CACHE_PREFIX = "mpm.imgcache.";
  * /public-objects/ paths and causing a fresh image request on every mount.
  */
 function persistImageUrl(mealId: string, imageUrl: string) {
+  if (isPlaceholderImage(imageUrl)) return;
   const isPermanentRelative =
     imageUrl.startsWith('/public-objects/') ||
     imageUrl.startsWith('/images/') ||
@@ -39,7 +41,10 @@ function persistImageUrl(mealId: string, imageUrl: string) {
  * were fetched in a prior session before the user navigated away.
  */
 export function lookupHydratedImageUrl(mealId: string): string | null {
-  try { return localStorage.getItem(IMAGE_CACHE_PREFIX + mealId) ?? null; } catch { return null; }
+  try {
+    const url = localStorage.getItem(IMAGE_CACHE_PREFIX + mealId);
+    return url && !isPlaceholderImage(url) ? url : null;
+  } catch { return null; }
 }
 
 export function useMealImages<T extends HasMealImage>(
@@ -80,7 +85,9 @@ export function useMealImages<T extends HasMealImage>(
                 }),
               });
               const data = await res.json();
-              if (data.imageUrl) {
+              const photograph = res.ok ? photographFromResponse(data) : null;
+              if (photograph) {
+                data.imageUrl = photograph;
                 // Persist to localStorage BEFORE setMeals — survives component unmount
                 // so the reactive cache-save useEffect doesn't race with navigation.
                 persistImageUrl(meal.id, data.imageUrl);

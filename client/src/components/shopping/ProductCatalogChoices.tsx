@@ -17,7 +17,7 @@ export default function ProductCatalogChoices({ products, selectedLabel, onSelec
       const display = product.shoppingDisplay;
       return display !== "hidden" && (
         display === "label_review" ||
-        (display !== "label_review" && product.shoppingSelection?.eligible === true && !!product.shoppingSelection.selection)
+        (product.shoppingSelection?.eligible === true && !!product.shoppingSelection.selection)
       );
     })
     : shoppingOnly

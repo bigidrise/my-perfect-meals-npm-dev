@@ -19,6 +19,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import AwayFromHomeMealCard from "@/components/away-from-home/AwayFromHomeMealCard";
+import MealImageWithChefFallback from "@/components/away-from-home/GetawayMealImage";
 import VoiceInputButton from "@/components/voice/VoiceInputButton";
 import type { AwayFromHomeRecommendation } from "@shared/awayFromHome";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
@@ -305,7 +306,9 @@ export default function MyPerfectBuffetPage() {
                     </span>
                     <div className="flex-1 h-px bg-white/10" />
                   </div>
-                  <AwayFromHomeMealCard recommendation={rec} logOnly={true} />
+                  <AwayFromHomeMealCard recommendation={rec} logOnly={true}
+                    mealImage={<MealImageWithChefFallback key={rec.meal.imageUrl || rec.id}
+                      src={rec.meal.imageUrl} name={rec.meal.name} />} />
                 </div>
               ))}
 

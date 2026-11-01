@@ -23,29 +23,13 @@ import {
 } from "@/components/ui/dialog";
 import type { CoachCornerQuestion } from "@shared/coachCornerTypes";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { isChefConversationEnabled } from "@/lib/chefCornerExperience";
+import { chefMemberText } from "@/lib/chefMemberBranding";
+import CoachBubble, {
+  ProfessionalBoundaryNotice, isConciergeMessage, type CoachStructuredResponse,
+} from "@/components/coaching/CoachBubble";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-interface PlanItem {
-  text: string;
-  horizon?: string;
-  kind?: string;
-  dueAt?: string;
-  completionSignal?: string;
-  featureTarget?: string;
-}
-
-interface CoachStructuredResponse {
-  whatIFound: string;
-  whatItCouldMean: string;
-  todayPlan: {
-    why: string;
-    items: Array<PlanItem | string>;
-    successMetric: string;
-    nextCheckIn: string;
-  } | null;
-  learningOpportunity: string | null;
-}
 
 interface UIMessage {
   id: string;
@@ -64,11 +48,6 @@ interface DbMessage {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function planItemText(item: PlanItem | string): string {
-  if (typeof item === "string") return item;
-  return item?.text ?? "";
-}
 
 function mapDbMessage(msg: DbMessage): UIMessage {
   if (msg.role === "user") {
@@ -114,59 +93,6 @@ function UserBubble({ content }: { content: string }) {
   );
 }
 
-// ─── CoachBubble ──────────────────────────────────────────────────────────────
-
-function CoachBubble({ structured }: { structured: CoachStructuredResponse }) {
-  const topParagraphs: string[] = [];
-  if (structured.whatIFound) topParagraphs.push(structured.whatIFound);
-  if (structured.whatItCouldMean) topParagraphs.push(structured.whatItCouldMean);
-
-  const planWhy = structured.todayPlan?.why ?? null;
-  const planItems = structured.todayPlan?.items ?? null;
-  const learningOpp = structured.learningOpportunity ?? null;
-
-  return (
-    <div className="flex justify-start">
-      <div className="max-w-[90%]">
-        <p className="text-[11px] font-semibold text-orange-400 mb-1.5 uppercase tracking-wider ml-1">
-          Coach
-        </p>
-        <div className="bg-zinc-900 border border-white/10 rounded-2xl rounded-tl-sm px-4 py-3.5 text-sm text-white/90 leading-relaxed space-y-3">
-          {topParagraphs.map((p, i) => (
-            <p key={i}>{p}</p>
-          ))}
-          {planWhy && (
-            <div className="space-y-2">
-              <p>{planWhy}</p>
-              {planItems && planItems.length > 0 && (
-                <ul className="space-y-1.5 mt-1">
-                  {planItems.map((item, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="text-orange-400 mt-0.5 shrink-0 select-none">•</span>
-                      <span>{planItemText(item)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-          {learningOpp && (
-            <p className="text-white/60 italic text-[13px] border-t border-white/5 pt-3">
-              {learningOpp}
-            </p>
-          )}
-          {/* ── Permanent professional boundary footer ── */}
-          <p className="text-white/35 text-[11px] leading-snug border-t border-white/8 pt-3 mt-1">
-            These are suggestions to help you make an informed choice right now. If you're working with
-            a coach, dietitian, or physician, please follow their guidance and check with them about
-            concerns or changes to your nutrition or health plan.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── ThinkingBubble ───────────────────────────────────────────────────────────
 
 function ThinkingBubble() {
@@ -174,7 +100,7 @@ function ThinkingBubble() {
     <div className="flex justify-start">
       <div className="max-w-[90%]">
         <p className="text-[11px] font-semibold text-orange-400 mb-1.5 uppercase tracking-wider ml-1">
-          Coach
+          Chef
         </p>
         <div className="bg-zinc-900 border border-white/10 rounded-2xl rounded-tl-sm px-5 py-4">
           <div className="flex items-center gap-1.5">
@@ -216,7 +142,7 @@ function MessageRow({
       {isUser ? (
         <UserBubble content={msg.content!} />
       ) : (
-        <CoachBubble structured={msg.structured!} />
+            <CoachBubble structured={msg.structured!} enableConcierge={isChefConversationEnabled()} />
       )}
       {/* ⋯ row — sits below each bubble, aligned to match the bubble side */}
       <div className={`flex ${isUser ? "justify-end pr-1" : "justify-start pl-1"} mt-0.5`}>
@@ -283,7 +209,7 @@ function ProfileSheet({
             My Coaching Profile
           </DialogTitle>
           <p className="text-xs text-white/50 text-left">
-            These answers shape how Chef's Corner communicates with you — not what the data says.
+            These answers shape how Ask Chef communicates with you — not what the data says.
           </p>
         </DialogHeader>
 
@@ -399,6 +325,7 @@ interface BootstrapData {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function CoachsCorner() {
+  const conversationEnabled = isChefConversationEnabled();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
 
@@ -425,6 +352,27 @@ export default function CoachsCorner() {
   // Captured at the moment the trash icon is tapped so that confirm-time
   // state races (bootstrap re-run, invalidation) can't nullify the ID.
   const pendingClearId = useRef<string | null>(null);
+  const followNewestRef = useRef(true);
+  const forceNewestRef = useRef(true);
+  const [keyboardInsets, setKeyboardInsets] = useState({ top: 0, bottom: 0 });
+
+  // Keep this bounded conversation pane inside the visible keyboard viewport.
+  // No global viewport/scroll-owner changes; native resize already yields zero.
+  useEffect(() => {
+    if (!conversationEnabled || !window.visualViewport) return;
+    const viewport = window.visualViewport;
+    const update = () => setKeyboardInsets({
+      top: Math.max(0, viewport.offsetTop),
+      bottom: Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop),
+    });
+    update();
+    viewport.addEventListener("resize", update);
+    viewport.addEventListener("scroll", update);
+    return () => {
+      viewport.removeEventListener("resize", update);
+      viewport.removeEventListener("scroll", update);
+    };
+  }, [conversationEnabled]);
 
   // ── Bootstrap query ────────────────────────────────────────────────────────
   const bootstrapQuery = useQuery<BootstrapData>({
@@ -442,9 +390,12 @@ export default function CoachsCorner() {
   // (e.g. after a profile patch invalidates the query).
   useEffect(() => {
     if (!bootstrapQuery.data || messagesInitialized.current) return;
+    // A return visit can have an older cached snapshot while the invalidated
+    // history refetches. Don't permanently initialize from that snapshot.
+    if (conversationEnabled && (bootstrapQuery.isFetching || !bootstrapQuery.isSuccess)) return;
     const { profileCompleted, conversationId: convId, messages: dbMessages, hasOlderMessages: hasOlder } = bootstrapQuery.data;
 
-    if (!profileCompleted) {
+    if (!conversationEnabled && !profileCompleted) {
       setLocation("/coach-corner/intake");
       return;
     }
@@ -453,7 +404,7 @@ export default function CoachsCorner() {
     if (convId) setConversationId(convId);
     setMessages(dbMessages.map(mapDbMessage));
     setHasOlderMessages(hasOlder ?? false);
-  }, [bootstrapQuery.data, setLocation]);
+  }, [bootstrapQuery.data, bootstrapQuery.isFetching, bootstrapQuery.isSuccess, setLocation, conversationEnabled]);
 
   // Profile sync: runs on every bootstrap fetch (including re-fetches after a
   // profile patch). Kept separate from the one-shot messages effect so the
@@ -466,6 +417,7 @@ export default function CoachsCorner() {
 
   // ── Async follow-up delivery ───────────────────────────────────────────────
   useEffect(() => {
+    if (conversationEnabled) return;
     const data = bootstrapQuery.data;
     if (!data?.dueFollowup?.id || followupFired.current) return;
     if (!messagesInitialized.current) return;
@@ -491,7 +443,7 @@ export default function CoachsCorner() {
         // Non-fatal — follow-up will arrive on next cron tick
       }
     })();
-  }, [bootstrapQuery.data]);
+  }, [bootstrapQuery.data, conversationEnabled]);
 
   // ── Close ⋯ menu on outside click ─────────────────────────────────────────
   useEffect(() => {
@@ -504,15 +456,25 @@ export default function CoachsCorner() {
   // ── Questions (loaded on demand for profile sheet) ─────────────────────────
   const questionsQuery = useQuery<{ questions: CoachCornerQuestion[] }>({
     queryKey: ["/api/coach-corner/questions"],
-    enabled: showProfile,
+    enabled: !conversationEnabled && showProfile,
   });
 
   // ── Auto-scroll to bottom on new messages ──────────────────────────────────
   // Skipped when didLoadOlderRef is true — scroll preservation handles that case.
   useEffect(() => {
     if (didLoadOlderRef.current) return;
+    if (conversationEnabled) {
+      // Initial hydration updates messages on the next render; retain the
+      // one-time immediate positioning until that history actually exists.
+      if (!messages.length && !isLoading) return;
+      if (!forceNewestRef.current && !followNewestRef.current) return;
+      const container = scrollContainerRef.current;
+      container?.scrollTo({ top: container.scrollHeight, behavior: forceNewestRef.current ? "auto" : "smooth" });
+      forceNewestRef.current = false;
+      return;
+    }
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading]);
+  }, [messages, isLoading, conversationEnabled]);
 
   // ── Restore scroll position after older messages are prepended ────────────
   useEffect(() => {
@@ -590,6 +552,10 @@ export default function CoachsCorner() {
         },
       ]);
       setIsLoading(false);
+      if (conversationEnabled) {
+        // Refresh on the next visit, not once per turn while chatting.
+        queryClient.invalidateQueries({ queryKey: ["/api/coach/bootstrap"], refetchType: "none" });
+      }
     },
     onError: () => {
       setIsLoading(false);
@@ -614,6 +580,10 @@ export default function CoachsCorner() {
     const text = inputText.trim();
     if (!text || isLoading) return;
 
+    if (conversationEnabled) {
+      followNewestRef.current = true;
+      forceNewestRef.current = true;
+    }
     setInputText("");
     setMessages((prev) => [
       ...prev,
@@ -631,7 +601,7 @@ export default function CoachsCorner() {
     }
 
     sendMutation.mutate({ text, cid: conversationId });
-  }, [inputText, isLoading, conversationId, sendMutation]);
+  }, [inputText, isLoading, conversationId, sendMutation, conversationEnabled]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -673,6 +643,11 @@ export default function CoachsCorner() {
   const deleteMsgMutation = useMutation({
     mutationFn: (msgId: string) =>
       apiRequest(`/api/coach/message/${msgId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      if (conversationEnabled) {
+        queryClient.invalidateQueries({ queryKey: ["/api/coach/bootstrap"], refetchType: "none" });
+      }
+    },
     onMutate: async (msgId: string) => {
       const previous = messages.find((m) => m.id === msgId);
       setMessages((prev) => prev.filter((m) => m.id !== msgId));
@@ -730,14 +705,20 @@ export default function CoachsCorner() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
-  const bootstrapLoading = bootstrapQuery.isLoading;
-  const bootstrapReady = bootstrapQuery.isSuccess && (bootstrapQuery.data?.profileCompleted ?? false);
+  const bootstrapLoading = bootstrapQuery.isLoading ||
+    (conversationEnabled && !messagesInitialized.current && bootstrapQuery.isFetching);
+  const historyUnavailable = conversationEnabled && !messagesInitialized.current && bootstrapQuery.isError;
+  const bootstrapReady = bootstrapQuery.isSuccess && (conversationEnabled || (bootstrapQuery.data?.profileCompleted ?? false));
   const hasMessages = messages.length > 0;
 
   return (
     <div
-      className="text-white flex flex-col h-full"
+      className={conversationEnabled
+        ? "text-white flex flex-col fixed inset-0 z-40 min-h-0 overflow-hidden lg:absolute"
+        : "text-white flex flex-col h-full"}
+      data-testid={conversationEnabled ? "ask-chef-pane" : undefined}
       style={{
+        ...(conversationEnabled ? { top: keyboardInsets.top, bottom: keyboardInsets.bottom } : {}),
         paddingTop: "env(safe-area-inset-top, 0px)",
         backgroundImage:
           "linear-gradient(rgba(0,0,0,0.30), rgba(0,0,0,0.25)), url('/images/chefs-corner-bg.jpg')",
@@ -748,21 +729,28 @@ export default function CoachsCorner() {
       <div className="flex-1 flex flex-col w-full max-w-2xl mx-auto min-h-0">
 
         {/* Header */}
-        <div className="shrink-0 bg-black/50 backdrop-blur-md flex items-center justify-between px-4 h-14">
+        <div className={conversationEnabled
+          ? "shrink-0 bg-black/50 backdrop-blur-md flex items-center justify-between pl-4 pr-28 lg:pr-4 h-14"
+          : "shrink-0 bg-black/50 backdrop-blur-md flex items-center justify-between px-4 h-14"}>
           <button
             onClick={() => {
+              if (conversationEnabled) {
+                setLocation("/dashboard");
+                return;
+              }
               if (window.history.length <= 1) {
                 setLocation("/");
               } else {
                 window.history.back();
               }
             }}
-            className="flex items-center gap-1 h-8 px-2 rounded-full text-white/60 hover:text-white transition-colors"
+            className="flex items-center gap-1 h-11 px-2 rounded-full text-white/60 hover:text-white transition-colors"
             aria-label="Go back"
           >
             <ArrowLeft className="w-4 h-4" />
             <span className="text-xs">Back</span>
           </button>
+          <h1 className="text-base font-bold text-white">Ask Chef</h1>
           <div className="flex items-center gap-2">
             {hasMessages && (
               <button
@@ -783,7 +771,7 @@ export default function CoachsCorner() {
                 Clear
               </button>
             )}
-            <button
+            {!conversationEnabled && <button
               onClick={() => setShowProfile(true)}
               disabled={!bootstrapReady}
               className="flex items-center gap-1.5 px-3 h-8 rounded-full bg-white/8 border border-white/15 text-white/70 text-xs hover:text-white hover:bg-white/12 transition-colors disabled:opacity-40 disabled:cursor-default"
@@ -791,13 +779,29 @@ export default function CoachsCorner() {
             >
               <Settings className="w-3.5 h-3.5" />
               Edit profile
-            </button>
+            </button>}
           </div>
         </div>
 
         {/* Message area */}
-        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-5">
-          {bootstrapLoading ? (
+        <div ref={scrollContainerRef}
+          data-testid={conversationEnabled ? "ask-chef-history" : undefined}
+          onScroll={conversationEnabled ? () => {
+            const container = scrollContainerRef.current;
+            if (container) followNewestRef.current =
+              container.scrollHeight - container.clientHeight - container.scrollTop < 80;
+          } : undefined}
+          className={conversationEnabled
+            ? "flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-5"
+            : "flex-1 overflow-y-auto px-4 py-5"}>
+          {historyUnavailable ? (
+            <div role="alert" className="py-8 text-center text-sm text-white/80">
+              <p>Your conversation couldn't be restored. Your saved messages have not been cleared.</p>
+              <button onClick={() => bootstrapQuery.refetch()} className="mt-3 underline">
+                Retry loading conversation
+              </button>
+            </div>
+          ) : bootstrapLoading ? (
             <div className="flex items-center justify-center min-h-[58vh]">
               <div className="flex items-center gap-1.5">
                 {[0, 1, 2].map((i) => (
@@ -813,7 +817,7 @@ export default function CoachsCorner() {
             <div className="flex flex-col items-center justify-center min-h-[58vh] text-center select-none">
               <img
                 src="/assets/ChefBlackApron.png"
-                alt="Coach"
+                alt={conversationEnabled ? "Flame Chef" : "Coach"}
                 width={176}
                 height={176}
                 className="w-44 h-44 mb-3 object-contain"
@@ -822,7 +826,7 @@ export default function CoachsCorner() {
                 What's on your mind?
               </h2>
               <p className="text-sm text-white max-w-[240px] leading-relaxed drop-shadow-md">
-                Your data, your patterns — let's figure it out together.
+                {conversationEnabled ? "What can I help you with?" : "Your data, your patterns — let's figure it out together."}
               </p>
             </div>
           ) : (
@@ -864,31 +868,32 @@ export default function CoachsCorner() {
 
         {/* Input bar */}
         <div
+          data-testid={conversationEnabled ? "ask-chef-composer" : undefined}
           className="shrink-0 bg-black/50 backdrop-blur-md px-4 pt-3"
           style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom, 16px))" }}
         >
-          <div className="flex items-end gap-2.5">
+          <div className="flex items-end gap-2.5 max-[360px]:flex-wrap max-[360px]:justify-end">
             <Textarea
               ref={textareaRef}
               value={inputText}
               onChange={handleTextareaChange}
               onKeyDown={handleKeyDown}
-              placeholder="Ask Coach anything…"
-              disabled={isLoading || bootstrapLoading}
+              placeholder="Ask Chef anything…"
+              disabled={isLoading || bootstrapLoading || historyUnavailable}
               rows={1}
-              className="flex-1 resize-none bg-zinc-900 border border-white/25 text-white placeholder:text-white/45 text-sm rounded-xl py-3 px-4 focus:outline-none focus:ring-1 focus:ring-orange-500/60 focus:border-orange-500/50 disabled:opacity-50 transition-colors"
+              className="min-w-0 flex-1 max-[360px]:basis-full resize-none bg-zinc-900 border border-white/25 text-white placeholder:text-white/45 text-sm rounded-xl py-3 px-4 focus:outline-none focus:ring-1 focus:ring-orange-500/60 focus:border-orange-500/50 disabled:opacity-50 transition-colors"
               style={{ lineHeight: "1.5", minHeight: "44px", maxHeight: "120px" }}
             />
             <VoiceInputButton
               value={inputText}
               onChange={setInputText}
-              disabled={isLoading || bootstrapLoading}
-              label="Use voice input for Coach's Corner"
-              className="shrink-0"
+              disabled={isLoading || bootstrapLoading || historyUnavailable}
+              label={chefMemberText("Use voice input for Coach's Corner")}
+              className="shrink-0 [&_button]:min-h-11"
             />
             <Button
               onClick={handleSend}
-              disabled={!inputText.trim() || isLoading || bootstrapLoading}
+              disabled={!inputText.trim() || isLoading || bootstrapLoading || historyUnavailable}
               size="icon"
               className="w-11 h-11 rounded-xl bg-orange-600 hover:bg-orange-700 disabled:opacity-40 disabled:bg-zinc-700 shrink-0 transition-colors"
               aria-label="Send message"
@@ -896,12 +901,14 @@ export default function CoachsCorner() {
               <Send className="w-4 h-4 text-white" />
             </Button>
           </div>
+          {isChefConversationEnabled() && messages.some(msg => msg.structured && isConciergeMessage(msg.structured)) &&
+            <div className="mt-2"><ProfessionalBoundaryNotice /></div>}
         </div>
 
       </div>
 
       {/* Behavioral Profile sheet */}
-      <ProfileSheet
+      {!conversationEnabled && <ProfileSheet
         open={showProfile}
         onClose={() => setShowProfile(false)}
         profile={localProfile}
@@ -912,7 +919,7 @@ export default function CoachsCorner() {
           setLocation("/coach-corner/intake");
         }}
         isSaving={patchMutation.isPending}
-      />
+      />}
 
       {/* Clear conversation confirmation */}
       <Dialog open={showClearConfirm} onOpenChange={(v) => !v && setShowClearConfirm(false)}>
@@ -921,7 +928,9 @@ export default function CoachsCorner() {
             <DialogTitle className="text-white text-base">Clear this conversation?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-white/55 mt-1 leading-relaxed">
-            All messages will be permanently deleted. Your coaching profile stays intact — only the chat history is removed.
+            {conversationEnabled
+              ? "All messages will be permanently deleted. Only the chat history is removed."
+              : "All messages will be permanently deleted. Your coaching profile stays intact — only the chat history is removed."}
           </p>
           <div className="flex gap-3 mt-5">
             <button

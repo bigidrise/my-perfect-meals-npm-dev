@@ -16,6 +16,7 @@ import { findUserByValidAuthToken } from '../services/authTokenService';
 import { createHumanFoodRequestScope } from '../services/humanFoodContext/requestScope';
 import { buildHumanFoodPromptBlock } from '../services/humanFoodContext/buildHumanFoodPromptBlock';
 import { applyRestaurantGlucoseProduceAdvisory } from '../services/restaurantGlucoseAdvisory';
+import { requiresVerifiedIngredientEvidence } from "../services/foodCompositionEvidence";
 import {
   claimAdvisoryOverrideToken,
   commitAdvisoryOverrideToken,
@@ -82,8 +83,11 @@ router.post('/meal-finder', async (req, res) => {
       const reqUser = (req as any).authUser || (req as any).user;
       if (reqUser?.id && reqUser.id !== 'mock-user-id') userId = reqUser.id;
     }
-    // Anonymous finder requests have no server-owned glucose profile. For an
-    // authenticated request, bind all diabetes produce guidance to that user,
+    // Anonymous finder requests have no server-owned glucose profile.
+    if (process.env.NODE_ENV === "development" && !userId) {
+      return res.status(401).json({ error: "Please sign in to receive personalized meal recommendations." });
+    }
+    // For authenticated requests, bind all diabetes produce guidance to that user,
     // not any client-provided preference/allowlist field.
     let humanFoodContext: import("@shared/humanFoodContext").HumanFoodContext | undefined;
     if (userId) {
@@ -180,6 +184,19 @@ router.post('/meal-finder', async (req, res) => {
       }
     }
     
+    if (process.env.NODE_ENV === "development" &&
+      (!protocolEnvelope || protocolEnvelope.userId === "guest")) {
+      return res.status(503).json({
+        error: "Your active food-safety information is unavailable. Please try again.", retryable: true,
+      });
+    }
+    if (process.env.NODE_ENV === "development" && protocolEnvelope &&
+      requiresVerifiedIngredientEvidence(protocolEnvelope)) {
+      return res.status(503).json({
+        code: "INGREDIENT_EVIDENCE_REQUIRED",
+        error: "Complete verified ingredients are required for your active food-safety restrictions. Confirm details with the restaurant before choosing a meal.",
+      });
+    }
     const bodyDietRestrictions = dietaryRestrictions
       ? (Array.isArray(dietaryRestrictions) ? dietaryRestrictions : [dietaryRestrictions]).filter(Boolean)
       : [];
@@ -256,6 +273,8 @@ router.post('/meal-finder', async (req, res) => {
       glpFilteredResults = results.filter((r: any) => {
         const fat = Number(r.meal?.fatGrams ?? r.meal?.fat);
         const cal = Number(r.meal?.calories);
+        if (process.env.NODE_ENV === "development" &&
+          (!Number.isFinite(r.meal?.fatGrams ?? r.meal?.fat) || !Number.isFinite(r.meal?.calories))) return false;
         if (Number.isFinite(fat) && fat > t.maximumToleratedFatGrams) {
           console.warn(`[MEAL-FINDER/GLP-1] Filtered "${r.meal?.name}" — fat ${fat}g > ceiling ${t.maximumToleratedFatGrams}g`);
           return false;
@@ -286,7 +305,9 @@ router.post('/meal-finder', async (req, res) => {
        results: glucoseFilteredResults,
        count: glucoseFilteredResults.length,
        ...(glucoseFilteredResults.length === 0 && {
-        message: `No restaurants found serving "${mealQuery}" near ZIP ${zipCode}. Try a different search or ZIP code.`
+        message: process.env.NODE_ENV === "development"
+          ? "No verified nearby restaurants with suitable meal recommendations were available. Try a different request or ZIP code."
+          : `No restaurants found serving "${mealQuery}" near ZIP ${zipCode}. Try a different search or ZIP code.`
       })
     });
     

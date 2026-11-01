@@ -14,8 +14,11 @@
  * 5. scope drives which specializations receive which features. The engine filters
  *    by scope before injecting the registry into any prompt.
  *
- * Adding a new feature: add one entry here. No other file changes needed.
+ * Legacy registry entries do not authorize Chef buttons. Development navigation
+ * remains restricted to the independently reviewed COACH_DESTINATIONS allowlist.
  */
+
+import { COACH_DESTINATIONS, type CoachDestinationId } from "../../../shared/coaching/navigation";
 
 export type CapabilityScope =
   | "all"            // any authenticated user
@@ -163,7 +166,7 @@ export const MPM_CAPABILITIES: MPMCapability[] = [
     id: "find_meals_near_me",
     label: "Find Meals Near Me",
     description: "Discover nearby restaurants and menu items that fit the current nutrition plan.",
-    route: "/social-hub/restaurant-finder",
+    route: "/social-hub/find",
     applicableSituations: [
       "restaurant_eating",
       "eating_out",
@@ -343,6 +346,74 @@ export function getCapabilitiesForUser(
     const recMatch = !onlyRecommendable || cap.recommendable;
     return scopeMatch && recMatch;
   });
+}
+
+/** Knowledge only, never an extension of the approved destination allowlist. */
+export const CORNER_UNSUPPORTED_FEATURES = [
+  { id: "clinical_hubs", label: "Clinical and nutrition protocol hubs",
+    description: "Diabetes, GLP-1, anti-inflammatory and professional clinical workflows use their own authorized hub, profile, consent, protocol and builder context. Chef cannot activate support, read unauthorized clinical evidence, invent medical targets or deep-link directly into a clinical builder. These are not approved Chef destinations." },
+  { id: "performance_hub", label: "Performance Hub",
+    description: "Sport-specific training context and nutrition setup, distinct from the approved Athlete Beverage Creator. No approved Chef hub navigation contract. Explain ordinary nutrition questions conversationally; do not substitute a drink creator for a performance plan." },
+];
+
+/** Development-only concierge extension; other coaches and Production stay unchanged. */
+export function getCornerCapabilities(activeScopes: CapabilityScope[]): MPMCapability[] {
+  const existing = getCapabilitiesForUser(activeScopes, true);
+  if (process.env.NODE_ENV !== "development") return existing;
+  const descriptions: Record<CoachDestinationId, string> = {
+    grocery_find_product: "Grocery Coach > Find a Product uses onboarding and the member's nutrition profile to find three suitable grocery product recommendations when the member wants something to buy. Discovery, not evaluation of an actual product. Chef explains this workflow; the existing feature owns recommendations and safeguards.",
+    product_scan: "Evaluate a specific grocery product the member has or is looking at by scanning its label against their profile and nutritional needs. Explain suitability and offer three alternatives through the existing Product Scan workflow, not brand recommendations in Chef.",
+    grocery_create_meal: "Grocery Coach > Create a Meal (the Build a Meal tab) helps decide what to eat and generates a meal and corresponding grocery list. Use for meal ideas with ingredients to purchase, not merely preparing a named dish.",
+    sushi_creator: "Prepare sushi: rolls, nigiri, and other sushi. Requires preparation intent or an explicit Sushi Creator request; wanting to eat sushi alone may need making-versus-going-out clarification. Sushi education stays conversational.",
+    craving_creator: "Prepare a SMALL craving, snack or smaller meal, including small dessert portions, described by what the member craves using free-text and an optional category. Appropriate for a small preparation request even when the exact finished dish is not selected. Use occasion=snack for a small sweet craving too. Not a default for light, flavorful, hunger or indecision alone, full chosen meals, whole cakes/pies/pans, restaurant food, sushi or drinks.",
+    dessert_creator: "Prepare larger dessert recipes such as a whole cake, pie or pan of brownies. Small dessert cravings belong to Craving Creator with occasion=snack. Requires larger-dessert preparation intent or an explicit Dessert Creator request; sweet preference alone is insufficient.",
+    beverage_creator: "Create regular smoothies, shakes, drinks, cocktails (the Cocktail option), Dive Bar drinks or mocktails from free-text drink description or category/flavor selections. Use for regular beverage preparation, not workout-specific drinks, hydration targets, or nutrition questions about drinks.",
+    athlete_beverage_creator: "Create pre-workout drinks, post-workout recovery shakes, or sports beverages with a performance goal, via description or goal/drink/flavor selections. Use for actual workout beverage preparation, not an exercise nutrition explanation, general meal, ordinary cocktail or a fluid prescription.",
+    hydration_center: "Get hydration education and support. Never invent fluid or electrolyte targets.",
+    restaurant_guide: "Help choose what to order at a restaurant the member has already chosen. Do not use for finding a restaurant.",
+    find_meals_near_me: "Discover somewhere to eat when the member wants to find a restaurant or has not chosen one. Consider their food preferences, location and budget when relevant; do not use for ordering at an already-selected restaurant.",
+    my_perfect_buffet: "Help choose food at a buffet.",
+    my_perfect_getaway: "Explore dining options across a travel venue: airports, cruise ships and onboard dining areas, theme parks, resorts, stadiums and arenas, state fairs, and other supported travel destinations. Existing cruise support includes Carnival, Royal Caribbean, NCL and Disney Cruise, with main dining rooms, buffet areas, specialty restaurants and casual pool-deck dining. Quick-start choices are examples, not an exhaustive list; members can also search for a location or venue. A clear request for cruise-wide dining help can establish activity=travel without first collecting a ship, terminal, deck or menu that the destination can collect. Distinguish the member's task: exploring options across a cruise or travel venue fits My Perfect Getaway; choosing food from an identified buffet fits My Perfect Buffet; choosing menu items at an already-selected restaurant fits Restaurant Guide; finding nearby restaurants without one selected fits Find Meals Near Me. Apply these distinctions in context, not as keyword rules or mandatory navigation; do not add unnecessary clarification. Do not claim current restaurants, menus or availability are verified for a particular ship unless supported by reliable information.",
+    my_perfect_gatherings: "Plan food for a gathering or dinner party.",
+    fridge_rescue: "Help make food from ingredients the member wants to use, such as chicken, rice, and broccoli already in their refrigerator. Recommend when explicitly requested or for an expressed or grounded ingredient-use need, not hunger, indecision, eating at home, or general meal-prep education alone.",
+    create_a_dish: "Create meal options for a member-selected specific dish or full meal from an editable dish description. A specific dish selected for preparation help in context is a complete creator request; do not prolong discovery. The creator collects servings and preparation inputs. Mere dish discussion, nutrition questions, undecided preferences or eating-out intent do not establish preparation. Small cravings (including small desserts), sushi, larger desserts and drinks have dedicated creators. Transfer only the member's chosen dish, with no invented ingredients or preparation location.",
+    macro_calculator: "Optionally open the calculator after explaining macros; do not force navigation for an explanation.",
+    my_perfect_beginning: "Open the child-selection hub for child feeding questions; select an authorized child before Parent's Corner. Never assume a child.",
+    my_perfect_menu: "Start with meal ideas by category, retaining three choices until replaced; a selected idea is created by the member's effective builder/creator. Not an independent seven-day plan generator. Open only the existing Menu entry page; no Chef prefill, date/category/subject selection or automatic generation.",
+    meal_builders: "Open the Meal Builders landing page so the member can review their existing builder choices, access rules and tutorials. Existing onboarding and builder-switch restrictions still apply. Never choose or activate a specialized builder, open a clinical hub directly, or overwrite the assigned builder.",
+  };
+  const inputs: Record<CoachDestinationId, string> = {
+    grocery_find_product: "Open Shopping List, then select Grocery Store Coach > Find a Product. Member enters their product request there. Parent page only; no automatic tab opening, prefill or generation. Grocery Coach's Pro entitlement and existing profile/safety checks still apply.",
+    product_scan: "Open Shopping List, then select Product Scan and capture the actual product. Parent page only; no automatic capture or request transfer. Existing paid access, profile and product safeguards still apply.",
+    grocery_create_meal: "Open Shopping List, then select Grocery Store Coach > Build a Meal. Member requests their meal there. Parent page only; no automatic sheet opening, prefill, generation or list writes. Existing Grocery Coach Pro access and food safeguards apply.",
+    create_a_dish: "Dish/request description; servings and preferences are collected by the creator. Reviewed Chef handoff: editable idea text only; generation still requires the member's action.",
+    craving_creator: "Free-text craving, servings and optional category/preferences. No general Chef request prefill; replace/name parameters are replacement context, not discovery text.",
+    dessert_creator: "Free-text dessert idea or dessert type/flavor/style, serving size and optional dietary preferences. No general Chef request prefill.",
+    sushi_creator: "Sushi description, servings and optional dietary preferences. No general Chef request prefill; replacement parameters are not request transfer.",
+    beverage_creator: "Free-text drink idea or type/flavor, serving size and preferences. Only Hydration Center's verified hydrationHandoff is supported; Chef must not manufacture/reuse it for ordinary requests.",
+    athlete_beverage_creator: "Free-text performance drink or performance goal/type/flavor, serving size and preferences. Hydration-specific handoff exists, not a general Chef request prefill.",
+    fridge_rescue: "Member enters ingredients they want to use and relevant meal preferences. No approved Chef prefill. 'Home' alone does not mean using existing ingredients; generation retains its active-access and safety gates.",
+    restaurant_guide: "Food/craving and selected restaurant; location or ZIP when needed. No approved Chef prefill. Order assistance, not restaurant discovery; results depend on available restaurant evidence.",
+    find_meals_near_me: "ZIP or permitted location, radius and optional cuisine/budget/preferences. No approved Chef prefill. Discover restaurants, not order from an already chosen one; do not promise live menu availability.",
+    my_perfect_buffet: "Available buffet foods, buffet type and appetite/context. No approved Chef prefill. Choose among actual buffet offerings; not a restaurant finder or recipe creator.",
+    hydration_center: "Member hydration context/preferences and any verified professional guidance. No arbitrary request prefill. Education/support, not inventing fluid/electrolyte targets or overriding care plans.",
+    macro_calculator: "Member measurements, activity and goals in the existing calculator. No Chef prefill. Do not overwrite saved targets or force this tool when a nutrition explanation is enough.",
+    my_perfect_beginning: "Authorized child selection in the existing hub before child-specific help. No Chef prefill; do not fabricate child context or treat adult nutrition advice as a child plan.",
+    my_perfect_getaway: "Travel situation/location and preferences collected by the destination, including venue search and any supported dining-area selection. Chef need not collect every destination, ship, terminal, deck or menu before recognizing clear travel-dining intent. No Chef prefill. Travel assistance, not general cravings or a replacement for a clinical hub. Catalog and general cruise knowledge do not establish a particular ship's current menus or availability.",
+    my_perfect_gatherings: "Gathering occasion, guests, preferences and constraints collected by the destination. No Chef prefill. Hosting assistance, not personal meal-board planning.",
+    my_perfect_menu: "No Chef inputs or request transfer. Menu resolves its own authorized subject, category, date and effective builder context. Member chooses ideas and initiates creation there.",
+    meal_builders: "No Chef inputs or request transfer. The member chooses on the existing landing page; existing selection/onboarding and destination guards remain authoritative.",
+  };
+  const additions: MPMCapability[] = (Object.keys(COACH_DESTINATIONS) as CoachDestinationId[])
+    .map(id => ({
+      id, label: COACH_DESTINATIONS[id].label, route: COACH_DESTINATIONS[id].route,
+      description: `${descriptions[id]} Required inputs and handoff: ${inputs[id]} Verified destination: ${COACH_DESTINATIONS[id].route}. Navigation access class: ${COACH_DESTINATIONS[id].access}; current access is rechecked on click and destination guards still apply.`,
+      applicableSituations: id === "fridge_rescue" ? ["has_ingredients", "use_available_ingredients"] : ["general_inquiry"], scopes: ["all"], recommendable: true,
+      eligibilityNote: "Navigation does not grant access; current access is checked on click.",
+    }));
+  // Legacy registry entries include internal builders that are not approved
+  // concierge destinations. Do not advertise them as callable navigation.
+  return additions;
 }
 
 /**

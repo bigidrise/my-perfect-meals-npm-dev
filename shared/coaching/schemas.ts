@@ -7,6 +7,31 @@
  */
 
 import { z } from "zod";
+import { isCoachDestinationId } from "./navigation";
+
+/** Meaning is classified by the existing reasoning call, not keyword routing. */
+export const ConciergeGoalSchema = z.object({
+  activity: z.enum(["unknown", "prepare", "eat_out", "use_ingredients", "plan_meals",
+    "hydration", "buffet", "travel", "gathering", "calculator", "child_feeding",
+    "find_product", "evaluate_product", "shop_for_meal"]),
+  occasion: z.enum(["unknown", "snack", "meal", "dessert", "beverage"]),
+  restaurant: z.enum(["unknown", "chosen", "not_chosen"]),
+  dishChosen: z.boolean(),
+  specialty: z.enum(["none", "sushi", "workout"]),
+  // An explicit request for a feature can be complete without ordinary discovery.
+  explicitFeatureId: z.string().refine(isCoachDestinationId).nullable().default(null),
+});
+export type ConciergeGoal = z.infer<typeof ConciergeGoalSchema>;
+
+export const ConciergeDecisionSchema = z.object({
+  mode: z.enum(["food_assistance", "nutrition_education", "behavioral_coaching", "clarification"]),
+  destinationId: z.string().refine(isCoachDestinationId).nullable().default(null),
+  // Optional for compatibility; missing/invalid goal evidence cannot authorize navigation.
+  goal: ConciergeGoalSchema.optional().catch(undefined),
+}).refine(value => value.mode === "food_assistance" || value.destinationId === null, {
+  message: "Only a clear food-assistance request may select a navigation destination.",
+});
+export type ConciergeDecision = z.infer<typeof ConciergeDecisionSchema>;
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
@@ -60,6 +85,8 @@ export const MemoryCategorySchema = z.enum([
  * The server validates citations exist in the ObserverOutput before proceeding.
  */
 export const ReasoningResultSchema = z.object({
+  // Bad optional navigation metadata must never discard an otherwise valid redFlag.
+  conciergeDecision: ConciergeDecisionSchema.optional().catch(undefined),
   primaryConcern: z.string().min(1).max(300),
   hypotheses: z
     .array(
@@ -90,6 +117,7 @@ export const TodayPlanItemSchema = z.object({
   text: z.string().min(1).max(300),
   dueAt: z.string().optional(),
   completionSignal: CompletionSignalSchema.optional(),
+  // Model output is untrusted. The engine resolves this against its server allowlist.
   featureTarget: z.string().max(100).optional(),
 });
 
@@ -130,6 +158,22 @@ export const CoachResponseSchema = z.object({
 });
 
 export type CoachResponseInput = z.infer<typeof CoachResponseSchema>;
+
+/** Development concierge conversation need not invent a coaching plan or analysis. */
+export const ConciergeMessageSchema = z.object({
+  message: z.string().min(1).max(8000),
+  // Preserve escalation in the minimal renderer without inventing a plan.
+  contactCare: z.string().min(1).max(1000).optional(),
+});
+
+export const ConciergeResponseSchema = CoachResponseSchema.extend({
+  whatIFound: z.string().min(1).max(8000),
+  whatItCouldMean: z.string().max(600),
+  todayPlan: TodayPlanSchema.extend({
+    why: z.string().max(500),
+    items: z.array(TodayPlanItemSchema).max(3),
+  }),
+});
 
 // ─── Memory Candidate Schema ──────────────────────────────────────────────────
 

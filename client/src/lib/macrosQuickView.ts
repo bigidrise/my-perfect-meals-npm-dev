@@ -2,6 +2,7 @@
 // Used by "Add to Macros" buttons to pass meal data to biometrics page
 
 export interface QuickView {
+  restaurantServing?: import("@shared/restaurantServing").RestaurantServing;
   protein: number;
   carbs: number;
   starchyCarbs?: number;
@@ -17,6 +18,7 @@ export interface QuickView {
 }
 
 interface QuickViewInput {
+  restaurantServing?: import("@shared/restaurantServing").RestaurantServing;
   title?: string;
   mealId?: string;
   source?: string;

@@ -1219,10 +1219,10 @@
     "tryAgain": "يرجى المحاولة مجدداً"
   },
   "coachCorner": {
-    "title": "ركن المدرب",
+    "title": "Ask Chef",
     "learningDesc": "يتعلم الشيف ما يناسبك.",
     "startDesc": "ابدأ علاقة التدريب بالذكاء الاصطناعي مع الشيف.",
-    "openBtn": "فتح ركن المدرب"
+    "openBtn": "فتح Ask Chef"
   },
   "nutritionPlan": {
     "title": "خطة حياتك الغذائية",

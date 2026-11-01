@@ -14,6 +14,12 @@
 
 import crypto from "crypto";
 
+// Pure prompt/cache contracts must not initialize a live database or storage SDK.
+jest.mock("../db", () => ({ db: {} }));
+jest.mock("../objectStorage", () => ({
+  ObjectStorageService: jest.fn(),
+}));
+
 // mealImageGenerator transitively imports imageLifecycle → @replit/object-storage
 // → gaxios (ESM-only), which Jest cannot parse. The prompt/cache-key functions
 // under test never touch storage, so stub the lifecycle module out entirely.

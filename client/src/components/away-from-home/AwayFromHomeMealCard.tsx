@@ -38,6 +38,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { setQuickView } from "@/lib/macrosQuickView";
 import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
 import { ChefFlowImage } from "@/components/ChefFlowImage";
+import RestaurantPortions from "./RestaurantPortions";
+import PlateItems from "./PlateItems";
 
 // ── Translation types ─────────────────────────────────────────────────────────
 
@@ -149,6 +151,8 @@ function DisclosureRow({ status }: { status: NutritionDataStatus }) {
 // ── Main Card ─────────────────────────────────────────────────────────────────
 
 interface AwayFromHomeMealCardProps {
+  /** Getaway supplies a static-only image fallback without changing other consumers. */
+  mealImage?: import("react").ReactNode;
   recommendation: AwayFromHomeRecommendation;
   /** True while the page enriches this recommendation with a generated image. */
   imageLoading?: boolean;
@@ -165,6 +169,7 @@ export default function AwayFromHomeMealCard({
   actionsDisabled = false,
   logOnly = false,
   className,
+  mealImage,
 }: AwayFromHomeMealCardProps) {
   const [, setLocation] = useLocation();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -259,12 +264,14 @@ export default function AwayFromHomeMealCard({
     const calories = Math.round(p * 4 + totalCarbs * 4 + f * 9);
     const dateISO = new Date().toISOString().slice(0, 10);
     setQuickView({
+      ...(meal.serving ? { restaurantServing: meal.serving, title: meal.name } : {}),
       protein: p,
       carbs: totalCarbs,
       starchyCarbs: sc ?? undefined,
       fibrousCarbs: fc ?? undefined,
       fat: f,
       calories,
+      ...(meal.serving ? { calories: meal.calories ?? calories } : {}),
       dateISO,
     });
     setLocation(buildBiometricsUrl({ section: "macros", from: "buffet" }));
@@ -337,12 +344,12 @@ export default function AwayFromHomeMealCard({
         {/* ── Meal name + description ───────────────────────────────── */}
         <div className="px-4 pt-3">
           <div className="flex items-start gap-2">
-            <ChefFlowImage
+            {mealImage ?? <ChefFlowImage
               src={meal.imageUrl}
               alt={meal.name}
               isLoading={imageLoading}
               className="w-16 h-16 rounded-xl shrink-0 border border-white/10"
-            />
+            />}
             <div className="min-w-0">
               <p className="font-semibold text-white leading-snug">{displayName}</p>
               {displayDescription && (
@@ -359,7 +366,7 @@ export default function AwayFromHomeMealCard({
 
         {/* ── Macros ───────────────────────────────────────────────── */}
         <div className="mx-4 mt-3 rounded-xl bg-black/30 border border-white/8 px-4 py-3">
-          <div className="grid grid-cols-5 gap-1 text-center">
+          <div className="grid grid-cols-3 min-[480px]:grid-cols-5 gap-x-2 gap-y-3 text-center">
             <MacroCell label="Cal"     value={meal.calories}                       unit=""  status={nutritionStatus} />
             <MacroCell label="Protein" value={meal.proteinGrams}                   unit="g" status={nutritionStatus} />
             <MacroCell label="Starchy" value={meal.starchyCarbGrams ?? undefined}  unit="g" status={nutritionStatus} />
@@ -435,6 +442,10 @@ export default function AwayFromHomeMealCard({
         )}
 
         {/* ── Portion guidance ─────────────────────────────────────── */}
+        {meal.serving && <div className="px-4"><RestaurantPortions noticeOnly serving={meal.serving} meal={{
+          name: meal.name, calories: meal.calories!, protein: meal.proteinGrams!,
+          carbs: meal.carbohydrateGrams!, fat: meal.fatGrams!,
+        }} /></div>}
         {recommendation.portionGuidance && (
           <div className="px-4 mt-3">
             <p className="text-xs text-orange-300/70 leading-relaxed">
@@ -458,25 +469,7 @@ export default function AwayFromHomeMealCard({
         {buffetItems && buffetItems.length > 0 && (
           <div className="px-4 mt-4">
             <SectionLabel>Your plate</SectionLabel>
-            <div className="flex flex-col gap-1.5">
-              {buffetItems.map((item, i) => {
-                const translatedFood = translated?.buffetFoods?.[i];
-                return (
-                  <div key={i} className="flex items-start gap-2">
-                    <ChefHat className="w-3 h-3 text-orange-400/60 mt-0.5 shrink-0" />
-                    <div className="min-w-0">
-                      <span className="text-xs text-white font-medium">
-                        {translatedFood || item.food}
-                      </span>
-                      <span className="text-xs text-white/80"> · {item.portion}</span>
-                      {item.note && (
-                        <p className="text-[10px] text-white/70 leading-snug">{item.note}</p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <PlateItems items={buffetItems} translatedFoods={translated?.buffetFoods} />
           </div>
         )}
 

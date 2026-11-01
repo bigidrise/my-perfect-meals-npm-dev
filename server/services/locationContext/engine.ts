@@ -5,6 +5,67 @@ function normalize(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
 }
 
+/** Identity matching, not category matching. Used only by Development Getaway. */
+export function normalizeVenueIdentity(text: string): string {
+  return text.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase()
+    .replace(/['’]/g, "").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+}
+
+const SEARCH_FILLER = new Set(("a an and at am are can could dine dining eat eating find food for from going help " +
+  "here how i im in is me my next of on options please recommend restaurants should some the to us we week what where with would nearby near you tell figure out").split(" "));
+
+export function venueIdentityTokens(text: string): string[] {
+  return normalizeVenueIdentity(text).split(/\s+/).filter(token => token && !SEARCH_FILLER.has(token));
+}
+
+/** Bounded conversational wrapper removal, not a guessed venue or geocoder.
+ * Keep location qualifiers and conflicting names; discard only a separate
+ * first-person food/help clause. In particular, do not split St. Louis or U.K. */
+export function venueSearchIdentity(text: string): string {
+  return text.trim()
+    .replace(/^(?:i(?:['’]m| am)|we(?:['’]re| are))\s+(?:currently\s+)?(?:at|in)\s+/i, "")
+    .split(/(?:[.!?;]\s+|,\s*(?:and\s+)?)(?=(?:i|im|we|what|where|can|could|how)\b)/i)[0]
+    .replace(/\s+and\s+(?:i(?:['’]m| am)\s+)?hungry\b.*$/i, "")
+    .trim();
+}
+
+/** Equivalent country spellings only, not geographic inference (e.g. England
+ * is not interchangeable with every location in the UK). */
+export function venueLookupTokens(text: string): string[] {
+  // Preserve uppercase country US without turning conversational "help us"
+  // into a country constraint; lower-case "us" remains ordinary filler.
+  const canonical = normalizeVenueIdentity(text.replace(/\bUS\b/g, "unitedstates"))
+    .replace(/\b(?:united kingdom|great britain|u k)\b/g, "uk")
+    .replace(/\b(?:united states(?: of america)?|u s a|u s|usa)\b/g, "unitedstates")
+    .replace(/\b(?:united arab emirates|u a e)\b/g, "uae");
+  return venueIdentityTokens(canonical);
+}
+
+export function hasNamedVenueIdentity(text: string): boolean {
+  const categories = new Set(["airport", "terminal", "international", "hotel", "resort", "cruise",
+    "ship", "theme", "park", "stadium", "arena", "state", "fair", "restaurant", "city", "location", "venue"]);
+  return venueIdentityTokens(text).some(token => !categories.has(token));
+}
+
+export function findVenueByIdentity(text: string): VenueSearchResult | null {
+  const identity = venueSearchIdentity(text);
+  const query = ` ${normalizeVenueIdentity(identity)} `;
+  if (!hasNamedVenueIdentity(identity)) return null;
+  const requested = venueLookupTokens(identity);
+  const matches = VENUE_CATALOG.filter(venue => {
+    if (!venue.active) return false;
+    const identities = [venue.name, ...venue.aliases].map(normalizeVenueIdentity);
+    if (!identities.some(identity => identity && query.includes(` ${identity} `))) return false;
+    const supported = new Set(venueLookupTokens([
+      venue.name, ...venue.aliases, venue.city, venue.state,
+      ...venue.zones.filter(zone => zone.active).map(zone => zone.name),
+    ].join(" ")));
+    return requested.every(token => supported.has(token));
+  });
+  // More than one plausible identity is uncertainty, never catalog ordering.
+  return matches.length === 1 ? { venue: matches[0] } : null;
+}
+
 export function findVenueByText(text: string): VenueSearchResult | null {
   const norm = normalize(text);
   if (!norm) return null;
