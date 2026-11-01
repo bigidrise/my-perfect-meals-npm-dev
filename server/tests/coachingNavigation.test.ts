@@ -32,6 +32,31 @@ beforeEach(() => { process.env.NODE_ENV = "development"; });
 afterAll(() => { process.env.NODE_ENV = originalEnv; });
 
 describe("server-validated Chef navigation", () => {
+  test.each([
+    ["grocery_find_product", false],
+    ["grocery_create_meal", false],
+    ["product_scan", true],
+  ] as const)("%s keeps its existing access boundary and parent-only route", async (id, essentialAllowed) => {
+    const anonymous = await request(app(null)).post("/api/coach/navigation").send({ destinationId: id });
+    expect(anonymous.status).toBe(401);
+    for (const planLookupKey of ["mpm_basic_monthly", "mpm_premium_monthly", "mpm_ultimate_monthly"]) {
+      const response = await request(app({ accessTier: "PAID_FULL", planLookupKey }))
+        .post("/api/coach/navigation").send({ destinationId: id });
+      const allowed = planLookupKey !== "mpm_basic_monthly" || essentialAllowed;
+      expect(response.status).toBe(allowed ? 200 : 403);
+      expect(response.body.route).toBe(allowed ? "/shopping-list-v2" : undefined);
+    }
+    const transfer = await request(app()).post("/api/coach/navigation").send({
+      destinationId: id, creatorRequest: { destinationId: "create_a_dish", idea: "Dinner" },
+    });
+    expect(transfer.status).toBe(400);
+    expect(resolveCoachDestinationId("/shopping-list-v2")).toBeUndefined();
+    process.env.NODE_ENV = "production";
+    const production = await request(app()).post("/api/coach/navigation").send({ destinationId: id });
+    expect(production.status).toBe(404);
+    expect(getCornerCapabilities(["all"]).some(cap => cap.id === id)).toBe(false);
+  });
+
   test("new destinations match the guarded member entry routes, not specialized builders", () => {
     const router = readFileSync(join(process.cwd(), "client/src/components/Router.tsx"), "utf8");
     expect(COACH_DESTINATIONS.my_perfect_menu.route).toBe("/foods-i-enjoy");
@@ -69,7 +94,8 @@ describe("server-validated Chef navigation", () => {
       { kind: "use_feature", featureTarget: id, destinationId: "untrusted" },
     ], true);
     expect(items[0].destinationId).toBe(id);
-    expect(resolveCoachDestinationId(destination.route)).toBe(id);
+    const sameRoute = Object.values(COACH_DESTINATIONS).filter(other => other.route === destination.route);
+    expect(resolveCoachDestinationId(destination.route)).toBe(sameRoute.length === 1 ? id : undefined);
     expect(destination.route).not.toMatch(/[?#]/);
   });
 

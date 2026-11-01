@@ -8,7 +8,7 @@ import { CHEF_CONCIERGE_REVISION, CHEF_CONVERSATION_INSTRUCTIONS } from "./conci
 import { buildSafetyResponse } from "./safety";
 import { getLanguageInstruction } from "../../utils/languageInstruction";
 import { CreatorRequestEvidenceSchema, groundedCreatorRequest } from "./creatorRequest";
-import { COACH_DESTINATIONS, type CoachDestinationId } from "../../../shared/coaching/navigation";
+import { COACH_DESTINATIONS, mentionsCoachDestination, type CoachDestinationId } from "../../../shared/coaching/navigation";
 import { CORNER_UNSUPPORTED_FEATURES } from "./capabilityRegistry";
 import type { ChefCreatorRequest } from "../../../shared/coaching/creatorRequest";
 import { getDevelopmentPlatformKnowledge, PLATFORM_GUIDANCE_INSTRUCTIONS } from "./platformKnowledge";
@@ -217,7 +217,7 @@ export async function runConciergeConversation(params: {
     // for the explicit-feature exception, regardless of the model's intent tag.
     const direct = turn.navigationIntent === "direct_request" &&
       decision.goal.explicitFeatureId === destinationId &&
-      params.userMessage.toLocaleLowerCase().includes(COACH_DESTINATIONS[destinationId].label.toLocaleLowerCase()) &&
+      mentionsCoachDestination(params.userMessage, destinationId) &&
       !!independentConversation(params.userMessage, destinationId);
     if (!confirmed && !direct) {
       if (turn.navigationIntent === "confirmed" && !params.pendingRecommendation) {
@@ -231,7 +231,7 @@ export async function runConciergeConversation(params: {
       const recommendation = [turn.recommendationMessage, turn.message, turn.conversationMessage]
         .map((text, index) => ({ text: independentConversation(text, destinationId), dedicated: index === 0 }))
         .find(({ text, dedicated }) => text && /[?？؟]/u.test(text) &&
-          (dedicated || text.toLocaleLowerCase().includes(COACH_DESTINATIONS[destinationId].label.toLocaleLowerCase())) &&
+          (dedicated || mentionsCoachDestination(text, destinationId)) &&
           conversationalContinuation(text.replace(/\b(?:open|use)\b/gi, "")));
       if (!recommendation) return rejectAction("missing_recommendation_wording");
       if (!recommendation.dedicated) diagnostic("recommendation_recovered", "missing_recommendation_wording");

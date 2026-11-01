@@ -154,5 +154,6 @@
 - [Dashboard menu colors](dashboard-menu-color-policy.md) — use visually distinct accents for unrelated dashboard tools, not merely different hex shades of the same hue.
 - [RHM client walkthrough](rhm-client-walkthrough-context.md) — staff need the actual first-time client experience before distributing a 30-day link to 8,000 clinic clients.
 - [Frontend test runtime](dom-snapshot-css-fidelity.md) — snapshot CSS fidelity, focused Jest execution, and Vite-only feature gates.
+- [Focused Jest execution](focused-jest-execution.md) — isolated transpilation for focused server/client suites; run whole-project type checks separately.
 - [Chef concierge boundaries](chef-concierge-boundary.md) — preserve coaching; destinations own generation; navigation is member-confirmed and Development-only until approved.
 - [Getaway evidence boundary](getaway-reliability-boundary.md) — destination identity never proves menus; uncertainty stays explicit and reliability corrections remain Development-only.

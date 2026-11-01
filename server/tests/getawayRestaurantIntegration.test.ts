@@ -270,4 +270,12 @@ test("general dining advice and unsupported nutrition do not acquire meal action
   expect(result.nutritionStatus).toBe("estimated");
   expect(result.protocol).toEqual({});
   expect(getawayRestaurantCards({ ...payload, recommendations: [{ ...meal, fat: undefined }] })).toEqual([]);
+  for (const name of [undefined, "", "   ", 42]) {
+    expect(getawayRestaurantCards({ ...payload, recommendations: [{ ...meal, name }] })).toEqual([]);
+  }
+  for (const key of ["calories", "protein", "carbs", "fat"]) {
+    for (const value of [undefined, NaN, Infinity, -1]) {
+      expect(getawayRestaurantCards({ ...payload, recommendations: [{ ...meal, [key]: value }] })).toEqual([]);
+    }
+  }
 });

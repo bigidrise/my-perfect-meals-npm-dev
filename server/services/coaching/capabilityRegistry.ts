@@ -361,6 +361,9 @@ export function getCornerCapabilities(activeScopes: CapabilityScope[]): MPMCapab
   const existing = getCapabilitiesForUser(activeScopes, true);
   if (process.env.NODE_ENV !== "development") return existing;
   const descriptions: Record<CoachDestinationId, string> = {
+    grocery_find_product: "Grocery Coach > Find a Product uses onboarding and the member's nutrition profile to find three suitable grocery product recommendations when the member wants something to buy. Discovery, not evaluation of an actual product. Chef explains this workflow; the existing feature owns recommendations and safeguards.",
+    product_scan: "Evaluate a specific grocery product the member has or is looking at by scanning its label against their profile and nutritional needs. Explain suitability and offer three alternatives through the existing Product Scan workflow, not brand recommendations in Chef.",
+    grocery_create_meal: "Grocery Coach > Create a Meal (the Build a Meal tab) helps decide what to eat and generates a meal and corresponding grocery list. Use for meal ideas with ingredients to purchase, not merely preparing a named dish.",
     sushi_creator: "Prepare sushi: rolls, nigiri, and other sushi. Requires preparation intent or an explicit Sushi Creator request; wanting to eat sushi alone may need making-versus-going-out clarification. Sushi education stays conversational.",
     craving_creator: "Prepare a SMALL craving, snack or smaller meal, including small dessert portions, described by what the member craves using free-text and an optional category. Appropriate for a small preparation request even when the exact finished dish is not selected. Use occasion=snack for a small sweet craving too. Not a default for light, flavorful, hunger or indecision alone, full chosen meals, whole cakes/pies/pans, restaurant food, sushi or drinks.",
     dessert_creator: "Prepare larger dessert recipes such as a whole cake, pie or pan of brownies. Small dessert cravings belong to Craving Creator with occasion=snack. Requires larger-dessert preparation intent or an explicit Dessert Creator request; sweet preference alone is insufficient.",
@@ -380,6 +383,9 @@ export function getCornerCapabilities(activeScopes: CapabilityScope[]): MPMCapab
     meal_builders: "Open the Meal Builders landing page so the member can review their existing builder choices, access rules and tutorials. Existing onboarding and builder-switch restrictions still apply. Never choose or activate a specialized builder, open a clinical hub directly, or overwrite the assigned builder.",
   };
   const inputs: Record<CoachDestinationId, string> = {
+    grocery_find_product: "Open Shopping List, then select Grocery Store Coach > Find a Product. Member enters their product request there. Parent page only; no automatic tab opening, prefill or generation. Grocery Coach's Pro entitlement and existing profile/safety checks still apply.",
+    product_scan: "Open Shopping List, then select Product Scan and capture the actual product. Parent page only; no automatic capture or request transfer. Existing paid access, profile and product safeguards still apply.",
+    grocery_create_meal: "Open Shopping List, then select Grocery Store Coach > Build a Meal. Member requests their meal there. Parent page only; no automatic sheet opening, prefill, generation or list writes. Existing Grocery Coach Pro access and food safeguards apply.",
     create_a_dish: "Dish/request description; servings and preferences are collected by the creator. Reviewed Chef handoff: editable idea text only; generation still requires the member's action.",
     craving_creator: "Free-text craving, servings and optional category/preferences. No general Chef request prefill; replace/name parameters are replacement context, not discovery text.",
     dessert_creator: "Free-text dessert idea or dessert type/flavor/style, serving size and optional dietary preferences. No general Chef request prefill.",

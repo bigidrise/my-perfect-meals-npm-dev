@@ -12,7 +12,8 @@ import { isCoachDestinationId } from "./navigation";
 /** Meaning is classified by the existing reasoning call, not keyword routing. */
 export const ConciergeGoalSchema = z.object({
   activity: z.enum(["unknown", "prepare", "eat_out", "use_ingredients", "plan_meals",
-    "hydration", "buffet", "travel", "gathering", "calculator", "child_feeding"]),
+    "hydration", "buffet", "travel", "gathering", "calculator", "child_feeding",
+    "find_product", "evaluate_product", "shop_for_meal"]),
   occasion: z.enum(["unknown", "snack", "meal", "dessert", "beverage"]),
   restaurant: z.enum(["unknown", "chosen", "not_chosen"]),
   dishChosen: z.boolean(),

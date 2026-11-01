@@ -33,8 +33,13 @@ const memberFeatures: MemberFeatureKnowledge[] = [
   },
   {
     id: "grocery_coach", label: "Grocery Store Coach",
-    purpose: "The Shopping List's Grocery Store Coach supports both meal help and product help. Product mode helps find and evaluate grocery products against authorized nutrition needs; meal mode can build a meal. Do not promise live store inventory or treat every grocery-product question as a request to generate food.",
+    purpose: "The Shopping List's Grocery Store Coach supports both meal help and product help. Find a Product uses onboarding information and the member's personal nutrition profile to find three suitable grocery product recommendations to buy. Create a Meal (the Build a Meal tab) helps decide what to eat and generates a meal with its corresponding grocery list. Evaluating an actual product the member has or is looking at belongs to the separate Product Scan control. Existing safeguards govern results; do not invent options to reach three, promise live inventory or generate product recommendations in Chef.",
     entryPoint: "Grocery Store Coach inside Shopping List", access: "Pro access; saved-product and discovery safeguards remain authoritative.", status: "available",
+  },
+  {
+    id: "product_scan", label: "Product Scan",
+    purpose: "Scan an actual grocery product the member has or is looking at. The existing workflow evaluates it against the member's profile and applicable nutritional needs, explains why it may or may not fit, and can recommend three alternative products. Different from asking Grocery Coach's Find a Product to discover something to buy. Chef explains the feature, not product-specific suitability or alternatives.",
+    entryPoint: "Product Scan inside Shopping List", access: "Existing paid access, authorized profile and product safeguards apply.", status: "available",
   },
   {
     id: "favorites", label: "My Favorites",

@@ -9,7 +9,7 @@ The member-facing name in prepared release copy is **Ask Chef**, including Pro p
 
 **Why:** The user requested consistent member-facing branding and an inviting dashboard entry, then explicitly requested a final pre-Production branding/mobile audit. Preparing consistent release copy does not authorize Production activation, publishing, or changing feature eligibility.
 
-**How to apply:** Describe verified platform controls concretely, including nested dialogs and page-specific help. Sources documentation is not claim-level medical validation. New help knowledge does not authorize navigation buttons; proposed destinations need separate approval beyond the existing seventeen.
+**How to apply:** Describe verified platform controls concretely, including nested dialogs and page-specific help. Sources documentation is not claim-level medical validation. New help knowledge does not authorize navigation buttons; additional destinations require separate approval.
 
 **Why:** The user explicitly clarified that natural conversation applies throughout the experience, not just orientation, while preserving existing functionality and safety controls.
 
@@ -88,6 +88,20 @@ Progressive text must preserve the same clinical, action-validation and persiste
 **Why:** In the streaming request, preserving safety took priority over forcing a substantial protocol redesign. A visible provisional reply cannot be undone if the complete response later requires care escalation or rejection.
 
 **How to apply:** Revisit genuine streaming only with a reviewed pre-display validation boundary and explicit interrupted-turn/recovery behavior. Do not treat provider streaming support or JSON field reordering alone as proof that provisional display is safe. Keep one conversational model call and the existing voice architecture.
+
+## Shopping workflow approval boundary
+
+The shopping knowledge and navigation correction is Development-only. It is not implicitly covered by the earlier Production release authorization. Do not commit, push, merge or publish this correction without separate approval.
+
+**Why:** The owner approved the limited Development-only correction after explicitly restricting Git and Production actions.
+
+**How to apply:** Ask Chef distinguishes finding products to buy, evaluating an actual product, and choosing a meal with groceries. The existing shopping features own personalization and safeguards; Chef does not become another product recommendation engine. Use the parent Shopping List with section instructions, not invented subsection links or automatic generation.
+
+Verify knowledge in the actual conversational provider payload, not merely in a preserved compatibility prompt.
+
+**Why:** Shopping action contracts passed while the active single-call prompt initially lacked the new semantic instructions; a provider-payload assertion exposed the omission.
+
+**How to apply:** Keep shared workflow instructions consistent across execution paths and retain separate navigation/consent validation. Mocked contract checks are not live-model acceptance.
 
 My Perfect Menu and Meal Builders are approved starting-page navigation, not authority to choose or activate a builder, transfer a planning request, or generate food in chat. A general wish to make meals does not choose either approach.
 

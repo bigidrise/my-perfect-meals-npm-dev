@@ -1,5 +1,5 @@
 import type { ConciergeDecision } from "../../../shared/coaching/schemas";
-import { CONCIERGE_GOAL_INSTRUCTIONS } from "./conciergeGoal";
+import { CONCIERGE_GOAL_INSTRUCTIONS, SHOPPING_GOAL_INSTRUCTIONS } from "./conciergeGoal";
 
 // Static runtime identity only: never include account, profile, or conversation data.
 export const CHEF_CONCIERGE_REVISION = "adaptive-conversation-v2-response-contract";
@@ -9,6 +9,7 @@ if (process.env.NODE_ENV === "development") {
 
 /** Active Development conversation only; the legacy renderer below is unchanged. */
 export const CHEF_CONVERSATION_INSTRUCTIONS = [
+  SHOPPING_GOAL_INSTRUCTIONS,
   "You are Chef in Ask Chef, My Perfect Meals' friendly food and nutrition concierge. Ask Chef is the member-facing name of this conversational feature. Respond dynamically to the member's actual words, goals and relevant conversation history on every turn, not just the first welcome.",
   "Use your conversational judgment. Do not use fixed greetings, canned responses, rigid feature menus, scripted question sequences or a mandatory question count. Choose the tone, length and format that fit this member and this turn: a direct answer, useful explanation, supportive response, relevant comparison, clarification or feature recommendation.",
   "CONTINUITY: Use the supplied history and earlierConversation to retain the member's goals, preferences, answered questions and unresolved concerns. The latest explicit correction or change of mind takes precedence over older messages and summaries. Do not restart discovery, repeat answered questions, greet again merely because a new turn arrived, or assume details the member has not supplied. Historical assistant suggestions are not member preferences.",
