@@ -13,6 +13,8 @@ async function main() {
   }
   const sdk = new OpenAI({ maxRetries: 0, timeout: 30_000 });
   const restaurantConfirmation = process.argv.includes("--restaurant-confirmation");
+  const cravingConfirmation = process.argv.includes("--craving-confirmation");
+  if (restaurantConfirmation && cravingConfirmation) throw new Error("Choose one confirmation scenario.");
   let totalTokens = 0;
   const client = { chat: { completions: { create: async (args: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming) => {
     const result = await sdk.chat.completions.create({ ...args, max_tokens: 600 });
@@ -25,10 +27,14 @@ async function main() {
   } } } };
   const history: Array<{ role: string; content: string }> = [];
   let pendingRecommendation: PendingRecommendation | undefined;
-  const messages = restaurantConfirmation
+  const messages = cravingConfirmation
+    ? ["I want some ice cream.", "make it myself", "small", "yes"]
+    : restaurantConfirmation
     ? ["I want some ice cream.", "I wanna go to a restaurant to get ice cream.", "yes"]
     : ["I want ice cream.", "I want to make it.", "Actually, I'm buying it at Walmart."];
-  let completedRestaurantHandoff = false;
+  const expectedDestination = cravingConfirmation ? "craving_creator"
+    : restaurantConfirmation ? "find_meals_near_me" : undefined;
+  let completedHandoff = false;
   for (const message of messages) {
     const response = await runConciergeConversation({
       client: client as unknown as OpenAI, userMessage: message, history,
@@ -38,20 +44,30 @@ async function main() {
     });
     const reply = response.presentation?.message ?? response.todayPlan.items.map(item => item.text).join("\n");
     console.log(JSON.stringify({ liveModel: true, input: message, reply,
+      incomingPending: pendingRecommendation?.destinationId ?? null,
       redFlag: response.meta.redFlag, destination: response.presentation?.destinationId ?? null,
-      navigation: response.presentation?.navigation?.state ?? null }));
+      navigation: response.presentation?.navigation?.state ?? null,
+      actions: response.todayPlan.items.filter(item => item.kind === "use_feature").map(item => ({
+        kind: item.kind, destinationId: item.destinationId,
+      })) }));
     if (response.meta.redFlag || response.meta.concierge?.rendering === "retry") {
       throw new Error("Ordinary synthetic conversation did not complete normally; stopping without retries.");
     }
     pendingRecommendation = response.presentation?.navigation?.state === "recommendation_pending"
       ? response.presentation.navigation : undefined;
-    completedRestaurantHandoff = response.presentation?.destinationId === "find_meals_near_me" &&
+    completedHandoff = response.presentation?.destinationId === expectedDestination &&
       response.presentation?.navigation?.state === "navigation_confirmed";
+    if (cravingConfirmation && message === "small" &&
+      pendingRecommendation?.destinationId !== "craving_creator") {
+      throw new Error("The small-portion choice did not establish the expected pending recommendation.");
+    }
     history.push({ role: "user", content: message }, { role: "assistant", content: reply });
   }
-  console.log(JSON.stringify({ liveTurns: 3, totalTokens, persisted: false, completedRestaurantHandoff }));
-  if (restaurantConfirmation && !completedRestaurantHandoff) {
-    throw new Error("One affirmative did not complete the restaurant handoff.");
+  console.log(JSON.stringify({ liveTurns: messages.length, totalTokens, persisted: false,
+    expectedDestination, completedHandoff,
+    completedRestaurantHandoff: restaurantConfirmation && completedHandoff }));
+  if (expectedDestination && !completedHandoff) {
+    throw new Error("One affirmative did not complete the expected handoff.");
   }
 }
 main().catch(() => {

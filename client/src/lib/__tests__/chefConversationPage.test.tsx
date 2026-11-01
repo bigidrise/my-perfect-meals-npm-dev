@@ -83,6 +83,49 @@ async function renderPage(completed: boolean, messages: any[] = []) {
   await act(async () => { root.render(<QueryClientProvider client={client}><CoachsCorner /></QueryClientProvider>); });
 }
 
+test("the four-turn small ice-cream conversation renders Open Craving Creator after the first yes", async () => {
+  await renderPage(false);
+  const goal = { activity: "prepare", occasion: "snack", restaurant: "unknown",
+    dishChosen: false, specialty: "none", explicitFeatureId: null };
+  const question = "Would you like to open the Craving Creator to make a small portion of ice cream?";
+  const handoff = "To begin making your small portion of ice cream, open the Craving Creator and describe your craving.";
+  const turns = [
+    { input: "I want some ice cream.", message: "Are you looking to buy some ice cream from the store, or are you interested in making your own ice cream at home?" },
+    { input: "make it myself", message: "You can use Craving Creator for a small portion or Dessert Creator for a larger batch. Would you like a small portion or larger dessert recipe?" },
+    { input: "small", message: question },
+    { input: "yes", message: handoff },
+  ];
+  for (const [index, turn] of turns.entries()) {
+    mockAPI.mockResolvedValueOnce({ conversationId: "craving-conversation", messageId: `craving-${index}`,
+      response: { presentation: { kind: "concierge", message: turn.message,
+        ...(index === 2 ? { navigation: { state: "recommendation_pending", destinationId: "craving_creator", goal } } : {}),
+        ...(index === 3 ? { destinationId: "craving_creator", navigation: {
+          state: "navigation_confirmed", destinationId: "craving_creator", goal,
+        } } : {}) },
+        whatIFound: "", whatItCouldMean: "", meta: { redFlag: false }, learningOpportunity: null,
+        todayPlan: { items: index === 3 ? [{ kind: "use_feature", destinationId: "craving_creator" }] : [] } } });
+    await act(async () => {
+      const textarea = host.querySelector("textarea")!;
+      textarea.value = turn.input;
+      Simulate.change(textarea, { target: textarea } as any);
+    });
+    await act(async () => { (host.querySelector('[aria-label="Send message"]') as HTMLButtonElement).click(); });
+    const buttons = [...host.querySelectorAll("button")].filter(button => button.textContent === "Open Craving Creator");
+    expect(buttons).toHaveLength(index === 3 ? 1 : 0);
+    expect(host.textContent).toContain(turn.message);
+    expect(mockNavigate).not.toHaveBeenCalled();
+  }
+  expect(mockAPI).toHaveBeenCalledTimes(4);
+  const button = [...host.querySelectorAll("button")].find(button => button.textContent === "Open Craving Creator")!;
+  mockAPI.mockResolvedValueOnce({ destinationId: "craving_creator", route: chefNavigationRoute("craving_creator") });
+  await act(async () => button.click());
+  expect(mockAPI).toHaveBeenLastCalledWith("/api/coach/navigation", expect.objectContaining({
+    method: "POST", body: JSON.stringify({ destinationId: "craving_creator" }),
+  }));
+  expect(mockNavigate).toHaveBeenCalledWith(chefNavigationRoute("craving_creator"));
+  expect(mockAPI).toHaveBeenCalledTimes(5);
+});
+
 test("restaurant recommendation followed by one yes displays the real validated navigation control", async () => {
   await renderPage(false);
   const send = async (message: string) => {

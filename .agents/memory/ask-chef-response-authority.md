@@ -47,3 +47,16 @@ repeated handoff wording from verified destination instructions (or the existing
 button label when controls are unreviewed). Keep unsafe links and mismatched
 destinations rejected. Never choose a destination from a permission question,
 reconstruct pending state from text history, or authorize a bare yes by keyword.
+
+Distinguish missing recommendation wording from a missing decision. A validated
+ready goal may support recovery of an omitted wording variant or uniquely missing
+destination ID; a correct-looking feature name in prose is not pending-state
+authority.
+
+**Why:** A member can finish clarification and correctly identify a feature
+without the model emitting structured action data. Knowing the intended feature
+alone does not prove that a response carries an authorized action.
+
+**How to apply:** Base recovery on existing structured goal/access validation.
+Verify saved pending state, first acceptance and the real rendered control—not
+just natural-sounding handoff text.

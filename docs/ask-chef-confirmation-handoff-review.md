@@ -56,7 +56,8 @@ availability of a particular dish. The instructions explicitly retain that limit
 
 ## Tests and observed behavior
 
-Ten focused suites: **688 tests passed**.
+Ten focused suites: **700 tests passed**, including the additional Craving Creator
+case below.
 
 Coverage includes:
 
@@ -79,8 +80,9 @@ The final three-turn live replay used these exact member messages:
 3. “yes” → `navigation_confirmed`, the correct destination and concise starting
    instructions, with no further permission question.
 
-Final live usage: **39,161 total tokens**. There were nine bounded synthetic
-provider calls across pre-fix, intermediate and final observations. No saved
+Restaurant final live usage: **39,161 total tokens**. The restaurant investigation
+used nine bounded synthetic provider calls across pre-fix, intermediate and final
+observations. The additional Craving replay below used four more calls. No saved
 conversations, member-account queries, images or destination generation occurred.
 The successful final observation is separate evidence from deterministic tests,
 not proof that every possible model response is correct.
@@ -89,6 +91,59 @@ A mobile screenshot used the actual response bubble and navigation-action
 component with built CSS, a fixture router and disabled API calls. It showed no
 button before consent and one fully visible button after yes. The authenticated
 member page was not accessed through the screenshot browser.
+
+## Additional member case: small homemade ice cream
+
+The existing fix was replayed without changing runtime behavior:
+
+1. “I want some ice cream.” → ordinary clarification; no pending state or action.
+2. “make it myself” → small-versus-large clarification; no pending state or action.
+3. “small” → the live model returned `navigationIntent=recommendation`, a
+   `food_assistance` decision for `craving_creator`, and a ready
+   `prepare`/`snack` goal. The backend emitted `recommendation_pending` and no
+   navigation action yet.
+4. “yes” → the live model returned `navigationIntent=confirmed`; the backend
+   received the matching pending record, emitted `navigation_confirmed`,
+   `presentation.destinationId=craving_creator`, and exactly one
+   `use_feature` action for that destination.
+
+Four synthetic live calls used **52,132 total tokens**, without database writes
+or member-data queries. This confirms the current path for this observation,
+not the historical payload behind the supplied transcript.
+
+The regression suite runs the full four-turn sequence through the actual engine
+and SQL persistence code with a mocked database in both Development and Production
+modes. It verifies
+history, saved pending state, its presence on the yes request, the confirmed
+response, the typed action, and consumption of the pending record.
+
+The actual conversation page test renders all four replies, asserts no button
+before acceptance and exactly one **Open Craving Creator** button after the
+first yes, then clicks the real control and verifies the existing click-time
+authorization request and canonical route.
+
+A mobile screenshot separately rendered the live-observed proposal and confirmed
+action through the real response bubble and navigation control with built CSS.
+The button was visible and unclipped after yes. This isolated fixture made no
+API requests and did not bypass authentication in the main application.
+
+### Omitted model recommendation fields
+
+- Missing/null dedicated `recommendationMessage`: recover the model's permission
+  question only when its structured decision and goal validate.
+- Missing destination ID with a ready structured goal: existing unique-goal
+  completion may resolve Craving Creator; no destination is selected from prose.
+- Valid ready decision with `navigationIntent=none`: a validated permission
+  question can establish only a pending proposal, never an immediate button.
+- Entire decision missing/null: naming Craving Creator in prose is insufficient.
+  Do not display an orphan permission offer or manufacture pending state; a later
+  bare yes still cannot authorize navigation.
+- Correct destination label with incompatible goal metadata: reject the action.
+- Revoked access and a genuine emergency after the offer still suppress the
+  Craving button; emergency screening occurs before another model call.
+
+The additional work changes tests, the opt-in replay tool and this report only.
+No further runtime patch, navigation relaxation or application restart was needed.
 
 ## Changed files
 

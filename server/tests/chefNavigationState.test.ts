@@ -28,6 +28,9 @@ const unknown = { activity: "unknown", occasion: "unknown", restaurant: "unknown
   dishChosen: false, specialty: "none", explicitFeatureId: null };
 const travel = { ...unknown, activity: "travel" };
 const dessert = { ...unknown, activity: "prepare", occasion: "dessert" };
+const craving = { ...unknown, activity: "prepare", occasion: "snack" };
+const cravingQuestion = "Would you like to open the Craving Creator to make a small portion of ice cream?";
+const cravingHandoff = "To begin making your small portion of ice cream, open the Craving Creator and describe your craving.";
 const request = "I'm going on a Carnival cruise. Can you help me find somewhere to eat?";
 const invitation = "My Perfect Getaway can help explore your cruise dining options. Would you like to use it?";
 const guidance = "Great. Search your cruise or destination, then choose a dining area if prompted.";
@@ -243,6 +246,141 @@ test("Find Meals assistance confirms into the meal-generating screen, not the li
   expect(html(second)).toContain("<button");
   expect(COACH_DESTINATIONS.find_meals_near_me.route).toBe("/social-hub/find");
   expect(COACH_DESTINATIONS.find_meals_near_me.access).toBe("pro");
+});
+
+test.each(["development", "production"])(
+  "%s: the four-turn small ice-cream sequence persists a Craving recommendation and confirms on the first yes", async environment => {
+    process.env.NODE_ENV = environment;
+    const history: Array<{ role: string; content: string }> = [];
+    const turns = [
+      { input: "I want some ice cream.", output: {
+        message: "Are you looking to buy some ice cream from the store, or are you interested in making your own ice cream at home?",
+        navigationIntent: "none", conciergeDecision: null,
+      } },
+      { input: "make it myself", output: {
+        message: "You can use Craving Creator for a small portion or Dessert Creator for a larger batch. Would you like a small portion or larger dessert recipe?",
+        navigationIntent: "none", conciergeDecision: null,
+      } },
+      { input: "small", output: {
+        message: cravingQuestion, navigationIntent: "recommendation", recommendationMessage: cravingQuestion,
+        conciergeDecision: { mode: "food_assistance", destinationId: "craving_creator", goal: craving },
+      } },
+      { input: "yes", output: {
+        message: cravingHandoff, handoffMessage: cravingHandoff,
+        navigationIntent: "confirmed", conciergeDecision: null,
+      } },
+    ];
+    for (const [index, turn] of turns.entries()) {
+      (loadBoundedHistory as jest.Mock).mockResolvedValue({ recentMessages: [...history], rollingContext: null });
+      model({ conversationMessage: null, recommendationMessage: null, handoffMessage: null, ...turn.output });
+      const response = await run(turn.input);
+      expect(response.meta.redFlag).toBe(false);
+      const wire = JSON.parse(mockCreate.mock.calls[index][0].messages[1].content);
+      expect(wire.latestMemberMessage).toBe(turn.input);
+      expect(wire.history).toEqual(history);
+      if (index < 2) {
+        expect(response.presentation?.navigation).toBeUndefined();
+        expect(html(response)).not.toContain("<button");
+      } else if (index === 2) {
+        expect(response.presentation?.navigation).toMatchObject({
+          state: "recommendation_pending", destinationId: "craving_creator", goal: craving,
+        });
+        expect(stored.presentation.navigation.destinationId).toBe("craving_creator");
+        expect(await loadPendingRecommendation("owned-conversation", "member"))
+          .toMatchObject({ state: "recommendation_pending", destinationId: "craving_creator" });
+        expect(html(response)).not.toContain("<button");
+      } else {
+        expect(wire.pendingRecommendation).toMatchObject({
+          state: "recommendation_pending", destinationId: "craving_creator",
+        });
+        expect(response.presentation?.navigation?.state).toBe("navigation_confirmed");
+        expect(response.presentation?.destinationId).toBe("craving_creator");
+        expect(response.todayPlan.items).toEqual([expect.objectContaining({
+          kind: "use_feature", destinationId: "craving_creator", featureTarget: "craving_creator",
+        })]);
+        expect(response.presentation?.message).toBe(cravingHandoff);
+        expect(html(response).match(/<button/g)).toHaveLength(1);
+        expect(html(response)).toContain("Open craving_creator");
+        expect(stored.presentation.navigation.state).toBe("navigation_confirmed");
+        expect(await loadPendingRecommendation("owned-conversation", "member")).toBeUndefined();
+      }
+      history.push({ role: "user", content: turn.input },
+        { role: "assistant", content: response.presentation?.message ?? "" });
+    }
+    expect(mockCreate).toHaveBeenCalledTimes(4);
+  });
+
+test.each([
+  { recommendationMessage: undefined, destinationId: "craving_creator", navigationIntent: "recommendation" },
+  { recommendationMessage: null, destinationId: "craving_creator", navigationIntent: "recommendation" },
+  { recommendationMessage: null, destinationId: null, navigationIntent: "recommendation" },
+  { recommendationMessage: null, destinationId: "craving_creator", navigationIntent: "none" },
+])("ready structured craving goals recover omitted recommendation variants without early consent: %j", async variant => {
+  model({ navigationIntent: variant.navigationIntent, message: cravingQuestion,
+    recommendationMessage: variant.recommendationMessage, conversationMessage: null,
+    conciergeDecision: { mode: "food_assistance", destinationId: variant.destinationId, goal: craving } });
+  const offer = await run("I want to make a small portion of ice cream.");
+  expect(offer.presentation?.message).toBe(cravingQuestion);
+  expect(offer.presentation?.navigation).toMatchObject({
+    state: "recommendation_pending", destinationId: "craving_creator",
+  });
+  expect(offer.presentation?.destinationId).toBeUndefined();
+  expect(html(offer)).not.toContain("<button");
+  model({ navigationIntent: "confirmed", conciergeDecision: null, handoffMessage: null,
+    message: cravingHandoff, recommendationMessage: null });
+  const confirmed = await run("yes");
+  expect(confirmed.presentation?.destinationId).toBe("craving_creator");
+  expect(confirmed.presentation?.navigation?.state).toBe("navigation_confirmed");
+  expect(confirmed.todayPlan.items[0]).toMatchObject({ kind: "use_feature", destinationId: "craving_creator" });
+  expect(html(confirmed).match(/<button/g)).toHaveLength(1);
+});
+
+test.each([undefined, null])(
+  "naming Craving Creator without any structured decision cannot manufacture a pending recommendation: %s", async decision => {
+    model({ navigationIntent: "recommendation", conciergeDecision: decision,
+      message: cravingQuestion, recommendationMessage: cravingQuestion, conversationMessage: null });
+    const response = await run("small");
+    expect(response.presentation?.message).not.toBe(cravingQuestion);
+    expect(response.presentation?.navigation).toBeUndefined();
+    expect(response.presentation?.destinationId).toBeUndefined();
+    expect(await loadPendingRecommendation("owned-conversation", "member")).toBeUndefined();
+    model({ navigationIntent: "confirmed", conciergeDecision: null,
+      message: "What would you like help with?", handoffMessage: cravingHandoff });
+    const unboundYes = await run("yes");
+    expect(unboundYes.presentation?.destinationId).toBeUndefined();
+    expect(html(unboundYes)).not.toContain("<button");
+  });
+
+test("a Craving label cannot override incompatible goal metadata", async () => {
+  model({ navigationIntent: "recommendation", message: cravingQuestion,
+    recommendationMessage: cravingQuestion, conversationMessage: null,
+    conciergeDecision: { mode: "food_assistance", destinationId: "craving_creator", goal: dessert } });
+  const response = await run("small");
+  expect(response.presentation?.navigation).toBeUndefined();
+  expect(response.presentation?.destinationId).toBeUndefined();
+  expect(html(response)).not.toContain("<button");
+});
+
+test("Craving confirmation recovery cannot bypass newly revoked access", async () => {
+  model({ navigationIntent: "recommendation", message: cravingQuestion, recommendationMessage: cravingQuestion,
+    conciergeDecision: { mode: "food_assistance", destinationId: "craving_creator", goal: craving } });
+  await run("Help me make a small portion of ice cream.");
+  (getAdapter as jest.Mock)().availableTools = [];
+  model({ navigationIntent: "confirmed", conciergeDecision: null, handoffMessage: null,
+    message: cravingHandoff, conversationMessage: "This feature is not available in your current access." });
+  expect(html(await run("yes"))).not.toContain("<button");
+});
+
+test("an emergency after a Craving offer clears the offer before model confirmation or rendering", async () => {
+  model({ navigationIntent: "recommendation", message: cravingQuestion, recommendationMessage: cravingQuestion,
+    conciergeDecision: { mode: "food_assistance", destinationId: "craving_creator", goal: craving } });
+  await run("Help me make a small portion of ice cream.");
+  const response = await run("yes, but I have chest pain");
+  expect(response.meta.redFlag).toBe(true);
+  expect(response.presentation?.destinationId).toBeUndefined();
+  expect(html(response)).not.toContain("<button");
+  expect(await loadPendingRecommendation("owned-conversation", "member")).toBeUndefined();
+  expect(mockCreate).toHaveBeenCalledTimes(1);
 });
 
 test("a correction replaces pending intent rather than confirming the old destination", async () => {
