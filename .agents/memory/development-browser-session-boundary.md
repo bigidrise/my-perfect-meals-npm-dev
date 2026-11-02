@@ -28,3 +28,9 @@ Keep browser notebook operations short; a long wait can reset the browser and de
 **Why:** A pairing browser check timed out while waiting for a response that Development server logs showed had completed with HTTP 503 in about 1.5 seconds. The harness timeout did not establish an application timeout.
 
 **How to apply:** Correlate existing server completion logs before repeating a submission. Report missing final UI evidence separately from the known HTTP result, and re-establish normal authorized sign-in if a notebook reset lost the session.
+
+Do not assume that credentials present in the shell environment are securely available to the browser notebook.
+
+**Why:** A release-readiness check found the authorized test secrets in the shell, but the browser notebook had no `process.env` access or documented secure secret binding. The login page loaded, but this did not establish either account eligibility or authenticated access.
+
+**How to apply:** Check the browser tooling's supported credential mechanism first. If none exists, use a supported user sign-in takeover when appropriate or report authenticated coverage as unverified. Do not bridge raw credentials through tool output, ad hoc endpoints or credential files just to complete a test.

@@ -593,3 +593,17 @@ mtime_ms = 1793644493579
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/0d42f3e8-4e7e-4145-b539-d6f1ca893bd8/2e457061-62e7-4a2c-a97b-eb4bc11e569e"
 storage_version_token = "1793644515387595"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "lGmVs27FWGp8r_9UKJjX1"
+uri = "file://generated-artifacts/feature-intelligence/ask-chef-free-release/readiness-report.md"
+type = "text"
+title = "Ask Chef Free-Tier — Release Readiness Report"
+description = "Blocked pending Production-base reconciliation and authenticated Free-member browser verification. Includes exact source commit and patch fingerprint, branch comparison, passing build/tests, excluded changes and the next approval required."
+logical_id = "499472bb-8f9f-41f8-ba46-89c959946251"
+content_hash = "sha256:ba1051d2de76b7377594ec24df756fc9895e38380557e69c63f21a3f2d3e9934"
+size = 12607
+mtime_ms = 1793645177134
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/499472bb-8f9f-41f8-ba46-89c959946251/b391e821-7da2-4454-a2b8-c7bfe0fd283f"
+storage_version_token = "1793645188189731"
+content_type = "text/markdown"
