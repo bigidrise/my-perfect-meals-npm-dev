@@ -523,3 +523,17 @@ mtime_ms = 1793640018178
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/7d1ab4a3-4d11-4f4e-997e-e42d21497dff/c0489275-d7bd-4f2c-b118-a31f74658c9c"
 storage_version_token = "1793640023776474"
 content_type = "text/plain"
+
+[[outputs]]
+id = "jLRvbvvlIn2E9pdwTM-WR"
+uri = "file://generated-artifacts/feature-intelligence/phase3-founder-executive-review.md"
+type = "text"
+title = "Phase 3 — Founder Executive Review"
+description = "4,198-word decision-ready consolidation covering platform status, hidden and legacy experiences, navigation gaps, description conflicts, safety concerns and priorities, with confidence, evidence, approval requirements and all 49 founder-review candidates."
+logical_id = "0bffeb4a-17a4-4c63-b6a8-bc0891ae2bef"
+content_hash = "sha256:70dec94d5e4422f26731b39bf7f3ffbdbf2da2e9156dad4e68449ec44a456f79"
+size = 34036
+mtime_ms = 1793640323706
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/0bffeb4a-17a4-4c63-b6a8-bc0891ae2bef/51d36bd4-279a-4523-bb47-2eef395eaf87"
+storage_version_token = "1793640339370488"
+content_type = "text/markdown"
