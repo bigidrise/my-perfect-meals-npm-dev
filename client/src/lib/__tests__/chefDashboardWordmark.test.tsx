@@ -51,6 +51,8 @@ test("the approved artwork is the single accessible heading with bounded proport
     expect(image.classList.contains(constraint)).toBe(true);
   }
   expect(heading.querySelector("span")).toBeNull();
+  expect(heading.nextElementSibling?.textContent?.trim()).toBe("Platform Concierge");
+  expect(host.textContent?.split("Platform Concierge")).toHaveLength(2);
 });
 
 test.each([

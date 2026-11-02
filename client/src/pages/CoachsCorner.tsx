@@ -882,10 +882,10 @@ export default function CoachsCorner() {
                 className="w-44 h-44 mb-3 object-contain"
               />
               <h2 className="text-2xl font-bold text-white mb-2">
-                What's on your mind?
+                {conversationEnabled ? "How can I help you today?" : "What's on your mind?"}
               </h2>
               <p className="text-sm text-white max-w-[240px] leading-relaxed drop-shadow-md">
-                {conversationEnabled ? "What can I help you with?" : "Your data, your patterns — let's figure it out together."}
+                {conversationEnabled ? "Ask about nutrition or anything in My Perfect Meals." : "Your data, your patterns — let's figure it out together."}
               </p>
             </div>
           ) : (
@@ -937,7 +937,7 @@ export default function CoachsCorner() {
               value={inputText}
               onChange={handleTextareaChange}
               onKeyDown={handleKeyDown}
-              placeholder="Ask Chef anything…"
+              placeholder="Ask me anything..."
               disabled={isLoading || clearMutation.isPending || bootstrapLoading || historyUnavailable}
               rows={1}
               className="min-w-0 flex-1 max-[360px]:basis-full resize-none bg-zinc-900 border border-white/25 text-white placeholder:text-white/45 text-sm rounded-xl py-3 px-4 focus:outline-none focus:ring-1 focus:ring-orange-500/60 focus:border-orange-500/50 disabled:opacity-50 transition-colors"
