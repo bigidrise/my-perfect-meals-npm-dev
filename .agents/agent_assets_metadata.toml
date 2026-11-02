@@ -537,3 +537,17 @@ mtime_ms = 1793640323706
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/0bffeb4a-17a4-4c63-b6a8-bc0891ae2bef/51d36bd4-279a-4523-bb47-2eef395eaf87"
 storage_version_token = "1793640339370488"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "xTmIjqBW7M_d93of3u4uL"
+uri = "file://generated-artifacts/feature-intelligence/phase3-action-plan.md"
+type = "text"
+title = "Phase 3 — Findings Triage and Action Plan"
+description = "2,141-word plan with 12 grouped findings, risk-based priorities, Ask Chef readiness gates, founder decisions, deferred legacy work and a minimal offline first package."
+logical_id = "596210bf-a01a-42e7-93cf-a56dc256b7d2"
+content_hash = "sha256:94af3e9b7a107776d8792bf2874291d2cb20952fac22566d39cef5b6c3e58ae6"
+size = 17379
+mtime_ms = 1793640814350
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/596210bf-a01a-42e7-93cf-a56dc256b7d2/4374356c-49f4-4c22-bcd5-3cbadec2421d"
+storage_version_token = "1793640824076318"
+content_type = "text/markdown"
