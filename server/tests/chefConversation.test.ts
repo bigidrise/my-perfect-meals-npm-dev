@@ -265,7 +265,9 @@ test.each([
   const instructions = mockCreate.mock.calls[0][0].messages[0].content;
   expect(instructions).toContain("UNRESOLVED DESTINATION CHOICE");
   expect(instructions).toContain("set conciergeDecision=null for that clarification");
-  expect(instructions).toContain("does not choose Menu or Builders");
+  expect(instructions).toContain(runtimeEnvironment === "development"
+    ? "Planning a day of meals does not by itself choose My Perfect Menu"
+    : "does not choose Menu or Builders");
   expect(instructions).toContain("small craving-sized dessert portions");
   expect(instructions).toContain("ordinary beverage versus an athletic-performance/workout beverage");
   expect(instructions).toContain("never repeat a distinction already answered");
