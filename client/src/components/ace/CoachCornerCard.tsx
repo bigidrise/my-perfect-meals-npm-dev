@@ -40,13 +40,13 @@ export default function CoachCornerCard() {
             className="pointer-events-none absolute -right-12 -top-16 h-44 w-44 rounded-full border border-orange-300/10"
           />
           <div className="flex items-center gap-3 p-4 pb-3 sm:gap-4 sm:p-5">
-            <div className="relative flex h-[4.5rem] w-[4.5rem] shrink-0 items-center justify-center rounded-2xl border border-orange-300/30 bg-black sm:h-20 sm:w-20">
+            <div className="relative flex h-[4.5rem] w-[4.5rem] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-orange-300/30 bg-black sm:h-20 sm:w-20">
               <img
-                src="/assets/ChefBlackApron.png"
+                src="/assets/ask-chef-desk.webp"
                 alt="Flame Chef"
                 width={80}
                 height={80}
-                className="h-full w-full object-contain"
+                className="h-full w-full object-cover"
               />
             </div>
             <div className="min-w-0 flex-1">
