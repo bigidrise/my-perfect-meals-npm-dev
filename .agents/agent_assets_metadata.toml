@@ -551,3 +551,17 @@ mtime_ms = 1793640814350
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/596210bf-a01a-42e7-93cf-a56dc256b7d2/4374356c-49f4-4c22-bcd5-3cbadec2421d"
 storage_version_token = "1793640824076318"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "laNRA1JZX_IUQTOkSMkBG"
+uri = "file://generated-artifacts/feature-intelligence/phase3-concierge-alignment.md"
+type = "text"
+title = "Phase 3 — Concierge Alignment"
+description = "1,903-word corrected plan defining Ask Chef as the AI Nutrition Concierge, with implementation evidence, subscription questions, revised priorities, a minimal next package and a separate founder-directed visual legacy review."
+logical_id = "59b2c4f1-c2cc-4c2d-9a32-75e23e7006b1"
+content_hash = "sha256:b3c779d9a4eeaadcc1dfb4f2cb13bee78b44d42ff824ead9ec78d8f5f3857b53"
+size = 15337
+mtime_ms = 1793642884935
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/59b2c4f1-c2cc-4c2d-9a32-75e23e7006b1/0ced58a4-c27c-4536-acb8-17724e208b27"
+storage_version_token = "1793642900632791"
+content_type = "text/markdown"

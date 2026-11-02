@@ -109,18 +109,34 @@ preserving useful feature offers and the implemented features' limits.
 and conversational timing separate. The approved correction is Development-only;
 live model acceptance and any Production release need separate authorization.
 
-Ask Chef's primary role is the conversational front door to My Perfect Meals:
-understand the member's goal, ask only what identifies the right verified
-destination, and help them get there. This product goal includes consumer,
-lifestyle, clinical, professional, business and organizational services, but does
-not imply that all pathways are implemented or approved. Within food guidance,
-favor practical choices rather than a diagnostic interview; do not automatically
-investigate symptoms or medication effects. Necessary care and genuinely
-safety-critical questions still take priority.
+Ask Chef is My Perfect Meals' AI Nutrition Concierge, not merely a feature
+directory. Its intended scope includes reliable conversational food, nutrition,
+hydration, fitness-nutrition and general-wellness education; current feature
+knowledge, simple clarification and navigation buttons; subscription awareness
+and relevant upgrades; MPM Guided Coaching and independent-coach referrals;
+authorized read-only account observations; and trustworthy current internet
+research when available, distinguished from general model knowledge.
+Encourage engagement without guilt, pressure or repetitive sales pitches.
+The founder prefers Free-tier availability; this is direction to verify before
+any change, not authorization to change entitlements.
 
-**Why:** The founder established the broader conversational-front-door purpose
-while preserving "Coach first. Food decision next. Feature when useful. Medical
-care when necessary."
+Do not generate meals, recipes, beverages or plans, calculate/change macro
+targets, modify logs/Biometrics, execute specialized workflows or recreate
+destination nutrition/clinical engines in chat. Destination features own their
+operations and safeguards. Do not diagnose unsupported causes, invent account
+facts or assume missing logs prove missing intake. No additional account-data
+pipeline is authorized without later implementation approval.
+
+This product goal includes consumer, lifestyle, clinical, professional, business
+and organizational services, but does not establish implementation or approval of
+all pathways. Favor practical food guidance rather than automatic symptom or
+medication investigation. Necessary care and safety-critical questions retain
+priority. Founder-directed visual legacy review is a separate, significant
+workstream, not insignificant housekeeping.
+
+**Why:** The founder explicitly clarified the concierge purpose, legitimate
+marketing/referral responsibilities, read-only account scope and preferred Free
+direction before approving implementation.
 
 **How to apply:** Do not treat naming familiar food options as recipe generation.
 Use answered preferences without restarting discovery, retain verified feature
