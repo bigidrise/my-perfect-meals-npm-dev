@@ -550,6 +550,9 @@ export default function CoachsCorner() {
         body: JSON.stringify({
           message: text,
           specialization: "corner",
+          ...(import.meta.env.DEV && import.meta.env.VITE_ASK_CHEF_FEATURE_INTELLIGENCE === "true" ? {
+            featureScreenContext: { currentRoute: window.location.pathname },
+          } : {}),
           ...(cid ? { conversationId: cid } : {}),
         }),
       }),

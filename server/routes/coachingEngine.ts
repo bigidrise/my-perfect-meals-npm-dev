@@ -26,6 +26,7 @@ import { coachingProfiles } from "../db/schema/ace";
 import coachingNavigationRouter from "./coachingNavigation";
 import { CHEF_CONCIERGE_REVISION } from "../services/coaching/conciergeInstructions";
 import { isAskChefConversationEnabled } from "../../shared/coaching/askChefRelease";
+import { featureIntelligenceEnabled, safeScreenContext } from "../services/coaching/featureIntelligence";
 
 const router = Router();
 router.use((_req, res, next) => {
@@ -42,6 +43,8 @@ const MessageBodySchema = z.object({
   specialization: z.enum(["corner"]).default("corner"), // Phase 2: corner only
   message: z.string().min(1).max(2000),
   conversationId: z.string().uuid().optional(),
+  // Ignored exactly as an unknown field when the isolated integration is off.
+  featureScreenContext: z.unknown().optional(),
 });
 
 router.post("/message", requireAuth, requireProAccess, async (req: Request, res: Response) => {
@@ -84,6 +87,9 @@ router.post("/message", requireAuth, requireProAccess, async (req: Request, res:
         },
         userMessage: message,
         conversationId: conversationId ?? "",
+        ...(featureIntelligenceEnabled(process.env) ? {
+          featureScreenContext: safeScreenContext(parsed.data.featureScreenContext),
+        } : {}),
       },
       req
     );

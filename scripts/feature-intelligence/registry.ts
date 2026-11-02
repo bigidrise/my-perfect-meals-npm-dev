@@ -1,5 +1,7 @@
 import { backendIndex, dependencyClosure, digest, resolveRouteComponents } from "./discovery";
 import type { FeatureRecord, FileFacts, KnowledgeFact, Registry, ScanResult, ScanState, SourceReference } from "./types";
+import { classify, classificationContext, classifyInternalEntry, legacyReport } from "./classification";
+import { enrich } from "./enrichment";
 
 const restrictedRoute = (route: string) =>
   /^\/(?:admin|__[^/]*|dev|debug|demo(?:-studio)?|test)(?:\/|$)/i.test(route);
@@ -11,13 +13,15 @@ const audienceFor = (route: string): FeatureRecord["audience"] =>
 const uniqueSources = (sources: SourceReference[]) => [...new Map(sources.map(item =>
   [`${item.file}:${item.line}`, item])).values()].sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
 
-export function compileRegistry(scan: ScanResult, knowledge: KnowledgeFact[], previous?: ScanState) {
+export function compileRegistry(scan: ScanResult, knowledge: KnowledgeFact[], previous?: ScanState,
+  priorAnalyzerRecords?: ScanState["records"]) {
   const { files } = scan;
   const routes = Object.entries(files).flatMap(([file, facts]) =>
     facts.routes.map(route => ({ ...route, ...resolveRouteComponents(facts, route.components), file })));
   const excluded = routes.filter(route => restrictedRoute(route.path));
   const publicRoutes = routes.filter(route => !restrictedRoute(route.path));
   const api = backendIndex(files);
+  const entryContext = classificationContext(scan);
   const records: FeatureRecord[] = [];
   const pageIds = new Map(publicRoutes.map(route => [route.path, `page:${route.path}`]));
   const byPath = new Map<string, typeof publicRoutes>();
@@ -77,11 +81,14 @@ export function compileRegistry(scan: ScanResult, knowledge: KnowledgeFact[], pr
       backend: backendEvidence.map(endpoint => [endpoint.method, endpoint.path, endpoint.source.file, files[endpoint.source.file]?.hash]),
     });
     const prior = previous?.records[id];
-    const stale = !!prior && prior.knowledgeFingerprint === knowledgeFingerprint &&
-      (prior.implementationFingerprint !== implementationFingerprint || prior.stale);
+    const retained = priorAnalyzerRecords?.[id];
+    const stale = (!!prior && prior.knowledgeFingerprint === knowledgeFingerprint &&
+      (prior.implementationFingerprint !== implementationFingerprint || prior.stale)) ||
+      (!!retained?.stale && retained.knowledgeFingerprint === knowledgeFingerprint);
     if (stale) gaps.push("implementation_changed_documentation_review_needed");
     const broken = gaps.some(gap => ["knowledge_route_not_registered", "source_reference_missing"].includes(gap));
-    records.push({
+    const record: FeatureRecord = {
+      ...(fact?.independentBackendEntry ? { independentBackendEntry: fact.independentBackendEntry } : {}),
       id, kind, name, nameEvidence: fact ? "existing_knowledge" : name ? "source_heading" : "missing",
       nameCandidates,
       description: fact?.description ?? null, aliases: fact?.aliases ?? [], route,
@@ -97,7 +104,9 @@ export function compileRegistry(scan: ScanResult, knowledge: KnowledgeFact[], pr
       relatedFeatureIds: [], navigationTargetIds: [], sources,
       dependencyFiles: [...new Set([...dependencies, ...sources.map(ref => ref.file)])].sort(),
       gaps: [...new Set(gaps)].sort(), knowledgeFingerprint, implementationFingerprint,
-    });
+    };
+    record.classification = classify(record, scan, matches, pages, entryContext);
+    records.push(record);
   }
   for (const fact of knowledge) if (!fact.route || !restrictedRoute(fact.route)) add(`feature:${fact.id}`, "feature", fact.route, fact);
   for (const route of [...byPath.keys()].sort()) {
@@ -111,6 +120,7 @@ export function compileRegistry(scan: ScanResult, knowledge: KnowledgeFact[], pr
       .map(target => pageIds.get(target.split(/[?#]/)[0])).filter((id): id is string => !!id))].sort();
   }
   records.sort((a, b) => a.id.localeCompare(b.id));
+  enrich(records);
   const registry: Registry = { schemaVersion: 1, environment: "development", runtimeIntegration: "not_connected",
     audience: "engineering_only", authority: "evidence_not_permissions", features: records };
   const aliases = new Map<string, Set<string>>();
@@ -147,12 +157,16 @@ export function compileRegistry(scan: ScanResult, knowledge: KnowledgeFact[], pr
       verification: counts(records.map(record => record.verification)),
       featureVerification: counts(records.filter(record => record.kind === "feature").map(record => record.verification)),
       pageVerification: counts(records.filter(record => record.kind === "page").map(record => record.verification)),
+      classifications: counts(records.map(record => record.classification!.status)),
+      reviewedDescriptions: records.filter(record => record.enrichment?.kind === "reviewed_documentation").length,
+      structuralSummaries: records.filter(record => record.enrichment?.kind === "structural_summary").length,
       gaps: counts(records.flatMap(record => record.gaps)),
       excludedInternalRouteDeclarations: excluded.length,
     },
     incremental: { parsedFiles: scan.parsedFiles, reusedFiles: scan.reusedFiles,
       changedFiles: scan.changedFiles, removedFiles: scan.removedFiles, ...changes },
     aliasCollisions,
+    internalEntries: excluded.map(route => classifyInternalEntry(scan, route, entryContext)),
     unresolvedRoutes: Object.values(files).flatMap(file => file.unresolvedRoutes),
     orphanPages: Object.keys(files).filter(file => file.startsWith("client/src/pages/") &&
       !routes.some(route => route.pages.includes(file))).map(file => ({ file, reason: "No statically resolved route; may be nested, unused or dynamically loaded." })),
@@ -161,7 +175,7 @@ export function compileRegistry(scan: ScanResult, knowledge: KnowledgeFact[], pr
     records: records.filter(record => record.gaps.length).map(({ id, name, route, verification, gaps }) =>
       ({ id, name, route, verification, gaps })),
   };
-  return { registry, coverage, states };
+  return { registry, coverage, states, legacy: legacyReport(scan, records, entryContext) };
 }
 
 export function integrityErrors(registry: Registry): string[] {

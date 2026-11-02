@@ -14,9 +14,10 @@ export function existingKnowledge(root: string): KnowledgeFact[] {
     return { file, line: line < 0 ? 1 : line + 1 };
   };
   const facts = new Map<string, KnowledgeFact>();
-  for (const feature of buildPlatformFeatureCatalog()) {
+  for (const feature of buildPlatformFeatureCatalog({ featureIntelligence: true })) {
     facts.set(feature.id, {
       id: feature.id, name: feature.name, description: feature.purpose, aliases: feature.aliases,
+      ...(feature.independentBackendEntry ? { independentBackendEntry: feature.independentBackendEntry } : {}),
       route: feature.route, access: feature.access, audience: feature.audience,
       availability: feature.verification === "unavailable" ? "disabled" : "unknown",
       reviewed: feature.verification === "verified", limitations: feature.doesNotDo, workflows: feature.gettingStarted,

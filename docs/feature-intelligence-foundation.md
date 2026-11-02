@@ -1,5 +1,9 @@
 # Automated Feature Intelligence — Development foundation
 
+Phase 1 historical notes follow. Phase 2 adds classification and an isolated,
+disabled-by-default hook; see `docs/feature-intelligence-phase2.md` for the current
+approval boundary, reports and no-provider testing instructions.
+
 ## Approved boundary
 
 This is an **offline, engineering-only evidence compiler**, not a new application

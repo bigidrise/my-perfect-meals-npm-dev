@@ -8,7 +8,7 @@ export const digest = (value: unknown): string =>
   createHash("sha256").update(typeof value === "string" ? value : JSON.stringify(value)).digest("hex");
 
 const skipped = new Set(["node_modules", ".git", "dist", "build", "__tests__", "tests", "test",
-  "fixtures", "__fixtures__", "legacy", "demo-studio", "generated-artifacts"]);
+  "fixtures", "__fixtures__", "demo-studio", "generated-artifacts"]);
 const unix = (value: string) => value.split(path.sep).join("/");
 export function sourceFiles(root: string): string[] {
   const result: string[] = [];
@@ -28,6 +28,7 @@ export function sourceFiles(root: string): string[] {
 
 function resolveModule(file: string, specifier: string, knownFiles: Set<string>): string | undefined {
   const base = specifier.startsWith("@/") ? "client/src/" + specifier.slice(2)
+    : specifier.startsWith("@shared/") ? "shared/" + specifier.slice(8)
     : specifier.startsWith(".") ? unix(path.normalize(path.join(path.dirname(file), specifier))) : undefined;
   if (!base) return undefined;
   return [base, ...[".ts", ".tsx", ".js", ".jsx", "/index.ts", "/index.tsx"].map(ext => base + ext)]
@@ -51,6 +52,8 @@ export function analyzeFile(file: string, text: string, knownFiles: Set<string>)
   const reference = (node: ts.Node): SourceReference =>
     ({ file, line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1 });
   const result: FileFacts = {
+    constants: {}, redirects: [], superseded: (ts.getLeadingCommentRanges(text, 0) ?? [])
+      .some(range => /@deprecated[^\n]*(?:superseded|replaced by)/i.test(text.slice(range.pos, range.end))),
     hash: digest(text), imports: {}, moduleSpecifiers: {}, dependencies: [], renderedModules: [], symbols: {}, routes: [], controls: [],
     api: [], mounts: [], requests: [], headings: [], primaryHeadings: [], availabilityMarkers: [], unresolvedRoutes: [], legacyFeatures: [],
   };
@@ -73,14 +76,26 @@ export function analyzeFile(file: string, text: string, knownFiles: Set<string>)
     }
     if ((ts.isVariableDeclaration(node) || ts.isFunctionDeclaration(node)) && node.name && ts.isIdentifier(node.name)) {
       declarations.set(node.name.text, ts.isVariableDeclaration(node) ? node.initializer ?? node : node);
+      if (ts.isVariableDeclaration(node) && node.parent?.parent?.parent === source && node.initializer &&
+          [ts.SyntaxKind.TrueKeyword, ts.SyntaxKind.FalseKeyword].includes(node.initializer.kind))
+        result.constants![node.name.text] = node.initializer.kind === ts.SyntaxKind.TrueKeyword;
     }
     ts.forEachChild(node, discoverSymbols);
   }
   discoverSymbols(source);
   function symbolFact(node: ts.Node): SymbolFact {
-    const refs = new Set<string>(), modules = new Set<string>();
+    const refs = new Set<string>(), modules = new Set<string>(), components = new Set<string>();
     function visit(child: ts.Node) {
       if (ts.isIdentifier(child)) refs.add(child.text);
+      if (ts.isJsxOpeningElement(child) || ts.isJsxSelfClosingElement(child)) components.add(child.tagName.getText(source));
+      if (ts.isJsxAttribute(child) && child.name.getText(source) === "component" && child.initializer) {
+        const initializer = child.initializer;
+        function componentRefs(part: ts.Node) {
+          if (ts.isIdentifier(part)) components.add(part.text);
+          ts.forEachChild(part, componentRefs);
+        }
+        componentRefs(initializer);
+      }
       if (ts.isCallExpression(child) && child.expression.kind === ts.SyntaxKind.ImportKeyword) {
         const specifier = staticText(child.arguments[0]);
         const target = specifier && moduleTarget(specifier);
@@ -89,7 +104,7 @@ export function analyzeFile(file: string, text: string, knownFiles: Set<string>)
       ts.forEachChild(child, visit);
     }
     visit(node);
-    return { references: [...refs].sort(), modules: [...modules].sort() };
+    return { references: [...refs].sort(), modules: [...modules].sort(), components: [...components].sort() };
   }
   for (const [name, node] of declarations) result.symbols[name] = symbolFact(node);
   function descendants(node: ts.Node, callback: (child: ts.Node) => void) {
@@ -154,6 +169,10 @@ export function analyzeFile(file: string, text: string, knownFiles: Set<string>)
       if (result.symbols[tag]) result.renderedModules.push(...result.symbols[tag].modules);
       const attrs = opening.attributes.properties.filter(ts.isJsxAttribute);
       const attr = (name: string) => attrs.find(item => item.name.getText(source) === name);
+      if (tag === "Redirect") {
+        const target = staticText(attr("to")?.initializer);
+        if (target?.startsWith("/")) result.redirects!.push(target);
+      }
       if (tag === "Route") {
         const value = attr("path");
         const route = staticText(value?.initializer);
@@ -166,7 +185,19 @@ export function analyzeFile(file: string, text: string, knownFiles: Set<string>)
               if (ts.isJsxOpeningElement(part) || ts.isJsxSelfClosingElement(part)) components.add(part.tagName.getText(source));
             });
           }
-          result.routes.push({ path: route, components: [...components].sort(), source: reference(node) });
+          const conditions: string[] = [];
+          let child: ts.Node = node;
+          while (child.parent) {
+            const parent = child.parent;
+            if (ts.isBinaryExpression(parent) && parent.right === child &&
+                parent.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken)
+              conditions.push(parent.left.getText(source).slice(0, 250));
+            if (ts.isConditionalExpression(parent))
+              conditions.push((parent.whenFalse === child ? "!" : "") + parent.condition.getText(source).slice(0, 250));
+            if (ts.isIfStatement(parent)) conditions.push(parent.expression.getText(source).slice(0, 250));
+            child = parent;
+          }
+          result.routes.push({ path: route, components: [...components].sort(), source: reference(node), conditions });
         } else if (value) result.unresolvedRoutes.push(reference(node));
       }
       if (/^h[1-3]$/.test(tag)) {
@@ -241,7 +272,21 @@ export function scan(root: string, analyzerFingerprint: string, previous?: ScanS
     if (prior?.hash === hash && sameResolution) { files[name] = prior; reusedFiles++; }
     else { files[name] = analyzeFile(name, text, known); parsedFiles++; changedFiles.push(name); }
   }
-  return { files, changedFiles, removedFiles: Object.keys(previous?.files ?? {}).filter(name => !known.has(name)).sort(), parsedFiles, reusedFiles };
+  const indexPath = path.join(root, "client/index.html"), packagePath = path.join(root, "package.json");
+  const html = fs.existsSync(indexPath) ? fs.readFileSync(indexPath, "utf8") : "";
+  const vitePath = path.join(root, "vite.config.ts");
+  const supportedClientRoot = fs.existsSync(vitePath) &&
+    /root\s*:\s*path\.resolve\(\s*import\.meta\.dirname\s*,\s*["']client["']\s*\)/.test(fs.readFileSync(vitePath, "utf8"));
+  const clientEntries = [...html.matchAll(/<script\b[^>]*type=["']module["'][^>]*src=["']\/(src\/[^"']+)["']/g)]
+    .map(match => `client/${match[1]}`).filter(file => supportedClientRoot && known.has(file));
+  const scripts = fs.existsSync(packagePath) ? JSON.parse(fs.readFileSync(packagePath, "utf8")).scripts ?? {} : {};
+  const scriptEntries = (command: string) => [...command.matchAll(/\b(server\/[\w./-]+\.[cm]?[jt]s)\b/g)]
+    .map(match => match[1]).filter(file => known.has(file));
+  return { files, changedFiles, removedFiles: Object.keys(previous?.files ?? {}).filter(name => !known.has(name)).sort(), parsedFiles, reusedFiles,
+    entrypoints: { client: clientEntries, developmentServer: scriptEntries(scripts.dev ?? ""),
+      productionServer: scriptEntries(scripts["build:server"] ?? ""),
+      evidence: [...(html ? [{ file: "client/index.html", line: 1 }] : []),
+        ...(fs.existsSync(packagePath) ? [{ file: "package.json", line: 1 }] : [])] } };
 }
 
 export function dependencyClosure(files: Record<string, FileFacts>, entries: string[]): string[] {
@@ -261,10 +306,10 @@ export function resolveRouteComponents(file: FileFacts, names: string[]): { page
     seen.add(name);
     if (/(Guard|Protected|Require|Gate)/.test(name)) guards.add(name);
     const imported = file.imports[name];
-    if (imported?.startsWith("client/src/pages/")) pages.add(imported);
+    if (imported?.startsWith("client/src/") && /^[A-Z]/.test(name) && !/(Guard|Protected|Require|Gate)/.test(name)) pages.add(imported);
     const symbol = file.symbols[name];
     symbol?.modules.filter(module => module.startsWith("client/src/pages/")).forEach(module => pages.add(module));
-    symbol?.references.filter(ref => ref !== name).forEach(visit);
+    symbol?.components?.filter(ref => ref !== name).forEach(visit);
   }
   names.forEach(visit);
   return { pages: [...pages].sort(), guards: [...guards].sort() };

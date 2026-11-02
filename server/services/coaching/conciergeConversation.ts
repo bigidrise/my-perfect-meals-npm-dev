@@ -19,6 +19,10 @@ import { getDevelopmentPlatformKnowledge, getPlatformGuidanceInstructions } from
 import type { PendingRecommendation } from "./conciergeNavigationState";
 import type { ChefKnowledgeAccess } from "./platformKnowledgeAccess";
 import { FEATURE_USAGE_KNOWLEDGE } from "./featureUsageKnowledge";
+import { explainFeatureQuestion, featureIntelligenceEnabled, projectFeatureKnowledge, safeScreenContext,
+  type FeatureScreenContext } from "./featureIntelligence";
+import type { FeatureExplanation } from "./featureIntelligence";
+import { loadFeatureIntelligenceRegistry } from "./featureIntelligenceRegistry";
 
 const TurnSchema = ConciergeMessageSchema.extend({
   // Semantic consent is separate from choosing a suitable food destination.
@@ -147,8 +151,23 @@ export async function runConciergeConversation(params: {
   preferredLanguage?: string;
   pendingRecommendation?: PendingRecommendation;
   knowledgeAccess?: ChefKnowledgeAccess;
+  featureScreenContext?: FeatureScreenContext;
   requestId?: string;
 }): Promise<CoachResponse> {
+  let intelligenceKnowledge: FeatureExplanation[] | undefined;
+  if (featureIntelligenceEnabled(process.env)) {
+    const registry = loadFeatureIntelligenceRegistry();
+    intelligenceKnowledge = registry ? projectFeatureKnowledge(registry, params.knowledgeAccess, params.tools.map(tool => tool.id)) : [];
+    const answer = explainFeatureQuestion({
+      message: params.userMessage, context: safeScreenContext(params.featureScreenContext),
+      records: intelligenceKnowledge,
+      withheldLabels: registry?.features.flatMap(record => record.name ? [record.name, ...record.aliases] : []),
+    });
+    if (answer) return envelope(answer.message);
+    // Only while explicitly enabled in Development. Existing authorization still
+    // validates every navigation; intelligence may narrow tools, never add them.
+    params = { ...params, tools: params.tools.filter(tool => intelligenceKnowledge!.some(record => record.id === `feature:${tool.id}`)) };
+  }
   const memberMessages = [...params.history.filter(m => m.role === "user").map(m => m.content), params.userMessage];
   const developmentPurpose = process.env.NODE_ENV === "development";
   const instructions = getChefConversationInstructions(process.env.NODE_ENV);
@@ -201,7 +220,10 @@ export async function runConciergeConversation(params: {
         { role: "user", content: JSON.stringify({
           authorizedNutritionContext: params.context.coachingContextBlock ?? params.context,
           availableFeatures: params.tools.map(({ id, label, description }) => ({ id, label, description })),
-          platformKnowledge: getDevelopmentPlatformKnowledge(params.knowledgeAccess),
+          platformKnowledge: intelligenceKnowledge === undefined ? getDevelopmentPlatformKnowledge(params.knowledgeAccess)
+            : { source: "verified_feature_intelligence", explanationOnly: true,
+              features: intelligenceKnowledge.map(({ id, name, description, workflows, limitations }) =>
+                ({ id, name, description, workflows, limitations })) },
           unsupportedFeatures: CORNER_UNSUPPORTED_FEATURES,
           earlierConversation: params.rollingContext,
           pendingRecommendation: params.pendingRecommendation ?? null,
