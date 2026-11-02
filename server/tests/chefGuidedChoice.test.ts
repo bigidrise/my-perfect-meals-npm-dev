@@ -20,7 +20,7 @@ const planning = (id: "my_perfect_menu" | "meal_builders"): ConciergeGoal =>
   ({ ...unknown, activity: "plan_meals", explicitFeatureId: id });
 const dish: ConciergeGoal = { ...unknown, activity: "prepare", occasion: "meal", dishChosen: true };
 const choice = "We can start by planning your meals, creating an individual dish, or exploring Lifestyle features. What would you like to try first?";
-const methodChoice = "Would you like My Perfect Menu to suggest meals for you, or would you rather create your own meals with Chef?";
+const methodChoice = "There are two ways to plan your meals.\n\nMy Perfect Menu suggests personalized meal ideas that you can add to your meal plan.\n\nMeal Builder lets you create your own meals inside your assigned builder using Create With Chef.\n\nWhich one would you prefer?";
 type History = Array<{ role: string; content: string }>;
 
 async function reply(userMessage: string, message: string, extra: Record<string, unknown> = {}, options: {
@@ -76,6 +76,76 @@ test.each([
   expect(request.messages[0].content).toContain(getPlatformGuidanceInstructions("development"));
   expect(result.presentation?.message).toBe(text);
   noAction(result);
+});
+
+test("general planning receives two brief descriptions and a short preference question, not a navigation offer", async () => {
+  const { result, request } = await reply("I want to plan my meals.", methodChoice, { responsePurpose: "clarify" });
+  expect(result.presentation?.message).toBe(methodChoice);
+  noAction(result);
+  const paragraphs = result.presentation!.message.split("\n\n");
+  expect(paragraphs[1]).toContain("My Perfect Menu suggests personalized meal ideas");
+  expect(paragraphs[2]).toContain("assigned builder using Create With Chef");
+  expect(paragraphs.at(-1)).toBe("Which one would you prefer?");
+  expect((result.presentation!.message.match(/\?/g) ?? [])).toHaveLength(1);
+  const instructions = request.messages[0].content;
+  expect(instructions).toContain('Then ask "Which one would you prefer?" without repeating either description');
+  expect(instructions).toContain("These are contextual examples, not keyword routing or unsupported navigation commands");
+  expect(instructions).toContain("A member selecting a method has resolved the choice, not yet accepted a navigation offer");
+  expect(instructions).toContain("Do not repeat the two-option choice after selection");
+  expect(instructions).toContain("when accepted, use responsePurpose=handoff and navigationIntent=confirmed");
+});
+
+test.each([
+  ["Menu", "my_perfect_menu"],
+  ["My Perfect Menu", "my_perfect_menu"],
+  ["Suggested meals", "my_perfect_menu"],
+  ["Meal Builder", "meal_builders"],
+  ["Builders", "meal_builders"],
+  ["Create With Chef", "meal_builders"],
+  ["I want to make my own meals", "meal_builders"],
+] as const)("contextual planning answer %s preserves the selected method through first confirmation", async (answer, id) => {
+  const original = "I want to plan my meals.";
+  const initial = await reply(original, methodChoice, { responsePurpose: "clarify" });
+  noAction(initial.result);
+  const history: History = [{ role: "user", content: original }, { role: "assistant", content: initial.result.presentation!.message }];
+  const recommendation = id === "my_perfect_menu"
+    ? "My Perfect Menu can suggest personalized meals for your plan. Want me to take you there?"
+    : "You can create your own meals inside your assigned Meal Builder. Want me to take you there?";
+  const selected = await reply(answer, recommendation, offer(id, planning(id)), { history });
+  expect(selected.wire.history).toEqual(history);
+  expect(selected.wire.latestMemberMessage).toBe(answer);
+  expect(selected.result.presentation?.message).toBe(recommendation);
+  expect(selected.result.presentation?.message).not.toContain("Which one would you prefer?");
+  expect(selected.result.presentation?.navigation).toMatchObject({ state: "recommendation_pending", destinationId: id });
+  expect(selected.result.todayPlan.items).toEqual([]);
+  const handoff = id === "my_perfect_menu"
+    ? "Open My Perfect Menu, choose Breakfast, Lunch, Dinner or Snack, then Choose This on an idea. Follow the date and meal-slot prompts to add it to your meal plan."
+    : "Use the button below to open the Meal Builders page. Open your assigned builder, choose a day and meal slot, then select Create With Chef to start making your meals.";
+  const confirmed = await reply("Yes", handoff, { memberNeed: "navigation", responsePurpose: "handoff",
+    navigationIntent: "confirmed", handoffMessage: handoff,
+  }, { pending: selected.result.presentation?.navigation,
+    history: [...history, { role: "user", content: answer }, { role: "assistant", content: recommendation }] });
+  expect(confirmed.wire.pendingRecommendation).toEqual(selected.result.presentation?.navigation);
+  expect(confirmed.result.presentation?.message).toBe(handoff);
+  expect(confirmed.result.presentation?.message).not.toContain("?");
+  expect(confirmed.result.presentation?.navigation).toMatchObject({ state: "navigation_confirmed", destinationId: id });
+  expect(confirmed.result.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId: id })]);
+  expect(COACH_DESTINATIONS[id].route).toBe(id === "meal_builders" ? "/builders" : "/foods-i-enjoy");
+});
+
+test.each([
+  ["I want My Perfect Menu to suggest meals.", "my_perfect_menu"],
+  ["I want to plan meals using Create With Chef.", "meal_builders"],
+] as const)("an already-specific original planning request bypasses method clarification: %s", async (question, id) => {
+  const text = id === "my_perfect_menu"
+    ? "My Perfect Menu can help you find meal ideas for your plan. Would you like to open it?"
+    : "You can create meals inside your assigned Meal Builder. Want me to take you there?";
+  const { result, request } = await reply(question, text, offer(id, planning(id)));
+  expect(result.presentation?.message).toBe(text);
+  expect(result.presentation?.message).not.toContain("Which one would you prefer?");
+  expect(result.presentation?.navigation).toMatchObject({ state: "recommendation_pending", destinationId: id });
+  expect(result.todayPlan.items).toEqual([]);
+  expect(request.messages[0].content).toContain("If the original request or history already explicitly selects My Perfect Menu or Create With Chef, skip the two-option question");
 });
 
 test.each(["my_perfect_menu", "meal_builders"] as const)(
