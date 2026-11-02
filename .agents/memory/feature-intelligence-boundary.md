@@ -16,6 +16,16 @@ Do not modify application code, routes, navigation, access, clinical protocols,
 subscriptions, packages or the separate Surprise Me creator work. Stop after
 reporting and wait for founder review before any live integration.
 
+The founder subsequently approved the bounded Concierge Truth and Guidance
+package in Development: correct established App Library/Tutorial Hub,
+Menu/preferences, Grocery Coach nested actions, Recipe Maker entry and local
+Journal knowledge; trace subscription/coaching authorities read-only; and
+verify representative behavior offline. This does not authorize live Automated
+Feature Intelligence, entitlements, billing, destination changes, new pipelines,
+clinical engines, legacy cleanup or Production work. Stop for founder review
+after that package; broader concierge alignment is not blanket implementation
+approval.
+
 **Why:** The founder explicitly limited Phase 3 to verification and reporting;
 source-backed descriptions are not authenticated usability or release approval.
 

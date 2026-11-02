@@ -137,11 +137,48 @@ const memberFeatures: MemberFeatureKnowledge[] = [
   },
 ];
 
+// Founder-approved Development-only knowledge corrections. These are explanations,
+// not new destinations, entitlement rules, feature execution or registry promotion.
+const conciergeTruth: Record<string, Partial<MemberFeatureKnowledge>> = {
+  nutrition_education: {
+    label: "App Library",
+    purpose: "App Library contains platform and nutrition topics, narration and documentation. It is the Learn page, not Tutorial Hub's separate tutorial-media page. Chef can answer ordinary nutrition education directly without requiring a feature or logs.",
+    entryPoint: "App Library (the existing Learn page, /learn); Tutorial Hub is separately at /tutorials. These locations do not authorize Chef buttons.",
+  },
+  tutorials: {
+    purpose: "Tutorial Hub is the separate tutorial-media page, not App Library's topics and narration. Some tutorial cards are Coming Soon; do not promise every video is available.",
+    entryPoint: "Tutorial Hub (/tutorials); individual builders may also have their own verified tutorial controls. No new Chef button is authorized.",
+  },
+  my_perfect_menu: {
+    entryPoint: "My Perfect Menu on the dashboard opens /foods-i-enjoy. The separate /foods-i-enjoy/preferences page edits enjoyment preferences; it is not the Menu.",
+  },
+  food_preferences: {
+    label: "Enjoyment Preferences and Nutrition Priorities",
+    purpose: "The enjoyment-preferences editor records foods the member enjoys; it is separate from My Perfect Menu's meal ideas. Nutrition Priorities is related optional food-inclusion guidance, not the same editor or a meal generator. Neither overrides allergies, restrictions or clinician-owned guidance.",
+    entryPoint: "Enjoyment preferences at /foods-i-enjoy/preferences; existing profile controls for Nutrition Priorities. Knowledge of these locations grants no new button or access.",
+  },
+  recipe_maker: {
+    entryPoint: "On Dashboard, tap Recipe Maker to open its existing capture dialog/modal. There is no verified standalone Recipe Maker route or approved Chef button; explain this existing entry rather than inventing one.",
+  },
+  daily_journal: {
+    purpose: "Write, save, review or export private journal entries with optional voice input. Saved entries use browser-local storage on that browser/device; cloud backup and cross-device synchronization are not established. Not a diagnosis, meal generator or public post. Chef does not read journal contents into chat.",
+  },
+};
+
 export function getDevelopmentPlatformKnowledge(access?: ChefKnowledgeAccess) {
   if (!isAskChefConversationEnabled(process.env.NODE_ENV)) return undefined;
+  const development = process.env.NODE_ENV === "development";
   return {
-    featureCatalog: getMemberPlatformCatalog(access),
-    features: memberFeatures.filter(feature => feature.status === "available").map(feature =>
+    featureCatalog: getMemberPlatformCatalog(access).map(fact =>
+      development && fact.id === "education" ? {
+        ...fact, name: "App Library", aliases: ["Learn", "App Library"],
+        purpose: "Platform and nutrition topics, narration and documentation on the Learn page. Tutorial Hub is a separate tutorial-media page.",
+        gettingStarted: ["Open App Library (the Learn page). For tutorial videos use the separate Tutorial Hub; some videos are Coming Soon.",
+          "Sources & Medical Information on Dashboard opens its existing dialog, not a standalone Sources route."],
+        outputs: "Educational topics, narration and documentation; not the separate Tutorial Hub.",
+      } : fact),
+    features: memberFeatures.filter(feature => feature.status === "available")
+      .map(feature => development ? { ...feature, ...conciergeTruth[feature.id] } : feature).map(feature =>
       process.env.NODE_ENV === "development" && feature.id === "meal_builders"
         ? { ...feature, purpose: "The Meal Builders landing page leads members to their assigned builder, where they create and save personalized dated meals and meal boards. Ordinary members generally have one assigned builder; administrators may have access to multiple builders. Do not suggest freely choosing a preferred builder, infer administrator authority, choose or activate a specialized clinical builder, bypass onboarding, or overwrite the assigned builder." }
         :
