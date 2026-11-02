@@ -183,3 +183,16 @@ choices, not a compulsory onboarding interview or a platform-wide tour.
 pages once the method is clear, retaining setup/access gates and one confirmation.
 Lifestyle's landing page remains knowledge-only without an approved Chef button;
 never silently substitute a creator. Do not infer exact setup completion.
+
+Meal Builder handoffs must guide ordinary members into their assigned builder,
+not imply they can freely choose among builders. Administrators may have access
+to multiple builders; do not infer that authority for a member.
+
+**Why:** The founder confirmed the existing Open Meal Builders landing-page
+navigation works and is acceptable, but rejected “select a builder card that
+suits your needs” as misleading for ordinary members.
+
+**How to apply:** Keep the Development correction within conversational guidance.
+After the single confirmation, explain opening the landing page, then the assigned
+builder, day and slot, and Create With Chef. Preserve the existing button and
+assignment/access rules; no direct builder navigation or added closing question.
