@@ -152,3 +152,19 @@ the platform, rather than routing on a cruise, holiday or athletic keyword.
 **How to apply:** Prefer a verified specific workflow for the clear current task.
 Clarify only unresolved activity, and never use a broader contextual destination
 to bypass unavailable access or invent an internal handoff.
+
+After a valid feature handoff, Chef should identify the destination, briefly
+explain a few relevant verified controls or starting actions, and stop at the
+existing navigation button. Preserve conversational warmth, but omit scripted
+sign-offs, generic encouragement and invitations for more help. This applies
+across destinations, not just Sushi Creator; it is not a request for a fixed
+tutorial or a runtime blacklist.
+
+**Why:** The founder found “Enjoy your culinary adventure!” unnecessary after a
+successful Sushi Creator handoff and requested practical, feature-specific
+directions instead.
+
+**How to apply:** Refine Development instructions and source-verified knowledge
+without changing navigation authority or borrowing controls from another
+creator. Keep necessary safety guidance and requests to skip instructions.
+Mocked fixtures prove wiring and contracts, not live stylistic compliance.
