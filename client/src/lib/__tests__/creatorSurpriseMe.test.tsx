@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 import { dessertYieldOptions } from "@shared/dessertYields";
+import { PillButton } from "@/components/ui/pill-button";
 
 // Execute the real page JSX/callbacks in an isolated harness. Never import the
 // pages' account, database, image, speech, or paid-generation dependencies.
@@ -99,7 +100,7 @@ function mount(creator: Creator, options: { generating?: boolean; safety?: boole
       isGenerating: options.generating ?? false, safetyChecking: options.safety ?? false,
       cakeType: "standard", dessertYieldOptions,
       setServingSize: (value: string) => { yieldChanges(value); setYield(value); },
-      GlassButton: (props: React.ButtonHTMLAttributes<HTMLButtonElement>) => <button {...props} />,
+      PillButton: (props: React.ComponentProps<typeof PillButton>) => <PillButton {...props} debounceMs={0} />,
     };
     if (creator.id === "dessert") scope.handleCategoryChange = callback(source, "handleCategoryChange", scope);
     const select = originalSelection(source, creator, scope);
@@ -131,7 +132,7 @@ describe.each(creators)("$id Surprise Me", creator => {
     const before = [...host.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("textarea,input")].map(input => input.value);
     act(() => button().click());
     expect(button().getAttribute("aria-pressed")).toBe("true");
-    expect(button().textContent).toContain("Selected");
+    expect(button().classList.contains("animate-pulse-glow-green")).toBe(true);
     expect(host.querySelector("select")!.value).toBe(creator.selected);
     expect([...host.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("textarea,input")].map(input => input.value)).toEqual(before);
     expect(network).not.toHaveBeenCalled();
@@ -145,7 +146,7 @@ describe.each(creators)("$id Surprise Me", creator => {
     const select = host.querySelector("select")!;
     act(() => { select.value = creator.other; select.dispatchEvent(new Event("change", { bubbles: true })); });
     expect(button().getAttribute("aria-pressed")).toBe("false");
-    expect(button().textContent).not.toContain("Selected");
+    expect(button().classList.contains("animate-pulse-glow-green")).toBe(false);
     expect(button().className).not.toContain("border-orange-300");
     if (creator.id !== "sushi") {
       act(() => { select.value = creator.selected; select.dispatchEvent(new Event("change", { bubbles: true })); });
@@ -184,11 +185,26 @@ describe.each(creators)("$id Surprise Me", creator => {
     expect(button()).toBeNull();
   });
 
-  test("uses responsive full-width/mobile, intrinsic desktop, and touch-target classes", () => {
+  test("reuses compact outlined pills instead of a full-width rectangular button", () => {
     const { button } = mount(creator);
-    expect(button().classList.contains("w-full")).toBe(true);
-    expect(button().classList.contains("sm:w-auto")).toBe(true);
-    expect(button().classList.contains("min-h-11")).toBe(true);
+    for (const style of ["rounded-full", "text-[9px]", "py-[2px]", "ml-auto", "shrink-0"]) {
+      expect(button().classList.contains(style)).toBe(true);
+    }
+    expect(button().classList.contains("w-full")).toBe(false);
+    expect(button().classList.contains("animate-pill-pulse")).toBe(true);
+    expect(button().textContent?.trim()).toBe("Surprise Me");
+  });
+
+  test("keeps Voice first and Surprise Me right-aligned in a separated wrapping action row", () => {
+    const source = sourceFor(creator);
+    const row = findNode(source, node => ts.isJsxElement(node) &&
+      node.openingElement.attributes.properties.some(prop => ts.isJsxAttribute(prop) &&
+        prop.name.getText(source) === "data-testid" && prop.initializer?.getText(source) === '"creator-input-actions"'));
+    const text = row.getText(source);
+    expect(text.indexOf("<VoiceInputButton")).toBeLessThan(text.indexOf("<PillButton"));
+    for (const style of ["flex-wrap", "justify-between", "gap-x-4", "gap-y-2"]) expect(text).toContain(style);
+    expect(text).toContain('className="max-w-full items-start"');
+    expect(text).not.toContain("setIsRecording");
   });
 
   test("the existing request body still uses the category/style and safety/access fields", () => {
