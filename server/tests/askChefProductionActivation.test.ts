@@ -24,7 +24,7 @@ test("conversation activation is explicit in both real runtime environments", ()
 test("dashboard, App Library, and legacy intake links resolve to the released experience", () => {
   const router = fs.readFileSync("client/src/components/Router.tsx", "utf8");
   for (const name of ["Welcome", "Intake", "Complete"]) {
-    expect(router).toContain(`const GuardedChef${name} = () => <ProGuard component={isChefConversationEnabled() ? ChefConversationEntry`);
+    expect(router).toContain(`const GuardedChef${name} = () => <AskChefGuard component={isChefConversationEnabled() ? ChefConversationEntry`);
   }
   expect(fs.readFileSync("client/src/pages/DashboardNew.tsx", "utf8"))
     .toContain("{COACHES_CORNER_ENABLED && <CoachCornerCard />}");
@@ -34,15 +34,17 @@ test("dashboard, App Library, and legacy intake links resolve to the released ex
   expect(library).toContain("Ask Chef opens directly into conversation.");
 });
 
-test("the Production entry uses the same Pro-guarded conversation and navigation routers", () => {
+test("both entries use authenticated Chef routers; destination Pro guards remain separate", () => {
   const source = fs.readFileSync("server/routes/coachingEngine.ts", "utf8");
   for (const line of source.split("\n").filter(line => /^router\.(get|post|delete|patch)\(/.test(line))) {
     // Shared platform activity collection is not a conversational capability.
     if (line.includes('"/activity-event"')) continue;
-    expect(line).toContain("requireAuth, requireProAccess");
+    expect(line).toContain("requireAuth,");
   }
   expect(fs.readFileSync("server/routes/coachingNavigation.ts", "utf8"))
-    .toContain('router.post("/navigation", requireAuth, requireProAccess, resolve)');
+    .toContain('router.post("/navigation", requireAuth, resolve)');
+  expect(fs.readFileSync("server/routes/coachingNavigation.ts", "utf8"))
+    .toContain('destination.access === "pro" ? requireProAccess');
   for (const file of ["server/prod.ts", "server/routes.ts"]) {
     expect(fs.readFileSync(file, "utf8")).toMatch(/\/api\/coach/);
   }

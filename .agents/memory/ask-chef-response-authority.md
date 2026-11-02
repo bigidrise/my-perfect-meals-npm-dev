@@ -117,8 +117,11 @@ and relevant upgrades; MPM Guided Coaching and independent-coach referrals;
 authorized read-only account observations; and trustworthy current internet
 research when available, distinguished from general model knowledge.
 Encourage engagement without guilt, pressure or repetitive sales pitches.
-The founder prefers Free-tier availability; this is direction to verify before
-any change, not authorization to change entitlements.
+The founder decided Ask Chef is a Free base feature, included cumulatively in
+Essential, Pro and Clinical. Authenticated access and subscription-page placement
+are approved in Development; Production deployment still needs founder approval.
+Other features retain their existing entitlements, and the concierge does not
+grant access to its destinations.
 
 Do not generate meals, recipes, beverages or plans, calculate/change macro
 targets, modify logs/Biometrics, execute specialized workflows or recreate
@@ -135,8 +138,8 @@ priority. Founder-directed visual legacy review is a separate, significant
 workstream, not insignificant housekeeping.
 
 **Why:** The founder explicitly clarified the concierge purpose, legitimate
-marketing/referral responsibilities, read-only account scope and preferred Free
-direction before approving implementation.
+marketing/referral responsibilities and read-only account scope, then approved
+Free-tier access and cumulative subscription placement in Development.
 
 **How to apply:** Do not treat naming familiar food options as recipe generation.
 Use answered preferences without restarting discovery, retain verified feature

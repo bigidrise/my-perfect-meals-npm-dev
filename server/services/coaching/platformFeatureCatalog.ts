@@ -102,7 +102,7 @@ export function buildPlatformFeatureCatalog(options?: { featureIntelligence?: bo
       doesNotDo: ["Does not diagnose, prescribe, grant access, change clinical protocols or execute feature actions from an explanation."],
       gettingStarted: ["Ask a question in Ask Chef. Review its answer; use a separately authorized navigation action when offered."],
       outputs: "Conversation and supported, consent-controlled feature handoffs, not automatic feature execution.",
-      route: "/coach-corner/home", access: "Authenticated Pro access and existing server safety/navigation checks.",
+      route: "/coach-corner/home", access: "Authenticated access on Free, Essential, Pro and Clinical; existing server safety/navigation checks remain.",
       independentBackendEntry: "/api/coach/message",
       verification: "verified" as const, audience: "member" as const,
       evidence: ["client/src/pages/CoachsCorner.tsx", "server/routes/coachingEngine.ts",

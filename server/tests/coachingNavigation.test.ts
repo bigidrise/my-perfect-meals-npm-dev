@@ -33,13 +33,13 @@ afterAll(() => { process.env.NODE_ENV = originalEnv; });
 describe.each(["development", "production"])("%s server-validated Chef navigation", runtimeEnvironment => {
   beforeEach(() => { process.env.NODE_ENV = runtimeEnvironment; });
   test.each(["grocery_find_product", "grocery_create_meal", "product_scan"] as const)(
-    "%s keeps its Pro boundary and parent-only route in both environments", async id => {
+    "%s keeps its destination-specific boundary and parent-only route", async id => {
     const anonymous = await request(app(null)).post("/api/coach/navigation").send({ destinationId: id });
     expect(anonymous.status).toBe(401);
     for (const planLookupKey of ["mpm_basic_monthly", "mpm_premium_monthly", "mpm_ultimate_monthly"]) {
       const response = await request(app({ accessTier: "PAID_FULL", planLookupKey }))
         .post("/api/coach/navigation").send({ destinationId: id });
-      const allowed = planLookupKey !== "mpm_basic_monthly";
+      const allowed = id === "product_scan" || planLookupKey !== "mpm_basic_monthly";
       expect(response.status).toBe(allowed ? 200 : 403);
       expect(response.body.route).toBe(allowed ? "/shopping-list-v2" : undefined);
     }
@@ -65,14 +65,13 @@ describe.each(["development", "production"])("%s server-validated Chef navigatio
     expect(router).toContain("const GuardedBuilders = () => <MealBuildersGuard");
   });
 
-  test.each(["my_perfect_menu", "meal_builders"])("%s enforces Pro access, rejects handoffs, and supports Production", async id => {
-    for (const user of [null, { accessTier: "FREE", planLookupKey: null },
-      { accessTier: "PAID_FULL", planLookupKey: "mpm_basic_monthly" }]) {
+  test.each(["my_perfect_menu", "meal_builders"])("%s enforces Essential access and rejects handoffs", async id => {
+    for (const user of [null, { accessTier: "FREE", planLookupKey: null }]) {
       const denied = await request(app(user)).post("/api/coach/navigation").send({ destinationId: id });
       expect(denied.status).toBe(user ? 403 : 401);
       expect(denied.body.route).toBeUndefined();
     }
-    for (const planLookupKey of ["mpm_premium_monthly", "mpm_ultimate_monthly"]) {
+    for (const planLookupKey of ["mpm_basic_monthly", "mpm_premium_monthly", "mpm_ultimate_monthly"]) {
       const allowed = await request(app({ accessTier: "PAID_FULL", planLookupKey }))
         .post("/api/coach/navigation").send({ destinationId: id });
       expect(allowed.status).toBe(200);
