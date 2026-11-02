@@ -218,6 +218,28 @@ const DEVELOPMENT_DRINK_SUITABILITY = {
 
 /** Source-reviewed activity distinctions; never keyword routing or new access. */
 const DEVELOPMENT_FOOD_SUITABILITY = {
+  my_perfect_getaway: {
+    purpose: "Explore food decisions across a travel destination or venue, including cruise-wide dining options.",
+    suitableNeeds: ["General cruise food planning or exploration across airports, theme parks, resorts and other supported travel venues."],
+    notFor: ["Overriding a clearly stated immediate task simply because a cruise or travel is mentioned.", "Assuming general venue dining guidance includes My Perfect Buffet's actual-food plate-selection workflow, restaurant ordering or automatic internal navigation."],
+    informationNeeded: ["Whether the member needs general travel-dining exploration or help with an immediate food activity, only if unresolved. Venue and any offered dining-area choices belong to the destination."],
+    offerWhen: "Travel-wide food planning is the actual goal. Use the exact verified label My Perfect Getaway, not an invented plural feature or route.",
+    deferWhen: "For foods actually present at a buffet, consider My Perfect Buffet; for ordering at a selected restaurant, Restaurant Guide; for restaurant discovery, Find Meals Near Me. Do not repeat an earlier travel offer after the immediate task changes.",
+    safetyBoundaries: ["Chef's approved destination and outer page require Clinical access; internal page or API checks do not relax that boundary. Existing dietary, allergy, clinical and physician safeguards remain authoritative.", "Travel suggestions and venue/zone information do not verify current menus, stock or accommodations. Chef transfers no venue, zone, cruise or symptom context and does not open an internal workflow."],
+    relatedFeatures: ["My Perfect Buffet handles selecting food from actual buffet offerings, including on a cruise.", "Restaurant Guide and Find Meals Near Me address the immediate restaurant activity rather than the broad travel circumstance."],
+    verifiedSources: ["client/src/pages/lifestyle/MyPerfectGetaway.tsx", "server/routes/getaway.ts", "client/src/components/Router.tsx", "shared/coaching/navigation.ts"],
+  },
+  my_perfect_buffet: {
+    purpose: "Choose plates from foods actually available at a buffet, including a cruise buffet.",
+    suitableNeeds: ["The member is about to eat at a buffet and wants help choosing among the available foods."],
+    notFor: ["Cruise-wide venue exploration, finding a restaurant, ordering at a selected restaurant, or inventing foods available at the buffet."],
+    informationNeeded: ["Whether the member is selecting from an actual buffet, only if unresolved. The destination collects What's at the buffet? or optional category entries; Chef need not collect every food before recommending it."],
+    offerWhen: "Actual buffet-food selection is clear, even when the broader context is a cruise, holiday or other event. Do not detour through My Perfect Getaway.",
+    deferWhen: "A cruise or event mention alone does not establish buffet dining. Ask one activity question only if needed; do not repeat an already answered distinction.",
+    safetyBoundaries: ["Existing Pro access, dietary, allergy, clinical and physician safeguards remain authoritative. Food names and estimated nutrition are not verified allergen clearance or guaranteed buffet availability.", "Build My Plates starts the existing plate-recommendation workflow. Chef has no food-list prefill, automatic plate generation, consumption logging or transfer from Getaway."],
+    relatedFeatures: ["My Perfect Getaway explores general travel dining, not an assumed container for every cruise activity.", "Restaurant Guide serves a chosen restaurant; Find Meals Near Me serves restaurant discovery."],
+    verifiedSources: ["client/src/pages/MyPerfectBuffetPage.tsx", "server/routes/buffet.ts", "client/src/components/Router.tsx", "shared/coaching/navigation.ts"],
+  },
   craving_creator: {
     purpose: "Satisfy an immediate personal sweet or savory food craving, often a smaller or individually portioned choice, including chicken nuggets or a dessert treat.",
     suitableNeeds: ["A chosen personal craving to prepare, including one, two or several recipe servings."],

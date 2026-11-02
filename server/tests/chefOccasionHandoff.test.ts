@@ -200,3 +200,102 @@ describe("Development occasion/serving intent and direct-to-feature contracts", 
     expect(request.max_tokens).toBe(2000);
   });
 });
+
+describe("Development context versus immediate activity (mocked judgment)", () => {
+  const travel: ConciergeGoal = { ...prepare, activity: "travel", occasion: "unknown" };
+  const buffet: ConciergeGoal = { ...prepare, activity: "buffet", occasion: "unknown" };
+  it.each([
+    ["I'm going on a cruise and want help planning food across the ship.", "my_perfect_getaway", travel],
+    ["I'm on a cruise and am about to choose food at the buffet.", "my_perfect_buffet", buffet],
+    ["I'm on a cruise and want help ordering at the restaurant I've chosen.", "restaurant_guide",
+      { ...discovery, restaurant: "chosen" }],
+    ["I'm on a cruise and want to find a restaurant.", "find_meals_near_me", discovery],
+    ["I'm making just one side dish for Thanksgiving.", "create_a_dish", prepare],
+    ["I'm at an athletic event and want to make an ordinary iced coffee.", "beverage_creator", drink],
+    ["I'm training for a race and want help staying hydrated.", "hydration_center",
+      { ...prepare, activity: "hydration", occasion: "unknown" }],
+  ] as const)("preserves the supplied immediate-activity offer for %s", async (user, id, goal) => {
+    const message = `${tools.find(tool => tool.id === id)!.label} can help with that. Want to open it?`;
+    const { result, request } = await turn(user, message, {
+      responsePurpose: "feature_only_offer", navigationIntent: "recommendation",
+      conciergeDecision: action(id, goal),
+    });
+    expect(result.presentation?.message).toBe(message);
+    expect(result.presentation?.navigation).toMatchObject({ state: "recommendation_pending", destinationId: id });
+    expect(result.presentation?.destinationId).toBeUndefined();
+    expect(result.todayPlan.items).toEqual([]);
+    expect(request.messages[0].content).toContain("Broader circumstances provide context, but the immediate activity");
+  });
+
+  it("preserves one useful activity clarification without treating a cruise mention as consent", async () => {
+    const question = "Are you looking for general cruise dining guidance or help choosing food right now?";
+    const { result } = await turn("I'm on a cruise. Can you help with food?", question, {
+      responsePurpose: "clarify",
+    });
+    expect(result.presentation?.message).toBe(question);
+    expect(result.presentation?.navigation).toBeUndefined();
+    expect(result.todayPlan.items).toEqual([]);
+    expect(question.match(/\?/g)).toHaveLength(1);
+  });
+
+  it("honors a specific buffet correction over an earlier pending travel offer and accepts the new offer once", async () => {
+    const earlier = "My Perfect Getaway can help explore cruise dining. Want to open it?";
+    const pending: PendingRecommendation = { state: "recommendation_pending",
+      destinationId: "my_perfect_getaway", goal: travel };
+    const correction = "Actually, I'm at the buffet now and need to pick a plate.";
+    const offer = "My Perfect Buffet can help you choose from the food available. Want to open it?";
+    const history = [{ role: "user", content: "I'm on a cruise." }, { role: "assistant", content: earlier }];
+    const next = await turn(correction, offer, {
+      responsePurpose: "feature_only_offer", navigationIntent: "recommendation",
+      conciergeDecision: action("my_perfect_buffet", buffet),
+    }, { history, pending });
+    expect(next.wire.history).toEqual(history);
+    expect(next.result.presentation?.navigation).toMatchObject({
+      state: "recommendation_pending", destinationId: "my_perfect_buffet",
+    });
+    const message = "Describe what's available at the buffet, then use Build My Plates.";
+    const accepted = await turn("Yes.", message, {
+      memberNeed: "navigation", responsePurpose: "handoff", navigationIntent: "confirmed", handoffMessage: message,
+    }, { pending: next.result.presentation!.navigation!, history: [...history,
+      { role: "user", content: correction }, { role: "assistant", content: offer }] });
+    expect(accepted.result.presentation?.navigation?.state).toBe("navigation_confirmed");
+    expect(accepted.result.presentation?.destinationId).toBe("my_perfect_buffet");
+    expect(accepted.result.presentation?.message).toBe(message);
+    expect(accepted.result.presentation?.creatorRequest).toBeUndefined();
+    expect(accepted.result.todayPlan.items).toEqual([expect.objectContaining({
+      kind: "use_feature", destinationId: "my_perfect_buffet",
+    })]);
+  });
+
+  it.each([["my_perfect_getaway", travel], ["my_perfect_buffet", buffet]] as const)(
+    "does not substitute another contextual destination when %s is unavailable", async (id, goal) => {
+      const { result } = await turn("Help with food on this cruise.", "Want to open that tool?", {
+        responsePurpose: "feature_only_offer", navigationIntent: "recommendation",
+        conciergeDecision: action(id, goal), conversationMessage: "We can discuss the immediate food choice here.",
+      }, { availableTools: tools.filter(tool => tool.id !== id) });
+      expect(result.presentation?.navigation).toBeUndefined();
+      expect(result.presentation?.destinationId).toBeUndefined();
+      expect(result.todayPlan.items).toEqual([]);
+    },
+  );
+
+  it("delivers verified travel/buffet boundaries without changing Production or approved access", async () => {
+    const { wire } = await turn("What tool should I use on a cruise?", "It depends on your immediate food activity.");
+    for (const id of ["my_perfect_getaway", "my_perfect_buffet"] as const) {
+      const usage = wire.platformKnowledge.featureUsage[id];
+      expect(usage.suitability).toBeDefined();
+      expect(usage.suitability).not.toHaveProperty("verifiedSources");
+      expect(FEATURE_USAGE_KNOWLEDGE[id]?.suitability).toBeUndefined();
+    }
+    expect(wire.platformKnowledge.featureUsage.my_perfect_getaway.suitability.notFor.join(" "))
+      .toContain("actual-food plate-selection");
+    expect(wire.platformKnowledge.featureUsage.my_perfect_buffet.suitability.offerWhen).toContain("even when");
+    expect(getFeatureUsageKnowledge("production")).toBe(FEATURE_USAGE_KNOWLEDGE);
+    expect(COACH_DESTINATIONS.my_perfect_getaway).toMatchObject({
+      label: "My Perfect Getaway", route: "/lifestyle/my-perfect-getaway", access: "clinical",
+    });
+    expect(COACH_DESTINATIONS.my_perfect_buffet).toMatchObject({
+      label: "My Perfect Buffet", route: "/my-perfect-buffet", access: "pro",
+    });
+  });
+});

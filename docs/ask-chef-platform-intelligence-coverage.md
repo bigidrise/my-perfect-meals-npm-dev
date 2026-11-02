@@ -59,13 +59,50 @@ subscription, onboarding, professional, household or clinical access.
 | Meal starting pages | My Perfect Menu; Meal Builders | Reviewed entry-page guidance distinguishes suggested ideas from builder selection. Destination-owned subject/date/builder resolution and onboarding remain authoritative. No Chef planning payload or clinical-builder activation. |
 | Other approved entries | Macro Calculator; My Perfect Beginnings | Existing description/readiness and access boundaries, but no dedicated usage-control records. Calculator does not automatically replace saved targets. Beginnings opens the child-selection hub, never an inferred child's context. |
 
-Detailed decision/timing suitability is now present for twelve destinations in
+Detailed decision/timing suitability is now present for fourteen destinations in
 Development, including the occasion and direct-to-feature refinement below.
 Other allowlisted destinations have varying existing descriptive knowledge, not
 equivalent new suitability review. The allowlist and access classes were not
 expanded or replaced.
 
 ## Direct-to-feature and occasion refinement
+
+### Context versus immediate activity
+
+Development guidance uses broader circumstances to make a recommendation relevant,
+but selects the verified workflow for what the member is doing now. A cruise,
+holiday, workout or shopping context alone neither selects a destination nor
+authorizes navigation. If the activity is unresolved, ask one useful question;
+otherwise preserve the existing offer, confirmation and click-time access checks.
+Missing access to the specific workflow never authorizes an unrelated substitute.
+
+| Immediate goal, including while on a cruise | Verified destination and limits |
+|---|---|
+| General travel food planning | **My Perfect Getaway**, `/lifestyle/my-perfect-getaway`. Search a venue/location or choose **Tap & Go**, then select a dining area only if offered. Its coach uses venue/zone context for travel-dining guidance; this does not establish an internal My Perfect Buffet workflow, verified current menus, or a Chef context transfer. The approved Chef destination and outer page guard require **Clinical** access. The page's internal Pro check does not relax that existing boundary. |
+| Select food from an actual buffet | **My Perfect Buffet**, `/my-perfect-buffet`, **Pro**. Enter **What's at the buffet?** or use optional **Add by category**, then **Build My Plates**. `/api/buffet/recommend` uses the supplied foods to produce plate recommendations; nutrition remains estimated. Chef does not invent available buffet foods, populate the form, generate plates or log consumption. |
+| Order at a restaurant already chosen | **Restaurant Guide**, `/social-hub/restaurant-guide`, **Pro**. Guided craving, restaurant and ZIP inputs; current menus and accommodations still require restaurant confirmation. Cruise context does not turn this into travel-wide planning. |
+| Find a restaurant | **Find Meals Near Me**, `/social-hub/find`, **Pro**. Existing craving/location search and optional filters; no guaranteed current menu or comprehensive specialty-shop coverage. |
+
+The travel and buffet page implementations, their backend handlers, the router
+guards and approved Chef destinations were inspected. Founder-intended travel
+coverage includes cruises; implemented Getaway guidance can mention ship dining
+areas and buffet options. That is not evidence that it contains the separate
+actual-food plate-selection workflow or can internally open it.
+
+The same activity-over-context principle preserves a single Thanksgiving dish
+versus the complete gathering, personal craving versus full dessert, ordinary
+drink versus performance drink, athletic hydration support versus drink creation,
+grocery shopping versus dish preparation, and sushi preparation versus dining out.
+Two existing destination records now receive rich Development-only suitability:
+`my_perfect_getaway` and `my_perfect_buffet`. No new registry, route, transfer,
+model call, feature functionality or entitlement was introduced.
+
+Additional mocked contracts cover general cruise planning, cruise buffet and
+restaurant activities, a single holiday dish, athletic-context ordinary beverages,
+hydration support, ambiguous cruise activity, correction of an earlier travel
+offer, one accepted buffet confirmation, unavailable destinations and Production
+knowledge/access preservation. They prove prompt delivery, response preservation
+and server state enforcement, not live model judgment.
 
 ### Navigation verification
 
