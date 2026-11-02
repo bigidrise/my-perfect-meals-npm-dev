@@ -63,6 +63,9 @@ export default function CoachCornerCard() {
                   className="h-[3.12rem] w-auto max-w-full object-contain object-left sm:h-[3.96rem]"
                 />
               </h3>
+              <p className="mt-1 text-xs font-medium text-orange-200/80 sm:text-sm">
+                Platform Concierge
+              </p>
               <p className="mt-2 text-xs leading-relaxed text-orange-50/65 sm:text-sm">
                 Ask about food, explore meal ideas, or find your way around My Perfect Meals.
               </p>
