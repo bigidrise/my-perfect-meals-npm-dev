@@ -354,17 +354,18 @@ test("cruise context can stay conversational without mandatory Getaway navigatio
   expect(mockCreate).toHaveBeenCalledTimes(1);
 });
 
-test("Production receives the same reviewed Getaway capability as the conversation", () => {
+test("Production retains approved destinations and unchanged capabilities outside Development suitability reviews", () => {
   const conversationCapabilities = getCornerCapabilities(["all"]);
   process.env.NODE_ENV = "production";
   const productionCapabilities = getCornerCapabilities(["all"]);
   for (const capability of conversationCapabilities) {
     // Reviewed suitability/terminology increments stay Development-only; every
-    // other capability (including Getaway) must retain exact release parity.
+    // other capability must retain exact release parity.
     if (!["beverage_creator", "athlete_beverage_creator", "hydration_center",
       "create_a_dish", "grocery_create_meal", "grocery_find_product",
       "craving_creator", "dessert_creator", "my_perfect_gatherings", "sushi_creator",
-      "restaurant_guide", "find_meals_near_me"].includes(capability.id)) {
+      "restaurant_guide", "find_meals_near_me",
+      "my_perfect_getaway", "my_perfect_buffet"].includes(capability.id)) {
       expect(productionCapabilities.find(cap => cap.id === capability.id)).toEqual(capability);
     }
     expect(productionCapabilities.find(cap => cap.id === capability.id)?.route).toBe(capability.route);

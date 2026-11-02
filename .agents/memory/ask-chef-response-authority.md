@@ -126,3 +126,15 @@ and holiday-keyword routing. More specific requests should require fewer questio
 original member request through existing grounded transfer only, with concise
 guidance after consent; no repeated permission or request restatement. Actual
 feature capability, access and necessary care still override conversational speed.
+
+Broader circumstances provide context; the immediate activity determines the
+verified feature. A cruise buffet request belongs to buffet selection rather
+than automatically to general Getaway guidance. Travel context must not be
+assumed to include every specialized dining workflow.
+
+**Why:** The founder explicitly requires context-versus-activity reasoning across
+the platform, rather than routing on a cruise, holiday or athletic keyword.
+
+**How to apply:** Prefer a verified specific workflow for the clear current task.
+Clarify only unresolved activity, and never use a broader contextual destination
+to bypass unavailable access or invent an internal handoff.
