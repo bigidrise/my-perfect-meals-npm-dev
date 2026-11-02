@@ -607,3 +607,17 @@ mtime_ms = 1793645177134
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/499472bb-8f9f-41f8-ba46-89c959946251/b391e821-7da2-4454-a2b8-c7bfe0fd283f"
 storage_version_token = "1793645188189731"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "CZgHVoXS0v4OnJWz90b2d"
+uri = "file://generated-artifacts/feature-intelligence/ask-chef-free-isolated/completion-report.md"
+type = "text"
+title = "Isolated Ask Chef Free-Tier Candidate — Completion Report"
+description = "Exact Production base and local candidate commit, ten-file scope, excluded Development work, 180 passing tests, successful builds/type checks, and the outstanding authenticated Free-member verification limitation."
+logical_id = "856be31c-eda5-4c0a-aca7-0b462bc9a7b1"
+content_hash = "sha256:bc38561ab7e5513999d382c9a7b2bf5c8f8dc6910b2260ffa45252656cd5915d"
+size = 10789
+mtime_ms = 1793645696274
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/856be31c-eda5-4c0a-aca7-0b462bc9a7b1/318a2534-8ef5-40f9-8597-ffbb79857e9e"
+storage_version_token = "1793645717838624"
+content_type = "text/markdown"
