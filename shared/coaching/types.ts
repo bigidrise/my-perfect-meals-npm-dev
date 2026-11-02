@@ -537,7 +537,53 @@ export interface PromptCapability {
  * CRITICAL: Every field that could be missing carries a FieldValue<T> envelope.
  * The LLM is instructed to treat 'missing' status as "I don't know" — not as zero.
  */
+/** Read-only evidence supplied by Development Ask Chef; never a parallel profile. */
+export interface MemberContextFact<T> {
+  value: T | null;
+  status: "known" | "unknown" | "none" | "unavailable";
+  source: string;
+}
+
+export interface MemberContextEvidence {
+  retrievedAt: string;
+  day: {
+    date: string; timezone: string; timezoneBasis: "recorded" | "fallback";
+    start: string; end: string;
+  };
+  profile: {
+    goal: MemberContextFact<string>;
+    target: MemberContextFact<string>;
+    fitnessGoal: MemberContextFact<string>;
+    timelineWeeks: MemberContextFact<number>;
+    goalStartedAt: MemberContextFact<string>;
+    activity: MemberContextFact<string>;
+    restrictions: MemberContextFact<string[]>;
+    allergies: MemberContextFact<string[]>;
+    avoidedFoods: MemberContextFact<string[]>;
+    dislikedFoods: MemberContextFact<string[]>;
+    preferredSweeteners: MemberContextFact<string[]>;
+    avoidedSweeteners: MemberContextFact<string[]>;
+  };
+  savedTargets: {
+    source: "users.saved_nutrition_targets";
+    freshness: "current_saved_values_timestamp_unknown";
+    /** The storage location is known; the original calculator/author is not inferred. */
+    recordedAt: null;
+    targets: Record<"calories" | "protein" | "carbs" | "fat" | "starchyCarbs" | "fibrousCarbs", MemberContextFact<number>>;
+  };
+  prescription: {
+    status: "current_day_snapshot" | "historical_only" | "missing";
+    date: string | null;
+    recordedAt: string | null;
+    freshness: "not_revalidated" | "stale_for_today" | "unknown";
+    source: string | null;
+    sourceVersion: string | null;
+  };
+}
+
 export interface CoachingContextSnapshot {
+  /** Absent outside Development; legacy/Production projections remain unchanged. */
+  memberEvidence?: MemberContextEvidence;
   subject: {
     userId: string;
     timezone: string;

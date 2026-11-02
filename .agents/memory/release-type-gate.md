@@ -79,6 +79,14 @@ Temporary compiler-comparison files may disappear when the execution environment
 
 Sends an unauthenticated POST to `/api/meals/generate`. Correct response is 401 (gate reachable and auth-protected). Accepts 401/400/200 — timing-based checks are wrong here because unauthenticated probes return immediately.
 
+## Retain full diagnostics on the first gate run
+
+Retain complete compiler stdout/stderr when diagnosing a fingerprint mismatch, not only the release gate's failure preview.
+
+**Why:** The gate prints only the first 80 output lines; legacy client errors can hide a newly introduced server error and force another expensive root compile just to identify it.
+
+**How to apply:** Run the actual validator unchanged while capturing its compiler subprocess output to a temporary file (a Node spawnSync wrapper with syncBuiltinESMExports can do this). Keep its stable build-version handling and exact baseline comparison intact. Never suppress the new diagnostic or replace the reviewed fingerprint.
+
 ## Locked-day target snapshot rule
 
 `onSaveDay` in builder pages must snapshot the same prescription-derived targets the RemainingMacrosFooter displays — **not** `getMacroTargets()` (localStorage cache). localStorage can be absent or stale. Use `prescription?.caloriesTarget` etc. directly, and guard with `if (!prescription || nutritionStateLoading) return` before the lockDay call.
