@@ -467,3 +467,17 @@ mtime_ms = 1793506848781
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:5b503fbf-1926-4592-8a37-99d9960f359a/6050442a-e121-47c7-96f3-975a8990d61e/3496cded-072b-4ade-acb7-6541fd616a63"
 storage_version_token = "1793507116437310"
 content_type = "text/html"
+
+[[outputs]]
+id = "lvaZiz6BCDCmD035c5aK5"
+uri = "file://generated-artifacts/feature-intelligence/phase3-review.html"
+type = "html"
+title = "Feature Intelligence — Phase 3 Review"
+description = "Source-backed Development review, with an embedded download of all 16 detailed reports: inventory, 52 Active reviews, 213 description-gap reviews, knowledge conflicts, hidden/legacy evidence, founder decisions and offline results. Live integration remains disabled."
+logical_id = "7ece5542-cabb-4633-a835-bbbf0a62974d"
+content_hash = "sha256:1e192ef99bbda7d7cd16fc15f16868f7af2c0f65b41e16a1ca8b2fa3502c1518"
+size = 356845
+mtime_ms = 1793637101092
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/7ece5542-cabb-4633-a835-bbbf0a62974d/fce04d07-5225-414f-a2c3-fa5af0d1a8b4"
+storage_version_token = "1793637126531593"
+content_type = "text/html"
