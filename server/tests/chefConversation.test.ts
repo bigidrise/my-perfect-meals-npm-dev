@@ -367,7 +367,7 @@ test("Production retains approved destinations and unchanged capabilities outsid
       "create_a_dish", "grocery_create_meal", "grocery_find_product",
       "craving_creator", "dessert_creator", "my_perfect_gatherings", "sushi_creator",
       "restaurant_guide", "find_meals_near_me",
-      "my_perfect_getaway", "my_perfect_buffet"].includes(capability.id)) {
+      "my_perfect_getaway", "my_perfect_buffet", "meal_builders"].includes(capability.id)) {
       expect(productionCapabilities.find(cap => cap.id === capability.id)).toEqual(capability);
     }
     expect(productionCapabilities.find(cap => cap.id === capability.id)?.route).toBe(capability.route);
@@ -745,7 +745,7 @@ test.each([
 test("entry-page approval never authorizes choosing a specialized builder or a new handoff", async () => {
   const before = Object.keys(COACH_DESTINATIONS);
   const knowledge = getDevelopmentPlatformKnowledge()!;
-  expect(knowledge.features.find(feature => feature.id === "meal_builders")?.purpose).toContain("Do not choose or activate");
+  expect(knowledge.features.find(feature => feature.id === "meal_builders")?.purpose).toContain("choose or activate a specialized clinical builder");
   expect(knowledge.features.find(feature => feature.id === "my_perfect_menu")?.purpose).toContain("not an independent seven-day");
   expect(knowledge.features.find(feature => feature.id === "grocery_coach")?.purpose).toContain("both meal help and product help");
   expect(knowledge.features.every(feature => feature.status === "available")).toBe(true);

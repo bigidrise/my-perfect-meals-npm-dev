@@ -362,10 +362,13 @@ export function getFeatureUsageKnowledge(environment: string | undefined) {
   };
   knowledge.meal_builders = {
     ...FEATURE_USAGE_KNOWLEDGE.meal_builders!,
-    controls: [...FEATURE_USAGE_KNOWLEDGE.meal_builders!.controls,
+    descriptionInput: "Open your assigned builder from the Meal Builders landing page.",
+    controls: ["Open your assigned builder; existing eligibility and setup rules still apply.",
       "Inside the member's builder, choose a day and desired Meal 1–6 slot, then use that slot's Create With Chef controls.",
       "Continue creating meals in additional slots. Save Plan saves the board."],
+    generationAction: "Use the existing Open Meal Builders button to open the landing page, then open your assigned builder, choose a day and meal slot, and select Create With Chef.",
     notes: [...FEATURE_USAGE_KNOWLEDGE.meal_builders!.notes,
+      "Ordinary members generally have one assigned builder; administrators may have access to multiple builders. Do not imply members can freely select a preferred builder or infer administrator authority.",
       "Create With Chef is inside a Meal Builder, not the separate Create a Dish feature or an approved standalone Chef destination.",
       "Chef opens the Meal Builders landing page only, not a chosen builder, day or slot. Do not claim exact onboarding or Macro Calculator completion."],
   };

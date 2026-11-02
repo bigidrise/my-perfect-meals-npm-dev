@@ -91,7 +91,7 @@ test.each(["my_perfect_menu", "meal_builders"] as const)(
     expect(first.result.presentation?.navigation).toMatchObject({ state: "recommendation_pending", destinationId: id });
     expect(first.result.todayPlan.items).toEqual([]);
     const handoff = own
-      ? "Open Meal Builders and continue to your available builder. Choose a day and meal slot, then use Create With Chef. Continue in other slots and save your plan."
+      ? "Use the button below to open the Meal Builders page. Open your assigned builder, choose a day and meal slot, then select Create With Chef to start making your meals."
       : "Open My Perfect Menu, choose Breakfast, Lunch, Dinner or Snack, then Choose This on an idea. Select its date and meal slot to create it and add it to your builder.";
     const acceptedHistory: History = [...history, { role: "user", content: requestText }, { role: "assistant", content: text }];
     const second = await reply("Yes", handoff, { memberNeed: "navigation", responsePurpose: "handoff",
@@ -102,6 +102,59 @@ test.each(["my_perfect_menu", "meal_builders"] as const)(
     expect(second.result.presentation?.message).toBe(handoff);
     expect(second.result.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId: id })]);
   });
+
+test("assigned-builder handoff guidance reaches the single Development call without free-choice facts", async () => {
+  const { wire, request } = await reply("How do I create my own meals?",
+    "You can create your own meals inside your assigned Meal Builder.");
+  const usage = wire.platformKnowledge.featureUsage.meal_builders;
+  const feature = wire.platformKnowledge.features.find((item: { id: string }) => item.id === "meal_builders");
+  const capability = wire.availableFeatures.find((item: { id: string }) => item.id === "meal_builders");
+  expect(usage.descriptionInput).toContain("assigned builder");
+  expect(usage.generationAction).toContain("existing Open Meal Builders button");
+  expect(feature.purpose).toContain("Ordinary members generally have one assigned builder");
+  expect(capability.description).toContain("their assigned builder");
+  expect(JSON.stringify({ usage, feature, capability })).not.toContain("Choose an available builder card");
+  expect(JSON.stringify({ usage, feature, capability })).not.toContain("Review the builder choices");
+  expect(JSON.stringify({ usage, feature, capability })).not.toContain("review their existing builder choices");
+  const instructions = request.messages[0].content;
+  expect(instructions).toContain("Before confirmation, recommend creating meals inside the member's Meal Builder");
+  expect(instructions).toContain("Do not add another permission question after confirmation");
+  expect(instructions).toContain("never claim to open an assigned builder or slot directly");
+});
+
+test("assigned-builder recommendation needs one acceptance and preserves the existing landing-page action", async () => {
+  const text = "You can create your own meals inside your Meal Builder. Want me to take you there?";
+  const first = await reply("I'd rather create my own meals with Chef.", text,
+    offer("meal_builders", planning("meal_builders")));
+  expect(first.result.presentation?.message).toBe(text);
+  expect(first.result.presentation?.navigation?.state).toBe("recommendation_pending");
+  expect(first.result.todayPlan.items).toEqual([]);
+  const handoff = "Use the button below to open the Meal Builders page. Open your assigned builder, choose a day and meal slot, then select Create With Chef to start making your meals.";
+  const second = await reply("Yes", handoff, { memberNeed: "navigation", responsePurpose: "handoff",
+    navigationIntent: "confirmed", handoffMessage: handoff,
+  }, { pending: first.result.presentation?.navigation, history: [
+    { role: "user", content: "I'd rather create my own meals with Chef." },
+    { role: "assistant", content: text },
+  ] });
+  expect(second.result.presentation?.message).toBe(handoff);
+  expect(second.result.presentation?.navigation).toMatchObject({ state: "navigation_confirmed", destinationId: "meal_builders" });
+  expect(second.result.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId: "meal_builders" })]);
+  expect(COACH_DESTINATIONS.meal_builders).toEqual({ label: "Meal Builders", route: "/builders", access: "meal_builders" });
+  expect(handoff).not.toMatch(/\?|preferred|whichever|Enjoy planning/i);
+});
+
+test("assigned-builder wording does not change Production guidance or capability navigation", () => {
+  const dev = getCornerCapabilities(["all"], "development").find(cap => cap.id === "meal_builders")!;
+  const prod = getCornerCapabilities(["all"], "production").find(cap => cap.id === "meal_builders")!;
+  expect(dev.route).toBe("/builders");
+  expect(dev.route).toBe(prod.route);
+  expect(dev.label).toBe(prod.label);
+  expect(prod.description).toContain("review their existing builder choices");
+  expect(getPlatformGuidanceInstructions("production")).toBe(PLATFORM_GUIDANCE_INSTRUCTIONS);
+  expect(getPlatformGuidanceInstructions("production")).not.toContain("MEAL BUILDER HANDOFF:");
+  expect(getFeatureUsageKnowledge("production")).toBe(FEATURE_USAGE_KNOWLEDGE);
+  expect(FEATURE_USAGE_KNOWLEDGE.meal_builders?.controls).toEqual(["Choose an available builder card; eligibility and setup can restrict choices."]);
+});
 
 test("retains the goal across orientation, planning choice, method choice and acceptance", async () => {
   const history: History = [];
