@@ -132,7 +132,6 @@
 - [Migration CLI lifecycle](migration-cli-lifecycle.md) — one-off commands must own their connection; the application DB keepalive can outlive a closed pool.
 - [Professional credential clearance](professional-credential-clearance.md) — bind genuine MFA-reviewed evidence to current identity; activation, pilots and demos remain separate.
 - [Grocery Coach workflow](grocery-coach-meal-card-workflow.md) — automatic Favorites/card continuity and Development-only, user-initiated packaged-product discovery.
-- [Ask Chef parent navigation](ask-chef-parent-navigation.md) — Grocery Store Coach buttons name the parent feature; conversation names the nested function.
 - [Focused Jest execution](focused-jest-execution.md) — use isolated test transpilation and a separate type gate to avoid loading the entire project twice.
 - [Studio loading release boundary](studio-loading-release-boundary.md) — loading corrections are Development-only; permission caching and restart/release need separate approval.
 - [Recipe carbohydrate categories](recipe-carb-category-boundary.md) — preserve explicit source estimates; dietary fiber and unknown carbohydrate remain distinct.
@@ -154,6 +153,6 @@
 - [Dashboard menu colors](dashboard-menu-color-policy.md) — use visually distinct accents for unrelated dashboard tools, not merely different hex shades of the same hue.
 - [RHM client walkthrough](rhm-client-walkthrough-context.md) — staff need the actual first-time client experience before distributing a 30-day link to 8,000 clinic clients.
 - [Integration activation boundary](integration-activation-boundary.md) — review automatic merges and dependent gates; source integration alone never grants experimental activation or baseline replacement.
-- [Ask Chef response authority](ask-chef-response-authority.md) — typed care states govern unused model fields; meaningful continuations and honest role-scoped knowledge require separate evidence.
-- [Ask Chef wordmark](ask-chef-wordmark.md) — founder selected the silver/orange swoosh wordmark without a chef hat; the adjacent mascot already wears one.
+- [Ask Chef references](ask-chef-reference-index.md) — response authority, parent navigation naming, and founder-selected wordmark.
+- [Ask Chef personal history goal](ask-chef-personal-history-goal.md) — evidence-grounded recall across years is the priority; audit existing architecture before designing or activating memory.
 - [Feature Intelligence boundary](feature-intelligence-boundary.md) — automated offline discovery is approved; connecting it to Ask Chef requires separate approval.

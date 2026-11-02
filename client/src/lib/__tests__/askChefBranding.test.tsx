@@ -34,12 +34,12 @@ test("release branding covers legacy spellings, preserving routes and unrelated 
   expect(chefMemberText("Chef's Corner")).toBe("Ask Chef");
 });
 
-test.each([false, true])("Development card reuses Flame Chef and preserves existing navigation; completed=%s", completed => {
+test.each([false, true])("released card shows the new artwork and preserves existing navigation; completed=%s", completed => {
   mockCompleted = completed;
   act(() => root.render(<CoachCornerCard />));
-  expect(host.querySelector("h3")?.textContent).toBe("Ask Chef");
+  expect(host.querySelector("h3 img")?.getAttribute("alt")).toBe("Ask Chef");
   expect(host.textContent).not.toContain("Chef's Corner");
-  expect(host.querySelector("img")?.getAttribute("src")).toBe("/assets/ChefBlackApron.png");
+  expect(host.querySelector("img")?.getAttribute("src")).toBe("/assets/ask-chef-desk.webp");
   const button = host.querySelector("button")!;
   expect(button.textContent).toBe("Open Ask Chef");
   expect(button.className).toContain("focus-visible:ring-2");
