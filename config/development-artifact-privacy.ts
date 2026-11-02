@@ -7,4 +7,5 @@ export const PRIVATE_DEVELOPMENT_FILE_PATTERNS = [
   ".env", ".env.*", "*.{crt,pem}", "**/.git/**",
   "**/generated-artifacts/**",
   "**/scripts/feature-intelligence/**",
+  "**/server/services/coaching/featureIntelligence*.ts",
 ];

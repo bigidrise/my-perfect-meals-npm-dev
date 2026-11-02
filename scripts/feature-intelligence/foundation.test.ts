@@ -35,6 +35,7 @@ const fact: KnowledgeFact = {
 function analyzed(sources: Record<string, string> = fixture): ScanResult {
   const known = new Set(Object.keys(sources));
   return { files: Object.fromEntries(Object.entries(sources).map(([file, text]) => [file, analyzeFile(file, text, known)])),
+    entrypoints: { client: [routeFile], developmentServer: ["server/index.ts"], productionServer: [], evidence: [] },
     changedFiles: Object.keys(sources).sort(), removedFiles: [], parsedFiles: known.size, reusedFiles: 0 };
 }
 function state(result: ReturnType<typeof compileRegistry>, input = analyzed()): ScanState {

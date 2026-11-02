@@ -107,6 +107,8 @@ export interface CoachSubject {
 }
 
 export interface CoachRequest {
+  /** Optional, untrusted UI hint. Never authorization or nutrition subject identity. */
+  featureScreenContext?: { currentRoute?: string };
   specialization: CoachSpecialization;
   subject: CoachSubject;
   userMessage: string;

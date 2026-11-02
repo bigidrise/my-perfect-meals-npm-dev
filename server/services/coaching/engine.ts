@@ -1549,6 +1549,7 @@ export class CoachingEngine {
         client: getOpenAI(), userMessage: request.userMessage, history, rollingContext,
         context, tools: [...adapter.availableTools],
         knowledgeAccess,
+        featureScreenContext: request.featureScreenContext,
         pendingRecommendation,
         preferredLanguage: (req as any).authUser?.preferredLanguage,
         requestId: (req as any).id,

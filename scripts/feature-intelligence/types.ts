@@ -15,6 +15,7 @@ export interface RouteFact {
   path: string;
   components: string[];
   source: SourceReference;
+  conditions?: string[];
 }
 export interface ApiFact {
   method: string;
@@ -23,10 +24,14 @@ export interface ApiFact {
   source: SourceReference;
 }
 export interface SymbolFact {
+  components?: string[];
   references: string[];
   modules: string[];
 }
 export interface FileFacts {
+  constants?: Record<string, boolean>;
+  redirects?: string[];
+  superseded?: boolean;
   hash: string;
   imports: Record<string, string>;
   moduleSpecifiers: Record<string, string | null>;
@@ -45,6 +50,7 @@ export interface FileFacts {
   legacyFeatures: Array<{ id: string; name: string; route: string; aliases: string[]; source: SourceReference }>;
 }
 export interface KnowledgeFact {
+  independentBackendEntry?: string;
   id: string;
   name: string;
   description: string;
@@ -59,6 +65,16 @@ export interface KnowledgeFact {
   sources: SourceReference[];
 }
 export interface FeatureRecord {
+  independentBackendEntry?: string;
+  classification?: {
+    status: "active" | "restricted" | "coming_soon" | "legacy_unused" | "unverified";
+    reasons: string[];
+    evidence: SourceReference[];
+    conditionalEntries: string[];
+    internal: boolean;
+    redirect: boolean;
+  };
+  enrichment?: { summary: string | null; evidence: SourceReference[]; kind: "reviewed_documentation" | "structural_summary" | "insufficient" };
   id: string;
   kind: "feature" | "page";
   name: string | null;
@@ -94,6 +110,8 @@ export interface Registry {
   features: FeatureRecord[];
 }
 export interface ScanState {
+  registryFingerprint?: string;
+  buildHashes?: Record<string, string>;
   schemaVersion: 1;
   analyzerFingerprint: string;
   files: Record<string, FileFacts>;
@@ -105,6 +123,7 @@ export interface ScanState {
   }>;
 }
 export interface ScanResult {
+  entrypoints?: { client: string[]; developmentServer: string[]; productionServer: string[]; evidence: SourceReference[] };
   files: Record<string, FileFacts>;
   changedFiles: string[];
   removedFiles: string[];

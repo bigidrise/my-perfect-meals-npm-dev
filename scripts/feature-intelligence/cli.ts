@@ -31,7 +31,8 @@ export function run(root: string) {
   const discovered = scan(root, analyzerFingerprint, previous);
   // Analyzer changes establish a new structural baseline, not fictitious product drift.
   const comparison = previous?.analyzerFingerprint === analyzerFingerprint ? previous : undefined;
-  const result = compileRegistry(discovered, existingKnowledge(root), comparison);
+  const result = compileRegistry(discovered, existingKnowledge(root), comparison,
+    comparison ? undefined : previous?.records);
   const errors = integrityErrors(result.registry);
   if (errors.length) throw new Error("Registry integrity failed:\n" + errors.join("\n"));
   fs.mkdirSync(output, { recursive: true, mode: 0o700 });
@@ -44,11 +45,28 @@ export function run(root: string) {
   save("registry.json", result.registry);
   save("coverage.json", result.coverage);
   save("coverage.md", markdownReport(result), true);
-  save("state.json", { schemaVersion: 1, analyzerFingerprint, files: discovered.files, records: result.states } satisfies ScanState);
+  save("legacy-unused.json", result.legacy);
+  save("legacy-unused.md", [
+    "# Legacy and Unused Feature Report",
+    "Development source evidence only. No deletion, archive or access authority.",
+    "Missing dashboard navigation is never proof that a feature is unused.",
+    `Explicitly superseded unreachable modules: ${result.legacy.confirmedLegacy.length}`,
+    `Suspected/unverified unreachable components: ${result.legacy.suspectedComponents.length}`,
+    `Redirect/compatibility entries (preserve legitimate direct links): ${result.legacy.supersededEntries.length}`,
+    `Obsolete knowledge routes requiring review: ${result.legacy.obsoleteKnowledgeRoutes.length}`,
+    "See legacy-unused.json for classifications, replacement destinations, source references and entry points.",
+  ].join("\n") + "\n", true);
+  const buildHashes = Object.fromEntries(["client/index.html", "package.json", "vite.config.ts", "client/vite.config.ts", ".replit"]
+    .filter(file => fs.existsSync(path.join(root, file))).map(file => [file, digest(fs.readFileSync(path.join(root, file), "utf8"))]));
+  save("state.json", { schemaVersion: 1, analyzerFingerprint, files: discovered.files, records: result.states,
+    registryFingerprint: digest(result.registry), buildHashes } satisfies ScanState);
   const summary = result.coverage.summary;
   console.log(`Feature Intelligence: ${summary.featureRecords} documented feature records; ${summary.pageRecords} registered pages; ${summary.discoveredControls} control observations.`);
   console.log(`Parsed ${discovered.parsedFiles}; reused ${discovered.reusedFiles}; integrity PASS. Reports: generated-artifacts/feature-intelligence/`);
   console.log(`Coverage: ${JSON.stringify(summary.verification)}. These reports do not authorize or publish any feature.`);
+  console.log(`Classification: ${JSON.stringify(summary.classifications)}. Reviewed descriptions: ${summary.reviewedDescriptions}; structural summaries (not verified purpose): ${summary.structuralSummaries}.`);
+  if (result.coverage.aliasCollisions.length || result.legacy.obsoleteKnowledgeRoutes.length || !discovered.entrypoints?.client.length)
+    console.warn(`Coverage warning: ${result.coverage.aliasCollisions.length} ambiguous aliases; ${result.legacy.obsoleteKnowledgeRoutes.length} obsolete knowledge routes; client build entry ${discovered.entrypoints?.client.length ? "resolved" : "UNRESOLVED"}.`);
   return result;
 }
 
@@ -65,20 +83,27 @@ function main() {
   execute();
   if (!args.includes("--watch")) return;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  const refresh = () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      const refreshed = spawnSync(process.execPath, [
+        "--import", import.meta.resolve("tsx"), fileURLToPath(import.meta.url),
+        "--check", ...(args.includes("--strict") ? ["--strict"] : []),
+      ], { cwd: root, stdio: "inherit" });
+      if (refreshed.error || refreshed.status !== 0)
+        console.error("Feature Intelligence refresh failed; see the diagnostic above. No runtime data was changed.");
+    }, 500);
+  };
   const watchers = ["client/src", "server", "shared", "scripts/feature-intelligence"].filter(dir => fs.existsSync(path.join(root, dir)))
     .map(dir => fs.watch(path.join(root, dir), { recursive: true }, () => {
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => {
-        // A fresh process reloads existing executable catalogs and the analyzer.
-        // Reusing this process would silently retain Node's old module cache.
-        const refreshed = spawnSync(process.execPath, [
-          "--import", import.meta.resolve("tsx"), fileURLToPath(import.meta.url),
-          "--check", ...(args.includes("--strict") ? ["--strict"] : []),
-        ], { cwd: root, stdio: "inherit" });
-        if (refreshed.error || refreshed.status !== 0)
-          console.error("Feature Intelligence refresh failed; see the diagnostic above. No runtime data was changed.");
-      }, 500);
+      refresh();
     }));
+  for (const [dir, names] of [[root, ["package.json", "vite.config.ts", ".replit"]],
+    [path.join(root, "client"), ["index.html", "vite.config.ts"]]] as const) {
+    if (fs.existsSync(dir)) watchers.push(fs.watch(dir, (_event, file) => {
+      if (file && (names as readonly string[]).includes(file.toString())) refresh();
+    }));
+  }
   const stop = () => { if (timer) clearTimeout(timer); watchers.forEach(watcher => watcher.close()); };
   process.once("SIGINT", stop); process.once("SIGTERM", stop);
   console.log("Watching source changes offline; no application workflow or runtime integration was added.");
