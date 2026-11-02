@@ -156,3 +156,4 @@
 - [Integration activation boundary](integration-activation-boundary.md) — review automatic merges and dependent gates; source integration alone never grants experimental activation or baseline replacement.
 - [Ask Chef response authority](ask-chef-response-authority.md) — typed care states govern unused model fields; meaningful continuations and honest role-scoped knowledge require separate evidence.
 - [Ask Chef wordmark](ask-chef-wordmark.md) — founder selected the silver/orange swoosh wordmark without a chef hat; the adjacent mascot already wears one.
+- [Feature Intelligence boundary](feature-intelligence-boundary.md) — automated offline discovery is approved; connecting it to Ask Chef requires separate approval.
