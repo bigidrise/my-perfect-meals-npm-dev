@@ -53,7 +53,11 @@ export function validateConciergeGoal(
   value: unknown,
   availableTools: Array<{ id: string }>,
   memberMessages: string[],
-  options: { completeMissingDestination?: boolean } = {},
+  options: {
+    completeMissingDestination?: boolean;
+    /** Only the conversation service may supply this from its loaded pending state. */
+    acceptedPendingRecommendation?: boolean;
+  } = {},
 ): ConciergeDecision | undefined {
   const parsed = ConciergeDecisionSchema.safeParse(value);
   if (!parsed.success) return undefined;
@@ -72,8 +76,13 @@ export function validateConciergeGoal(
   const goal = decision.goal;
   // A literal feature name is required for the explicit-request exception, but
   // the model still decides whether it is a request, negation, or discussion.
-  const explicitlyRequested = goal?.explicitFeatureId === id && memberMessages.some(message =>
-    mentionsCoachDestination(message, id));
+  // An earlier Grocery Coach request cannot turn a new generic meal request
+  // into an explicit one. A server-loaded, accepted pending offer retains its
+  // original name evidence; follow-up consent is not required to repeat it.
+  const requestEvidence = process.env.NODE_ENV === "development" && id === "grocery_create_meal" &&
+    !options.acceptedPendingRecommendation ? memberMessages.slice(-1) : memberMessages;
+  const explicitlyRequested = goal?.explicitFeatureId === id && requestEvidence.some(message =>
+    mentionsCoachDestination(message, id, process.env.NODE_ENV));
   if (availableTools.some(tool => tool.id === id) && goal && (explicitlyRequested || goalFits(id, goal))) {
     return decision;
   }

@@ -101,7 +101,7 @@ const shoppingWorkflows = [
     question: "I don't know what to eat for dinner. Can you help me shop?",
     proposal: "Grocery Coach's Create a Meal helps choose a meal and creates its grocery list. Would you like to use it?",
     handoff: "Shopping List opens first. Select Grocery Store Coach, then Build a Meal, and request your meal there.",
-    direct: "Open Create a Meal.",
+    direct: "Open Grocery Store Coach > Create a Meal.",
   },
 ];
 
@@ -131,7 +131,7 @@ test.each(shoppingWorkflows)("$id: recommend, persist, then confirm the same wor
 });
 
 test.each(shoppingWorkflows.flatMap(workflow => workflow.id === "grocery_create_meal"
-  ? [workflow, { ...workflow, direct: "Open Build a Meal." }] : [workflow]))("$id: explicit named request can navigate immediately", async workflow => {
+  ? [workflow, { ...workflow, direct: "Open Grocery Store Coach > Build a Meal." }] : [workflow]))("$id: explicit named request can navigate immediately", async workflow => {
   model({ message: workflow.handoff, navigationIntent: "direct_request",
     conciergeDecision: { mode: "food_assistance", destinationId: workflow.id,
       goal: { ...unknown, activity: workflow.activity, explicitFeatureId: workflow.id } },

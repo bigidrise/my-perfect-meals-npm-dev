@@ -85,7 +85,10 @@ export function getChefConversationInstructions(environment: string | undefined)
   return CHEF_CONVERSATION_INSTRUCTIONS.split("\n").map(line => {
     const prefix = Object.keys(DEVELOPMENT_REPLACEMENTS).find(key => line.startsWith(key));
     return prefix ? DEVELOPMENT_REPLACEMENTS[prefix] : line;
-  }).concat(DEVELOPMENT_ACTIVITY_INSTRUCTIONS).join("\n");
+  }).concat(
+    DEVELOPMENT_ACTIVITY_INSTRUCTIONS,
+    "GROCERY MEAL INTENT: Generic wording such as 'create a meal' or 'build me a meal' is not an explicit Grocery Store Coach request and does not establish shopping intent. Do not set grocery_create_meal as explicitFeatureId just because of those words. Use shop_for_meal only when the latest request and relevant history establish wanting ingredients to purchase or shopping assistance. A genuine named Grocery Store Coach request and acceptance of its validated pending recommendation remain supported. Honor a change of mind and an expressed lack of need for groceries; do not carry an old shopping goal into a new request. When the meal-creation approach is unresolved, explain relevant verified options naturally or ask one useful distinction using the existing choice guidance, with no premature destination. Do not force a feature list, new router or fixed question sequence.",
+  ).join("\n");
 }
 
 export function conciergeRenderingInstructions(decision: ConciergeDecision | undefined): string {
