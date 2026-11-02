@@ -60,7 +60,9 @@ test.each([
   mockCompleted = completed as boolean;
   act(() => root.render(<CoachCornerCard />));
   const mascot = host.querySelector('img[alt="Flame Chef"]')!;
-  expect(mascot.getAttribute("src")).toBe("/assets/ChefBlackApron.png");
+  expect(mascot.getAttribute("src")).toBe("/assets/ask-chef-desk.webp");
+  expect(mascot.classList.contains("object-cover")).toBe(true);
+  expect(mascot.parentElement?.classList.contains("overflow-hidden")).toBe(true);
   expect(mascot.parentElement?.className).toContain("h-[4.5rem]");
   expect(host.textContent).toContain("Your food & platform guide");
   expect(host.textContent).toContain("Ask about food, explore meal ideas, or find your way around My Perfect Meals.");
