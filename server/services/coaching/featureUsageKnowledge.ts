@@ -350,10 +350,18 @@ export function getFeatureUsageKnowledge(environment: string | undefined) {
   if (environment !== "development") return FEATURE_USAGE_KNOWLEDGE;
   const knowledge = { ...FEATURE_USAGE_KNOWLEDGE };
   knowledge.sushi_creator = {
-    descriptionInput: "Describe the sushi you want in the sushi-description field.",
-    controls: ["Optional Dietary Preference.", "Number of Servings: 1–10 recipe servings.", "Flavor Preference."],
+    descriptionInput: "Choose a Sushi Style; Describe your sushi is an optional text field for additional detail.",
+    controls: ["Sushi Style: Roll, Nigiri, Sashimi, Sushi Bowl or Chef's Choice.",
+      "Optional Dietary Preference.", "Number of Servings: 1–10 recipe servings.", "Flavor Preference."],
     generationAction: "Create My Sushi starts the destination's creation workflow.",
-    notes: ["The destination owns recipe generation and food safeguards. No general Chef sushi prefill or automatic generation."],
+    notes: ["The destination owns recipe generation and food safeguards. No general Chef sushi prefill or automatic generation.",
+      "Do not invent cuisine or Stovetop/Oven controls for Sushi Creator."],
+  };
+  knowledge.create_a_dish = {
+    ...FEATURE_USAGE_KNOWLEDGE.create_a_dish!,
+    controls: ["Servings selector.", "Optional diet and cuisine overrides for this recipe, not saved-profile changes.",
+      "Cooking method choices include Stovetop and Oven.", "Cooking preferences and optional notes.",
+      "Ingredient Control / Keep It Simple."],
   };
   // Correct member-facing terminology only in this authorized Development review.
   knowledge.grocery_create_meal = {
