@@ -565,3 +565,17 @@ mtime_ms = 1793642884935
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/59b2c4f1-c2cc-4c2d-9a32-75e23e7006b1/0ced58a4-c27c-4536-acb8-17724e208b27"
 storage_version_token = "1793642900632791"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "TCCC_ROQuL4M8ioj3XAVm"
+uri = "file://generated-artifacts/feature-intelligence/concierge-truth-and-guidance-completion.md"
+type = "text"
+title = "Concierge Truth and Guidance — Completion Report"
+description = "Exact files, Development-only before/after behavior, 48 passing offline tests, subscription and coaching findings, verification limits and unchanged access boundaries."
+logical_id = "b8df584d-98e5-4c58-8d16-9a35481dca32"
+content_hash = "sha256:7e0222444f8596a5b77a8ab9817b3f975638578803b5aea83d1e3e645d0f327e"
+size = 10172
+mtime_ms = 1793643570094
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/b8df584d-98e5-4c58-8d16-9a35481dca32/6f280742-9b19-4249-b997-ec1c251eb2f5"
+storage_version_token = "1793643610565111"
+content_type = "text/markdown"
