@@ -20,6 +20,7 @@ import { getCapabilitiesForUser, getCornerCapabilities } from "../services/coach
 import { getDevelopmentPlatformKnowledge } from "../services/coaching/platformKnowledge";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
 import { validateConciergeGoal } from "../services/coaching/conciergeGoal";
+import { PgDialect } from "drizzle-orm/pg-core";
 
 describe.each(["development", "production"])("%s released Ask Chef", runtimeEnvironment => {
 const oldEnvironment = process.env.NODE_ENV;
@@ -56,6 +57,9 @@ function reply(message: string, id: string | null = null, goal = unknown, extra:
     // Existing action-validation fixtures assume authorized navigation unless
     // the test explicitly exercises recommendation/confirmation/unknown intent.
     message, navigationIntent: "confirmed",
+    memberNeed: ["none", "recommendation"].includes(String(extra.navigationIntent)) ? "feature_help" : "navigation",
+    responsePurpose: extra.navigationIntent === "none" ? "answer" :
+      extra.navigationIntent === "recommendation" ? "feature_only_offer" : "handoff",
     recommendationMessage: extra.navigationIntent === "recommendation" ||
       (extra.navigationIntent !== undefined && !["confirmed", "direct_request"].includes(String(extra.navigationIntent)))
       ? message : `Would you like to use this feature? ${message}`,
@@ -261,7 +265,9 @@ test.each([
   const instructions = mockCreate.mock.calls[0][0].messages[0].content;
   expect(instructions).toContain("UNRESOLVED DESTINATION CHOICE");
   expect(instructions).toContain("set conciergeDecision=null for that clarification");
-  expect(instructions).toContain("does not choose Menu or Builders");
+  expect(instructions).toContain(runtimeEnvironment === "development"
+    ? "Planning a day of meals does not by itself choose My Perfect Menu"
+    : "does not choose Menu or Builders");
   expect(instructions).toContain("small craving-sized dessert portions");
   expect(instructions).toContain("ordinary beverage versus an athletic-performance/workout beverage");
   expect(instructions).toContain("never repeat a distinction already answered");
@@ -350,10 +356,23 @@ test("cruise context can stay conversational without mandatory Getaway navigatio
   expect(mockCreate).toHaveBeenCalledTimes(1);
 });
 
-test("Production receives the same reviewed Getaway capability as the conversation", () => {
+test("Production retains approved destinations and unchanged capabilities outside Development suitability reviews", () => {
   const conversationCapabilities = getCornerCapabilities(["all"]);
   process.env.NODE_ENV = "production";
-  expect(getCornerCapabilities(["all"])).toEqual(conversationCapabilities);
+  const productionCapabilities = getCornerCapabilities(["all"]);
+  for (const capability of conversationCapabilities) {
+    // Reviewed suitability/terminology increments stay Development-only; every
+    // other capability must retain exact release parity.
+    if (!["beverage_creator", "athlete_beverage_creator", "hydration_center",
+      "create_a_dish", "grocery_create_meal", "grocery_find_product",
+      "craving_creator", "dessert_creator", "my_perfect_gatherings", "sushi_creator",
+      "restaurant_guide", "find_meals_near_me",
+      "my_perfect_getaway", "my_perfect_buffet", "meal_builders"].includes(capability.id)) {
+      expect(productionCapabilities.find(cap => cap.id === capability.id)).toEqual(capability);
+    }
+    expect(productionCapabilities.find(cap => cap.id === capability.id)?.route).toBe(capability.route);
+  }
+  expect(productionCapabilities.map(cap => cap.id)).toEqual(conversationCapabilities.map(cap => cap.id));
 });
 
 test("a requested comparison can explain the distinction without selecting either tool", async () => {
@@ -587,7 +606,9 @@ test.each([
   expect(data.platformKnowledge.features.map((feature: any) => feature.id)).toEqual(expect.arrayContaining([
     "meal_builders", "my_perfect_menu", "grocery_coach", "daily_journal", "biometrics", "nutrition_education",
   ]));
-  expect(wire.messages[0].content).toContain("Skip the introduction when their activity is clear");
+  expect(wire.messages[0].content).toContain(runtimeEnvironment === "development"
+    ? "Skip unnecessary introductions when the activity is clear"
+    : "Skip the introduction when their activity is clear");
   expect(wire.messages[0].content).toContain("not a fixed script, an intent tree");
   expect(wire.messages[0].content).toContain("Only action-ready food_assistance may select a feature");
   expect(data.authorizedNutritionContext).toContain("vegetarian");
@@ -724,7 +745,7 @@ test.each([
 test("entry-page approval never authorizes choosing a specialized builder or a new handoff", async () => {
   const before = Object.keys(COACH_DESTINATIONS);
   const knowledge = getDevelopmentPlatformKnowledge()!;
-  expect(knowledge.features.find(feature => feature.id === "meal_builders")?.purpose).toContain("Do not choose or activate");
+  expect(knowledge.features.find(feature => feature.id === "meal_builders")?.purpose).toContain("choose or activate a specialized clinical builder");
   expect(knowledge.features.find(feature => feature.id === "my_perfect_menu")?.purpose).toContain("not an independent seven-day");
   expect(knowledge.features.find(feature => feature.id === "grocery_coach")?.purpose).toContain("both meal help and product help");
   expect(knowledge.features.every(feature => feature.status === "available")).toBe(true);
@@ -979,6 +1000,103 @@ test("model-recognized escalation wins over malformed navigation and preserves c
   expect(result.meta.redFlag).toBe(true);
   expect(result.presentation).toBeUndefined();
   expect(result.todayPlan.items.every(item => !item.destinationId)).toBe(true);
+});
+
+test("persists the rejected apple-pie reply consistently and exposes only that saved reply to the next turn", async () => {
+  const original = "Chef, I want to bake a whole apple pie for my family.";
+  reply("Dessert Creator can help with that pie. Want me to take you there?", "dessert_creator",
+    { ...unknown, activity: "prepare", occasion: "dessert", dishChosen: true }, {
+      memberNeed: "feature_help", responsePurpose: "answer_with_offer", navigationIntent: "none",
+      conversationMessage: ":apple:",
+    });
+  const result = await run(original);
+  const dialect = new PgDialect();
+  const queries = (db.execute as jest.Mock).mock.calls.map(([query]) => dialect.sqlToQuery(query));
+  const insert = queries.find(query => query.sql.includes("INSERT INTO coach_messages") &&
+    query.sql.includes("'assistant'"))!;
+  expect(insert).toBeDefined();
+  expect(insert.params[1]).toBe(result.presentation!.message + "\n\n");
+  expect(JSON.parse(insert.params[2] as string)).toEqual(resultWithoutIds(result));
+  expect(result.presentation?.navigation).toBeUndefined();
+  expect(result.todayPlan.items).toEqual([]);
+  if (runtimeEnvironment === "development") {
+    expect(result.presentation?.message).not.toContain(":apple:");
+    expect(result.meta.concierge?.rendering).toBe("retry");
+    (loadBoundedHistory as jest.Mock).mockResolvedValueOnce({
+      recentMessages: [{ role: "user", content: original }, { role: "assistant", content: insert.params[1] }],
+      rollingContext: null,
+    });
+    reply("Dessert Creator can help with that pie. Want me to take you there?", "dessert_creator",
+      { ...unknown, activity: "prepare", occasion: "dessert", dishChosen: true }, {
+        memberNeed: "feature_help", responsePurpose: "answer_with_offer", navigationIntent: "none",
+        conversationMessage: ":apple: Sounds like a delicious plan!",
+      });
+    const second = await run("YES");
+    expect(second.presentation?.navigation).toBeUndefined();
+    expect(second.todayPlan.items).toEqual([]);
+    const wire = JSON.parse(mockCreate.mock.calls[1][0].messages[1].content);
+    expect(wire.pendingRecommendation).toBeNull();
+    expect(wire.history[1].content).toBe(insert.params[1]);
+  } else {
+    expect(result.presentation?.message).toBe(":apple:");
+  }
+});
+
+test.each(["referral", "emergency"])(
+  "persists complete %s guidance and its question in Development history only", async careDisposition => {
+    const care = "Please obtain the indicated medical assessment; do not wait for a recipe. Are fluids staying down?";
+    const expectedCare = careDisposition === "emergency"
+      ? "Seek urgent medical help now; do not wait for a recipe."
+      : care;
+    reply(expectedCare, null, unknown, {
+      navigationIntent: "none", conciergeDecision: null, responsePurpose: "care",
+      memberNeed: "nutrition_guidance", careDisposition,
+      contactCare: expectedCare, redFlag: careDisposition === "emergency",
+    });
+    const result = await run("My ability to eat and drink has changed.");
+    expect(result.whatIFound).toBe("");
+    expect(result.whatItCouldMean).toBe("");
+    expect(result.todayPlan.items).toEqual([{ horizon: "today", kind: "contact_care", text: expectedCare }]);
+    const dialect = new PgDialect();
+    const queries = (db.execute as jest.Mock).mock.calls.map(([query]) => dialect.sqlToQuery(query));
+    const insert = queries.find(query => query.sql.includes("INSERT INTO coach_messages") &&
+      query.sql.includes("'assistant'"))!;
+    expect(insert).toBeDefined();
+    expect(insert.params[1]).toBe(runtimeEnvironment === "development" ? expectedCare : "\n\n");
+    expect(JSON.parse(insert.params[2] as string)).toEqual(resultWithoutIds(result));
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+
+    if (runtimeEnvironment === "development") {
+      (loadBoundedHistory as jest.Mock).mockResolvedValueOnce({
+        recentMessages: [{ role: "assistant", content: insert.params[1] }], rollingContext: null,
+      });
+      reply("Thanks for explaining what you can tolerate.", null, unknown, {
+        navigationIntent: "none", conciergeDecision: null, responsePurpose: "answer",
+      });
+      await run("I can tolerate small sips.");
+      const wire = JSON.parse(mockCreate.mock.calls[1][0].messages[1].content);
+      expect(wire.history).toEqual([{ role: "assistant", content: expectedCare }]);
+    }
+  },
+);
+
+function resultWithoutIds(result: Awaited<ReturnType<typeof run>>) {
+  const { conversationId: _conversation, messageId: _message, ...response } = result;
+  return response;
+}
+
+test("preserves ordinary assistant content and does not copy it from an unused variant", async () => {
+  const message = "Ordinary nutrition education needs no feature offer.";
+  reply(message, null, unknown, {
+    navigationIntent: "none", conciergeDecision: null, responsePurpose: "answer",
+    conversationMessage: "UNUSED_VARIANT",
+  });
+  await run("Can you explain a nutrition concept?");
+  const dialect = new PgDialect();
+  const inserts = (db.execute as jest.Mock).mock.calls.map(([query]) => dialect.sqlToQuery(query));
+  const assistant = inserts.find(query => query.sql.includes("INSERT INTO coach_messages") &&
+    query.sql.includes("'assistant'"))!;
+  expect(assistant.params[1]).toBe(`${message}\n\n`);
 });
 
 test("provider failure returns an explicit retry and keeps the turn persisted without another paid attempt", async () => {

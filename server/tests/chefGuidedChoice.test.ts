@@ -1,0 +1,310 @@
+// Mocked contract/prompt delivery, not evidence of live model judgment.
+jest.mock("../db", () => ({ db: { execute: jest.fn(() => { throw new Error("Unexpected database access"); }) } }));
+import { runConciergeConversation } from "../services/coaching/conciergeConversation";
+import { getCornerCapabilities } from "../services/coaching/capabilityRegistry";
+import { getDevelopmentPlatformKnowledge, getPlatformGuidanceInstructions, PLATFORM_GUIDANCE_INSTRUCTIONS } from "../services/coaching/platformKnowledge";
+import { getFeatureUsageKnowledge, FEATURE_USAGE_KNOWLEDGE } from "../services/coaching/featureUsageKnowledge";
+import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
+import type { ConciergeGoal } from "../../shared/coaching/schemas";
+import type { PendingRecommendation } from "../services/coaching/conciergeNavigationState";
+
+const environment = process.env.NODE_ENV;
+beforeEach(() => { process.env.NODE_ENV = "development"; });
+afterAll(() => { process.env.NODE_ENV = environment; });
+const tools = getCornerCapabilities(["all"], "development").map(cap => ({
+  id: cap.id, label: cap.label, description: cap.description, featureTarget: cap.id, scope: "adult" as const,
+}));
+const unknown: ConciergeGoal = { activity: "unknown", occasion: "unknown", restaurant: "unknown",
+  dishChosen: false, specialty: "none", explicitFeatureId: null };
+const planning = (id: "my_perfect_menu" | "meal_builders"): ConciergeGoal =>
+  ({ ...unknown, activity: "plan_meals", explicitFeatureId: id });
+const dish: ConciergeGoal = { ...unknown, activity: "prepare", occasion: "meal", dishChosen: true };
+const choice = "We can start by planning your meals, creating an individual dish, or exploring Lifestyle features. Which would you like to try first: meal planning, Create a Dish, or Lifestyle?";
+const methodChoice = "There are two ways to plan your meals.\n\nMy Perfect Menu suggests personalized meal ideas that you can add to your meal plan.\n\nMeal Builder lets you create your own meals inside your assigned builder using Create With Chef.\n\nWhich would you prefer: My Perfect Menu or Meal Builder?";
+type History = Array<{ role: string; content: string }>;
+
+async function reply(userMessage: string, message: string, extra: Record<string, unknown> = {}, options: {
+  history?: History; pending?: PendingRecommendation; unavailable?: boolean; rollingContext?: string;
+} = {}) {
+  const create = jest.fn().mockResolvedValue({ choices: [{ message: { content: JSON.stringify({
+    memberNeed: "feature_help", responsePurpose: "answer", navigationIntent: "none", message,
+    conversationMessage: null, recommendationMessage: null, handoffMessage: null,
+    conciergeDecision: null, creatorRequest: null, redFlag: false, redFlagReason: null,
+    contactCare: null, careDisposition: "none", ...extra,
+  }) } }] });
+  const result = await runConciergeConversation({
+    client: { chat: { completions: { create } } } as any, userMessage, history: options.history ?? [],
+    rollingContext: options.rollingContext ?? null, context: { coachingContextBlock: "Authorized context; setup state unknown." },
+    tools: options.unavailable ? [] : tools, pendingRecommendation: options.pending,
+  });
+  expect(create).toHaveBeenCalledTimes(1);
+  const request = create.mock.calls[0][0];
+  const wire = JSON.parse(request.messages[1].content);
+  if (result.presentation) expect(result.whatIFound).toBe(result.presentation.message);
+  return { result, wire, request };
+}
+function noAction(result: Awaited<ReturnType<typeof reply>>["result"]) {
+  expect(result.presentation?.destinationId).toBeUndefined();
+  expect(result.presentation?.navigation).toBeUndefined();
+  expect(result.todayPlan.items).toEqual([]);
+}
+function offer(id: string, goal: ConciergeGoal) {
+  return { responsePurpose: "feature_only_offer", navigationIntent: "recommendation",
+    conciergeDecision: { mode: "food_assistance", destinationId: id, goal } };
+}
+
+test("Development instructions distinguish activities and planning methods without a mandatory interview", () => {
+  const instructions = getPlatformGuidanceInstructions("development");
+  expect(instructions).toContain("planning a day of meals, creating an individual dish, or exploring Lifestyle");
+  expect(instructions).toContain("contextual guidance, not a mandatory welcome or decision tree");
+  expect(instructions).toContain("do not repeat an activity choice already made");
+  expect(instructions).toContain("Planning a day of meals does not by itself choose My Perfect Menu");
+  expect(instructions).toContain("Create With Chef is a workflow INSIDE the Meal Builder");
+  expect(instructions).toContain("A clear single-dish preparation request instead fits the separate Create a Dish");
+  expect(instructions).toContain("stop without a sign-off");
+  expect(instructions).toContain("Do not claim to know exact onboarding or Macro Calculator completion");
+  expect(instructions).toContain("Existing safety, access and single-confirmation contracts remain authoritative");
+  expect(instructions.match(/^NEW MEMBER ORIENTATION:/gm)).toHaveLength(1);
+  expect(instructions.match(/^MEAL STARTING PAGES:/gm)).toHaveLength(1);
+});
+
+test.each([
+  ["I just signed up. I don't know what to do.", choice, "unclear"],
+  ["Let's plan my meals.", methodChoice, "feature_help"],
+])("preserves useful clarification without an early recommendation: %s", async (question, text, memberNeed) => {
+  const { result, request } = await reply(question, text, { memberNeed, responsePurpose: "clarify" });
+  expect(request.messages[0].content).toContain(getPlatformGuidanceInstructions("development"));
+  expect(result.presentation?.message).toBe(text);
+  noAction(result);
+});
+
+test("general planning receives two brief descriptions and a short preference question, not a navigation offer", async () => {
+  const { result, request } = await reply("I want to plan my meals.", methodChoice, { responsePurpose: "clarify" });
+  expect(result.presentation?.message).toBe(methodChoice);
+  noAction(result);
+  const paragraphs = result.presentation!.message.split("\n\n");
+  expect(paragraphs[1]).toContain("My Perfect Menu suggests personalized meal ideas");
+  expect(paragraphs[2]).toContain("assigned builder using Create With Chef");
+  expect(paragraphs.at(-1)).toBe("Which would you prefer: My Perfect Menu or Meal Builder?");
+  expect((result.presentation!.message.match(/\?/g) ?? [])).toHaveLength(1);
+  const instructions = request.messages[0].content;
+  expect(instructions).toContain("End with a question explicitly naming My Perfect Menu and Meal Builder");
+  expect(instructions).toContain("These are contextual examples, not keyword routing or unsupported navigation commands");
+  expect(instructions).toContain("A member selecting a method has resolved the choice, not yet accepted a navigation offer");
+  expect(instructions).toContain("Do not repeat the two-option choice after selection");
+  expect(instructions).toContain("when accepted, use responsePurpose=handoff and navigationIntent=confirmed");
+});
+
+test.each([
+  ["Menu", "my_perfect_menu"],
+  ["My Perfect Menu", "my_perfect_menu"],
+  ["Suggested meals", "my_perfect_menu"],
+  ["Meal Builder", "meal_builders"],
+  ["Builders", "meal_builders"],
+  ["Create With Chef", "meal_builders"],
+  ["I want to make my own meals", "meal_builders"],
+] as const)("contextual planning answer %s preserves the selected method through first confirmation", async (answer, id) => {
+  const original = "I want to plan my meals.";
+  const initial = await reply(original, methodChoice, { responsePurpose: "clarify" });
+  noAction(initial.result);
+  const history: History = [{ role: "user", content: original }, { role: "assistant", content: initial.result.presentation!.message }];
+  const recommendation = id === "my_perfect_menu"
+    ? "My Perfect Menu can suggest personalized meals for your plan. Want me to take you there?"
+    : "You can create your own meals inside your assigned Meal Builder. Want me to take you there?";
+  const selected = await reply(answer, recommendation, offer(id, planning(id)), { history });
+  expect(selected.wire.history).toEqual(history);
+  expect(selected.wire.latestMemberMessage).toBe(answer);
+  expect(selected.result.presentation?.message).toBe(recommendation);
+  expect(selected.result.presentation?.message).not.toContain("Which would you prefer:");
+  expect(selected.result.presentation?.navigation).toMatchObject({ state: "recommendation_pending", destinationId: id });
+  expect(selected.result.todayPlan.items).toEqual([]);
+  const handoff = id === "my_perfect_menu"
+    ? "Open My Perfect Menu, choose Breakfast, Lunch, Dinner or Snack, then Choose This on an idea. Follow the date and meal-slot prompts to add it to your meal plan."
+    : "Use the button below to open the Meal Builders page. Open your assigned builder, choose a day and meal slot, then select Create With Chef to start making your meals.";
+  const confirmed = await reply("Yes", handoff, { memberNeed: "navigation", responsePurpose: "handoff",
+    navigationIntent: "confirmed", handoffMessage: handoff,
+  }, { pending: selected.result.presentation?.navigation,
+    history: [...history, { role: "user", content: answer }, { role: "assistant", content: recommendation }] });
+  expect(confirmed.wire.pendingRecommendation).toEqual(selected.result.presentation?.navigation);
+  expect(confirmed.result.presentation?.message).toBe(handoff);
+  expect(confirmed.result.presentation?.message).not.toContain("?");
+  expect(confirmed.result.presentation?.navigation).toMatchObject({ state: "navigation_confirmed", destinationId: id });
+  expect(confirmed.result.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId: id })]);
+  expect(COACH_DESTINATIONS[id].route).toBe(id === "meal_builders" ? "/builders" : "/foods-i-enjoy");
+});
+
+test.each([
+  ["I want My Perfect Menu to suggest meals.", "my_perfect_menu"],
+  ["I want to plan meals using Create With Chef.", "meal_builders"],
+] as const)("an already-specific original planning request bypasses method clarification: %s", async (question, id) => {
+  const text = id === "my_perfect_menu"
+    ? "My Perfect Menu can help you find meal ideas for your plan. Would you like to open it?"
+    : "You can create meals inside your assigned Meal Builder. Want me to take you there?";
+  const { result, request } = await reply(question, text, offer(id, planning(id)));
+  expect(result.presentation?.message).toBe(text);
+  expect(result.presentation?.message).not.toContain("Which would you prefer:");
+  expect(result.presentation?.navigation).toMatchObject({ state: "recommendation_pending", destinationId: id });
+  expect(result.todayPlan.items).toEqual([]);
+  expect(request.messages[0].content).toContain("If the original request or history already explicitly selects My Perfect Menu or Create With Chef, skip the two-option question");
+});
+
+test.each(["my_perfect_menu", "meal_builders"] as const)(
+  "preserves the chosen %s planning method and its first confirmed handoff", async id => {
+    const own = id === "meal_builders";
+    const requestText = own ? "I'd rather create my own meals with Chef." : "I'd like suggested meal ideas.";
+    const text = own
+      ? "Meal Builders gets you to your builder, where you can create meals in individual slots with Chef. Would you like to start there?"
+      : "My Perfect Menu suggests personalized meal ideas to add to your plan. Would you like to start there?";
+    const history: History = [{ role: "user", content: "Let's plan my meals." }, { role: "assistant", content: methodChoice }];
+    const first = await reply(requestText, text, offer(id, planning(id)), { history });
+    expect(first.wire.history).toEqual(history);
+    expect(first.result.presentation?.navigation).toMatchObject({ state: "recommendation_pending", destinationId: id });
+    expect(first.result.todayPlan.items).toEqual([]);
+    const handoff = own
+      ? "Use the button below to open the Meal Builders page. Open your assigned builder, choose a day and meal slot, then select Create With Chef to start making your meals."
+      : "Open My Perfect Menu, choose Breakfast, Lunch, Dinner or Snack, then Choose This on an idea. Select its date and meal slot to create it and add it to your builder.";
+    const acceptedHistory: History = [...history, { role: "user", content: requestText }, { role: "assistant", content: text }];
+    const second = await reply("Yes", handoff, { memberNeed: "navigation", responsePurpose: "handoff",
+      navigationIntent: "confirmed", conciergeDecision: null, handoffMessage: handoff,
+    }, { history: acceptedHistory, pending: first.result.presentation?.navigation });
+    expect(second.wire.pendingRecommendation).toEqual(first.result.presentation?.navigation);
+    expect(second.result.presentation?.navigation).toMatchObject({ state: "navigation_confirmed", destinationId: id });
+    expect(second.result.presentation?.message).toBe(handoff);
+    expect(second.result.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId: id })]);
+  });
+
+test("assigned-builder handoff guidance reaches the single Development call without free-choice facts", async () => {
+  const { wire, request } = await reply("How do I create my own meals?",
+    "You can create your own meals inside your assigned Meal Builder.");
+  const usage = wire.platformKnowledge.featureUsage.meal_builders;
+  const feature = wire.platformKnowledge.features.find((item: { id: string }) => item.id === "meal_builders");
+  const capability = wire.availableFeatures.find((item: { id: string }) => item.id === "meal_builders");
+  expect(usage.descriptionInput).toContain("assigned builder");
+  expect(usage.generationAction).toContain("existing Open Meal Builders button");
+  expect(feature.purpose).toContain("Ordinary members generally have one assigned builder");
+  expect(capability.description).toContain("their assigned builder");
+  expect(JSON.stringify({ usage, feature, capability })).not.toContain("Choose an available builder card");
+  expect(JSON.stringify({ usage, feature, capability })).not.toContain("Review the builder choices");
+  expect(JSON.stringify({ usage, feature, capability })).not.toContain("review their existing builder choices");
+  const instructions = request.messages[0].content;
+  expect(instructions).toContain("Before confirmation, recommend creating meals inside the member's Meal Builder");
+  expect(instructions).toContain("Do not add another permission question after confirmation");
+  expect(instructions).toContain("never claim to open an assigned builder or slot directly");
+});
+
+test("assigned-builder recommendation needs one acceptance and preserves the existing landing-page action", async () => {
+  const text = "You can create your own meals inside your Meal Builder. Want me to take you there?";
+  const first = await reply("I'd rather create my own meals with Chef.", text,
+    offer("meal_builders", planning("meal_builders")));
+  expect(first.result.presentation?.message).toBe(text);
+  expect(first.result.presentation?.navigation?.state).toBe("recommendation_pending");
+  expect(first.result.todayPlan.items).toEqual([]);
+  const handoff = "Use the button below to open the Meal Builders page. Open your assigned builder, choose a day and meal slot, then select Create With Chef to start making your meals.";
+  const second = await reply("Yes", handoff, { memberNeed: "navigation", responsePurpose: "handoff",
+    navigationIntent: "confirmed", handoffMessage: handoff,
+  }, { pending: first.result.presentation?.navigation, history: [
+    { role: "user", content: "I'd rather create my own meals with Chef." },
+    { role: "assistant", content: text },
+  ] });
+  expect(second.result.presentation?.message).toBe(handoff);
+  expect(second.result.presentation?.navigation).toMatchObject({ state: "navigation_confirmed", destinationId: "meal_builders" });
+  expect(second.result.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId: "meal_builders" })]);
+  expect(COACH_DESTINATIONS.meal_builders).toEqual({ label: "Meal Builders", route: "/builders", access: "meal_builders" });
+  expect(handoff).not.toMatch(/\?|preferred|whichever|Enjoy planning/i);
+});
+
+test("assigned-builder wording does not change Production guidance or capability navigation", () => {
+  const dev = getCornerCapabilities(["all"], "development").find(cap => cap.id === "meal_builders")!;
+  const prod = getCornerCapabilities(["all"], "production").find(cap => cap.id === "meal_builders")!;
+  expect(dev.route).toBe("/builders");
+  expect(dev.route).toBe(prod.route);
+  expect(dev.label).toBe(prod.label);
+  expect(prod.description).toContain("review their existing builder choices");
+  expect(getPlatformGuidanceInstructions("production")).toBe(PLATFORM_GUIDANCE_INSTRUCTIONS);
+  expect(getPlatformGuidanceInstructions("production")).not.toContain("MEAL BUILDER HANDOFF:");
+  expect(getFeatureUsageKnowledge("production")).toBe(FEATURE_USAGE_KNOWLEDGE);
+  expect(FEATURE_USAGE_KNOWLEDGE.meal_builders?.controls).toEqual(["Choose an available builder card; eligibility and setup can restrict choices."]);
+});
+
+test("retains the goal across orientation, planning choice, method choice and acceptance", async () => {
+  const history: History = [];
+  const turn = async (question: string, text: string, extra: Record<string, unknown> = {}, pending?: PendingRecommendation) => {
+    const current = await reply(question, text, extra, { history: [...history], pending,
+      rollingContext: "The member is starting their personal meal plan, not shopping or creating one dish." });
+    expect(current.wire.history).toEqual(history);
+    expect(current.wire.earlierConversation).toContain("personal meal plan");
+    history.push({ role: "user", content: question }, { role: "assistant", content: current.result.presentation!.message });
+    return current;
+  };
+  noAction((await turn("I'm new and not sure where to start.", choice,
+    { memberNeed: "unclear", responsePurpose: "clarify" })).result);
+  noAction((await turn("Let's plan a day of meals.", methodChoice, { responsePurpose: "clarify" })).result);
+  const selected = await turn("I want to create them myself with Chef.",
+    "Meal Builders lets you create meals in your builder's slots. Would you like to start there?",
+    offer("meal_builders", planning("meal_builders")));
+  expect(selected.result.presentation?.navigation?.destinationId).toBe("meal_builders");
+  const handoff = "Open Meal Builders, continue to your builder, choose a day and slot, then use Create With Chef.";
+  const confirmed = await turn("Yes", handoff, { memberNeed: "navigation", responsePurpose: "handoff",
+    navigationIntent: "confirmed", handoffMessage: handoff }, selected.result.presentation?.navigation);
+  expect(confirmed.result.presentation?.navigation?.state).toBe("navigation_confirmed");
+  expect(confirmed.result.presentation?.message).toBe(handoff);
+});
+
+test.each(["I just want to try making a dish.", "I want to make homemade chicken soup."])(
+  "a clear individual-dish request bypasses the orientation questions: %s", async request => {
+    const text = "Create a Dish can help you make that dish. Would you like to use it?";
+    const goal = { ...dish, dishChosen: request.includes("chicken soup") };
+    const { result } = await reply(request, text, offer("create_a_dish", goal));
+    expect(result.presentation?.message).toBe(text);
+    expect(result.presentation?.navigation).toMatchObject({ state: "recommendation_pending", destinationId: "create_a_dish" });
+    expect(result.todayPlan.items).toEqual([]);
+  });
+
+test("Lifestyle exploration stays useful and informational without an unrelated feature action", async () => {
+  const text = "Lifestyle includes creating dishes, cravings, drinks, pairings and dining-out tools. You can open Lifestyle in the app; I can't provide its landing-page button here.";
+  const { result, wire } = await reply("I'd like to see what Lifestyle features are available.", text);
+  expect(result.presentation?.message).toBe(text);
+  expect(wire.platformKnowledge.platformHelp.lifestyle.chefDestination).toBeNull();
+  expect(wire.platformKnowledge.platformHelp.lifestyle.categories.join(" ")).toContain("Fridge Rescue");
+  noAction(result);
+});
+
+test("an attempted Lifestyle landing-page action is rejected rather than added or substituted", async () => {
+  const { result } = await reply("Open the Lifestyle landing page.",
+    "Open Lifestyle using this button.", offer("lifestyle", { ...unknown, activity: "plan_meals" }));
+  noAction(result);
+  expect(Object.keys(COACH_DESTINATIONS)).toHaveLength(20);
+  expect(Object.values(COACH_DESTINATIONS).some(destination => destination.route === "/lifestyle")).toBe(false);
+});
+
+test.each(["my_perfect_menu", "meal_builders", "create_a_dish"] as const)(
+  "the guided choice cannot grant unavailable %s access", async id => {
+    const { result } = await reply("I'd like to use that workflow.",
+      `${COACH_DESTINATIONS[id].label} can help. Would you like to use it?`,
+      offer(id, id === "create_a_dish" ? dish : planning(id)), { unavailable: true });
+    noAction(result);
+  });
+
+test.each(["referral", "emergency"])("required %s takes precedence over the orientation and proposed action", async care => {
+  const { result } = await reply("I need help with meals.", "Seek the indicated medical care now.", {
+    ...offer("my_perfect_menu", planning("my_perfect_menu")), careDisposition: care,
+    redFlag: care === "emergency", contactCare: "Seek the indicated medical care now.",
+  });
+  expect(result.presentation).toBeUndefined();
+  expect(result.meta.redFlag).toBe(true);
+  expect(result.todayPlan.items).toEqual([{ horizon: "today", kind: "contact_care", text: "Seek the indicated medical care now." }]);
+});
+
+test("audited planning facts and Lifestyle guidance are Development-only without changing Production records", () => {
+  const usage = getFeatureUsageKnowledge("development");
+  expect(usage.my_perfect_menu?.controls.join(" ")).toContain("Three personalized text-based ideas");
+  expect(usage.my_perfect_menu?.controls.join(" ")).toContain("after choosing an idea");
+  expect(usage.my_perfect_menu?.notes.join(" ")).toContain("Performance & Competition requires date");
+  expect(usage.meal_builders?.controls.join(" ")).toContain("Create With Chef");
+  expect(usage.meal_builders?.notes.join(" ")).toContain("not a chosen builder, day or slot");
+  expect(getPlatformGuidanceInstructions("production")).toBe(PLATFORM_GUIDANCE_INSTRUCTIONS);
+  expect(getFeatureUsageKnowledge("production")).toBe(FEATURE_USAGE_KNOWLEDGE);
+  expect(FEATURE_USAGE_KNOWLEDGE.my_perfect_menu?.controls.join(" ")).not.toContain("Three personalized text-based ideas");
+  process.env.NODE_ENV = "production";
+  expect(getDevelopmentPlatformKnowledge()?.platformHelp).not.toHaveProperty("lifestyle");
+});

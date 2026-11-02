@@ -20,6 +20,7 @@
 
 import { COACH_DESTINATIONS, type CoachDestinationId } from "../../../shared/coaching/navigation";
 import { isAskChefConversationEnabled } from "../../../shared/coaching/askChefRelease";
+import { getFeatureUsageKnowledge } from "./featureUsageKnowledge";
 
 export type CapabilityScope =
   | "all"            // any authenticated user
@@ -358,9 +359,10 @@ export const CORNER_UNSUPPORTED_FEATURES = [
 ];
 
 /** Development-only concierge extension; other coaches and Production stay unchanged. */
-export function getCornerCapabilities(activeScopes: CapabilityScope[]): MPMCapability[] {
+export function getCornerCapabilities(activeScopes: CapabilityScope[], environment = process.env.NODE_ENV): MPMCapability[] {
   const existing = getCapabilitiesForUser(activeScopes, true);
-  if (!isAskChefConversationEnabled(process.env.NODE_ENV)) return existing;
+  if (!isAskChefConversationEnabled(environment)) return existing;
+  const usage = getFeatureUsageKnowledge(environment);
   const descriptions: Record<CoachDestinationId, string> = {
     grocery_find_product: "Grocery Coach > Find a Product uses onboarding and the member's nutrition profile to find three suitable grocery product recommendations when the member wants something to buy. Discovery, not evaluation of an actual product. Chef explains this workflow; the existing feature owns recommendations and safeguards.",
     product_scan: "Evaluate a specific grocery product the member has or is looking at by scanning its label against their profile and nutritional needs. Explain suitability and offer three alternatives through the existing Product Scan workflow, not brand recommendations in Chef.",
@@ -370,7 +372,7 @@ export function getCornerCapabilities(activeScopes: CapabilityScope[]): MPMCapab
     dessert_creator: "Prepare larger dessert recipes such as a whole cake, pie or pan of brownies. Small dessert cravings belong to Craving Creator with occasion=snack. Requires larger-dessert preparation intent or an explicit Dessert Creator request; sweet preference alone is insufficient.",
     beverage_creator: "Create regular smoothies, shakes, drinks, cocktails (the Cocktail option), Dive Bar drinks or mocktails from free-text drink description or category/flavor selections. Use for regular beverage preparation, not workout-specific drinks, hydration targets, or nutrition questions about drinks.",
     athlete_beverage_creator: "Create pre-workout drinks, post-workout recovery shakes, or sports beverages with a performance goal, via description or goal/drink/flavor selections. Use for actual workout beverage preparation, not an exercise nutrition explanation, general meal, ordinary cocktail or a fluid prescription.",
-    hydration_center: "Get hydration education and support. Never invent fluid or electrolyte targets.",
+    hydration_center: "My Perfect Hydration Center has four sections: Everyday Hydration tracks fluids and addresses practical barriers and preferences, including low appetite; Athletic Hydration organizes activity-related hydration context and can hand off to Athlete Beverage Creator without calculating replacement or electrolyte prescriptions; Sick-Day Hydration offers tolerability support for difficulty drinking while unwell and warning-sign guidance, not diagnosis or treatment; Liquid Nutrition Support organizes explicit temporary liquid-diet instructions, with Creator handoffs requiring complete, active, professionally verified instructions. The Center does not itself generate recipes or perform comprehensive medication checks. For making an ordinary shake, use Beverage Creator; nausea alone does not establish a hydration goal. Never invent fluid or electrolyte targets, override care instructions, or substitute hydration for necessary nutrition or medical care. Chef opens the Hub only: no automatic section selection, symptom transfer, protocol activation or generation.",
     restaurant_guide: "Help choose what to order at a restaurant the member has already chosen. Do not use for finding a restaurant.",
     find_meals_near_me: "Discover somewhere to eat when the member wants to find a restaurant or has not chosen one. Consider their food preferences, location and budget when relevant; do not use for ordering at an already-selected restaurant. Verified search is restaurant-filtered. Dedicated ice cream shops, bars, grocery retailers and other specialty-only establishments are not verified coverage; do not promise they will be found or that a particular item is currently available.",
     my_perfect_buffet: "Help choose food at a buffet.",
@@ -383,6 +385,11 @@ export function getCornerCapabilities(activeScopes: CapabilityScope[]): MPMCapab
     my_perfect_menu: "Start with meal ideas by category, retaining three choices until replaced; a selected idea is created by the member's effective builder/creator. Not an independent seven-day plan generator. Open only the existing Menu entry page; no Chef prefill, date/category/subject selection or automatic generation.",
     meal_builders: "Open the Meal Builders landing page so the member can review their existing builder choices, access rules and tutorials. Existing onboarding and builder-switch restrictions still apply. Never choose or activate a specialized builder, open a clinical hub directly, or overwrite the assigned builder.",
   };
+  if (environment === "development") {
+    descriptions.meal_builders = "Open the Meal Builders landing page so the member can open their assigned builder, then choose a day and meal slot and use Create With Chef. Ordinary members generally have one assigned builder; administrators may have access to multiple builders. Do not imply free builder selection or infer administrator authority. Existing onboarding, assignment, access and clinical restrictions apply; never open a builder directly, activate a specialized builder or overwrite an assignment.";
+    descriptions.craving_creator = "Prepare an immediate personal sweet or savory craving, including small dessert portions, often a smaller or individually portioned choice. Multiple recipe servings are supported; serving count alone never selects this feature. Use occasion=snack for this workflow. A full dessert fits Dessert Creator; a chosen family-dinner dish fits Create a Dish; the whole occasion fits My Perfect Gatherings. Sushi, beverages, restaurant visits and grocery shopping remain separate activities. Use context and reviewed suitability, not food keywords.";
+    descriptions.grocery_create_meal = "Grocery Store Coach > Build a Meal helps plan a meal and the ingredients to purchase. Choose it for grocery-shopping meal help, including a named dish when shopping is the actual goal; a clear dish preparation request instead fits Create a Dish. Decide from the member's activity and history, never food keywords.";
+  }
   const inputs: Record<CoachDestinationId, string> = {
     grocery_find_product: "Open Shopping List, then select Grocery Store Coach > Find a Product. Member enters their product request there. Parent page only; no automatic tab opening, prefill or generation. Grocery Coach's Pro entitlement and existing profile/safety checks still apply.",
     product_scan: "Open Shopping List, then select Product Scan and capture the actual product. Parent page only; no automatic capture or request transfer. Existing paid access, profile and product safeguards still apply.",
@@ -407,8 +414,12 @@ export function getCornerCapabilities(activeScopes: CapabilityScope[]): MPMCapab
   };
   const additions: MPMCapability[] = (Object.keys(COACH_DESTINATIONS) as CoachDestinationId[])
     .map(id => ({
-      id, label: COACH_DESTINATIONS[id].label, route: COACH_DESTINATIONS[id].route,
-      description: `${descriptions[id]} Required inputs and handoff: ${inputs[id]} Verified destination: ${COACH_DESTINATIONS[id].route}. Navigation access class: ${COACH_DESTINATIONS[id].access}; current access is rechecked on click and destination guards still apply.`,
+      id, label: environment === "development" && id === "grocery_create_meal"
+        ? "Grocery Store Coach — Build a Meal" : COACH_DESTINATIONS[id].label,
+      route: COACH_DESTINATIONS[id].route,
+      description: `${descriptions[id]}${usage[id]?.suitability
+        ? ` Suitability and timing: ${usage[id]!.suitability!.purpose} Distinguish the member's underlying need from the proposed food or drink format using featureUsage.suitability. Preparation readiness does not settle unresolved health concerns, and feature fit is not permission to navigate.`
+        : ""} Required inputs and handoff: ${inputs[id]} Verified destination: ${COACH_DESTINATIONS[id].route}. Navigation access class: ${COACH_DESTINATIONS[id].access}; current access is rechecked on click and destination guards still apply.`,
       applicableSituations: id === "fridge_rescue" ? ["has_ingredients", "use_available_ingredients"] : ["general_inquiry"], scopes: ["all"], recommendable: true,
       eligibilityNote: "Navigation does not grant access; current access is checked on click.",
     }));

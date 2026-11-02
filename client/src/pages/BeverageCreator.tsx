@@ -13,6 +13,7 @@ import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GlassButton } from "@/components/glass";
+import { PillButton } from "@/components/ui/pill-button";
 import {
   Select,
   SelectContent,
@@ -677,14 +678,30 @@ export default function BeverageCreator() {
                     />
                   )}
                 </div>
+                <div className="mt-2 flex flex-wrap items-start justify-between gap-x-4 gap-y-2" data-testid="creator-input-actions">
                 <VoiceInputButton
                   value={customBeverageDescription}
                   onChange={setCustomBeverageDescription}
                   mode="append"
                   separator=" "
                   label="Add beverage description by voice"
-                  className="mt-2"
+                  className="max-w-full items-start"
                 />
+                {import.meta.env.DEV && (
+                  <PillButton
+                    type="button"
+                    data-testid="beverage-surprise-me"
+                    active={beverageCategory === "surprise"}
+                    variant="emerald"
+                    aria-pressed={beverageCategory === "surprise"}
+                    onClick={() => setBeverageCategory("surprise")}
+                    disabled={isGenerating || safetyChecking}
+                    className="ml-auto shrink-0"
+                  >
+                    Surprise Me
+                  </PillButton>
+                )}
+                </div>
                 {customBeverageDescription.trim().length > 0 && (
                   <p className="text-xs text-blue-300 mt-1">
                     We'll use your description — selections below are now optional.

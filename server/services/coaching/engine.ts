@@ -160,6 +160,7 @@ function validateCitations(
 
 import { loadBoundedHistory } from "./conversationSummarizer";
 import { loadPendingRecommendation } from "./conciergeNavigationState";
+import { navigationEmissionIndicators } from "./conversationPurpose";
 import { extractAndPersistMemories } from "./memoryExtractor";
 
 // ─── Phase 2 (Reasoning Library) imports ─────────────────────────────────────
@@ -299,13 +300,23 @@ async function persistTurn(
   `);
   const userMessageId = userMsg.rows[0].id;
 
+  // Development-only correction: care guidance is rendered from contact_care,
+  // not the blank legacy fields. Persist the same complete wording for history
+  // without duplicating it in the visible response or changing Production.
+  const careHistory = process.env.NODE_ENV === "development" &&
+    response.meta.specialization === "corner"
+    ? response.todayPlan.items.filter(item => item.kind === "contact_care")
+      .map(item => item.text).filter(text => text.trim()).join("\n\n")
+    : "";
+  const assistantContent = careHistory || response.whatIFound + "\n\n" + response.whatItCouldMean;
+
   // Save assistant message with full structured payload
   const assistantMsg = await db.execute<{ id: string }>(sql`
     INSERT INTO coach_messages (conversation_id, role, content, structured_payload)
     VALUES (
       ${conversationId},
       'assistant',
-      ${response.whatIFound + "\n\n" + response.whatItCouldMean},
+      ${assistantContent},
       ${JSON.stringify(response)}::jsonb
     )
     RETURNING id
@@ -1547,6 +1558,16 @@ export class CoachingEngine {
       conversationId, subject, request.userMessage, response, [], [], confidence,
       response.meta.redFlag ? "safety_escalation" : "conversation", {}, [],
     );
+    if (process.env.NODE_ENV === "development") {
+      const indicators = navigationEmissionIndicators(response);
+      const requestId = (req as any).id;
+      const correlation = typeof requestId === "string" && /^[a-f0-9-]{36}$/i.test(requestId)
+        ? ` request_id=${requestId}` : "";
+      console.info(`[ChefConcierge] persistence_outcome=stored${correlation} ` + JSON.stringify({
+        pendingNavigationStored: indicators.pendingOutputPresent,
+        authorizedActionStored: indicators.authorizedActionEmitted,
+      }));
+    }
     return { ...response, conversationId, messageId: assistantMessageId };
   }
 }

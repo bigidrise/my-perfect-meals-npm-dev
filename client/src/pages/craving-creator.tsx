@@ -1191,6 +1191,7 @@ export default function CravingCreator() {
                         />
                       )}
                     </div>
+                    <div className="mt-2 flex flex-wrap items-start justify-between gap-x-4 gap-y-2" data-testid="creator-input-actions">
                     <VoiceInputButton
                       value={cravingInput}
                       onChange={(value) => {
@@ -1203,8 +1204,23 @@ export default function CravingCreator() {
                       separator=" "
                       maxLength={300}
                       label="Add craving description by voice"
-                      className="mt-2"
+                      className="max-w-full items-start"
                     />
+                    {import.meta.env.DEV && (
+                      <PillButton
+                        type="button"
+                        data-testid="craving-surprise-me"
+                        active={cravingCategory === "surprise"}
+                        variant="emerald"
+                        aria-pressed={cravingCategory === "surprise"}
+                        onClick={() => setCravingCategory("surprise")}
+                        disabled={isGenerating || safetyChecking}
+                        className="ml-auto shrink-0"
+                      >
+                        Surprise Me
+                      </PillButton>
+                    )}
+                    </div>
                     <p className="text-md text-white mt-1 text-center">
                       Use keyboard or voice texting for input.
                     </p>

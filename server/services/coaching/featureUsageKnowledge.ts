@@ -5,6 +5,19 @@ interface FeatureUsageKnowledge {
   controls: string[];
   generationAction: string;
   notes: string[];
+  suitability?: Omit<FeatureSuitability, "verifiedSources">;
+}
+
+interface FeatureSuitability {
+  purpose: string;
+  suitableNeeds: string[];
+  notFor: string[];
+  informationNeeded: string[];
+  offerWhen: string;
+  deferWhen: string;
+  safetyBoundaries: string[];
+  relatedFeatures: string[];
+  verifiedSources: string[];
 }
 
 /**
@@ -132,6 +145,22 @@ export const FEATURE_USAGE_KNOWLEDGE: Partial<Record<CoachDestinationId, Feature
     generationAction: "Create My Drink starts the destination's beverage workflow.",
     notes: ["The page validates required inputs. Performance Goal is about the drink's purpose, not permission to invent personal electrolyte, fluid or macro targets."],
   },
+  // client/src/pages/HydrationCenter.tsx and components/HydrationFourDoorPanels.tsx
+  hydration_center: {
+    descriptionInput: "Open My Perfect Hydration Center, then choose the section that matches your need. Chef opens the Hub, not a preselected section.",
+    controls: [
+      "Everyday Hydration: log fluids, review intake, and use optional preferences and practical barrier support.",
+      "Athletic Hydration: supply activity context for practical support and an optional Athlete Beverage Creator handoff, not a fluid-replacement formula.",
+      "Sick-Day Hydration: select what makes fluids difficult, review tolerability guidance and heed warning signs. This may help with difficulty tolerating fluids, not every report of nausea.",
+      "Liquid Nutrition Support: enter only the explicit temporary liquid-diet instructions received. User-entered instructions remain unverified; Creator handoffs require complete, active, professionally verified instructions.",
+    ],
+    generationAction: "Hydration Center does not itself generate recipes. Its existing Everyday/Athletic Creator links can lead to beverage creation, which still requires the member's action in the destination.",
+    notes: [
+      "For making a regular shake, Beverage Creator is more appropriate. A shake is not automatically suitable for nausea or a prescribed liquid diet, and hydration is not a replacement for necessary nutrition.",
+      "Chef does not transfer symptoms, prefill requests, select a section, activate protocols or manufacture Hydration handoff tokens. Current access and destination safeguards still apply.",
+      "Do not invent fluid/electrolyte prescriptions or comprehensive medication checks. Preserve current clinical instructions; necessary medical assessment or urgent care takes priority over navigation.",
+    ],
+  },
   // client/src/pages/CravingDessertCreator.tsx
   dessert_creator: {
     descriptionInput: "Describe the dessert or use the dessert-type and flavor controls.",
@@ -145,3 +174,227 @@ export const FEATURE_USAGE_KNOWLEDGE: Partial<Record<CoachDestinationId, Feature
     notes: ["Yield options depend on the chosen dessert. Do not invent a universal serving range or instruct one person to eat an entire recipe."],
   },
 };
+
+/**
+ * Development-only review of three existing features, not a routing engine.
+ * These are source-verified capability facts and judgment guidance, never
+ * medical eligibility, consent, or permission to navigate.
+ */
+const DEVELOPMENT_DRINK_SUITABILITY = {
+  beverage_creator: {
+    purpose: "Create ordinary beverage recipes for enjoyment, variety or a chosen drink, including smoothies, protein shakes, coffee and low-sugar drink requests.",
+    suitableNeeds: ["Ordinary homemade beverage creation or variety, with preparation intent established in context."],
+    notFor: ["Assessing impaired food or fluid tolerance, prescribing liquid nutrition, treating illness, or calculating hydration targets.", "Workout-specific formulation belongs to Athlete Beverage Creator."],
+    informationNeeded: ["Whether the member wants beverage preparation rather than advice, ordering or buying, only if unresolved.", "Whether a circumstance affecting intake leaves a material safety or usefulness question unresolved; a drink format alone does not settle that."],
+    offerWhen: "Offer naturally when ordinary beverage creation is useful and relevant uncertainty is resolved. A useful nutrition answer may include a suitable offer; not every answer needs one.",
+    deferWhen: "A shake proposed as a way to cope with difficulty eating or drinking does not by itself establish ordinary beverage creation as the next step. Address the concern and any material uncertainty or necessary care before offering a recipe tool.",
+    safetyBoundaries: ["The destination runs current dietary, allergy and clinical checks; a requested shake is not automatically tolerable or nutritionally adequate.", "Low-sugar controls do not guarantee sugar-free output. No medication-specific treatment or new personal targets."],
+    relatedFeatures: ["Hydration Center may help an established fluid-intake barrier, not every symptom or drink mention.", "Athlete Beverage Creator serves actual performance-oriented drink creation."],
+    verifiedSources: ["client/src/pages/BeverageCreator.tsx", "server/routes/beverage-creator.ts"],
+  },
+  athlete_beverage_creator: {
+    purpose: "Create performance-oriented beverage recipes for training, endurance or recovery; not an individualized hydration prescription.",
+    suitableNeeds: ["A member wants to prepare a pre-workout drink, post-workout recovery shake or other performance beverage."],
+    notFor: ["Ordinary beverage variety without a performance purpose.", "Fluid-intake tracking, personalized sweat-loss replacement, electrolyte dosing, or treatment of symptoms."],
+    informationNeeded: ["Whether the goal is performance beverage creation or help managing hydration around activity, only if context has not settled it.", "The destination collects drink, flavor, serving and preference details; Chef need not interview for all of them."],
+    offerWhen: "A clear recovery-shake or other performance drink creation request can receive a natural offer without a detour through Hydration Center.",
+    deferWhen: "For difficulty staying hydrated during activity, first consider Athletic Hydration support rather than assuming a recipe request. Defer any offer while a material safety question or necessary care remains.",
+    safetyBoundaries: ["Preset macro ranges and electrolyte language in the form are recipe directions, not measured individual requirements or fluid-replacement calculations.", "Current destination dietary, allergy, clinical and access safeguards still apply."],
+    relatedFeatures: ["Hydration Center's Athletic Hydration section organizes activity timing, type, optional duration and environment, and can hand off to this Creator.", "Beverage Creator handles ordinary drinks."],
+    verifiedSources: ["client/src/pages/AthleteBeverageCreator.tsx", "client/src/components/HydrationFourDoorPanels.tsx", "server/routes/beverage-creator.ts"],
+  },
+  hydration_center: {
+    purpose: "Support fluid intake and practical hydration barriers through Everyday Hydration, Athletic Hydration, Sick-Day Hydration and organization of explicit temporary liquid-diet instructions.",
+    suitableNeeds: ["Fluid tracking or practical barriers, including low appetite.", "Difficulty staying hydrated around activity.", "Difficulty tolerating fluids while unwell, when support is appropriate alongside any required care.", "Organizing temporary liquid-diet instructions the member actually received."],
+    notFor: ["Ordinary drink creation alone.", "Designing a specialized medical liquid-nutrition plan simply because someone struggles to eat.", "Diagnosis, treatment, comprehensive medication checks or independently prescribed fluid/electrolyte targets."],
+    informationNeeded: ["Which underlying fluid-intake or instruction-organization need is present; nausea alone does not establish a hydration goal.", "Clarify food versus fluid tolerance or existing instructions only when it materially changes the next useful recommendation; do not assume a liquid diet was prescribed."],
+    offerWhen: "Offer when a verified section addresses the established need and conversational readiness permits it. For long-workout hydration difficulties, Athletic Hydration can be the initial fit; a recovery-shake recipe request instead fits Athlete Beverage Creator.",
+    deferWhen: "Prioritize useful coaching, material clarification and necessary medical follow-up over navigation. Do not automatically swap Beverage Creator for Hydration Center after a symptom mention, or repeat an earlier offer after circumstances change.",
+    safetyBoundaries: ["Sick-Day Hydration has basic tolerability suggestions and warning signs, not a detailed symptom-adaptive treatment plan.", "Liquid Nutrition Support preserves existing instructions; user confirmation is not professional verification. Creator eligibility requires complete, active, professionally verified instructions; do not promise a complete professional verification workflow or a liquid recipe button.", "No comprehensive medication checks or newly activated pregnancy-specific guidance; preserve existing care instructions and current availability restrictions.", "Necessary care is never delayed for a question, Hub visit or drink recipe."],
+    relatedFeatures: ["Everyday support can lead to Beverage Creator and Athletic support can lead to Athlete Beverage Creator through the Hub's own signed handoffs.", "Chef opens the Hub only: no section selection, symptom transfer, protocol activation or manufactured handoff tokens."],
+    verifiedSources: ["client/src/pages/HydrationCenter.tsx", "client/src/components/HydrationFourDoorPanels.tsx", "server/services/hydration/hydrationHubService.ts", "shared/hydration/fourDoor.ts", "shared/pregnancyAvailability.ts"],
+  },
+} satisfies Partial<Record<CoachDestinationId, FeatureSuitability>>;
+
+/** Source-reviewed activity distinctions; never keyword routing or new access. */
+const DEVELOPMENT_FOOD_SUITABILITY = {
+  my_perfect_getaway: {
+    purpose: "Explore food decisions across a travel destination or venue, including cruise-wide dining options.",
+    suitableNeeds: ["General cruise food planning or exploration across airports, theme parks, resorts and other supported travel venues."],
+    notFor: ["Overriding a clearly stated immediate task simply because a cruise or travel is mentioned.", "Assuming general venue dining guidance includes My Perfect Buffet's actual-food plate-selection workflow, restaurant ordering or automatic internal navigation."],
+    informationNeeded: ["Whether the member needs general travel-dining exploration or help with an immediate food activity, only if unresolved. Venue and any offered dining-area choices belong to the destination."],
+    offerWhen: "Travel-wide food planning is the actual goal. Use the exact verified label My Perfect Getaway, not an invented plural feature or route.",
+    deferWhen: "For foods actually present at a buffet, consider My Perfect Buffet; for ordering at a selected restaurant, Restaurant Guide; for restaurant discovery, Find Meals Near Me. Do not repeat an earlier travel offer after the immediate task changes.",
+    safetyBoundaries: ["Chef's approved destination and outer page require Clinical access; internal page or API checks do not relax that boundary. Existing dietary, allergy, clinical and physician safeguards remain authoritative.", "Travel suggestions and venue/zone information do not verify current menus, stock or accommodations. Chef transfers no venue, zone, cruise or symptom context and does not open an internal workflow."],
+    relatedFeatures: ["My Perfect Buffet handles selecting food from actual buffet offerings, including on a cruise.", "Restaurant Guide and Find Meals Near Me address the immediate restaurant activity rather than the broad travel circumstance."],
+    verifiedSources: ["client/src/pages/lifestyle/MyPerfectGetaway.tsx", "server/routes/getaway.ts", "client/src/components/Router.tsx", "shared/coaching/navigation.ts"],
+  },
+  my_perfect_buffet: {
+    purpose: "Choose plates from foods actually available at a buffet, including a cruise buffet.",
+    suitableNeeds: ["The member is about to eat at a buffet and wants help choosing among the available foods."],
+    notFor: ["Cruise-wide venue exploration, finding a restaurant, ordering at a selected restaurant, or inventing foods available at the buffet."],
+    informationNeeded: ["Whether the member is selecting from an actual buffet, only if unresolved. The destination collects What's at the buffet? or optional category entries; Chef need not collect every food before recommending it."],
+    offerWhen: "Actual buffet-food selection is clear, even when the broader context is a cruise, holiday or other event. Do not detour through My Perfect Getaway.",
+    deferWhen: "A cruise or event mention alone does not establish buffet dining. Ask one activity question only if needed; do not repeat an already answered distinction.",
+    safetyBoundaries: ["Existing Pro access, dietary, allergy, clinical and physician safeguards remain authoritative. Food names and estimated nutrition are not verified allergen clearance or guaranteed buffet availability.", "Build My Plates starts the existing plate-recommendation workflow. Chef has no food-list prefill, automatic plate generation, consumption logging or transfer from Getaway."],
+    relatedFeatures: ["My Perfect Getaway explores general travel dining, not an assumed container for every cruise activity.", "Restaurant Guide serves a chosen restaurant; Find Meals Near Me serves restaurant discovery."],
+    verifiedSources: ["client/src/pages/MyPerfectBuffetPage.tsx", "server/routes/buffet.ts", "client/src/components/Router.tsx", "shared/coaching/navigation.ts"],
+  },
+  craving_creator: {
+    purpose: "Satisfy an immediate personal sweet or savory food craving, often a smaller or individually portioned choice, including chicken nuggets or a dessert treat.",
+    suitableNeeds: ["A chosen personal craving to prepare, including one, two or several recipe servings."],
+    notFor: ["A complete cake or pie, an explicitly chosen family-dinner recipe, full occasion planning, restaurant discovery, sushi or beverage preparation."],
+    informationNeeded: ["Personal craving versus a complete dessert or shared meal, only when genuinely unresolved. Do not collect exact servings to choose the feature."],
+    offerWhen: "Personal craving and preparation intent are clear. Multiple servings do not disqualify a craving; use occasion=snack for this workflow, including sweet cravings.",
+    deferWhen: "A food name or generic dessert wish alone may leave intent unclear. Ask one useful distinction, then use the answer without a fixed question count.",
+    safetyBoundaries: ["The current form offers 1–10 recipe servings; this is a UI range, not a routing threshold or a single-serving restriction.", "Existing dietary, allergy, clinical and physician safeguards remain authoritative. No general Chef prefill or automatic generation."],
+    relatedFeatures: ["Dessert Creator makes a full dessert; Create a Dish serves a chosen dish or family meal. My Perfect Gatherings plans the full occasion, not every holiday food."],
+    verifiedSources: ["client/src/pages/craving-creator.tsx", "server/services/coaching/conciergeGoal.ts", "shared/coaching/navigation.ts"],
+  },
+  dessert_creator: {
+    purpose: "Create a complete dessert such as a whole cake, pie or shareable dessert recipe.",
+    suitableNeeds: ["A whole apple pie, cake, or complete dessert to share with family or at an event."],
+    notFor: ["Automatically handling every sweet craving or planning an entire holiday meal."],
+    informationNeeded: ["Personal treat versus full dessert, only if not already clear. Serving count may inform intent but is never the sole routing rule."],
+    offerWhen: "The member explicitly wants a complete dessert; a whole pie or cake request needs no repeated size question, even when it is for a holiday.",
+    deferWhen: "An unspecified dessert wish still needs a useful intent distinction; do not interrogate for the destination's category, flavor, yield or dietary inputs.",
+    safetyBoundaries: ["Yield options depend on dessert type, not a universal portion range. A whole recipe is not an instruction for one person to consume it.", "Existing diet, allergy and clinical validation applies; no Chef recipe generation or general request transfer."],
+    relatedFeatures: ["Craving Creator serves personal sweet or savory cravings, including multiple servings. My Perfect Gatherings serves complete occasion meals."],
+    verifiedSources: ["client/src/pages/CravingDessertCreator.tsx", "server/services/coaching/conciergeGoal.ts", "shared/coaching/navigation.ts"],
+  },
+  my_perfect_gatherings: {
+    purpose: "Plan a complete food experience or multi-course meal for a gathering, holiday or group occasion.",
+    suitableNeeds: ["A complete Thanksgiving or Christmas dinner, cookout, birthday celebration, reunion or dinner party when the full occasion is the task."],
+    notFor: ["A single Thanksgiving side dish, a single holiday pie, or ordinary family-dish preparation merely because a group or holiday is mentioned."],
+    informationNeeded: ["The complete occasion versus one dish or dessert, only if unresolved. The destination collects its situation-specific details and serving size."],
+    offerWhen: "The member clearly wants help with the whole occasion; do not ask for courses, cuisine or guest count before offering the verified destination.",
+    deferWhen: "A holiday word alone does not establish an occasion-planning goal. Choose the dish or dessert creator when that is the actual task.",
+    safetyBoundaries: ["The page has What's the occasion?, situation-specific forms, Serving size and Create My Experience; do not invent universal cuisine or dietary-override controls.", "Profile dietary information and existing dietary, allergy, clinical and physician safeguards govern generation. No general Chef request transfer or automatic generation."],
+    relatedFeatures: ["Create a Dish handles a chosen dish; Dessert Creator handles a complete dessert. Group size alone does not select Gatherings."],
+    verifiedSources: ["client/src/pages/lifestyle/GatheringsPage.tsx", "server/routes/gatherings.ts", "shared/coaching/navigation.ts"],
+  },
+  sushi_creator: {
+    purpose: "Prepare sushi at home using the dedicated Sushi Creator.",
+    suitableNeeds: ["An explicit request to make sushi, rolls or nigiri at home."],
+    notFor: ["Finding a sushi restaurant, ordering at a chosen restaurant, or interpreting a sushi preference as preparation intent."],
+    informationNeeded: ["Making sushi versus going out, only when the member and history have not already settled that distinction."],
+    offerWhen: "Sushi preparation intent is clear. Do not re-ask home versus restaurant or collect servings and preferences before offering it.",
+    deferWhen: "Being in the mood for sushi alone leaves the activity unresolved. If eating out, distinguish a chosen restaurant from restaurant discovery only if needed.",
+    safetyBoundaries: ["The form has a sushi description, optional Dietary Preference, Number of Servings (1–10), Flavor Preference and Create My Sushi. Do not invent cuisine controls.", "Existing recipe, allergy, dietary, clinical and access safeguards remain authoritative; no general Chef prefill or promise that raw fish is universally safe."],
+    relatedFeatures: ["Find Meals Near Me discovers restaurants; Restaurant Guide helps choose food at an already selected restaurant."],
+    verifiedSources: ["client/src/pages/SushiCreator.tsx", "server/services/coaching/conciergeGoal.ts", "shared/coaching/navigation.ts"],
+  },
+  restaurant_guide: {
+    purpose: "Help choose what to order at a restaurant the member has already selected.",
+    suitableNeeds: ["Ordering sushi or another meal at an identified restaurant, not finding somewhere to eat."],
+    notFor: ["Sushi preparation, recipe creation, or discovery when no restaurant has been selected."],
+    informationNeeded: ["Whether the restaurant is already chosen, only if unresolved. The destination collects craving, restaurant and ZIP inputs."],
+    offerWhen: "Restaurant-ordering intent and a chosen restaurant are clear; do not repeat a home-versus-restaurant question.",
+    deferWhen: "If the goal is to find a restaurant, consider Find Meals Near Me instead. Food names alone establish neither destination.",
+    safetyBoundaries: ["Existing nutrition, allergy, clinical and access checks apply. Confirm current menu items and accommodations with the restaurant; guidance is not guaranteed menu or allergen verification.", "No Chef location/craving transfer, automatic search, order placement or purchase."],
+    relatedFeatures: ["Find Meals Near Me discovers restaurants; Sushi Creator prepares sushi at home."],
+    verifiedSources: ["client/src/pages/SocialRestaurantGuide.tsx", "shared/coaching/navigation.ts"],
+  },
+  find_meals_near_me: {
+    purpose: "Discover nearby restaurants and suggested meals when the member wants somewhere to eat.",
+    suitableNeeds: ["Finding a sushi restaurant or another restaurant when none is selected."],
+    notFor: ["Preparing sushi at home, ordering at an already chosen restaurant, grocery discovery or guaranteed specialty-store coverage."],
+    informationNeeded: ["Discovery versus ordering at a selected restaurant, only if unresolved. ZIP/location and optional filters belong to the destination."],
+    offerWhen: "A restaurant-discovery request is clear. Do not ask whether the member wants to cook when they already asked to find a restaurant.",
+    deferWhen: "An unexplained sushi craving may require a making-versus-eating-out distinction. Use prior answers rather than restarting discovery.",
+    safetyBoundaries: ["Suggestions do not verify live menus, stock or accommodations; preserve dietary, allergy, clinical and access safeguards.", "No Chef location/craving transfer, automatic search or completed order. Existing search is restaurant-filtered, not guaranteed dedicated-shop coverage."],
+    relatedFeatures: ["Restaurant Guide serves ordering at a selected restaurant; Sushi Creator serves home preparation."],
+    verifiedSources: ["client/src/pages/SocialFindMeals.tsx", "shared/coaching/navigation.ts"],
+  },
+  create_a_dish: {
+    purpose: "Create recipes for a chosen dish or full meal the member wants to prepare, rather than plan a grocery-shopping trip.",
+    suitableNeeds: ["Preparation help for a particular dish, such as making chicken soup; the activity, not the food name, establishes fit."],
+    notFor: ["Planning what groceries to purchase for a meal, product discovery, product-label evaluation, or choosing restaurant food.", "Existing dedicated creators still own small cravings, larger desserts, sushi and drinks."],
+    informationNeeded: ["Whether the goal is preparing a dish or shopping for a meal, only if unresolved in the member's words and history.", "The destination collects servings and preparation preferences; do not interview for these before offering it."],
+    offerWhen: "A chosen dish and preparation intent are sufficient for a relevant offer. Do not divert a clear cooking request to Grocery Store Coach or ask a shopping question already answered.",
+    deferWhen: "Clarify only a genuinely unresolved activity or destination choice, and prioritize necessary care or safety concerns.",
+    safetyBoundaries: ["Existing recipe, dietary, allergy, clinical and physician safeguards remain authoritative.", "The approved handoff carries only a member-grounded editable idea; opening does not generate food or grant access."],
+    relatedFeatures: ["Grocery Store Coach > Build a Meal serves grocery-shopping meal planning.", "Find a Product discovers groceries to buy; Product Scan evaluates an actual product."],
+    verifiedSources: ["client/src/pages/lifestyle/CreateDishPage.tsx", "server/routes.ts", "server/services/coaching/conciergeGoal.ts", "shared/coaching/navigation.ts"],
+  },
+  grocery_create_meal: {
+    purpose: "Grocery Store Coach > Build a Meal helps plan a meal and the ingredients to purchase, with a generated meal and corresponding shopping list.",
+    suitableNeeds: ["Grocery shopping or planning what to purchase for a meal, including a named dish when shopping is the actual goal."],
+    notFor: ["Merely wanting to prepare a chosen dish without a shopping goal.", "Finding a packaged product, scanning a label, or generating a weekly meal board."],
+    informationNeeded: ["Whether the member needs meal-shopping help rather than dish preparation, only if context has not settled it.", "How many people? and the meal request are entered in the destination; Chef need not collect them first."],
+    offerWhen: "Recommend when the member's shopping or purchase-planning goal is clear; the exact UI tab is Build a Meal, not Create a Meal.",
+    deferWhen: "Do not infer grocery shopping from soup or another food mention. Ask one activity question only when needed; use prior answers.",
+    safetyBoundaries: ["Existing Pro access, authorized nutrition context, dietary, allergy, clinical and final food validation remain authoritative.", "Chef opens Shopping List only: no automatic Coach sheet, tab selection, request transfer, list writes or meal generation."],
+    relatedFeatures: ["Create a Dish serves a chosen dish preparation request.", "Find a Product is the other Grocery Store Coach tab; Product Scan is separate."],
+    verifiedSources: ["client/src/components/shopping/GroceryStoreCoachSheet.tsx", "client/src/i18n/locales/en.json", "server/routes/groceryCoach.ts", "server/routes.ts", "shared/coaching/navigation.ts"],
+  },
+  grocery_find_product: {
+    purpose: "Grocery Store Coach > Find a Product discovers grocery products to buy using the member's onboarding and nutrition profile.",
+    suitableNeeds: ["Locating or choosing a type of grocery product while shopping or planning a purchase."],
+    notFor: ["Evaluating the label of an actual product the member has or is considering; that is Product Scan.", "Preparing a recipe, meal-shopping planning, or verifying live retailer inventory."],
+    informationNeeded: ["Discovery of something to buy versus evaluation of an actual product, only if genuinely unresolved.", "The member enters the product request in Find a Product; Chef does not collect every product detail."],
+    offerWhen: "The goal is grocery product discovery, not merely a food or brand mention. Explain that the member opens Grocery Store Coach and selects Find a Product after arriving in Shopping List.",
+    deferWhen: "Clarify discovery versus label evaluation only when needed. Do not replace a clear meal or dish request with product search.",
+    safetyBoundaries: ["Grocery Store Coach's Pro entry and the product endpoint's active-access, current-profile and evidence safeguards still apply.", "The workflow seeks three suitable recommendations; never invent products to reach three, guarantee medical suitability or promise stock. No Chef product prefill or automatic tab opening."],
+    relatedFeatures: ["Build a Meal plans a meal and ingredients to purchase.", "Product Scan is a separate Shopping List control for actual-product evaluation."],
+    verifiedSources: ["client/src/components/shopping/GroceryStoreCoachSheet.tsx", "client/src/i18n/locales/en.json", "server/routes/biometricsRoutes.ts", "shared/coaching/navigation.ts"],
+  },
+} satisfies Partial<Record<CoachDestinationId, FeatureSuitability>>;
+
+const DEVELOPMENT_FEATURE_SUITABILITY = {
+  ...DEVELOPMENT_DRINK_SUITABILITY,
+  ...DEVELOPMENT_FOOD_SUITABILITY,
+};
+
+export function getFeatureUsageKnowledge(environment: string | undefined) {
+  if (environment !== "development") return FEATURE_USAGE_KNOWLEDGE;
+  const knowledge = { ...FEATURE_USAGE_KNOWLEDGE };
+  knowledge.my_perfect_menu = {
+    descriptionInput: "Choose Breakfast, Lunch, Dinner or Snack; Snack distinguishes food-style and dessert-style ideas.",
+    controls: ["Three personalized text-based ideas, not three meal photographs.", "Choose This selects an idea.",
+      "Add to Plan asks for a date and Meal 1–6 or Snack after choosing an idea. An empty-slot click starts creation; an occupied regular slot uses Replace and Create.",
+      "Try 3 More replaces the current ideas after confirmation."],
+    generationAction: "Complete and add the chosen meal to the selected date/slot, then open the appropriate Meal Builder.",
+    notes: ["Performance & Competition requires date and intended slot before generating ideas.",
+      "The destination owns subject, effective builder, generation and safety. Chef transfers none of these inputs.",
+      "The member may create more meals in the builder or use its My Perfect Menu return control after arriving through Menu.",
+      "Do not promise the builder automatically focuses the selected day. Save finished recipes to Favorites to keep them before replacing or deleting planned meals."],
+  };
+  knowledge.meal_builders = {
+    ...FEATURE_USAGE_KNOWLEDGE.meal_builders!,
+    descriptionInput: "Open your assigned builder from the Meal Builders landing page.",
+    controls: ["Open your assigned builder; existing eligibility and setup rules still apply.",
+      "Inside the member's builder, choose a day and desired Meal 1–6 slot, then use that slot's Create With Chef controls.",
+      "Continue creating meals in additional slots. Save Plan saves the board."],
+    generationAction: "Use the existing Open Meal Builders button to open the landing page, then open your assigned builder, choose a day and meal slot, and select Create With Chef.",
+    notes: [...FEATURE_USAGE_KNOWLEDGE.meal_builders!.notes,
+      "Ordinary members generally have one assigned builder; administrators may have access to multiple builders. Do not imply members can freely select a preferred builder or infer administrator authority.",
+      "Create With Chef is inside a Meal Builder, not the separate Create a Dish feature or an approved standalone Chef destination.",
+      "Chef opens the Meal Builders landing page only, not a chosen builder, day or slot. Do not claim exact onboarding or Macro Calculator completion."],
+  };
+  knowledge.sushi_creator = {
+    descriptionInput: "Choose a Sushi Style; Describe your sushi is an optional text field for additional detail.",
+    controls: ["Sushi Style: Roll, Nigiri, Sashimi, Sushi Bowl or Chef's Choice.",
+      "Optional Dietary Preference.", "Number of Servings: 1–10 recipe servings.", "Flavor Preference."],
+    generationAction: "Create My Sushi starts the destination's creation workflow.",
+    notes: ["The destination owns recipe generation and food safeguards. No general Chef sushi prefill or automatic generation.",
+      "Do not invent cuisine or Stovetop/Oven controls for Sushi Creator."],
+  };
+  knowledge.create_a_dish = {
+    ...FEATURE_USAGE_KNOWLEDGE.create_a_dish!,
+    controls: ["Servings selector.", "Optional diet and cuisine overrides for this recipe, not saved-profile changes.",
+      "Cooking method choices include Stovetop and Oven.", "Cooking preferences and optional notes.",
+      "Ingredient Control / Keep It Simple."],
+  };
+  // Correct member-facing terminology only in this authorized Development review.
+  knowledge.grocery_create_meal = {
+    ...FEATURE_USAGE_KNOWLEDGE.grocery_create_meal!,
+    descriptionInput: "In Shopping List, select Grocery Store Coach, then Build a Meal. Describe the meal you want shopping help with.",
+  };
+  for (const id of Object.keys(DEVELOPMENT_FEATURE_SUITABILITY) as Array<keyof typeof DEVELOPMENT_FEATURE_SUITABILITY>) {
+    // Source evidence is maintained here, not sent to the conversation model.
+    const { verifiedSources: _sources, ...suitability } = DEVELOPMENT_FEATURE_SUITABILITY[id];
+    knowledge[id] = { ...knowledge[id]!, suitability };
+  }
+  return knowledge;
+}
