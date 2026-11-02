@@ -998,23 +998,7 @@ export default function SushiCreator() {
                         />
                       )}
                     </div>
-                    {import.meta.env.DEV && (
-                      <GlassButton
-                        type="button"
-                        data-testid="sushi-surprise-me"
-                        aria-pressed={sushiStyle === "chef choice"}
-                        onClick={() => setSushiStyle("chef choice")}
-                        disabled={isGenerating || safetyChecking}
-                        className={`mt-2 min-h-11 w-full sm:w-auto px-4 text-sm ${
-                          sushiStyle === "chef choice"
-                            ? "bg-amber-500/30 border-amber-300 text-amber-100"
-                            : "bg-black/30 border-white/30 text-white"
-                        }`}
-                      >
-                        Surprise Me
-                        {sushiStyle === "chef choice" && <span className="text-xs font-normal">Selected</span>}
-                      </GlassButton>
-                    )}
+                    <div className="mt-2 flex flex-wrap items-start justify-between gap-x-4 gap-y-2" data-testid="creator-input-actions">
                     <VoiceInputButton
                       value={cravingInput}
                       onChange={setCravingInput}
@@ -1022,8 +1006,23 @@ export default function SushiCreator() {
                       separator=" "
                       maxLength={300}
                       label="Add sushi description by voice"
-                      className="mt-2"
+                      className="max-w-full items-start"
                     />
+                    {import.meta.env.DEV && (
+                      <PillButton
+                        type="button"
+                        data-testid="sushi-surprise-me"
+                        active={sushiStyle === "chef choice"}
+                        variant="emerald"
+                        aria-pressed={sushiStyle === "chef choice"}
+                        onClick={() => setSushiStyle("chef choice")}
+                        disabled={isGenerating || safetyChecking}
+                        className="ml-auto shrink-0"
+                      >
+                        Surprise Me
+                      </PillButton>
+                    )}
+                    </div>
                     <p className="text-xs text-white/70 mt-1 text-right">
                       {cravingInput.length}/300
                     </p>

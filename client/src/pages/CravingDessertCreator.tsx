@@ -706,33 +706,32 @@ export default function DessertCreator() {
                     />
                   )}
                 </div>
-                {import.meta.env.DEV && (
-                  <GlassButton
-                    type="button"
-                    data-testid="dessert-surprise-me"
-                    aria-pressed={dessertCategory === "surprise"}
-                    onClick={() => {
-                      if (dessertCategory !== "surprise") handleCategoryChange("surprise");
-                    }}
-                    disabled={isGenerating || safetyChecking}
-                    className={`mt-2 min-h-11 w-full sm:w-auto px-4 text-sm ${
-                      dessertCategory === "surprise"
-                        ? "bg-orange-500/30 border-orange-300 text-orange-100"
-                        : "bg-black/30 border-white/30 text-white"
-                    }`}
-                  >
-                    Surprise Me
-                    {dessertCategory === "surprise" && <span className="text-xs font-normal">Selected</span>}
-                  </GlassButton>
-                )}
+                <div className="mt-2 flex flex-wrap items-start justify-between gap-x-4 gap-y-2" data-testid="creator-input-actions">
                 <VoiceInputButton
                   value={customDessertDescription}
                   onChange={setCustomDessertDescription}
                   mode="append"
                   separator=" "
                   label="Add dessert description by voice"
-                  className="mt-2"
+                  className="max-w-full items-start"
                 />
+                {import.meta.env.DEV && (
+                  <PillButton
+                    type="button"
+                    data-testid="dessert-surprise-me"
+                    active={dessertCategory === "surprise"}
+                    variant="emerald"
+                    aria-pressed={dessertCategory === "surprise"}
+                    onClick={() => {
+                      if (dessertCategory !== "surprise") handleCategoryChange("surprise");
+                    }}
+                    disabled={isGenerating || safetyChecking}
+                    className="ml-auto shrink-0"
+                  >
+                    Surprise Me
+                  </PillButton>
+                )}
+                </div>
                 {customDessertDescription.trim().length > 0 && (
                   <p className="text-xs text-orange-300 mt-1">
                     We'll use your description — selections below are now optional.
