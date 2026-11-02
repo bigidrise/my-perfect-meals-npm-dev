@@ -481,3 +481,31 @@ mtime_ms = 1793637101092
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/7ece5542-cabb-4633-a835-bbbf0a62974d/fce04d07-5225-414f-a2c3-fa5af0d1a8b4"
 storage_version_token = "1793637126531593"
 content_type = "text/html"
+
+[[outputs]]
+id = "Iyc5CjpFH2DXQKj1zh3o9"
+uri = "file://generated-artifacts/feature-intelligence/founder-feature-review.md"
+type = "text"
+title = "Founder Feature Review — Markdown"
+description = "49 deduplicated candidates in four review batches, with source references, confidence, blank decisions and the Reduce Drinking Plan comparison."
+logical_id = "ecac4276-8e94-4026-a2ad-55f5755cc725"
+content_hash = "sha256:d6b1c3d4084b82d64786fd6db1b54c4668b4b8fa98894e1fd30c95aec26a0a07"
+size = 38012
+mtime_ms = 1793638988478
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/ecac4276-8e94-4026-a2ad-55f5755cc725/f52bd689-a047-48cf-b438-d8e065dd17c9"
+storage_version_token = "1793639021902479"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "z663fxX6QXU4nsX1Popd8"
+uri = "file://generated-artifacts/feature-intelligence/founder-feature-review.csv"
+type = "table"
+title = "Founder Feature Review — Sortable CSV"
+description = "Matching 49-row spreadsheet with category, batch, navigation status, evidence, confidence and a blank Founder decision column."
+logical_id = "f1905850-5c26-4cfd-b292-7a2d929694af"
+content_hash = "sha256:488896fdb7e407b8bebc235ccd76606237adfff49037d9ba64838e2bb7135c64"
+size = 28025
+mtime_ms = 1793638988479
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/f1905850-5c26-4cfd-b292-7a2d929694af/d1b44dc1-be98-495b-88cd-2a04067ca5b2"
+storage_version_token = "1793639022512411"
+content_type = "text/csv"

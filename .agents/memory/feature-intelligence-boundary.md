@@ -33,3 +33,19 @@ under this approval. Keep uncertainty and evidence; exclude unverified, internal
 experimental and confirmed legacy functionality from consumer explanations.
 Do not add paid offline model calls, runtime source scanning or raw consumer
 registry exposure merely because the foundation exists.
+
+## Founder-led feature review
+
+The founder confirmed A/B Testing Demo is no longer actively used and there are
+no current A/B testing campaigns. Record it as founder-confirmed inactive in
+review reports, without disabling it or changing existing classifications.
+Reduce Drinking Plan is an intended current feature. Do not treat the separate
+Weaning Off Tool as obsolete merely because both concern drinks reduction.
+
+**Why:** The founder explicitly supplied these product facts and requested a
+manageable review list rather than another audit of all suspected components.
+
+**How to apply:** Reuse Phase 3 reports; exclude reusable UI, utilities, helpers
+and test files from the founder list. Even a founder decision of "no longer
+needed" requires separate authorization for a targeted dependency and runtime
+reference audit, and never automatically authorizes code deletion.
