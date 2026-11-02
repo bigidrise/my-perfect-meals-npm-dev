@@ -6,7 +6,9 @@ import type { CoachResponse, CoachingTool } from "../../../shared/coaching/types
 import { ConciergeDecisionSchema, ConciergeGoalSchema, ConciergeMessageSchema } from "../../../shared/coaching/schemas";
 import { validateConciergeGoal } from "./conciergeGoal";
 import { CHEF_CONCIERGE_REVISION, getChefConversationInstructions } from "./conciergeInstructions";
-import { inspectConversationPurpose, MemberNeedSchema, ResponsePurposeSchema, responseFieldMetrics } from "./conversationPurpose";
+import { inspectConversationPurpose, MemberNeedSchema, ResponsePurposeSchema, responseFieldMetrics,
+  responseContractIndicators, navigationEmissionIndicators } from "./conversationPurpose";
+import { fallbackQuality, selectRejectedConversation, HANDOFF_RECOVERY, MISSING_PENDING_RECOVERY } from "./conciergeFallback";
 import { buildSafetyResponse } from "./safety";
 import { getLanguageInstruction } from "../../utils/languageInstruction";
 import { CreatorRequestEvidenceSchema, groundedCreatorRequest } from "./creatorRequest";
@@ -66,6 +68,7 @@ function independentConversation(message: string | null | undefined, allowedDest
   // Symbol-only nullable-field placeholders are not useful conversation or
   // consent. This is output validation, not classification of food intent.
   if (!message || !/[\p{L}\p{N}]/u.test(message)) return undefined;
+  if (process.env.NODE_ENV === "development" && fallbackQuality(message) === "placeholder") return undefined;
   const lower = message.toLocaleLowerCase();
   // Match longer labels first: "Athlete Beverage Creator" includes "Beverage
   // Creator", but authorizing one must not authorize an additional other tool.
@@ -151,9 +154,11 @@ export async function runConciergeConversation(params: {
   const instructions = getChefConversationInstructions(process.env.NODE_ENV);
   const platformInstructions = getPlatformGuidanceInstructions(process.env.NODE_ENV);
   const schema = developmentPurpose ? ModelTurnSchema.extend({
-    memberNeed: MemberNeedSchema.describe("The member's actual need, independent of any feature being proposed. A request for nutrition advice is nutrition_guidance, not feature_help."),
-    responsePurpose: ResponsePurposeSchema,
-    message: z.string().describe("Canonical complete reply. For answer_with_offer, answer the nutrition question FIRST and include the relevant permission offer in this SAME message. Never replace guidance with a feature pitch."),
+    memberNeed: MemberNeedSchema.describe("The actual member need: nutrition_guidance for advice; feature_help for choosing or offering a useful workflow; navigation for accepting a valid pending recommendation or explicitly opening a named feature; unclear only while the actual task is unresolved. A clear preparation request may warrant feature_help and an offer, not a confirmed handoff."),
+    responsePurpose: ResponsePurposeSchema.describe("answer/clarify: navigationIntent=none, no food_assistance action. answer_with_offer: useful answer plus offer, navigationIntent=recommendation, food_assistance decision/goal, memberNeed=nutrition_guidance or feature_help. feature_only_offer: same recommendation metadata, memberNeed=feature_help. handoff: memberNeed=navigation, navigationIntent=confirmed with valid pending state or direct_request for an explicit named feature. care never grants navigation; actual safety flags remain authoritative."),
+    message: z.string().describe("Canonical complete reply. For answer_with_offer, answer FIRST and include the permission offer in this SAME message. Every permission offer MUST carry navigationIntent=recommendation and a matching ready food_assistance conciergeDecision/goal. An offer is not a confirmed handoff. Never replace guidance with a feature pitch."),
+    conversationMessage: z.string().nullable().describe("Optional independently useful answer or clarification if the proposed action is rejected. No rejected offer, opening claim, emoji-only text or generic acknowledgment. Null when there is no useful independent continuation."),
+    handoffMessage: z.string().nullable().describe("Concise verified starting guidance only for responsePurpose=handoff with confirmed/direct navigation. Null for answers, clarification and unaccepted offers. Never claim a feature already opened."),
     recommendationMessage: z.null().describe("Unused: the canonical message contains the entire answer and any feature offer."),
   }) : ModelTurnSchema;
   const responseFormat = zodResponseFormat(schema, "chef_conversation");
@@ -164,11 +169,25 @@ export async function runConciergeConversation(params: {
   let metrics = responseFieldMetrics();
   let stage: "provider" | "parsing" | "decision" = "provider";
   let retainPendingOnFailure = false;
+  let contract: ReturnType<typeof responseContractIndicators> | undefined;
+  let fallback: ReturnType<typeof selectRejectedConversation>["outcomes"] | undefined;
   // Only correlation IDs in the existing UUID format are safe for logs.
   const correlation = /^[a-f0-9-]{36}$/i.test(params.requestId ?? "") ? ` request_id=${params.requestId}` : "";
-  const diagnostic = (outcome: string, reason?: DecisionReason | "safety_escalation") =>
+  const diagnostic = (outcome: string, reason?: DecisionReason | "safety_escalation", response?: CoachResponse) =>
     console.info(`[ChefConcierge] decision_outcome=${outcome}${reason ? ` reason=${reason}` : ""}${correlation}` +
-      (developmentPurpose ? ` ${JSON.stringify({ implementation: "conversation-purpose-v1", fingerprint, purpose, selectedField, fields: metrics })}` : ""));
+      (developmentPurpose ? ` ${JSON.stringify({ implementation: "conversation-purpose-v1", fingerprint, purpose, selectedField,
+        fields: metrics, contract, fallback, ...(response ? navigationEmissionIndicators(response) : {}) })}` : ""));
+  const finish = (response: CoachResponse) => {
+    if (developmentPurpose) diagnostic("response_ready", undefined, response);
+    return response;
+  };
+  const rejectedContinuation = (turn: { message?: string | null; conversationMessage?: string | null },
+    screen = conversationalContinuation) => {
+    const selection = selectRejectedConversation(turn, screen);
+    selectedField = selection.selectedField;
+    fallback = selection.outcomes;
+    return selection.text;
+  };
   try {
     const completion = await params.client.chat.completions.create({
       model: "gpt-4o", response_format: responseFormat,
@@ -194,7 +213,10 @@ export async function runConciergeConversation(params: {
     });
     stage = "parsing";
     const rawTurn = JSON.parse(completion.choices[0]?.message?.content ?? "{}");
-    if (developmentPurpose) metrics = responseFieldMetrics(rawTurn);
+    if (developmentPurpose) {
+      metrics = responseFieldMetrics(rawTurn);
+      contract = responseContractIndicators(rawTurn, !!params.pendingRecommendation);
+    }
     const turn = TurnSchema.parse(rawTurn);
     if (developmentPurpose) {
       purpose = ResponsePurposeSchema.safeParse(turn.responsePurpose).success
@@ -208,13 +230,13 @@ export async function runConciergeConversation(params: {
     if (turn.redFlag || classifiedCare || requiredCare) {
       selectedField = "care";
       diagnostic("safety_rejected_navigation", "safety_escalation");
-      return buildSafetyResponse({
+      return finish(buildSafetyResponse({
         triggered: true, class: turn.careDisposition === "emergency" ? "emergency" : "escalate",
         reason: "concierge_care_escalation",
         suggestedResponse: turn.contactCare
           ? [...new Set([turn.message, turn.contactCare].filter(Boolean))].join("\n\n")
           : turn.redFlagReason ?? turn.message ?? undefined,
-      }) as CoachResponse;
+      }) as CoachResponse);
     }
     stage = "decision";
     const acceptingPending = turn.navigationIntent === "confirmed" && params.pendingRecommendation;
@@ -224,40 +246,46 @@ export async function runConciergeConversation(params: {
         retainPendingOnFailure = !!acceptingPending && inspected.reason !== "purpose_conflict";
         // Screen the entire independent reply; never strip an unsafe offer out
         // of a field or rescue it with an unchecked recommendation variant.
-        const continuation = conversationalContinuation(turn.conversationMessage) ??
-          conversationalContinuation(turn.message);
-        selectedField = conversationalContinuation(turn.conversationMessage) ? "conversationMessage" :
-          continuation ? "message" : "retry";
+        const continuation = rejectedContinuation(turn);
         diagnostic("purpose_rejected", inspected.reason);
         if (!continuation) throw new DecisionFailure(inspected.reason!);
         const response = envelope(continuation);
         if (retainPendingOnFailure && acceptingPending) response.presentation!.navigation = acceptingPending;
-        return response;
+        return finish(response);
       }
     }
     if (turn.conciergeDecision == null && !acceptingPending) {
+      if (developmentPurpose && turn.navigationIntent === "confirmed" && !params.pendingRecommendation) {
+        // An honest "can't open" explanation is not an opening claim. Screen
+        // every other clause unchanged; never remove an actual action or link.
+        const continuation = rejectedContinuation(turn, text => conversationalContinuation(
+          text?.replace(/\b(?:can't|cannot)\s+open\b/gi, "cannot access")) ? text ?? undefined : undefined);
+        diagnostic("no_navigation", "missing_pending_recommendation");
+        if (!continuation) selectedField = "retry";
+        return finish(envelope(continuation ?? MISSING_PENDING_RECOVERY));
+      }
       const message = (turn.navigationIntent === "recommendation" ? undefined : ordinaryConversation(turn.message)) ??
         conversationalContinuation(turn.conversationMessage);
       if (!message) throw new DecisionFailure("unusable_conversational_response");
       selectedField = ordinaryConversation(turn.message) === message ? "message" : "conversationMessage";
       diagnostic("no_navigation", turn.navigationIntent === "confirmed" ? "missing_pending_recommendation" : undefined);
-      return envelope(message);
+      return finish(envelope(message));
     }
     const rejectAction = (reason: DecisionReason, preservePending = false): CoachResponse => {
       retainPendingOnFailure = preservePending && !!acceptingPending;
-      const message = conversationalContinuation(turn.conversationMessage);
+      const message = developmentPurpose ? rejectedContinuation(turn) : conversationalContinuation(turn.conversationMessage);
       if (!message) {
         diagnostic("conversation_rejected", "unusable_conversational_response");
         throw new DecisionFailure(reason);
       }
-      selectedField = "conversationMessage";
+      if (!developmentPurpose) selectedField = "conversationMessage";
       diagnostic("action_rejected_conversation_preserved", reason);
       // Neither the unchecked pitch nor its request text reaches display/persistence.
       const response = envelope(message);
       if (preservePending && acceptingPending) {
         response.presentation!.navigation = acceptingPending;
       }
-      return response;
+      return finish(response);
     };
     const parsedDecision = ConciergeDecisionSchema.safeParse(acceptingPending && (
       turn.conciergeDecision == null ||
@@ -290,7 +318,7 @@ export async function runConciergeConversation(params: {
       if (!message) throw new DecisionFailure("unusable_conversational_response");
       selectedField = ordinaryConversation(turn.message) === message ? "message" : "conversationMessage";
       if (developmentPurpose) diagnostic("no_navigation");
-      return envelope(message);
+      return finish(envelope(message));
     }
     const confirmed = !!acceptingPending && acceptingPending.destinationId === destinationId &&
       !!independentConversation(params.userMessage, destinationId);
@@ -314,9 +342,15 @@ export async function runConciergeConversation(params: {
         [turn.recommendationMessage, turn.message, turn.conversationMessage];
       const recommendation = candidates
         .map((text, index) => ({ text: independentConversation(text, destinationId), dedicated: index === 0 }))
-        .find(({ text, dedicated }) => text && /[?？؟]/u.test(text) &&
-          (dedicated || mentionsCoachDestination(text, destinationId)) &&
-          conversationalContinuation(text.replace(/\b(?:open|use)\b/gi, ""), true));
+        .find(({ text, dedicated }) => {
+          if (!text || !/[?？؟]/u.test(text) || (!dedicated && !mentionsCoachDestination(text, destinationId))) return false;
+          // Only an explicit future permission QUESTION may say "take you
+          // there"; a claim, transfer, URL or opening instruction still fails.
+          const wording = developmentPurpose ? text.replace(
+            /\b((?:want me to|would you like me to|shall I|should I|may I)\s+)take you there(?=\s*[?？؟])/gi,
+            "$1continue") : text;
+          return !!conversationalContinuation(wording.replace(/\b(?:open|use)\b/gi, ""), true);
+        });
       if (!recommendation) {
         // The canonical answer can stand without an offer. Never append or
         // substitute the shorter recommendationMessage to manufacture one.
@@ -324,7 +358,7 @@ export async function runConciergeConversation(params: {
         if (answer) {
           selectedField = "message";
           diagnostic("answer_preserved_without_action", "missing_recommendation_wording");
-          return envelope(answer);
+          return finish(envelope(answer));
         }
         return rejectAction("missing_recommendation_wording");
       }
@@ -335,7 +369,7 @@ export async function runConciergeConversation(params: {
       };
       selectedField = developmentPurpose || !recommendation.dedicated ? "message" : "recommendationMessage";
       diagnostic("recommendation_pending");
-      return response;
+      return finish(response);
     }
     // Consent, readiness, destination and current entitlement have already been
     // validated above. Missing model wording must not ask for that consent again.
@@ -374,7 +408,7 @@ export async function runConciergeConversation(params: {
     };
     selectedField = handoff === turn.handoffMessage ? "handoffMessage" : "verified_handoff_recovery";
     diagnostic(response.presentation!.navigation.state);
-    return response;
+    return finish(response);
   } catch (error) {
     // Static outcome only: never log the conversation, clinical context or provider payload.
     const outcome = error instanceof DecisionFailure ? error.reason : "response_unavailable";
@@ -382,13 +416,16 @@ export async function runConciergeConversation(params: {
       typeof error.status === "number" && error.status >= 400 && error.status <= 599 ? error.status : undefined;
     console.warn(`[ChefConcierge] decision_outcome=${outcome} failure_stage=${stage}${status ? ` provider_status=${status}` : ""}${correlation}`);
     if (developmentPurpose) { selectedField = "retry"; diagnostic("response_rejected", error instanceof DecisionFailure ? error.reason : undefined); }
-    const response = envelope("I couldn't complete that response. Please try your request again.");
+    const response = envelope(developmentPurpose && error instanceof DecisionFailure
+      ? !params.pendingRecommendation && contract?.navigationIntent === "confirmed"
+        ? MISSING_PENDING_RECOVERY : HANDOFF_RECOVERY
+      : "I couldn't complete that response. Please try your request again.");
     if (retainPendingOnFailure && error instanceof DecisionFailure &&
       ["missing_handoff_wording", "purpose_missing", "purpose_invalid"].includes(error.reason) &&
       params.pendingRecommendation && params.pendingRecommendation.state === "recommendation_pending") {
       response.presentation!.navigation = params.pendingRecommendation;
     }
     response.meta.concierge = { revision: CHEF_CONCIERGE_REVISION, reasoning: "unavailable", rendering: "retry" };
-    return response;
+    return finish(response);
   }
 }

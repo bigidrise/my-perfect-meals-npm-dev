@@ -1000,6 +1000,46 @@ test("model-recognized escalation wins over malformed navigation and preserves c
   expect(result.todayPlan.items.every(item => !item.destinationId)).toBe(true);
 });
 
+test("persists the rejected apple-pie reply consistently and exposes only that saved reply to the next turn", async () => {
+  const original = "Chef, I want to bake a whole apple pie for my family.";
+  reply("Dessert Creator can help with that pie. Want me to take you there?", "dessert_creator",
+    { ...unknown, activity: "prepare", occasion: "dessert", dishChosen: true }, {
+      memberNeed: "feature_help", responsePurpose: "answer_with_offer", navigationIntent: "none",
+      conversationMessage: ":apple:",
+    });
+  const result = await run(original);
+  const dialect = new PgDialect();
+  const queries = (db.execute as jest.Mock).mock.calls.map(([query]) => dialect.sqlToQuery(query));
+  const insert = queries.find(query => query.sql.includes("INSERT INTO coach_messages") &&
+    query.sql.includes("'assistant'"))!;
+  expect(insert).toBeDefined();
+  expect(insert.params[1]).toBe(result.presentation!.message + "\n\n");
+  expect(JSON.parse(insert.params[2] as string)).toEqual(resultWithoutIds(result));
+  expect(result.presentation?.navigation).toBeUndefined();
+  expect(result.todayPlan.items).toEqual([]);
+  if (runtimeEnvironment === "development") {
+    expect(result.presentation?.message).not.toContain(":apple:");
+    expect(result.meta.concierge?.rendering).toBe("retry");
+    (loadBoundedHistory as jest.Mock).mockResolvedValueOnce({
+      recentMessages: [{ role: "user", content: original }, { role: "assistant", content: insert.params[1] }],
+      rollingContext: null,
+    });
+    reply("Dessert Creator can help with that pie. Want me to take you there?", "dessert_creator",
+      { ...unknown, activity: "prepare", occasion: "dessert", dishChosen: true }, {
+        memberNeed: "feature_help", responsePurpose: "answer_with_offer", navigationIntent: "none",
+        conversationMessage: ":apple: Sounds like a delicious plan!",
+      });
+    const second = await run("YES");
+    expect(second.presentation?.navigation).toBeUndefined();
+    expect(second.todayPlan.items).toEqual([]);
+    const wire = JSON.parse(mockCreate.mock.calls[1][0].messages[1].content);
+    expect(wire.pendingRecommendation).toBeNull();
+    expect(wire.history[1].content).toBe(insert.params[1]);
+  } else {
+    expect(result.presentation?.message).toBe(":apple:");
+  }
+});
+
 test.each(["referral", "emergency"])(
   "persists complete %s guidance and its question in Development history only", async careDisposition => {
     const care = "Please obtain the indicated medical assessment; do not wait for a recipe. Are fluids staying down?";
