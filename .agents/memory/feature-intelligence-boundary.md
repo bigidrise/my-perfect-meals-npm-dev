@@ -33,12 +33,15 @@ billing bypass. Preserve destination entitlements, authentication, account
 isolation, usage limits and conversation behavior. No Production deployment or
 Automated Feature Intelligence activation is approved by that decision.
 
-The founder also approved preparing and verifying an isolated local Ask Chef
+The founder also approved preparing and verifying an isolated Ask Chef
 Free-tier candidate from the latest remote Production base, limited to access,
-subscription display and focused tests. This does not authorize merging,
-pushing, publishing, Production workspace changes, migrations or unrelated
-Development integration. If secure signed-in verification is unavailable,
-disclose the gap and stop rather than creating an authentication workaround.
+subscription display and focused tests. Subsequent approval permits pushing
+only the exact reviewed candidate and opening a GitHub PR targeting Production,
+provided the remote base and candidate still match the approved review.
+Merging, publishing, Production workspace changes, migrations and unrelated
+Development integration still require separate approval. If secure signed-in
+verification is unavailable, disclose the gap rather than creating an
+authentication workaround.
 
 **Why:** The founder explicitly limited Phase 3 to verification and reporting;
 source-backed descriptions are not authenticated usability or release approval.
