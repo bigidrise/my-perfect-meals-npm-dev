@@ -349,6 +349,26 @@ const DEVELOPMENT_FEATURE_SUITABILITY = {
 export function getFeatureUsageKnowledge(environment: string | undefined) {
   if (environment !== "development") return FEATURE_USAGE_KNOWLEDGE;
   const knowledge = { ...FEATURE_USAGE_KNOWLEDGE };
+  knowledge.my_perfect_menu = {
+    descriptionInput: "Choose Breakfast, Lunch, Dinner or Snack; Snack distinguishes food-style and dessert-style ideas.",
+    controls: ["Three personalized text-based ideas, not three meal photographs.", "Choose This selects an idea.",
+      "Add to Plan asks for a date and Meal 1–6 or Snack after choosing an idea. An empty-slot click starts creation; an occupied regular slot uses Replace and Create.",
+      "Try 3 More replaces the current ideas after confirmation."],
+    generationAction: "Complete and add the chosen meal to the selected date/slot, then open the appropriate Meal Builder.",
+    notes: ["Performance & Competition requires date and intended slot before generating ideas.",
+      "The destination owns subject, effective builder, generation and safety. Chef transfers none of these inputs.",
+      "The member may create more meals in the builder or use its My Perfect Menu return control after arriving through Menu.",
+      "Do not promise the builder automatically focuses the selected day. Save finished recipes to Favorites to keep them before replacing or deleting planned meals."],
+  };
+  knowledge.meal_builders = {
+    ...FEATURE_USAGE_KNOWLEDGE.meal_builders!,
+    controls: [...FEATURE_USAGE_KNOWLEDGE.meal_builders!.controls,
+      "Inside the member's builder, choose a day and desired Meal 1–6 slot, then use that slot's Create With Chef controls.",
+      "Continue creating meals in additional slots. Save Plan saves the board."],
+    notes: [...FEATURE_USAGE_KNOWLEDGE.meal_builders!.notes,
+      "Create With Chef is inside a Meal Builder, not the separate Create a Dish feature or an approved standalone Chef destination.",
+      "Chef opens the Meal Builders landing page only, not a chosen builder, day or slot. Do not claim exact onboarding or Macro Calculator completion."],
+  };
   knowledge.sushi_creator = {
     descriptionInput: "Choose a Sushi Style; Describe your sushi is an optional text field for additional detail.",
     controls: ["Sushi Style: Roll, Nigiri, Sashimi, Sushi Bowl or Chef's Choice.",

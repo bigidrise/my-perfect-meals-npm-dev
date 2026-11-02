@@ -168,3 +168,18 @@ directions instead.
 without changing navigation authority or borrowing controls from another
 creator. Keep necessary safety guidance and requests to skip instructions.
 Mocked fixtures prove wiring and contracts, not live stylistic compliance.
+
+For uncertain new members, distinguish planning a day of meals, making one dish
+and exploring Lifestyle. Only when meal planning is chosen and its method remains
+unresolved, distinguish My Perfect Menu's suggested ideas from Create With Chef
+inside a Meal Builder. Create a Dish is a separate single-dish experience.
+Clear intent bypasses orientation; prior choices must not be asked again.
+
+**Why:** The founder's live test recommended My Perfect Menu prematurely for
+general new-member meal-planning help. They explicitly requested these meaningful
+choices, not a compulsory onboarding interview or a platform-wide tour.
+
+**How to apply:** Keep the refinement Development-only. Recommend existing entry
+pages once the method is clear, retaining setup/access gates and one confirmation.
+Lifestyle's landing page remains knowledge-only without an approved Chef button;
+never silently substitute a creator. Do not infer exact setup completion.
