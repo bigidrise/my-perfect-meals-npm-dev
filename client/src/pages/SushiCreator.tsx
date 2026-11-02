@@ -998,6 +998,23 @@ export default function SushiCreator() {
                         />
                       )}
                     </div>
+                    {import.meta.env.DEV && (
+                      <GlassButton
+                        type="button"
+                        data-testid="sushi-surprise-me"
+                        aria-pressed={sushiStyle === "chef choice"}
+                        onClick={() => setSushiStyle("chef choice")}
+                        disabled={isGenerating || safetyChecking}
+                        className={`mt-2 min-h-11 w-full sm:w-auto px-4 text-sm ${
+                          sushiStyle === "chef choice"
+                            ? "bg-amber-500/30 border-amber-300 text-amber-100"
+                            : "bg-black/30 border-white/30 text-white"
+                        }`}
+                      >
+                        Surprise Me
+                        {sushiStyle === "chef choice" && <span className="text-xs font-normal">Selected</span>}
+                      </GlassButton>
+                    )}
                     <VoiceInputButton
                       value={cravingInput}
                       onChange={setCravingInput}

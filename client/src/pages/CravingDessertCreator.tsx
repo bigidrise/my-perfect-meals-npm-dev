@@ -706,6 +706,25 @@ export default function DessertCreator() {
                     />
                   )}
                 </div>
+                {import.meta.env.DEV && (
+                  <GlassButton
+                    type="button"
+                    data-testid="dessert-surprise-me"
+                    aria-pressed={dessertCategory === "surprise"}
+                    onClick={() => {
+                      if (dessertCategory !== "surprise") handleCategoryChange("surprise");
+                    }}
+                    disabled={isGenerating || safetyChecking}
+                    className={`mt-2 min-h-11 w-full sm:w-auto px-4 text-sm ${
+                      dessertCategory === "surprise"
+                        ? "bg-orange-500/30 border-orange-300 text-orange-100"
+                        : "bg-black/30 border-white/30 text-white"
+                    }`}
+                  >
+                    Surprise Me
+                    {dessertCategory === "surprise" && <span className="text-xs font-normal">Selected</span>}
+                  </GlassButton>
+                )}
                 <VoiceInputButton
                   value={customDessertDescription}
                   onChange={setCustomDessertDescription}
