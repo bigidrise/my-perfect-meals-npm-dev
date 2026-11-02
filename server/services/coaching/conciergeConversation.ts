@@ -327,7 +327,11 @@ export async function runConciergeConversation(params: {
       return rejectAction("navigation_not_authorized");
     }
     const decision = validateConciergeGoal(parsedDecision.data, params.tools,
-      memberMessages, { completeMissingDestination: true });
+      memberMessages, {
+        completeMissingDestination: true,
+        acceptedPendingRecommendation: !!acceptingPending &&
+          acceptingPending.destinationId === parsedDecision.data.destinationId,
+      });
     // Reject the action, not an independently valid conversational continuation.
     if (parsedDecision.data.destinationId && !decision?.destinationId) {
       return rejectAction(params.tools.some(tool => tool.id === parsedDecision.data.destinationId)
@@ -349,7 +353,7 @@ export async function runConciergeConversation(params: {
     // for the explicit-feature exception, regardless of the model's intent tag.
     const direct = turn.navigationIntent === "direct_request" &&
       decision.goal.explicitFeatureId === destinationId &&
-      mentionsCoachDestination(params.userMessage, destinationId) &&
+      mentionsCoachDestination(params.userMessage, destinationId, process.env.NODE_ENV) &&
       !!independentConversation(params.userMessage, destinationId);
     if (!confirmed && !direct) {
       if (turn.navigationIntent === "confirmed" && !params.pendingRecommendation) {
@@ -365,7 +369,8 @@ export async function runConciergeConversation(params: {
       const recommendation = candidates
         .map((text, index) => ({ text: independentConversation(text, destinationId), dedicated: index === 0 }))
         .find(({ text, dedicated }) => {
-          if (!text || !/[?？؟]/u.test(text) || (!dedicated && !mentionsCoachDestination(text, destinationId))) return false;
+          if (!text || !/[?？؟]/u.test(text) ||
+            (!dedicated && !mentionsCoachDestination(text, destinationId, process.env.NODE_ENV))) return false;
           // Only an explicit future permission QUESTION may say "take you
           // there"; a claim, transfer, URL or opening instruction still fails.
           const wording = developmentPurpose ? text.replace(
