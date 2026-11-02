@@ -14,3 +14,7 @@ Ask Chef remains the feature name; Platform Concierge describes its role as a da
 **Why:** The founder explicitly requested keeping Ask Chef while adding Platform Concierge underneath or beside it.
 
 **How to apply:** Preserve this naming distinction in future UI work. Copy or positioning changes do not authorize AI engine, prompt, access, or navigation changes.
+
+The founder approved the focused subtitle and conversational welcome implementation for release preparation and confirmed that the wording is settled. No further design changes are needed without a new request.
+
+**Why:** The founder explicitly confirmed the result stayed within scope and should remain separate from the Free-tier access release.
