@@ -81,6 +81,20 @@ Evaluate meaningful context changes and the use of already answered questions,
 not only complete wording or knowledge of available features. Keep conversational
 clarification distinct from changing clinical thresholds or expanding data access.
 
+Contract-rejection recovery must be useful as well as nonempty. Neither a longer
+canonical reply nor an independent variant is trustworthy merely because it
+contains letters. Rejected metadata must never supply navigation authority.
+
+**Why:** Founder acceptance exposed emoji shortcodes and generic acknowledgments
+as saved replies after purpose rejection, despite passing synthetic conversation
+tests. Shortcodes contain letters, so a symbol-only check is insufficient.
+
+**How to apply:** Test contradictory cross-field metadata and both text candidates
+through the actual persistence path. Prefer truthful deterministic recovery when
+neither candidate is safe and useful. Use closed contract indicators to diagnose
+failures without retaining private model or member prose; live judgment remains
+a separate founder-approved gate.
+
 For drink-related recommendations, the founder wants better suitability and
 timing, not fewer recommendations at all costs. Do not replace poor Beverage
 Creator offers with a blanket prohibition during nutrition guidance or an
