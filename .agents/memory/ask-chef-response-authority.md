@@ -179,10 +179,17 @@ Clear intent bypasses orientation; prior choices must not be asked again.
 general new-member meal-planning help. They explicitly requested these meaningful
 choices, not a compulsory onboarding interview or a platform-wide tour.
 
-**How to apply:** Keep the refinement Development-only. Recommend existing entry
-pages once the method is clear, retaining setup/access gates and one confirmation.
-Lifestyle's landing page remains knowledge-only without an approved Chef button;
-never silently substitute a creator. Do not infer exact setup completion.
+**How to apply:** Keep the refinement Development-only. For an unresolved planning
+method, briefly describe My Perfect Menu's personalized suggestions and Meal
+Builder's Create With Chef workflow, then ask “Which one would you prefer?”
+without repeating the descriptions in that final question. The founder requires
+this structure, not a fixed script. Interpret short answers such as “Menu” or
+“Create With Chef” in the preceding comparison's context, rather than rejecting
+them as unsupported commands. Method selection leads to an offer; acceptance of
+its validated pending recommendation leads to navigation, without another choice
+or permission question. Retain setup/access gates. Lifestyle's landing page
+remains knowledge-only without an approved Chef button; never silently substitute
+a creator. Do not infer exact setup completion.
 
 Meal Builder handoffs must guide ordinary members into their assigned builder,
 not imply they can freely choose among builders. Administrators may have access
