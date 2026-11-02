@@ -171,7 +171,11 @@ test.each([false, true])("actual chat page is immediately usable with assessment
   const textarea = host.querySelector("textarea")!;
   expect(textarea).not.toBeNull();
   expect(textarea.disabled).toBe(false);
-  expect(host.textContent).toContain("What can I help you with?");
+  expect(host.querySelectorAll("h2")).toHaveLength(1);
+  expect(host.querySelector("h2")?.textContent?.trim()).toBe("How can I help you today?");
+  expect(host.textContent).toContain("Ask about nutrition or anything in My Perfect Meals.");
+  expect(textarea.placeholder).toBe("Ask me anything...");
+  expect(host.textContent).not.toMatch(/What's on your mind|What can I help you with/);
   expect(host.textContent).not.toMatch(/assessment|questionnaire|Edit profile|Retake|STORED_STYLE_SENTINEL/i);
   expect(mockNavigate).not.toHaveBeenCalled();
   expect(mockAPI).not.toHaveBeenCalled(); // No questions, profile or queued behavioral follow-up.
@@ -193,6 +197,9 @@ test("a member without assessment can send, see the concise reply, and continue 
     body: JSON.stringify({ message: "I'm hungry.", specialization: "corner" }),
   }));
   expect(host.textContent).toContain("Savory, sweet, or something light?");
+  expect(host.textContent).not.toContain("How can I help you today?");
+  expect(host.textContent).not.toContain("Ask about nutrition or anything in My Perfect Meals.");
+  expect(host.querySelector("textarea")?.placeholder).toBe("Ask me anything...");
   expect(host.textContent).not.toContain("INTERNAL_TEXT");
   expect(host.querySelectorAll('button').length).toBeGreaterThan(0);
   mockAPI.mockClear();
@@ -219,6 +226,7 @@ test("stored conversations still render for an unassessed member", async () => {
       todayPlan: null, learningOpportunity: null },
   }]);
   expect(host.textContent).toContain("Your previous conversation is here.");
+  expect(host.textContent).not.toContain("How can I help you today?");
   expect(host.textContent).not.toMatch(/Edit profile|Retake full assessment/);
   expect(mockNavigate).not.toHaveBeenCalled();
 });
@@ -365,7 +373,7 @@ test("composer is outside the bounded message scroller with safe-area spacing", 
   expect(composer.parentElement).toBe(history.parentElement);
   expect(composer.className).toContain("shrink-0");
   expect(composer.getAttribute("style")).toContain("safe-area-inset-bottom");
-  expect(host.querySelector("textarea")?.placeholder).toBe("Ask Chef anything…");
+  expect(host.querySelector("textarea")?.placeholder).toBe("Ask me anything...");
   // The existing Development controls occupy the mobile top-right corner.
   expect(host.querySelector("h1")?.parentElement?.className).toContain("pr-28 lg:pr-4");
 });
@@ -374,7 +382,7 @@ test("Production retains the existing layout, placeholder and history Back behav
   mockConversationEnabled = false;
   await renderPage(true);
   expect(host.querySelector('[data-testid="ask-chef-pane"]')).toBeNull();
-  expect(host.querySelector("textarea")?.placeholder).toBe("Ask Chef anything…");
+  expect(host.querySelector("textarea")?.placeholder).toBe("Ask me anything...");
   const back = jest.spyOn(window.history, "back").mockImplementation(() => {});
   act(() => (host.querySelector('[aria-label="Go back"]') as HTMLButtonElement).click());
   expect(mockNavigate).not.toHaveBeenCalledWith("/dashboard");
