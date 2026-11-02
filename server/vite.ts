@@ -28,6 +28,7 @@ export function log(message: string, source = "express") {
 
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
+    fs: viteConfig.server?.fs,
     middlewareMode: true,
     hmr: false,  // Disable HMR to avoid WebSocket port conflicts
     allowedHosts: true as const,

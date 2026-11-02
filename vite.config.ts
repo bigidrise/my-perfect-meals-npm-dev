@@ -3,6 +3,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import fs from "fs";
+import { PRIVATE_DEVELOPMENT_FILE_PATTERNS } from "./config/development-artifact-privacy";
 
 // Read version from version.json if it exists
 let appVersion = "1.0.0+dev";
@@ -31,6 +32,7 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
+    fs: { deny: PRIVATE_DEVELOPMENT_FILE_PATTERNS },
     hmr: false,         // ⬅️ Disable HMR WS
     strictPort: true,   // don't silently hop ports
     port: 5173,
