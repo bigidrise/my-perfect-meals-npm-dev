@@ -677,6 +677,23 @@ export default function BeverageCreator() {
                     />
                   )}
                 </div>
+                {import.meta.env.DEV && (
+                  <GlassButton
+                    type="button"
+                    data-testid="beverage-surprise-me"
+                    aria-pressed={beverageCategory === "surprise"}
+                    onClick={() => setBeverageCategory("surprise")}
+                    disabled={isGenerating || safetyChecking}
+                    className={`mt-2 min-h-11 w-full sm:w-auto px-4 text-sm ${
+                      beverageCategory === "surprise"
+                        ? "bg-blue-500/30 border-blue-300 text-blue-100"
+                        : "bg-black/30 border-white/30 text-white"
+                    }`}
+                  >
+                    Surprise Me
+                    {beverageCategory === "surprise" && <span className="text-xs font-normal">Selected</span>}
+                  </GlassButton>
+                )}
                 <VoiceInputButton
                   value={customBeverageDescription}
                   onChange={setCustomBeverageDescription}
