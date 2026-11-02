@@ -26,6 +26,13 @@ clinical engines, legacy cleanup or Production work. Stop for founder review
 after that package; broader concierge alignment is not blanket implementation
 approval.
 
+The founder separately approved moving Ask Chef to the Free base tier in
+Development, with cumulative higher-tier inclusion and matching subscription
+display. Use existing authenticated access, not a new subscription system or
+billing bypass. Preserve destination entitlements, authentication, account
+isolation, usage limits and conversation behavior. No Production deployment or
+Automated Feature Intelligence activation is approved by that decision.
+
 **Why:** The founder explicitly limited Phase 3 to verification and reporting;
 source-backed descriptions are not authenticated usability or release approval.
 

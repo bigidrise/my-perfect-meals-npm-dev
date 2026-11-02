@@ -26,7 +26,7 @@ import { isBusinessPilotOrganizationEntry } from "@/lib/businessPilotEntrance";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
 import { useToast } from "@/hooks/use-toast";
-import { hasActivePaidSubscription, isProOrAbove, isClinicalOrAbove, isActualProPlanOrAbove, canAccessMealBuilders } from "@/lib/subscriptionCheck";
+import { hasActivePaidSubscription, isProOrAbove, isClinicalOrAbove, isActualProPlanOrAbove, canAccessMealBuilders, canAccessAskChef } from "@/lib/subscriptionCheck";
 import { apiRequest } from "@/lib/queryClient";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
@@ -153,6 +153,11 @@ function PaywallGuard({ component: Component }: { component: React.ComponentType
 
   if (!user || isBlocked) return null;
   return <Component />;
+}
+
+function AskChefGuard({ component: Component }: { component: React.ComponentType }) {
+  const { user } = useAuth();
+  return canAccessAskChef(user) ? <Component /> : null;
 }
 
 function ProGuard({ component: Component }: { component: React.ComponentType }) {
@@ -801,12 +806,12 @@ const ChefIntake = lazy(() => import("@/pages/CoachCornerIntake"));
 const ChefComplete = lazy(() => import("@/pages/CoachCornerComplete"));
 const ChefProgressSlowed = lazy(() => import("@/pages/CoachCornerProgressSlowed"));
 const ChefTired = lazy(() => import("@/pages/CoachCornerTired"));
-const GuardedChefHome = () => <ProGuard component={ChefHome} />;
-const GuardedChefWelcome = () => <ProGuard component={isChefConversationEnabled() ? ChefConversationEntry : ChefWelcome} />;
-const GuardedChefIntake = () => <ProGuard component={isChefConversationEnabled() ? ChefConversationEntry : ChefIntake} />;
-const GuardedChefComplete = () => <ProGuard component={isChefConversationEnabled() ? ChefConversationEntry : ChefComplete} />;
-const GuardedChefProgressSlowed = () => <ProGuard component={ChefProgressSlowed} />;
-const GuardedChefTired = () => <ProGuard component={ChefTired} />;
+const GuardedChefHome = () => <AskChefGuard component={ChefHome} />;
+const GuardedChefWelcome = () => <AskChefGuard component={isChefConversationEnabled() ? ChefConversationEntry : ChefWelcome} />;
+const GuardedChefIntake = () => <AskChefGuard component={isChefConversationEnabled() ? ChefConversationEntry : ChefIntake} />;
+const GuardedChefComplete = () => <AskChefGuard component={isChefConversationEnabled() ? ChefConversationEntry : ChefComplete} />;
+const GuardedChefProgressSlowed = () => <AskChefGuard component={ChefProgressSlowed} />;
+const GuardedChefTired = () => <AskChefGuard component={ChefTired} />;
 const GuardedShoppingList = () => <PaywallGuard component={SafeShoppingList} />;
 const GuardedBeachBodyBuilder = () => <BuilderAccessGuard builderKey="beach_body" component={BeachBodyMealBoard} />;
 const GuardedAntiInflammatoryBuilder = () => <BuilderAccessGuard builderKey="anti_inflammatory" component={SafeAntiInflammatoryMenuBuilder} />;

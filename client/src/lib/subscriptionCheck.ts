@@ -33,6 +33,13 @@ export function isProOrAbove(user: UserForSubscriptionCheck | null | undefined):
   return tier === "premium" || tier === "ultimate";
 }
 
+/** Ask Chef is a Free base feature; specialized destinations retain their gates. */
+export function canAccessAskChef(
+  user: UserForSubscriptionCheck | null | undefined,
+): boolean {
+  return !!user;
+}
+
 export function isClinicalOrAbove(user: UserForSubscriptionCheck | null | undefined): boolean {
   if (!user) return false;
   if (user.isFounder) return true;

@@ -579,3 +579,17 @@ mtime_ms = 1793643570094
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/b8df584d-98e5-4c58-8d16-9a35481dca32/6f280742-9b19-4249-b997-ec1c251eb2f5"
 storage_version_token = "1793643610565111"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "aJXf66GaGdlWKLxNFS4Q5"
+uri = "file://generated-artifacts/feature-intelligence/ask-chef-free-tier-completion.md"
+type = "text"
+title = "Ask Chef Free-Tier Change — Completion Report"
+description = "Exact changed files, Free-tier subscription placement, 193 passing tests, account isolation and premium-destination checks, pricing-page verification, dependencies and release boundaries."
+logical_id = "0d42f3e8-4e7e-4145-b539-d6f1ca893bd8"
+content_hash = "sha256:d4b3379b1d2e9a9db283cb0f68345ae430ecebd70dfbaaadad2bad48a68851f0"
+size = 9364
+mtime_ms = 1793644493579
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/0d42f3e8-4e7e-4145-b539-d6f1ca893bd8/2e457061-62e7-4a2c-a97b-eb4bc11e569e"
+storage_version_token = "1793644515387595"
+content_type = "text/markdown"

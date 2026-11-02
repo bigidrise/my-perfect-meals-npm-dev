@@ -54,5 +54,7 @@ const resolve: RequestHandler = (req, res, next) => {
   try { guard(req, res, approved); } catch (error) { next(error); }
 };
 
-router.post("/navigation", requireAuth, requireProAccess, resolve);
+// Remove only Chef's outer paywall; resolve still enforces the
+// destination's original Essential/Pro/Clinical/purchased-entitlement guard.
+router.post("/navigation", requireAuth, resolve);
 export default router;

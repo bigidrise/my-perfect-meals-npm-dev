@@ -35,6 +35,7 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
   free: {
     tier: "free",
     displayFeatures: [
+      "Ask Chef — conversational food, nutrition, and My Perfect Meals guidance",
       "Macro Calculator",
       "MacroScan — scan any nutrition label for an instant macro breakdown",
       "AI Fridge Rescue",
@@ -82,7 +83,6 @@ export const PLAN_FEATURES: Record<PlanTier, PlanDefinition> = {
     tier: "premium",
     displayFeatures: [
       "Everything in Essential",
-      "Ask Chef — conversational food, nutrition, and My Perfect Meals guidance",
       "Craving Creator — healthy versions of any craving, built around your protocols",
       "Dessert Creator",
       "Beverage Creator",

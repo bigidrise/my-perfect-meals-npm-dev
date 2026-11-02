@@ -16,7 +16,6 @@ import { z } from "zod";
 import { db } from "../db";
 import { sql, eq } from "drizzle-orm";
 import { requireAuth } from "../middleware/requireAuth";
-import { requireProAccess } from "../middleware/requireProAccess";
 import type { AuthenticatedRequest } from "../middleware/requireAuth";
 import { engine } from "../services/coaching/engine";
 import type { CoachSpecialization } from "../../shared/coaching/types";
@@ -47,7 +46,7 @@ const MessageBodySchema = z.object({
   featureScreenContext: z.unknown().optional(),
 });
 
-router.post("/message", requireAuth, requireProAccess, async (req: Request, res: Response) => {
+router.post("/message", requireAuth, async (req: Request, res: Response) => {
   const authReq = req as AuthenticatedRequest;
   const userId = authReq.authUser?.id;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -117,7 +116,7 @@ router.post("/message", requireAuth, requireProAccess, async (req: Request, res:
 
 // ─── GET /conversation ────────────────────────────────────────────────────────
 
-router.get("/conversation", requireAuth, requireProAccess, async (req: Request, res: Response) => {
+router.get("/conversation", requireAuth, async (req: Request, res: Response) => {
   const authReq = req as AuthenticatedRequest;
   const userId = authReq.authUser?.id;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -154,7 +153,7 @@ router.get("/conversation", requireAuth, requireProAccess, async (req: Request, 
 
 // ─── GET /conversation/:id/messages ──────────────────────────────────────────
 
-router.get("/conversation/:id/messages", requireAuth, requireProAccess, async (req: Request, res: Response) => {
+router.get("/conversation/:id/messages", requireAuth, async (req: Request, res: Response) => {
   const authReq = req as AuthenticatedRequest;
   const userId = authReq.authUser?.id;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -234,7 +233,7 @@ router.post("/activity-event", requireAuth, async (req: Request, res: Response) 
 
 // ─── GET /plans ───────────────────────────────────────────────────────────────
 
-router.get("/plans", requireAuth, requireProAccess, async (req: Request, res: Response) => {
+router.get("/plans", requireAuth, async (req: Request, res: Response) => {
   const authReq = req as AuthenticatedRequest;
   const userId = authReq.authUser?.id;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -270,7 +269,7 @@ router.get("/plans", requireAuth, requireProAccess, async (req: Request, res: Re
  * User explicitly reports they completed an action item.
  * Guards: must own the plan.
  */
-router.post("/plans/:planId/items/:itemId/complete", requireAuth, requireProAccess, async (req: Request, res: Response) => {
+router.post("/plans/:planId/items/:itemId/complete", requireAuth, async (req: Request, res: Response) => {
   const authReq = req as AuthenticatedRequest;
   const userId = authReq.authUser?.id;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -315,7 +314,7 @@ router.post("/plans/:planId/items/:itemId/complete", requireAuth, requireProAcce
  * Returns the earliest due, undelivered follow-up for the current user.
  * Used by CoachsCorner to trigger inline delivery if the cron hasn't run yet.
  */
-router.get("/followup/due", requireAuth, requireProAccess, async (req: Request, res: Response) => {
+router.get("/followup/due", requireAuth, async (req: Request, res: Response) => {
   const authReq = req as AuthenticatedRequest;
   const userId = authReq.authUser?.id;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -336,7 +335,7 @@ router.get("/followup/due", requireAuth, requireProAccess, async (req: Request, 
  * Guards: the followup must belong to the requesting user.
  * Called when CoachsCorner detects a due followup before the cron fires.
  */
-router.post("/followup/:id/deliver", requireAuth, requireProAccess, async (req: Request, res: Response) => {
+router.post("/followup/:id/deliver", requireAuth, async (req: Request, res: Response) => {
   const authReq = req as AuthenticatedRequest;
   const userId = authReq.authUser?.id;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -381,7 +380,7 @@ router.post("/followup/:id/deliver", requireAuth, requireProAccess, async (req: 
 //   Phase 2 (parallel): messages for that conversation + due follow-up
 // Total: 2 DB round-trips instead of the 4 the client was making sequentially.
 
-router.get("/bootstrap", requireAuth, requireProAccess, async (req: Request, res: Response) => {
+router.get("/bootstrap", requireAuth, async (req: Request, res: Response) => {
   const authReq = req as AuthenticatedRequest;
   const userId = authReq.authUser?.id;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -467,7 +466,7 @@ router.get("/bootstrap", requireAuth, requireProAccess, async (req: Request, res
 // Cursor-based pagination. beforeId = oldest currently loaded message ID.
 // Returns the 20 messages before it, displayed oldest→newest (ASC).
 
-router.get("/messages/older", requireAuth, requireProAccess, async (req: Request, res: Response) => {
+router.get("/messages/older", requireAuth, async (req: Request, res: Response) => {
   const authReq = req as AuthenticatedRequest;
   const userId = authReq.authUser?.id;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -525,7 +524,7 @@ router.get("/messages/older", requireAuth, requireProAccess, async (req: Request
 // Removes the chat entry ONLY — extracted coaching memory/patterns derived
 // from this message are intentionally NOT deleted (separate systems).
 
-router.delete("/message/:id", requireAuth, requireProAccess, async (req: Request, res: Response) => {
+router.delete("/message/:id", requireAuth, async (req: Request, res: Response) => {
   const authReq = req as AuthenticatedRequest;
   const userId = authReq.authUser?.id;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -558,7 +557,7 @@ router.delete("/message/:id", requireAuth, requireProAccess, async (req: Request
 // plans, then removes the conversation row itself. Ownership verified before
 // any deletion. Next bootstrap call will return no conversation → empty state.
 
-router.delete("/conversation/:id", requireAuth, requireProAccess, async (req: Request, res: Response) => {
+router.delete("/conversation/:id", requireAuth, async (req: Request, res: Response) => {
   const authReq = req as AuthenticatedRequest;
   const userId = authReq.authUser?.id;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });

@@ -31,6 +31,7 @@ export const PLAN_SKUS: PlanSku[] = [
     group: "consumer",
     blurb: "Daily adaptive nutrition — AI meal generation, Recipe Maker, unlimited Ingredient Intelligence, and grocery organization",
     features: [
+      "Everything in Free",
       "Create a Dish — AI meals built around your full profile",
       "My Perfect Menu — choose from 3 personalized ideas, then create your meal and add it to your plan",
       "Snack Creator (built into every Meal Builder)",
@@ -53,7 +54,6 @@ export const PLAN_SKUS: PlanSku[] = [
     blurb: "The full creator suite — every tool, every scan, every cuisine, every lifestyle",
     features: [
       "Everything in Essential",
-      "Ask Chef — conversational food, nutrition, and My Perfect Meals guidance",
       "Full Recipe Maker — camera, voice, and photo with 5-control customization and preview before saving",
       "Craving Creator & Dessert Creator",
       "Beverage Creator & Sushi Creator",
