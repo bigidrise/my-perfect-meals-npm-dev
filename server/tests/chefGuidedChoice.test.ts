@@ -19,8 +19,8 @@ const unknown: ConciergeGoal = { activity: "unknown", occasion: "unknown", resta
 const planning = (id: "my_perfect_menu" | "meal_builders"): ConciergeGoal =>
   ({ ...unknown, activity: "plan_meals", explicitFeatureId: id });
 const dish: ConciergeGoal = { ...unknown, activity: "prepare", occasion: "meal", dishChosen: true };
-const choice = "We can start by planning your meals, creating an individual dish, or exploring Lifestyle features. What would you like to try first?";
-const methodChoice = "There are two ways to plan your meals.\n\nMy Perfect Menu suggests personalized meal ideas that you can add to your meal plan.\n\nMeal Builder lets you create your own meals inside your assigned builder using Create With Chef.\n\nWhich one would you prefer?";
+const choice = "We can start by planning your meals, creating an individual dish, or exploring Lifestyle features. Which would you like to try first: meal planning, Create a Dish, or Lifestyle?";
+const methodChoice = "There are two ways to plan your meals.\n\nMy Perfect Menu suggests personalized meal ideas that you can add to your meal plan.\n\nMeal Builder lets you create your own meals inside your assigned builder using Create With Chef.\n\nWhich would you prefer: My Perfect Menu or Meal Builder?";
 type History = Array<{ role: string; content: string }>;
 
 async function reply(userMessage: string, message: string, extra: Record<string, unknown> = {}, options: {
@@ -85,10 +85,10 @@ test("general planning receives two brief descriptions and a short preference qu
   const paragraphs = result.presentation!.message.split("\n\n");
   expect(paragraphs[1]).toContain("My Perfect Menu suggests personalized meal ideas");
   expect(paragraphs[2]).toContain("assigned builder using Create With Chef");
-  expect(paragraphs.at(-1)).toBe("Which one would you prefer?");
+  expect(paragraphs.at(-1)).toBe("Which would you prefer: My Perfect Menu or Meal Builder?");
   expect((result.presentation!.message.match(/\?/g) ?? [])).toHaveLength(1);
   const instructions = request.messages[0].content;
-  expect(instructions).toContain('Then ask "Which one would you prefer?" without repeating either description');
+  expect(instructions).toContain("End with a question explicitly naming My Perfect Menu and Meal Builder");
   expect(instructions).toContain("These are contextual examples, not keyword routing or unsupported navigation commands");
   expect(instructions).toContain("A member selecting a method has resolved the choice, not yet accepted a navigation offer");
   expect(instructions).toContain("Do not repeat the two-option choice after selection");
@@ -115,7 +115,7 @@ test.each([
   expect(selected.wire.history).toEqual(history);
   expect(selected.wire.latestMemberMessage).toBe(answer);
   expect(selected.result.presentation?.message).toBe(recommendation);
-  expect(selected.result.presentation?.message).not.toContain("Which one would you prefer?");
+  expect(selected.result.presentation?.message).not.toContain("Which would you prefer:");
   expect(selected.result.presentation?.navigation).toMatchObject({ state: "recommendation_pending", destinationId: id });
   expect(selected.result.todayPlan.items).toEqual([]);
   const handoff = id === "my_perfect_menu"
@@ -142,7 +142,7 @@ test.each([
     : "You can create meals inside your assigned Meal Builder. Want me to take you there?";
   const { result, request } = await reply(question, text, offer(id, planning(id)));
   expect(result.presentation?.message).toBe(text);
-  expect(result.presentation?.message).not.toContain("Which one would you prefer?");
+  expect(result.presentation?.message).not.toContain("Which would you prefer:");
   expect(result.presentation?.navigation).toMatchObject({ state: "recommendation_pending", destinationId: id });
   expect(result.todayPlan.items).toEqual([]);
   expect(request.messages[0].content).toContain("If the original request or history already explicitly selects My Perfect Menu or Create With Chef, skip the two-option question");

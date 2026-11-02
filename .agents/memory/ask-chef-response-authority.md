@@ -181,9 +181,9 @@ choices, not a compulsory onboarding interview or a platform-wide tour.
 
 **How to apply:** Keep the refinement Development-only. For an unresolved planning
 method, briefly describe My Perfect Menu's personalized suggestions and Meal
-Builder's Create With Chef workflow, then ask “Which one would you prefer?”
-without repeating the descriptions in that final question. The founder requires
-this structure, not a fixed script. Interpret short answers such as “Menu” or
+Builder's Create With Chef workflow, then explicitly name both choices in the
+final question without repeating their descriptions. The founder requires this
+structure, not a fixed script. Interpret short answers such as “Menu” or
 “Create With Chef” in the preceding comparison's context, rather than rejecting
 them as unsupported commands. Method selection leads to an offer; acceptance of
 its validated pending recommendation leads to navigation, without another choice
@@ -203,3 +203,17 @@ suits your needs” as misleading for ordinary members.
 After the single confirmation, explain opening the landing page, then the assigned
 builder, day and slot, and Create With Chef. Preserve the existing button and
 assignment/access rules; no direct builder navigation or added closing question.
+
+Across Ask Chef, meaningful choices must have brief differences, clear verified
+feature or activity names, and a final question repeating all the choice names.
+One suitable destination warrants a brief yes/no offer, not unnecessary alternatives.
+
+**Why:** The founder expanded choice clarity to the whole platform and explicitly
+replaced the prior unnamed preference question with named options.
+
+**How to apply:** Interpret shortened names, contextual descriptions and ordinals
+against the actual preceding choices and their unambiguous order, never a fixed
+feature mapping. Unclear answers remain clarification; activity choice is not
+automatically destination choice, and feature choice is not navigation consent.
+Keep Create With Chef an internal builder control, not a standalone destination.
+Do not force alternatives for clear goals or weaken access, care or physician rules.
