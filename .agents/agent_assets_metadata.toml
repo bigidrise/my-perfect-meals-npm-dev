@@ -509,3 +509,17 @@ mtime_ms = 1793638988479
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/f1905850-5c26-4cfd-b292-7a2d929694af/d1b44dc1-be98-495b-88cd-2a04067ca5b2"
 storage_version_token = "1793639022512411"
 content_type = "text/csv"
+
+[[outputs]]
+id = "6q2xcOfuaiF9gTuVg5Mbh"
+uri = "file://generated-artifacts/feature-intelligence/phase3-review.txt"
+type = "text"
+title = "Complete Phase 3 Review — Plain Text"
+description = "Complete export, including all expandable sections and all 16 embedded detailed reports. Existing reports remain unchanged."
+logical_id = "7d1ab4a3-4d11-4f4e-997e-e42d21497dff"
+content_hash = "sha256:f93af594b4be7657c9b78c54e744488d9d67287631e0af782900e998aaff1d88"
+size = 3566990
+mtime_ms = 1793640018178
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/7d1ab4a3-4d11-4f4e-997e-e42d21497dff/c0489275-d7bd-4f2c-b118-a31f74658c9c"
+storage_version_token = "1793640023776474"
+content_type = "text/plain"
