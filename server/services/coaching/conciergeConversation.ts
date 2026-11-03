@@ -24,6 +24,10 @@ import { explainFeatureQuestion, featureIntelligenceEnabled, projectFeatureKnowl
   type FeatureScreenContext } from "./featureIntelligence";
 import type { FeatureExplanation } from "./featureIntelligence";
 import { loadFeatureIntelligenceRegistry } from "./featureIntelligenceRegistry";
+import {
+  ChefFoodDeclarationsSchema, CHEF_FOOD_COMPATIBILITY_INSTRUCTIONS,
+  inspectChefFoodDeclarations, chefFoodCheckNotice, projectChefFoodEducation,
+} from "./foodCompatibility";
 
 const TurnSchema = ConciergeMessageSchema.extend({
   // Semantic consent is separate from choosing a suitable food destination.
@@ -171,6 +175,10 @@ export async function runConciergeConversation(params: {
   }
   const memberMessages = [...params.history.filter(m => m.role === "user").map(m => m.content), params.userMessage];
   const developmentPurpose = process.env.NODE_ENV === "development";
+  // The authenticated self adapter owns activation; model/client data cannot
+  // authorize a profile or opt a real Ask Chef turn out of this contract.
+  const foodCompatibilityRequired = developmentPurpose && !!params.context.chefFoodCompatibility;
+  const foodInstructions = foodCompatibilityRequired ? CHEF_FOOD_COMPATIBILITY_INSTRUCTIONS : "";
   const instructions = getChefConversationInstructions(process.env.NODE_ENV);
   const platformInstructions = getPlatformGuidanceInstructions(process.env.NODE_ENV);
   const schema = developmentPurpose ? ModelTurnSchema.extend({
@@ -180,10 +188,12 @@ export async function runConciergeConversation(params: {
     conversationMessage: z.string().nullable().describe("Optional independently useful answer or clarification if the proposed action is rejected. No rejected offer, opening claim, emoji-only text or generic acknowledgment. Null when there is no useful independent continuation."),
     handoffMessage: z.string().nullable().describe("Concise verified starting guidance only for responsePurpose=handoff with confirmed/direct navigation. Null for answers, clarification and unaccepted offers. Never claim a feature already opened."),
     recommendationMessage: z.null().describe("Unused: the canonical message contains the entire answer and any feature offer."),
+    ...(foodCompatibilityRequired ? { foodDeclarations: ChefFoodDeclarationsSchema } : {}),
   }) : ModelTurnSchema;
   const responseFormat = zodResponseFormat(schema, "chef_conversation");
   const fingerprint = developmentPurpose ? createHash("sha256")
-    .update(instructions + platformInstructions + JSON.stringify(responseFormat)).digest("hex").slice(0, 16) : undefined;
+    .update(instructions + platformInstructions + foodInstructions + JSON.stringify(responseFormat)).digest("hex").slice(0, 16) : undefined;
+  let foodDeclarations: unknown;
   let purpose: string = "unavailable";
   let selectedField = "none";
   let metrics = responseFieldMetrics();
@@ -198,6 +208,18 @@ export async function runConciergeConversation(params: {
       (developmentPurpose ? ` ${JSON.stringify({ implementation: "conversation-purpose-v1", fingerprint, purpose, selectedField,
         fields: metrics, contract, fallback, ...(response ? navigationEmissionIndicators(response) : {}) })}` : ""));
   const finish = (response: CoachResponse) => {
+    if (foodCompatibilityRequired) {
+      const check = inspectChefFoodDeclarations(foodDeclarations, selectedField, params.context);
+      if (check.status === "blocked" || check.status === "unavailable") {
+        // Replace the whole selected reply. Do not expose a rejected proposal
+        // in another display field or retain its action/creator handoff.
+        response = envelope(chefFoodCheckNotice(check));
+      } else if (check.status === "screened" && response.presentation) {
+        const message = `${response.presentation.message}\n\n${chefFoodCheckNotice(check)}`;
+        response = { ...response, presentation: { ...response.presentation, message }, whatIFound: message };
+      }
+      if (check.status !== "not_applicable") response.foodCompatibility = check;
+    }
     if (developmentPurpose) diagnostic("response_ready", undefined, response);
     return response;
   };
@@ -217,9 +239,11 @@ export async function runConciergeConversation(params: {
           instructions,
           getLanguageInstruction(params.preferredLanguage),
           platformInstructions,
+          foodInstructions,
         ].filter(Boolean).join("\n") },
         { role: "user", content: JSON.stringify({
           authorizedNutritionContext: params.context.coachingContextBlock ?? params.context,
+          ...(foodCompatibilityRequired ? { nutritionPriorityEducation: projectChefFoodEducation(params.userMessage) } : {}),
           availableFeatures: params.tools.map(({ id, label, description }) => ({ id, label, description })),
           platformKnowledge: intelligenceKnowledge === undefined ? getDevelopmentPlatformKnowledge(params.knowledgeAccess)
             : { source: "verified_feature_intelligence", explanationOnly: true,
@@ -236,6 +260,7 @@ export async function runConciergeConversation(params: {
     });
     stage = "parsing";
     const rawTurn = JSON.parse(completion.choices[0]?.message?.content ?? "{}");
+    foodDeclarations = rawTurn.foodDeclarations;
     if (developmentPurpose) {
       metrics = responseFieldMetrics(rawTurn);
       contract = responseContractIndicators(rawTurn, !!params.pendingRecommendation);

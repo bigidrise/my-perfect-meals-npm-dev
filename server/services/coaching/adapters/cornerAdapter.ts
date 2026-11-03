@@ -120,6 +120,8 @@ export const cornerAdapter: CoachSpecializationAdapter = {
       // Return the snapshot both as structured data (for downstream processing)
       // and as a pre-rendered prompt block (for direct injection into the LLM prompt).
       return {
+        ...(process.env.NODE_ENV === "development"
+          ? { chefFoodCompatibility: { subjectUserId: subject.ownerId } } : {}),
         // Structured snapshot — consumed by any future server-side pattern logic
         coachingContextSnapshot: snapshot,
         // Pre-rendered text block — injected verbatim into the reasoning prompt
@@ -138,6 +140,7 @@ export const cornerAdapter: CoachSpecializationAdapter = {
     } catch (err: any) {
       console.error("[CornerAdapter] loadAdditionalContext failed:", err.message);
       if (process.env.NODE_ENV === "development") return {
+        chefFoodCompatibility: { subjectUserId: subject.ownerId },
         coachingContextBlock: MEMBER_CONTEXT_UNAVAILABLE,
       };
       return {};
