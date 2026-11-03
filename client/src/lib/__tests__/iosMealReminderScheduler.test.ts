@@ -35,6 +35,9 @@ test("restores enabled reminders, verifies pending times and is idempotent on re
   expect(f.pending().filter(n => n.id !== 9000).map(n => n.schedule?.on)).toEqual([
     { hour: 8, minute: 0 }, { hour: 13, minute: 0 }, { hour: 18, minute: 0 },
   ]);
+  expect(f.pending().filter(n => n.id !== 9000).map(n => n.extra)).toEqual(
+    slots.map(() => ({ route: "/dashboard", kind: "meal_reminder", owner: "synthetic-a" })),
+  );
   await f.scheduler.restore();
   expect(f.plugin.schedule).toHaveBeenCalledTimes(1);
   expect(f.plugin.cancel).not.toHaveBeenCalled();

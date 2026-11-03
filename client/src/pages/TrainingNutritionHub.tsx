@@ -847,7 +847,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
               Complete it first to unlock your daily targets, weekly schedule, and AI coaching.
             </p>
             <button
-              onClick={() => setLocation("/macro-calculator")}
+              onClick={() => setLocation("/macro-counter")}
               className="w-full bg-orange-600 text-white font-semibold text-sm py-3 rounded-xl active:scale-[0.98] transition-transform"
             >
               Run My Macro Calculator

@@ -129,7 +129,7 @@ export async function syncToiOS(slots: ReminderSlot[]): Promise<void> {
       body: `Time for ${slot.label}. Tap to open My Perfect Meals.`,
       schedule: { on: { hour, minute }, repeats: true, allowWhileIdle: true },
       sound: 'default',
-      extra: { route: '/hub' },
+      extra: { route: '/dashboard' },
     };
   });
 
@@ -268,7 +268,7 @@ export function setupNotificationListeners(navigate: (path: string) => void): ()
     if (!LN) return;
     LN.addListener('localNotificationActionPerformed', (n: any) => {
       const route = n?.notification?.extra?.route;
-      if (route) navigate(route);
+      if (route) navigate(route === "/hub" ? "/dashboard" : route);
     }).then((listener: { remove: () => void }) => {
       cleanup = () => listener.remove();
     });

@@ -204,7 +204,7 @@ export default function BodyCompositionPro() {
     >
       <div className="fixed top-4 left-4 z-50">
         <Button
-          onClick={() => setLocation("/macro-calculator")}
+          onClick={() => setLocation("/macro-counter")}
           className="bg-black/10 blur-none border border-white/20 text-white hover:bg-black/20 rounded-2xl w-10 h-10 p-0"
           aria-label="Back to Macro Calculator"
         >
