@@ -2,8 +2,10 @@
 
 ## Status and approval boundaries
 
-This document records planned requirements and the existing phase boundaries.
-It does not authorize implementation or claim that planned behavior is released.
+This document records requirements and the existing phase boundaries.
+Purposeful follow-through instruction changes were subsequently authorized for
+Development only. They are not a Production release or proof of live
+conversational quality.
 
 - **Phase 1 — Trustworthy Member Context:** Preserve the current implementation.
   Code-level and automated-test completion does not establish live conversational
@@ -12,12 +14,13 @@ It does not authorize implementation or claim that planned behavior is released.
 - **Phase 2 — Conversational memory:** On hold pending explicit approval and
   review of the four live Development responses. Do not begin memory
   implementation, extraction or retrieval work on the strength of this document.
-- **Purposeful Conversational Follow-Through:** Planned cross-cutting
-  conversational-quality requirement, documented below. Implementation phase
-  and scheduling remain unassigned; this is not permission to start Phase 2 or
-  alter the current conversation.
+- **Purposeful Conversational Follow-Through:** Development-only conversational
+  instruction refinement using the existing single-call conversation and
+  supplied context/history. Deterministic regression coverage is added; live
+  model acceptance remains unverified. This is not Phase 2 or permission to
+  begin persistent memory or historical retrieval.
 
-## Planned requirement: Purposeful Conversational Follow-Through
+## Requirement: Purposeful Conversational Follow-Through
 
 ### Objective
 
@@ -74,11 +77,12 @@ These requirements do not replace existing safety checks or clinical
 authorities, including when a member declines ordinary follow-up discussion.
 They do not authorize new clinical inferences, account writes or feature access.
 
-## Planned regression scenarios
+## Regression scenarios
 
-All scenarios below are **specifications only: not implemented or executed by
-this documentation change**. Future verification must distinguish synthetic
-contract checks from observed live model behavior.
+The scenarios below define expected behavior. Development regression fixtures
+exercise instruction delivery, supplied conversation state and response
+contracts with an injected synthetic provider. They do not establish that a
+live model independently makes the intended conversational choices.
 
 | Scenario | Context / member input | Expected behavior | Regression to prevent |
 | --- | --- | --- | --- |
@@ -91,7 +95,7 @@ contract checks from observed live model behavior.
 | Member declines further discussion | Member says, "Just answer the question, please," or "I don't want to discuss my goals." | Respect the boundary, answer what can be answered, and stop ordinary probing. Preserve existing safety obligations. | Another engagement question, "Are you sure?", pressure to disclose, or a feature pitch replacing the declined discussion. |
 | Need already understood / natural completion | The member's purpose is clear, relevant facts are available, and Chef has provided sufficient guidance. | Complete the answer naturally without forcing another question. | Endless clarification or a requirement to always end with a question. |
 
-### Review criteria for a future implementation
+### Review criteria
 
 - Evaluate whether the answer was accurate, relevant and complete before
   judging whether a follow-up helped.
@@ -104,9 +108,45 @@ contract checks from observed live model behavior.
 - Record live replies separately from mocked fixtures; neither passing fixtures
   nor this roadmap proves real-model adherence.
 
-## Change boundary
+### Observed deterministic verification
 
-This addition is documentation/planning only. It does not change prompts,
-runtime code, schemas, navigation, premium authorization, clinical protocols,
-saved targets, account data, model configuration or feature flags. No paid AI
-calls, deployment or Phase 2 work is authorized by this addition.
+- **22 new follow-through tests** cover instruction delivery, optional
+  answer-plus-question and answer-only replies, micronutrient and weight
+  guidance, known/missing evidence, subsequent turns, corrections against an
+  older summary, declined discussion, topic changes, member re-initiation,
+  unavailable destinations and safety escalation.
+- **14 relevant suites / 390 tests passed**, including existing Phase 1 member
+  context, generic meal intent, clarification, guided choices, navigation,
+  response-purpose, fallback, handoff and conversational-style protections.
+- The verification runner blocked outbound HTTP, socket and fetch operations;
+  it observed **zero external network attempts**. Model replies were injected
+  fixtures, not paid or live AI responses.
+- Strict safety TypeScript checking passed. The root release type gate matched
+  the reviewed baseline exactly (**118 existing diagnostics**); the baseline
+  was not changed.
+- No live conversation or account creation was performed. Natural judgment,
+  factual accuracy of independently generated answers, repetition and stopping
+  behavior still require a separately approved live Development review using
+  an isolated synthetic consumer account. Deterministic success is not a
+  Production acceptance claim.
+
+## Development implementation boundary
+
+The initial roadmap addition was documentation only. The subsequent
+Development authorization permits instruction refinement and deterministic
+regression tests, not a new routing engine or mandatory coaching sequence.
+
+The refinement reconciles destination-focused guidance with optional,
+answer-first nutrition follow-through. It reuses the existing history,
+earlierConversation, latest-message and authorized member-context delivery.
+It adds no state store, persistent memory, historical retrieval or extra model
+call, and does not change the model or its settings.
+
+Phase 1 evidence handling, generic meal-intent correction, response contracts,
+navigation confirmation, entitlement checks, clinical safeguards and generator
+ownership remain authoritative. Released Production instruction selection is
+unchanged. Feature Intelligence is not activated.
+
+No packages, schema changes, migrations, account writes, paid model calls,
+commits, pushes, merges, deployment or Production changes are part of this work.
+Phase 2 stays on hold pending separate explicit approval.
