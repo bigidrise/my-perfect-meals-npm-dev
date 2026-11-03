@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { PillButton } from "@/components/ui/pill-button";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import {
   Select,
   SelectContent,
@@ -192,6 +193,9 @@ export default function GLP1Hub() {
         className="max-w-2xl mx-auto px-4 space-y-6 pb-16"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
+        <div className="flex justify-center">
+          <HowThisWorksLink videoUrl="https://youtu.be/Pz95wx2yPqg" label="Hub & Builder Tutorial" />
+        </div>
         {/* ── Protocol Status ── */}
         <ProtocolStatusBadge className="mb-2" />
 
