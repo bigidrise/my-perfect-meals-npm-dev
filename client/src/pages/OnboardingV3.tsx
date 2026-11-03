@@ -192,6 +192,7 @@ function AccountOnboardingV3() {
   const [avoidedFoods, setAvoidedFoods] = useState<string[]>([]);
   const [avoidedFoodInput, setAvoidedFoodInput] = useState("");
   const [medicalConditions, setMedicalConditions] = useState<string[]>([]);
+  const [currentGlp1Use, setCurrentGlp1Use] = useState<boolean | undefined>(undefined);
   const [customConditionInput, setCustomConditionInput] = useState("");
   const [flavorPreference, setFlavorPreference] = useState("");
   const [heatPreference, setHeatPreference] = useState("");
@@ -352,6 +353,15 @@ function AccountOnboardingV3() {
   };
 
   const handleMedicalToggle = (value: string) => {
+    if (import.meta.env.DEV && value === "glp1") {
+      const currentUse = currentGlp1Use !== true;
+      setCurrentGlp1Use(currentUse);
+      setMedicalConditions((prev) => currentUse
+        ? [...prev.filter((condition) => condition !== "none" && condition !== "glp1"), "glp1"]
+        : prev.filter((condition) => condition !== "glp1"));
+      return;
+    }
+    if (import.meta.env.DEV && value === "none") setCurrentGlp1Use(false);
     if (value === "none") {
       setMedicalConditions(medicalConditions.includes("none") ? [] : ["none"]);
     } else {
@@ -398,6 +408,17 @@ function AccountOnboardingV3() {
           }
           await persistOnboardingHealthInformation({
             medicalConditions, specialtyConditions, thyroidType,
+            ...(import.meta.env.DEV ? {
+              currentGlp1Use,
+              saveCurrentGlp1Use: async (currentUse: boolean) => {
+                const response = await fetchWithTimeout(apiUrl("/api/health-context/glp1/current-use"), {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+                  body: JSON.stringify({ currentUse }),
+                });
+                if (!response.ok) throw new Error("Could not save current GLP-1 medication use. Please retry.");
+              },
+            } : {}),
             ...(oncologyDevelopment ? {
               oncologySupport: oncologySelection.payload(), refreshUser,
               skipUnchangedOwnedSpecialty: oncologySelection.readOnly &&
@@ -763,10 +784,10 @@ function AccountOnboardingV3() {
               {MEDICAL_CONDITIONS.map((item) => (
                 <PillButton
                   key={item.value}
-                  active={medicalConditions.includes(item.value)}
+                  active={import.meta.env.DEV && item.value === "glp1" ? currentGlp1Use === true : medicalConditions.includes(item.value)}
                   onClick={() => handleMedicalToggle(item.value)}
                 >
-                  {item.label}
+                  {import.meta.env.DEV && item.value === "glp1" ? "Currently taking GLP-1 medication" : item.label}
                 </PillButton>
               ))}
             </div>

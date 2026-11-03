@@ -42,6 +42,8 @@ import { GlycemicSettingsModal } from "@/components/diabetic/GlycemicSettingsMod
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { GLP1CompanionModal } from "@/components/diabetic/GLP1CompanionModal";
 import { isClinicalOrAbove } from "@/lib/subscriptionCheck";
+import { useGLP1CurrentUse } from "@/hooks/useGLP1CurrentUse";
+import GLP1DailyCheckin from "@/components/glp1/GLP1DailyCheckin";
 
 function getDeviceId(): string {
   let deviceId = localStorage.getItem("deviceId");
@@ -60,6 +62,8 @@ export default function DiabeticHub() {
   const { toast } = useToast();
   const userId = user?.id?.toString() || getDeviceId();
   const quickTour = useQuickTour("diabetic-hub");
+  const glp1CurrentUse = useGLP1CurrentUse();
+  const [showDailySymptoms, setShowDailySymptoms] = useState(false);
 
   const DIABETIC_TOUR_STEPS = useMemo<TourStep[]>(() => [
     { icon: "1", title: t("diabeticHub.tour1Title"), description: t("diabeticHub.tour1Desc") },
@@ -96,7 +100,7 @@ export default function DiabeticHub() {
   const [showGlycemicModal, setShowGlycemicModal] = useState(false);
   const [showGlp1Companion, setShowGlp1Companion] = useState(false);
 
-  const isGlp1Active = !!(
+  const isGlp1Active = import.meta.env.DEV ? glp1CurrentUse.data?.effectiveActive === true : !!(
     (user?.medicalConditions as string[] | undefined)?.includes("glp1") ||
     (user?.healthConditions as string[] | undefined)?.includes("glp1") ||
     user?.selectedMealBuilder === "glp1" ||
@@ -393,25 +397,22 @@ export default function DiabeticHub() {
             </p>
           </div>
 
-          {/* GLP-1 onboarding nudge — shown only when diabetic but GLP-1 not yet activated */}
-          {!isGlp1Active && (
-            <div className="rounded-xl border border-orange-500/20 bg-orange-950/10 px-4 py-3 flex items-start gap-3">
-              <span className="text-orange-400 text-base mt-0.5 shrink-0">💉</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-semibold text-orange-300 mb-0.5">
-                  {t("diabeticHub.glp1NudgeTitle")}
-                </p>
-                <p className="text-[11px] text-white/50 leading-relaxed mb-2">
-                  {t("diabeticHub.glp1NudgeDesc")}
-                </p>
-                <PillButton
-                  onClick={() => setLocation("/profile/edit")}
-                  variant="default"
-                >
-                  {t("diabeticHub.enableMetabolicMed")}
-                </PillButton>
-              </div>
-            </div>
+          {import.meta.env.DEV && glp1CurrentUse.isError && (
+            <p role="alert" className="text-sm text-orange-200">
+              GLP-1 medication status could not be loaded.{" "}
+              <button type="button" className="underline" onClick={() => glp1CurrentUse.refetch()}>Retry</button>
+            </p>
+          )}
+          {import.meta.env.DEV && isGlp1Active && (
+            <section className="rounded-xl border border-orange-500/20 p-4 space-y-3">
+              <p className="text-sm text-white/80">Using GLP-1 medication support? Keep today’s symptoms up to date.</p>
+              <Button type="button" className="h-auto whitespace-normal bg-orange-600 text-white hover:bg-orange-500" aria-expanded={showDailySymptoms}
+                aria-controls="diabetic-glp1-daily-symptoms"
+                onClick={() => setShowDailySymptoms((open) => !open)}>
+                {showDailySymptoms ? "Hide daily symptom panel" : "Update daily GLP-1 symptoms"}
+              </Button>
+              {showDailySymptoms && <div id="diabetic-glp1-daily-symptoms"><GLP1DailyCheckin /></div>}
+            </section>
           )}
 
           {/* Doctor / Coach Guardrail Card */}

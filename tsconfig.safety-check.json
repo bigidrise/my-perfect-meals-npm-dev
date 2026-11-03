@@ -1,6 +1,15 @@
 {
   "extends": "./tsconfig.json",
   "include": [
+    "shared/glp1CurrentUse.ts",
+    "server/services/glp1/memberCurrentUse.ts",
+    "client/src/hooks/useGLP1CurrentUse.ts",
+    "client/src/components/profile/GLP1CurrentUseControl.tsx",
+    "client/src/lib/onboardingHealthPersistence.ts",
+    "client/src/pages/OnboardingV3.tsx",
+    "client/src/pages/profile/EditProfilePage.tsx",
+    "client/src/pages/physician/DiabeticHub.tsx",
+    "client/src/pages/MyPerfectMenu.tsx",
     "server/services/coaching/safety.ts",
     "server/services/coaching/conciergeConversation.ts",
     "server/services/coaching/conversationPurpose.ts",

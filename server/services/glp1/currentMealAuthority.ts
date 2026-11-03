@@ -1,8 +1,9 @@
 import { pool } from "../../db";
 import { detectLegacyGLP1ActivationSources, type GLP1ActivationSource } from "./activationSources";
 import { assertStrictOwner, type StrictOwnerScope } from "../nutritionResolutionContext";
+import { MEMBER_GLP1_EVIDENCE } from "../../../shared/glp1CurrentUse";
 
-export type CurrentGLP1Source = GLP1ActivationSource | "verifiedProvider" | "verifiedMedication";
+export type CurrentGLP1Source = GLP1ActivationSource | "verifiedProvider" | "verifiedMedication" | "memberReportedMedication";
 
 export function currentGLP1AuthorityEnabled(): boolean {
   return process.env.NODE_ENV === "development" && !process.env.REPLIT_DEPLOYMENT;
@@ -58,7 +59,7 @@ async function readCurrentSources(
   // Fail explicitly if authority cannot be checked. Never silently serve food
   // without a potentially current clinical source during a DB outage.
   const { rows } = await pool.query(
-    `SELECT DISTINCT s.source_kind
+    `SELECT DISTINCT s.source_kind, s.evidence_ref, s.owner_user_id
        FROM health_protocol_sources s
       WHERE s.subject_user_id=$1 AND s.protocol_key='glp1'
         AND s.status='active' AND s.ended_at IS NULL
@@ -80,6 +81,9 @@ async function readCurrentSources(
     [subject.id],
   );
   if (rows.some((row) => row.source_kind === "provider")) sources.push("verifiedProvider");
-  if (rows.some((row) => row.source_kind === "medication")) sources.push("verifiedMedication");
+  const memberReported = (row: { evidence_ref?: string; owner_user_id?: string }) =>
+    row.evidence_ref === MEMBER_GLP1_EVIDENCE && row.owner_user_id === subject.id;
+  if (rows.some((row) => row.source_kind === "medication" && memberReported(row))) sources.push("memberReportedMedication");
+  if (rows.some((row) => row.source_kind === "medication" && !memberReported(row))) sources.push("verifiedMedication");
   return sources;
 }
