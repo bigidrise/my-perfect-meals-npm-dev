@@ -551,6 +551,18 @@ export interface MemberContextFact<T> {
 }
 
 export interface MemberContextEvidence {
+  /** Development-only comparison of stored evidence, never a resolved prescription. */
+  macroTargets?: {
+    verifiedCurrentEffective: false;
+    professionalOverrideStatus: "unverified";
+    savedBaseOwnership: "unverified";
+    storedPrescriptionCoverage: "complete" | "incomplete" | "missing" | "historical_only";
+    fields: Record<"calories" | "protein" | "carbs" | "fat" | "starchyCarbs" | "fibrousCarbs", {
+      savedBase: number | null;
+      storedForDate: number | null;
+      relationship: "same" | "different" | "saved_base_only" | "stored_only" | "unknown";
+    }>;
+  };
   retrievedAt: string;
   day: {
     date: string; timezone: string; timezoneBasis: "recorded" | "fallback";
