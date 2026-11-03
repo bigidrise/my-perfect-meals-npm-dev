@@ -39,6 +39,7 @@
     "validate": "bash scripts/validate.sh",
     "validate:navigation": "node --import tsx scripts/navigation-check/cli.ts",
     "test:navigation-check": "node --import tsx --test scripts/navigation-check/*.test.ts",
+    "test:navigation-smoke": "playwright test client/e2e/critical-navigation.spec.ts --project=chromium --workers=1 --retries=0 --reporter=line --output=generated-artifacts/navigation-smoke",
     "validate:i18n": "tsx scripts/i18n-value-quality-scan.ts --warn-identical-above=15 --fail-identical-above=40",
     "validate:i18n:phase0": "tsx scripts/i18n-phase0-validate.ts --ci",
     "validate:i18n:clinical": "tsx scripts/i18n-clinical-registry.ts",
