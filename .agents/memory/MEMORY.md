@@ -35,7 +35,7 @@
 - [PostgreSQL parameter gaps](postgres-parameter-gaps.md) — mocked writes can pass while live updates fail if SQL leaves unused leading placeholders.
 - [Neon pooler read-only queries](neon-pooler-read-only-queries.md) — pooled connection rejects read-only startup options; use an explicit read-only transaction.
 - [Studio media lifecycle](studio-media-reference-index.md) — video retention, MIME compatibility, participant deletion, failed media, transcription result scope and voice queue integrity.
-- [OpenAI server upload runtime](openai-server-upload-runtime.md) — server-side uploads must not rely on ambient web globals from the OpenAI SDK auto shim.
+- [OpenAI server runtime](openai-server-upload-runtime.md) — explicit upload shims and SDK fetch injection; global fetch mocks alone do not prove isolation.
 - [Bundled-first iOS startup](bundled-first-ios-startup.md) — native startup must use packaged web assets; remote APIs are a separate, explicit dependency.
 - [iOS capture diagnosis](ios-capture-diagnosis.md) — diagnose Grocery Voice Add separately from Studio capture, and sync the native bundle before device evidence.
 - [Shared Neon and workspace release boundary](runtime-database-identity.md) — both workspaces share Neon, but Development Publish does not update Production.

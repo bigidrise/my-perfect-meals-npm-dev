@@ -144,6 +144,16 @@ export async function runConciergeConversation(params: {
   }
   const memberMessages = [...params.history.filter(m => m.role === "user").map(m => m.content), params.userMessage];
   const developmentPurpose = process.env.NODE_ENV === "development";
+  // Only correlation IDs in the existing UUID format are safe for logs.
+  const correlation = /^[a-f0-9-]{36}$/i.test(params.requestId ?? "") ? ` request_id=${params.requestId}` : "";
+  if (developmentPurpose) {
+    // Counts and presence only: never retain member prose, summaries or profile values.
+    console.info(`[ChefConcierge] freshness${correlation} ${JSON.stringify({
+      historyCount: params.history.length,
+      summaryPresent: !!params.rollingContext,
+      pendingNavigationPresent: !!params.pendingRecommendation,
+    })}`);
+  }
   // The authenticated self adapter owns activation; model/client data cannot
   // authorize a profile or opt a real Ask Chef turn out of this contract.
   const foodCompatibilityRequired = developmentPurpose && !!params.context.chefFoodCompatibility;
@@ -171,8 +181,6 @@ export async function runConciergeConversation(params: {
   let contract: ReturnType<typeof responseContractIndicators> | undefined;
   let fallback: ReturnType<typeof selectRejectedConversation>["outcomes"] | undefined;
   let screening: { message: ReplyScreenReason; conversationMessage: ReplyScreenReason } | undefined;
-  // Only correlation IDs in the existing UUID format are safe for logs.
-  const correlation = /^[a-f0-9-]{36}$/i.test(params.requestId ?? "") ? ` request_id=${params.requestId}` : "";
   const diagnostic = (outcome: string, reason?: DecisionReason | "safety_escalation", response?: CoachResponse) =>
     console.info(`[ChefConcierge] decision_outcome=${outcome}${reason ? ` reason=${reason}` : ""}${correlation}` +
       (developmentPurpose ? ` ${JSON.stringify({ implementation: "conversation-purpose-v1", fingerprint, purpose, selectedField,
