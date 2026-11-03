@@ -2440,7 +2440,7 @@ export default function MyBiometrics() {
                   {/* Review-macros nudge */}
                   {reviewMacrosNudge && (
                     <button
-                      onClick={() => setLocation("/macro-calculator")}
+                      onClick={() => setLocation("/macro-counter")}
                       className="mt-2 w-full text-left text-xs px-3 py-2 rounded-lg bg-orange-500/10 border border-orange-400/30 text-orange-300 hover:bg-orange-500/20 transition"
                     >
                       ↗ {reviewMacrosNudge} — <span className="underline">Review Macros →</span>
@@ -2450,7 +2450,7 @@ export default function MyBiometrics() {
                     <ReadOnlyNote>
                       Logging here tracks your progress without changing your macro prescription.
                       To update your macros, go to the{" "}
-                      <button onClick={() => setLocation("/macro-calculator")} className="underline text-white/80">
+                      <button onClick={() => setLocation("/macro-counter")} className="underline text-white/80">
                         Macro Calculator
                       </button>.
                     </ReadOnlyNote>
@@ -2527,7 +2527,7 @@ export default function MyBiometrics() {
                 <div className="mt-3">
                   <ReadOnlyNote>
                     Waist is saved automatically when you update your stats in the{" "}
-                    <button onClick={() => setLocation("/macro-calculator")} className="underline text-white/80">
+                    <button onClick={() => setLocation("/macro-counter")} className="underline text-white/80">
                       Macro Calculator
                     </button>.
                   </ReadOnlyNote>

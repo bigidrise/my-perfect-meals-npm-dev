@@ -1357,7 +1357,7 @@ export default function PricingPage() {
             </p>
             <div className="flex justify-center gap-4 text-xs">
               <button
-                onClick={() => setLocation("/terms-of-service")}
+                onClick={() => setLocation("/terms")}
                 className="text-lime-400 underline hover:text-lime-300"
               >
                 Terms of Service

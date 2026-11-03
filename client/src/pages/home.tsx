@@ -1,4 +1,5 @@
 import { useOrgBranding } from "@/hooks/useOrgBranding";
+import { startGuestSession } from "@/lib/guestMode";
 import Navigation from "@/components/ui/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -93,20 +94,8 @@ export default function Home() {
                   size="lg"
                   className="border-2 border-white text-white hover:bg-white/10"
                   onClick={() => {
-                    // Create demo user and go to meal planning
-                    const demoUser = {
-                      id: "demo_user_" + Date.now(),
-                      username: "demo_user",
-                      email: "demo@example.com", 
-                      firstName: "Demo",
-                      lastName: "User",
-                      age: 28,
-                      fitnessGoal: "muscle_gain",
-                      dietaryRestrictions: ["gluten-free"],
-                      dailyCalorieTarget: 2400
-                    };
-                    localStorage.setItem("userId", demoUser.id);
-                    navigate("/meal-planning");
+                    startGuestSession();
+                    navigate("/guest-builder");
                   }}
                 >
                   <Rocket className="mr-2 h-5 w-5" />

@@ -279,7 +279,7 @@ export default function BusinessInviteAccept() {
             </div>
             <button
               className="w-full py-3 rounded-xl bg-orange-600 text-white font-bold text-sm flex items-center justify-center gap-2"
-              onClick={() => setLocation("/affiliate")}
+              onClick={() => setLocation("/business-center/affiliate")}
             >
               Become an Affiliate
               <ChevronRight className="w-4 h-4" />

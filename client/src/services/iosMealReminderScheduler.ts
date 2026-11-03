@@ -63,7 +63,7 @@ export function createIOSMealReminderScheduler(deps: {
             body: `Time for ${slot.label}. Tap to open My Perfect Meals.`,
             schedule: { on: { hour, minute }, repeats: true, allowWhileIdle: true },
             sound: "default",
-            extra: { route: "/hub", kind: "meal_reminder", owner: account },
+            extra: { route: "/dashboard", kind: "meal_reminder", owner: account },
           }];
         });
         if (desired.length) {

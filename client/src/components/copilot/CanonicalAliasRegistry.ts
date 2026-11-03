@@ -136,7 +136,7 @@ export const HUBS: Record<string, FeatureDefinition> = {
       {
         id: "GLP1_BUILDER",
         label: "Metabolic Medication Builder",
-        route: "/glp1-menu-builder",
+        route: "/glp1-meal-builder",
         testId: "glp1hub-builder",
         walkthroughId: "glp1-meal-builder",
         aliases: ["glp1 builder", "glp-1 builder", "glp one builder", "glp menu", "glp-build", "build glp"]
