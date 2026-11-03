@@ -224,3 +224,137 @@ test("declining discussion cannot suppress an existing emergency care response",
   expect(result.presentation?.destinationId).toBeUndefined();
   expect(result.todayPlan.items.some(item => item.kind === "contact_care")).toBe(true);
 });
+
+test("the delivered personal-coaching instructions prefer material assessment over another generic list", async () => {
+  const { request } = await reply("I think I'm eating the same foods too often.",
+    "What do your meals typically look like over a day?", { purpose: "clarify" });
+  const instructions = request.messages[0].content;
+  expect(instructions).toContain("Distinguish general information requests from personal nutrition concerns on each turn");
+  expect(instructions).toContain("Prefer one useful assessment question over a broad set of recommendations");
+  expect(instructions).toContain("first understand the member's current eating pattern when it is not supplied");
+  expect(instructions).toContain("If that pattern is already known, build on it without asking again");
+  expect(instructions).toContain("Lists remain appropriate when explicitly requested or useful with sufficient context");
+  expect(instructions).toContain("rather than ending with a generic invitation to ask for more tips");
+});
+
+test("the delivered protein guidance separates available targets from unknown consumption and record access", async () => {
+  const { request } = await reply("I'm concerned about getting enough protein.",
+    "What protein-containing foods do you usually eat in a day?", { purpose: "clarify" });
+  const instructions = request.messages[0].content;
+  expect(instructions).toContain("Do not assume access to dietary intake records, current protein consumption or saved targets");
+  expect(instructions).toContain("A supplied target is not evidence of consumption");
+  expect(instructions).toContain("partial logs are not a complete daily intake");
+  expect(instructions).toContain("use the known target and ask one useful question about usual intake");
+  expect(instructions).toContain("do not demand both answers at once or invent either value");
+  expect(instructions).toContain("Do not calculate a new personal target");
+});
+
+test("reported four-turn sequence carries education into personal assessment, a new priority and completion", async () => {
+  // The feedback quotes the meal-variety and closing wording, but does not
+  // provide verbatim micronutrient/protein turns or actual Chef replies.
+  // Those inputs are representative; all replies below are synthetic fixtures.
+  const turns: Array<{ input: string; output: string; purpose: "answer" | "clarify" }> = [
+    {
+      input: "What foods have lots of vitamins and minerals?",
+      output: "Vegetables, fruit, beans and whole grains provide a variety of micronutrients. " +
+        "Are you focused on overall meal quality or concerned about missing particular nutrients?",
+      purpose: "clarify",
+    },
+    {
+      input: "I'm trying to make my meals healthier. I think I'm eating the same foods too often.",
+      output: "You want healthier meals with more variety. What do your meals typically look like over a day?",
+      purpose: "clarify",
+    },
+    {
+      input: "I'm concerned about getting enough protein.",
+      output: "Let's focus on protein. Do you already have a protein target you're working toward?",
+      purpose: "clarify",
+    },
+    {
+      input: "Thanks, that's all I needed.",
+      output: "You're welcome.",
+      purpose: "answer",
+    },
+  ];
+  const evidence = { coachingContextBlock: "Synthetic evidence: allergies=peanuts; restrictions=vegetarian; " +
+    "protein target=unknown; current intake=unknown; dietary intake records=not supplied." };
+  const before = JSON.stringify(evidence);
+  const history: History = [];
+  for (const turn of turns) {
+    const previousHistory = history.map(value => ({ ...value }));
+    const { result, request, wire } = await reply(turn.input, turn.output, {
+      history, context: evidence, purpose: turn.purpose,
+    });
+    ordinary(result, turn.output);
+    expect(wire.latestMemberMessage).toBe(turn.input);
+    expect(wire.history).toEqual(previousHistory);
+    expect(wire.authorizedNutritionContext).toBe(evidence.coachingContextBlock);
+    expect(wire.memberStatements.map((value: { text: string }) => value.text))
+      .toEqual([...previousHistory.filter(value => value.role === "user").map(value => value.content), turn.input]);
+    expect(request.messages[0].content).toContain("FOLLOW-THROUGH — PERSONAL COACHING:");
+    expect(request.messages[0].content).toContain("FOLLOW-THROUGH — PROTEIN CONCERNS:");
+    expect(request.messages[0].content).toContain("do not require the member to finish the previous assessment");
+    expect(turn.output.match(/\?/g) ?? []).toHaveLength(turn.purpose === "clarify" ? 1 : 0);
+    history.push({ role: "user", content: turn.input }, { role: "assistant", content: result.presentation!.message });
+  }
+  expect(history).toHaveLength(8);
+  expect(JSON.stringify(evidence)).toBe(before);
+  expect(history.at(-1)?.content).toBe("You're welcome.");
+});
+
+test("a supplied eating-pattern answer stays available for useful guidance without repeating discovery", async () => {
+  const history: History = [
+    { role: "user", content: "I'm trying to make my meals healthier. I think I'm eating the same foods too often." },
+    { role: "assistant", content: "What do your meals typically look like over a day?" },
+  ];
+  const latest = "Usually cereal for breakfast, rice for lunch, and pasta for dinner.";
+  const message = "We can build on those familiar meals rather than replace everything. " +
+    "Beans or lentils could add variety within your vegetarian preference.";
+  const { result, wire } = await reply(latest, message, { history });
+  ordinary(result, message);
+  expect(wire.history).toEqual(history);
+  expect(wire.latestMemberMessage).toBe(latest);
+  expect(wire.authorizedNutritionContext).toContain("restriction=vegetarian");
+});
+
+test.each([
+  {
+    name: "known target and unknown intake",
+    evidence: "Synthetic evidence: saved protein target=120 g; current intake=unknown; intake records=not supplied",
+    output: "Your supplied saved target is 120 g of protein. What protein-containing foods do you usually eat in a day?",
+  },
+  {
+    name: "unknown target and unknown intake",
+    evidence: "Synthetic evidence: protein target=unknown; current intake=unknown; intake records=not supplied",
+    output: "Do you already have a protein target you're working toward?",
+  },
+])("protein concern preserves the supplied evidence boundary: $name", async ({ evidence, output }) => {
+  const { result, wire } = await reply("I'm concerned about getting enough protein.", output, {
+    context: { coachingContextBlock: evidence }, purpose: "clarify",
+  });
+  ordinary(result, output);
+  expect(wire.authorizedNutritionContext).toBe(evidence);
+  expect(wire.authorizedNutritionContext).not.toContain("current intake=0");
+  expect(output.match(/\?/g)).toHaveLength(1);
+});
+
+test("known target and member-reported intake can receive guidance without re-asking either value", async () => {
+  const latest = "I estimate I'm eating about 100 g of protein a day, mostly from tofu, yogurt and beans.";
+  const message = "Your estimate is below your supplied saved target. " +
+    "We can focus on the portions of those foods rather than starting a new food list.";
+  const { result, wire } = await reply(latest, message, {
+    history: [{ role: "user", content: "I'm concerned about getting enough protein." }],
+  });
+  ordinary(result, message);
+  expect(wire.latestMemberMessage).toBe(latest);
+  expect(wire.authorizedNutritionContext).toContain("protein=120 g");
+  expect(message).not.toContain("checked your records");
+});
+
+test("an explicit general protein-food question can still receive a direct list without personal assessment", async () => {
+  const message = "Beans, lentils, tofu and dairy foods can provide protein.";
+  const { result } = await reply("Which vegetarian foods provide protein?", message, {
+    context: { coachingContextBlock: "Synthetic evidence: restriction=vegetarian; target=unknown; intake=unknown" },
+  });
+  ordinary(result, message);
+});
