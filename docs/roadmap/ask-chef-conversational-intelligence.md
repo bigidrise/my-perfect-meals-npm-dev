@@ -16,9 +16,11 @@ conversational quality.
   implementation, extraction or retrieval work on the strength of this document.
 - **Purposeful Conversational Follow-Through:** Development-only conversational
   instruction refinement using the existing single-call conversation and
-  supplied context/history. Deterministic regression coverage is added; live
-  model acceptance remains unverified. This is not Phase 2 or permission to
-  begin persistent memory or historical retrieval.
+  supplied context/history. The member's reported initial live Development
+  review found adequate education and stopping, but weak transitions into
+  personal coaching. The resulting instruction refinement has deterministic
+  coverage; its live acceptance remains unverified. This is not Phase 2 or
+  permission to begin persistent memory or historical retrieval.
 
 ## Requirement: Purposeful Conversational Follow-Through
 
@@ -110,12 +112,13 @@ live model independently makes the intended conversational choices.
 
 ### Observed deterministic verification
 
-- **22 new follow-through tests** cover instruction delivery, optional
+- **30 follow-through tests**, including eight coaching-judgment additions,
+  cover instruction delivery, optional
   answer-plus-question and answer-only replies, micronutrient and weight
   guidance, known/missing evidence, subsequent turns, corrections against an
   older summary, declined discussion, topic changes, member re-initiation,
   unavailable destinations and safety escalation.
-- **14 relevant suites / 390 tests passed**, including existing Phase 1 member
+- **14 relevant suites / 398 tests passed**, including existing Phase 1 member
   context, generic meal intent, clarification, guided choices, navigation,
   response-purpose, fallback, handoff and conversational-style protections.
 - The verification runner blocked outbound HTTP, socket and fetch operations;
@@ -124,11 +127,41 @@ live model independently makes the intended conversational choices.
 - Strict safety TypeScript checking passed. The root release type gate matched
   the reviewed baseline exactly (**118 existing diagnostics**); the baseline
   was not changed.
-- No live conversation or account creation was performed. Natural judgment,
+- No live conversation or account creation was performed by this implementation
+  work. The user's initial live feedback is recorded separately below. Natural judgment,
   factual accuracy of independently generated answers, repetition and stopping
   behavior still require a separately approved live Development review using
   an isolated synthetic consumer account. Deterministic success is not a
   Production acceptance claim.
+
+### Coaching-judgment refinement following user-reported live feedback
+
+**Why:** The user reported that the initial live Development conversation
+answered nutrition questions adequately and respected completion, but
+continued with long educational lists after personal concerns emerged.
+That report is evidence of an initial acceptance gap, not a passing live
+review of this refinement.
+
+| Reported turn | Required coaching judgment |
+| --- | --- |
+| Micronutrient education ended with a generic invitation. | Answer the education question clearly, then use a focused purpose question when useful and still unresolved, not a generic invitation for more tips. |
+| "I'm trying to make my meals healthier. I think I'm eating the same foods too often." received another six-item list. | Recognize the personal concern. Use a supplied eating pattern, or ask one high-value question about that pattern before giving recommendations that depend on it. |
+| A new protein concern received seven protein-food categories. | Treat protein as the new priority. Distinguish actually supplied target evidence from actually supplied intake evidence; a target is not consumption and partial logs are not a complete day. Ask one material assessment question when needed, without claiming access to records or re-asking a known target. |
+| "Thanks, that's all I needed" correctly ended the exchange. | Preserve the natural close without another question or feature offer. |
+
+General information requests still receive direct answers. Explicit requests
+for food-source lists can receive useful lists; this is not a prohibition on
+lists. Follow-up answers should lead to relevant guidance, not another generic
+explanation or a compulsory interview. Known facts should be used, not
+requested again. Topic changes do not require completing a previous assessment.
+
+The four-turn regression follows the reported sequence. The attachment supplies
+quoted meal-variety and closing wording, but summarizes the micronutrient and
+protein turns and does not supply the actual Chef replies. Those two inputs are
+explicitly representative and all injected replies are synthetic; the test is
+not presented as a verbatim replay or proof of independent model judgment.
+Further live testing must verify assessment timing, use of supplied evidence,
+follow-up continuity, topic changes and preserved completion.
 
 ## Development implementation boundary
 
