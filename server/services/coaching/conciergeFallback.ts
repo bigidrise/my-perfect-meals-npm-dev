@@ -36,5 +36,7 @@ export function selectRejectedConversation(
 
 export const HANDOFF_RECOVERY =
   "I couldn't complete that response or confirm a feature to open. Nothing has been opened. Please try your request again.";
+export const CONVERSATION_RECOVERY =
+  "I couldn't complete that response. Nothing has been opened. Please try your request again.";
 export const MISSING_PENDING_RECOVERY =
   "I don't have a feature selected for that handoff. Please name the feature you'd like to open.";
