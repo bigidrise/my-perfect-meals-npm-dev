@@ -36,6 +36,7 @@ import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
 import { MedicalSourcesInfo } from "@/components/MedicalSourcesInfo";
 import { PillButton } from "@/components/ui/pill-button";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { GlucoseGuardExplainerModal } from "@/components/GlucoseGuardExplainerModal";
 import { GlycemicSettingsModal } from "@/components/diabetic/GlycemicSettingsModal";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
@@ -297,6 +298,9 @@ export default function DiabeticHub() {
           className="max-w-6xl mx-auto px-4 space-y-8 pb-24"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
+          <div className="flex justify-center">
+            <HowThisWorksLink videoUrl="https://youtu.be/KNhLTu8CGoY" label="Hub & Builder Tutorial" />
+          </div>
           {/* ── Quick Launch ── */}
           <button
             onClick={() => setLocation("/diabetic-menu-builder")}
