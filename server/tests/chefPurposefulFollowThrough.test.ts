@@ -336,7 +336,7 @@ test("reported four-turn sequence carries education into personal assessment, a 
   }
   expect(history).toHaveLength(8);
   expect(JSON.stringify(evidence)).toBe(before);
-  expect(history.at(-1)?.content).toBe("You're welcome.");
+  expect(history.at(-1)?.content).toBe("You're welcome. Take care!");
 });
 
 test("a supplied eating-pattern answer stays available for useful guidance without repeating discovery", async () => {
