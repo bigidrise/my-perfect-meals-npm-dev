@@ -1,26 +1,29 @@
 ---
 name: GLP-1 Canonical Context Resolver — Stage 1
-description: Canonical GLP-1 signals and the user's Builder-and-Menu-only portion-support policy.
+description: Canonical GLP-1 signals and narrowly approved member-reported current-use integration.
 ---
 
 # GLP-1 Canonical Context Resolver
 
 ## Current product scope
-The user wants GLP-1 support only in the GLP-1 Meal Builder and My Perfect Menu
-when it makes meal cards for that Builder, considering portion size and high
-nutrients. The rest of the platform should not apply the GLP-1 portion overlay.
-This supersedes the earlier all-surface GLP-1 portion-support policy.
+New Development work is limited to explicit current-use reporting in onboarding
+and Edit Profile, the existing GLP-1 and Diabetic Builder pathways, their My Perfect
+Menu symptom preflight, and replacing the Diabetic Hub's broken activation banner
+with an existing symptom-update action. Preserve established GLP-1 Builder logic.
+Do not expand new development into General or Anti-Inflammatory Builders, and do
+not remove existing shared GLP-1 safety behavior from unrelated features.
 
-**Why:** The user reports that the global overlay repeatedly obstructed meal
-creation because of quantity restrictions and explicitly rejected restoring it.
+**Why:** The user approved a narrowly scoped current-use connection so a diabetic
+member taking GLP-1 medication receives both existing sets of safeguards, rather
+than approving app-wide integration, new clinical logic, or blanket reductions.
 
-**How to apply:** Separate current medication/clinical information from the food
-operation where GLP-1 portion support is authorized. Merely having a GLP-1 Builder
-selected must not spread its portion restrictions into unrelated food tools.
-Keep genuine allergy, diabetes, and independently established clinical safety
-authorities distinct. This is product policy, not proof that the current code
-already enforces the narrowed scope; no application change was authorized in
-the discussion.
+**How to apply:** Reuse the source-aware architecture and existing target resolver.
+Explicit member-reported current medication use is not historical profile data,
+a nutrition preference, or physician verification. Member On/Off must only change
+the member's own report, never physician records or physician-controlled settings.
+Keep allergies, diabetic constraints, protein requirements and other established
+safeguards intact. No new hub, questionnaire, migration, blanket calorie reduction,
+Production change or release is authorized; stop for founder review.
 
 ## Canonical resolver
 `server/services/glp1/resolveGLP1GlobalContext.ts` — `resolveGLP1GlobalContext(userId, dateISO, mealType)`

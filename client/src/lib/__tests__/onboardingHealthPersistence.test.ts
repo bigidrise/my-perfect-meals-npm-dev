@@ -1,6 +1,30 @@
 import { persistOnboardingHealthInformation } from "../onboardingHealthPersistence";
 
 describe("onboarding health writes", () => {
+  it.each([true, false])("awaits an explicit current-use answer (%s) through its separate writer", async currentGlp1Use => {
+    const saveCurrentGlp1Use = jest.fn().mockResolvedValue(undefined);
+    await persistOnboardingHealthInformation({
+      medicalConditions: ["glp1"], specialtyConditions: [], thyroidType: null,
+      currentGlp1Use, saveCurrentGlp1Use, saveMedical: async () => {},
+      patch: async () => ({ ok: true }),
+    });
+    expect(saveCurrentGlp1Use).toHaveBeenCalledWith(currentGlp1Use);
+  });
+  it("does not activate from restored legacy GLP-1 conditions alone", async () => {
+    const saveCurrentGlp1Use = jest.fn();
+    await persistOnboardingHealthInformation({
+      medicalConditions: ["glp1"], specialtyConditions: [], thyroidType: null,
+      saveCurrentGlp1Use, saveMedical: async () => {}, patch: async () => ({ ok: true }),
+    });
+    expect(saveCurrentGlp1Use).not.toHaveBeenCalled();
+  });
+  it("does not report successful onboarding when the explicit medication write fails", async () => {
+    await expect(persistOnboardingHealthInformation({
+      medicalConditions: ["glp1"], specialtyConditions: [], thyroidType: null,
+      currentGlp1Use: true, saveCurrentGlp1Use: async () => { throw new Error("save failed"); },
+      saveMedical: async () => {}, patch: async () => ({ ok: true }),
+    })).rejects.toThrow("save failed");
+  });
   const base = {
     medicalConditions: ["glp1"],
     specialtyConditions: ["thyroid-support"],

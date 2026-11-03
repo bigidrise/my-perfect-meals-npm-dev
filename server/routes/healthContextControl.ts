@@ -8,6 +8,7 @@ import { exactFoodDirectiveSchema } from "../../shared/clinicalMealAuthority";
 import { HEALTH_PROTOCOLS, type HealthProtocol } from "../../shared/healthProtocolState";
 import { isSelfSelectableSupport } from "../../shared/nutritionSupportOptions";
 import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
+import { readMemberGLP1CurrentUse, setMemberGLP1CurrentUse } from "../services/glp1/memberCurrentUse";
 import {
   readHealthContextView, decideLegacySupport, decideEarlierAntiPreference, markMedicationInformationPast,
   reconcileLegacyClaim,
@@ -61,6 +62,28 @@ export default function healthContextControlRouter() {
     next();
   });
   router.use(requireAuth);
+
+  router.get("/glp1/current-use", async (req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    try {
+      return res.json(await readMemberGLP1CurrentUse((req as unknown as AuthenticatedRequest).authUser.id));
+    } catch {
+      return res.status(503).json({ message: "Your GLP-1 medication status could not be loaded." });
+    }
+  });
+
+  router.put("/glp1/current-use", async (req, res) => {
+    const body = z.object({ currentUse: z.boolean() }).strict().safeParse(req.body);
+    if (!body.success) return res.status(400).json({ message: "Choose On or Off for current medication use." });
+    const subjectUserId = (req as unknown as AuthenticatedRequest).authUser.id;
+    try {
+      await setMemberGLP1CurrentUse({ actorUserId: subjectUserId, subjectUserId, currentUse: body.data.currentUse });
+      res.setHeader("Cache-Control", "no-store");
+      return res.json(await readMemberGLP1CurrentUse(subjectUserId));
+    } catch {
+      return res.status(503).json({ message: "Your GLP-1 medication status could not be saved. Please retry." });
+    }
+  });
 
   router.get("/", async (req, res) => {
     try {

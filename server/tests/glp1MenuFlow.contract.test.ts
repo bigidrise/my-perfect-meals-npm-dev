@@ -5,6 +5,13 @@ import {
 } from "../../client/src/lib/glp1MenuFlow";
 
 describe("GLP-1 My Perfect Menu workflow contract", () => {
+  it("preserves the Diabetic Menu destination when reviewing GLP-1 symptoms/settings", () => {
+    const destination = glp1HubReturnTarget("lunch", "diabetic");
+    expect(destination).toContain("builder=diabetic");
+    expect(destination).toContain("category=lunch");
+    expect(shouldRequireGlp1MealPreflight({ active: true, shouldEscalate: false }, false, false)).toBe(true);
+    expect(shouldRequireGlp1MealPreflight({ active: true, shouldEscalate: false }, true, false)).toBe(false);
+  });
   it("continues directly when today's canonical tolerance check-in exists", () => {
     expect(shouldRequireGlp1MealPreflight(
       { active: true, shouldEscalate: false },
