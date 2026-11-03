@@ -457,9 +457,10 @@ test("natural personalization instructions and evidence share the existing singl
     expect(request.model).toBe("gpt-4o");
     expect(request.messages).toHaveLength(2);
     expect(request.messages[0].content).toContain("occasionally and naturally, not in every answer");
-    expect(request.messages[0].content).toContain("without asking for information already supplied");
+    expect(request.messages[0].content).toContain("Use answers already supplied");
     expect(request.messages[0].content).toContain("never invent one");
-    expect(request.messages[0].content).toContain("allergies, restrictions, avoided/disliked foods");
+    expect(request.messages[0].content).toContain("Honor dietary restrictions, avoided/disliked foods");
+    expect(request.messages[0].content).toContain("Known allergies and food safety, mandatory clinical constraints");
     expect(JSON.parse(request.messages[1].content).authorizedNutritionContext).toBe(context.coachingContextBlock);
   }
   expect(JSON.stringify({ context, profile: profiles[owner] })).toBe(before);
@@ -518,8 +519,8 @@ test.each(["saved-only", "different", "matching"] as const)(
     });
     expect(create).toHaveBeenCalledTimes(1);
     const request = create.mock.calls[0][0];
-    expect(request.messages[0].content).toContain("MACRO COACHING:");
-    expect(request.messages[0].content).toContain("retain confirmation, access and subscription checks");
+    expect(request.messages[0].content).toContain("RESPONSE STRATEGY — TARGET AND INTAKE AUTHORITY:");
+    expect(request.messages[0].content).toContain("single confirmation, access and subscription checks");
     expect(request.messages[0].content).toContain("Beverage Creator");
     const evidence = JSON.parse(request.messages[1].content).authorizedNutritionContext;
     expect(evidence).toContain('"verifiedCurrentEffective":false');
@@ -594,7 +595,7 @@ describe("practical, MPM-aware coaching with the existing evidence and food scre
     expect(payload.authorizedNutritionContext).toContain(logged ? '"protein":30' : '"protein":{"status":"missing"}');
     for (const result of [first, second]) {
       const instructions = result.request.messages[0].content;
-      expect(instructions).toContain("give two or three practical, compatible suggestions when useful");
+      expect(instructions).toContain("offer a few practical, compatible actions rather than a generic food-category inventory");
       expect(instructions).toContain("accept that answer and help rather than asking for the same estimate again");
       expect(instructions).toContain("do not suggest finding another app");
       expect(instructions).toContain("Every actual food proposal still requires");
