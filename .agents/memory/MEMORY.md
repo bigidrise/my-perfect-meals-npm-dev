@@ -156,3 +156,4 @@
 - [Ask Chef references](ask-chef-reference-index.md) — response authority, parent navigation naming, and founder-selected wordmark.
 - [Ask Chef personal history goal](ask-chef-personal-history-goal.md) — evidence-grounded recall across years is the priority; audit existing architecture before designing or activating memory.
 - [Feature Intelligence boundary](feature-intelligence-boundary.md) — automated offline discovery is approved; connecting it to Ask Chef requires separate approval.
+- [Builder tutorial mapping](builder-tutorial-mapping.md) — Metabolic and Diabetic each cover hub and builder; General and Anti-Inflammatory share a video; Performance is separate.
