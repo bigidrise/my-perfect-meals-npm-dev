@@ -68,6 +68,43 @@ function ordinary(result: Awaited<ReturnType<typeof reply>>["result"], message: 
   expect(result.todayPlan.items).toEqual([]);
 }
 
+test.each([
+  "Thanks, that's all I needed.", "Thank you! That answers my question.",
+  "No thanks, that's all.", "That's all for now.", "I’m all set, thanks!", "Goodbye.",
+])("Development replaces an unrelated nutrition list with a brief close: %s", async latest => {
+  const { result, wire } = await reply(latest, "Eat chicken, fish, eggs, tofu and beans for protein.", {
+    history: [{ role: "user", content: "What foods provide protein?" }],
+  });
+  ordinary(result, "You're welcome. Take care!");
+  expect(wire.latestMemberMessage).toBe(latest);
+});
+
+test.each([
+  "Thanks, that's all I needed. How much protein is in tofu?",
+  "Thanks, that's all I needed, but please explain fiber.",
+  "That's all for now—can you open the meal builder?",
+  "Thanks, that's all I needed. I have chest pain.",
+  'Why did you say "Thanks, that\'s all I needed"?',
+])("Development does not swallow substantive mixed content: %s", async latest => {
+  const { result, wire } = await reply(latest, "A substantive reply to the latest message.");
+  ordinary(result, "A substantive reply to the latest message.");
+  expect(wire.latestMemberMessage).toBe(latest);
+});
+
+test("model safety escalation wins over a clear closing statement", async () => {
+  const { result } = await reply("Thanks, that's all I needed.", "Please get urgent help.", { care: true });
+  expect(result.meta.redFlag).toBe(true);
+  expect(result.todayPlan.items.some(item => item.kind === "contact_care")).toBe(true);
+  expect(result.presentation?.message).not.toBe("You're welcome. Take care!");
+});
+
+test("Production does not apply the Development closing override", async () => {
+  process.env.NODE_ENV = "production";
+  const message = "The existing released model reply.";
+  const { result } = await reply("Thanks, that's all I needed.", message);
+  ordinary(result, message);
+});
+
 test("Development reconciles destination-only discovery with optional nutrition follow-through", () => {
   const instructions = getChefConversationInstructions("development");
   expect(instructions).toContain("explore an underlying nutrition goal only when useful");
@@ -184,7 +221,7 @@ test.each(["No thanks, that's all.", "Just answer the question, please.", "I don
       { role: "assistant", content: "Protein provides about 4 calories per gram. What nutrition goal are you working on?" },
     ];
     const { result, wire, request } = await reply(latest, message, { history });
-    ordinary(result, message);
+    ordinary(result, latest === "No thanks, that's all." ? "You're welcome. Take care!" : message);
     expect(wire.latestMemberMessage).toBe(latest);
     expect(wire.history).toEqual(history);
     expect(request.messages[0].content).toContain("declines further discussion, changes topics or indicates they are finished");
@@ -272,7 +309,7 @@ test("reported four-turn sequence carries education into personal assessment, a 
     },
     {
       input: "Thanks, that's all I needed.",
-      output: "You're welcome.",
+      output: "You're welcome. Take care!",
       purpose: "answer",
     },
   ];

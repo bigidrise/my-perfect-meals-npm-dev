@@ -2,6 +2,7 @@ import type OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { createHash } from "node:crypto";
+import { isUnambiguousChefClosing, chefClosingAcknowledgement } from "./conversationReliability";
 import type { CoachResponse, CoachingTool } from "../../../shared/coaching/types";
 import { ConciergeDecisionSchema, ConciergeGoalSchema, ConciergeMessageSchema } from "../../../shared/coaching/schemas";
 import { validateConciergeGoal } from "./conciergeGoal";
@@ -259,6 +260,12 @@ export async function runConciergeConversation(params: {
           ? [...new Set([turn.message, turn.contactCare].filter(Boolean))].join("\n\n")
           : turn.redFlagReason ?? turn.message ?? undefined,
       }) as CoachResponse);
+    }
+    // The input emergency gate runs first in the engine, and model-detected
+    // care above still wins. Do not add calls or let a closing phrase hide care.
+    if (developmentPurpose && isUnambiguousChefClosing(params.userMessage)) {
+      selectedField = "closing_acknowledgement";
+      return finish(envelope(chefClosingAcknowledgement(params.preferredLanguage)));
     }
     stage = "decision";
     const acceptingPending = turn.navigationIntent === "confirmed" && params.pendingRecommendation;
