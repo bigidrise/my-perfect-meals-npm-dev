@@ -7,7 +7,13 @@ import { test, expect, type Page } from "@playwright/test";
 
 test.use({ trace: "off", screenshot: "off", video: "off" });
 test.describe.configure({ retries: 0, timeout: 60_000 });
-let signInUnavailable = false;
+let signInFailure = "";
+
+function skipAuthentication(reason: string) {
+  signInFailure = reason;
+  console.info(`[navigation-smoke authentication] ${reason}`);
+  test.skip(true, reason);
+}
 
 async function noNotFound(page: Page) {
   await expect(page.getByRole("heading", { name: /404|page not found|^not found$/i })).toHaveCount(0);
@@ -17,23 +23,49 @@ async function noNotFound(page: Page) {
 async function signInExistingAccount(page: Page) {
   const email = process.env.PAIRING_SMOKE_TEST_EMAIL;
   const password = process.env.PAIRING_SMOKE_TEST_PASSWORD;
-  test.skip(signInUnavailable, "A prior normal sign-in was unavailable; do not repeat failed account login attempts.");
-  test.skip(!email || !password, "Existing test-account credentials are unavailable; no mocked identity is substituted.");
+  if (signInFailure) return skipAuthentication(signInFailure);
+  if (!email || !password) return skipAuthentication(
+    "Runner is missing PAIRING_SMOKE_TEST_EMAIL or PAIRING_SMOKE_TEST_PASSWORD; no sign-in attempted.");
+  let stage = "loading /auth";
   try {
     // Bound every setup step below the enclosing 60s test budget, so an
     // unavailable sign-in reports blocked coverage rather than a hook timeout.
-    await page.goto("/auth", { timeout: 12_000, waitUntil: "domcontentloaded" });
-    await page.getByPlaceholder("Email", { exact: true }).fill(email!, { timeout: 15_000 });
-    await page.getByPlaceholder("Password", { exact: true }).fill(password!, { timeout: 5_000 });
+    await page.goto("/auth", { timeout: 10_000, waitUntil: "domcontentloaded" });
+    stage = "waiting for the normal Email input on /auth";
+    await page.getByPlaceholder("Email", { exact: true }).fill(email, { timeout: 12_000 });
+    stage = "waiting for the normal Password input on /auth";
+    await page.getByPlaceholder("Password", { exact: true }).fill(password, { timeout: 5_000 });
+    stage = "submitting the normal Sign In control";
+    const responsePromise = page.waitForResponse(response =>
+      new URL(response.url()).pathname === "/api/auth/login" &&
+      response.request().method() === "POST", { timeout: 10_000 }).catch(() => null);
     await page.getByRole("button", { name: "Sign In", exact: true }).click({ timeout: 5_000 });
-    await page.waitForURL(url => !/^\/(?:auth|login|welcome)(?:\/|$)/.test(url.pathname), { timeout: 12_000 });
-  } catch {
+    stage = "waiting for POST /api/auth/login response";
+    const response = await responsePromise;
+    if (!response) return skipAuthentication("No POST /api/auth/login response within 10 seconds after Sign In.");
+    // Only fixed classifications and HTTP status leave this helper. Never log
+    // request bodies, response bodies, account fields, or raw driver errors.
+    const body = await response.json().catch(() => ({}));
+    if (body.mfaEnrollmentRequired === true) return skipAuthentication("Normal sign-in requires MFA enrollment; no enrollment or bypass attempted.");
+    if (body.mfaRequired === true) return skipAuthentication("Normal sign-in requires an MFA challenge; no bypass attempted.");
+    if (!response.ok()) {
+      const detail = String(body.error ?? "");
+      const classification = /invalid|incorrect/i.test(detail) ? "credentials rejected" :
+        response.status() === 429 ? "sign-in rate limited" :
+        /verif/i.test(detail) ? "account verification required" :
+        /lock|disabled|suspend/i.test(detail) ? "account restricted" : "login rejected";
+      return skipAuthentication(`POST /api/auth/login: HTTP ${response.status()} (${classification}).`);
+    }
+    stage = "waiting for successful login to leave /auth, /login, or /welcome";
+    await page.waitForURL(url => !/^\/(?:auth|login|welcome)(?:\/|$)/.test(url.pathname), { timeout: 10_000 });
+  } catch (error) {
     // Do not print driver fill errors, which can contain credential values.
-    signInUnavailable = true;
-    test.skip(true, "Normal test-account sign-in could not be established (credentials/MFA/account state). Protected navigation remains unverified.");
+    if (signInFailure) throw error; // Preserve Playwright's deliberate skip signal.
+    const failure = error instanceof Error && error.name === "TimeoutError" ? "timed out" : "failed";
+    return skipAuthentication(`Normal sign-in ${failure} while ${stage}; no raw credential-bearing error is reported.`);
   }
-  test.skip(new URL(page.url()).pathname.startsWith("/onboarding"),
-    "Existing account has unfinished onboarding; the smoke test does not alter it.");
+  if (new URL(page.url()).pathname.startsWith("/onboarding"))
+    return skipAuthentication("Existing account has unfinished onboarding; no onboarding or profile changes attempted.");
   // Read-only navigation: preserve real authorization responses; prevent saves,
   // analytics mutations, and accidental generation after normal sign-in.
   await page.route("**/api/**", route => {
@@ -91,16 +123,31 @@ test.describe("Existing member account — no authorization fixtures", () => {
   });
 });
 
-test("Home Quick Demo: signed-out originating control starts the existing guest suite", async ({ page }) => {
+test("Home Quick Demo: signed-out guard is preserved and authenticated control starts the guest suite", async ({ page }) => {
+  // Fresh signed-out context must keep the existing Home authorization boundary.
+  await page.goto("/home");
+  await expect(page).toHaveURL(/\/welcome(?:[?#]|$)/);
+  await noNotFound(page);
+  test.info().annotations.push({ type: "verified", description: "Signed-out /home redirects to /welcome." });
+
+  await signInExistingAccount(page);
   await page.goto("/home");
   const origin = page.getByRole("button", { name: "Quick Demo", exact: true });
   await expect(origin).toBeVisible({ timeout: 20_000 });
+  const identityBefore = await page.evaluate(() =>
+    JSON.stringify([localStorage.getItem("userId"), localStorage.getItem("authToken")]));
   await origin.click();
   await expect(page).toHaveURL(/\/guest-builder(?:[?#]|$)/);
   await noNotFound(page);
-  await expect(page.getByRole("button", { name: /macro|build|meal/i }).first()).toBeVisible();
-  expect(await page.evaluate(() => localStorage.getItem("userId"))).toBeNull();
-  expect(await page.evaluate(() => localStorage.getItem("authToken"))).toBeNull();
+  await expect(page.getByRole("button", { name: /macro|build|meal/i }).filter({ visible: true }).first()).toBeVisible();
+  expect(await page.evaluate(() => {
+    const session = JSON.parse(localStorage.getItem("mpm_guest_session") ?? "null");
+    return session?.isGuest === true && typeof session.sessionId === "string";
+  })).toBe(true);
+  const identityAfter = await page.evaluate(() =>
+    JSON.stringify([localStorage.getItem("userId"), localStorage.getItem("authToken")]));
+  // Assert a boolean so a failure cannot print authentication values.
+  expect(identityAfter === identityBefore).toBe(true);
 });
 
 test("Pricing Terms: visible legal button opens Terms of Service", async ({ page }) => {
