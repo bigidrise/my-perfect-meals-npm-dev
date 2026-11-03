@@ -120,6 +120,8 @@ MyPerfectMeals is a full-stack TypeScript application providing AI-powered meal 
 
 6. **Existing gates remain mandatory.** Use the existing [testing rules](docs/agent-rules.md#testing), [smoke-test gates](docs/agent-rules.md#smoke-test-gate), responsive checks, and [release-type gate](docs/release-typecheck-baseline.md). Do not weaken gates, change compiler acceptance rules, or refresh type-check baselines merely to obtain a pass. Development completion does not authorize a merge, deployment, publishing, migration, or Production changes; honor the task's approval boundary.
 
+**Phase 2 static navigation check:** `npm run validate:navigation` and `npm run test:navigation-check` run in Development pre-push validation. See [scope and limitations](docs/navigation-validation.md). Static route matches do not replace critical-workflow click-through or native iOS verification.
+
 ## Before Every GitHub Push — Pre-Push Checklist
 
 The pre-push validation runs **automatically** via a git pre-push hook whenever you run `git push`. You no longer need to remember to run it manually.
