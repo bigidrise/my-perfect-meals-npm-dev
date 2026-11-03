@@ -108,20 +108,21 @@ test("Production does not apply the Development closing override", async () => {
 test("Development reconciles destination-only discovery with optional nutrition follow-through", () => {
   const instructions = getChefConversationInstructions("development");
   expect(instructions).toContain("explore an underlying nutrition goal only when useful");
-  expect(instructions).toContain("unresolved nutrition goal, barrier, destination or safe next step");
+  expect(instructions).toContain("helps determine the next useful action");
   expect(instructions).toContain("clarify may include useful conditional advice or a direct factual answer");
-  expect(instructions).toContain("A question is optional, never an engagement target or a mandatory ending");
-  expect(instructions).toContain("Do not create a fixed questionnaire");
-  expect(instructions).toContain("Do not automatically promote My Perfect Meals features");
+  expect(instructions).toContain("no fixed greeting, question count, sentence count, mandatory list or closing question");
+  expect(instructions).toContain("not a nutrient-specific script or fixed response template");
+  expect(instructions).toContain("Do not invent controls, access or capabilities, advertise MPM in every reply");
   expect(instructions).not.toContain("ask only what is necessary to identify the appropriate verified destination");
-  expect(instructions.match(/^PURPOSEFUL FOLLOW-THROUGH:/gm)).toHaveLength(1);
+  expect(instructions.match(/^RESPONSE STRATEGY — INTENT AND USEFUL HELP:/gm)).toHaveLength(1);
+  expect(instructions).not.toMatch(/^PURPOSEFUL FOLLOW-THROUGH:|^FOLLOW-THROUGH —|^MACRO COACHING:/m);
 });
 
 test.each([
-  ["FOLLOW-THROUGH — MICRONUTRIENTS:", "explain micronutrients and useful food sources first", "not evidence of a deficiency"],
-  ["FOLLOW-THROUGH — WEIGHT MANAGEMENT:", "Distinguish general education from personal guidance", "Do not re-ask known facts"],
-  ["FOLLOW-THROUGH — CONTINUITY AND STOPPING:", "latest explicit correction", "does not update saved goals"],
-  ["FOLLOW-THROUGH — PROPORTION AND AUTHORITY:", "known, unknown, unavailable, explicit-none and freshness distinctions", "Clinical safety"],
+  ["RESPONSE STRATEGY — INTENT AND USEFUL HELP:", "Answer a factual food or nutrition question directly", "without generating recipes or amounts"],
+  ["RESPONSE STRATEGY — MATERIAL QUESTIONS:", "single highest-value unresolved detail", "do not justify an interview"],
+  ["RESPONSE STRATEGY — PROGRESSION:", "latest explicit correction", "does not update saved goals"],
+  ["RESPONSE STRATEGY — MEMBER EVIDENCE:", "known, unknown, unavailable, explicit-none and freshness distinctions", "mandatory clinical constraints"],
 ])("delivers the %s instruction and its boundaries", async (prefix, requirement, boundary) => {
   const { request } = await reply("What can you explain about nutrition?", "I can explain food and nutrition principles.");
   const paragraph = request.messages[0].content.split("\n").find((line: string) => line.startsWith(prefix));
@@ -140,7 +141,7 @@ test("micronutrient education retains the useful answer plus an optional purpose
     "provide a variety of micronutrients. Are you trying to improve overall meal quality, or are you concerned about missing certain vitamins or minerals?";
   const { result, wire, request } = await reply("What foods have lots of vitamins and minerals?", message, { purpose: "clarify" });
   ordinary(result, message);
-  expect(request.messages[0].content).toContain("If that purpose is already known, use it instead of asking again");
+  expect(request.messages[0].content).toContain("Use answers already supplied");
   expect(wire.authorizedNutritionContext).toBe(context.coachingContextBlock);
 });
 
@@ -210,7 +211,7 @@ test("latest correction and older conflicting context are both supplied without 
   expect(wire.history).toEqual(history);
   expect(wire.authorizedNutritionContext).toBe(context.coachingContextBlock);
   expect(JSON.stringify({ context, history })).toBe(before);
-  expect(request.messages[0].content).toContain("stop using the superseded assumption");
+  expect(request.messages[0].content).toContain("latest explicit correction or change of mind takes precedence");
 });
 
 test.each(["No thanks, that's all.", "Just answer the question, please.", "I don't want to discuss my goals."])(
@@ -224,7 +225,7 @@ test.each(["No thanks, that's all.", "Just answer the question, please.", "I don
     ordinary(result, latest === "No thanks, that's all." ? "You're welcome. Take care!" : message);
     expect(wire.latestMemberMessage).toBe(latest);
     expect(wire.history).toEqual(history);
-    expect(request.messages[0].content).toContain("declines further discussion, changes topics or indicates they are finished");
+    expect(request.messages[0].content).toContain("the member declines, changes topics or is finished");
   },
 );
 
@@ -267,11 +268,11 @@ test("the delivered personal-coaching instructions give useful help before optio
     "A small change to a meal you enjoy can help. Which meal would you like to vary?", { purpose: "answer" });
   const instructions = request.messages[0].content;
   expect(instructions).toContain("Distinguish general information requests from personal nutrition concerns on each turn");
-  expect(instructions).toContain("give two or three practical, compatible suggestions when useful");
+  expect(instructions).toContain("offer a few practical, compatible actions rather than a generic food-category inventory");
   expect(instructions).toContain("Do not make an intake estimate, a current-eating-pattern interview or complete assessment a prerequisite");
   expect(instructions).toContain("only when a missing answer materially changes that guidance");
   expect(instructions).not.toContain("Prefer one useful assessment question over a broad set of recommendations");
-  expect(instructions).toContain("rather than ending with a generic invitation to ask for more tips");
+  expect(instructions).toContain("Avoid generic closing invitations");
 });
 
 test("the delivered protein guidance separates available targets from unknown consumption and record access", async () => {
@@ -281,7 +282,8 @@ test("the delivered protein guidance separates available targets from unknown co
   expect(instructions).toContain("Use only target and intake evidence actually supplied");
   expect(instructions).toContain("A qualified saved target is not evidence of consumption");
   expect(instructions).toContain("not necessarily the member's total intake");
-  expect(instructions).toContain("without pretending to have checked records or asking the same answered question again");
+  expect(instructions).toContain("claim to have checked information not actually supplied");
+  expect(instructions).toContain("accept that answer and help rather than asking for the same estimate again");
   expect(instructions).toContain("do not invent either or delay safe general suggestions to demand them");
   expect(instructions).not.toContain("use the known target and ask one useful question about usual intake");
   expect(instructions).toContain("Do not calculate a new personal target");
@@ -329,8 +331,8 @@ test("reported four-turn sequence carries education into personal assessment, a 
     expect(wire.authorizedNutritionContext).toBe(evidence.coachingContextBlock);
     expect(wire.memberStatements.map((value: { text: string }) => value.text))
       .toEqual([...previousHistory.filter(value => value.role === "user").map(value => value.content), turn.input]);
-    expect(request.messages[0].content).toContain("FOLLOW-THROUGH — PERSONAL COACHING:");
-    expect(request.messages[0].content).toContain("FOLLOW-THROUGH — PROTEIN CONCERNS:");
+    expect(request.messages[0].content).toContain("RESPONSE STRATEGY — INTENT AND USEFUL HELP:");
+    expect(request.messages[0].content).toContain("RESPONSE STRATEGY — TARGET AND INTAKE AUTHORITY:");
     expect(request.messages[0].content).toContain("do not require the member to finish the previous assessment");
     expect(turn.output.match(/\?/g) ?? []).toHaveLength(turn.purpose === "clarify" ? 1 : 0);
     history.push({ role: "user", content: turn.input }, { role: "assistant", content: result.presentation!.message });
