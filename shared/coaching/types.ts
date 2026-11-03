@@ -334,6 +334,12 @@ export interface TodayPlan {
  * The server validates all fields before persisting or returning.
  */
 export interface CoachResponse {
+  /** Development-only ingredient screening, not medical or allergy clearance. */
+  foodCompatibility?: {
+    status: "not_applicable" | "screened" | "blocked" | "unavailable";
+    reasons: string[];
+    uncertainties: string[];
+  };
   /** Development-only display contract; legacy coaching fields remain internal. */
   presentation?: ConciergePresentation;
   /** "I looked through your recent activity. I noticed..." */

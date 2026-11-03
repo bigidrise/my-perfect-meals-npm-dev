@@ -409,6 +409,7 @@ test("the current conversation actually receives the adapter evidence without a 
     message: "For personal guidance, what is your main challenge right now?",
     memberNeed: "nutrition_guidance", responsePurpose: "clarify", navigationIntent: "none",
     conciergeDecision: null, redFlag: false, careDisposition: "none",
+    foodDeclarations: { message: { mode: "none", foods: [] }, conversationMessage: null, handoffMessage: null },
   }) } }] });
   await runConciergeConversation({
     client: { chat: { completions: { create } } } as any,
@@ -435,6 +436,7 @@ test("natural personalization instructions and evidence share the existing singl
   const create = jest.fn().mockImplementation(async () => ({ choices: [{ message: { content: JSON.stringify({
     message: responses[nextResponse++], memberNeed: "nutrition_guidance", responsePurpose: "answer",
     navigationIntent: "none", conciergeDecision: null, redFlag: false, careDisposition: "none",
+    foodDeclarations: { message: { mode: "discussion", foods: [] }, conversationMessage: null, handoffMessage: null },
   }) } }] }));
   const history: Array<{ role: string; content: string }> = [];
   for (const [index, message] of ["Can we discuss variety?", "What could we explore?"].entries()) {
