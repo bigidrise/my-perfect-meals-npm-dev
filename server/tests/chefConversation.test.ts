@@ -620,8 +620,10 @@ test("adaptive conversation instructions apply to every turn without old questio
   const system = mockCreate.mock.calls[0][0].messages[0].content;
   expect(system).toContain("on every turn, not just the first welcome");
   expect(system).toContain("latest explicit correction or change of mind");
-  expect(system).toContain("do not end every reply with a question");
-  expect(system).toContain("Orientation can be useful at any point");
+  // Development replaces the released paragraph, including capitalization.
+  // Assert the behavioral contract rather than obsolete prompt wording.
+  expect(system).toMatch(/do not end every reply with a question/i);
+  expect(system).toMatch(/do not restart discovery(?:,| or) repeat answered questions/i);
   expect(system).toContain("Only action-ready food_assistance may select a feature");
   expect(system).toContain("Medical emergencies or serious symptoms take priority");
   expect(system).toContain("Existing destinations own meal and beverage generation");
