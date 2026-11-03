@@ -249,3 +249,18 @@ feature mapping. Unclear answers remain clarification; activity choice is not
 automatically destination choice, and feature choice is not navigation consent.
 Keep Create With Chef an internal builder control, not a standalone destination.
 Do not force alternatives for clear goals or weaken access, care or physician rules.
+
+Everyday goal coaching should use available member context to provide a few
+practical, compatible suggestions before optional assessment. Unknown intake is
+not a prerequisite for useful help. Accept an admission of uncertainty instead
+of asking the same intake question again. Connect to verified MPM capabilities
+when useful; never send members to find another app for a capability MPM provides.
+
+**Why:** The user explicitly replaced the prior assessment-first approach after
+Chef retrieved a saved target but gave generic external-app advice and failed to
+progress when the member said they did not know their intake.
+
+**How to apply:** Keep this a general conversational strategy, not protein scripts.
+Safety, dietary restrictions, clinical authority, qualified targets, field-bound
+food screening and navigation consent remain authoritative. Ask only when the
+answer materially changes guidance or helps select the next action.

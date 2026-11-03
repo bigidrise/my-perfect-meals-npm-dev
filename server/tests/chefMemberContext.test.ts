@@ -534,3 +534,115 @@ test.each(["saved-only", "different", "matching"] as const)(
     expect(resolveDailyNutritionPrescription).not.toHaveBeenCalled();
   },
 );
+
+describe("practical, MPM-aware coaching with the existing evidence and food screen", () => {
+  // These injected replies prove instruction/history propagation and display
+  // contracts, not the natural-language model's live adherence to the strategy.
+  async function turn(input: string, text: string, foods: Array<{ name: string; ingredients: string[] }>,
+    history: Array<{ role: string; content: string }> = []) {
+    const context = await cornerAdapter.loadAdditionalContext(subject);
+    const create = jest.fn().mockResolvedValue({ choices: [{ message: { content: JSON.stringify({
+      message: text, memberNeed: "nutrition_guidance", responsePurpose: "answer",
+      navigationIntent: "none", conciergeDecision: null, redFlag: false, careDisposition: "none",
+      foodDeclarations: {
+        message: { mode: foods.length ? "recommendations" : "none",
+          foods: foods.map(food => ({ ...food, ingredientCoverage: "listed" })) },
+        conversationMessage: null, handoffMessage: null,
+      },
+    }) } }] });
+    const response = await runConciergeConversation({
+      client: { chat: { completions: { create } } } as any,
+      userMessage: input, history, rollingContext: null, context, tools: [],
+    });
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(response.presentation?.navigation).toBeUndefined();
+    expect(response.presentation?.destinationId).toBeUndefined();
+    expect(response.todayPlan.items).toEqual([]);
+    expect(resolveDailyNutritionPrescription).not.toHaveBeenCalled();
+    return { response, request: create.mock.calls[0][0], context };
+  }
+  const legumes = [
+    { name: "lentils", ingredients: ["lentils"] },
+    { name: "chickpeas", ingredients: ["chickpeas"] },
+  ];
+  test.each([false, true])("the two-turn protein exchange retains context and qualified intake (logs=%s)", async logged => {
+    profiles[owner].daily_protein_target = 129;
+    prescriptions[owner] = [];
+    if (logged) macroEvents = [{ at: NOW, kcal: 200, protein: 30 }];
+    const firstInput = "I'm trying to get more protein.";
+    // Replay an earlier intake question so the next turn must receive the
+    // member's uncertainty as an answered question, not restart discovery.
+    const first = await turn(firstInput,
+      "Your saved protein goal is 129 g a day; I can't confirm the latest adjustments. " +
+      "Try lentils in a meal you enjoy or chickpeas as a snack. Do you know how much protein you're getting?", legumes);
+    const history = [{ role: "user", content: firstInput },
+      { role: "assistant", content: first.response.presentation!.message }];
+    const intake = logged
+      ? "Your logs record 30 g so far, which may not cover everything you ate."
+      : "I don't have enough logged meals to establish your actual intake.";
+    const text = "That's okay. Your saved protein goal is 129 g a day; the latest adjustments are unconfirmed. " +
+      intake + " My Perfect Meals meal logs can help track protein. Add lentils to a usual meal or try a chickpea snack. " +
+      "Beverage Creator can help with making a shake. Would you like help with a meal or a shake?";
+    const second = await turn("I don't know how much protein I'm getting.", text, legumes, history);
+    expect(second.response.presentation?.message).toContain(text);
+    expect(second.response.foodCompatibility?.status).toBe("screened");
+    const payload = JSON.parse(second.request.messages[1].content);
+    expect(payload.history).toEqual(history);
+    expect(payload.latestMemberMessage).toBe("I don't know how much protein I'm getting.");
+    expect(payload.authorizedNutritionContext).toContain('"savedBase":129');
+    expect(payload.authorizedNutritionContext).toContain('"verifiedCurrentEffective":false');
+    expect(payload.authorizedNutritionContext).toContain(logged ? '"protein":30' : '"protein":{"status":"missing"}');
+    for (const result of [first, second]) {
+      const instructions = result.request.messages[0].content;
+      expect(instructions).toContain("give two or three practical, compatible suggestions when useful");
+      expect(instructions).toContain("accept that answer and help rather than asking for the same estimate again");
+      expect(instructions).toContain("do not suggest finding another app");
+      expect(instructions).toContain("Every actual food proposal still requires");
+      expect(instructions).toContain("single confirmation, access and subscription checks");
+    }
+  });
+  test("vegan and soy-allergic context permits compatible practical options, not an animal/soy default list", async () => {
+    Object.assign(profiles[owner], {
+      nickname: "Betty", daily_protein_target: 110, dietary_restrictions: ["vegan"], allergies: ["soy"],
+      foods_i_enjoy: enjoyment(["Lentil stew"]),
+    });
+    prescriptions[owner] = [];
+    const text = "Betty, your saved protein goal is 110 g a day; the latest adjustments are unconfirmed. " +
+      "You could add lentils to a meal you enjoy or have chickpeas as a snack. My Perfect Meals can help you build on those meals.";
+    const result = await turn("Can you help me get more protein?", text, legumes);
+    expect(result.response.presentation?.message).toContain(text);
+    expect(result.response.foodCompatibility?.status).toBe("screened");
+    const evidence = JSON.parse(result.request.messages[1].content).authorizedNutritionContext;
+    expect(evidence).toContain('"value":["vegan"]');
+    expect(evidence).toContain('"value":["soy"]');
+    expect(evidence).toContain("Lentil stew");
+    expect(result.request.messages[0].content).toContain("vegan or vegetarian is a dietary restriction, not a cuisine");
+  });
+  test.each([
+    { name: "tofu", ingredients: ["soybeans"] },
+    { name: "chicken", ingredients: ["chicken"] },
+    { name: "milk", ingredients: ["milk"] },
+  ])("the unchanged food screen still blocks incompatible practical advice: $name", async food => {
+    Object.assign(profiles[owner], { dietary_restrictions: ["vegan"], allergies: ["soy"] });
+    const rejected = `PRIVATE_REJECTED_PROPOSAL: Try ${food.name} to increase protein.`;
+    const result = await turn("I want more protein.", rejected, [food]);
+    expect(result.response.foodCompatibility?.status).toBe("blocked");
+    expect(JSON.stringify(result.response)).not.toContain("PRIVATE_REJECTED_PROPOSAL");
+  });
+  test("practical advice with unknown allergies retains explicit uncertainty rather than allergy clearance", async () => {
+    profiles[owner].allergies = [];
+    const result = await turn("I want more protein.",
+      "Lentils could be an option if appropriate for your needs; I can't confirm your allergy status.", [legumes[0]]);
+    expect(result.response.foodCompatibility?.uncertainties).toContain("allergies_unknown");
+    expect(result.response.foodCompatibility?.uncertainties).toContain("cross_contact_unverified");
+    expect(result.response.presentation?.message).toContain("can't confirm your allergy status");
+  });
+  test("the general strategy is Development-only and does not claim glucose authority", () => {
+    const development = getChefConversationInstructions("development");
+    expect(development).toContain("across protein, hydration, fiber, carbohydrate choices and meal variety");
+    expect(development).toContain("Diabetes-specific quantitative or glucose-responsive advice requires authorized, reliable glucose evidence");
+    expect(development).toContain("do not suggest finding another app");
+    expect(getChefConversationInstructions("production")).toBe(CHEF_CONVERSATION_INSTRUCTIONS);
+    expect(CHEF_CONVERSATION_INSTRUCTIONS).not.toContain("FOLLOW-THROUGH — MPM AWARENESS:");
+  });
+});
