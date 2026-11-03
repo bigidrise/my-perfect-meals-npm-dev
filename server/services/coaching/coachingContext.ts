@@ -40,6 +40,7 @@ import type { CoachingContextSnapshot, FieldValue, DataConfidence } from "../../
 import { resolveHydrationDay, shiftLocalDate } from "../hydration/hydrationDay";
 import { localDayUTCBounds } from "../../utils/localDayBounds";
 import { buildMemberEvidence, renderMemberEvidence, type MemberContextProfileRow } from "./memberContextEvidence";
+import { storedMacroNumber } from "./macroTargetEvidence";
 
 // ─── Helper: build a FieldValue ───────────────────────────────────────────────
 
@@ -273,14 +274,20 @@ export async function buildCoachingContext(
   const presc = developmentEvidence && latestStoredPrescription?.evidence_date !== hydrationDay.localDate
     ? null : latestStoredPrescription;
 
+  // Development evidence must not turn malformed numeric text into a target.
+  const storedTarget = (raw: string | null) => {
+    const value = storedMacroNumber(raw);
+    return value === null ? missing<number>("daily_nutrition_prescriptions")
+      : observed(value, "daily_nutrition_prescriptions", presc?.source ?? undefined, presc?.updated_at ?? undefined);
+  };
   const prescriptionBlock: CoachingContextSnapshot["prescription"] = presc
     ? {
-        calories:     presc.target_calories  ? observed(Math.round(parseFloat(presc.target_calories)),  "daily_nutrition_prescriptions", presc.source ?? undefined, presc.updated_at ?? undefined) : missing("daily_nutrition_prescriptions"),
-        protein:      presc.target_protein   ? observed(Math.round(parseFloat(presc.target_protein)),   "daily_nutrition_prescriptions", presc.source ?? undefined, presc.updated_at ?? undefined) : missing("daily_nutrition_prescriptions"),
-        carbs:        presc.target_total_carbs ? observed(Math.round(parseFloat(presc.target_total_carbs)), "daily_nutrition_prescriptions", presc.source ?? undefined, presc.updated_at ?? undefined) : missing("daily_nutrition_prescriptions"),
-        fat:          presc.target_fat       ? observed(Math.round(parseFloat(presc.target_fat)),       "daily_nutrition_prescriptions", presc.source ?? undefined, presc.updated_at ?? undefined) : missing("daily_nutrition_prescriptions"),
-        starchyCarbs: presc.target_starchy_carbs ? observed(Math.round(parseFloat(presc.target_starchy_carbs)), "daily_nutrition_prescriptions", presc.source ?? undefined, presc.updated_at ?? undefined) : missing("daily_nutrition_prescriptions"),
-        fibrousCarbs: presc.target_fibrous_carbs  ? observed(Math.round(parseFloat(presc.target_fibrous_carbs)),  "daily_nutrition_prescriptions", presc.source ?? undefined, presc.updated_at ?? undefined) : missing("daily_nutrition_prescriptions"),
+        calories:     developmentEvidence ? storedTarget(presc.target_calories) : presc.target_calories  ? observed(Math.round(parseFloat(presc.target_calories)),  "daily_nutrition_prescriptions", presc.source ?? undefined, presc.updated_at ?? undefined) : missing("daily_nutrition_prescriptions"),
+        protein:      developmentEvidence ? storedTarget(presc.target_protein) : presc.target_protein   ? observed(Math.round(parseFloat(presc.target_protein)),   "daily_nutrition_prescriptions", presc.source ?? undefined, presc.updated_at ?? undefined) : missing("daily_nutrition_prescriptions"),
+        carbs:        developmentEvidence ? storedTarget(presc.target_total_carbs) : presc.target_total_carbs ? observed(Math.round(parseFloat(presc.target_total_carbs)), "daily_nutrition_prescriptions", presc.source ?? undefined, presc.updated_at ?? undefined) : missing("daily_nutrition_prescriptions"),
+        fat:          developmentEvidence ? storedTarget(presc.target_fat) : presc.target_fat       ? observed(Math.round(parseFloat(presc.target_fat)),       "daily_nutrition_prescriptions", presc.source ?? undefined, presc.updated_at ?? undefined) : missing("daily_nutrition_prescriptions"),
+        starchyCarbs: developmentEvidence ? storedTarget(presc.target_starchy_carbs) : presc.target_starchy_carbs ? observed(Math.round(parseFloat(presc.target_starchy_carbs)), "daily_nutrition_prescriptions", presc.source ?? undefined, presc.updated_at ?? undefined) : missing("daily_nutrition_prescriptions"),
+        fibrousCarbs: developmentEvidence ? storedTarget(presc.target_fibrous_carbs) : presc.target_fibrous_carbs  ? observed(Math.round(parseFloat(presc.target_fibrous_carbs)),  "daily_nutrition_prescriptions", presc.source ?? undefined, presc.updated_at ?? undefined) : missing("daily_nutrition_prescriptions"),
         source:          presc.source ?? null,
         sourceVersion:   presc.source_version ?? null,
         performanceDayType: presc.performance_day_type ?? null,
@@ -322,6 +329,15 @@ export async function buildCoachingContext(
       ${developmentEvidence
         ? sql`AND at >= ${hydrationDay.start.toISOString()} AND at <= ${hydrationDay.end.toISOString()}`
         : sql`AND DATE(at AT TIME ZONE 'UTC') = CURRENT_DATE`}
+      ${developmentEvidence ? sql`AND (
+        source = 'locked-day' OR NOT EXISTS (
+          SELECT 1 FROM macro_logs locked
+          WHERE locked.user_id = ${userId}
+            AND locked.at >= ${hydrationDay.start.toISOString()}
+            AND locked.at <= ${hydrationDay.end.toISOString()}
+            AND locked.source = 'locked-day'
+        )
+      )` : sql``}
   `);
 
   const mt = macroTodayResult.rows[0];
@@ -459,9 +475,7 @@ export async function buildCoachingContext(
     ...(developmentEvidence ? { memberEvidence: buildMemberEvidence({
       profile, now: asOf, day: hydrationDay, recordedTimezone: profile?.timezone,
       prescription: latestStoredPrescription ? {
-        date: latestStoredPrescription.evidence_date,
-        updated_at: latestStoredPrescription.updated_at,
-        source: latestStoredPrescription.source, source_version: latestStoredPrescription.source_version,
+        ...latestStoredPrescription, date: latestStoredPrescription.evidence_date,
       } : null,
     }) } : {}),
     subject: {

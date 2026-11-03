@@ -33,7 +33,7 @@ const owner = "synthetic-owner";
 let profiles: Record<string, Record<string, any>>;
 let prescriptions: Record<string, Array<Record<string, any>>>;
 let statements: Array<{ sql: string; params: any[] }>;
-let macroEvents: Array<{ at: Date; kcal: number }>;
+let macroEvents: Array<{ at: Date; kcal: number; protein?: number; source?: string; userId?: string }>;
 
 function enjoyment(labels: string[] = ["Curry", "Tacos"], overrides: Record<string, any> = {}) {
   return {
@@ -109,11 +109,15 @@ beforeEach(() => {
     if (sql.includes("avg_meals_per_day")) return { rows: [{ avg_meals_per_day: "2" }] };
     if (sql.includes("FROM macro_logs")) {
       const bounds = params.filter(value => typeof value === "string" && /^\d{4}-.*T/.test(value));
-      const rows = bounds.length === 2
-        ? macroEvents.filter(event => event.at >= new Date(bounds[0]) && event.at <= new Date(bounds[1]))
+      const matching = bounds.length >= 2
+        ? macroEvents.filter(event => (event.userId ?? owner) === id &&
+          event.at >= new Date(bounds[0]) && event.at <= new Date(bounds[1]))
         : [];
+      const locked = sql.includes("locked.source = 'locked-day'") && matching.some(event => event.source === "locked-day");
+      const rows = locked ? matching.filter(event => event.source === "locked-day") : matching;
       return { rows: [{ meal_count: String(rows.length), total_kcal: String(rows.reduce((sum, event) => sum + event.kcal, 0)),
-        total_protein: "0", total_carbs: "0", total_fat: "0", total_fiber: "0", last_logged_at: rows.at(-1)?.at ?? null }] };
+        total_protein: String(rows.reduce((sum, event) => sum + (event.protein ?? 0), 0)),
+        total_carbs: "0", total_fat: "0", total_fiber: "0", last_logged_at: rows.at(-1)?.at ?? null }] };
     }
     if (sql.includes("FROM water_logs")) return { rows: [{ total_ml: "0", entry_count: "0" }] };
     if (sql.includes("FROM ace_daily_checkins")) return { rows: [{ hunger: 4, energy: 5, mood: 6, stress: 2, cravings: 3 }] };
@@ -473,3 +477,60 @@ test("Production retains its original query and prompt path", async () => {
   expect(renderSnapshotForPrompt(snapshot)).toContain("=== COACHING CONTEXT SNAPSHOT ===");
   expect(renderSnapshotForPrompt(snapshot)).not.toContain("AUTHORIZED MEMBER EVIDENCE");
 });
+
+test.each([null, "125 grams", "", "NaN"])("invalid dated protein remains missing in both prompt projections: %j", target => {
+  prescriptions[owner] = [rx({ target_protein: target })];
+  return build().then(snapshot => {
+    expect(snapshot.prescription.protein).toMatchObject({ status: "missing", value: null });
+    expect(snapshot.memberEvidence?.macroTargets).toMatchObject({
+      storedPrescriptionCoverage: "incomplete",
+      fields: { protein: { savedBase: 120, storedForDate: null, relationship: "saved_base_only" } },
+    });
+    expect(renderSnapshotForPrompt(snapshot)).not.toContain("125 grams");
+    expect(resolveDailyNutritionPrescription).not.toHaveBeenCalled();
+  });
+});
+
+test.each(["saved-only", "different", "matching"] as const)(
+  "qualified, concise protein coaching uses one injected foreground request: %s", async scenario => {
+    if (scenario === "saved-only") prescriptions[owner] = [];
+    if (scenario === "matching") profiles[owner].daily_protein_target = 125;
+    if (scenario !== "saved-only") macroEvents = [{ at: NOW, kcal: 200, protein: 30 }];
+    const context = await cornerAdapter.loadAdditionalContext(subject);
+    const reply = scenario === "saved-only"
+      ? "Your saved protein goal is 120 g a day; your latest adjustments are unconfirmed. Lentils could be one option. Roughly how much protein do you get now?"
+      : scenario === "different"
+        ? "Your saved goal is 120 g, while the goal recorded for today is 125 g; I can't confirm which reflects your latest adjustments. You've logged 30 g so far, which may not cover everything you ate. Which goal matches your latest guidance?"
+        : "Your saved and recorded goals both list 125 g, though the latest adjustments are unconfirmed. You've logged 30 g so far; that may not include everything. What makes reaching your protein goal difficult?";
+    const create = jest.fn().mockResolvedValue({ choices: [{ message: { content: JSON.stringify({
+      message: reply, memberNeed: "nutrition_guidance", responsePurpose: "answer",
+      navigationIntent: "none", conciergeDecision: null, redFlag: false, careDisposition: "none",
+      foodDeclarations: {
+        message: scenario === "saved-only"
+          ? { mode: "recommendations", foods: [{ name: "Lentils", ingredients: ["lentils"], ingredientCoverage: "listed" }] }
+          : { mode: "discussion", foods: [] },
+        conversationMessage: null, handoffMessage: null,
+      },
+    }) } }] });
+    const response = await runConciergeConversation({
+      client: { chat: { completions: { create } } } as any, userMessage: "I'm trying to get more protein.",
+      history: [], rollingContext: null, context, tools: [],
+    });
+    expect(create).toHaveBeenCalledTimes(1);
+    const request = create.mock.calls[0][0];
+    expect(request.messages[0].content).toContain("MACRO COACHING:");
+    expect(request.messages[0].content).toContain("retain confirmation, access and subscription checks");
+    expect(request.messages[0].content).toContain("Beverage Creator");
+    const evidence = JSON.parse(request.messages[1].content).authorizedNutritionContext;
+    expect(evidence).toContain('"verifiedCurrentEffective":false');
+    expect(evidence).toContain('"professionalOverrideStatus":"unverified"');
+    expect(evidence).toContain("Completeness is estimated");
+    expect(response.presentation?.message).toContain(reply);
+    expect(response.presentation?.message?.length).toBeLessThan(500);
+    expect((response.presentation?.message?.match(/\?/g) ?? []).length).toBe(1);
+    expect(response.presentation?.message).not.toMatch(/prescription|database|source_version|verified current effective/i);
+    expect(response.presentation?.navigation).toBeUndefined();
+    expect(response.todayPlan.items).toEqual([]);
+    expect(resolveDailyNutritionPrescription).not.toHaveBeenCalled();
+  },
+);
