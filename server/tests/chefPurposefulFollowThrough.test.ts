@@ -262,27 +262,28 @@ test("declining discussion cannot suppress an existing emergency care response",
   expect(result.todayPlan.items.some(item => item.kind === "contact_care")).toBe(true);
 });
 
-test("the delivered personal-coaching instructions prefer material assessment over another generic list", async () => {
+test("the delivered personal-coaching instructions give useful help before optional material clarification", async () => {
   const { request } = await reply("I think I'm eating the same foods too often.",
-    "What do your meals typically look like over a day?", { purpose: "clarify" });
+    "A small change to a meal you enjoy can help. Which meal would you like to vary?", { purpose: "answer" });
   const instructions = request.messages[0].content;
   expect(instructions).toContain("Distinguish general information requests from personal nutrition concerns on each turn");
-  expect(instructions).toContain("Prefer one useful assessment question over a broad set of recommendations");
-  expect(instructions).toContain("first understand the member's current eating pattern when it is not supplied");
-  expect(instructions).toContain("If that pattern is already known, build on it without asking again");
-  expect(instructions).toContain("Lists remain appropriate when explicitly requested or useful with sufficient context");
+  expect(instructions).toContain("give two or three practical, compatible suggestions when useful");
+  expect(instructions).toContain("Do not make an intake estimate, a current-eating-pattern interview or complete assessment a prerequisite");
+  expect(instructions).toContain("only when a missing answer materially changes that guidance");
+  expect(instructions).not.toContain("Prefer one useful assessment question over a broad set of recommendations");
   expect(instructions).toContain("rather than ending with a generic invitation to ask for more tips");
 });
 
 test("the delivered protein guidance separates available targets from unknown consumption and record access", async () => {
   const { request } = await reply("I'm concerned about getting enough protein.",
-    "What protein-containing foods do you usually eat in a day?", { purpose: "clarify" });
+    "You can build on meals you enjoy; unknown intake is not zero intake.", { purpose: "answer" });
   const instructions = request.messages[0].content;
-  expect(instructions).toContain("Do not assume access to dietary intake records, current protein consumption or saved targets");
-  expect(instructions).toContain("A supplied target is not evidence of consumption");
-  expect(instructions).toContain("partial logs are not a complete daily intake");
-  expect(instructions).toContain("use the known target and ask one useful question about usual intake");
-  expect(instructions).toContain("do not demand both answers at once or invent either value");
+  expect(instructions).toContain("Use only target and intake evidence actually supplied");
+  expect(instructions).toContain("A qualified saved target is not evidence of consumption");
+  expect(instructions).toContain("not necessarily the member's total intake");
+  expect(instructions).toContain("without pretending to have checked records or asking the same answered question again");
+  expect(instructions).toContain("do not invent either or delay safe general suggestions to demand them");
+  expect(instructions).not.toContain("use the known target and ask one useful question about usual intake");
   expect(instructions).toContain("Do not calculate a new personal target");
 });
 
