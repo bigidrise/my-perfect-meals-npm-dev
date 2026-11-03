@@ -24,6 +24,8 @@ import { buildCoachingContext, renderSnapshotForPrompt } from "../services/coach
 import { cornerAdapter } from "../services/coaching/adapters/cornerAdapter";
 import { runConciergeConversation } from "../services/coaching/conciergeConversation";
 import { resolveDailyNutritionPrescription } from "../services/prescriptionResolver";
+import { CHEF_ENJOYED_FOOD_LIMIT } from "../services/coaching/memberContextEvidence";
+import { CHEF_CONVERSATION_INSTRUCTIONS, getChefConversationInstructions } from "../services/coaching/conciergeInstructions";
 
 const originalEnvironment = process.env.NODE_ENV;
 const NOW = new Date("2026-11-03T02:30:00Z"); // November 2 in Chicago
@@ -33,8 +35,22 @@ let prescriptions: Record<string, Array<Record<string, any>>>;
 let statements: Array<{ sql: string; params: any[] }>;
 let macroEvents: Array<{ at: Date; kcal: number }>;
 
+function enjoyment(labels: string[] = ["Curry", "Tacos"], overrides: Record<string, any> = {}) {
+  return {
+    version: 1, configured: true, updatedAt: NOW.toISOString(),
+    items: labels.map((label, index) => ({
+      id: `food-${index}`, conceptId: null, kind: "dish", category: "meals-dishes",
+      displayLabel: label, originalText: label, locale: "en", source: "free_text",
+      provenance: "explicit", selectedAt: NOW.toISOString(), revokedAt: null,
+    })),
+    ...overrides,
+  };
+}
+
 function profile(overrides: Record<string, any> = {}) {
   return {
+    nickname: "Sunny", first_name: "Sam", cuisine_preference: "indian", cuisine_intensity: "balanced",
+    foods_i_enjoy: enjoyment(),
     goal_type: "lose", goal_target: "10 lb", goal_timeline_weeks: 12,
     goal_start_date: new Date("2026-10-01T00:00:00Z"), fitness_goal: "weight_loss",
     activity_level: "lightly_active", dietary_restrictions: ["vegetarian"],
@@ -67,7 +83,10 @@ beforeEach(() => {
   process.env.NODE_ENV = "development";
   jest.useFakeTimers().setSystemTime(NOW);
   jest.clearAllMocks();
-  profiles = { [owner]: profile(), "synthetic-other": profile({ allergies: ["OTHER_MEMBER_SENTINEL"] }) };
+  profiles = { [owner]: profile(), "synthetic-other": profile({
+    allergies: ["OTHER_MEMBER_SENTINEL"], nickname: "OTHER_MEMBER_NAME_SENTINEL",
+    cuisine_preference: "OTHER_MEMBER_CUISINE_SENTINEL", foods_i_enjoy: enjoyment(["OTHER_MEMBER_FOOD_SENTINEL"]),
+  }) };
   prescriptions = { [owner]: [rx()] };
   statements = []; macroEvents = [];
   (db.execute as jest.Mock).mockImplementation(async query => {
@@ -121,6 +140,128 @@ test("selected goals, timeline, restrictions, allergies and preferences reach th
   expect(prompt).toContain("12");
   expect(prompt).not.toMatch(/PRIVATE_|OTHER_MEMBER_SENTINEL/);
   expect(snapshot.clinical).toBeNull();
+});
+
+test.each([
+  [" Sunny ", "Sam", "Sunny", "users.nickname"],
+  [null, " Sam ", "Sam", "users.first_name"],
+  ["   ", "Sam", "Sam", "users.first_name"],
+  [undefined, "Sam", "Sam", "users.first_name"],
+  ["X".repeat(121), "Sam", "Sam", "users.first_name"],
+])("preferred name uses stored nickname then first name: %j / %j", async (nickname, first_name, value, source) => {
+  Object.assign(profiles[owner], { nickname, first_name });
+  const snapshot = await build();
+  expect(snapshot.memberEvidence?.profile.preferredName).toEqual({ value, status: "known", source });
+  expect(statements[0].sql).toMatch(/\bnickname\b/);
+  expect(statements[0].sql).toMatch(/\bfirst_name\b/);
+});
+
+test.each([[null, null], ["", "   "], [undefined, undefined], ["x".repeat(121), "y".repeat(121)]])(
+  "missing/invalid names remain unknown, not usernames, emails or auth aliases", async (nickname, first_name) => {
+    Object.assign(profiles[owner], { nickname, first_name,
+      username: "PRIVATE_USERNAME_SENTINEL", name: "PRIVATE_AUTH_NAME_SENTINEL", last_name: "PRIVATE_LAST_NAME_SENTINEL" });
+    const snapshot = await build();
+    expect(snapshot.memberEvidence?.profile.preferredName).toMatchObject({ status: "unknown", value: null });
+    expect(renderSnapshotForPrompt(snapshot)).not.toMatch(/PRIVATE_|OTHER_MEMBER/);
+    expect(statements[0].sql).not.toMatch(/\b(?:username|email|name|last_name)\b/);
+  },
+);
+
+test("cuisine and explicit enjoyment are accurate, dated, bounded soft evidence alongside unchanged safety and targets", async () => {
+  profiles[owner].foods_i_enjoy = enjoyment(["Curry", "Peanut butter"]);
+  const evidence = (await build()).memberEvidence!;
+  expect(evidence.profile).toMatchObject({
+    preferredName: { status: "known", value: "Sunny", source: "users.nickname" },
+    cuisinePreference: { status: "known", value: "indian", source: "users.cuisine_preference" },
+    cuisineIntensity: { status: "known", value: "balanced", source: "users.cuisine_intensity" },
+    foodsIEnjoy: { status: "known", value: ["Curry", "Peanut butter"], source: "users.foods_i_enjoy",
+      recordedAt: NOW.toISOString(), totalActive: 2, truncated: false },
+    allergies: { value: ["peanuts"] }, restrictions: { value: ["vegetarian"] },
+    avoidedFoods: { value: ["sesame"] }, dislikedFoods: { value: ["olives"] },
+    goal: { value: "lose" }, target: { value: "10 lb" },
+  });
+  expect(evidence.savedTargets.targets).toMatchObject({
+    calories: { value: 1800 }, protein: { value: 120 }, carbs: { value: 180 },
+    fat: { value: 65 }, starchyCarbs: { value: 90 }, fibrousCarbs: { value: 90 },
+  });
+  expect(resolveDailyNutritionPrescription).not.toHaveBeenCalled();
+});
+
+test.each([null, undefined, "   "])("missing cuisine stays unknown even with a default intensity: %j", async cuisine => {
+  profiles[owner].cuisine_preference = cuisine;
+  const evidence = (await build()).memberEvidence!.profile;
+  expect(evidence.cuisinePreference).toMatchObject({ status: "unknown", value: null });
+  expect(evidence.cuisineIntensity).toMatchObject({ status: "unknown", value: null });
+});
+
+test.each(["None", "No preference"])("explicit recorded no cuisine is distinct from an unknown cuisine: %s", async cuisine => {
+  profiles[owner].cuisine_preference = cuisine;
+  expect((await build()).memberEvidence!.profile.cuisinePreference).toMatchObject({ status: "none", value: null });
+});
+
+test("custom stored cuisines are preserved rather than invented or mapped to a different cuisine", async () => {
+  profiles[owner].cuisine_preference = "Armenian";
+  profiles[owner].cuisine_intensity = "unsupported";
+  const evidence = (await build()).memberEvidence!.profile;
+  expect(evidence.cuisinePreference.value).toBe("Armenian");
+  expect(evidence.cuisineIntensity).toMatchObject({ status: "unknown", value: null });
+});
+
+test.each([
+  [null, "unknown"], [undefined, "unknown"], [enjoyment([], { configured: false }), "unknown"],
+  [enjoyment(["Unconfirmed"], { configured: false }), "unknown"],
+  [enjoyment([]), "none"], [{ version: 999 }, "unavailable"],
+])("Foods I Enjoy preserves configuration and evidence status: %j", async (document, status) => {
+  profiles[owner].foods_i_enjoy = document;
+  profiles[owner].liked_foods = ["LEGACY_LIKED_FOOD_SENTINEL"];
+  const snapshot = await build();
+  expect(snapshot.memberEvidence!.profile.foodsIEnjoy).toMatchObject({ status, value: status === "none" ? [] : null });
+  expect(snapshot.memberEvidence!.profile.allergies.value).toEqual(["peanuts"]);
+  expect(renderSnapshotForPrompt(snapshot)).not.toMatch(/Unconfirmed|LEGACY_LIKED_FOOD_SENTINEL/);
+});
+
+test("revoked enjoyment is excluded; an explicitly cleared selection is none", async () => {
+  const document = enjoyment(["Curry", "REVOKED_FOOD_SENTINEL"]);
+  (document.items[1] as any).revokedAt = NOW.toISOString();
+  profiles[owner].foods_i_enjoy = document;
+  expect((await build()).memberEvidence!.profile.foodsIEnjoy).toMatchObject({
+    status: "known", value: ["Curry"], totalActive: 1,
+  });
+  (document.items[0] as any).revokedAt = NOW.toISOString();
+  expect((await build()).memberEvidence!.profile.foodsIEnjoy).toMatchObject({ status: "none", value: [], totalActive: 0 });
+});
+
+test("100 valid enjoyment entries produce a small explicit partial projection without truncating allergies", async () => {
+  profiles[owner].foods_i_enjoy = enjoyment(Array.from({ length: 100 }, (_, index) => `Food ${index} ${"x".repeat(100)}`));
+  profiles[owner].allergies = Array.from({ length: 30 }, (_, index) => `Allergen ${index}`);
+  const snapshot = await build();
+  const projection = snapshot.memberEvidence!.profile.foodsIEnjoy;
+  expect(projection.value).toHaveLength(CHEF_ENJOYED_FOOD_LIMIT);
+  expect(projection).toMatchObject({ totalActive: 100, truncated: true, status: "known" });
+  const { preferredName, cuisinePreference, cuisineIntensity } = snapshot.memberEvidence!.profile;
+  expect(JSON.stringify({ preferredName, cuisinePreference, cuisineIntensity, foodsIEnjoy: projection }).length).toBeLessThan(3000);
+  expect(snapshot.memberEvidence!.profile.allergies.value).toHaveLength(30);
+  expect(renderSnapshotForPrompt(snapshot)).toContain("Allergen 29");
+  expect(renderSnapshotForPrompt(snapshot)).not.toContain("Food 99 ");
+});
+
+test.each(["household", "organization", "client"])("the self adapter refuses a %s subject before fetching personalization", async subjectType => {
+  await expect(cornerAdapter.loadAdditionalContext({ ...subject, subjectType } as any)).rejects.toMatchObject({ status: 403 });
+  expect(db.execute).not.toHaveBeenCalled();
+});
+
+test("authenticated identity, not body/client/household identifiers, owns all personalization reads", async () => {
+  const self = await cornerAdapter.loadSubject({
+    authUser: { id: owner }, body: { userId: "synthetic-other", householdProfileId: "household-sentinel" },
+    params: { clientId: "synthetic-other" },
+  });
+  const context = await cornerAdapter.loadAdditionalContext(self);
+  expect(context.coachingContextBlock).toContain("Sunny");
+  expect(context.coachingContextBlock).not.toMatch(/OTHER_MEMBER_|household-sentinel/);
+  for (const query of statements) {
+    expect(query.params).toContain(owner);
+    expect(query.sql).not.toMatch(/household_profiles|organization|client_links/);
+  }
 });
 
 test.each([null, undefined, [], [""], ["None", null]])(
@@ -276,8 +417,46 @@ test("the current conversation actually receives the adapter evidence without a 
   const payload = JSON.parse(create.mock.calls[0][0].messages[1].content);
   expect(payload.authorizedNutritionContext).toContain("peanuts");
   expect(payload.authorizedNutritionContext).toContain("users.daily_calorie_target");
+  expect(payload.authorizedNutritionContext).toContain("Sunny");
+  expect(payload.authorizedNutritionContext).toContain("indian");
+  expect(payload.authorizedNutritionContext).toContain("Curry");
   expect(payload.authorizedNutritionContext).not.toMatch(/PRIVATE_|OTHER_MEMBER_SENTINEL/);
   expect(create).toHaveBeenCalledTimes(1);
+});
+
+test("natural personalization instructions and evidence share the existing single foreground request per turn", async () => {
+  const context = await cornerAdapter.loadAdditionalContext(subject);
+  const before = JSON.stringify({ context, profile: profiles[owner] });
+  const responses = [
+    "Sunny, we can explore more variety while respecting your saved goals and peanut allergy.",
+    "Since you enjoy curry and prefer Indian cuisine, we can consider that when discussing vegetarian food options.",
+  ];
+  let nextResponse = 0;
+  const create = jest.fn().mockImplementation(async () => ({ choices: [{ message: { content: JSON.stringify({
+    message: responses[nextResponse++], memberNeed: "nutrition_guidance", responsePurpose: "answer",
+    navigationIntent: "none", conciergeDecision: null, redFlag: false, careDisposition: "none",
+  }) } }] }));
+  const history: Array<{ role: string; content: string }> = [];
+  for (const [index, message] of ["Can we discuss variety?", "What could we explore?"].entries()) {
+    const response = await runConciergeConversation({
+      client: { chat: { completions: { create } } } as any, userMessage: message,
+      history: [...history], rollingContext: null, context, tools: [],
+    });
+    expect(response.presentation?.message).toBe(responses[index]);
+    expect(response.presentation?.navigation).toBeUndefined();
+    history.push({ role: "user", content: message }, { role: "assistant", content: responses[index] });
+  }
+  expect(create).toHaveBeenCalledTimes(2);
+  for (const [request] of create.mock.calls) {
+    expect(request.model).toBe("gpt-4o");
+    expect(request.messages).toHaveLength(2);
+    expect(request.messages[0].content).toContain("occasionally and naturally, not in every answer");
+    expect(request.messages[0].content).toContain("without asking for information already supplied");
+    expect(request.messages[0].content).toContain("never invent one");
+    expect(request.messages[0].content).toContain("allergies, restrictions, avoided/disliked foods");
+    expect(JSON.parse(request.messages[1].content).authorizedNutritionContext).toBe(context.coachingContextBlock);
+  }
+  expect(JSON.stringify({ context, profile: profiles[owner] })).toBe(before);
 });
 
 test("Production retains its original query and prompt path", async () => {
@@ -285,6 +464,9 @@ test("Production retains its original query and prompt path", async () => {
   const snapshot = await build();
   expect(snapshot.memberEvidence).toBeUndefined();
   expect(statements[0].sql).not.toContain("allergies");
+  expect(statements[0].sql).not.toMatch(/nickname|first_name|cuisine_preference|cuisine_intensity|foods_i_enjoy/);
+  expect(getChefConversationInstructions("production")).toBe(CHEF_CONVERSATION_INSTRUCTIONS);
+  expect(getChefConversationInstructions("production")).not.toContain("MEMBER PERSONALIZATION:");
   expect(statements.some(q => q.sql.includes("CURRENT_DATE"))).toBe(true);
   expect(renderSnapshotForPrompt(snapshot)).toContain("=== COACHING CONTEXT SNAPSHOT ===");
   expect(renderSnapshotForPrompt(snapshot)).not.toContain("AUTHORIZED MEMBER EVIDENCE");

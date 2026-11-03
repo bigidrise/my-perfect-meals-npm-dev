@@ -551,6 +551,14 @@ export interface MemberContextEvidence {
     start: string; end: string;
   };
   profile: {
+    preferredName: MemberContextFact<string>;
+    cuisinePreference: MemberContextFact<string>;
+    cuisineIntensity: MemberContextFact<"light" | "balanced" | "authentic">;
+    foodsIEnjoy: MemberContextFact<string[]> & {
+      recordedAt: string | null;
+      totalActive: number | null;
+      truncated: boolean;
+    };
     goal: MemberContextFact<string>;
     target: MemberContextFact<string>;
     fitnessGoal: MemberContextFact<string>;

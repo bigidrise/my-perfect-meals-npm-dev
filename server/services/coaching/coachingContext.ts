@@ -197,7 +197,8 @@ export async function buildCoachingContext(
       fitness_goal,
       performance_mode_enabled,
       timezone
-      ${developmentEvidence ? sql`, goal_timeline_weeks, goal_start_date,
+      ${developmentEvidence ? sql`, nickname, first_name, cuisine_preference, cuisine_intensity, foods_i_enjoy,
+        goal_timeline_weeks, goal_start_date,
         allergies, avoided_foods, disliked_foods, preferred_sweeteners, avoid_sweeteners,
         daily_calorie_target, daily_protein_target, daily_carbs_target, daily_fat_target,
         daily_starchy_carbs_target, daily_fibrous_carbs_target` : sql``}
