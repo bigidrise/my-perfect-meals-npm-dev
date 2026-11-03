@@ -9,7 +9,9 @@ import { validateConciergeGoal } from "./conciergeGoal";
 import { CHEF_CONCIERGE_REVISION, getChefConversationInstructions } from "./conciergeInstructions";
 import { inspectConversationPurpose, MemberNeedSchema, ResponsePurposeSchema, responseFieldMetrics,
   responseContractIndicators, navigationEmissionIndicators } from "./conversationPurpose";
-import { fallbackQuality, selectRejectedConversation, HANDOFF_RECOVERY, MISSING_PENDING_RECOVERY } from "./conciergeFallback";
+import { selectRejectedConversation, HANDOFF_RECOVERY, CONVERSATION_RECOVERY, MISSING_PENDING_RECOVERY } from "./conciergeFallback";
+import { navigationPermissionQuestion, screenIndependentConversation, screenOrdinaryConversation, screenConversationalContinuation,
+  type ReplyScreenReason } from "./conciergeReplyScreening";
 import { buildSafetyResponse } from "./safety";
 import { getLanguageInstruction } from "../../utils/languageInstruction";
 import { CreatorRequestEvidenceSchema, groundedCreatorRequest } from "./creatorRequest";
@@ -74,51 +76,18 @@ const ModelTurnSchema = z.object({
 /** Output isolation, not intent routing: never reuse a rejected feature pitch. */
 function independentConversation(message: string | null | undefined, allowedDestinationId?: CoachDestinationId,
   allowFeatureMentions = false): string | undefined {
-  // Symbol-only nullable-field placeholders are not useful conversation or
-  // consent. This is output validation, not classification of food intent.
-  if (!message || !/[\p{L}\p{N}]/u.test(message)) return undefined;
-  if (process.env.NODE_ENV === "development" && fallbackQuality(message) === "placeholder") return undefined;
-  const lower = message.toLocaleLowerCase();
-  // Match longer labels first: "Athlete Beverage Creator" includes "Beverage
-  // Creator", but authorizing one must not authorize an additional other tool.
-  let remaining = lower;
-  for (const [id, destination] of Object.entries(COACH_DESTINATIONS)
-    .sort((a, b) => b[1].label.length - a[1].label.length)) {
-    const label = destination.label.toLocaleLowerCase();
-    if (remaining.includes(label)) {
-      if (!allowFeatureMentions && id !== allowedDestinationId) return undefined;
-      remaining = remaining.split(label).join("");
-    }
-    if (lower.includes(destination.route)) return undefined;
-  }
-  if (/https?:\/\/|www\.|javascript:|data:|href\s*=|\]\s*\(|(?:^|\s)\/[a-z]/i.test(message)) return undefined;
-  return message;
-}
-
-/** Screen model OUTPUT only. This never interprets a member's yes, chooses a
- * destination, infers a goal or grants consent. Prevent unconfirmable bridge
- * questions from bypassing the structured recommendation contract. */
-function navigationPermissionQuestion(message: string | null | undefined): boolean {
-  return !!message && message.split(/[.!?？؟\n]/u).some(sentence =>
-    !/\b(?:or|rather than|instead of)\b/i.test(sentence) &&
-    /^\s*(?:would you like|do you want|shall (?:I|we)|should (?:I|we)|may I|can I (?:help|assist)|ready to)\b/i.test(sentence) &&
-    /\b(?:open|use|launch|proceed|continue|start|find|search|discover|explore|assist|help)\b/i.test(sentence));
+  return screenIndependentConversation(message, allowedDestinationId, allowFeatureMentions).text;
 }
 
 function ordinaryConversation(message: string | null | undefined): string | undefined {
-  return navigationPermissionQuestion(message) ? undefined : independentConversation(message, undefined, true);
+  return screenOrdinaryConversation(message).text;
 }
 
 // Output screening only, never interpretation of member intent or authorization.
 // A feature name is harmless in a standalone explanation. Opening/transfer claims
 // and instructions are not an independent continuation of a rejected action.
 function conversationalContinuation(message: string | null | undefined, structuredOffer = false): string | undefined {
-  const text = independentConversation(message, undefined, true);
-  if (!text || (!structuredOffer && navigationPermissionQuestion(text)) ||
-    /\b(?:open|launch|navigate|click|tap|press|redirect|transfer|take you|taking you|send you|get you started|getting you started|button)\b/i.test(text)) {
-    return undefined;
-  }
-  return text;
+  return screenConversationalContinuation(message, structuredOffer).text;
 }
 
 type DecisionReason = "missing_recommendation_wording" | "missing_handoff_wording" |
@@ -201,12 +170,13 @@ export async function runConciergeConversation(params: {
   let retainPendingOnFailure = false;
   let contract: ReturnType<typeof responseContractIndicators> | undefined;
   let fallback: ReturnType<typeof selectRejectedConversation>["outcomes"] | undefined;
+  let screening: { message: ReplyScreenReason; conversationMessage: ReplyScreenReason } | undefined;
   // Only correlation IDs in the existing UUID format are safe for logs.
   const correlation = /^[a-f0-9-]{36}$/i.test(params.requestId ?? "") ? ` request_id=${params.requestId}` : "";
   const diagnostic = (outcome: string, reason?: DecisionReason | "safety_escalation", response?: CoachResponse) =>
     console.info(`[ChefConcierge] decision_outcome=${outcome}${reason ? ` reason=${reason}` : ""}${correlation}` +
       (developmentPurpose ? ` ${JSON.stringify({ implementation: "conversation-purpose-v1", fingerprint, purpose, selectedField,
-        fields: metrics, contract, fallback, ...(response ? navigationEmissionIndicators(response) : {}) })}` : ""));
+        fields: metrics, contract, fallback, screening, ...(response ? navigationEmissionIndicators(response) : {}) })}` : ""));
   const finish = (response: CoachResponse) => {
     if (foodCompatibilityRequired) {
       const check = inspectChefFoodDeclarations(foodDeclarations, selectedField, params.context);
@@ -225,6 +195,12 @@ export async function runConciergeConversation(params: {
   };
   const rejectedContinuation = (turn: { message?: string | null; conversationMessage?: string | null },
     screen = conversationalContinuation) => {
+    if (developmentPurpose && screen === conversationalContinuation) {
+      screening = {
+        message: screenConversationalContinuation(turn.message).reason,
+        conversationMessage: screenConversationalContinuation(turn.conversationMessage).reason,
+      };
+    }
     const selection = selectRejectedConversation(turn, screen);
     selectedField = selection.selectedField;
     fallback = selection.outcomes;
@@ -318,6 +294,10 @@ export async function runConciergeConversation(params: {
         if (!continuation) selectedField = "retry";
         return finish(envelope(continuation ?? MISSING_PENDING_RECOVERY));
       }
+      if (developmentPurpose) screening = {
+        message: screenOrdinaryConversation(turn.message).reason,
+        conversationMessage: screenConversationalContinuation(turn.conversationMessage).reason,
+      };
       const message = (turn.navigationIntent === "recommendation" ? undefined : ordinaryConversation(turn.message)) ??
         conversationalContinuation(turn.conversationMessage);
       if (!message) throw new DecisionFailure("unusable_conversational_response");
@@ -477,7 +457,9 @@ export async function runConciergeConversation(params: {
     if (developmentPurpose) { selectedField = "retry"; diagnostic("response_rejected", error instanceof DecisionFailure ? error.reason : undefined); }
     const response = envelope(developmentPurpose && error instanceof DecisionFailure
       ? !params.pendingRecommendation && contract?.navigationIntent === "confirmed"
-        ? MISSING_PENDING_RECOVERY : HANDOFF_RECOVERY
+        ? MISSING_PENDING_RECOVERY
+        : contract?.navigationIntent === "none" && !contract.decisionPresent
+          ? CONVERSATION_RECOVERY : HANDOFF_RECOVERY
       : "I couldn't complete that response. Please try your request again.");
     if (retainPendingOnFailure && error instanceof DecisionFailure &&
       ["missing_handoff_wording", "purpose_missing", "purpose_invalid"].includes(error.reason) &&

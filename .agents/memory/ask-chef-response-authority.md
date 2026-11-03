@@ -33,7 +33,7 @@ different kinds of evidence; never present mocked tests as proof of natural
 conversation quality.
 
 Ask Chef must not require repeated confirmation for the same destination.
-Permission offers must carry a validated pending recommendation before display;
+Feature-opening offers must carry a validated pending recommendation before display;
 acceptance of that recommendation must not depend on an optional model wording
 variant being populated.
 
@@ -47,6 +47,19 @@ repeated handoff wording from verified destination instructions (or the existing
 button label when controls are unreviewed). Keep unsafe links and mismatched
 destinations rejected. Never choose a destination from a permission question,
 reconstruct pending state from text history, or authorize a bare yes by keyword.
+
+General offers of advice are not feature-opening permission. Do not reject a
+coaching question merely because it says "help", "find", "start" or "proceed".
+Keep reply-screen rejection diagnostics content-free and ordinary failure wording
+independent of navigation.
+
+**Why:** A Development investigation demonstrated advice-only false positives.
+The retained incident log proved post-generation rejection, but did not identify
+which screening predicate rejected that particular reply.
+
+**How to apply:** Require a navigation operation/feature target for output screening;
+retain structured pending-state, consent, access and food-screening authority.
+Do not claim a historical incident's exact cause from a synthetic reproduction.
 
 Distinguish missing recommendation wording from a missing decision. A validated
 ready goal may support recovery of an omitted wording variant or uniquely missing

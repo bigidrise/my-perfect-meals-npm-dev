@@ -4,6 +4,8 @@ jest.mock("../db", () => ({
 import { runConciergeConversation } from "../services/coaching/conciergeConversation";
 import { getChefConversationInstructions, CHEF_CONVERSATION_INSTRUCTIONS } from "../services/coaching/conciergeInstructions";
 import { responseFieldMetrics } from "../services/coaching/conversationPurpose";
+import { CONVERSATION_RECOVERY } from "../services/coaching/conciergeFallback";
+import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
 import type { PendingRecommendation } from "../services/coaching/conciergeNavigationState";
 
 const environment = process.env.NODE_ENV;
@@ -43,6 +45,44 @@ async function reply(extra: Record<string, unknown> = {}, options: {
   return { result, request: create.mock.calls[0][0] };
 }
 const offer = { responsePurpose: "answer_with_offer", navigationIntent: "recommendation", conciergeDecision: action };
+
+describe("Development ordinary-reply rejection regression", () => {
+  test.each([
+    "Would you like help adding protein to breakfast?",
+    "Do you want help finding meals with more protein?",
+    "Shall we start with breakfast?",
+  ])("preserves advice-only questions without a destination: %s", async message => {
+    const { result } = await reply({ message }, { userMessage: "I'm trying to get more protein." });
+    expect(result.presentation?.message).toBe(message);
+    expect(result.presentation?.navigation).toBeUndefined();
+    expect(result.presentation?.destinationId).toBeUndefined();
+    expect(result.todayPlan.items).toEqual([]);
+    expect(result.meta.concierge?.rendering).toBe("primary");
+  });
+  test.each([
+    ["Would you like me to open Beverage Creator?", "permission_question"],
+    ["https://example.test/PRIVATE_MODEL_TEXT", "link"],
+    [`${COACH_DESTINATIONS.beverage_creator.route} PRIVATE_MODEL_TEXT`, "route_reference"],
+    ["MODEL_REPLY_PENDING", "placeholder"],
+  ])("uses neutral recovery and content-free diagnostics: %s", async (message, reason) => {
+    const info = jest.spyOn(console, "info").mockImplementation(() => {});
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const { result } = await reply({ message }, { userMessage: "PRIVATE_MEMBER_TEXT" });
+      expect(result.presentation?.message).toBe(CONVERSATION_RECOVERY);
+      expect(result.presentation?.message).not.toContain("confirm a feature");
+      expect(result.presentation?.navigation).toBeUndefined();
+      expect(result.todayPlan.items).toEqual([]);
+      const logs = [...info.mock.calls, ...warn.mock.calls].flat().join("\n");
+      expect(logs).toContain(`"screening":{"message":"${reason}","conversationMessage":"missing"}`);
+      expect(logs).toContain("request_id=11111111-1111-4111-8111-111111111111");
+      expect(logs).not.toContain(message);
+      expect(logs).not.toMatch(/PRIVATE_MEMBER_TEXT|PRIVATE_MODEL_TEXT|PRIVATE_CONTEXT_SENTINEL/);
+    } finally {
+      info.mockRestore(); warn.mockRestore();
+    }
+  });
+});
 
 describe("Development conversation purpose and canonical display", () => {
   it("reproduces the observed field-loss shape without replacing advice or appending an unchecked pitch", async () => {
