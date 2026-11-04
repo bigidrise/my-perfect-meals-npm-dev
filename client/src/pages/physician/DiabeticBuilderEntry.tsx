@@ -62,13 +62,13 @@ export default function DiabeticBuilderEntry() {
         {/* Header */}
         <div className="mb-8">
           <p className="text-white text-xs font-semibold uppercase tracking-wider mb-2">
-            Meal Builder
+            Diabetic Menu Builder
           </p>
           <h1 className="text-white font-bold text-2xl leading-tight mb-2">
-            Diabetic Menu Builder
+            Where would you like to start?
           </h1>
           <p className="text-white text-sm leading-relaxed">
-            Build meals calibrated to your diabetic nutrition protocol.
+            Build today’s meals with your diabetic nutrition protocol, or use your training schedule to adapt targets around workouts.
           </p>
         </div>
 
@@ -82,10 +82,10 @@ export default function DiabeticBuilderEntry() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white font-semibold text-base leading-tight mb-0.5">
-              Continue to Diabetic Hub
+              Build today’s meals
             </p>
             <p className="text-white text-sm leading-relaxed">
-              View your diabetic nutrition hub, generate meals using your baseline macro targets.
+              Generate meals using your diabetic profile and baseline macro targets.
             </p>
           </div>
           <ChevronRight className="w-5 h-5 text-rose-400/60 group-hover:text-rose-400 transition-colors flex-shrink-0" />
@@ -94,9 +94,9 @@ export default function DiabeticBuilderEntry() {
         {/* Section Header */}
         <div className="mt-6 mb-4" hidden={!canAccessTrainingNutrition}>
           <div className="h-px bg-white/10 mb-4" />
-          <p className="text-white font-semibold text-base mb-1">Train or work out regularly?</p>
+          <p className="text-white font-semibold text-base mb-1">Want training-aware macros?</p>
           <p className="text-white text-sm leading-relaxed">
-            Set up your Training Nutrition Schedule so your meals automatically adapt to your workout schedule while continuing to honor your diabetic nutrition protocol.
+            Set up a training schedule to automatically adjust your daily macro targets around your weekly workouts while honoring your diabetic nutrition protocol.
           </p>
         </div>
 
@@ -124,7 +124,7 @@ export default function DiabeticBuilderEntry() {
               )}
             </div>
             <p className="text-white text-sm leading-relaxed mb-2">
-              Automatically adjust your daily macro targets based on your weekly workout schedule.
+              Set your weekly training type and get macro targets tailored to each day.
             </p>
             {performanceModeEnabled && hasSchedule && todayLabel && (
               <div className="flex items-center gap-2 mt-2">
@@ -135,7 +135,7 @@ export default function DiabeticBuilderEntry() {
               </div>
             )}
             <p className="text-orange-400 text-sm font-semibold mt-2">
-              {hasSchedule ? "Edit Training Nutrition Schedule →" : "Set Up Training Nutrition Schedule →"}
+              {hasSchedule ? "Edit schedule →" : "Set up training schedule →"}
             </p>
           </div>
         </button>
@@ -143,7 +143,7 @@ export default function DiabeticBuilderEntry() {
         {canAccessTrainingNutrition && !hasSchedule && (
           <div className="mt-4 px-4 py-3 rounded-xl bg-white/5 border border-white/10">
             <p className="text-white text-xs leading-relaxed">
-              When configured, your macro targets automatically shift each day based on your training — more carbohydrates on power days, reduced targets on rest days. Your macro baseline always stays under your Macro Calculator.
+              Your macro targets adapt to training — more carbohydrates on power days, reduced targets on rest days — while continuing to honor your diabetic nutrition protocol. Your macro baseline stays under your Macro Calculator.
             </p>
           </div>
         )}
