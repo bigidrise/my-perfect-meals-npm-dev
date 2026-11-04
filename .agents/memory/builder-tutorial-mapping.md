@@ -3,9 +3,9 @@ name: Builder tutorial mapping
 description: User-defined tutorial grouping and Performance placement.
 ---
 
-Metabolic Medication Hub and Diabetic Hub each have their own hub-specific video labeled “Hub Tutorial”; keep each builder's separate tutorial unchanged when updating its hub. General Nutrition and Anti-Inflammatory use the same video. Performance uses a separate video, intended for its hub where users enter how they like to eat.
+General Nutrition, Anti-Inflammatory, Diabetic, and Metabolic Medication builders share one tutorial video. Metabolic Medication Hub and Diabetic Hub each have their own hub-specific video labeled “Hub Tutorial”; keep hub videos separate from the shared builder tutorial. Performance uses a separate video, intended for its hub where users enter how they like to eat.
 
-**Why:** The user corrected the earlier assumption that Performance shares the general tutorial. Performance changes nutrition based on the user's day, and its explanation belongs with its setup context. The user explicitly separated both the Diabetic and Metabolic Medication hub tutorials from their builders.
+**Why:** The user explicitly requested one shared video for all four builders while keeping the hub-specific tutorials separate. Performance remains separate because it changes nutrition based on the user's day, and its explanation belongs with its setup context.
 
 **How to apply:** Keep these video groups distinct when replacing tutorials. Do not substitute one group's video for another or alter separate Creator tutorials.
 

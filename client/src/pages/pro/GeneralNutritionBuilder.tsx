@@ -1041,7 +1041,7 @@ export default function WeeklyMealBoard() {
               </span>
             </div>
 
-            <HowThisWorksLink videoUrl="https://youtu.be/1XmPvkwJjJk" />
+            <HowThisWorksLink videoUrl="https://youtu.be/UjNvo0hvUas" />
 
             <div className="inline-flex flex-col items-center gap-1">
               <PillButton
