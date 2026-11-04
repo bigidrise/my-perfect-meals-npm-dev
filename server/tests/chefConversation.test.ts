@@ -622,8 +622,14 @@ test("adaptive conversation instructions apply to every turn without old questio
   expect(system).toContain("latest explicit correction or change of mind");
   // Development replaces the released paragraph, including capitalization.
   // Assert the behavioral contract rather than obsolete prompt wording.
-  expect(system).toMatch(/do not end every reply with a question/i);
-  expect(system).toMatch(/do not restart discovery(?:,| or) repeat answered questions/i);
+  if (runtimeEnvironment === "development") {
+    expect(system).toContain("no fixed greeting, question count, sentence count, mandatory list or closing question");
+    expect(system).toContain("Move the conversation forward");
+    expect(system).toContain("do not repeat questions answered in history");
+  } else {
+    expect(system).toMatch(/do not end every reply with a question/i);
+    expect(system).toMatch(/do not restart discovery(?:,| or) repeat answered questions/i);
+  }
   expect(system).toContain("Only action-ready food_assistance may select a feature");
   expect(system).toContain("Medical emergencies or serious symptoms take priority");
   expect(system).toContain("Existing destinations own meal and beverage generation");

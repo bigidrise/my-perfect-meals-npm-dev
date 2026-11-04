@@ -262,7 +262,7 @@ export default function PerformanceNutritionSetupForm({
       if (step === 7) return !!recoveryStatus;
       if (step === 8) return adaptationTargets.length > 0;
       if (step === 9) {
-        const allDaysSet = APN_DAYS.every(d => weeklySchedule[d.key] && weeklySchedule[d.key] !== "");
+        const allDaysSet = APN_DAYS.every(d => !!weeklySchedule[d.key]);
         return allDaysSet && !!apnPhase;
       }
     }
