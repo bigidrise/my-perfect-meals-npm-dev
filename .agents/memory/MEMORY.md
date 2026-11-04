@@ -157,3 +157,4 @@
 - [Ask Chef personal history goal](ask-chef-personal-history-goal.md) — evidence-grounded recall across years is the priority; audit existing architecture before designing or activating memory.
 - [Feature Intelligence boundary](feature-intelligence-boundary.md) — automated offline discovery is approved; connecting it to Ask Chef requires separate approval.
 - [Builder tutorial mapping](builder-tutorial-mapping.md) — Metabolic and Diabetic each cover hub and builder; General and Anti-Inflammatory share a video; Performance is separate.
+- [Builder entry choices](builder-entry-choice-experience.md) — founder prefers General Nutrition's choice-first entry across the other three builders.
