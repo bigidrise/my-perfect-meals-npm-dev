@@ -29,6 +29,7 @@ import { chefMemberText } from "@/lib/chefMemberBranding";
 import CoachBubble, {
   ProfessionalBoundaryNotice, isConciergeMessage, type CoachStructuredResponse,
 } from "@/components/coaching/CoachBubble";
+import ChefResponseAvatar from "@/components/coaching/ChefResponseAvatar";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -134,9 +135,7 @@ function ThinkingBubble() {
   return (
     <div className="flex justify-start">
       <div className="max-w-[90%]">
-        <p className="text-[11px] font-semibold text-orange-400 mb-1.5 uppercase tracking-wider ml-1">
-          Chef
-        </p>
+        <ChefResponseAvatar />
         <div className="bg-zinc-900 border border-white/10 rounded-2xl rounded-tl-sm px-5 py-4">
           <div className="flex items-center gap-1.5">
             {[0, 1, 2].map((i) => (
