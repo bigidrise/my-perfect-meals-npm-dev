@@ -1335,7 +1335,7 @@ export default function DiabeticMenuBuilder() {
                 </span>
               </div>
 
-              <HowThisWorksLink videoUrl="https://youtu.be/1XmPvkwJjJk" />
+              <HowThisWorksLink videoUrl="https://youtu.be/UjNvo0hvUas" />
 
               {/* Duplicate (RIGHT) */}
               <div className="inline-flex flex-col items-center gap-1">
