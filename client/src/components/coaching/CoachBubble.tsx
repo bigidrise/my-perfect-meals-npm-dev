@@ -2,6 +2,7 @@ import React from "react";
 import type { ConciergePresentation } from "@shared/coaching/types";
 import { isCoachDestinationId } from "@shared/coaching/navigation";
 import CoachFeatureAction from "./CoachFeatureAction";
+import ChefResponseAvatar from "./ChefResponseAvatar";
 import { chefResponseText } from "./chefResponseText";
 
 interface PlanItem {
@@ -69,9 +70,7 @@ export default function CoachBubble({
   return (
     <div className="flex justify-start">
       <div className="max-w-[90%]">
-        <p className="text-[11px] font-semibold text-orange-400 mb-1.5 uppercase tracking-wider ml-1">
-          Coach
-        </p>
+        <ChefResponseAvatar />
         <div className="bg-zinc-900 border border-white/10 rounded-2xl rounded-tl-sm px-4 py-3.5 text-sm text-white/90 leading-relaxed space-y-3">
           {escalation ? <>
             {safetyTexts.map((text, i) =>
