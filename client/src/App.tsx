@@ -33,8 +33,8 @@ import DevBadge from "./components/DevBadge";
 import DevNavigator from "./components/DevNavigator";
 import { Capacitor } from "@capacitor/core";
 import { VoiceProvider } from "@/voice/VoiceProvider";
-import { UpdateProvider, useUpdateState } from "@/contexts/UpdateContext";
-import { UpdateBanner } from "@/components/UpdateBanner";
+import { UpdateProvider } from "@/contexts/UpdateContext";
+import { ReleaseBannerMount } from "@/components/ReleaseBannerMount";
 import { TrialBanner } from "@/components/TrialBanner";
 import { TrialMilestoneModal } from "@/components/TrialMilestoneModal";
 import { IdleTimeoutModal } from "@/components/IdleTimeoutModal";
@@ -65,11 +65,6 @@ function VisibilityRefreshMount() {
 function MacroTargetSyncMount() {
   useMacroTargetSync();
   return null;
-}
-
-function UpdateBannerMount() {
-  const { hasUpdate, releaseNotes, releaseId } = useUpdateState();
-  return <UpdateBanner show={hasUpdate} releaseNotes={releaseNotes} releaseId={releaseId} />;
 }
 
 // Demo grants are not consumer trials, paid plans, or real-clinical readiness.
@@ -216,7 +211,6 @@ export default function App() {
                 <VisibilityRefreshMount />
                 <MacroTargetSyncMount />
                 <ScrollManager />
-                <UpdateBannerMount />
                 <TrialBanner />
                 <TrialMilestoneModal />
                 <CopilotSystem onAction={handleCopilotAction}>
@@ -226,6 +220,7 @@ export default function App() {
                 <RootViewport>
                   <AppRouter>
                     <Router />
+                    <ReleaseBannerMount />
                   </AppRouter>
                 </RootViewport>
                 </PageTitleProvider>
