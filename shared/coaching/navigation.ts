@@ -30,9 +30,15 @@ export const COACH_DESTINATIONS = {
 export type CoachDestinationId = keyof typeof COACH_DESTINATIONS;
 
 /** Reviewed feature names bind explicit requests; never classify product words. */
-export function mentionsCoachDestination(message: string, id: CoachDestinationId): boolean {
+export function mentionsCoachDestination(
+  message: string, id: CoachDestinationId, environment?: string,
+): boolean {
   const names = id === "grocery_create_meal"
-    ? [COACH_DESTINATIONS[id].label, "Create a Meal", "Build a Meal"]
+    ? environment === "development"
+      // These are feature names, not meal-creation verbs. Interpretation of
+      // shopping intent and acceptance of a pending offer remain server-owned.
+      ? [COACH_DESTINATIONS[id].label, COACH_DESTINATIONS[id].navigationLabel, "Grocery Coach"]
+      : [COACH_DESTINATIONS[id].label, "Create a Meal", "Build a Meal"]
     : [COACH_DESTINATIONS[id].label];
   return names.some(name => message.toLocaleLowerCase().includes(name.toLocaleLowerCase()));
 }

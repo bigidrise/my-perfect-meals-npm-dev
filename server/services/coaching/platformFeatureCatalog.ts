@@ -4,6 +4,7 @@ import { FEATURE_USAGE_KNOWLEDGE } from "./featureUsageKnowledge";
 import type { ChefKnowledgeAccess } from "./platformKnowledgeAccess";
 
 export interface PlatformFeatureFact {
+  independentBackendEntry?: string;
   id: string;
   name: string;
   aliases: string[];
@@ -91,9 +92,22 @@ const additionalFacts: PlatformFeatureFact[] = [
 ];
 
 /** Reuse reviewed destination descriptions and controls; no second route registry. */
-export function buildPlatformFeatureCatalog(): PlatformFeatureFact[] {
+export function buildPlatformFeatureCatalog(options?: { featureIntelligence?: boolean }): PlatformFeatureFact[] {
   const destinations = getCornerCapabilities(["all"]).filter(cap => cap.id in COACH_DESTINATIONS);
   return [
+    ...(options?.featureIntelligence ? [{
+      id: "ask_chef", name: "Ask Chef", aliases: ["Chef", "Chef's help"],
+      purpose: "Ask Chef is My Perfect Meals' conversational assistant for food and nutrition questions and understanding the platform's tools. It can explain supported workflows and recommend approved features. Opening a feature is a separate, authorized handoff; generating food, saving changes and other actions happen in that feature, not automatically in chat.",
+      goals: ["Understand My Perfect Meals tools", "Discuss food and nutrition questions"],
+      doesNotDo: ["Does not diagnose, prescribe, grant access, change clinical protocols or execute feature actions from an explanation."],
+      gettingStarted: ["Ask a question in Ask Chef. Review its answer; use a separately authorized navigation action when offered."],
+      outputs: "Conversation and supported, consent-controlled feature handoffs, not automatic feature execution.",
+      route: "/coach-corner/home", access: "Authenticated access on Free, Essential, Pro and Clinical; existing server safety/navigation checks remain.",
+      independentBackendEntry: "/api/coach/message",
+      verification: "verified" as const, audience: "member" as const,
+      evidence: ["client/src/pages/CoachsCorner.tsx", "server/routes/coachingEngine.ts",
+        "server/services/coaching/conciergeConversation.ts", "server/services/coaching/conciergeInstructions.ts"],
+    }] : []),
     ...destinations.map(cap => {
       const id = cap.id as CoachDestinationId;
       const usage = FEATURE_USAGE_KNOWLEDGE[id];

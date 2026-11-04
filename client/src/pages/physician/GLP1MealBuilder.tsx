@@ -1253,7 +1253,7 @@ export default function GLP1MealBuilder() {
               </span>
             </div>
 
-            <HowThisWorksLink />
+            <HowThisWorksLink videoUrl="https://youtu.be/UjNvo0hvUas" />
 
             <div className="inline-flex flex-col items-center gap-1">
               <PillButton

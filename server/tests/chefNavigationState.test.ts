@@ -101,7 +101,7 @@ const shoppingWorkflows = [
     question: "I don't know what to eat for dinner. Can you help me shop?",
     proposal: "Grocery Coach's Create a Meal helps choose a meal and creates its grocery list. Would you like to use it?",
     handoff: "Shopping List opens first. Select Grocery Store Coach, then Build a Meal, and request your meal there.",
-    direct: "Open Create a Meal.",
+    direct: "Open Grocery Store Coach > Create a Meal.",
   },
 ];
 
@@ -131,7 +131,7 @@ test.each(shoppingWorkflows)("$id: recommend, persist, then confirm the same wor
 });
 
 test.each(shoppingWorkflows.flatMap(workflow => workflow.id === "grocery_create_meal"
-  ? [workflow, { ...workflow, direct: "Open Build a Meal." }] : [workflow]))("$id: explicit named request can navigate immediately", async workflow => {
+  ? [workflow, { ...workflow, direct: "Open Grocery Store Coach > Build a Meal." }] : [workflow]))("$id: explicit named request can navigate immediately", async workflow => {
   model({ message: workflow.handoff, navigationIntent: "direct_request",
     conciergeDecision: { mode: "food_assistance", destinationId: workflow.id,
       goal: { ...unknown, activity: workflow.activity, explicitFeatureId: workflow.id } },
@@ -479,8 +479,8 @@ test.each(["development", "production"])(
 
 test.each([
   "Would you like to open Find Meals Near Me?",
-  "Would you like me to assist you in discovering nearby restaurants?",
-  "Would you like to proceed with finding some options?",
+  "Would you like me to navigate to Find Meals Near Me?",
+  "Would you like to use Find Meals Near Me?",
 ])("unstructured permission questions cannot be displayed or persisted as confirmable offers: %s", async message => {
   model({ navigationIntent: "none", conciergeDecision: null, message, conversationMessage: null });
   const response = await run("I wanna go to a restaurant to get ice cream.");
@@ -490,6 +490,22 @@ test.each([
   expect(stored.presentation.navigation).toBeUndefined();
   model({ navigationIntent: "confirmed", conciergeDecision: null, message: "What would you like help with?" });
   expect(html(await run("yes"))).not.toContain("<button");
+});
+
+// These used to be rejected merely for "assist" or "proceed". Conversational
+// assistance is not navigation permission and must never create a pending action.
+test.each([
+  "Would you like me to assist you in discovering nearby restaurants?",
+  "Would you like to proceed with finding some options?",
+])("keeps general conversational help without granting navigation: %s", async message => {
+  model({ navigationIntent: "none", conciergeDecision: null, message, conversationMessage: null });
+  const response = await run("I wanna go to a restaurant to get ice cream.");
+  expect(response.presentation?.message).toBe(message);
+  expect(stored.presentation.message).toBe(message);
+  expect(response.presentation?.navigation).toBeUndefined();
+  expect(response.presentation?.destinationId).toBeUndefined();
+  expect(response.todayPlan.items).toEqual([]);
+  expect(stored.presentation.navigation).toBeUndefined();
 });
 
 test("a recommendation intent without its decision cannot display an unconfirmable permission question", async () => {

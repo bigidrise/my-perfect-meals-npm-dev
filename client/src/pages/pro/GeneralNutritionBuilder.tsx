@@ -30,6 +30,7 @@ import { RemainingMacrosFooter } from "@/components/biometrics/RemainingMacrosFo
 import { DailyTargetsCard } from "@/components/biometrics/DailyTargetsCard";
 import { ProTipCard } from "@/components/ProTipCard";
 import { useAuth } from "@/contexts/AuthContext";
+import { isClinicalOrAbove } from "@/lib/subscriptionCheck";
 import { lockDay, isDayLocked } from "@/lib/lockedDays";
 import { setQuickView } from "@/lib/macrosQuickView";
 import WeeklyOverviewModal from "@/components/WeeklyOverviewModal";
@@ -52,7 +53,7 @@ import {
 } from "@/utils/midnight";
 import { getRolling14Days } from "@/utils/dateRange";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Sparkles, BarChart3, ShoppingCart, X, Calendar, Lock, Save } from "lucide-react";
+import { Check, Sparkles, BarChart3, ShoppingCart, X, Calendar, Lock, Save, Dumbbell, ChevronRight } from "lucide-react";
 import { FEATURES } from "@/utils/features";
 import { DailyMacroTotalsRow } from "@/components/DailyMacroTotalsRow";
 import { DayChips } from "@/components/DayChips";
@@ -110,6 +111,7 @@ export default function WeeklyMealBoard() {
   const { toast } = useToast();
   const isDesktop = useIsDesktop();
   const { user } = useAuth();
+  const canAccessTrainingNutrition = isClinicalOrAbove(user);
   const queryClient = useQueryClient();
 
 
@@ -902,6 +904,26 @@ export default function WeeklyMealBoard() {
       >
         {/* NutritionBudgetBanner hidden — restore when reactivity is fixed */}
         <GuidedMealBoard journey={guidedBoard} />
+        <button
+          type="button"
+          hidden={!canAccessTrainingNutrition || isProCareMode || !!householdProfileId}
+          onClick={() => setLocation("/general-nutrition/training")}
+          className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-orange-600/10 hover:border-orange-500/30 transition-colors text-left group"
+        >
+          <div className="w-9 h-9 rounded-xl bg-orange-600/20 border border-orange-500/30 flex items-center justify-center flex-shrink-0">
+            <Dumbbell className="w-4 h-4 text-orange-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-semibold text-sm text-white leading-tight">Training Nutrition Schedule</p>
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-orange-300 bg-orange-600/20 border border-orange-500/30 px-2 py-0.5 rounded-full flex-shrink-0">
+                Clinical
+              </span>
+            </div>
+            <p className="text-white/40 text-xs mt-0.5">Adjust daily macro targets based on your workout schedule</p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-orange-400 transition-colors flex-shrink-0" />
+        </button>
       <div className="mb-6 border border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl">
         <div className="px-4 py-4 flex flex-col gap-3">
 
@@ -1041,7 +1063,7 @@ export default function WeeklyMealBoard() {
               </span>
             </div>
 
-            <HowThisWorksLink />
+            <HowThisWorksLink videoUrl="https://youtu.be/UjNvo0hvUas" />
 
             <div className="inline-flex flex-col items-center gap-1">
               <PillButton

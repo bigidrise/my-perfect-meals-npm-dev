@@ -35,7 +35,7 @@
 - [PostgreSQL parameter gaps](postgres-parameter-gaps.md) — mocked writes can pass while live updates fail if SQL leaves unused leading placeholders.
 - [Neon pooler read-only queries](neon-pooler-read-only-queries.md) — pooled connection rejects read-only startup options; use an explicit read-only transaction.
 - [Studio media lifecycle](studio-media-reference-index.md) — video retention, MIME compatibility, participant deletion, failed media, transcription result scope and voice queue integrity.
-- [OpenAI server upload runtime](openai-server-upload-runtime.md) — server-side uploads must not rely on ambient web globals from the OpenAI SDK auto shim.
+- [OpenAI server runtime](openai-server-upload-runtime.md) — explicit upload shims and SDK fetch injection; global fetch mocks alone do not prove isolation.
 - [Bundled-first iOS startup](bundled-first-ios-startup.md) — native startup must use packaged web assets; remote APIs are a separate, explicit dependency.
 - [iOS capture diagnosis](ios-capture-diagnosis.md) — diagnose Grocery Voice Add separately from Studio capture, and sync the native bundle before device evidence.
 - [Shared Neon and workspace release boundary](runtime-database-identity.md) — both workspaces share Neon, but Development Publish does not update Production.
@@ -132,7 +132,6 @@
 - [Migration CLI lifecycle](migration-cli-lifecycle.md) — one-off commands must own their connection; the application DB keepalive can outlive a closed pool.
 - [Professional credential clearance](professional-credential-clearance.md) — bind genuine MFA-reviewed evidence to current identity; activation, pilots and demos remain separate.
 - [Grocery Coach workflow](grocery-coach-meal-card-workflow.md) — automatic Favorites/card continuity and Development-only, user-initiated packaged-product discovery.
-- [Ask Chef parent navigation](ask-chef-parent-navigation.md) — Grocery Store Coach buttons name the parent feature; conversation names the nested function.
 - [Focused Jest execution](focused-jest-execution.md) — use isolated test transpilation and a separate type gate to avoid loading the entire project twice.
 - [Studio loading release boundary](studio-loading-release-boundary.md) — loading corrections are Development-only; permission caching and restart/release need separate approval.
 - [Recipe carbohydrate categories](recipe-carb-category-boundary.md) — preserve explicit source estimates; dietary fiber and unknown carbohydrate remain distinct.
@@ -154,5 +153,8 @@
 - [Dashboard menu colors](dashboard-menu-color-policy.md) — use visually distinct accents for unrelated dashboard tools, not merely different hex shades of the same hue.
 - [RHM client walkthrough](rhm-client-walkthrough-context.md) — staff need the actual first-time client experience before distributing a 30-day link to 8,000 clinic clients.
 - [Integration activation boundary](integration-activation-boundary.md) — review automatic merges and dependent gates; source integration alone never grants experimental activation or baseline replacement.
-- [Ask Chef response authority](ask-chef-response-authority.md) — typed care states govern unused model fields; meaningful continuations and honest role-scoped knowledge require separate evidence.
-- [Ask Chef wordmark](ask-chef-wordmark.md) — founder selected the silver/orange swoosh wordmark without a chef hat; the adjacent mascot already wears one.
+- [Ask Chef references](ask-chef-reference-index.md) — response authority, parent navigation naming, and founder-selected wordmark.
+- [Ask Chef personal history goal](ask-chef-personal-history-goal.md) — evidence-grounded recall across years is the priority; audit existing architecture before designing or activating memory.
+- [Feature Intelligence boundary](feature-intelligence-boundary.md) — automated offline discovery is approved; connecting it to Ask Chef requires separate approval.
+- [Builder tutorial mapping](builder-tutorial-mapping.md) — Metabolic and Diabetic each cover hub and builder; General and Anti-Inflammatory share a video; Performance is separate.
+- [Builder entry choices](builder-entry-choice-experience.md) — founder prefers General Nutrition's choice-first entry across the other three builders.

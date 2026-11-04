@@ -7,6 +7,10 @@ import CoachsCorner from "@/pages/CoachsCorner";
 const mockAPI = jest.fn();
 jest.mock("@/lib/queryClient", () => ({ apiRequest: (...args: unknown[]) => mockAPI(...args) }));
 jest.mock("@/lib/chefCornerExperience", () => ({ isChefConversationEnabled: () => true }));
+jest.mock("@/lib/chefConversationReliabilityGate", () => ({
+  isChefConversationReliabilityEnabled: () => false,
+  isChefFeatureScreenContextEnabled: () => false,
+}));
 jest.mock("wouter", () => ({ useLocation: () => ["/coach-corner/home", jest.fn()] }));
 jest.mock("@/components/voice/VoiceInputButton", () => ({
   VoiceInputButton: () => <button>Voice</button>,

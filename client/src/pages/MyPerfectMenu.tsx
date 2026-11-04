@@ -458,7 +458,8 @@ export default function MyPerfectMenu() {
 
   const openGlp1Settings = () => {
     const category = ideaType ?? pendingIdeaType;
-    setLocation(`/glp1-hub?returnTo=${encodeURIComponent(glp1HubReturnTarget(category))}`);
+    const returnBuilder = import.meta.env.DEV && builderContext?.key === "diabetic" ? "diabetic" : "glp1";
+    setLocation(`/glp1-hub?returnTo=${encodeURIComponent(glp1HubReturnTarget(category, returnBuilder))}`);
   };
 
   useEffect(() => {

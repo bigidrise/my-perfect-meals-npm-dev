@@ -17,6 +17,7 @@
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import OpenAI from "openai";
+import { chefMessageOrder } from "./conversationReliability";
 
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
@@ -162,7 +163,7 @@ export async function loadBoundedHistory(
     const msgs = await db.execute<{ role: string; content: string }>(sql`
       SELECT role, content FROM coach_messages
       WHERE conversation_id = ${conversationId}
-      ORDER BY created_at ASC
+      ORDER BY ${chefMessageOrder("asc")}
     `);
     return { recentMessages: msgs.rows, rollingContext: null, totalCount };
   }
@@ -171,7 +172,7 @@ export async function loadBoundedHistory(
   const recent = await db.execute<{ role: string; content: string }>(sql`
     SELECT role, content FROM coach_messages
     WHERE conversation_id = ${conversationId}
-    ORDER BY created_at DESC
+    ORDER BY ${chefMessageOrder("desc")}
     LIMIT 10
   `);
   const recentMessages = recent.rows.reverse();
@@ -222,7 +223,7 @@ async function generateAndSaveSummary(
   const allMsgs = await db.execute<{ role: string; content: string }>(sql`
     SELECT role, content FROM coach_messages
     WHERE conversation_id = ${conversationId}
-    ORDER BY created_at ASC
+    ORDER BY ${chefMessageOrder("asc")}
     LIMIT 200
     OFFSET 0
   `);

@@ -20,6 +20,15 @@
 
 set -e
 
+# Offline Development evidence only. Never changes Ask Chef or grants access.
+if [ "${NODE_ENV:-development}" != "production" ]; then
+  npm run features:check
+  npm run test:feature-intelligence
+  # Phase 2: source-only SPA destination validation. No app imports, requests, or writes.
+  npm run test:navigation-check
+  npm run validate:navigation
+fi
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'

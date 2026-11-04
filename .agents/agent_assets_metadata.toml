@@ -467,3 +467,157 @@ mtime_ms = 1793506848781
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:5b503fbf-1926-4592-8a37-99d9960f359a/6050442a-e121-47c7-96f3-975a8990d61e/3496cded-072b-4ade-acb7-6541fd616a63"
 storage_version_token = "1793507116437310"
 content_type = "text/html"
+
+[[outputs]]
+id = "lvaZiz6BCDCmD035c5aK5"
+uri = "file://generated-artifacts/feature-intelligence/phase3-review.html"
+type = "html"
+title = "Feature Intelligence — Phase 3 Review"
+description = "Source-backed Development review, with an embedded download of all 16 detailed reports: inventory, 52 Active reviews, 213 description-gap reviews, knowledge conflicts, hidden/legacy evidence, founder decisions and offline results. Live integration remains disabled."
+logical_id = "7ece5542-cabb-4633-a835-bbbf0a62974d"
+content_hash = "sha256:1e192ef99bbda7d7cd16fc15f16868f7af2c0f65b41e16a1ca8b2fa3502c1518"
+size = 356845
+mtime_ms = 1793637101092
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/7ece5542-cabb-4633-a835-bbbf0a62974d/fce04d07-5225-414f-a2c3-fa5af0d1a8b4"
+storage_version_token = "1793637126531593"
+content_type = "text/html"
+
+[[outputs]]
+id = "Iyc5CjpFH2DXQKj1zh3o9"
+uri = "file://generated-artifacts/feature-intelligence/founder-feature-review.md"
+type = "text"
+title = "Founder Feature Review — Markdown"
+description = "49 deduplicated candidates in four review batches, with source references, confidence, blank decisions and the Reduce Drinking Plan comparison."
+logical_id = "ecac4276-8e94-4026-a2ad-55f5755cc725"
+content_hash = "sha256:d6b1c3d4084b82d64786fd6db1b54c4668b4b8fa98894e1fd30c95aec26a0a07"
+size = 38012
+mtime_ms = 1793638988478
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/ecac4276-8e94-4026-a2ad-55f5755cc725/f52bd689-a047-48cf-b438-d8e065dd17c9"
+storage_version_token = "1793639021902479"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "z663fxX6QXU4nsX1Popd8"
+uri = "file://generated-artifacts/feature-intelligence/founder-feature-review.csv"
+type = "table"
+title = "Founder Feature Review — Sortable CSV"
+description = "Matching 49-row spreadsheet with category, batch, navigation status, evidence, confidence and a blank Founder decision column."
+logical_id = "f1905850-5c26-4cfd-b292-7a2d929694af"
+content_hash = "sha256:488896fdb7e407b8bebc235ccd76606237adfff49037d9ba64838e2bb7135c64"
+size = 28025
+mtime_ms = 1793638988479
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/f1905850-5c26-4cfd-b292-7a2d929694af/d1b44dc1-be98-495b-88cd-2a04067ca5b2"
+storage_version_token = "1793639022512411"
+content_type = "text/csv"
+
+[[outputs]]
+id = "6q2xcOfuaiF9gTuVg5Mbh"
+uri = "file://generated-artifacts/feature-intelligence/phase3-review.txt"
+type = "text"
+title = "Complete Phase 3 Review — Plain Text"
+description = "Complete export, including all expandable sections and all 16 embedded detailed reports. Existing reports remain unchanged."
+logical_id = "7d1ab4a3-4d11-4f4e-997e-e42d21497dff"
+content_hash = "sha256:f93af594b4be7657c9b78c54e744488d9d67287631e0af782900e998aaff1d88"
+size = 3566990
+mtime_ms = 1793640018178
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/7d1ab4a3-4d11-4f4e-997e-e42d21497dff/c0489275-d7bd-4f2c-b118-a31f74658c9c"
+storage_version_token = "1793640023776474"
+content_type = "text/plain"
+
+[[outputs]]
+id = "jLRvbvvlIn2E9pdwTM-WR"
+uri = "file://generated-artifacts/feature-intelligence/phase3-founder-executive-review.md"
+type = "text"
+title = "Phase 3 — Founder Executive Review"
+description = "4,198-word decision-ready consolidation covering platform status, hidden and legacy experiences, navigation gaps, description conflicts, safety concerns and priorities, with confidence, evidence, approval requirements and all 49 founder-review candidates."
+logical_id = "0bffeb4a-17a4-4c63-b6a8-bc0891ae2bef"
+content_hash = "sha256:70dec94d5e4422f26731b39bf7f3ffbdbf2da2e9156dad4e68449ec44a456f79"
+size = 34036
+mtime_ms = 1793640323706
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/0bffeb4a-17a4-4c63-b6a8-bc0891ae2bef/51d36bd4-279a-4523-bb47-2eef395eaf87"
+storage_version_token = "1793640339370488"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "xTmIjqBW7M_d93of3u4uL"
+uri = "file://generated-artifacts/feature-intelligence/phase3-action-plan.md"
+type = "text"
+title = "Phase 3 — Findings Triage and Action Plan"
+description = "2,141-word plan with 12 grouped findings, risk-based priorities, Ask Chef readiness gates, founder decisions, deferred legacy work and a minimal offline first package."
+logical_id = "596210bf-a01a-42e7-93cf-a56dc256b7d2"
+content_hash = "sha256:94af3e9b7a107776d8792bf2874291d2cb20952fac22566d39cef5b6c3e58ae6"
+size = 17379
+mtime_ms = 1793640814350
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/596210bf-a01a-42e7-93cf-a56dc256b7d2/4374356c-49f4-4c22-bcd5-3cbadec2421d"
+storage_version_token = "1793640824076318"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "laNRA1JZX_IUQTOkSMkBG"
+uri = "file://generated-artifacts/feature-intelligence/phase3-concierge-alignment.md"
+type = "text"
+title = "Phase 3 — Concierge Alignment"
+description = "1,903-word corrected plan defining Ask Chef as the AI Nutrition Concierge, with implementation evidence, subscription questions, revised priorities, a minimal next package and a separate founder-directed visual legacy review."
+logical_id = "59b2c4f1-c2cc-4c2d-9a32-75e23e7006b1"
+content_hash = "sha256:b3c779d9a4eeaadcc1dfb4f2cb13bee78b44d42ff824ead9ec78d8f5f3857b53"
+size = 15337
+mtime_ms = 1793642884935
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/59b2c4f1-c2cc-4c2d-9a32-75e23e7006b1/0ced58a4-c27c-4536-acb8-17724e208b27"
+storage_version_token = "1793642900632791"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "TCCC_ROQuL4M8ioj3XAVm"
+uri = "file://generated-artifacts/feature-intelligence/concierge-truth-and-guidance-completion.md"
+type = "text"
+title = "Concierge Truth and Guidance — Completion Report"
+description = "Exact files, Development-only before/after behavior, 48 passing offline tests, subscription and coaching findings, verification limits and unchanged access boundaries."
+logical_id = "b8df584d-98e5-4c58-8d16-9a35481dca32"
+content_hash = "sha256:7e0222444f8596a5b77a8ab9817b3f975638578803b5aea83d1e3e645d0f327e"
+size = 10172
+mtime_ms = 1793643570094
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/b8df584d-98e5-4c58-8d16-9a35481dca32/6f280742-9b19-4249-b997-ec1c251eb2f5"
+storage_version_token = "1793643610565111"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "aJXf66GaGdlWKLxNFS4Q5"
+uri = "file://generated-artifacts/feature-intelligence/ask-chef-free-tier-completion.md"
+type = "text"
+title = "Ask Chef Free-Tier Change — Completion Report"
+description = "Exact changed files, Free-tier subscription placement, 193 passing tests, account isolation and premium-destination checks, pricing-page verification, dependencies and release boundaries."
+logical_id = "0d42f3e8-4e7e-4145-b539-d6f1ca893bd8"
+content_hash = "sha256:d4b3379b1d2e9a9db283cb0f68345ae430ecebd70dfbaaadad2bad48a68851f0"
+size = 9364
+mtime_ms = 1793644493579
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/0d42f3e8-4e7e-4145-b539-d6f1ca893bd8/2e457061-62e7-4a2c-a97b-eb4bc11e569e"
+storage_version_token = "1793644515387595"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "lGmVs27FWGp8r_9UKJjX1"
+uri = "file://generated-artifacts/feature-intelligence/ask-chef-free-release/readiness-report.md"
+type = "text"
+title = "Ask Chef Free-Tier — Release Readiness Report"
+description = "Blocked pending Production-base reconciliation and authenticated Free-member browser verification. Includes exact source commit and patch fingerprint, branch comparison, passing build/tests, excluded changes and the next approval required."
+logical_id = "499472bb-8f9f-41f8-ba46-89c959946251"
+content_hash = "sha256:ba1051d2de76b7377594ec24df756fc9895e38380557e69c63f21a3f2d3e9934"
+size = 12607
+mtime_ms = 1793645177134
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/499472bb-8f9f-41f8-ba46-89c959946251/b391e821-7da2-4454-a2b8-c7bfe0fd283f"
+storage_version_token = "1793645188189731"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "CZgHVoXS0v4OnJWz90b2d"
+uri = "file://generated-artifacts/feature-intelligence/ask-chef-free-isolated/completion-report.md"
+type = "text"
+title = "Isolated Ask Chef Free-Tier Candidate — Completion Report"
+description = "Exact Production base and local candidate commit, ten-file scope, excluded Development work, 180 passing tests, successful builds/type checks, and the outstanding authenticated Free-member verification limitation."
+logical_id = "856be31c-eda5-4c0a-aca7-0b462bc9a7b1"
+content_hash = "sha256:bc38561ab7e5513999d382c9a7b2bf5c8f8dc6910b2260ffa45252656cd5915d"
+size = 10789
+mtime_ms = 1793645696274
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/856be31c-eda5-4c0a-aca7-0b462bc9a7b1/318a2534-8ef5-40f9-8597-ffbb79857e9e"
+storage_version_token = "1793645717838624"
+content_type = "text/markdown"

@@ -20,3 +20,9 @@ For visual checks of an authenticated dashboard, render the actual component wit
 **Why:** The screenshot browser does not inherit the member's session, and browser-dependent routing hooks cannot be assumed to work in a server-rendered fixture.
 
 **How to apply:** Supply an explicit fixture router/SSR context, compare responsive geometry and interaction styles against the real component, and describe this as component-fixture verification rather than live signed-in dashboard verification.
+
+Browser component fixtures must prove mutation interception before exercising Send or other write controls; registering a page-level route handler alone is not sufficient evidence of isolation.
+
+**Why:** An intended synthetic chat request escaped a browser fixture's interceptor and reached the Development origin, where authentication rejected it. Successful component rendering did not establish network isolation.
+
+**How to apply:** Keep visual checks read-only until isolation is demonstrated. If a mutation reaches the origin, stop rather than retrying or claiming fixture-only success. Use isolated component tests for send/reply contracts and disclose missing live authenticated verification.

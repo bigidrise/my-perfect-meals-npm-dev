@@ -11,8 +11,8 @@ export function shouldRequireGlp1MealPreflight(
   return status.active && !status.shouldEscalate && !hasCheckinToday && !isHouseholdSubject;
 }
 
-export function glp1HubReturnTarget(category: string | null): string {
-  const params = new URLSearchParams({ builder: "glp1", glp1SettingsChanged: "1" });
+export function glp1HubReturnTarget(category: string | null, builder: "glp1" | "diabetic" = "glp1"): string {
+  const params = new URLSearchParams({ builder, glp1SettingsChanged: "1" });
   if (category) params.set("category", category);
   return `/foods-i-enjoy?${params.toString()}`;
 }

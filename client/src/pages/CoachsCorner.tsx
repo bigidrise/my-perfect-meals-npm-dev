@@ -24,10 +24,12 @@ import {
 import type { CoachCornerQuestion } from "@shared/coachCornerTypes";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import { isChefConversationEnabled } from "@/lib/chefCornerExperience";
+import { isChefConversationReliabilityEnabled, isChefFeatureScreenContextEnabled } from "@/lib/chefConversationReliabilityGate";
 import { chefMemberText } from "@/lib/chefMemberBranding";
 import CoachBubble, {
   ProfessionalBoundaryNotice, isConciergeMessage, type CoachStructuredResponse,
 } from "@/components/coaching/CoachBubble";
+import ChefResponseAvatar from "@/components/coaching/ChefResponseAvatar";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -37,6 +39,26 @@ interface UIMessage {
   content?: string;
   structured?: CoachStructuredResponse;
   createdAt: string;
+}
+
+interface MemberTurn {
+  text: string;
+  cid: string | null;
+  turnId?: string;
+}
+
+interface MemberTurnResponse {
+  conversationId: string;
+  messageId: string;
+  clientTurnId?: string;
+  response: CoachStructuredResponse;
+}
+
+/** Keep a Development response beside its own submitted turn, never a later one. */
+function placeTurnReply(messages: UIMessage[], turnId: string, reply: UIMessage): UIMessage[] {
+  const index = messages.findIndex(message => message.id === `user-${turnId}`);
+  if (index < 0 || messages.some(message => message.id === reply.id)) return messages;
+  return [...messages.slice(0, index + 1), reply, ...messages.slice(index + 1)];
 }
 
 interface DbMessage {
@@ -113,9 +135,7 @@ function ThinkingBubble() {
   return (
     <div className="flex justify-start">
       <div className="max-w-[90%]">
-        <p className="text-[11px] font-semibold text-orange-400 mb-1.5 uppercase tracking-wider ml-1">
-          Chef
-        </p>
+        <ChefResponseAvatar />
         <div className="bg-zinc-900 border border-white/10 rounded-2xl rounded-tl-sm px-5 py-4">
           <div className="flex items-center gap-1.5">
             {[0, 1, 2].map((i) => (
@@ -347,6 +367,15 @@ export default function CoachsCorner() {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const reliableConversation = isChefConversationEnabled() && isChefConversationReliabilityEnabled();
+  const activeTurnRef = useRef<string | null>(null);
+  const latestConversationRef = useRef<string | null>(null);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; activeTurnRef.current = null; };
+  }, []);
+  useEffect(() => { latestConversationRef.current = conversationId; }, [conversationId]);
   const [showProfile, setShowProfile] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearError, setClearError] = useState<string | null>(null);
@@ -544,42 +573,51 @@ export default function CoachsCorner() {
 
   // ── Send message ──────────────────────────────────────────────────────────
   const sendMutation = useMutation({
-    mutationFn: ({ text, cid }: { text: string; cid: string | null }) =>
-      apiRequest("/api/coach/message", {
+    ...(reliableConversation ? { retry: false } : {}),
+    mutationFn: async ({ text, cid, turnId }: MemberTurn) => {
+      const result = await apiRequest<MemberTurnResponse>("/api/coach/message", {
         method: "POST",
         body: JSON.stringify({
           message: text,
           specialization: "corner",
+          ...(isChefFeatureScreenContextEnabled() ? {
+            featureScreenContext: { currentRoute: window.location.pathname },
+          } : {}),
           ...(cid ? { conversationId: cid } : {}),
+          ...(turnId ? { clientTurnId: turnId } : {}),
         }),
-      }),
-    onSuccess: (data: {
-      conversationId: string;
-      messageId: string;
-      response: CoachStructuredResponse;
-    }) => {
+      });
+      if (turnId && (result.clientTurnId !== turnId || !result.messageId || !result.conversationId ||
+        (cid && result.conversationId !== cid))) {
+        throw new Error("Chef response did not match the submitted turn");
+      }
+      return result;
+    },
+    onSuccess: (data: MemberTurnResponse, variables: MemberTurn) => {
+      if (variables.turnId && (!mountedRef.current || activeTurnRef.current !== variables.turnId)) return;
+      if (variables.turnId) latestConversationRef.current = data.conversationId;
       setConversationId(data.conversationId);
-      setMessages((prev) => [
-        ...prev,
-        {
+      setMessages((prev) => {
+        const reply: UIMessage = {
           id: data.messageId,
           role: "coach",
           structured: data.response,
           createdAt: new Date().toISOString(),
-        },
-      ]);
+        };
+        return variables.turnId ? placeTurnReply(prev, variables.turnId, reply) : [...prev, reply];
+      });
       setIsLoading(false);
       if (conversationEnabled) {
         // Refresh on the next visit, not once per turn while chatting.
         queryClient.invalidateQueries({ queryKey: ["/api/coach/bootstrap"], refetchType: "none" });
       }
     },
-    onError: () => {
+    onError: (_error, variables: MemberTurn) => {
+      if (variables.turnId && (!mountedRef.current || activeTurnRef.current !== variables.turnId)) return;
       setIsLoading(false);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `err-${Date.now()}`,
+      setMessages((prev) => {
+        const reply: UIMessage = {
+          id: `err-${variables.turnId ?? Date.now()}`,
           role: "coach",
           structured: {
             whatIFound: "I ran into a problem processing your message. This is usually temporary.",
@@ -588,14 +626,22 @@ export default function CoachsCorner() {
             learningOpportunity: null,
           },
           createdAt: new Date().toISOString(),
-        },
-      ]);
+        };
+        return variables.turnId ? placeTurnReply(prev, variables.turnId, reply) : [...prev, reply];
+      });
+    },
+    onSettled: (_data, _error, variables: MemberTurn) => {
+      if (variables.turnId && activeTurnRef.current === variables.turnId) activeTurnRef.current = null;
     },
   });
 
   const handleSend = useCallback(() => {
-    const text = inputText.trim();
-    if (!text || isLoading || clearInFlight.current) return;
+    const text = (reliableConversation ? textareaRef.current?.value ?? inputText : inputText).trim();
+    if (!text || isLoading || clearInFlight.current ||
+      (reliableConversation && (activeTurnRef.current || bootstrapQuery.isFetching && !messagesInitialized.current ||
+        bootstrapQuery.isError && !messagesInitialized.current))) return;
+    const turnId = reliableConversation ? crypto.randomUUID() : undefined;
+    if (turnId) activeTurnRef.current = turnId;
 
     if (conversationEnabled) {
       followNewestRef.current = true;
@@ -605,7 +651,7 @@ export default function CoachsCorner() {
     setMessages((prev) => [
       ...prev,
       {
-        id: `user-${Date.now()}`,
+        id: `user-${turnId ?? Date.now()}`,
         role: "user",
         content: text,
         createdAt: new Date().toISOString(),
@@ -617,10 +663,12 @@ export default function CoachsCorner() {
       textareaRef.current.style.height = "auto";
     }
 
-    sendMutation.mutate({ text, cid: conversationId });
-  }, [inputText, isLoading, conversationId, sendMutation, conversationEnabled]);
+    sendMutation.mutate({ text, cid: reliableConversation ? latestConversationRef.current : conversationId, turnId });
+  }, [inputText, isLoading, conversationId, sendMutation, conversationEnabled, reliableConversation,
+    bootstrapQuery.isFetching, bootstrapQuery.isError]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (reliableConversation && (e.nativeEvent.isComposing || e.keyCode === 229)) return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -709,6 +757,11 @@ export default function CoachsCorner() {
           dueFollowup: null } : previous);
       // Reset all local state — page returns to empty state immediately
       setMessages([]);
+      if (reliableConversation) {
+        activeTurnRef.current = null;
+        latestConversationRef.current = null;
+        setIsLoading(false);
+      }
       setConversationId(null);
       setHasOlderMessages(false);
       setShowClearConfirm(false);
@@ -737,6 +790,10 @@ export default function CoachsCorner() {
   });
 
   const handleClear = () => {
+    if (reliableConversation && activeTurnRef.current) {
+      setClearError("Wait for Chef to finish replying before clearing this conversation.");
+      return;
+    }
     if (clearInFlight.current || clearMutation.isPending) {
       logClearDiagnostic("duplicate_ignored");
       return;

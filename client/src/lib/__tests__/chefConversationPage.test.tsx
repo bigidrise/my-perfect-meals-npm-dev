@@ -9,6 +9,8 @@ import CoachBubble from "@/components/coaching/CoachBubble";
 import { chefNavigationRoute } from "@shared/coaching/creatorRequest";
 
 let mockConversationEnabled = true;
+let mockReliabilityEnabled = false;
+let mockTurnSequence = 0;
 const mockNavigate = jest.fn();
 const mockAPI = jest.fn();
 test.each([false, true])("care guidance renders once, including historical duplicated envelopes=%s", historical => {
@@ -41,6 +43,10 @@ const approvedNavigation = (destinationId: string) => ({
     specialty: "none", explicitFeatureId: null },
 });
 jest.mock("@/lib/chefCornerExperience", () => ({ isChefConversationEnabled: () => mockConversationEnabled }));
+jest.mock("@/lib/chefConversationReliabilityGate", () => ({
+  isChefConversationReliabilityEnabled: () => mockReliabilityEnabled,
+  isChefFeatureScreenContextEnabled: () => false,
+}));
 jest.mock("wouter", () => ({
   useLocation: () => ["/coach-corner/home", mockNavigate],
   Redirect: ({ to }: { to: string }) => { mockNavigate(to); return null; },
@@ -65,7 +71,10 @@ beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   Element.prototype.scrollIntoView = jest.fn();
   Element.prototype.scrollTo = jest.fn();
-  mockConversationEnabled = true; mockNavigate.mockReset(); mockAPI.mockReset();
+  mockConversationEnabled = true; mockReliabilityEnabled = false; mockNavigate.mockReset(); mockAPI.mockReset();
+  mockTurnSequence = 0;
+  Object.defineProperty(globalThis.crypto, "randomUUID", { configurable: true,
+    value: () => `00000000-0000-4000-8000-${String(++mockTurnSequence).padStart(12, "0")}` });
   host = document.createElement("div"); document.body.appendChild(host); root = createRoot(host);
   client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity,
     queryFn: ({ queryKey }) => mockAPI(queryKey[0]) }, mutations: { retry: false } } });
@@ -82,6 +91,155 @@ async function renderPage(completed: boolean, messages: any[] = []) {
   });
   await act(async () => { root.render(<QueryClientProvider client={client}><CoachsCorner /></QueryClientProvider>); });
 }
+
+function deferredReply() {
+  let resolve!: (value: any) => void;
+  let reject!: (reason: Error) => void;
+  const promise = new Promise<any>((yes, no) => { resolve = yes; reject = no; });
+  return { promise, resolve, reject };
+}
+function replyFor(turnId: string, message = "Matched reply", conversationId = "reliable-conversation") {
+  return { clientTurnId: turnId, conversationId, messageId: `assistant-${turnId}`,
+    response: { presentation: { kind: "concierge", message }, whatIFound: message,
+      whatItCouldMean: "", todayPlan: { items: [] }, learningOpportunity: null } };
+}
+function postedTurns() {
+  return mockAPI.mock.calls.filter(([url]) => url === "/api/coach/message")
+    .map(([, options]) => JSON.parse(options.body));
+}
+async function submitReliable(text: string) {
+  await act(async () => {
+    const textarea = host.querySelector("textarea")!;
+    textarea.value = text;
+    Simulate.change(textarea, { target: textarea } as any);
+  });
+  await act(async () => (host.querySelector('[aria-label="Send message"]') as HTMLButtonElement).click());
+}
+
+test("Development synchronously excludes same-frame and pending overlapping sends and uses the visible text", async () => {
+  mockReliabilityEnabled = true;
+  const pending = deferredReply();
+  mockAPI.mockReturnValue(pending.promise);
+  await renderPage(false);
+  await act(async () => {
+    const textarea = host.querySelector("textarea")!;
+    // Deliberately do not dispatch change: visible DOM is newer than React state.
+    textarea.value = "Thanks, that's all I needed.";
+    Simulate.keyDown(textarea, { key: "Enter" });
+    Simulate.keyDown(textarea, { key: "Enter" });
+  });
+  expect(postedTurns()).toHaveLength(1);
+  expect(postedTurns()[0].message).toBe("Thanks, that's all I needed.");
+  await act(async () => Simulate.keyDown(host.querySelector("textarea")!, { key: "Enter" }));
+  expect(postedTurns()).toHaveLength(1);
+  await act(async () => pending.resolve(replyFor(postedTurns()[0].clientTurnId)));
+  expect(host.textContent).toContain("Matched reply");
+  expect(host.querySelector("textarea")!.disabled).toBe(false);
+});
+
+test.each(["Network failure", "500: Unavailable", "400: Invalid request", "409: Turn in progress"])(
+  "Development does not inherit POST retries after %s and permits an explicit next turn", async failure => {
+    mockReliabilityEnabled = true;
+    client.setDefaultOptions({ ...client.getDefaultOptions(), mutations: { retry: 2, retryDelay: 0 } });
+    mockAPI.mockRejectedValueOnce(new Error(failure));
+    await renderPage(false);
+    await submitReliable("First question");
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)); });
+    expect(postedTurns()).toHaveLength(1);
+    expect(host.textContent).toContain("I ran into a problem");
+    expect(host.querySelector("textarea")!.disabled).toBe(false);
+    mockAPI.mockImplementationOnce(async (_url, options) =>
+      replyFor(JSON.parse(options.body).clientTurnId, "Second turn reply"));
+    await submitReliable("Second question");
+    expect(postedTurns()).toHaveLength(2);
+    expect(postedTurns()[1].clientTurnId).not.toBe(postedTurns()[0].clientTurnId);
+    expect(host.textContent).toContain("Second turn reply");
+    expect(host.textContent!.indexOf("First question")).toBeLessThan(host.textContent!.indexOf("I ran into a problem"));
+    expect(host.textContent!.indexOf("I ran into a problem")).toBeLessThan(host.textContent!.indexOf("Second question"));
+    expect(host.textContent!.indexOf("Second question")).toBeLessThan(host.textContent!.indexOf("Second turn reply"));
+  },
+);
+
+test.each(["wrong_turn", "missing_turn", "wrong_conversation"])(
+  "Development rejects a %s response without displaying it", async mismatch => {
+    mockReliabilityEnabled = true;
+    await renderPage(false, [{ id: "stored-user", role: "user", content: "Earlier question",
+      structured_payload: null, created_at: "2026-01-01T00:00:00Z" }]);
+    mockAPI.mockImplementationOnce(async (_url, options) => {
+      const result = replyFor(JSON.parse(options.body).clientTurnId, "UNMATCHED_RESPONSE",
+        mismatch === "wrong_conversation" ? "different-conversation" : "stored-conversation");
+      if (mismatch === "wrong_turn") result.clientTurnId = "another-turn";
+      if (mismatch === "missing_turn") delete (result as any).clientTurnId;
+      return result;
+    });
+    await submitReliable("Current question");
+    expect(host.textContent).not.toContain("UNMATCHED_RESPONSE");
+    expect(host.textContent).toContain("I ran into a problem");
+    expect(host.querySelector("textarea")!.disabled).toBe(false);
+    expect(postedTurns()).toHaveLength(1);
+  },
+);
+
+test.each(["success", "failure"])("a late %s from an unmounted conversation cannot affect the new turn", async outcome => {
+  mockReliabilityEnabled = true;
+  const old = deferredReply();
+  const current = deferredReply();
+  mockAPI.mockReturnValueOnce(old.promise).mockReturnValueOnce(current.promise);
+  await renderPage(false);
+  await submitReliable("Old member turn");
+  const oldTurn = postedTurns()[0].clientTurnId;
+  await act(async () => root.render(<div>Left the conversation</div>));
+  await renderPage(false);
+  await submitReliable("New member turn");
+  const currentTurn = postedTurns()[1].clientTurnId;
+  await act(async () => {
+    if (outcome === "success") old.resolve(replyFor(oldTurn, "STALE_REPLY"));
+    else old.reject(new Error("Late failure"));
+  });
+  expect(host.textContent).not.toMatch(/STALE_REPLY|I ran into a problem/);
+  expect(host.querySelector("textarea")!.disabled).toBe(true);
+  await act(async () => current.resolve(replyFor(currentTurn, "Current matched reply")));
+  expect(host.textContent).toContain("Current matched reply");
+  expect(host.querySelector("textarea")!.disabled).toBe(false);
+});
+
+test("Development IME composition Enter does not submit an unfinished message", async () => {
+  mockReliabilityEnabled = true;
+  await renderPage(false);
+  await act(async () => {
+    const textarea = host.querySelector("textarea")!;
+    textarea.value = "Still composing";
+    Simulate.change(textarea, { target: textarea } as any);
+  });
+  await act(async () => {
+    const textarea = host.querySelector("textarea")!;
+    Simulate.keyDown(textarea, { key: "Enter", nativeEvent: { isComposing: true } } as any);
+  });
+  expect(postedTurns()).toHaveLength(0);
+  expect(host.querySelector("textarea")!.value).toBe("Still composing");
+});
+
+test("Development carries the confirmed conversation ID into the next matched turn", async () => {
+  mockReliabilityEnabled = true;
+  mockAPI.mockImplementation(async (_url, options) => replyFor(JSON.parse(options.body).clientTurnId));
+  await renderPage(false);
+  await submitReliable("First turn");
+  await submitReliable("Next turn");
+  expect(postedTurns()[0].conversationId).toBeUndefined();
+  expect(postedTurns()[1].conversationId).toBe("reliable-conversation");
+});
+
+test("the released non-Development send still inherits its existing retry behavior without a turn field", async () => {
+  client.setDefaultOptions({ ...client.getDefaultOptions(), mutations: { retry: 1, retryDelay: 0 } });
+  mockAPI.mockRejectedValueOnce(new Error("500: Temporary"));
+  mockAPI.mockResolvedValueOnce(replyFor("not-used", "Released reply"));
+  await renderPage(false);
+  await submitReliable("Released question");
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)); });
+  expect(postedTurns()).toHaveLength(2);
+  expect(postedTurns()[0].clientTurnId).toBeUndefined();
+  expect(host.textContent).toContain("Released reply");
+});
 
 test("the four-turn small ice-cream conversation renders Open Craving Creator after the first yes", async () => {
   await renderPage(false);

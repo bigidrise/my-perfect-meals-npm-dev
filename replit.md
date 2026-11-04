@@ -90,6 +90,38 @@ MyPerfectMeals is a full-stack TypeScript application providing AI-powered meal 
 - **Coach Enrollment**: No one enters the Pro Portal queue without completed payment.
 - **"Bold & Flavorful" Slug**: The internal slug `bold-spicy` remains unchanged despite display name updates.
 
+## MPM Development Completion Standard
+
+**Mandatory:** No feature is finished until its navigation, mobile layout, iOS safe areas, and affected platform integrations have been verified. Apply this standard to every feature addition, removal, rename, navigation change, setting change, or workflow modification, and to affected frontend interfaces. Report unavailable verification explicitly; it remains outstanding, not a pass.
+
+1. **Platform impact assessment.** Mark each area **Applicable**, **Not Applicable**, or **Requires Follow-up**, with a brief reason and any required update:
+   - Copilot knowledge, explanations, and actions
+   - Ask Chef knowledge, navigation, and handoffs
+   - App Library
+   - My Perfect Meals Academy
+   - Onboarding and first-use guidance
+   - Dashboard shortcuts
+   - Profile and settings
+   - Subscription entitlements and access controls
+   - Navigation routes and deep links
+   - Notifications and reminders
+   - Help text, error messages, and translations
+   - Clinical, dietary, and account-ownership safeguards
+
+   Reuse the existing [Feature Impact System](docs/feature-impact-system.md) report for overlapping areas rather than creating duplicate reports. Do not automatically edit unrelated systems.
+
+2. **Navigation and 404 prevention.** Verify every affected button, link, menu item, shortcut, Copilot action, Ask Chef handoff, and App Library entry. Confirm the destination exists, activate the actual control, confirm the correct page opens, and confirm the intended action is available. Use automated click-through tests for critical workflows; route registration or source inspection alone is not successful verification. Check relevant authentication, onboarding, subscription, and professional-role states, including expected access denial. Detect Not Found pages, unintended redirects, and broken back navigation.
+
+3. **Responsive and iOS verification.** Check every affected frontend interface on desktop, tablet, and narrow mobile, plus iOS safe-area behavior, header/bottom-navigation clearance, horizontal overflow, modal visibility and scrolling, and keyboard/touch interactions. Explicitly identify which component owns safe-area insets and scrolling. Reuse existing layouts; do not duplicate inset padding or unnecessarily introduce scroll containers. Follow the [Responsive UI Regression Guard](docs/responsive-ui-regression-guard.md), including its minimal-blast-radius rule. Browser viewport tests do not substitute for native iOS device/simulator verification; if unavailable, report native iOS behavior as **unverified**.
+
+4. **Functional and safety verification.** Verify applicable save, reload, edit, remove, error, authorization, and persistence behavior. Preserve clinical safeguards, allergies, dietary rules, provider authority, subscription access, and account boundaries. Follow existing [security rules](docs/agent-rules.md#security), [authentication rules](docs/agent-rules.md#async-auth--sub-router-safety-rule), and the [Clinical Build Checklist](docs/CLINICAL_BUILD_CHECKLIST.md) where applicable.
+
+5. **Completion report.** Every completed frontend or feature task must state: files changed; affected platform systems reviewed and their statuses; navigation verification; responsive verification; iOS safe-area verification or explicitly unverified status; tests run and results; remaining limitations; and a Production readiness assessment. Distinguish inspection, mocked/fixture-based tests, and real end-to-end/persistence verification. Never claim functionality was verified solely because it was inspected or mocked. Unresolved required verification or follow-up prevents an unqualified completion/Production-ready claim.
+
+6. **Existing gates remain mandatory.** Use the existing [testing rules](docs/agent-rules.md#testing), [smoke-test gates](docs/agent-rules.md#smoke-test-gate), responsive checks, and [release-type gate](docs/release-typecheck-baseline.md). Do not weaken gates, change compiler acceptance rules, or refresh type-check baselines merely to obtain a pass. Development completion does not authorize a merge, deployment, publishing, migration, or Production changes; honor the task's approval boundary.
+
+**Phase 2 static navigation check:** `npm run validate:navigation` and `npm run test:navigation-check` run in Development pre-push validation. See [scope and limitations](docs/navigation-validation.md). Static route matches do not replace critical-workflow click-through or native iOS verification.
+
 ## Before Every GitHub Push — Pre-Push Checklist
 
 The pre-push validation runs **automatically** via a git pre-push hook whenever you run `git push`. You no longer need to remember to run it manually.
@@ -106,7 +138,7 @@ If the hook is not yet installed, you can still run validation manually:
 npm run validate
 ```
 
-It does **not** run the client TypeScript check (client TS errors are pre-existing and non-blocking). If it exits **PASS**, push. If it exits **FAIL**, fix the issues first.
+Pre-push validation does **not** replace the [release-type gate](docs/release-typecheck-baseline.md) or the Development Completion Standard above. Existing TypeScript debt is accepted only under the reviewed release-type baseline rules, not as a blanket exemption. A passing pre-push check alone does not establish feature completion or release readiness; if it fails, fix the issues first.
 
 **Emergency bypass** — skip the hook only when absolutely necessary:
 ```bash

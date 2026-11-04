@@ -33,7 +33,7 @@ different kinds of evidence; never present mocked tests as proof of natural
 conversation quality.
 
 Ask Chef must not require repeated confirmation for the same destination.
-Permission offers must carry a validated pending recommendation before display;
+Feature-opening offers must carry a validated pending recommendation before display;
 acceptance of that recommendation must not depend on an optional model wording
 variant being populated.
 
@@ -47,6 +47,19 @@ repeated handoff wording from verified destination instructions (or the existing
 button label when controls are unreviewed). Keep unsafe links and mismatched
 destinations rejected. Never choose a destination from a permission question,
 reconstruct pending state from text history, or authorize a bare yes by keyword.
+
+General offers of advice are not feature-opening permission. Do not reject a
+coaching question merely because it says "help", "find", "start" or "proceed".
+Keep reply-screen rejection diagnostics content-free and ordinary failure wording
+independent of navigation.
+
+**Why:** A Development investigation demonstrated advice-only false positives.
+The retained incident log proved post-generation rejection, but did not identify
+which screening predicate rejected that particular reply.
+
+**How to apply:** Require a navigation operation/feature target for output screening;
+retain structured pending-state, consent, access and food-screening authority.
+Do not claim a historical incident's exact cause from a synthetic reproduction.
 
 Distinguish missing recommendation wording from a missing decision. A validated
 ready goal may support recovery of an omitted wording variant or uniquely missing
@@ -109,18 +122,37 @@ preserving useful feature offers and the implemented features' limits.
 and conversational timing separate. The approved correction is Development-only;
 live model acceptance and any Production release need separate authorization.
 
-Ask Chef's primary role is the conversational front door to My Perfect Meals:
-understand the member's goal, ask only what identifies the right verified
-destination, and help them get there. This product goal includes consumer,
-lifestyle, clinical, professional, business and organizational services, but does
-not imply that all pathways are implemented or approved. Within food guidance,
-favor practical choices rather than a diagnostic interview; do not automatically
-investigate symptoms or medication effects. Necessary care and genuinely
-safety-critical questions still take priority.
+Ask Chef is My Perfect Meals' AI Nutrition Concierge, not merely a feature
+directory. Its intended scope includes reliable conversational food, nutrition,
+hydration, fitness-nutrition and general-wellness education; current feature
+knowledge, simple clarification and navigation buttons; subscription awareness
+and relevant upgrades; MPM Guided Coaching and independent-coach referrals;
+authorized read-only account observations; and trustworthy current internet
+research when available, distinguished from general model knowledge.
+Encourage engagement without guilt, pressure or repetitive sales pitches.
+The founder decided Ask Chef is a Free base feature, included cumulatively in
+Essential, Pro and Clinical. Authenticated access and subscription-page placement
+are approved in Development; Production deployment still needs founder approval.
+Other features retain their existing entitlements, and the concierge does not
+grant access to its destinations.
 
-**Why:** The founder established the broader conversational-front-door purpose
-while preserving "Coach first. Food decision next. Feature when useful. Medical
-care when necessary."
+Do not generate meals, recipes, beverages or plans, calculate/change macro
+targets, modify logs/Biometrics, execute specialized workflows or recreate
+destination nutrition/clinical engines in chat. Destination features own their
+operations and safeguards. Do not diagnose unsupported causes, invent account
+facts or assume missing logs prove missing intake. No additional account-data
+pipeline is authorized without later implementation approval.
+
+This product goal includes consumer, lifestyle, clinical, professional, business
+and organizational services, but does not establish implementation or approval of
+all pathways. Favor practical food guidance rather than automatic symptom or
+medication investigation. Necessary care and safety-critical questions retain
+priority. Founder-directed visual legacy review is a separate, significant
+workstream, not insignificant housekeeping.
+
+**Why:** The founder explicitly clarified the concierge purpose, legitimate
+marketing/referral responsibilities and read-only account scope, then approved
+Free-tier access and cumulative subscription placement in Development.
 
 **How to apply:** Do not treat naming familiar food options as recipe generation.
 Use answered preferences without restarting discovery, retain verified feature
@@ -217,3 +249,18 @@ feature mapping. Unclear answers remain clarification; activity choice is not
 automatically destination choice, and feature choice is not navigation consent.
 Keep Create With Chef an internal builder control, not a standalone destination.
 Do not force alternatives for clear goals or weaken access, care or physician rules.
+
+Everyday goal coaching should use available member context to provide a few
+practical, compatible suggestions before optional assessment. Unknown intake is
+not a prerequisite for useful help. Accept an admission of uncertainty instead
+of asking the same intake question again. Connect to verified MPM capabilities
+when useful; never send members to find another app for a capability MPM provides.
+
+**Why:** The user explicitly replaced the prior assessment-first approach after
+Chef retrieved a saved target but gave generic external-app advice and failed to
+progress when the member said they did not know their intake.
+
+**How to apply:** Keep this a general conversational strategy, not protein scripts.
+Safety, dietary restrictions, clinical authority, qualified targets, field-bound
+food screening and navigation consent remain authoritative. Ask only when the
+answer materially changes guidance or helps select the next action.

@@ -1,11 +1,28 @@
 /** @jest-environment jsdom */
 import {
   loadRemindersFromServer, saveRemindersToServer, isIOSReminderDevice,
+  setupNotificationListeners, syncToiOS,
 } from "@/services/mealReminderService";
 
 let mockPlatform = "ios";
 jest.mock("@capacitor/core", () => ({
   Capacitor: { isNativePlatform: () => mockPlatform !== "web", getPlatform: () => mockPlatform },
+}));
+let mockTap: ((notification: any) => void) | undefined;
+const mockRemove = jest.fn();
+const mockSchedule = jest.fn(async (_request: any) => ({}));
+jest.mock("@capacitor/local-notifications", () => ({
+  LocalNotifications: {
+    checkPermissions: jest.fn(async () => ({ display: "granted" })),
+    requestPermissions: jest.fn(async () => ({ display: "granted" })),
+    getPending: jest.fn(async () => ({ notifications: [] })),
+    cancel: jest.fn(async () => ({})),
+    schedule: (request: any) => mockSchedule(request),
+    addListener: jest.fn(async (_event: string, callback: (notification: any) => void) => {
+      mockTap = callback;
+      return { remove: mockRemove };
+    }),
+  },
 }));
 const saved = [{ id: "synthetic", label: "Breakfast", time: "08:00", enabled: true }];
 beforeEach(() => {
@@ -44,4 +61,36 @@ test("repair selects only installed iOS, not Android or the public website", () 
   expect(isIOSReminderDevice()).toBe(false);
   mockPlatform = "web";
   expect(isIOSReminderDevice()).toBe(false);
+});
+
+test("new fallback native-scheduler notifications use the existing dashboard destination", async () => {
+  mockPlatform = "android"; // Exercise the existing fallback without an iOS owner session.
+  await syncToiOS(saved);
+  expect(mockSchedule).toHaveBeenCalledWith({
+    notifications: [expect.objectContaining({ extra: { route: "/dashboard" } })],
+  });
+});
+
+test("existing notification listener maps old hub payloads and preserves every other destination", async () => {
+  const navigate = jest.fn();
+  const cleanup = setupNotificationListeners(navigate);
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(mockTap).toBeDefined();
+  for (const route of ["/hub", "/dashboard", "/my-biometrics?from=weekly-meal-board#macros"]) {
+    mockTap!({ notification: { extra: { route, owner: "synthetic" } } });
+  }
+  mockTap!({ notification: { extra: {} } });
+  expect(navigate.mock.calls).toEqual([
+    ["/dashboard"], ["/dashboard"], ["/my-biometrics?from=weekly-meal-board#macros"],
+  ]);
+  cleanup();
+  expect(mockRemove).toHaveBeenCalledTimes(1);
+});
+
+test("website does not attach a native notification listener", () => {
+  mockPlatform = "web";
+  const navigate = jest.fn();
+  const cleanup = setupNotificationListeners(navigate);
+  cleanup();
+  expect(navigate).not.toHaveBeenCalled();
 });

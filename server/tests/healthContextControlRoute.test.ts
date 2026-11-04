@@ -4,6 +4,12 @@ import { csrfProtection } from "../lib/csrfProtection";
 import { NUTRITION_SUPPORT_OPTIONS } from "../../shared/nutritionSupportOptions";
 
 const mockView = jest.fn();
+const mockCurrentUseRead = jest.fn();
+const mockCurrentUseWrite = jest.fn();
+jest.mock("../services/glp1/memberCurrentUse", () => ({
+  readMemberGLP1CurrentUse: (...args: unknown[]) => mockCurrentUseRead(...args),
+  setMemberGLP1CurrentUse: (...args: unknown[]) => mockCurrentUseWrite(...args),
+}));
 const mockUserSupport = jest.fn();
 const mockLegacyDecision = jest.fn();
 const mockLabOff = jest.fn();
@@ -81,6 +87,42 @@ const testView = {
 };
 
 describe("DEV-only health-context routes", () => {
+  it("requires authentication and CSRF for member current-use writes", async () => {
+    const path = "/api/health-context/glp1/current-use";
+    expect((await request(app).get(path)).status).toBe(401);
+    expect((await asSubject(request(app).put(path)).send({ currentUse: true })).status).toBe(403);
+    expect(mockCurrentUseWrite).not.toHaveBeenCalled();
+  });
+  it.each([true, false])("writes current-use=%s only for the authenticated member", async currentUse => {
+    mockCurrentUseWrite.mockResolvedValue(undefined);
+    mockCurrentUseRead.mockResolvedValue({ memberReportedCurrentUse: currentUse, effectiveActive: currentUse });
+    const response = await withCsrf(request(app).put("/api/health-context/glp1/current-use")).send({ currentUse });
+    expect(response.status).toBe(200);
+    expect(mockCurrentUseWrite).toHaveBeenCalledWith({ actorUserId: "subject", subjectUserId: "subject", currentUse });
+    expect(response.body.memberReportedCurrentUse).toBe(currentUse);
+  });
+  it("rejects a supplied subject identity or nonboolean status", async () => {
+    for (const body of [{ currentUse: true, subjectUserId: "other" }, { currentUse: "true" }]) {
+      expect((await withCsrf(request(app).put("/api/health-context/glp1/current-use")).send(body)).status).toBe(400);
+    }
+    expect(mockCurrentUseWrite).not.toHaveBeenCalled();
+  });
+  it("keeps the current-use API unavailable in deployed or Production runtimes", async () => {
+    const deployment = process.env.REPLIT_DEPLOYMENT;
+    try {
+      process.env.REPLIT_DEPLOYMENT = "1";
+      expect((await asSubject(request(app).get("/api/health-context/glp1/current-use"))).status).toBe(404);
+      if (deployment === undefined) delete process.env.REPLIT_DEPLOYMENT;
+      else process.env.REPLIT_DEPLOYMENT = deployment;
+      process.env.NODE_ENV = "production";
+      expect((await asSubject(request(app).get("/api/health-context/glp1/current-use"))).status).toBe(404);
+      expect(mockCurrentUseWrite).not.toHaveBeenCalled();
+    } finally {
+      process.env.NODE_ENV = "development";
+      if (deployment === undefined) delete process.env.REPLIT_DEPLOYMENT;
+      else process.env.REPLIT_DEPLOYMENT = deployment;
+    }
+  });
   let app: express.Express;
   const oldEnv = process.env.NODE_ENV;
   beforeAll(() => {

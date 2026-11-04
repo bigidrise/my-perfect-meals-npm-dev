@@ -18,6 +18,7 @@
 import OpenAI from "openai";
 import { db } from "../../db";
 import { getLanguageInstruction } from "../../utils/languageInstruction";
+import { chefMessageOrder } from "./conversationReliability";
 import { sql } from "drizzle-orm";
 import { ReasoningResultSchema, CoachResponseSchema, ConciergeResponseSchema, ConciergeMessageSchema, type ConciergeDecision } from "../../../shared/coaching/schemas";
 import { CHEF_CONCIERGE_REVISION, conciergeRenderingInstructions } from "./conciergeInstructions";
@@ -271,7 +272,7 @@ async function loadConversationHistory(
       SELECT role, content
       FROM coach_messages
       WHERE conversation_id = ${conversationId}
-      ORDER BY created_at DESC
+      ORDER BY ${chefMessageOrder("desc")}
       LIMIT 10
     `);
     return { history: result.rows.reverse(), rollingContext: null };
@@ -1549,6 +1550,7 @@ export class CoachingEngine {
         client: getOpenAI(), userMessage: request.userMessage, history, rollingContext,
         context, tools: [...adapter.availableTools],
         knowledgeAccess,
+        featureScreenContext: request.featureScreenContext,
         pendingRecommendation,
         preferredLanguage: (req as any).authUser?.preferredLanguage,
         requestId: (req as any).id,

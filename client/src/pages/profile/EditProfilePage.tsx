@@ -23,6 +23,7 @@ import { PillButton } from "@/components/ui/pill-button";
 import { HealthContextControls } from "@/components/profile/HealthContextControls";
 import { ConsumerHealthContextSection } from "@/components/profile/ConsumerHealthContextSection";
 import { PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED } from "@shared/personalFoodSupportFreeze";
+import { GLP1CurrentUseControl } from "@/components/profile/GLP1CurrentUseControl";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { getGuestPageExplanation } from "@/components/copilot/CopilotPageExplanations";
 import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanationStore";
@@ -1415,6 +1416,7 @@ export default function EditProfilePage() {
                       </PillButton>
                     );
                   })}
+                  {import.meta.env.DEV && <GLP1CurrentUseControl />}
                   {import.meta.env.DEV ? (
                     glp1Active && <p className="text-sm text-muted-foreground">Earlier GLP-1 information is on your profile. It does not activate meal guidance by itself; current medication or care-team guidance needs review.</p>
                   ) : (

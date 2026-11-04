@@ -29,6 +29,7 @@ import {
   buildCoachingContext,
   renderSnapshotForPrompt,
 } from "../coachingContext";
+import { MEMBER_CONTEXT_UNAVAILABLE } from "../memberContextEvidence";
 
 // ─── Tool conversion ──────────────────────────────────────────────────────────
 // The adapter interface uses CoachingTool[], which is the legacy shape.
@@ -81,6 +82,10 @@ export const cornerAdapter: CoachSpecializationAdapter = {
   availableTools: buildCornerTools(""),
 
   async loadAdditionalContext(subject: CoachSubject): Promise<Record<string, unknown>> {
+    if (process.env.NODE_ENV === "development" &&
+        (subject.subjectType !== "user" || subject.subjectId !== subject.ownerId)) {
+      throw Object.assign(new Error("Member context requires the authenticated self subject"), { status: 403 });
+    }
     try {
       // Build the full CoachingContextSnapshot for this user.
       // The snapshot is the authoritative factual record for this coaching turn.
@@ -115,6 +120,8 @@ export const cornerAdapter: CoachSpecializationAdapter = {
       // Return the snapshot both as structured data (for downstream processing)
       // and as a pre-rendered prompt block (for direct injection into the LLM prompt).
       return {
+        ...(process.env.NODE_ENV === "development"
+          ? { chefFoodCompatibility: { subjectUserId: subject.ownerId } } : {}),
         // Structured snapshot — consumed by any future server-side pattern logic
         coachingContextSnapshot: snapshot,
         // Pre-rendered text block — injected verbatim into the reasoning prompt
@@ -132,6 +139,10 @@ export const cornerAdapter: CoachSpecializationAdapter = {
       };
     } catch (err: any) {
       console.error("[CornerAdapter] loadAdditionalContext failed:", err.message);
+      if (process.env.NODE_ENV === "development") return {
+        chefFoodCompatibility: { subjectUserId: subject.ownerId },
+        coachingContextBlock: MEMBER_CONTEXT_UNAVAILABLE,
+      };
       return {};
     }
   },

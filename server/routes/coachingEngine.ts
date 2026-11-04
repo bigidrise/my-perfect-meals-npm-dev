@@ -25,8 +25,12 @@ import { coachingProfiles } from "../db/schema/ace";
 import coachingNavigationRouter from "./coachingNavigation";
 import { CHEF_CONCIERGE_REVISION } from "../services/coaching/conciergeInstructions";
 import { isAskChefConversationEnabled } from "../../shared/coaching/askChefRelease";
+import { featureIntelligenceEnabled, safeScreenContext } from "../services/coaching/featureIntelligence";
+import { chefMessageOrder, chefOlderMessageCursor } from "../services/coaching/conversationReliability";
 
 const router = Router();
+// Development process-local exclusion only, not durable/distributed idempotency.
+const activeDevelopmentMembers = new Set<string>();
 router.use((_req, res, next) => {
   if (isAskChefConversationEnabled(process.env.NODE_ENV)) {
     res.setHeader("X-Chef-Concierge-Revision", CHEF_CONCIERGE_REVISION);
@@ -41,6 +45,8 @@ const MessageBodySchema = z.object({
   specialization: z.enum(["corner"]).default("corner"), // Phase 2: corner only
   message: z.string().min(1).max(2000),
   conversationId: z.string().uuid().optional(),
+  // Ignored exactly as an unknown field when the isolated integration is off.
+  featureScreenContext: z.unknown().optional(),
 });
 
 router.post("/message", requireAuth, async (req: Request, res: Response) => {
@@ -54,6 +60,10 @@ router.post("/message", requireAuth, async (req: Request, res: Response) => {
   }
 
   const { specialization, message, conversationId } = parsed.data;
+  const development = process.env.NODE_ENV === "development";
+  const turn = development ? z.string().uuid().optional().safeParse(req.body?.clientTurnId) : null;
+  if (turn && !turn.success) return res.status(400).json({ error: "Invalid member turn identifier" });
+  const clientTurnId = turn?.success ? turn.data : undefined;
 
   // ── Server-side intake gate ────────────────────────────────────────────────
   // The released conversation does not read or require the legacy assessment.
@@ -72,6 +82,11 @@ router.post("/message", requireAuth, async (req: Request, res: Response) => {
     }
   }
 
+  if (development && activeDevelopmentMembers.has(userId)) {
+    return res.status(409).json({ error: "Your previous message is still being processed.",
+      code: "CHEF_TURN_IN_PROGRESS", ...(clientTurnId ? { clientTurnId } : {}) });
+  }
+  if (development) activeDevelopmentMembers.add(userId);
   try {
     const result = await engine.run(
       {
@@ -83,11 +98,15 @@ router.post("/message", requireAuth, async (req: Request, res: Response) => {
         },
         userMessage: message,
         conversationId: conversationId ?? "",
+        ...(featureIntelligenceEnabled(process.env) ? {
+          featureScreenContext: safeScreenContext(parsed.data.featureScreenContext),
+        } : {}),
       },
       req
     );
 
     return res.json({
+      ...(clientTurnId ? { clientTurnId } : {}),
       conversationId: result.conversationId,
       messageId: result.messageId,
       response: {
@@ -105,6 +124,8 @@ router.post("/message", requireAuth, async (req: Request, res: Response) => {
     }
     console.error("[CoachingEngine] POST /message error:", err);
     return res.status(500).json({ error: "Coaching engine error" });
+  } finally {
+    if (development) activeDevelopmentMembers.delete(userId);
   }
 });
 
@@ -176,7 +197,7 @@ router.get("/conversation/:id/messages", requireAuth, async (req: Request, res: 
       SELECT id, role, content, structured_payload, created_at
       FROM coach_messages
       WHERE conversation_id = ${id}
-      ORDER BY created_at ASC
+      ORDER BY ${chefMessageOrder("asc")}
       LIMIT ${limit}
     `);
 
@@ -425,10 +446,10 @@ router.get("/bootstrap", requireAuth, async (req: Request, res: Response) => {
               SELECT id, role, content, structured_payload, created_at
               FROM coach_messages
               WHERE conversation_id = ${convId}
-              ORDER BY created_at DESC
+              ORDER BY ${chefMessageOrder("desc")}
               LIMIT 20
             ) newest
-            ORDER BY created_at ASC
+            ORDER BY ${chefMessageOrder("asc")}
           `)
         : Promise.resolve({ rows: [] as any[] }),
       (async () => {
@@ -494,13 +515,11 @@ router.get("/messages/older", requireAuth, async (req: Request, res: Response) =
         SELECT id, role, content, structured_payload, created_at
         FROM coach_messages
         WHERE conversation_id = ${conversationId}
-          AND created_at < (
-            SELECT created_at FROM coach_messages WHERE id = ${beforeId} LIMIT 1
-          )
-        ORDER BY created_at DESC
+          AND ${chefOlderMessageCursor(conversationId, beforeId)}
+        ORDER BY ${chefMessageOrder("desc")}
         LIMIT 20
       ) older
-      ORDER BY created_at ASC
+      ORDER BY ${chefMessageOrder("asc")}
     `);
 
     return res.json({

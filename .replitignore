@@ -25,3 +25,5 @@ artifacts/
 # Project documentation is not required at runtime.
 docs/
 /generated-artifacts/
+/scripts/feature-intelligence/
+/tsconfig.feature-intelligence.json
