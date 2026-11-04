@@ -26,3 +26,11 @@ description: Sport-specific fueling protocol — architecture, routes, AI layer 
 ## Display rename (NOT internal namespace)
 - Display name: "Performance Nutrition Builder" everywhere user-facing
 - Internal: `BUILDER_NS.BEACH_BODY`, route `/beach-body-meal-board`, DB field `beach_body` — all UNCHANGED
+
+## Four-builder training schedule expectation
+
+The user expects General Nutrition, Anti-Inflammatory, Diabetic, and Metabolic Medication builders to use the connected training schedule's daily macro targets; without a training schedule, the baseline macros remain consistent across the week. General Nutrition's schedule entry belongs at the top of its builder, matching Anti-Inflammatory. Diabetic and Metabolic Medication entries stay in their hubs.
+
+**Why:** The user identified that General Nutrition reaches its builder from the training option but has no visible way to access and edit the schedule there.
+
+**How to apply:** Preserve this placement and date-sensitive target expectation. A diagnosis request alone does not authorize changing saved schedules, existing mode choices, or nutrition behavior.
