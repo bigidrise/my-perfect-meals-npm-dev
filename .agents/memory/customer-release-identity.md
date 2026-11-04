@@ -8,3 +8,9 @@ A customer release is one coherent record: `releaseId`, `releasedAt`, and non-em
 **Why:** Comparing build timestamps while preserving an old release ID caused new deployments to show stale notes or remain hidden by an old dismissal.
 
 **How to apply:** Bake the current customer release ID into each browser bundle, compare it with the deployed manifest ID, key dismissal by release ID, and require public/dist manifest parity during Production builds. Create releases explicitly; never convert raw commit history into public notes.
+
+Keep release-communication work incremental: verify a focused usability correction independently from a broader announcement-system implementation.
+
+**Why:** The founder explicitly endorsed the narrow correction that removed the Sign In obstruction while preserving the rest of the platform, and asked to maintain that development discipline.
+
+**How to apply:** Acceptance of a Development correction does not authorize the next implementation or a Production release. Timed-out validation remains outstanding, never a pass.
