@@ -194,7 +194,7 @@ export default function GLP1Hub() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         <div className="flex justify-center">
-          <HowThisWorksLink videoUrl="https://youtu.be/Pz95wx2yPqg" label="Hub & Builder Tutorial" />
+          <HowThisWorksLink videoUrl="https://youtu.be/KKujcFOec7I" label="Hub Tutorial" />
         </div>
         {/* ── Protocol Status ── */}
         <ProtocolStatusBadge className="mb-2" />
