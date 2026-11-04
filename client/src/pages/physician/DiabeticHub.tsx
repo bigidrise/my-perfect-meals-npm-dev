@@ -385,7 +385,7 @@ export default function DiabeticHub() {
                 <div className="shrink-0">
                   <PillButton
                     onClick={() => setShowGlp1Companion(true)}
-                    variant="default"
+                    variant="emerald"
                   >
                     {t("diabeticHub.manageMetabolicMed")}
                   </PillButton>
@@ -397,6 +397,23 @@ export default function DiabeticHub() {
             </p>
           </div>
 
+          {/* Preserve the released activation entry while Development trials symptoms. */}
+          {!import.meta.env.DEV && !isGlp1Active && (
+            <div className="rounded-xl border border-orange-500/20 bg-orange-950/10 px-4 py-3 flex items-start gap-3">
+              <span className="text-orange-400 text-base mt-0.5 shrink-0" aria-hidden="true">💉</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-semibold text-orange-300 mb-0.5">
+                  {t("diabeticHub.glp1NudgeTitle")}
+                </p>
+                <p className="text-[11px] text-white/50 leading-relaxed mb-2">
+                  {t("diabeticHub.glp1NudgeDesc")}
+                </p>
+                <PillButton onClick={() => setLocation("/profile/edit")} variant="emerald">
+                  {t("diabeticHub.enableMetabolicMed")}
+                </PillButton>
+              </div>
+            </div>
+          )}
           {import.meta.env.DEV && glp1CurrentUse.isError && (
             <p role="alert" className="text-sm text-orange-200">
               GLP-1 medication status could not be loaded.{" "}
