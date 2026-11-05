@@ -20,6 +20,10 @@ import { CORNER_UNSUPPORTED_FEATURES } from "./capabilityRegistry";
 import type { ChefCreatorRequest } from "../../../shared/coaching/creatorRequest";
 import { getDevelopmentPlatformKnowledge, getPlatformGuidanceInstructions } from "./platformKnowledge";
 import type { PendingRecommendation } from "./conciergeNavigationState";
+import {
+  NAVIGATION_CONTINUITY_INSTRUCTIONS, PendingNavigationDispositionSchema,
+  pendingNavigationIsFresh, retainInformationalOffer,
+} from "./conciergeNavigationContinuity";
 import type { ChefKnowledgeAccess } from "./platformKnowledgeAccess";
 import { FEATURE_USAGE_KNOWLEDGE } from "./featureUsageKnowledge";
 import { explainFeatureQuestion, featureIntelligenceEnabled, projectFeatureKnowledge, safeScreenContext,
@@ -36,6 +40,7 @@ const TurnSchema = ConciergeMessageSchema.extend({
   // Unknown/missing values cannot authorize a button.
   message: z.string().trim().min(1).max(8000).nullish().catch(undefined),
   navigationIntent: z.unknown().optional(),
+  pendingNavigationDisposition: PendingNavigationDispositionSchema.optional().catch(undefined),
   responsePurpose: z.unknown().optional(),
   memberNeed: z.unknown().optional(),
   recommendationMessage: z.string().trim().min(1).max(8000).nullish().catch(undefined),
@@ -59,6 +64,8 @@ const ModelTurnSchema = z.object({
   message: z.string().describe("Actual useful reply. A question offering to open/use a feature or help carry out its workflow MUST include the corresponding food_assistance conciergeDecision, ready goal and recommendation navigationIntent. Never ask unstructured permission to assist."),
   conversationMessage: z.string().nullable(),
   navigationIntent: z.enum(["none", "recommendation", "confirmed", "direct_request"]),
+  pendingNavigationDisposition: PendingNavigationDispositionSchema.describe(
+    "Preserve only an existing same-workflow pending offer across a relevant informational answer. Clear on rejection, topic/destination change or safety. This field never grants consent."),
   recommendationMessage: z.string().nullable(),
   handoffMessage: z.string().nullable().describe("Required on confirmed/direct navigation: concise acknowledgement and verified starting instructions, no repeated permission question. Null only when no handoff is intended."),
   conciergeDecision: z.object({
@@ -124,10 +131,21 @@ export async function runConciergeConversation(params: {
   rollingContext: string | null; context: Record<string, unknown>; tools: CoachingTool[];
   preferredLanguage?: string;
   pendingRecommendation?: PendingRecommendation;
+  navigationContext?: PendingRecommendation;
   knowledgeAccess?: ChefKnowledgeAccess;
   featureScreenContext?: FeatureScreenContext;
   requestId?: string;
 }): Promise<CoachResponse> {
+  // Normally enforced by the owner-scoped loader; recheck timestamped offers
+  // before using them, including callers that bypass the engine in tests.
+  if (params.pendingRecommendation?.offeredAt &&
+    !pendingNavigationIsFresh(params.pendingRecommendation.offeredAt)) {
+    params = { ...params, pendingRecommendation: undefined };
+  }
+  if (params.navigationContext &&
+    !pendingNavigationIsFresh(params.navigationContext.offeredAt)) {
+    params = { ...params, navigationContext: undefined };
+  }
   let intelligenceKnowledge: FeatureExplanation[] | undefined;
   if (featureIntelligenceEnabled(process.env)) {
     const registry = loadFeatureIntelligenceRegistry();
@@ -177,6 +195,7 @@ export async function runConciergeConversation(params: {
   let selectedField = "none";
   let metrics = responseFieldMetrics();
   let stage: "provider" | "parsing" | "decision" = "provider";
+  let pendingDisposition: unknown;
   let retainPendingOnFailure = false;
   let contract: ReturnType<typeof responseContractIndicators> | undefined;
   let fallback: ReturnType<typeof selectRejectedConversation>["outcomes"] | undefined;
@@ -185,7 +204,14 @@ export async function runConciergeConversation(params: {
     console.info(`[ChefConcierge] decision_outcome=${outcome}${reason ? ` reason=${reason}` : ""}${correlation}` +
       (developmentPurpose ? ` ${JSON.stringify({ implementation: "conversation-purpose-v1", fingerprint, purpose, selectedField,
         fields: metrics, contract, fallback, screening, ...(response ? navigationEmissionIndicators(response) : {}) })}` : ""));
-  const finish = (response: CoachResponse) => {
+  const finish = (response: CoachResponse, informational = false) => {
+    if (informational && !response.presentation?.navigation &&
+      !response.presentation?.destinationId && !response.meta.redFlag) {
+      const retained = retainInformationalOffer(
+        params.pendingRecommendation ?? params.navigationContext, pendingDisposition,
+      );
+      if (retained && response.presentation) response.presentation.navigation = retained;
+    }
     if (foodCompatibilityRequired) {
       const check = inspectChefFoodDeclarations(foodDeclarations, selectedField, params.context);
       if (check.status === "blocked" || check.status === "unavailable") {
@@ -223,6 +249,7 @@ export async function runConciergeConversation(params: {
           instructions,
           getLanguageInstruction(params.preferredLanguage),
           platformInstructions,
+          NAVIGATION_CONTINUITY_INSTRUCTIONS,
           foodInstructions,
         ].filter(Boolean).join("\n") },
         { role: "user", content: JSON.stringify({
@@ -236,6 +263,7 @@ export async function runConciergeConversation(params: {
           unsupportedFeatures: CORNER_UNSUPPORTED_FEATURES,
           earlierConversation: params.rollingContext,
           pendingRecommendation: params.pendingRecommendation ?? null,
+          recentNavigationContext: params.navigationContext ?? null,
           history: params.history,
           latestMemberMessage: params.userMessage,
           memberStatements: memberMessages.map((text, index) => ({ index, text })),
@@ -277,6 +305,7 @@ export async function runConciergeConversation(params: {
       return finish(envelope(chefClosingAcknowledgement(params.preferredLanguage)));
     }
     stage = "decision";
+    pendingDisposition = turn.pendingNavigationDisposition;
     const acceptingPending = turn.navigationIntent === "confirmed" && params.pendingRecommendation;
     if (developmentPurpose) {
       const inspected = inspectConversationPurpose(turn);
@@ -311,7 +340,7 @@ export async function runConciergeConversation(params: {
       if (!message) throw new DecisionFailure("unusable_conversational_response");
       selectedField = ordinaryConversation(turn.message) === message ? "message" : "conversationMessage";
       diagnostic("no_navigation", turn.navigationIntent === "confirmed" ? "missing_pending_recommendation" : undefined);
-      return finish(envelope(message));
+      return finish(envelope(message), turn.navigationIntent === "none");
     }
     const rejectAction = (reason: DecisionReason, preservePending = false): CoachResponse => {
       retainPendingOnFailure = preservePending && !!acceptingPending;
@@ -373,7 +402,8 @@ export async function runConciergeConversation(params: {
     // for the explicit-feature exception, regardless of the model's intent tag.
     const direct = turn.navigationIntent === "direct_request" &&
       decision.goal.explicitFeatureId === destinationId &&
-      mentionsCoachDestination(params.userMessage, destinationId, process.env.NODE_ENV) &&
+      mentionsCoachDestination(params.userMessage, destinationId, process.env.NODE_ENV,
+        params.navigationContext?.destinationId) &&
       !!independentConversation(params.userMessage, destinationId);
     if (!confirmed && !direct) {
       if (turn.navigationIntent === "confirmed" && !params.pendingRecommendation) {
@@ -413,6 +443,7 @@ export async function runConciergeConversation(params: {
       const response = envelope(recommendation.text!);
       response.presentation!.navigation = {
         state: "recommendation_pending", destinationId, goal: decision.goal,
+        offeredAt: new Date().toISOString(),
       };
       selectedField = developmentPurpose || !recommendation.dedicated ? "message" : "recommendationMessage";
       diagnostic("recommendation_pending");
@@ -452,6 +483,7 @@ export async function runConciergeConversation(params: {
     const response = envelope(message, destinationId, request);
     response.presentation!.navigation = {
       state: confirmed ? "navigation_confirmed" : "direct_navigation", destinationId, goal: decision.goal,
+      offeredAt: new Date().toISOString(),
     };
     selectedField = handoff === turn.handoffMessage ? "handoffMessage" : "verified_handoff_recovery";
     diagnostic(response.presentation!.navigation.state);

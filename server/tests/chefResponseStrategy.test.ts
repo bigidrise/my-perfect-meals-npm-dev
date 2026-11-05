@@ -73,9 +73,9 @@ test.each(["production", "test", undefined])("released instruction bytes are unc
     .toBe("4387e86c27a11a90df661b28b277342fe79826ef8ec8471a89d6d69775257ad3");
 });
 
-test("platform guidance and mandatory food-screening instructions match their pre-edit bytes", () => {
+test("reviewed navigation guidance and unchanged mandatory food-screening instructions retain their fingerprints", () => {
   expect(hash(getPlatformGuidanceInstructions("development")))
-    .toBe("89f324a51b1ce1f1fcc2f4dccbbf7ee6f469f31d9ffecce5a207323d2804fd35");
+    .toBe("79792d454c73a80398a953e12a78d4dbf175c2a9fa11ba34504d8a42615e081b");
   expect(hash(CHEF_FOOD_COMPATIBILITY_INSTRUCTIONS))
     .toBe("49f2eb490e4ed41497785f84d4ed6cccdea3c6a32ce77dccc45ec30d35e5f66b");
 });
