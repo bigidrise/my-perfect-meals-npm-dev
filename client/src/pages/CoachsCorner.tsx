@@ -1049,7 +1049,7 @@ export default function CoachsCorner() {
           </DialogHeader>
           <p id="chef-clear-description" className="text-sm text-white/55 mt-1 leading-relaxed">
             {conversationEnabled
-              ? "All messages will be permanently deleted. Only the chat history is removed."
+              ? "All messages in your open Ask Chef chats will be permanently deleted, including older chats that could otherwise reappear. Your profile and other features stay intact."
               : "All messages will be permanently deleted. Your coaching profile stays intact — only the chat history is removed."}
           </p>
           {clearError && <p role="alert" className="mt-3 text-sm text-red-300">{clearError}</p>}

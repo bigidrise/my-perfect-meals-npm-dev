@@ -27,6 +27,7 @@ import { CHEF_CONCIERGE_REVISION } from "../services/coaching/conciergeInstructi
 import { isAskChefConversationEnabled } from "../../shared/coaching/askChefRelease";
 import { featureIntelligenceEnabled, safeScreenContext } from "../services/coaching/featureIntelligence";
 import { chefMessageOrder, chefOlderMessageCursor } from "../services/coaching/conversationReliability";
+import { clearChefConversation } from "../services/coaching/clearConversation";
 
 const router = Router();
 // Development process-local exclusion only, not durable/distributed idempotency.
@@ -576,6 +577,25 @@ router.delete("/conversation/:id", requireAuth, async (req: Request, res: Respon
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
   const { id } = req.params;
+
+  // Match the Development send exclusion so a reply cannot recreate cleared
+  // history. Production retains its existing single-conversation behavior.
+  if (process.env.NODE_ENV === "development") {
+    if (activeDevelopmentMembers.has(userId)) {
+      return res.status(409).json({ error: "Wait for Chef to finish replying before clearing.",
+        code: "CHEF_TURN_IN_PROGRESS" });
+    }
+    activeDevelopmentMembers.add(userId);
+    try {
+      const result = await db.transaction(tx => clearChefConversation(tx, userId, id));
+      return res.status(result.status).json(result.body);
+    } catch (err) {
+      console.error("[CoachingEngine] DELETE /conversation/:id error:", err);
+      return res.status(500).json({ error: "Failed to clear conversation" });
+    } finally {
+      activeDevelopmentMembers.delete(userId);
+    }
+  }
 
   try {
     // Verify ownership

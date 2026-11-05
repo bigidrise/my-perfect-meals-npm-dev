@@ -1,6 +1,6 @@
 import express from "express";
 import type { Server } from "node:http";
-jest.mock("../db", () => ({ db: { execute: jest.fn(), select: jest.fn() } }));
+jest.mock("../db", () => ({ db: { execute: jest.fn(), select: jest.fn(), transaction: jest.fn() } }));
 jest.mock("../services/coaching/engine", () => ({ engine: { run: jest.fn() } }));
 jest.mock("../services/coaching/activityEvents", () => ({ emitActivityEvent: jest.fn() }));
 jest.mock("../routes/coachingNavigation", () => ({ __esModule: true, default: require("express").Router() }));
@@ -13,6 +13,7 @@ jest.mock("../middleware/requireAuth", () => ({
 import router from "../routes/coachingEngine";
 import { db } from "../db";
 import { engine } from "../services/coaching/engine";
+import { PgDialect } from "drizzle-orm/pg-core";
 let server: Server;
 let base: string;
 const oldEnvironment = process.env.NODE_ENV;
@@ -26,11 +27,96 @@ beforeEach(() => {
   process.env.NODE_ENV = "development"; jest.clearAllMocks();
   (db.select as jest.Mock).mockImplementation(() => { throw new Error("Assessment must not be queried"); });
   (db.execute as jest.Mock).mockResolvedValue({ rows: [] });
+  (db.transaction as jest.Mock).mockImplementation(callback => callback({ execute: db.execute }));
   (engine.run as jest.Mock).mockResolvedValue({
     conversationId: "fixture-conversation", messageId: "fixture-message",
     presentation: { kind: "concierge", message: "Savory or sweet?" },
     whatIFound: "Savory or sweet?", whatItCouldMean: "", todayPlan: { items: [] }, learningOpportunity: null,
   });
+});
+
+const clearRow = { owner_id: "clear-owner", specialization: "corner",
+  subject_type: "user", subject_id: "clear-owner" };
+const clearRequest = (owner = "clear-owner") => fetch(`${base}/conversation/selected-chat`, {
+  method: "DELETE", headers: { "x-test-user": owner },
+});
+
+test("clear is transactional and scopes every deletion to the owner's open Ask Chef history", async () => {
+  (db.execute as jest.Mock).mockResolvedValueOnce({ rows: [clearRow] });
+  const response = await clearRequest();
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({ success: true });
+  expect(db.transaction).toHaveBeenCalledTimes(1);
+  const queries = (db.execute as jest.Mock).mock.calls.map(([query]) => new PgDialect().sqlToQuery(query));
+  expect(queries).toHaveLength(6);
+  expect(queries[1].sql).toContain("FOR UPDATE");
+  for (const query of queries.slice(2)) {
+    expect(query.sql).toMatch(/^DELETE FROM coach_/);
+    expect(query.sql).toContain("owner_id =");
+    expect(query.sql).toContain("subject_id =");
+    expect(query.sql).toContain("status = 'open'");
+    expect(query.params).toEqual(["clear-owner", "corner", "user", "clear-owner", "selected-chat", true]);
+  }
+});
+
+test.each([[[], 404], [[{ ...clearRow, owner_id: "another-owner" }], 403]])(
+  "missing or foreign conversations never trigger deletion", async (rows, status) => {
+    (db.execute as jest.Mock).mockResolvedValueOnce({ rows });
+    const response = await clearRequest();
+    expect(response.status).toBe(status);
+    expect(db.execute).toHaveBeenCalledTimes(1);
+  },
+);
+
+test("non-corner clear remains scoped to the selected conversation", async () => {
+  (db.execute as jest.Mock).mockResolvedValueOnce({ rows: [{ ...clearRow, specialization: "pediatric" }] });
+  expect((await clearRequest()).status).toBe(200);
+  const last = new PgDialect().sqlToQuery((db.execute as jest.Mock).mock.calls[5][0]);
+  expect(last.params.at(-1)).toBe(false);
+});
+
+test("transaction failure reports failure and releases the send/clear exclusion", async () => {
+  (db.transaction as jest.Mock).mockRejectedValueOnce(new Error("Synthetic rollback"));
+  expect((await clearRequest()).status).toBe(500);
+  (db.execute as jest.Mock).mockResolvedValueOnce({ rows: [clearRow] });
+  expect((await clearRequest()).status).toBe(200);
+});
+
+test("clear cannot race an in-flight Chef reply", async () => {
+  let finish!: (value: unknown) => void;
+  let markStarted!: () => void;
+  const started = new Promise<void>(resolve => { markStarted = resolve; });
+  (engine.run as jest.Mock).mockImplementationOnce(() => {
+    markStarted();
+    return new Promise(resolve => { finish = resolve; });
+  });
+  const sending = fetch(`${base}/message`, { method: "POST",
+    headers: { "Content-Type": "application/json", "x-test-user": "clear-owner" },
+    body: JSON.stringify({ message: "Hello Chef." }) });
+  await started;
+  try {
+    expect((await clearRequest()).status).toBe(409);
+    expect(db.transaction).not.toHaveBeenCalled();
+  } finally {
+    finish({ conversationId: "selected-chat", messageId: "reply", todayPlan: { items: [] } });
+    await sending;
+  }
+  (db.execute as jest.Mock).mockResolvedValueOnce({ rows: [clearRow] });
+  expect((await clearRequest()).status).toBe(200);
+});
+
+test("anonymous clear never touches the database", async () => {
+  expect((await fetch(`${base}/conversation/selected-chat`, { method: "DELETE" })).status).toBe(401);
+  expect(db.transaction).not.toHaveBeenCalled();
+  expect(db.execute).not.toHaveBeenCalled();
+});
+
+test("Production keeps the existing single-conversation clear", async () => {
+  process.env.NODE_ENV = "production";
+  (db.execute as jest.Mock).mockResolvedValueOnce({ rows: [clearRow] });
+  expect((await clearRequest()).status).toBe(200);
+  expect(db.transaction).not.toHaveBeenCalled();
+  expect(db.execute).toHaveBeenCalledTimes(5);
 });
 test.each([
   ["development", "new-member"], ["development", "existing-member"],
