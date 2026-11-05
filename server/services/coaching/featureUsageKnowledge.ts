@@ -224,9 +224,9 @@ const DEVELOPMENT_FOOD_SUITABILITY = {
     notFor: ["Overriding a clearly stated immediate task simply because a cruise or travel is mentioned.", "Assuming general venue dining guidance includes My Perfect Buffet's actual-food plate-selection workflow, restaurant ordering or automatic internal navigation."],
     informationNeeded: ["Whether the member needs general travel-dining exploration or help with an immediate food activity, only if unresolved. Venue and any offered dining-area choices belong to the destination."],
     offerWhen: "Travel-wide food planning is the actual goal. Use the exact verified label My Perfect Getaway, not an invented plural feature or route.",
-    deferWhen: "For foods actually present at a buffet, consider My Perfect Buffet; for ordering at a selected restaurant, Restaurant Guide; for restaurant discovery, Find Meals Near Me. Do not repeat an earlier travel offer after the immediate task changes.",
+    deferWhen: "For foods actually present at a buffet, consider My Perfect Buffet; for ordering at a selected restaurant, Restaurant Assistant; for restaurant discovery, Find Meals Near Me. Do not repeat an earlier travel offer after the immediate task changes.",
     safetyBoundaries: ["Chef's approved destination and outer page require Clinical access; internal page or API checks do not relax that boundary. Existing dietary, allergy, clinical and physician safeguards remain authoritative.", "Travel suggestions and venue/zone information do not verify current menus, stock or accommodations. Chef transfers no venue, zone, cruise or symptom context and does not open an internal workflow."],
-    relatedFeatures: ["My Perfect Buffet handles selecting food from actual buffet offerings, including on a cruise.", "Restaurant Guide and Find Meals Near Me address the immediate restaurant activity rather than the broad travel circumstance."],
+    relatedFeatures: ["My Perfect Buffet handles selecting food from actual buffet offerings, including on a cruise.", "Restaurant Assistant and Find Meals Near Me address the immediate restaurant activity rather than the broad travel circumstance."],
     verifiedSources: ["client/src/pages/lifestyle/MyPerfectGetaway.tsx", "server/routes/getaway.ts", "client/src/components/Router.tsx", "shared/coaching/navigation.ts"],
   },
   my_perfect_buffet: {
@@ -237,7 +237,7 @@ const DEVELOPMENT_FOOD_SUITABILITY = {
     offerWhen: "Actual buffet-food selection is clear, even when the broader context is a cruise, holiday or other event. Do not detour through My Perfect Getaway.",
     deferWhen: "A cruise or event mention alone does not establish buffet dining. Ask one activity question only if needed; do not repeat an already answered distinction.",
     safetyBoundaries: ["Existing Pro access, dietary, allergy, clinical and physician safeguards remain authoritative. Food names and estimated nutrition are not verified allergen clearance or guaranteed buffet availability.", "Build My Plates starts the existing plate-recommendation workflow. Chef has no food-list prefill, automatic plate generation, consumption logging or transfer from Getaway."],
-    relatedFeatures: ["My Perfect Getaway explores general travel dining, not an assumed container for every cruise activity.", "Restaurant Guide serves a chosen restaurant; Find Meals Near Me serves restaurant discovery."],
+    relatedFeatures: ["My Perfect Getaway explores general travel dining, not an assumed container for every cruise activity.", "Restaurant Assistant serves a chosen restaurant; Find Meals Near Me serves restaurant discovery."],
     verifiedSources: ["client/src/pages/MyPerfectBuffetPage.tsx", "server/routes/buffet.ts", "client/src/components/Router.tsx", "shared/coaching/navigation.ts"],
   },
   craving_creator: {
@@ -281,7 +281,7 @@ const DEVELOPMENT_FOOD_SUITABILITY = {
     offerWhen: "Sushi preparation intent is clear. Do not re-ask home versus restaurant or collect servings and preferences before offering it.",
     deferWhen: "Being in the mood for sushi alone leaves the activity unresolved. If eating out, distinguish a chosen restaurant from restaurant discovery only if needed.",
     safetyBoundaries: ["The form has a sushi description, optional Dietary Preference, Number of Servings (1–10), Flavor Preference and Create My Sushi. Do not invent cuisine controls.", "Existing recipe, allergy, dietary, clinical and access safeguards remain authoritative; no general Chef prefill or promise that raw fish is universally safe."],
-    relatedFeatures: ["Find Meals Near Me discovers restaurants; Restaurant Guide helps choose food at an already selected restaurant."],
+    relatedFeatures: ["Find Meals Near Me discovers restaurants; Restaurant Assistant helps choose food at an already selected restaurant."],
     verifiedSources: ["client/src/pages/SushiCreator.tsx", "server/services/coaching/conciergeGoal.ts", "shared/coaching/navigation.ts"],
   },
   restaurant_guide: {
@@ -303,7 +303,7 @@ const DEVELOPMENT_FOOD_SUITABILITY = {
     offerWhen: "A restaurant-discovery request is clear. Do not ask whether the member wants to cook when they already asked to find a restaurant.",
     deferWhen: "An unexplained sushi craving may require a making-versus-eating-out distinction. Use prior answers rather than restarting discovery.",
     safetyBoundaries: ["Suggestions do not verify live menus, stock or accommodations; preserve dietary, allergy, clinical and access safeguards.", "No Chef location/craving transfer, automatic search or completed order. Existing search is restaurant-filtered, not guaranteed dedicated-shop coverage."],
-    relatedFeatures: ["Restaurant Guide serves ordering at a selected restaurant; Sushi Creator serves home preparation."],
+    relatedFeatures: ["Restaurant Assistant serves ordering at a selected restaurant; Sushi Creator serves home preparation."],
     verifiedSources: ["client/src/pages/SocialFindMeals.tsx", "shared/coaching/navigation.ts"],
   },
   create_a_dish: {

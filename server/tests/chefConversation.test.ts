@@ -312,6 +312,23 @@ test.each([
   expect(mockCreate).toHaveBeenCalledTimes(1);
 });
 
+test("Restaurant Assistant uses its public name without changing its destination or access", async () => {
+  expect(COACH_DESTINATIONS.restaurant_guide).toEqual({
+    label: "Restaurant Assistant", route: "/social-hub/restaurant-guide", access: "pro",
+  });
+  reply("Use Restaurant Assistant to choose what to order.", "restaurant_guide",
+    { ...unknown, activity: "eat_out", restaurant: "chosen", explicitFeatureId: "restaurant_guide" },
+    { navigationIntent: "direct_request" });
+  const result = await run("Open Restaurant Assistant.");
+  expect(result.presentation).toMatchObject({
+    message: "Use Restaurant Assistant to choose what to order.", destinationId: "restaurant_guide",
+  });
+  const payload = JSON.parse(mockCreate.mock.calls[0][0].messages[1].content);
+  expect(payload.availableFeatures.find((feature: any) => feature.id === "restaurant_guide").label)
+    .toBe("Restaurant Assistant");
+  expect(JSON.stringify([payload.availableFeatures, payload.platformKnowledge])).not.toContain("Restaurant Guide");
+});
+
 // Deterministic provider fixtures verify supplied knowledge and existing
 // validation, not a live model's interpretation of these member messages.
 test.each([
@@ -333,7 +350,7 @@ test.each([
     "airports", "theme parks", "resorts", "stadiums and arenas", "state fairs",
     "main dining rooms", "specialty restaurants", "pool-deck dining",
     "not an exhaustive list", "members can also search",
-    "identified buffet fits My Perfect Buffet", "already-selected restaurant fits Restaurant Guide",
+    "identified buffet fits My Perfect Buffet", "already-selected restaurant fits Restaurant Assistant",
     "without one selected fits Find Meals Near Me", "not as keyword rules or mandatory navigation",
     "without first collecting", "unless supported by reliable information", "No Chef prefill"]) {
     expect(knowledge).toContain(fact);

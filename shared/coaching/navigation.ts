@@ -12,7 +12,7 @@ export const COACH_DESTINATIONS = {
   beverage_creator: { label: "Beverage Creator", route: "/lifestyle/beverage-creator", access: "pro" },
   athlete_beverage_creator: { label: "Athlete Beverage Creator", route: "/lifestyle/athlete-beverage-creator", access: "pro" },
   hydration_center: { label: "Hydration Center", route: "/hydration", access: "hydration" },
-  restaurant_guide: { label: "Restaurant Guide", route: "/social-hub/restaurant-guide", access: "pro" },
+  restaurant_guide: { label: "Restaurant Assistant", route: "/social-hub/restaurant-guide", access: "pro" },
   find_meals_near_me: { label: "Find Meals Near Me", route: "/social-hub/find", access: "pro" },
   my_perfect_buffet: { label: "My Perfect Buffet", route: "/my-perfect-buffet", access: "pro" },
   my_perfect_getaway: { label: "My Perfect Getaway", route: "/lifestyle/my-perfect-getaway", access: "clinical" },
