@@ -88,6 +88,7 @@ export const COACH_NAVIGATION_GUIDANCE = {
   meal_builders: {
     aliases: ["Meal Builders", "Meal Builder"], entry: "Meal Builders",
     start: "Open your assigned builder, choose a day and meal slot, then select Create With Chef. Existing assignment and setup checks still apply.",
+    explanation: "Open Meal Builders from the app navigation to reach its landing page. Open the builder available to your account; ordinary members generally use their assigned builder, not an unrestricted choice of clinical builders. Complete any required setup, then choose a day and a meal slot and select Create With Chef for that slot. You can continue in additional slots; Save Plan saves the board. Subscription, account eligibility, setup and clinical assignment checks still apply. Chef is explaining the workflow only: nothing has been opened or generated, and no macro targets have been changed.",
   },
   shopping_list: {
     aliases: ["Shopping List", "Smart Shopping List", "my shopping list"], entry: "Dashboard → Shopping List",
@@ -102,7 +103,7 @@ export const COACH_NAVIGATION_GUIDANCE = {
     entry: "Dashboard → Daily Journal & Inspiration",
     start: "Use the journal's existing controls to write or review your own private entries. Chef does not read or change them.",
   },
-} satisfies Record<CoachDestinationId, { aliases: string[]; entry: string; start: string }>;
+} satisfies Record<CoachDestinationId, { aliases: string[]; entry: string; start: string; explanation?: string }>;
 
 /**
  * Reviewed guidance without action permission. A dialog is not a URL; these

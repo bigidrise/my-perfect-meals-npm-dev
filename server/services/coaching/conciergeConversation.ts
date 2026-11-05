@@ -24,6 +24,7 @@ import {
   explicitNavigationRequest, navigationGoal, verifiedNavigationText,
   verifiedLocationAnswer, hasUnverifiedNavigationProse,
   knowledgeOnlyLocationAnswer,
+  verifiedMealBuildersExplanation,
 } from "./verifiedNavigation";
 import {
   NAVIGATION_CONTINUITY_INSTRUCTIONS, PendingNavigationDispositionSchema,
@@ -303,6 +304,13 @@ export async function runConciergeConversation(params: {
           : turn.redFlagReason ?? turn.message ?? undefined,
       }) as CoachResponse);
     }
+    // These reviewed UI facts contain no personalized food advice. Keep their
+    // provenance separate from model fields/declarations, and grant no action.
+    const featureExplanation = developmentPurpose ? verifiedMealBuildersExplanation(params.userMessage) : undefined;
+    if (featureExplanation) {
+      selectedField = "verified_feature_explanation";
+      return finish(envelope(featureExplanation));
+    }
     // Whole named navigation requests are bound to reviewed application records,
     // never to a model's choice of prose, purpose or permission-question variant.
     // This runs AFTER care classification; it cannot bypass input or model safety.
@@ -363,7 +371,8 @@ export async function runConciergeConversation(params: {
       const message = locationAnswer ?? (turn.navigationIntent === "recommendation" ? undefined : ordinaryConversation(turn.message)) ??
         conversationalContinuation(turn.conversationMessage);
       if (!message) throw new DecisionFailure("unusable_conversational_response");
-      selectedField = ordinaryConversation(turn.message) === message ? "message" : "conversationMessage";
+      selectedField = locationAnswer ? "verified_location" :
+        ordinaryConversation(turn.message) === message ? "message" : "conversationMessage";
       diagnostic("no_navigation", turn.navigationIntent === "confirmed" ? "missing_pending_recommendation" : undefined);
       return finish(envelope(message), turn.navigationIntent === "none");
     }

@@ -5,6 +5,7 @@ import { runConciergeConversation } from "../services/coaching/conciergeConversa
 import { fallbackQuality, selectRejectedConversation, HANDOFF_RECOVERY, MISSING_PENDING_RECOVERY } from "../services/coaching/conciergeFallback";
 import { inspectConversationPurpose } from "../services/coaching/conversationPurpose";
 import type { PendingRecommendation } from "../services/coaching/conciergeNavigationState";
+import { verifiedNavigationText } from "../../shared/coaching/navigationGuidance";
 
 const environment = process.env.NODE_ENV;
 beforeEach(() => { process.env.NODE_ENV = "development"; });
@@ -123,7 +124,7 @@ describe("Development rejected-response reliability", () => {
       memberNeed: "navigation", responsePurpose: "handoff", navigationIntent: "confirmed",
       conciergeDecision: null, handoffMessage: text, message: text, conversationMessage: null,
     }, { pending: first.result.presentation?.navigation, userMessage: "YES" });
-    expect(result.presentation?.message).toBe(text);
+    expect(result.presentation?.message).toBe(verifiedNavigationText("dessert_creator"));
     expect(result.presentation?.navigation?.state).toBe("navigation_confirmed");
     expect(result.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId: "dessert_creator" })]);
   });
