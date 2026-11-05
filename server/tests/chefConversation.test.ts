@@ -19,6 +19,7 @@ import { extractAndPersistMemories } from "../services/coaching/memoryExtractor"
 import { getCapabilitiesForUser, getCornerCapabilities } from "../services/coaching/capabilityRegistry";
 import { getDevelopmentPlatformKnowledge } from "../services/coaching/platformKnowledge";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
+import { verifiedNavigationText } from "../../shared/coaching/navigationGuidance";
 import { validateConciergeGoal } from "../services/coaching/conciergeGoal";
 import { PgDialect } from "drizzle-orm/pg-core";
 
@@ -28,6 +29,8 @@ const user = { id: "fixture-user" };
 const subject = { subjectType: "user" as const, subjectId: user.id, ownerId: user.id };
 const unknown = { activity: "unknown", occasion: "unknown", restaurant: "unknown",
   dishChosen: false, specialty: "none", explicitFeatureId: null };
+const handoffText = (id: string, legacy: string) =>
+  runtimeEnvironment === "development" ? verifiedNavigationText(id as keyof typeof COACH_DESTINATIONS) : legacy;
 beforeEach(() => {
   process.env.NODE_ENV = runtimeEnvironment;
   jest.clearAllMocks(); mockCreate.mockReset();
@@ -110,7 +113,7 @@ test.each([
     (loadBoundedHistory as jest.Mock).mockResolvedValue({ recentMessages: history, rollingContext: null });
     reply(guidance, id, goal, { navigationIntent: "confirmed" });
     const result = await run(confirmation);
-    expect(result.presentation).toEqual(expect.objectContaining({ message: guidance, destinationId: id }));
+    expect(result.presentation).toEqual(expect.objectContaining({ message: handoffText(id, guidance), destinationId: id }));
     expect(result.todayPlan.items).toEqual([expect.objectContaining({ destinationId: id, kind: "use_feature" })]);
     expect(result.presentation?.message).not.toBe(recommendation);
     const wire = mockCreate.mock.calls[mockCreate.mock.calls.length - 1][0];
@@ -130,7 +133,7 @@ test.each([
 ] as const)("explicit navigation to %s needs no repeated permission", async (id, request, activity, occasion, answer) => {
   reply(answer, id, { ...unknown, activity, occasion, explicitFeatureId: id }, { navigationIntent: "direct_request" });
   const result = await run(request);
-  expect(result.presentation).toEqual(expect.objectContaining({ message: answer, destinationId: id }));
+  expect(result.presentation).toEqual(expect.objectContaining({ message: handoffText(id, answer), destinationId: id }));
   expect(result.presentation?.message).not.toContain("?");
   expect(mockCreate).toHaveBeenCalledTimes(1);
 });
@@ -194,7 +197,7 @@ test.each([
     ...(id === "create_a_dish" ? { creatorRequest: { idea: "mushroom stew", memberTurns: [0] } } : {}),
   });
   const result = await run("Yes, let's do that.");
-  expect(result.presentation).toEqual(expect.objectContaining({ message: answer, destinationId: id }));
+  expect(result.presentation).toEqual(expect.objectContaining({ message: handoffText(id, answer), destinationId: id }));
   expect(result.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId: id })]);
   expect(mockCreate).toHaveBeenCalledTimes(1);
   const wire = mockCreate.mock.calls[0][0];
@@ -212,7 +215,8 @@ test("direct familiar-feature request can omit instructions rather than forcing 
   reply("Of course—use the button below when you're ready.", "my_perfect_getaway",
     { ...unknown, activity: "travel", explicitFeatureId: "my_perfect_getaway" });
   const result = await run("Open My Perfect Getaway. I know how to use it; skip the instructions.");
-  expect(result.presentation?.message).toBe("Of course—use the button below when you're ready.");
+  expect(result.presentation?.message).toBe(runtimeEnvironment === "development"
+    ? verifiedNavigationText("my_perfect_getaway", false) : "Of course—use the button below when you're ready.");
   expect(result.presentation?.destinationId).toBe("my_perfect_getaway");
   expect(mockCreate).toHaveBeenCalledTimes(1);
   expect(mockCreate.mock.calls[0][0].messages[0].content).toContain("omit the tutorial");
@@ -284,7 +288,7 @@ test.each([
   reply("You can create it there.", id, goal);
   const result = await run(message);
   expect(result.presentation?.destinationId).toBe(id);
-  expect(result.presentation?.message).toBe("You can create it there.");
+  expect(result.presentation?.message).toBe(handoffText(id, "You can create it there."));
   expect(mockCreate).toHaveBeenCalledTimes(1);
 });
 
@@ -305,7 +309,7 @@ test.each([
   reply("You can start there.", id, goal);
   const result = await run("Yes, let's do that.");
   expect(result.presentation?.destinationId).toBe(id);
-  expect(result.presentation?.message).toBe("You can start there.");
+  expect(result.presentation?.message).toBe(handoffText(id, "You can start there."));
   const payload = JSON.parse(mockCreate.mock.calls[0][0].messages[1].content);
   expect(payload.history).toEqual(history);
   expect(payload.latestMemberMessage).toBe("Yes, let's do that.");
@@ -596,6 +600,9 @@ test.each([
   ["Where can I keep a private daily journal?", "Use Daily Journal & Inspiration. I can't open it from Chef yet."],
   ["How do I track my weight?", "My Biometrics includes weight tracking and trends. I can't open that page from Chef yet."],
 ])("platform guidance stays conversational without a forced action: %s", async (question, answer) => {
+  if (runtimeEnvironment === "development" && question === "Where can I keep a private daily journal?") {
+    answer = "Daily Journal & Inspiration lets you write and review private entries.";
+  }
   reply(answer, null, unknown, { conciergeDecision: null, conversationMessage: answer });
   const result = await run(question);
   expect(result.presentation).toEqual({ kind: "concierge", message: answer });
@@ -680,7 +687,7 @@ test("later turns retain model-authored explanations, corrections, orientation a
     reply(answer, id, id ? { ...unknown, activity: "use_ingredients" } : unknown,
       id ? {} : { conciergeDecision: null });
     const result = await run(message);
-    expect(result.presentation?.message).toBe(answer);
+    expect(result.presentation?.message).toBe(id ? handoffText(id as keyof typeof COACH_DESTINATIONS, answer) : answer);
     expect(result.presentation?.destinationId).toBe(id ?? undefined);
     expect(result.todayPlan.items).toHaveLength(id ? 1 : 0);
     const data = JSON.parse(mockCreate.mock.calls.at(-1)[0].messages[1].content);
@@ -726,7 +733,8 @@ test.each([
   });
   const result = await run("Help me prepare the drink.");
   expect(result.presentation?.destinationId).toBe(expectedId);
-  expect(result.presentation?.message).toBe(expectedId ? message : "I can help explain the next step.");
+  expect(result.presentation?.message).toBe(expectedId
+    ? handoffText(expectedId as keyof typeof COACH_DESTINATIONS, message) : "I can help explain the next step.");
   expect(result.todayPlan.items).toHaveLength(expectedId ? 1 : 0);
   expect(mockCreate).toHaveBeenCalledTimes(1);
 });
@@ -784,7 +792,7 @@ test.each([
   });
   const result = await run(message);
   expect(result.presentation?.destinationId).toBe(id);
-  expect(result.presentation?.message).toBe("You can start there.");
+  expect(result.presentation?.message).toBe(handoffText(id as keyof typeof COACH_DESTINATIONS, "You can start there."));
   expect(result.presentation?.creatorRequest).toBeUndefined();
   expect(result.todayPlan.items).toHaveLength(1);
   expect(mockCreate).toHaveBeenCalledTimes(1);

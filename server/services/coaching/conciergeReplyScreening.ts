@@ -1,5 +1,6 @@
 import { COACH_DESTINATIONS, type CoachDestinationId } from "../../../shared/coaching/navigation";
 import { fallbackQuality } from "./conciergeFallback";
+import { hasUnverifiedNavigationProse } from "./verifiedNavigation";
 
 export type ReplyScreenReason = "accepted" | "missing" | "placeholder" | "feature_reference" |
   "route_reference" | "link" | "permission_question" | "navigation_language";
@@ -48,7 +49,9 @@ export function screenIndependentConversation(message: string | null | undefined
     .sort((a, b) => b[1].label.length - a[1].label.length)) {
     const label = destination.label.toLocaleLowerCase();
     if (remaining.includes(label)) {
-      if (!allowFeatureMentions && id !== allowedDestinationId) return { reason: "feature_reference" };
+      const reviewedParent = id === "shopping_list" && allowedDestinationId &&
+        COACH_DESTINATIONS[allowedDestinationId].route === destination.route;
+      if (!allowFeatureMentions && id !== allowedDestinationId && !reviewedParent) return { reason: "feature_reference" };
       remaining = remaining.split(label).join("");
     }
     if (lower.includes(destination.route)) return { reason: "route_reference" };
@@ -64,6 +67,9 @@ export function screenOrdinaryConversation(message: string | null | undefined,
   if (message && navigationPermissionQuestion(message, environment === "development")) {
     return { reason: "permission_question" };
   }
+  if (environment === "development" && message && hasUnverifiedNavigationProse(message)) {
+    return { reason: "navigation_language" };
+  }
   return screenIndependentConversation(message, undefined, true, environment);
 }
 
@@ -73,6 +79,9 @@ export function screenConversationalContinuation(message: string | null | undefi
   if (!result.text) return result;
   if (!structuredOffer && navigationPermissionQuestion(result.text, environment === "development")) {
     return { reason: "permission_question" };
+  }
+  if (environment === "development" && hasUnverifiedNavigationProse(result.text)) {
+    return { reason: "navigation_language" };
   }
   if (/\b(?:open|launch|navigate|click|tap|press|redirect|transfer|take you|taking you|send you|get you started|getting you started|button)\b/i.test(result.text)) {
     return { reason: "navigation_language" };

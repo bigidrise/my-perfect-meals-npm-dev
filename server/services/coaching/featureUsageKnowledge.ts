@@ -119,6 +119,25 @@ export const FEATURE_USAGE_KNOWLEDGE: Partial<Record<CoachDestinationId, Feature
     generationAction: "Create My Dish starts the destination's creation workflow.",
     notes: ["Review or edit a transferred idea before creating. Opening the page does not automatically generate food."],
   },
+  // Existing authenticated entry pages; no account data enters the conversation.
+  shopping_list: {
+    descriptionInput: "Open Shopping List from the dashboard. Use My List for personal additions.",
+    controls: ["Grocery Store Coach and Product Scan are separate controls on this page."],
+    generationAction: "The member manages the list using its existing controls.",
+    notes: ["Essential access remains required. No automatic list changes, tab opening or request transfer."],
+  },
+  biometrics: {
+    descriptionInput: "Open My Biometrics from the dashboard.",
+    controls: ["Use the destination's existing tracking controls for your own account."],
+    generationAction: "The member reviews or enters observations in My Biometrics, not in Chef.",
+    notes: ["Paid and clinical subfeatures keep their separate access and consent checks. No measurements or labs are transferred to chat."],
+  },
+  daily_journal: {
+    descriptionInput: "Open Daily Journal & Inspiration from the dashboard.",
+    controls: ["Write or review your own entries using the journal's controls."],
+    generationAction: "Entries are saved only by the member in the journal.",
+    notes: ["No journal contents are retrieved into Chef and no entry is created or changed by navigation."],
+  },
   // client/src/pages/fridge-rescue.tsx
   fridge_rescue: {
     descriptionInput: "The ingredient field accepts the ingredients the member already has and wants to use.",

@@ -4,6 +4,7 @@ description: Roadmap requirements, navigation naming, response authority, and fo
 ---
 
 - [Parent navigation](ask-chef-parent-navigation.md) — Grocery Store Coach buttons name the parent feature; conversation names the nested function.
+- [Navigation authority](ask-chef-navigation-authority.md) — reviewed directions, explicit opening requests, and the Development-only acceptance boundary.
 - [Response authority](ask-chef-response-authority.md) — typed care states govern unused model fields; continuations and role-scoped knowledge need separate evidence.
 - [Wordmark](ask-chef-wordmark.md) — founder selected the silver/orange swoosh without a chef hat; the adjacent mascot already wears one.
 - [Reply avatar](ask-chef-reply-avatar.md) — compact transparent flame Chef replaces the Coach sender label; no badge or background tile.

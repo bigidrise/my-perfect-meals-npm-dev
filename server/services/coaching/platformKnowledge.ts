@@ -8,6 +8,7 @@ import { PLATFORM_HELP_KNOWLEDGE } from "./platformHelpKnowledge";
 import { isAskChefConversationEnabled } from "../../../shared/coaching/askChefRelease";
 import { getMemberPlatformCatalog } from "./platformFeatureCatalog";
 import type { ChefKnowledgeAccess } from "./platformKnowledgeAccess";
+import { COACH_NAVIGATION_GUIDANCE, COACH_KNOWLEDGE_ONLY_NAVIGATION } from "../../../shared/coaching/navigationGuidance";
 
 interface MemberFeatureKnowledge {
   id: string;
@@ -205,7 +206,9 @@ export function getDevelopmentPlatformKnowledge(access?: ChefKnowledgeAccess) {
           "Do not manufacture a landing-page button, executable link, transfer or unrelated replacement. Some pairing experiences remain Coming Soon."],
       },
     } : PLATFORM_HELP_KNOWLEDGE,
-    navigationPolicy: "Knowledge is not navigation permission. Only IDs in availableFeatures may become buttons. Other entries are knowledge-only. My Perfect Menu and Meal Builders support entry-page navigation only, without request transfer. Explain existing entry points honestly; never invent a URL, button or prefill.",
+    navigationGuidance: COACH_NAVIGATION_GUIDANCE,
+    knowledgeOnlyNavigation: COACH_KNOWLEDGE_ONLY_NAVIGATION,
+    navigationPolicy: "navigationGuidance is the sole authority for written UI entry relationships. Do not author menu paths or directions in free prose; the server renders reviewed instructions. Knowledge is not navigation permission. Only IDs in availableFeatures may become buttons. Other entries are knowledge-only. My Perfect Menu, Meal Builders, Shopping List, My Biometrics and Daily Journal support entry-page navigation only, without request transfer. Never invent a URL, button, subsection opening or prefill.",
   };
 }
 

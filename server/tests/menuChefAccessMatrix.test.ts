@@ -145,6 +145,7 @@ test.each([
   const instance = app({ id: "fixture-destination-user", accessTier, planLookupKey });
   for (const [id, allowed] of [
     ["macro_calculator", true], ["fridge_rescue", true],
+    ["shopping_list", menu], ["biometrics", true], ["daily_journal", true],
     ["my_perfect_menu", menu], ["meal_builders", menu], ["beverage_creator", pro], ["my_perfect_getaway", clinical],
   ] as const) {
     const response = await request(instance).post("/api/coach/navigation").send({ destinationId: id });
@@ -158,6 +159,9 @@ test.each([
 
 test("Development navigation still requires authentication and known destinations", async () => {
   process.env.NODE_ENV = "development";
+  for (const id of ["shopping_list", "biometrics", "daily_journal"]) {
+    expect((await request(app(null)).post("/api/coach/navigation").send({ destinationId: id })).status).toBe(401);
+  }
   expect((await request(app(null)).post("/api/coach/navigation")
     .send({ destinationId: "macro_calculator" })).status).toBe(401);
   const instance = app({ id: "fixture-free", accessTier: "FREE", planLookupKey: "mpm_free" });

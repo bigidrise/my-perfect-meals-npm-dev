@@ -74,17 +74,7 @@
 - [Short-form food voice input](short-form-food-voice-input.md) — voice only populates editable text; normal submission and governance remain authoritative.
 - [One-action food choice](one-action-food-choice.md) — profiles set defaults; an informed explicit choice governs one food action without changing the profile.
 - [Macro replacement boundary](macro-replacement-boundary.md) — recalculation is preview-only; saved targets remain authoritative until a final confirmed save succeeds.
-- [Business invitation identity](business-invitation-identity.md) — one email-bound invitation connects existing or new accounts through the same acceptance path.
-- [Physician pilot invitation experience](physician-pilot-invitation-experience.md) — one emailed link preserves auth context; personal and organization paths share the physician clock, not client clocks.
-- [Organization-owned Rewardful identity](organization-rewardful-identity.md) — Rewardful identities belong to exact organizations; never infer them from an operator’s user ID or email.
-- [Multi-organization membership](multi-organization-membership.md) — one account can manage multiple isolated organizations through explicit workspace selection.
-- [Business Suite commercial boundary](business-suite-commercial-boundary.md) — $44.99 is flat at quantity 1; invitations never grant permanent sponsored professional access.
-- [Permanent account and optional workspace lifecycle](account-workspace-lifecycle.md) — Studio and Organization attach to one identity; ending renewal preserves paid-through access and same-subscription reversal.
-- [Paid organization workspace visibility](paid-organization-workspace-visibility.md) — self-service organizations appear at login only after paid activation; pending setup stays hidden.
-- [Organization invitation clocks](organization-invitation-clocks.md) — organization, patient, and professional temporary access use separate clocks and entitlement types.
-- [Organization invitation delivery state](organization-invitation-delivery-state.md) — pending means provider-accepted; delivery failures must remain retryable and visible.
-- [Organization config resilience](organization-config-resilience.md) — authenticated tenant config may be partial; normalize it over complete defaults before feature-flag reads.
-- [Organization Location isolation](organization-location-isolation.md) — parent administration never implies Location access; active context is an exact authorized pair.
+- [Business identity and lifecycle references](business-identity-lifecycle-reference-index.md) — invitations, clocks, membership, locations, referrals, commercial terms and workspace lifecycle.
 - [Diabetes glucose context boundary](diabetes-glucose-context-boundary.md) — all food surfaces enforce state produce choices; only the Diabetes Meal Builder consumes diabetes-specific numbers.
 - [Create a Dish expansion isolation](create-dish-expansion-isolation.md) — expansion is typed culinary intent owned only by create_a_dish, never generic creator behavior.
 - [Icon pill choices](icon-pill-choice-layout.md) — icon-based food selectors place the icon above a compact text pill, not inside an oversized button.
