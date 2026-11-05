@@ -91,7 +91,7 @@ export const COACH_NAVIGATION_GUIDANCE = {
     explanation: "Open Meal Builders from the app navigation to reach its landing page. Open the builder available to your account; ordinary members generally use their assigned builder, not an unrestricted choice of clinical builders. Complete any required setup, then choose a day and a meal slot and select Create With Chef for that slot. You can continue in additional slots; Save Plan saves the board. Subscription, account eligibility, setup and clinical assignment checks still apply. Chef is explaining the workflow only: nothing has been opened or generated, and no macro targets have been changed.",
   },
   shopping_list: {
-    aliases: ["Shopping List", "Smart Shopping List", "my shopping list"], entry: "Dashboard → Shopping List",
+    aliases: ["Shopping List", "Smart Shopping List", "my shopping list", "Grocery List", "my grocery list"], entry: "Dashboard → Shopping List",
     start: "Review your shopping needs or use My List for personal additions. Grocery Store Coach and Product Scan are separate controls here.",
   },
   biometrics: {

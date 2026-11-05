@@ -5,7 +5,7 @@ description: Founder-approved navigation reliability scope, written-direction au
 
 Verified application navigation records must govern written directions as well
 as buttons. Feature-purpose knowledge is not evidence of a menu relationship.
-Explicit named opening requests need no repeated confirmation; educational
+Explicit named opening requests and clear customer feature selections need no repeated confirmation; educational
 questions are not opening consent. Unknown food needs still require contextual
 interpretation, not a keyword-to-feature router.
 
@@ -54,3 +54,15 @@ substituted an incomplete continuation referring to choices it did not present.
 alternatives in rejected fields or earlier history do not complete it. Preserve
 safe complete model clarification, but never strip unsafe clauses to rescue a
 fragment or let clarification manufacture navigation consent.
+
+An assistant offer is not consent; a customer's explicit feature selection is.
+Whole affirmatives bind only the fresh server-owned pending offer, never a
+destination recovered from older text or a replacement chosen by the model.
+
+**Why:** Founder transcript review showed repeated permission requests after
+explicit My Perfect Menu selections and lost actions after valid confirmations.
+
+**How to apply:** Keep authorization bound to the selected destination and
+available tools, after care handling. Attribute reviewed navigation text to its
+renderer even when identical to a model field; value equality is not provenance
+and must not cause unrelated food-declaration failures.

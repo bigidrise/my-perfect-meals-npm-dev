@@ -1,5 +1,8 @@
 // Isolated HTTP authorization checks. No live database or paid provider calls.
-jest.mock("../db", () => ({ db: { execute: jest.fn(), select: jest.fn() } }));
+jest.mock("../db", () => {
+  const execute = jest.fn();
+  return { db: { execute, select: jest.fn(), transaction: jest.fn(callback => callback({ execute })) } };
+});
 jest.mock("../services/coaching/engine", () => ({ engine: { run: jest.fn() } }));
 jest.mock("../services/coaching/activityEvents", () => ({ emitActivityEvent: jest.fn() }));
 jest.mock("../middleware/requireAuth", () => ({

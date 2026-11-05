@@ -58,14 +58,19 @@ test("one contiguous general strategy replaces the scattered coaching blocks", (
   ]) expect(instructions).toContain(requirement);
 });
 
-test("all 30 retained Development policy paragraphs match their pre-consolidation bytes", () => {
+test("Development policy bytes stay fixed except the approved explicit-selection correction", () => {
   // Captured from the assembled instructions BEFORE editing, not regenerated
   // from the implementation under test. Includes role, care, ownership,
   // navigation/consent, shopping, creator handoff and structured-output contracts.
   const retained = getChefConversationInstructions("development").split("\n")
     .filter(line => !line.startsWith("RESPONSE STRATEGY —") && !line.startsWith("VERIFIED NAVIGATION AUTHORITY:"));
   expect(retained).toHaveLength(30);
-  expect(hash(retained.join("\n"))).toBe("6de21aef592734982e67587ac893ab74b28207f760cf287c3eae23ccb13b9533");
+  const newConsent = "An explicit feature selection is navigation consent: return its validated handoff and existing button without asking permission again. An assistant recommendation alone creates only pending state, never consent. Clicking the authorized button, not Chef's prose, opens the destination.";
+  const oldConsent = "Selecting a feature leads to its appropriate brief recommendation and validated pending state, not automatic navigation or repeated alternatives.";
+  expect(retained.find(line => line.startsWith("CONTEXTUAL CHOICE ANSWERS:"))).toContain(newConsent);
+  expect(hash(retained.map(line => line.startsWith("CONTEXTUAL CHOICE ANSWERS:")
+    ? line.replace(newConsent, oldConsent) : line).join("\n")))
+    .toBe("6de21aef592734982e67587ac893ab74b28207f760cf287c3eae23ccb13b9533");
 });
 
 test.each(["production", "test", undefined])("released instruction bytes are unchanged for %s", environment => {
