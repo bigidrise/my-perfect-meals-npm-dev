@@ -41,7 +41,7 @@ export function GLP1CompanionModal({ isOpen, onClose }: GLP1CompanionModalProps)
           <div className="flex items-center gap-2 shrink-0">
             <PillButton
               onClick={() => { onClose(); setLocation("/glp1-hub"); }}
-              variant="default"
+              variant="emerald"
             >
               <ExternalLink className="w-3 h-3 mr-1" />
               Full Hub
@@ -127,7 +127,7 @@ export function GLP1CompanionModal({ isOpen, onClose }: GLP1CompanionModalProps)
                   <div className="col-span-2 mt-1">
                     <PillButton
                       onClick={() => { onClose(); setLocation("/glp1-hub"); }}
-                      variant="default"
+                      variant="emerald"
                     >
                       Edit Guardrails in Metabolic Medication Hub
                     </PillButton>

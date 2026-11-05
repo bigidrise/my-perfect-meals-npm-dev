@@ -93,6 +93,7 @@ type SweetenerPreference =
 type GoalType = "lose" | "maintain" | "gain";
 
 type EditProfilePayload = {
+  nickname?: string;
   firstName?: string;
   lastName?: string;
   email?: string;

@@ -63,7 +63,7 @@ test("all 30 retained Development policy paragraphs match their pre-consolidatio
   // from the implementation under test. Includes role, care, ownership,
   // navigation/consent, shopping, creator handoff and structured-output contracts.
   const retained = getChefConversationInstructions("development").split("\n")
-    .filter(line => !line.startsWith("RESPONSE STRATEGY —"));
+    .filter(line => !line.startsWith("RESPONSE STRATEGY —") && !line.startsWith("VERIFIED NAVIGATION AUTHORITY:"));
   expect(retained).toHaveLength(30);
   expect(hash(retained.join("\n"))).toBe("6de21aef592734982e67587ac893ab74b28207f760cf287c3eae23ccb13b9533");
 });

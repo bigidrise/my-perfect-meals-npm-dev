@@ -25,6 +25,9 @@ export const COACH_DESTINATIONS = {
   // Entry pages only: no builder selection, clinical activation or request transfer.
   my_perfect_menu: { label: "My Perfect Menu", route: "/foods-i-enjoy", access: "essential" },
   meal_builders: { label: "Meal Builders", route: "/builders", access: "meal_builders" },
+  shopping_list: { label: "Shopping List", route: "/shopping-list-v2", access: "essential", aliases: ["Smart Shopping List", "my shopping list"] },
+  biometrics: { label: "My Biometrics", route: "/my-biometrics", access: "authenticated", aliases: ["Biometrics", "my biometrics"] },
+  daily_journal: { label: "Daily Journal", route: "/get-inspiration", access: "authenticated", aliases: ["my daily journal", "Daily Health Journal", "Daily Journal & Inspiration"] },
 } as const;
 
 export type CoachDestinationId = keyof typeof COACH_DESTINATIONS;
@@ -41,13 +44,14 @@ export function mentionsCoachDestination(
       (establishedDestinationId === id &&
         /(?:^|[^\p{L}\p{N}_])(?:my|the|that)\s+builders?(?=$|[^\p{L}\p{N}_])/iu.test(message));
   }
+  const destination = COACH_DESTINATIONS[id];
   const names = id === "grocery_create_meal"
     ? environment === "development"
       // These are feature names, not meal-creation verbs. Interpretation of
       // shopping intent and acceptance of a pending offer remain server-owned.
       ? [COACH_DESTINATIONS[id].label, COACH_DESTINATIONS[id].navigationLabel, "Grocery Coach"]
       : [COACH_DESTINATIONS[id].label, "Create a Meal", "Build a Meal"]
-    : [COACH_DESTINATIONS[id].label];
+    : [destination.label, ...("aliases" in destination ? destination.aliases : [])];
   return names.some(name => message.toLocaleLowerCase().includes(name.toLocaleLowerCase()));
 }
 

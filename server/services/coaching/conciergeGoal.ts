@@ -46,6 +46,12 @@ function goalFits(id: CoachDestinationId, goal: ConciergeGoal): boolean {
     case "my_perfect_menu":
     case "meal_builders":
       return goal.activity === "plan_meals" && goal.explicitFeatureId === id;
+    // Read-only entry pages have no food-generation inference. They require a
+    // named request or a separately validated recommendation/acceptance.
+    case "shopping_list":
+    case "biometrics":
+    case "daily_journal":
+      return false;
   }
 }
 
@@ -57,6 +63,8 @@ export function validateConciergeGoal(
     completeMissingDestination?: boolean;
     /** Only the conversation service may supply this from its loaded pending state. */
     acceptedPendingRecommendation?: boolean;
+    /** Server-owned whole-request binding to a reviewed feature alias. */
+    explicitNavigationDestination?: CoachDestinationId;
   } = {},
 ): ConciergeDecision | undefined {
   const parsed = ConciergeDecisionSchema.safeParse(value);
@@ -81,8 +89,9 @@ export function validateConciergeGoal(
   // original name evidence; follow-up consent is not required to repeat it.
   const requestEvidence = process.env.NODE_ENV === "development" && id === "grocery_create_meal" &&
     !options.acceptedPendingRecommendation ? memberMessages.slice(-1) : memberMessages;
-  const explicitlyRequested = goal?.explicitFeatureId === id && requestEvidence.some(message =>
-    mentionsCoachDestination(message, id, process.env.NODE_ENV));
+  const explicitlyRequested = goal?.explicitFeatureId === id && (
+    options.explicitNavigationDestination === id || requestEvidence.some(message =>
+      mentionsCoachDestination(message, id, process.env.NODE_ENV)));
   if (availableTools.some(tool => tool.id === id) && goal && (explicitlyRequested || goalFits(id, goal))) {
     return decision;
   }
