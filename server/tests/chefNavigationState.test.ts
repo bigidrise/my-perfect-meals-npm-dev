@@ -21,6 +21,8 @@ import { loadPendingRecommendation } from "../services/coaching/conciergeNavigat
 import CoachBubble from "../../client/src/components/coaching/CoachBubble";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
 import { FEATURE_USAGE_KNOWLEDGE } from "../services/coaching/featureUsageKnowledge";
+import { mentionsCoachDestination } from "../../shared/coaching/navigation";
+import { PENDING_NAVIGATION_TTL_MS } from "../services/coaching/conciergeNavigationContinuity";
 
 const originalEnvironment = process.env.NODE_ENV;
 const subject = { subjectType: "user" as const, subjectId: "member", ownerId: "member" };
@@ -48,12 +50,161 @@ beforeEach(() => {
   (db.execute as jest.Mock).mockImplementation(async query => {
     const { sql, params } = new PgDialect().sqlToQuery(query);
     statements.push(sql);
-    if (sql.includes("SELECT m.structured_payload")) return { rows: stored ? [{ structured_payload: stored }] : [] };
+    if (sql.includes("SELECT m.structured_payload")) return { rows: stored ? [{ structured_payload: stored, created_at: new Date() }] : [] };
     if (sql.includes("INSERT INTO coach_messages") && sql.includes("structured_payload")) {
       stored = JSON.parse(params.find((p: any) => typeof p === "string" && p.startsWith("{")) as string);
     }
     return { rows: [{ id: "owned-conversation" }] };
   });
+});
+
+const builderGoal = { ...unknown, activity: "plan_meals", explicitFeatureId: "meal_builders" };
+function builderTurn(intent: string, message: string, extra: Record<string, any> = {}) {
+  model({
+    message, handoffMessage: message, navigationIntent: intent,
+    conciergeDecision: { mode: "food_assistance", destinationId: "meal_builders", goal: builderGoal },
+    ...extra,
+  });
+}
+
+test.each(["development", "production"])("%s completes the original meal-prep conversation with actual builder actions", async environment => {
+  process.env.NODE_ENV = environment;
+  const history: Array<{ role: string; content: string }> = [];
+  const turns = [
+    ["Help me get started", "Would you like help planning meals, preparing a dish, or shopping?"],
+    ["Meal prep", "Are you planning meals ahead, preparing a particular dish, or shopping for ingredients?"],
+    ["Meal builder", "Use the Open Meal Builders button, then open your assigned builder."],
+    ["Where is my builder?", "Use the Open Meal Builders button to reach your assigned builder."],
+  ];
+  for (const [index, [input, answer]] of turns.entries()) {
+    (loadBoundedHistory as jest.Mock).mockResolvedValue({ recentMessages: [...history], rollingContext: null });
+    if (index < 2) model({ message: answer, navigationIntent: "none", conciergeDecision: null,
+      pendingNavigationDisposition: "clear" });
+    else builderTurn("direct_request", answer);
+    const result = await run(input);
+    if (index < 2) expect(result.todayPlan.items).toEqual([]);
+    else {
+      expect(result.presentation?.navigation).toMatchObject({ state: "direct_navigation", destinationId: "meal_builders" });
+      expect(result.presentation?.destinationId).toBe("meal_builders");
+      expect(result.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId: "meal_builders" })]);
+      expect(html(result)).toContain("Open meal_builders");
+    }
+    const wire = JSON.parse(mockCreate.mock.calls[index][0].messages[1].content);
+    expect(wire.history).toEqual(history);
+    history.push({ role: "user", content: input }, { role: "assistant", content: answer });
+  }
+});
+
+test.each(["Meal builder", "Meal Builders", "Open Meal Builders", "Take me to my meal builder"])(
+  "explicit named selection %s completes without an extra permission question", async input => {
+    builderTurn("direct_request", "Use the Open Meal Builders button, then open your assigned builder.");
+    expect((await run(input)).presentation?.navigation?.state).toBe("direct_navigation");
+  },
+);
+
+test.each(["builder", "Meal prep", "Meal preparation", "Prepare meals for the week", "Build my meals", "Where is my builder?", "meal builderish"])(
+  "%s cannot self-authorize a direct builder action without established context", async input => {
+    expect(mentionsCoachDestination(input, "meal_builders", "development")).toBe(false);
+    builderTurn("direct_request", "Meal Builders can hold dated meals. Would you like to use it?");
+    expect((await run(input)).todayPlan.items).toEqual([]);
+  },
+);
+
+test("a relevant informational reply preserves the original offer and its age until contextual confirmation", async () => {
+  builderTurn("recommendation", "Meal Builders can hold dated meals. Would you like to use it?");
+  const offer = await run("Help me plan meals ahead.");
+  const offeredAt = offer.presentation?.navigation?.offeredAt;
+  expect(offeredAt).toBeDefined();
+  model({ message: "Your assigned builder holds meals for the dates you choose.", navigationIntent: "none",
+    conciergeDecision: null, pendingNavigationDisposition: "preserve" });
+  const info = await run("Can I choose different days?");
+  expect(info.presentation?.navigation).toMatchObject({ state: "recommendation_pending", offeredAt });
+  expect(info.todayPlan.items).toEqual([]);
+  expect(html(info)).not.toContain("Open meal_builders");
+  builderTurn("confirmed", "Use the Open Meal Builders button, then open your assigned builder.");
+  const confirmed = await run("Where is my builder?");
+  expect(confirmed.presentation?.navigation?.state).toBe("navigation_confirmed");
+  expect(confirmed.todayPlan.items).toEqual([expect.objectContaining({ destinationId: "meal_builders" })]);
+});
+
+test.each(["No, cancel that.", "Let's talk about sleep instead."])(
+  "clears the offer on rejection or unrelated intent: %s", async input => {
+    builderTurn("recommendation", "Meal Builders can hold dated meals. Would you like to use it?");
+    await run("Help me plan meals ahead.");
+    model({ message: "We can leave meal planning aside.", navigationIntent: "none", conciergeDecision: null,
+      pendingNavigationDisposition: "clear" });
+    await run(input);
+    expect(await loadPendingRecommendation("owned-conversation", "member")).toBeUndefined();
+    builderTurn("confirmed", "Use the Open Meal Builders button.");
+    expect((await run("Yes")).todayPlan.items).toEqual([]);
+  },
+);
+
+test("changing destinations replaces the old offer rather than retaining its authority", async () => {
+  builderTurn("recommendation", "Meal Builders can hold dated meals. Would you like to use it?");
+  await run("Help me plan meals ahead.");
+  model({ navigationIntent: "recommendation", recommendationMessage: invitation });
+  await run("I'd rather plan dining for my cruise.");
+  expect((await loadPendingRecommendation("owned-conversation", "member"))?.destinationId).toBe("my_perfect_getaway");
+  builderTurn("confirmed", "Use the Open Meal Builders button.");
+  expect((await run("Yes")).presentation?.destinationId).not.toBe("meal_builders");
+});
+
+test("expired or future-dated original offers cannot be revived by fresh informational timestamps", async () => {
+  for (const offeredAt of [new Date(Date.now() - PENDING_NAVIGATION_TTL_MS - 1).toISOString(),
+    new Date(Date.now() + 60_000).toISOString(), "invalid"]) {
+    stored = { presentation: { navigation: { state: "recommendation_pending", destinationId: "meal_builders",
+      goal: builderGoal, offeredAt } } };
+    expect(await loadPendingRecommendation("owned-conversation", "member")).toBeUndefined();
+  }
+});
+
+test("bare yes cannot confirm an already completed navigation", async () => {
+  builderTurn("direct_request", "Use the Open Meal Builders button.");
+  await run("Meal builder");
+  builderTurn("confirmed", "Use the Open Meal Builders button.");
+  expect((await run("Yes")).todayPlan.items).toEqual([]);
+});
+
+test("a contextual builder reference cannot borrow another destination's recent authority", async () => {
+  model({ navigationIntent: "recommendation", recommendationMessage: invitation });
+  await run("Help me arrange cruise dining.");
+  builderTurn("direct_request", "Meal Builders can hold dated meals. Would you like to use it?");
+  const result = await run("Where is my builder?");
+  expect(result.todayPlan.items).toEqual([]);
+  expect(result.presentation?.navigation?.state).not.toBe("direct_navigation");
+});
+
+test("a named comparison or negation is not automatically treated as consent", async () => {
+  model({ message: "We can compare the workflows without opening either.", navigationIntent: "none",
+    conciergeDecision: null, pendingNavigationDisposition: "clear" });
+  const result = await run("Do not open Meal Builder; how does it differ from My Perfect Menu?");
+  expect(result.todayPlan.items).toEqual([]);
+  expect(result.presentation?.navigation).toBeUndefined();
+});
+
+test("the single model call receives meal-prep distinctions without enabling experimental systems", async () => {
+  model({ message: "Are you planning meals ahead, preparing a dish, or shopping?", navigationIntent: "none",
+    conciergeDecision: null, pendingNavigationDisposition: "clear" });
+  await run("Meal preparation");
+  expect(mockCreate).toHaveBeenCalledTimes(1);
+  const system = mockCreate.mock.calls[0][0].messages[0].content;
+  expect(system).toContain("MEAL PREP CLARIFICATION");
+  expect(system).toContain("Do not route generic meal prep to Grocery Coach without shopping intent");
+  expect(system).toContain("Chef explains and directs; specialized tools create meals and plans");
+  expect(JSON.parse(mockCreate.mock.calls[0][0].messages[1].content).platformKnowledge.source)
+    .not.toBe("verified_feature_intelligence");
+});
+
+test("a care escalation clears an existing offer even when preservation is requested", async () => {
+  builderTurn("recommendation", "Meal Builders can hold dated meals. Would you like to use it?");
+  await run("Help me plan meals ahead.");
+  builderTurn("confirmed", "Seek emergency care now.", { redFlag: true, contactCare: "Emergency care",
+    careDisposition: "emergency", pendingNavigationDisposition: "preserve" });
+  const result = await run("I have severe chest pain.");
+  expect(result.meta.redFlag).toBe(true);
+  expect(result.presentation?.navigation).toBeUndefined();
+  expect(await loadPendingRecommendation("owned-conversation", "member")).toBeUndefined();
 });
 afterAll(() => { process.env.NODE_ENV = originalEnvironment; });
 const run = (message: string) => engine.run({
