@@ -37,6 +37,7 @@ import { FEATURE_USAGE_KNOWLEDGE } from "./featureUsageKnowledge";
 import { explainFeatureQuestion, featureIntelligenceEnabled, projectFeatureKnowledge, safeScreenContext,
   type FeatureScreenContext } from "./featureIntelligence";
 import type { FeatureExplanation } from "./featureIntelligence";
+import { conciseFeatureHandoff, reviewedFeatureOffer, requestsSafetyAssessment } from "./featurePresentation";
 import { loadFeatureIntelligenceRegistry } from "./featureIntelligenceRegistry";
 import {
   ChefFoodDeclarationsSchema, CHEF_FOOD_COMPATIBILITY_INSTRUCTIONS,
@@ -201,6 +202,7 @@ export async function runConciergeConversation(params: {
   let foodDeclarations: unknown;
   let purpose: string = "unavailable";
   let selectedField = "none";
+  let reviewedOffer: string | undefined;
   let metrics = responseFieldMetrics();
   let stage: "provider" | "parsing" | "decision" = "provider";
   let pendingDisposition: unknown;
@@ -222,7 +224,19 @@ export async function runConciergeConversation(params: {
     }
     if (foodCompatibilityRequired) {
       const check = inspectChefFoodDeclarations(foodDeclarations, selectedField, params.context);
-      if (check.status === "blocked" || check.status === "unavailable") {
+      const restaurant = selectedField === "message" ? verifiedRestaurantClarification(params.userMessage) : undefined;
+      if (restaurant && check.status === "screened") {
+        response = envelope(restaurant);
+        selectedField = "verified_restaurant_clarification";
+      } else if (reviewedOffer && check.status !== "blocked" && response.presentation) {
+        // The original model declaration was inspected above. Discard ALL model
+        // prose, including any food proposals, rather than hiding its warnings.
+        // Only a validated feature-help offer can acquire this reviewed text;
+        // nutrition guidance, explicit safety questions and care cannot.
+        response = { ...response, presentation: { ...response.presentation, message: reviewedOffer },
+          whatIFound: reviewedOffer };
+        selectedField = "verified_feature_offer";
+      } else if (check.status === "blocked" || check.status === "unavailable") {
         // Replace the whole selected reply. Do not expose a rejected proposal
         // in another display field or retain its action/creator handoff.
         const clarification = selectedField === "message"
@@ -235,7 +249,8 @@ export async function runConciergeConversation(params: {
         const message = `${response.presentation.message}\n\n${chefFoodCheckNotice(check)}`;
         response = { ...response, presentation: { ...response.presentation, message }, whatIFound: message };
       }
-      if (check.status !== "not_applicable" && selectedField !== "verified_restaurant_clarification") {
+      if (check.status !== "not_applicable" && selectedField !== "verified_restaurant_clarification" &&
+        selectedField !== "verified_feature_offer") {
         response.foodCompatibility = check;
       }
     }
@@ -348,7 +363,7 @@ export async function runConciergeConversation(params: {
       };
       turn.memberNeed = "navigation";
       turn.responsePurpose = "handoff";
-      turn.handoffMessage = verifiedNavigationText(namedRequest);
+      turn.handoffMessage = conciseFeatureHandoff(namedRequest);
     }
     const acceptedStoredOffer = developmentPurpose && !namedRequest && params.pendingRecommendation &&
       params.pendingRecommendation.state === "recommendation_pending" &&
@@ -360,7 +375,7 @@ export async function runConciergeConversation(params: {
         destinationId: params.pendingRecommendation.destinationId, goal: params.pendingRecommendation.goal };
       turn.memberNeed = "navigation";
       turn.responsePurpose = "handoff";
-      turn.handoffMessage = verifiedNavigationText(params.pendingRecommendation.destinationId);
+      turn.handoffMessage = conciseFeatureHandoff(params.pendingRecommendation.destinationId);
     }
     // The input emergency gate runs first in the engine, and model-detected
     // care above still wins. Do not add calls or let a closing phrase hide care.
@@ -515,6 +530,11 @@ export async function runConciergeConversation(params: {
         offeredAt: new Date().toISOString(),
       };
       selectedField = developmentPurpose || !recommendation.dedicated ? "message" : "recommendationMessage";
+      if (developmentPurpose && turn.memberNeed === "feature_help" &&
+        ["feature_only_offer", "answer_with_offer"].includes(String(turn.responsePurpose)) &&
+        !requestsSafetyAssessment(params.userMessage)) {
+        reviewedOffer = reviewedFeatureOffer(destinationId);
+      }
       diagnostic("recommendation_pending");
       return finish(response);
     }
@@ -534,7 +554,7 @@ export async function runConciergeConversation(params: {
     };
     const destination = COACH_DESTINATIONS[destinationId];
     const includeStartingSteps = !/\b(?:skip|without|no)\b[^.!?]{0,30}\binstructions\b/iu.test(params.userMessage);
-    const handoff = developmentPurpose ? verifiedNavigationText(destinationId, includeStartingSteps) : handoffText(turn.handoffMessage) ?? (confirmed
+    const handoff = developmentPurpose ? (includeStartingSteps ? conciseFeatureHandoff(destinationId) : verifiedNavigationText(destinationId, false)) : handoffText(turn.handoffMessage) ?? (confirmed
       ? FEATURE_USAGE_KNOWLEDGE[destinationId]?.descriptionInput ?? handoffText(turn.message) ??
         `Use the Open ${"navigationLabel" in destination ? destination.navigationLabel : destination.label} button.`
       : undefined);

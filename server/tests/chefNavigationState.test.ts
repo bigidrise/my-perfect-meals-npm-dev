@@ -20,7 +20,7 @@ import { getCornerCapabilities } from "../services/coaching/capabilityRegistry";
 import { loadPendingRecommendation } from "../services/coaching/conciergeNavigationState";
 import CoachBubble from "../../client/src/components/coaching/CoachBubble";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
-import { verifiedNavigationText } from "../../shared/coaching/navigationGuidance";
+import { conciseFeatureHandoff as verifiedNavigationText } from "../services/coaching/featurePresentation";
 import { FEATURE_USAGE_KNOWLEDGE } from "../services/coaching/featureUsageKnowledge";
 import { mentionsCoachDestination } from "../../shared/coaching/navigation";
 import { PENDING_NAVIGATION_TTL_MS } from "../services/coaching/conciergeNavigationContinuity";
@@ -716,7 +716,7 @@ test("a confirmed destination without reviewed control guidance uses only its ex
     handoffMessage: null, message: ":)", conversationMessage: null });
   const result = await run("yes");
   expect(result.presentation?.destinationId).toBe("sushi_creator");
-  expect(result.presentation?.message).toBe("Use the Open Sushi Creator button.");
+  expect(result.presentation?.message).toBe("Select Open Sushi Creator below.");
   expect(html(result).match(/<button/g)).toHaveLength(1);
 });
 

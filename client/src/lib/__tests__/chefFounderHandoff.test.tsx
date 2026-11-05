@@ -24,8 +24,8 @@ test.each(ids)("the real bubble renders and click-authorizes the %s handoff", as
     const route = chefNavigationRoute(destinationId);
     const destination = COACH_DESTINATIONS[destinationId];
     const label = "navigationLabel" in destination ? destination.navigationLabel : destination.label;
-    act(() => root.render(<CoachBubble enableConcierge structured={{
-      presentation: { kind: "concierge", message: "Use the approved action below.", destinationId,
+    act(() => root.render(<CoachBubble enableConcierge emphasizeFeatureNames structured={{
+      presentation: { kind: "concierge", message: `Use ${destination.label}.`, destinationId,
         navigation: { state: "navigation_confirmed", destinationId,
           goal: { activity: "unknown", occasion: "unknown", restaurant: "unknown",
             specialty: "none", dishChosen: false, explicitFeatureId: destinationId } } },
@@ -34,6 +34,7 @@ test.each(ids)("the real bubble renders and click-authorizes the %s handoff", as
         items: [{ kind: "use_feature", horizon: "today", text: "Open the recommended feature", destinationId }] },
     }} />));
     const buttons = [...host.querySelectorAll("button")].filter(button => button.textContent === `Open ${label}`);
+    expect([...host.querySelectorAll("strong")].map(node => node.textContent)).toContain(destination.label);
     expect(buttons).toHaveLength(1);
     expect(mockNavigate).not.toHaveBeenCalled();
     mockAPI.mockResolvedValueOnce({ destinationId, route });

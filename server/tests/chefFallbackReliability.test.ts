@@ -5,7 +5,7 @@ import { runConciergeConversation } from "../services/coaching/conciergeConversa
 import { fallbackQuality, selectRejectedConversation, HANDOFF_RECOVERY, MISSING_PENDING_RECOVERY } from "../services/coaching/conciergeFallback";
 import { inspectConversationPurpose } from "../services/coaching/conversationPurpose";
 import type { PendingRecommendation } from "../services/coaching/conciergeNavigationState";
-import { verifiedNavigationText } from "../../shared/coaching/navigationGuidance";
+import { conciseFeatureHandoff as verifiedNavigationText } from "../services/coaching/featurePresentation";
 
 const environment = process.env.NODE_ENV;
 beforeEach(() => { process.env.NODE_ENV = "development"; });
