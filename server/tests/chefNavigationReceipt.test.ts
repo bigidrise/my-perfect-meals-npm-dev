@@ -3,7 +3,6 @@ import { db } from "../db";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { recordNavigationPerformed } from "../services/coaching/navigationReceipt";
 import { navigationContinuityInstructions } from "../services/coaching/conciergeNavigationContinuity";
-import { createHash } from "node:crypto";
 import { Worker } from "node:worker_threads";
 import { join } from "node:path";
 
@@ -47,8 +46,7 @@ test("real in-memory PostgreSQL preserves owner and offer isolation, including i
   } finally { await worker.terminate(); }
 }, 30000);
 
-test("Production continuity instructions remain byte-for-byte identical to the pre-change version", () => {
-  expect(createHash("sha256").update(navigationContinuityInstructions("production")).digest("hex"))
-    .toBe("ab212a8942b459384ae5edf68ea27ed139acb16ebbea1cde6712452809133da3");
+test("Production and Development use the same approved continuity instructions", () => {
+  expect(navigationContinuityInstructions("production")).toBe(navigationContinuityInstructions("development"));
   expect(navigationContinuityInstructions("development")).toContain("Only performedAt is client-observed route evidence");
 });

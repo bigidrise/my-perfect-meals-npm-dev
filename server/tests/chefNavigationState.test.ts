@@ -38,7 +38,7 @@ const request = "I'm going on a Carnival cruise. Can you help me find somewhere 
 const invitation = "My Perfect Getaway can help explore your cruise dining options. Would you like to use it?";
 const guidance = "Great. Search your cruise or destination, then choose a dining area if prompted.";
 const handoffText = (id: string, legacy: string) =>
-  process.env.NODE_ENV === "development" ? verifiedNavigationText(id as keyof typeof COACH_DESTINATIONS) : legacy;
+  verifiedNavigationText(id as keyof typeof COACH_DESTINATIONS);
 let stored: any;
 let statements: string[];
 beforeEach(() => {
@@ -551,8 +551,7 @@ test.each(["development", "production"])(
         expect(html(response)).toContain("Open craving_creator");
         expect(stored.presentation.navigation.state).toBe("navigation_confirmed");
         const pending = await loadPendingRecommendation("owned-conversation", "member");
-        if (environment === "development") expect(pending).toMatchObject({ state: "navigation_confirmed" });
-        else expect(pending).toBeUndefined();
+        expect(pending).toMatchObject({ state: "navigation_confirmed" });
       }
       history.push({ role: "user", content: turn.input },
         { role: "assistant", content: response.presentation?.message ?? "" });

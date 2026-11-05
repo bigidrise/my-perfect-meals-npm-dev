@@ -7,6 +7,7 @@ import { responseFieldMetrics } from "../services/coaching/conversationPurpose";
 import { CONVERSATION_RECOVERY } from "../services/coaching/conciergeFallback";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
 import type { PendingRecommendation } from "../services/coaching/conciergeNavigationState";
+import { conciseFeatureHandoff } from "../services/coaching/featurePresentation";
 
 const environment = process.env.NODE_ENV;
 beforeEach(() => { process.env.NODE_ENV = "development"; });
@@ -123,15 +124,17 @@ describe("Development conversation purpose and canonical display", () => {
     expect(result.presentation?.navigation).toBeUndefined();
     expect(result.todayPlan.items).toEqual([]);
   });
-  it("retains an existing pending recommendation on missing purpose without granting a button", async () => {
+  it("a clear acceptance of stored state supplies missing model purpose and emits the button", async () => {
     const first = await reply({ ...offer, message: complete });
     const { result } = await reply({
       memberNeed: "navigation", responsePurpose: undefined, navigationIntent: "confirmed",
       message: "Describe your drink on the page.",
     }, { pending: first.result.presentation?.navigation, userMessage: "Yes." });
-    expect(result.presentation?.navigation).toEqual(first.result.presentation?.navigation);
-    expect(result.presentation?.destinationId).toBeUndefined();
-    expect(result.todayPlan.items).toEqual([]);
+    expect(result.presentation?.navigation).toMatchObject({
+      state: "navigation_confirmed", offeredAt: first.result.presentation?.navigation?.offeredAt,
+    });
+    expect(result.presentation?.destinationId).toBe("beverage_creator");
+    expect(result.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId: "beverage_creator" })]);
   });
   it.each(["answer", "clarify"])("rejects %s/action conflicts without creating pending navigation", async responsePurpose => {
     const clarification = "What has been easiest to tolerate?";
@@ -184,7 +187,7 @@ describe("Development conversation purpose and canonical display", () => {
       conciergeDecision: { ...action, goal: { ...goal, explicitFeatureId: "beverage_creator" } },
       message: text, handoffMessage: text,
     }, { userMessage: "Open Beverage Creator." });
-    expect(result.presentation?.message).toBe(text);
+    expect(result.presentation?.message).toBe(conciseFeatureHandoff("beverage_creator"));
     expect(result.presentation?.navigation?.state).toBe("direct_navigation");
     expect(result.presentation?.destinationId).toBe("beverage_creator");
   });
@@ -195,7 +198,7 @@ describe("Development conversation purpose and canonical display", () => {
       memberNeed: "navigation", responsePurpose: "handoff", navigationIntent: "confirmed",
       message: text, handoffMessage: text,
     }, { pending: first.result.presentation?.navigation, userMessage: "Yes, please." });
-    expect(result.presentation?.message).toBe(text);
+    expect(result.presentation?.message).toBe(conciseFeatureHandoff("beverage_creator"));
     expect(result.presentation?.navigation?.state).toBe("navigation_confirmed");
     expect(result.presentation?.destinationId).toBe("beverage_creator");
     expect(result.todayPlan.items).toHaveLength(1);
@@ -246,12 +249,12 @@ describe("Development conversation purpose and canonical display", () => {
     expect(fields.recommendationMessage).toEqual({ present: false, length: 0 });
     expect(JSON.stringify(fields)).not.toContain("xxx");
   });
-  it("preserves Production prompt, provider schema and field precedence", async () => {
+  it("Production uses the approved canonical message, prompt and purpose schema", async () => {
     process.env.NODE_ENV = "production";
     const { result, request } = await reply({ ...offer, message: complete, recommendationMessage: pitch });
-    expect(result.presentation?.message).toBe(pitch);
-    expect(request.messages[0].content).toContain(CHEF_CONVERSATION_INSTRUCTIONS);
-    expect(request.response_format.json_schema.schema.properties).not.toHaveProperty("responsePurpose");
-    expect(getChefConversationInstructions("production")).toBe(CHEF_CONVERSATION_INSTRUCTIONS);
+    expect(result.presentation?.message).toBe(complete);
+    expect(request.messages[0].content).toContain(getChefConversationInstructions("production"));
+    expect(request.response_format.json_schema.schema.properties).toHaveProperty("responsePurpose");
+    expect(getChefConversationInstructions("production")).toBe(getChefConversationInstructions("development"));
   });
 });

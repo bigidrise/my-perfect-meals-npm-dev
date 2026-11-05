@@ -302,11 +302,10 @@ async function persistTurn(
   `);
   const userMessageId = userMsg.rows[0].id;
 
-  // Development-only correction: care guidance is rendered from contact_care,
+  // Care guidance is rendered from contact_care,
   // not the blank legacy fields. Persist the same complete wording for history
-  // without duplicating it in the visible response or changing Production.
-  const careHistory = process.env.NODE_ENV === "development" &&
-    response.meta.specialization === "corner"
+  // without duplicating it in the visible response.
+  const careHistory = response.meta.specialization === "corner"
     ? response.todayPlan.items.filter(item => item.kind === "contact_care")
       .map(item => item.text).filter(text => text.trim()).join("\n\n")
     : "";
@@ -1552,7 +1551,7 @@ export class CoachingEngine {
         context, tools: [...adapter.availableTools],
         knowledgeAccess,
         featureScreenContext: request.featureScreenContext,
-        pendingRecommendation: isConfirmableNavigation(recentConciergeState.navigation, process.env.NODE_ENV === "development")
+        pendingRecommendation: isConfirmableNavigation(recentConciergeState.navigation)
           ? recentConciergeState.navigation : undefined,
         navigationContext: recentConciergeState.navigation,
         featureChoice: recentConciergeState.featureChoice,

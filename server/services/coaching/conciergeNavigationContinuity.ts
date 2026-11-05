@@ -3,10 +3,9 @@ import type { ConciergePresentation } from "../../../shared/coaching/types";
 
 type PendingNavigation = NonNullable<ConciergePresentation["navigation"]>;
 export function isConfirmableNavigation(
-  navigation: PendingNavigation | undefined, development: boolean,
+  navigation: PendingNavigation | undefined,
 ): navigation is PendingNavigation {
-  return !!navigation && !navigation.performedAt && pendingNavigationIsFresh(navigation.offeredAt) &&
-    (navigation.state === "recommendation_pending" || development);
+  return !!navigation && !navigation.performedAt && pendingNavigationIsFresh(navigation.offeredAt);
 }
 export const PendingNavigationDispositionSchema = z.enum(["preserve", "clear"]);
 export const PENDING_NAVIGATION_TTL_MS = 30 * 60 * 1000;
@@ -37,11 +36,7 @@ export const NAVIGATION_CONTINUITY_INSTRUCTIONS = [
   "EXPLICIT CUSTOMER SELECTION: A customer naming an offered feature as their choice (for example, 'My perfect menu would be great. I don't know what I want, so I want you to choose for me.' or 'I already said I wanted my perfect menu. I said menu.') has selected that destination, not requested another recommendation. Use direct_request with its explicitFeatureId, responsePurpose=handoff, memberNeed=navigation and the authorized action. Do not ask permission again. A bare 'yes', 'sure' or 'open it' accepts only a valid server-supplied pendingRecommendation, using its destination and goal, not an older suggestion or a new destination. Without a valid pending offer or a clear feature selection, clarify rather than inventing consent. 'I want to plan meals for the week' alone does not choose between planning workflows.",
 ].join("\n");
 
-/** Keep the already-released Production prompt byte-for-byte unchanged. */
-export function navigationContinuityInstructions(environment: string | undefined): string {
-  if (environment === "development") return NAVIGATION_CONTINUITY_INSTRUCTIONS;
-  return [
-    "NAVIGATION CONTINUITY: Interpret the latest member message using recent history and server-supplied pendingRecommendation/recentNavigationContext, not isolated keywords. A completed recent navigation is context, not an unaccepted offer: bare yes cannot confirm it again. A natural locating/opening reference to that same recent destination can use direct_request with its ready goal.",
-    ...NAVIGATION_CONTINUITY_INSTRUCTIONS.split("\n").slice(2),
-  ].join("\n");
+/** Approved conversation behavior is independent of the workspace environment. */
+export function navigationContinuityInstructions(_environment?: string): string {
+  return NAVIGATION_CONTINUITY_INSTRUCTIONS;
 }

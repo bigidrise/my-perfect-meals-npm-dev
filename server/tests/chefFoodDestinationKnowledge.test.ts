@@ -12,6 +12,7 @@ import { PLATFORM_HELP_KNOWLEDGE } from "../services/coaching/platformHelpKnowle
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
 import type { ConciergeGoal } from "../../shared/coaching/schemas";
 import type { PendingRecommendation } from "../services/coaching/conciergeNavigationState";
+import { conciseFeatureHandoff } from "../services/coaching/featurePresentation";
 
 const environment = process.env.NODE_ENV;
 beforeEach(() => { process.env.NODE_ENV = "development"; });
@@ -51,9 +52,9 @@ async function reply(userMessage: string, message: string, extra: Record<string,
 }
 
 describe("Development food destination knowledge", () => {
-  it("keeps source-reviewed suitability Development-only without changing approved routes, access or Production labels", () => {
-    expect(getFeatureUsageKnowledge("production")).toBe(FEATURE_USAGE_KNOWLEDGE);
-    expect(getChefConversationInstructions("production")).toBe(CHEF_CONVERSATION_INSTRUCTIONS);
+  it("uses approved suitability and labels in both runtimes without changing routes or access", () => {
+    expect(getFeatureUsageKnowledge("production")).toEqual(getFeatureUsageKnowledge("development"));
+    expect(getChefConversationInstructions("production")).toBe(getChefConversationInstructions("development"));
     for (const id of ["create_a_dish", "grocery_create_meal", "grocery_find_product"] as const) {
       const usage = getFeatureUsageKnowledge("development")[id]!;
       expect(usage.suitability).toEqual(expect.objectContaining({
@@ -66,8 +67,8 @@ describe("Development food destination knowledge", () => {
       const dev = getCornerCapabilities(["all"], "development").find(cap => cap.id === id)!;
       const production = getCornerCapabilities(["all"], "production").find(cap => cap.id === id)!;
       expect(dev.route).toBe(production.route);
-      expect(production.label).toBe(COACH_DESTINATIONS[id].label);
-      expect(production.description).not.toContain("Suitability and timing:");
+      expect(production.label).toBe(dev.label);
+      expect(production.description).toBe(dev.description);
     }
     expect(COACH_DESTINATIONS.grocery_create_meal.route).toBe("/shopping-list-v2");
     expect(COACH_DESTINATIONS.grocery_find_product.route).toBe("/shopping-list-v2");
@@ -137,10 +138,10 @@ describe("Development food destination knowledge", () => {
       handoffMessage: message,
       conciergeDecision: action("create_a_dish", { ...preparation, explicitFeatureId: "create_a_dish" }),
     });
-    // An open-only request contains no grounded dish idea to transfer. The
-    // existing honest transfer notice may accompany the handoff, not permission.
-    expect(result.presentation?.message).toContain(message);
-    expect(result.presentation?.message).toContain("I couldn't verify the request text for transfer");
+    // An open-only request transfers nothing and uses reviewed directions,
+    // without an irrelevant missing-transfer warning.
+    expect(result.presentation?.message).toBe(conciseFeatureHandoff("create_a_dish"));
+    expect(result.presentation?.creatorRequest).toBeUndefined();
     expect(result.presentation?.message).not.toMatch(/would you like|want to open/i);
     expect(result.presentation?.navigation?.state).toBe("direct_navigation");
     expect(result.presentation?.destinationId).toBe("create_a_dish");
@@ -158,7 +159,7 @@ describe("Development food destination knowledge", () => {
     }, { pending: first.result.presentation!.navigation!, history: [
       { role: "user", content: "I'm planning what groceries to buy for soup." }, { role: "assistant", content: offer },
     ] });
-    expect(result.presentation?.message).toBe(message);
+    expect(result.presentation?.message).toBe(conciseFeatureHandoff("grocery_create_meal"));
     expect(result.presentation?.navigation?.state).toBe("navigation_confirmed");
     expect(result.presentation?.destinationId).toBe("grocery_create_meal");
     expect(COACH_DESTINATIONS.grocery_create_meal.route).toBe("/shopping-list-v2");

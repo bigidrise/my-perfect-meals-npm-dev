@@ -34,7 +34,7 @@ export async function loadRecentConciergeState(
     `);
     const presentation = result.rows[0]?.structured_payload?.presentation;
     const choice = StoredFeatureChoice.safeParse(presentation?.featureChoice);
-    const featureChoice = process.env.NODE_ENV === "development" && choice.success &&
+    const featureChoice = choice.success &&
       pendingNavigationIsFresh(choice.data.offeredAt) ? choice.data : undefined;
     const parsed = StoredNavigation.safeParse(presentation?.navigation);
     if (!parsed.success) return { featureChoice };
@@ -60,5 +60,5 @@ export async function loadPendingRecommendation(
   conversationId: string, ownerId: string,
 ): Promise<PendingRecommendation | undefined> {
   const recent = await loadRecentNavigation(conversationId, ownerId);
-  return isConfirmableNavigation(recent, process.env.NODE_ENV === "development") ? recent : undefined;
+  return isConfirmableNavigation(recent) ? recent : undefined;
 }

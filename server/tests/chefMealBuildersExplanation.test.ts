@@ -117,8 +117,8 @@ test("non-platform food replies still fail closed when evidence is unavailable",
   expect(response.foodCompatibility?.status).toBe("unavailable");
 });
 
-test("Production retains its existing explanation handling", async () => {
+test("Production uses the same reviewed Meal Builders explanation", async () => {
   process.env.NODE_ENV = "production";
   const response = await run({ message: useful, conversationMessage: null });
-  expect(response.presentation?.message).toBe(useful);
+  expect(response.presentation?.message).toBe(verifiedMealBuildersExplanation("How do I use Meal Builders?"));
 });

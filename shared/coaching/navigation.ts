@@ -46,11 +46,8 @@ export function mentionsCoachDestination(
   }
   const destination = COACH_DESTINATIONS[id];
   const names = id === "grocery_create_meal"
-    ? environment === "development"
-      // These are feature names, not meal-creation verbs. Interpretation of
-      // shopping intent and acceptance of a pending offer remain server-owned.
-      ? [COACH_DESTINATIONS[id].label, COACH_DESTINATIONS[id].navigationLabel, "Grocery Coach"]
-      : [COACH_DESTINATIONS[id].label, "Create a Meal", "Build a Meal"]
+    // Feature names are evidence; generic meal-creation verbs are not consent.
+    ? [COACH_DESTINATIONS[id].label, COACH_DESTINATIONS[id].navigationLabel, "Grocery Coach"]
     : [destination.label, ...("aliases" in destination ? destination.aliases : [])];
   return names.some(name => message.toLocaleLowerCase().includes(name.toLocaleLowerCase()));
 }

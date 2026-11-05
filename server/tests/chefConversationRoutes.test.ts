@@ -111,12 +111,12 @@ test("anonymous clear never touches the database", async () => {
   expect(db.execute).not.toHaveBeenCalled();
 });
 
-test("Production keeps the existing single-conversation clear", async () => {
+test("Production uses the same transactional, owner-scoped conversation clear", async () => {
   process.env.NODE_ENV = "production";
   (db.execute as jest.Mock).mockResolvedValueOnce({ rows: [clearRow] });
   expect((await clearRequest()).status).toBe(200);
-  expect(db.transaction).not.toHaveBeenCalled();
-  expect(db.execute).toHaveBeenCalledTimes(5);
+  expect(db.transaction).toHaveBeenCalledTimes(1);
+  expect(db.execute).toHaveBeenCalledTimes(6);
 });
 test.each([
   ["development", "new-member"], ["development", "existing-member"],
@@ -198,23 +198,24 @@ test.each([401, 403, 500])("a Development engine failure %s releases the member'
     expect((await postTurn("synthetic-member")).status).toBe(200);
   } finally { errors.mockRestore(); }
 });
-test("Production ignores the new correlation field and retains concurrent endpoint behavior", async () => {
+test("Production validates correlation and excludes overlapping turns just like Development", async () => {
   process.env.NODE_ENV = "production";
+  expect((await postTurn("synthetic-member", { clientTurnId: "invalid-field" })).status).toBe(400);
   let finish!: (value: any) => void;
   let started!: () => void;
   const entered = new Promise<void>(resolve => { started = resolve; });
   (engine.run as jest.Mock).mockImplementationOnce(() => {
     started(); return new Promise(resolve => { finish = resolve; });
   });
-  const first = postTurn("synthetic-member", { clientTurnId: "ignored-invalid-field" });
+  const first = postTurn("synthetic-member");
   await entered;
   const second = await postTurn("synthetic-member");
-  expect(second.status).toBe(200);
-  expect((await second.json()).clientTurnId).toBeUndefined();
+  expect(second.status).toBe(409);
+  expect((await second.json()).code).toBe("CHEF_TURN_IN_PROGRESS");
   finish({ conversationId: "fixture-conversation", messageId: "fixture-message",
     whatIFound: "", whatItCouldMean: "", todayPlan: { items: [] } });
   expect((await first).status).toBe(200);
-  expect(engine.run).toHaveBeenCalledTimes(2);
+  expect(engine.run).toHaveBeenCalledTimes(1);
 });
 test("Production does not fall back to an intake for a newly eligible member", async () => {
   process.env.NODE_ENV = "production";

@@ -71,7 +71,7 @@ export function validateConciergeGoal(
   if (!parsed.success) return undefined;
   const decision = parsed.data;
   if (decision.mode !== "food_assistance") return decision;
-  // Development's single-call path must not lose a ready semantic goal merely
+  // The single-call path must not lose a ready semantic goal merely
   // because the model omitted its action ID. Reuse the existing readiness veto;
   // never interpret words, infer preparation, or pick among competing matches.
   if (!decision.destinationId && options.completeMissingDestination && decision.goal) {
@@ -87,10 +87,11 @@ export function validateConciergeGoal(
   // An earlier Grocery Coach request cannot turn a new generic meal request
   // into an explicit one. A server-loaded, accepted pending offer retains its
   // original name evidence; follow-up consent is not required to repeat it.
-  const requestEvidence = process.env.NODE_ENV === "development" && id === "grocery_create_meal" &&
+  const requestEvidence = id === "grocery_create_meal" &&
     !options.acceptedPendingRecommendation ? memberMessages.slice(-1) : memberMessages;
   const explicitlyRequested = goal?.explicitFeatureId === id && (
-    options.explicitNavigationDestination === id || requestEvidence.some(message =>
+    options.explicitNavigationDestination === id || options.acceptedPendingRecommendation ||
+    requestEvidence.some(message =>
       mentionsCoachDestination(message, id, process.env.NODE_ENV)));
   if (availableTools.some(tool => tool.id === id) && goal && (explicitlyRequested || goalFits(id, goal))) {
     return decision;

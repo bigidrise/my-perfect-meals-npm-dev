@@ -341,12 +341,11 @@ test("validated navigation still works through the active declaration gate witho
   expect(result.presentation?.message).toBe(conciseFeatureHandoff("my_perfect_menu"));
   expect(result.foodCompatibility).toBeUndefined();
 });
-test("Production retains its response schema and behavior even if given a Development flag", async () => {
+test("Production applies the same authorized food declaration contract and fails closed", async () => {
   process.env.NODE_ENV = "production";
   const { result, request } = await run("Existing released reply.", undefined);
-  expect(request.response_format.json_schema.schema.properties.foodDeclarations).toBeUndefined();
-  expect(request.messages[0].content).not.toContain("FOOD DECLARATIONS:");
-  expect(JSON.parse(request.messages[1].content).nutritionPriorityEducation).toBeUndefined();
-  expect(result.presentation?.message).toBe("Existing released reply.");
-  expect(result.foodCompatibility).toBeUndefined();
+  expect(request.response_format.json_schema.schema.properties.foodDeclarations).toBeDefined();
+  expect(request.messages[0].content).toContain("FOOD DECLARATIONS:");
+  expect(result.presentation?.message).not.toBe("Existing released reply.");
+  expect(result.foodCompatibility?.status).toBe("unavailable");
 });

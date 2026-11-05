@@ -358,7 +358,7 @@ export const CORNER_UNSUPPORTED_FEATURES = [
     description: "Sport-specific training context and nutrition setup, distinct from the approved Athlete Beverage Creator. No approved Chef hub navigation contract. Explain ordinary nutrition questions conversationally; do not substitute a drink creator for a performance plan." },
 ];
 
-/** Development-only concierge extension; other coaches and Production stay unchanged. */
+/** Approved Ask Chef extension; other coaching specializations stay unchanged. */
 export function getCornerCapabilities(activeScopes: CapabilityScope[], environment = process.env.NODE_ENV): MPMCapability[] {
   const existing = getCapabilitiesForUser(activeScopes, true);
   if (!isAskChefConversationEnabled(environment)) return existing;
@@ -388,7 +388,7 @@ export function getCornerCapabilities(activeScopes: CapabilityScope[], environme
     my_perfect_menu: "Start with meal ideas by category, retaining three choices until replaced; a selected idea is created by the member's effective builder/creator. Not an independent seven-day plan generator. Open only the existing Menu entry page; no Chef prefill, date/category/subject selection or automatic generation.",
     meal_builders: "Open the Meal Builders landing page so the member can review their existing builder choices, access rules and tutorials. Existing onboarding and builder-switch restrictions still apply. Never choose or activate a specialized builder, open a clinical hub directly, or overwrite the assigned builder.",
   };
-  if (environment === "development") {
+  {
     descriptions.meal_builders = "Open the Meal Builders landing page so the member can open their assigned builder, then choose a day and meal slot and use Create With Chef. Ordinary members generally have one assigned builder; administrators may have access to multiple builders. Do not imply free builder selection or infer administrator authority. Existing onboarding, assignment, access and clinical restrictions apply; never open a builder directly, activate a specialized builder or overwrite an assignment.";
     descriptions.craving_creator = "Prepare an immediate personal sweet or savory craving, including small dessert portions, often a smaller or individually portioned choice. Multiple recipe servings are supported; serving count alone never selects this feature. Use occasion=snack for this workflow. A full dessert fits Dessert Creator; a chosen family-dinner dish fits Create a Dish; the whole occasion fits My Perfect Gatherings. Sushi, beverages, restaurant visits and grocery shopping remain separate activities. Use context and reviewed suitability, not food keywords.";
     descriptions.grocery_create_meal = "Grocery Store Coach > Build a Meal helps plan a meal and the ingredients to purchase. Choose it for grocery-shopping meal help, including a named dish when shopping is the actual goal; a clear dish preparation request instead fits Create a Dish. Decide from the member's activity and history, never food keywords.";
@@ -420,7 +420,7 @@ export function getCornerCapabilities(activeScopes: CapabilityScope[], environme
   };
   const additions: MPMCapability[] = (Object.keys(COACH_DESTINATIONS) as CoachDestinationId[])
     .map(id => ({
-      id, label: environment === "development" && id === "grocery_create_meal"
+      id, label: id === "grocery_create_meal"
         ? "Grocery Store Coach — Build a Meal" : COACH_DESTINATIONS[id].label,
       route: COACH_DESTINATIONS[id].route,
       description: `${descriptions[id]}${usage[id]?.suitability

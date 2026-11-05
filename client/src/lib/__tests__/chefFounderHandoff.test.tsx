@@ -52,14 +52,16 @@ test.each(["performed", "denied", "not_observed", "mismatched_route", "receipt_f
   },
 );
 
-test.each(ids)("the real bubble renders and click-authorizes the %s handoff", async destinationId => {
+test.each(ids.flatMap(id => [true, false].map(emphasis => [id, emphasis] as const)))(
+  "the real bubble renders and click-authorizes %s with emphasis=%s", async (destinationId, emphasis) => {
   const host = document.createElement("div"); document.body.append(host);
   const root = createRoot(host);
   try {
     const route = chefNavigationRoute(destinationId);
     const destination = COACH_DESTINATIONS[destinationId];
     const label = "navigationLabel" in destination ? destination.navigationLabel : destination.label;
-    act(() => root.render(<CoachBubble enableConcierge emphasizeFeatureNames structured={{
+    mockNavigate.mockImplementation((next: string) => window.history.replaceState({}, "", next));
+    act(() => root.render(<CoachBubble enableConcierge emphasizeFeatureNames={emphasis} messageId="synthetic-message" structured={{
       presentation: { kind: "concierge", message: `Use ${destination.label}.`, destinationId,
         navigation: { state: "navigation_confirmed", destinationId,
           goal: { activity: "unknown", occasion: "unknown", restaurant: "unknown",
@@ -69,7 +71,8 @@ test.each(ids)("the real bubble renders and click-authorizes the %s handoff", as
         items: [{ kind: "use_feature", horizon: "today", text: "Open the recommended feature", destinationId }] },
     }} />));
     const buttons = [...host.querySelectorAll("button")].filter(button => button.textContent === `Open ${label}`);
-    expect([...host.querySelectorAll("strong")].map(node => node.textContent)).toContain(destination.label);
+    if (emphasis) expect([...host.querySelectorAll("strong")].map(node => node.textContent)).toContain(destination.label);
+    else expect(host.querySelectorAll("strong")).toHaveLength(0);
     expect(buttons).toHaveLength(1);
     expect(mockNavigate).not.toHaveBeenCalled();
     mockAPI.mockResolvedValueOnce({ destinationId, route });
@@ -77,5 +80,10 @@ test.each(ids)("the real bubble renders and click-authorizes the %s handoff", as
     expect(mockAPI).toHaveBeenCalledWith("/api/coach/navigation",
       expect.objectContaining({ method: "POST", body: JSON.stringify({ destinationId }) }));
     expect(mockNavigate).toHaveBeenCalledWith(route);
-  } finally { act(() => root.unmount()); host.remove(); }
+    expect(mockAPI).toHaveBeenCalledWith("/api/coach/navigation/performed",
+      expect.objectContaining({ body: JSON.stringify({ messageId: "synthetic-message", destinationId }) }));
+  } finally {
+    act(() => root.unmount()); host.remove();
+    window.history.replaceState({}, "", "/coach-corner/home");
+  }
 });

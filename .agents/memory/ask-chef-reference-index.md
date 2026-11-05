@@ -14,6 +14,7 @@ description: Roadmap requirements, navigation naming, response authority, and fo
 - [Macro evidence](ask-chef-macro-evidence-boundary.md) — stored comparisons and locked-day intake stay qualified; no resolver writes or inferred effective-target authority.
 - [Conversational Intelligence roadmap](../../docs/roadmap/ask-chef-conversational-intelligence.md) — education-to-coaching judgment, supplied-evidence limits, live-feedback interpretation and phase approval boundaries.
 - [Research release sequence](ask-chef-research-release-sequence.md) — finish navigation release first; controlled research needs separate Development approval and its own release.
+- [Runtime and visibility](ask-chef-runtime-and-visibility-policy.md) — approved behavior must work in both runtimes; visibility and founder release control are separate.
 
 ## Review scope naming
 

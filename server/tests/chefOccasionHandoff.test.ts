@@ -172,7 +172,7 @@ describe("Development occasion/serving intent and direct-to-feature contracts", 
     expect(care.result.presentation?.destinationId).toBeUndefined();
   });
 
-  it("delivers verified suitability and concise handoff instructions without changing Production or model settings", async () => {
+  it("delivers approved suitability in both runtimes without changing model settings", async () => {
     const { request, wire } = await turn("How do I choose the right tool?", "Your activity determines the useful feature.");
     for (const id of ["craving_creator", "dessert_creator", "my_perfect_gatherings", "sushi_creator",
       "restaurant_guide", "find_meals_near_me"] as const) {
@@ -193,9 +193,9 @@ describe("Development occasion/serving intent and direct-to-feature contracts", 
       .toContain("single Thanksgiving");
     expect(request.messages[0].content).toContain("not a tutorial or an interview");
     expect(request.messages[0].content).toContain("do not invent a prefill");
-    expect(getFeatureUsageKnowledge("production")).toBe(FEATURE_USAGE_KNOWLEDGE);
-    expect(getChefConversationInstructions("production")).toBe(CHEF_CONVERSATION_INSTRUCTIONS);
-    expect(getPlatformGuidanceInstructions("production")).toBe(PLATFORM_GUIDANCE_INSTRUCTIONS);
+    expect(getFeatureUsageKnowledge("production")).toEqual(getFeatureUsageKnowledge("development"));
+    expect(getChefConversationInstructions("production")).toBe(getChefConversationInstructions("development"));
+    expect(getPlatformGuidanceInstructions("production")).toBe(getPlatformGuidanceInstructions("development"));
     expect(request.model).toBe("gpt-4o");
     expect(request.temperature).toBe(0.4);
     expect(request.max_tokens).toBe(2000);
@@ -280,7 +280,7 @@ describe("Development context versus immediate activity (mocked judgment)", () =
     },
   );
 
-  it("delivers verified travel/buffet boundaries without changing Production or approved access", async () => {
+  it("delivers the same verified travel/buffet boundaries without changing approved access", async () => {
     const { wire } = await turn("What tool should I use on a cruise?", "It depends on your immediate food activity.");
     for (const id of ["my_perfect_getaway", "my_perfect_buffet"] as const) {
       const usage = wire.platformKnowledge.featureUsage[id];
@@ -291,7 +291,7 @@ describe("Development context versus immediate activity (mocked judgment)", () =
     expect(wire.platformKnowledge.featureUsage.my_perfect_getaway.suitability.notFor.join(" "))
       .toContain("actual-food plate-selection");
     expect(wire.platformKnowledge.featureUsage.my_perfect_buffet.suitability.offerWhen).toContain("even when");
-    expect(getFeatureUsageKnowledge("production")).toBe(FEATURE_USAGE_KNOWLEDGE);
+    expect(getFeatureUsageKnowledge("production")).toEqual(getFeatureUsageKnowledge("development"));
     expect(COACH_DESTINATIONS.my_perfect_getaway).toMatchObject({
       label: "My Perfect Getaway", route: "/lifestyle/my-perfect-getaway", access: "clinical",
     });

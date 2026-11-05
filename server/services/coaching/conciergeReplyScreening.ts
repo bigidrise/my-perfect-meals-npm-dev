@@ -7,15 +7,9 @@ export type ReplyScreenReason = "accepted" | "missing" | "placeholder" | "featur
 type ScreenResult = { reason: ReplyScreenReason; text?: string };
 
 /** Output checks only. These never interpret member consent or authorize actions. */
-export function navigationPermissionQuestion(message: string, development = process.env.NODE_ENV === "development"): boolean {
+export function navigationPermissionQuestion(message: string, _legacyDevelopment?: boolean): boolean {
   const sentences = message.split(/[.!?？؟\n]/u);
   const permission = /^\s*(?:would you like|do you want|shall (?:I|we)|should (?:I|we)|may I|can I (?:help|assist)|ready to)\b/i;
-  if (!development) {
-    // Preserve the historical screen outside Development.
-    return sentences.some(sentence =>
-      !/\b(?:or|rather than|instead of)\b/i.test(sentence) && permission.test(sentence) &&
-      /\b(?:open|use|launch|proceed|continue|start|find|search|discover|explore|assist|help)\b/i.test(sentence));
-  }
   const namedFeature = Object.values(COACH_DESTINATIONS)
     .some(destination => message.toLocaleLowerCase().includes(destination.label.toLocaleLowerCase()));
   return sentences.some(sentence => {
@@ -41,14 +35,14 @@ export function navigationPermissionQuestion(message: string, development = proc
 
 export function screenIndependentConversation(message: string | null | undefined,
   allowedDestinationId?: CoachDestinationId, allowFeatureMentions = false,
-  environment: string | undefined = process.env.NODE_ENV): ScreenResult {
+  _environment?: string): ScreenResult {
   if (!message) return { reason: "missing" };
-  if (environment === "development") {
+  {
     const quality = fallbackQuality(message);
     if (quality === "malformed" || quality === "incomplete") return { reason: "placeholder" };
   }
   if (!/[\p{L}\p{N}]/u.test(message) ||
-    (environment === "development" && fallbackQuality(message) === "placeholder")) {
+    fallbackQuality(message) === "placeholder") {
     return { reason: "placeholder" };
   }
   const lower = message.toLocaleLowerCase();
@@ -71,27 +65,27 @@ export function screenIndependentConversation(message: string | null | undefined
 }
 
 export function screenOrdinaryConversation(message: string | null | undefined,
-  environment: string | undefined = process.env.NODE_ENV): ScreenResult {
-  if (message && navigationPermissionQuestion(message, environment === "development")) {
+  _environment?: string): ScreenResult {
+  if (message && navigationPermissionQuestion(message)) {
     return { reason: "permission_question" };
   }
-  if (environment === "development" && message && hasUnverifiedNavigationProse(message)) {
+  if (message && hasUnverifiedNavigationProse(message)) {
     return { reason: "navigation_language" };
   }
-  return screenIndependentConversation(message, undefined, true, environment);
+  return screenIndependentConversation(message, undefined, true);
 }
 
 export function screenConversationalContinuation(message: string | null | undefined, structuredOffer = false,
-  environment: string | undefined = process.env.NODE_ENV): ScreenResult {
-  if (environment === "development" && fallbackQuality(message) === "acknowledgment") {
+  _environment?: string): ScreenResult {
+  if (fallbackQuality(message) === "acknowledgment") {
     return { reason: "placeholder" };
   }
-  const result = screenIndependentConversation(message, undefined, true, environment);
+  const result = screenIndependentConversation(message, undefined, true);
   if (!result.text) return result;
-  if (!structuredOffer && navigationPermissionQuestion(result.text, environment === "development")) {
+  if (!structuredOffer && navigationPermissionQuestion(result.text)) {
     return { reason: "permission_question" };
   }
-  if (environment === "development" && hasUnverifiedNavigationProse(result.text)) {
+  if (hasUnverifiedNavigationProse(result.text)) {
     return { reason: "navigation_language" };
   }
   if (/\b(?:open|launch|navigate|click|tap|press|redirect|transfer|take you|taking you|send you|get you started|getting you started|button)\b/i.test(result.text)) {
