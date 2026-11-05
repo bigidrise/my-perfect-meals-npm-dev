@@ -32,6 +32,29 @@ explicitly. Synthetic live observations and deterministic tests establish
 different kinds of evidence; never present mocked tests as proof of natural
 conversation quality.
 
+An explicit named selection of Meal Builder or Meal Builders authorizes the
+normal validated handoff; generic meal-preparation language does not.
+
+**Why:** The user approved correcting repeated explanations and permission
+loops after the customer has already selected the workflow.
+
+**How to apply:** Distinguish advance planning, preparing a specific dish and
+shopping when intent is ambiguous. Do not ask another exploratory or permission
+question after a valid named selection. This does not authorize selecting a
+clinical builder or bypassing destination access.
+
+Relevant informational follow-ups may retain the same owner-scoped navigation
+state, but must not renew its original lifetime. Completed navigation is useful
+context, not a new unaccepted offer that a bare yes can confirm again.
+
+**Why:** The user requires continuity without letting stale offers authorize
+unrelated navigation. Text history alone cannot establish current permission.
+
+**How to apply:** Keep a bounded original offer age, clear state on rejection,
+topic/destination changes or incompatible safety, and use current structured
+state rather than searching older prose for consent. Missing or invalid
+continuity classifications fail closed.
+
 Ask Chef must not require repeated confirmation for the same destination.
 Feature-opening offers must carry a validated pending recommendation before display;
 acceptance of that recommendation must not depend on an optional model wording
