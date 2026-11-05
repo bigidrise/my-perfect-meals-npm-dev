@@ -385,7 +385,7 @@ export default function DiabeticHub() {
                 <div className="shrink-0">
                   <PillButton
                     onClick={() => setShowGlp1Companion(true)}
-                    variant="default"
+                    variant="emerald"
                   >
                     {t("diabeticHub.manageMetabolicMed")}
                   </PillButton>
