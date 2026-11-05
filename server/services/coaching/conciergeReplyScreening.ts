@@ -1,6 +1,6 @@
 import { COACH_DESTINATIONS, type CoachDestinationId } from "../../../shared/coaching/navigation";
 import { fallbackQuality } from "./conciergeFallback";
-import { hasUnverifiedNavigationProse } from "./verifiedNavigation";
+import { hasUnverifiedNavigationProse, namedNavigationDestinations } from "./verifiedNavigation";
 
 export type ReplyScreenReason = "accepted" | "missing" | "placeholder" | "feature_reference" |
   "route_reference" | "link" | "permission_question" | "navigation_language";
@@ -26,6 +26,10 @@ export function navigationPermissionQuestion(message: string, development = proc
     // "Help", "find" and "start" alone are normal coaching language. Require
     // an actual navigation operation/target, not merely a permission-shaped question.
     const opening = /\b(?:open|launch|navigate|redirect|route|go to|take you to|send you to)\b/i.test(sentence);
+    // Asking which of multiple named workflows fits is not permission to open
+    // any one of them. Explicit opening language is still rejected.
+    if (!opening && /\b(?:or|which)\b/iu.test(sentence) &&
+      namedNavigationDestinations(sentence).length >= 2) return false;
     const implicitOpening = /\b(?:open|launch)\s+(?:it|this|that)\s*(?:now|for you)?\s*$/i.test(sentence) ||
       /\b(?:navigate|redirect|route|take you|send you)\s+(?:there|back)\b/i.test(sentence);
     const referencedWorkflow = namedFeature &&
@@ -39,6 +43,10 @@ export function screenIndependentConversation(message: string | null | undefined
   allowedDestinationId?: CoachDestinationId, allowFeatureMentions = false,
   environment: string | undefined = process.env.NODE_ENV): ScreenResult {
   if (!message) return { reason: "missing" };
+  if (environment === "development") {
+    const quality = fallbackQuality(message);
+    if (quality === "malformed" || quality === "incomplete") return { reason: "placeholder" };
+  }
   if (!/[\p{L}\p{N}]/u.test(message) ||
     (environment === "development" && fallbackQuality(message) === "placeholder")) {
     return { reason: "placeholder" };
@@ -75,6 +83,9 @@ export function screenOrdinaryConversation(message: string | null | undefined,
 
 export function screenConversationalContinuation(message: string | null | undefined, structuredOffer = false,
   environment: string | undefined = process.env.NODE_ENV): ScreenResult {
+  if (environment === "development" && fallbackQuality(message) === "acknowledgment") {
+    return { reason: "placeholder" };
+  }
   const result = screenIndependentConversation(message, undefined, true, environment);
   if (!result.text) return result;
   if (!structuredOffer && navigationPermissionQuestion(result.text, environment === "development")) {

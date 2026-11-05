@@ -56,6 +56,15 @@ export function verifiedMealBuildersExplanation(message: string): string | undef
   return matches ? record.explanation : undefined;
 }
 
+/** Resolve an explicitly unspecified restaurant need to clarification, never a destination. */
+export function verifiedRestaurantClarification(message: string): string | undefined {
+  const text = message.trim().replace(/[.!?]+$/u, "").replace(/^please\s+/iu, "");
+  if (!/^(?:I (?:need|want|would like)|I'd like) to (?:eat out|(?:eat|dine) (?:at|in) (?:a )?restaurant)$/iu.test(text)) return undefined;
+  return `${COACH_DESTINATIONS.restaurant_guide.label} helps you choose food at a restaurant you've already selected. ` +
+    `${COACH_DESTINATIONS.find_meals_near_me.label} helps you find somewhere to eat. ` +
+    "Do you already have a restaurant and want help choosing food, or do you need help finding somewhere to eat?";
+}
+
 /** Model prose never supplies UI relationships. Ordinary food advice is not a
  * navigation instruction; require UI language or a named feature relationship.
  */

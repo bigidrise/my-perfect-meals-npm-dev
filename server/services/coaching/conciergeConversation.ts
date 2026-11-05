@@ -25,6 +25,7 @@ import {
   verifiedLocationAnswer, hasUnverifiedNavigationProse,
   knowledgeOnlyLocationAnswer,
   verifiedMealBuildersExplanation,
+  verifiedRestaurantClarification, namedNavigationDestinations,
 } from "./verifiedNavigation";
 import {
   NAVIGATION_CONTINUITY_INSTRUCTIONS, PendingNavigationDispositionSchema,
@@ -303,6 +304,17 @@ export async function runConciergeConversation(params: {
           ? [...new Set([turn.message, turn.contactCare].filter(Boolean))].join("\n\n")
           : turn.redFlagReason ?? turn.message ?? undefined,
       }) as CoachResponse);
+    }
+    const restaurantClarification = developmentPurpose ? verifiedRestaurantClarification(params.userMessage) : undefined;
+    if (restaurantClarification) {
+      const primary = ordinaryConversation(turn.message);
+      const names = primary ? namedNavigationDestinations(primary) : [];
+      // Preserve a complete model explanation if it is genuinely clarification.
+      // Otherwise use reviewed platform facts, not a fragment from another field.
+      const completePrimary = primary && names.includes("restaurant_guide") && names.includes("find_meals_near_me") &&
+        turn.responsePurpose === "clarify" && turn.navigationIntent === "none" && turn.conciergeDecision == null;
+      selectedField = completePrimary ? "message" : "verified_restaurant_clarification";
+      return finish(envelope(completePrimary ? primary : restaurantClarification));
     }
     // These reviewed UI facts contain no personalized food advice. Keep their
     // provenance separate from model fields/declarations, and grant no action.

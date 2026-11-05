@@ -51,7 +51,8 @@ test.each([undefined, null, ":)", closing])("education survives unusable inactiv
 });
 
 test("the exact observed generic closing is never a useful independent explanation", async () => {
-  expect(fallbackQuality(closing)).toBe("acknowledgment");
+  expect(fallbackQuality(closing)).toBe("malformed");
+  expect(fallbackQuality(closing.replace(/^:\s*/u, ""))).toBe("acknowledgment");
   const selection = selectRejectedConversation({ message: ":", conversationMessage: closing },
     text => screenConversationalContinuation(text).text);
   expect(selection.text).toBeUndefined();

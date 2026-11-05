@@ -42,3 +42,15 @@ could mistake an unused model field for the source of verified UI guidance.
 **How to apply:** Keep reviewed platform explanations distinct from model food
 declarations. Do not relax food checks for model content, manufacture an opening
 action for education, or treat a generic sign-off as a complete explanation.
+
+Choosing between multiple verified workflows is clarification, not permission to
+open one. An unspecified restaurant need must distinguish ordering at a chosen
+restaurant from finding somewhere to eat without selecting either destination.
+
+**Why:** The founder explicitly required both restaurant options after screening
+substituted an incomplete continuation referring to choices it did not present.
+
+**How to apply:** Validate each replacement as a whole, self-contained reply;
+alternatives in rejected fields or earlier history do not complete it. Preserve
+safe complete model clarification, but never strip unsafe clauses to rescue a
+fragment or let clarification manufacture navigation consent.
