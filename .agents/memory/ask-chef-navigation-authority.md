@@ -66,3 +66,21 @@ explicit My Perfect Menu selections and lost actions after valid confirmations.
 available tools, after care handling. Attribute reviewed navigation text to its
 renderer even when identical to a model field; value equality is not provenance
 and must not cause unrelated food-declaration failures.
+
+Offering an Open button is not completed navigation. A fresh, unperformed
+handoff remains actionable when the customer confirms again. A clear answer to
+the current two-feature choice is a final selection, not another permission
+step; an ambiguous yes must not select either alternative.
+
+**Why:** The founder reported Chef saying the customer had already accepted or
+been directed to Beverage Creator while the customer was still trying to open
+it. The lifecycle must distinguish discussion, recommendation, selection,
+action offered and navigation actually performed.
+
+**How to apply:** Bind consent to current server-owned state and its original
+age. Only client-observed routing is navigation evidence, not rendering,
+authorization success, model claims or conversational acknowledgment. Route
+evidence is not proof a destination task completed and grants no entitlement.
+Keep evidence owner-, conversation- and original-offer-scoped across preserved
+informational copies. Never recover consent from unrelated older prose. Already
+lost historical offer state needs a fresh explicit request, not guessed consent.

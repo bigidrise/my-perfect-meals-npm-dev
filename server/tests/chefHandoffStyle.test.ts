@@ -4,6 +4,7 @@ import { runConciergeConversation } from "../services/coaching/conciergeConversa
 import { CHEF_CONVERSATION_INSTRUCTIONS, getChefConversationInstructions } from "../services/coaching/conciergeInstructions";
 import { FEATURE_USAGE_KNOWLEDGE, getFeatureUsageKnowledge } from "../services/coaching/featureUsageKnowledge";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
+import { conciseFeatureHandoff } from "../services/coaching/featurePresentation";
 
 const environment = process.env.NODE_ENV;
 beforeEach(() => { process.env.NODE_ENV = "development"; });
@@ -76,6 +77,7 @@ describe.each(cases)("$id concise handoff", example => {
       rollingContext: null, context: {},
       pendingRecommendation: intent === "confirmed" ? {
         state: "recommendation_pending", destinationId: example.id, goal: example.goal as any,
+        offeredAt: new Date().toISOString(),
       } : undefined,
       tools: [{ id: example.id, label: COACH_DESTINATIONS[example.id].label, description: "Verified creator.",
         featureTarget: example.id, scope: "adult" }],
@@ -85,8 +87,8 @@ describe.each(cases)("$id concise handoff", example => {
     expect(call.messages[0].content).toContain(getChefConversationInstructions("development"));
     const wire = JSON.parse(call.messages[1].content);
     expect(wire.platformKnowledge.featureUsage[example.id]).toEqual(getFeatureUsageKnowledge("development")[example.id]);
-    expect(result.presentation?.message).toBe(example.text);
-    expect(result.whatIFound).toBe(example.text);
+    expect(result.presentation?.message).toBe(conciseFeatureHandoff(example.id));
+    expect(result.whatIFound).toBe(conciseFeatureHandoff(example.id));
     expect(result.presentation?.navigation?.state).toBe(intent === "confirmed" ? "navigation_confirmed" : "direct_navigation");
     expect(result.presentation?.destinationId).toBe(example.id);
     expect(result.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId: example.id })]);

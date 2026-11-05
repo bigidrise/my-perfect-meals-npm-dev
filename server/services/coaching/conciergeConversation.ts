@@ -29,9 +29,11 @@ import {
   explicitCustomerSelection, acceptsPendingFeature,
 } from "./verifiedNavigation";
 import {
-  NAVIGATION_CONTINUITY_INSTRUCTIONS, PendingNavigationDispositionSchema,
+  navigationContinuityInstructions, PendingNavigationDispositionSchema,
   pendingNavigationIsFresh, retainInformationalOffer,
+  isConfirmableNavigation,
 } from "./conciergeNavigationContinuity";
+import { DESSERT_CHOICE_QUESTION, isDessertChoiceQuestion, selectedFeatureChoice, type FeatureChoice } from "./featureChoice";
 import type { ChefKnowledgeAccess } from "./platformKnowledgeAccess";
 import { FEATURE_USAGE_KNOWLEDGE } from "./featureUsageKnowledge";
 import { explainFeatureQuestion, featureIntelligenceEnabled, projectFeatureKnowledge, safeScreenContext,
@@ -141,6 +143,7 @@ export async function runConciergeConversation(params: {
   preferredLanguage?: string;
   pendingRecommendation?: PendingRecommendation;
   navigationContext?: PendingRecommendation;
+  featureChoice?: FeatureChoice;
   knowledgeAccess?: ChefKnowledgeAccess;
   featureScreenContext?: FeatureScreenContext;
   requestId?: string;
@@ -171,6 +174,10 @@ export async function runConciergeConversation(params: {
   }
   const memberMessages = [...params.history.filter(m => m.role === "user").map(m => m.content), params.userMessage];
   const developmentPurpose = process.env.NODE_ENV === "development";
+  if (developmentPurpose && params.pendingRecommendation &&
+    !isConfirmableNavigation(params.pendingRecommendation, true)) {
+    params = { ...params, pendingRecommendation: undefined };
+  }
   // Only correlation IDs in the existing UUID format are safe for logs.
   const correlation = /^[a-f0-9-]{36}$/i.test(params.requestId ?? "") ? ` request_id=${params.requestId}` : "";
   if (developmentPurpose) {
@@ -279,7 +286,7 @@ export async function runConciergeConversation(params: {
           instructions,
           getLanguageInstruction(params.preferredLanguage),
           platformInstructions,
-          NAVIGATION_CONTINUITY_INSTRUCTIONS,
+          navigationContinuityInstructions(process.env.NODE_ENV),
           foodInstructions,
         ].filter(Boolean).join("\n") },
         { role: "user", content: JSON.stringify({
@@ -294,6 +301,7 @@ export async function runConciergeConversation(params: {
           earlierConversation: params.rollingContext,
           pendingRecommendation: params.pendingRecommendation ?? null,
           recentNavigationContext: params.navigationContext ?? null,
+          ...(developmentPurpose ? { currentFeatureChoice: params.featureChoice ?? null } : {}),
           history: params.history,
           latestMemberMessage: params.userMessage,
           memberStatements: memberMessages.map((text, index) => ({ index, text })),
@@ -354,8 +362,9 @@ export async function runConciergeConversation(params: {
       selectedField = "verified_knowledge_only_guidance";
       return finish(envelope(knowledgeOnlyRequest));
     }
+    const selectedChoice = developmentPurpose ? selectedFeatureChoice(params.userMessage, params.featureChoice) : undefined;
     const namedRequest = developmentPurpose
-      ? explicitNavigationRequest(params.userMessage) ?? explicitCustomerSelection(params.userMessage) : undefined;
+      ? explicitNavigationRequest(params.userMessage) ?? explicitCustomerSelection(params.userMessage) ?? selectedChoice : undefined;
     if (namedRequest && params.tools.some(tool => tool.id === namedRequest)) {
       turn.navigationIntent = "direct_request";
       turn.conciergeDecision = {
@@ -366,7 +375,7 @@ export async function runConciergeConversation(params: {
       turn.handoffMessage = conciseFeatureHandoff(namedRequest);
     }
     const acceptedStoredOffer = developmentPurpose && !namedRequest && params.pendingRecommendation &&
-      params.pendingRecommendation.state === "recommendation_pending" &&
+      isConfirmableNavigation(params.pendingRecommendation, true) &&
       acceptsPendingFeature(params.userMessage);
     if (acceptedStoredOffer && params.pendingRecommendation) {
       // Consent binds only the stored offer, never a new model-selected target.
@@ -376,6 +385,29 @@ export async function runConciergeConversation(params: {
       turn.memberNeed = "navigation";
       turn.responsePurpose = "handoff";
       turn.handoffMessage = conciseFeatureHandoff(params.pendingRecommendation.destinationId);
+    }
+    // Choice questions carry reviewed server state, not a recommendation to
+    // either tool. A whole affirmative cannot choose between two alternatives.
+    const freshChoice = params.featureChoice && pendingNavigationIsFresh(params.featureChoice.offeredAt);
+    if (developmentPurpose && !namedRequest && !acceptedStoredOffer &&
+      !isUnambiguousChefClosing(params.userMessage) &&
+      !requestsSafetyAssessment(params.userMessage) &&
+      ((freshChoice && acceptsPendingFeature(params.userMessage)) ||
+        (turn.responsePurpose === "clarify" && turn.navigationIntent === "none" &&
+          isDessertChoiceQuestion(turn.message)))) {
+      const originalCheck = foodCompatibilityRequired
+        ? inspectChefFoodDeclarations(foodDeclarations, "message", params.context) : undefined;
+      if (originalCheck?.status === "blocked") {
+        selectedField = "message";
+        return finish(envelope(chefFoodCheckNotice(originalCheck)));
+      }
+      const response = envelope(DESSERT_CHOICE_QUESTION);
+      response.presentation!.featureChoice = freshChoice ? params.featureChoice :
+        { kind: "dessert_size", offeredAt: new Date().toISOString() };
+      selectedField = "verified_feature_choice";
+      // Reviewed platform choices contain no model food proposals.
+      diagnostic("feature_choice_pending");
+      return response;
     }
     // The input emergency gate runs first in the engine, and model-detected
     // care above still wins. Do not add calls or let a closing phrase hide care.
@@ -573,7 +605,8 @@ export async function runConciergeConversation(params: {
     const response = envelope(message, destinationId, request);
     response.presentation!.navigation = {
       state: confirmed ? "navigation_confirmed" : "direct_navigation", destinationId, goal: decision.goal,
-      offeredAt: new Date().toISOString(),
+      offeredAt: developmentPurpose && confirmed && acceptingPending
+        ? acceptingPending.offeredAt ?? new Date().toISOString() : new Date().toISOString(),
     };
     // Provenance follows the renderer, not string equality with a model field.
     selectedField = developmentPurpose ? "verified_handoff_recovery"

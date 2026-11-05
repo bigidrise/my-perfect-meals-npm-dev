@@ -164,10 +164,98 @@ test("expired or future-dated original offers cannot be revived by fresh informa
 
 test("bare yes cannot confirm an already completed navigation", async () => {
   builderTurn("direct_request", "Use the Open Meal Builders button.");
-  await run("Meal builder");
+  const first = await run("Meal builder");
+  expect(first.presentation?.destinationId).toBe("meal_builders");
+  stored.presentation.navigation.performedAt = new Date().toISOString();
   builderTurn("confirmed", "Use the Open Meal Builders button.");
   expect((await run("Yes")).todayPlan.items).toEqual([]);
 });
+
+test.each(["yes", "sure", "okay", "let's do it", "open it"])(
+  "founder protein-shake failure: %s recovers the still-unperformed action", async affirmative => {
+    model({ navigationIntent: "recommendation", message: "Use Beverage Creator. Would you like me to open Beverage Creator?",
+      conciergeDecision: { mode: "food_assistance", destinationId: "beverage_creator",
+        goal: { ...unknown, activity: "prepare", occasion: "beverage" } } });
+    await run("I want to make a protein shake.");
+    // First consent emits a button; a second consent must not lose it.
+    model({ navigationIntent: "none", conciergeDecision: null,
+      message: "You've already been directed to the Beverage Creator..." });
+    const offered = await run(affirmative);
+    expect(offered.presentation?.destinationId).toBe("beverage_creator");
+    const offeredAt = offered.presentation!.navigation!.offeredAt;
+    expect(offered.presentation!.navigation!.performedAt).toBeUndefined();
+    model({ navigationIntent: "none", conciergeDecision: null,
+      message: "It seems like you previously wanted to make a protein shake and you had accepted the navigation." });
+    const repeated = await run("yes");
+    expect(repeated.presentation?.navigation).toMatchObject({
+      destinationId: "beverage_creator", state: "navigation_confirmed", offeredAt,
+    });
+    expect(repeated.todayPlan.items).toEqual([expect.objectContaining({ destinationId: "beverage_creator" })]);
+    expect(repeated.presentation?.message).toBe(verifiedNavigationText("beverage_creator"));
+    expect(repeated.presentation?.message).not.toMatch(/already|accepted|previously|[?]/iu);
+    expect(html(repeated).match(/<button/g)).toHaveLength(1);
+    // Only an actual client route receipt consumes it.
+    stored.presentation.navigation.performedAt = new Date().toISOString();
+    model({ navigationIntent: "none", conciergeDecision: null, message: "What would you like help with?" });
+    expect((await run("yes")).todayPlan.items).toEqual([]);
+  },
+);
+
+async function dessertChoice() {
+  model({ message: "A small treat or a full dessert?", navigationIntent: "none",
+    responsePurpose: "clarify", memberNeed: "unclear", conciergeDecision: null });
+  const choice = await run("I want something sweet.");
+  expect(choice.presentation?.featureChoice?.kind).toBe("dessert_size");
+  expect(choice.todayPlan.items).toEqual([]);
+  expect(html(choice)).not.toContain("<button");
+  return choice;
+}
+
+test.each([["A whole pie.", "dessert_creator"], ["A small treat.", "craving_creator"]])(
+  "a clear answer to the current two-choice question immediately opens %s", async (input, id) => {
+    await dessertChoice();
+    // Even if the model tries to ask again, the bounded choice is final.
+    model({ message: "Would you like me to open a creator?", navigationIntent: "none",
+      responsePurpose: "clarify", conciergeDecision: null });
+    const selected = await run(input);
+    expect(selected.presentation?.navigation).toMatchObject({ state: "direct_navigation", destinationId: id });
+    expect(selected.presentation?.message).toBe(verifiedNavigationText(id as keyof typeof COACH_DESTINATIONS));
+    expect(selected.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId: id })]);
+    expect(html(selected).match(/<button/g)).toHaveLength(1);
+  },
+);
+
+test("yes to two choices remains ambiguous without renewing the original age", async () => {
+  const choice = await dessertChoice();
+  model({ message: "Open Dessert Creator.", navigationIntent: "direct_request",
+    conciergeDecision: { mode: "food_assistance", destinationId: "dessert_creator", goal: dessert } });
+  const clarification = await run("yes");
+  expect(clarification.presentation?.featureChoice).toEqual(choice.presentation?.featureChoice);
+  expect(clarification.todayPlan.items).toEqual([]);
+  expect(html(clarification)).not.toContain("<button");
+});
+
+test.each(["stale", "topic_change", "denied", "care"] as const)(
+  "a dessert choice cannot override %s", async boundary => {
+    await dessertChoice();
+    if (boundary === "stale") stored.presentation.featureChoice.offeredAt =
+      new Date(Date.now() - PENDING_NAVIGATION_TTL_MS - 1).toISOString();
+    if (boundary === "topic_change") {
+      model({ message: "We can discuss sleep.", navigationIntent: "none", conciergeDecision: null });
+      await run("Let's discuss sleep instead.");
+    }
+    if (boundary === "denied") (getAdapter as jest.Mock).mockReturnValue({
+      loadSubject: async () => subject, loadAdditionalContext: async () => ({}),
+      safetyRules: [], availableTools: [],
+    });
+    model({ message: "What would you like help with?", navigationIntent: "none", conciergeDecision: null,
+      ...(boundary === "care" ? { redFlag: true, careDisposition: "emergency", contactCare: "Seek urgent medical care." } : {}) });
+    const result = await run("A whole pie.");
+    expect(result.presentation?.destinationId).toBeUndefined();
+    expect(result.todayPlan.items.filter(item => item.kind === "use_feature")).toEqual([]);
+    if (boundary === "care") expect(result.meta.redFlag).toBe(true);
+  },
+);
 
 test("a contextual builder reference cannot borrow another destination's recent authority", async () => {
   model({ navigationIntent: "recommendation", recommendationMessage: invitation });
@@ -362,7 +450,8 @@ test("exact live failure goes through engine persistence, then restored Yes rend
   expect(payload.pendingRecommendation.destinationId).toBe("my_perfect_getaway");
   expect(payload.platformKnowledge.featureUsage.my_perfect_getaway.descriptionInput).toContain("Search");
   expect(mockCreate).toHaveBeenCalledTimes(2);
-  expect(await loadPendingRecommendation("owned-conversation", "member")).toBeUndefined();
+  expect(await loadPendingRecommendation("owned-conversation", "member"))
+    .toMatchObject({ destinationId: "my_perfect_getaway", state: "navigation_confirmed" });
   expect(statements.find(s => s.includes("SELECT m.structured_payload"))).toContain("c.owner_id");
 });
 
@@ -461,7 +550,9 @@ test.each(["development", "production"])(
         expect(html(response).match(/<button/g)).toHaveLength(1);
         expect(html(response)).toContain("Open craving_creator");
         expect(stored.presentation.navigation.state).toBe("navigation_confirmed");
-        expect(await loadPendingRecommendation("owned-conversation", "member")).toBeUndefined();
+        const pending = await loadPendingRecommendation("owned-conversation", "member");
+        if (environment === "development") expect(pending).toMatchObject({ state: "navigation_confirmed" });
+        else expect(pending).toBeUndefined();
       }
       history.push({ role: "user", content: turn.input },
         { role: "assistant", content: response.presentation?.message ?? "" });
@@ -626,7 +717,8 @@ test.each(["development", "production"])(
     expect(html(confirmed).match(/<button/g)).toHaveLength(1);
     expect(confirmed.meta.redFlag).toBe(false);
     expect(mockCreate).toHaveBeenCalledTimes(2);
-    // Completed handoffs are not new pending recommendations.
+    // Only client-observed navigation, not offering the button, consumes it.
+    stored.presentation.navigation.performedAt = new Date().toISOString();
     model({ navigationIntent: "confirmed", conciergeDecision: null, message: "What would you like help with?" });
     expect((await run("yes")).presentation?.destinationId).toBeUndefined();
   });
@@ -685,7 +777,8 @@ test.each([
   undefined,
   { presentation: { navigation: { state: "recommendation_pending", destinationId: "unapproved", goal: travel } } },
   { presentation: { navigation: { state: "recommendation_pending", destinationId: "my_perfect_getaway", goal: {} } } },
-  { presentation: { navigation: { state: "navigation_confirmed", destinationId: "my_perfect_getaway", goal: travel } } },
+  { presentation: { navigation: { state: "navigation_confirmed", destinationId: "my_perfect_getaway", goal: travel,
+    performedAt: new Date().toISOString() } } },
 ])("missing, invalid and consumed pending records cannot obtain a fallback-authorized button: %j", async record => {
   stored = record;
   model({ navigationIntent: "confirmed", conciergeDecision: null, handoffMessage: null,
@@ -803,7 +896,8 @@ test("missing handoff uses verified instructions even when no safe model continu
   expect(result.meta.concierge?.rendering).toBe("primary");
   expect(html(result)).toContain("<button");
   expect(result.presentation?.message).toBe(handoffText("my_perfect_getaway", FEATURE_USAGE_KNOWLEDGE.my_perfect_getaway!.descriptionInput));
-  expect(await loadPendingRecommendation("owned-conversation", "member")).toBeUndefined();
+  expect(await loadPendingRecommendation("owned-conversation", "member"))
+    .toMatchObject({ destinationId: "my_perfect_getaway", state: "navigation_confirmed" });
 });
 
 test("a named direct request uses verified instructions even without model handoff wording", async () => {
@@ -823,7 +917,8 @@ test("a new named direct destination uses verified guidance and never resurrects
     conversationMessage: "Open Dessert Creator now." });
   const result = await run("Open Dessert Creator.");
   expect(result.presentation?.navigation?.destinationId).toBe("dessert_creator");
-  expect(await loadPendingRecommendation("owned-conversation", "member")).toBeUndefined();
+  expect(await loadPendingRecommendation("owned-conversation", "member"))
+    .toMatchObject({ destinationId: "dessert_creator", state: "direct_navigation" });
   expect(html(result)).toContain("<button");
 });
 
