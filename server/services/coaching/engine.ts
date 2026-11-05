@@ -160,7 +160,7 @@ function validateCitations(
 // ─── Phase 5 imports ─────────────────────────────────────────────────────────
 
 import { loadBoundedHistory } from "./conversationSummarizer";
-import { loadPendingRecommendation } from "./conciergeNavigationState";
+import { loadRecentNavigation } from "./conciergeNavigationState";
 import { navigationEmissionIndicators } from "./conversationPurpose";
 import { extractAndPersistMemories } from "./memoryExtractor";
 
@@ -1540,9 +1540,9 @@ export class CoachingEngine {
       const { history, rollingContext } = await loadConversationHistory(
         conversationId, subject.ownerId, request.specialization,
       );
-      const [context, pendingRecommendation, knowledgeAccess] = await Promise.all([
+      const [context, navigationContext, knowledgeAccess] = await Promise.all([
         adapter.loadAdditionalContext(subject),
-        loadPendingRecommendation(conversationId, subject.ownerId),
+        loadRecentNavigation(conversationId, subject.ownerId),
         loadChefKnowledgeAccess(subject.ownerId, (req as any).authUser?.professionalRole,
           isMfaVerifiedForUser(req, subject.ownerId) || (req as any).bearerMfaVerified === true),
       ]);
@@ -1551,7 +1551,8 @@ export class CoachingEngine {
         context, tools: [...adapter.availableTools],
         knowledgeAccess,
         featureScreenContext: request.featureScreenContext,
-        pendingRecommendation,
+        pendingRecommendation: navigationContext?.state === "recommendation_pending" ? navigationContext : undefined,
+        navigationContext,
         preferredLanguage: (req as any).authUser?.preferredLanguage,
         requestId: (req as any).id,
       });

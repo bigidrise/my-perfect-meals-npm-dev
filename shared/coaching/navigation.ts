@@ -32,7 +32,15 @@ export type CoachDestinationId = keyof typeof COACH_DESTINATIONS;
 /** Reviewed feature names bind explicit requests; never classify product words. */
 export function mentionsCoachDestination(
   message: string, id: CoachDestinationId, environment?: string,
+  establishedDestinationId?: CoachDestinationId,
 ): boolean {
+  // Reviewed singular/plural feature names are evidence, never consent.
+  // Bare "builder", pronouns and "meal prep" need semantic context instead.
+  if (id === "meal_builders") {
+    return /(?:^|[^\p{L}\p{N}_])meal\s+builders?(?=$|[^\p{L}\p{N}_])/iu.test(message) ||
+      (establishedDestinationId === id &&
+        /(?:^|[^\p{L}\p{N}_])(?:my|the|that)\s+builders?(?=$|[^\p{L}\p{N}_])/iu.test(message));
+  }
   const names = id === "grocery_create_meal"
     ? environment === "development"
       // These are feature names, not meal-creation verbs. Interpretation of

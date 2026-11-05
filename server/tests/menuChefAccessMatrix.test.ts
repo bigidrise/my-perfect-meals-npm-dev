@@ -145,10 +145,11 @@ test.each([
   const instance = app({ id: "fixture-destination-user", accessTier, planLookupKey });
   for (const [id, allowed] of [
     ["macro_calculator", true], ["fridge_rescue", true],
-    ["my_perfect_menu", menu], ["beverage_creator", pro], ["my_perfect_getaway", clinical],
+    ["my_perfect_menu", menu], ["meal_builders", menu], ["beverage_creator", pro], ["my_perfect_getaway", clinical],
   ] as const) {
     const response = await request(instance).post("/api/coach/navigation").send({ destinationId: id });
     expect(response.status).toBe(allowed ? 200 : 403);
+    if (allowed && id === "meal_builders") expect(response.body.route).toBe("/builders");
     if (!allowed) expect(response.body).not.toHaveProperty("route");
   }
   expect(db.execute).not.toHaveBeenCalled();

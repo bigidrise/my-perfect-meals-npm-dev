@@ -107,6 +107,46 @@ function postedTurns() {
   return mockAPI.mock.calls.filter(([url]) => url === "/api/coach/message")
     .map(([, options]) => JSON.parse(options.body));
 }
+
+test.each([true, false])("meal-prep conversation renders actual builder actions and rechecks access on click, allowed=%s", async allowed => {
+  await renderPage(false);
+  const goal = { activity: "plan_meals", occasion: "unknown", restaurant: "unknown",
+    dishChosen: false, specialty: "none", explicitFeatureId: "meal_builders" };
+  const messages = [
+    ["Help me get started", "Would you like help planning meals, preparing a dish, or shopping?"],
+    ["Meal prep", "Are you planning meals ahead, cooking a specific dish, or shopping?"],
+    ["Meal builder", "Use the Open Meal Builders button, then open your assigned builder."],
+    ["Where is my builder?", "Use the Open Meal Builders button to reach the landing page."],
+  ];
+  for (const [index, [input, answer]] of messages.entries()) {
+    mockAPI.mockResolvedValueOnce({ conversationId: "builder-conversation", messageId: `builder-${index}`,
+      response: { presentation: { kind: "concierge", message: answer,
+        ...(index >= 2 ? { destinationId: "meal_builders", navigation: {
+          state: "direct_navigation", destinationId: "meal_builders", goal,
+        } } : {}) },
+        whatIFound: answer, whatItCouldMean: "", learningOpportunity: null,
+        todayPlan: { items: index >= 2 ? [{ kind: "use_feature", destinationId: "meal_builders" }] : [] } } });
+    await act(async () => {
+      const textarea = host.querySelector("textarea")!;
+      textarea.value = input; Simulate.change(textarea, { target: textarea } as any);
+    });
+    await act(async () => { (host.querySelector('[aria-label="Send message"]') as HTMLButtonElement).click(); });
+    expect([...host.querySelectorAll("button")].filter(button => button.textContent === "Open Meal Builders"))
+      .toHaveLength(Math.max(0, index - 1));
+  }
+  const button = [...host.querySelectorAll("button")].find(button => button.textContent === "Open Meal Builders")!;
+  if (allowed) mockAPI.mockResolvedValueOnce({ destinationId: "meal_builders", route: "/builders" });
+  else mockAPI.mockRejectedValueOnce(new Error("403 access changed"));
+  await act(async () => button.click());
+  expect(mockAPI).toHaveBeenLastCalledWith("/api/coach/navigation", expect.objectContaining({
+    method: "POST", body: JSON.stringify({ destinationId: "meal_builders" }),
+  }));
+  if (allowed) expect(mockNavigate).toHaveBeenCalledWith("/builders");
+  else {
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain("not included in your current access");
+  }
+});
 async function submitReliable(text: string) {
   await act(async () => {
     const textarea = host.querySelector("textarea")!;

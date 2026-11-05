@@ -48,7 +48,7 @@ function reply(message: string, id: string | null = null, goal = unknown, extra:
       (getAdapter as jest.Mock)().availableTools, [], { completeMissingDestination: true });
     const pendingId = id && id in COACH_DESTINATIONS ? id : candidate?.destinationId;
     (db.execute as jest.Mock).mockResolvedValue({ rows: [{
-      id: "fixture-row", structured_payload: { presentation: { navigation: pendingId
+      id: "fixture-row", created_at: new Date(), structured_payload: { presentation: { navigation: pendingId
         ? { state: "recommendation_pending", destinationId: pendingId, goal }
         : undefined } },
     }] });
@@ -480,6 +480,7 @@ test("chicken Caesar food choice alone cannot auto-complete an opening action", 
   expect(result.presentation).toEqual({
     kind: "concierge", message: modelMessage,
     navigation: { state: "recommendation_pending", destinationId: "create_a_dish",
+      offeredAt: expect.any(String),
       goal: { ...unknown, activity: "prepare", occasion: "meal", dishChosen: true } },
   });
   expect(result.todayPlan.items).toEqual([]);
@@ -622,8 +623,14 @@ test("adaptive conversation instructions apply to every turn without old questio
   expect(system).toContain("latest explicit correction or change of mind");
   // Development replaces the released paragraph, including capitalization.
   // Assert the behavioral contract rather than obsolete prompt wording.
-  expect(system).toMatch(/do not end every reply with a question/i);
-  expect(system).toMatch(/do not restart discovery(?:,| or) repeat answered questions/i);
+  if (runtimeEnvironment === "development") {
+    expect(system).toContain("no fixed greeting, question count, sentence count, mandatory list or closing question");
+    expect(system).toContain("Move the conversation forward");
+    expect(system).toContain("do not repeat questions answered in history");
+  } else {
+    expect(system).toMatch(/do not end every reply with a question/i);
+    expect(system).toMatch(/do not restart discovery(?:,| or) repeat answered questions/i);
+  }
   expect(system).toContain("Only action-ready food_assistance may select a feature");
   expect(system).toContain("Medical emergencies or serious symptoms take priority");
   expect(system).toContain("Existing destinations own meal and beverage generation");

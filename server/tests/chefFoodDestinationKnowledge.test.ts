@@ -82,8 +82,8 @@ describe("Development food destination knowledge", () => {
     expect(JSON.stringify(wire)).not.toContain("also called Create a Meal");
     expect(request.messages[0].content).not.toContain("also called Create a Meal");
     expect(request.messages[0].content).toContain("the conversational front door to My Perfect Meals");
-    expect(request.messages[0].content).toContain("natural conversational paragraphs, not numbered educational articles");
-    expect(request.messages[0].content).toContain("stop questioning once sufficient information is available");
+    expect(request.messages[0].content).toContain("Choose natural tone, length and format for this turn");
+    expect(request.messages[0].content).toContain("Stop ordinary probing when enough information is available");
     expect(wire.platformKnowledge.featureUsage.create_a_dish.suitability.offerWhen).toContain("preparation intent");
     expect(wire.platformKnowledge.featureUsage.grocery_create_meal.suitability.safetyBoundaries.join(" "))
       .toContain("no automatic Coach sheet, tab selection, request transfer");
