@@ -1,6 +1,7 @@
 - [Pregnancy release safety pause](pregnancy-release-safety-pause.md) — Coming Soon stays Clinical; retain saved support and other safety rules while activation and unreviewed guidance are paused.
 - [Safe-area modal layout](safe-area-modal-layout-rule.md) — safe-area spacing fixes must not restructure modal flex or overflow behavior.
 - [Development startup log retention](development-startup-log-retention.md) — preview asset reloads can displace boot messages; capture early and qualify incomplete log evidence.
+- [Development Vite cache identity](development-vite-cache-identity.md) — warm-browser imports can stay stale after an identical cache rebuild; recovery must invalidate module URLs.
 - [Authenticated API cache identity](authenticated-api-client-cache-identity.md) — removing caller IDs from APIs must not erase client-side account partitions.
 - [Role-aware polling authentication](role-aware-polling-auth.md) — background 401/403 responses are not always invalid sessions; respect endpoint role boundaries.
 - [Unread notification verification](unread-notification-verification.md) — capture counts before folder reads; media-labeled UI mocks do not establish backend coverage.
