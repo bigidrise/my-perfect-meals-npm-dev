@@ -25,6 +25,7 @@ import {
 import { runConciergeConversation } from "../services/coaching/conciergeConversation";
 import { FOOD_INCLUSION_PRIORITY_REGISTRY, NUTRITION_PRIORITIES_REGISTRY_VERSION } from "../../shared/nutritionPriorities";
 import { getCornerCapabilities } from "../services/coaching/capabilityRegistry";
+import { verifiedNavigationText } from "../../shared/coaching/navigationGuidance";
 
 const originalEnvironment = process.env.NODE_ENV;
 const fact = (value: string[], status = value.length ? "known" : "none") =>
@@ -237,7 +238,7 @@ test("validated navigation still works through the active declaration gate witho
     },
   });
   expect(result.presentation?.destinationId).toBe("my_perfect_menu");
-  expect(result.presentation?.message).toBe(handoff);
+  expect(result.presentation?.message).toBe(verifiedNavigationText("my_perfect_menu"));
   expect(result.foodCompatibility).toBeUndefined();
 });
 test("Production retains its response schema and behavior even if given a Development flag", async () => {

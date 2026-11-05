@@ -8,6 +8,10 @@ export function fallbackQuality(text: string | null | undefined): FallbackQualit
   if (!/[\p{L}\p{N}]/u.test(prose)) return "placeholder";
   if (/^[A-Z0-9]+(?:_[A-Z0-9]+)+$/.test(prose.trim())) return "placeholder";
   const words = prose.toLocaleLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
+  // A sign-off is not an independent answer. Match the whole candidate and do
+  // not reject a substantive explanation merely because it ends with a closing.
+  const closingOnly = /^(?:if you (?:have|need|want)\b.{0,240}\b(?:feel free to (?:ask|reach out)|(?:please )?let me know|i(?: m| am) here to help)|feel free to (?:ask|reach out)(?: if you .{0,180})?|let me know if you .{0,180})$/u.test(words);
+  if (closingOnly && !/\b(?:open|choose|select|tap|click|enter|save|calculate|generate)\b/u.test(words)) return "acknowledgment";
   const acknowledgments = /^(?:(?:yes|yeah|yep|ok|okay|sure|absolutely|certainly|great|perfect|wonderful|awesome|excellent|nice|indeed|thanks|thank you|got it|understood|i understand|no problem|you re welcome|happy to help|glad to help|i can help(?: with that)?|sounds (?:good|great|delicious|like (?:a )?(?:delicious|good|great|wonderful|perfect) (?:plan|idea))|that sounds (?:good|great|delicious)|(?:that s )?(?:a )?(?:great|good|delicious) (?:choice|plan|idea)|none|null|undefined|n a)\s*)+$/u;
   return acknowledgments.test(words) ? "acknowledgment" : "useful";
 }

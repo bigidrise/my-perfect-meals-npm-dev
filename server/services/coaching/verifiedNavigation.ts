@@ -44,6 +44,18 @@ export function navigationGoal(id: CoachDestinationId): ConciergeGoal {
   };
 }
 
+/** Bounded platform education, not opening consent or permission to give food advice. */
+export function verifiedMealBuildersExplanation(message: string): string | undefined {
+  const text = message.trim().replace(/[.!?]+$/u, "").replace(/^please\s+/iu, "");
+  const record = COACH_NAVIGATION_GUIDANCE.meal_builders;
+  const matches = record.aliases.some(alias => {
+    const name = `(?:the\\s+)?${escape(alias)}`;
+    return new RegExp(`^(?:how (?:do|can) I (?:use|get started with) ${name}|` +
+      `(?:explain|show me) how to use ${name}|how (?:does|do) ${name} work)$`, "iu").test(text);
+  });
+  return matches ? record.explanation : undefined;
+}
+
 /** Model prose never supplies UI relationships. Ordinary food advice is not a
  * navigation instruction; require UI language or a named feature relationship.
  */

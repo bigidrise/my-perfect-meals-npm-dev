@@ -31,3 +31,14 @@ approval.
 Production-workspace authority from this implementation approval. Mocked checks
 do not establish live conversational acceptance; dialog features are not
 standalone page routes.
+
+Read-only platform education needs its own verified provenance: it is neither a
+model-authored food recommendation nor consent to open the described feature.
+
+**Why:** The founder required Meal Builders how-to answers to remain complete
+education after output screening discarded useful instructions and recovery
+could mistake an unused model field for the source of verified UI guidance.
+
+**How to apply:** Keep reviewed platform explanations distinct from model food
+declarations. Do not relax food checks for model content, manufacture an opening
+action for education, or treat a generic sign-off as a complete explanation.
