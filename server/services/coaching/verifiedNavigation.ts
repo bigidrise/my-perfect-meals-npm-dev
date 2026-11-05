@@ -44,7 +44,7 @@ export function explicitNavigationRequest(message: string): CoachDestinationId |
  */
 export function explicitCustomerSelection(message: string): CoachDestinationId | undefined {
   message = message.replace(/[‘’]/gu, "'");
-  if (/["“”]|\b(?:don't|do not|never|not)\s+(?:want|open|use|choose|take|go)|\b(?:instead|rather than|actually no|cancel|forget it)\b/iu.test(message) ||
+  if (/["“”]|\b(?:don't|do not|never|not)\s+(?:want|open|use|choose|take|go|send)|\b(?:instead|rather than|actually no|cancel|forget it)\b/iu.test(message) ||
     /(?:^|[.!?]\s*)(?:no(?: thanks)?|don't|do not|never mind|stop)[.!?\s]*$/iu.test(message)) return undefined;
   const names = namedNavigationDestinations(message);
   if (names.length !== 1) return undefined;
@@ -57,7 +57,7 @@ export function explicitCustomerSelection(message: string): CoachDestinationId |
       new RegExp(`^${target}(?:\\s+please)?$`, "iu").test(clauses[0])) return false;
     return clauses.some(clause => new RegExp(
       `^(?:please\\s+)?(?:` +
-      `(?:open|show(?: me)?|launch|take me to(?: open)?|go to|navigate to)\\s+${target}|` +
+      `(?:open|show(?: me)?|launch|take me to(?: open)?|send me to|go to|navigate to)\\s+${target}|` +
       `${target}(?:\\s+please|\\s+(?:would be|sounds?)\\s+(?:great|good|perfect|right))?|` +
       `I (?:(?:already )?said I |(?:already )?told you I )?(?:want(?:ed)?|would like)(?: to (?:open|use))?\\s+${target}` +
       `)(?:,?\\s+please)?$`, "iu").test(clause));

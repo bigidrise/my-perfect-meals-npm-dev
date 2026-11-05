@@ -20,6 +20,7 @@ import { getCapabilitiesForUser, getCornerCapabilities } from "../services/coach
 import { getDevelopmentPlatformKnowledge } from "../services/coaching/platformKnowledge";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
 import { verifiedNavigationText } from "../../shared/coaching/navigationGuidance";
+import { conciseFeatureHandoff } from "../services/coaching/featurePresentation";
 import { validateConciergeGoal } from "../services/coaching/conciergeGoal";
 import { PgDialect } from "drizzle-orm/pg-core";
 
@@ -30,7 +31,7 @@ const subject = { subjectType: "user" as const, subjectId: user.id, ownerId: use
 const unknown = { activity: "unknown", occasion: "unknown", restaurant: "unknown",
   dishChosen: false, specialty: "none", explicitFeatureId: null };
 const handoffText = (id: string, legacy: string) =>
-  runtimeEnvironment === "development" ? verifiedNavigationText(id as keyof typeof COACH_DESTINATIONS) : legacy;
+  runtimeEnvironment === "development" ? conciseFeatureHandoff(id as keyof typeof COACH_DESTINATIONS) : legacy;
 beforeEach(() => {
   process.env.NODE_ENV = runtimeEnvironment;
   jest.clearAllMocks(); mockCreate.mockReset();

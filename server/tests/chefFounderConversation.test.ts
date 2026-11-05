@@ -1,7 +1,8 @@
 jest.mock("../db", () => ({ db: { execute: jest.fn(() => { throw Error("No persistence in transcript tests"); }) } }));
 import { runConciergeConversation } from "../services/coaching/conciergeConversation";
 import { getCornerCapabilities } from "../services/coaching/capabilityRegistry";
-import { explicitCustomerSelection, navigationGoal, verifiedNavigationText } from "../services/coaching/verifiedNavigation";
+import { explicitCustomerSelection, navigationGoal } from "../services/coaching/verifiedNavigation";
+import { conciseFeatureHandoff } from "../services/coaching/featurePresentation";
 import type { PendingRecommendation } from "../services/coaching/conciergeNavigationState";
 import type { CoachDestinationId } from "../../shared/coaching/navigation";
 import { getChefConversationInstructions } from "../services/coaching/conciergeInstructions";
@@ -36,7 +37,7 @@ function expectAction(response: Awaited<ReturnType<typeof run>>, id: CoachDestin
   expect(response.presentation?.destinationId).toBe(id);
   expect(response.presentation?.navigation?.state).toBe(state);
   expect(response.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId: id })]);
-  expect(response.presentation?.message).toBe(verifiedNavigationText(id));
+  expect(response.presentation?.message).toBe(conciseFeatureHandoff(id));
   expect(response.foodCompatibility).toBeUndefined();
   expect(response.presentation?.message).not.toMatch(/already opened|has opened|couldn't reliably check/i);
 }
@@ -71,7 +72,8 @@ test.each(["sure", "open it", "yes please", "go ahead"])("equivalent confirmatio
 test.each(["I want to plan meals for the week.", "How does My Perfect Menu work?",
   "Don't open My Perfect Menu.", "My Perfect Menu or Meal Builders?", "\"Open My Shopping List.\"",
   "Open My Shopping List. Actually no.", "I don't want My Perfect Menu.", "Open My Shopping List. No.",
-  "Open My Shopping List. Don't.", "Open My Shopping List. Not my shopping list.", "My Perfect Menu?"])("unselected, educational or refused request isn't a binding: %s", message => {
+  "Open My Shopping List. Don't.", "Open My Shopping List. Not my shopping list.", "My Perfect Menu?",
+  "Don't send me to Beverage Creator.", "Send me to Beverage Creator. Do not send me there."])("unselected, educational or refused request isn't a binding: %s", message => {
   expect(explicitCustomerSelection(message)).toBeUndefined();
 });
 test("restaurant clarification survives invalid inactive food declarations", async () => {

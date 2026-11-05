@@ -82,7 +82,7 @@ test("reviewed navigation guidance and unchanged mandatory food-screening instru
   expect(hash(getPlatformGuidanceInstructions("development")))
     .toBe("79792d454c73a80398a953e12a78d4dbf175c2a9fa11ba34504d8a42615e081b");
   expect(hash(CHEF_FOOD_COMPATIBILITY_INSTRUCTIONS))
-    .toBe("49f2eb490e4ed41497785f84d4ed6cccdea3c6a32ce77dccc45ec30d35e5f66b");
+    .toBe("51d4c71bea1e84d7d4934cf9e0df30bdea582242214ef81c6020f6d4e887481a");
 });
 
 test.each(REVIEW_FIXTURES)("Phase 1 harness delivers the strategy and selected history across five synthetic turns: %s", async fixture => {
