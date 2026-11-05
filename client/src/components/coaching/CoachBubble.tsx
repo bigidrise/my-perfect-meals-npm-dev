@@ -49,8 +49,8 @@ export function isConciergeMessage(structured: CoachStructuredResponse): boolean
 
 /** Explicit presentation, not text heuristics, separates ordinary and coaching UI. */
 export default function CoachBubble({
-  structured, enableConcierge = false, emphasizeFeatureNames = false,
-}: { structured: CoachStructuredResponse; enableConcierge?: boolean; emphasizeFeatureNames?: boolean }) {
+  structured, enableConcierge = false, emphasizeFeatureNames = false, messageId,
+}: { structured: CoachStructuredResponse; enableConcierge?: boolean; emphasizeFeatureNames?: boolean; messageId?: string }) {
   const responseText = (text: string) => chefResponseText(text, enableConcierge, emphasizeFeatureNames);
   const compact = enableConcierge && isConciergeMessage(structured);
   const planItems = structured.todayPlan?.items ?? [];
@@ -79,7 +79,8 @@ export default function CoachBubble({
           </> : compact ? <>
             <p className="whitespace-pre-wrap">{responseText(structured.presentation!.message)}</p>
             {showButton && <CoachFeatureAction destinationId={target}
-              creatorRequest={structured.presentation?.creatorRequest} />}
+              creatorRequest={structured.presentation?.creatorRequest}
+              messageId={emphasizeFeatureNames ? messageId : undefined} />}
           </> : <>
             {[structured.whatIFound, structured.whatItCouldMean].filter(Boolean).map((text, i) =>
               <p key={i}>{responseText(text)}</p>)}
@@ -90,7 +91,8 @@ export default function CoachBubble({
                   {planItems.map((item, i) => enableConcierge && typeof item !== "string" &&
                     item.kind === "use_feature" && isCoachDestinationId(item.destinationId) && !escalation &&
                       (!enableConcierge || (approvedNavigation && navigation?.destinationId === item.destinationId))
-                    ? <li key={i}><CoachFeatureAction destinationId={item.destinationId} /></li>
+                     ? <li key={i}><CoachFeatureAction destinationId={item.destinationId}
+                       messageId={emphasizeFeatureNames ? messageId : undefined} /></li>
                     : <li key={i} className="flex items-start gap-2">
                       <span className="text-orange-400 mt-0.5 shrink-0 select-none">•</span>
                       <span className="min-w-0">{responseText(typeof item === "string" ? item : item.text)}</span>

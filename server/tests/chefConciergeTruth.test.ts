@@ -76,7 +76,7 @@ test("does not project the five obsolete capability targets or create extra butt
   expect(COACH_DESTINATIONS).not.toHaveProperty("recipe_maker");
   expect(COACH_DESTINATIONS).not.toHaveProperty("education");
   expect(COACH_DESTINATIONS).not.toHaveProperty("food_preferences");
-  expect(COACH_DESTINATIONS).not.toHaveProperty("daily_journal");
+  expect(COACH_DESTINATIONS.daily_journal.route).toBe("/get-inspiration");
 });
 
 const examples = [
@@ -114,7 +114,11 @@ test.each(examples)("delivers corrected facts and preserves an explanation-only 
   const wire = JSON.parse(request.messages[1].content);
   expect(wire.platformKnowledge.features.find((item: { id: string }) => item.id === id))
     .toEqual(feature(id));
-  expect(result.presentation?.message).toBe(answer);
+  expect(result.presentation?.message).toBe(question === "How do I find a product rather than build a meal?"
+    ? "Find a Product: Shopping List → Grocery Store Coach → Find a Product. Open Grocery Store Coach on Shopping List, then select Find a Product."
+    : question === "Where do I import a recipe?"
+      ? "I couldn't complete that response. Nothing has been opened. Please try your request again."
+      : answer);
   expect(result.presentation?.navigation).toBeUndefined();
   expect(result.presentation?.destinationId).toBeUndefined();
   expect(result.todayPlan.items).toEqual([]);

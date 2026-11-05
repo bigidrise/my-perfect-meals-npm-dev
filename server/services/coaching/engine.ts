@@ -160,7 +160,8 @@ function validateCitations(
 // ─── Phase 5 imports ─────────────────────────────────────────────────────────
 
 import { loadBoundedHistory } from "./conversationSummarizer";
-import { loadRecentNavigation } from "./conciergeNavigationState";
+import { loadRecentConciergeState } from "./conciergeNavigationState";
+import { isConfirmableNavigation } from "./conciergeNavigationContinuity";
 import { navigationEmissionIndicators } from "./conversationPurpose";
 import { extractAndPersistMemories } from "./memoryExtractor";
 
@@ -1540,9 +1541,9 @@ export class CoachingEngine {
       const { history, rollingContext } = await loadConversationHistory(
         conversationId, subject.ownerId, request.specialization,
       );
-      const [context, navigationContext, knowledgeAccess] = await Promise.all([
+      const [context, recentConciergeState, knowledgeAccess] = await Promise.all([
         adapter.loadAdditionalContext(subject),
-        loadRecentNavigation(conversationId, subject.ownerId),
+        loadRecentConciergeState(conversationId, subject.ownerId),
         loadChefKnowledgeAccess(subject.ownerId, (req as any).authUser?.professionalRole,
           isMfaVerifiedForUser(req, subject.ownerId) || (req as any).bearerMfaVerified === true),
       ]);
@@ -1551,8 +1552,10 @@ export class CoachingEngine {
         context, tools: [...adapter.availableTools],
         knowledgeAccess,
         featureScreenContext: request.featureScreenContext,
-        pendingRecommendation: navigationContext?.state === "recommendation_pending" ? navigationContext : undefined,
-        navigationContext,
+        pendingRecommendation: isConfirmableNavigation(recentConciergeState.navigation, process.env.NODE_ENV === "development")
+          ? recentConciergeState.navigation : undefined,
+        navigationContext: recentConciergeState.navigation,
+        featureChoice: recentConciergeState.featureChoice,
         preferredLanguage: (req as any).authUser?.preferredLanguage,
         requestId: (req as any).id,
       });

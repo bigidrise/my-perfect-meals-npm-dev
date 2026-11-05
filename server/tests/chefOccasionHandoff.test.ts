@@ -9,6 +9,7 @@ import { getFeatureUsageKnowledge, FEATURE_USAGE_KNOWLEDGE } from "../services/c
 import { getChefConversationInstructions, CHEF_CONVERSATION_INSTRUCTIONS } from "../services/coaching/conciergeInstructions";
 import { getPlatformGuidanceInstructions, PLATFORM_GUIDANCE_INSTRUCTIONS } from "../services/coaching/platformKnowledge";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
+import { conciseFeatureHandoff } from "../services/coaching/featurePresentation";
 import type { ConciergeGoal } from "../../shared/coaching/schemas";
 import type { PendingRecommendation } from "../services/coaching/conciergeNavigationState";
 
@@ -129,7 +130,7 @@ describe("Development occasion/serving intent and direct-to-feature contracts", 
     ] });
     expect(result.presentation?.navigation?.state).toBe("navigation_confirmed");
     expect(result.presentation?.destinationId).toBe("create_a_dish");
-    expect(result.presentation?.message).toBe(message);
+    expect(result.presentation?.message).toBe(conciseFeatureHandoff("create_a_dish"));
     expect(result.presentation?.creatorRequest).toEqual({ destinationId: "create_a_dish", idea: "homemade chicken soup" });
     expect(result.todayPlan.items.some(item => item.kind === "use_feature" && item.destinationId === "create_a_dish")).toBe(true);
     expect(result.presentation?.message).not.toMatch(/[?]|already opened|already generated/i);
@@ -142,7 +143,7 @@ describe("Development occasion/serving intent and direct-to-feature contracts", 
       handoffMessage: message, conciergeDecision: action("sushi_creator", { ...sushi, explicitFeatureId: "sushi_creator" }),
     });
     expect(result.presentation?.navigation?.state).toBe("direct_navigation");
-    expect(result.presentation?.message).toBe(message);
+    expect(result.presentation?.message).toBe(conciseFeatureHandoff("sushi_creator"));
     expect(result.presentation?.destinationId).toBe("sushi_creator");
     expect(result.presentation?.creatorRequest).toBeUndefined();
   });
@@ -260,7 +261,7 @@ describe("Development context versus immediate activity (mocked judgment)", () =
       { role: "user", content: correction }, { role: "assistant", content: offer }] });
     expect(accepted.result.presentation?.navigation?.state).toBe("navigation_confirmed");
     expect(accepted.result.presentation?.destinationId).toBe("my_perfect_buffet");
-    expect(accepted.result.presentation?.message).toBe(message);
+    expect(accepted.result.presentation?.message).toBe(conciseFeatureHandoff("my_perfect_buffet"));
     expect(accepted.result.presentation?.creatorRequest).toBeUndefined();
     expect(accepted.result.todayPlan.items).toEqual([expect.objectContaining({
       kind: "use_feature", destinationId: "my_perfect_buffet",
