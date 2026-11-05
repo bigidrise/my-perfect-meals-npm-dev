@@ -1,37 +1,13 @@
-import { namedNavigationDestinations } from "./verifiedNavigation";
-
 /** Development response-quality screening only: never user-intent or consent routing. */
-export type FallbackQuality = "useful" | "placeholder" | "acknowledgment" | "malformed" | "incomplete";
+export type FallbackQuality = "useful" | "placeholder" | "acknowledgment";
 export function fallbackQuality(text: string | null | undefined): FallbackQuality {
   // Assess the prose, without modifying the actual candidate or stripping an
   // unsafe clause before the caller's whole-message safety screen.
   const prose = (text ?? "").normalize("NFKC").replace(/:[a-z0-9_+-]+:/gi, " ")
     .replace(/[0-9#*]\uFE0F?\u20E3/gu, " ");
   if (!/[\p{L}\p{N}]/u.test(prose)) return "placeholder";
-  // Reject the entire candidate; never strip a rejected clause to make it safe.
-  if (/^\s*[.:;,!?)\]}]/u.test(prose)) return "malformed";
   if (/^[A-Z0-9]+(?:_[A-Z0-9]+)+$/.test(prose.trim())) return "placeholder";
-  const reference = /\b(?:which\s+(?:option|choice|one|would|do)|(?:either|both|these|those)\s+(?:options?|choices?))\b/iu.exec(prose);
-  if (reference) {
-    // An independent reply must present its own alternatives, not refer to
-    // options lost when another field was rejected or present only in history.
-    const preceding = prose.slice(0, reference.index);
-    const choiceQuestion = prose.slice(reference.index);
-    const parts = choiceQuestion.split(/\bor\b/iu);
-    const substantive = (part: string) => /[\p{L}\p{N}]/u.test(part.replace(
-      /\b(?:which|option|options|choice|choices|one|would|do|you|like|prefer|need|want|the|a|an|of|these|those|to)\b/giu, ""));
-    const alternatives = /\b(?:or|otherwise)\b/iu.test(preceding) ||
-      (parts.length >= 2 && substantive(parts[0]) && substantive(parts[1])) ||
-      namedNavigationDestinations(preceding).length >= 2 ||
-      (preceding.match(/(?:^|\n)\s*(?:[-*•]|\d+[.)])\s+\S/gu)?.length ?? 0) >= 2 ||
-      (preceding.match(/\boption\s+(?:[a-z]|\d+)\s*:/giu)?.length ?? 0) >= 2;
-    if (!alternatives) return "incomplete";
-  }
   const words = prose.toLocaleLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
-  // A sign-off is not an independent answer. Match the whole candidate and do
-  // not reject a substantive explanation merely because it ends with a closing.
-  const closingOnly = /^(?:if you (?:have|need|want)\b.{0,240}\b(?:feel free to (?:ask|reach out)|(?:please )?let me know|i(?: m| am) here to help)|feel free to (?:ask|reach out)(?: if you .{0,180})?|let me know if you .{0,180})$/u.test(words);
-  if (closingOnly && !/\b(?:open|choose|select|tap|click|enter|save|calculate|generate)\b/u.test(words)) return "acknowledgment";
   const acknowledgments = /^(?:(?:yes|yeah|yep|ok|okay|sure|absolutely|certainly|great|perfect|wonderful|awesome|excellent|nice|indeed|thanks|thank you|got it|understood|i understand|no problem|you re welcome|happy to help|glad to help|i can help(?: with that)?|sounds (?:good|great|delicious|like (?:a )?(?:delicious|good|great|wonderful|perfect) (?:plan|idea))|that sounds (?:good|great|delicious)|(?:that s )?(?:a )?(?:great|good|delicious) (?:choice|plan|idea)|none|null|undefined|n a)\s*)+$/u;
   return acknowledgments.test(words) ? "acknowledgment" : "useful";
 }

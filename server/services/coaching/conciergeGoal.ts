@@ -46,12 +46,6 @@ function goalFits(id: CoachDestinationId, goal: ConciergeGoal): boolean {
     case "my_perfect_menu":
     case "meal_builders":
       return goal.activity === "plan_meals" && goal.explicitFeatureId === id;
-    // Read-only entry pages have no food-generation inference. They require a
-    // named request or a separately validated recommendation/acceptance.
-    case "shopping_list":
-    case "biometrics":
-    case "daily_journal":
-      return false;
   }
 }
 
@@ -63,15 +57,13 @@ export function validateConciergeGoal(
     completeMissingDestination?: boolean;
     /** Only the conversation service may supply this from its loaded pending state. */
     acceptedPendingRecommendation?: boolean;
-    /** Server-owned whole-request binding to a reviewed feature alias. */
-    explicitNavigationDestination?: CoachDestinationId;
   } = {},
 ): ConciergeDecision | undefined {
   const parsed = ConciergeDecisionSchema.safeParse(value);
   if (!parsed.success) return undefined;
   const decision = parsed.data;
   if (decision.mode !== "food_assistance") return decision;
-  // The single-call path must not lose a ready semantic goal merely
+  // Development's single-call path must not lose a ready semantic goal merely
   // because the model omitted its action ID. Reuse the existing readiness veto;
   // never interpret words, infer preparation, or pick among competing matches.
   if (!decision.destinationId && options.completeMissingDestination && decision.goal) {
@@ -87,12 +79,10 @@ export function validateConciergeGoal(
   // An earlier Grocery Coach request cannot turn a new generic meal request
   // into an explicit one. A server-loaded, accepted pending offer retains its
   // original name evidence; follow-up consent is not required to repeat it.
-  const requestEvidence = id === "grocery_create_meal" &&
+  const requestEvidence = process.env.NODE_ENV === "development" && id === "grocery_create_meal" &&
     !options.acceptedPendingRecommendation ? memberMessages.slice(-1) : memberMessages;
-  const explicitlyRequested = goal?.explicitFeatureId === id && (
-    options.explicitNavigationDestination === id || options.acceptedPendingRecommendation ||
-    requestEvidence.some(message =>
-      mentionsCoachDestination(message, id, process.env.NODE_ENV)));
+  const explicitlyRequested = goal?.explicitFeatureId === id && requestEvidence.some(message =>
+    mentionsCoachDestination(message, id, process.env.NODE_ENV));
   if (availableTools.some(tool => tool.id === id) && goal && (explicitlyRequested || goalFits(id, goal))) {
     return decision;
   }
@@ -115,7 +105,7 @@ export const CONCIERGE_GOAL_INSTRUCTIONS = [
   "explicitFeatureId: exact available ID only when the member explicitly asks to use/open that named feature; otherwise null. A discussion, food mention, or previous assistant recommendation is not a member request.",
   "Food preference (light, flavorful, spicy, seafood, sushi, sweet, etc.) does not by itself establish activity or occasion. Unknown critical distinctions mean clarification and destinationId=null.",
   "A desire to prepare a small savory snack fits Craving Creator. Preparing a chosen dish or full meal fits Create a Dish. Preparing dessert, sushi, or a drink uses its dedicated creator. A food name alone does not imply preparation.",
-  "For eating out, chosen restaurant means Restaurant Guide; explicitly wanting to find somewhere or having no restaurant chosen means Find Meals Near Me. If restaurant choice is unresolved, ask naturally; never assume a restaurant or that none is chosen.",
+  "For eating out, chosen restaurant means Restaurant Assistant; explicitly wanting to find somewhere or having no restaurant chosen means Find Meals Near Me. If restaurant choice is unresolved, ask naturally; never assume a restaurant or that none is chosen.",
   "Use available ingredients only when that is the member's expressed goal. Weekly meal planning and clinical workflows require their verified hubs; if not available, explain that limitation with no substitute button.",
   "These are internal semantic considerations, not a checklist to collect from the member. Ask only one useful unresolved question, or offer a few practical food ideas. Flavor, protein, occasion, activity, budget, time, and ingredients matter only when relevant. Do not ask all of them or repeat answered questions.",
   "Keep food preferences, budget and practical constraints in the conversation; a change of mind replaces the earlier activity/restaurant/destination. Reassess readiness on this turn, not from a stale feature recommendation.",

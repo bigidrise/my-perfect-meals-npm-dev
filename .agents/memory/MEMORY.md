@@ -31,9 +31,7 @@
 - [Release type gate](release-type-gate.md) — use the layered release check so newly introduced type errors cannot hide in debt.
 - [Process environment types](process-environment-type-contracts.md) — named-key Pick and Partial Pick can reject an index-signature-only environment dictionary.
 - [Drizzle schema migration fallback](drizzle-kit-push-instability.md) — use small idempotent SQL migrations when schema-pull tooling is unreliable.
-- [Drizzle array columns](ace-drizzle-array-rule.md) — SQL templates expand arrays; use explicit per-value conditions for membership queries.
-- [PostgreSQL parameter gaps](postgres-parameter-gaps.md) — mocked writes can pass while live updates fail if SQL leaves unused leading placeholders.
-- [Neon pooler read-only queries](neon-pooler-read-only-queries.md) — pooled connection rejects read-only startup options; use an explicit read-only transaction.
+- [PostgreSQL query contracts](postgres-query-reference-index.md) — array expansion, parameter gaps, catalog decoding and pooled read-only queries.
 - [Studio media lifecycle](studio-media-reference-index.md) — video retention, MIME compatibility, participant deletion, failed media, transcription result scope and voice queue integrity.
 - [OpenAI server runtime](openai-server-upload-runtime.md) — explicit upload shims and SDK fetch injection; global fetch mocks alone do not prove isolation.
 - [Bundled-first iOS startup](bundled-first-ios-startup.md) — native startup must use packaged web assets; remote APIs are a separate, explicit dependency.
@@ -74,7 +72,17 @@
 - [Short-form food voice input](short-form-food-voice-input.md) — voice only populates editable text; normal submission and governance remain authoritative.
 - [One-action food choice](one-action-food-choice.md) — profiles set defaults; an informed explicit choice governs one food action without changing the profile.
 - [Macro replacement boundary](macro-replacement-boundary.md) — recalculation is preview-only; saved targets remain authoritative until a final confirmed save succeeds.
-- [Business identity and lifecycle references](business-identity-lifecycle-reference-index.md) — invitations, clocks, membership, locations, referrals, commercial terms and workspace lifecycle.
+- [Business invitation identity](business-invitation-identity.md) — one email-bound invitation connects existing or new accounts through the same acceptance path.
+- [Physician pilot invitation experience](physician-pilot-invitation-experience.md) — one emailed link preserves auth context; personal and organization paths share the physician clock, not client clocks.
+- [Organization-owned Rewardful identity](organization-rewardful-identity.md) — Rewardful identities belong to exact organizations; never infer them from an operator’s user ID or email.
+- [Multi-organization membership](multi-organization-membership.md) — one account can manage multiple isolated organizations through explicit workspace selection.
+- [Business Suite commercial boundary](business-suite-commercial-boundary.md) — $44.99 is flat at quantity 1; invitations never grant permanent sponsored professional access.
+- [Permanent account and optional workspace lifecycle](account-workspace-lifecycle.md) — Studio and Organization attach to one identity; ending renewal preserves paid-through access and same-subscription reversal.
+- [Paid organization workspace visibility](paid-organization-workspace-visibility.md) — self-service organizations appear at login only after paid activation; pending setup stays hidden.
+- [Organization invitation clocks](organization-invitation-clocks.md) — organization, patient, and professional temporary access use separate clocks and entitlement types.
+- [Organization invitation delivery state](organization-invitation-delivery-state.md) — pending means provider-accepted; delivery failures must remain retryable and visible.
+- [Organization config resilience](organization-config-resilience.md) — authenticated tenant config may be partial; normalize it over complete defaults before feature-flag reads.
+- [Organization Location isolation](organization-location-isolation.md) — parent administration never implies Location access; active context is an exact authorized pair.
 - [Diabetes glucose context boundary](diabetes-glucose-context-boundary.md) — all food surfaces enforce state produce choices; only the Diabetes Meal Builder consumes diabetes-specific numbers.
 - [Create a Dish expansion isolation](create-dish-expansion-isolation.md) — expansion is typed culinary intent owned only by create_a_dish, never generic creator behavior.
 - [Icon pill choices](icon-pill-choice-layout.md) — icon-based food selectors place the icon above a compact text pill, not inside an oversized button.
@@ -132,7 +140,6 @@
 - [Craving quality standard](craving-quality-standard.md) — preserve adapted food identity without rigid ingredients, routine extra AI checks, or overrejecting legitimate variations.
 - [Pilot erasure and receipt retention](pilot-erasure-and-receipt-retention.md) — operational capabilities and financial consent have different erasure purposes; no receipt retention period was established.
 - [Neon preflight default privileges](neon-preflight-default-privileges.md) — scope default ACL checks to the actual creator, schema, and object type; provider defaults need not apply.
-- [PostgreSQL catalog array decoding](postgres-catalog-array-decoding.md) — cast catalog identifier arrays to text[] for node-postgres; name[] may arrive as raw strings.
 - [Drizzle billing insert defaults](drizzle-billing-insert-defaults.md) — billing-column names alone cannot distinguish free inserts from paid writes; test actual Drizzle SQL.
 - [Reusable business partner pilot](reusable-business-partner-pilot.md) — one shared link, independent per-account pilot clocks; forwarding restrictions are explicitly deferred.
 - [Guided Journey authority](guided-journey-authority.md) — explain existing tasks and verify saved work; guidance never owns navigation, access, or nutrition decisions.

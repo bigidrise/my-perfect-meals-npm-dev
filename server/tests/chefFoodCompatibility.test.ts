@@ -25,7 +25,6 @@ import {
 import { runConciergeConversation } from "../services/coaching/conciergeConversation";
 import { FOOD_INCLUSION_PRIORITY_REGISTRY, NUTRITION_PRIORITIES_REGISTRY_VERSION } from "../../shared/nutritionPriorities";
 import { getCornerCapabilities } from "../services/coaching/capabilityRegistry";
-import { conciseFeatureHandoff } from "../services/coaching/featurePresentation";
 
 const originalEnvironment = process.env.NODE_ENV;
 const fact = (value: string[], status = value.length ? "known" : "none") =>
@@ -51,7 +50,7 @@ const discussion = (mode = "discussion") => ({
 const inspect = (declaration: unknown, ctx: any = context(), field = "message") =>
   inspectChefFoodDeclarations(declaration, field, ctx);
 
-beforeEach(() => { process.env.NODE_ENV = originalEnvironment === "production" ? "production" : "development"; jest.clearAllMocks(); });
+beforeEach(() => { process.env.NODE_ENV = "development"; jest.clearAllMocks(); });
 afterEach(() => {
   expect(db.execute).not.toHaveBeenCalled();
   expect(pool.query).not.toHaveBeenCalled();
@@ -202,106 +201,6 @@ test("unknown allergies and incomplete ingredients remain visible uncertainty", 
   expect(result.presentation?.message).toContain("allergy information is unconfirmed");
   expect(result.presentation?.message).toContain("Full ingredients aren't confirmed");
 });
-test("feature-only protein shake routing carries no food assessment", async () => {
-  const ctx = context();
-  ctx.coachingContextSnapshot.memberEvidence.profile.allergies = { value: null, status: "unknown" } as any;
-  const { result } = await run(
-    "To make a protein shake, use Beverage Creator. Would you like me to open Beverage Creator?",
-    declared("Protein shake", null, "unknown"), {
-      ctx, input: "I want to make a protein shake.",
-      tools: getCornerCapabilities(["all"], "development").map(cap => ({ ...cap, scope: "adult", featureTarget: cap.id })),
-      turn: { memberNeed: "feature_help", responsePurpose: "feature_only_offer", navigationIntent: "recommendation",
-        conciergeDecision: { mode: "food_assistance", destinationId: "beverage_creator",
-          goal: { activity: "prepare", occasion: "beverage", restaurant: "unknown",
-            dishChosen: false, specialty: "none", explicitFeatureId: null } } },
-    });
-  expect(result.presentation?.message).not.toContain("Your allergy information is unconfirmed.");
-  expect(result.presentation?.message).not.toContain("Full ingredients aren't confirmed.");
-  expect(result.presentation?.message).not.toContain("Ingredient screening doesn't verify");
-  expect(result.presentation?.navigation?.state).toBe("recommendation_pending");
-  expect(result.todayPlan.items).toEqual([]);
-});
-const featureTools = () => getCornerCapabilities(["all"], "development")
-  .map(cap => ({ ...cap, scope: "adult" as const, featureTarget: cap.id }));
-const drinkOffer = (memberNeed = "feature_help") => ({
-  memberNeed, responsePurpose: "answer_with_offer", navigationIntent: "recommendation",
-  conciergeDecision: { mode: "food_assistance", destinationId: "athlete_beverage_creator",
-    goal: { activity: "prepare", occasion: "beverage", restaurant: "unknown",
-      dishChosen: false, specialty: "workout", explicitFeatureId: null } },
-});
-test.each([
-  ["Open Fridge Rescue.", "fridge_rescue"],
-  ["Open my shopping list.", "shopping_list"],
-  ["Send me to Beverage Creator.", "beverage_creator"],
-])("ordinary direct navigation has no food disclaimer: %s", async (input, destinationId) => {
-  const { result } = await run("A model draft with unused declarations.", declared("Shake", null, "unknown"),
-    { input, tools: featureTools() });
-  expect(result.presentation?.destinationId).toBe(destinationId);
-  expect(result.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId })]);
-  expect(result.foodCompatibility).toBeUndefined();
-  expect(result.presentation?.message).not.toMatch(/allergy|ingredients|cross.contact|screening|medical suitability/iu);
-  expect(result.presentation?.message).toContain("Select Open");
-});
-test("pre-workout feature help replaces misdeclared food prose, not just its disclaimer", async () => {
-  const { result } = await run("Try oats. Would you like to use Athlete Beverage Creator?",
-    declared("Oats", null, "unknown"), { input: "I need a pre-workout drink.", tools: featureTools(), turn: drinkOffer() });
-  expect(result.presentation?.navigation?.destinationId).toBe("athlete_beverage_creator");
-  expect(result.presentation?.message).toContain("Would you like me to open Athlete Beverage Creator?");
-  expect(result.presentation?.message).not.toMatch(/oats|allergy|ingredients|cross.contact|screening/iu);
-  expect(result.foodCompatibility).toBeUndefined();
-});
-test("restaurant clarification discards misdeclared food text without evaluating food", async () => {
-  const { result } = await run("Restaurant Guide helps ordering; Find Meals Near Me finds places. Which do you need?",
-    declared("Restaurant meal", null, "unknown"), { input: "I want to eat at a restaurant.",
-      turn: { memberNeed: "unclear", responsePurpose: "clarify" } });
-  expect(result.presentation?.message).toContain("Restaurant Guide");
-  expect(result.presentation?.message).toContain("Find Meals Near Me");
-  expect(result.presentation?.message).not.toMatch(/allergy|ingredients|cross.contact|screening/iu);
-  expect(result.foodCompatibility).toBeUndefined();
-  expect(result.todayPlan.items).toEqual([]);
-});
-test("actual food advice inside an offer still retains screening and relevant limitations", async () => {
-  const { result } = await run("Oats are one option. Would you like to use Athlete Beverage Creator?",
-    declared("Oats"), { input: "What could I put in a pre-workout drink?", tools: featureTools(),
-      turn: drinkOffer("nutrition_guidance") });
-  expect(result.foodCompatibility?.status).toBe("screened");
-  expect(result.presentation?.message).toContain("Oats");
-  expect(result.presentation?.message).toContain("cross-contact");
-});
-test("known food conflicts inside feature-help replies still block the entire offer", async () => {
-  const { result } = await run("Try whey. Would you like to use Athlete Beverage Creator?",
-    declared("Whey", ["whey"]), { input: "I need a pre-workout drink.", tools: featureTools(), turn: drinkOffer() });
-  expect(result.foodCompatibility?.status).toBe("blocked");
-  expect(result.presentation?.message).toContain("allergy restriction");
-  expect(result.presentation?.navigation).toBeUndefined();
-});
-test("explicit peanut-allergy safety questions retain safety handling even if mislabeled as feature help", async () => {
-  const ctx = context();
-  ctx.coachingContextSnapshot.memberEvidence.profile.allergies = fact(["peanuts"]);
-  const { result } = await run("Try a peanut shake. Would you like to use Athlete Beverage Creator?",
-    declared("Peanut shake", ["peanuts"]), {
-      input: "I have a peanut allergy. Can I safely drink this specific shake?", ctx, tools: featureTools(), turn: drinkOffer(),
-    });
-  expect(result.foodCompatibility?.status).toBe("blocked");
-  expect(result.presentation?.message).toContain("allergy restriction");
-  expect(result.presentation?.message).not.toContain("Try a peanut shake");
-  expect(result.todayPlan.items).toEqual([]);
-});
-test("explicit safety questions never acquire reviewed feature-only text on uncertain composition", async () => {
-  const { result } = await run("Would you like to use Athlete Beverage Creator?",
-    declared("Unknown shake", null, "unknown"), {
-      input: "I have a peanut allergy. Can I safely drink this specific shake?", tools: featureTools(), turn: drinkOffer(),
-    });
-  expect(result.foodCompatibility?.status).toBe("screened");
-  expect(result.presentation?.message).toContain("Full ingredients aren't confirmed");
-});
-test("reviewed feature recovery drops the entire model draft when declarations are unavailable", async () => {
-  const { result } = await run("Try an unverified ingredient. Would you like to use Athlete Beverage Creator?",
-    null, { input: "I need a pre-workout drink.", tools: featureTools(), turn: drinkOffer() });
-  expect(result.presentation?.message).toContain("Use Athlete Beverage Creator");
-  expect(result.presentation?.message).not.toMatch(/unverified ingredient|food information/iu);
-  expect(result.foodCompatibility).toBeUndefined();
-});
 test("greetings and authoritative closings do not acquire food notices", async () => {
   expect((await run("Hello!", discussion("none"), { input: "Hello" })).result.presentation?.message).toBe("Hello!");
   const { result } = await run("Try chicken.", declared("Chicken"), { input: "Thanks, that's all I needed." });
@@ -338,14 +237,15 @@ test("validated navigation still works through the active declaration gate witho
     },
   });
   expect(result.presentation?.destinationId).toBe("my_perfect_menu");
-  expect(result.presentation?.message).toBe(conciseFeatureHandoff("my_perfect_menu"));
+  expect(result.presentation?.message).toBe(handoff);
   expect(result.foodCompatibility).toBeUndefined();
 });
-test("Production applies the same authorized food declaration contract and fails closed", async () => {
+test("Production retains its response schema and behavior even if given a Development flag", async () => {
   process.env.NODE_ENV = "production";
   const { result, request } = await run("Existing released reply.", undefined);
-  expect(request.response_format.json_schema.schema.properties.foodDeclarations).toBeDefined();
-  expect(request.messages[0].content).toContain("FOOD DECLARATIONS:");
-  expect(result.presentation?.message).not.toBe("Existing released reply.");
-  expect(result.foodCompatibility?.status).toBe("unavailable");
+  expect(request.response_format.json_schema.schema.properties.foodDeclarations).toBeUndefined();
+  expect(request.messages[0].content).not.toContain("FOOD DECLARATIONS:");
+  expect(JSON.parse(request.messages[1].content).nutritionPriorityEducation).toBeUndefined();
+  expect(result.presentation?.message).toBe("Existing released reply.");
+  expect(result.foodCompatibility).toBeUndefined();
 });

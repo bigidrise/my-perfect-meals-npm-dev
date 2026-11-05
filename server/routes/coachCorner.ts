@@ -3,7 +3,6 @@ import { and, desc, eq, gte, sql } from "drizzle-orm";
 import OpenAI from "openai";
 import { db } from "../db";
 import { requireAuth, AuthenticatedRequest } from "../middleware/requireAuth";
-import { requireAskChefAvailability } from "../middleware/requireAskChefAvailability";
 import { coachingProfiles } from "../db/schema/ace";
 import { users } from "../../shared/schema";
 import { resolveDailyNutritionPrescription } from "../services/prescriptionResolver";
@@ -285,7 +284,6 @@ Respond ONLY with valid JSON. No preamble, no markdown fences.`;
 }
 
 const router = Router();
-router.use(requireAskChefAvailability);
 
 router.get("/questions", requireAuth, async (_req, res) => {
   res.json({ questions: COACH_CORNER_QUESTIONS });

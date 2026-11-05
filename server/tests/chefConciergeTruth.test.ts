@@ -57,14 +57,14 @@ test("describes Recipe Maker as a Dashboard modal and Journal as browser-local",
   expect(feature("daily_journal").purpose).toContain("cross-device synchronization are not established");
 });
 
-test("Production uses reviewed knowledge and leaves automated intelligence opt-in unchanged", () => {
+test("retains Production knowledge and leaves automated intelligence opt-in unchanged", () => {
   process.env.NODE_ENV = "production";
   const production = knowledge();
-  expect(production.features.find(item => item.id === "nutrition_education")!.label).toBe("App Library");
+  expect(production.features.find(item => item.id === "nutrition_education")!.label).toBe("Learn");
   expect(production.featureCatalog.find(item => item.id === "education")!.name)
-    .toBe("App Library");
+    .toBe("App Library and Tutorial Hub");
   expect(production.features.find(item => item.id === "daily_journal")!.purpose)
-    .toContain("browser-local storage");
+    .not.toContain("browser-local storage");
   expect(featureIntelligenceEnabled({ NODE_ENV: "development" })).toBe(false);
   expect(featureIntelligenceEnabled({ NODE_ENV: "production", ASK_CHEF_FEATURE_INTELLIGENCE: "true" })).toBe(false);
 });
@@ -76,7 +76,7 @@ test("does not project the five obsolete capability targets or create extra butt
   expect(COACH_DESTINATIONS).not.toHaveProperty("recipe_maker");
   expect(COACH_DESTINATIONS).not.toHaveProperty("education");
   expect(COACH_DESTINATIONS).not.toHaveProperty("food_preferences");
-  expect(COACH_DESTINATIONS.daily_journal.route).toBe("/get-inspiration");
+  expect(COACH_DESTINATIONS).not.toHaveProperty("daily_journal");
 });
 
 const examples = [
@@ -114,11 +114,7 @@ test.each(examples)("delivers corrected facts and preserves an explanation-only 
   const wire = JSON.parse(request.messages[1].content);
   expect(wire.platformKnowledge.features.find((item: { id: string }) => item.id === id))
     .toEqual(feature(id));
-  expect(result.presentation?.message).toBe(question === "How do I find a product rather than build a meal?"
-    ? "Find a Product: Shopping List → Grocery Store Coach → Find a Product. Open Grocery Store Coach on Shopping List, then select Find a Product."
-    : question === "Where do I import a recipe?"
-      ? "I couldn't complete that response. Nothing has been opened. Please try your request again."
-      : answer);
+  expect(result.presentation?.message).toBe(answer);
   expect(result.presentation?.navigation).toBeUndefined();
   expect(result.presentation?.destinationId).toBeUndefined();
   expect(result.todayPlan.items).toEqual([]);

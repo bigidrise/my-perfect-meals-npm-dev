@@ -16,7 +16,7 @@ import { CHEF_CONVERSATION_INSTRUCTIONS, getChefConversationInstructions } from 
 import type { PendingRecommendation } from "../services/coaching/conciergeNavigationState";
 
 const environment = process.env.NODE_ENV;
-beforeEach(() => { process.env.NODE_ENV = environment === "production" ? "production" : "development"; });
+beforeEach(() => { process.env.NODE_ENV = "development"; });
 afterAll(() => { process.env.NODE_ENV = environment; });
 const tools = getCornerCapabilities(["all"], "development").map(cap => ({
   id: cap.id, label: cap.label, description: cap.description,
@@ -143,7 +143,7 @@ test.each([
   ["Open Grocery Store Coach.", explicitGrocery],
 ] as const)("accepts a genuine follow-up without repeating the feature name: %s", async (initial, goal) => {
   const pending: PendingRecommendation = {
-    state: "recommendation_pending", destinationId: "grocery_create_meal", goal, offeredAt: new Date().toISOString(),
+    state: "recommendation_pending", destinationId: "grocery_create_meal", goal,
   };
   const { result } = await reply("Yes, please.", {
     memberNeed: "navigation", responsePurpose: "handoff", navigationIntent: "confirmed",
@@ -214,12 +214,12 @@ test("care still overrides an explicit Grocery request", async () => {
   expect(result.presentation?.destinationId).toBeUndefined();
 });
 
-test("Production applies the approved generic-meal restriction and instructions", () => {
+test("the correction does not change Production matching or its released prompt", () => {
   process.env.NODE_ENV = "production";
-  expect(mentionsCoachDestination(genericRequests[0], "grocery_create_meal", "production")).toBe(false);
-  expect(validateConciergeGoal(decision(), tools, [genericRequests[0]])?.destinationId).toBeNull();
-  expect(getChefConversationInstructions("production")).toBe(getChefConversationInstructions("development"));
-  expect(getChefConversationInstructions("production")).toContain("GROCERY MEAL INTENT:");
+  expect(mentionsCoachDestination(genericRequests[0], "grocery_create_meal", "production")).toBe(true);
+  expect(validateConciergeGoal(decision(), tools, [genericRequests[0]])?.destinationId).toBe("grocery_create_meal");
+  expect(getChefConversationInstructions("production")).toBe(CHEF_CONVERSATION_INSTRUCTIONS);
+  expect(getChefConversationInstructions("production")).not.toContain("GROCERY MEAL INTENT:");
   expect(COACH_DESTINATIONS.grocery_create_meal).toEqual({
     label: "Grocery Coach — Create a Meal", navigationLabel: "Grocery Store Coach",
     route: "/shopping-list-v2", access: "pro",

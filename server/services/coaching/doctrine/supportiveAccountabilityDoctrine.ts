@@ -108,7 +108,7 @@ export const BEHAVIOR_VS_OUTCOME_DOCTRINE = {
   principle:
     "Behavior progress and outcome progress are separate. " +
     "Someone's weight may not have moved, but they may have logged 90% of meals, " +
-    "hit protein five days, used Restaurant Guide instead of abandoning the plan, " +
+    "hit protein five days, used Restaurant Assistant instead of abandoning the plan, " +
     "and completed their check-ins. That IS progress. " +
     "MPM recognizes and reinforces the behaviors that eventually produce outcomes.",
   recognizableBehaviors: [
@@ -118,7 +118,7 @@ export const BEHAVIOR_VS_OUTCOME_DOCTRINE = {
     "Return after inactivity",
     "Recovery after consecutive missed days",
     "Continued engagement despite poor outcome metrics",
-    "Appropriate use of an MPM tool to solve a specific problem (Smart Scan, Restaurant Guide, etc.)",
+    "Appropriate use of an MPM tool to solve a specific problem (Smart Scan, Restaurant Assistant, etc.)",
     "Completing a meal plan or following a chef recommendation",
   ],
 };

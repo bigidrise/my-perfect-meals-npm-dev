@@ -4,8 +4,7 @@ import { db } from "../../db";
 import { ConciergeGoalSchema } from "../../../shared/coaching/schemas";
 import { isCoachDestinationId } from "../../../shared/coaching/navigation";
 import type { ConciergePresentation } from "../../../shared/coaching/types";
-import { pendingNavigationIsFresh, isConfirmableNavigation } from "./conciergeNavigationContinuity";
-import type { FeatureChoice } from "./featureChoice";
+import { pendingNavigationIsFresh } from "./conciergeNavigationContinuity";
 
 export type PendingRecommendation = NonNullable<ConciergePresentation["navigation"]>;
 const StoredNavigation = z.object({
@@ -13,15 +12,13 @@ const StoredNavigation = z.object({
   destinationId: z.string().refine(isCoachDestinationId),
   goal: ConciergeGoalSchema,
   offeredAt: z.string().optional(),
-  performedAt: z.string().datetime().optional(),
 });
-const StoredFeatureChoice = z.object({ kind: z.literal("dessert_size"), offeredAt: z.string() });
 
 /** Read the latest assistant only: never resurrect a superseded recommendation
  * from text history or a rolling summary. No schema or new session store. */
-export async function loadRecentConciergeState(
+export async function loadRecentNavigation(
   conversationId: string, ownerId: string,
-): Promise<{ navigation?: PendingRecommendation; featureChoice?: FeatureChoice }> {
+): Promise<PendingRecommendation | undefined> {
   try {
     const result = await db.execute<{ structured_payload: any; created_at: Date | string }>(sql`
       SELECT m.structured_payload, m.created_at
@@ -32,33 +29,28 @@ export async function loadRecentConciergeState(
         AND m.role = 'assistant'
       ORDER BY m.created_at DESC, m.id DESC LIMIT 1
     `);
-    const presentation = result.rows[0]?.structured_payload?.presentation;
-    const choice = StoredFeatureChoice.safeParse(presentation?.featureChoice);
-    const featureChoice = choice.success &&
-      pendingNavigationIsFresh(choice.data.offeredAt) ? choice.data : undefined;
-    const parsed = StoredNavigation.safeParse(presentation?.navigation);
-    if (!parsed.success) return { featureChoice };
+    const parsed = StoredNavigation.safeParse(
+      result.rows[0]?.structured_payload?.presentation?.navigation,
+    );
+    if (!parsed.success) return undefined;
     // Legacy immediate offers use their actual stored timestamp. Never scan
     // older messages or renew the original age after an informational reply.
     const offeredAt = parsed.data.offeredAt ??
       (result.rows[0]?.created_at instanceof Date
         ? result.rows[0].created_at.toISOString() : result.rows[0]?.created_at);
-    if (!pendingNavigationIsFresh(offeredAt)) return { featureChoice };
-    return { navigation: { ...parsed.data, offeredAt } as PendingRecommendation, featureChoice };
+    if (!pendingNavigationIsFresh(offeredAt)) return undefined;
+    return { ...parsed.data, offeredAt } as PendingRecommendation;
   } catch {
     // An unavailable record is not authorization. A fresh named direct request
     // can still be validated independently; "yes" cannot.
     console.warn("[ChefConcierge] pending_recommendation_unavailable");
-    return {};
+    return undefined;
   }
 }
 
-export async function loadRecentNavigation(conversationId: string, ownerId: string) {
-  return (await loadRecentConciergeState(conversationId, ownerId)).navigation;
-}
 export async function loadPendingRecommendation(
   conversationId: string, ownerId: string,
 ): Promise<PendingRecommendation | undefined> {
   const recent = await loadRecentNavigation(conversationId, ownerId);
-  return isConfirmableNavigation(recent) ? recent : undefined;
+  return recent?.state === "recommendation_pending" ? recent : undefined;
 }

@@ -58,31 +58,26 @@ test("one contiguous general strategy replaces the scattered coaching blocks", (
   ]) expect(instructions).toContain(requirement);
 });
 
-test("Development policy bytes stay fixed except the approved explicit-selection correction", () => {
+test("all 30 retained Development policy paragraphs match their pre-consolidation bytes", () => {
   // Captured from the assembled instructions BEFORE editing, not regenerated
   // from the implementation under test. Includes role, care, ownership,
   // navigation/consent, shopping, creator handoff and structured-output contracts.
   const retained = getChefConversationInstructions("development").split("\n")
-    .filter(line => !line.startsWith("RESPONSE STRATEGY —") && !line.startsWith("VERIFIED NAVIGATION AUTHORITY:"));
+    .filter(line => !line.startsWith("RESPONSE STRATEGY —"));
   expect(retained).toHaveLength(30);
-  const newConsent = "An explicit feature selection is navigation consent: return its validated handoff and existing button without asking permission again. An assistant recommendation alone creates only pending state, never consent. Clicking the authorized button, not Chef's prose, opens the destination.";
-  const oldConsent = "Selecting a feature leads to its appropriate brief recommendation and validated pending state, not automatic navigation or repeated alternatives.";
-  expect(retained.find(line => line.startsWith("CONTEXTUAL CHOICE ANSWERS:"))).toContain(newConsent);
-  expect(hash(retained.map(line => line.startsWith("CONTEXTUAL CHOICE ANSWERS:")
-    ? line.replace(newConsent, oldConsent) : line).join("\n")))
-    .toBe("6de21aef592734982e67587ac893ab74b28207f760cf287c3eae23ccb13b9533");
+  expect(hash(retained.join("\n"))).toBe("6de21aef592734982e67587ac893ab74b28207f760cf287c3eae23ccb13b9533");
 });
 
-test.each(["production", "test", undefined])("approved instructions are environment-independent for %s", environment => {
-  expect(getChefConversationInstructions(environment))
-    .toBe(getChefConversationInstructions("development"));
+test.each(["production", "test", undefined])("released instruction bytes are unchanged for %s", environment => {
+  expect(hash(getChefConversationInstructions(environment)))
+    .toBe("4387e86c27a11a90df661b28b277342fe79826ef8ec8471a89d6d69775257ad3");
 });
 
 test("reviewed navigation guidance and unchanged mandatory food-screening instructions retain their fingerprints", () => {
   expect(hash(getPlatformGuidanceInstructions("development")))
     .toBe("79792d454c73a80398a953e12a78d4dbf175c2a9fa11ba34504d8a42615e081b");
   expect(hash(CHEF_FOOD_COMPATIBILITY_INSTRUCTIONS))
-    .toBe("51d4c71bea1e84d7d4934cf9e0df30bdea582242214ef81c6020f6d4e887481a");
+    .toBe("49f2eb490e4ed41497785f84d4ed6cccdea3c6a32ce77dccc45ec30d35e5f66b");
 });
 
 test.each(REVIEW_FIXTURES)("Phase 1 harness delivers the strategy and selected history across five synthetic turns: %s", async fixture => {

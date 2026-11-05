@@ -9,12 +9,11 @@ import { getFeatureUsageKnowledge, FEATURE_USAGE_KNOWLEDGE } from "../services/c
 import { getChefConversationInstructions, CHEF_CONVERSATION_INSTRUCTIONS } from "../services/coaching/conciergeInstructions";
 import { getPlatformGuidanceInstructions, PLATFORM_GUIDANCE_INSTRUCTIONS } from "../services/coaching/platformKnowledge";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
-import { conciseFeatureHandoff } from "../services/coaching/featurePresentation";
 import type { ConciergeGoal } from "../../shared/coaching/schemas";
 import type { PendingRecommendation } from "../services/coaching/conciergeNavigationState";
 
 const environment = process.env.NODE_ENV;
-beforeEach(() => { process.env.NODE_ENV = environment === "production" ? "production" : "development"; });
+beforeEach(() => { process.env.NODE_ENV = "development"; });
 afterAll(() => { process.env.NODE_ENV = environment; });
 const tools = getCornerCapabilities(["all"], "development").map(cap => ({
   id: cap.id, label: cap.label, description: cap.description,
@@ -130,7 +129,7 @@ describe("Development occasion/serving intent and direct-to-feature contracts", 
     ] });
     expect(result.presentation?.navigation?.state).toBe("navigation_confirmed");
     expect(result.presentation?.destinationId).toBe("create_a_dish");
-    expect(result.presentation?.message).toBe(conciseFeatureHandoff("create_a_dish"));
+    expect(result.presentation?.message).toBe(message);
     expect(result.presentation?.creatorRequest).toEqual({ destinationId: "create_a_dish", idea: "homemade chicken soup" });
     expect(result.todayPlan.items.some(item => item.kind === "use_feature" && item.destinationId === "create_a_dish")).toBe(true);
     expect(result.presentation?.message).not.toMatch(/[?]|already opened|already generated/i);
@@ -143,7 +142,7 @@ describe("Development occasion/serving intent and direct-to-feature contracts", 
       handoffMessage: message, conciergeDecision: action("sushi_creator", { ...sushi, explicitFeatureId: "sushi_creator" }),
     });
     expect(result.presentation?.navigation?.state).toBe("direct_navigation");
-    expect(result.presentation?.message).toBe(conciseFeatureHandoff("sushi_creator"));
+    expect(result.presentation?.message).toBe(message);
     expect(result.presentation?.destinationId).toBe("sushi_creator");
     expect(result.presentation?.creatorRequest).toBeUndefined();
   });
@@ -172,7 +171,7 @@ describe("Development occasion/serving intent and direct-to-feature contracts", 
     expect(care.result.presentation?.destinationId).toBeUndefined();
   });
 
-  it("delivers approved suitability in both runtimes without changing model settings", async () => {
+  it("delivers verified suitability and concise handoff instructions without changing Production or model settings", async () => {
     const { request, wire } = await turn("How do I choose the right tool?", "Your activity determines the useful feature.");
     for (const id of ["craving_creator", "dessert_creator", "my_perfect_gatherings", "sushi_creator",
       "restaurant_guide", "find_meals_near_me"] as const) {
@@ -193,9 +192,9 @@ describe("Development occasion/serving intent and direct-to-feature contracts", 
       .toContain("single Thanksgiving");
     expect(request.messages[0].content).toContain("not a tutorial or an interview");
     expect(request.messages[0].content).toContain("do not invent a prefill");
-    expect(getFeatureUsageKnowledge("production")).toEqual(getFeatureUsageKnowledge("development"));
-    expect(getChefConversationInstructions("production")).toBe(getChefConversationInstructions("development"));
-    expect(getPlatformGuidanceInstructions("production")).toBe(getPlatformGuidanceInstructions("development"));
+    expect(getFeatureUsageKnowledge("production")).toBe(FEATURE_USAGE_KNOWLEDGE);
+    expect(getChefConversationInstructions("production")).toBe(CHEF_CONVERSATION_INSTRUCTIONS);
+    expect(getPlatformGuidanceInstructions("production")).toBe(PLATFORM_GUIDANCE_INSTRUCTIONS);
     expect(request.model).toBe("gpt-4o");
     expect(request.temperature).toBe(0.4);
     expect(request.max_tokens).toBe(2000);
@@ -261,7 +260,7 @@ describe("Development context versus immediate activity (mocked judgment)", () =
       { role: "user", content: correction }, { role: "assistant", content: offer }] });
     expect(accepted.result.presentation?.navigation?.state).toBe("navigation_confirmed");
     expect(accepted.result.presentation?.destinationId).toBe("my_perfect_buffet");
-    expect(accepted.result.presentation?.message).toBe(conciseFeatureHandoff("my_perfect_buffet"));
+    expect(accepted.result.presentation?.message).toBe(message);
     expect(accepted.result.presentation?.creatorRequest).toBeUndefined();
     expect(accepted.result.todayPlan.items).toEqual([expect.objectContaining({
       kind: "use_feature", destinationId: "my_perfect_buffet",
@@ -280,7 +279,7 @@ describe("Development context versus immediate activity (mocked judgment)", () =
     },
   );
 
-  it("delivers the same verified travel/buffet boundaries without changing approved access", async () => {
+  it("delivers verified travel/buffet boundaries without changing Production or approved access", async () => {
     const { wire } = await turn("What tool should I use on a cruise?", "It depends on your immediate food activity.");
     for (const id of ["my_perfect_getaway", "my_perfect_buffet"] as const) {
       const usage = wire.platformKnowledge.featureUsage[id];
@@ -291,7 +290,7 @@ describe("Development context versus immediate activity (mocked judgment)", () =
     expect(wire.platformKnowledge.featureUsage.my_perfect_getaway.suitability.notFor.join(" "))
       .toContain("actual-food plate-selection");
     expect(wire.platformKnowledge.featureUsage.my_perfect_buffet.suitability.offerWhen).toContain("even when");
-    expect(getFeatureUsageKnowledge("production")).toEqual(getFeatureUsageKnowledge("development"));
+    expect(getFeatureUsageKnowledge("production")).toBe(FEATURE_USAGE_KNOWLEDGE);
     expect(COACH_DESTINATIONS.my_perfect_getaway).toMatchObject({
       label: "My Perfect Getaway", route: "/lifestyle/my-perfect-getaway", access: "clinical",
     });

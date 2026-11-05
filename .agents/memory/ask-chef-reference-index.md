@@ -4,17 +4,12 @@ description: Roadmap requirements, navigation naming, response authority, and fo
 ---
 
 - [Parent navigation](ask-chef-parent-navigation.md) — Grocery Store Coach buttons name the parent feature; conversation names the nested function.
-- [Navigation authority](ask-chef-navigation-authority.md) — reviewed directions, explicit opening requests, and founder-controlled promotion.
-- [Test history isolation](ask-chef-test-history-isolation.md) — the smoke-test identity is also used interactively; fresh test chats must not become restored user history.
 - [Response authority](ask-chef-response-authority.md) — typed care states govern unused model fields; continuations and role-scoped knowledge need separate evidence.
 - [Wordmark](ask-chef-wordmark.md) — founder selected the silver/orange swoosh without a chef hat; the adjacent mascot already wears one.
 - [Reply avatar](ask-chef-reply-avatar.md) — compact transparent flame Chef replaces the Coach sender label; no badge or background tile.
 - [Food screening](ask-chef-food-screening-boundary.md) — declared proposals only; structured output does not establish complete chat safety or clinical clearance.
-- [Presentation policy](ask-chef-presentation-policy.md) — quiet internal safeguards, relevant warnings, bold verified feature names and concise handoffs.
 - [Macro evidence](ask-chef-macro-evidence-boundary.md) — stored comparisons and locked-day intake stay qualified; no resolver writes or inferred effective-target authority.
 - [Conversational Intelligence roadmap](../../docs/roadmap/ask-chef-conversational-intelligence.md) — education-to-coaching judgment, supplied-evidence limits, live-feedback interpretation and phase approval boundaries.
-- [Research release sequence](ask-chef-research-release-sequence.md) — finish navigation release first; controlled research needs separate Development approval and its own release.
-- [Runtime and visibility](ask-chef-runtime-and-visibility-policy.md) — approved behavior must work in both runtimes; visibility and founder release control are separate.
 
 ## Review scope naming
 

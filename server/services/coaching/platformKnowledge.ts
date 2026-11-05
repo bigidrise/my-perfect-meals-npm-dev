@@ -1,5 +1,5 @@
 /**
- * Reviewed member-facing knowledge for the approved conversational call.
+ * Reviewed member-facing knowledge for the Development conversational call.
  * This is not a destination registry, entitlement resolver, or intent router.
  * Entry points are human-readable guidance, not executable paths or handoffs.
  */
@@ -8,7 +8,6 @@ import { PLATFORM_HELP_KNOWLEDGE } from "./platformHelpKnowledge";
 import { isAskChefConversationEnabled } from "../../../shared/coaching/askChefRelease";
 import { getMemberPlatformCatalog } from "./platformFeatureCatalog";
 import type { ChefKnowledgeAccess } from "./platformKnowledgeAccess";
-import { COACH_NAVIGATION_GUIDANCE, COACH_KNOWLEDGE_ONLY_NAVIGATION } from "../../../shared/coaching/navigationGuidance";
 
 interface MemberFeatureKnowledge {
   id: string;
@@ -138,7 +137,7 @@ const memberFeatures: MemberFeatureKnowledge[] = [
   },
 ];
 
-// Founder-approved knowledge corrections. These are explanations,
+// Founder-approved Development-only knowledge corrections. These are explanations,
 // not new destinations, entitlement rules, feature execution or registry promotion.
 const conciergeTruth: Record<string, Partial<MemberFeatureKnowledge>> = {
   nutrition_education: {
@@ -168,9 +167,10 @@ const conciergeTruth: Record<string, Partial<MemberFeatureKnowledge>> = {
 
 export function getDevelopmentPlatformKnowledge(access?: ChefKnowledgeAccess) {
   if (!isAskChefConversationEnabled(process.env.NODE_ENV)) return undefined;
+  const development = process.env.NODE_ENV === "development";
   return {
     featureCatalog: getMemberPlatformCatalog(access).map(fact =>
-      fact.id === "education" ? {
+      development && fact.id === "education" ? {
         ...fact, name: "App Library", aliases: ["Learn", "App Library"],
         purpose: "Platform and nutrition topics, narration and documentation on the Learn page. Tutorial Hub is a separate tutorial-media page.",
         gettingStarted: ["Open App Library (the Learn page). For tutorial videos use the separate Tutorial Hub; some videos are Coming Soon.",
@@ -178,16 +178,16 @@ export function getDevelopmentPlatformKnowledge(access?: ChefKnowledgeAccess) {
         outputs: "Educational topics, narration and documentation; not the separate Tutorial Hub.",
       } : fact),
     features: memberFeatures.filter(feature => feature.status === "available")
-      .map(feature => ({ ...feature, ...conciergeTruth[feature.id] })).map(feature =>
-      feature.id === "meal_builders"
+      .map(feature => development ? { ...feature, ...conciergeTruth[feature.id] } : feature).map(feature =>
+      process.env.NODE_ENV === "development" && feature.id === "meal_builders"
         ? { ...feature, purpose: "The Meal Builders landing page leads members to their assigned builder, where they create and save personalized dated meals and meal boards. Ordinary members generally have one assigned builder; administrators may have access to multiple builders. Do not suggest freely choosing a preferred builder, infer administrator authority, choose or activate a specialized clinical builder, bypass onboarding, or overwrite the assigned builder." }
         :
-      feature.id === "grocery_coach"
+      process.env.NODE_ENV === "development" && feature.id === "grocery_coach"
         ? { ...feature, purpose: "Inside Shopping List, Grocery Store Coach supports both meal help and product help through two tabs: Build a Meal and Find a Product. Build a Meal helps plan a meal and ingredients to purchase, generating the meal and corresponding grocery list. A member who simply wants to prepare a chosen dish instead fits Create a Dish. Find a Product discovers grocery products to buy using onboarding and the nutrition profile; Product Scan separately evaluates an actual product. Activity and context, not food keywords, determine fit. Existing access and food safeguards govern results; never invent products, guarantee suitability or promise live inventory." }
         : feature),
     unavailableFeatures: memberFeatures.filter(feature => feature.status !== "available"),
     featureUsage: getFeatureUsageKnowledge(process.env.NODE_ENV),
-    platformHelp: {
+    platformHelp: process.env.NODE_ENV === "development" ? {
       ...PLATFORM_HELP_KNOWLEDGE,
       shopping: { ...PLATFORM_HELP_KNOWLEDGE.shopping,
         controls: PLATFORM_HELP_KNOWLEDGE.shopping.controls.map(control =>
@@ -204,10 +204,8 @@ export function getDevelopmentPlatformKnowledge(access?: ChefKnowledgeAccess) {
           "Explain a few relevant categories, not an exhaustive platform tour. Individual features retain availability and access checks.",
           "Do not manufacture a landing-page button, executable link, transfer or unrelated replacement. Some pairing experiences remain Coming Soon."],
       },
-    },
-    navigationGuidance: COACH_NAVIGATION_GUIDANCE,
-    knowledgeOnlyNavigation: COACH_KNOWLEDGE_ONLY_NAVIGATION,
-    navigationPolicy: "navigationGuidance is the sole authority for written UI entry relationships. Do not author menu paths or directions in free prose; the server renders reviewed instructions. Knowledge is not navigation permission. Only IDs in availableFeatures may become buttons. Other entries are knowledge-only. My Perfect Menu, Meal Builders, Shopping List, My Biometrics and Daily Journal support entry-page navigation only, without request transfer. Never invent a URL, button, subsection opening or prefill.",
+    } : PLATFORM_HELP_KNOWLEDGE,
+    navigationPolicy: "Knowledge is not navigation permission. Only IDs in availableFeatures may become buttons. Other entries are knowledge-only. My Perfect Menu and Meal Builders support entry-page navigation only, without request transfer. Explain existing entry points honestly; never invent a URL, button or prefill.",
   };
 }
 
@@ -227,12 +225,13 @@ export const PLATFORM_GUIDANCE_INSTRUCTIONS = [
   "A knowledge-only feature can be explained, but explicitly say when Chef cannot provide its button or transfer its request. Do not fabricate links, fall back to an unrelated creator, select a specialized builder, or reuse Hydration's handoff tokens. Preserve only the reviewed Create a Dish idea handoff.",
 ].join("\n");
 
-export function getPlatformGuidanceInstructions(_environment?: string): string {
+export function getPlatformGuidanceInstructions(environment: string | undefined): string {
+  if (environment !== "development") return PLATFORM_GUIDANCE_INSTRUCTIONS;
   return PLATFORM_GUIDANCE_INSTRUCTIONS.replace(
     "Skip the introduction when their activity is clear and use the relevant existing workflow directly.",
     "Skip unnecessary introductions when the activity is clear, but do not confuse a clear drink format with a resolved underlying need. Use reviewed featureUsage.suitability to distinguish ordinary beverage creation, performance drink creation and circumstance-related hydration support. An existing workflow is appropriate only when it helps the member's current need and material uncertainty or required care does not take priority. This does not require an interview, prohibit suitable nutrition-answer-plus-offer replies, or add navigation permission.",
   ).replace(/^OTHER RELEVANT DISTINCTIONS:.*$/m,
-     "OTHER RELEVANT DISTINCTIONS: Interpret activity, occasion and serving intent using reviewed suitability, not a serving-count cutoff. Craving Creator serves immediate sweet or savory cravings, including small craving-sized dessert portions, and can make multiple servings; Dessert Creator serves complete cakes, pies and shareable dessert recipes. Create a Dish serves a chosen dish or family-dinner recipe; My Perfect Gatherings serves the complete holiday or group food experience, not a single holiday dish or dessert. Sushi Creator is for preparation at home; Find Meals Near Me discovers restaurants and Restaurant Guide helps order at an already chosen restaurant. Clarify an ordinary beverage versus an athletic-performance/workout beverage only when unresolved; Beverage Creator serves ordinary drinks and Athlete Beverage Creator performance drinks. Ask one useful distinction only if unresolved; use history, stop when clear, and leave exact servings and optional controls to the destination. No food, holiday or serving keyword independently selects a feature. Existing safety, access and single-confirmation contracts remain authoritative.")
+     "OTHER RELEVANT DISTINCTIONS: Interpret activity, occasion and serving intent using reviewed suitability, not a serving-count cutoff. Craving Creator serves immediate sweet or savory cravings, including small craving-sized dessert portions, and can make multiple servings; Dessert Creator serves complete cakes, pies and shareable dessert recipes. Create a Dish serves a chosen dish or family-dinner recipe; My Perfect Gatherings serves the complete holiday or group food experience, not a single holiday dish or dessert. Sushi Creator is for preparation at home; Find Meals Near Me discovers restaurants and Restaurant Assistant helps order at an already chosen restaurant. Clarify an ordinary beverage versus an athletic-performance/workout beverage only when unresolved; Beverage Creator serves ordinary drinks and Athlete Beverage Creator performance drinks. Ask one useful distinction only if unresolved; use history, stop when clear, and leave exact servings and optional controls to the destination. No food, holiday or serving keyword independently selects a feature. Existing safety, access and single-confirmation contracts remain authoritative.")
     .replace(/^NEW MEMBER ORIENTATION:.*$/m,
       "NEW MEMBER ORIENTATION: When a new or uncertain member genuinely has no stated goal, briefly offer three meaningful starting activities in natural language: planning a day of meals, creating an individual dish, or exploring Lifestyle features. End with a question explicitly naming all three choices, such as meal planning, Create a Dish or Lifestyle, with responsePurpose=clarify, navigationIntent=none and conciergeDecision=null; do not immediately choose My Perfect Menu or explain the whole platform. Follow UNIVERSAL CHOICE CLARITY without repeating the full descriptions in the question. This is contextual guidance, not a mandatory welcome or decision tree. Use prior answers and the latest correction: do not repeat an activity choice already made or restart it merely because the member is new. If they choose meal planning, distinguish its methods next only when unresolved. A clear individual-dish preparation request, including wanting to try making one dish or homemade chicken soup, can proceed to the appropriate available Create a Dish recommendation without this orientation. Interpret actual intent and reviewed suitability, not a keyword rule; preserve specialized creator distinctions and necessary safety. Do not claim to know exact onboarding or Macro Calculator completion, or bypass their existing gates.")
     .replace(/^MEAL STARTING PAGES:.*$/m,

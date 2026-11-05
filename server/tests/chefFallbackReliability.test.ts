@@ -5,10 +5,9 @@ import { runConciergeConversation } from "../services/coaching/conciergeConversa
 import { fallbackQuality, selectRejectedConversation, HANDOFF_RECOVERY, MISSING_PENDING_RECOVERY } from "../services/coaching/conciergeFallback";
 import { inspectConversationPurpose } from "../services/coaching/conversationPurpose";
 import type { PendingRecommendation } from "../services/coaching/conciergeNavigationState";
-import { conciseFeatureHandoff as verifiedNavigationText } from "../services/coaching/featurePresentation";
 
 const environment = process.env.NODE_ENV;
-beforeEach(() => { process.env.NODE_ENV = environment === "production" ? "production" : "development"; });
+beforeEach(() => { process.env.NODE_ENV = "development"; });
 afterAll(() => { process.env.NODE_ENV = environment; });
 const original = "Chef, I want to bake a whole apple pie for my family.";
 const goal = { activity: "prepare", occasion: "dessert", restaurant: "unknown",
@@ -124,7 +123,7 @@ describe("Development rejected-response reliability", () => {
       memberNeed: "navigation", responsePurpose: "handoff", navigationIntent: "confirmed",
       conciergeDecision: null, handoffMessage: text, message: text, conversationMessage: null,
     }, { pending: first.result.presentation?.navigation, userMessage: "YES" });
-    expect(result.presentation?.message).toBe(verifiedNavigationText("dessert_creator"));
+    expect(result.presentation?.message).toBe(text);
     expect(result.presentation?.navigation?.state).toBe("navigation_confirmed");
     expect(result.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId: "dessert_creator" })]);
   });
@@ -142,7 +141,6 @@ describe("Development rejected-response reliability", () => {
     expect(result.todayPlan.items).toEqual([{ horizon: "today", kind: "contact_care", text: care }]);
   });
   it("logs closed metadata indicators and both candidate outcomes, never raw values or member/profile text", async () => {
-    process.env.NODE_ENV = "development";
     const log = jest.spyOn(console, "info").mockImplementation(() => {});
     try {
       await reply({ memberNeed: "PRIVATE_NEED", conciergeDecision: { mode: "PRIVATE_MODE",
@@ -155,11 +153,10 @@ describe("Development rejected-response reliability", () => {
         "PRIVATE_DESTINATION", "PRIVATE_GOAL", "PRIVATE_PROFILE_SENTINEL"]) expect(output).not.toContain(text);
     } finally { log.mockRestore(); }
   });
-  it("Production uses the approved fallback screening and purpose schema", async () => {
+  it("keeps Production fallback behavior and provider descriptions unchanged", async () => {
     process.env.NODE_ENV = "production";
     const { result, request } = await reply({ conciergeDecision: { ...action, destinationId: "invalid" } });
-    expect(result.presentation?.message).not.toBe(":apple:");
-    expect(result.presentation?.destinationId).toBeUndefined();
-    expect(request.response_format.json_schema.schema.properties).toHaveProperty("responsePurpose");
+    expect(result.presentation?.message).toBe(":apple:");
+    expect(request.response_format.json_schema.schema.properties).not.toHaveProperty("responsePurpose");
   });
 });

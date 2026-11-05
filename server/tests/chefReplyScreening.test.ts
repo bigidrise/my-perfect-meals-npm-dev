@@ -48,9 +48,9 @@ describe("Development reply screening, not member intent or consent", () => {
     expect(screenConversationalContinuation("Would you like help adding protein to breakfast?", false, "development").reason)
       .toBe("accepted");
   });
-  test.each(["production", "test"])("uses the approved contextual permission screen in %s", environment => {
+  test.each(["production", "test"])("preserves historical behavior in %s", environment => {
     expect(screenOrdinaryConversation("Would you like help adding protein to breakfast?", environment))
-      .toEqual({ reason: "accepted", text: "Would you like help adding protein to breakfast?" });
+      .toEqual({ reason: "permission_question" });
     const text = "Which meal makes getting enough protein hardest?";
     expect(screenOrdinaryConversation(text, environment)).toEqual({ reason: "accepted", text });
   });

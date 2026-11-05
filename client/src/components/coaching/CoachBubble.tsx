@@ -49,9 +49,8 @@ export function isConciergeMessage(structured: CoachStructuredResponse): boolean
 
 /** Explicit presentation, not text heuristics, separates ordinary and coaching UI. */
 export default function CoachBubble({
-  structured, enableConcierge = false, emphasizeFeatureNames = false, messageId,
-}: { structured: CoachStructuredResponse; enableConcierge?: boolean; emphasizeFeatureNames?: boolean; messageId?: string }) {
-  const responseText = (text: string) => chefResponseText(text, enableConcierge, emphasizeFeatureNames);
+  structured, enableConcierge = false,
+}: { structured: CoachStructuredResponse; enableConcierge?: boolean }) {
   const compact = enableConcierge && isConciergeMessage(structured);
   const planItems = structured.todayPlan?.items ?? [];
   const planWhy = structured.todayPlan?.why;
@@ -75,33 +74,31 @@ export default function CoachBubble({
         <div className="bg-zinc-900 border border-white/10 rounded-2xl rounded-tl-sm px-4 py-3.5 text-sm text-white/90 leading-relaxed space-y-3">
           {escalation ? <>
             {safetyTexts.map((text, i) =>
-              <p key={i} className="whitespace-pre-wrap">{responseText(text)}</p>)}
+              <p key={i} className="whitespace-pre-wrap">{chefResponseText(text, enableConcierge)}</p>)}
           </> : compact ? <>
-            <p className="whitespace-pre-wrap">{responseText(structured.presentation!.message)}</p>
+            <p className="whitespace-pre-wrap">{chefResponseText(structured.presentation!.message, enableConcierge)}</p>
             {showButton && <CoachFeatureAction destinationId={target}
-              creatorRequest={structured.presentation?.creatorRequest}
-              messageId={messageId} />}
+              creatorRequest={structured.presentation?.creatorRequest} />}
           </> : <>
             {[structured.whatIFound, structured.whatItCouldMean].filter(Boolean).map((text, i) =>
-              <p key={i}>{responseText(text)}</p>)}
+              <p key={i}>{chefResponseText(text, enableConcierge)}</p>)}
             {(planWhy || planItems.length > 0) && (
               <div className="space-y-2">
-                {planWhy && <p>{responseText(planWhy)}</p>}
+                {planWhy && <p>{chefResponseText(planWhy, enableConcierge)}</p>}
                 {planItems.length > 0 && <ul className="space-y-1.5 mt-1">
                   {planItems.map((item, i) => enableConcierge && typeof item !== "string" &&
                     item.kind === "use_feature" && isCoachDestinationId(item.destinationId) && !escalation &&
                       (!enableConcierge || (approvedNavigation && navigation?.destinationId === item.destinationId))
-                     ? <li key={i}><CoachFeatureAction destinationId={item.destinationId}
-                       messageId={messageId} /></li>
+                    ? <li key={i}><CoachFeatureAction destinationId={item.destinationId} /></li>
                     : <li key={i} className="flex items-start gap-2">
                       <span className="text-orange-400 mt-0.5 shrink-0 select-none">•</span>
-                      <span className="min-w-0">{responseText(typeof item === "string" ? item : item.text)}</span>
+                      <span className="min-w-0">{chefResponseText(typeof item === "string" ? item : item.text, enableConcierge)}</span>
                     </li>)}
                 </ul>}
               </div>
             )}
             {structured.learningOpportunity && <p className="text-white/60 italic text-[13px] border-t border-white/5 pt-3">
-              {responseText(structured.learningOpportunity)}
+              {chefResponseText(structured.learningOpportunity, enableConcierge)}
             </p>}
             <div className="border-t border-white/8 pt-3 mt-1"><ProfessionalBoundaryNotice /></div>
           </>}

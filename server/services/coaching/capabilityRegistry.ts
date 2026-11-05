@@ -151,7 +151,7 @@ export const MPM_CAPABILITIES: MPMCapability[] = [
   // ── Eating Out ─────────────────────────────────────────────────────────────
   {
     id: "restaurant_guide",
-    label: "Restaurant Guide",
+    label: "Restaurant Assistant",
     description: "Find on-plan meal options at restaurants near you or ones you visit regularly.",
     route: "/social-hub/restaurant-guide",
     applicableSituations: [
@@ -358,7 +358,7 @@ export const CORNER_UNSUPPORTED_FEATURES = [
     description: "Sport-specific training context and nutrition setup, distinct from the approved Athlete Beverage Creator. No approved Chef hub navigation contract. Explain ordinary nutrition questions conversationally; do not substitute a drink creator for a performance plan." },
 ];
 
-/** Approved Ask Chef extension; other coaching specializations stay unchanged. */
+/** Development-only concierge extension; other coaches and Production stay unchanged. */
 export function getCornerCapabilities(activeScopes: CapabilityScope[], environment = process.env.NODE_ENV): MPMCapability[] {
   const existing = getCapabilitiesForUser(activeScopes, true);
   if (!isAskChefConversationEnabled(environment)) return existing;
@@ -376,19 +376,16 @@ export function getCornerCapabilities(activeScopes: CapabilityScope[], environme
     restaurant_guide: "Help choose what to order at a restaurant the member has already chosen. Do not use for finding a restaurant.",
     find_meals_near_me: "Discover somewhere to eat when the member wants to find a restaurant or has not chosen one. Consider their food preferences, location and budget when relevant; do not use for ordering at an already-selected restaurant. Verified search is restaurant-filtered. Dedicated ice cream shops, bars, grocery retailers and other specialty-only establishments are not verified coverage; do not promise they will be found or that a particular item is currently available.",
     my_perfect_buffet: "Help choose food at a buffet.",
-    my_perfect_getaway: "Explore dining options across a travel venue: airports, cruise ships and onboard dining areas, theme parks, resorts, stadiums and arenas, state fairs, and other supported travel destinations. Existing cruise support includes Carnival, Royal Caribbean, NCL and Disney Cruise, with main dining rooms, buffet areas, specialty restaurants and casual pool-deck dining. Quick-start choices are examples, not an exhaustive list; members can also search for a location or venue. A clear request for cruise-wide dining help can establish activity=travel without first collecting a ship, terminal, deck or menu that the destination can collect. Distinguish the member's task: exploring options across a cruise or travel venue fits My Perfect Getaway; choosing food from an identified buffet fits My Perfect Buffet; choosing menu items at an already-selected restaurant fits Restaurant Guide; finding nearby restaurants without one selected fits Find Meals Near Me. Apply these distinctions in context, not as keyword rules or mandatory navigation; do not add unnecessary clarification. Do not claim current restaurants, menus or availability are verified for a particular ship unless supported by reliable information.",
+    my_perfect_getaway: "Explore dining options across a travel venue: airports, cruise ships and onboard dining areas, theme parks, resorts, stadiums and arenas, state fairs, and other supported travel destinations. Existing cruise support includes Carnival, Royal Caribbean, NCL and Disney Cruise, with main dining rooms, buffet areas, specialty restaurants and casual pool-deck dining. Quick-start choices are examples, not an exhaustive list; members can also search for a location or venue. A clear request for cruise-wide dining help can establish activity=travel without first collecting a ship, terminal, deck or menu that the destination can collect. Distinguish the member's task: exploring options across a cruise or travel venue fits My Perfect Getaway; choosing food from an identified buffet fits My Perfect Buffet; choosing menu items at an already-selected restaurant fits Restaurant Assistant; finding nearby restaurants without one selected fits Find Meals Near Me. Apply these distinctions in context, not as keyword rules or mandatory navigation; do not add unnecessary clarification. Do not claim current restaurants, menus or availability are verified for a particular ship unless supported by reliable information.",
     my_perfect_gatherings: "Plan food for a gathering or dinner party.",
     fridge_rescue: "Help make food from ingredients the member wants to use, such as chicken, rice, and broccoli already in their refrigerator. Recommend when explicitly requested or for an expressed or grounded ingredient-use need, not hunger, indecision, eating at home, or general meal-prep education alone.",
     create_a_dish: "Create meal options for a member-selected specific dish or full meal from an editable dish description. A specific dish selected for preparation help in context is a complete creator request; do not prolong discovery. The creator collects servings and preparation inputs. Mere dish discussion, nutrition questions, undecided preferences or eating-out intent do not establish preparation. Small cravings (including small desserts), sushi, larger desserts and drinks have dedicated creators. Transfer only the member's chosen dish, with no invented ingredients or preparation location.",
     macro_calculator: "Optionally open the calculator after explaining macros; do not force navigation for an explanation.",
-    shopping_list: "Open the existing Shopping List entry page to review shopping needs or My List. Essential access remains required. No automatic list edits, product scan or Grocery Coach tab opening.",
-    biometrics: "Open My Biometrics for the member's own tracking. This does not read or change measurements, open clinical labs, grant paid subfeatures or switch nutrition subjects.",
-    daily_journal: "Open the existing Daily Journal & Inspiration page for the member to write or review their private journal. Chef does not retrieve journal contents, save an entry or open another person's journal.",
     my_perfect_beginning: "Open the child-selection hub for child feeding questions; select an authorized child before Parent's Corner. Never assume a child.",
     my_perfect_menu: "Start with meal ideas by category, retaining three choices until replaced; a selected idea is created by the member's effective builder/creator. Not an independent seven-day plan generator. Open only the existing Menu entry page; no Chef prefill, date/category/subject selection or automatic generation.",
     meal_builders: "Open the Meal Builders landing page so the member can review their existing builder choices, access rules and tutorials. Existing onboarding and builder-switch restrictions still apply. Never choose or activate a specialized builder, open a clinical hub directly, or overwrite the assigned builder.",
   };
-  {
+  if (environment === "development") {
     descriptions.meal_builders = "Open the Meal Builders landing page so the member can open their assigned builder, then choose a day and meal slot and use Create With Chef. Ordinary members generally have one assigned builder; administrators may have access to multiple builders. Do not imply free builder selection or infer administrator authority. Existing onboarding, assignment, access and clinical restrictions apply; never open a builder directly, activate a specialized builder or overwrite an assignment.";
     descriptions.craving_creator = "Prepare an immediate personal sweet or savory craving, including small dessert portions, often a smaller or individually portioned choice. Multiple recipe servings are supported; serving count alone never selects this feature. Use occasion=snack for this workflow. A full dessert fits Dessert Creator; a chosen family-dinner dish fits Create a Dish; the whole occasion fits My Perfect Gatherings. Sushi, beverages, restaurant visits and grocery shopping remain separate activities. Use context and reviewed suitability, not food keywords.";
     descriptions.grocery_create_meal = "Grocery Store Coach > Build a Meal helps plan a meal and the ingredients to purchase. Choose it for grocery-shopping meal help, including a named dish when shopping is the actual goal; a clear dish preparation request instead fits Create a Dish. Decide from the member's activity and history, never food keywords.";
@@ -409,9 +406,6 @@ export function getCornerCapabilities(activeScopes: CapabilityScope[], environme
     my_perfect_buffet: "Available buffet foods, buffet type and appetite/context. No approved Chef prefill. Choose among actual buffet offerings; not a restaurant finder or recipe creator.",
     hydration_center: "Member hydration context/preferences and any verified professional guidance. No arbitrary request prefill. Education/support, not inventing fluid/electrolyte targets or overriding care plans.",
     macro_calculator: "Member measurements, activity and goals in the existing calculator. No Chef prefill. Do not overwrite saved targets or force this tool when a nutrition explanation is enough.",
-    shopping_list: "Entry page only. No Chef list writes, prefill, product selection or automatic Coach sheet opening.",
-    biometrics: "Own-account entry page only. Measurements, clinical consent and paid tools remain owned by the destination.",
-    daily_journal: "Own-account journal entry page only. No journal retrieval, prefill, export or saved edits in Chef.",
     my_perfect_beginning: "Authorized child selection in the existing hub before child-specific help. No Chef prefill; do not fabricate child context or treat adult nutrition advice as a child plan.",
     my_perfect_getaway: "Travel situation/location and preferences collected by the destination, including venue search and any supported dining-area selection. Chef need not collect every destination, ship, terminal, deck or menu before recognizing clear travel-dining intent. No Chef prefill. Travel assistance, not general cravings or a replacement for a clinical hub. Catalog and general cruise knowledge do not establish a particular ship's current menus or availability.",
     my_perfect_gatherings: "Gathering occasion, guests, preferences and constraints collected by the destination. No Chef prefill. Hosting assistance, not personal meal-board planning.",
@@ -420,7 +414,7 @@ export function getCornerCapabilities(activeScopes: CapabilityScope[], environme
   };
   const additions: MPMCapability[] = (Object.keys(COACH_DESTINATIONS) as CoachDestinationId[])
     .map(id => ({
-      id, label: id === "grocery_create_meal"
+      id, label: environment === "development" && id === "grocery_create_meal"
         ? "Grocery Store Coach — Build a Meal" : COACH_DESTINATIONS[id].label,
       route: COACH_DESTINATIONS[id].route,
       description: `${descriptions[id]}${usage[id]?.suitability

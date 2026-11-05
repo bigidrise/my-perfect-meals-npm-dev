@@ -122,7 +122,7 @@ function extractBehaviorHighlights(
   // Restaurant observer — used Restaurant Guide
   const restaurantUsage = getStringFinding(observerOutputs, "restaurant", "guide_used_7d");
   if (restaurantUsage === "true" || restaurantUsage === "yes") {
-    highlights.push("Used MPM Restaurant Guide while eating out");
+    highlights.push("Used MPM Restaurant Assistant while eating out");
   }
 
   return highlights;

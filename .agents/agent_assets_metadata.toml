@@ -621,3 +621,17 @@ mtime_ms = 1793645696274
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/856be31c-eda5-4c0a-aca7-0b462bc9a7b1/318a2534-8ef5-40f9-8597-ffbb79857e9e"
 storage_version_token = "1793645717838624"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "2whvLxjKs7p1fP3BlMKQK"
+uri = "file://.local/release-corrections/production-blockers/generated-artifacts/production-release-blockers/review.html"
+type = "html"
+title = "Production release-blocker corrective review"
+description = "Validation results, exact diagnostic reconciliation, five inherited test dispositions, and the complete corrective diff with a patch download. Local changes only; nothing pushed or published."
+logical_id = "12624c41-67d6-4035-bafb-6cae17a79294"
+content_hash = "sha256:c9d43628c041ee19827ad974bb0a83e4c24d0c261243ca58068c6c6157ff7bc2"
+size = 70743
+mtime_ms = 1793830061032
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/12624c41-67d6-4035-bafb-6cae17a79294/d4881306-dac7-4c66-b697-00ae20b82734"
+storage_version_token = "1793830078155376"
+content_type = "text/html"

@@ -5,12 +5,10 @@ jest.mock("../middleware/requireAuth", () => ({
     next();
   },
 }));
-jest.mock("../services/coaching/navigationReceipt", () => ({ recordNavigationPerformed: jest.fn() }));
 
 import express from "express";
 import request from "supertest";
 import navigationRouter from "../routes/coachingNavigation";
-import { recordNavigationPerformed } from "../services/coaching/navigationReceipt";
 import {
   COACH_DESTINATIONS, resolveCoachDestinationId, validateCoachNavigationItems,
 } from "../../shared/coaching/navigation";
@@ -31,22 +29,6 @@ function app(user: unknown = { accessTier: "PAID_FULL", planLookupKey: "mpm_prem
 }
 const originalEnv = process.env.NODE_ENV;
 afterAll(() => { process.env.NODE_ENV = originalEnv; });
-
-test("route receipts are authenticated in both runtimes, self-scoped and cannot authorize access", async () => {
-  const body = { messageId: "11111111-1111-4111-8111-111111111111", destinationId: "beverage_creator", ownerId: "other" };
-  process.env.NODE_ENV = "development";
-  expect((await request(app(null)).post("/api/coach/navigation/performed").send(body)).status).toBe(401);
-  (recordNavigationPerformed as jest.Mock).mockResolvedValueOnce(true).mockResolvedValueOnce(false);
-  const instance = app({ id: "actual-owner", accessTier: "PAID_FULL", planLookupKey: "mpm_premium_monthly" });
-  expect((await request(instance).post("/api/coach/navigation/performed").send(body)).body).toEqual({ recorded: true });
-  expect(recordNavigationPerformed).toHaveBeenCalledWith("actual-owner", body.messageId, body.destinationId);
-  expect((await request(instance).post("/api/coach/navigation/performed").send(body)).status).toBe(404);
-  expect((await request(instance).post("/api/coach/navigation/performed").send({ ...body, destinationId: "invalid" })).status).toBe(400);
-  const calls = (recordNavigationPerformed as jest.Mock).mock.calls.length;
-  process.env.NODE_ENV = "production";
-  expect((await request(instance).post("/api/coach/navigation/performed").send(body)).status).toBe(404);
-  expect(recordNavigationPerformed).toHaveBeenCalledTimes(calls + 1);
-});
 
 describe.each(["development", "production"])("%s server-validated Chef navigation", runtimeEnvironment => {
   beforeEach(() => { process.env.NODE_ENV = runtimeEnvironment; });

@@ -33,12 +33,6 @@ export const ChefFoodDeclarationsSchema = z.object({
 export const CHEF_FOOD_COMPATIBILITY_INSTRUCTIONS =
   "FOOD DECLARATIONS: For each response field, supply its own foodDeclarations entry. " +
   "Use mode=none and foods=[] for greetings, closing acknowledgements and explanations without proposed foods. " +
-  "Feature navigation and feature education are not food evaluations: naming protein shakes, smoothies or meals " +
-  "solely to describe what a feature does uses mode=none, foods=[]. Do not announce allergy status, ingredient " +
-  "verification, cross-contact or internal screening for these UI explanations. Keep feature help brief: identify " +
-  "the verified feature, say why it fits, and offer to open it. Actual suggested foods or ingredients still require " +
-  "recommendations and screening, even inside a feature offer. Retain relevant, evidence-grounded safety communication " +
-  "when the member asks about allergies, ingredient safety or medical suitability; never claim safety clearance. " +
   "Use mode=discussion and foods=[] for examples being discussed, warnings and foods to avoid, not recommendations. " +
   "Use mode=recommendations for EVERY food or ingredient you actually suggest the member eat, buy or include; " +
   "list all such proposals in that field, including recommendations inside an answer or feature offer. " +

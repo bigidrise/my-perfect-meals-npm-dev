@@ -1,6 +1,6 @@
-/** Approved message reliability is not an experimental build feature. */
+/** Build-time Development gates; Production retains its existing behavior. */
 export function isChefConversationReliabilityEnabled(): boolean {
-  return true;
+  return import.meta.env.DEV;
 }
 
 export function isChefFeatureScreenContextEnabled(): boolean {

@@ -22,11 +22,7 @@ export interface ConciergePresentation {
     goal: import("./schemas").ConciergeGoal;
     /** Server-issued original offer time; informational replies never renew it. */
     offeredAt?: string;
-    /** Client observed the authorized route, not merely a button or consent. */
-    performedAt?: string;
   };
-  /** A fresh, server-reviewed choice is not consent to either destination. */
-  featureChoice?: { kind: "dessert_size"; offeredAt: string };
 }
 
 export type CoachSpecialization = "corner" | "pregnancy" | "pediatric";

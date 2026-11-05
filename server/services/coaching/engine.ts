@@ -160,8 +160,7 @@ function validateCitations(
 // ─── Phase 5 imports ─────────────────────────────────────────────────────────
 
 import { loadBoundedHistory } from "./conversationSummarizer";
-import { loadRecentConciergeState } from "./conciergeNavigationState";
-import { isConfirmableNavigation } from "./conciergeNavigationContinuity";
+import { loadRecentNavigation } from "./conciergeNavigationState";
 import { navigationEmissionIndicators } from "./conversationPurpose";
 import { extractAndPersistMemories } from "./memoryExtractor";
 
@@ -302,10 +301,11 @@ async function persistTurn(
   `);
   const userMessageId = userMsg.rows[0].id;
 
-  // Care guidance is rendered from contact_care,
+  // Development-only correction: care guidance is rendered from contact_care,
   // not the blank legacy fields. Persist the same complete wording for history
-  // without duplicating it in the visible response.
-  const careHistory = response.meta.specialization === "corner"
+  // without duplicating it in the visible response or changing Production.
+  const careHistory = process.env.NODE_ENV === "development" &&
+    response.meta.specialization === "corner"
     ? response.todayPlan.items.filter(item => item.kind === "contact_care")
       .map(item => item.text).filter(text => text.trim()).join("\n\n")
     : "";
@@ -1540,9 +1540,9 @@ export class CoachingEngine {
       const { history, rollingContext } = await loadConversationHistory(
         conversationId, subject.ownerId, request.specialization,
       );
-      const [context, recentConciergeState, knowledgeAccess] = await Promise.all([
+      const [context, navigationContext, knowledgeAccess] = await Promise.all([
         adapter.loadAdditionalContext(subject),
-        loadRecentConciergeState(conversationId, subject.ownerId),
+        loadRecentNavigation(conversationId, subject.ownerId),
         loadChefKnowledgeAccess(subject.ownerId, (req as any).authUser?.professionalRole,
           isMfaVerifiedForUser(req, subject.ownerId) || (req as any).bearerMfaVerified === true),
       ]);
@@ -1551,10 +1551,8 @@ export class CoachingEngine {
         context, tools: [...adapter.availableTools],
         knowledgeAccess,
         featureScreenContext: request.featureScreenContext,
-        pendingRecommendation: isConfirmableNavigation(recentConciergeState.navigation)
-          ? recentConciergeState.navigation : undefined,
-        navigationContext: recentConciergeState.navigation,
-        featureChoice: recentConciergeState.featureChoice,
+        pendingRecommendation: navigationContext?.state === "recommendation_pending" ? navigationContext : undefined,
+        navigationContext,
         preferredLanguage: (req as any).authUser?.preferredLanguage,
         requestId: (req as any).id,
       });
