@@ -42,7 +42,7 @@ const handoffText = (id: string, legacy: string) =>
 let stored: any;
 let statements: string[];
 beforeEach(() => {
-  process.env.NODE_ENV = "development";
+  process.env.NODE_ENV = originalEnvironment === "production" ? "production" : "development";
   jest.clearAllMocks(); mockCreate.mockReset(); stored = undefined; statements = [];
   (getAdapter as jest.Mock).mockReturnValue({
     loadSubject: async () => subject, loadAdditionalContext: async () => ({}),

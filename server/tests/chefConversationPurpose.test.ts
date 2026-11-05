@@ -10,7 +10,7 @@ import type { PendingRecommendation } from "../services/coaching/conciergeNaviga
 import { conciseFeatureHandoff } from "../services/coaching/featurePresentation";
 
 const environment = process.env.NODE_ENV;
-beforeEach(() => { process.env.NODE_ENV = "development"; });
+beforeEach(() => { process.env.NODE_ENV = environment === "production" ? "production" : "development"; });
 afterAll(() => { process.env.NODE_ENV = environment; });
 const tools = [{
   id: "beverage_creator", label: "Beverage Creator", description: "Make a drink.",
@@ -66,6 +66,8 @@ describe("Development ordinary-reply rejection regression", () => {
     [`${COACH_DESTINATIONS.beverage_creator.route} PRIVATE_MODEL_TEXT`, "route_reference"],
     ["MODEL_REPLY_PENDING", "placeholder"],
   ])("uses neutral recovery and content-free diagnostics: %s", async (message, reason) => {
+    // Intentional Development-only diagnostic control, not a behavior gate.
+    process.env.NODE_ENV = "development";
     const info = jest.spyOn(console, "info").mockImplementation(() => {});
     const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
     try {
@@ -230,6 +232,7 @@ describe("Development conversation purpose and canonical display", () => {
     expect(request.model).toBe("gpt-4o");
   });
   it("logs only static fingerprints, enum values, selection and numeric field metrics", async () => {
+    process.env.NODE_ENV = "development";
     const log = jest.spyOn(console, "info").mockImplementation(() => {});
     try {
       await reply({ ...offer, message: complete, recommendationMessage: "PRIVATE_UNUSED_PITCH" });

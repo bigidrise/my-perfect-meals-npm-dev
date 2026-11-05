@@ -15,7 +15,7 @@ import type { PendingRecommendation } from "../services/coaching/conciergeNaviga
 import { conciseFeatureHandoff } from "../services/coaching/featurePresentation";
 
 const environment = process.env.NODE_ENV;
-beforeEach(() => { process.env.NODE_ENV = "development"; });
+beforeEach(() => { process.env.NODE_ENV = environment === "production" ? "production" : "development"; });
 afterAll(() => { process.env.NODE_ENV = environment; });
 const tools = getCornerCapabilities(["all"], "development").map(cap => ({
   id: cap.id, label: cap.label, description: cap.description,

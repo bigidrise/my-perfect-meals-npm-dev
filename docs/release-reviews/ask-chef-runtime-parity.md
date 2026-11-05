@@ -1,5 +1,12 @@
 # Ask Chef runtime parity and availability
 
+This is the earlier parity report. The subsequent, release-scoped final review
+and complete regression evidence are in
+[Ask Chef navigation final readiness](ask-chef-navigation-final-readiness.md).
+The exact proposed promotion allowlist is
+[candidate files](ask-chef-navigation-candidate-files.txt); it deliberately
+excludes agent memory and generated mockup artifacts.
+
 ## Scope and release boundary
 
 Approved navigation and conversation-continuity corrections are ordinary Ask

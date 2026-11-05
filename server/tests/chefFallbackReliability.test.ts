@@ -8,7 +8,7 @@ import type { PendingRecommendation } from "../services/coaching/conciergeNaviga
 import { conciseFeatureHandoff as verifiedNavigationText } from "../services/coaching/featurePresentation";
 
 const environment = process.env.NODE_ENV;
-beforeEach(() => { process.env.NODE_ENV = "development"; });
+beforeEach(() => { process.env.NODE_ENV = environment === "production" ? "production" : "development"; });
 afterAll(() => { process.env.NODE_ENV = environment; });
 const original = "Chef, I want to bake a whole apple pie for my family.";
 const goal = { activity: "prepare", occasion: "dessert", restaurant: "unknown",
@@ -142,6 +142,7 @@ describe("Development rejected-response reliability", () => {
     expect(result.todayPlan.items).toEqual([{ horizon: "today", kind: "contact_care", text: care }]);
   });
   it("logs closed metadata indicators and both candidate outcomes, never raw values or member/profile text", async () => {
+    process.env.NODE_ENV = "development";
     const log = jest.spyOn(console, "info").mockImplementation(() => {});
     try {
       await reply({ memberNeed: "PRIVATE_NEED", conciergeDecision: { mode: "PRIVATE_MODE",

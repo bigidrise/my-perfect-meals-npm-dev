@@ -8,7 +8,7 @@ import { screenConversationalContinuation } from "../services/coaching/concierge
 import { getCornerCapabilities } from "../services/coaching/capabilityRegistry";
 
 const oldEnvironment = process.env.NODE_ENV;
-beforeEach(() => { process.env.NODE_ENV = "development"; });
+beforeEach(() => { process.env.NODE_ENV = oldEnvironment === "production" ? "production" : "development"; });
 afterAll(() => { process.env.NODE_ENV = oldEnvironment; });
 const closing = ": If you have any more questions about using Meal Builders or need further assistance, feel free to ask!";
 const useful = "Choose a day and meal slot, then select Create With Chef.";

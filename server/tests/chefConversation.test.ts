@@ -30,8 +30,8 @@ const user = { id: "fixture-user" };
 const subject = { subjectType: "user" as const, subjectId: user.id, ownerId: user.id };
 const unknown = { activity: "unknown", occasion: "unknown", restaurant: "unknown",
   dishChosen: false, specialty: "none", explicitFeatureId: null };
-const handoffText = (id: string, legacy: string) =>
-  runtimeEnvironment === "development" ? conciseFeatureHandoff(id as keyof typeof COACH_DESTINATIONS) : legacy;
+const handoffText = (id: string, _legacy: string) =>
+  conciseFeatureHandoff(id as keyof typeof COACH_DESTINATIONS);
 beforeEach(() => {
   process.env.NODE_ENV = runtimeEnvironment;
   jest.clearAllMocks(); mockCreate.mockReset();
@@ -216,8 +216,7 @@ test("direct familiar-feature request can omit instructions rather than forcing 
   reply("Of course—use the button below when you're ready.", "my_perfect_getaway",
     { ...unknown, activity: "travel", explicitFeatureId: "my_perfect_getaway" });
   const result = await run("Open My Perfect Getaway. I know how to use it; skip the instructions.");
-  expect(result.presentation?.message).toBe(runtimeEnvironment === "development"
-    ? verifiedNavigationText("my_perfect_getaway", false) : "Of course—use the button below when you're ready.");
+  expect(result.presentation?.message).toBe(verifiedNavigationText("my_perfect_getaway", false));
   expect(result.presentation?.destinationId).toBe("my_perfect_getaway");
   expect(mockCreate).toHaveBeenCalledTimes(1);
   expect(mockCreate.mock.calls[0][0].messages[0].content).toContain("omit the tutorial");
@@ -270,9 +269,7 @@ test.each([
   const instructions = mockCreate.mock.calls[0][0].messages[0].content;
   expect(instructions).toContain("UNRESOLVED DESTINATION CHOICE");
   expect(instructions).toContain("set conciergeDecision=null for that clarification");
-  expect(instructions).toContain(runtimeEnvironment === "development"
-    ? "Planning a day of meals does not by itself choose My Perfect Menu"
-    : "does not choose Menu or Builders");
+  expect(instructions).toContain("Planning a day of meals does not by itself choose My Perfect Menu");
   expect(instructions).toContain("small craving-sized dessert portions");
   expect(instructions).toContain("ordinary beverage versus an athletic-performance/workout beverage");
   expect(instructions).toContain("never repeat a distinction already answered");
@@ -601,7 +598,7 @@ test.each([
   ["Where can I keep a private daily journal?", "Use Daily Journal & Inspiration. I can't open it from Chef yet."],
   ["How do I track my weight?", "My Biometrics includes weight tracking and trends. I can't open that page from Chef yet."],
 ])("platform guidance stays conversational without a forced action: %s", async (question, answer) => {
-  if (runtimeEnvironment === "development" && question === "Where can I keep a private daily journal?") {
+  if (question === "Where can I keep a private daily journal?") {
     answer = "Daily Journal & Inspiration lets you write and review private entries.";
   }
   reply(answer, null, unknown, { conciergeDecision: null, conversationMessage: answer });
@@ -615,9 +612,7 @@ test.each([
   expect(data.platformKnowledge.features.map((feature: any) => feature.id)).toEqual(expect.arrayContaining([
     "meal_builders", "my_perfect_menu", "grocery_coach", "daily_journal", "biometrics", "nutrition_education",
   ]));
-  expect(wire.messages[0].content).toContain(runtimeEnvironment === "development"
-    ? "Skip unnecessary introductions when the activity is clear"
-    : "Skip the introduction when their activity is clear");
+  expect(wire.messages[0].content).toContain("Skip unnecessary introductions when the activity is clear");
   expect(wire.messages[0].content).toContain("not a fixed script, an intent tree");
   expect(wire.messages[0].content).toContain("Only action-ready food_assistance may select a feature");
   expect(data.authorizedNutritionContext).toContain("vegetarian");
@@ -629,15 +624,11 @@ test("adaptive conversation instructions apply to every turn without old questio
   const system = mockCreate.mock.calls[0][0].messages[0].content;
   expect(system).toContain("on every turn, not just the first welcome");
   expect(system).toContain("latest explicit correction or change of mind");
-  // Development replaces the released paragraph, including capitalization.
-  // Assert the behavioral contract rather than obsolete prompt wording.
-  if (runtimeEnvironment === "development") {
+  // Both runtimes use the approved behavioral contract.
+  {
     expect(system).toContain("no fixed greeting, question count, sentence count, mandatory list or closing question");
     expect(system).toContain("Move the conversation forward");
     expect(system).toContain("do not repeat questions answered in history");
-  } else {
-    expect(system).toMatch(/do not end every reply with a question/i);
-    expect(system).toMatch(/do not restart discovery(?:,| or) repeat answered questions/i);
   }
   expect(system).toContain("Only action-ready food_assistance may select a feature");
   expect(system).toContain("Medical emergencies or serious symptoms take priority");
@@ -1037,7 +1028,7 @@ test("persists the rejected apple-pie reply consistently and exposes only that s
   expect(JSON.parse(insert.params[2] as string)).toEqual(resultWithoutIds(result));
   expect(result.presentation?.navigation).toBeUndefined();
   expect(result.todayPlan.items).toEqual([]);
-  if (runtimeEnvironment === "development") {
+  {
     expect(result.presentation?.message).not.toContain(":apple:");
     expect(result.meta.concierge?.rendering).toBe("retry");
     (loadBoundedHistory as jest.Mock).mockResolvedValueOnce({
@@ -1055,13 +1046,11 @@ test("persists the rejected apple-pie reply consistently and exposes only that s
     const wire = JSON.parse(mockCreate.mock.calls[1][0].messages[1].content);
     expect(wire.pendingRecommendation).toBeNull();
     expect(wire.history[1].content).toBe(insert.params[1]);
-  } else {
-    expect(result.presentation?.message).toBe(":apple:");
   }
 });
 
 test.each(["referral", "emergency"])(
-  "persists complete %s guidance and its question in Development history only", async careDisposition => {
+  "persists complete %s guidance and its question in both runtime histories", async careDisposition => {
     const care = "Please obtain the indicated medical assessment; do not wait for a recipe. Are fluids staying down?";
     const expectedCare = careDisposition === "emergency"
       ? "Seek urgent medical help now; do not wait for a recipe."
@@ -1080,7 +1069,7 @@ test.each(["referral", "emergency"])(
     const insert = queries.find(query => query.sql.includes("INSERT INTO coach_messages") &&
       query.sql.includes("'assistant'"))!;
     expect(insert).toBeDefined();
-    expect(insert.params[1]).toBe(runtimeEnvironment === "development" ? expectedCare : "\n\n");
+    expect(insert.params[1]).toBe(expectedCare);
     expect(JSON.parse(insert.params[2] as string)).toEqual(resultWithoutIds(result));
     expect(mockCreate).toHaveBeenCalledTimes(1);
 
