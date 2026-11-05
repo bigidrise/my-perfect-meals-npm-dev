@@ -37,6 +37,39 @@ export function explicitNavigationRequest(message: string): CoachDestinationId |
   }) ? id : undefined;
 }
 
+/**
+ * Development only. Recognize a clear named command/selection, not an unnamed
+ * food wish. Inspect the whole turn for refusal, questions and competing targets.
+ * Splitting clauses allows repeated requests without discarding contrary text.
+ */
+export function explicitCustomerSelection(message: string): CoachDestinationId | undefined {
+  message = message.replace(/[‘’]/gu, "'");
+  if (/["“”]|\b(?:don't|do not|never|not)\s+(?:want|open|use|choose|take|go)|\b(?:instead|rather than|actually no|cancel|forget it)\b/iu.test(message) ||
+    /(?:^|[.!?]\s*)(?:no(?: thanks)?|don't|do not|never mind|stop)[.!?\s]*$/iu.test(message)) return undefined;
+  const names = namedNavigationDestinations(message);
+  if (names.length !== 1) return undefined;
+  const id = names[0];
+  const clauses = message.trim().split(/[.!?]+/u).map(part => part.trim()).filter(Boolean);
+  const selected = COACH_NAVIGATION_GUIDANCE[id].aliases.some(alias => {
+    const target = `(?:the\\s+|my\\s+)?${escape(alias)}`;
+    if (new RegExp(`\\b(?:not|without|avoid)\\s+${target}\\b`, "iu").test(message)) return false;
+    if (clauses.length === 1 && /\?\s*$/u.test(message) &&
+      new RegExp(`^${target}(?:\\s+please)?$`, "iu").test(clauses[0])) return false;
+    return clauses.some(clause => new RegExp(
+      `^(?:please\\s+)?(?:` +
+      `(?:open|show(?: me)?|launch|take me to(?: open)?|go to|navigate to)\\s+${target}|` +
+      `${target}(?:\\s+please|\\s+(?:would be|sounds?)\\s+(?:great|good|perfect|right))?|` +
+      `I (?:(?:already )?said I |(?:already )?told you I )?(?:want(?:ed)?|would like)(?: to (?:open|use))?\\s+${target}` +
+      `)(?:,?\\s+please)?$`, "iu").test(clause));
+  });
+  return selected ? id : undefined;
+}
+
+/** Only a whole affirmative binds the existing, server-loaded offer. No routing. */
+export function acceptsPendingFeature(message: string): boolean {
+  return /^(?:yes(?: please)?|yeah|yep|sure(?: thing)?|certainly|absolutely|ok(?:ay)?|please do|go ahead|(?:please )?(?:open|use|launch) (?:it|that)|let['’]s do (?:it|that))[.!?]*$/iu.test(message.trim());
+}
+
 export function navigationGoal(id: CoachDestinationId): ConciergeGoal {
   return {
     activity: "unknown", occasion: "unknown", restaurant: "unknown", dishChosen: false,
