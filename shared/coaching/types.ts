@@ -20,6 +20,8 @@ export interface ConciergePresentation {
     state: "recommendation_pending" | "navigation_confirmed" | "direct_navigation";
     destinationId: import("./navigation").CoachDestinationId;
     goal: import("./schemas").ConciergeGoal;
+    /** Server-issued original offer time; informational replies never renew it. */
+    offeredAt?: string;
   };
 }
 

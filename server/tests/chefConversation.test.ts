@@ -48,7 +48,7 @@ function reply(message: string, id: string | null = null, goal = unknown, extra:
       (getAdapter as jest.Mock)().availableTools, [], { completeMissingDestination: true });
     const pendingId = id && id in COACH_DESTINATIONS ? id : candidate?.destinationId;
     (db.execute as jest.Mock).mockResolvedValue({ rows: [{
-      id: "fixture-row", structured_payload: { presentation: { navigation: pendingId
+      id: "fixture-row", created_at: new Date(), structured_payload: { presentation: { navigation: pendingId
         ? { state: "recommendation_pending", destinationId: pendingId, goal }
         : undefined } },
     }] });
@@ -480,6 +480,7 @@ test("chicken Caesar food choice alone cannot auto-complete an opening action", 
   expect(result.presentation).toEqual({
     kind: "concierge", message: modelMessage,
     navigation: { state: "recommendation_pending", destinationId: "create_a_dish",
+      offeredAt: expect.any(String),
       goal: { ...unknown, activity: "prepare", occasion: "meal", dishChosen: true } },
   });
   expect(result.todayPlan.items).toEqual([]);
