@@ -24,7 +24,7 @@ beforeAll(async () => {
 });
 afterAll(async () => { process.env.NODE_ENV = oldEnvironment; await new Promise<void>(resolve => server.close(() => resolve())); });
 beforeEach(() => {
-  process.env.NODE_ENV = "development"; jest.clearAllMocks();
+  process.env.NODE_ENV = oldEnvironment === "production" ? "production" : "development"; jest.clearAllMocks();
   (db.select as jest.Mock).mockImplementation(() => { throw new Error("Assessment must not be queried"); });
   (db.execute as jest.Mock).mockResolvedValue({ rows: [] });
   (db.transaction as jest.Mock).mockImplementation(callback => callback({ execute: db.execute }));

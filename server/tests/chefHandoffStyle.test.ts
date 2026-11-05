@@ -42,7 +42,7 @@ test("Development handoffs explain relevant verified controls then stop without 
   expect(handoff).not.toContain("Enjoy your culinary adventure");
 });
 
-test("Development creator facts match actual distinct controls without changing Production knowledge", () => {
+test("Approved creator facts match actual distinct controls in both runtimes", () => {
   const usage = getFeatureUsageKnowledge("development");
   expect(usage.sushi_creator?.controls).toEqual(expect.arrayContaining([
     expect.stringContaining("Roll, Nigiri, Sashimi, Sushi Bowl"),
@@ -56,8 +56,8 @@ test("Development creator facts match actual distinct controls without changing 
   expect(usage.create_a_dish?.controls.join(" ")).toContain("diet and cuisine overrides");
   expect(usage.create_a_dish?.controls.join(" ")).toContain("Stovetop and Oven");
   expect(usage.create_a_dish?.generationAction).toContain("Create My Dish");
-  expect(getFeatureUsageKnowledge("production")).toBe(FEATURE_USAGE_KNOWLEDGE);
-  expect(getChefConversationInstructions("production")).toBe(CHEF_CONVERSATION_INSTRUCTIONS);
+  expect(getFeatureUsageKnowledge("production")).toEqual(getFeatureUsageKnowledge("development"));
+  expect(getChefConversationInstructions("production")).toBe(getChefConversationInstructions("development"));
   expect(FEATURE_USAGE_KNOWLEDGE.create_a_dish?.controls.join(" ")).not.toContain("diet and cuisine overrides");
 });
 

@@ -8,7 +8,7 @@ import type { CoachDestinationId } from "../../shared/coaching/navigation";
 import { getChefConversationInstructions } from "../services/coaching/conciergeInstructions";
 
 const environment = process.env.NODE_ENV;
-beforeEach(() => { process.env.NODE_ENV = "development"; });
+beforeEach(() => { process.env.NODE_ENV = environment === "production" ? "production" : "development"; });
 afterAll(() => { process.env.NODE_ENV = environment; });
 const tools = getCornerCapabilities(["all"], "development").map(tool => ({ ...tool, scope: "adult" as const, featureTarget: tool.id }));
 const shopping = ["Take me to open my grocery list.", "How about my shopping list? Take me to my shopping list.", "Open My Shopping List."];

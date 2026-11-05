@@ -119,6 +119,28 @@ describe.each(["development", "production"])("%s approved Chef behavior", enviro
     expect((await request(app).get("/api/coach/bootstrap")).body).toEqual({ enabled: true });
     expect(getChefConversationInstructions(environment)).toBe(getChefConversationInstructions("production"));
   });
+  test.each(["true", "false"])("client route visibility and API protection agree for availability=%s", async availability => {
+    process.env.VITE_COACHES_CORNER_ENABLED = availability;
+    const app = express();
+    const protectedHandler = jest.fn((_req, res) => res.json({ authenticatedFeature: true }));
+    // Availability runs before protected handlers. This fixture isolates the
+    // gate; real-route authentication/permissions are tested in route suites.
+    app.use("/api/coach", requireAskChefAvailability);
+    for (const path of ["/api/coach/bootstrap", "/api/coach/navigation", "/api/coach/navigation/performed"]) {
+      app.get(path, protectedHandler);
+      const result = await request(app).get(path);
+      expect(result.status).toBe(availability === "true" ? 200 : 404);
+    }
+    expect(isAskChefVisible(environment === "production", availability)).toBe(availability === "true");
+    if (availability === "false") expect(protectedHandler).not.toHaveBeenCalled();
+  });
+  test("TRUE does not bypass downstream authentication", async () => {
+    process.env.VITE_COACHES_CORNER_ENABLED = "true";
+    const app = express();
+    app.use("/api/coach", requireAskChefAvailability);
+    app.get("/api/coach/bootstrap", (_req, res) => { res.status(401).json({ error: "Authentication required" }); });
+    expect((await request(app).get("/api/coach/bootstrap")).status).toBe(401);
+  });
 });
 
 test("navigation instructions and capabilities have no Development/Production split", () => {

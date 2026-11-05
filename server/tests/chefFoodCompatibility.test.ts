@@ -51,7 +51,7 @@ const discussion = (mode = "discussion") => ({
 const inspect = (declaration: unknown, ctx: any = context(), field = "message") =>
   inspectChefFoodDeclarations(declaration, field, ctx);
 
-beforeEach(() => { process.env.NODE_ENV = "development"; jest.clearAllMocks(); });
+beforeEach(() => { process.env.NODE_ENV = originalEnvironment === "production" ? "production" : "development"; jest.clearAllMocks(); });
 afterEach(() => {
   expect(db.execute).not.toHaveBeenCalled();
   expect(pool.query).not.toHaveBeenCalled();

@@ -8,7 +8,7 @@ import { verifiedRestaurantClarification } from "../services/coaching/verifiedNa
 import { getCornerCapabilities } from "../services/coaching/capabilityRegistry";
 
 const environment = process.env.NODE_ENV;
-beforeEach(() => { process.env.NODE_ENV = "development"; });
+beforeEach(() => { process.env.NODE_ENV = environment === "production" ? "production" : "development"; });
 afterAll(() => { process.env.NODE_ENV = environment; });
 const request = "I need to eat at a restaurant.";
 const fragment = ": If you already have a restaurant in mind and need help deciding what to order, the Restaurant Guide can assist with that. Let me know which option you'd like to proceed with!";
