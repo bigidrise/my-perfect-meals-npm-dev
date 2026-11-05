@@ -8,6 +8,7 @@ import { db } from "../db";
 import { isConfirmableNavigation, PENDING_NAVIGATION_TTL_MS } from "../services/coaching/conciergeNavigationContinuity";
 import type { PendingRecommendation } from "../services/coaching/conciergeNavigationState";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
+import { verifiedNavigationText } from "../../shared/coaching/navigationGuidance";
 
 const originalEnvironment = process.env.NODE_ENV;
 const goal = { activity: "prepare" as const, occasion: "beverage" as const,
@@ -43,7 +44,7 @@ describe.each(["development", "production"])("%s approved navigation restoration
     expect(result.presentation).toMatchObject({ destinationId: id,
       navigation: { state: "direct_navigation", destinationId: id } });
     expect(result.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId: id })]);
-    expect(result.presentation!.message).toContain(`Open ${COACH_DESTINATIONS[id].label}`);
+    expect(result.presentation!.message).toBe(verifiedNavigationText(id));
     expect(result.presentation!.message).not.toMatch(/healthcare professional.*required|already opened/i);
     expect(COACH_DESTINATIONS[id].route).toBe(route);
   });

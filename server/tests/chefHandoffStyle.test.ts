@@ -88,8 +88,7 @@ describe.each(cases)("$id concise handoff", example => {
     expect(wire.platformKnowledge.featureUsage[example.id]).toEqual(getFeatureUsageKnowledge("development")[example.id]);
     // Only the whole named Sushi command is bound by reviewed navigation.
     // The soup request retains semantic interpretation and grounded dish text.
-    const expected = intent === "direct_request" && example.id === "sushi_creator"
-      ? verifiedNavigationText(example.id) : example.text;
+    const expected = verifiedNavigationText(example.id);
     expect(result.presentation?.message).toBe(expected);
     expect(result.whatIFound).toBe(expected);
     expect(result.presentation?.navigation?.state).toBe(intent === "confirmed" ? "navigation_confirmed" : "direct_navigation");

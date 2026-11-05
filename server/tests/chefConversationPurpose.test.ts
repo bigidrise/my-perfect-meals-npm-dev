@@ -2,6 +2,7 @@ jest.mock("../db", () => ({
   db: { execute: jest.fn(() => { throw new Error("Unexpected database access"); }) },
 }));
 import { runConciergeConversation } from "../services/coaching/conciergeConversation";
+import { verifiedNavigationText } from "../../shared/coaching/navigationGuidance";
 import { getChefConversationInstructions, CHEF_CONVERSATION_INSTRUCTIONS } from "../services/coaching/conciergeInstructions";
 import { responseFieldMetrics } from "../services/coaching/conversationPurpose";
 import { CONVERSATION_RECOVERY } from "../services/coaching/conciergeFallback";
@@ -198,7 +199,7 @@ describe("Development conversation purpose and canonical display", () => {
       memberNeed: "navigation", responsePurpose: "handoff", navigationIntent: "confirmed",
       message: text, handoffMessage: text,
     }, { pending: first.result.presentation?.navigation, userMessage: "Yes, please." });
-    expect(result.presentation?.message).toBe(text);
+    expect(result.presentation?.message).toBe(verifiedNavigationText("beverage_creator"));
     expect(result.presentation?.navigation?.state).toBe("navigation_confirmed");
     expect(result.presentation?.destinationId).toBe("beverage_creator");
     expect(result.todayPlan.items).toHaveLength(1);
