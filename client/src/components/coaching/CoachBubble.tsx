@@ -80,7 +80,7 @@ export default function CoachBubble({
             <p className="whitespace-pre-wrap">{responseText(structured.presentation!.message)}</p>
             {showButton && <CoachFeatureAction destinationId={target}
               creatorRequest={structured.presentation?.creatorRequest}
-              messageId={emphasizeFeatureNames ? messageId : undefined} />}
+              messageId={messageId} />}
           </> : <>
             {[structured.whatIFound, structured.whatItCouldMean].filter(Boolean).map((text, i) =>
               <p key={i}>{responseText(text)}</p>)}
@@ -92,7 +92,7 @@ export default function CoachBubble({
                     item.kind === "use_feature" && isCoachDestinationId(item.destinationId) && !escalation &&
                       (!enableConcierge || (approvedNavigation && navigation?.destinationId === item.destinationId))
                      ? <li key={i}><CoachFeatureAction destinationId={item.destinationId}
-                       messageId={emphasizeFeatureNames ? messageId : undefined} /></li>
+                       messageId={messageId} /></li>
                     : <li key={i} className="flex items-start gap-2">
                       <span className="text-orange-400 mt-0.5 shrink-0 select-none">•</span>
                       <span className="min-w-0">{responseText(typeof item === "string" ? item : item.text)}</span>

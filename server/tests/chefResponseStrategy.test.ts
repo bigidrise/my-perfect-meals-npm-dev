@@ -73,9 +73,9 @@ test("Development policy bytes stay fixed except the approved explicit-selection
     .toBe("6de21aef592734982e67587ac893ab74b28207f760cf287c3eae23ccb13b9533");
 });
 
-test.each(["production", "test", undefined])("released instruction bytes are unchanged for %s", environment => {
-  expect(hash(getChefConversationInstructions(environment)))
-    .toBe("4387e86c27a11a90df661b28b277342fe79826ef8ec8471a89d6d69775257ad3");
+test.each(["production", "test", undefined])("approved instructions are environment-independent for %s", environment => {
+  expect(getChefConversationInstructions(environment))
+    .toBe(getChefConversationInstructions("development"));
 });
 
 test("reviewed navigation guidance and unchanged mandatory food-screening instructions retain their fingerprints", () => {

@@ -151,8 +151,8 @@ test("a rejected action cannot leak a malformed or incomplete continuation elsew
   expectNoAction(result);
 });
 
-test("Production retains the historical screening policy", () => {
+test("Production uses the same complete-reply screening policy", () => {
   expect(screenOrdinaryConversation(choice, "production").text).toBe(choice);
   expect(screenConversationalContinuation(": A useful independent answer.", false, "production").text)
-    .toBe(": A useful independent answer.");
+    .toBeUndefined();
 });

@@ -1,5 +1,6 @@
 import { Router, type RequestHandler } from "express";
 import { requireAuth } from "../middleware/requireAuth";
+import { requireAskChefAvailability } from "../middleware/requireAskChefAvailability";
 import { requireProAccess } from "../middleware/requireProAccess";
 import { requireClinicalAccess } from "../middleware/requireClinicalAccess";
 import { requirePurchasedPlanEntitlement } from "../middleware/requirePurchasedPlanEntitlement";
@@ -25,6 +26,7 @@ const mealBuildersAccess: RequestHandler = (req, res, next) => {
   res.status(403).json({ error: "Meal Builders requires Essential access or higher", code: "PLAN_REQUIRED" });
 };
 const router = Router();
+router.use(requireAskChefAvailability);
 
 // Recheck current authoritative access at click time. Destination guards still run.
 const resolve: RequestHandler = (req, res, next) => {
@@ -59,9 +61,9 @@ const resolve: RequestHandler = (req, res, next) => {
 router.post("/navigation", requireAuth, resolve);
 // This is client-observed route evidence only, after the existing click-time
 // authorization. It grants no access and cannot consume a different member's
-// offer. Keep the new lifecycle behavior Development-only.
+// offer. Approved lifecycle behavior runs in every supported Ask Chef runtime.
 router.post("/navigation/performed", requireAuth, async (req, res, next) => {
-  if (process.env.NODE_ENV !== "development") {
+  if (!isAskChefConversationEnabled(process.env.NODE_ENV)) {
     res.status(404).json({ error: "Navigation receipts are not enabled." });
     return;
   }

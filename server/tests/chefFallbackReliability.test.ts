@@ -154,10 +154,11 @@ describe("Development rejected-response reliability", () => {
         "PRIVATE_DESTINATION", "PRIVATE_GOAL", "PRIVATE_PROFILE_SENTINEL"]) expect(output).not.toContain(text);
     } finally { log.mockRestore(); }
   });
-  it("keeps Production fallback behavior and provider descriptions unchanged", async () => {
+  it("Production uses the approved fallback screening and purpose schema", async () => {
     process.env.NODE_ENV = "production";
     const { result, request } = await reply({ conciergeDecision: { ...action, destinationId: "invalid" } });
-    expect(result.presentation?.message).toBe(":apple:");
-    expect(request.response_format.json_schema.schema.properties).not.toHaveProperty("responsePurpose");
+    expect(result.presentation?.message).not.toBe(":apple:");
+    expect(result.presentation?.destinationId).toBeUndefined();
+    expect(request.response_format.json_schema.schema.properties).toHaveProperty("responsePurpose");
   });
 });

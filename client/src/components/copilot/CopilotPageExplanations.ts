@@ -948,7 +948,7 @@ export const PAGE_EXPLANATIONS: Record<string, PageExplanation> = {
 };
 
 export function getPageExplanation(pathname: string): PageExplanation | null {
-  if (import.meta.env.DEV && pathname === "/coach-corner/home") {
+  if (pathname === "/coach-corner/home") {
     return {
       ...PAGE_EXPLANATIONS[pathname],
       title: "Ask Chef",

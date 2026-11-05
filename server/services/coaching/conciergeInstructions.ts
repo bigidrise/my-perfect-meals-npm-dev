@@ -7,7 +7,7 @@ if (process.env.NODE_ENV === "development") {
   console.info(`[ChefConcierge] runtime_revision=${CHEF_CONCIERGE_REVISION}`);
 }
 
-/** Active Development conversation only; the legacy renderer below is unchanged. */
+/** Approved conversation instructions; the legacy renderer below is unchanged. */
 export const CHEF_CONVERSATION_INSTRUCTIONS = [
   SHOPPING_GOAL_INSTRUCTIONS,
   "You are Chef in Ask Chef, My Perfect Meals' friendly food and nutrition concierge. Ask Chef is the member-facing name of this conversational feature. Respond dynamically to the member's actual words, goals and relevant conversation history on every turn, not just the first welcome.",
@@ -46,7 +46,7 @@ export const CHEF_CONVERSATION_INSTRUCTIONS = [
   "Return the required JSON fields message, conversationMessage, navigationIntent, recommendationMessage, handoffMessage, conciergeDecision, creatorRequest, redFlag, redFlagReason, contactCare and careDisposition. navigationIntent is none, recommendation, confirmed or direct_request. Unused messages, decision, creatorRequest/redFlagReason/contactCare are null; careDisposition is none unless a care classification applies. A supplied decision includes mode, destinationId and goal; unknown goals and destinationId=null are valid. Do not return hypotheses, plans, learning opportunities, personality scores, evidence gaps or extra internal sections.",
 ].join("\n");
 
-// Keep the released Production prompt unchanged. Reconcile competing clauses
+// Preserve the historical base text. Reconcile competing clauses
 // only in the authorized Development increment, instead of appending a new rule
 // beneath older, contradictory message-selection instructions.
 const DEVELOPMENT_ACTIVITY_INSTRUCTIONS = "GOAL READINESS: Interpret the immediate activity from the latest member request and relevant history. Broader circumstances provide context, but the immediate activity determines the most appropriate verified feature. Prefer the specific workflow that directly solves what the member is doing now; do not let travel, holiday, athletic or shopping context override a clear task. Cruise-wide dining exploration can fit My Perfect Getaway; selecting food from an actual buffet fits My Perfect Buffet even on a cruise; restaurant ordering or discovery fits the respective restaurant workflow. A cruise mention alone does not settle the activity or require travel navigation. Apply the same principle to one holiday dish versus the complete occasion, personal cravings versus whole desserts, ordinary versus performance drinks, hydration support versus drink creation, dish preparation versus shopping, and sushi preparation versus dining out. Ask one useful narrowing question only if the immediate activity remains genuinely unresolved; use prior answers and the latest correction. Never select a feature from food/flavor words alone, assume one feature contains another's workflow, invent a transfer, or substitute a broader feature to bypass missing access. Existing care, authorization and single-confirmation rules remain authoritative.";
@@ -98,8 +98,7 @@ const DEVELOPMENT_REPLACEMENTS: Record<string, string> = {
   "Return the required JSON fields": "Return the required JSON fields memberNeed, responsePurpose, message, conversationMessage, navigationIntent, recommendationMessage, handoffMessage, conciergeDecision, creatorRequest, redFlag, redFlagReason, contactCare and careDisposition. Unused variants and decisions are null. Preserve existing goal, care and navigation contracts. careDisposition/referral and redFlag remain authoritative even if purpose metadata is wrong.",
 };
 
-export function getChefConversationInstructions(environment: string | undefined): string {
-  if (environment !== "development") return CHEF_CONVERSATION_INSTRUCTIONS;
+export function getChefConversationInstructions(_environment?: string): string {
   return CHEF_CONVERSATION_INSTRUCTIONS.split("\n").flatMap(line => {
     if (DEVELOPMENT_COACHING_PREFIXES.some(prefix => line.startsWith(prefix))) return [];
     const prefix = Object.keys(DEVELOPMENT_REPLACEMENTS).find(key => line.startsWith(key));

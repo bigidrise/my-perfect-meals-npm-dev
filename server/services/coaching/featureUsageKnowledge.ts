@@ -195,7 +195,7 @@ export const FEATURE_USAGE_KNOWLEDGE: Partial<Record<CoachDestinationId, Feature
 };
 
 /**
- * Development-only review of three existing features, not a routing engine.
+ * Reviewed knowledge of three existing features, not a routing engine.
  * These are source-verified capability facts and judgment guidance, never
  * medical eligibility, consent, or permission to navigate.
  */
@@ -365,8 +365,7 @@ const DEVELOPMENT_FEATURE_SUITABILITY = {
   ...DEVELOPMENT_FOOD_SUITABILITY,
 };
 
-export function getFeatureUsageKnowledge(environment: string | undefined) {
-  if (environment !== "development") return FEATURE_USAGE_KNOWLEDGE;
+export function getFeatureUsageKnowledge(_environment?: string) {
   const knowledge = { ...FEATURE_USAGE_KNOWLEDGE };
   knowledge.my_perfect_menu = {
     descriptionInput: "Choose Breakfast, Lunch, Dinner or Snack; Snack distinguishes food-style and dessert-style ideas.",

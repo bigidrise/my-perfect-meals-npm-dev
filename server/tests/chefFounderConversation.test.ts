@@ -129,10 +129,10 @@ test("access and care remain authoritative for a clear named request", async () 
   expect(emergency.meta.redFlag).toBe(true);
   expect(emergency.todayPlan.items.some(item => typeof item !== "string" && item.kind === "use_feature")).toBe(false);
 });
-test("Production instructions and direct-request interpretation retain their existing behavior", async () => {
+test("Production uses the same explicit-selection instructions and direct actions", async () => {
   expect(getChefConversationInstructions("development")).toContain("An explicit feature selection is navigation consent");
   process.env.NODE_ENV = "production";
   const response = await run(shopping[0]);
-  expect(response.presentation?.destinationId).toBeUndefined();
-  expect(response.todayPlan.items).toEqual([]);
+  expect(response.presentation?.destinationId).toBe("shopping_list");
+  expect(response.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId: "shopping_list" })]);
 });

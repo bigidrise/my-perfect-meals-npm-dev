@@ -32,7 +32,7 @@ function app(user: unknown = { accessTier: "PAID_FULL", planLookupKey: "mpm_prem
 const originalEnv = process.env.NODE_ENV;
 afterAll(() => { process.env.NODE_ENV = originalEnv; });
 
-test("route receipts are authenticated, Development-only, self-scoped and cannot authorize access", async () => {
+test("route receipts are authenticated in both runtimes, self-scoped and cannot authorize access", async () => {
   const body = { messageId: "11111111-1111-4111-8111-111111111111", destinationId: "beverage_creator", ownerId: "other" };
   process.env.NODE_ENV = "development";
   expect((await request(app(null)).post("/api/coach/navigation/performed").send(body)).status).toBe(401);
@@ -45,7 +45,7 @@ test("route receipts are authenticated, Development-only, self-scoped and cannot
   const calls = (recordNavigationPerformed as jest.Mock).mock.calls.length;
   process.env.NODE_ENV = "production";
   expect((await request(instance).post("/api/coach/navigation/performed").send(body)).status).toBe(404);
-  expect(recordNavigationPerformed).toHaveBeenCalledTimes(calls);
+  expect(recordNavigationPerformed).toHaveBeenCalledTimes(calls + 1);
 });
 
 describe.each(["development", "production"])("%s server-validated Chef navigation", runtimeEnvironment => {
