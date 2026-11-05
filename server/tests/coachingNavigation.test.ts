@@ -5,6 +5,7 @@ jest.mock("../middleware/requireAuth", () => ({
     next();
   },
 }));
+jest.mock("../services/coaching/navigationReceipt", () => ({ recordNavigationPerformed: jest.fn() }));
 
 import express from "express";
 import request from "supertest";
@@ -17,6 +18,7 @@ import { requireProAccess } from "../middleware/requireProAccess";
 import { requireClinicalAccess } from "../middleware/requireClinicalAccess";
 import { requirePurchasedPlanEntitlement } from "../middleware/requirePurchasedPlanEntitlement";
 import { requireEssentialAccess } from "../middleware/requireEssentialAccess";
+import { recordNavigationPerformed } from "../services/coaching/navigationReceipt";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -32,6 +34,21 @@ afterAll(() => { process.env.NODE_ENV = originalEnv; });
 
 describe.each(["development", "production"])("%s server-validated Chef navigation", runtimeEnvironment => {
   beforeEach(() => { process.env.NODE_ENV = runtimeEnvironment; });
+  test("receipts require authentication, a valid message and exact destination, and bind only the authenticated owner", async () => {
+    const body = { messageId: "11111111-1111-4111-8111-111111111111", destinationId: "beverage_creator" };
+    (recordNavigationPerformed as jest.Mock).mockReset().mockResolvedValue(true);
+    expect((await request(app(null)).post("/api/coach/navigation/performed").send(body)).status).toBe(401);
+    expect((await request(app()).post("/api/coach/navigation/performed").send({ ...body, messageId: "invalid" })).status).toBe(400);
+    expect((await request(app()).post("/api/coach/navigation/performed").send({ ...body, destinationId: "diabetic-builder" })).status).toBe(400);
+    expect(recordNavigationPerformed).not.toHaveBeenCalled();
+    const response = await request(app({ id: "synthetic-owner" })).post("/api/coach/navigation/performed")
+      .send({ ...body, ownerId: "foreign-owner" });
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ recorded: true });
+    expect(recordNavigationPerformed).toHaveBeenCalledWith("synthetic-owner", body.messageId, body.destinationId);
+    (recordNavigationPerformed as jest.Mock).mockResolvedValue(false);
+    expect((await request(app({ id: "synthetic-owner" })).post("/api/coach/navigation/performed").send(body)).status).toBe(404);
+  });
   test.each(["grocery_find_product", "grocery_create_meal", "product_scan"] as const)(
     "%s keeps its destination-specific boundary and parent-only route", async id => {
     const anonymous = await request(app(null)).post("/api/coach/navigation").send({ destinationId: id });

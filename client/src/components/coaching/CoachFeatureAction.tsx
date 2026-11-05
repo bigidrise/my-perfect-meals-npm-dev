@@ -6,8 +6,8 @@ import { COACH_DESTINATIONS, isCoachDestinationId } from "@shared/coaching/navig
 import { chefNavigationRoute } from "@shared/coaching/creatorRequest";
 
 /** Fixed routes only; reviewed request text can populate an editable creator field. */
-export default function CoachFeatureAction({ destinationId, creatorRequest }: {
-  destinationId: unknown; creatorRequest?: unknown;
+export default function CoachFeatureAction({ destinationId, creatorRequest, messageId }: {
+  destinationId: unknown; creatorRequest?: unknown; messageId?: string;
 }) {
   const [, navigate] = useLocation();
   const [pending, setPending] = useState(false);
@@ -30,6 +30,12 @@ export default function CoachFeatureAction({ destinationId, creatorRequest }: {
         throw new Error("This recommendation is unavailable. Please ask Chef again.");
       }
       navigate(expectedRoute);
+      // Authorization success or a displayed button is not route evidence.
+      if (messageId && `${window.location.pathname}${window.location.search}` === expectedRoute) {
+        void apiRequest("/api/coach/navigation/performed", {
+          method: "POST", body: JSON.stringify({ messageId, destinationId }),
+        }).catch(() => console.warn("[ChefNavigation] route_receipt_unavailable"));
+      }
     } catch (failure) {
       const message = failure instanceof Error ? failure.message : "";
       setError(message.includes("403")

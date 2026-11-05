@@ -6,7 +6,7 @@ export type ReplyScreenReason = "accepted" | "missing" | "placeholder" | "featur
 type ScreenResult = { reason: ReplyScreenReason; text?: string };
 
 /** Output checks only. These never interpret member consent or authorize actions. */
-export function navigationPermissionQuestion(message: string, development = process.env.NODE_ENV === "development"): boolean {
+export function navigationPermissionQuestion(message: string, development = true): boolean {
   const sentences = message.split(/[.!?？؟\n]/u);
   const permission = /^\s*(?:would you like|do you want|shall (?:I|we)|should (?:I|we)|may I|can I (?:help|assist)|ready to)\b/i;
   if (!development) {
@@ -39,7 +39,7 @@ export function screenIndependentConversation(message: string | null | undefined
   environment: string | undefined = process.env.NODE_ENV): ScreenResult {
   if (!message) return { reason: "missing" };
   if (!/[\p{L}\p{N}]/u.test(message) ||
-    (environment === "development" && fallbackQuality(message) === "placeholder")) {
+    fallbackQuality(message) === "placeholder") {
     return { reason: "placeholder" };
   }
   const lower = message.toLocaleLowerCase();
@@ -61,7 +61,7 @@ export function screenIndependentConversation(message: string | null | undefined
 
 export function screenOrdinaryConversation(message: string | null | undefined,
   environment: string | undefined = process.env.NODE_ENV): ScreenResult {
-  if (message && navigationPermissionQuestion(message, environment === "development")) {
+  if (message && navigationPermissionQuestion(message)) {
     return { reason: "permission_question" };
   }
   return screenIndependentConversation(message, undefined, true, environment);
@@ -71,7 +71,7 @@ export function screenConversationalContinuation(message: string | null | undefi
   environment: string | undefined = process.env.NODE_ENV): ScreenResult {
   const result = screenIndependentConversation(message, undefined, true, environment);
   if (!result.text) return result;
-  if (!structuredOffer && navigationPermissionQuestion(result.text, environment === "development")) {
+  if (!structuredOffer && navigationPermissionQuestion(result.text)) {
     return { reason: "permission_question" };
   }
   if (/\b(?:open|launch|navigate|click|tap|press|redirect|transfer|take you|taking you|send you|get you started|getting you started|button)\b/i.test(result.text)) {

@@ -24,17 +24,13 @@ export function chefClosingAcknowledgement(language?: string): string {
 /** A reversible total order, including equal timestamps, without schema changes. */
 export function chefMessageOrder(direction: "asc" | "desc") {
   const order = direction === "asc" ? sql`ASC` : sql`DESC`;
-  return process.env.NODE_ENV === "development"
-    ? sql`created_at ${order}, CASE role WHEN 'user' THEN 0 WHEN 'assistant' THEN 1 ELSE 2 END ${order}, id ${order}`
-    : sql`created_at ${order}`;
+  return sql`created_at ${order}, CASE role WHEN 'user' THEN 0 WHEN 'assistant' THEN 1 ELSE 2 END ${order}, id ${order}`;
 }
 
 /** Use the same tuple as ORDER BY so pagination cannot drop timestamp ties. */
 export function chefOlderMessageCursor(conversationId: string, beforeId: string) {
-  return process.env.NODE_ENV === "development"
-    ? sql`(created_at, CASE role WHEN 'user' THEN 0 WHEN 'assistant' THEN 1 ELSE 2 END, id) < (
+  return sql`(created_at, CASE role WHEN 'user' THEN 0 WHEN 'assistant' THEN 1 ELSE 2 END, id) < (
         SELECT created_at, CASE role WHEN 'user' THEN 0 WHEN 'assistant' THEN 1 ELSE 2 END, id
         FROM coach_messages WHERE id = ${beforeId} AND conversation_id = ${conversationId} LIMIT 1
-      )`
-    : sql`created_at < (SELECT created_at FROM coach_messages WHERE id = ${beforeId} LIMIT 1)`;
+      )`;
 }

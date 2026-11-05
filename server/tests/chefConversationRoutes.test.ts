@@ -112,23 +112,28 @@ test.each([401, 403, 500])("a Development engine failure %s releases the member'
     expect((await postTurn("synthetic-member")).status).toBe(200);
   } finally { errors.mockRestore(); }
 });
-test("Production ignores the new correlation field and retains concurrent endpoint behavior", async () => {
+test("Production validates correlation IDs and excludes overlapping turns like Development", async () => {
   process.env.NODE_ENV = "production";
+  expect((await postTurn("synthetic-member", { clientTurnId: "invalid-field" })).status).toBe(400);
+  expect(engine.run).not.toHaveBeenCalled();
   let finish!: (value: any) => void;
   let started!: () => void;
   const entered = new Promise<void>(resolve => { started = resolve; });
   (engine.run as jest.Mock).mockImplementationOnce(() => {
     started(); return new Promise(resolve => { finish = resolve; });
   });
-  const first = postTurn("synthetic-member", { clientTurnId: "ignored-invalid-field" });
+  const clientTurnId = "11111111-1111-4111-8111-111111111111";
+  const first = postTurn("synthetic-member", { clientTurnId });
   await entered;
   const second = await postTurn("synthetic-member");
-  expect(second.status).toBe(200);
-  expect((await second.json()).clientTurnId).toBeUndefined();
+  expect(second.status).toBe(409);
+  expect((await second.json()).clientTurnId).toBe("00000000-0000-4000-8000-000000000001");
   finish({ conversationId: "fixture-conversation", messageId: "fixture-message",
     whatIFound: "", whatItCouldMean: "", todayPlan: { items: [] } });
-  expect((await first).status).toBe(200);
-  expect(engine.run).toHaveBeenCalledTimes(2);
+  const completed = await first;
+  expect(completed.status).toBe(200);
+  expect((await completed.json()).clientTurnId).toBe(clientTurnId);
+  expect(engine.run).toHaveBeenCalledTimes(1);
 });
 test("Production does not fall back to an intake for a newly eligible member", async () => {
   process.env.NODE_ENV = "production";

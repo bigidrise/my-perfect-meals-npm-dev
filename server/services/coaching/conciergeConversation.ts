@@ -20,9 +20,12 @@ import { CORNER_UNSUPPORTED_FEATURES } from "./capabilityRegistry";
 import type { ChefCreatorRequest } from "../../../shared/coaching/creatorRequest";
 import { getDevelopmentPlatformKnowledge, getPlatformGuidanceInstructions } from "./platformKnowledge";
 import type { PendingRecommendation } from "./conciergeNavigationState";
+import { explicitNavigationRequest, acceptsPendingFeature, navigationGoal,
+  verifiedDiabeticBuilderExplanation, verifiedNavigationText } from "./verifiedNavigation";
 import {
   NAVIGATION_CONTINUITY_INSTRUCTIONS, PendingNavigationDispositionSchema,
   pendingNavigationIsFresh, retainInformationalOffer,
+  isConfirmableNavigation,
 } from "./conciergeNavigationContinuity";
 import type { ChefKnowledgeAccess } from "./platformKnowledgeAccess";
 import { FEATURE_USAGE_KNOWLEDGE } from "./featureUsageKnowledge";
@@ -142,6 +145,9 @@ export async function runConciergeConversation(params: {
     !pendingNavigationIsFresh(params.pendingRecommendation.offeredAt)) {
     params = { ...params, pendingRecommendation: undefined };
   }
+  if (params.pendingRecommendation?.performedAt) {
+    params = { ...params, pendingRecommendation: undefined };
+  }
   if (params.navigationContext &&
     !pendingNavigationIsFresh(params.navigationContext.offeredAt)) {
     params = { ...params, navigationContext: undefined };
@@ -161,10 +167,12 @@ export async function runConciergeConversation(params: {
     params = { ...params, tools: params.tools.filter(tool => intelligenceKnowledge!.some(record => record.id === `feature:${tool.id}`)) };
   }
   const memberMessages = [...params.history.filter(m => m.role === "user").map(m => m.content), params.userMessage];
-  const developmentPurpose = process.env.NODE_ENV === "development";
+  // Approved response contracts apply in published builds as well as preview.
+  const developmentPurpose = true;
+  const developmentDiagnostics = process.env.NODE_ENV === "development";
   // Only correlation IDs in the existing UUID format are safe for logs.
   const correlation = /^[a-f0-9-]{36}$/i.test(params.requestId ?? "") ? ` request_id=${params.requestId}` : "";
-  if (developmentPurpose) {
+  if (developmentDiagnostics) {
     // Counts and presence only: never retain member prose, summaries or profile values.
     console.info(`[ChefConcierge] freshness${correlation} ${JSON.stringify({
       historyCount: params.history.length,
@@ -188,7 +196,7 @@ export async function runConciergeConversation(params: {
     ...(foodCompatibilityRequired ? { foodDeclarations: ChefFoodDeclarationsSchema } : {}),
   }) : ModelTurnSchema;
   const responseFormat = zodResponseFormat(schema, "chef_conversation");
-  const fingerprint = developmentPurpose ? createHash("sha256")
+  const fingerprint = developmentDiagnostics ? createHash("sha256")
     .update(instructions + platformInstructions + foodInstructions + JSON.stringify(responseFormat)).digest("hex").slice(0, 16) : undefined;
   let foodDeclarations: unknown;
   let purpose: string = "unavailable";
@@ -202,7 +210,7 @@ export async function runConciergeConversation(params: {
   let screening: { message: ReplyScreenReason; conversationMessage: ReplyScreenReason } | undefined;
   const diagnostic = (outcome: string, reason?: DecisionReason | "safety_escalation", response?: CoachResponse) =>
     console.info(`[ChefConcierge] decision_outcome=${outcome}${reason ? ` reason=${reason}` : ""}${correlation}` +
-      (developmentPurpose ? ` ${JSON.stringify({ implementation: "conversation-purpose-v1", fingerprint, purpose, selectedField,
+      (developmentDiagnostics ? ` ${JSON.stringify({ implementation: "conversation-purpose-v1", fingerprint, purpose, selectedField,
         fields: metrics, contract, fallback, screening, ...(response ? navigationEmissionIndicators(response) : {}) })}` : ""));
   const finish = (response: CoachResponse, informational = false) => {
     if (informational && !response.presentation?.navigation &&
@@ -224,7 +232,7 @@ export async function runConciergeConversation(params: {
       }
       if (check.status !== "not_applicable") response.foodCompatibility = check;
     }
-    if (developmentPurpose) diagnostic("response_ready", undefined, response);
+    if (developmentDiagnostics) diagnostic("response_ready", undefined, response);
     return response;
   };
   const rejectedContinuation = (turn: { message?: string | null; conversationMessage?: string | null },
@@ -297,6 +305,30 @@ export async function runConciergeConversation(params: {
           ? [...new Set([turn.message, turn.contactCare].filter(Boolean))].join("\n\n")
           : turn.redFlagReason ?? turn.message ?? undefined,
       }) as CoachResponse);
+    }
+    // Whole named requests bind reviewed UI records AFTER model/input care gates.
+    // Educational and ordinary food/clinical questions never become consent.
+    const diabeticExplanation = verifiedDiabeticBuilderExplanation(params.userMessage);
+    if (diabeticExplanation) {
+      selectedField = "verified_feature_explanation";
+      return finish(envelope(diabeticExplanation));
+    }
+    const namedRequest = explicitNavigationRequest(params.userMessage);
+    const boundNamedRequest = namedRequest && params.tools.some(tool => tool.id === namedRequest)
+      ? namedRequest : undefined;
+    const acceptedStoredOffer = !namedRequest && params.pendingRecommendation &&
+      isConfirmableNavigation(params.pendingRecommendation) && acceptsPendingFeature(params.userMessage);
+    if (boundNamedRequest || acceptedStoredOffer) {
+      const destinationId = boundNamedRequest ?? params.pendingRecommendation!.destinationId;
+      turn.navigationIntent = boundNamedRequest ? "direct_request" : "confirmed";
+      turn.conciergeDecision = {
+        mode: "food_assistance", destinationId,
+        goal: boundNamedRequest ? navigationGoal(destinationId) : params.pendingRecommendation!.goal,
+      };
+      turn.memberNeed = "navigation";
+      turn.responsePurpose = "handoff";
+      const includeSteps = !/\b(?:skip|without|no)\b[^.!?]{0,30}\binstructions\b/iu.test(params.userMessage);
+      turn.handoffMessage = verifiedNavigationText(destinationId, includeSteps);
     }
     // The input emergency gate runs first in the engine, and model-detected
     // care above still wins. Do not add calls or let a closing phrase hide care.
@@ -378,6 +410,7 @@ export async function runConciergeConversation(params: {
     const decision = validateConciergeGoal(parsedDecision.data, params.tools,
       memberMessages, {
         completeMissingDestination: true,
+        explicitNavigationDestination: boundNamedRequest,
         acceptedPendingRecommendation: !!acceptingPending &&
           acceptingPending.destinationId === parsedDecision.data.destinationId,
       });
@@ -400,11 +433,11 @@ export async function runConciergeConversation(params: {
     // This is evidence binding, not a keyword router: the model still interprets
     // request vs mention/negation. An unnamed assistance request cannot qualify
     // for the explicit-feature exception, regardless of the model's intent tag.
-    const direct = turn.navigationIntent === "direct_request" &&
+    const direct = boundNamedRequest === destinationId || (turn.navigationIntent === "direct_request" &&
       decision.goal.explicitFeatureId === destinationId &&
       mentionsCoachDestination(params.userMessage, destinationId, process.env.NODE_ENV,
         params.navigationContext?.destinationId) &&
-      !!independentConversation(params.userMessage, destinationId);
+      !!independentConversation(params.userMessage, destinationId));
     if (!confirmed && !direct) {
       if (turn.navigationIntent === "confirmed" && !params.pendingRecommendation) {
         diagnostic("navigation_downgraded", "missing_pending_recommendation");
@@ -454,7 +487,7 @@ export async function runConciergeConversation(params: {
     // Recovery changes text ONLY, never destination or authorization.
     // Unsafe links or mismatched destinations remain rejected; this recovery is
     // for absent/unusable wording and repeat permission, not rejected content.
-    if (turn.handoffMessage && /[\p{L}\p{N}]/u.test(turn.handoffMessage) &&
+    if (!boundNamedRequest && !acceptedStoredOffer && turn.handoffMessage && /[\p{L}\p{N}]/u.test(turn.handoffMessage) &&
       !independentConversation(turn.handoffMessage, destinationId)) {
       return rejectAction("missing_handoff_wording", !!confirmed);
     }
@@ -464,7 +497,8 @@ export async function runConciergeConversation(params: {
         !navigationPermissionQuestion(safe) ? safe : undefined;
     };
     const destination = COACH_DESTINATIONS[destinationId];
-    const handoff = handoffText(turn.handoffMessage) ?? (confirmed
+    const reviewedHandoff = !!boundNamedRequest || !!acceptedStoredOffer;
+    const handoff = (reviewedHandoff ? turn.handoffMessage : handoffText(turn.handoffMessage)) ?? (confirmed
       ? FEATURE_USAGE_KNOWLEDGE[destinationId]?.descriptionInput ?? handoffText(turn.message) ??
         `Use the Open ${"navigationLabel" in destination ? destination.navigationLabel : destination.label} button.`
       : undefined);
@@ -475,7 +509,7 @@ export async function runConciergeConversation(params: {
     // Keep the model's wording when completing a verified action, rather than
     // substituting a stock pitch. Completion cannot authorize a different tool
     // named in the reply or an arbitrary link.
-    const recommendation = completed ? independentConversation(handoff, destinationId) : handoff;
+    const recommendation = completed && !reviewedHandoff ? independentConversation(handoff, destinationId) : handoff;
     if (!recommendation) return rejectAction("decision_invalid");
     const message = destinationId === "create_a_dish" && !request
       ? `${recommendation}\n\nI couldn't verify the request text for transfer. You can enter it in Create a Dish.`
@@ -483,9 +517,11 @@ export async function runConciergeConversation(params: {
     const response = envelope(message, destinationId, request);
     response.presentation!.navigation = {
       state: confirmed ? "navigation_confirmed" : "direct_navigation", destinationId, goal: decision.goal,
-      offeredAt: new Date().toISOString(),
+      offeredAt: confirmed && acceptingPending
+        ? acceptingPending.offeredAt ?? new Date().toISOString() : new Date().toISOString(),
     };
-    selectedField = handoff === turn.handoffMessage ? "handoffMessage" : "verified_handoff_recovery";
+    selectedField = reviewedHandoff ? "verified_handoff_recovery" :
+      handoff === turn.handoffMessage ? "handoffMessage" : "verified_handoff_recovery";
     diagnostic(response.presentation!.navigation.state);
     return finish(response);
   } catch (error) {

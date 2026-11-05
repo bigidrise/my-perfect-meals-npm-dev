@@ -8,6 +8,8 @@ const mockNavigate = jest.fn();
 const mockRequest = jest.fn();
 jest.mock("wouter", () => ({ useLocation: () => ["/coach-corner/home", mockNavigate] }));
 jest.mock("@/lib/queryClient", () => ({ apiRequest: (...args: unknown[]) => mockRequest(...args) }));
+// Avatar branding is separate from response text/HTML isolation.
+jest.mock("@/components/coaching/ChefResponseAvatar", () => () => <p>Coach</p>);
 jest.mock("@/components/ui/button", () => ({
   Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
 }));
@@ -170,9 +172,12 @@ test("every Development structured-response text field formats without suppressi
     learningOpportunity: "**Learning**",
   });
   expect([...host.querySelectorAll("strong")].map(element => element.textContent))
-    .toEqual(["Finding", "Reason", "First action", "Call your clinician", "Learning"]);
+    .toEqual(["Finding", "Reason", "First action", "Call your clinician"]);
   expect(host.querySelector("em")?.textContent).toBe("Explanation");
-  expect(host.textContent).toContain("please follow their guidance");
+  // Escalation keeps every care instruction, without adding unrelated learning
+  // or the ordinary professional-boundary footer.
+  expect(host.textContent).toContain("Call your clinician");
+  expect(host.textContent).not.toContain("Learning");
 });
 
 test("Production keeps original raw text and spacing behavior in all structured fields", () => {

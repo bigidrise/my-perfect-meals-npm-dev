@@ -63,18 +63,24 @@ test("all 30 retained Development policy paragraphs match their pre-consolidatio
   // from the implementation under test. Includes role, care, ownership,
   // navigation/consent, shopping, creator handoff and structured-output contracts.
   const retained = getChefConversationInstructions("development").split("\n")
-    .filter(line => !line.startsWith("RESPONSE STRATEGY —"));
+    .filter(line => !line.startsWith("RESPONSE STRATEGY —") && !line.startsWith("VERIFIED NAVIGATION AUTHORITY:"));
   expect(retained).toHaveLength(30);
   expect(hash(retained.join("\n"))).toBe("6de21aef592734982e67587ac893ab74b28207f760cf287c3eae23ccb13b9533");
 });
 
-test.each(["production", "test", undefined])("released instruction bytes are unchanged for %s", environment => {
+test.each(["production", "test", undefined])("approved instruction bytes are environment-independent for %s", environment => {
   expect(hash(getChefConversationInstructions(environment)))
-    .toBe("4387e86c27a11a90df661b28b277342fe79826ef8ec8471a89d6d69775257ad3");
+    .toBe("d88dce7ace713f6b7fa1b2aaca5600b463ed24f2c644a4b303b1845dde997c04");
+  expect(getChefConversationInstructions(environment)).toBe(getChefConversationInstructions("development"));
+  expect(getChefConversationInstructions(environment)).toContain("Diabetes alone does not select a builder or authorize ignoring carbohydrate limits");
 });
 
 test("reviewed navigation guidance and unchanged mandatory food-screening instructions retain their fingerprints", () => {
   expect(hash(getPlatformGuidanceInstructions("development")))
+    .toBe("284f2db2bd6a1984ab1b7bfdf85723beb3398d94620e6bbf10596c1df5d9c919");
+  // The only change to this historical guidance fingerprint is the separately
+  // approved public name. Preserve the pre-rename byte comparison as evidence.
+  expect(hash(getPlatformGuidanceInstructions("development").replaceAll("Restaurant Assistant", "Restaurant Guide")))
     .toBe("79792d454c73a80398a953e12a78d4dbf175c2a9fa11ba34504d8a42615e081b");
   expect(hash(CHEF_FOOD_COMPATIBILITY_INSTRUCTIONS))
     .toBe("49f2eb490e4ed41497785f84d4ed6cccdea3c6a32ce77dccc45ec30d35e5f66b");

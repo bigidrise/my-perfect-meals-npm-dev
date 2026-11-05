@@ -25,6 +25,7 @@ import {
 import { runConciergeConversation } from "../services/coaching/conciergeConversation";
 import { FOOD_INCLUSION_PRIORITY_REGISTRY, NUTRITION_PRIORITIES_REGISTRY_VERSION } from "../../shared/nutritionPriorities";
 import { getCornerCapabilities } from "../services/coaching/capabilityRegistry";
+import { verifiedNavigationText } from "../../shared/coaching/navigationGuidance";
 
 const originalEnvironment = process.env.NODE_ENV;
 const fact = (value: string[], status = value.length ? "known" : "none") =>
@@ -237,15 +238,15 @@ test("validated navigation still works through the active declaration gate witho
     },
   });
   expect(result.presentation?.destinationId).toBe("my_perfect_menu");
-  expect(result.presentation?.message).toBe(handoff);
+  expect(result.presentation?.message).toBe(verifiedNavigationText("my_perfect_menu"));
   expect(result.foodCompatibility).toBeUndefined();
 });
-test("Production retains its response schema and behavior even if given a Development flag", async () => {
+test("Production requires the same food declaration evidence and fails closed when it is missing", async () => {
   process.env.NODE_ENV = "production";
   const { result, request } = await run("Existing released reply.", undefined);
-  expect(request.response_format.json_schema.schema.properties.foodDeclarations).toBeUndefined();
-  expect(request.messages[0].content).not.toContain("FOOD DECLARATIONS:");
-  expect(JSON.parse(request.messages[1].content).nutritionPriorityEducation).toBeUndefined();
-  expect(result.presentation?.message).toBe("Existing released reply.");
-  expect(result.foodCompatibility).toBeUndefined();
+  expect(request.response_format.json_schema.schema.properties.foodDeclarations).toBeDefined();
+  expect(request.messages[0].content).toContain("FOOD DECLARATIONS:");
+  expect(result.presentation?.message).not.toBe("Existing released reply.");
+  expect(result.foodCompatibility).toMatchObject({ status: "unavailable", reasons: ["food_declaration_invalid"] });
+  expect(result.todayPlan.items).toEqual([]);
 });

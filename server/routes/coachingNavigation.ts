@@ -57,4 +57,22 @@ const resolve: RequestHandler = (req, res, next) => {
 // Remove only Chef's outer paywall; resolve still enforces the
 // destination's original Essential/Pro/Clinical/purchased-entitlement guard.
 router.post("/navigation", requireAuth, resolve);
+// A receipt records client-observed route evidence only. It grants no access.
+router.post("/navigation/performed", requireAuth, async (req, res, next) => {
+  if (!isAskChefConversationEnabled(process.env.NODE_ENV)) {
+    res.status(404).json({ error: "Navigation receipts are not enabled." });
+    return;
+  }
+  const { messageId, destinationId } = req.body ?? {};
+  if (typeof messageId !== "string" || !/^[a-f0-9-]{36}$/iu.test(messageId) ||
+    !isCoachDestinationId(destinationId)) {
+    res.status(400).json({ error: "Invalid navigation receipt." });
+    return;
+  }
+  try {
+    const { recordNavigationPerformed } = await import("../services/coaching/navigationReceipt");
+    const recorded = await recordNavigationPerformed((req as AuthenticatedRequest).authUser.id, messageId, destinationId);
+    res.status(recorded ? 200 : 404).json({ recorded });
+  } catch (error) { next(error); }
+});
 export default router;

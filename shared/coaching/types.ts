@@ -22,6 +22,8 @@ export interface ConciergePresentation {
     goal: import("./schemas").ConciergeGoal;
     /** Server-issued original offer time; informational replies never renew it. */
     offeredAt?: string;
+    /** Client observed the authorized route, not merely a displayed action. */
+    performedAt?: string;
   };
 }
 

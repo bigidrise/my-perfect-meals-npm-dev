@@ -2,6 +2,7 @@ jest.mock("../db", () => ({
   db: { execute: jest.fn(() => { throw new Error("Unexpected database access"); }) },
 }));
 import { runConciergeConversation } from "../services/coaching/conciergeConversation";
+import { verifiedNavigationText } from "../../shared/coaching/navigationGuidance";
 import { fallbackQuality, selectRejectedConversation, HANDOFF_RECOVERY, MISSING_PENDING_RECOVERY } from "../services/coaching/conciergeFallback";
 import { inspectConversationPurpose } from "../services/coaching/conversationPurpose";
 import type { PendingRecommendation } from "../services/coaching/conciergeNavigationState";
@@ -123,7 +124,7 @@ describe("Development rejected-response reliability", () => {
       memberNeed: "navigation", responsePurpose: "handoff", navigationIntent: "confirmed",
       conciergeDecision: null, handoffMessage: text, message: text, conversationMessage: null,
     }, { pending: first.result.presentation?.navigation, userMessage: "YES" });
-    expect(result.presentation?.message).toBe(text);
+    expect(result.presentation?.message).toBe(verifiedNavigationText("dessert_creator"));
     expect(result.presentation?.navigation?.state).toBe("navigation_confirmed");
     expect(result.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId: "dessert_creator" })]);
   });
@@ -153,10 +154,11 @@ describe("Development rejected-response reliability", () => {
         "PRIVATE_DESTINATION", "PRIVATE_GOAL", "PRIVATE_PROFILE_SENTINEL"]) expect(output).not.toContain(text);
     } finally { log.mockRestore(); }
   });
-  it("keeps Production fallback behavior and provider descriptions unchanged", async () => {
+  it("Production uses the same placeholder protection and purpose schema", async () => {
     process.env.NODE_ENV = "production";
     const { result, request } = await reply({ conciergeDecision: { ...action, destinationId: "invalid" } });
-    expect(result.presentation?.message).toBe(":apple:");
-    expect(request.response_format.json_schema.schema.properties).not.toHaveProperty("responsePurpose");
+    expect(result.presentation?.message).not.toBe(":apple:");
+    expect(result.meta.concierge?.rendering).toBe("retry");
+    expect(request.response_format.json_schema.schema.properties).toHaveProperty("responsePurpose");
   });
 });
