@@ -16,3 +16,21 @@ An explicit request to open the Diabetic Meal Builder must offer **Open Meal Bui
 **Why:** The founder explicitly authorized this parent-page handoff while retaining subscription, clinical assignment and setup safeguards.
 
 **How to apply:** Treat questions about the diabetic builder as education, not navigation consent. Diabetes or a dinner request alone does not select it. Never infer permission to change carbohydrate limits or invent a direct clinical-builder action.
+
+## Concise navigation behavior
+
+Across Ask Chef's supported destinations, identify the destination briefly and
+ask whether the member wants to go there. Acceptance gets verified directions
+and the working button, with no repeated question or workflow explanation.
+Direct opening commands already give permission and skip the offer. Clarify only
+when the answer changes the destination; feature explanations are brief and
+separate from navigation consent.
+
+**Why:** The founder approved this as standard Ask Chef behavior, not a
+Business Suite-only wording correction. Members should reach the destination and
+use the workflow already provided there, rather than receive an administration
+lecture or support referral in chat.
+
+**How to apply:** Preserve access checks, clinical safety and navigation receipts.
+Do not turn this scope into a broad intelligence/knowledge-registry rewrite or
+invent navigation destinations that have not been approved.

@@ -25,6 +25,9 @@ export const COACH_DESTINATIONS = {
   // Entry pages only: no builder selection, clinical activation or request transfer.
   my_perfect_menu: { label: "My Perfect Menu", route: "/foods-i-enjoy", access: "essential" },
   meal_builders: { label: "Meal Builders", route: "/builders", access: "meal_builders" },
+  // Existing organization entry supports both new and established businesses.
+  // It never selects a workspace or grants administrator permissions.
+  business_suite: { label: "Business Suite", route: "/business-organizations", access: "authenticated" },
 } as const;
 
 export type CoachDestinationId = keyof typeof COACH_DESTINATIONS;

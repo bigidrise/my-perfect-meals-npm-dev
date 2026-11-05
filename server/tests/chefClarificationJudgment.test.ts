@@ -2,6 +2,7 @@ jest.mock("../db", () => ({
   db: { execute: jest.fn(() => { throw new Error("Unexpected database access"); }) },
 }));
 import { runConciergeConversation } from "../services/coaching/conciergeConversation";
+import { verifiedNavigationText } from "../../shared/coaching/navigationGuidance";
 import { getChefConversationInstructions, CHEF_CONVERSATION_INSTRUCTIONS } from "../services/coaching/conciergeInstructions";
 import { runSafetyGate } from "../services/coaching/safety";
 import type { PendingRecommendation } from "../services/coaching/conciergeNavigationState";
@@ -148,7 +149,7 @@ describe("Development practical food-decision contracts (not live model judgment
     expect(request.model).toBe("gpt-4o");
     expect(request.temperature).toBe(0.4);
     expect(request.max_tokens).toBe(2000);
-    expect(getChefConversationInstructions("production")).toBe(CHEF_CONVERSATION_INSTRUCTIONS);
+    expect(getChefConversationInstructions("production")).toBe(getChefConversationInstructions("development"));
   });
 });
 
@@ -314,7 +315,7 @@ describe("Development clarification judgment contracts (not live model judgment)
       responsePurpose: "handoff", memberNeed: "navigation",
       navigationIntent: "confirmed", handoffMessage: handoff,
     }, { userMessage: "Yes, please.", pending: first.presentation?.navigation });
-    expect(accepted.presentation?.message).toBe(handoff);
+    expect(accepted.presentation?.message).toBe(verifiedNavigationText("beverage_creator"));
     expect(accepted.presentation?.navigation?.state).toBe("navigation_confirmed");
     expect(accepted.presentation?.destinationId).toBe("beverage_creator");
     expect(accepted.todayPlan.items).toHaveLength(1);
@@ -328,7 +329,7 @@ describe("Development clarification judgment contracts (not live model judgment)
       conciergeDecision: { ...decision, goal: { ...goal, explicitFeatureId: "beverage_creator" } },
       handoffMessage: message,
     }, { userMessage: "Open Beverage Creator." });
-    expect(result.presentation?.message).toBe(message);
+    expect(result.presentation?.message).toBe(verifiedNavigationText("beverage_creator"));
     expect(result.presentation?.navigation?.state).toBe("direct_navigation");
     expect(result.presentation?.destinationId).toBe("beverage_creator");
   });
@@ -357,7 +358,7 @@ describe("Development clarification judgment contracts (not live model judgment)
 
   it("does not apply the new clarification instructions outside Development", () => {
     for (const env of ["production", "test", undefined]) {
-      expect(getChefConversationInstructions(env)).toBe(CHEF_CONVERSATION_INSTRUCTIONS);
+      expect(getChefConversationInstructions(env)).toBe(getChefConversationInstructions("development"));
     }
     expect(getChefConversationInstructions("development")).not.toBe(CHEF_CONVERSATION_INSTRUCTIONS);
   });

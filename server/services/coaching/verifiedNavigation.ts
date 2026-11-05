@@ -25,10 +25,21 @@ export function explicitNavigationRequest(message: string): CoachDestinationId |
     return new RegExp(
       `^(?:(?:(?:can|could|would) you\\s+)?(?:open|show me|show|launch|take me to|navigate to|go to)\\s+${target}|` +
       `(?:I (?:want|would like) to (?:open|use)|I'd like to (?:open|use))\\s+${target}|` +
-      `(?:where is|where can I find|how (?:do I|can I) (?:get to|find)|(?:(?:can|could) you )?give me directions to)\\s+${target}|` +
+      `(?:(?:can|could) you )?give me directions to\\s+${target}|` +
       `${id === "create_a_dish" ? "I want to create a dish" : "(?!)"})$`, "iu",
     ).test(text);
   }) ? id : undefined;
+}
+
+/** Finding a destination is not consent to open it. Match only whole questions. */
+export function navigationDestinationQuestion(message: string): CoachDestinationId | undefined {
+  const text = message.trim().replace(/[.!?]+$/u, "").replace(/^please\s+/iu, "");
+  const matches = namedNavigationDestinations(text);
+  if (matches.length !== 1) return undefined;
+  const id = matches[0];
+  return COACH_NAVIGATION_GUIDANCE[id].aliases.some(name => new RegExp(
+    `^(?:where (?:is|are|can I find|do I find)|how (?:do I|can I) (?:get to|find))\\s+(?:the\\s+|my\\s+)?${escape(name)}$`, "iu",
+  ).test(text)) ? id : undefined;
 }
 
 /** Whole consent binds only a fresh, server-loaded offer, never a guessed target. */

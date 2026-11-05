@@ -272,7 +272,7 @@ test.each(shoppingWorkflows)("$id: recommend, persist, then confirm the same wor
     handoffMessage: workflow.handoff });
   const confirmed = await run("Yes, please.");
   expect(confirmed.presentation?.destinationId).toBe(workflow.id);
-  expect(confirmed.presentation?.message).toBe(workflow.handoff);
+  expect(confirmed.presentation?.message).toBe(verifiedNavigationText(workflow.id));
   expect(confirmed.todayPlan.items).toHaveLength(1);
   expect(confirmed.todayPlan.items[0].destinationId).toBe(workflow.id);
   expect(mockCreate).toHaveBeenCalledTimes(2);
@@ -719,7 +719,7 @@ test("a confirmed destination without reviewed control guidance uses only its ex
     handoffMessage: null, message: ":)", conversationMessage: null });
   const result = await run("yes");
   expect(result.presentation?.destinationId).toBe("sushi_creator");
-  expect(result.presentation?.message).toBe("Use the Open Sushi Creator button.");
+  expect(result.presentation?.message).toBe(verifiedNavigationText("sushi_creator"));
   expect(html(result).match(/<button/g)).toHaveLength(1);
 });
 

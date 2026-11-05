@@ -38,6 +38,7 @@ test.each([
   ["restaurant_guide", "Restaurant Assistant", "/social-hub/restaurant-guide"],
   ["beverage_creator", "Beverage Creator", "/lifestyle/beverage-creator"],
   ["meal_builders", "Meal Builders", "/builders"],
+  ["business_suite", "Business Suite", "/business-organizations"],
 ])("%s displays one formatted action, authorizes the click, changes route and then sends a receipt", async (id, label, route) => {
   mockRequest.mockImplementation(async (url: string) => url.endsWith("/performed")
     ? { recorded: true } : { destinationId: id, route });

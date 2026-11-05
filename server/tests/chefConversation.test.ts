@@ -195,7 +195,7 @@ test.each([
     ...(id === "create_a_dish" ? { creatorRequest: { idea: "mushroom stew", memberTurns: [0] } } : {}),
   });
   const result = await run("Yes, let's do that.");
-  expect(result.presentation).toEqual(expect.objectContaining({ message: answer, destinationId: id }));
+  expect(result.presentation).toEqual(expect.objectContaining({ message: verifiedNavigationText(id), destinationId: id }));
   expect(result.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId: id })]);
   expect(mockCreate).toHaveBeenCalledTimes(1);
   const wire = mockCreate.mock.calls[0][0];
@@ -213,7 +213,7 @@ test("direct familiar-feature request can omit instructions rather than forcing 
   reply("Of course—use the button below when you're ready.", "my_perfect_getaway",
     { ...unknown, activity: "travel", explicitFeatureId: "my_perfect_getaway" });
   const result = await run("Open My Perfect Getaway. I know how to use it; skip the instructions.");
-  expect(result.presentation?.message).toBe("Of course—use the button below when you're ready.");
+  expect(result.presentation?.message).toBe(verifiedNavigationText("my_perfect_getaway", false));
   expect(result.presentation?.destinationId).toBe("my_perfect_getaway");
   expect(mockCreate).toHaveBeenCalledTimes(1);
   expect(mockCreate.mock.calls[0][0].messages[0].content).toContain("omit the tutorial");
@@ -283,8 +283,7 @@ test.each([
   reply("You can create it there.", id, goal);
   const result = await run(message);
   expect(result.presentation?.destinationId).toBe(id);
-  expect(result.presentation?.message).toBe(message === "Please open My Perfect Menu."
-    ? verifiedNavigationText("my_perfect_menu") : "You can create it there.");
+  expect(result.presentation?.message).toBe(verifiedNavigationText(id));
   expect(mockCreate).toHaveBeenCalledTimes(1);
 });
 
@@ -305,7 +304,7 @@ test.each([
   reply("You can start there.", id, goal);
   const result = await run("Yes, let's do that.");
   expect(result.presentation?.destinationId).toBe(id);
-  expect(result.presentation?.message).toBe("You can start there.");
+  expect(result.presentation?.message).toBe(verifiedNavigationText(id));
   const payload = JSON.parse(mockCreate.mock.calls[0][0].messages[1].content);
   expect(payload.history).toEqual(history);
   expect(payload.latestMemberMessage).toBe("Yes, let's do that.");
@@ -692,7 +691,7 @@ test("later turns retain model-authored explanations, corrections, orientation a
     reply(answer, id, id ? { ...unknown, activity: "use_ingredients" } : unknown,
       id ? {} : { conciergeDecision: null });
     const result = await run(message);
-    expect(result.presentation?.message).toBe(answer);
+    expect(result.presentation?.message).toBe(id ? verifiedNavigationText(id) : answer);
     expect(result.presentation?.destinationId).toBe(id ?? undefined);
     expect(result.todayPlan.items).toHaveLength(id ? 1 : 0);
     const data = JSON.parse(mockCreate.mock.calls.at(-1)[0].messages[1].content);
@@ -738,7 +737,7 @@ test.each([
   });
   const result = await run("Help me prepare the drink.");
   expect(result.presentation?.destinationId).toBe(expectedId);
-  expect(result.presentation?.message).toBe(expectedId ? message : "I can help explain the next step.");
+  expect(result.presentation?.message).toBe(expectedId ? verifiedNavigationText(expectedId) : "I can help explain the next step.");
   expect(result.todayPlan.items).toHaveLength(expectedId ? 1 : 0);
   expect(mockCreate).toHaveBeenCalledTimes(1);
 });
@@ -796,7 +795,7 @@ test.each([
   });
   const result = await run(message);
   expect(result.presentation?.destinationId).toBe(id);
-  expect(result.presentation?.message).toBe("You can start there.");
+  expect(result.presentation?.message).toBe(verifiedNavigationText(id));
   expect(result.presentation?.creatorRequest).toBeUndefined();
   expect(result.todayPlan.items).toHaveLength(1);
   expect(mockCreate).toHaveBeenCalledTimes(1);

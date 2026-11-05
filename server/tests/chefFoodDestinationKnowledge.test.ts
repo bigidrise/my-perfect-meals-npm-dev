@@ -141,7 +141,7 @@ describe("Development food destination knowledge", () => {
     // An open-only request contains no grounded dish idea to transfer. The
     // existing honest transfer notice may accompany the handoff, not permission.
     expect(result.presentation?.message).toContain(verifiedNavigationText("create_a_dish"));
-    expect(result.presentation?.message).toContain("I couldn't verify the request text for transfer");
+    expect(result.presentation?.message).not.toContain("I couldn't verify the request text for transfer");
     expect(result.presentation?.message).not.toMatch(/would you like|want to open/i);
     expect(result.presentation?.navigation?.state).toBe("direct_navigation");
     expect(result.presentation?.destinationId).toBe("create_a_dish");
@@ -159,7 +159,7 @@ describe("Development food destination knowledge", () => {
     }, { pending: first.result.presentation!.navigation!, history: [
       { role: "user", content: "I'm planning what groceries to buy for soup." }, { role: "assistant", content: offer },
     ] });
-    expect(result.presentation?.message).toBe(message);
+    expect(result.presentation?.message).toBe(verifiedNavigationText("grocery_create_meal"));
     expect(result.presentation?.navigation?.state).toBe("navigation_confirmed");
     expect(result.presentation?.destinationId).toBe("grocery_create_meal");
     expect(COACH_DESTINATIONS.grocery_create_meal.route).toBe("/shopping-list-v2");

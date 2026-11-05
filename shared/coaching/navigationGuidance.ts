@@ -85,18 +85,30 @@ export const COACH_NAVIGATION_GUIDANCE = {
     entry: "Meal Builders",
     start: "Open the builder available to your account, then choose a day and meal slot and select Create With Chef. Existing assignment, setup and subscription checks still apply.",
   },
+  business_suite: {
+    aliases: ["Business Suite"], entry: "More → Business Suite", start: "",
+  },
 } satisfies Record<CoachDestinationId, { aliases: string[]; entry: string; start: string }>;
 
 export const DIABETIC_BUILDER_EXPLANATION =
-  "The Diabetic Meal Builder helps create and organize meals using your diabetic nutrition profile and applicable carbohydrate guidance. " +
-  "Meal Builders is the approved starting page; the builder available there depends on your account, assignment and required setup. " +
-  "A healthcare professional is not universally required to access the builder. Existing subscription, clinical assignment and safety rules still apply. " +
-  "Chef cannot change your carbohydrate limits, activate a protocol or open a clinical builder directly.";
+  "The Diabetic Meal Builder helps plan meals using your diabetic nutrition profile and applicable carbohydrate guidance. " +
+  "Start in Meal Builders to select your available builder; a healthcare professional is not universally required, " +
+  "but your existing subscription, clinical assignment, setup and safety rules still apply.";
 
 export function verifiedNavigationText(id: CoachDestinationId, includeStartingSteps = true): string {
   const destination = COACH_DESTINATIONS[id];
   const label = "navigationLabel" in destination ? destination.navigationLabel : destination.label;
   const guidance = COACH_NAVIGATION_GUIDANCE[id];
   const button = `Use the Open ${label} button.`;
-  return includeStartingSteps && guidance.start ? `${guidance.entry}. ${button} ${guidance.start}` : button;
+  if (!includeStartingSteps) return button;
+  return `You can find it under ${guidance.entry}.` +
+    (id === "meal_builders" ? " Choose the builder available to your account." : "");
+}
+
+export function verifiedNavigationOffer(id: CoachDestinationId): string {
+  const destination = COACH_DESTINATIONS[id];
+  const label = "navigationLabel" in destination ? destination.navigationLabel : destination.label;
+  return id === "business_suite"
+    ? "Start in Business Suite to explore your business options. Would you like to go there?"
+    : `You can find that in ${label}. Would you like to go there?`;
 }
