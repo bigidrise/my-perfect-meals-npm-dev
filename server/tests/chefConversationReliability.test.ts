@@ -15,13 +15,13 @@ test.each(["asc", "desc"] as const)("Development %s history and cursor use the s
   expect(cursor.sql).toContain("AND conversation_id = $2");
   expect(cursor.params).toEqual(["synthetic-message", "synthetic-conversation"]);
 });
-test.each(["production", "test"])("%s retains its original timestamp-only history and cursor", environment => {
+test.each(["production", "test"])("%s uses the same stable history and conversation-scoped cursor", environment => {
   process.env.NODE_ENV = environment;
-  expect(dialect.sqlToQuery(chefMessageOrder("asc")).sql).toBe("created_at ASC");
-  expect(dialect.sqlToQuery(chefMessageOrder("desc")).sql).toBe("created_at DESC");
-  const cursor = dialect.sqlToQuery(chefOlderMessageCursor("unused", "synthetic-message"));
-  expect(cursor.sql).toBe("created_at < (SELECT created_at FROM coach_messages WHERE id = $1 LIMIT 1)");
-  expect(cursor.params).toEqual(["synthetic-message"]);
+  expect(dialect.sqlToQuery(chefMessageOrder("asc")).sql).toBe("created_at ASC, CASE role WHEN 'user' THEN 0 WHEN 'assistant' THEN 1 ELSE 2 END ASC, id ASC");
+  expect(dialect.sqlToQuery(chefMessageOrder("desc")).sql).toBe("created_at DESC, CASE role WHEN 'user' THEN 0 WHEN 'assistant' THEN 1 ELSE 2 END DESC, id DESC");
+  const cursor = dialect.sqlToQuery(chefOlderMessageCursor("synthetic-conversation", "synthetic-message"));
+  expect(cursor.sql).toContain("AND conversation_id = $2");
+  expect(cursor.params).toEqual(["synthetic-message", "synthetic-conversation"]);
 });
 test.each([
   "Thanks", "Thank you, how do I get more protein", "I'm done with dieting",

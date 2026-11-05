@@ -176,7 +176,8 @@ function MessageRow({
       {isUser ? (
         <UserBubble content={msg.content!} />
       ) : (
-            <CoachBubble structured={msg.structured!} enableConcierge={isChefConversationEnabled()} />
+            <CoachBubble structured={msg.structured!} enableConcierge={isChefConversationEnabled()}
+              emphasizeFeatureNames={isChefConversationReliabilityEnabled()} messageId={msg.id} />
       )}
       {/* ⋯ row — sits below each bubble, aligned to match the bubble side */}
       <div className={`flex ${isUser ? "justify-end pr-1" : "justify-start pl-1"} mt-0.5`}>

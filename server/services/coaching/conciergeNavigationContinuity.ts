@@ -2,6 +2,11 @@ import { z } from "zod";
 import type { ConciergePresentation } from "../../../shared/coaching/types";
 
 type PendingNavigation = NonNullable<ConciergePresentation["navigation"]>;
+export function isConfirmableNavigation(
+  navigation: PendingNavigation | undefined,
+): navigation is PendingNavigation {
+  return !!navigation && !navigation.performedAt && pendingNavigationIsFresh(navigation.offeredAt);
+}
 export const PendingNavigationDispositionSchema = z.enum(["preserve", "clear"]);
 export const PENDING_NAVIGATION_TTL_MS = 30 * 60 * 1000;
 
@@ -21,7 +26,7 @@ export function retainInformationalOffer(
 }
 
 export const NAVIGATION_CONTINUITY_INSTRUCTIONS = [
-  "NAVIGATION CONTINUITY: Interpret the latest member message using recent history and server-supplied pendingRecommendation/recentNavigationContext, not isolated keywords. A completed recent navigation is context, not an unaccepted offer: bare yes cannot confirm it again. A natural locating/opening reference to that same recent destination can use direct_request with its ready goal.",
+  "NAVIGATION CONTINUITY: Interpret the latest member message using recent history and server-supplied pendingRecommendation/recentNavigationContext, not isolated keywords. navigation_confirmed/direct_navigation mean an action was offered, NOT that navigation occurred. Only performedAt is client-observed route evidence; it does not mean a recipe or task was completed. A fresh unperformed pendingRecommendation remains actionable on acceptance without another question. Never claim the member already opened, visited or completed it without client evidence. Performed navigation is context, not an unaccepted offer; unrelated yes cannot reopen it. A natural named request to reopen that destination may use direct_request.",
   "Set pendingNavigationDisposition=preserve only for a relevant informational follow-up about the SAME pending workflow with no rejection or change of intent. Set clear for rejection, cancellation, an unrelated topic, a different destination, unresolved change of workflow, or incompatible safety/care. Without a pending offer use clear. An explanation is not consent.",
   "A current valid pending offer may be accepted by a natural contextual request to locate or open that same destination, including 'Where is my builder?' after choosing Meal Builders. Use confirmed navigation and the existing pending destination/goal; do not demand its exact name again or ask permission repeatedly. A general question about how a feature works is informational, not acceptance.",
   "An explicit selection of Meal Builder or Meal Builders, including 'Take me to my meal builder', is a named workflow request. Use direct_request with meal_builders, activity=plan_meals and explicitFeatureId=meal_builders, a concise handoff and the existing button. Bare 'builder' without established pending context is not named authorization. Mentions, negations and comparisons are not opening requests.",

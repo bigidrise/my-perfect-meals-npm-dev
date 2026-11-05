@@ -218,8 +218,8 @@ test("the correction does not change Production matching or its released prompt"
   process.env.NODE_ENV = "production";
   expect(mentionsCoachDestination(genericRequests[0], "grocery_create_meal", "production")).toBe(true);
   expect(validateConciergeGoal(decision(), tools, [genericRequests[0]])?.destinationId).toBe("grocery_create_meal");
-  expect(getChefConversationInstructions("production")).toBe(CHEF_CONVERSATION_INSTRUCTIONS);
-  expect(getChefConversationInstructions("production")).not.toContain("GROCERY MEAL INTENT:");
+  expect(getChefConversationInstructions("production")).toBe(getChefConversationInstructions("development"));
+  expect(getChefConversationInstructions("production")).toContain("GROCERY MEAL INTENT:");
   expect(COACH_DESTINATIONS.grocery_create_meal).toEqual({
     label: "Grocery Coach — Create a Meal", navigationLabel: "Grocery Store Coach",
     route: "/shopping-list-v2", access: "pro",

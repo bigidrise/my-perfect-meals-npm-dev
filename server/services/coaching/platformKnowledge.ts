@@ -8,6 +8,7 @@ import { PLATFORM_HELP_KNOWLEDGE } from "./platformHelpKnowledge";
 import { isAskChefConversationEnabled } from "../../../shared/coaching/askChefRelease";
 import { getMemberPlatformCatalog } from "./platformFeatureCatalog";
 import type { ChefKnowledgeAccess } from "./platformKnowledgeAccess";
+import { COACH_NAVIGATION_GUIDANCE, DIABETIC_BUILDER_EXPLANATION } from "../../../shared/coaching/navigationGuidance";
 
 interface MemberFeatureKnowledge {
   id: string;
@@ -167,7 +168,7 @@ const conciergeTruth: Record<string, Partial<MemberFeatureKnowledge>> = {
 
 export function getDevelopmentPlatformKnowledge(access?: ChefKnowledgeAccess) {
   if (!isAskChefConversationEnabled(process.env.NODE_ENV)) return undefined;
-  const development = process.env.NODE_ENV === "development";
+  const development = true;
   return {
     featureCatalog: getMemberPlatformCatalog(access).map(fact =>
       development && fact.id === "education" ? {
@@ -179,15 +180,17 @@ export function getDevelopmentPlatformKnowledge(access?: ChefKnowledgeAccess) {
       } : fact),
     features: memberFeatures.filter(feature => feature.status === "available")
       .map(feature => development ? { ...feature, ...conciergeTruth[feature.id] } : feature).map(feature =>
-      process.env.NODE_ENV === "development" && feature.id === "meal_builders"
+      feature.id === "meal_builders"
         ? { ...feature, purpose: "The Meal Builders landing page leads members to their assigned builder, where they create and save personalized dated meals and meal boards. Ordinary members generally have one assigned builder; administrators may have access to multiple builders. Do not suggest freely choosing a preferred builder, infer administrator authority, choose or activate a specialized clinical builder, bypass onboarding, or overwrite the assigned builder." }
         :
-      process.env.NODE_ENV === "development" && feature.id === "grocery_coach"
+      feature.id === "grocery_coach"
         ? { ...feature, purpose: "Inside Shopping List, Grocery Store Coach supports both meal help and product help through two tabs: Build a Meal and Find a Product. Build a Meal helps plan a meal and ingredients to purchase, generating the meal and corresponding grocery list. A member who simply wants to prepare a chosen dish instead fits Create a Dish. Find a Product discovers grocery products to buy using onboarding and the nutrition profile; Product Scan separately evaluates an actual product. Activity and context, not food keywords, determine fit. Existing access and food safeguards govern results; never invent products, guarantee suitability or promise live inventory." }
         : feature),
     unavailableFeatures: memberFeatures.filter(feature => feature.status !== "available"),
     featureUsage: getFeatureUsageKnowledge(process.env.NODE_ENV),
-    platformHelp: process.env.NODE_ENV === "development" ? {
+    navigationGuidance: COACH_NAVIGATION_GUIDANCE,
+    diabeticBuilderGuidance: DIABETIC_BUILDER_EXPLANATION,
+    platformHelp: development ? {
       ...PLATFORM_HELP_KNOWLEDGE,
       shopping: { ...PLATFORM_HELP_KNOWLEDGE.shopping,
         controls: PLATFORM_HELP_KNOWLEDGE.shopping.controls.map(control =>
@@ -226,7 +229,6 @@ export const PLATFORM_GUIDANCE_INSTRUCTIONS = [
 ].join("\n");
 
 export function getPlatformGuidanceInstructions(environment: string | undefined): string {
-  if (environment !== "development") return PLATFORM_GUIDANCE_INSTRUCTIONS;
   return PLATFORM_GUIDANCE_INSTRUCTIONS.replace(
     "Skip the introduction when their activity is clear and use the relevant existing workflow directly.",
     "Skip unnecessary introductions when the activity is clear, but do not confuse a clear drink format with a resolved underlying need. Use reviewed featureUsage.suitability to distinguish ordinary beverage creation, performance drink creation and circumstance-related hydration support. An existing workflow is appropriate only when it helps the member's current need and material uncertainty or required care does not take priority. This does not require an interview, prohibit suitable nutrition-answer-plus-offer replies, or add navigation permission.",

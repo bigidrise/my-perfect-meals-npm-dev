@@ -347,7 +347,6 @@ const DEVELOPMENT_FEATURE_SUITABILITY = {
 };
 
 export function getFeatureUsageKnowledge(environment: string | undefined) {
-  if (environment !== "development") return FEATURE_USAGE_KNOWLEDGE;
   const knowledge = { ...FEATURE_USAGE_KNOWLEDGE };
   knowledge.my_perfect_menu = {
     descriptionInput: "Choose Breakfast, Lunch, Dinner or Snack; Snack distinguishes food-style and dessert-style ideas.",

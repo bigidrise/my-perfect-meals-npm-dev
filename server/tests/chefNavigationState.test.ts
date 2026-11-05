@@ -18,6 +18,7 @@ import { getAdapter } from "../services/coaching/adapters";
 import { loadBoundedHistory } from "../services/coaching/conversationSummarizer";
 import { getCornerCapabilities } from "../services/coaching/capabilityRegistry";
 import { loadPendingRecommendation } from "../services/coaching/conciergeNavigationState";
+import { verifiedNavigationText } from "../../shared/coaching/navigationGuidance";
 import CoachBubble from "../../client/src/components/coaching/CoachBubble";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
 import { FEATURE_USAGE_KNOWLEDGE } from "../services/coaching/featureUsageKnowledge";
@@ -162,6 +163,7 @@ test("expired or future-dated original offers cannot be revived by fresh informa
 test("bare yes cannot confirm an already completed navigation", async () => {
   builderTurn("direct_request", "Use the Open Meal Builders button.");
   await run("Meal builder");
+  stored.presentation.navigation.performedAt = new Date().toISOString();
   builderTurn("confirmed", "Use the Open Meal Builders button.");
   expect((await run("Yes")).todayPlan.items).toEqual([]);
 });
@@ -349,7 +351,7 @@ test("exact live failure goes through engine persistence, then restored Yes rend
   model({ navigationIntent: "confirmed", conciergeDecision: null });
   const second = await run("Yes.");
   expect(second.presentation).toMatchObject({
-    message: guidance, destinationId: "my_perfect_getaway",
+    message: verifiedNavigationText("my_perfect_getaway"), destinationId: "my_perfect_getaway",
     navigation: { state: "navigation_confirmed" },
   });
   expect(html(second)).toContain("<button");
@@ -359,7 +361,8 @@ test("exact live failure goes through engine persistence, then restored Yes rend
   expect(payload.pendingRecommendation.destinationId).toBe("my_perfect_getaway");
   expect(payload.platformKnowledge.featureUsage.my_perfect_getaway.descriptionInput).toContain("Search");
   expect(mockCreate).toHaveBeenCalledTimes(2);
-  expect(await loadPendingRecommendation("owned-conversation", "member")).toBeUndefined();
+  expect(await loadPendingRecommendation("owned-conversation", "member"))
+    .toMatchObject({ state: "navigation_confirmed", destinationId: "my_perfect_getaway" });
   expect(statements.find(s => s.includes("SELECT m.structured_payload"))).toContain("c.owner_id");
 });
 
@@ -381,7 +384,7 @@ test("dessert recommendation and short agreement retain dessert without text his
   expect((await run("Help me make a whole cake.")).presentation?.navigation?.state).toBe("recommendation_pending");
   model({ navigationIntent: "confirmed", conciergeDecision: null, handoffMessage: handoff });
   const result = await run("Sure.");
-  expect(result.presentation?.message).toBe(handoff);
+  expect(result.presentation?.message).toBe(verifiedNavigationText("dessert_creator"));
   expect(result.presentation?.destinationId).toBe("dessert_creator");
   expect(html(result)).toContain("<button");
 });
@@ -398,7 +401,7 @@ test("Find Meals assistance confirms into the meal-generating screen, not the li
   model({ navigationIntent: "confirmed", conciergeDecision: null, handoffMessage: handoff });
   const second = await run("Yes.");
   expect(second.presentation?.destinationId).toBe("find_meals_near_me");
-  expect(second.presentation?.message).toBe(handoff);
+  expect(second.presentation?.message).toBe(verifiedNavigationText("find_meals_near_me"));
   expect(html(second)).toContain("<button");
   expect(COACH_DESTINATIONS.find_meals_near_me.route).toBe("/social-hub/find");
   expect(COACH_DESTINATIONS.find_meals_near_me.access).toBe("pro");
@@ -454,11 +457,12 @@ test.each(["development", "production"])(
         expect(response.todayPlan.items).toEqual([expect.objectContaining({
           kind: "use_feature", destinationId: "craving_creator", featureTarget: "craving_creator",
         })]);
-        expect(response.presentation?.message).toBe(cravingHandoff);
+        expect(response.presentation?.message).toBe(verifiedNavigationText("craving_creator"));
         expect(html(response).match(/<button/g)).toHaveLength(1);
         expect(html(response)).toContain("Open craving_creator");
         expect(stored.presentation.navigation.state).toBe("navigation_confirmed");
-        expect(await loadPendingRecommendation("owned-conversation", "member")).toBeUndefined();
+        expect(await loadPendingRecommendation("owned-conversation", "member"))
+          .toMatchObject({ state: "navigation_confirmed", destinationId: "craving_creator" });
       }
       history.push({ role: "user", content: turn.input },
         { role: "assistant", content: response.presentation?.message ?? "" });
@@ -587,7 +591,7 @@ test("confirmed consent survives a missing handoff variant using verified starti
   const result = await run("Yes.");
   expect(html(result)).toContain("<button");
   expect(result.presentation?.navigation?.state).toBe("navigation_confirmed");
-  expect(result.presentation?.message).toBe(FEATURE_USAGE_KNOWLEDGE.my_perfect_getaway!.descriptionInput);
+  expect(result.presentation?.message).toBe(verifiedNavigationText("my_perfect_getaway"));
 });
 
 test("a repeated recommendation pitch is replaced with verified guidance after consent", async () => {
@@ -596,7 +600,7 @@ test("a repeated recommendation pitch is replaced with verified guidance after c
   const result = await run("Yes.");
   expect(html(result)).toContain("<button");
   expect(result.presentation?.message).not.toContain(invitation);
-  expect(result.presentation?.message).toBe(FEATURE_USAGE_KNOWLEDGE.my_perfect_getaway!.descriptionInput);
+  expect(result.presentation?.message).toBe(verifiedNavigationText("my_perfect_getaway"));
 });
 
 test.each(["development", "production"])(
@@ -618,12 +622,13 @@ test.each(["development", "production"])(
     const confirmed = await run("yes");
     expect(confirmed.presentation?.navigation?.state).toBe("navigation_confirmed");
     expect(confirmed.presentation?.destinationId).toBe("find_meals_near_me");
-    expect(confirmed.presentation?.message).toBe(FEATURE_USAGE_KNOWLEDGE.find_meals_near_me!.descriptionInput);
+    expect(confirmed.presentation?.message).toBe(verifiedNavigationText("find_meals_near_me"));
     expect(confirmed.presentation?.message).not.toMatch(/[?？؟]/u);
     expect(html(confirmed).match(/<button/g)).toHaveLength(1);
     expect(confirmed.meta.redFlag).toBe(false);
     expect(mockCreate).toHaveBeenCalledTimes(2);
-    // Completed handoffs are not new pending recommendations.
+    // Only observed navigation, not offering the action, consumes it.
+    stored.presentation.navigation.performedAt = new Date().toISOString();
     model({ navigationIntent: "confirmed", conciergeDecision: null, message: "What would you like help with?" });
     expect((await run("yes")).presentation?.destinationId).toBeUndefined();
   });
@@ -674,7 +679,7 @@ test.each([null, ":)", "Would you like to proceed?"])(
       message: "Would you like to proceed?", conversationMessage: null });
     const result = await run("Yes.");
     expect(result.presentation?.navigation?.state).toBe("navigation_confirmed");
-    expect(result.presentation?.message).toBe(FEATURE_USAGE_KNOWLEDGE.my_perfect_getaway!.descriptionInput);
+    expect(result.presentation?.message).toBe(verifiedNavigationText("my_perfect_getaway"));
     expect(html(result).match(/<button/g)).toHaveLength(1);
   });
 
@@ -682,7 +687,8 @@ test.each([
   undefined,
   { presentation: { navigation: { state: "recommendation_pending", destinationId: "unapproved", goal: travel } } },
   { presentation: { navigation: { state: "recommendation_pending", destinationId: "my_perfect_getaway", goal: {} } } },
-  { presentation: { navigation: { state: "navigation_confirmed", destinationId: "my_perfect_getaway", goal: travel } } },
+  { presentation: { navigation: { state: "navigation_confirmed", destinationId: "my_perfect_getaway", goal: travel,
+    performedAt: new Date().toISOString() } } },
 ])("missing, invalid and consumed pending records cannot obtain a fallback-authorized button: %j", async record => {
   stored = record;
   model({ navigationIntent: "confirmed", conciergeDecision: null, handoffMessage: null,
@@ -799,29 +805,31 @@ test("missing handoff uses verified instructions even when no safe model continu
   const result = await run("Yes.");
   expect(result.meta.concierge?.rendering).toBe("primary");
   expect(html(result)).toContain("<button");
-  expect(result.presentation?.message).toBe(FEATURE_USAGE_KNOWLEDGE.my_perfect_getaway!.descriptionInput);
-  expect(await loadPendingRecommendation("owned-conversation", "member")).toBeUndefined();
+  expect(result.presentation?.message).toBe(verifiedNavigationText("my_perfect_getaway"));
+  expect(await loadPendingRecommendation("owned-conversation", "member"))
+    .toMatchObject({ state: "navigation_confirmed", destinationId: "my_perfect_getaway" });
 });
 
-test("a direct request without handoff wording remains conversational, not button-authorizing", async () => {
+test("a named direct request supplies verified instructions even without model handoff wording", async () => {
   const message = "My Perfect Getaway supports travel dining exploration.";
   model({ handoffMessage: null, conversationMessage: message });
   const result = await run("Open My Perfect Getaway.");
-  expect(result.presentation?.message).toBe(message);
-  expect(result.presentation?.destinationId).toBeUndefined();
-  expect(html(result)).not.toContain("<button");
+  expect(result.presentation?.message).toBe(verifiedNavigationText("my_perfect_getaway"));
+  expect(result.presentation?.destinationId).toBe("my_perfect_getaway");
+  expect(html(result)).toContain("<button");
 });
 
-test("failed handoff for a new direct destination never resurrects the old pending destination", async () => {
+test("a new named destination uses verified guidance without resurrecting the old offer", async () => {
   model(); await run(request);
   model({ navigationIntent: "direct_request", handoffMessage: null,
     conciergeDecision: { mode: "food_assistance", destinationId: "dessert_creator",
       goal: { ...dessert, explicitFeatureId: "dessert_creator" } },
     conversationMessage: "Open Dessert Creator now." });
   const result = await run("Open Dessert Creator.");
-  expect(result.presentation?.navigation).toBeUndefined();
-  expect(await loadPendingRecommendation("owned-conversation", "member")).toBeUndefined();
-  expect(html(result)).not.toContain("<button");
+  expect(result.presentation?.navigation).toMatchObject({ state: "direct_navigation", destinationId: "dessert_creator" });
+  expect(await loadPendingRecommendation("owned-conversation", "member"))
+    .toMatchObject({ state: "direct_navigation", destinationId: "dessert_creator" });
+  expect(html(result)).toContain("<button");
 });
 
 test("an invalid destination preserves conversation without restoring an invalid action", async () => {

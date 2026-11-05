@@ -4,6 +4,7 @@ import { runConciergeConversation } from "../services/coaching/conciergeConversa
 import { CHEF_CONVERSATION_INSTRUCTIONS, getChefConversationInstructions } from "../services/coaching/conciergeInstructions";
 import { FEATURE_USAGE_KNOWLEDGE, getFeatureUsageKnowledge } from "../services/coaching/featureUsageKnowledge";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
+import { verifiedNavigationText } from "../../shared/coaching/navigationGuidance";
 
 const environment = process.env.NODE_ENV;
 beforeEach(() => { process.env.NODE_ENV = "development"; });
@@ -55,8 +56,8 @@ test("Development creator facts match actual distinct controls without changing 
   expect(usage.create_a_dish?.controls.join(" ")).toContain("diet and cuisine overrides");
   expect(usage.create_a_dish?.controls.join(" ")).toContain("Stovetop and Oven");
   expect(usage.create_a_dish?.generationAction).toContain("Create My Dish");
-  expect(getFeatureUsageKnowledge("production")).toBe(FEATURE_USAGE_KNOWLEDGE);
-  expect(getChefConversationInstructions("production")).toBe(CHEF_CONVERSATION_INSTRUCTIONS);
+  expect(getFeatureUsageKnowledge("production")).toEqual(getFeatureUsageKnowledge("development"));
+  expect(getChefConversationInstructions("production")).toBe(getChefConversationInstructions("development"));
   expect(FEATURE_USAGE_KNOWLEDGE.create_a_dish?.controls.join(" ")).not.toContain("diet and cuisine overrides");
 });
 
@@ -85,8 +86,12 @@ describe.each(cases)("$id concise handoff", example => {
     expect(call.messages[0].content).toContain(getChefConversationInstructions("development"));
     const wire = JSON.parse(call.messages[1].content);
     expect(wire.platformKnowledge.featureUsage[example.id]).toEqual(getFeatureUsageKnowledge("development")[example.id]);
-    expect(result.presentation?.message).toBe(example.text);
-    expect(result.whatIFound).toBe(example.text);
+    // Only the whole named Sushi command is bound by reviewed navigation.
+    // The soup request retains semantic interpretation and grounded dish text.
+    const expected = intent === "direct_request" && example.id === "sushi_creator"
+      ? verifiedNavigationText(example.id) : example.text;
+    expect(result.presentation?.message).toBe(expected);
+    expect(result.whatIFound).toBe(expected);
     expect(result.presentation?.navigation?.state).toBe(intent === "confirmed" ? "navigation_confirmed" : "direct_navigation");
     expect(result.presentation?.destinationId).toBe(example.id);
     expect(result.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId: example.id })]);

@@ -57,6 +57,8 @@ export function validateConciergeGoal(
     completeMissingDestination?: boolean;
     /** Only the conversation service may supply this from its loaded pending state. */
     acceptedPendingRecommendation?: boolean;
+    /** Whole named request resolved by the server's reviewed navigation records. */
+    explicitNavigationDestination?: CoachDestinationId;
   } = {},
 ): ConciergeDecision | undefined {
   const parsed = ConciergeDecisionSchema.safeParse(value);
@@ -79,10 +81,11 @@ export function validateConciergeGoal(
   // An earlier Grocery Coach request cannot turn a new generic meal request
   // into an explicit one. A server-loaded, accepted pending offer retains its
   // original name evidence; follow-up consent is not required to repeat it.
-  const requestEvidence = process.env.NODE_ENV === "development" && id === "grocery_create_meal" &&
+  const requestEvidence = id === "grocery_create_meal" &&
     !options.acceptedPendingRecommendation ? memberMessages.slice(-1) : memberMessages;
-  const explicitlyRequested = goal?.explicitFeatureId === id && requestEvidence.some(message =>
-    mentionsCoachDestination(message, id, process.env.NODE_ENV));
+  const explicitlyRequested = goal?.explicitFeatureId === id && (
+    options.explicitNavigationDestination === id || options.acceptedPendingRecommendation ||
+    requestEvidence.some(message => mentionsCoachDestination(message, id, process.env.NODE_ENV)));
   if (availableTools.some(tool => tool.id === id) && goal && (explicitlyRequested || goalFits(id, goal))) {
     return decision;
   }

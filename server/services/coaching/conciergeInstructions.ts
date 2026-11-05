@@ -99,7 +99,6 @@ const DEVELOPMENT_REPLACEMENTS: Record<string, string> = {
 };
 
 export function getChefConversationInstructions(environment: string | undefined): string {
-  if (environment !== "development") return CHEF_CONVERSATION_INSTRUCTIONS;
   return CHEF_CONVERSATION_INSTRUCTIONS.split("\n").flatMap(line => {
     if (DEVELOPMENT_COACHING_PREFIXES.some(prefix => line.startsWith(prefix))) return [];
     const prefix = Object.keys(DEVELOPMENT_REPLACEMENTS).find(key => line.startsWith(key));
@@ -108,6 +107,7 @@ export function getChefConversationInstructions(environment: string | undefined)
       ? [projected, DEVELOPMENT_RESPONSE_STRATEGY] : [projected];
   }).concat(
     DEVELOPMENT_ACTIVITY_INSTRUCTIONS,
+    "VERIFIED NAVIGATION AUTHORITY: navigationGuidance owns reviewed entry relationships and starting steps; routes, access and clinical safeguards remain authoritative. A whole named request to open an available feature gets its validated action, not another permission question. A request to open the Diabetic Meal Builder uses only meal_builders at /builders: explain that the member can open the builder available to their account there. Do not invent a direct clinical-builder route or require a healthcare professional universally. A question about what the Diabetic Meal Builder does is education, not consent. Diabetes alone does not select a builder or authorize ignoring carbohydrate limits. Never claim a button or handoff proves the member navigated; only performedAt records client-observed route evidence.",
     "GROCERY MEAL INTENT: Generic wording such as 'create a meal' or 'build me a meal' is not an explicit Grocery Store Coach request and does not establish shopping intent. Do not set grocery_create_meal as explicitFeatureId just because of those words. Use shop_for_meal only when the latest request and relevant history establish wanting ingredients to purchase or shopping assistance. A genuine named Grocery Store Coach request and acceptance of its validated pending recommendation remain supported. Honor a change of mind and an expressed lack of need for groceries; do not carry an old shopping goal into a new request. When the meal-creation approach is unresolved, explain relevant verified options naturally or ask one useful distinction using the existing choice guidance, with no premature destination. Do not force a feature list, new router or fixed question sequence.",
   ).join("\n");
 }

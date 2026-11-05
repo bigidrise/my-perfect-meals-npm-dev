@@ -9,6 +9,7 @@ import { getFeatureUsageKnowledge, FEATURE_USAGE_KNOWLEDGE } from "../services/c
 import { getChefConversationInstructions, CHEF_CONVERSATION_INSTRUCTIONS } from "../services/coaching/conciergeInstructions";
 import { getPlatformGuidanceInstructions, PLATFORM_GUIDANCE_INSTRUCTIONS } from "../services/coaching/platformKnowledge";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
+import { verifiedNavigationText } from "../../shared/coaching/navigationGuidance";
 import type { ConciergeGoal } from "../../shared/coaching/schemas";
 import type { PendingRecommendation } from "../services/coaching/conciergeNavigationState";
 
@@ -129,7 +130,7 @@ describe("Development occasion/serving intent and direct-to-feature contracts", 
     ] });
     expect(result.presentation?.navigation?.state).toBe("navigation_confirmed");
     expect(result.presentation?.destinationId).toBe("create_a_dish");
-    expect(result.presentation?.message).toBe(message);
+    expect(result.presentation?.message).toBe(verifiedNavigationText("create_a_dish"));
     expect(result.presentation?.creatorRequest).toEqual({ destinationId: "create_a_dish", idea: "homemade chicken soup" });
     expect(result.todayPlan.items.some(item => item.kind === "use_feature" && item.destinationId === "create_a_dish")).toBe(true);
     expect(result.presentation?.message).not.toMatch(/[?]|already opened|already generated/i);
@@ -142,7 +143,7 @@ describe("Development occasion/serving intent and direct-to-feature contracts", 
       handoffMessage: message, conciergeDecision: action("sushi_creator", { ...sushi, explicitFeatureId: "sushi_creator" }),
     });
     expect(result.presentation?.navigation?.state).toBe("direct_navigation");
-    expect(result.presentation?.message).toBe(message);
+    expect(result.presentation?.message).toBe(verifiedNavigationText("sushi_creator"));
     expect(result.presentation?.destinationId).toBe("sushi_creator");
     expect(result.presentation?.creatorRequest).toBeUndefined();
   });
@@ -192,9 +193,9 @@ describe("Development occasion/serving intent and direct-to-feature contracts", 
       .toContain("single Thanksgiving");
     expect(request.messages[0].content).toContain("not a tutorial or an interview");
     expect(request.messages[0].content).toContain("do not invent a prefill");
-    expect(getFeatureUsageKnowledge("production")).toBe(FEATURE_USAGE_KNOWLEDGE);
-    expect(getChefConversationInstructions("production")).toBe(CHEF_CONVERSATION_INSTRUCTIONS);
-    expect(getPlatformGuidanceInstructions("production")).toBe(PLATFORM_GUIDANCE_INSTRUCTIONS);
+    expect(getFeatureUsageKnowledge("production")).toEqual(getFeatureUsageKnowledge("development"));
+    expect(getChefConversationInstructions("production")).toBe(getChefConversationInstructions("development"));
+    expect(getPlatformGuidanceInstructions("production")).toBe(getPlatformGuidanceInstructions("development"));
     expect(request.model).toBe("gpt-4o");
     expect(request.temperature).toBe(0.4);
     expect(request.max_tokens).toBe(2000);
@@ -260,7 +261,7 @@ describe("Development context versus immediate activity (mocked judgment)", () =
       { role: "user", content: correction }, { role: "assistant", content: offer }] });
     expect(accepted.result.presentation?.navigation?.state).toBe("navigation_confirmed");
     expect(accepted.result.presentation?.destinationId).toBe("my_perfect_buffet");
-    expect(accepted.result.presentation?.message).toBe(message);
+    expect(accepted.result.presentation?.message).toBe(verifiedNavigationText("my_perfect_buffet"));
     expect(accepted.result.presentation?.creatorRequest).toBeUndefined();
     expect(accepted.result.todayPlan.items).toEqual([expect.objectContaining({
       kind: "use_feature", destinationId: "my_perfect_buffet",
@@ -290,7 +291,7 @@ describe("Development context versus immediate activity (mocked judgment)", () =
     expect(wire.platformKnowledge.featureUsage.my_perfect_getaway.suitability.notFor.join(" "))
       .toContain("actual-food plate-selection");
     expect(wire.platformKnowledge.featureUsage.my_perfect_buffet.suitability.offerWhen).toContain("even when");
-    expect(getFeatureUsageKnowledge("production")).toBe(FEATURE_USAGE_KNOWLEDGE);
+    expect(getFeatureUsageKnowledge("production")).toEqual(getFeatureUsageKnowledge("development"));
     expect(COACH_DESTINATIONS.my_perfect_getaway).toMatchObject({
       label: "My Perfect Getaway", route: "/lifestyle/my-perfect-getaway", access: "clinical",
     });

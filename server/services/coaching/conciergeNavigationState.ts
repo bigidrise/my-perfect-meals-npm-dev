@@ -4,7 +4,7 @@ import { db } from "../../db";
 import { ConciergeGoalSchema } from "../../../shared/coaching/schemas";
 import { isCoachDestinationId } from "../../../shared/coaching/navigation";
 import type { ConciergePresentation } from "../../../shared/coaching/types";
-import { pendingNavigationIsFresh } from "./conciergeNavigationContinuity";
+import { pendingNavigationIsFresh, isConfirmableNavigation } from "./conciergeNavigationContinuity";
 
 export type PendingRecommendation = NonNullable<ConciergePresentation["navigation"]>;
 const StoredNavigation = z.object({
@@ -12,6 +12,7 @@ const StoredNavigation = z.object({
   destinationId: z.string().refine(isCoachDestinationId),
   goal: ConciergeGoalSchema,
   offeredAt: z.string().optional(),
+  performedAt: z.string().datetime().optional(),
 });
 
 /** Read the latest assistant only: never resurrect a superseded recommendation
@@ -52,5 +53,5 @@ export async function loadPendingRecommendation(
   conversationId: string, ownerId: string,
 ): Promise<PendingRecommendation | undefined> {
   const recent = await loadRecentNavigation(conversationId, ownerId);
-  return recent?.state === "recommendation_pending" ? recent : undefined;
+  return isConfirmableNavigation(recent) ? recent : undefined;
 }
