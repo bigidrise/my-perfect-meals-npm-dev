@@ -73,6 +73,13 @@ Shot history is maintenance data and must never gate meal generation. Current ap
 ## Do NOT hard-code volume reduction percentages
 Any phase-specific reduction rules belong in `resolveGLP1MealTargets` registry (rule-based resolver). Do not scatter percentage numbers through feature code.
 
+## General Nutrition routing evidence
+General Nutrition must explicitly identify its Builder intent rather than permit missing identity to imply a clinical hub. Independently authorized current medication/provider guidance and optional Anti-Inflammatory support remain separate and must survive this routing correction.
+
+**Why:** The founder confirmed that Production request logs showed the legacy hub fallback activating GLP-1 from historical injection records when General Nutrition omitted its diet identity. This is distinct from the separate legacy condition-array activation path.
+
+**How to apply:** Preserve the existing clinical authority policy and GLP-1 Builder behavior. Do not treat old injection records as proof of current medication use or reinterpret this targeted routing approval as authorization for a clinical-policy cutover.
+
 ## #791 — Craving Creator + Fridge Rescue wired (complete)
 
 ### Craving Creator
