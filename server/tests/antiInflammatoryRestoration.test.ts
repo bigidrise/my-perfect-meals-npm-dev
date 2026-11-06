@@ -60,6 +60,21 @@ test("source failure is not silently treated as a successful off state", async (
   mockQuery.mockRejectedValue(new Error("storage unavailable"));
   await expect(readDevelopmentPersonalFoodSupports("synthetic")).rejects.toThrow("storage unavailable");
 });
+test.each(["general_nutrition", "diabetic", "glp1"])(
+  "%s indicator response and generation authority stay aligned on and off", async () => {
+    let enabled = true;
+    mockQuery.mockImplementation(async (sql: string) => ({
+      rows: sql.includes("FROM users") ? [{ legacy_preference: "true" }] : enabled
+        ? [{ protocol_key: "anti_inflammatory", evidence_ref: "personal_support", explicit_opt_in: true }] : [],
+    }));
+    for (const state of [true, false]) {
+      enabled = state;
+      expect((await readAntiInflammatorySupportPreference("synthetic")).enabled).toBe(state);
+      expect((await readDevelopmentPersonalFoodSupports("synthetic")).has("anti_inflammatory")).toBe(state);
+    }
+    expect(mockQuery.mock.calls.every(([sql]) => /^\s*SELECT/.test(sql))).toBe(true);
+  },
+);
 test.each(["canola oil", "bacon", "white sugar", "white flour", "hydrogenated oil"])(
   "final ingredient checks reuse the established rule for %s", ingredient => {
     expect(optionalAntiInflammatoryViolations(food(ingredient), true))
