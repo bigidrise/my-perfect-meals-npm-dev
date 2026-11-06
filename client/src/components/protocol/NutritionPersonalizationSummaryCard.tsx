@@ -104,17 +104,41 @@ export function NutritionPersonalizationSummaryCard({
   const [, navigate] = useLocation();
   const [acknowledgedUpdateId, setAcknowledgedUpdateId] = useState<string | null>(null);
 
-  if (isLoading) {
+  if (isLoading || !data) {
+    const failed = source === "self" && hook.isError;
     return (
-      <div className="rounded-2xl bg-black/50 border border-orange-500/20 p-4 animate-pulse">
-        <div className="h-4 bg-white/10 rounded w-48 mb-2" />
-        <div className="h-3 bg-white/5 rounded w-full mb-1" />
-        <div className="h-3 bg-white/5 rounded w-3/4" />
+      <div className="rounded-2xl bg-black/50 border border-orange-500/25 overflow-hidden">
+        <div className="px-4 pt-4 pb-3 flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-orange-400 flex-shrink-0" />
+          <p className="text-sm font-bold text-white">{t("title")}</p>
+        </div>
+        <div className="px-4 pb-4" aria-busy={isLoading}>
+          <p role="status" className="text-xs text-white/60">
+            {isLoading
+              ? t("loadingPlan", { defaultValue: "Loading your personalized plan…" })
+              : failed
+                ? t("planUnavailable", { defaultValue: "Your nutrition plan is temporarily unavailable." })
+                : t("planEmpty", { defaultValue: "No nutrition plan is available yet." })}
+          </p>
+          {isLoading && (
+            <div aria-hidden="true" className="mt-3 space-y-2 animate-pulse">
+              <div className="h-3 bg-white/5 rounded w-full" />
+              <div className="h-3 bg-white/5 rounded w-3/4" />
+            </div>
+          )}
+          {!isLoading && failed && (
+            <button
+              type="button"
+              onClick={() => { void hook.refetch(); }}
+              className="mt-3 rounded-lg border border-orange-400/40 px-3 py-2 text-xs font-semibold text-orange-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
+            >
+              {t("retryPlan", { defaultValue: "Retry loading plan" })}
+            </button>
+          )}
+        </div>
       </div>
     );
   }
-
-  if (!data) return null;
 
   const { activeInputs, nutritionDrivers, nutritionPriorities, compositeExplanation, conflictPolicy, hasAnyActiveProtocol, carbCycleActive } = data;
 
