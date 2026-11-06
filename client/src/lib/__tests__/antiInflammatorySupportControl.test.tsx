@@ -16,6 +16,17 @@ const renderControl = (userId = "account-a") => {
 };
 beforeEach(() => mockAPI.mockReset());
 
+test("Edit Profile never mounts the legacy medication-report widget but preserves its code and neighboring controls", () => {
+  const source = fs.readFileSync(path.resolve("client/src/pages/profile/EditProfilePage.tsx"), "utf8");
+  expect(source).not.toContain("GLP1CurrentUseControl");
+  expect(source).toContain("<AntiInflammatorySupportControl ");
+  expect(source).toContain("Existing meal-generation GLP-1 setting");
+  expect(source).toContain('specialtyConditions.includes("alpha-gal-syndrome")');
+  const preserved = fs.readFileSync(path.resolve("client/src/components/profile/GLP1CurrentUseControl.tsx"), "utf8");
+  expect(preserved).toContain("Current GLP-1 medication use");
+  expect(preserved).toContain("useGLP1CurrentUse()");
+});
+
 test("Edit Profile exposes the released control outside the still-hidden clinical review section in all build modes", () => {
   const source = fs.readFileSync(path.resolve("client/src/pages/profile/EditProfilePage.tsx"), "utf8");
   const control = source.indexOf("<AntiInflammatorySupportControl ");
