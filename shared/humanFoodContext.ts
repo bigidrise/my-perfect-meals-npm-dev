@@ -78,6 +78,8 @@ export interface HumanFoodFlavorContext {
 }
 
 export interface HumanFoodSafetyContext {
+  /** Explicit subject-owned optional support, never inferred from old profile data. */
+  personalAntiInflammatorySupport?: boolean;
   allergies: string[];
   avoidedFoods: string[];
   dislikedFoods: string[];

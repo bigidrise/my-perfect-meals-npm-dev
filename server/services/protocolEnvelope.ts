@@ -67,12 +67,13 @@ import {
 import { buildUniversalConditionGuidance } from "./universalMedicalGuidance";
 import { projectOncologyRecommendationContext } from "./guardrails/prompt/oncologyRecommendationContext";
 import { readDevelopmentPersonalFoodSupports } from "./healthProtocols/developmentFoodSupports";
+import { optionalAntiInflammatoryViolations } from "./healthProtocols/antiInflammatorySupportValidation";
 import { resolveCurrentGLP1MealAuthority, currentGLP1AuthorityEnabled } from "./glp1/currentMealAuthority";
 import {
   assertStrictOwner, establishOwnerDay, observeSource,
   type StrictOwnerScope, type StrictOwnerClinicalContext,
 } from "./nutritionResolutionContext";
-import { PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED } from "../../shared/personalFoodSupportFreeze";
+import { PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED, ANTI_INFLAMMATORY_SUPPORT_DEVELOPMENT_ENABLED } from "../../shared/personalFoodSupportFreeze";
 import { scanClinicalFoodSafety } from "./healthProtocols/clinicalOutputChecks";
 import { derivePregnancyStage } from "@shared/pregnancyStage";
 import { validateDishIdentity } from "./dishAdaptation/dishIdentityValidator";
@@ -490,6 +491,10 @@ export interface UserProtocolEnvelope {
    * Examples: anti-inflammatory (omega-3 preference, anti-oxidant priority),
    *           GLP-1 optimization (high protein, soft textures, smaller volume). */
   medicalOptimization: string[];
+
+  /** Fresh, explicit Development opt-in only. Never inferred from a legacy preference
+   * or from the standalone Builder. Leaves native Builder behavior unchanged. */
+  personalAntiInflammatorySupport?: boolean;
 
   /**
    * Tier 5 — Performance Intent: metabolic operating mode stored on the user profile.
@@ -1118,14 +1123,15 @@ export async function loadUserProtocolEnvelope(
     // Phase 2B: only an explicitly confirmed, active personal source may add
     // food guidance. Never use the old unreviewed app preference or another
     // household member's support choice as the nutrition subject's context.
-    const personalSupports = scopedHouseholdProfileId
+    const personalSupports = scopedHouseholdProfileId ||
+      ["anti_inflammatory", "anti-inflammatory"].includes(user.selectedMealBuilder ?? "")
       ? new Set()
       : await readDevelopmentPersonalFoodSupports(userId).catch(error => {
         strict?.resolution.fail("personal_supports", "read_failed");
         throw error;
       });
     if (strict) {
-      if (!PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED) strict.resolution.notApplicable("personal_supports", "existing_support_gate_disabled");
+      if (!PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED && !ANTI_INFLAMMATORY_SUPPORT_DEVELOPMENT_ENABLED) strict.resolution.notApplicable("personal_supports", "existing_support_gate_disabled");
       else strict.resolution.record("personal_supports", personalSupports.size
         ? { status: "success", value: [...personalSupports] as string[], basis: "stored" }
         : { status: "absent", reasonCode: "successful_empty_read" });
@@ -1623,6 +1629,8 @@ export async function loadUserProtocolEnvelope(
       allergies,
       medicalHardLimits: hardLimits,
       medicalOptimization: optimization,
+      personalAntiInflammatorySupport: personalSupports.has("anti_inflammatory") &&
+        !["anti_inflammatory", "anti-inflammatory"].includes(user.selectedMealBuilder ?? ""),
       avoidances,
       preferences,
       procedural,
@@ -2644,6 +2652,13 @@ export function scanGeneratedOutput(
     });
   }
   ingredientViolations.push(...scanClinicalFoodSafety(meal, envelope));
+  ingredientViolations.push(...optionalAntiInflammatoryViolations(
+    meal, envelope.personalAntiInflammatorySupport === true,
+  ).map(reason => ({
+    term: "Anti-Inflammatory ingredient guidance",
+    category: "anti-inflammatory-support",
+    reason,
+  })));
 
   // ── Instruction-level scan ────────────────────────────────────────────────
   const instructionViolations = scanInstructionsForViolations(

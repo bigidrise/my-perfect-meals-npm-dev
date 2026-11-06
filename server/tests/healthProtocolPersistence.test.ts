@@ -209,8 +209,26 @@ import {
   presentHealthContext, readHealthContextView,
 } from "../services/healthProtocols/healthContextControl";
 import { resolveHealthProtocolState } from "../services/healthProtocols/resolveHealthProtocolState";
+import { ANTI_INFLAMMATORY_SUPPORT_OPT_IN } from "../../shared/personalFoodSupportFreeze";
 
 describe("DEV shadow protocol persistence and source ownership", () => {
+  it("reconfirms an already-active historical personal source without creating a second source or changing the Builder", async () => {
+    rows.push({ id: "historical-personal", subject_user_id: "person", protocol_key: "anti_inflammatory",
+      source_kind: "user", evidence_ref: "personal_support", status: "active" });
+    mockBuilder = "glp1";
+    const identity = { actorUserId: "person", subjectUserId: "person", protocol: "anti_inflammatory" as const };
+    await setUserNutritionSupport({ ...identity, enabled: true });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).toBe("historical-personal");
+    expect(events.some(event => event.reason === ANTI_INFLAMMATORY_SUPPORT_OPT_IN)).toBe(true);
+    expect(liveAntiPreference).toBe(true);
+    expect(mockBuilder).toBe("glp1");
+    await setUserNutritionSupport({ ...identity, enabled: false });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].status).toBe("inactive");
+    expect(liveAntiPreference).toBe(false);
+    expect(mockBuilder).toBe("glp1");
+  });
   const oldNodeEnv = process.env.NODE_ENV;
   beforeAll(() => { process.env.NODE_ENV = "development"; });
   afterAll(() => { process.env.NODE_ENV = oldNodeEnv; });

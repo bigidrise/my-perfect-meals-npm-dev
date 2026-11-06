@@ -31,13 +31,13 @@ describe("frozen optional personal support UI", () => {
     } as unknown as HealthContextView);
   });
 
-  it("hides personal GLP-1 and Anti-Inflammatory choices but keeps clinical context visible", async () => {
+  it("keeps the older clinical-review support controls paused", async () => {
     expect(PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED).toBe(false);
     render(<HealthContextControls userId="person" profilePreferenceCard={<button>Turn on preference</button>} />);
     expect(await screen.findByText("Your current meal strategy: GLP-1 Builder.")).toBeTruthy();
     expect(screen.queryByText("GLP-1 Nutrition Support")).toBeNull();
-    expect(screen.queryByText("Anti-Inflammatory Support")).toBeNull();
-    expect(screen.queryByRole("button", { name: /turn on my support|turn off|turn on preference|yes, keep support/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Turn on preference" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /turn on my support|turn off/i })).toBeNull();
     expect(screen.getByText(/Care team — recorded as current/)).toBeTruthy();
     expect(screen.getByRole("button", { name: /medication information is no longer current/i })).toBeTruthy();
     expect(screen.getByText(/Saved personal support choices are retained but paused/)).toBeTruthy();
@@ -61,14 +61,14 @@ describe("frozen optional personal support UI", () => {
     });
     render(<HealthContextControls userId="person" />);
     expect(await screen.findByText("Health information needing review")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Yes, keep support" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "No, this is past" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Current nutrition guidance" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Health history only" })).toBeTruthy();
     expect(screen.getByText(/A personal choice cannot remove a provider-owned instruction/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Turn on my support/ })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "No, this is past" }));
+    fireEvent.click(screen.getByRole("button", { name: "Health history only" }));
     await waitFor(() => expect(mockApiRequest).toHaveBeenCalledWith(
-      "/api/health-context/earlier-profile/00000000-0000-4000-8000-000000000001/decision",
-      expect.objectContaining({ method: "POST", body: JSON.stringify({ current: false }) }),
+      "/api/health-context/source/00000000-0000-4000-8000-000000000001/review",
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ decision: "history_only" }) }),
     ));
     expect(await screen.findByText("Earlier profile information reviewed.")).toBeTruthy();
   });

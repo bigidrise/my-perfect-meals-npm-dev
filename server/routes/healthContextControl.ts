@@ -8,6 +8,7 @@ import { exactFoodDirectiveSchema } from "../../shared/clinicalMealAuthority";
 import { HEALTH_PROTOCOLS, type HealthProtocol } from "../../shared/healthProtocolState";
 import { isSelfSelectableSupport } from "../../shared/nutritionSupportOptions";
 import { requireAuth, type AuthenticatedRequest } from "../middleware/requireAuth";
+import { readAntiInflammatorySupportPreference } from "../services/healthProtocols/developmentFoodSupports";
 import { readMemberGLP1CurrentUse, setMemberGLP1CurrentUse } from "../services/glp1/memberCurrentUse";
 import {
   readHealthContextView, decideLegacySupport, decideEarlierAntiPreference, markMedicationInformationPast,
@@ -63,6 +64,17 @@ export default function healthContextControlRouter() {
   });
   router.use(requireAuth);
 
+  router.get("/support/anti_inflammatory", async (req, res) => {
+    res.setHeader("Cache-Control", "private, no-store");
+    try {
+      return res.json(await readAntiInflammatorySupportPreference(
+        (req as unknown as AuthenticatedRequest).authUser.id,
+      ));
+    } catch {
+      return res.status(503).json({ message: "Anti-Inflammatory support could not be loaded. Please retry." });
+    }
+  });
+
   router.get("/glp1/current-use", async (req, res) => {
     res.setHeader("Cache-Control", "no-store");
     try {
@@ -102,6 +114,14 @@ export default function healthContextControlRouter() {
     }
     const subjectUserId = (req as unknown as AuthenticatedRequest).authUser.id;
     try {
+      if (parsed.data === "anti_inflammatory") {
+        await setUserNutritionSupport({
+          actorUserId: subjectUserId, subjectUserId, protocol: "anti_inflammatory",
+          enabled: body.data.enabled,
+        });
+        res.setHeader("Cache-Control", "private, no-store");
+        return res.json(await readAntiInflammatorySupportPreference(subjectUserId));
+      }
       // Never create an inactive personal source for a clinical protocol just
       // because a client sent "off": that would make a subsequent "on" look
       // like reactivation without ever confirming historical evidence.

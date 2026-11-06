@@ -22,7 +22,8 @@ import { Input } from "@/components/ui/input";
 import { PillButton } from "@/components/ui/pill-button";
 import { HealthContextControls } from "@/components/profile/HealthContextControls";
 import { ConsumerHealthContextSection } from "@/components/profile/ConsumerHealthContextSection";
-import { PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED } from "@shared/personalFoodSupportFreeze";
+import { PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED, ANTI_INFLAMMATORY_SUPPORT_DEVELOPMENT_ENABLED } from "@shared/personalFoodSupportFreeze";
+import { AntiInflammatorySupportControl } from "@/components/profile/AntiInflammatorySupportControl";
 import { GLP1CurrentUseControl } from "@/components/profile/GLP1CurrentUseControl";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { getGuestPageExplanation } from "@/components/copilot/CopilotPageExplanations";
@@ -1614,6 +1615,10 @@ export default function EditProfilePage() {
                   </div>
                 )}
               </div>
+
+              {import.meta.env.DEV && ANTI_INFLAMMATORY_SUPPORT_DEVELOPMENT_ENABLED && user?.id && (
+                <AntiInflammatorySupportControl key={user.id} userId={user.id} />
+              )}
 
               <ConsumerHealthContextSection>
                 {import.meta.env.DEV && user?.id ? (

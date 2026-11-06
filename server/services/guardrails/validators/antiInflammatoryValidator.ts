@@ -106,6 +106,6 @@ export function getValidationSummary(result: ValidationResult): string {
   
   return `❌ Anti-inflammatory validation failed:
   - ${result.violations.length} violations found
-  - Blocked ingredients: ${result.blockedIngredients.join(', ') || 'none detected'}
+  - Blocked ingredients: ${result.blockedIngredients?.join(', ') || 'none detected'}
   - Issues: ${result.violations.join('; ')}`;
 }

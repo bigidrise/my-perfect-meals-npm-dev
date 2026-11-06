@@ -9,6 +9,7 @@ import {
   type HealthProtocolSource,
 } from "../../../shared/healthProtocolState";
 import { resolveHealthProtocolState } from "./resolveHealthProtocolState";
+import { ANTI_INFLAMMATORY_SUPPORT_OPT_IN } from "../../../shared/personalFoodSupportFreeze";
 
 export function devOnly() {
   if (process.env.NODE_ENV !== "development" || process.env.REPLIT_DEPLOYMENT) {
@@ -49,6 +50,7 @@ type ClaimInput = {
   acceptedRecommendation?: boolean;
   currentMedicationUse?: boolean;
   reasonCode: string;
+  forceEvent?: boolean;
 };
 
 export async function putClaim(client: PoolClient, input: ClaimInput): Promise<string> {
@@ -102,7 +104,7 @@ export async function putClaim(client: PoolClient, input: ClaimInput): Promise<s
       values,
     );
   const id: string = rows[0].id;
-  if (changed) {
+  if (changed || input.forceEvent) {
     await client.query(
       `INSERT INTO health_protocol_events
         (source_id, actor_user_id, old_status, new_status, reason_code)
@@ -126,8 +128,14 @@ export async function setUserNutritionSupport(input: {
   await shadowTransaction(async (client) => {
     await putClaim(client, {
       ...input, actorUserId: input.actorUserId, source: "user",
-      evidenceRef: "personal_support", status: input.enabled ? "active" : "inactive",
-      reasonCode: input.enabled ? "user_enabled" : "user_discontinued",
+      evidenceRef: "personal_support",
+      status: input.enabled ? "active" : "inactive",
+      reasonCode: input.protocol === "anti_inflammatory" && input.enabled
+        ? ANTI_INFLAMMATORY_SUPPORT_OPT_IN
+        : input.enabled ? "user_enabled" : "user_discontinued",
+      // Confirming a previously active historical source still needs an event.
+      // Reuse the existing source: the schema allows only one user source per protocol.
+      forceEvent: input.protocol === "anti_inflammatory" && input.enabled,
     });
     // The preexisting profile preference and explicit personal source must
     // commit together; a legacy preference alone is never meal authority.
