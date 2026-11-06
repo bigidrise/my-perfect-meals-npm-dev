@@ -40,6 +40,20 @@ test.each([
   ["meal_builders", "Meal Builders", "/builders"],
   ["business_suite", "Business Suite", "/business-center"],
   ["business_organization", "Business Organization", "/business-organizations"],
+  ["pets", "My Perfect Pets", "/companion"],
+  ["dogs", "My Perfect Dog", "/companion/dogs"],
+  ["cats", "My Perfect Cat", "/companion/cats"],
+  ["spirit_beer_wine_pairings", "Spirit, Beer & Wine Pairings", "/lifestyle/pairings-ai"],
+  ["wine_list_translator", "Wine List Translator", "/lifestyle/wine-list-helper"],
+  ["reduce_drinking_tool", "Reduce Drinking Tool", "/lifestyle/reduce-drinking-plan"],
+  ["academy", "My Perfect Meals Academy", "/academy"],
+  ["tips", "Tips & Strategies", "/tips"],
+  ["favorites", "Favorites", "/saved-meals"],
+  ["daily_journal", "Daily Journal & Inspiration", "/get-inspiration"],
+  ["smart_grocery_list", "Smart Grocery List", "/shopping-list-v2"],
+  ["my_biometrics", "My Biometrics", "/my-biometrics"],
+  ["recipe_maker", "Dashboard", "/dashboard"],
+  ["medical_sources", "Dashboard", "/dashboard"],
 ])("%s displays one formatted action, authorizes the click, changes route and then sends a receipt", async (id, label, route) => {
   mockRequest.mockImplementation(async (url: string) => url.endsWith("/performed")
     ? { recorded: true } : { destinationId: id, route });

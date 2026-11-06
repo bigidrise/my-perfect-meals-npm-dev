@@ -130,6 +130,79 @@ describe.each(["development", "production"])("%s concise navigation", runtime =>
     expect(result.presentation?.navigation).toBeUndefined();
     expect(result.meta.redFlag).toBe(true);
   });
+  test("the registry contains 36 approved destinations, with no invented modal or Coming Soon routes", () => {
+    expect(Object.keys(COACH_DESTINATIONS)).toHaveLength(36);
+    const routes = Object.values(COACH_DESTINATIONS).map(destination => destination.route);
+    for (const route of ["/lifestyle/ai-pairing-advisor", "/lifestyle/my-perfect-pregnancy"]) {
+      expect(routes).not.toContain(route);
+    }
+    for (const name of ["AI Pairing Advisor", "My Perfect Pregnancy"]) {
+      expect(explicitNavigationRequest(`Open ${name}.`)).toBeUndefined();
+    }
+    expect(getCornerCapabilities(["all"])).toHaveLength(36);
+  });
+  test.each(["recipe_maker", "medical_sources"] as const)(
+    "%s uses the approved Dashboard parent without pretending to open a modal", async id => {
+      expect(COACH_DESTINATIONS[id].route).toBe("/dashboard");
+      expect(COACH_DESTINATIONS[id].navigationLabel).toBe("Dashboard");
+      expect(verifiedNavigationOffer(id)).toContain("on Dashboard");
+      const result = await reply(`Open ${COACH_DESTINATIONS[id].label}.`);
+      expect(result.presentation).toMatchObject({
+        destinationId: id, message: `Open Dashboard, then select ${COACH_DESTINATIONS[id].label}.`,
+      });
+      expect(result.presentation?.message).not.toMatch(/\?/);
+    });
+  test.each(Object.entries(COACH_NAVIGATION_GUIDANCE).flatMap(([id, guidance]) =>
+    guidance.aliases.map(alias => [id, alias] as const)))(
+    "%s alias %s retains its canonical direct action", async (id, alias) => {
+      expect(explicitNavigationRequest(`Take me to ${alias}.`)).toBe(id);
+    });
+  test("the exact saved-meals question waits for acceptance and then stops at Open Favorites", async () => {
+    const offered = await reply("Where can I see my saved meals?");
+    expect(offered.presentation?.message).toBe("You can find them in Favorites. Would you like to go there?");
+    expect(offered.presentation?.destinationId).toBeUndefined();
+    expect(offered.todayPlan.items).toEqual([]);
+    const pending = offered.presentation!.navigation as PendingRecommendation;
+    expect(pending.destinationId).toBe("favorites");
+    const accepted = await reply("Yes.", {}, pending);
+    expect(accepted.presentation).toMatchObject({
+      destinationId: "favorites", message: verifiedNavigationText("favorites"),
+      navigation: { state: "navigation_confirmed", destinationId: "favorites", offeredAt: pending.offeredAt },
+    });
+    expect(accepted.todayPlan.items).toHaveLength(1);
+    expect(accepted.presentation?.message).not.toMatch(/\?|would you like/i);
+    const expired = await reply("Yes.", {}, {
+      ...pending, offeredAt: new Date(Date.now() - 31 * 60_000).toISOString(),
+    });
+    expect(expired.presentation?.destinationId).toBeUndefined();
+  });
+  test.each(["Favorites", "Saved Meals"])("%s is one destination, not a duplicated saved-meal tool", async name => {
+    const result = await reply(`Take me to ${name}.`);
+    expect(result.presentation?.destinationId).toBe("favorites");
+    expect(COACH_DESTINATIONS.favorites.route).toBe("/saved-meals");
+  });
+  test("Favorites explanation is not navigation consent", async () => {
+    const answer = "Favorites is where you review meals you've saved.";
+    const result = await reply("What is Favorites?", { message: answer });
+    expect(result.presentation?.message).toBe(answer);
+    expect(result.presentation?.navigation).toBeUndefined();
+    expect(result.todayPlan.items).toEqual([]);
+  });
+  test.each(["pets", "dogs", "cats", "spirit_beer_wine_pairings", "wine_list_translator",
+    "reduce_drinking_tool", "academy", "tips", "favorites", "daily_journal",
+    "smart_grocery_list", "my_biometrics", "recipe_maker", "medical_sources"] as const)(
+    "%s cannot produce an action when unavailable and does not bypass a clinical red flag", async id => {
+      const name = COACH_NAVIGATION_GUIDANCE[id].aliases[0];
+      const unavailable = await reply(`Take me to ${name}.`, {}, undefined,
+        getCornerCapabilities(["all"]).filter(tool => tool.id !== id));
+      expect(unavailable.presentation?.destinationId).toBeUndefined();
+      const care = await reply(`Take me to ${name}.`, {
+        redFlag: true, careDisposition: "emergency", contactCare: "Seek urgent medical care.",
+      });
+      expect(care.presentation?.destinationId).toBeUndefined();
+      expect(care.presentation?.navigation).toBeUndefined();
+      expect(care.meta.redFlag).toBe(true);
+    });
   test("an unavailable destination does not acquire an offer or button", async () => {
     const result = await reply("Where is Business Suite?", {}, undefined, []);
     expect(result.presentation?.navigation).toBeUndefined();

@@ -29,6 +29,22 @@ export const COACH_DESTINATIONS = {
   // Visiting this entry grants no business or administrator permissions.
   business_suite: { label: "Business Suite", route: "/business-center", access: "authenticated" },
   business_organization: { label: "Business Organization", route: "/business-organizations", access: "authenticated" },
+  pets: { label: "My Perfect Pets", route: "/companion", access: "pro" },
+  dogs: { label: "My Perfect Dog", route: "/companion/dogs", access: "pro" },
+  cats: { label: "My Perfect Cat", route: "/companion/cats", access: "pro" },
+  spirit_beer_wine_pairings: { label: "Spirit, Beer & Wine Pairings", route: "/lifestyle/pairings-ai", access: "pro" },
+  wine_list_translator: { label: "Wine List Translator", route: "/lifestyle/wine-list-helper", access: "pro" },
+  reduce_drinking_tool: { label: "Reduce Drinking Tool", route: "/lifestyle/reduce-drinking-plan", access: "pro" },
+  academy: { label: "My Perfect Meals Academy", route: "/academy", access: "authenticated" },
+  tips: { label: "Tips & Strategies", route: "/tips", access: "authenticated" },
+  favorites: { label: "Favorites", route: "/saved-meals", access: "essential" },
+  daily_journal: { label: "Daily Journal & Inspiration", route: "/get-inspiration", access: "authenticated" },
+  smart_grocery_list: { label: "Smart Grocery List", route: "/shopping-list-v2", access: "essential" },
+  my_biometrics: { label: "My Biometrics", route: "/my-biometrics", access: "authenticated" },
+  // These existing modals have no standalone routes. Open their real parent,
+  // name the Dashboard button honestly, and leave modal selection to the member.
+  recipe_maker: { label: "Recipe Maker", navigationLabel: "Dashboard", route: "/dashboard", access: "essential" },
+  medical_sources: { label: "Sources & Medical Information", navigationLabel: "Dashboard", route: "/dashboard", access: "authenticated" },
 } as const;
 
 export type CoachDestinationId = keyof typeof COACH_DESTINATIONS;

@@ -38,7 +38,7 @@ export function navigationDestinationQuestion(message: string): CoachDestination
   if (matches.length !== 1) return undefined;
   const id = matches[0];
   return COACH_NAVIGATION_GUIDANCE[id].aliases.some(name => new RegExp(
-    `^(?:where (?:is|are|can I find|do I find)|how (?:do I|can I) (?:get to|find))\\s+(?:the\\s+|my\\s+)?${escape(name)}$`, "iu",
+    `^(?:where (?:is|are|can I find|can I see|do I find)|how (?:do I|can I) (?:get to|find))\\s+(?:the\\s+|my\\s+)?${escape(name)}$`, "iu",
   ).test(text)) ? id : undefined;
 }
 
