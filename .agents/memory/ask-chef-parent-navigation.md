@@ -68,3 +68,18 @@ these two modal-based features, rather than creating routes or auto-opening them
 **How to apply:** Keep the concise consent flow and original feature access
 requirements. Do not substitute App Library for the Sources information modal,
 invent standalone pages, or imply navigation opened either modal.
+
+## Cruise venues versus buffet food
+
+The founder distinguishes established named restaurants and dining venues on a
+cruise from the changing foods offered at a buffet. My Perfect Getaway covers
+cruise dining-venue guidance; My Perfect Buffet covers selecting from actual
+buffet offerings, whether on a cruise, in a local town, or elsewhere.
+
+**Why:** The founder corrected the oversimplification of cruise versus buffet:
+cruises have named restaurants, and buffets are not cruise-specific.
+
+**How to apply:** Preserve shipboard venue context rather than automatically
+redirecting every named restaurant to an ordinary restaurant workflow. Buffet
+selection depends on the task, not its location. This is the founder's intended
+selection rule; the read-only intent audit did not implement runtime changes.
