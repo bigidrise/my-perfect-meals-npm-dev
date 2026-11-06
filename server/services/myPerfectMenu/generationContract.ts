@@ -166,6 +166,8 @@ export function parseGeneratedMenuCandidates(
         `schema_metadata_failure:${issue.path.join(".") || "response"}`,
       ),
       metadataRepairCount: 0,
+      repairInstructions: safeSchemaIssues(envelope.error.issues, "after")
+        .map(issue => `${issue.path}: ${issue.rule}`),
     };
   }
 
@@ -225,10 +227,8 @@ export function parseGeneratedMenuCandidates(
       });
       if (repaired.repaired || normalizationRepair || validationDescription) metadataRepairCount += 1;
     } else {
-      if (dessertRepair) {
-        for (const issue of safeSchemaIssues(parsed.error.issues, "after")) {
-          repairInstructions.add(`${issue.path}: ${issue.rule}`);
-        }
+      for (const issue of safeSchemaIssues(parsed.error.issues, "after")) {
+        repairInstructions.add(`concept_${index}.${issue.path}: ${issue.rule}`);
       }
       rejectionCodes.push(
         ...parsed.error.issues.map((issue) =>
@@ -238,7 +238,7 @@ export function parseGeneratedMenuCandidates(
     }
   }
   return { candidates, rejectionCodes, metadataRepairCount,
-    ...(dessertRepair ? { repairInstructions: [...repairInstructions] } : {}),
+    repairInstructions: [...repairInstructions],
     ...(dessertRepair ? { candidateIds } : {}) };
 }
 

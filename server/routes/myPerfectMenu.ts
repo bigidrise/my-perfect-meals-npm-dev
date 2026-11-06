@@ -654,6 +654,7 @@ async function handleConceptGeneration(
     authorizationAction: "my_perfect_menu",
   });
 
+  let previousChoicesAvailability: "compatible" | "stale" | "none" | undefined;
   try {
     let context = await scope.resolve();
     if (context.status === "review_required" || context.status === "blocked") {
@@ -710,6 +711,25 @@ async function handleConceptGeneration(
     }
 
     const stored = await readPreferences(target);
+    const previous = stored.categories[parsed.data.ideaType] ?? [];
+    if (!previous.length) {
+      previousChoicesAvailability = "none";
+    } else {
+      const stamp = await currentStamp(actorUserId, target, parsed.data.ideaType, context, envelope,
+        target.kind === "user" ? await resolveGLP1GlobalContext(actorUserId,
+          parsed.data.destinationDate ?? new Date().toISOString().slice(0, 10), parsed.data.ideaType) : null,
+        builder, parsed.data.destinationDate, parsed.data.mealSlot);
+      previousChoicesAvailability =
+        isMyPerfectMenuContextStampFresh(stored.contextStamps[parsed.data.ideaType], stamp) &&
+        previous.length === 3 && previous.every(concept =>
+          conceptViolations(concept.validationDescription
+            ? { ...concept, description: concept.validationDescription } : concept,
+            context, envelope, context.flavor.cuisine.available ? context.flavor.cuisine.value : null).length === 0 &&
+          (parsed.data.ideaType !== "snack" ||
+            (concept.snackType === parsed.data.snackType &&
+             matchesSnackType(concept.foodIdentity, parsed.data.snackType!))))
+          ? "compatible" : "stale";
+    }
     const priorSignatures = new Set([
       ...stored.recentSignatures.map(normalize),
       ...(stored.categories[parsed.data.ideaType] ?? []).map((concept) => normalize(concept.signature)),
@@ -795,6 +815,7 @@ async function handleConceptGeneration(
       "status" in error && typeof error.status === "number") {
       return res.status(error.status).json({
         error: error.message, code: error.code,
+        ...(previousChoicesAvailability ? { previousChoicesAvailability } : {}),
         ...(test ? {
           ...diagnostics!.summary(),
           blockedWriteCount: test.state.blockedWriteCount,

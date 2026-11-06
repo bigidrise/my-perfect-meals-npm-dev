@@ -2,6 +2,7 @@ const query = jest.fn();
 jest.mock("../db", () => ({ pool: { query: (...args: unknown[]) => query(...args) } }));
 
 import { resolveCurrentGLP1MealAuthority } from "../services/glp1/currentMealAuthority";
+import { MEMBER_GLP1_EVIDENCE } from "../../shared/glp1CurrentUse";
 
 describe("Development GLP-1 meal authority", () => {
   const originalEnv = process.env.NODE_ENV;
@@ -18,7 +19,7 @@ describe("Development GLP-1 meal authority", () => {
     else process.env.REPLIT_DEPLOYMENT = originalDeployment;
   });
 
-  it.each(["anti_inflammatory", "diabetic"])("ignores ambiguous and historical legacy data under %s", async (builder) => {
+  it.each(["general_nutrition", "anti_inflammatory", "diabetic"])("ignores ambiguous and historical legacy data under %s", async (builder) => {
     expect(await resolveCurrentGLP1MealAuthority({ ...subject, selectedMealBuilder: builder })).toEqual([]);
     const [statement, args] = query.mock.calls[0];
     expect(statement).toContain("s.status='active'");
@@ -59,6 +60,24 @@ describe("Development GLP-1 meal authority", () => {
   it("does not read shadow claims in Production", async () => {
     process.env.NODE_ENV = "production";
     expect(await resolveCurrentGLP1MealAuthority(subject)).toEqual(["medicalConditions"]);
+    expect(query).not.toHaveBeenCalled();
+  });
+  it("allows explicit current member medication evidence under General Nutrition", async () => {
+    query.mockResolvedValue({ rows: [{
+      source_kind: "medication", evidence_ref: MEMBER_GLP1_EVIDENCE, owner_user_id: subject.id,
+    }] });
+    expect(await resolveCurrentGLP1MealAuthority({
+      ...subject, selectedMealBuilder: "general_nutrition", medicalConditions: [],
+    })).toEqual(["memberReportedMedication"]);
+  });
+  it("documents legacy General Nutrition activation in production-mode without changing it", async () => {
+    process.env.NODE_ENV = "production";
+    expect(await resolveCurrentGLP1MealAuthority({
+      ...subject, selectedMealBuilder: "general_nutrition",
+    })).toEqual(["medicalConditions"]);
+    expect(await resolveCurrentGLP1MealAuthority({
+      ...subject, selectedMealBuilder: "general_nutrition", medicalConditions: [],
+    })).toEqual([]);
     expect(query).not.toHaveBeenCalled();
   });
 });

@@ -96,6 +96,7 @@ import { applyOncologySymptomPriority, oncologySymptomPriorityEnabled } from './
 import { generateMealImageUnified } from './mealImageGenerator';
 import { normalizeMealName, culturalNameTransform } from './mealNameNormalizer';
 import { estimateCaloriesFromIngredients, checkIngredientSanity } from './calorieEstimator';
+import { mealVerificationFailure } from "./mealVerificationFailure";
 import { isClinicalAdaptationActive } from './clinicalMacroGate';
 import { resolveVarietyClassificationInput } from './createDish/varietyClassificationInput';
 import { classifyFoodIdentity, protectedFoodIdentityLabel } from '../../shared/foodIdentity';
@@ -427,6 +428,9 @@ export interface MealGenerationRequest {
 
 export interface MealGenerationResponse {
   success: boolean;
+  /** Application failure metadata; the legacy route may still transport HTTP 200. */
+  code?: string;
+  status?: number;
   meal?: UnifiedMeal;
   meals?: UnifiedMeal[];
   source: 'ai' | 'catalog' | 'fallback' | 'error';
@@ -4693,11 +4697,7 @@ Do NOT generate a generic meal. Composition, portions, and ingredients must alig
     // A canonical request must never turn a verification/provider exception
     // into an unrelated, unverified template. Preserve fail-closed behavior.
     if (chefFoodContext) {
-      return {
-        success: false,
-        source: "error",
-        error: "Chef couldn't complete recipe verification safely. No meal was added. Please try again.",
-      };
+      return mealVerificationFailure(error);
     }
     
     // Fallback to deterministic template

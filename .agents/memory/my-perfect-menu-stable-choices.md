@@ -13,7 +13,7 @@ Dessert replacement must handle incomplete historical structure explicitly, with
 
 **Why:** The user requires meaningful variety, including rejection of renamed repeats, without presenting flavor variants of one dessert as three distinct choices. They explicitly prefer making better use of generated candidates over increasing AI retries.
 
-**How to apply:** Preserve accepted candidates, the five-round maximum and all safety checks. Keep existing choices on failure, and distinguish an unresolved history comparison from a medical rejection. Ordinary diagnostics must exclude patient context, prompts and generated descriptions.
+**How to apply:** Preserve accepted candidates, the five-round maximum and all safety checks. Keep compatible existing choices on failure, and distinguish an unresolved history comparison from a medical rejection. Ordinary diagnostics must exclude patient context, prompts and generated descriptions.
 
 Historical novelty is recipe-level, not a permanent prohibition on a dessert format. The current three should have different recognizable structures; older history must not make every future pudding, cookie or cake a duplicate merely because its format appeared before.
 
@@ -26,3 +26,9 @@ Presentation limits must not discard otherwise inspectable food concepts or remo
 **Why:** Repeated live failures included candidates rejected solely for overlong descriptive copy; shortening it before checking safety or losing it on restoration would hide potentially meaningful food details.
 
 **How to apply:** Keep full original evidence through initial validation, persistence, restoration and Builder handoff. Short display copy is separate; never use it to bypass any protection or increase the retry ceiling.
+
+Failed replacement messages must distinguish compatible choices that remain available, saved choices withheld for stale food context, and no previous choices. Never restore stale or incompatible food to make an availability claim true.
+
+**Why:** The founder explicitly required these three states after an unconditional retention message appeared even when no compatible choices were available.
+
+**How to apply:** Only promise availability after current subject, food-context and compatibility verification. Keep persistence unchanged on generation failure; withholding is not deletion.

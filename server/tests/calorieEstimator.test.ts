@@ -235,6 +235,38 @@ describe('estimateCaloriesFromIngredients', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('checkIngredientSanity', () => {
+  test.each([
+    ["eggs", "6", "whole", 1, true],
+    ["eggs", "7", "each", 1, false],
+    ["eggs", "12", "count", 3, true],
+    ["whole eggs", "100", "g", 1, true],
+    ["eggs", "300", "grams", 1, true],
+    ["eggs", "301", "grams", 1, false],
+    ["eggs", "3.5", "oz", 1, true],
+    ["eggs", "11", "ounces", 1, false],
+    ["egg whites", "100", "g", 1, true],
+    ["liquid egg whites", "7", "oz", 1, false],
+    ["egg whites", "6", "whites", 1, true],
+    ["egg whites", "7", "each", 1, false],
+    ["liquid egg whites", "1/2", "cup", 1, true],
+    ["egg yolks", "102", "g", 1, true],
+    ["egg yolks", "103", "g", 1, false],
+    ["eggs", "1 1/2", "whole", 1, true],
+    ["powdered eggs", "100", "g", 1, false],
+    ["egg substitute", "2", "whole", 1, false],
+    ["eggplant", "100", "g", 1, true],
+    ["egg noodles", "100", "g", 1, true],
+  ])("unit-aware egg sanity: %s %s %s", (name, quantity, unit, servings, expected) => {
+    expect(checkIngredientSanity([{ ingredients: [{ name, quantity, unit }] }], servings)).toBe(expected);
+  });
+
+  test.each(["", "0", "-1", "NaN", "Infinity", "2-20", "2 eggs", "1/0", "a few"])(
+    "rejects invalid or ambiguous egg quantity %s",
+    quantity => expect(checkIngredientSanity([{ ingredients: [{ name: "eggs", quantity, unit: "whole" }] }])).toBe(false),
+  );
+  test.each(["", "dozen", "carton", "unknown"])("rejects unsupported egg unit %s", unit => {
+    expect(checkIngredientSanity([{ ingredients: [{ name: "eggs", quantity: "2", unit }] }])).toBe(false);
+  });
 
   // ── The original motivating failure ──────────────────────────────────────
 

@@ -157,6 +157,31 @@ describe("My Perfect Menu Development-only no-save endpoint", () => {
     expect(mockComplete).not.toHaveBeenCalled();
   }
 
+  it.each(["none", "compatible", "stale"] as const)(
+    "reports %s previous choices on a failed replacement without writing or restoring stale food",
+    async availability => {
+      const endpoint = "/api/my-perfect-menu/concepts";
+      if (availability !== "none") {
+        await request(app).post(endpoint).send(body).expect(200);
+      }
+      if (availability === "stale") {
+        mockResolveContext.mockResolvedValue({
+          ...mockContext, diet: { effective: ["vegan", "gluten_free"] },
+        });
+      }
+      const snapshot = JSON.stringify(mockPersisted);
+      jest.clearAllMocks();
+      mockGenerate.mockResolvedValue({ concepts: [] });
+      const response = await request(app).post(endpoint).send(body).expect(422);
+      expect(response.body.previousChoicesAvailability).toBe(availability);
+      expect(response.body.error).not.toContain("still here");
+      expect(JSON.stringify(mockPersisted)).toBe(snapshot);
+      expect(mockDb.update).not.toHaveBeenCalled();
+      expect(mockDb.transaction).not.toHaveBeenCalled();
+      expect(mockComplete).not.toHaveBeenCalled();
+    },
+  );
+
   it("runs the actual concept engine and all validators without saving any result", async () => {
     const snapshot = JSON.stringify(mockPersisted);
     const response = await request(app).post(path).send(body).expect(200);
