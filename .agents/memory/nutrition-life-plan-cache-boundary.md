@@ -11,6 +11,8 @@ The dashboard's macro pills are saved baseline targets, never Performance effect
 
 The founder wants the Dashboard Life Plan section, title, and layout to appear immediately, with member-specific information populated independently afterward. Never show invented nutrition numbers or another member's cached information while waiting.
 
+The founder confirmed that this immediate-section approach worked perfectly and asked for the same first-render behavior for the Dashboard's “Welcome back” header.
+
 **Why:** The founder explicitly authorized the smallest Development-only first-render correction for visibly delayed Dashboard rendering, without changing nutrition calculations, member-specific caching, API contracts, or clinical guardrails.
 
 **How to apply:** Keep static presentation separate from personalized-data readiness, retain truthful loading/error/empty states, and never infer approval for broader caching changes, relaxed freshness, or Production release.

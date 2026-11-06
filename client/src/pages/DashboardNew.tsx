@@ -1076,7 +1076,7 @@ export default function DashboardNew() {
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
+      initial={false}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
       className="min-h-full flex flex-col bg-black pb-safe-nav"
@@ -1126,16 +1126,13 @@ export default function DashboardNew() {
 
         <WhatsNewCard />
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.5 }}
-          className="mb-4"
-        >
+        <div className="mb-4">
            <div className="relative h-52 sm:h-64 rounded-xl overflow-hidden">
             <img
               src="/images/dashboard-chef-community-hero.png"
               alt={t("heroAlt")}
+              loading="eager"
+              {...{ fetchpriority: "high" }}
               className="w-full h-full object-cover object-[center_bottom] sm:object-[center_63%]"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
@@ -1154,7 +1151,7 @@ export default function DashboardNew() {
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
 
          <GettingStartedCard />
          <NutritionPersonalizationSummaryCard />
