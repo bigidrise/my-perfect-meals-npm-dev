@@ -8,3 +8,11 @@ The dashboard's macro pills are saved baseline targets, never Performance effect
 **Why:** A combined zero-freshness request delayed baseline display behind day-specific work, while using a specialist endpoint would change access and target semantics. The current Performance description uses the server-local weekday; changing that clock while splitting the API could silently alter what day the user sees.
 
 **How to apply:** When adding plan mutations, classify whether they change saved baseline authority, day context, both, or neither. Keep baseline revalidation bounded for external changes. Treat a future user-timezone change as a separate reviewed behavior change, not as a cache optimization.
+
+The founder wants the Dashboard Life Plan section, title, and layout to appear immediately, with member-specific information populated independently afterward. Never show invented nutrition numbers or another member's cached information while waiting.
+
+The founder confirmed that this immediate-section approach worked perfectly and asked for the same first-render behavior for the Dashboard's “Welcome back” header.
+
+**Why:** The founder explicitly authorized the smallest Development-only first-render correction for visibly delayed Dashboard rendering, without changing nutrition calculations, member-specific caching, API contracts, or clinical guardrails.
+
+**How to apply:** Keep static presentation separate from personalized-data readiness, retain truthful loading/error/empty states, and never infer approval for broader caching changes, relaxed freshness, or Production release.
