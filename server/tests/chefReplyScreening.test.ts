@@ -50,7 +50,7 @@ describe("Development reply screening, not member intent or consent", () => {
   });
   test.each(["production", "test"])("preserves historical behavior in %s", environment => {
     expect(screenOrdinaryConversation("Would you like help adding protein to breakfast?", environment))
-      .toEqual({ reason: "permission_question" });
+      .toEqual({ reason: "accepted", text: "Would you like help adding protein to breakfast?" });
     const text = "Which meal makes getting enough protein hardest?";
     expect(screenOrdinaryConversation(text, environment)).toEqual({ reason: "accepted", text });
   });

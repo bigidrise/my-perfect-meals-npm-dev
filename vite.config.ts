@@ -27,6 +27,9 @@ export default defineConfig({
     } 
   },
   root: path.resolve(import.meta.dirname, "client"),
+  // Keep the live preview's optimized modules separate from build/test tooling.
+  // A distinct URL also invalidates browser-cached imports from the old cache.
+  cacheDir: path.resolve(import.meta.dirname, "node_modules", ".vite-development"),
   build: {
     outDir: path.resolve(import.meta.dirname, "client", "dist"),
     emptyOutDir: true,

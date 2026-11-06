@@ -60,11 +60,11 @@ test("describes Recipe Maker as a Dashboard modal and Journal as browser-local",
 test("retains Production knowledge and leaves automated intelligence opt-in unchanged", () => {
   process.env.NODE_ENV = "production";
   const production = knowledge();
-  expect(production.features.find(item => item.id === "nutrition_education")!.label).toBe("Learn");
+  expect(production.features.find(item => item.id === "nutrition_education")!.label).toBe("App Library");
   expect(production.featureCatalog.find(item => item.id === "education")!.name)
-    .toBe("App Library and Tutorial Hub");
+    .toBe("App Library");
   expect(production.features.find(item => item.id === "daily_journal")!.purpose)
-    .not.toContain("browser-local storage");
+    .toContain("browser-local storage");
   expect(featureIntelligenceEnabled({ NODE_ENV: "development" })).toBe(false);
   expect(featureIntelligenceEnabled({ NODE_ENV: "production", ASK_CHEF_FEATURE_INTELLIGENCE: "true" })).toBe(false);
 });

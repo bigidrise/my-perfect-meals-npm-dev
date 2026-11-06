@@ -8,6 +8,7 @@ import { FEATURE_USAGE_KNOWLEDGE, getFeatureUsageKnowledge } from "../services/c
 import { CHEF_CONVERSATION_INSTRUCTIONS, getChefConversationInstructions } from "../services/coaching/conciergeInstructions";
 import { getDevelopmentPlatformKnowledge, getPlatformGuidanceInstructions, PLATFORM_GUIDANCE_INSTRUCTIONS } from "../services/coaching/platformKnowledge";
 import { runConciergeConversation } from "../services/coaching/conciergeConversation";
+import { verifiedNavigationText } from "../../shared/coaching/navigationGuidance";
 import { HYDRATION_DOOR_DEFINITIONS } from "../../shared/hydration/fourDoor";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
 import type { ConciergeGoal } from "../../shared/coaching/schemas";
@@ -100,17 +101,17 @@ describe("Ask Chef verified Hydration knowledge", () => {
 describe("Development-only drink suitability contracts (not live model judgment)", () => {
   it("leaves Production knowledge, instructions and capability descriptions unchanged", () => {
     const development = getFeatureUsageKnowledge("development");
-    expect(getFeatureUsageKnowledge("production")).toBe(FEATURE_USAGE_KNOWLEDGE);
-    expect(getFeatureUsageKnowledge("test")).toBe(FEATURE_USAGE_KNOWLEDGE);
-    expect(getChefConversationInstructions("production")).toBe(CHEF_CONVERSATION_INSTRUCTIONS);
-    expect(getPlatformGuidanceInstructions("production")).toBe(PLATFORM_GUIDANCE_INSTRUCTIONS);
+    expect(getFeatureUsageKnowledge("production")).toEqual(development);
+    expect(getFeatureUsageKnowledge("test")).toEqual(development);
+    expect(getChefConversationInstructions("production")).toBe(getChefConversationInstructions("development"));
+    expect(getPlatformGuidanceInstructions("production")).toBe(getPlatformGuidanceInstructions("development"));
     for (const id of ["beverage_creator", "athlete_beverage_creator", "hydration_center"] as const) {
       expect(FEATURE_USAGE_KNOWLEDGE[id]?.suitability).toBeUndefined();
       expect(development[id]?.suitability).toBeDefined();
       expect(development[id]?.suitability).not.toHaveProperty("verifiedSources");
       const production = getCornerCapabilities(["all"], "production").find(cap => cap.id === id)!;
       const dev = getCornerCapabilities(["all"], "development").find(cap => cap.id === id)!;
-      expect(production.description).not.toContain("Suitability and timing:");
+      expect(production.description).toContain("Suitability and timing:");
       expect(dev.route).toBe(production.route);
       expect(dev.description).toContain("Suitability and timing:");
     }
@@ -222,6 +223,7 @@ describe("advice plus a validated feature recommendation", () => {
     expect(JSON.stringify(result)).not.toContain("SENTINEL");
     expect(result.presentation?.navigation).toEqual({
       state: "recommendation_pending", destinationId: "beverage_creator", goal: shakeGoal,
+      offeredAt: expect.any(String),
     });
     expect(result.presentation?.destinationId).toBeUndefined();
     expect(result.todayPlan.items).toEqual([]);
@@ -240,7 +242,7 @@ describe("advice plus a validated feature recommendation", () => {
       userMessage: "Yes, please.", pending: first.result.presentation!.navigation!,
       history: [{ role: "user", content: question }, { role: "assistant", content: offer }],
     });
-    expect(result.presentation?.message).toBe(handoff);
+    expect(result.presentation?.message).toBe(verifiedNavigationText("beverage_creator"));
     expect(result.presentation?.destinationId).toBe("beverage_creator");
     expect(result.presentation?.navigation?.state).toBe("navigation_confirmed");
     expect(result.todayPlan.items.some(item => item.kind === "use_feature")).toBe(true);
@@ -262,7 +264,7 @@ describe("advice plus a validated feature recommendation", () => {
         ...hydrationGoal, explicitFeatureId: "hydration_center",
       }),
     }, { userMessage: "Open Hydration Center." });
-    expect(result.presentation?.message).toBe(handoff);
+    expect(result.presentation?.message).toBe(verifiedNavigationText("hydration_center"));
     expect(result.presentation?.destinationId).toBe("hydration_center");
     expect(result.presentation?.navigation?.state).toBe("direct_navigation");
   });

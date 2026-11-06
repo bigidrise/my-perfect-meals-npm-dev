@@ -1,6 +1,6 @@
-/** Build-time Development gates; Production retains its existing behavior. */
+/** Approved reliability is independent of the build environment. */
 export function isChefConversationReliabilityEnabled(): boolean {
-  return import.meta.env.DEV;
+  return true;
 }
 
 export function isChefFeatureScreenContextEnabled(): boolean {

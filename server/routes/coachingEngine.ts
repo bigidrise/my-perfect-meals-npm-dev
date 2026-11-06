@@ -27,9 +27,10 @@ import { CHEF_CONCIERGE_REVISION } from "../services/coaching/conciergeInstructi
 import { isAskChefConversationEnabled } from "../../shared/coaching/askChefRelease";
 import { featureIntelligenceEnabled, safeScreenContext } from "../services/coaching/featureIntelligence";
 import { chefMessageOrder, chefOlderMessageCursor } from "../services/coaching/conversationReliability";
+import { clearChefConversation } from "../services/coaching/clearConversation";
 
 const router = Router();
-// Development process-local exclusion only, not durable/distributed idempotency.
+// Process-local exclusion, not durable/distributed idempotency.
 const activeDevelopmentMembers = new Set<string>();
 router.use((_req, res, next) => {
   if (isAskChefConversationEnabled(process.env.NODE_ENV)) {
@@ -60,8 +61,7 @@ router.post("/message", requireAuth, async (req: Request, res: Response) => {
   }
 
   const { specialization, message, conversationId } = parsed.data;
-  const development = process.env.NODE_ENV === "development";
-  const turn = development ? z.string().uuid().optional().safeParse(req.body?.clientTurnId) : null;
+  const turn = z.string().uuid().optional().safeParse(req.body?.clientTurnId);
   if (turn && !turn.success) return res.status(400).json({ error: "Invalid member turn identifier" });
   const clientTurnId = turn?.success ? turn.data : undefined;
 
@@ -82,11 +82,11 @@ router.post("/message", requireAuth, async (req: Request, res: Response) => {
     }
   }
 
-  if (development && activeDevelopmentMembers.has(userId)) {
+  if (activeDevelopmentMembers.has(userId)) {
     return res.status(409).json({ error: "Your previous message is still being processed.",
       code: "CHEF_TURN_IN_PROGRESS", ...(clientTurnId ? { clientTurnId } : {}) });
   }
-  if (development) activeDevelopmentMembers.add(userId);
+  activeDevelopmentMembers.add(userId);
   try {
     const result = await engine.run(
       {
@@ -125,7 +125,7 @@ router.post("/message", requireAuth, async (req: Request, res: Response) => {
     console.error("[CoachingEngine] POST /message error:", err);
     return res.status(500).json({ error: "Coaching engine error" });
   } finally {
-    if (development) activeDevelopmentMembers.delete(userId);
+    activeDevelopmentMembers.delete(userId);
   }
 });
 
@@ -577,25 +577,19 @@ router.delete("/conversation/:id", requireAuth, async (req: Request, res: Respon
 
   const { id } = req.params;
 
+  if (activeDevelopmentMembers.has(userId)) {
+    return res.status(409).json({ error: "Wait for Chef to finish replying before clearing.",
+      code: "CHEF_TURN_IN_PROGRESS" });
+  }
+  activeDevelopmentMembers.add(userId);
   try {
-    // Verify ownership
-    const convCheck = await db.execute<{ owner_id: string }>(sql`
-      SELECT owner_id FROM coach_conversations WHERE id = ${id} LIMIT 1
-    `);
-    const conv = convCheck.rows[0];
-    if (!conv) return res.status(404).json({ error: "Conversation not found" });
-    if (conv.owner_id !== userId) return res.status(403).json({ error: "Forbidden" });
-
-    // Delete child rows first (FK order), then the conversation itself
-    await db.execute(sql`DELETE FROM coach_messages      WHERE conversation_id = ${id}`);
-    await db.execute(sql`DELETE FROM coach_investigations WHERE conversation_id = ${id}`);
-    await db.execute(sql`DELETE FROM coach_action_plans  WHERE conversation_id = ${id}`);
-    await db.execute(sql`DELETE FROM coach_conversations WHERE id = ${id}`);
-
-    return res.json({ success: true });
+    const result = await db.transaction(tx => clearChefConversation(tx, userId, id));
+    return res.status(result.status).json(result.body);
   } catch (err: any) {
     console.error("[CoachingEngine] DELETE /conversation/:id error:", err);
     return res.status(500).json({ error: "Failed to clear conversation" });
+  } finally {
+    activeDevelopmentMembers.delete(userId);
   }
 });
 
