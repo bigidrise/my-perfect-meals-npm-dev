@@ -4,13 +4,16 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import "@testing-library/jest-dom";
 
 const mockNavigate = jest.fn();
-let mockUser = { id: "synthetic-client", professionalRole: "business", isProCare: true, subscriptionStatus: "active", plan: "clinical" };
+let mockUser = { id: "synthetic-client", professionalRole: "business", isProCare: true, subscriptionStatus: "active", plan: "clinical", nickname: undefined as string | undefined, firstName: undefined as string | undefined };
 const mockFetch = jest.fn();
 jest.mock("wouter", () => ({ useLocation: () => ["/dashboard", mockNavigate] }));
 jest.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ user: mockUser, loading: false }) }));
 jest.mock("@/contexts/OrgContext", () => ({ useOrgFlag: () => false }));
 jest.mock("@tanstack/react-query", () => ({ useQuery: () => ({ data: undefined }) }));
-jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+jest.mock("react-i18next", () => ({ useTranslation: () => ({
+  t: (key: string, options?: { name?: string }) =>
+    key === "greeting" ? `Welcome back, ${options?.name}!` : key,
+}) }));
 jest.mock("@/features/coachCornerFlag", () => ({ COACHES_CORNER_ENABLED: false }));
 jest.mock("@/lib/auth", () => ({ getAuthHeaders: () => ({}) }));
 jest.mock("@/lib/resolveApiBase", () => ({ apiUrl: (path: string) => path }));
@@ -50,6 +53,7 @@ let replies: unknown[] = [];
 function ok(body: unknown) { return { ok: true, status: 200, json: async () => body }; }
 
 beforeEach(() => {
+  mockUser = { ...mockUser, id: "synthetic-client", nickname: undefined, firstName: undefined };
   window.scrollTo = jest.fn();
   localStorage.clear();
   sessionStorage.clear();
@@ -78,6 +82,32 @@ async function openConversation() {
 }
 
 describe("real Dashboard client panel with isolated synthetic dependencies", () => {
+  it("shows the welcome header immediately, before its image loads, without transparent ancestors", async () => {
+    const { container } = render(<DashboardNew />);
+    const heading = screen.getByRole("heading", { name: "Welcome back, there!" });
+    let ancestor: HTMLElement | null = heading;
+    while (ancestor && ancestor !== container) {
+      expect(ancestor.style.opacity).not.toBe("0");
+      expect(ancestor.style.transform).not.toContain("translateY(20px)");
+      ancestor = ancestor.parentElement;
+    }
+    const image = screen.getByAltText("heroAlt");
+    expect(image).toHaveAttribute("loading", "eager");
+    expect(image).toHaveAttribute("fetchpriority", "high");
+    fireEvent.error(image);
+    expect(heading).toBeVisible();
+    await act(async () => {});
+  });
+  it("updates the visible greeting from the current account without waiting for image loading", async () => {
+    mockUser = { ...mockUser, nickname: "First member" };
+    const view = render(<DashboardNew />);
+    expect(screen.getByRole("heading", { name: "Welcome back, First member!" })).toBeVisible();
+    mockUser = { ...mockUser, id: "synthetic-second-client", nickname: undefined, firstName: "Second member" };
+    view.rerender(<DashboardNew />);
+    expect(screen.queryByText("Welcome back, First member!")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Welcome back, Second member!" })).toBeVisible();
+    await act(async () => {});
+  });
   it("uses distinct approved dashboard accents without recoloring neighboring cards", async () => {
     mockFetch.mockResolvedValue(ok({ messages: [] }));
     await act(async () => { render(<DashboardNew />); });
