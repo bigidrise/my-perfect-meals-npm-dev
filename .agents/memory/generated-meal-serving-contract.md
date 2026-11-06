@@ -18,3 +18,11 @@ Image generation and storage may add image metadata or URLs but must not mutate 
 **Why:** A legacy post-image validator interpreted scaled multi-serving totals as per-serving nutrition and rejected an otherwise validated batch after its images were complete.
 
 **How to apply:** Reuse the canonical serving-aware final validator anywhere nutrition is evaluated, pass serving count explicitly, log privacy-safe reason codes at validation boundaries, and never introduce a second nutrition-rule implementation after image processing.
+
+## Builder display versus consumption authority
+
+Serving-aware Builder display corrections are read-only. A planned meal is not evidence that food was eaten, and fixing display totals must not rewrite recipes, prescriptions, or logged clinical consumption.
+
+**Why:** The founder requested consistent card, top-summary, and footer nutrition while explicitly preserving saved records, macro targets, clinical rules, and generation behavior. The displayed board can contain additional numbered meal slots beyond breakfast, lunch, and dinner.
+
+**How to apply:** Keep planned portions separate from the server's logged-intake authority. Preserve source-backed carbohydrate categories, label the existing ingredient estimator as estimated, and visibly report ambiguous serving evidence rather than repairing saved data or inventing precision.
