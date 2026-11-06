@@ -92,6 +92,12 @@ MyPerfectMeals is a full-stack TypeScript application providing AI-powered meal 
 
 ## MPM Development Completion Standard
 
+### Preview and Published Development parity
+
+Any feature approved for implementation must function in both Development preview and Published Development. Production mode is not the same as the customer-facing Production workspace. Do not use `import.meta.env.DEV`, `NODE_ENV`, or `REPLIT_DEPLOYMENT` as blanket restrictions on approved release features. Explicit product gates remain appropriate for Coming Soon, unfinished clinical capabilities, and staged rollouts; do not lift unrelated gates.
+
+The release workflow is Development preview → Published Development testing → GitHub/Production workspace review → explicit Published Production release. Production-mode verification is mandatory before declaring a feature release-ready. The release check includes compiled Anti-Inflammatory UI/API checks and isolated production-mode authorization, persistence, prompt and validation contracts. Protect real member records throughout testing; separate workspaces do not imply separate underlying data.
+
 **Mandatory:** No feature is finished until its navigation, mobile layout, iOS safe areas, and affected platform integrations have been verified. Apply this standard to every feature addition, removal, rename, navigation change, setting change, or workflow modification, and to affected frontend interfaces. Report unavailable verification explicitly; it remains outstanding, not a pass.
 
 1. **Platform impact assessment.** Mark each area **Applicable**, **Not Applicable**, or **Requires Follow-up**, with a brief reason and any required update:

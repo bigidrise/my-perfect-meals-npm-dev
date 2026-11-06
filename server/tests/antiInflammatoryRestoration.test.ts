@@ -34,15 +34,19 @@ test("only fresh explicit Anti-Inflammatory opt-ins become food authority; optio
   expect(mockQuery.mock.calls[0][0]).toContain("source_kind='user'");
 });
 
-test.each(["production", "test"])("no source reads or activation in %s", async mode => {
+test.each(["production", "test"])("explicit Anti-Inflammatory support is available in %s without optional GLP-1", async mode => {
   process.env.NODE_ENV = mode;
-  expect([...await readDevelopmentPersonalFoodSupports("synthetic")]).toEqual([]);
-  expect(mockQuery).not.toHaveBeenCalled();
+  mockQuery.mockResolvedValue({ rows: [
+    { protocol_key: "anti_inflammatory", evidence_ref: "personal_support", explicit_opt_in: true },
+    { protocol_key: "glp1", evidence_ref: "personal_support", explicit_opt_in: true },
+  ] });
+  expect([...await readDevelopmentPersonalFoodSupports("synthetic")]).toEqual(["anti_inflammatory"]);
+  expect(mockQuery.mock.calls[0][1][2]).toBe(false);
 });
-test("a published deployment stays off even with NODE_ENV=development", async () => {
+test("a published deployment retains only the explicitly released support", async () => {
   process.env.REPLIT_DEPLOYMENT = "1";
-  expect([...await readDevelopmentPersonalFoodSupports("synthetic")]).toEqual([]);
-  expect(mockQuery).not.toHaveBeenCalled();
+  mockQuery.mockResolvedValue({ rows: [{ protocol_key: "anti_inflammatory", evidence_ref: "personal_support", explicit_opt_in: true }] });
+  expect([...await readDevelopmentPersonalFoodSupports("synthetic")]).toEqual(["anti_inflammatory"]);
 });
 test("read of a saved legacy preference does not migrate or activate it", async () => {
   mockQuery.mockResolvedValue({ rows: [{ legacy_preference: "true", enabled: false }] });
@@ -62,6 +66,7 @@ test("source failure is not silently treated as a successful off state", async (
 });
 test.each(["general_nutrition", "diabetic", "glp1"])(
   "%s indicator response and generation authority stay aligned on and off", async () => {
+    process.env.NODE_ENV = "production"; process.env.REPLIT_DEPLOYMENT = "1";
     let enabled = true;
     mockQuery.mockImplementation(async (sql: string) => ({
       rows: sql.includes("FROM users") ? [{ legacy_preference: "true" }] : enabled

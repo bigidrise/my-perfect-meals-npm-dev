@@ -239,7 +239,7 @@ export default function WeeklyMealBoard() {
 
   // Clinical protocol indicator state — populated from labs API for dot grid display
   const personalAntiSupport = usePersonalAntiInflammatorySupport({
-    development: import.meta.env.DEV, actorUserId: user?.id, subjectUserId: effectiveUserId, householdProfileId,
+    actorUserId: user?.id, subjectUserId: effectiveUserId, householdProfileId,
   });
   const [scConditions, setScConditions] = useState<string[]>([]);
   const [thyroidFromSpecialtyCondition, setThyroidFromSpecialtyCondition] = useState(false);

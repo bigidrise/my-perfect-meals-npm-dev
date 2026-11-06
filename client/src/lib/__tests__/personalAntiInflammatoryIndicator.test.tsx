@@ -9,11 +9,11 @@ import { AntiInflammatorySupportControl } from "@/components/profile/AntiInflamm
 const mockAPI = jest.fn();
 jest.mock("@/lib/apiRequest", () => ({ apiRequest: (...args: unknown[]) => mockAPI(...args) }));
 
-function Indicator({ actor = "synthetic-a", subject = actor, development = true, household }: {
-  actor?: string; subject?: string; development?: boolean; household?: string;
+function Indicator({ actor = "synthetic-a", subject = actor, household }: {
+  actor?: string; subject?: string; household?: string;
 }) {
   const support = usePersonalAntiInflammatorySupport({
-    development, actorUserId: actor, subjectUserId: subject, householdProfileId: household,
+    actorUserId: actor, subjectUserId: subject, householdProfileId: household,
   });
   return <output data-testid="indicator">{support.enabled ? "Optional support On" : support.available ? "Optional support Off" : "Unverified"}</output>;
 }
@@ -41,8 +41,8 @@ test.each(["General Nutrition", "Diabetic", "GLP-1"])("%s reads the profile opt-
     .toEqual([{ enabled: true }, { enabled: false }]);
 });
 test.each([
-  { development: false }, { subject: "different-client" }, { household: "household-child" },
-])("never attributes the actor's support to Production or a different subject: %p", async props => {
+  { subject: "different-client" }, { household: "household-child" },
+])("never attributes the actor's support to a different subject: %p", async props => {
   wrap(<Indicator {...props} />);
   expect(screen.getByTestId("indicator").textContent).toBe("Unverified");
   expect(mockAPI).not.toHaveBeenCalled();
