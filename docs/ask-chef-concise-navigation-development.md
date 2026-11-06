@@ -37,9 +37,9 @@ Expected exchange:
 >
 > **Open Business Suite**
 
-The button opens the existing `/business-organizations` Organization Hub. It
-handles both existing authorized organizations and its existing Start
-Organization option. Chef does not choose a workspace, create an organization,
+The button opens the existing Business Center at `/business-center`, not
+Organization Hub. Business Suite remains the member-facing label.
+Chef does not choose a workspace, create an organization,
 enroll an affiliate, grant paid access, or assume administrator membership.
 The human navigation directions remain **More → Business Suite**.
 

@@ -34,3 +34,14 @@ lecture or support referral in chat.
 **How to apply:** Preserve access checks, clinical safety and navigation receipts.
 Do not turn this scope into a broad intelligence/knowledge-registry rewrite or
 invent navigation destinations that have not been approved.
+
+## Business Suite destination
+
+Business Suite in Ask Chef means **Business Center**, not Organization Hub.
+
+**Why:** The founder corrected the intended destination to `/business-center`;
+business discovery should not be sent straight into organization management.
+
+**How to apply:** Keep the Business Suite label and concise handoff, but open
+Business Center. Do not infer an organization-management destination from a
+general business-starting request.

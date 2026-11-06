@@ -85,7 +85,7 @@ describe.each(["development", "production"])("%s concise navigation", runtime =>
     });
   test("Business Suite uses the existing authenticated entry, not business privileges", () => {
     expect(COACH_DESTINATIONS.business_suite).toEqual({
-      label: "Business Suite", route: "/business-organizations", access: "authenticated",
+      label: "Business Suite", route: "/business-center", access: "authenticated",
     });
     expect(verifiedNavigationText("business_suite")).toBe("You can find it under More → Business Suite.");
   });
