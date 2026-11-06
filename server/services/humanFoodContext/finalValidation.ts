@@ -1,4 +1,5 @@
 import { currentGLP1AuthorityEnabled } from "../glp1/currentMealAuthority";
+import { optionalAntiInflammatoryViolations } from "../healthProtocols/antiInflammatorySupportValidation";
 import type { HumanFoodContext, HumanFoodMacroGoalOptions } from "../../../shared/humanFoodContext";
 import {
   HUMAN_FOOD_VALIDATOR_VERSION,
@@ -262,6 +263,13 @@ export function validateHumanFoodCandidate(
       dimension: "provenance", outcome: "blocked", code: "compound_ingredients_not_exposed",
       message: "Every compound ingredient component must be listed separately for food safety checks.",
       assurance: "structured_evidence",
+    });
+  }
+
+  for (const message of optionalAntiInflammatoryViolations(candidate, context.safety.personalAntiInflammatorySupport === true)) {
+    add(findings, {
+      dimension: "whole_food", outcome: "repairable", code: "anti_inflammatory_support",
+      message, assurance: "deterministic",
     });
   }
 

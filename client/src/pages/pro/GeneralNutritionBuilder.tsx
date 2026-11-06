@@ -76,6 +76,7 @@ import { setActiveBuilderNs } from "@/lib/activeBuilderNs";
 import { v4 as uuidv4 } from "uuid";
 import { CreateWithChefModal } from "@/components/CreateWithChefModal";
 import { useBaselineNutrition } from "@/hooks/useBaselineNutrition";
+import { usePersonalAntiInflammatorySupport } from "@/hooks/usePersonalAntiInflammatorySupport";
 import { prescriptionToTargetsOverride } from "@/lib/prescriptionAdapter";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
@@ -237,6 +238,9 @@ export default function WeeklyMealBoard() {
   const [snackCreatorOpen, setSnackCreatorOpen] = useState(false);
 
   // Clinical protocol indicator state — populated from labs API for dot grid display
+  const personalAntiSupport = usePersonalAntiInflammatorySupport({
+    development: import.meta.env.DEV, actorUserId: user?.id, subjectUserId: effectiveUserId, householdProfileId,
+  });
   const [scConditions, setScConditions] = useState<string[]>([]);
   const [thyroidFromSpecialtyCondition, setThyroidFromSpecialtyCondition] = useState(false);
   useEffect(() => {
@@ -989,12 +993,12 @@ export default function WeeklyMealBoard() {
             )}
 
           {/* ROW 4.5: Active Clinical Supports */}
-          {scConditions.length > 0 && (
+          {(scConditions.length > 0 || personalAntiSupport.available) && (
             <div className="flex justify-center">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 rounded-lg bg-zinc-800/50 text-xs">
                 <span className="font-medium text-white/70">Active Clinical Supports:</span>
                 {[
-                  { key: "anti-inflammatory", label: "Anti-Inflammatory", isActive: scConditions.includes('anti-inflammatory') || scConditions.includes('anti_inflammatory'),                                                                        activeColor: "text-green-400",   dotColor: "bg-green-400",   dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"   },
+                  { key: "anti-inflammatory", label: personalAntiSupport.enabled ? "Anti-Inflammatory (optional)" : "Anti-Inflammatory", isActive: personalAntiSupport.enabled || scConditions.includes('anti-inflammatory') || scConditions.includes('anti_inflammatory'), activeColor: "text-green-400", dotColor: "bg-green-400", dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]" },
                   { key: "cardiac",           label: "Cardiac Health",    isActive: scConditions.includes('cardiac') || scConditions.includes('heart-disease') || scConditions.includes('hypertension') || scConditions.includes('heart-failure'),   activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
                   { key: "kidney-disease",    label: "Kidney Disease",    isActive: scConditions.includes('kidney-disease') || scConditions.includes('renal') || scConditions.includes('ckd'),                                                       activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"   },
                   { key: "liver-support",     label: "Liver Support",     isActive: scConditions.includes('liver-support'),                                                                                                                           activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
@@ -1003,7 +1007,7 @@ export default function WeeklyMealBoard() {
                   { key: "thyroid-support",   label: "Thyroid Support",   isActive: thyroidFromSpecialtyCondition,                                                                                                                                    activeColor: "text-teal-400",    dotColor: "bg-teal-400",    dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"   },
                   { key: "alpha-gal-syndrome",label: "Alpha-gal Syndrome",isActive: scConditions.includes('alpha-gal-syndrome') || scConditions.includes('alpha-gal') || scConditions.includes('alpha-gal syndrome'),                               activeColor: "text-orange-400",  dotColor: "bg-orange-400",  dotGlow: "shadow-[0_0_4px_rgba(251,146,60,0.8)]"   },
                 ].map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
-                  <span key={key} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
+                    <span key={key} title={key === "anti-inflammatory" && personalAntiSupport.enabled ? "Optional personal nutrition support — not a clinical diagnosis" : undefined} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
                     <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
                     {label}
                   </span>
@@ -1116,6 +1120,7 @@ export default function WeeklyMealBoard() {
                       {dayLists[key as keyof typeof dayLists].map((meal: Meal, idx: number) => (
                         <MealCard
                           originBuilder="general_nutrition"
+                          imageRecoveryWeekStartISO={import.meta.env.DEV && !proClientId && !householdProfileId ? weekStartISO : undefined}
                           key={meal.id}
                           date={activeDayISO}
                           slot={key}
@@ -1179,6 +1184,7 @@ export default function WeeklyMealBoard() {
                       .map((meal: Meal) => (
                         <MealCard
                           originBuilder="general_nutrition"
+                          imageRecoveryWeekStartISO={import.meta.env.DEV && !proClientId && !householdProfileId ? weekStartISO : undefined}
                           key={meal.id}
                           date={activeDayISO}
                           slot="snacks"
@@ -1246,6 +1252,7 @@ export default function WeeklyMealBoard() {
                 {board.lists[key].map((meal: Meal, idx: number) => (
                   <MealCard
                     originBuilder="general_nutrition"
+                    imageRecoveryWeekStartISO={import.meta.env.DEV && !proClientId && !householdProfileId ? weekStartISO : undefined}
                     key={meal.id}
                     date={"board"}
                     slot={key}

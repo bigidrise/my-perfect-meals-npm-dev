@@ -12,12 +12,12 @@ describe("Development personal support food authority", () => {
     jest.clearAllMocks();
   });
 
-  it("does not read saved personal overlays in Development while frozen", async () => {
+  it("does not activate historical personal overlays when only the Anti-Inflammatory restoration is enabled", async () => {
     process.env.NODE_ENV = "development";
     delete process.env.REPLIT_DEPLOYMENT;
     mockQuery.mockResolvedValue({ rows: [{ protocol_key: "glp1" }, { protocol_key: "anti_inflammatory" }] });
     expect(await readDevelopmentPersonalFoodSupports("subject-a")).toEqual(new Set());
-    expect(mockQuery).not.toHaveBeenCalled();
+    expect(mockQuery).toHaveBeenCalledTimes(1);
   });
 
   it("never reads shadow sources from production", async () => {
@@ -26,11 +26,10 @@ describe("Development personal support food authority", () => {
     expect(mockQuery).not.toHaveBeenCalled();
   });
 
-  it("cannot activate optional overlays from a failing source query while frozen", async () => {
+  it("fails explicitly when the approved Anti-Inflammatory source cannot be read", async () => {
     process.env.NODE_ENV = "development";
     delete process.env.REPLIT_DEPLOYMENT;
     mockQuery.mockRejectedValue(new Error("source storage unavailable"));
-    expect(await readDevelopmentPersonalFoodSupports("subject-a")).toEqual(new Set());
-    expect(mockQuery).not.toHaveBeenCalled();
+    await expect(readDevelopmentPersonalFoodSupports("subject-a")).rejects.toThrow("source storage unavailable");
   });
 });

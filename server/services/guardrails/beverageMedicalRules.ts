@@ -354,7 +354,9 @@ export function detectActiveBeverageConditions(
 
   if (builder === "diabetic") active.push("diabetic");
   if (builder === "glp1") active.push("glp1");
-  if (builder === "anti_inflammatory") active.push("anti-inflammatory");
+  if (builder === "anti_inflammatory" || envelope.personalAntiInflammatorySupport === true) {
+    active.push("anti-inflammatory");
+  }
 
   return active;
 }

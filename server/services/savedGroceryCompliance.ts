@@ -13,6 +13,7 @@
 
 import type { UserProtocolEnvelope } from "./protocolEnvelope";
 import { scanTextForHighRiskIngredients } from "./ingredientIntelligence";
+import { optionalAntiInflammatoryViolations } from "./healthProtocols/antiInflammatorySupportValidation";
 
 export interface SavedGroceryItemSlim {
   id: string;
@@ -309,6 +310,14 @@ export function filterSavedGroceriesForCompliance(
         exclusionReason =
           `Carb content (${carbs}g) exceeds your current diabetic limit ` +
           `(${diabeticCarbCeiling}g per meal)`;
+      }
+    }
+
+    if (!exclusionReason && envelope.personalAntiInflammatorySupport) {
+      const findings = optionalAntiInflammatoryViolations({ ingredients: item.ingredients }, true);
+      if (findings.length) {
+        exclusionReason = `Optional Anti-Inflammatory support: ${findings.join("; ")}`;
+        if (!item.ingredients?.length) exclusionCategory = "evidence_missing";
       }
     }
 
