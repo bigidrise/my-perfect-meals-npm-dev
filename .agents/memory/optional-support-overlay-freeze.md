@@ -24,3 +24,11 @@ On 2026-11-06 the user expanded the earlier unpublished-Development restoration 
 **Why:** The earlier runtime restriction prevented Published Development from testing the compiled feature. The user approved this feature-specific correction, not a general reopening of optional support or a Production release.
 
 **How to apply:** Require fresh explicit confirmation rather than activating historical preferences. Keep the control independently reachable without reopening the broader hidden clinical-review UI. Use synthetic verification; do not change real-member preferences, create new database fields, engines or Builders, or push, merge or publish as part of this approval. Do not call coverage platform-wide complete while any recommendation surface still lacks the approved authority and validation.
+
+## Medication-report control visibility
+
+The founder wants the Edit Profile "Current GLP-1 medication use" section hidden in all environments, without a placeholder or announcement. This is not permission to remove medication-based meal guidance, saved reports, APIs, calculations, provider authority, or the GLP-1 Builder.
+
+**Why:** The founder requested only presentation parity with the intended published interface and explicitly distinguished hiding the control from disconnecting existing functionality.
+
+**How to apply:** Preserve the underlying medication-report implementation and nutrition authority. Do not restore the section merely to make preview match a new runtime gate; Anti-Inflammatory and the other Specialty Health Protocol controls remain separate.
