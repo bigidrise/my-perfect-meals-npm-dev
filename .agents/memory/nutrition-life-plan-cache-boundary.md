@@ -11,6 +11,6 @@ The dashboard's macro pills are saved baseline targets, never Performance effect
 
 The founder wants the Dashboard Life Plan section, title, and layout to appear immediately, with member-specific information populated independently afterward. Never show invented nutrition numbers or another member's cached information while waiting.
 
-**Why:** The founder supplied this as the preferred approach to investigate for visibly delayed Dashboard rendering, while requiring a report and approval before implementation.
+**Why:** The founder explicitly authorized the smallest Development-only first-render correction for visibly delayed Dashboard rendering, without changing nutrition calculations, member-specific caching, API contracts, or clinical guardrails.
 
-**How to apply:** Evaluate static presentation separately from personalized-data readiness. This product direction does not authorize implementation, broader caching changes, or relaxed nutrition freshness.
+**How to apply:** Keep static presentation separate from personalized-data readiness, retain truthful loading/error/empty states, and never infer approval for broader caching changes, relaxed freshness, or Production release.
