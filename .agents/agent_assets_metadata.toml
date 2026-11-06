@@ -635,3 +635,17 @@ mtime_ms = 1793830061032
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/12624c41-67d6-4035-bafb-6cae17a79294/d4881306-dac7-4c66-b697-00ae20b82734"
 storage_version_token = "1793830078155376"
 content_type = "text/html"
+
+[[outputs]]
+id = "sZOY-zx8pHwH5hAnkdVJB"
+uri = "file://docs/ask-chef-direct-feature-navigation-expansion.md"
+type = "text"
+title = "Ask Chef navigation expansion report"
+description = "36 registered destinations; all 14 requested additions, including the two Dashboard modal handoffs. Includes routes, access requirements and verification results."
+logical_id = "8cce7d5e-5702-4ad5-9be7-954fb637ebbc"
+content_hash = "sha256:cf4238c9a3a482ec9386707449a39f07eceb9639bbcc36d28f5a58d20b0a074e"
+size = 12116
+mtime_ms = 1793926455226
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/8cce7d5e-5702-4ad5-9be7-954fb637ebbc/4f7e737d-eb82-49a6-8389-ee11c9a3bde1"
+storage_version_token = "1793926474349132"
+content_type = "text/markdown"

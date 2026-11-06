@@ -92,6 +92,59 @@ export const COACH_NAVIGATION_GUIDANCE = {
     aliases: ["Business Organization", "Business Organizations", "Organization Hub"],
     entry: "Organization Hub", start: "",
   },
+  pets: {
+    aliases: ["My Perfect Pets", "Pets"], entry: "Lifestyle → My Perfect Pets", start: "",
+  },
+  dogs: {
+    aliases: ["My Perfect Dog", "Dogs"], entry: "Lifestyle → My Perfect Pets → Dogs", start: "",
+  },
+  cats: {
+    aliases: ["My Perfect Cat", "Cats"], entry: "Lifestyle → My Perfect Pets → Cats", start: "",
+  },
+  spirit_beer_wine_pairings: {
+    aliases: ["Spirit, Beer & Wine Pairings", "Spirit, Beer and Wine Pairings", "Drink Pairings"],
+    entry: "Lifestyle → Spirit & Wine Pairing Hub → Spirit, Beer & Wine Pairings", start: "",
+  },
+  wine_list_translator: {
+    aliases: ["Wine List Translator", "Wine List Helper"],
+    entry: "Lifestyle → Spirit & Wine Pairing Hub → Wine List Translator", start: "",
+  },
+  reduce_drinking_tool: {
+    aliases: ["Reduce Drinking Tool", "Reduce Drinking Plan"],
+    entry: "Lifestyle → Spirit & Wine Pairing Hub → Reduce Drinking Tool", start: "",
+  },
+  academy: {
+    aliases: ["My Perfect Meals Academy", "MPM Academy", "Academy"],
+    entry: "More → My Perfect Meals Academy", start: "",
+  },
+  tips: {
+    aliases: ["Tips & Strategies", "Tips and Strategies", "Tips"],
+    entry: "More → Tips & Strategies", start: "",
+  },
+  favorites: {
+    aliases: ["Favorites", "Saved Meals"],
+    entry: "More → Favorites", start: "",
+  },
+  daily_journal: {
+    aliases: ["Daily Journal & Inspiration", "Daily Journal and Inspiration", "Daily Journal"],
+    entry: "Dashboard → Daily Journal & Inspiration", start: "",
+  },
+  smart_grocery_list: {
+    aliases: ["Smart Grocery List", "Shopping List", "Grocery List"],
+    entry: "Dashboard → Smart Grocery List", start: "",
+  },
+  my_biometrics: {
+    aliases: ["My Biometrics", "Biometrics"],
+    entry: "Dashboard → My Biometrics", start: "",
+  },
+  recipe_maker: {
+    aliases: ["Recipe Maker"], entry: "Dashboard → Recipe Maker", start: "",
+  },
+  medical_sources: {
+    aliases: ["Sources & Medical Information", "Sources and Medical Information",
+      "Sources of Information", "Medical Information & Sources", "Medical Sources"],
+    entry: "Dashboard → Sources & Medical Information", start: "",
+  },
 } satisfies Record<CoachDestinationId, { aliases: string[]; entry: string; start: string }>;
 
 export const DIABETIC_BUILDER_EXPLANATION =
@@ -105,6 +158,9 @@ export function verifiedNavigationText(id: CoachDestinationId, includeStartingSt
   const guidance = COACH_NAVIGATION_GUIDANCE[id];
   const button = `Use the Open ${label} button.`;
   if (!includeStartingSteps) return button;
+  if (id === "recipe_maker" || id === "medical_sources") {
+    return `Open Dashboard, then select ${destination.label}.`;
+  }
   return `You can find it under ${guidance.entry}.` +
     (id === "meal_builders" ? " Choose the builder available to your account." : "");
 }
@@ -112,7 +168,11 @@ export function verifiedNavigationText(id: CoachDestinationId, includeStartingSt
 export function verifiedNavigationOffer(id: CoachDestinationId): string {
   const destination = COACH_DESTINATIONS[id];
   const label = "navigationLabel" in destination ? destination.navigationLabel : destination.label;
-  return id === "business_suite"
+  return id === "recipe_maker" || id === "medical_sources"
+    ? `You can find ${destination.label} on Dashboard. Would you like to go there?`
+    : id === "favorites"
+    ? "You can find them in Favorites. Would you like to go there?"
+    : id === "business_suite"
     ? "Start in Business Suite to explore your business options. Would you like to go there?"
     : id === "business_organization"
       ? "Use Business Organization to manage a business you've started. Would you like to go there?"

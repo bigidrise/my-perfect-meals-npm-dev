@@ -1,6 +1,6 @@
 ---
 name: Ask Chef parent-feature navigation labels
-description: Grocery Store Coach buttons name the parent feature while explanations identify the nested function.
+description: Approved parent-page labels and concise handoffs for Grocery Coach, Meal Builders, business entries and Dashboard modals.
 ---
 
 Ask Chef's Grocery Store Coach actions must say **Open Grocery Store Coach**, while the conversation explains which internal function to select, including Find a Product or Create/Build a Meal.
@@ -55,3 +55,16 @@ destination; it must not replace the starting point for exploring a business.
 **How to apply:** Distinguish starting/exploring from managing an established
 business. Keep the same concise offer, acceptance and direct-command behavior,
 without assuming ownership or administrator permissions.
+
+## Dashboard-hosted modals
+
+Recipe Maker and Sources & Medical Information requests should send the member
+to Dashboard, then tell them which existing modal to select. Name the action
+**Open Dashboard**, not Open Recipe Maker or Open Sources.
+
+**Why:** The founder explicitly chose Dashboard as the parent-page handoff for
+these two modal-based features, rather than creating routes or auto-opening them.
+
+**How to apply:** Keep the concise consent flow and original feature access
+requirements. Do not substitute App Library for the Sources information modal,
+invent standalone pages, or imply navigation opened either modal.
