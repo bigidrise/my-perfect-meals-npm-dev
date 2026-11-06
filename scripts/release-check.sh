@@ -100,6 +100,13 @@ else
   exit 1
 fi
 
+if npm run check:production-support; then
+  pass "Released support survives production compilation and isolated production-mode contracts"
+else
+  fail "Production-mode support compatibility failed"
+  exit 1
+fi
+
 if npm run check:safety-types; then
   pass "Strict safety typecheck completed"
 else

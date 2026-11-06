@@ -20,10 +20,11 @@ describe("Development personal support food authority", () => {
     expect(mockQuery).toHaveBeenCalledTimes(1);
   });
 
-  it("never reads shadow sources from production", async () => {
+  it("production reads only released explicit personal support, never historical sources", async () => {
     process.env.NODE_ENV = "production";
+    mockQuery.mockResolvedValue({ rows: [{ protocol_key: "glp1" }, { protocol_key: "anti_inflammatory" }] });
     expect(await readDevelopmentPersonalFoodSupports("subject-a")).toEqual(new Set());
-    expect(mockQuery).not.toHaveBeenCalled();
+    expect(mockQuery).toHaveBeenCalledTimes(1);
   });
 
   it("fails explicitly when the approved Anti-Inflammatory source cannot be read", async () => {

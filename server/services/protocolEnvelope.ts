@@ -73,7 +73,7 @@ import {
   assertStrictOwner, establishOwnerDay, observeSource,
   type StrictOwnerScope, type StrictOwnerClinicalContext,
 } from "./nutritionResolutionContext";
-import { PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED, ANTI_INFLAMMATORY_SUPPORT_DEVELOPMENT_ENABLED } from "../../shared/personalFoodSupportFreeze";
+import { PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED, ANTI_INFLAMMATORY_SUPPORT_ENABLED } from "../../shared/personalFoodSupportFreeze";
 import { scanClinicalFoodSafety } from "./healthProtocols/clinicalOutputChecks";
 import { derivePregnancyStage } from "@shared/pregnancyStage";
 import { validateDishIdentity } from "./dishAdaptation/dishIdentityValidator";
@@ -1131,7 +1131,7 @@ export async function loadUserProtocolEnvelope(
         throw error;
       });
     if (strict) {
-      if (!PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED && !ANTI_INFLAMMATORY_SUPPORT_DEVELOPMENT_ENABLED) strict.resolution.notApplicable("personal_supports", "existing_support_gate_disabled");
+      if (!PERSONAL_FOOD_SUPPORT_OVERLAYS_ENABLED && !ANTI_INFLAMMATORY_SUPPORT_ENABLED) strict.resolution.notApplicable("personal_supports", "existing_support_gate_disabled");
       else strict.resolution.record("personal_supports", personalSupports.size
         ? { status: "success", value: [...personalSupports] as string[], basis: "stored" }
         : { status: "absent", reasonCode: "successful_empty_read" });

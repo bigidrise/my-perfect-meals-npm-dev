@@ -65,7 +65,7 @@ function Review() {
   </main></QueryClientProvider>;
 }
 function BuilderPreview({ account, program }: { account: string; program: string }) {
-  const support = usePersonalAntiInflammatorySupport({ development: true, actorUserId: account, subjectUserId: account });
+  const support = usePersonalAntiInflammatorySupport({ actorUserId: account, subjectUserId: account });
   const [visible, setVisible] = useState(true);
   const [image, setImage] = useState<string | null>(() => {
     try { return JSON.parse(localStorage.getItem("anti-review-board") || "null")?.imageUrl ?? null; } catch { return null; }

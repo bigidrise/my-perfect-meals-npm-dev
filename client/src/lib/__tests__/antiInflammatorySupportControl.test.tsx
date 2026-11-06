@@ -16,13 +16,14 @@ const renderControl = (userId = "account-a") => {
 };
 beforeEach(() => mockAPI.mockReset());
 
-test("Edit Profile exposes the Development-only control outside the still-hidden clinical review section", () => {
+test("Edit Profile exposes the released control outside the still-hidden clinical review section in all build modes", () => {
   const source = fs.readFileSync(path.resolve("client/src/pages/profile/EditProfilePage.tsx"), "utf8");
   const control = source.indexOf("<AntiInflammatorySupportControl ");
   const pausedReview = source.indexOf("<ConsumerHealthContextSection>");
   expect(control).toBeGreaterThan(-1);
   expect(control).toBeLessThan(pausedReview);
-  expect(source.slice(control - 130, control)).toContain("import.meta.env.DEV && ANTI_INFLAMMATORY_SUPPORT_DEVELOPMENT_ENABLED && user?.id");
+  expect(source.slice(control - 130, control)).toContain("ANTI_INFLAMMATORY_SUPPORT_ENABLED && user?.id");
+  expect(source.slice(control - 130, control)).not.toContain("import.meta.env.DEV");
   const consumerGate = fs.readFileSync(path.resolve("client/src/components/profile/ConsumerHealthContextSection.tsx"), "utf8");
   expect(consumerGate).toContain("CONSUMER_HEALTH_CONTEXT_VISIBLE = false");
 });

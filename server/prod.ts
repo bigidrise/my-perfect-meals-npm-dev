@@ -1110,6 +1110,8 @@ async function initializeApp() {
     const mealsRouter = (await import("./routes/meals")).default;
     const macroCalculatorRouter = (await import("./routes/macroCalculatorRoutes")).default;
     const { requireAuth } = await import("./middleware/requireAuth");
+    const { default: antiInflammatorySupportRouter } = await import("./routes/antiInflammatorySupport");
+    app.use("/api/health-context/support/anti_inflammatory", antiInflammatorySupportRouter());
     const { requireClinicalAccess } = await import("./middleware/requireClinicalAccess");
     const { requireActiveAccess } = await import(
       "./middleware/requireActiveAccess"

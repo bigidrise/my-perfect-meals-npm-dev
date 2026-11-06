@@ -65,7 +65,7 @@ export function AntiInflammatorySupportControl({ userId }: { userId: string }) {
     <section className="rounded-lg border border-white/20 bg-black/30 p-3" aria-label="Anti-Inflammatory Support">
       <h3 className="text-white font-semibold text-sm">Anti-Inflammatory Support</h3>
       <p className="text-white/70 text-xs mt-1">
-        Add Anti-Inflammatory ingredient guidance across supported food tools in Development without changing your primary program.
+        Add Anti-Inflammatory ingredient guidance across supported food tools without changing your primary program.
         Allergies, dietary restrictions, diabetic, GLP-1, and clinical requirements still take precedence.
         The standalone Anti-Inflammatory Builder remains separate.
       </p>

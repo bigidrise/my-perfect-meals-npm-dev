@@ -490,6 +490,8 @@ app.use("/api", preferencesRouter);
 
 // DEV-only shadow controls: never authoritative for live food generation.
 import healthContextControlRouter from "./routes/healthContextControl";
+import antiInflammatorySupportRouter from "./routes/antiInflammatorySupport";
+app.use("/api/health-context/support/anti_inflammatory", antiInflammatorySupportRouter());
 app.use("/api/health-context", healthContextControlRouter());
 
 // User Meal Preferences System - Cafeteria goal and food preferences

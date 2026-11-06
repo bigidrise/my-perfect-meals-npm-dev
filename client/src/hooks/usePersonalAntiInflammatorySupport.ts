@@ -1,16 +1,15 @@
 import { useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/apiRequest";
-import { ANTI_INFLAMMATORY_SUPPORT_DEVELOPMENT_ENABLED } from "@shared/personalFoodSupportFreeze";
+import { ANTI_INFLAMMATORY_SUPPORT_ENABLED } from "@shared/personalFoodSupportFreeze";
 
 /** Personal support is neither a diagnosis nor authority for another person. */
 export function usePersonalAntiInflammatorySupport(input: {
-  development: boolean;
   actorUserId?: string;
   subjectUserId?: string;
   householdProfileId?: string;
 }) {
-  const eligible = input.development && ANTI_INFLAMMATORY_SUPPORT_DEVELOPMENT_ENABLED &&
+  const eligible = ANTI_INFLAMMATORY_SUPPORT_ENABLED &&
     !!input.actorUserId && input.actorUserId === input.subjectUserId && !input.householdProfileId;
   const client = useQueryClient();
   const queryKey = useMemo(() => [
