@@ -20,7 +20,8 @@ describe("creator request diet resolution", () => {
     const dessert = fs.readFileSync("server/routes/dessert-creator.ts", "utf8");
     const beverage = fs.readFileSync("server/routes/beverage-creator.ts", "utf8");
 
-    expect(unified).toContain("resolveRequestDietOverride(dietOverride, dietType)");
+    expect(unified).toMatch(/resolveRequestDietOverride\(dietOverride,\s*dietType === "general-nutrition" \? null : dietType\)/);
+    expect(unified).toContain('if (dietType === "general-nutrition" && humanFoodContext)');
     expect(dessert).toContain("resolveRequestDietOverride(dietOverride, dietaryPreferences)");
     expect(beverage).toContain("resolveRequestDietOverride(dietOverride, dietaryPreferences)");
   });

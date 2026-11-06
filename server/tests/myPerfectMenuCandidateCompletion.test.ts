@@ -25,7 +25,7 @@ describe("My Perfect Menu bounded candidate completion", () => {
   it("does not blame food needs for technical metadata failure", () => {
     const failure = conceptCompletionFailure({ schema_metadata_failure: 5 }, 0);
     expect(failure.code).toBe("CONCEPT_TECHNICAL_COMPLETION_FAILED");
-    expect(failure.error).toContain("current choices are still here");
+    expect(failure.error).not.toContain("current choices");
     expect(failure.error).not.toContain("food needs");
   });
 

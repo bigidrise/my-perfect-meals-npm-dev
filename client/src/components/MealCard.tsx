@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import MacroBridgeButton from "@/components/biometrics/MacroBridgeButton";
 import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
+import { builderMealMacros, formatBuilderMacro, type BuilderMacroKey } from "@/lib/builderMacroCalculation";
 import TrashButton from "@/components/ui/TrashButton";
 import { formatIngredientWithGrams } from "@/utils/unitConversions";
 import MealCardActions from "@/components/MealCardActions";
@@ -219,24 +220,37 @@ export function MealCard({
   const displayDescription = translatedContent.description ?? (meal as any).description;
   const displayIngredients = translatedContent.ingredients ?? meal.ingredients;
   const displayInstructions = translatedContent.instructions ?? meal.instructions;
-  const oneServing = mealMacroSnapshot(meal);
-  const kcal = Math.round(oneServing.calories);
-  const protein = Math.round(oneServing.protein);
-  const carbs = Math.round(oneServing.carbs);
-  const fat = Math.round(oneServing.fat);
+  const builderSnapshot = originBuilder && [
+    "general_nutrition", "anti_inflammatory", "diabetic", "metabolic_medication", "performance",
+  ].includes(originBuilder) ? builderMealMacros(meal) : null;
+  const oneServing = builderSnapshot ?? mealMacroSnapshot(meal);
+  const kcal = builderSnapshot ? oneServing.calories : Math.round(oneServing.calories);
+  const protein = builderSnapshot ? oneServing.protein : Math.round(oneServing.protein);
+  const carbs = builderSnapshot ? oneServing.carbs : Math.round(oneServing.carbs);
+  const fat = builderSnapshot ? oneServing.fat : Math.round(oneServing.fat);
   const storedStarchy = oneServing.starchyCarbs;
   const storedFibrous = oneServing.fibrousCarbs;
-  const hasSplit = typeof storedStarchy === "number" && typeof storedFibrous === "number";
-  const { starchyCarbs, fibrousCarbs } = hasSplit
+  const hasSplit = !builderSnapshot?.uncertainFields.some(key => key === "starchyCarbs" || key === "fibrousCarbs")
+    && typeof storedStarchy === "number" && typeof storedFibrous === "number";
+  const { starchyCarbs, fibrousCarbs } = builderSnapshot
+    ? builderSnapshot
+    : hasSplit
     ? { starchyCarbs: storedStarchy!, fibrousCarbs: storedFibrous! }
     : deriveSplitCarbs(meal.ingredients ?? [], carbs);
-  const hasStarchyFibrous = carbs > 0 || starchyCarbs > 0 || fibrousCarbs > 0;
+  const displayMacro = (key: BuilderMacroKey, value: number) =>
+    builderSnapshot?.uncertainFields.includes(key) ? "—" : builderSnapshot ? formatBuilderMacro(value) : Math.round(value);
+  const hasStarchyFibrous = carbs > 0 || starchyCarbs > 0 || fibrousCarbs > 0 ||
+    !!builderSnapshot?.uncertainFields.some(key => key === "starchyCarbs" || key === "fibrousCarbs");
 
   const onDelete = () => { if (confirm(t("removeFromBoard"))) onUpdated(null); };
   const macroMealSlot =
     slot === "meal4" || slot === "meal5" || slot === "meal6" ? "dinner" : slot;
 
   const handleLogMacros = async () => {
+    if (builderSnapshot?.uncertainFields.length) {
+      toast({ title: "Review meal nutrition", description: builderSnapshot.issues.join(". "), variant: "destructive" });
+      return;
+    }
     try {
       const { post } = await import("@/lib/api");
       // Only send the split when we have a genuine value (hasSplit = stored from AI,
@@ -414,22 +428,22 @@ export function MealCard({
           {/* Nutrition Grid - Showing Protein | Total Carbs | Fat */}
           <div className="mt-3 grid grid-cols-3 gap-2 text-center">
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
-              <div className="text-sm font-bold text-blue-400">{Math.round(protein)}g</div>
+              <div className="text-sm font-bold text-blue-400">{displayMacro("protein", protein)}g</div>
               <div className="text-xs text-white/70">{t("protein")}</div>
             </div>
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
-              <div className="text-sm font-bold text-amber-400">{Math.round(carbs)}g</div>
+              <div className="text-sm font-bold text-amber-400">{displayMacro("carbs", carbs)}g</div>
               <div className="text-xs text-white/70">{t("carbs")}</div>
               {hasStarchyFibrous && (
                 <div className="text-xs text-white/80 mt-1 font-medium">
-                  <span className="text-amber-300">{Math.round(starchyCarbs)}S</span>
+                  <span className="text-amber-300">{displayMacro("starchyCarbs", starchyCarbs)}S</span>
                   {" / "}
-                  <span className="text-green-300">{Math.round(fibrousCarbs)}F</span>
+                  <span className="text-green-300">{displayMacro("fibrousCarbs", fibrousCarbs)}F</span>
                 </div>
               )}
             </div>
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
-              <div className="text-sm font-bold text-purple-400">{Math.round(fat)}g</div>
+              <div className="text-sm font-bold text-purple-400">{displayMacro("fat", fat)}g</div>
               <div className="text-xs text-white/70">{t("fat")}</div>
             </div>
           </div>
@@ -570,7 +584,16 @@ export function MealCard({
             <Wand2 className="h-4 w-4" />
             {t("refineMeal")}
           </button>
-          {date !== "board" && (
+          {builderSnapshot && (builderSnapshot.estimated || builderSnapshot.issues.length > 0 ||
+            builderSnapshot.unclassifiedCarbs > 0.01) && (
+            <p className="text-[10px] text-white/60">
+              {builderSnapshot.estimated && "Carb split estimated. "}
+              {builderSnapshot.unclassifiedCarbs > 0.01 &&
+                `${Math.round(builderSnapshot.unclassifiedCarbs)}g other/unclassified carbs. `}
+              {builderSnapshot.issues.join(". ")}
+            </p>
+          )}
+          {date !== "board" && !builderSnapshot?.uncertainFields.length && (
             <MacroBridgeButton
               meal={{
                 protein: protein || 0,
@@ -585,6 +608,9 @@ export function MealCard({
               }}
               label={t("addToMacros", { defaultValue: "Add to Macros", ns: "savedMeals" })}
             />
+          )}
+          {date !== "board" && !!builderSnapshot?.uncertainFields.length && (
+            <p className="text-xs text-amber-300">Review incomplete nutrition before logging.</p>
           )}
           <AddToMealPlanButton
             meal={{ ...meal, builderType: builderType ?? meal.builderType }}

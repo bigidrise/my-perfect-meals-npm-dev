@@ -174,13 +174,60 @@ ANTI-INFLAMMATORY DIET REQUIREMENTS:
 };
 
 /**
- * Check if an ingredient is blocked for anti-inflammatory diet
+ * Match a complete prohibited food concept, never a component of that concept.
+ * Keep descriptions intact: an allowed oil or a "free" claim is not an exemption
+ * for a prohibited food also named in the ingredient.
  */
+function normalizeIngredientName(value: string): string {
+  return value.normalize("NFKD").replace(/[\p{M}\p{Cf}]/gu, "")
+    .toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/g, " ");
+}
+
+const blockedFoodAliases: Readonly<Record<string, readonly string[]>> = {
+  "onion rings": ["onionring", "onionrings", "rings of onion", "rings of onions"],
+  "french fries": ["fries", "frenchfries"],
+  "hot dog": ["hotdog", "hotdogs", "frankfurter", "frankfurters"],
+  "donut": ["doughnut", "doughnuts"],
+  "all-purpose flour": ["all purpose wheat flour", "ap flour"],
+  "canola oil": ["rapeseed oil"],
+  "corn oil": ["maize oil"],
+  "fried chicken": ["chicken fried"],
+  "fried fish": ["fish fried"],
+};
+
+function wordForms(word: string): string[] {
+  const irregular: Record<string, string> = {
+    fries: "fry", cookies: "cookie", pastries: "pastry", candies: "candy", gummies: "gummy",
+  };
+  const singular = irregular[word] ??
+    (word.endsWith("s") && !word.endsWith("ss") ? word.slice(0, -1) : word);
+  const plural = singular.endsWith("y") ? `${singular.slice(0, -1)}ies`
+    : singular.endsWith("s") ? `${singular}es` : `${singular}s`;
+  return [...new Set([word, singular, plural])];
+}
+
+function containsFoodPhrase(ingredient: string, food: string): boolean {
+  // Names are normalized before building the regex; every token is letters or
+  // digits, so neither ingredient text nor blocklist punctuation is regex code.
+  const phrase = normalizeIngredientName(food).split(" ")
+    .map(word => `(?:${wordForms(word).join("|")})`).join(" +");
+  return new RegExp(`(?:^| )${phrase}(?: |$)`, "u").test(ingredient);
+}
+
 export function isBlockedIngredient(ingredient: string): boolean {
-  const normalized = ingredient.toLowerCase().trim();
-  return antiInflammatoryRules.blockedIngredients.some(blocked => 
-    normalized.includes(blocked.toLowerCase()) || 
-    blocked.toLowerCase().includes(normalized)
+  const normalized = normalizeIngredientName(ingredient);
+  if (!normalized) return true;
+  // These unqualified materials were already blocked by the old matcher.
+  // Without their type, they cannot establish a permitted oil/grain/dairy source.
+  // Whole foods such as onion, corn, potato, chicken and fish are NOT fragments
+  // of a prohibited prepared food simply because their names occur in one.
+  if (["oil", "sugar", "flour", "cheese", "cream", "rice", "bread", "pasta"].includes(normalized)) return true;
+  return antiInflammatoryRules.blockedIngredients.some(blocked =>
+    containsFoodPhrase(normalized, blocked) ||
+    (blockedFoodAliases[blocked] ?? []).some(alias =>
+      // Do not stem aliases: noun "fries" must not turn the verb "fry" into fries.
+      ` ${normalized} `.includes(` ${normalizeIngredientName(alias)} `),
+    ),
   );
 }
 
