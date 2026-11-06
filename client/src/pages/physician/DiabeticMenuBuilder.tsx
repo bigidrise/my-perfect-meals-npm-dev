@@ -105,6 +105,7 @@ import { SnackCreatorModal } from "@/components/SnackCreatorModal";
 import { GlobalMealActionBar } from "@/components/GlobalMealActionBar";
 import { useNavigateToFavorites } from "@/hooks/useNavigateToFavorites";
 import { useBaselineNutrition } from "@/hooks/useBaselineNutrition";
+import { usePersonalAntiInflammatorySupport } from "@/hooks/usePersonalAntiInflammatorySupport";
 import { prescriptionToTargetsOverride } from "@/lib/prescriptionAdapter";
 import { classifyMeal } from "@/utils/starchMealClassifier";
 import type { StarchContext } from "@/hooks/useCreateWithChefRequest";
@@ -177,6 +178,9 @@ export default function DiabeticMenuBuilder() {
   // Single labs fetch populates both thyroid bridge and all active protocol indicators.
   const [thyroidFromSpecialtyCondition, setThyroidFromSpecialtyCondition] = useState(false);
   const [scConditions, setScConditions] = useState<string[]>([]);
+  const personalAntiSupport = usePersonalAntiInflammatorySupport({
+    development: import.meta.env.DEV, actorUserId: user?.id, subjectUserId: effectiveUserId, householdProfileId,
+  });
   const [labDerivedConditions, setLabDerivedConditions] = useState<string[]>([]);
   useEffect(() => {
     if (!effectiveUserId) return;
@@ -1267,7 +1271,7 @@ export default function DiabeticMenuBuilder() {
                 {(() => {
                   const flags = nutritionTargets.flags;
                   return [
-                    { key: "anti-inflammatory", label: "Anti-Inflammatory", isActive: !!flags?.antiInflammatory,                                            activeColor: "text-green-400",   dotColor: "bg-green-400",   dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]"   },
+                    { key: "anti-inflammatory", label: personalAntiSupport.enabled ? "Anti-Inflammatory (optional)" : "Anti-Inflammatory", isActive: personalAntiSupport.enabled || !!flags?.antiInflammatory, activeColor: "text-green-400", dotColor: "bg-green-400", dotGlow: "shadow-[0_0_4px_rgba(74,222,128,0.8)]" },
                     { key: "cardiac",            label: "Cardiac Health",    isActive: !!flags?.cardiac           || labDerivedConditions.includes('heart-failure'),    activeColor: "text-red-400",     dotColor: "bg-red-400",     dotGlow: "shadow-[0_0_4px_rgba(248,113,113,0.8)]"  },
                     { key: "kidney-disease",     label: "Kidney Disease",    isActive: !!flags?.renal             || labDerivedConditions.includes('kidney-disease'),   activeColor: "text-sky-400",     dotColor: "bg-sky-400",     dotGlow: "shadow-[0_0_4px_rgba(56,189,248,0.8)]"   },
                     { key: "liver-support",      label: "Liver Support",     isActive: !!flags?.liverSupport      || labDerivedConditions.includes('liver-support'),    activeColor: "text-emerald-400", dotColor: "bg-emerald-400", dotGlow: "shadow-[0_0_4px_rgba(52,211,153,0.8)]"   },
@@ -1276,7 +1280,7 @@ export default function DiabeticMenuBuilder() {
                     { key: "thyroid-support",    label: "Thyroid Support",   isActive: !!flags?.thyroidSupport    || thyroidFromSpecialtyCondition,                                                                          activeColor: "text-teal-400",   dotColor: "bg-teal-400",   dotGlow: "shadow-[0_0_4px_rgba(45,212,191,0.9)]"  },
                     { key: "alpha-gal-syndrome", label: "Alpha-gal Syndrome", isActive: scConditions.includes('alpha-gal-syndrome') || scConditions.includes('alpha-gal') || scConditions.includes('alpha-gal syndrome'), activeColor: "text-orange-400", dotColor: "bg-orange-400", dotGlow: "shadow-[0_0_4px_rgba(251,146,60,0.8)]"   },
                   ].map(({ key, label, isActive, activeColor, dotColor, dotGlow }) => (
-                    <span key={key} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
+                    <span key={key} title={key === "anti-inflammatory" && personalAntiSupport.enabled ? "Optional personal nutrition support — not a clinical diagnosis" : undefined} className={`flex items-center gap-1 ${isActive ? `${activeColor} font-semibold` : "text-white/25"}`}>
                       <span className={`inline-block w-1.5 h-1.5 rounded-full ${isActive ? `${dotColor} ${dotGlow}` : "bg-white/15"}`} />
                       {label}
                     </span>

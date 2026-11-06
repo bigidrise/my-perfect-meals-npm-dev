@@ -40,15 +40,13 @@ export async function readAntiInflammatorySupportPreference(subjectUserId: strin
     throw new Error("Anti-Inflammatory restoration is Development-only.");
   }
   const { rows } = await pool.query(
-    `SELECT u.app_preferences->>'antiInflammatorySupport' AS legacy_preference,
-       EXISTS (SELECT 1 FROM health_protocol_sources s
-         WHERE s.subject_user_id=u.id AND s.protocol_key='anti_inflammatory'
-           AND s.source_kind='user' AND s.status='active' AND s.evidence_ref='personal_support'
-           AND EXISTS (SELECT 1 FROM health_protocol_events e
-             WHERE e.source_id=s.id AND e.reason_code=$2)) AS enabled
+    `SELECT u.app_preferences->>'antiInflammatorySupport' AS legacy_preference
      FROM users u WHERE u.id=$1`,
-    [subjectUserId, ANTI_INFLAMMATORY_SUPPORT_OPT_IN],
+    [subjectUserId],
   );
   if (!rows[0]) throw new Error("Profile unavailable.");
-  return { enabled: rows[0].enabled === true, legacyPreferenceSaved: rows[0].legacy_preference === "true" };
+  // The indicator and profile control use the exact resolver consumed by meal
+  // generation, not an independent clinical/profile interpretation.
+  const supports = await readDevelopmentPersonalFoodSupports(subjectUserId);
+  return { enabled: supports.has("anti_inflammatory"), legacyPreferenceSaved: rows[0].legacy_preference === "true" };
 }

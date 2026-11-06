@@ -140,7 +140,7 @@ const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export function MealCard({
   date, slot, meal, onUpdated, showStarchBadge = false, coachingLine, builderType, originBuilder, proClientId, diabeticMemoryContext,
-  weekStartISO, onRefined,
+  weekStartISO, onRefined, imageRecoveryWeekStartISO,
 }: {
   date: string; // "board" or "YYYY-MM-DD"
   slot: Slot;
@@ -157,6 +157,8 @@ export function MealCard({
    * component-swap Refine panel. Identifies the weekly board for this meal.
    */
   weekStartISO?: string;
+  /** Image recovery only; does not enable refinement or other Board controls. */
+  imageRecoveryWeekStartISO?: string;
   /** Called after a successful component swap so the board can be refreshed. */
   onRefined?:   () => void;
 }) {
@@ -276,6 +278,7 @@ export function MealCard({
   const isChefMeal = meal.id?.startsWith("chef-");
   const isAIMeal = isChefMeal || meal.id?.startsWith("ai-meal-");
   const imageUrl = (meal as any).imageUrl as string | null | undefined;
+  const imageRecoveryWeek = imageRecoveryWeekStartISO ?? weekStartISO;
 
   return (
     <>
@@ -287,8 +290,8 @@ export function MealCard({
           mealName={title}
           ingredients={(meal as any).ingredients}
           mediaAssetId={(meal as any).mediaAssetId}
-          boardTarget={weekStartISO && ISO_DATE_RE.test(date) && !proClientId ? {
-            weekStartISO,
+          boardTarget={imageRecoveryWeek && ISO_DATE_RE.test(date) && !proClientId ? {
+            weekStartISO: imageRecoveryWeek,
             dateISO: date,
             slot,
             mealId: meal.id,
