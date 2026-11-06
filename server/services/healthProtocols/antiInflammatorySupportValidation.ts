@@ -2,7 +2,7 @@ import { validateAntiInflammatoryMeal } from "../guardrails/validators/antiInfla
 
 type Food = {
   name?: string;
-  ingredients?: readonly (string | { name?: string; item?: string })[];
+  ingredients?: readonly (string | { name?: string; item?: string })[] | null;
   instructions?: string | readonly string[];
 };
 
