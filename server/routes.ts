@@ -1364,7 +1364,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           executionContext: "meal_planning",
           correlationId: (req as any).id,
           dateISO: requestedDateISO,
-          dietOverride: resolveRequestDietOverride(dietOverride, dietType),
+          // General Nutrition is routing identity, not permission to replace
+          // the subject's saved diet. Explicit food-action overrides still apply.
+          dietOverride: resolveRequestDietOverride(dietOverride,
+            dietType === "general-nutrition" ? null : dietType),
           cuisine: typeof req.body.cultureOverride === "string" ? req.body.cultureOverride : null,
           cuisineIntensity: typeof req.body.cuisineIntensity === "string" ? req.body.cuisineIntensity : null,
           actionRequest: canonicalActionRequest,
@@ -1834,6 +1837,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // dietType but not dietOverride) automatically benefits from override semantics.
         // Allergies, medical, and procedural rules come from the protocol envelope unchanged.
         dietaryRestrictionsOverride: (() => {
+          // Keep the canonical subject diet even if current GLP-1 authority
+          // independently changes effectiveDietType. Never turn a Builder name
+          // into a replacement for vegan/vegetarian/pescatarian preferences.
+          if (dietType === "general-nutrition" && humanFoodContext) {
+            return humanFoodContext.diet.effective.length
+              ? [...humanFoodContext.diet.effective] : undefined;
+          }
           const householdDiet = householdSubjectId
             ? humanFoodContext?.diet.effective.find((value) => typeof value === "string" && value.trim())
             : null;
