@@ -98,6 +98,40 @@ function deferredReply() {
   const promise = new Promise<any>((yes, no) => { resolve = yes; reject = no; });
   return { promise, resolve, reject };
 }
+
+test("mobile composer gives text its own row and leaves voice and send below it", async () => {
+  await renderPage(false);
+  const composer = host.querySelector('[data-testid="ask-chef-composer"]')!;
+  const textarea = composer.querySelector("textarea")!;
+  const controls = textarea.parentElement!;
+  expect(controls.classList.contains("grid")).toBe(true);
+  expect(controls.classList.contains("grid-cols-[minmax(0,1fr)_auto]")).toBe(true);
+  expect(controls.classList.contains("sm:flex")).toBe(true);
+  expect(textarea.classList.contains("col-span-2")).toBe(true);
+  expect(textarea.classList.contains("w-full")).toBe(true);
+  expect(controls.children[0]).toBe(textarea);
+  expect(controls.children[1].getAttribute("aria-label")).toBe("Use voice input for Ask Chef");
+  expect(controls.children[2].getAttribute("aria-label")).toBe("Send message");
+});
+
+test("mobile header puts Clear at the right edge without reserving desktop tool space", async () => {
+  await renderPage(false, [{
+    id: "layout-message", role: "user", content: "Hello",
+    structured_payload: null, created_at: "2026-11-05T12:00:00Z",
+  }]);
+  const heading = host.querySelector("h1")!;
+  const header = heading.parentElement!;
+  const clear = header.querySelector('[aria-label="Clear conversation"]')!;
+  expect(header.classList.contains("px-4")).toBe(true);
+  expect(header.classList.contains("pr-28")).toBe(false);
+  expect(header.classList.contains("md:pr-28")).toBe(true);
+  expect(header.classList.contains("justify-between")).toBe(true);
+  expect(header.lastElementChild).toBe(clear.parentElement);
+  expect(clear.parentElement!.lastElementChild).toBe(clear);
+  await act(async () => (clear as HTMLButtonElement).click());
+  expect(host.textContent).toContain("Clear this conversation?");
+  expect(mockAPI.mock.calls.some(([, options]) => options?.method === "DELETE")).toBe(false);
+});
 function replyFor(turnId: string, message = "Matched reply", conversationId = "reliable-conversation") {
   return { clientTurnId: turnId, conversationId, messageId: `assistant-${turnId}`,
     response: { presentation: { kind: "concierge", message }, whatIFound: message,
