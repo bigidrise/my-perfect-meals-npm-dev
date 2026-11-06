@@ -94,6 +94,7 @@ import {
 } from "@/components/ui/popover";
 import { FEATURES } from "@/utils/features";
 import { DailyMacroTotalsRow } from "@/components/DailyMacroTotalsRow";
+import { summarizeBuilderDay, summarizeBuilderSlots } from "@/lib/builderMacroCalculation";
 import { DayChips } from "@/components/DayChips";
 import { DailyStarchIndicator } from "@/components/DailyStarchIndicator";
 import { useBodyFatStarchAdjustment } from "@/hooks/useBodyFatStarchAdjustment";
@@ -337,20 +338,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
 
   // Day macro totals for the Today row — consumed cal/P/C/F for the active day.
   const dayTotals = useMemo(() => {
-    if (!board || !activeDayISO) return { calories: 0, protein: 0, carbs: 0, fat: 0 };
-    const dayLists = getDayLists(board, activeDayISO);
-    const allMeals = [
-      ...dayLists.breakfast,
-      ...dayLists.lunch,
-      ...dayLists.dinner,
-      ...dayLists.snacks,
-    ];
-    return {
-      calories: Math.round(allMeals.reduce((s, m) => s + (m.nutrition?.calories ?? 0), 0)),
-      protein:  Math.round(allMeals.reduce((s, m) => s + (m.nutrition?.protein  ?? 0), 0)),
-      carbs:    Math.round(allMeals.reduce((s, m) => s + (m.nutrition?.carbs    ?? 0), 0)),
-      fat:      Math.round(allMeals.reduce((s, m) => s + (m.nutrition?.fat      ?? 0), 0)),
-    };
+    return summarizeBuilderDay(board && activeDayISO ? getDayLists(board, activeDayISO) : {});
   }, [board, activeDayISO]);
 
   // Derive generationContext from the URL (set by Training Schedule hub navigation)
@@ -1056,6 +1044,7 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
             {FEATURES.dayPlanning === "alpha" && activeDayISO && (
               <DailyMacroTotalsRow
                 totals={dayTotals}
+                targetsOverride={effectiveTargets}
                 prescription={prescription}
                 activeDayISO={activeDayISO}
               />
@@ -1462,50 +1451,8 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
           {board &&
             planningMode === "day" &&
             activeDayISO && (() => {
-              const dayLists = currentLists;
-              const computeSlotMacros = (meals: Meal[]) => {
-                let sc = 0, fc = 0;
-                for (const m of meals) {
-                  const storedStarchy = (m as any).starchyCarbs ?? m.nutrition?.starchyCarbs;
-                  const storedFibrous = (m as any).fibrousCarbs ?? m.nutrition?.fibrousCarbs;
-                  const totalCarbs = m.nutrition?.carbs || 0;
-                  if (typeof storedStarchy === "number" && storedStarchy > 0) {
-                    sc += storedStarchy;
-                    fc += typeof storedFibrous === "number" ? storedFibrous : 0;
-                  } else if (typeof storedFibrous === "number" && storedFibrous > 0) {
-                    fc += storedFibrous;
-                  } else {
-                    if (classifyMeal(m).isStarchMeal) {
-                      sc += totalCarbs;
-                    } else {
-                      fc += totalCarbs;
-                    }
-                  }
-                }
-                return {
-                  count: meals.length,
-                  calories: meals.reduce((sum, m) => sum + (m.nutrition?.calories || 0), 0),
-                  protein: meals.reduce((sum, m) => sum + (m.nutrition?.protein || 0), 0),
-                  carbs: meals.reduce((sum, m) => sum + (m.nutrition?.carbs || 0), 0),
-                  fat: meals.reduce((sum, m) => sum + (m.nutrition?.fat || 0), 0),
-                  starchyCarbs: sc,
-                  fibrousCarbs: fc,
-                };
-              };
-              const slots = {
-                breakfast: computeSlotMacros(dayLists.breakfast),
-                lunch: computeSlotMacros(dayLists.lunch),
-                dinner: computeSlotMacros(dayLists.dinner),
-                snacks: computeSlotMacros(dayLists.snacks),
-              };
-              const consumed = {
-                calories: slots.breakfast.calories + slots.lunch.calories + slots.dinner.calories + slots.snacks.calories,
-                protein: slots.breakfast.protein + slots.lunch.protein + slots.dinner.protein + slots.snacks.protein,
-                carbs: slots.breakfast.carbs + slots.lunch.carbs + slots.dinner.carbs + slots.snacks.carbs,
-                fat: slots.breakfast.fat + slots.lunch.fat + slots.dinner.fat + slots.snacks.fat,
-                starchyCarbs: slots.breakfast.starchyCarbs + slots.lunch.starchyCarbs + slots.dinner.starchyCarbs + slots.snacks.starchyCarbs,
-                fibrousCarbs: slots.breakfast.fibrousCarbs + slots.lunch.fibrousCarbs + slots.dinner.fibrousCarbs + slots.snacks.fibrousCarbs,
-              };
+              const consumed = dayTotals;
+              const slots = summarizeBuilderSlots(getDayLists(board, activeDayISO));
               const dayAlreadyLocked = isDayLocked(activeDayISO, effectiveUserId);
               
               if (proClientId) return null;

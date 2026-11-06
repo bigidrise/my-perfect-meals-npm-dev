@@ -18,6 +18,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { PillButton } from "@/components/ui/pill-button";
+import { remainingBuilderMacro, formatBuilderMacro, type BuilderMacroKey } from "@/lib/builderMacroCalculation";
 
 export interface ConsumedMacros {
   protein: number;
@@ -25,6 +26,10 @@ export interface ConsumedMacros {
   fat: number;
   starchyCarbs?: number;
   fibrousCarbs?: number;
+  uncertainFields?: BuilderMacroKey[];
+  estimated?: boolean;
+  issues?: string[];
+  unclassifiedCarbs?: number;
 }
 
 export interface MacroTargets {
@@ -129,11 +134,11 @@ export function RemainingMacrosFooter({
   }, [consumedOverride, todayMacros]);
 
   const remaining = useMemo(() => ({
-    protein: Math.max(0, targets.protein_g - consumed.protein),
-    carbs: Math.max(0, targets.carbs_g - consumed.carbs),
-    fat: Math.max(0, targets.fat_g - consumed.fat),
-    starchyCarbs: Math.max(0, (targets.starchyCarbs_g ?? 0) - consumed.starchyCarbs),
-    fibrousCarbs: Math.max(0, (targets.fibrousCarbs_g ?? 0) - consumed.fibrousCarbs),
+    protein: remainingBuilderMacro(targets.protein_g, consumed.protein),
+    carbs: remainingBuilderMacro(targets.carbs_g, consumed.carbs),
+    fat: remainingBuilderMacro(targets.fat_g, consumed.fat),
+    starchyCarbs: remainingBuilderMacro(targets.starchyCarbs_g ?? 0, consumed.starchyCarbs),
+    fibrousCarbs: remainingBuilderMacro(targets.fibrousCarbs_g ?? 0, consumed.fibrousCarbs),
   }), [targets, consumed]);
 
   const colorState = useMemo(() => ({
@@ -248,6 +253,7 @@ export function RemainingMacrosFooter({
               target={targets.protein_g}
               consumed={consumed.protein}
               colorState={colorState.protein}
+              incomplete={consumedOverride?.uncertainFields?.includes("protein")}
               suffix="g"
             />
             <MacroCell
@@ -256,6 +262,7 @@ export function RemainingMacrosFooter({
               target={targets.starchyCarbs_g ?? 0}
               consumed={consumed.starchyCarbs}
               colorState={colorState.starchyCarbs}
+              incomplete={consumedOverride?.uncertainFields?.includes("starchyCarbs")}
               suffix="g"
               isKeyMacro
             />
@@ -265,6 +272,7 @@ export function RemainingMacrosFooter({
               target={targets.fibrousCarbs_g ?? 0}
               consumed={consumed.fibrousCarbs}
               colorState={colorState.fibrousCarbs}
+              incomplete={consumedOverride?.uncertainFields?.includes("fibrousCarbs")}
               suffix="g"
             />
             <MacroCell
@@ -273,9 +281,19 @@ export function RemainingMacrosFooter({
               target={targets.fat_g}
               consumed={consumed.fat}
               colorState={colorState.fat}
+              incomplete={consumedOverride?.uncertainFields?.includes("fat")}
               suffix="g"
             />
           </div>
+          {(consumedOverride?.estimated || consumedOverride?.issues?.length ||
+            (consumedOverride?.unclassifiedCarbs ?? 0) > 0.01) && (
+            <p className="text-[10px] text-white/60 mt-2">
+              {consumedOverride?.estimated && "Carb split estimated. "}
+              {(consumedOverride?.unclassifiedCarbs ?? 0) > 0.01 &&
+                `${Math.round(consumedOverride!.unclassifiedCarbs!)}g other/unclassified carbs. `}
+              {consumedOverride?.issues?.join(". ")}
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -290,6 +308,7 @@ interface MacroCellProps {
   colorState: keyof typeof MPM_MACRO_COLORS;
   suffix?: string;
   isKeyMacro?: boolean;
+  incomplete?: boolean;
 }
 
 function MacroCell({
@@ -300,10 +319,11 @@ function MacroCell({
   colorState,
   suffix = "",
   isKeyMacro = false,
+  incomplete = false,
 }: MacroCellProps) {
   const { t } = useTranslation();
-  const color = MPM_MACRO_COLORS[colorState];
-  const isOver = consumed > target && target > 0;
+  const isOver = consumed > target;
+  const color = MPM_MACRO_COLORS[isOver ? "over" : colorState];
   const percentage = target > 0 ? Math.min(100, (consumed / target) * 100) : 0;
 
   return (
@@ -318,9 +338,11 @@ function MacroCell({
         {label}
       </div>
       <div className={`text-base font-bold ${isOver ? color.text : "text-white"}`}>
-        {isOver ? `+${Math.round(consumed - target)}` : Math.round(remaining)}
+        {incomplete ? (isOver ? "≥ " : "≤ ") : ""}
+        {isOver ? `+${formatBuilderMacro(-remaining)}` : formatBuilderMacro(remaining)}
         <span className="text-[10px] font-normal text-white/60">{suffix}</span>
       </div>
+      {incomplete && <span className="text-[9px] text-white/60">Incomplete</span>}
       <div className="w-full h-1 bg-black/30 rounded-full overflow-hidden mt-1">
         <div
           className={`h-full ${color.bg} transition-all duration-300`}
@@ -332,6 +354,7 @@ function MacroCell({
           {isOver ? t("remainingMacros.overLimit") : t("remainingMacros.limit")}
         </div>
       )}
+      {!isKeyMacro && isOver && <span className="text-[9px] text-pink-400">Over limit</span>}
     </div>
   );
 }
