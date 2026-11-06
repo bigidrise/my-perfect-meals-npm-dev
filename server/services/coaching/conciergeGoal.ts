@@ -49,6 +49,7 @@ function goalFits(id: CoachDestinationId, goal: ConciergeGoal): boolean {
     case "meal_builders":
       return goal.activity === "plan_meals" && goal.explicitFeatureId === id;
   }
+  return false;
 }
 
 export function validateConciergeGoal(

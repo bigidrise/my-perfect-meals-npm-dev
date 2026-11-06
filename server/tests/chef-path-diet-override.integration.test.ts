@@ -303,8 +303,9 @@ describe("A. Structural — routes.ts diet override construction", () => {
     // dietOverride must be the primary source (checked before effectiveDietType)
     const overrideBlock = ROUTES_SRC.slice(
       ROUTES_SRC.indexOf("dietaryRestrictionsOverride: (()"),
-      ROUTES_SRC.indexOf("dietaryRestrictionsOverride: (()") + 400,
+      ROUTES_SRC.indexOf("dietaryRestrictionsOverride: (()") + 1200,
     );
+    expect(overrideBlock).toContain('if (dietType === "general-nutrition" && humanFoodContext)');
     expect(overrideBlock).toContain("dietOverride");
   });
 

@@ -78,7 +78,7 @@ General Nutrition must explicitly identify its Builder intent rather than permit
 
 **Why:** The founder confirmed that Production request logs showed the legacy hub fallback activating GLP-1 from historical injection records when General Nutrition omitted its diet identity. This is distinct from the separate legacy condition-array activation path.
 
-**How to apply:** Preserve the existing clinical authority policy and GLP-1 Builder behavior. Do not treat old injection records as proof of current medication use or reinterpret this targeted routing approval as authorization for a clinical-policy cutover.
+**How to apply:** Preserve the existing clinical authority policy and GLP-1 Builder behavior. Do not treat old injection records as proof of current medication use or reinterpret this targeted routing approval as authorization for a clinical-policy cutover. General Nutrition's Builder identity is not a dietary override: resolve saved dietary identity (or an explicit one-action food choice) for the nutrition subject independently from current GLP-1 overlays. Keep all saved tags and allergy, cultural, and clinical context intact.
 
 ## #791 — Craving Creator + Fridge Rescue wired (complete)
 
