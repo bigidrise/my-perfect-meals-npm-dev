@@ -88,6 +88,10 @@ export const COACH_NAVIGATION_GUIDANCE = {
   business_suite: {
     aliases: ["Business Suite"], entry: "More → Business Suite", start: "",
   },
+  business_organization: {
+    aliases: ["Business Organization", "Business Organizations", "Organization Hub"],
+    entry: "Organization Hub", start: "",
+  },
 } satisfies Record<CoachDestinationId, { aliases: string[]; entry: string; start: string }>;
 
 export const DIABETIC_BUILDER_EXPLANATION =
@@ -110,5 +114,7 @@ export function verifiedNavigationOffer(id: CoachDestinationId): string {
   const label = "navigationLabel" in destination ? destination.navigationLabel : destination.label;
   return id === "business_suite"
     ? "Start in Business Suite to explore your business options. Would you like to go there?"
+    : id === "business_organization"
+      ? "Use Business Organization to manage a business you've started. Would you like to go there?"
     : `You can find that in ${label}. Would you like to go there?`;
 }

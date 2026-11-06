@@ -45,3 +45,13 @@ business discovery should not be sent straight into organization management.
 **How to apply:** Keep the Business Suite label and concise handoff, but open
 Business Center. Do not infer an organization-management destination from a
 general business-starting request.
+
+Business Organization is a separate Ask Chef destination for people who have
+already started a business.
+
+**Why:** The founder explicitly asked to add it after correcting Business Suite's
+destination; it must not replace the starting point for exploring a business.
+
+**How to apply:** Distinguish starting/exploring from managing an established
+business. Keep the same concise offer, acceptance and direct-command behavior,
+without assuming ownership or administrator permissions.
