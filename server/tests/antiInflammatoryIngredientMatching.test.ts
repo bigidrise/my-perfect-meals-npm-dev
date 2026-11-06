@@ -58,6 +58,13 @@ describe("complete Anti-Inflammatory food concepts, not bidirectional fragments"
     expect(filterBlockedIngredients(["onion", "onion rings", "onion powder"]))
       .toEqual({ allowed: ["onion", "onion powder"], blocked: ["onion rings"] });
   });
+
+  it("keeps nullable saved-grocery ingredients fail-closed when support is active", () => {
+    expect(optionalAntiInflammatoryViolations({ ingredients: null }, true)).toEqual([
+      "Ingredient details are required to verify optional Anti-Inflammatory support.",
+    ]);
+    expect(optionalAntiInflammatoryViolations({ ingredients: null }, false)).toEqual([]);
+  });
 });
 
 describe("actual generation final scan and Menu protocol-filter consumers", () => {
