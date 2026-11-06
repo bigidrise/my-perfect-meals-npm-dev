@@ -29,8 +29,9 @@ describe.each(["development", "production"])("%s concise navigation", runtime =>
       userMessage: input, history: [], rollingContext: null, context: {},
       tools: tools as any, pendingRecommendation });
   }
-  test("a business-starting need gets one offer, not administrator explanations or a premature button", async () => {
-    const result = await reply("I want to start a business with My Perfect Meals. Where do I go?", {
+  test.each(["I want to start a business with My Perfect Meals. Where do I go?", "Where do I start a business?"])(
+    "%s gets one offer, not administrator explanations or a premature button", async input => {
+    const result = await reply(input, {
       conciergeDecision: { mode: "food_assistance", destinationId: "business_suite", goal },
     });
     expect(result.presentation?.message).toBe(verifiedNavigationOffer("business_suite"));
@@ -39,6 +40,47 @@ describe.each(["development", "production"])("%s concise navigation", runtime =>
     });
     expect(result.presentation?.destinationId).toBeUndefined();
     expect(result.todayPlan.items).toEqual([]);
+  });
+  // These are response-contract tests with injected model output, not evidence
+  // that a live model classified either natural-language request correctly.
+  test("an ambiguous drink request preserves clarification without choosing a destination", async () => {
+    const question = "Is this an everyday drink or something for your workout?";
+    const result = await reply("I want a drink", {
+      message: question, memberNeed: "unclear", responsePurpose: "clarify",
+    });
+    expect(result.presentation?.message).toBe(question);
+    expect(result.presentation?.destinationId).toBeUndefined();
+    expect(result.presentation?.navigation).toBeUndefined();
+    expect(result.todayPlan.items).toEqual([]);
+  });
+  test("a classified post-workout shake offers Athlete Beverage Creator and take me there retains it", async () => {
+    const offer = "Athlete Beverage Creator can help. Would you like to go there?";
+    const offered = await reply("I need a post-workout shake", {
+      message: offer,
+      memberNeed: "feature_help", responsePurpose: "feature_only_offer",
+      navigationIntent: "recommendation",
+      conciergeDecision: { mode: "food_assistance", destinationId: "athlete_beverage_creator",
+        goal: { ...goal, activity: "prepare", occasion: "beverage", specialty: "workout" } },
+    });
+    expect(offered.presentation?.message).toBe(offer);
+    expect(offered.presentation?.destinationId).toBeUndefined();
+    expect(offered.todayPlan.items).toEqual([]);
+    const pending = offered.presentation!.navigation as PendingRecommendation;
+    expect(pending).toMatchObject({
+      destinationId: "athlete_beverage_creator", state: "recommendation_pending",
+    });
+    // A conflicting generated suggestion cannot override the accepted stored offer.
+    const accepted = await reply("Take me there", {
+      conciergeDecision: { mode: "food_assistance", destinationId: "beverage_creator",
+        goal: { ...goal, activity: "prepare", occasion: "beverage" } },
+    }, pending);
+    expect(accepted.presentation).toMatchObject({
+      destinationId: "athlete_beverage_creator",
+      message: verifiedNavigationText("athlete_beverage_creator"),
+      navigation: { state: "navigation_confirmed", offeredAt: pending.offeredAt },
+    });
+    expect(accepted.todayPlan.items).toHaveLength(1);
+    expect(accepted.presentation?.message).not.toMatch(/\?|would you like/i);
   });
   test("a feature-only offer replaces long workflow explanations without truncating nutrition advice", async () => {
     const long = "Beverage Creator collects your drink preferences and servings. " +

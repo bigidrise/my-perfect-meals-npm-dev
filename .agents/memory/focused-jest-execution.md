@@ -52,3 +52,17 @@ Database fixtures must respect the query's selected columns rather than returnin
 **Why:** A stage-propagation test passed while the real query omitted the saved stage and due date, because the fixture supplied fields that PostgreSQL would not return.
 
 **How to apply:** Project fixtures using the requested selection and assert that required fields map to their actual schema columns.
+
+## Offline HTTP fixture readiness
+
+A test server's bound address can be available before its `listening` event is
+delivered. An offline network guard must recognize test-owned bound ports at
+connection time and permit both socket and fetch traffic to those fixtures.
+
+**Why:** Event-only port registration blocked valid Supertest requests and
+produced transport failures unrelated to application behavior.
+
+**How to apply:** Inspect the addresses of test-owned servers rather than using
+only a listening-event whitelist. Continue blocking the running application's
+ports, shared databases and providers; distinguish guard setup failures from
+product regressions.
