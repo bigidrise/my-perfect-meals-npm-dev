@@ -107,6 +107,40 @@ export interface SanityOption {
   ingredients?: SanityIngredient[];
 }
 
+/** Explicit quantities only: parseFloat would silently accept "2-20" or "2 dozen". */
+function eggQuantity(quantity: string): number | null {
+  const value = String(quantity).trim();
+  if (/^\d+(?:\.\d+)?$/.test(value)) {
+    const number = Number(value);
+    return Number.isFinite(number) && number > 0 ? number : null;
+  }
+  const fraction = value.match(/^(?:(\d+)\s+)?(\d+)\/(\d+)$/);
+  if (!fraction || Number(fraction[3]) === 0) return null;
+  const number = Number(fraction[1] ?? 0) + Number(fraction[2]) / Number(fraction[3]);
+  return Number.isFinite(number) && number > 0 ? number : null;
+}
+
+function eggCountEquivalent(ingredient: SanityIngredient): number | null {
+  const quantity = eggQuantity(ingredient.quantity);
+  if (quantity === null) return null;
+  const unit = (ingredient.unit || "").trim().toLowerCase();
+  const name = ingredient.name.toLowerCase();
+  // Concentrated or formulated products cannot safely use fresh-egg conversions.
+  if (/\b(powder|powdered|dried|substitute|replacer|mix)\b/.test(name)) return null;
+  if (/^(egg|eggs|whole|large|medium|small|each|count|piece|pieces|white|whites|yolk|yolks)$/.test(unit)) {
+    return quantity;
+  }
+  const gramsPerEgg = /\bwhites?\b/.test(name) ? 33 : /\byolks?\b/.test(name) ? 17 : 50;
+  const gramsPerUnit: Record<string, number> = {
+    g: 1, gram: 1, grams: 1, oz: 28.3495, ounce: 28.3495, ounces: 28.3495,
+    kg: 1000, lb: 453.592, lbs: 453.592, pound: 453.592, pounds: 453.592,
+    ml: 1, milliliter: 1, milliliters: 1, cup: 240, cups: 240,
+    tbsp: 15, tablespoon: 15, tablespoons: 15, tsp: 5, teaspoon: 5, teaspoons: 5,
+  };
+  return Object.prototype.hasOwnProperty.call(gramsPerUnit, unit)
+    ? quantity * gramsPerUnit[unit] / gramsPerEgg : null;
+}
+
 /** Dish-class-aware ingredient quantity sanity check.
  *  Returns false when any single ingredient quantity is unrealistic for the
  *  given dish class (baked, confection, or standard) and serving count.
@@ -128,16 +162,15 @@ export function checkIngredientSanity(
     for (const ing of (opt.ingredients || [])) {
       const name = (ing.name || '').toLowerCase();
       const unit = (ing.unit || '').toLowerCase();
+      // Check before the legacy parseFloat/zero shortcut so invalid egg amounts
+      // cannot bypass verification. All other ingredient limits stay unchanged.
+      if (/\beggs?\b/.test(name) && !/\b(noodles?|eggplant)\b/.test(name)) {
+        const eggCount = eggCountEquivalent(ing);
+        if (eggCount === null || eggCount > Math.max(6, 4 * s)) return false;
+      }
       const qty = parseFloat(ing.quantity) || 0;
       if (!qty) continue;
       const isCup = unit === 'cup' || unit === 'cups';
-
-      // Eggs
-      if (name.includes('egg') && !name.includes('eggplant') && !name.includes('noodle')) {
-        if (qty > Math.max(6, 4 * s)) {
-          return false;
-        }
-      }
 
       // Flour — baked goods: ≤1.5 cups/serving; standard: ≤4 cups/serving
       if (name.includes('flour') && isCup) {

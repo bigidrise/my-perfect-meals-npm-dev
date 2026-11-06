@@ -7,10 +7,20 @@ import {
 } from "../../shared/oneTouch";
 import { generateOneTouchDirections } from "../services/oneTouch/directions";
 
+jest.mock("../utils/openaiSafe", () => ({
+  chatJson: jest.fn(() => { throw new Error("Paid provider forbidden in deterministic tests"); }),
+}));
+jest.mock("../db", () => ({
+  db: new Proxy({}, { get() { throw new Error("Database forbidden in deterministic tests"); } }),
+  pool: new Proxy({}, { get() { throw new Error("Database forbidden in deterministic tests"); } }),
+}));
+
 const candidate = (title: string, form: string) => ({
   title,
   description: `${title} with varied ingredients.`,
-  primaryIngredients: ["lentils", "tomatoes", "herbs"],
+  primaryIngredients: form === "stuffed pepper"
+    ? ["lentils", "peppers", "cumin"] : form === "wrap"
+      ? ["lentils", "whole wheat", "rosemary"] : ["lentils", "tomatoes", "herbs"],
   primaryProtein: "lentils",
   produceItems: ["tomatoes"],
   cuisine: "Mediterranean",

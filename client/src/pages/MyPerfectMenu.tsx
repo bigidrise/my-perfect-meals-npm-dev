@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { menuFailureMessage } from "@shared/menuFailureMessage";
 import { useLocation, useSearch } from "wouter";
 import {
   Activity,
@@ -339,12 +340,25 @@ export default function MyPerfectMenu() {
         }),
       });
       const payload = await response.json().catch(() => ({}));
-       if (!response.ok) throw responseError(response, payload, "We couldn't create your ideas.");
       if (
         subjectEpochRef.current !== requestedEpoch ||
         subjectRef.current !== requestedSubject ||
         (payload.subject?.id && payload.subject.id !== requestedSubject)
       ) return;
+      if (!response.ok) {
+        const availability = payload.previousChoicesAvailability;
+        const verifiedAvailability = availability === "compatible" || availability === "stale" || availability === "none"
+          ? availability : undefined;
+        if (verifiedAvailability === "stale" || verifiedAvailability === "none") {
+          setConceptSets(current => {
+            const next = { ...current };
+            delete next[nextType];
+            return next;
+          });
+        }
+        const failure = responseError(response, payload, "We couldn't create your ideas.");
+        throw new Error(menuFailureMessage(failure.message, verifiedAvailability));
+      }
       setConceptSets((current) => ({ ...current, [nextType]: payload.concepts || [] }));
       if (payload.builder) setBuilderContext(payload.builder);
     } catch (cause) {
