@@ -5,6 +5,14 @@ description: Policy for the release-check type-validation layers — safety slic
 
 ## Rule
 
+### Founder release-preparation freeze
+
+The current approved candidate is frozen for controlled release preparation, not immediate publication. No new features or unrelated fixes; the chamomile/ham title issue stays outside this release. Additional macro-display work requires an actual defect demonstrated by final testing.
+
+**Why:** The founder explicitly said to stop adding work and establish the remaining TypeScript gate before approving the build.
+
+**How to apply:** Investigate gate differences without silently expanding the frozen application/test scope or refreshing its baseline. Present any necessary correction for founder review. Account for the existing Production Git divergence before promotion rather than repeating a blind fast-forward pull.
+
 `npm run release-check` enforces four validation layers before any server smoke test:
 
 1. Client production build (`npm run build:client`) — must exit 0.
