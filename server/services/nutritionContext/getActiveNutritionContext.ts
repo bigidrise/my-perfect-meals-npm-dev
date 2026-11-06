@@ -243,8 +243,10 @@ export async function getActiveNutritionContext(
   const builder: BuilderKey = (envelope.selectedMealBuilder as BuilderKey) ?? null;
 
   // ── 4. Map builder → guidance ──────────────────────────────────────────────
-  const guidance: BuilderGuidance =
-    (builder && BUILDER_GUIDANCE_MAP[builder]) ?? DEFAULT_GUIDANCE;
+  const guidance: BuilderGuidance = {
+    ...((builder && BUILDER_GUIDANCE_MAP[builder]) ?? DEFAULT_GUIDANCE),
+    ...(envelope.personalAntiInflammatorySupport ? { inflammationFocus: true } : {}),
+  };
 
   // ── 5. Build additive builder block ───────────────────────────────────────
   const builderBlock = buildBuilderPromptBlock(builder, guidance);

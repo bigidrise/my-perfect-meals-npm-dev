@@ -1,4 +1,5 @@
 import { createHmac, randomUUID } from "crypto";
+import { readDevelopmentPersonalFoodSupports } from "../healthProtocols/developmentFoodSupports";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { users, householdProfiles } from "@shared/schema";
 import { MPM_PUBLIC_ORG_ID } from "@shared/constants";
@@ -453,6 +454,10 @@ export async function resolveHumanFoodContext(
     },
     flavor,
     safety: {
+      personalAntiInflammatorySupport: !isExplicitHouseholdSubject && !profile.activeHouseholdProfileId &&
+        !["anti_inflammatory", "anti-inflammatory"].includes(profile.selectedMealBuilder)
+        ? (await readDevelopmentPersonalFoodSupports(input.subjectUserId)).has("anti_inflammatory")
+        : false,
       allergies: profile.allergies ?? [],
       avoidedFoods: profile.avoidedFoods ?? [],
       dislikedFoods: profile.dislikedFoods ?? [],

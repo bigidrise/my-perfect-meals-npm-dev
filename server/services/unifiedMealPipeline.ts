@@ -5586,6 +5586,27 @@ export async function generateMealUnified(
       };
   }
 
+  // Revalidate the actual returned food, including cached/template responses.
+  // The subject-authorized envelope takes precedence over the acting account.
+  // Native Builders without an explicit optional opt-in are unchanged.
+  if (request.userId && result.success) {
+    const finalEnvelope = request.protocolEnvelope ??
+      await loadGenerationProtocolEnvelope(request.userId, diabetesAttempt);
+    if (finalEnvelope.personalAntiInflammatorySupport) {
+      const returned = result.meals?.length ? result.meals : result.meal ? [result.meal] : [];
+      const accepted = filterMealsByProtocol(returned, finalEnvelope, {
+        generatorName: "optional_anti_inflammatory_final",
+        overriddenAllergens: request.overriddenAllergens,
+      });
+      if (!accepted.length) {
+        return { success: false, source: "error", safetyBlocked: true,
+          error: "The recipe could not satisfy your optional Anti-Inflammatory ingredient guidance together with your existing restrictions. Please try a compatible adaptation." };
+      }
+      if (result.meals) result.meals = accepted;
+      if (result.meal) result.meal = accepted.find(meal => meal.name === result.meal?.name) ?? accepted[0];
+    }
+  }
+
   // All generation types may exceed ordinary daily targets. The safety checks
   // below still inspect actual ingredients and independently established rules.
 

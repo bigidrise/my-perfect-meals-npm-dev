@@ -1,4 +1,5 @@
 import type { HumanFoodContext, HumanFoodMacroGoalOptions } from "../../../shared/humanFoodContext";
+import { buildAntiInflammatoryPrompt } from "../guardrails/prompt/antiInflammatoryPromptBuilder";
 import { buildLowCarbSourceGuidance } from "../../../shared/carbSourcePolicy";
 import { buildNutritionPriorityPromptProjection } from "../nutritionPriorityPromptProjection";
 
@@ -101,5 +102,11 @@ export function buildHumanFoodPromptBlock(
     "- Clinical adaptation may change ingredients, amounts, and technique, but must not silently erase the requested cuisine or named dish identity.",
   ].filter(Boolean);
 
+  if (context.safety.personalAntiInflammatorySupport) {
+    lines.push(
+      "OPTIONAL ANTI-INFLAMMATORY SUPPORT: Apply the existing ingredient guidance only inside the member's primary program, clinical, allergy and dietary constraints. Never change the primary program or prescribe new macro targets. Every substitution must pass the same final safety checks.",
+      buildAntiInflammatoryPrompt(""),
+    );
+  }
   return lines.join("\n");
 }

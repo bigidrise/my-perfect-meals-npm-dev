@@ -1,4 +1,5 @@
 import { HUMAN_FOOD_CONTEXT_VERSION, type HumanFoodContext } from "../../shared/humanFoodContext";
+jest.mock("../db", () => ({ db: {}, pool: { query: jest.fn(() => { throw new Error("Database access is forbidden in pure validation contracts"); }) } }));
 import type { HumanFoodCandidate } from "../../shared/humanFoodValidation";
 import { validateHumanFoodCandidate } from "../services/humanFoodContext/finalValidation";
 import { validateHumanFoodResult } from "../services/humanFoodContext/validateHumanFoodResult";
@@ -75,6 +76,55 @@ function generatedEvidence(overrides: HumanFoodCandidate["evidence"] = {}) {
     ...overrides,
   };
 }
+
+describe("optional Anti-Inflammatory final creator contract", () => {
+  const recipe = (ingredients: string[]): HumanFoodCandidate => ({
+    title: "Requested meal",
+    ingredients: ingredients.map(name => ({ name, quantity: "1", unit: "portion" })),
+    instructions: ["Bake."],
+    evidence: generatedEvidence({ diabetesCompliant: true, glp1Compliant: true, clinicalDirectivesCompliant: true }),
+  });
+  test.each(["general_nutrition", "diabetic", "glp1"])(
+    "%s retains its authority while optional support validates actual ingredients", program => {
+      const base = context({ safety: { ...context().safety,
+        healthConditions: program === "diabetic" ? ["diabetes"] : program === "glp1" ? ["glp-1"] : [],
+        glp1MealAuthorityActive: program === "glp1",
+        personalAntiInflammatorySupport: true,
+      } });
+      const blocked = validateHumanFoodCandidate(recipe(["chicken breast", "canola oil"]), base);
+      expect(blocked.findings.some(f => f.code === "anti_inflammatory_support")).toBe(true);
+      const clean = validateHumanFoodCandidate(recipe(["chicken breast", "broccoli", "olive oil"]), base);
+      expect(clean.findings.some(f => f.code === "anti_inflammatory_support")).toBe(false);
+      const off = validateHumanFoodCandidate(recipe(["chicken breast", "canola oil"]),
+        { ...base, safety: { ...base.safety, personalAntiInflammatorySupport: false } });
+      expect(off.findings.some(f => f.code === "anti_inflammatory_support")).toBe(false);
+      expect(base.safety.glp1MealAuthorityActive).toBe(program === "glp1");
+    },
+  );
+  test("allergy and dietary hard stops cannot be removed by a safe overlay substitution", () => {
+    const member = context({ diet: { ...context().diet, stored: ["vegan"], effective: ["vegan"] },
+      safety: { ...context().safety, allergies: ["peanuts"], personalAntiInflammatorySupport: true } });
+    const result = validateHumanFoodCandidate(recipe(["peanuts", "chicken breast", "olive oil"]), member);
+    expect(result.outcome).toBe("blocked");
+    expect(result.findings.some(f => f.dimension === "allergy" && f.outcome === "blocked")).toBe(true);
+    expect(result.findings.some(f => f.dimension === "dietary_identity" && f.outcome === "blocked")).toBe(true);
+  });
+  test("optional support enters the existing prompt below primary program and safety authority", () => {
+    const member = context({ safety: { ...context().safety, personalAntiInflammatorySupport: true } });
+    expect(buildHumanFoodPromptBlock(member)).toContain("OPTIONAL ANTI-INFLAMMATORY SUPPORT");
+    expect(buildHumanFoodPromptBlock({ ...member, safety: { ...member.safety, personalAntiInflammatorySupport: false } }))
+      .not.toContain("OPTIONAL ANTI-INFLAMMATORY SUPPORT");
+  });
+  test.each(["diabetes", "glp-1"])("a safe ingredient substitution cannot override failed %s evidence", condition => {
+    const member = context({ safety: { ...context().safety,
+      healthConditions: [condition], glp1MealAuthorityActive: condition === "glp-1", personalAntiInflammatorySupport: true } });
+    const candidate = recipe(["chicken breast", "broccoli", "olive oil"]);
+    candidate.evidence = generatedEvidence({ diabetesCompliant: false, glp1Compliant: false });
+    const result = validateHumanFoodCandidate(candidate, member);
+    expect(result.outcome).toBe("blocked");
+    expect(result.findings.some(f => f.dimension === "clinical" && f.outcome === "blocked")).toBe(true);
+  });
+});
 
 describe("Chef ordinary fat goal classification", () => {
   const subject = () => context({
