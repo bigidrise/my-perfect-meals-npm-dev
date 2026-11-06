@@ -1581,6 +1581,7 @@ export default function WeeklyMealBoard() {
         open={createWithChefOpen}
         onOpenChange={setCreateWithChefOpen}
         mealType={createWithChefSlot}
+        dietType="general-nutrition"
         onMealGenerated={handleCreateWithChefSelect}
         starchContext={starchContext}
         remainingMacros={remainingMacrosForChef}
