@@ -342,15 +342,17 @@ export async function runConciergeConversation(params: {
     }
     // A business starting-point offer grants no administrator permissions.
     const proposedBusiness = ConciergeDecisionSchema.safeParse(turn.conciergeDecision);
+    const businessDestination = proposedBusiness.success ? proposedBusiness.data.destinationId : null;
+    const businessActivity = proposedBusiness.success ? proposedBusiness.data.goal?.activity : undefined;
     if (!boundNamedRequest && !acceptedStoredOffer && proposedBusiness.success &&
       proposedBusiness.data.mode === "food_assistance" &&
-      proposedBusiness.data.destinationId === "business_suite" &&
-      proposedBusiness.data.goal?.activity === "business" &&
-      params.tools.some(tool => tool.id === "business_suite")) {
+      ((businessDestination === "business_suite" && businessActivity === "business") ||
+        (businessDestination === "business_organization" && businessActivity === "manage_business")) &&
+      params.tools.some(tool => tool.id === businessDestination)) {
       turn.memberNeed = "feature_help";
       turn.responsePurpose = "feature_only_offer";
       turn.navigationIntent = "recommendation";
-      turn.message = verifiedNavigationOffer("business_suite");
+      turn.message = verifiedNavigationOffer(businessDestination);
     }
     // The input emergency gate runs first in the engine, and model-detected
     // care above still wins. Do not add calls or let a closing phrase hide care.
@@ -470,7 +472,8 @@ export async function runConciergeConversation(params: {
       // A primary reply must name the validated target so an unrelated question
       // cannot silently create a pending destination.
       const conciseOffer = turn.responsePurpose === "feature_only_offer" ||
-        (destinationId === "business_suite" && turn.memberNeed === "feature_help");
+        ((destinationId === "business_suite" || destinationId === "business_organization") &&
+          turn.memberNeed === "feature_help");
       // Preserve a naturally brief offer; replace explanations, not every
       // acceptable wording. Never truncate clinical or nutrition guidance.
       const offerTooLong = !turn.message || turn.message.trim().split(/\s+/u).length > 40 ||

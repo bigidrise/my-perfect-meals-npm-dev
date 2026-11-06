@@ -53,9 +53,26 @@ are unchanged. Unsupported Create a Dish transfer attempts still receive an
 honest notice; a plain opening command without a transfer attempt does not get
 an unnecessary transfer-warning paragraph.
 
-No destinations other than Business Suite were added. Feature Intelligence was
+Only the explicitly approved Business Suite and Business Organization entries were added. Feature Intelligence was
 not activated. Existing Development safe-start flags and isolated Vite cache
 configuration were preserved.
+
+### Business Organization addition
+
+Business Suite continues to open `/business-center` for exploring or starting a
+business. The separately approved **Business Organization** action opens
+`/business-organizations` (Organization Hub) for people who have already started
+a business. Its typed management intent stays separate from initial exploration.
+Offers still wait for acceptance; direct commands open immediately after click
+authorization. The hub retains all organization/Location checks and Chef does not
+select a workspace or grant business privileges.
+
+This addition passed **226 targeted tests across four suites**, including
+destination questions, direct commands, confirmation continuity, click-time
+authorization, frontend route/receipt ordering and receipt persistence.
+Server TypeScript and server compilation passed. Development health returned
+HTTP 200 after restart. The earlier broader-suite failures below were not
+re-run or resolved by this focused addition.
 
 ## Validation and limits
 

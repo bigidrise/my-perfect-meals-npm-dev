@@ -89,6 +89,39 @@ describe.each(["development", "production"])("%s concise navigation", runtime =>
     });
     expect(verifiedNavigationText("business_suite")).toBe("You can find it under More → Business Suite.");
   });
+  test("established business management offers Organization Hub without changing the starting destination", async () => {
+    const result = await reply("I've already started my business. Where can I manage my organization?", {
+      conciergeDecision: { mode: "food_assistance", destinationId: "business_organization",
+        goal: { ...goal, activity: "manage_business" } },
+    });
+    expect(result.presentation?.message).toBe(verifiedNavigationOffer("business_organization"));
+    expect(result.presentation?.navigation).toMatchObject({
+      state: "recommendation_pending", destinationId: "business_organization",
+    });
+    expect(result.presentation?.destinationId).toBeUndefined();
+    expect(result.todayPlan.items).toEqual([]);
+    expect(COACH_DESTINATIONS.business_suite.route).toBe("/business-center");
+    expect(COACH_DESTINATIONS.business_organization).toEqual({
+      label: "Business Organization", route: "/business-organizations", access: "authenticated",
+    });
+  });
+  test("a business-management offer cannot redirect its acceptance to Business Suite", async () => {
+    const offered = await reply("Where is Business Organization?");
+    const pending = offered.presentation!.navigation as PendingRecommendation;
+    const result = await reply("Yes.", {
+      conciergeDecision: { mode: "food_assistance", destinationId: "business_suite", goal },
+    }, pending);
+    expect(result.presentation?.destinationId).toBe("business_organization");
+    expect(result.presentation?.navigation).toMatchObject({
+      state: "navigation_confirmed", destinationId: "business_organization", offeredAt: pending.offeredAt,
+    });
+  });
+  test("organization management does not produce an action when unavailable", async () => {
+    const result = await reply("Take me to Business Organization.", {}, undefined,
+      getCornerCapabilities(["all"]).filter(tool => tool.id !== "business_organization"));
+    expect(result.presentation?.destinationId).toBeUndefined();
+    expect(result.presentation?.navigation).toBeUndefined();
+  });
   test("care still overrides a destination question", async () => {
     const result = await reply("Where is Beverage Creator?", {
       redFlag: true, careDisposition: "emergency", contactCare: "Seek urgent medical care.",

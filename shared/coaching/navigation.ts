@@ -28,6 +28,7 @@ export const COACH_DESTINATIONS = {
   // Business Suite opens the existing Business Center, not Organization Hub.
   // Visiting this entry grants no business or administrator permissions.
   business_suite: { label: "Business Suite", route: "/business-center", access: "authenticated" },
+  business_organization: { label: "Business Organization", route: "/business-organizations", access: "authenticated" },
 } as const;
 
 export type CoachDestinationId = keyof typeof COACH_DESTINATIONS;
