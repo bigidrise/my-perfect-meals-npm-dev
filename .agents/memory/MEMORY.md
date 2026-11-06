@@ -112,7 +112,7 @@
 - [Creator Menu choice retention](creator-menu-choice-retention.md) — completing a recipe must keep its three Menu ideas available until the user explicitly replaces or removes them.
 - [Vite-only feature gates in Jest](vite-feature-gates-jest.md) — isolate import.meta.env gates from request helpers so CommonJS Jest can test them.
 - [Health protocol cutover](health-protocol-cutover.md) — GLP-1 is the sole new personal intent; existing clinical supports remain authoritative until reviewed all-surface migration.
-- [Optional support overlay freeze](optional-support-overlay-freeze.md) — Development-only Anti-Inflammatory restoration is approved; Production and optional GLP-1 remain paused.
+- [Optional support overlay freeze](optional-support-overlay-freeze.md) — Anti-Inflammatory supports preview and compiled runtimes; optional GLP-1 stays paused; deployment needs separate approval.
 - [Cardiac lab user choice](cardiac-lab-user-choice.md) — users can stop lab-derived Cardiac guidance without changing lab evidence; physician-owned protocols stay protected.
 - [Nutrition enforcement classes](nutrition-enforcement-classes.md) — hard stops require evidence; guidance does not create universal clinical nutrient limits.
 - [Clinical cutover verification](clinical-cutover-verification.md) — mocked review tests and top-level envelope checks can miss real schema constraints and nested clinical read fallbacks.

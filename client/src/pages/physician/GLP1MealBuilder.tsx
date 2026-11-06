@@ -167,7 +167,7 @@ export default function GLP1MealBuilder() {
   const [thyroidFromSpecialtyCondition, setThyroidFromSpecialtyCondition] = useState(false);
   const [scConditions, setScConditions] = useState<string[]>([]);
   const personalAntiSupport = usePersonalAntiInflammatorySupport({
-    development: import.meta.env.DEV, actorUserId: user?.id, subjectUserId: effectiveUserId, householdProfileId,
+    actorUserId: user?.id, subjectUserId: effectiveUserId, householdProfileId,
   });
   const [labDerivedConditions, setLabDerivedConditions] = useState<string[]>([]);
   useEffect(() => {

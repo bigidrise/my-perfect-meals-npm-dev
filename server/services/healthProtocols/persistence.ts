@@ -9,7 +9,7 @@ import {
   type HealthProtocolSource,
 } from "../../../shared/healthProtocolState";
 import { resolveHealthProtocolState } from "./resolveHealthProtocolState";
-import { ANTI_INFLAMMATORY_SUPPORT_OPT_IN } from "../../../shared/personalFoodSupportFreeze";
+import { ANTI_INFLAMMATORY_SUPPORT_ENABLED, ANTI_INFLAMMATORY_SUPPORT_OPT_IN } from "../../../shared/personalFoodSupportFreeze";
 
 export function devOnly() {
   if (process.env.NODE_ENV !== "development" || process.env.REPLIT_DEPLOYMENT) {
@@ -23,6 +23,11 @@ function knownProtocol(protocol: HealthProtocol) {
 
 export async function shadowTransaction<T>(work: (client: PoolClient) => Promise<T>): Promise<T> {
   devOnly();
+  return protocolTransaction(work);
+}
+
+/** Private transaction primitive; public clinical writers retain devOnly(). */
+async function protocolTransaction<T>(work: (client: PoolClient) => Promise<T>): Promise<T> {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -116,16 +121,23 @@ export async function putClaim(client: PoolClient, input: ClaimInput): Promise<s
 }
 
 /** No HTTP exposure: authenticated actor identity must be supplied by the caller. */
-export async function setUserNutritionSupport(input: {
+type PersonalSupportInput = {
   actorUserId: string;
   subjectUserId: string;
   protocol: HealthProtocol;
   enabled: boolean;
-}) {
-  if (input.actorUserId !== input.subjectUserId) {
+};
+
+async function writePersonalSupport(input: PersonalSupportInput, publishedAntiOnly = false) {
+  if (!input.actorUserId || input.actorUserId !== input.subjectUserId) {
     throw new Error("Only the subject can change their personal nutrition support.");
   }
-  await shadowTransaction(async (client) => {
+  // No caller can use the released writer to activate any other protocol.
+  if (publishedAntiOnly && (input.protocol !== "anti_inflammatory" || !ANTI_INFLAMMATORY_SUPPORT_ENABLED)) {
+    throw new Error("Anti-Inflammatory support is unavailable.");
+  }
+  const transaction = publishedAntiOnly ? protocolTransaction : shadowTransaction;
+  await transaction(async (client) => {
     await putClaim(client, {
       ...input, actorUserId: input.actorUserId, source: "user",
       evidenceRef: "personal_support",
@@ -149,6 +161,18 @@ export async function setUserNutritionSupport(input: {
       );
     }
   });
+}
+
+/** Released self-service path. Never reads or modifies clinical/provider sources. */
+export async function setPersonalAntiInflammatorySupport(input: {
+  actorUserId: string; subjectUserId: string; enabled: boolean;
+}) {
+  await writePersonalSupport({ ...input, protocol: "anti_inflammatory" }, true);
+}
+
+/** Experimental controls retain their original runtime boundary. */
+export async function setUserNutritionSupport(input: PersonalSupportInput) {
+  await writePersonalSupport(input);
   return readShadowProtocolState(input.subjectUserId, "standard");
 }
 

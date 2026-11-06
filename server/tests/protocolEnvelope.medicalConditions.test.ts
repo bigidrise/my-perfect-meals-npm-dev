@@ -248,6 +248,46 @@ describe("protocol envelope medicalConditions projection", () => {
     expect(guidanceText).not.toMatch(/diabetes-type2/);
   });
 
+  it.each(["general_nutrition", "diabetic", "glp1"])(
+    "published %s generation consumes the real explicit-support reader, prompt and final validator", async builder => {
+      const oldEnv = process.env.NODE_ENV;
+      const oldDeployment = process.env.REPLIT_DEPLOYMENT;
+      process.env.NODE_ENV = "production"; process.env.REPLIT_DEPLOYMENT = "1";
+      selectedUser.selectedMealBuilder = builder;
+      selectedUser.medicalConditions = builder === "glp1" ? ["glp1"] : [];
+      selectedUser.healthConditions = builder === "diabetic" ? ["diabetes"] : [];
+      let enabled = true;
+      mockQuery.mockImplementation(async (sql: string) => ({
+        rows: sql.includes("SELECT DISTINCT s.protocol_key") && enabled ? [
+          { protocol_key: "anti_inflammatory", evidence_ref: "personal_support", explicit_opt_in: true },
+          { protocol_key: "glp1", evidence_ref: "personal_support", explicit_opt_in: true },
+        ] : [],
+      }));
+      mockPersonalSupports.mockImplementation(() =>
+        jest.requireActual("../services/healthProtocols/developmentFoodSupports")
+          .readDevelopmentPersonalFoodSupports("protocol-user"));
+      try {
+        for (const state of [true, false]) {
+          enabled = state;
+          const envelope = await loadUserProtocolEnvelope("protocol-user");
+          expect(envelope?.selectedMealBuilder).toBe(builder);
+          expect(envelope?.personalAntiInflammatorySupport).toBe(state);
+          const prompt = enforceBeforeGenerate(envelope!, { generatorName: `${builder}_published_fixture` }).combined;
+          expect(/ANTI-INFLAMMATORY/i.test(prompt)).toBe(state);
+          expect(prompt).not.toMatch(/GLP-1 NUTRITION SUPPORT/i);
+          expect(scanGeneratedOutput({
+            name: "Roasted broccoli", ingredients: [{ name: "broccoli" }, { name: "canola oil" }],
+            instructions: ["Roast."],
+          }, envelope!).passed).toBe(!state);
+        }
+      } finally {
+        process.env.NODE_ENV = oldEnv;
+        if (oldDeployment === undefined) delete process.env.REPLIT_DEPLOYMENT;
+        else process.env.REPLIT_DEPLOYMENT = oldDeployment;
+        mockQuery.mockImplementation(async () => ({ rows: [] }));
+      }
+    },
+  );
   it("adds explicitly active personal anti-inflammatory and GLP-1 guidance once without changing the builder", async () => {
     selectedUser.medicalConditions = [];
     mockPersonalSupports.mockResolvedValue(new Set(["anti_inflammatory", "glp1"]));
