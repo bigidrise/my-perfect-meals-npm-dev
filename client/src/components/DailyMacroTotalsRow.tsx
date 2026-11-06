@@ -42,11 +42,11 @@ interface Props {
   fallbackTargets?: PrescriptionSnapshot | null;
 }
 
-function macroColor(value: number, target: number): string {
+function macroColor(value: number, target: number, pinkAtLimit = false): string {
   if (!target) return "bg-white/10 text-white/80";
   const pct = value / target;
-  if (pct > 1) return "bg-red-700/60 text-red-100";
-  if (pct >= 0.9) return "bg-amber-600/60 text-amber-100";
+  if (pct > 1) return pinkAtLimit ? "bg-pink-500/60 text-pink-100" : "bg-red-700/60 text-red-100";
+  if (pct >= 0.9) return pinkAtLimit ? "bg-pink-500/60 text-pink-100" : "bg-amber-600/60 text-amber-100";
   return "bg-lime-800/50 text-lime-100";
 }
 
@@ -111,6 +111,7 @@ export function DailyMacroTotalsRow({ totals, prescription, activeDayISO, fallba
             className={`text-xs font-semibold px-2 py-0.5 rounded-full ${macroColor(
               totals.carbs,
               effectiveTargets!.carbsTarget,
+              true,
             )}`}
           >
             C {totals.carbs} / {Math.round(effectiveTargets!.carbsTarget)}g
