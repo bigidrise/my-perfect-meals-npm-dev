@@ -842,7 +842,7 @@ export default function CoachsCorner() {
 
         {/* Header */}
         <div className={conversationEnabled
-          ? "shrink-0 bg-black/50 backdrop-blur-md flex items-center justify-between pl-4 pr-28 lg:pr-4 h-14"
+          ? "shrink-0 bg-black/50 backdrop-blur-md flex items-center justify-between px-4 md:pr-28 lg:pr-4 h-14"
           : "shrink-0 bg-black/50 backdrop-blur-md flex items-center justify-between px-4 h-14"}>
           <button
             onClick={() => {
@@ -986,7 +986,7 @@ export default function CoachsCorner() {
           className="shrink-0 bg-black/50 backdrop-blur-md px-4 pt-3"
           style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom, 16px))" }}
         >
-          <div className="flex items-end gap-2.5 max-[360px]:flex-wrap max-[360px]:justify-end">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2.5 sm:flex">
             <Textarea
               ref={textareaRef}
               value={inputText}
@@ -995,7 +995,7 @@ export default function CoachsCorner() {
               placeholder="Ask me anything..."
               disabled={isLoading || clearMutation.isPending || bootstrapLoading || historyUnavailable}
               rows={1}
-              className="min-w-0 flex-1 max-[360px]:basis-full resize-none bg-zinc-900 border border-white/25 text-white placeholder:text-white/45 text-sm rounded-xl py-3 px-4 focus:outline-none focus:ring-1 focus:ring-orange-500/60 focus:border-orange-500/50 disabled:opacity-50 transition-colors"
+              className="col-span-2 w-full min-w-0 sm:w-auto sm:flex-1 resize-none bg-zinc-900 border border-white/25 text-white placeholder:text-white/45 text-sm rounded-xl py-3 px-4 focus:outline-none focus:ring-1 focus:ring-orange-500/60 focus:border-orange-500/50 disabled:opacity-50 transition-colors"
               style={{ lineHeight: "1.5", minHeight: "44px", maxHeight: "120px" }}
             />
             <VoiceInputButton
@@ -1003,7 +1003,7 @@ export default function CoachsCorner() {
               onChange={setInputText}
               disabled={isLoading || clearMutation.isPending || bootstrapLoading || historyUnavailable}
               label={chefMemberText("Use voice input for Coach's Corner")}
-              className="shrink-0 [&_button]:min-h-11"
+              className="min-w-0 justify-self-start shrink-0 [&_button]:min-h-11"
             />
             <Button
               onClick={handleSend}
