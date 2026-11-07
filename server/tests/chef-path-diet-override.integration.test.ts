@@ -219,6 +219,10 @@ import { scanGeneratedOutput } from "../services/protocolEnvelope";
 import { generateMealImageUnified } from "../services/mealImageGenerator";
 import type { HumanFoodContext } from "../../shared/humanFoodContext";
 import { buildChefMacroGoalNotice } from "../services/humanFoodContext/chefCandidateValidation";
+import { detectHubTypeFromProfile, isValidHubType, resolveHubCoupling } from "../services/hubCoupling";
+import { filterMealsByProtocol, enforceBeforeGenerate } from "../services/protocolEnvelope";
+import { resolveGLP1MealTargets } from "../services/glp1/resolveGLP1MealTargets";
+import { optionalAntiInflammatoryViolations } from "../services/healthProtocols/antiInflammatorySupportValidation";
 
 // ── Source paths for structural tests ─────────────────────────────────────────
 const PIPELINE_SRC = fs.readFileSync(
@@ -299,8 +303,9 @@ describe("A. Structural — routes.ts diet override construction", () => {
     // dietOverride must be the primary source (checked before effectiveDietType)
     const overrideBlock = ROUTES_SRC.slice(
       ROUTES_SRC.indexOf("dietaryRestrictionsOverride: (()"),
-      ROUTES_SRC.indexOf("dietaryRestrictionsOverride: (()") + 400,
+      ROUTES_SRC.indexOf("dietaryRestrictionsOverride: (()") + 1200,
     );
+    expect(overrideBlock).toContain('if (dietType === "general-nutrition" && humanFoodContext)');
     expect(overrideBlock).toContain("dietOverride");
   });
 
@@ -322,6 +327,86 @@ describe("A. Structural — routes.ts diet override construction", () => {
 beforeEach(() => {
   capturedCalls.length = 0;
   mockRecipeResponses.length = 0;
+});
+
+describe("General Nutrition explicit Chef routing with independent safeguards", () => {
+  const request = (overrides: Partial<MealGenerationRequest> = {}): MealGenerationRequest => ({
+    type: "create-with-chef", input: "Strawberry Cake", mealType: "lunch",
+    dietType: "general-nutrition", userId: "synthetic-general-subject",
+    servings: 2, skipImage: true, safetyAlreadyChecked: true,
+    dietaryRestrictionsOverride: ["keto"],
+    ...overrides,
+  });
+  beforeEach(() => {
+    // Model the legacy detector's result for a profile with historical shots.
+    // No profile or injection records are read or written by these tests.
+    (detectHubTypeFromProfile as jest.Mock).mockClear().mockResolvedValue("glp1");
+    (resolveHubCoupling as jest.Mock).mockClear().mockResolvedValue(null);
+    (isValidHubType as unknown as jest.Mock).mockImplementation(type => type === "glp1");
+  });
+  afterEach(() => {
+    (detectHubTypeFromProfile as jest.Mock).mockReset().mockResolvedValue(null);
+    (isValidHubType as unknown as jest.Mock).mockReset().mockReturnValue(false);
+    (filterMealsByProtocol as jest.Mock).mockReset().mockImplementation(meals => meals);
+  });
+
+  it("skips legacy shot-history detection for explicit General Nutrition", async () => {
+    const result = await generateMealUnified(request());
+    expect(result.success).toBe(true);
+    expect(result.source).toBe("ai");
+    expect(detectHubTypeFromProfile).not.toHaveBeenCalled();
+    expect(resolveHubCoupling).not.toHaveBeenCalled();
+    expect(capturedCalls).toHaveLength(1);
+  });
+
+  it("demonstrates the omitted identity still reaches the existing legacy fallback", async () => {
+    await generateMealUnified(request({ dietType: null }));
+    expect(detectHubTypeFromProfile).toHaveBeenCalledWith("synthetic-general-subject");
+    expect(resolveHubCoupling).toHaveBeenCalledWith("glp1", "synthetic-general-subject", "lunch", undefined);
+  });
+
+  it("preserves independently resolved current GLP-1 targets under General Nutrition", async () => {
+    const targets = resolveGLP1MealTargets({
+      isActive: true, dailyCalorieTarget: 1800, dailyProteinTarget: 100,
+      dailyFatTarget: 60, dailyCarbsTarget: 180, glp1Guardrails: { fatMaxG: 12 },
+    }, { mealType: "lunch" });
+    await generateMealUnified(request({ glp1Targets: targets }));
+    expect(detectHubTypeFromProfile).not.toHaveBeenCalled();
+    const prompt = capturedCalls[0]?.messages.map(message => message.content).join("\n");
+    expect(prompt).toMatch(/GLP-1/i);
+    // The high-fat fixture must hit GLP-1 repair rather than bypassing its limits.
+    expect(capturedCalls.length).toBeGreaterThan(1);
+  });
+
+  it("still resolves an explicitly selected GLP-1 Builder without legacy detection", async () => {
+    await generateMealUnified(request({ dietType: "glp1" }));
+    expect(detectHubTypeFromProfile).not.toHaveBeenCalled();
+    expect(resolveHubCoupling).toHaveBeenCalledWith("glp1", "synthetic-general-subject", "lunch", undefined);
+    expect(capturedCalls[0]?.messages.map(message => message.content).join("\n")).toMatch(/GLP-1/i);
+  });
+
+  it("preserves optional Anti-Inflammatory final verification and the protected envelope", async () => {
+    const envelope = {
+      ...VEGAN_ENVELOPE,
+      personalAntiInflammatorySupport: true,
+      allergies: ["peanut"], avoidances: ["quinoa"], medicalHardLimits: ["clinical-canary"],
+    };
+    (filterMealsByProtocol as jest.Mock).mockImplementation((meals, actualEnvelope) => {
+      expect(actualEnvelope).toBe(envelope);
+      return meals.filter((meal: { ingredients: { name: string }[] }) =>
+        optionalAntiInflammatoryViolations(meal, actualEnvelope.personalAntiInflammatorySupport).length === 0);
+    });
+    const result = await generateMealUnified(request({ protocolEnvelope: envelope }));
+    expect(detectHubTypeFromProfile).not.toHaveBeenCalled();
+    expect(enforceBeforeGenerate).toHaveBeenCalledWith(expect.objectContaining({
+      personalAntiInflammatorySupport: true, allergies: ["peanut"],
+      avoidances: ["quinoa"], medicalHardLimits: ["clinical-canary"],
+    }), expect.anything());
+    expect(filterMealsByProtocol).toHaveBeenCalledWith(expect.any(Array), envelope,
+      expect.objectContaining({ generatorName: "optional_anti_inflammatory_final" }));
+    // The butter/cream-cheese fixture is not allowed to bypass optional support.
+    expect(result).toMatchObject({ success: false, safetyBlocked: true });
+  });
 });
 describe("Create With Chef ordinary fat guidance and hard-rule repair before images", () => {
   const context = (fat = 13): HumanFoodContext => Object.freeze({

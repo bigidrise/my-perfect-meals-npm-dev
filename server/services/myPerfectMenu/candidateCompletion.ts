@@ -31,7 +31,7 @@ export function conceptCompletionFailure(
       status: 422,
       code: "CONCEPT_HISTORY_REVIEW_REQUIRED",
       error: "We couldn't verify three distinct dessert choices because some current or relevant saved dessert identities have incomplete or conflicting structure. " +
-        "Your current choices are unchanged. This is a variety-verification limitation, not a medical prohibition.",
+        "This is a variety-verification limitation, not a medical prohibition.",
     };
   }
   if (options?.dessertCompletion && authorityFailures === 0 &&
@@ -41,26 +41,26 @@ export function conceptCompletionFailure(
       code: "CONCEPT_VARIETY_COMPLETION_FAILED",
       error: `We couldn't finish three distinct dessert ideas this time (${options.acceptedCount} passed validation). ` +
         "The remaining ideas repeated existing choices; this does not mean desserts are prohibited. " +
-        "Your current choices are still here and your settings were not changed.",
+        "Your settings were not changed.",
     };
   }
   if (providerFailureCount > 0 && metadataFailures === 0 && authorityFailures === 0) {
     return {
       status: 502,
       code: "CONCEPT_PROVIDER_INCOMPLETE",
-      error: "We couldn't finish creating three new ideas this time. Your current choices are still here. Please try again.",
+      error: "We couldn't finish creating three new ideas this time. Please try again.",
     };
   }
   if (metadataFailures > 0 && authorityFailures === 0) {
     return {
       status: 422,
       code: "CONCEPT_TECHNICAL_COMPLETION_FAILED",
-      error: "We couldn't finish creating three new ideas this time. Your current choices are still here. Please try again.",
+      error: "We couldn't finish creating three new ideas this time. Please try again.",
     };
   }
   return {
     status: 422,
     code: "CONCEPT_REPAIR_EXHAUSTED",
-    error: "We couldn't complete three compatible ideas this time. Your current choices are still here and your settings were not changed.",
+    error: "We couldn't complete three compatible ideas this time. Your settings were not changed.",
   };
 }

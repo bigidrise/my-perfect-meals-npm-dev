@@ -1,11 +1,12 @@
 import { useTranslation } from "react-i18next";
+import { formatBuilderMacro, type BuilderMacroKey } from "@/lib/builderMacroCalculation";
+import { resolveDisplayCarbTargets } from "@/lib/macroResolver";
 
 /**
  * DailyMacroTotalsRow
  *
  * Displays the "Today:" macro progress row used across all meal builders.
- * Shows consumed vs. target for calories, protein, carbs, and fat.
- * Color-coded: green = under target, amber = 90–100%, red = over.
+ * Shows the shared, serving-aware Builder summary without deriving any splits.
  *
  * Reads targets exclusively from the DailyNutritionPrescription so every
  * builder shows the same authoritative effective-daily-prescription — including
@@ -18,6 +19,12 @@ interface MacroTotals {
   protein: number;
   carbs: number;
   fat: number;
+  starchyCarbs?: number;
+  fibrousCarbs?: number;
+  uncertainFields?: BuilderMacroKey[];
+  estimated?: boolean;
+  issues?: string[];
+  unclassifiedCarbs?: number;
 }
 
 interface PrescriptionSnapshot {
@@ -26,6 +33,8 @@ interface PrescriptionSnapshot {
   carbsTarget: number;
   fatTarget: number;
   source: string;
+  starchyCarbsTarget?: number;
+  fibrousCarbsTarget?: number;
 }
 
 interface Props {
@@ -40,17 +49,28 @@ interface Props {
    * For pro-client views in Beach Body, pass nutritionTargets mapped to this shape.
    */
   fallbackTargets?: PrescriptionSnapshot | null;
+  /** Exact same already-resolved target snapshot as the footer. */
+  targetsOverride?: {
+    calories_kcal?: number;
+    protein_g: number;
+    carbs_g: number;
+    starchyCarbs_g?: number;
+    fibrousCarbs_g?: number;
+    fat_g: number;
+  };
 }
 
-function macroColor(value: number, target: number): string {
+function macroColor(value: number, target: number, pinkAtLimit = false): string {
+  if (target === 0 && value > 0) return pinkAtLimit ? "bg-pink-500/60 text-pink-100" : "bg-red-700/60 text-red-100";
   if (!target) return "bg-white/10 text-white/80";
   const pct = value / target;
+  if (pct >= 1 && pinkAtLimit) return "bg-pink-500/60 text-pink-100";
   if (pct > 1) return "bg-red-700/60 text-red-100";
-  if (pct >= 0.9) return "bg-amber-600/60 text-amber-100";
+  if (pct >= 0.9) return pinkAtLimit ? "bg-pink-500/60 text-pink-100" : "bg-amber-600/60 text-amber-100";
   return "bg-lime-800/50 text-lime-100";
 }
 
-export function DailyMacroTotalsRow({ totals, prescription, activeDayISO, fallbackTargets }: Props) {
+export function DailyMacroTotalsRow({ totals, prescription, activeDayISO, fallbackTargets, targetsOverride }: Props) {
   const { t } = useTranslation();
   if (!activeDayISO) return null;
 
@@ -83,62 +103,55 @@ export function DailyMacroTotalsRow({ totals, prescription, activeDayISO, fallba
   // Hide the row entirely when there is nothing useful to display
   // (no consumed macros AND no targets). Zeros are not real data.
   const anyConsumed = totals.calories > 0 || totals.protein > 0 || totals.carbs > 0 || totals.fat > 0;
-  if (!hasTargets && !anyConsumed) return null;
+  if (!hasTargets && !targetsOverride && !anyConsumed) return null;
 
+  const targetSnapshot = targetsOverride ?? (hasTargets ? {
+    calories_kcal: effectiveTargets!.caloriesTarget,
+    protein_g: effectiveTargets!.proteinTarget,
+    carbs_g: effectiveTargets!.carbsTarget,
+    starchyCarbs_g: effectiveTargets!.starchyCarbsTarget,
+    fibrousCarbs_g: effectiveTargets!.fibrousCarbsTarget,
+    fat_g: effectiveTargets!.fatTarget,
+  } : null);
+  const targets = targetSnapshot
+    ? { ...targetSnapshot, ...resolveDisplayCarbTargets(targetSnapshot) }
+    : null;
+  const indicators: { key: BuilderMacroKey; label: string; target: number | undefined }[] = [
+    { key: "calories", label: "Calories", target: targets?.calories_kcal },
+    { key: "protein", label: "Protein", target: targets?.protein_g },
+    { key: "carbs", label: "Total Carbs", target: targets?.carbs_g },
+    { key: "starchyCarbs", label: "Starchy Carbs", target: targets?.starchyCarbs_g },
+    { key: "fibrousCarbs", label: "Fibrous Carbs", target: targets?.fibrousCarbs_g },
+    { key: "fat", label: "Fat", target: targets?.fat_g },
+  ];
   return (
-    <div className="flex flex-wrap items-center gap-1.5 px-1">
-      <span className="text-white/40 text-xs font-medium shrink-0">{t("common.today")}</span>
-      {hasTargets ? (
-        <>
-          <span
-            className={`text-xs font-semibold px-2 py-0.5 rounded-full ${macroColor(
-              totals.calories,
-              effectiveTargets!.caloriesTarget,
-            )}`}
-          >
-            {totals.calories.toLocaleString()} /{" "}
-            {Math.round(effectiveTargets!.caloriesTarget).toLocaleString()} cal
-          </span>
-          <span
-            className={`text-xs font-semibold px-2 py-0.5 rounded-full ${macroColor(
-              totals.protein,
-              effectiveTargets!.proteinTarget,
-            )}`}
-          >
-            P {totals.protein} / {Math.round(effectiveTargets!.proteinTarget)}g
-          </span>
-          <span
-            className={`text-xs font-semibold px-2 py-0.5 rounded-full ${macroColor(
-              totals.carbs,
-              effectiveTargets!.carbsTarget,
-            )}`}
-          >
-            C {totals.carbs} / {Math.round(effectiveTargets!.carbsTarget)}g
-          </span>
-          <span
-            className={`text-xs font-semibold px-2 py-0.5 rounded-full ${macroColor(
-              totals.fat,
-              effectiveTargets!.fatTarget,
-            )}`}
-          >
-            F {totals.fat} / {Math.round(effectiveTargets!.fatTarget)}g
-          </span>
-        </>
-      ) : (
-        <>
-          <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-            {totals.calories.toLocaleString()} cal
-          </span>
-          <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-            P {totals.protein}g
-          </span>
-          <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-            C {totals.carbs}g
-          </span>
-          <span className="bg-white/10 text-white/80 text-xs font-semibold px-2 py-0.5 rounded-full">
-            F {totals.fat}g
-          </span>
-        </>
+    <div className="space-y-1 px-1" data-testid="builder-today-macros">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-white/40 text-xs font-medium shrink-0">{t("common.today")}</span>
+        {indicators.map(({ key, label, target }) => {
+          const value = totals[key];
+          const unknown = value === undefined;
+          const incomplete = totals.uncertainFields?.includes(key);
+          const over = !unknown && target !== undefined && value > target;
+          return (
+            <span key={key} data-macro={key}
+              className={`text-xs font-semibold px-2 py-0.5 rounded-full ${target === undefined || unknown || (incomplete && !over)
+                ? "bg-white/10 text-white/80" : macroColor(
+                  value ?? 0, target ?? 0, key === "carbs" || key === "starchyCarbs" || key === "fibrousCarbs",
+                )}`}>
+              {label} {unknown ? "—" : formatBuilderMacro(value, incomplete)}
+              {target !== undefined ? ` / ${formatBuilderMacro(target)}` : " / —"}{key === "calories" ? " cal" : "g"}
+              {over && ` (${incomplete ? "≥ " : ""}+${formatBuilderMacro(value! - target!)}${key === "calories" ? " cal" : "g"} over)`}
+            </span>
+          );
+        })}
+      </div>
+      {(totals.estimated || totals.issues?.length || (totals.unclassifiedCarbs ?? 0) > 0.01) && (
+        <p className="text-[10px] text-white/60">
+          {totals.estimated && "Carb split estimated. "}
+          {(totals.unclassifiedCarbs ?? 0) > 0.01 && `${Math.round(totals.unclassifiedCarbs!)}g other/unclassified carbs. `}
+          {totals.issues?.join(". ")}{totals.uncertainFields?.length ? " · Totals incomplete (≥ known amounts)." : ""}
+        </p>
       )}
     </div>
   );
