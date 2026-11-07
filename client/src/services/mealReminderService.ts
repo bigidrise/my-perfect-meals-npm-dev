@@ -236,9 +236,10 @@ export async function checkWebPushPipeline(): Promise<PipelineDiagnostic> {
 
   // Step 3 — Service worker
   let swOk = false;
+  let registration: ServiceWorkerRegistration | undefined;
   try {
-    const reg = await navigator.serviceWorker.getRegistration('/');
-    swOk = !!(reg && reg.active);
+    registration = await navigator.serviceWorker.getRegistration('/');
+    swOk = !!registration?.active;
     steps.push({ label: 'Service worker active', ok: swOk, detail: swOk ? undefined : 'Try refreshing the page' });
   } catch {
     steps.push({ label: 'Service worker active', ok: false, detail: 'Could not check' });
@@ -248,8 +249,9 @@ export async function checkWebPushPipeline(): Promise<PipelineDiagnostic> {
   // Step 4 — Push subscription
   let subOk = false;
   try {
-    const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.getSubscription();
+    // Inspect the active registration we just verified instead of waiting for
+    // `ready` again, which can remain pending during service-worker updates.
+    const sub = await registration!.pushManager.getSubscription();
     subOk = !!sub;
     steps.push({ label: 'Push subscription registered', ok: subOk, detail: subOk ? undefined : 'Toggle a slot to subscribe' });
   } catch {

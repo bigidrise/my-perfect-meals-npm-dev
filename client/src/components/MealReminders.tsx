@@ -144,7 +144,7 @@ export default function MealReminders() {
   const [loadFailed, setLoadFailed] = useState(false);
   const [loadRetry, setLoadRetry] = useState(0);
   const [webPermission, setWebPermission] = useState<string>("default");
-  const [iOSPermission, setiOSPermission] = useState(false);
+  const [iOSPermission, setiOSPermission] = useState<boolean | null>(null);
   const [pipeline, setPipeline] = useState<PipelineDiagnostic | null>(null);
   const [pipelineChecking, setPipelineChecking] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
@@ -172,11 +172,14 @@ export default function MealReminders() {
 
   // Mount: load reminders + run initial pipeline check
   useEffect(() => {
-    const current = isIOS ? iosMealReminderScheduler.captureSession() : () => true;
+    let disposed = false;
+    const sessionCurrent = isIOS ? iosMealReminderScheduler.captureSession() : () => true;
+    const current = () => !disposed && sessionCurrent();
     async function init() {
       setLoading(true);
       setSaving(false);
       setLoadFailed(false);
+      if (isNative) setiOSPermission(null);
       if (isIOS) setSlots([]);
       console.log('[MealReminders] ① mounted — isNative:', isNative);
       try {
@@ -186,13 +189,19 @@ export default function MealReminders() {
         console.log('[MealReminders] ③ fetch returned — slots:', saved.length);
         setSlots(saved.length > 0 ? saved : getDefaultSlots());
         console.log('[MealReminders] ④ slots applied');
+        // Saved times are ready to edit. Notification diagnostics must not keep
+        // the entire settings panel behind a spinner (native checks can stall).
+        setLoading(false);
         if (isNative) {
           console.log('[MealReminders] ⑤ iOS — checking notification permission');
-          setiOSPermission(await checkNotificationPermission());
+          const allowed = await checkNotificationPermission();
+          if (!current()) return;
+          setiOSPermission(allowed);
           console.log('[MealReminders] ⑥ iOS — permission checked');
         } else {
           setWebPermission(getWebPushPermission());
           const result = await checkWebPushPipeline();
+          if (!current()) return;
           setPipeline(result);
           // Re-read permission after the async pipeline check so the status
           // badge never lags behind a state change that occurred during the await.
@@ -215,6 +224,7 @@ export default function MealReminders() {
       }
     }
     init();
+    return () => { disposed = true; };
   }, [isNative, isIOS, iosSchedule.session, loadRetry]);
 
   // iOS tap-to-route listener
@@ -394,7 +404,14 @@ export default function MealReminders() {
       {/* ── iOS permission status badge ── */}
       {isNative && (
         <div className="flex items-center gap-2" data-testid="ios-permission-status">
-          {iOSPermission ? (
+          {iOSPermission === null ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-white/60" />
+              <span className="text-white/60 text-xs" data-testid="ios-permission-label">
+                {t("mealReminders.iosScheduleChecking")}
+              </span>
+            </>
+          ) : iOSPermission ? (
             <>
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
               <span className="text-emerald-400 text-xs font-medium" data-testid="ios-permission-label">

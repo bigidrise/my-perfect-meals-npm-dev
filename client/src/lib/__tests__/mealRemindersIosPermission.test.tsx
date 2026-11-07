@@ -142,6 +142,40 @@ describe('MealReminders — iOS permission badge mid-session accuracy', () => {
   });
 
   // ── Test 1: initial mount, permission granted ───────────────────────────────
+  it('shows saved meal times while web notification diagnostics are still pending', async () => {
+    mockIsNativePlatform.mockReturnValue(false);
+    mockCheckWebPushPipeline.mockReturnValue(new Promise(() => {}));
+
+    const { getByDisplayValue, getByText } = await renderComponent();
+
+    expect(getByText('Breakfast')).toBeInTheDocument();
+    expect(getByDisplayValue('08:00')).toBeEnabled();
+    expect(mockCheckWebPushPipeline).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows saved meal times while native permission checks are still pending', async () => {
+    mockCheckNotificationPermission.mockReturnValue(new Promise(() => {}));
+
+    const { getByDisplayValue, getByText } = await renderComponent();
+
+    expect(getByText('Breakfast')).toBeInTheDocument();
+    expect(getByDisplayValue('08:00')).toBeEnabled();
+  });
+
+  it('keeps loading until saved reminder data arrives, not just diagnostics', async () => {
+    mockIsNativePlatform.mockReturnValue(false);
+    let finishLoad!: (slots: any[]) => void;
+    mockLoadRemindersFromServer.mockReturnValue(new Promise((resolve) => { finishLoad = resolve; }));
+    mockCheckWebPushPipeline.mockReturnValue(new Promise(() => {}));
+    const { queryByDisplayValue, getByDisplayValue } = await renderComponent();
+
+    expect(queryByDisplayValue('08:00')).not.toBeInTheDocument();
+    await act(async () => {
+      finishLoad([{ id: '1', label: 'Breakfast', time: '08:00', enabled: false }]);
+    });
+    expect(getByDisplayValue('08:00')).toBeEnabled();
+  });
+
   it('shows the granted badge on mount when iOS permission is already allowed', async () => {
     mockCheckNotificationPermission.mockResolvedValue(true);
 
