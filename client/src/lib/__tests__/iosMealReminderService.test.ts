@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 import {
   loadRemindersFromServer, saveRemindersToServer, isIOSReminderDevice,
-  setupNotificationListeners, syncToiOS,
+  setupNotificationListeners, syncToiOS, checkWebPushPipeline,
 } from "@/services/mealReminderService";
 
 let mockPlatform = "ios";
@@ -93,4 +93,40 @@ test("website does not attach a native notification listener", () => {
   const cleanup = setupNotificationListeners(navigate);
   cleanup();
   expect(navigate).not.toHaveBeenCalled();
+});
+
+describe("web push diagnostics", () => {
+  const originalNotification = Object.getOwnPropertyDescriptor(window, "Notification");
+  const originalPushManager = Object.getOwnPropertyDescriptor(window, "PushManager");
+  const originalWorker = Object.getOwnPropertyDescriptor(navigator, "serviceWorker");
+
+  afterEach(() => {
+    for (const [target, key, descriptor] of [
+      [window, "Notification", originalNotification],
+      [window, "PushManager", originalPushManager],
+      [navigator, "serviceWorker", originalWorker],
+    ] as const) {
+      if (descriptor) Object.defineProperty(target, key, descriptor);
+      else Reflect.deleteProperty(target, key);
+    }
+  });
+
+  test("uses the already-active registration without awaiting serviceWorker.ready", async () => {
+    const getSubscription = jest.fn().mockResolvedValue({ endpoint: "synthetic" });
+    const ready = jest.fn(() => { throw new Error("must not wait for worker readiness again"); });
+    Object.defineProperty(window, "Notification", { configurable: true, value: { permission: "granted" } });
+    Object.defineProperty(window, "PushManager", { configurable: true, value: {} });
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: {
+        getRegistration: jest.fn().mockResolvedValue({ active: {}, pushManager: { getSubscription } }),
+        get ready() { return ready(); },
+      },
+    });
+
+    await expect(checkWebPushPipeline()).resolves.toMatchObject({ ready: true });
+    expect(getSubscription).toHaveBeenCalledTimes(1);
+    expect(ready).not.toHaveBeenCalled();
+    expect(fetch).not.toHaveBeenCalled();
+  });
 });
