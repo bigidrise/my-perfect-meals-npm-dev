@@ -49,7 +49,8 @@ You are currently in **Stage 1 (Development)**. You have:
 1. **Ensure all features are working** in your current workspace
 2. **Commit all changes to git:**
    ```bash
-   ./push.sh "Final development commit before staging setup"
+   # Review and commit changes manually first; run only from clean local dev.
+   ./push.sh
    ```
 3. **Verify test Stripe keys are set** (not production keys)
 
@@ -116,7 +117,7 @@ If you want `staging.myperfectmeals.com`:
    ↓
 2. Test locally - make sure everything works
    ↓
-3. Commit to git: ./push.sh "Description of changes"
+3. Review and commit changes manually, then run `./push.sh` from clean local `dev`.
    ↓
 4. Replit automatically deploys to STAGING
    ↓
@@ -131,11 +132,11 @@ If you want `staging.myperfectmeals.com`:
 
 ### **Automatic Deployments:**
 
-Replit can automatically deploy to staging when you push to git:
+There is no automatic publishing step in the approved workflow.
 
-1. **In Deployment Settings**, enable "Auto-deploy"
-2. **Choose trigger:** "On git push to main branch"
-3. **Now:** Every time you run `./push.sh`, staging updates automatically
+Use Development → GitHub `dev` → founder-reviewed PR → GitHub `production` → Replit Production → explicit Publish → Verify.
+
+The founder's [November 4 deployment cheat sheet](docs/DEPLOYMENT_CHEAT_SHEET_NOVEMBER_4.md) remains authoritative. `npm run push` and the shell wrappers only push already-committed, validated local `dev` to GitHub `dev`. They do not stage, commit, start the application, synchronize Production, merge PRs, or publish.
 
 ---
 

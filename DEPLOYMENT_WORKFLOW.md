@@ -1,5 +1,7 @@
 # 🟣 My Perfect Meals – Official Deployment Workflow
 
+> Historical selective-promotion design, not the current release procedure. The founder's [November 4 deployment cheat sheet](docs/DEPLOYMENT_CHEAT_SHEET_NOVEMBER_4.md) is authoritative: Development → GitHub `dev` → founder-reviewed PR → GitHub `production` → Replit Production → Publish → Verify. The old staging-based design below is retained only as historical reference.
+
 **Selective File Promotion System**
 **Dev → Staging → Production**
 

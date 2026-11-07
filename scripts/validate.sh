@@ -4,7 +4,8 @@
 # Checks TypeScript errors in server/shared files, verifies critical files are intact,
 # catches raw-fetch auth violations, and confirms the server boots without crashing.
 #
-# Usage: npm run validate [--report]
+# Usage: npm run validate -- [--report] [--no-start]
+#   --no-start  Run static/contract validation without starting an application.
 #   --report   Write a plain-text summary digest to /tmp/mpm-validate-report-<timestamp>.txt
 #
 # What it checks:
@@ -45,9 +46,12 @@ WARN_MESSAGES=()
 CURRENT_STEP=""
 
 SAVE_REPORT=0
+NO_START=0
 for arg in "$@"; do
   if [ "$arg" = "--report" ]; then
     SAVE_REPORT=1
+  elif [ "$arg" = "--no-start" ]; then
+    NO_START=1
   fi
 done
 REPORT_TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
@@ -298,20 +302,20 @@ fi
 
 # ──────────────────────────────────────────────────
 header "Step 6 of 6: Server Startup Verification"
-echo "  Starting an isolated test server (separate port) to verify clean boot..."
-echo "  The existing dev server on port 5000 is never touched."
-echo ""
 
 # When running as a git pre-push hook (MPM_IS_HOOK=1 is exported by the hook
 # script), skip the server boot test. git does not export GIT_DIR to hook
 # processes, so we use our own flag instead. Steps 1–5 already gate code
 # quality; the boot test is redundant here because it passed in the most recent
 # standalone validate run.
-if [ -n "$MPM_IS_HOOK" ]; then
-  echo -e "${CYAN}  ℹ️  Running as git hook — boot test skipped to preserve session stability.${NC}"
-  echo -e "${CYAN}     Run 'npm run validate' standalone to include the full boot test.${NC}"
+if [ "$NO_START" -eq 1 ] || [ -n "${MPM_IS_HOOK:-}" ]; then
+  echo -e "${CYAN}  ℹ️  Application startup deliberately skipped (no-start/hook mode).${NC}"
+  echo -e "${CYAN}     This result does not verify application boot or live Production.${NC}"
   echo ""
 else
+echo "  Starting an isolated test server (separate port) to verify clean boot..."
+echo "  The existing dev server on port 5000 is never touched."
+echo ""
 
 # ── Snapshot the pre-existing dev server state ─────────────────────────────
 # We record the PID now. After the test, we confirm it's still alive.
@@ -519,11 +523,11 @@ if [ "$ERRORS" -eq 0 ]; then
   fi
   echo ""
   echo -e "  Full push sequence:"
-  echo -e "    1. git push origin dev"
-  echo -e "    2. Merge dev → main on GitHub"
-  echo -e "    3. git pull in production shell"
-  echo -e "    4. Check /api/health in browser"
-  echo -e "    5. Update LAST_STABLE.md with new commit hash"
+  echo -e "    1. Review and commit Development changes manually; use npm run push from clean dev."
+  echo -e "    2. Open a dev → production PR for founder review; no automatic merge."
+  echo -e "    3. Follow the authoritative November 4 deployment cheat sheet for Production synchronization."
+  echo -e "    4. Publish explicitly in Replit Production, then verify. Git push does not publish."
+  echo -e "    5. Record the verified release SHA through Development review, not a Production-local commit."
   echo ""
   [ "$SAVE_REPORT" -eq 1 ] && write_report "$RESULT_LINE"
   exit 0
