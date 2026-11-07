@@ -19,6 +19,7 @@ import { validateHumanFoodResult } from "../services/humanFoodContext/validateHu
 import { findProductDevelopment, ProductSubjectContextUnavailableError } from "../services/productDiscovery/findProductDevelopment";
 import { canonicalShoppingIngredient } from "../../shared/shoppingProductSelection";
 import { GROCERY_COACH_CARB_PROMPT, groceryCoachCarbBreakdown, groceryCoachPerServingMacros } from "@shared/groceryCoachCarbs";
+import { repairGroceryCoachCarbs } from "../services/groceryCoachCarbRepair";
 
 const router = express.Router();
 
@@ -429,6 +430,7 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
     }
 
     // ── GLP-1 post-gen macro validation ──────────────────────────────────────
+    result = await repairGroceryCoachCarbs(result);
     if (groceryGlp1Targets) {
       const t = groceryGlp1Targets;
       const mac = groceryCoachPerServingMacros(result.macros ?? {}, result.meal?.servings ?? finalServingCount);
@@ -458,7 +460,8 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
             max_tokens: 1400,
           });
           const glp1RetryRaw = glp1RetryCompletion.choices[0]?.message?.content ?? "{}";
-          const glp1RetryResult = JSON.parse(glp1RetryRaw);
+          let glp1RetryResult = JSON.parse(glp1RetryRaw);
+          if (!invalidReason(glp1RetryResult)) glp1RetryResult = await repairGroceryCoachCarbs(glp1RetryResult);
           const glp1RetryInvalid = invalidReason(glp1RetryResult);
           if (!glp1RetryInvalid) {
             const retryMacros = groceryCoachPerServingMacros(glp1RetryResult.macros ?? {}, glp1RetryResult.meal?.servings ?? finalServingCount);
@@ -584,11 +587,12 @@ Respond ONLY with valid JSON matching this exact schema (no markdown, no extra t
           });
 
           const retryRaw = retryCompletion.choices[0]?.message?.content ?? "{}";
-          const retryResult = JSON.parse(retryRaw);
+          let retryResult = JSON.parse(retryRaw);
           const retryInvalid = invalidReason(retryResult);
           if (retryInvalid) {
             console.warn(`⚠️ [GroceryCoach] Retry failed schema validation (${retryInvalid}) — using original with warning.`);
           } else {
+            retryResult = await repairGroceryCoachCarbs(retryResult);
             const retryScan = scanGeneratedOutput(buildMealForScan(retryResult), groceryEnvelope, {
               generatorName: "grocery_coach_retry",
               skipAdaptableConflicts: true,

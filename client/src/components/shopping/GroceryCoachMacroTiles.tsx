@@ -1,5 +1,22 @@
 import React from "react";
 import { groceryCoachCarbBreakdown } from "@shared/groceryCoachCarbs";
+import type { GroceryCoachCarbReview } from "@shared/groceryCoachCarbReview";
+
+export function GroceryCoachCarbStatus({ review, ingredients }: { review?: GroceryCoachCarbReview; ingredients?: any[] }) {
+  // A later ingredient edit must not inherit verification from the old recipe.
+  const identity = (row: any) => JSON.stringify([
+    String(row?.name ?? row?.item ?? "").trim().toLowerCase(),
+    String(row?.quantity ?? row?.amount ?? "").trim(),
+    String(row?.unit ?? "").trim().toLowerCase(),
+  ]);
+  const evidenceMatches = !review?.evidence || !ingredients ||
+    JSON.stringify(ingredients.map(identity).sort()) === JSON.stringify(review.evidence.map(identity).sort());
+  return <p role="status" className="mt-2 text-xs text-white/70" data-testid="grocery-coach-carb-status">
+    {review?.status === "validated" && evidenceMatches
+      ? "Carbohydrate breakdown verified from ingredient nutrition data."
+      : "Carbohydrate breakdown unresolved — nutrition review incomplete. Available estimates are retained; no missing values have been invented."}
+  </p>;
+}
 
 export interface GroceryCoachMacros {
   calories: number;
@@ -10,7 +27,7 @@ export interface GroceryCoachMacros {
   fibrousCarbs?: number | null;
 }
 
-export function GroceryCoachMacroTiles({ macros, servings = 1, labels }: { macros: GroceryCoachMacros; servings?: number; labels?: Record<string, string> }) {
+export function GroceryCoachMacroTiles({ macros, servings = 1, labels, showReview = false, review, ingredients }: { macros: GroceryCoachMacros; servings?: number; labels?: Record<string, string>; showReview?: boolean; review?: GroceryCoachCarbReview; ingredients?: any[] }) {
   const { fibrousCarbs, starchyCarbs } = groceryCoachCarbBreakdown(macros);
   const tiles = [
     { label: "Calories", value: macros.calories, unit: "" },
@@ -35,6 +52,9 @@ export function GroceryCoachMacroTiles({ macros, servings = 1, labels }: { macro
         {starchyCarbs !== null && fibrousCarbs !== null && macros.carbs > starchyCarbs + fibrousCarbs + 1 ? "Some total carbs are unclassified. " : ""}
         Fibrous carbs are not dietary fiber grams.
       </p>
+      {showReview && <GroceryCoachCarbStatus
+        ingredients={ingredients}
+        review={starchyCarbs !== null && fibrousCarbs !== null ? review : undefined} />}
     </div>
   );
 }

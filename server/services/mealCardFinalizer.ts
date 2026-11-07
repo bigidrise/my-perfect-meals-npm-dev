@@ -10,6 +10,8 @@ import {
 import { generateMealImageUnified } from "./mealImageGenerator";
 import { processMealImageForSave } from "./imageLifecycle";
 import { groceryCoachCarbBreakdown } from "@shared/groceryCoachCarbs";
+import { repairGroceryCoachCarbs } from "./groceryCoachCarbRepair";
+import type { GroceryCoachCarbReview } from "@shared/groceryCoachCarbReview";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -27,6 +29,7 @@ export interface FinalizeInput {
     ownedIngredients?: IngredientItem[];
     shoppingList?: IngredientItem[];
     reasoning?: string[];
+    carbohydrateReview?: GroceryCoachCarbReview;
   };
   userId: string;
   sourceType?: string;
@@ -37,6 +40,8 @@ export interface FinalizeResult {
   imageUrl: string | null;
   title: string;
   destination: string;
+  carbohydrateReview?: GroceryCoachCarbReview;
+  carbohydrateBreakdown?: { starchyCarbs: number | null; fibrousCarbs: number | null };
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -101,7 +106,10 @@ function buildClinicalProvenance(envelope: UserProtocolEnvelope) {
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export async function finalizeMealCard(input: FinalizeInput): Promise<FinalizeResult> {
-  const { recommendation, userId, sourceType = "grocery-coach" } = input;
+  const { userId, sourceType = "grocery-coach" } = input;
+  // Reverify the untrusted browser payload; never trust a client-supplied status.
+  const recommendation = sourceType === "grocery-coach"
+    ? await repairGroceryCoachCarbs(input.recommendation) : input.recommendation;
   const {
     meal,
     macros,
@@ -292,6 +300,8 @@ Write cooking instructions.`,
       ...groceryCoachCarbBreakdown(macros),
     },
     servings: meal.servings,
+    ...(process.env.NODE_ENV === "development" && sourceType === "grocery-coach"
+      ? { carbohydrateReview: recommendation.carbohydrateReview } : {}),
     prepTime: meal.prepTime,
     _groceryCoach: {
       ownedIngredients,
@@ -319,5 +329,9 @@ Write cooking instructions.`,
     imageUrl,
     title: meal.name,
     destination: `/saved-meals?mealId=${savedId}`,
+    ...(process.env.NODE_ENV === "development" && sourceType === "grocery-coach" ? {
+      carbohydrateReview: recommendation.carbohydrateReview,
+      carbohydrateBreakdown: groceryCoachCarbBreakdown(macros),
+    } : {}),
   };
 }

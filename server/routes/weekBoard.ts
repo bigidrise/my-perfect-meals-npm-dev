@@ -1213,7 +1213,11 @@ export default function weekBoardRoutes(app: Express) {
       // without them. This runs the density-weighted classifier server-side so
       // board-saved meals always carry accurate starch attribution regardless of
       // which builder or transfer path added them.
-      const mealWithCarbs = enforceCarbs(mealToAdd);
+      // Development Grocery Coach must never replace unknown categories with
+      // the legacy density/keyword split, including a genuine sourced 0/0.
+      const mealWithCarbs = process.env.NODE_ENV === "development" &&
+        meal.sourceType === "grocery-coach" && meal.groceryCoachNutritionHandoff
+        ? mealToAdd : enforceCarbs(mealToAdd);
       // Sync the derived values back into the flat nutrition object so both the
       // top-level fields and the nested nutrition block agree.
       if (mealWithCarbs.starchyCarbs !== undefined) {

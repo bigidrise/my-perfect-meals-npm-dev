@@ -26,6 +26,8 @@ export type Ingredient = {
 };
 
 export type Meal = {
+  groceryCoachNutritionHandoff?: boolean;
+  carbohydrateReview?: import("@shared/groceryCoachCarbReview").GroceryCoachCarbReview;
   id: string;
   /** Saved-meal UUID — present when the meal was added to the board from Favorites */
   savedMealId?: string;
