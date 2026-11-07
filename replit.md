@@ -152,18 +152,19 @@ git push --no-verify
 ```
 
 **Full deploy sequence (do not deviate):**
+The founder's [November 4 deployment cheat sheet](docs/DEPLOYMENT_CHEAT_SHEET_NOVEMBER_4.md) is the authoritative human procedure. The guarded push helper is an optional Development convenience, not a replacement for founder approval or publishing.
 1. Make all changes in dev space only
 2. `npm run validate` — must pass
-3. `git push origin dev` (or `npm run push` for a timestamped snapshot commit)
-4. On GitHub: open a PR from `dev` → `main` and merge
-5. In the production shell: `git pull`
+3. Review and commit changes manually. From clean local `dev`, use `npm run push`; it only pushes local `dev` to GitHub `dev`, validates without startup, and refuses divergence.
+4. On GitHub: open a PR targeting `production`; obtain founder review and approval before merging. No automatic merge or publication.
+5. Follow the founder's November 4 deployment cheat sheet for Production synchronization. Stop on dirty files, local-only commits, a wrong branch, or divergence; never use an unqualified pull or automatic reset.
 6. **Run `bash scripts/pre-publish-validate.sh`** — must pass before clicking Publish.
    Checks that production points at the correct storage bucket (not the dev bucket),
    DATABASE_URL is a prod host, all critical secrets are set, storage and DB are reachable,
    and the built client bundle contains no dev URLs. Exit non-zero = do NOT publish.
 7. Click Publish in Replit
 8. Confirm production is healthy: check `/api/health` in browser
-9. Update `LAST_STABLE.md` with the new commit hash
+9. Record the verified release SHA in Development through review, not a Production-local commit.
    **If production is broken after publish:** follow `ROLLBACK.md` — do not improvise.
 
 **If production breaks after a pull:**
@@ -175,7 +176,7 @@ git reset --hard <commit-hash>
 **Never:**
 - Edit files directly in the production space (except emergency hotfixes)
 - Push without running `npm run validate` first
-- Run `git rebase` in production — use merge only
+- Run rebase or create local merge commits in Production — normal synchronization must be an approved fast-forward or stop
 
 ## User Preferences
 

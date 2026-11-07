@@ -67,5 +67,5 @@ fi
 echo ""
 echo "======================================"
 echo "✅ ALL CHECKS PASSED!"
-echo "You can now safely run: ./push.sh \"your message\""
+echo "Review and commit manually first. From clean local dev, run ./push.sh (no arguments); founder review and explicit Production publishing still follow."
 echo "======================================"

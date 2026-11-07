@@ -507,7 +507,7 @@ else
 
   if [ ! -f "$MODAL_TEST_FILE" ]; then
     fail "Responsive modal test file not found: $MODAL_TEST_FILE"
-    echo "  Run: git pull to ensure the test suite is present."
+    echo "  Stop and follow the November 4 approved Production synchronization procedure; do not use an unqualified pull."
   elif ! command -v npx &>/dev/null; then
     warn "npx not available — cannot run responsive modal tests; verify viewport bounds manually before publishing"
   else
