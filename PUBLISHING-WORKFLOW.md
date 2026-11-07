@@ -1,126 +1,35 @@
-# Safe Publishing Workflow for App Store
+# My Perfect Meals — Publishing Workflow
 
-## 🎯 THE GOLDEN RULE
-**The push.sh script NOW AUTOMATICALLY ENFORCES ALL CHECKS.**
+The founder's [November 4 deployment cheat sheet](docs/DEPLOYMENT_CHEAT_SHEET_NOVEMBER_4.md) remains the authoritative human procedure. This document describes the guarded Development push entrypoints, not a replacement publishing procedure.
 
-You **CANNOT** publish unless everything is clean. The script will BLOCK you.
+**Development → GitHub `dev` → Founder-reviewed PR → GitHub `production` → Replit Production → Publish → Verify.**
 
----
+`main` and `staging` are not release targets.
 
-## ✅ Simple Publishing Process
+## Development push
 
-### Just Run This:
-```bash
-./push.sh "describe what you changed"
-```
-
-**That's it.** The script automatically:
-1. ✅ Checks for unexpected file changes
-2. ✅ Runs TypeScript compilation
-3. ✅ Verifies critical files
-4. ✅ Confirms server is running
-5. ✅ Freezes new checksums after successful publish
-
-**If ANY check fails, publishing is BLOCKED.**
-
----
-
-## 🚨 What Happens If Validation Fails
-
-### TypeScript Errors
-```
-❌ BLOCKED: TypeScript errors found!
-```
-**What to do:** Fix the errors shown, then try again.
-
-### Unexpected File Changes
-```
-❌ BLOCKED: Critical files have changed unexpectedly!
-```
-**What to do:** 
-1. Run `git diff` to see what changed
-2. If changes are intentional: `./scripts/freeze-critical-files.sh`
-3. If changes are unwanted: `git checkout -- <filename>` to revert
-4. Try publishing again
-
-### Server Not Running
-```
-⚠️  WARNING: Server not responding
-```
-**What to do:** Restart the workflow, then try again.
-
----
-
-## 📋 Critical Files Being Protected
-
-These files are monitored for unexpected changes:
-- `client/src/components/modals/AIMealCreatorModal.tsx`
-- `client/src/components/PreparationModal.tsx`
-- `client/src/pages/WeeklyMealBoard.tsx`
-- `client/src/pages/BeachBodyMealBoard.tsx`
-- `client/src/pages/pro/PerformanceCompetitionBuilder.tsx`
-- `client/src/pages/Planner.tsx`
-- `server/routes/manualMacros.ts`
-
----
-
-## 💡 Best Practices
-
-### ✅ DO:
-- Make focused, single-purpose changes
-- Test your changes before publishing
-- Write clear commit messages
-- Trust the validation system
-
-### ❌ DON'T:
-- Try to bypass validation checks
-- Publish without testing
-- Make multiple unrelated changes at once
-- Ignore validation warnings
-
----
-
-## 🔧 Manual Verification (Optional)
-
-If you want to check things manually before publishing:
+Review, stage, and commit intended Development changes manually. Then, from clean local `dev`, run one of these equivalent commands, without a commit message:
 
 ```bash
-# Check for unexpected changes
-./scripts/verify-critical-files.sh
-
-# Run TypeScript check
-npm run check
-
-# See what will be committed
-git status
-git diff
+npm run push
+# or: ./push.sh
+# or: ./validate-and-push.sh
 ```
 
-**But you don't HAVE to do this - push.sh does it all automatically.**
+All entrypoints verify the GitHub destination and ancestry, run validation with `--no-start`, recheck clean state and HEAD, and push only `refs/heads/dev:refs/heads/dev`.
 
----
+Dirty files, failed Git commands, failed validation, the wrong branch, remote-ahead history, and divergence stop the operation. No helper stages files, creates commits, changes author settings, starts an application, merges, synchronizes Production, or publishes.
 
-## 🆘 Emergency: Need to Override?
+## Review and publication
 
-**DON'T.** If validation is blocking you, there's a reason.
+Open a PR with `production` explicitly selected as its base. Obtain founder review and approval. Do not enable automatic merging.
 
-Fix the issue, don't bypass the system.
+For Production synchronization, follow the November 4 cheat sheet. Dirty files, local-only commits, or divergence require investigation and founder review; never automatically merge, rebase, or reset Production.
 
-If you absolutely must investigate:
-1. Run `git status` to see what's changed
-2. Run `npm run check` to see TypeScript errors
-3. Fix the issues
-4. Then publish normally
+Publish explicitly from Replit Production only after its approved checks, then verify the released app. A successful Git push is not a publication or proof of live health.
 
----
+## Push safeguards
 
-## 📊 What You Get
+The installed pre-push hook checks actual remote destination refs, including explicit refspecs and multiple updates. Direct GitHub updates to `main`, `staging`, and `production` are refused. Legitimate Replit internal checkpoint backups remain separate and exempt.
 
-**Every publish is guaranteed to be:**
-- ✅ Free of TypeScript errors
-- ✅ Free of unexpected changes
-- ✅ Tested with server running
-- ✅ Tracked with checksums
-- ✅ Documented with clear commit message
-
-**You can publish to the App Store with confidence.**
+Local hooks are bypassable; GitHub branch protection remains a separate founder-approved safeguard and is not changed by this repair.

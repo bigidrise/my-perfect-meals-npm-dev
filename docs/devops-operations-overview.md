@@ -61,7 +61,7 @@ Key length (not value) is logged for the OpenAI key to confirm the key is presen
 | Branch | Purpose | Write access |
 |---|---|---|
 | `dev` | Active development; all changes land here first | Engineers |
-| `main` | Production-mirroring branch; reflects what is deployed | Merge only (no direct commits) |
+| `production` | Founder-reviewed release branch synchronized into Replit Production | Reviewed GitHub PRs only; no direct pushes |
 
 ### Standard Development Workflow
 
@@ -71,7 +71,7 @@ All changes are made exclusively in the development (Replit) space:
 1. Make all changes in dev space
 2. npm run validate                    # Must exit PASS
 3. git push origin dev                 # Triggers pre-push validation hook
-4. Open PR: dev → main on GitHub
+4. Open PR: dev → production on GitHub; founder review is required
 5. Review and merge PR
 6. In production shell: git pull
 7. Confirm: curl /api/health
@@ -93,11 +93,11 @@ The hook cannot be bypassed silently — `--no-verify` is an explicit override t
 
 ### Snapshot Commits
 
-`npm run push` is available as a convenience script for creating a timestamped snapshot commit in dev. This creates an identifiable checkpoint in git history without requiring a meaningful commit message — useful during rapid iteration when intermediate state needs to be preserved before the feature is ready for a proper commit.
+`npm run push`, `./push.sh`, and `./validate-and-push.sh` invoke the same guarded Development push. They accept no commit-message arguments, never stage or commit, and require clean local `dev`, successful no-start validation, and a verified fast-forward to GitHub `dev`.
 
 ### Merge Patterns
 
-Merges are always `dev → main` via GitHub pull request. Rebase is explicitly prohibited in production — only merge commits are used. This preserves a linear, auditable production history where each production state corresponds to a specific merge commit.
+Release merges are always founder-reviewed GitHub PRs targeting `production` from approved Development source. Replit Production must not create local merge commits or rebase; synchronization must fast-forward to the approved release or stop. The November 4 deployment cheat sheet remains the authoritative human procedure.
 
 ### Rollback Philosophy
 
@@ -130,14 +130,14 @@ The deploy sequence is prescriptive and must not be deviated from:
 ```
 Step 1: Make all changes in dev space only
 Step 2: npm run validate                    # Exit PASS required
-Step 3: git push origin dev                 # Pre-push hook runs validate again
-Step 4: GitHub PR: dev → main (open + merge)
-Step 5: Production shell: git pull
+Step 3: npm run push                        # Clean local dev; validation without startup
+Step 4: GitHub PR: dev → production (founder review and approval before merge)
+Step 5: Follow the November 4 cheat sheet; stop on dirty/divergent Production history
 Step 6: Check /api/health in browser        # Verify production is healthy
-Step 7: Update LAST_STABLE.md              # Commit and push update
+Step 7: Record verified release metadata in Development through review
 ```
 
-If production breaks after `git pull`, `LAST_STABLE.md` is opened immediately and `git reset --hard <hash>` is executed.
+If Production synchronization or verification fails, stop and preserve evidence. Any rollback or destructive reset requires separate founder approval under the authoritative human procedure.
 
 ### Build Validation (`scripts/validate.sh`)
 
@@ -492,7 +492,7 @@ A request must pass all applicable layers. There is no shortcut path that grants
 
 Development and production are isolated at the network level (separate Replit deployments). They share a database — which is explicitly documented and managed through auth token stability design (tokens are reused, not regenerated on login).
 
-**Rule:** No direct production file edits except emergency hotfixes. All changes must flow through the dev → main pipeline. This is a process safeguard, not a technical one — enforcement is through discipline and `CHANGE_LOG.md` documentation.
+**Rule:** Changes flow through Development → GitHub `dev` → founder-reviewed PR → GitHub `production` → Replit Production → explicit Publish → Verify. No routine Production-local commits, direct Production pushes, or automatic publishing. Emergency work requires separate founder approval.
 
 ### Moderation Safeguards
 
