@@ -33,6 +33,8 @@ import MealRefinementSheet from "@/components/MealRefinementSheet";
 import { MealRefinementPanel } from "@/components/MealRefinementPanel";
 import { useTranslation } from "react-i18next";
 import type { DiabeticMemoryContext } from "@/lib/diabeticMemory";
+import { groceryCoachCatalogEnabled } from "@/lib/groceryCoachCatalogGate";
+import { GroceryCoachCarbStatus } from "@/components/shopping/GroceryCoachMacroTiles";
 
 // UUID v4 guard — used to validate savedMealId before hitting the translation endpoint
 import type { BoardMealSlot } from "@/lib/mealSlots";
@@ -220,7 +222,8 @@ export function MealCard({
   const displayDescription = translatedContent.description ?? (meal as any).description;
   const displayIngredients = translatedContent.ingredients ?? meal.ingredients;
   const displayInstructions = translatedContent.instructions ?? meal.instructions;
-  const builderSnapshot = originBuilder && [
+  const developmentGrocery = groceryCoachCatalogEnabled && meal.groceryCoachNutritionHandoff === true;
+  const builderSnapshot = !developmentGrocery && originBuilder && [
     "general_nutrition", "anti_inflammatory", "diabetic", "metabolic_medication", "performance",
   ].includes(originBuilder) ? builderMealMacros(meal) : null;
   const oneServing = builderSnapshot ?? mealMacroSnapshot(meal);
@@ -236,10 +239,14 @@ export function MealCard({
     ? builderSnapshot
     : hasSplit
     ? { starchyCarbs: storedStarchy!, fibrousCarbs: storedFibrous! }
+    : developmentGrocery
+    ? { starchyCarbs: storedStarchy ?? 0, fibrousCarbs: storedFibrous ?? 0 }
     : deriveSplitCarbs(meal.ingredients ?? [], carbs);
   const displayMacro = (key: BuilderMacroKey, value: number) =>
+    developmentGrocery && ((key === "starchyCarbs" && storedStarchy == null) || (key === "fibrousCarbs" && storedFibrous == null)) ? "—" :
     builderSnapshot?.uncertainFields.includes(key) ? "—" : builderSnapshot ? formatBuilderMacro(value) : Math.round(value);
   const hasStarchyFibrous = carbs > 0 || starchyCarbs > 0 || fibrousCarbs > 0 ||
+    developmentGrocery ||
     !!builderSnapshot?.uncertainFields.some(key => key === "starchyCarbs" || key === "fibrousCarbs");
 
   const onDelete = () => { if (confirm(t("removeFromBoard"))) onUpdated(null); };
@@ -263,8 +270,8 @@ export function MealCard({
         protein,
         carbs,
         fat,
-        starchyCarbs: hasGenuineSplit ? starchyCarbs : null,
-        fibrousCarbs: hasGenuineSplit ? fibrousCarbs : null,
+        starchyCarbs: developmentGrocery ? storedStarchy : hasGenuineSplit ? starchyCarbs : null,
+        fibrousCarbs: developmentGrocery ? storedFibrous : hasGenuineSplit ? fibrousCarbs : null,
         servings: 1,
         source: "weekly-meal-board"
       };
@@ -321,6 +328,7 @@ export function MealCard({
         <p className="text-xs text-white/55 leading-relaxed border-l-2 border-white/20 pl-2.5">
           {coachingLine || getClinicalCoachingLine(builderType)}
         </p>
+        {developmentGrocery && <GroceryCoachCarbStatus review={hasSplit ? meal.carbohydrateReview : undefined} ingredients={meal.ingredients} />}
       </div>
 
       <div className="p-4">
@@ -598,8 +606,8 @@ export function MealCard({
               meal={{
                 protein: protein || 0,
                 carbs: carbs || 0,
-                starchyCarbs: starchyCarbs || 0,
-                fibrousCarbs: fibrousCarbs || 0,
+                starchyCarbs: developmentGrocery ? storedStarchy ?? undefined : starchyCarbs || 0,
+                fibrousCarbs: developmentGrocery ? storedFibrous ?? undefined : fibrousCarbs || 0,
                 fat: fat || 0,
                 calories: kcal || 0,
                 dateISO: date,
@@ -645,7 +653,11 @@ export function MealCard({
         if (!preRefineMeal) setPreRefineMeal({ ...meal });
         // Normalize name → title so the card header (which renders title || name) updates
         const refinedName = refined.name ?? refined.title ?? meal.title ?? meal.name;
-        onUpdated({ ...meal, ...refined, name: refinedName, title: refinedName });
+        onUpdated({ ...meal, ...refined, name: refinedName, title: refinedName,
+          ...(developmentGrocery ? { carbohydrateReview: {
+            version: 1 as const, status: "unresolved" as const, reason: "ingredients_changed",
+          } } : {}),
+        });
       }}
     />
     {/* Component-swap panel: shown in Weekly Meal Board day mode only.

@@ -2,7 +2,7 @@
 # Installs Git hooks for this repository.
 # Called automatically via the postinstall npm script.
 
-HOOKS_DIR=".git/hooks"
+HOOKS_DIR="$(git rev-parse --git-path hooks 2>/dev/null || true)"
 
 if [ ! -d "$HOOKS_DIR" ]; then
   echo "  [hooks] .git/hooks not found — skipping hook installation (not a git repo or hooks dir missing)"
@@ -12,33 +12,22 @@ fi
 cat > "$HOOKS_DIR/pre-push" << 'EOF'
 #!/bin/bash
 # MPM pre-push hook — installed by scripts/install-hooks.sh
-# Runs npm run validate before every push. Aborts the push on failure.
-# Steps 1–5 (TypeScript, file integrity, auth routes, i18n, route parity) run
-# on every push. Step 6 (server boot + auth integration tests) is skipped here
-# because git does not export GIT_DIR to hook processes; we use MPM_IS_HOOK
-# instead so validate.sh can detect the hook context reliably.
-
-echo ""
-echo "🔍 Running MPM pre-push validation..."
-echo ""
-
-export MPM_IS_HOOK=1
-npm run validate
-EXIT_CODE=$?
-
-if [ $EXIT_CODE -ne 0 ]; then
-  echo ""
-  echo "❌  Push aborted: validation failed."
-  echo "    Fix the issues above, then push again."
-  echo ""
-  exit 1
+# Preserve Replit checkpoint backup, including older isolated worktrees.
+set -euo pipefail
+if [[ "${1:-}" == "gitsafe-backup" && "${2:-}" =~ ^git://gitsafe(:[0-9]+)?/backup\.git$ ]]; then
+  exit 0
 fi
-
-exit 0
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+exec node "$REPO_ROOT/scripts/deployment/pre-push.cjs" "$@"
 EOF
 
 chmod +x "$HOOKS_DIR/pre-push"
 echo "  [hooks] pre-push hook installed ✅"
+
+# Allow a targeted safeguard installation without changing the pre-commit hook.
+if [ "${1:-}" = "--pre-push-only" ]; then
+  exit 0
+fi
 
 cat > "$HOOKS_DIR/pre-commit" << 'EOF'
 #!/bin/bash

@@ -56,6 +56,7 @@ interface ShoppingListItem {
 }
 
 interface CoachResult {
+  carbohydrateReview?: import("@shared/groceryCoachCarbReview").GroceryCoachCarbReview;
   meal: { name: string; description: string; prepTime: string; servings: number };
   reasoning: string[];
   macros: GroceryCoachMacros;
@@ -953,6 +954,13 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
       });
       if (sessionGenRef.current !== gen || cardRequestSequence.current !== sequence) return;
       if (data?.status === "ready" && data?.id) {
+        if (groceryCoachCatalogEnabled && data.carbohydrateReview && data.carbohydrateBreakdown) {
+          setResult(current => current ? {
+            ...current,
+            macros: { ...current.macros, ...data.carbohydrateBreakdown },
+            carbohydrateReview: data.carbohydrateReview,
+          } : current);
+        }
         setMealCard({
           id: data.id,
           imageUrl: data.imageUrl ?? null,
@@ -1017,13 +1025,21 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
   const handleConfirmSwap = useCallback(() => {
     if (!swapTarget || !swapSelected) return;
-    setResult((prev) => {
+    const changed = (prev: CoachResult | null): CoachResult | null => {
       if (!prev) return prev;
       return {
         ...prev,
         shoppingList: applySwapToShoppingList(prev.shoppingList, swapTarget, swapSelected),
+        ...(groceryCoachCatalogEnabled ? { carbohydrateReview: {
+          version: 1 as const, status: "unresolved" as const, reason: "ingredients_changed",
+        } } : {}),
       };
-    });
+    };
+    if (groceryCoachCatalogEnabled && result) {
+      const updated = changed(result)!;
+      setResult(updated);
+      finalizeCard(updated);
+    } else setResult(changed);
     setResultOwnerKey(SESSION_KEY); // result still belongs to this user's session
     // Clear any brand pick for the swapped-out ingredient so the summary bar
     // count stays accurate and hides when no active picks remain.
@@ -1035,7 +1051,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
     setSwapSelected(null);
     setSwapCustom("");
     toast({ title: "Ingredient replaced!", description: `${replaced} → ${chosen}` });
-  }, [swapTarget, swapSelected, toast]);
+  }, [swapTarget, swapSelected, toast, result, finalizeCard]);
 
   const handleSubmit = useCallback(() => {
     sendMessage(input);
@@ -1658,7 +1674,9 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
                 {/* Macros */}
                 {result.macros && (
-                  <GroceryCoachMacroTiles macros={mealMacroSnapshot(result)} servings={mealMacroSnapshot(result).servings} />
+                  <GroceryCoachMacroTiles macros={mealMacroSnapshot(result)} servings={mealMacroSnapshot(result).servings}
+                    showReview={groceryCoachCatalogEnabled} review={result.carbohydrateReview}
+                    ingredients={[...(result.ownedIngredients ?? []), ...(result.shoppingList ?? [])]} />
                 )}
 
                 {/* Why This Fits You */}
@@ -2302,6 +2320,11 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
               }
             }
             if (mergedResult) {
+              if (groceryCoachCatalogEnabled) mergedResult = {
+                ...mergedResult, carbohydrateReview: {
+                  version: 1, status: "unresolved", reason: "ingredients_changed",
+                },
+              };
               setResult(mergedResult);
               setResultOwnerKey(SESSION_KEY); // refined result still belongs to this user
               // Regenerate the Favorites card with the refined meal data so the

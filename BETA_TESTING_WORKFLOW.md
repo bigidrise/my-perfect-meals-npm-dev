@@ -250,7 +250,7 @@ Monitor in Replit deployment:
    ↓
 5. Test fix locally
    ↓
-6. Push to git: ./push.sh "Fix: [bug description]"
+6. Review and commit the fix manually, then run `./push.sh` from clean local `dev`. Production promotion requires a founder-reviewed PR and explicit publishing under the November 4 cheat sheet.
    ↓
 7. Staging auto-deploys
    ↓

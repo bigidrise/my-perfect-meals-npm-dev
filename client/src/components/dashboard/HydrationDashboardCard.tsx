@@ -35,7 +35,6 @@ export default function HydrationDashboardCard() {
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="text-base font-semibold leading-snug">My Perfect Hydration Center</span>
-          <span className="rounded-full border border-sky-300/25 bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-100">Pro</span>
         </span>
         <span className="mt-1 block text-sm leading-relaxed text-white/70">
           Track fluids, find drinks that work for you, and get personalized hydration support.

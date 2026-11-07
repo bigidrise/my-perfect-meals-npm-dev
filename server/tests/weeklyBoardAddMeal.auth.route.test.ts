@@ -40,13 +40,14 @@ jest.mock("../services/canonicalWeeklyMealPlanning", () => ({
   WeeklyMealGenerationError: class WeeklyMealGenerationError extends Error {},
 }));
 jest.mock("../utils/carbClassifier", () => ({
-  enforceCarbs: (meal: any) => meal,
+  enforceCarbs: jest.fn((meal: any) => meal),
 }));
 jest.mock("../db", () => ({ db: {} }));
 jest.mock("../db/schema/procare", () => ({ clientLinks: {} }));
 
 import express from "express";
 import request from "supertest";
+import { enforceCarbs } from "../utils/carbClassifier";
 
 async function buildApp() {
   const app = express();
@@ -83,6 +84,36 @@ beforeEach(() => {
 });
 
 describe("weekly board add-meal authorization", () => {
+  it.each([
+    { starchyCarbs: 15, fibrousCarbs: 5, status: "validated" },
+    { starchyCarbs: null, fibrousCarbs: null, status: "unresolved" },
+    { starchyCarbs: 0, fibrousCarbs: 0, status: "validated" },
+  ])("preserves Development Grocery Coach categories without keyword repair: %j", async split => {
+    const previous = process.env.NODE_ENV;
+    process.env.NODE_ENV = "development";
+    try {
+      auth.user = { id: "owner-a" };
+      jest.mocked(enforceCarbs).mockClear();
+      const meal = {
+        ...payload.meal, sourceType: "grocery-coach", groceryCoachNutritionHandoff: true,
+        servings: 1, recipeServings: 4, nutritionBasis: "per-serving",
+        carbohydrateReview: { version: 1, status: split.status, reason: "fixture" },
+        nutrition: { calories: 200, protein: 10, carbs: 20, fat: 5,
+          starchyCarbs: split.starchyCarbs, fibrousCarbs: split.fibrousCarbs },
+        starchyCarbs: split.starchyCarbs, fibrousCarbs: split.fibrousCarbs,
+      };
+      const res = await request(await buildApp()).post("/api/weekly-board/add-meal").send({ ...payload, meal });
+      expect(res.status).toBe(200);
+      expect(res.body.meal.nutrition).toEqual(meal.nutrition);
+      expect(res.body.meal.carbohydrateReview).toEqual(meal.carbohydrateReview);
+      expect(res.body.meal.recipeServings).toBe(4);
+      expect(enforceCarbs).not.toHaveBeenCalled();
+      const stored = [...boards.values()][0].days[payload.dateISO].dinner[0];
+      expect(stored.nutrition).toEqual(meal.nutrition);
+      expect(stored.carbohydrateReview).toEqual(meal.carbohydrateReview);
+    } finally { process.env.NODE_ENV = previous; }
+  });
+
   it("rejects unauthenticated writes before board access", async () => {
     const res = await request(await buildApp())
       .post("/api/weekly-board/add-meal")

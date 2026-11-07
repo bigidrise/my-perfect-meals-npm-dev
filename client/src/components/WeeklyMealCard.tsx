@@ -13,6 +13,8 @@ import BuilderSourcePill from "@/components/BuilderSourcePill";
 import { getClinicalCoachingLine } from "@/utils/clinicalCoachingLine";
 import { MealRefinementPanel } from "@/components/MealRefinementPanel";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
+import { groceryCoachCatalogEnabled } from "@/lib/groceryCoachCatalogGate";
+import { GroceryCoachCarbStatus } from "@/components/shopping/GroceryCoachMacroTiles";
 
 interface WeeklyMealCardProps {
   dateISO: string;
@@ -145,6 +147,7 @@ export default function WeeklyMealCard({
   };
   const starchyCarbs = (meal?.nutrition as any)?.starchyCarbs || (meal as any)?.starchyCarbs || 0;
   const fibrousCarbs = (meal?.nutrition as any)?.fibrousCarbs || (meal as any)?.fibrousCarbs || 0;
+  const developmentGrocery = groceryCoachCatalogEnabled && meal?.groceryCoachNutritionHandoff === true;
 
   const handleRegenerate = async () => {
     if (!onRegenerate) return;
@@ -243,13 +246,14 @@ export default function WeeklyMealCard({
               {nutrition?.carbs || 0}g
             </div>
             <div className="text-xs text-white/70">Carbs</div>
-            {(starchyCarbs > 0 || fibrousCarbs > 0) && (
+            {(developmentGrocery || starchyCarbs > 0 || fibrousCarbs > 0) && (
               <div className="text-[10px] mt-0.5">
-                <span className="text-amber-400">{starchyCarbs}S</span>
+                <span className="text-amber-400">{developmentGrocery ? meal.nutrition?.starchyCarbs ?? "—" : starchyCarbs}S</span>
                 <span className="text-white/40"> / </span>
-                <span className="text-green-400">{fibrousCarbs}F</span>
+                <span className="text-green-400">{developmentGrocery ? meal.nutrition?.fibrousCarbs ?? "—" : fibrousCarbs}F</span>
               </div>
             )}
+            {developmentGrocery && <GroceryCoachCarbStatus review={meal.carbohydrateReview} ingredients={meal.ingredients} />}
           </div>
           <div className="bg-white/10 backdrop-blur-sm border border-white/20 p-2 rounded-md">
             <div className="text-sm font-bold text-purple-400">

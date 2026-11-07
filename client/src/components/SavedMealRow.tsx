@@ -22,6 +22,8 @@ import AlphaGalBadge from "@/components/AlphaGalBadge";
 import DiabetesProtocolIndicator from "@/components/DiabetesProtocolIndicator";
 import { GroceryCoachMacroTiles } from "./shopping/GroceryCoachMacroTiles";
 import { mealMacroSnapshot } from "@/lib/mealMacroSnapshot";
+import { groceryCoachCatalogEnabled } from "@/lib/groceryCoachCatalogGate";
+import { groceryCoachPlanHandoff } from "@/lib/groceryCoachPlanHandoff";
 
 interface Props {
   row: any;
@@ -68,6 +70,7 @@ export default function SavedMealRow({
 
   const d = row.mealData as any;
   const perServingNutrition = mealMacroSnapshot(d);
+  const developmentGrocery = groceryCoachCatalogEnabled && row.sourceType === "grocery-coach";
 
   // ── Nutrition always from canonical record ─────────────────────────────
   const calories = d?.nutrition?.calories || d?.calories || 0;
@@ -179,7 +182,8 @@ export default function SavedMealRow({
           )}
 
           {/* Macro strip — always from canonical record */}
-          <GroceryCoachMacroTiles macros={perServingNutrition} servings={perServingNutrition.servings} labels={{
+          <GroceryCoachMacroTiles macros={perServingNutrition} servings={perServingNutrition.servings}
+            showReview={developmentGrocery} review={d?.carbohydrateReview} ingredients={d?.ingredients} labels={{
             Calories: t("savedMeals.cal"), Protein: t("savedMeals.protein"), Fat: t("savedMeals.fat"),
             "Starchy Carbs": t("biometrics.starchyCarbs"),
             "Fibrous Carbs": t("biometrics.fibrousCarbs"),
@@ -238,6 +242,7 @@ export default function SavedMealRow({
                 imageUrl: d?.imageUrl,
                 servings: d?.servings,
                 servingSize: d?.servingSize,
+                ...(developmentGrocery ? groceryCoachPlanHandoff(d) : {}),
               }}
               onSuccess={onAddToPlanSuccess}
             />

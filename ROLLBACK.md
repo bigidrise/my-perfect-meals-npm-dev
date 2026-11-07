@@ -155,14 +155,17 @@ After every successful publish — once `bash scripts/run-prod-acceptance.sh` pa
 1. Open `LAST_STABLE.md` at the repo root
 2. Update the **Current Stable Commit** table: replace the commit hash, date, and deploy notes
 3. Append a row to the **Deploy History** table at the bottom
-4. Commit and push:
+4. Make and review this release-record update in Development, not in the Production workspace:
 
 ```bash
-HASH=$(git rev-parse --short HEAD)
+# Use the SHA already verified in Production; do not infer it from Development HEAD.
+HASH="replace-with-the-verified-production-release-sha"
 git add LAST_STABLE.md
 git commit -m "update LAST_STABLE to $HASH"
-git push origin main
+npm run push
 ```
+
+The push helper requires clean local `dev`. Any promotion uses a founder-reviewed PR into `production` and the November 4 deployment cheat sheet. Updating this record never automatically publishes or authorizes another Production update.
 
 **Never update `LAST_STABLE.md` speculatively** — only update it after `run-prod-acceptance.sh` passes on the live site. If acceptance fails and you roll back, `LAST_STABLE.md` must still point to the previous healthy commit.
 

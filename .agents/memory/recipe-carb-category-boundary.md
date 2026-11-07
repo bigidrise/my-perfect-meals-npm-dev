@@ -20,3 +20,16 @@ Grocery Coach is not a meal builder. The selected serving count scales the cooki
 **Why:** The user explicitly clarified that a recipe may cook three, four, or six servings while only one serving is acknowledged by personal macro tracking.
 
 **How to apply:** Preserve the recipe's full ingredient quantities and serving count through Favorites. Clearly distinguish “recipe makes N servings” from “nutrition per serving.” Normalize recipe totals exactly once; never log the whole recipe merely because multiple servings were selected.
+
+New Grocery Coach carbohydrate completeness requires ingredient-backed composition
+and quantity evidence. If the categories cannot be determined reliably, retain the
+meal with an explicit unresolved/incomplete review; never fabricate percentages,
+substitute dietary fiber, or default unknown categories to zero. Historical cards
+must not be silently repaired.
+
+**Why:** The founder approved this correction for Development only, with separate
+approval required for any historical writes, migration, or Production release.
+
+**How to apply:** Keep repair targeted to the existing ingredients and quantities;
+preserve accurate categories and unrelated nutrition. All saved-card and plan
+handoffs must retain verified categories or explicit unknowns, not legacy guesses.

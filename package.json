@@ -36,7 +36,7 @@
     "check:production-support": "node scripts/check-anti-inflammatory-production-build.mjs && jest --runInBand --globals='{\"ts-jest\":{\"isolatedModules\":true}}' server/tests/antiInflammatoryPublishedRuntime.test.ts server/tests/protocolEnvelope.medicalConditions.test.ts client/src/lib/__tests__/antiInflammatorySupportControl.test.tsx client/src/lib/__tests__/personalAntiInflammatoryIndicator.test.tsx",
     "check:release-types": "node scripts/check-release-type-baseline.mjs",
     "db:push": "drizzle-kit push",
-    "push": "git add -A && (git commit -m \"snapshot $(date -u +'%Y-%m-%dT%H:%M:%SZ')\" || echo 'nothing to commit') && git push -u origin main",
+    "push": "node scripts/deployment/push-dev.cjs",
     "validate": "bash scripts/validate.sh",
     "validate:navigation": "node --import tsx scripts/navigation-check/cli.ts",
     "test:navigation-check": "node --import tsx --test scripts/navigation-check/*.test.ts",
