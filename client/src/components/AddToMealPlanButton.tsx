@@ -3,6 +3,7 @@ import { CalendarPlus, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { getAuthHeaders } from "@/lib/auth";
+import { groceryCoachCatalogEnabled } from "@/lib/groceryCoachCatalogGate";
 import { useFreeLock } from "@/hooks/useFreeLock";
 import { UpgradeLockModal } from "@/components/upgrade/UpgradeLockModal";
 import {
@@ -58,6 +59,15 @@ export default function AddToMealPlanButton({ meal, onSuccess }: AddToMealPlanBu
             difficulty: meal.difficulty,
             medicalBadges: meal.medicalBadges || [],
             builderType: meal.builderType,
+            ...(groceryCoachCatalogEnabled && meal.groceryCoachNutritionHandoff ? {
+              groceryCoachNutritionHandoff: true,
+              sourceType: "grocery-coach",
+              nutrition: meal.nutrition,
+              nutritionBasis: meal.nutritionBasis,
+              servings: meal.servings,
+              recipeServings: meal.recipeServings,
+              carbohydrateReview: meal.carbohydrateReview,
+            } : {}),
           },
         }),
       });

@@ -1,6 +1,13 @@
 {
   "extends": "./tsconfig.json",
   "include": [
+    "shared/groceryCoachCarbReview.ts",
+    "server/services/groceryCoachCarbRepair.ts",
+    "server/services/mealCardFinalizer.ts",
+    "client/src/lib/groceryCoachPlanHandoff.ts",
+    "client/src/components/shopping/GroceryCoachMacroTiles.tsx",
+    "client/src/components/SavedMealRow.tsx",
+    "client/src/components/AddToMealPlanButton.tsx",
     "shared/glp1CurrentUse.ts",
     "server/services/glp1/memberCurrentUse.ts",
     "client/src/hooks/useGLP1CurrentUse.ts",

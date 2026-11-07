@@ -299,6 +299,9 @@ jest.mock("../services/savedGroceryCompliance", () => ({
 jest.mock("../services/mealCardFinalizer", () => ({
   finalizeMealCard: jest.fn().mockResolvedValue({ id: "card-1" }),
 }));
+jest.mock("../services/groceryCoachCarbRepair", () => ({
+  repairGroceryCoachCarbs: jest.fn(async (result: any) => result),
+}));
 
 // ── Mock: productAdvisor ───────────────────────────────────────────────────────
 jest.mock("../services/productAdvisor", () => ({
@@ -443,6 +446,23 @@ describe("POST /api/grocery-coach/recommend — protocol scan + GLP-1 validation
     expect(res.body.macros).toMatchObject({ carbs: 20, starchyCarbs: 14, fibrousCarbs: 6 });
     expect(capturedCalls[0].systemContent).toContain("NOT dietary fiber grams");
     expect(capturedCalls[0].systemContent).toContain("actual ingredient quantities");
+  });
+
+  it.each(["validated", "unresolved"])("returns the targeted carb review outcome: %s", async status => {
+    const { repairGroceryCoachCarbs } = await import("../services/groceryCoachCarbRepair");
+    jest.mocked(repairGroceryCoachCarbs).mockImplementationOnce(async (result: any) => ({
+      ...result,
+      macros: { ...result.macros, starchyCarbs: status === "validated" ? 14 : null,
+        fibrousCarbs: status === "validated" ? 6 : null },
+      carbohydrateReview: { version: 1, status, reason: "fixture" },
+    }));
+    openAIResponseQueue.push(() => makeValidCoachResult());
+    const res = await request(app).post("/api/grocery-coach/recommend").send(BASE_BODY);
+    expect(res.status).toBe(200);
+    expect(res.body.carbohydrateReview.status).toBe(status);
+    expect(res.body.macros).toMatchObject({ calories: 380, protein: 35, carbs: 20, fat: 9 });
+    expect(res.body.macros.fibrousCarbs).toBe(status === "validated" ? 6 : null);
+    expect(capturedCalls).toHaveLength(1);
   });
 
   it.each([undefined, 30])("returns unknown, not a guessed split, for missing or excessive fibrous carbs (%s)", async fibrousCarbs => {

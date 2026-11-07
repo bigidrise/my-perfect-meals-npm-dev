@@ -1,3 +1,4 @@
+import { groceryCoachCatalogEnabled } from "@/lib/groceryCoachCatalogGate";
 import { deriveSplitCarbs } from "@/utils/ingredientClassifier";
 
 export const BUILDER_MACRO_KEYS = [
@@ -38,6 +39,7 @@ const number = (value: unknown): number | null => {
  * This does not change saved records, generation, targets, or clinical accounting.
  */
 export function builderMealMacros(meal: any): BuilderMacroSummary {
+  const preserveUnknownGrocery = groceryCoachCatalogEnabled && meal?.groceryCoachNutritionHandoff === true;
   const nutrition = meal?.nutrition ?? meal?.macros ?? {};
   const read = (key: string, ...aliases: string[]) => {
     for (const source of [nutrition, meal ?? {}]) {
@@ -82,7 +84,7 @@ export function builderMealMacros(meal: any): BuilderMacroSummary {
   if (invalidSplit) {
     starchy = fibrous = null;
     issues.push("Stored carbohydrate categories need review");
-  } else if (starchy === null && fibrous === null && carbs !== null &&
+  } else if (!preserveUnknownGrocery && starchy === null && fibrous === null && carbs !== null &&
     Array.isArray(meal?.ingredients) && meal.ingredients.length > 0 &&
     meal.ingredients.every((ingredient: unknown) =>
       typeof ingredient === "string" || (ingredient !== null && typeof ingredient === "object"))) {
@@ -94,7 +96,7 @@ export function builderMealMacros(meal: any): BuilderMacroSummary {
       estimated = true;
     }
   }
-  if (carbs === 0 && !invalidSplit) {
+  if (carbs === 0 && !invalidSplit && !preserveUnknownGrocery) {
     starchy ??= 0;
     fibrous ??= 0;
   }
