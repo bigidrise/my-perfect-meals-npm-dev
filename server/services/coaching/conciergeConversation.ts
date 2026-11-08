@@ -40,6 +40,7 @@ import {
   ChefFoodDeclarationsSchema, CHEF_FOOD_COMPATIBILITY_INSTRUCTIONS,
   inspectChefFoodDeclarations, chefFoodCheckNotice, projectChefFoodEducation,
 } from "./foodCompatibility";
+import { projectUsefulReply } from "./replyQuality";
 
 const TurnSchema = ConciergeMessageSchema.extend({
   // Semantic consent is separate from choosing a suitable food destination.
@@ -225,6 +226,20 @@ export async function runConciergeConversation(params: {
       );
       if (retained && response.presentation) response.presentation.navigation = retained;
     }
+    if (developmentDiagnostics && !response.meta.redFlag && response.presentation &&
+      navigationPermissionQuestion(response.presentation.message)) {
+      const pending = response.presentation.navigation;
+      if (!pending || pending.state !== "recommendation_pending" ||
+        !pendingNavigationIsFresh(pending.offeredAt) ||
+        !params.tools.some(tool => tool.id === pending.destinationId) ||
+        !independentConversation(response.presentation.message, pending.destinationId)) {
+        // A permission-shaped explanation is not a completed offer. Never save
+        // visible opening permission without its validated structured state.
+        selectedField = "retry";
+        diagnostic("offer_rejected_without_pending_state");
+        response = envelope(HANDOFF_RECOVERY);
+      }
+    }
     if (foodCompatibilityRequired) {
       const check = inspectChefFoodDeclarations(foodDeclarations, selectedField, params.context);
       if (check.status === "blocked" || check.status === "unavailable") {
@@ -303,13 +318,31 @@ export async function runConciergeConversation(params: {
     if (turn.redFlag || classifiedCare || requiredCare) {
       selectedField = "care";
       diagnostic("safety_rejected_navigation", "safety_escalation");
+      const suggested = turn.contactCare
+        ? [...new Set([turn.message, turn.contactCare].filter(Boolean))].join("\n\n")
+        : turn.redFlagReason ?? turn.message ?? undefined;
+      // Classify care BEFORE quality projection; even a filler-only care field
+      // must not disable an unclassified referral or independent red flag.
+      const careText = developmentDiagnostics && suggested
+        ? projectUsefulReply(suggested).text || undefined : suggested;
       return finish(buildSafetyResponse({
         triggered: true, class: turn.careDisposition === "emergency" ? "emergency" : "escalate",
         reason: "concierge_care_escalation",
-        suggestedResponse: turn.contactCare
-          ? [...new Set([turn.message, turn.contactCare].filter(Boolean))].join("\n\n")
-          : turn.redFlagReason ?? turn.message ?? undefined,
+        suggestedResponse: careText,
       }) as CoachResponse);
+    }
+    if (developmentDiagnostics) {
+      // Reject only complete generic closing sentences. Preserve all useful
+      // prose and its original field-bound food evidence for normal validation.
+      let rejectedClosings = 0;
+      for (const field of ["message", "conversationMessage", "recommendationMessage", "handoffMessage"] as const) {
+        const original = turn[field];
+        if (!original) continue;
+        const projected = projectUsefulReply(original);
+        rejectedClosings += projected.rejectedClosings;
+        turn[field] = projected.text || undefined;
+      }
+      if (rejectedClosings) console.info(`[ChefConcierge] quality_closings_rejected=${rejectedClosings}${correlation}`);
     }
     // Whole named requests bind reviewed UI records AFTER model/input care gates.
     // Educational and ordinary food/clinical questions never become consent.
@@ -403,6 +436,26 @@ export async function runConciergeConversation(params: {
       return finish(envelope(chefClosingAcknowledgement(params.preferredLanguage)));
     }
     stage = "decision";
+    if (developmentDiagnostics && !boundNamedRequest && !acceptedStoredOffer &&
+      turn.navigationIntent === "none" &&
+      ["answer", "clarify"].includes(String(turn.responsePurpose)) &&
+      ["feature_help", "nutrition_guidance"].includes(String(turn.memberNeed)) &&
+      turn.message && navigationPermissionQuestion(turn.message)) {
+      const proposed = ConciergeDecisionSchema.safeParse(turn.conciergeDecision);
+      const verified = proposed.success && proposed.data.mode === "food_assistance"
+        ? validateConciergeGoal(proposed.data, params.tools, memberMessages, { completeMissingDestination: true })
+        : undefined;
+      if (verified?.destinationId &&
+        mentionsCoachDestination(turn.message, verified.destinationId, process.env.NODE_ENV) &&
+        independentConversation(turn.message, verified.destinationId)) {
+        // Correct contradictory offer tags, never infer a goal from prose or
+        // grant consent. The existing recommendation screen still owns wording.
+        turn.conciergeDecision = verified;
+        turn.navigationIntent = "recommendation";
+        turn.responsePurpose = turn.memberNeed === "nutrition_guidance" ? "answer_with_offer" : "feature_only_offer";
+        diagnostic("recommendation_metadata_repaired");
+      }
+    }
     pendingDisposition = turn.pendingNavigationDisposition;
     const acceptingPending = turn.navigationIntent === "confirmed" && params.pendingRecommendation;
     if (developmentPurpose) {
@@ -519,8 +572,11 @@ export async function runConciergeConversation(params: {
       // Preserve a naturally brief offer; replace explanations, not every
       // acceptable wording. Never truncate clinical or nutrition guidance.
       const offerTooLong = !turn.message || turn.message.trim().split(/\s+/u).length > 40 ||
-        /\n\s*\n/u.test(turn.message);
-      let candidates = conciseOffer && offerTooLong ? [verifiedNavigationOffer(destinationId)] : developmentPurpose ? [turn.message] :
+        (!developmentDiagnostics && /\n\s*\n/u.test(turn.message));
+      // A paragraph break alone must not replace a natural, brief explanation
+      // plus permission question with location-only boilerplate.
+      const shorten = conciseOffer && offerTooLong;
+      let candidates = shorten ? [verifiedNavigationOffer(destinationId)] : developmentPurpose ? [turn.message] :
         [turn.recommendationMessage, turn.message, turn.conversationMessage];
       // Repair wording only after purpose, goal, destination and tool eligibility
       // validation. Never infer a destination from prose, repair unsafe text,

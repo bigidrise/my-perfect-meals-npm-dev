@@ -257,13 +257,26 @@ at the top of their assigned builder, even when other starting instructions are
 omitted. Keep brief practical instructions for Fridge Rescue, including entering
 ingredients; omit generic closing invitations, including those appended to help.
 
+This is an enforced quality requirement across Chef replies, not just an
+instruction about handoff style. Reject complete, task-empty closing sentences
+whether standalone or appended, while retaining useful answers, relevant
+follow-up questions and necessary safety guidance. Do not delete arbitrary
+clauses or punctuation, or treat a generic invitation as a reason to drop care.
+
 **Why:** The founder wants the existing builder videos used consistently and
 explicitly distinguishes useful starting instructions from unnecessary sign-offs.
+The founder repeated that prompt instructions alone had not reliably stopped
+customer-service closings and explicitly requested backend enforcement.
 
 **How to apply:** Keep this refinement Development-only until released separately.
 Do not substitute a Hub Tutorial, infer a clinical builder assignment or add
 another permission question. The brief builder reminder is the exception to
 omitting tutorials when other instructions are skipped.
+
+Displayed feature-opening offers must have matching validated pending state.
+Correcting contradictory ordinary-answer tags is allowed only with an already
+structured, ready goal and eligible matching destination; missing authority must
+remain fail-closed rather than being reconstructed from a feature name in prose.
 
 For uncertain new members, distinguish planning a day of meals, making one dish
 and exploring Lifestyle. Only when meal planning is chosen and its method remains
