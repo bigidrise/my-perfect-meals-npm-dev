@@ -24,6 +24,12 @@ import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
 import { FEATURE_USAGE_KNOWLEDGE } from "../services/coaching/featureUsageKnowledge";
 import { mentionsCoachDestination } from "../../shared/coaching/navigation";
 import { PENDING_NAVIGATION_TTL_MS } from "../services/coaching/conciergeNavigationContinuity";
+import { fallbackQuality, selectRejectedConversation } from "../services/coaching/conciergeFallback";
+import { screenOrdinaryConversation, screenConversationalContinuation } from "../services/coaching/conciergeReplyScreening";
+import { getChefConversationInstructions } from "../services/coaching/conciergeInstructions";
+import { isNavigationFailureComplaint } from "../services/coaching/navigationRecovery";
+import { acceptsPendingFeature } from "../services/coaching/verifiedNavigation";
+import { isUnambiguousChefClosing } from "../services/coaching/conversationReliability";
 
 const originalEnvironment = process.env.NODE_ENV;
 const subject = { subjectType: "user" as const, subjectId: "member", ownerId: "member" };
@@ -259,6 +265,169 @@ test("Development engine loads expired context, persists a fresh offer, then con
   expect(confirmed.presentation?.navigation?.state).toBe("navigation_confirmed");
   expect(stored.presentation.destinationId).toBe("fridge_rescue");
   expect(html(confirmed).match(/<button/g)).toHaveLength(1);
+});
+
+describe("initial ingredient-help response contract", () => {
+  const input = "I have a bunch of food in my refrigerator and don't know what to make.";
+  const filler = ": If you need further assistance or have any other questions, feel free to ask!";
+  const explanation = "Fridge Rescue helps you make a meal using ingredients you already have.";
+  const offer = `${explanation} Would you like to open Fridge Rescue?`;
+  const goal = { ...unknown, activity: "use_ingredients" };
+  const decision = { mode: "food_assistance", destinationId: "fridge_rescue", goal };
+  const histories = [
+    [],
+    [{ role: "user", content: "What does fiber do?" },
+      { role: "assistant", content: "Fiber supports digestion." }],
+  ];
+  function recommend(message: string, extra: Record<string, unknown> = {}) {
+    model({ message, conversationMessage: null, handoffMessage: null,
+      recommendationMessage: null, navigationIntent: "recommendation",
+      memberNeed: "feature_help", responsePurpose: "feature_only_offer",
+      conciergeDecision: decision, careDisposition: "none", ...extra });
+  }
+  function assertNoAction(result: any) {
+    expect(result.presentation?.destinationId).toBeUndefined();
+    expect(result.presentation?.navigation).toBeUndefined();
+    expect(result.todayPlan.items).toEqual([]);
+    expect(html(result)).not.toContain("<button");
+  }
+
+  test.each(histories.map(history => [history]))(
+    "persists the initial offer and immediate Yes as a complete action with history %#", async history => {
+      (loadBoundedHistory as jest.Mock).mockResolvedValue({ recentMessages: history, rollingContext: null });
+      expect(isNavigationFailureComplaint(input)).toBe(false);
+      expect(acceptsPendingFeature(input)).toBe(false);
+      expect(isUnambiguousChefClosing(input)).toBe(false);
+      recommend(offer);
+      const initial = await run(input);
+      expect(initial.presentation?.message).toContain(explanation);
+      expect(initial.presentation?.message).toMatch(/Would you like/);
+      expect(initial.presentation?.navigation).toMatchObject({
+        state: "recommendation_pending", destinationId: "fridge_rescue", goal,
+      });
+      expect(initial.presentation?.destinationId).toBeUndefined();
+      expect(initial.todayPlan.items).toEqual([]);
+      expect(html(initial)).not.toContain("<button");
+      expect(stored.presentation.navigation).toEqual(initial.presentation?.navigation);
+      expect(await loadPendingRecommendation("owned-conversation", "member")).toEqual(initial.presentation?.navigation);
+      const modelInput = JSON.parse(mockCreate.mock.calls[0][0].messages[1].content);
+      expect(modelInput.latestMemberMessage).toBe(input);
+      expect(modelInput.history).toEqual(history);
+      expect(modelInput.pendingRecommendation).toBeNull();
+      expect(modelInput).not.toHaveProperty("navigationRecoveryContext");
+      // Even poor model wording cannot lose an authorized acceptance.
+      model({ message: filler, conversationMessage: null, navigationIntent: "none",
+        conciergeDecision: null, careDisposition: "none" });
+      const confirmed = await run("Yes.");
+      expect(mockCreate).toHaveBeenCalledTimes(2);
+      expect(confirmed.presentation?.navigation).toMatchObject({
+        state: "navigation_confirmed", destinationId: "fridge_rescue", goal,
+      });
+      expect(confirmed.presentation?.destinationId).toBe("fridge_rescue");
+      expect(confirmed.presentation?.message).toBe(verifiedNavigationText("fridge_rescue"));
+      expect(confirmed.presentation?.message).not.toMatch(/^:|feel free|Would you like/i);
+      expect(confirmed.todayPlan.items).toEqual([expect.objectContaining({
+        kind: "use_feature", destinationId: "fridge_rescue", featureTarget: "fridge_rescue",
+      })]);
+      expect(stored.presentation).toEqual(confirmed.presentation);
+      expect(html(confirmed).match(/<button/g)).toHaveLength(1);
+    },
+  );
+
+  test.each([explanation, filler])("repairs only wording backed by a validated recommendation: %s", async message => {
+    recommend(message);
+    const initial = await run(input);
+    expect(initial.presentation?.message).toMatch(/Fridge Rescue.*Would you like/s);
+    expect(initial.presentation?.message).not.toMatch(/^:|feel free/i);
+    if (message === explanation) expect(initial.presentation?.message).toContain(explanation);
+    expect(initial.presentation?.navigation?.state).toBe("recommendation_pending");
+    expect(initial.todayPlan.items).toEqual([]);
+    expect(stored.presentation.navigation.destinationId).toBe("fridge_rescue");
+  });
+
+  test.each(histories.map(history => [history]))(
+    "rejects filler in canonical and fallback fields without inventing state with history %#", async history => {
+      (loadBoundedHistory as jest.Mock).mockResolvedValue({ recentMessages: history, rollingContext: null });
+      for (const responsePurpose of ["answer", "handoff"]) {
+        model({ message: filler, conversationMessage: filler, responsePurpose,
+          memberNeed: "feature_help", navigationIntent: "none", conciergeDecision: null });
+        const result = await run(input);
+        assertNoAction(result);
+        expect(result.presentation?.message).toContain("Please try your request again");
+        expect(result.presentation?.message).not.toMatch(/^:|feel free/i);
+        expect(stored.presentation).toEqual(result.presentation);
+      }
+    },
+  );
+
+  test("feature prose without structured authority cannot create a pending offer", async () => {
+    model({ message: explanation, conversationMessage: null, navigationIntent: "none", conciergeDecision: null });
+    const initial = await run(input);
+    assertNoAction(initial);
+    expect(initial.presentation?.message).toBe(explanation);
+    model({ message: filler, conversationMessage: null, navigationIntent: "confirmed", conciergeDecision: null });
+    assertNoAction(await run("Yes."));
+  });
+
+  test.each([
+    ["invalid goal", { conciergeDecision: { ...decision, goal: unknown } }],
+    ["unrelated destination", { conciergeDecision: { ...decision, destinationId: "beverage_creator" } }],
+    ["unsafe URL", { message: "Use https://example.test to continue." }],
+    ["premature opening claim", { message: "Opening Fridge Rescue now." }],
+  ])("wording repair does not bypass %s", async (_name, extra) => {
+    recommend(explanation, extra as Record<string, unknown>);
+    assertNoAction(await run(input));
+    expect(stored.presentation.navigation).toBeUndefined();
+  });
+
+  test("unavailable subscription tools cannot be offered or confirmed", async () => {
+    const adapter = (getAdapter as jest.Mock)();
+    adapter.availableTools = adapter.availableTools.filter((tool: any) => tool.id !== "fridge_rescue");
+    recommend(explanation);
+    assertNoAction(await run(input));
+    // Access can also change after a valid offer was stored.
+    stored = { presentation: { kind: "concierge", message: offer, navigation: {
+      state: "recommendation_pending", destinationId: "fridge_rescue", goal,
+      offeredAt: new Date().toISOString(),
+    } } };
+    model({ message: filler, conversationMessage: null, navigationIntent: "none", conciergeDecision: null });
+    assertNoAction(await run("Yes."));
+  });
+
+  test("care escalation wins over an otherwise ready recommendation", async () => {
+    recommend(explanation, { redFlag: true, careDisposition: "emergency",
+      contactCare: "Seek emergency care now." });
+    const result = await run(input);
+    expect(result.meta.redFlag).toBe(true);
+    expect(result.presentation?.navigation).toBeUndefined();
+    expect(result.todayPlan.items.some(item => item.kind === "use_feature")).toBe(false);
+  });
+
+  test("quality screening is whole-message and Development-only", () => {
+    for (const text of [filler, filler.slice(2), "Feel free to ask!", "Let me know if you need anything else."]) {
+      expect(fallbackQuality(text)).toBe("empty_closing");
+      expect(screenOrdinaryConversation(text).reason).toBe("empty_closing");
+      expect(screenConversationalContinuation(text).reason).toBe("empty_closing");
+      expect(selectRejectedConversation({ message: text, conversationMessage: text },
+        value => screenConversationalContinuation(value).text).text).toBeUndefined();
+      expect(screenOrdinaryConversation(text, "production").text).toBe(text);
+    }
+    const substantive = "Fiber supports digestion. Feel free to ask!";
+    expect(screenOrdinaryConversation(substantive).text).toBe(substantive);
+    expect(screenOrdinaryConversation("You're welcome. Take care!").text).toBeDefined();
+    expect(getChefConversationInstructions("development")).toContain("INITIAL ACTIVITY HELP:");
+    expect(getChefConversationInstructions("production")).not.toContain("INITIAL ACTIVITY HELP:");
+  });
+
+  test("Production does not activate the new wording repair or filler rejection", async () => {
+    process.env.NODE_ENV = "production";
+    recommend(explanation);
+    const initial = await run(input);
+    assertNoAction(initial);
+    expect(initial.presentation?.message).toBe(explanation);
+    model({ message: filler, conversationMessage: null, navigationIntent: "none", conciergeDecision: null });
+    expect((await run(input)).presentation?.message).toBe(filler);
+  });
 });
 
 const shoppingWorkflows = [

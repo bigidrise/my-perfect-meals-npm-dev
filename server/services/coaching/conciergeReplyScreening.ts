@@ -1,7 +1,7 @@
 import { COACH_DESTINATIONS, type CoachDestinationId } from "../../../shared/coaching/navigation";
 import { fallbackQuality } from "./conciergeFallback";
 
-export type ReplyScreenReason = "accepted" | "missing" | "placeholder" | "feature_reference" |
+export type ReplyScreenReason = "accepted" | "missing" | "placeholder" | "empty_closing" | "feature_reference" |
   "route_reference" | "link" | "permission_question" | "navigation_language";
 type ScreenResult = { reason: ReplyScreenReason; text?: string };
 
@@ -38,6 +38,7 @@ export function screenIndependentConversation(message: string | null | undefined
   allowedDestinationId?: CoachDestinationId, allowFeatureMentions = false,
   environment: string | undefined = process.env.NODE_ENV): ScreenResult {
   if (!message) return { reason: "missing" };
+  if (fallbackQuality(message, environment) === "empty_closing") return { reason: "empty_closing" };
   if (!/[\p{L}\p{N}]/u.test(message) ||
     fallbackQuality(message) === "placeholder") {
     return { reason: "placeholder" };

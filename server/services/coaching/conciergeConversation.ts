@@ -9,7 +9,7 @@ import { validateConciergeGoal } from "./conciergeGoal";
 import { CHEF_CONCIERGE_REVISION, getChefConversationInstructions } from "./conciergeInstructions";
 import { inspectConversationPurpose, MemberNeedSchema, ResponsePurposeSchema, responseFieldMetrics,
   responseContractIndicators, navigationEmissionIndicators } from "./conversationPurpose";
-import { selectRejectedConversation, HANDOFF_RECOVERY, CONVERSATION_RECOVERY, MISSING_PENDING_RECOVERY } from "./conciergeFallback";
+import { fallbackQuality, selectRejectedConversation, HANDOFF_RECOVERY, CONVERSATION_RECOVERY, MISSING_PENDING_RECOVERY } from "./conciergeFallback";
 import { navigationPermissionQuestion, screenIndependentConversation, screenOrdinaryConversation, screenConversationalContinuation,
   type ReplyScreenReason } from "./conciergeReplyScreening";
 import { buildSafetyResponse } from "./safety";
@@ -520,8 +520,23 @@ export async function runConciergeConversation(params: {
       // acceptable wording. Never truncate clinical or nutrition guidance.
       const offerTooLong = !turn.message || turn.message.trim().split(/\s+/u).length > 40 ||
         /\n\s*\n/u.test(turn.message);
-      const candidates = conciseOffer && offerTooLong ? [verifiedNavigationOffer(destinationId)] : developmentPurpose ? [turn.message] :
+      let candidates = conciseOffer && offerTooLong ? [verifiedNavigationOffer(destinationId)] : developmentPurpose ? [turn.message] :
         [turn.recommendationMessage, turn.message, turn.conversationMessage];
+      // Repair wording only after purpose, goal, destination and tool eligibility
+      // validation. Never infer a destination from prose, repair unsafe text,
+      // replace nutrition advice or turn an ordinary answer into an offer.
+      if (process.env.NODE_ENV === "development" &&
+        turn.responsePurpose === "feature_only_offer" && turn.navigationIntent === "recommendation" &&
+        (!turn.message || !/[?？؟]/u.test(turn.message))) {
+        const explanation = !/\b(?:opening|launching|navigating|redirecting|transferring|going to|go to)\b/i.test(turn.message ?? "")
+          ? conversationalContinuation(turn.message) : undefined;
+        const empty = !turn.message || fallbackQuality(turn.message) === "empty_closing";
+        if (explanation || empty) {
+          candidates = [explanation
+            ? `${explanation}\n\n${verifiedNavigationOffer(destinationId)}`
+            : verifiedNavigationOffer(destinationId)];
+        }
+      }
       const recommendation = candidates
         .map((text, index) => ({ text: independentConversation(text, destinationId), dedicated: index === 0 }))
         .find(({ text, dedicated }) => {
