@@ -256,6 +256,7 @@ describe("Development conversation purpose and canonical display", () => {
     expect(result.presentation?.message).toBe(complete);
     expect(request.messages[0].content).toContain(getChefConversationInstructions("production"));
     expect(request.response_format.json_schema.schema.properties).toHaveProperty("responsePurpose");
-    expect(getChefConversationInstructions("production")).toBe(getChefConversationInstructions("development"));
+    expect(getChefConversationInstructions("production")).toBe(getChefConversationInstructions("development")
+      .split("\n").filter(line => !line.startsWith("INITIAL ACTIVITY HELP:")).join("\n"));
   });
 });

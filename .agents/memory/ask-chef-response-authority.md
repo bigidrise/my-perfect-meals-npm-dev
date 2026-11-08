@@ -111,6 +111,20 @@ alone does not prove that a response carries an authorized action.
 Verify saved pending state, first acceptance and the real rendered control—not
 just natural-sounding handoff text.
 
+For a clear activity-help request with one suitable available workflow, explain
+its purpose and offer to open it with matching pending state, rather than giving
+directions alone. Earlier unrelated discussion must not turn a new request into
+acceptance or a closing.
+
+**Why:** The founder requires initial ingredient-use help to lead naturally to
+Fridge Rescue and a single-confirmation handoff, while preserving conversational
+judgment and existing safety and subscription restrictions.
+
+**How to apply:** Keep corrections Development-only until separately approved.
+Do not invent a destination or pending authority from feature names in prose.
+Mocked persistence and rendering checks do not establish live model compliance;
+paid model acceptance needs separate permission.
+
 Nutrition coaching must remain independent of feature suitability. A valid
 feature proposal is not evidence that the member's nutrition question was
 answered, and a shorter pitch must never replace substantive advice.
