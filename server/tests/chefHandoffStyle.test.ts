@@ -65,10 +65,10 @@ test("Development creator facts match actual distinct controls without changing 
     meal_builders: { ...developmentUsage.meal_builders,
       controls: developmentUsage.meal_builders!.controls.filter(control => !control.startsWith("Watch Builder Tutorial")) },
   });
-  expect(getChefConversationInstructions("production")).toBe(getChefConversationInstructions("development")
-    .split("\n").filter(line => !line.startsWith("INITIAL ACTIVITY HELP:")).join("\n"));
-  expect(getChefConversationInstructions("development")).toContain("Every Meal Builder handoff must remind");
-  expect(getChefConversationInstructions("development")).toContain("including when appended to useful guidance");
+  expect(getChefConversationInstructions("production")).not.toContain("SIMPLE WORKFLOW HELP:");
+  expect(getChefConversationInstructions("development")).toContain("SIMPLE WORKFLOW HELP:");
+  expect(getChefConversationInstructions("development")).toContain("Every Meal Builder's starting directions must still remind");
+  expect(getChefConversationInstructions("development")).toContain("Never append a task-empty customer-service closing");
   expect(FEATURE_USAGE_KNOWLEDGE.create_a_dish?.controls.join(" ")).not.toContain("diet and cuisine overrides");
 });
 

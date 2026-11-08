@@ -18,7 +18,7 @@ import { getAdapter } from "../services/coaching/adapters";
 import { loadBoundedHistory } from "../services/coaching/conversationSummarizer";
 import { getCornerCapabilities } from "../services/coaching/capabilityRegistry";
 import { loadPendingRecommendation } from "../services/coaching/conciergeNavigationState";
-import { verifiedNavigationText } from "../services/coaching/verifiedNavigation";
+import { verifiedNavigationText, verifiedFeatureDirections } from "../services/coaching/verifiedNavigation";
 import CoachBubble from "../../client/src/components/coaching/CoachBubble";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
 import { FEATURE_USAGE_KNOWLEDGE } from "../services/coaching/featureUsageKnowledge";
@@ -90,7 +90,11 @@ test.each(["development", "production"])("%s completes the original meal-prep co
     else builderTurn("direct_request", answer);
     const result = await run(input);
     if (index < 2) expect(result.todayPlan.items).toEqual([]);
-    else {
+    else if (environment === "development") {
+      if (index === 2) expect(result.presentation?.message).toBe(verifiedFeatureDirections("meal_builders"));
+      expect(result.presentation?.navigation).toBeUndefined();
+      expect(result.todayPlan.items).toEqual([]);
+    } else {
       expect(result.presentation?.navigation).toMatchObject({ state: "direct_navigation", destinationId: "meal_builders" });
       expect(result.presentation?.destinationId).toBe("meal_builders");
       expect(result.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId: "meal_builders" })]);
@@ -102,7 +106,7 @@ test.each(["development", "production"])("%s completes the original meal-prep co
   }
 });
 
-test.each(["Meal builder", "Meal Builders", "Open Meal Builders", "Take me to my meal builder"])(
+test.each(["Open Meal Builders", "Take me to my meal builder"])(
   "explicit named selection %s completes without an extra permission question", async input => {
     builderTurn("direct_request", "Use the Open Meal Builders button, then open your assigned builder.");
     expect((await run(input)).presentation?.navigation?.state).toBe("direct_navigation");
@@ -168,7 +172,7 @@ test("expired or future-dated original offers cannot be revived by fresh informa
 
 test("bare yes cannot confirm an already completed navigation", async () => {
   builderTurn("direct_request", "Use the Open Meal Builders button.");
-  await run("Meal builder");
+  await run("Open Meal builder");
   stored.presentation.navigation.performedAt = new Date().toISOString();
   builderTurn("confirmed", "Use the Open Meal Builders button.");
   expect((await run("Yes")).todayPlan.items).toEqual([]);
@@ -340,23 +344,21 @@ describe("initial ingredient-help response contract", () => {
   }
 
   test.each(histories.map(history => [history]))(
-    "persists the initial offer and immediate Yes as a complete action with history %#", async history => {
+    "persists directions without an offer, and honors an explicit opening request with history %#", async history => {
       (loadBoundedHistory as jest.Mock).mockResolvedValue({ recentMessages: history, rollingContext: null });
       expect(isNavigationFailureComplaint(input)).toBe(false);
       expect(acceptsPendingFeature(input)).toBe(false);
       expect(isUnambiguousChefClosing(input)).toBe(false);
       recommend(offer);
       const initial = await run(input);
-      expect(initial.presentation?.message).toContain(explanation);
-      expect(initial.presentation?.message).toMatch(/Would you like/);
-      expect(initial.presentation?.navigation).toMatchObject({
-        state: "recommendation_pending", destinationId: "fridge_rescue", goal,
-      });
+      expect(initial.presentation?.message).toBe(verifiedFeatureDirections("fridge_rescue"));
+      expect(initial.presentation?.message).not.toMatch(/Would you like/);
+      expect(initial.presentation?.navigation).toBeUndefined();
       expect(initial.presentation?.destinationId).toBeUndefined();
       expect(initial.todayPlan.items).toEqual([]);
       expect(html(initial)).not.toContain("<button");
-      expect(stored.presentation.navigation).toEqual(initial.presentation?.navigation);
-      expect(await loadPendingRecommendation("owned-conversation", "member")).toEqual(initial.presentation?.navigation);
+      expect(stored.presentation.navigation).toBeUndefined();
+      expect(await loadPendingRecommendation("owned-conversation", "member")).toBeUndefined();
       const modelInput = JSON.parse(mockCreate.mock.calls[0][0].messages[1].content);
       expect(modelInput.latestMemberMessage).toBe(input);
       expect(modelInput.history).toEqual(history);
@@ -365,10 +367,10 @@ describe("initial ingredient-help response contract", () => {
       // Even poor model wording cannot lose an authorized acceptance.
       model({ message: filler, conversationMessage: null, navigationIntent: "none",
         conciergeDecision: null, careDisposition: "none" });
-      const confirmed = await run("Yes.");
+      const confirmed = await run("Open Fridge Rescue.");
       expect(mockCreate).toHaveBeenCalledTimes(2);
       expect(confirmed.presentation?.navigation).toMatchObject({
-        state: "navigation_confirmed", destinationId: "fridge_rescue", goal,
+        state: "direct_navigation", destinationId: "fridge_rescue",
       });
       expect(confirmed.presentation?.destinationId).toBe("fridge_rescue");
       expect(confirmed.presentation?.message).toBe(verifiedNavigationText("fridge_rescue"));
@@ -381,15 +383,14 @@ describe("initial ingredient-help response contract", () => {
     },
   );
 
-  test.each([explanation, filler])("repairs only wording backed by a validated recommendation: %s", async message => {
+  test.each([explanation, filler])("gives directions only for a validated workflow despite poor wording: %s", async message => {
     recommend(message);
     const initial = await run(input);
-    expect(initial.presentation?.message).toMatch(/Fridge Rescue.*Would you like/s);
+    expect(initial.presentation?.message).toBe(verifiedFeatureDirections("fridge_rescue"));
     expect(initial.presentation?.message).not.toMatch(/^:|feel free/i);
-    if (message === explanation) expect(initial.presentation?.message).toContain(explanation);
-    expect(initial.presentation?.navigation?.state).toBe("recommendation_pending");
+    expect(initial.presentation?.navigation).toBeUndefined();
     expect(initial.todayPlan.items).toEqual([]);
-    expect(stored.presentation.navigation.destinationId).toBe("fridge_rescue");
+    expect(stored.presentation.navigation).toBeUndefined();
   });
 
   test.each(histories.map(history => [history]))(
@@ -462,7 +463,7 @@ describe("initial ingredient-help response contract", () => {
     const substantive = "Fiber supports digestion. Feel free to ask!";
     expect(screenOrdinaryConversation(substantive).reason).toBe("generic_closing");
     expect(screenOrdinaryConversation("You're welcome. Take care!").text).toBeDefined();
-    expect(getChefConversationInstructions("development")).toContain("INITIAL ACTIVITY HELP:");
+    expect(getChefConversationInstructions("development")).toContain("SIMPLE WORKFLOW HELP:");
     expect(getChefConversationInstructions("production")).not.toContain("INITIAL ACTIVITY HELP:");
   });
 
@@ -491,7 +492,7 @@ describe("general reply quality and offer atomicity", () => {
       label: "Beverage Creator", goal: { ...unknown, activity: "prepare", occasion: "beverage" } },
   ];
   test.each(workflows.flatMap(workflow => [false, true].map(earlier => ({ ...workflow, earlier }))))(
-    "$id saves a validated offer despite contradictory answer tags and appended filler; earlier history=$earlier", async workflow => {
+    "$id saves directions without a pending offer despite contradictory tags and appended filler; earlier history=$earlier", async workflow => {
       const history = workflow.earlier ? [
         { role: "user", content: "What is fiber?" },
         { role: "assistant", content: "Fiber supports digestion." },
@@ -503,19 +504,17 @@ describe("general reply quality and offer atomicity", () => {
         conciergeDecision: { mode: "food_assistance", destinationId: workflow.id, goal: workflow.goal },
         careDisposition: "none" });
       const offered = await run(workflow.input);
-      expect(offered.presentation?.message).toBe(clean);
-      expect(offered.presentation?.navigation).toMatchObject({
-        state: "recommendation_pending", destinationId: workflow.id, goal: workflow.goal,
-      });
+      expect(offered.presentation?.message).toBe(verifiedFeatureDirections(workflow.id as any));
+      expect(offered.presentation?.navigation).toBeUndefined();
       expect(offered.presentation?.destinationId).toBeUndefined();
       expect(offered.todayPlan.items).toEqual([]);
       expect(stored.presentation).toEqual(offered.presentation);
       expect(html(offered)).not.toContain("<button");
       model({ message: closing, conversationMessage: closing, navigationIntent: "none",
         conciergeDecision: null, careDisposition: "none" });
-      const accepted = await run("Yes.");
+      const accepted = await run(`Open ${workflow.label}.`);
       expect(accepted.presentation?.destinationId).toBe(workflow.id);
-      expect(accepted.presentation?.navigation?.state).toBe("navigation_confirmed");
+      expect(accepted.presentation?.navigation?.state).toBe("direct_navigation");
       expect(accepted.presentation?.message).not.toMatch(/feel free|any more questions/i);
       expect(accepted.todayPlan.items).toEqual([expect.objectContaining({ destinationId: workflow.id })]);
       expect(html(accepted).match(/<button/g)).toHaveLength(1);
@@ -810,6 +809,16 @@ test.each(["development", "production"])(
         expect(response.presentation?.navigation).toBeUndefined();
         expect(html(response)).not.toContain("<button");
       } else if (index === 2) {
+        if (environment === "development") {
+          expect(response.presentation?.message).toBe(verifiedFeatureDirections("craving_creator"));
+          expect(response.presentation?.navigation).toBeUndefined();
+          expect(stored.presentation.navigation).toBeUndefined();
+          expect(await loadPendingRecommendation("owned-conversation", "member")).toBeUndefined();
+          expect(html(response)).not.toContain("<button");
+          history.push({ role: "user", content: turn.input },
+            { role: "assistant", content: response.presentation?.message ?? "" });
+          continue;
+        }
         expect(response.presentation?.navigation).toMatchObject({
           state: "recommendation_pending", destinationId: "craving_creator", goal: craving,
         });
@@ -818,6 +827,14 @@ test.each(["development", "production"])(
           .toMatchObject({ state: "recommendation_pending", destinationId: "craving_creator" });
         expect(html(response)).not.toContain("<button");
       } else {
+        if (environment === "development") {
+          expect(wire.pendingRecommendation).toBeNull();
+          expect(response.presentation?.destinationId).toBeUndefined();
+          expect(response.presentation?.navigation).toBeUndefined();
+          expect(response.todayPlan.items).toEqual([]);
+          expect(html(response)).not.toContain("<button");
+          continue;
+        }
         expect(wire.pendingRecommendation).toMatchObject({
           state: "recommendation_pending", destinationId: "craving_creator",
         });
@@ -843,24 +860,22 @@ test.each([
   { recommendationMessage: undefined, destinationId: "craving_creator", navigationIntent: "recommendation" },
   { recommendationMessage: null, destinationId: "craving_creator", navigationIntent: "recommendation" },
   { recommendationMessage: null, destinationId: null, navigationIntent: "recommendation" },
-])("ready structured craving goals recover omitted recommendation variants without early consent: %j", async variant => {
+])("ready structured craving goals give directions without creating consent: %j", async variant => {
   model({ navigationIntent: variant.navigationIntent, message: cravingQuestion,
     recommendationMessage: variant.recommendationMessage, conversationMessage: null,
     conciergeDecision: { mode: "food_assistance", destinationId: variant.destinationId, goal: craving } });
   const offer = await run("I want to make a small portion of ice cream.");
-  expect(offer.presentation?.message).toBe(cravingQuestion);
-  expect(offer.presentation?.navigation).toMatchObject({
-    state: "recommendation_pending", destinationId: "craving_creator",
-  });
+  expect(offer.presentation?.message).toBe(verifiedFeatureDirections("craving_creator"));
+  expect(offer.presentation?.navigation).toBeUndefined();
   expect(offer.presentation?.destinationId).toBeUndefined();
   expect(html(offer)).not.toContain("<button");
   model({ navigationIntent: "confirmed", conciergeDecision: null, handoffMessage: null,
     message: cravingHandoff, recommendationMessage: null });
   const confirmed = await run("yes");
-  expect(confirmed.presentation?.destinationId).toBe("craving_creator");
-  expect(confirmed.presentation?.navigation?.state).toBe("navigation_confirmed");
-  expect(confirmed.todayPlan.items[0]).toMatchObject({ kind: "use_feature", destinationId: "craving_creator" });
-  expect(html(confirmed).match(/<button/g)).toHaveLength(1);
+  expect(confirmed.presentation?.destinationId).toBeUndefined();
+  expect(confirmed.presentation?.navigation).toBeUndefined();
+  expect(confirmed.todayPlan.items).toEqual([]);
+  expect(html(confirmed)).not.toContain("<button");
 });
 
 test.each([undefined, null])(
@@ -917,7 +932,8 @@ test("a correction replaces pending intent rather than confirming the old destin
     conciergeDecision: { mode: "food_assistance", destinationId: "dessert_creator", goal: dessert },
     recommendationMessage: "Would you like to use Dessert Creator for that cake?" });
   const result = await run("Actually, help me make a whole cake instead.");
-  expect(result.presentation?.navigation?.destinationId).toBe("dessert_creator");
+  expect(result.presentation?.navigation).toBeUndefined();
+  expect(result.presentation?.message).toBe(verifiedFeatureDirections("dessert_creator"));
   expect(html(result)).not.toContain("<button");
 });
 
@@ -1079,11 +1095,13 @@ test("handoff recovery cannot bypass access revoked since the recommendation", a
 });
 
 test("a confirmed destination without reviewed control guidance uses only its existing button label", async () => {
+  process.env.NODE_ENV = "production";
   model({ navigationIntent: "recommendation", conciergeDecision: {
     mode: "food_assistance", destinationId: "sushi_creator",
     goal: { ...unknown, activity: "prepare", specialty: "sushi" },
   }, recommendationMessage: "Would you like to use Sushi Creator?" });
   await run("Help me make sushi.");
+  process.env.NODE_ENV = "development";
   model({ navigationIntent: "confirmed", conciergeDecision: null,
     handoffMessage: null, message: ":)", conversationMessage: null });
   const result = await run("yes");

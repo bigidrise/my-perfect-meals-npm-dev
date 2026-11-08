@@ -3,7 +3,7 @@ import { runConciergeConversation } from "../services/coaching/conciergeConversa
 import { getCornerCapabilities } from "../services/coaching/capabilityRegistry";
 import { COACH_DESTINATIONS, type CoachDestinationId } from "../../shared/coaching/navigation";
 import { COACH_NAVIGATION_GUIDANCE, verifiedNavigationOffer } from "../../shared/coaching/navigationGuidance";
-import { explicitNavigationRequest, navigationDestinationQuestion, verifiedNavigationText } from "../services/coaching/verifiedNavigation";
+import { explicitNavigationRequest, navigationDestinationQuestion, verifiedNavigationText, verifiedFeatureDirections } from "../services/coaching/verifiedNavigation";
 import type { PendingRecommendation } from "../services/coaching/conciergeNavigationState";
 
 const environment = process.env.NODE_ENV;
@@ -53,7 +53,7 @@ describe.each(["development", "production"])("%s concise navigation", runtime =>
     expect(result.presentation?.navigation).toBeUndefined();
     expect(result.todayPlan.items).toEqual([]);
   });
-  test("a classified post-workout shake offers Athlete Beverage Creator and take me there retains it", async () => {
+  test("a classified post-workout shake gives directions; an explicit open request gets the action", async () => {
     const offer = "Athlete Beverage Creator can help. Would you like to go there?";
     const offered = await reply("I need a post-workout shake", {
       message: offer,
@@ -62,27 +62,25 @@ describe.each(["development", "production"])("%s concise navigation", runtime =>
       conciergeDecision: { mode: "food_assistance", destinationId: "athlete_beverage_creator",
         goal: { ...goal, activity: "prepare", occasion: "beverage", specialty: "workout" } },
     });
-    expect(offered.presentation?.message).toBe(offer);
+    expect(offered.presentation?.message).toBe(runtime === "development"
+      ? verifiedFeatureDirections("athlete_beverage_creator") : offer);
     expect(offered.presentation?.destinationId).toBeUndefined();
     expect(offered.todayPlan.items).toEqual([]);
-    const pending = offered.presentation!.navigation as PendingRecommendation;
-    expect(pending).toMatchObject({
-      destinationId: "athlete_beverage_creator", state: "recommendation_pending",
-    });
+    expect(offered.presentation?.navigation?.state).toBe(runtime === "development" ? undefined : "recommendation_pending");
     // A conflicting generated suggestion cannot override the accepted stored offer.
-    const accepted = await reply("Take me there", {
+    const accepted = await reply("Open Athlete Beverage Creator", {
       conciergeDecision: { mode: "food_assistance", destinationId: "beverage_creator",
         goal: { ...goal, activity: "prepare", occasion: "beverage" } },
-    }, pending);
+    });
     expect(accepted.presentation).toMatchObject({
       destinationId: "athlete_beverage_creator",
       message: verifiedNavigationText("athlete_beverage_creator"),
-      navigation: { state: "navigation_confirmed", offeredAt: pending.offeredAt },
+      navigation: { state: "direct_navigation" },
     });
     expect(accepted.todayPlan.items).toHaveLength(1);
     expect(accepted.presentation?.message).not.toMatch(/\?|would you like/i);
   });
-  test("a feature-only offer replaces long workflow explanations without truncating nutrition advice", async () => {
+  test("workflow help replaces long pitches with directions without truncating nutrition advice", async () => {
     const long = "Beverage Creator collects your drink preferences and servings. " +
       "It lets you choose several settings before you begin, and you can review the information on its page. " +
       "You do not need these instructions here, because the destination already provides the necessary workflow. " +
@@ -92,7 +90,9 @@ describe.each(["development", "production"])("%s concise navigation", runtime =>
       conciergeDecision: { mode: "food_assistance", destinationId: "beverage_creator",
         goal: { ...goal, activity: "prepare", occasion: "beverage" } },
     });
-    expect(result.presentation?.message).toBe(verifiedNavigationOffer("beverage_creator"));
+    expect(result.presentation?.message).toBe(runtime === "development"
+      ? verifiedFeatureDirections("beverage_creator") : verifiedNavigationOffer("beverage_creator"));
+    expect(result.presentation?.navigation?.state).toBe(runtime === "development" ? undefined : "recommendation_pending");
     expect(result.presentation?.destinationId).toBeUndefined();
     const advice = "Nutrition advice should not be truncated merely to fit a navigation template. ".repeat(5).trim();
     expect((await reply("Explain this nutrition guidance.", {
@@ -100,20 +100,20 @@ describe.each(["development", "production"])("%s concise navigation", runtime =>
     })).presentation?.message).toBe(advice);
   });
   test.each(Object.keys(COACH_DESTINATIONS) as CoachDestinationId[])(
-    "%s offers on a destination question, then hands off once with only verified directions", async id => {
+    "%s gives directions on a destination question and keeps explicit opening separate", async id => {
       const name = COACH_NAVIGATION_GUIDANCE[id].aliases[0];
       const question = `Where can I find ${name}?`;
       expect(navigationDestinationQuestion(question)).toBe(id);
       expect(explicitNavigationRequest(question)).toBeUndefined();
       const offered = await reply(question, { navigationIntent: "direct_request" });
-      expect(offered.presentation?.message).toBe(verifiedNavigationOffer(id));
+      expect(offered.presentation?.message).toBe(runtime === "development" ? verifiedFeatureDirections(id) : verifiedNavigationOffer(id));
       expect(offered.presentation?.destinationId).toBeUndefined();
       expect(offered.todayPlan.items).toEqual([]);
-      const pending = offered.presentation!.navigation as PendingRecommendation;
-      const accepted = await reply("Yes.", {}, pending);
+      expect(offered.presentation?.navigation?.state).toBe(runtime === "development" ? undefined : "recommendation_pending");
+      const accepted = await reply(`Open ${name}.`);
       expect(accepted.presentation).toMatchObject({ destinationId: id,
         message: verifiedNavigationText(id),
-        navigation: { state: "navigation_confirmed", offeredAt: pending.offeredAt },
+        navigation: { state: "direct_navigation" },
       });
       expect(accepted.presentation?.message).not.toMatch(/\?|would you like|contact.*support/i);
       expect(accepted.todayPlan.items).toHaveLength(1);
@@ -148,7 +148,9 @@ describe.each(["development", "production"])("%s concise navigation", runtime =>
     });
   });
   test("a business-management offer cannot redirect its acceptance to Business Suite", async () => {
+    process.env.NODE_ENV = "production";
     const offered = await reply("Where is Business Organization?");
+    process.env.NODE_ENV = runtime;
     const pending = offered.presentation!.navigation as PendingRecommendation;
     const result = await reply("Yes.", {
       conciergeDecision: { mode: "food_assistance", destinationId: "business_suite", goal },
@@ -199,24 +201,22 @@ describe.each(["development", "production"])("%s concise navigation", runtime =>
     "%s alias %s retains its canonical direct action", async (id, alias) => {
       expect(explicitNavigationRequest(`Take me to ${alias}.`)).toBe(id);
     });
-  test("the exact saved-meals question waits for acceptance and then stops at Open Favorites", async () => {
+  test("the saved-meals question gives directions without creating a pending offer", async () => {
     const offered = await reply("Where can I see my saved meals?");
-    expect(offered.presentation?.message).toBe("You can find them in Favorites. Would you like to go there?");
+    expect(offered.presentation?.message).toBe(runtime === "development"
+      ? verifiedFeatureDirections("favorites") : verifiedNavigationOffer("favorites"));
     expect(offered.presentation?.destinationId).toBeUndefined();
     expect(offered.todayPlan.items).toEqual([]);
-    const pending = offered.presentation!.navigation as PendingRecommendation;
-    expect(pending.destinationId).toBe("favorites");
-    const accepted = await reply("Yes.", {}, pending);
+    expect(offered.presentation?.navigation?.state).toBe(runtime === "development" ? undefined : "recommendation_pending");
+    const accepted = await reply("Open Favorites.");
     expect(accepted.presentation).toMatchObject({
       destinationId: "favorites", message: verifiedNavigationText("favorites"),
-      navigation: { state: "navigation_confirmed", destinationId: "favorites", offeredAt: pending.offeredAt },
+      navigation: { state: "direct_navigation", destinationId: "favorites" },
     });
     expect(accepted.todayPlan.items).toHaveLength(1);
     expect(accepted.presentation?.message).not.toMatch(/\?|would you like/i);
-    const expired = await reply("Yes.", {}, {
-      ...pending, offeredAt: new Date(Date.now() - 31 * 60_000).toISOString(),
-    });
-    expect(expired.presentation?.destinationId).toBeUndefined();
+    const unboundYes = await reply("Yes.");
+    expect(unboundYes.presentation?.destinationId).toBeUndefined();
   });
   test.each(["Favorites", "Saved Meals"])("%s is one destination, not a duplicated saved-meal tool", async name => {
     const result = await reply(`Take me to ${name}.`);
