@@ -55,6 +55,20 @@ topic/destination changes or incompatible safety, and use current structured
 state rather than searching older prose for consent. Missing or invalid
 continuity classifications fail closed.
 
+Expired offers may supply bounded, owner-scoped recovery context, never current
+authorization. Renew with a fresh confirmation; do not extend or remove the
+existing authorization timeout. Failed-handoff filler must not stand in for
+task completion.
+
+**Why:** The founder approved targeted Development recovery after a saved
+exchange showed valid offer state but acceptance hours later. Conversational
+adjacency did not mean the offer was still authorized.
+
+**How to apply:** Keep rejection, unrelated turns, superseding destinations,
+performed navigation and safety events as recovery barriers. A valid saved
+action plus directions does not prove a historical browser rendered its button;
+test transport/rendering separately rather than rewriting action generation.
+
 Ask Chef must not require repeated confirmation for the same destination.
 Feature-opening offers must carry a validated pending recommendation before display;
 acceptance of that recommendation must not depend on an optional model wording

@@ -234,6 +234,33 @@ function model(extra: Record<string, any> = {}) {
   }) } }] });
 }
 
+test("Development engine loads expired context, persists a fresh offer, then confirms it on the next yes", async () => {
+  const originalExecute = (db.execute as jest.Mock).getMockImplementation()!;
+  (db.execute as jest.Mock).mockImplementation(async query => {
+    const { sql } = new PgDialect().sqlToQuery(query);
+    if (sql.includes("SELECT m.role")) return { rows: stored ? [{
+      role: "assistant", content: stored.presentation.message,
+      structured_payload: stored, created_at: new Date(),
+    }] : [] };
+    return originalExecute(query);
+  });
+  stored = { presentation: { kind: "concierge", message: "Would you like to use Fridge Rescue?",
+    navigation: { state: "recommendation_pending", destinationId: "fridge_rescue",
+      offeredAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+      goal: { ...unknown, activity: "use_ingredients" } } } };
+  model({ navigationIntent: "none", conciergeDecision: null,
+    message: ": If you need further assistance or have any other questions, feel free to ask!" });
+  const renewed = await run("Yes.");
+  expect(renewed.presentation?.navigation?.state).toBe("recommendation_pending");
+  expect(stored.presentation.navigation).toEqual(renewed.presentation?.navigation);
+  expect(html(renewed)).not.toContain("<button");
+  model({ navigationIntent: "none", conciergeDecision: null, message: "Happy to help!" });
+  const confirmed = await run("Yes.");
+  expect(confirmed.presentation?.navigation?.state).toBe("navigation_confirmed");
+  expect(stored.presentation.destinationId).toBe("fridge_rescue");
+  expect(html(confirmed).match(/<button/g)).toHaveLength(1);
+});
+
 const shoppingWorkflows = [
   {
     id: "grocery_find_product", activity: "find_product",

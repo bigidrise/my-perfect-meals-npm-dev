@@ -24,6 +24,9 @@ import { explicitNavigationRequest, navigationDestinationQuestion, acceptsPendin
   verifiedDiabeticBuilderExplanation, verifiedNavigationText } from "./verifiedNavigation";
 import { verifiedNavigationOffer } from "../../../shared/coaching/navigationGuidance";
 import {
+  NAVIGATION_RECOVERY_WINDOW_MS, isNavigationFailureComplaint, complaintMatchesDestination,
+} from "./navigationRecovery";
+import {
   NAVIGATION_CONTINUITY_INSTRUCTIONS, PendingNavigationDispositionSchema,
   pendingNavigationIsFresh, retainInformationalOffer,
   isConfirmableNavigation,
@@ -135,6 +138,8 @@ export async function runConciergeConversation(params: {
   preferredLanguage?: string;
   pendingRecommendation?: PendingRecommendation;
   navigationContext?: PendingRecommendation;
+  /** Bounded owner-scoped context only. Never counts as pending consent. */
+  navigationRecoveryContext?: PendingRecommendation;
   knowledgeAccess?: ChefKnowledgeAccess;
   featureScreenContext?: FeatureScreenContext;
   requestId?: string;
@@ -326,6 +331,43 @@ export async function runConciergeConversation(params: {
     const namedRequest = explicitNavigationRequest(params.userMessage);
     const boundNamedRequest = namedRequest && params.tools.some(tool => tool.id === namedRequest)
       ? namedRequest : undefined;
+    if (process.env.NODE_ENV === "development" && !boundNamedRequest && !namedRequest) {
+      const complaint = isNavigationFailureComplaint(params.userMessage);
+      const recovery = params.navigationRecoveryContext;
+      const age = recovery?.offeredAt ? Date.now() - Date.parse(recovery.offeredAt) : NaN;
+      const eligible = recovery && !recovery.performedAt && Number.isFinite(age) &&
+        age >= 0 && age < NAVIGATION_RECOVERY_WINDOW_MS &&
+        params.tools.some(tool => tool.id === recovery.destinationId) &&
+        validateConciergeGoal({
+          mode: "food_assistance", destinationId: recovery.destinationId, goal: recovery.goal,
+        }, params.tools, memberMessages, {
+          // Revalidate the server-loaded goal/name evidence, NOT current consent.
+          acceptedPendingRecommendation: true,
+        })?.destinationId === recovery.destinationId;
+      const renewExpired = eligible && !pendingNavigationIsFresh(recovery.offeredAt) &&
+        acceptsPendingFeature(params.userMessage);
+      if (renewExpired || (eligible && complaintMatchesDestination(params.userMessage, recovery.destinationId))) {
+        // Previously authorized, still-fresh actions can be displayed again after
+        // a failed handoff. Expired actions ALWAYS need a new confirmation.
+        const restoreAction = pendingNavigationIsFresh(recovery.offeredAt) &&
+          recovery.state !== "recommendation_pending";
+        const response = restoreAction
+          ? envelope(verifiedNavigationText(recovery.destinationId), recovery.destinationId)
+          : envelope(`${renewExpired ? "That earlier confirmation window has expired. " : ""}${verifiedNavigationOffer(recovery.destinationId)}`);
+        response.presentation!.navigation = restoreAction ? recovery : {
+          ...recovery, state: "recommendation_pending",
+          offeredAt: pendingNavigationIsFresh(recovery.offeredAt) ? recovery.offeredAt : new Date().toISOString(),
+        };
+        selectedField = "verified_navigation_recovery";
+        diagnostic(restoreAction ? "handoff_restored" : "navigation_confirmation_requested");
+        return finish(response);
+      }
+      if (complaint) {
+        // No valid matching context: don't guess from a complaint or search prose.
+        selectedField = "unresolved_handoff_recovery";
+        return finish(envelope("I couldn't complete that handoff. Which feature would you like to open?"));
+      }
+    }
     const acceptedStoredOffer = !namedRequest && params.pendingRecommendation &&
       isConfirmableNavigation(params.pendingRecommendation) && acceptsPendingFeature(params.userMessage);
     if (boundNamedRequest || acceptedStoredOffer) {
