@@ -21,7 +21,7 @@ import type { ChefCreatorRequest } from "../../../shared/coaching/creatorRequest
 import { getDevelopmentPlatformKnowledge, getPlatformGuidanceInstructions } from "./platformKnowledge";
 import type { PendingRecommendation } from "./conciergeNavigationState";
 import { explicitNavigationRequest, navigationDestinationQuestion, acceptsPendingFeature, navigationGoal,
-  verifiedDiabeticBuilderExplanation, verifiedNavigationText, namedFeatureGuidanceRequest,
+  verifiedDiabeticBuilderExplanation, verifiedNavigationText, namedFeatureSelection,
   verifiedFeatureDirections } from "./verifiedNavigation";
 import { verifiedNavigationOffer } from "../../../shared/coaching/navigationGuidance";
 import {
@@ -352,8 +352,7 @@ export async function runConciergeConversation(params: {
       selectedField = "verified_feature_explanation";
       return finish(envelope(diabeticExplanation));
     }
-    const questionDestination = navigationDestinationQuestion(params.userMessage) ??
-      (developmentDiagnostics ? namedFeatureGuidanceRequest(params.userMessage) : undefined);
+    const questionDestination = navigationDestinationQuestion(params.userMessage);
     if (questionDestination && params.tools.some(tool => tool.id === questionDestination)) {
       if (developmentDiagnostics) {
         selectedField = "verified_destination_directions";
@@ -367,7 +366,8 @@ export async function runConciergeConversation(params: {
       };
       return finish(response);
     }
-    const namedRequest = explicitNavigationRequest(params.userMessage);
+    const namedRequest = explicitNavigationRequest(params.userMessage) ??
+      (developmentDiagnostics ? namedFeatureSelection(params.userMessage) : undefined);
     const boundNamedRequest = namedRequest && params.tools.some(tool => tool.id === namedRequest)
       ? namedRequest : undefined;
     if (process.env.NODE_ENV === "development" && !boundNamedRequest && !namedRequest) {
@@ -574,10 +574,13 @@ export async function runConciergeConversation(params: {
     }
     const confirmed = !!acceptingPending && acceptingPending.destinationId === destinationId &&
       !!independentConversation(params.userMessage, destinationId);
-    // This is evidence binding, not a keyword router: the model still interprets
-    // request vs mention/negation. An unnamed assistance request cannot qualify
-    // for the explicit-feature exception, regardless of the model's intent tag.
+    // Whole named choices bind immediately; preserve natural explicit requests
+    // with qualifiers while refusing to treat informational/negative mentions
+    // as consent merely because the model supplied a direct-request tag.
+    const informationalMention = /[?？؟]|^\s*(?:what|how|why|where|when|which|explain|describe|tell me about)\b|\b(?:don't|do not|not interested)\b/iu
+      .test(params.userMessage);
     const direct = boundNamedRequest === destinationId || (turn.navigationIntent === "direct_request" &&
+      (!developmentDiagnostics || !informationalMention) &&
       decision.goal.explicitFeatureId === destinationId &&
       mentionsCoachDestination(params.userMessage, destinationId, process.env.NODE_ENV,
         params.navigationContext?.destinationId) &&
