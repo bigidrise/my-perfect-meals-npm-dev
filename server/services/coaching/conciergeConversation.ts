@@ -21,7 +21,8 @@ import type { ChefCreatorRequest } from "../../../shared/coaching/creatorRequest
 import { getDevelopmentPlatformKnowledge, getPlatformGuidanceInstructions } from "./platformKnowledge";
 import type { PendingRecommendation } from "./conciergeNavigationState";
 import { explicitNavigationRequest, navigationDestinationQuestion, acceptsPendingFeature, navigationGoal,
-  verifiedDiabeticBuilderExplanation, verifiedNavigationText } from "./verifiedNavigation";
+  verifiedDiabeticBuilderExplanation, verifiedNavigationText, namedFeatureGuidanceRequest,
+  verifiedFeatureDirections } from "./verifiedNavigation";
 import { verifiedNavigationOffer } from "../../../shared/coaching/navigationGuidance";
 import {
   NAVIGATION_RECOVERY_WINDOW_MS, isNavigationFailureComplaint, complaintMatchesDestination,
@@ -351,8 +352,13 @@ export async function runConciergeConversation(params: {
       selectedField = "verified_feature_explanation";
       return finish(envelope(diabeticExplanation));
     }
-    const questionDestination = navigationDestinationQuestion(params.userMessage);
+    const questionDestination = navigationDestinationQuestion(params.userMessage) ??
+      (developmentDiagnostics ? namedFeatureGuidanceRequest(params.userMessage) : undefined);
     if (questionDestination && params.tools.some(tool => tool.id === questionDestination)) {
+      if (developmentDiagnostics) {
+        selectedField = "verified_destination_directions";
+        return finish(envelope(verifiedFeatureDirections(questionDestination)));
+      }
       selectedField = "verified_destination_offer";
       const response = envelope(verifiedNavigationOffer(questionDestination));
       response.presentation!.navigation = {
@@ -436,6 +442,25 @@ export async function runConciergeConversation(params: {
       return finish(envelope(chefClosingAcknowledgement(params.preferredLanguage)));
     }
     stage = "decision";
+    if (developmentDiagnostics && !boundNamedRequest && !acceptedStoredOffer &&
+      turn.memberNeed === "feature_help" &&
+      (inspectConversationPurpose(turn).valid ||
+        (turn.navigationIntent === "none" && ["answer", "clarify"].includes(String(turn.responsePurpose))))) {
+      const proposed = ConciergeDecisionSchema.safeParse(turn.conciergeDecision);
+      const verified = proposed.success && proposed.data.mode === "food_assistance"
+        ? validateConciergeGoal(proposed.data, params.tools, memberMessages, { completeMissingDestination: true })
+        : undefined;
+      if (verified?.destinationId && verified.goal &&
+        ["prepare", "use_ingredients"].includes(verified.goal.activity) &&
+        (!turn.message || independentConversation(turn.message, verified.destinationId))) {
+        // A clear food-workflow need warrants practical entry directions, not
+        // a sales pitch, permission loop, pending offer or automatic open card.
+        // Suitability still comes from the existing structured goal/access gate.
+        selectedField = "verified_destination_directions";
+        diagnostic("workflow_directions");
+        return finish(envelope(verifiedFeatureDirections(verified.destinationId)));
+      }
+    }
     if (developmentDiagnostics && !boundNamedRequest && !acceptedStoredOffer &&
       turn.navigationIntent === "none" &&
       ["answer", "clarify"].includes(String(turn.responsePurpose)) &&

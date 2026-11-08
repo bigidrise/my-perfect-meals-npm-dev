@@ -116,7 +116,11 @@ describe("Development rejected-response reliability", () => {
     noAction(result);
   });
   it("preserves valid pending recommendation and its first accepted handoff", async () => {
+    // Previously saved valid offers remain confirmable; simple workflow
+    // directions no longer create new pending offers.
+    process.env.NODE_ENV = "production";
     const first = await reply({ responsePurpose: "feature_only_offer", navigationIntent: "recommendation" });
+    process.env.NODE_ENV = "development";
     expect(first.result.presentation?.message).toBe(offer);
     expect(first.result.presentation?.navigation?.state).toBe("recommendation_pending");
     const text = "Great! Open Dessert Creator below to get started.";

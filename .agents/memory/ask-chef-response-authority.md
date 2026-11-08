@@ -32,11 +32,12 @@ explicitly. Synthetic live observations and deterministic tests establish
 different kinds of evidence; never present mocked tests as proof of natural
 conversation quality.
 
-An explicit named selection of Meal Builder or Meal Builders authorizes the
-normal validated handoff; generic meal-preparation language does not.
+A bare feature name, including Meal Builder or Meal Builders, requests concise
+starting directions in Development, not an opening card or permission exchange.
+An actual request to open the feature retains the normal validated handoff.
 
-**Why:** The user approved correcting repeated explanations and permission
-loops after the customer has already selected the workflow.
+**Why:** The founder explicitly corrected the overcomplicated feature-offer flow:
+naming the feature should get a short practical answer, without an opening card.
 
 **How to apply:** Distinguish advance planning, preparing a specific dish and
 shopping when intent is ambiguous. Do not ask another exploratory or permission
@@ -111,17 +112,21 @@ alone does not prove that a response carries an authorized action.
 Verify saved pending state, first acceptance and the real rendered control—not
 just natural-sounding handoff text.
 
-For a clear activity-help request with one suitable available workflow, explain
-its purpose and offer to open it with matching pending state, rather than giving
-directions alone. Earlier unrelated discussion must not turn a new request into
-acceptance or a closing.
+For a clear food-workflow request, give concise verified entry directions and the
+essential starting step, not a benefit pitch, an opening card or a permission
+exchange. Naming a feature or asking where to find it likewise needs directions
+only. Explicit opening requests and acceptance of already-valid pending offers
+retain their existing authorized handoffs.
 
-**Why:** The founder requires initial ingredient-use help to lead naturally to
-Fridge Rescue and a single-confirmation handoff, while preserving conversational
-judgment and existing safety and subscription restrictions.
+**Why:** The founder rejected the forced offer/confirmation exchange and asked
+for simple practical help: refrigerator ingredient-use needs should point to
+Fridge Rescue, entering the available food and generating a meal; shake needs
+should get the appropriate beverage workflow, not more unnecessary conversation.
 
 **How to apply:** Keep corrections Development-only until separately approved.
 Do not invent a destination or pending authority from feature names in prose.
+Interpret the actual task, not isolated refrigerator or shake keywords; unrelated
+repair, safety or educational questions must not trigger a food-workflow route.
 Mocked persistence and rendering checks do not establish live model compliance;
 paid model acceptance needs separate permission.
 
