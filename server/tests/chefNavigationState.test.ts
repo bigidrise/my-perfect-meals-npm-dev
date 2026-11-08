@@ -90,8 +90,7 @@ test.each(["development", "production"])("%s completes the original meal-prep co
     else builderTurn("direct_request", answer);
     const result = await run(input);
     if (index < 2) expect(result.todayPlan.items).toEqual([]);
-    else if (environment === "development") {
-      if (index === 2) expect(result.presentation?.message).toBe(verifiedFeatureDirections("meal_builders"));
+    else if (environment === "development" && index === 3) {
       expect(result.presentation?.navigation).toBeUndefined();
       expect(result.todayPlan.items).toEqual([]);
     } else {
@@ -106,7 +105,7 @@ test.each(["development", "production"])("%s completes the original meal-prep co
   }
 });
 
-test.each(["Open Meal Builders", "Take me to my meal builder"])(
+test.each(["Meal builder", "Meal Builders", "Open Meal Builders", "Take me to my meal builder"])(
   "explicit named selection %s completes without an extra permission question", async input => {
     builderTurn("direct_request", "Use the Open Meal Builders button, then open your assigned builder.");
     expect((await run(input)).presentation?.navigation?.state).toBe("direct_navigation");

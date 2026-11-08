@@ -2,7 +2,8 @@ jest.mock("../db", () => ({ db: { execute: jest.fn(() => { throw new Error("Unex
 import { runConciergeConversation } from "../services/coaching/conciergeConversation";
 import { getCornerCapabilities } from "../services/coaching/capabilityRegistry";
 import { getChefConversationInstructions } from "../services/coaching/conciergeInstructions";
-import { verifiedFeatureDirections } from "../services/coaching/verifiedNavigation";
+import { verifiedFeatureDirections, verifiedNavigationText, namedFeatureSelection, verifiedDiabeticBuilderExplanation } from "../services/coaching/verifiedNavigation";
+import { COACH_NAVIGATION_GUIDANCE } from "../../shared/coaching/navigationGuidance";
 import type { CoachDestinationId } from "../../shared/coaching/navigation";
 
 const environment = process.env.NODE_ENV;
@@ -36,8 +37,36 @@ function noCard(result: Awaited<ReturnType<typeof reply>>) {
   expect(result.todayPlan.items).toEqual([]);
 }
 
-test.each(["Fridge Rescue", "fridge rescue!", "Where is Fridge Rescue?"])(
-  "a named feature gets concise directions, no open card or permission: %s", async input => {
+const namedFeatures = Object.entries(COACH_NAVIGATION_GUIDANCE).flatMap(([id, record]) =>
+  record.aliases.map(alias => ({ id: id as CoachDestinationId, alias })));
+test.each(namedFeatures)("$id: selecting $alias gives its direct handoff without another question", async ({ id, alias }) => {
+  // No model action is needed to re-ask a choice the member already made.
+  const result = await reply(alias, { message: "Which feature do you want?",
+    memberNeed: "unclear", responsePurpose: "clarify", navigationIntent: "none", conciergeDecision: null });
+  expect(namedFeatureSelection(alias)).toBe(id);
+  expect(result.presentation?.destinationId).toBe(id);
+  expect(result.presentation?.navigation).toMatchObject({ state: "direct_navigation", destinationId: id });
+  expect(result.presentation?.message).toBe(verifiedNavigationText(id));
+  expect(result.presentation?.message).not.toMatch(/would you like|want me to|\?/i);
+  expect(result.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId: id })]);
+});
+test.each(namedFeatures)("$id: a question about $alias is answered without an automatic handoff", async ({ alias }) => {
+  const message = "That feature has its own workflow. I can explain its purpose and controls.";
+  const result = await reply(`What is ${alias}?`, { message, responsePurpose: "answer",
+    navigationIntent: "none", conciergeDecision: null });
+  expect(result.presentation?.message).toBe(verifiedDiabeticBuilderExplanation(`What is ${alias}?`) ?? message);
+  expect(namedFeatureSelection(`What is ${alias}?`)).toBeUndefined();
+  noCard(result);
+});
+test.each(["fridge rescue!", "Fridge Rescue, please", "I'd like Fridge Rescue", "Let's use Fridge Rescue"])(
+  "a natural named choice %s does not need a second permission question", async input => {
+    const result = await reply(input);
+    expect(result.presentation?.destinationId).toBe("fridge_rescue");
+    expect(result.presentation?.navigation?.state).toBe("direct_navigation");
+  },
+);
+test.each(["Where is Fridge Rescue?"])(
+  "a location question gets concise directions, not an automatic handoff: %s", async input => {
     const result = await reply(input, { memberNeed: "navigation", responsePurpose: "handoff",
       navigationIntent: "direct_request", handoffMessage: "Use the Open Fridge Rescue button." });
     expect(result.presentation?.message).toBe(verifiedFeatureDirections("fridge_rescue"));
@@ -75,13 +104,24 @@ test("a refrigerator in an unrelated question is not a workflow router", async (
   noCard(result);
 });
 test("a bare Yes after directions has no offer to confirm", async () => {
-  const first = await reply("Fridge Rescue");
+  const first = await reply("Where is Fridge Rescue?");
   const result = await reply("Yes", { message: "Which part would you like help with?", memberNeed: "unclear",
     responsePurpose: "clarify", navigationIntent: "none", conciergeDecision: null }, {
-    history: [{ role: "user", content: "Fridge Rescue" }, { role: "assistant", content: first.presentation!.message }],
+    history: [{ role: "user", content: "Where is Fridge Rescue?" }, { role: "assistant", content: first.presentation!.message }],
   });
   noCard(result);
 });
+test.each(["What is Fridge Rescue?", "How does Fridge Rescue work?", "I don't want Fridge Rescue", "Fridge Rescue?"])(
+  "a model direct-request tag cannot convert questions or negations into consent: %s", async userMessage => {
+    const result = await reply(userMessage, { responsePurpose: "handoff", memberNeed: "navigation",
+      navigationIntent: "direct_request", message: "Use the Open Fridge Rescue button.",
+      handoffMessage: "Use the Open Fridge Rescue button.",
+      conciergeDecision: { ...baseline.conciergeDecision, goal: {
+        ...baseline.conciergeDecision.goal, explicitFeatureId: "fridge_rescue",
+      } } });
+    noCard(result);
+  },
+);
 test("explicit opening requests still get the existing authorized action", async () => {
   const result = await reply("Open Fridge Rescue.");
   expect(result.presentation?.destinationId).toBe("fridge_rescue");
@@ -114,4 +154,6 @@ test("Development instructions no longer demand an opening offer for initial act
   expect(instructions).not.toContain("INITIAL ACTIVITY HELP:");
   expect(instructions).not.toContain("Do not substitute directions alone");
   expect(instructions).toContain("Builder Tutorial");
+  expect(instructions).toContain("EVERY approved available feature");
+  expect(instructions).toContain("Questions ABOUT a feature are different");
 });

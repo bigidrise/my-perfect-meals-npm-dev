@@ -14,14 +14,17 @@ export function namedNavigationDestinations(message: string): CoachDestinationId
     other.name.toLowerCase().includes(match.name.toLowerCase()))).map(match => match.id))];
 }
 
-/** A feature label alone asks for useful guidance, not permission to open it. */
-export function namedFeatureGuidanceRequest(message: string): CoachDestinationId | undefined {
-  const text = message.trim().replace(/[.!?]+$/u, "");
+/** A whole named selection is a handoff request; questions and mentions are not. */
+export function namedFeatureSelection(message: string): CoachDestinationId | undefined {
+  if (/[?？؟]/u.test(message)) return undefined;
+  const text = message.trim().replace(/[.!]+$/u, "").replace(/,?\s+please$/iu, "").replace(/^please\s+/iu, "");
   const matches = namedNavigationDestinations(text);
   if (matches.length !== 1) return undefined;
   const id = matches[0];
-  return COACH_NAVIGATION_GUIDANCE[id].aliases.some(alias =>
-    alias.toLocaleLowerCase() === text.toLocaleLowerCase()) ? id : undefined;
+  return COACH_NAVIGATION_GUIDANCE[id].aliases.some(alias => new RegExp(
+    `^(?:(?:I (?:want|choose|pick)|I'd like|I would like|let['’]s (?:use|do|go with))\\s+)?(?:the\\s+|my\\s+)?${escape(alias)}$`,
+    "iu",
+  ).test(text)) ? id : undefined;
 }
 
 /** Reviewed directions only. Does not emit an action or pending consent. */

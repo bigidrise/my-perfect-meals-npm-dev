@@ -32,12 +32,15 @@ explicitly. Synthetic live observations and deterministic tests establish
 different kinds of evidence; never present mocked tests as proof of natural
 conversation quality.
 
-A bare feature name, including Meal Builder or Meal Builders, requests concise
-starting directions in Development, not an opening card or permission exchange.
-An actual request to open the feature retains the normal validated handoff.
+A named feature selection, including a bare feature label, gets the existing
+validated direct handoff and Open button immediately in Development. This applies
+to EVERY approved available feature, not just Fridge Rescue or food creators.
+Questions about a feature are different: answer them rather than automatically
+navigating. Mere incidental mentions, comparisons and negations are not selections.
 
-**Why:** The founder explicitly corrected the overcomplicated feature-offer flow:
-naming the feature should get a short practical answer, without an opening card.
+**Why:** The founder corrected the directions-only misunderstanding and explicitly
+asked where the Open Fridge Rescue button went. Naming a feature as their choice
+should get them there, without a pitch or another permission question.
 
 **How to apply:** Distinguish advance planning, preparing a specific dish and
 shopping when intent is ambiguous. Do not ask another exploratory or permission
@@ -114,9 +117,10 @@ just natural-sounding handoff text.
 
 For a clear food-workflow request, give concise verified entry directions and the
 essential starting step, not a benefit pitch, an opening card or a permission
-exchange. Naming a feature or asking where to find it likewise needs directions
-only. Explicit opening requests and acceptance of already-valid pending offers
-retain their existing authorized handoffs.
+exchange. A named feature selection instead gets its direct Open action with
+brief guidance immediately; questions about the feature remain answers, and
+where-to-find questions receive location guidance. Explicit opening requests
+and acceptance of already-valid pending offers retain their authorized handoffs.
 
 **Why:** The founder rejected the forced offer/confirmation exchange and asked
 for simple practical help: refrigerator ingredient-use needs should point to
