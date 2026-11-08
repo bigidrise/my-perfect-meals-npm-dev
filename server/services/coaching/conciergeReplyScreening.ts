@@ -1,14 +1,16 @@
 import { COACH_DESTINATIONS, type CoachDestinationId } from "../../../shared/coaching/navigation";
 import { fallbackQuality } from "./conciergeFallback";
 
-export type ReplyScreenReason = "accepted" | "missing" | "placeholder" | "feature_reference" |
+export type ReplyScreenReason = "accepted" | "missing" | "placeholder" | "empty_closing" | "generic_closing" | "feature_reference" |
   "route_reference" | "link" | "permission_question" | "navigation_language";
 type ScreenResult = { reason: ReplyScreenReason; text?: string };
 
 /** Output checks only. These never interpret member consent or authorize actions. */
 export function navigationPermissionQuestion(message: string, development = true): boolean {
   const sentences = message.split(/[.!?？؟\n]/u);
-  const permission = /^\s*(?:would you like|do you want|shall (?:I|we)|should (?:I|we)|may I|can I (?:help|assist)|ready to)\b/i;
+  const permission = process.env.NODE_ENV === "development" && development
+    ? /^\s*(?:would you like|do you want|want me to|shall (?:I|we)|should (?:I|we)|(?:may|can|could) I|(?:are you )?ready to)\b/i
+    : /^\s*(?:would you like|do you want|shall (?:I|we)|should (?:I|we)|may I|can I (?:help|assist)|ready to)\b/i;
   if (!development) {
     // Preserve the historical screen outside Development.
     return sentences.some(sentence =>
@@ -38,6 +40,8 @@ export function screenIndependentConversation(message: string | null | undefined
   allowedDestinationId?: CoachDestinationId, allowFeatureMentions = false,
   environment: string | undefined = process.env.NODE_ENV): ScreenResult {
   if (!message) return { reason: "missing" };
+  const quality = fallbackQuality(message, environment);
+  if (quality === "empty_closing" || quality === "generic_closing") return { reason: quality };
   if (!/[\p{L}\p{N}]/u.test(message) ||
     fallbackQuality(message) === "placeholder") {
     return { reason: "placeholder" };

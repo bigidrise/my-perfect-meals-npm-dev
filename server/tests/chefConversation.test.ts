@@ -19,7 +19,7 @@ import { extractAndPersistMemories } from "../services/coaching/memoryExtractor"
 import { getCapabilitiesForUser, getCornerCapabilities } from "../services/coaching/capabilityRegistry";
 import { getDevelopmentPlatformKnowledge } from "../services/coaching/platformKnowledge";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
-import { verifiedNavigationText } from "../../shared/coaching/navigationGuidance";
+import { verifiedNavigationText, verifiedFeatureDirections } from "../services/coaching/verifiedNavigation";
 import { validateConciergeGoal } from "../services/coaching/conciergeGoal";
 import { PgDialect } from "drizzle-orm/pg-core";
 
@@ -98,12 +98,16 @@ test.each([
   ["dessert_creator", "Can you help me make a whole cake for a party?",
     "Dessert Creator can help with a larger dessert recipe. Would you like to use it?",
     "Great. Describe the dessert or choose its type and flavor, then review the recipe yield.", "prepare", "dessert"],
-] as const)("%s recommendation then short agreement retains context and guides navigation", async (
+] as const)("%s existing stored recommendation remains confirmable in Development", async (
   id, request, recommendation, guidance, activity, occasion,
 ) => {
   const goal = { ...unknown, activity, occasion };
+  // Seed an offer produced by the released flow; new simple Development
+  // workflow requests now return directions without creating pending state.
+  process.env.NODE_ENV = "production";
   reply(recommendation, id, goal, { navigationIntent: "recommendation" });
   const first = await run(request);
+  process.env.NODE_ENV = "development";
   expect(first.todayPlan.items).toEqual([]);
   expect(first.presentation?.message).toBe(recommendation);
   const history = [{ role: "user", content: request }, { role: "assistant", content: recommendation }];
@@ -493,7 +497,10 @@ test("chicken Caesar food choice alone cannot auto-complete an opening action", 
     null, { ...unknown, activity: "prepare", occasion: "meal", dishChosen: true },
     { navigationIntent: "recommendation", creatorRequest: { idea: "Chicken Caesar salad", memberTurns: [0, 1] } });
   const result = await run("Yeah, a chicken, that's like a chicken salad, a chicken Caesar, what do you think about that?");
-  expect(result.presentation).toEqual({
+  expect(result.presentation).toEqual(runtimeEnvironment === "development" ? {
+    kind: "concierge",
+    message: verifiedFeatureDirections("create_a_dish"),
+  } : {
     kind: "concierge", message: modelMessage,
     navigation: { state: "recommendation_pending", destinationId: "create_a_dish",
       offeredAt: expect.any(String),
@@ -512,7 +519,7 @@ test("chicken Caesar food choice alone cannot auto-complete an opening action", 
   expect(decisionProperty.anyOf).toContainEqual({ type: "null" });
   expect(decisionSchema.required).toEqual(expect.arrayContaining(["mode", "destinationId", "goal"]));
   expect(wire.messages[1].content).toContain("a chicken Caesar, what do you think"); // Actual member context, not a scripted prompt example.
-  expect(JSON.stringify((db.execute as jest.Mock).mock.calls)).toContain("Chicken Caesar salad");
+  expect(JSON.stringify((db.execute as jest.Mock).mock.calls)).toContain(result.presentation!.message);
 });
 
 test.each([

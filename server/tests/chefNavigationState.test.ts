@@ -18,12 +18,18 @@ import { getAdapter } from "../services/coaching/adapters";
 import { loadBoundedHistory } from "../services/coaching/conversationSummarizer";
 import { getCornerCapabilities } from "../services/coaching/capabilityRegistry";
 import { loadPendingRecommendation } from "../services/coaching/conciergeNavigationState";
-import { verifiedNavigationText } from "../../shared/coaching/navigationGuidance";
+import { verifiedNavigationText, verifiedFeatureDirections } from "../services/coaching/verifiedNavigation";
 import CoachBubble from "../../client/src/components/coaching/CoachBubble";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
 import { FEATURE_USAGE_KNOWLEDGE } from "../services/coaching/featureUsageKnowledge";
 import { mentionsCoachDestination } from "../../shared/coaching/navigation";
 import { PENDING_NAVIGATION_TTL_MS } from "../services/coaching/conciergeNavigationContinuity";
+import { fallbackQuality, selectRejectedConversation } from "../services/coaching/conciergeFallback";
+import { screenOrdinaryConversation, screenConversationalContinuation } from "../services/coaching/conciergeReplyScreening";
+import { getChefConversationInstructions } from "../services/coaching/conciergeInstructions";
+import { isNavigationFailureComplaint } from "../services/coaching/navigationRecovery";
+import { acceptsPendingFeature } from "../services/coaching/verifiedNavigation";
+import { isUnambiguousChefClosing } from "../services/coaching/conversationReliability";
 
 const originalEnvironment = process.env.NODE_ENV;
 const subject = { subjectType: "user" as const, subjectId: "member", ownerId: "member" };
@@ -84,7 +90,10 @@ test.each(["development", "production"])("%s completes the original meal-prep co
     else builderTurn("direct_request", answer);
     const result = await run(input);
     if (index < 2) expect(result.todayPlan.items).toEqual([]);
-    else {
+    else if (environment === "development" && index === 3) {
+      expect(result.presentation?.navigation).toBeUndefined();
+      expect(result.todayPlan.items).toEqual([]);
+    } else {
       expect(result.presentation?.navigation).toMatchObject({ state: "direct_navigation", destinationId: "meal_builders" });
       expect(result.presentation?.destinationId).toBe("meal_builders");
       expect(result.todayPlan.items).toEqual([expect.objectContaining({ kind: "use_feature", destinationId: "meal_builders" })]);
@@ -162,7 +171,7 @@ test("expired or future-dated original offers cannot be revived by fresh informa
 
 test("bare yes cannot confirm an already completed navigation", async () => {
   builderTurn("direct_request", "Use the Open Meal Builders button.");
-  await run("Meal builder");
+  await run("Open Meal builder");
   stored.presentation.navigation.performedAt = new Date().toISOString();
   builderTurn("confirmed", "Use the Open Meal Builders button.");
   expect((await run("Yes")).todayPlan.items).toEqual([]);
@@ -233,6 +242,364 @@ function model(extra: Record<string, any> = {}) {
     ...extra,
   }) } }] });
 }
+
+test.each(["Open Meal Builder", "Open Diabetic Meal Builder"])(
+  "%s includes the assigned builder tutorial reminder without a sign-off", async input => {
+    builderTurn("direct_request", "Opening your builder. If you need more help, feel free to ask!");
+    const result = await run(input);
+    expect(result.presentation?.destinationId).toBe("meal_builders");
+    expect(result.presentation?.message).toContain("builder available to your account");
+    expect(result.presentation?.message).toContain("Watch the Builder Tutorial video at the top of your builder");
+    expect(result.presentation?.message).toContain("follow the builder's steps to create your meals");
+    expect(result.presentation?.message).not.toMatch(/feel free|further assistance|any.*questions|Hub Tutorial/i);
+    expect(result.todayPlan.items).toEqual([expect.objectContaining({ destinationId: "meal_builders" })]);
+    expect(html(result).match(/<button/g)).toHaveLength(1);
+    expect(stored.presentation).toEqual(result.presentation);
+  },
+);
+
+test("every repeated builder handoff retains the tutorial reminder, including when other instructions are skipped", async () => {
+  builderTurn("recommendation", "Meal Builders can help you plan your meals. Would you like to use it?");
+  await run("Help me plan meals ahead.");
+  for (const input of ["Yes.", "Open Meal Builder", "Open Meal Builder without instructions"]) {
+    builderTurn(input === "Yes." ? "confirmed" : "direct_request", "Use the builder.");
+    const result = await run(input);
+    expect(result.presentation?.destinationId).toBe("meal_builders");
+    expect(result.presentation?.message?.match(/Builder Tutorial/g)).toHaveLength(1);
+    expect(result.presentation?.message).not.toMatch(/feel free|Would you like/i);
+    expect(result.todayPlan.items).toHaveLength(1);
+  }
+});
+
+test("Fridge Rescue handoff preserves brief ingredient instructions and omits model-authored closing filler", async () => {
+  model({ message: "Enter your ingredients. If you have any more questions, feel free to ask!",
+    handoffMessage: "If you need further assistance, feel free to ask!", navigationIntent: "none",
+    conciergeDecision: null });
+  const result = await run("I want to use Fridge Rescue");
+  expect(result.presentation?.destinationId).toBe("fridge_rescue");
+  expect(result.presentation?.message).toContain("Lifestyle → Fridge Rescue");
+  expect(result.presentation?.message).toContain("Enter the ingredients you already have");
+  expect(result.presentation?.message).not.toMatch(/feel free|further assistance|any.*questions/i);
+  expect(html(result).match(/<button/g)).toHaveLength(1);
+});
+
+test("new handoff instructions and tutorial reminders leave released Production text unchanged", () => {
+  process.env.NODE_ENV = "production";
+  expect(verifiedNavigationText("fridge_rescue")).toBe("You can find it under Lifestyle → Fridge Rescue.");
+  expect(verifiedNavigationText("meal_builders")).toBe("You can find it under Meal Builders. Choose the builder available to your account.");
+  expect(verifiedNavigationText("meal_builders", false)).toBe("Use the Open Meal Builders button.");
+});
+
+test("Development engine loads expired context, persists a fresh offer, then confirms it on the next yes", async () => {
+  const originalExecute = (db.execute as jest.Mock).getMockImplementation()!;
+  (db.execute as jest.Mock).mockImplementation(async query => {
+    const { sql } = new PgDialect().sqlToQuery(query);
+    if (sql.includes("SELECT m.role")) return { rows: stored ? [{
+      role: "assistant", content: stored.presentation.message,
+      structured_payload: stored, created_at: new Date(),
+    }] : [] };
+    return originalExecute(query);
+  });
+  stored = { presentation: { kind: "concierge", message: "Would you like to use Fridge Rescue?",
+    navigation: { state: "recommendation_pending", destinationId: "fridge_rescue",
+      offeredAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+      goal: { ...unknown, activity: "use_ingredients" } } } };
+  model({ navigationIntent: "none", conciergeDecision: null,
+    message: ": If you need further assistance or have any other questions, feel free to ask!" });
+  const renewed = await run("Yes.");
+  expect(renewed.presentation?.navigation?.state).toBe("recommendation_pending");
+  expect(stored.presentation.navigation).toEqual(renewed.presentation?.navigation);
+  expect(html(renewed)).not.toContain("<button");
+  model({ navigationIntent: "none", conciergeDecision: null, message: "Happy to help!" });
+  const confirmed = await run("Yes.");
+  expect(confirmed.presentation?.navigation?.state).toBe("navigation_confirmed");
+  expect(stored.presentation.destinationId).toBe("fridge_rescue");
+  expect(html(confirmed).match(/<button/g)).toHaveLength(1);
+});
+
+describe("initial ingredient-help response contract", () => {
+  const input = "I have a bunch of food in my refrigerator and don't know what to make.";
+  const filler = ": If you need further assistance or have any other questions, feel free to ask!";
+  const explanation = "Fridge Rescue helps you make a meal using ingredients you already have.";
+  const offer = `${explanation} Would you like to open Fridge Rescue?`;
+  const goal = { ...unknown, activity: "use_ingredients" };
+  const decision = { mode: "food_assistance", destinationId: "fridge_rescue", goal };
+  const histories = [
+    [],
+    [{ role: "user", content: "What does fiber do?" },
+      { role: "assistant", content: "Fiber supports digestion." }],
+  ];
+  function recommend(message: string, extra: Record<string, unknown> = {}) {
+    model({ message, conversationMessage: null, handoffMessage: null,
+      recommendationMessage: null, navigationIntent: "recommendation",
+      memberNeed: "feature_help", responsePurpose: "feature_only_offer",
+      conciergeDecision: decision, careDisposition: "none", ...extra });
+  }
+  function assertNoAction(result: any) {
+    expect(result.presentation?.destinationId).toBeUndefined();
+    expect(result.presentation?.navigation).toBeUndefined();
+    expect(result.todayPlan.items).toEqual([]);
+    expect(html(result)).not.toContain("<button");
+  }
+
+  test.each(histories.map(history => [history]))(
+    "persists directions without an offer, and honors an explicit opening request with history %#", async history => {
+      (loadBoundedHistory as jest.Mock).mockResolvedValue({ recentMessages: history, rollingContext: null });
+      expect(isNavigationFailureComplaint(input)).toBe(false);
+      expect(acceptsPendingFeature(input)).toBe(false);
+      expect(isUnambiguousChefClosing(input)).toBe(false);
+      recommend(offer);
+      const initial = await run(input);
+      expect(initial.presentation?.message).toBe(verifiedFeatureDirections("fridge_rescue"));
+      expect(initial.presentation?.message).not.toMatch(/Would you like/);
+      expect(initial.presentation?.navigation).toBeUndefined();
+      expect(initial.presentation?.destinationId).toBeUndefined();
+      expect(initial.todayPlan.items).toEqual([]);
+      expect(html(initial)).not.toContain("<button");
+      expect(stored.presentation.navigation).toBeUndefined();
+      expect(await loadPendingRecommendation("owned-conversation", "member")).toBeUndefined();
+      const modelInput = JSON.parse(mockCreate.mock.calls[0][0].messages[1].content);
+      expect(modelInput.latestMemberMessage).toBe(input);
+      expect(modelInput.history).toEqual(history);
+      expect(modelInput.pendingRecommendation).toBeNull();
+      expect(modelInput).not.toHaveProperty("navigationRecoveryContext");
+      // Even poor model wording cannot lose an authorized acceptance.
+      model({ message: filler, conversationMessage: null, navigationIntent: "none",
+        conciergeDecision: null, careDisposition: "none" });
+      const confirmed = await run("Open Fridge Rescue.");
+      expect(mockCreate).toHaveBeenCalledTimes(2);
+      expect(confirmed.presentation?.navigation).toMatchObject({
+        state: "direct_navigation", destinationId: "fridge_rescue",
+      });
+      expect(confirmed.presentation?.destinationId).toBe("fridge_rescue");
+      expect(confirmed.presentation?.message).toBe(verifiedNavigationText("fridge_rescue"));
+      expect(confirmed.presentation?.message).not.toMatch(/^:|feel free|Would you like/i);
+      expect(confirmed.todayPlan.items).toEqual([expect.objectContaining({
+        kind: "use_feature", destinationId: "fridge_rescue", featureTarget: "fridge_rescue",
+      })]);
+      expect(stored.presentation).toEqual(confirmed.presentation);
+      expect(html(confirmed).match(/<button/g)).toHaveLength(1);
+    },
+  );
+
+  test.each([explanation, filler])("gives directions only for a validated workflow despite poor wording: %s", async message => {
+    recommend(message);
+    const initial = await run(input);
+    expect(initial.presentation?.message).toBe(verifiedFeatureDirections("fridge_rescue"));
+    expect(initial.presentation?.message).not.toMatch(/^:|feel free/i);
+    expect(initial.presentation?.navigation).toBeUndefined();
+    expect(initial.todayPlan.items).toEqual([]);
+    expect(stored.presentation.navigation).toBeUndefined();
+  });
+
+  test.each(histories.map(history => [history]))(
+    "rejects filler in canonical and fallback fields without inventing state with history %#", async history => {
+      (loadBoundedHistory as jest.Mock).mockResolvedValue({ recentMessages: history, rollingContext: null });
+      for (const responsePurpose of ["answer", "handoff"]) {
+        model({ message: filler, conversationMessage: filler, responsePurpose,
+          memberNeed: "feature_help", navigationIntent: "none", conciergeDecision: null });
+        const result = await run(input);
+        assertNoAction(result);
+        expect(result.presentation?.message).toContain("Please try your request again");
+        expect(result.presentation?.message).not.toMatch(/^:|feel free/i);
+        expect(stored.presentation).toEqual(result.presentation);
+      }
+    },
+  );
+
+  test("feature prose without structured authority cannot create a pending offer", async () => {
+    model({ message: explanation, conversationMessage: null, navigationIntent: "none", conciergeDecision: null });
+    const initial = await run(input);
+    assertNoAction(initial);
+    expect(initial.presentation?.message).toBe(explanation);
+    model({ message: filler, conversationMessage: null, navigationIntent: "confirmed", conciergeDecision: null });
+    assertNoAction(await run("Yes."));
+  });
+
+  test.each([
+    ["invalid goal", { conciergeDecision: { ...decision, goal: unknown } }],
+    ["unrelated destination", { conciergeDecision: { ...decision, destinationId: "beverage_creator" } }],
+    ["unsafe URL", { message: "Use https://example.test to continue." }],
+    ["premature opening claim", { message: "Opening Fridge Rescue now." }],
+  ])("wording repair does not bypass %s", async (_name, extra) => {
+    recommend(explanation, extra as Record<string, unknown>);
+    assertNoAction(await run(input));
+    expect(stored.presentation.navigation).toBeUndefined();
+  });
+
+  test("unavailable subscription tools cannot be offered or confirmed", async () => {
+    const adapter = (getAdapter as jest.Mock)();
+    adapter.availableTools = adapter.availableTools.filter((tool: any) => tool.id !== "fridge_rescue");
+    recommend(explanation);
+    assertNoAction(await run(input));
+    // Access can also change after a valid offer was stored.
+    stored = { presentation: { kind: "concierge", message: offer, navigation: {
+      state: "recommendation_pending", destinationId: "fridge_rescue", goal,
+      offeredAt: new Date().toISOString(),
+    } } };
+    model({ message: filler, conversationMessage: null, navigationIntent: "none", conciergeDecision: null });
+    assertNoAction(await run("Yes."));
+  });
+
+  test("care escalation wins over an otherwise ready recommendation", async () => {
+    recommend(explanation, { redFlag: true, careDisposition: "emergency",
+      contactCare: "Seek emergency care now." });
+    const result = await run(input);
+    expect(result.meta.redFlag).toBe(true);
+    expect(result.presentation?.navigation).toBeUndefined();
+    expect(result.todayPlan.items.some(item => item.kind === "use_feature")).toBe(false);
+  });
+
+  test("quality screening is whole-message and Development-only", () => {
+    for (const text of [filler, filler.slice(2), "Feel free to ask!", "Let me know if you need anything else."]) {
+      expect(fallbackQuality(text)).toBe("empty_closing");
+      expect(screenOrdinaryConversation(text).reason).toBe("empty_closing");
+      expect(screenConversationalContinuation(text).reason).toBe("empty_closing");
+      expect(selectRejectedConversation({ message: text, conversationMessage: text },
+        value => screenConversationalContinuation(value).text).text).toBeUndefined();
+      expect(screenOrdinaryConversation(text, "production").text).toBe(text);
+    }
+    const substantive = "Fiber supports digestion. Feel free to ask!";
+    expect(screenOrdinaryConversation(substantive).reason).toBe("generic_closing");
+    expect(screenOrdinaryConversation("You're welcome. Take care!").text).toBeDefined();
+    expect(getChefConversationInstructions("development")).toContain("SIMPLE WORKFLOW HELP:");
+    expect(getChefConversationInstructions("production")).not.toContain("INITIAL ACTIVITY HELP:");
+  });
+
+  test("Production does not activate the new wording repair or filler rejection", async () => {
+    process.env.NODE_ENV = "production";
+    recommend(explanation);
+    const initial = await run(input);
+    assertNoAction(initial);
+    expect(initial.presentation?.message).toBe(explanation);
+    model({ message: filler, conversationMessage: null, navigationIntent: "none", conciergeDecision: null });
+    expect((await run(input)).presentation?.message).toBe(filler);
+  });
+});
+
+describe("general reply quality and offer atomicity", () => {
+  const closing = "If you have any more questions or need further assistance, feel free to ask!";
+  const workflows = [
+    { id: "fridge_rescue", input: "I have a bunch of food in my refrigerator and don't know what to make.",
+      explanation: "Fridge Rescue can help you create a meal using ingredients you already have.",
+      label: "Fridge Rescue", goal: { ...unknown, activity: "use_ingredients" } },
+    { id: "dessert_creator", input: "I'd like to make a whole pie.",
+      explanation: "Dessert Creator can help you create a whole pie.",
+      label: "Dessert Creator", goal: { ...unknown, activity: "prepare", occasion: "dessert" } },
+    { id: "beverage_creator", input: "Help me prepare a drink.",
+      explanation: "Beverage Creator can help you prepare a drink.",
+      label: "Beverage Creator", goal: { ...unknown, activity: "prepare", occasion: "beverage" } },
+  ];
+  test.each(workflows.flatMap(workflow => [false, true].map(earlier => ({ ...workflow, earlier }))))(
+    "$id saves directions without a pending offer despite contradictory tags and appended filler; earlier history=$earlier", async workflow => {
+      const history = workflow.earlier ? [
+        { role: "user", content: "What is fiber?" },
+        { role: "assistant", content: "Fiber supports digestion." },
+      ] : [];
+      (loadBoundedHistory as jest.Mock).mockResolvedValue({ recentMessages: history, rollingContext: null });
+      const clean = `${workflow.explanation}\n\nWould you like me to open ${workflow.label}?`;
+      model({ message: `${clean}\n\n${closing}`, conversationMessage: closing,
+        responsePurpose: "answer", memberNeed: "feature_help", navigationIntent: "none",
+        conciergeDecision: { mode: "food_assistance", destinationId: workflow.id, goal: workflow.goal },
+        careDisposition: "none" });
+      const offered = await run(workflow.input);
+      expect(offered.presentation?.message).toBe(verifiedFeatureDirections(workflow.id as any));
+      expect(offered.presentation?.navigation).toBeUndefined();
+      expect(offered.presentation?.destinationId).toBeUndefined();
+      expect(offered.todayPlan.items).toEqual([]);
+      expect(stored.presentation).toEqual(offered.presentation);
+      expect(html(offered)).not.toContain("<button");
+      model({ message: closing, conversationMessage: closing, navigationIntent: "none",
+        conciergeDecision: null, careDisposition: "none" });
+      const accepted = await run(`Open ${workflow.label}.`);
+      expect(accepted.presentation?.destinationId).toBe(workflow.id);
+      expect(accepted.presentation?.navigation?.state).toBe("direct_navigation");
+      expect(accepted.presentation?.message).not.toMatch(/feel free|any more questions/i);
+      expect(accepted.todayPlan.items).toEqual([expect.objectContaining({ destinationId: workflow.id })]);
+      expect(html(accepted).match(/<button/g)).toHaveLength(1);
+      expect(stored.presentation).toEqual(accepted.presentation);
+      expect(mockCreate).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  test("ordinary nutrition guidance and a relevant follow-up survive closing rejection", async () => {
+    const answer = "Fiber supports digestion. Which fiber-rich foods do you already enjoy?";
+    model({ message: `${answer} ${closing}`, conversationMessage: closing,
+      responsePurpose: "answer", memberNeed: "nutrition_guidance", navigationIntent: "none",
+      conciergeDecision: null, careDisposition: "none" });
+    const result = await run("How can I get more fiber?");
+    expect(result.presentation?.message).toBe(answer);
+    expect(stored.presentation.message).toBe(answer);
+    expect(result.presentation?.navigation).toBeUndefined();
+  });
+
+  test("nutrition answer-first offers retain the advice while fixing contradictory tags", async () => {
+    const answer = "Regular meals can help maintain a consistent eating pattern. Fridge Rescue can help use ingredients you have. Would you like me to open Fridge Rescue?";
+    model({ message: `${answer} ${closing}`, conversationMessage: null,
+      responsePurpose: "answer", memberNeed: "nutrition_guidance", navigationIntent: "none",
+      conciergeDecision: { mode: "food_assistance", destinationId: "fridge_rescue", goal: workflows[0].goal } });
+    const result = await run("Help me eat more regularly using ingredients I have.");
+    expect(result.presentation?.message).toBe(answer);
+    expect(result.presentation?.navigation?.state).toBe("recommendation_pending");
+    expect(result.presentation?.destinationId).toBeUndefined();
+  });
+
+  test.each(["Would you like me to open Fridge Rescue?", "Want me to open Fridge Rescue?", "Can I open Fridge Rescue?"])(
+    "missing structured authority cannot persist a nonfunctional opening offer: %s", async message => {
+      model({ message, conversationMessage: closing, responsePurpose: "answer",
+        navigationIntent: "none", conciergeDecision: null });
+      const result = await run(workflows[0].input);
+      expect(result.presentation?.message).not.toContain(message);
+      expect(stored.presentation.navigation).toBeUndefined();
+      expect(result.todayPlan.items).toEqual([]);
+    },
+  );
+
+  test.each([
+    { mode: "food_assistance", destinationId: "fridge_rescue", goal: unknown },
+    { mode: "food_assistance", destinationId: "beverage_creator", goal: workflows[0].goal },
+  ])("an invalid or mismatched goal cannot gain authority from offer prose: %#", async conciergeDecision => {
+    model({ message: `Would you like me to open Fridge Rescue? ${closing}`, conversationMessage: null,
+      responsePurpose: "answer", navigationIntent: "none", conciergeDecision });
+    const result = await run(workflows[0].input);
+    expect(result.presentation?.navigation).toBeUndefined();
+    expect(result.todayPlan.items).toEqual([]);
+  });
+
+  test("normalization cannot grant access to an unavailable destination", async () => {
+    const adapter = (getAdapter as jest.Mock)();
+    adapter.availableTools = adapter.availableTools.filter((tool: any) => tool.id !== "fridge_rescue");
+    model({ message: `Would you like me to open Fridge Rescue? ${closing}`, conversationMessage: null,
+      responsePurpose: "answer", navigationIntent: "none",
+      conciergeDecision: { mode: "food_assistance", destinationId: "fridge_rescue", goal: workflows[0].goal } });
+    const result = await run(workflows[0].input);
+    expect(result.presentation?.navigation).toBeUndefined();
+    expect(result.todayPlan.items).toEqual([]);
+  });
+
+  test("closing projection cannot hide an unsafe link or promote an incompatible destination", async () => {
+    model({ message: `Use https://example.test. Would you like me to open Fridge Rescue? ${closing}`,
+      conversationMessage: null, responsePurpose: "answer", navigationIntent: "none",
+      conciergeDecision: { mode: "food_assistance", destinationId: "fridge_rescue", goal: workflows[0].goal } });
+    const result = await run(workflows[0].input);
+    expect(result.presentation?.message).not.toContain("https://");
+    expect(result.presentation?.navigation).toBeUndefined();
+  });
+
+  test("care remains authoritative while its generic closing is rejected", async () => {
+    model({ message: `Seek emergency care now. ${closing}`, conversationMessage: closing,
+      contactCare: "Do not delay seeking care.", redFlag: true, careDisposition: "emergency",
+      navigationIntent: "recommendation",
+      conciergeDecision: { mode: "food_assistance", destinationId: "fridge_rescue", goal: workflows[0].goal } });
+    const result = await run(workflows[0].input);
+    expect(result.meta.redFlag).toBe(true);
+    expect(result.presentation?.navigation).toBeUndefined();
+    expect(result.todayPlan.items).toEqual([expect.objectContaining({
+      kind: "contact_care", text: expect.stringMatching(/Seek emergency care now.*Do not delay/s),
+    })]);
+    expect(JSON.stringify(result)).not.toContain("feel free");
+  });
+});
 
 const shoppingWorkflows = [
   {
@@ -441,6 +808,16 @@ test.each(["development", "production"])(
         expect(response.presentation?.navigation).toBeUndefined();
         expect(html(response)).not.toContain("<button");
       } else if (index === 2) {
+        if (environment === "development") {
+          expect(response.presentation?.message).toBe(verifiedFeatureDirections("craving_creator"));
+          expect(response.presentation?.navigation).toBeUndefined();
+          expect(stored.presentation.navigation).toBeUndefined();
+          expect(await loadPendingRecommendation("owned-conversation", "member")).toBeUndefined();
+          expect(html(response)).not.toContain("<button");
+          history.push({ role: "user", content: turn.input },
+            { role: "assistant", content: response.presentation?.message ?? "" });
+          continue;
+        }
         expect(response.presentation?.navigation).toMatchObject({
           state: "recommendation_pending", destinationId: "craving_creator", goal: craving,
         });
@@ -449,6 +826,14 @@ test.each(["development", "production"])(
           .toMatchObject({ state: "recommendation_pending", destinationId: "craving_creator" });
         expect(html(response)).not.toContain("<button");
       } else {
+        if (environment === "development") {
+          expect(wire.pendingRecommendation).toBeNull();
+          expect(response.presentation?.destinationId).toBeUndefined();
+          expect(response.presentation?.navigation).toBeUndefined();
+          expect(response.todayPlan.items).toEqual([]);
+          expect(html(response)).not.toContain("<button");
+          continue;
+        }
         expect(wire.pendingRecommendation).toMatchObject({
           state: "recommendation_pending", destinationId: "craving_creator",
         });
@@ -474,24 +859,22 @@ test.each([
   { recommendationMessage: undefined, destinationId: "craving_creator", navigationIntent: "recommendation" },
   { recommendationMessage: null, destinationId: "craving_creator", navigationIntent: "recommendation" },
   { recommendationMessage: null, destinationId: null, navigationIntent: "recommendation" },
-])("ready structured craving goals recover omitted recommendation variants without early consent: %j", async variant => {
+])("ready structured craving goals give directions without creating consent: %j", async variant => {
   model({ navigationIntent: variant.navigationIntent, message: cravingQuestion,
     recommendationMessage: variant.recommendationMessage, conversationMessage: null,
     conciergeDecision: { mode: "food_assistance", destinationId: variant.destinationId, goal: craving } });
   const offer = await run("I want to make a small portion of ice cream.");
-  expect(offer.presentation?.message).toBe(cravingQuestion);
-  expect(offer.presentation?.navigation).toMatchObject({
-    state: "recommendation_pending", destinationId: "craving_creator",
-  });
+  expect(offer.presentation?.message).toBe(verifiedFeatureDirections("craving_creator"));
+  expect(offer.presentation?.navigation).toBeUndefined();
   expect(offer.presentation?.destinationId).toBeUndefined();
   expect(html(offer)).not.toContain("<button");
   model({ navigationIntent: "confirmed", conciergeDecision: null, handoffMessage: null,
     message: cravingHandoff, recommendationMessage: null });
   const confirmed = await run("yes");
-  expect(confirmed.presentation?.destinationId).toBe("craving_creator");
-  expect(confirmed.presentation?.navigation?.state).toBe("navigation_confirmed");
-  expect(confirmed.todayPlan.items[0]).toMatchObject({ kind: "use_feature", destinationId: "craving_creator" });
-  expect(html(confirmed).match(/<button/g)).toHaveLength(1);
+  expect(confirmed.presentation?.destinationId).toBeUndefined();
+  expect(confirmed.presentation?.navigation).toBeUndefined();
+  expect(confirmed.todayPlan.items).toEqual([]);
+  expect(html(confirmed)).not.toContain("<button");
 });
 
 test.each([undefined, null])(
@@ -548,7 +931,8 @@ test("a correction replaces pending intent rather than confirming the old destin
     conciergeDecision: { mode: "food_assistance", destinationId: "dessert_creator", goal: dessert },
     recommendationMessage: "Would you like to use Dessert Creator for that cake?" });
   const result = await run("Actually, help me make a whole cake instead.");
-  expect(result.presentation?.navigation?.destinationId).toBe("dessert_creator");
+  expect(result.presentation?.navigation).toBeUndefined();
+  expect(result.presentation?.message).toBe(verifiedFeatureDirections("dessert_creator"));
   expect(html(result)).not.toContain("<button");
 });
 
@@ -710,11 +1094,13 @@ test("handoff recovery cannot bypass access revoked since the recommendation", a
 });
 
 test("a confirmed destination without reviewed control guidance uses only its existing button label", async () => {
+  process.env.NODE_ENV = "production";
   model({ navigationIntent: "recommendation", conciergeDecision: {
     mode: "food_assistance", destinationId: "sushi_creator",
     goal: { ...unknown, activity: "prepare", specialty: "sushi" },
   }, recommendationMessage: "Would you like to use Sushi Creator?" });
   await run("Help me make sushi.");
+  process.env.NODE_ENV = "development";
   model({ navigationIntent: "confirmed", conciergeDecision: null,
     handoffMessage: null, message: ":)", conversationMessage: null });
   const result = await run("yes");

@@ -64,15 +64,17 @@ test("all 30 retained Development policy paragraphs match their pre-consolidatio
   // navigation/consent, shopping, creator handoff and structured-output contracts.
   const retained = getChefConversationInstructions("development").split("\n")
     .filter(line => !line.startsWith("RESPONSE STRATEGY —") && !line.startsWith("VERIFIED NAVIGATION AUTHORITY:") &&
-      !line.startsWith("CONCISE NAVIGATION CONTRACT:"));
+      !line.startsWith("CONCISE NAVIGATION CONTRACT:") && !line.startsWith("INITIAL ACTIVITY HELP:"));
   expect(retained).toHaveLength(30);
   expect(hash(retained.join("\n"))).toBe("6de21aef592734982e67587ac893ab74b28207f760cf287c3eae23ccb13b9533");
 });
 
-test.each(["production", "test", undefined])("approved instruction bytes are environment-independent for %s", environment => {
+test.each(["production", "test", undefined])("released instruction bytes remain unchanged for %s", environment => {
   expect(hash(getChefConversationInstructions(environment)))
     .toBe("ede377b73cd6111e35727b224508e703a0c78940e80120332f874be6b35da7df");
-  expect(getChefConversationInstructions(environment)).toBe(getChefConversationInstructions("development"));
+  expect(getChefConversationInstructions(environment)).toBe(getChefConversationInstructions("development")
+    .split("\n").filter(line => !line.startsWith("INITIAL ACTIVITY HELP:")).join("\n"));
+  expect(getChefConversationInstructions(environment)).not.toContain("INITIAL ACTIVITY HELP:");
   expect(getChefConversationInstructions(environment)).toContain("Diabetes alone does not select a builder or authorize ignoring carbohydrate limits");
 });
 

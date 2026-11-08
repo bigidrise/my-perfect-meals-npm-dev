@@ -174,12 +174,13 @@ describe("Development conversation purpose and canonical display", () => {
     expect(result.todayPlan.items).toEqual([]);
     expect(result.presentation?.navigation).toBeUndefined();
   });
-  it("allows a feature-only offer for actual feature help", async () => {
+  it("gives practical directions rather than a permission offer for actual feature help", async () => {
     const { result } = await reply({
       ...offer, responsePurpose: "feature_only_offer", memberNeed: "feature_help", message: pitch,
     }, { userMessage: "Which feature can help me make a shake?" });
-    expect(result.presentation?.message).toBe(pitch);
-    expect(result.presentation?.navigation?.state).toBe("recommendation_pending");
+    expect(result.presentation?.message).toContain("Lifestyle → Beverages → Beverage Creator");
+    expect(result.presentation?.navigation).toBeUndefined();
+    expect(result.todayPlan.items).toEqual([]);
   });
   it("supports explicit direct navigation without adding a nutrition lecture", async () => {
     const text = "Describe your drink on the page.";
@@ -256,6 +257,8 @@ describe("Development conversation purpose and canonical display", () => {
     expect(result.presentation?.message).toBe(complete);
     expect(request.messages[0].content).toContain(getChefConversationInstructions("production"));
     expect(request.response_format.json_schema.schema.properties).toHaveProperty("responsePurpose");
-    expect(getChefConversationInstructions("production")).toBe(getChefConversationInstructions("development"));
+    expect(getChefConversationInstructions("production")).not.toContain("SIMPLE WORKFLOW HELP:");
+    expect(getChefConversationInstructions("production")).toContain("ask whether the member wants to go there");
+    expect(getChefConversationInstructions("development")).toContain("SIMPLE WORKFLOW HELP:");
   });
 });

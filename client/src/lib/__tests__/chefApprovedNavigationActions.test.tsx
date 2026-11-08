@@ -2,6 +2,7 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import CoachBubble, { type CoachStructuredResponse } from "@/components/coaching/CoachBubble";
+import { chefNavigationRoute } from "@shared/coaching/creatorRequest";
 
 const mockNavigate = jest.fn((route: string) => window.history.pushState({}, "", route));
 const mockRequest = jest.fn();
@@ -90,3 +91,44 @@ test("a mismatched server route cannot navigate or create a receipt", async () =
   expect(mockNavigate).not.toHaveBeenCalled();
   expect(mockRequest).toHaveBeenCalledTimes(1);
 });
+
+// Exact action structures observed in the audited saved responses. Synthetic
+// timestamps/receipt IDs only; no member identifiers or live calls.
+test.each(["create_a_dish", "fridge_rescue"] as const)(
+  "audited %s contract survives JSON transport and renders one accessible working control", async id => {
+    const dish = id === "create_a_dish";
+    const creatorRequest = dish ? { idea: "sandwich", destinationId: "create_a_dish" as const } : undefined;
+    const message = `You can find it under Lifestyle → ${dish ? "Create a Dish" : "Fridge Rescue"}.`;
+    const response = JSON.parse(JSON.stringify({
+      presentation: { kind: "concierge", message, destinationId: id,
+        navigation: { state: dish ? "navigation_confirmed" : "direct_navigation", destinationId: id,
+          offeredAt: "2026-11-07T16:39:19.263Z",
+          goal: { activity: dish ? "prepare" : "unknown", occasion: dish ? "meal" : "unknown",
+            specialty: "none", dishChosen: dish, restaurant: "unknown", explicitFeatureId: dish ? null : id } },
+        ...(creatorRequest ? { creatorRequest } : {}) },
+      whatIFound: message, whatItCouldMean: "", learningOpportunity: null,
+      todayPlan: { why: "", successMetric: "", nextCheckIn: "", items: [{
+        kind: "use_feature", text: "Open the recommended feature", horizon: "today",
+        destinationId: id, featureTarget: id,
+      }] },
+    }));
+    const route = chefNavigationRoute(id, creatorRequest);
+    mockRequest.mockImplementation(async url => url.endsWith("/performed")
+      ? { recorded: true } : { destinationId: id, route });
+    act(() => root.render(<CoachBubble structured={response} enableConcierge
+      messageId="11111111-1111-4111-8111-111111111111" />));
+    const buttons = host.querySelectorAll("button");
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0].textContent).toBe(`Open ${dish ? "Create a Dish" : "Fridge Rescue"}`);
+    expect(buttons[0].type).toBe("button");
+    expect(buttons[0].disabled).toBe(false);
+    expect(mockRequest).not.toHaveBeenCalled();
+    await act(async () => { buttons[0].click(); });
+    expect(mockRequest.mock.calls[0]).toEqual(["/api/coach/navigation", expect.objectContaining({
+      body: JSON.stringify({ destinationId: id, ...(creatorRequest ? { creatorRequest } : {}) }),
+    })]);
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith(route);
+    expect(mockRequest.mock.calls[1][0]).toBe("/api/coach/navigation/performed");
+  },
+);

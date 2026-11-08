@@ -1,6 +1,9 @@
+import { containsGenericClosing, isGenericClosingSentence } from "./replyQuality";
+
 /** Development response-quality screening only: never user-intent or consent routing. */
-export type FallbackQuality = "useful" | "placeholder" | "acknowledgment";
-export function fallbackQuality(text: string | null | undefined): FallbackQuality {
+export type FallbackQuality = "useful" | "placeholder" | "acknowledgment" | "empty_closing" | "generic_closing";
+export function fallbackQuality(text: string | null | undefined,
+  environment: string | undefined = process.env.NODE_ENV): FallbackQuality {
   // Assess the prose, without modifying the actual candidate or stripping an
   // unsafe clause before the caller's whole-message safety screen.
   const prose = (text ?? "").normalize("NFKC").replace(/:[a-z0-9_+-]+:/gi, " ")
@@ -8,6 +11,10 @@ export function fallbackQuality(text: string | null | undefined): FallbackQualit
   if (!/[\p{L}\p{N}]/u.test(prose)) return "placeholder";
   if (/^[A-Z0-9]+(?:_[A-Z0-9]+)+$/.test(prose.trim())) return "placeholder";
   const words = prose.toLocaleLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
+  if (environment === "development") {
+    if (isGenericClosingSentence(prose)) return "empty_closing";
+    if (containsGenericClosing(prose)) return "generic_closing";
+  }
   const acknowledgments = /^(?:(?:yes|yeah|yep|ok|okay|sure|absolutely|certainly|great|perfect|wonderful|awesome|excellent|nice|indeed|thanks|thank you|got it|understood|i understand|no problem|you re welcome|happy to help|glad to help|i can help(?: with that)?|sounds (?:good|great|delicious|like (?:a )?(?:delicious|good|great|wonderful|perfect) (?:plan|idea))|that sounds (?:good|great|delicious)|(?:that s )?(?:a )?(?:great|good|delicious) (?:choice|plan|idea)|none|null|undefined|n a)\s*)+$/u;
   return acknowledgments.test(words) ? "acknowledgment" : "useful";
 }

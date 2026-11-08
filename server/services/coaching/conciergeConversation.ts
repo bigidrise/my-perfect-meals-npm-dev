@@ -9,7 +9,7 @@ import { validateConciergeGoal } from "./conciergeGoal";
 import { CHEF_CONCIERGE_REVISION, getChefConversationInstructions } from "./conciergeInstructions";
 import { inspectConversationPurpose, MemberNeedSchema, ResponsePurposeSchema, responseFieldMetrics,
   responseContractIndicators, navigationEmissionIndicators } from "./conversationPurpose";
-import { selectRejectedConversation, HANDOFF_RECOVERY, CONVERSATION_RECOVERY, MISSING_PENDING_RECOVERY } from "./conciergeFallback";
+import { fallbackQuality, selectRejectedConversation, HANDOFF_RECOVERY, CONVERSATION_RECOVERY, MISSING_PENDING_RECOVERY } from "./conciergeFallback";
 import { navigationPermissionQuestion, screenIndependentConversation, screenOrdinaryConversation, screenConversationalContinuation,
   type ReplyScreenReason } from "./conciergeReplyScreening";
 import { buildSafetyResponse } from "./safety";
@@ -21,8 +21,12 @@ import type { ChefCreatorRequest } from "../../../shared/coaching/creatorRequest
 import { getDevelopmentPlatformKnowledge, getPlatformGuidanceInstructions } from "./platformKnowledge";
 import type { PendingRecommendation } from "./conciergeNavigationState";
 import { explicitNavigationRequest, navigationDestinationQuestion, acceptsPendingFeature, navigationGoal,
-  verifiedDiabeticBuilderExplanation, verifiedNavigationText } from "./verifiedNavigation";
+  verifiedDiabeticBuilderExplanation, verifiedNavigationText, namedFeatureSelection,
+  verifiedFeatureDirections } from "./verifiedNavigation";
 import { verifiedNavigationOffer } from "../../../shared/coaching/navigationGuidance";
+import {
+  NAVIGATION_RECOVERY_WINDOW_MS, isNavigationFailureComplaint, complaintMatchesDestination,
+} from "./navigationRecovery";
 import {
   NAVIGATION_CONTINUITY_INSTRUCTIONS, PendingNavigationDispositionSchema,
   pendingNavigationIsFresh, retainInformationalOffer,
@@ -37,6 +41,7 @@ import {
   ChefFoodDeclarationsSchema, CHEF_FOOD_COMPATIBILITY_INSTRUCTIONS,
   inspectChefFoodDeclarations, chefFoodCheckNotice, projectChefFoodEducation,
 } from "./foodCompatibility";
+import { projectUsefulReply } from "./replyQuality";
 
 const TurnSchema = ConciergeMessageSchema.extend({
   // Semantic consent is separate from choosing a suitable food destination.
@@ -135,6 +140,8 @@ export async function runConciergeConversation(params: {
   preferredLanguage?: string;
   pendingRecommendation?: PendingRecommendation;
   navigationContext?: PendingRecommendation;
+  /** Bounded owner-scoped context only. Never counts as pending consent. */
+  navigationRecoveryContext?: PendingRecommendation;
   knowledgeAccess?: ChefKnowledgeAccess;
   featureScreenContext?: FeatureScreenContext;
   requestId?: string;
@@ -220,6 +227,20 @@ export async function runConciergeConversation(params: {
       );
       if (retained && response.presentation) response.presentation.navigation = retained;
     }
+    if (developmentDiagnostics && !response.meta.redFlag && response.presentation &&
+      navigationPermissionQuestion(response.presentation.message)) {
+      const pending = response.presentation.navigation;
+      if (!pending || pending.state !== "recommendation_pending" ||
+        !pendingNavigationIsFresh(pending.offeredAt) ||
+        !params.tools.some(tool => tool.id === pending.destinationId) ||
+        !independentConversation(response.presentation.message, pending.destinationId)) {
+        // A permission-shaped explanation is not a completed offer. Never save
+        // visible opening permission without its validated structured state.
+        selectedField = "retry";
+        diagnostic("offer_rejected_without_pending_state");
+        response = envelope(HANDOFF_RECOVERY);
+      }
+    }
     if (foodCompatibilityRequired) {
       const check = inspectChefFoodDeclarations(foodDeclarations, selectedField, params.context);
       if (check.status === "blocked" || check.status === "unavailable") {
@@ -298,13 +319,31 @@ export async function runConciergeConversation(params: {
     if (turn.redFlag || classifiedCare || requiredCare) {
       selectedField = "care";
       diagnostic("safety_rejected_navigation", "safety_escalation");
+      const suggested = turn.contactCare
+        ? [...new Set([turn.message, turn.contactCare].filter(Boolean))].join("\n\n")
+        : turn.redFlagReason ?? turn.message ?? undefined;
+      // Classify care BEFORE quality projection; even a filler-only care field
+      // must not disable an unclassified referral or independent red flag.
+      const careText = developmentDiagnostics && suggested
+        ? projectUsefulReply(suggested).text || undefined : suggested;
       return finish(buildSafetyResponse({
         triggered: true, class: turn.careDisposition === "emergency" ? "emergency" : "escalate",
         reason: "concierge_care_escalation",
-        suggestedResponse: turn.contactCare
-          ? [...new Set([turn.message, turn.contactCare].filter(Boolean))].join("\n\n")
-          : turn.redFlagReason ?? turn.message ?? undefined,
+        suggestedResponse: careText,
       }) as CoachResponse);
+    }
+    if (developmentDiagnostics) {
+      // Reject only complete generic closing sentences. Preserve all useful
+      // prose and its original field-bound food evidence for normal validation.
+      let rejectedClosings = 0;
+      for (const field of ["message", "conversationMessage", "recommendationMessage", "handoffMessage"] as const) {
+        const original = turn[field];
+        if (!original) continue;
+        const projected = projectUsefulReply(original);
+        rejectedClosings += projected.rejectedClosings;
+        turn[field] = projected.text || undefined;
+      }
+      if (rejectedClosings) console.info(`[ChefConcierge] quality_closings_rejected=${rejectedClosings}${correlation}`);
     }
     // Whole named requests bind reviewed UI records AFTER model/input care gates.
     // Educational and ordinary food/clinical questions never become consent.
@@ -315,6 +354,10 @@ export async function runConciergeConversation(params: {
     }
     const questionDestination = navigationDestinationQuestion(params.userMessage);
     if (questionDestination && params.tools.some(tool => tool.id === questionDestination)) {
+      if (developmentDiagnostics) {
+        selectedField = "verified_destination_directions";
+        return finish(envelope(verifiedFeatureDirections(questionDestination)));
+      }
       selectedField = "verified_destination_offer";
       const response = envelope(verifiedNavigationOffer(questionDestination));
       response.presentation!.navigation = {
@@ -323,9 +366,47 @@ export async function runConciergeConversation(params: {
       };
       return finish(response);
     }
-    const namedRequest = explicitNavigationRequest(params.userMessage);
+    const namedRequest = explicitNavigationRequest(params.userMessage) ??
+      (developmentDiagnostics ? namedFeatureSelection(params.userMessage) : undefined);
     const boundNamedRequest = namedRequest && params.tools.some(tool => tool.id === namedRequest)
       ? namedRequest : undefined;
+    if (process.env.NODE_ENV === "development" && !boundNamedRequest && !namedRequest) {
+      const complaint = isNavigationFailureComplaint(params.userMessage);
+      const recovery = params.navigationRecoveryContext;
+      const age = recovery?.offeredAt ? Date.now() - Date.parse(recovery.offeredAt) : NaN;
+      const eligible = recovery && !recovery.performedAt && Number.isFinite(age) &&
+        age >= 0 && age < NAVIGATION_RECOVERY_WINDOW_MS &&
+        params.tools.some(tool => tool.id === recovery.destinationId) &&
+        validateConciergeGoal({
+          mode: "food_assistance", destinationId: recovery.destinationId, goal: recovery.goal,
+        }, params.tools, memberMessages, {
+          // Revalidate the server-loaded goal/name evidence, NOT current consent.
+          acceptedPendingRecommendation: true,
+        })?.destinationId === recovery.destinationId;
+      const renewExpired = eligible && !pendingNavigationIsFresh(recovery.offeredAt) &&
+        acceptsPendingFeature(params.userMessage);
+      if (renewExpired || (eligible && complaintMatchesDestination(params.userMessage, recovery.destinationId))) {
+        // Previously authorized, still-fresh actions can be displayed again after
+        // a failed handoff. Expired actions ALWAYS need a new confirmation.
+        const restoreAction = pendingNavigationIsFresh(recovery.offeredAt) &&
+          recovery.state !== "recommendation_pending";
+        const response = restoreAction
+          ? envelope(verifiedNavigationText(recovery.destinationId), recovery.destinationId)
+          : envelope(`${renewExpired ? "That earlier confirmation window has expired. " : ""}${verifiedNavigationOffer(recovery.destinationId)}`);
+        response.presentation!.navigation = restoreAction ? recovery : {
+          ...recovery, state: "recommendation_pending",
+          offeredAt: pendingNavigationIsFresh(recovery.offeredAt) ? recovery.offeredAt : new Date().toISOString(),
+        };
+        selectedField = "verified_navigation_recovery";
+        diagnostic(restoreAction ? "handoff_restored" : "navigation_confirmation_requested");
+        return finish(response);
+      }
+      if (complaint) {
+        // No valid matching context: don't guess from a complaint or search prose.
+        selectedField = "unresolved_handoff_recovery";
+        return finish(envelope("I couldn't complete that handoff. Which feature would you like to open?"));
+      }
+    }
     const acceptedStoredOffer = !namedRequest && params.pendingRecommendation &&
       isConfirmableNavigation(params.pendingRecommendation) && acceptsPendingFeature(params.userMessage);
     if (boundNamedRequest || acceptedStoredOffer) {
@@ -361,6 +442,45 @@ export async function runConciergeConversation(params: {
       return finish(envelope(chefClosingAcknowledgement(params.preferredLanguage)));
     }
     stage = "decision";
+    if (developmentDiagnostics && !boundNamedRequest && !acceptedStoredOffer &&
+      turn.memberNeed === "feature_help" &&
+      (inspectConversationPurpose(turn).valid ||
+        (turn.navigationIntent === "none" && ["answer", "clarify"].includes(String(turn.responsePurpose))))) {
+      const proposed = ConciergeDecisionSchema.safeParse(turn.conciergeDecision);
+      const verified = proposed.success && proposed.data.mode === "food_assistance"
+        ? validateConciergeGoal(proposed.data, params.tools, memberMessages, { completeMissingDestination: true })
+        : undefined;
+      if (verified?.destinationId && verified.goal &&
+        ["prepare", "use_ingredients"].includes(verified.goal.activity) &&
+        (!turn.message || independentConversation(turn.message, verified.destinationId))) {
+        // A clear food-workflow need warrants practical entry directions, not
+        // a sales pitch, permission loop, pending offer or automatic open card.
+        // Suitability still comes from the existing structured goal/access gate.
+        selectedField = "verified_destination_directions";
+        diagnostic("workflow_directions");
+        return finish(envelope(verifiedFeatureDirections(verified.destinationId)));
+      }
+    }
+    if (developmentDiagnostics && !boundNamedRequest && !acceptedStoredOffer &&
+      turn.navigationIntent === "none" &&
+      ["answer", "clarify"].includes(String(turn.responsePurpose)) &&
+      ["feature_help", "nutrition_guidance"].includes(String(turn.memberNeed)) &&
+      turn.message && navigationPermissionQuestion(turn.message)) {
+      const proposed = ConciergeDecisionSchema.safeParse(turn.conciergeDecision);
+      const verified = proposed.success && proposed.data.mode === "food_assistance"
+        ? validateConciergeGoal(proposed.data, params.tools, memberMessages, { completeMissingDestination: true })
+        : undefined;
+      if (verified?.destinationId &&
+        mentionsCoachDestination(turn.message, verified.destinationId, process.env.NODE_ENV) &&
+        independentConversation(turn.message, verified.destinationId)) {
+        // Correct contradictory offer tags, never infer a goal from prose or
+        // grant consent. The existing recommendation screen still owns wording.
+        turn.conciergeDecision = verified;
+        turn.navigationIntent = "recommendation";
+        turn.responsePurpose = turn.memberNeed === "nutrition_guidance" ? "answer_with_offer" : "feature_only_offer";
+        diagnostic("recommendation_metadata_repaired");
+      }
+    }
     pendingDisposition = turn.pendingNavigationDisposition;
     const acceptingPending = turn.navigationIntent === "confirmed" && params.pendingRecommendation;
     if (developmentPurpose) {
@@ -454,10 +574,13 @@ export async function runConciergeConversation(params: {
     }
     const confirmed = !!acceptingPending && acceptingPending.destinationId === destinationId &&
       !!independentConversation(params.userMessage, destinationId);
-    // This is evidence binding, not a keyword router: the model still interprets
-    // request vs mention/negation. An unnamed assistance request cannot qualify
-    // for the explicit-feature exception, regardless of the model's intent tag.
+    // Whole named choices bind immediately; preserve natural explicit requests
+    // with qualifiers while refusing to treat informational/negative mentions
+    // as consent merely because the model supplied a direct-request tag.
+    const informationalMention = /[?？؟]|^\s*(?:what|how|why|where|when|which|explain|describe|tell me about)\b|\b(?:don't|do not|not interested)\b/iu
+      .test(params.userMessage);
     const direct = boundNamedRequest === destinationId || (turn.navigationIntent === "direct_request" &&
+      (!developmentDiagnostics || !informationalMention) &&
       decision.goal.explicitFeatureId === destinationId &&
       mentionsCoachDestination(params.userMessage, destinationId, process.env.NODE_ENV,
         params.navigationContext?.destinationId) &&
@@ -477,9 +600,27 @@ export async function runConciergeConversation(params: {
       // Preserve a naturally brief offer; replace explanations, not every
       // acceptable wording. Never truncate clinical or nutrition guidance.
       const offerTooLong = !turn.message || turn.message.trim().split(/\s+/u).length > 40 ||
-        /\n\s*\n/u.test(turn.message);
-      const candidates = conciseOffer && offerTooLong ? [verifiedNavigationOffer(destinationId)] : developmentPurpose ? [turn.message] :
+        (!developmentDiagnostics && /\n\s*\n/u.test(turn.message));
+      // A paragraph break alone must not replace a natural, brief explanation
+      // plus permission question with location-only boilerplate.
+      const shorten = conciseOffer && offerTooLong;
+      let candidates = shorten ? [verifiedNavigationOffer(destinationId)] : developmentPurpose ? [turn.message] :
         [turn.recommendationMessage, turn.message, turn.conversationMessage];
+      // Repair wording only after purpose, goal, destination and tool eligibility
+      // validation. Never infer a destination from prose, repair unsafe text,
+      // replace nutrition advice or turn an ordinary answer into an offer.
+      if (process.env.NODE_ENV === "development" &&
+        turn.responsePurpose === "feature_only_offer" && turn.navigationIntent === "recommendation" &&
+        (!turn.message || !/[?？؟]/u.test(turn.message))) {
+        const explanation = !/\b(?:opening|launching|navigating|redirecting|transferring|going to|go to)\b/i.test(turn.message ?? "")
+          ? conversationalContinuation(turn.message) : undefined;
+        const empty = !turn.message || fallbackQuality(turn.message) === "empty_closing";
+        if (explanation || empty) {
+          candidates = [explanation
+            ? `${explanation}\n\n${verifiedNavigationOffer(destinationId)}`
+            : verifiedNavigationOffer(destinationId)];
+        }
+      }
       const recommendation = candidates
         .map((text, index) => ({ text: independentConversation(text, destinationId), dedicated: index === 0 }))
         .find(({ text, dedicated }) => {

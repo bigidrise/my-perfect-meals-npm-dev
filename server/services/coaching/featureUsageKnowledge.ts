@@ -363,6 +363,9 @@ export function getFeatureUsageKnowledge(environment: string | undefined) {
     ...FEATURE_USAGE_KNOWLEDGE.meal_builders!,
     descriptionInput: "Open your assigned builder from the Meal Builders landing page.",
     controls: ["Open your assigned builder; existing eligibility and setup rules still apply.",
+      ...(environment === "development" ? [
+        "Watch Builder Tutorial at the top of the assigned builder for a walkthrough. Remind the member on every builder handoff; this is separate from a Hub Tutorial.",
+      ] : []),
       "Inside the member's builder, choose a day and desired Meal 1–6 slot, then use that slot's Create With Chef controls.",
       "Continue creating meals in additional slots. Save Plan saves the board."],
     generationAction: "Use the existing Open Meal Builders button to open the landing page, then open your assigned builder, choose a day and meal slot, and select Create With Chef.",

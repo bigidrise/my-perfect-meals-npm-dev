@@ -32,11 +32,15 @@ explicitly. Synthetic live observations and deterministic tests establish
 different kinds of evidence; never present mocked tests as proof of natural
 conversation quality.
 
-An explicit named selection of Meal Builder or Meal Builders authorizes the
-normal validated handoff; generic meal-preparation language does not.
+A named feature selection, including a bare feature label, gets the existing
+validated direct handoff and Open button immediately in Development. This applies
+to EVERY approved available feature, not just Fridge Rescue or food creators.
+Questions about a feature are different: answer them rather than automatically
+navigating. Mere incidental mentions, comparisons and negations are not selections.
 
-**Why:** The user approved correcting repeated explanations and permission
-loops after the customer has already selected the workflow.
+**Why:** The founder corrected the directions-only misunderstanding and explicitly
+asked where the Open Fridge Rescue button went. Naming a feature as their choice
+should get them there, without a pitch or another permission question.
 
 **How to apply:** Distinguish advance planning, preparing a specific dish and
 shopping when intent is ambiguous. Do not ask another exploratory or permission
@@ -54,6 +58,20 @@ unrelated navigation. Text history alone cannot establish current permission.
 topic/destination changes or incompatible safety, and use current structured
 state rather than searching older prose for consent. Missing or invalid
 continuity classifications fail closed.
+
+Expired offers may supply bounded, owner-scoped recovery context, never current
+authorization. Renew with a fresh confirmation; do not extend or remove the
+existing authorization timeout. Failed-handoff filler must not stand in for
+task completion.
+
+**Why:** The founder approved targeted Development recovery after a saved
+exchange showed valid offer state but acceptance hours later. Conversational
+adjacency did not mean the offer was still authorized.
+
+**How to apply:** Keep rejection, unrelated turns, superseding destinations,
+performed navigation and safety events as recovery barriers. A valid saved
+action plus directions does not prove a historical browser rendered its button;
+test transport/rendering separately rather than rewriting action generation.
 
 Ask Chef must not require repeated confirmation for the same destination.
 Feature-opening offers must carry a validated pending recommendation before display;
@@ -96,6 +114,25 @@ alone does not prove that a response carries an authorized action.
 **How to apply:** Base recovery on existing structured goal/access validation.
 Verify saved pending state, first acceptance and the real rendered control—not
 just natural-sounding handoff text.
+
+For a clear food-workflow request, give concise verified entry directions and the
+essential starting step, not a benefit pitch, an opening card or a permission
+exchange. A named feature selection instead gets its direct Open action with
+brief guidance immediately; questions about the feature remain answers, and
+where-to-find questions receive location guidance. Explicit opening requests
+and acceptance of already-valid pending offers retain their authorized handoffs.
+
+**Why:** The founder rejected the forced offer/confirmation exchange and asked
+for simple practical help: refrigerator ingredient-use needs should point to
+Fridge Rescue, entering the available food and generating a meal; shake needs
+should get the appropriate beverage workflow, not more unnecessary conversation.
+
+**How to apply:** Keep corrections Development-only until separately approved.
+Do not invent a destination or pending authority from feature names in prose.
+Interpret the actual task, not isolated refrigerator or shake keywords; unrelated
+repair, safety or educational questions must not trigger a food-workflow route.
+Mocked persistence and rendering checks do not establish live model compliance;
+paid model acceptance needs separate permission.
 
 Nutrition coaching must remain independent of feature suitability. A valid
 feature proposal is not evidence that the member's nutrition question was
@@ -223,6 +260,32 @@ directions instead.
 without changing navigation authority or borrowing controls from another
 creator. Keep necessary safety guidance and requests to skip instructions.
 Mocked fixtures prove wiring and contracts, not live stylistic compliance.
+
+Every Meal Builder handoff must remind the member to watch the Builder Tutorial
+at the top of their assigned builder, even when other starting instructions are
+omitted. Keep brief practical instructions for Fridge Rescue, including entering
+ingredients; omit generic closing invitations, including those appended to help.
+
+This is an enforced quality requirement across Chef replies, not just an
+instruction about handoff style. Reject complete, task-empty closing sentences
+whether standalone or appended, while retaining useful answers, relevant
+follow-up questions and necessary safety guidance. Do not delete arbitrary
+clauses or punctuation, or treat a generic invitation as a reason to drop care.
+
+**Why:** The founder wants the existing builder videos used consistently and
+explicitly distinguishes useful starting instructions from unnecessary sign-offs.
+The founder repeated that prompt instructions alone had not reliably stopped
+customer-service closings and explicitly requested backend enforcement.
+
+**How to apply:** Keep this refinement Development-only until released separately.
+Do not substitute a Hub Tutorial, infer a clinical builder assignment or add
+another permission question. The brief builder reminder is the exception to
+omitting tutorials when other instructions are skipped.
+
+Displayed feature-opening offers must have matching validated pending state.
+Correcting contradictory ordinary-answer tags is allowed only with an already
+structured, ready goal and eligible matching destination; missing authority must
+remain fail-closed rather than being reconstructed from a feature name in prose.
 
 For uncertain new members, distinguish planning a day of meals, making one dish
 and exploring Lifestyle. Only when meal planning is chosen and its method remains
