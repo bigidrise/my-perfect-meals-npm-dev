@@ -8,7 +8,7 @@ import { db } from "../db";
 import { isConfirmableNavigation, PENDING_NAVIGATION_TTL_MS } from "../services/coaching/conciergeNavigationContinuity";
 import type { PendingRecommendation } from "../services/coaching/conciergeNavigationState";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
-import { verifiedNavigationText } from "../../shared/coaching/navigationGuidance";
+import { verifiedNavigationText } from "../services/coaching/verifiedNavigation";
 
 const originalEnvironment = process.env.NODE_ENV;
 const goal = { activity: "prepare" as const, occasion: "beverage" as const,

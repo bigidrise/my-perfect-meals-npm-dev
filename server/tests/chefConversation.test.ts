@@ -19,7 +19,7 @@ import { extractAndPersistMemories } from "../services/coaching/memoryExtractor"
 import { getCapabilitiesForUser, getCornerCapabilities } from "../services/coaching/capabilityRegistry";
 import { getDevelopmentPlatformKnowledge } from "../services/coaching/platformKnowledge";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
-import { verifiedNavigationText } from "../../shared/coaching/navigationGuidance";
+import { verifiedNavigationText } from "../services/coaching/verifiedNavigation";
 import { validateConciergeGoal } from "../services/coaching/conciergeGoal";
 import { PgDialect } from "drizzle-orm/pg-core";
 

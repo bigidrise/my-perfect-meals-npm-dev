@@ -2,8 +2,8 @@ jest.mock("../db", () => ({ db: { execute: jest.fn(() => { throw new Error("Unex
 import { runConciergeConversation } from "../services/coaching/conciergeConversation";
 import { getCornerCapabilities } from "../services/coaching/capabilityRegistry";
 import { COACH_DESTINATIONS, type CoachDestinationId } from "../../shared/coaching/navigation";
-import { COACH_NAVIGATION_GUIDANCE, verifiedNavigationOffer, verifiedNavigationText } from "../../shared/coaching/navigationGuidance";
-import { explicitNavigationRequest, navigationDestinationQuestion } from "../services/coaching/verifiedNavigation";
+import { COACH_NAVIGATION_GUIDANCE, verifiedNavigationOffer } from "../../shared/coaching/navigationGuidance";
+import { explicitNavigationRequest, navigationDestinationQuestion, verifiedNavigationText } from "../services/coaching/verifiedNavigation";
 import type { PendingRecommendation } from "../services/coaching/conciergeNavigationState";
 
 const environment = process.env.NODE_ENV;

@@ -18,7 +18,7 @@ import { getAdapter } from "../services/coaching/adapters";
 import { loadBoundedHistory } from "../services/coaching/conversationSummarizer";
 import { getCornerCapabilities } from "../services/coaching/capabilityRegistry";
 import { loadPendingRecommendation } from "../services/coaching/conciergeNavigationState";
-import { verifiedNavigationText } from "../../shared/coaching/navigationGuidance";
+import { verifiedNavigationText } from "../services/coaching/verifiedNavigation";
 import CoachBubble from "../../client/src/components/coaching/CoachBubble";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
 import { FEATURE_USAGE_KNOWLEDGE } from "../services/coaching/featureUsageKnowledge";
@@ -239,6 +239,53 @@ function model(extra: Record<string, any> = {}) {
     ...extra,
   }) } }] });
 }
+
+test.each(["Open Meal Builder", "Open Diabetic Meal Builder"])(
+  "%s includes the assigned builder tutorial reminder without a sign-off", async input => {
+    builderTurn("direct_request", "Opening your builder. If you need more help, feel free to ask!");
+    const result = await run(input);
+    expect(result.presentation?.destinationId).toBe("meal_builders");
+    expect(result.presentation?.message).toContain("builder available to your account");
+    expect(result.presentation?.message).toContain("Watch the Builder Tutorial video at the top of your builder");
+    expect(result.presentation?.message).toContain("follow the builder's steps to create your meals");
+    expect(result.presentation?.message).not.toMatch(/feel free|further assistance|any.*questions|Hub Tutorial/i);
+    expect(result.todayPlan.items).toEqual([expect.objectContaining({ destinationId: "meal_builders" })]);
+    expect(html(result).match(/<button/g)).toHaveLength(1);
+    expect(stored.presentation).toEqual(result.presentation);
+  },
+);
+
+test("every repeated builder handoff retains the tutorial reminder, including when other instructions are skipped", async () => {
+  builderTurn("recommendation", "Meal Builders can help you plan your meals. Would you like to use it?");
+  await run("Help me plan meals ahead.");
+  for (const input of ["Yes.", "Open Meal Builder", "Open Meal Builder without instructions"]) {
+    builderTurn(input === "Yes." ? "confirmed" : "direct_request", "Use the builder.");
+    const result = await run(input);
+    expect(result.presentation?.destinationId).toBe("meal_builders");
+    expect(result.presentation?.message?.match(/Builder Tutorial/g)).toHaveLength(1);
+    expect(result.presentation?.message).not.toMatch(/feel free|Would you like/i);
+    expect(result.todayPlan.items).toHaveLength(1);
+  }
+});
+
+test("Fridge Rescue handoff preserves brief ingredient instructions and omits model-authored closing filler", async () => {
+  model({ message: "Enter your ingredients. If you have any more questions, feel free to ask!",
+    handoffMessage: "If you need further assistance, feel free to ask!", navigationIntent: "none",
+    conciergeDecision: null });
+  const result = await run("I want to use Fridge Rescue");
+  expect(result.presentation?.destinationId).toBe("fridge_rescue");
+  expect(result.presentation?.message).toContain("Lifestyle → Fridge Rescue");
+  expect(result.presentation?.message).toContain("Enter the ingredients you already have");
+  expect(result.presentation?.message).not.toMatch(/feel free|further assistance|any.*questions/i);
+  expect(html(result).match(/<button/g)).toHaveLength(1);
+});
+
+test("new handoff instructions and tutorial reminders leave released Production text unchanged", () => {
+  process.env.NODE_ENV = "production";
+  expect(verifiedNavigationText("fridge_rescue")).toBe("You can find it under Lifestyle → Fridge Rescue.");
+  expect(verifiedNavigationText("meal_builders")).toBe("You can find it under Meal Builders. Choose the builder available to your account.");
+  expect(verifiedNavigationText("meal_builders", false)).toBe("Use the Open Meal Builders button.");
+});
 
 test("Development engine loads expired context, persists a fresh offer, then confirms it on the next yes", async () => {
   const originalExecute = (db.execute as jest.Mock).getMockImplementation()!;

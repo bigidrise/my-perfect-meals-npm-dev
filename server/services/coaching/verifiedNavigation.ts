@@ -1,5 +1,5 @@
 import { type CoachDestinationId } from "../../../shared/coaching/navigation";
-import { COACH_NAVIGATION_GUIDANCE, DIABETIC_BUILDER_EXPLANATION, verifiedNavigationText } from "../../../shared/coaching/navigationGuidance";
+import { COACH_NAVIGATION_GUIDANCE, DIABETIC_BUILDER_EXPLANATION, verifiedNavigationText as releasedNavigationText } from "../../../shared/coaching/navigationGuidance";
 import type { ConciergeGoal } from "../../../shared/coaching/schemas";
 
 const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -62,4 +62,17 @@ export function verifiedDiabeticBuilderExplanation(message: string): string | un
     ? DIABETIC_BUILDER_EXPLANATION : undefined;
 }
 
-export { verifiedNavigationText };
+/** Development guidance only; routes, consent and eligibility are unchanged. */
+export function verifiedNavigationText(id: CoachDestinationId, includeStartingSteps = true): string {
+  const entry = releasedNavigationText(id, includeStartingSteps);
+  if (process.env.NODE_ENV !== "development") return entry;
+  if (id === "meal_builders") {
+    // The founder requires this reminder on every builder handoff, even when
+    // other starting instructions are omitted. Do not link a hub-only tutorial.
+    return `${entry} Watch the Builder Tutorial video at the top of your builder for a walkthrough, then follow the builder's steps to create your meals.`;
+  }
+  if (id === "fridge_rescue" && includeStartingSteps) {
+    return `${entry} Enter the ingredients you already have, then follow the page's steps to create a meal.`;
+  }
+  return entry;
+}

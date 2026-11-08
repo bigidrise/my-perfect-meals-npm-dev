@@ -4,7 +4,7 @@ import { runConciergeConversation } from "../services/coaching/conciergeConversa
 import { CHEF_CONVERSATION_INSTRUCTIONS, getChefConversationInstructions } from "../services/coaching/conciergeInstructions";
 import { FEATURE_USAGE_KNOWLEDGE, getFeatureUsageKnowledge } from "../services/coaching/featureUsageKnowledge";
 import { COACH_DESTINATIONS } from "../../shared/coaching/navigation";
-import { verifiedNavigationText } from "../../shared/coaching/navigationGuidance";
+import { verifiedNavigationText } from "../services/coaching/verifiedNavigation";
 
 const environment = process.env.NODE_ENV;
 beforeEach(() => { process.env.NODE_ENV = "development"; });
@@ -56,8 +56,19 @@ test("Development creator facts match actual distinct controls without changing 
   expect(usage.create_a_dish?.controls.join(" ")).toContain("diet and cuisine overrides");
   expect(usage.create_a_dish?.controls.join(" ")).toContain("Stovetop and Oven");
   expect(usage.create_a_dish?.generationAction).toContain("Create My Dish");
-  expect(getFeatureUsageKnowledge("production")).toEqual(getFeatureUsageKnowledge("development"));
-  expect(getChefConversationInstructions("production")).toBe(getChefConversationInstructions("development"));
+  const developmentUsage = getFeatureUsageKnowledge("development");
+  expect(developmentUsage.meal_builders?.controls.join(" ")).toContain("Watch Builder Tutorial");
+  const productionUsage = getFeatureUsageKnowledge("production");
+  expect(productionUsage.meal_builders?.controls.join(" ")).not.toContain("Watch Builder Tutorial");
+  expect(productionUsage).toEqual({
+    ...developmentUsage,
+    meal_builders: { ...developmentUsage.meal_builders,
+      controls: developmentUsage.meal_builders!.controls.filter(control => !control.startsWith("Watch Builder Tutorial")) },
+  });
+  expect(getChefConversationInstructions("production")).toBe(getChefConversationInstructions("development")
+    .split("\n").filter(line => !line.startsWith("INITIAL ACTIVITY HELP:")).join("\n"));
+  expect(getChefConversationInstructions("development")).toContain("Every Meal Builder handoff must remind");
+  expect(getChefConversationInstructions("development")).toContain("including when appended to useful guidance");
   expect(FEATURE_USAGE_KNOWLEDGE.create_a_dish?.controls.join(" ")).not.toContain("diet and cuisine overrides");
 });
 

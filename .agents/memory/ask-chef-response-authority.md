@@ -252,6 +252,19 @@ without changing navigation authority or borrowing controls from another
 creator. Keep necessary safety guidance and requests to skip instructions.
 Mocked fixtures prove wiring and contracts, not live stylistic compliance.
 
+Every Meal Builder handoff must remind the member to watch the Builder Tutorial
+at the top of their assigned builder, even when other starting instructions are
+omitted. Keep brief practical instructions for Fridge Rescue, including entering
+ingredients; omit generic closing invitations, including those appended to help.
+
+**Why:** The founder wants the existing builder videos used consistently and
+explicitly distinguishes useful starting instructions from unnecessary sign-offs.
+
+**How to apply:** Keep this refinement Development-only until released separately.
+Do not substitute a Hub Tutorial, infer a clinical builder assignment or add
+another permission question. The brief builder reminder is the exception to
+omitting tutorials when other instructions are skipped.
+
 For uncertain new members, distinguish planning a day of meals, making one dish
 and exploring Lifestyle. Only when meal planning is chosen and its method remains
 unresolved, distinguish My Perfect Menu's suggested ideas from Create With Chef
