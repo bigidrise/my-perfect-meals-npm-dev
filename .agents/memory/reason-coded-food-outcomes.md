@@ -9,6 +9,12 @@ When the platform changes the requested dish, primary protein, ingredients, or p
 
 If no validated rule authorizes a primary dish or protein substitution, reject the substitution rather than silently presenting it.
 
+Synthetic condition fixtures demonstrate a possible failure path, not the cause of a member's failed request. Attribute a rejection only to findings from that actual request; explicitly label unverified hypotheses.
+
+**Why:** The founder corrected a Getaway investigation that discussed a synthetic clinical fixture as an explanation without evidence from the failed request. A test scenario must not be presented as evidence about the member.
+
+**How to apply:** Keep offline reproduction evidence separate from live-request findings in both explanations and error messages.
+
 **Why:** The product promise is a trustworthy chef that makes informed decisions and explains them. Silent substitutions and generic errors hide intelligence the safety and nutrition systems already possess and prevent users from understanding or evaluating a recommendation.
 
 **How to apply:** Carry structured validator findings through server responses into approved user-facing banners, notices, or modals across every food surface. Preserve generic safe copy only for provider, network, malformed-response, and unexpected software failures.

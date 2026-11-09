@@ -278,6 +278,15 @@ Based on where this person is right now, give them their best food guidance.`;
 
     // Composition is not verified for venue suggestions. Apply deterministic
     // blocking only for clear product patterns and disclose all uncertainty.
+    const rejectionReasons: Array<{ code: string; reason: string }> = [];
+    const noChoices = () => res.status(503).json({
+      code: rejectionReasons.length ? "GETAWAY_CHOICES_REJECTED" : "GETAWAY_NO_CHOICES",
+      error: rejectionReasons.length
+        ? `No meal suggestions passed the checks for this request. ${[...new Set(rejectionReasons.map(item => item.reason))].join(" ")}`
+        : "The food guidance service returned no meal suggestions. Please try again or refine your request.",
+      rejectionReasons,
+      retryable: true,
+    });
     if (Array.isArray(result.bestChoices)) {
       const purposes = profileLines.some((line) => line.startsWith("Health conditions:")) ? ["clinical"] as const : [];
       result.bestChoices = result.bestChoices.filter((choice: any) => {
@@ -287,6 +296,17 @@ Based on where this person is right now, give them their best food guidance.`;
         }, protocolEnvelope, { generatorName: "getaway_coach" });
         if (!protocolScan.passed) {
           console.warn(`[Getaway/Protocol] Removed "${choice?.name}" — ${protocolScan.message}`);
+          if (reliable) {
+            const findings = (protocolScan.violations ?? []).map(finding => ({
+              code: finding.category, reason: finding.reason,
+            }));
+            findings.push(...(protocolScan.instructionViolations ?? []).map(phrase => ({
+              code: "preparation", reason: `Preparation conflicts with your active rules: "${phrase}".`,
+            })));
+            rejectionReasons.push(...(findings.length ? findings : [{
+              code: "protocol", reason: protocolScan.message,
+            }]));
+          }
           return false;
         }
         const decision = evaluateWholeFoodCandidate(
@@ -295,6 +315,7 @@ Based on where this person is right now, give them their best food guidance.`;
         );
         if (decision.shouldBlock) {
           console.warn(`[Getaway/WFS] Removed "${choice?.name}" — ${decision.reason}`);
+          if (reliable) rejectionReasons.push({ code: decision.reasonCode, reason: decision.reason });
           return false;
         }
         if (decision.classification === "uncertain") {
@@ -303,6 +324,7 @@ Based on where this person is right now, give them their best food guidance.`;
         return true;
       });
       if (result.bestChoices.length === 0) {
+        if (reliable) return noChoices();
         return res.status(503).json({
           error: "No venue food choices could be confirmed against your active dietary and clinical requirements. Please ask about additional options on site.",
           retryable: true,
@@ -321,6 +343,10 @@ Based on where this person is right now, give them their best food guidance.`;
         const fat = Number(choice.estimatedFatGrams);
         if (Number.isFinite(fat) && fat > t.maximumToleratedFatGrams) {
           console.warn(`[GETAWAY/GLP-1] Filtered "${choice.name}" — fat ${fat}g > ceiling ${t.maximumToleratedFatGrams}g`);
+          if (reliable) rejectionReasons.push({
+            code: "glp1_fat_ceiling",
+            reason: `A meal's estimated fat (${fat} g) exceeds your active GLP-1 per-meal limit (${t.maximumToleratedFatGrams} g).`,
+          });
           return false;
         }
         return true;
@@ -332,7 +358,7 @@ Based on where this person is right now, give them their best food guidance.`;
 
     if (reliable) {
       if (!Array.isArray(result.bestChoices) || !result.bestChoices.length) {
-        return res.status(503).json({ error: "No suitable meal ideas are available. Please refine your request or ask venue staff.", retryable: true });
+        return noChoices();
       }
       // Model venue/zone guesses cannot replace the supplied location.
       const selected = typeof venueId === "string" ? assembleLocationContext(venueId, zoneId) : null;
