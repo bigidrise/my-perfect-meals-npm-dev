@@ -203,6 +203,8 @@ jest.mock("../services/glp1/resolveGLP1GlobalContext", () => ({
 }));
 
 const MOCK_PROTOCOL_ENVELOPE = {
+  dietaryIdentity: [],
+  allergies: [],
   medicalHardLimits: [],
   medicalOptimization: [],
   conditionGuidanceBlocks: [],
@@ -210,6 +212,13 @@ const MOCK_PROTOCOL_ENVELOPE = {
   performanceOverlay: "standard",
   hasDiabetes: false,
 };
+jest.mock("../services/getawayAvailability", () => ({
+  getawayPreferences: (user: any, diets: string[]) => ({ cuisine: user.cuisinePreference || null, diets }),
+  checkGetawayAvailability: jest.fn().mockResolvedValue({
+    status: "no_matches_found", summary: "No matching listings were found; ask venue staff.",
+    preferences: { cuisine: null, diets: [] }, restaurants: [],
+  }),
+}));
 jest.mock("../services/protocolEnvelope", () => ({
   loadUserProtocolEnvelope: jest.fn().mockResolvedValue(MOCK_PROTOCOL_ENVELOPE),
   enforceBeforeGenerate: jest.fn(() => ({ combined: "WHOLE-FOOD STANDARD WFS-V1" })),
@@ -394,6 +403,33 @@ describe("Development Getaway grounding at the actual route boundary", () => {
     expect(res.status).toBe(200);
     expect(res.body.bestChoices.map((choice: any) => choice.name)).toEqual(["Grilled chicken"]);
     expect(res.body.rejectionReasons).toBeUndefined();
+  });
+
+  test("optional Anti-Inflammatory missing ingredients becomes a caution, not rejection", async () => {
+    jest.requireMock("../services/protocolEnvelope").loadUserProtocolEnvelope.mockResolvedValue({
+      ...MOCK_PROTOCOL_ENVELOPE, personalAntiInflammatorySupport: true,
+    });
+    jest.requireMock("../services/protocolEnvelope").scanGeneratedOutput.mockReturnValue({
+      passed: false, message: "Missing optional evidence",
+      violations: [{ category: "anti-inflammatory-support",
+        reason: "Ingredient details are required to verify optional Anti-Inflammatory support." }],
+      instructionViolations: [],
+    });
+    const res = await request(testApp).post("/api/getaway/coach").send({ message: "Resort food?" });
+    expect(res.status).toBe(200);
+    expect(res.body.bestChoices).toHaveLength(1);
+    expect(res.body.diningCautions[0]).toContain("not confirmation of Anti-Inflammatory compliance");
+  });
+
+  test("a required vegan diet never receives chicken as a fallback", async () => {
+    jest.requireMock("../services/protocolEnvelope").loadUserProtocolEnvelope.mockResolvedValue({
+      ...MOCK_PROTOCOL_ENVELOPE, dietaryIdentity: ["vegan"],
+    });
+    const res = await request(testApp).post("/api/getaway/coach").send({ message: "Resort food?" });
+    expect(res.status).toBe(503);
+    expect(res.body.rejectionReasons[0].code).toBe("dietary_conflict");
+    expect(res.body.availability).toBeDefined();
+    expect(res.body.bestChoices).toBeUndefined();
   });
 
   test("Production retains its prior response and prompt contract", async () => {
