@@ -1,7 +1,6 @@
 - [Pregnancy release safety pause](pregnancy-release-safety-pause.md) — Coming Soon stays Clinical; retain saved support and other safety rules while activation and unreviewed guidance are paused.
 - [Safe-area modal layout](safe-area-modal-layout-rule.md) — safe-area spacing fixes must not restructure modal flex or overflow behavior.
-- [Development startup log retention](development-startup-log-retention.md) — preview asset reloads can displace boot messages; capture early and qualify incomplete log evidence.
-- [Development Vite cache identity](development-vite-cache-identity.md) — warm-browser imports can stay stale after an identical cache rebuild; recovery must invalidate module URLs.
+- [Development runtime references](development-runtime-reference-index.md) — startup-log evidence, warm-browser Vite cache identity, and production-mode dependency checks.
 - [Authenticated API cache identity](authenticated-api-client-cache-identity.md) — removing caller IDs from APIs must not erase client-side account partitions.
 - [Role-aware polling authentication](role-aware-polling-auth.md) — background 401/403 responses are not always invalid sessions; respect endpoint role boundaries.
 - [Unread notification verification](unread-notification-verification.md) — capture counts before folder reads; media-labeled UI mocks do not establish backend coverage.
@@ -52,7 +51,6 @@
 - [Academy progression authority](academy-progression-authority.md) — Phase 1 is educational; Phase 2 earns the core Specialist credential; ProCare is optional and role-gated.
 - [Academy contextual navigation](academy-contextual-navigation.md) — preserve contextual back routes and Academy entry points in both More and Business Suite.
 - [Frontend static asset location](frontend-static-asset-location.md) — browser-facing images belong in client/public; verify the exact served asset before changing page layering.
-- [Production-mode dev dependencies](production-mode-dev-dependencies.md) — NODE_ENV=production can omit declared TypeScript types and create false LSP cascades.
 - [Crawler-visible SPA pages](crawler-visible-spa-pages.md) — public HTML snapshots must precede every SPA fallback and remain public after the client mounts.
 - [Nutrition consistency score boundary](nutrition-consistency-score-boundary.md) — score observable user behavior, never rules the platform enforces automatically.
 - [Whole-Food governance](whole-food-governance.md) — central evidence-aware policy gates every active human recommendation; a clean coverage matrix is required for platform-wide claims.
@@ -157,3 +155,4 @@
 - [Feature Intelligence boundary](feature-intelligence-boundary.md) — automated offline discovery is approved; connecting it to Ask Chef requires separate approval.
 - [Builder tutorial mapping](builder-tutorial-mapping.md) — Metabolic and Diabetic each cover hub and builder; General and Anti-Inflammatory share a video; Performance is separate.
 - [Builder entry choices](builder-entry-choice-experience.md) — founder prefers General Nutrition's choice-first entry across the other three builders.
+- [Getaway real-world dining](getaway-real-world-dining.md) — practical profile-driven choices; cuisine is flexible, required diets stay intact, optional ingredient uncertainty is advisory.

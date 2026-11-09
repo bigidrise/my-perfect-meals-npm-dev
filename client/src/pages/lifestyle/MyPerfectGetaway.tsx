@@ -12,6 +12,8 @@ import { usePageTitle } from "@/contexts/PageTitleContext";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import { GETAWAY_MENU_NOTICE, qualifyGetawayAdvice } from "@shared/getawayEvidence";
 import GetawayVenueMeals from "@/components/away-from-home/GetawayVenueMeals";
+import GetawayAvailabilityNotice from "@/components/away-from-home/GetawayAvailabilityNotice";
+import type { GetawayAvailability } from "@shared/getawayAvailability";
 
 interface CatalogZone {
   id: string;
@@ -53,6 +55,8 @@ interface AvoidItem {
 
 interface GetawayResult {
   evidence?: { version?: number; menuStatus?: string };
+  availability?: GetawayAvailability;
+  diningCautions?: string[];
   venue: string;
   venueType: string;
   zone?: string | null;
@@ -137,6 +141,7 @@ export default function MyPerfectGetaway() {
   const [result, setResult] = useState<GetawayResult | null>(null);
   const [venueMealsActive, setVenueMealsActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorAvailability, setErrorAvailability] = useState<GetawayAvailability | null>(null);
   const [progress, setProgress] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -168,6 +173,8 @@ export default function MyPerfectGetaway() {
   }, []);
 
   useEffect(() => {
+    setResult(null);
+    setErrorAvailability(null);
     try {
       const key = getStorageKey(user?.id);
       const raw = sessionStorage.getItem(key);
@@ -225,6 +232,7 @@ export default function MyPerfectGetaway() {
 
     setLoading(true);
     setError(null);
+    setErrorAvailability(null);
     setResult(null);
     setVenueMealsActive(false);
     setProgress(0);
@@ -255,6 +263,7 @@ export default function MyPerfectGetaway() {
 
       if (!res.ok) {
         const body2 = await res.json().catch(() => ({}));
+        setErrorAvailability(body2.availability ?? null);
         throw new Error(body2.error || "Something went wrong");
       }
 
@@ -283,6 +292,7 @@ export default function MyPerfectGetaway() {
   }, [loading, user?.id]);
 
   const handleQuickVenue = (label: string) => {
+    setErrorAvailability(null);
     const venueId = VENUE_ALIAS_MAP[label];
     const catalogVenue = venueId ? venues.find(v => v.id === venueId) : null;
 
@@ -339,6 +349,7 @@ export default function MyPerfectGetaway() {
 
     setVenueSearchLoading(true);
     setDiscoveryResult(null);
+    setErrorAvailability(null);
     const requestId = ++venueSearchRequestRef.current;
     if (reliable) {
       setResult(null);
@@ -401,6 +412,7 @@ export default function MyPerfectGetaway() {
     setMessage("");
     setFollowUpMessage("");
     setError(null);
+    setErrorAvailability(null);
     setProgress(0);
     setPendingVenue(null);
     setSelectedZone(null);
@@ -510,6 +522,7 @@ export default function MyPerfectGetaway() {
                   value={venueSearchText}
                   onChange={e => {
                     setVenueSearchText(e.target.value); setDiscoveryResult(null);
+                    setErrorAvailability(null);
                     if (reliable) {
                       venueSearchRequestRef.current++;
                       setVenueSearchLoading(false);
@@ -748,6 +761,11 @@ export default function MyPerfectGetaway() {
             </button>
           </div>
         )}
+        {errorAvailability && (
+          <div className="mt-3">
+            <GetawayAvailabilityNotice availability={errorAvailability} />
+          </div>
+        )}
 
         {/* Results */}
         <AnimatePresence>
@@ -780,6 +798,14 @@ export default function MyPerfectGetaway() {
                 <p role="note" className="rounded-xl border border-orange-400/40 bg-black/50 px-4 py-3 text-sm text-orange-100">
                   {GETAWAY_MENU_NOTICE}
                 </p>
+              )}
+              {reliable && result.diningCautions?.map(caution => (
+                <p key={caution} role="note" className="rounded-xl border border-amber-400/30 bg-black/40 px-4 py-3 text-sm text-amber-100">
+                  {caution}
+                </p>
+              ))}
+              {result.availability && (
+                <GetawayAvailabilityNotice availability={result.availability} />
               )}
 
               {/* Best Choices */}
