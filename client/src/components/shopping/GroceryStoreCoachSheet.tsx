@@ -32,6 +32,7 @@ import VoiceInputButton from "@/components/voice/VoiceInputButton";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { PillButton } from "@/components/ui/pill-button";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { get, post } from "@/lib/api";
 import { useShoppingListStore } from "@/stores/shoppingListStore";
 import type { UniversalIngredient } from "@/stores/shoppingListStore";
@@ -1121,6 +1122,9 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
 
         {/* ── Scrollable body ── */}
         <div style={{ flex: 1, overflowY: "auto", overscrollBehavior: "contain", minHeight: 0 }}>
+          <div className="flex justify-end px-4 pt-4">
+            <HowThisWorksLink featureKey="groceryStoreCoach" label="How It Works" />
+          </div>
 
           {/* ── Mode tabs: Build a Meal | Find a Product ── */}
           {/* Always visible so users can switch modes from any state —
