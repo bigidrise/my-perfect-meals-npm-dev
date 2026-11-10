@@ -9,6 +9,7 @@ generic video.
 
 | Feature | URL |
 | --- | --- |
+| My Perfect Getaway | `https://youtu.be/0CkEgYxX38E` (founder supplied) |
 | Create a Dish | `https://youtube.com/shorts/OxdqoAYQpsA?feature=share` |
 | Craving Creator | `https://youtube.com/shorts/C3kZCNC1tq8?feature=share` |
 | Sushi Creator | `https://youtube.com/shorts/bfIZsTFD_jc?feature=share` |
@@ -28,10 +29,14 @@ generic video.
 ## Links pending from founder
 
 Training Nutrition Schedule (General, Diabetic, GLP-1, Anti-Inflammatory),
-Performance Nutrition Hub, My Perfect Pregnancy, My Perfect Getaway,
+Performance Nutrition Hub, My Perfect Pregnancy,
 My Perfect Gatherings, My Perfect Beginnings, Restaurant Assistant, Find Meals
 Near Me, My Perfect Buffet, My Perfect Pets, Dogs, and Cats.
 
 Dedicated replacement links are also pending for Athlete's Beverage Creator
 and Performance Builder; their existing shared links are deliberately retained
 until then.
+
+Pregnancy, Beginnings, Pets (including Dogs and Cats), and wine-related
+tutorial assignments are deferred at the founder's request because those new
+videos are not finished. Existing working links on those tools remain unchanged.
