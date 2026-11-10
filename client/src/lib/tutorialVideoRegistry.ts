@@ -4,6 +4,7 @@
  * pages using that key intentionally render no tutorial button.
  */
 export const TUTORIAL_VIDEO_REGISTRY = {
+  dashboard: "https://youtu.be/HPfCDO8eDGM",
   macroCalculator: "https://youtu.be/2ZfQmrA9mps",
   trainingGeneral: "https://youtu.be/4EEJC_yFVjQ",
   trainingDiabetic: "https://youtu.be/4EEJC_yFVjQ",

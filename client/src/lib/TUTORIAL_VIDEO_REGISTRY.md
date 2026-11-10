@@ -9,6 +9,7 @@ generic video.
 
 | Feature | URL |
 | --- | --- |
+| Dashboard (`/dashboard`) | `https://youtu.be/HPfCDO8eDGM` (founder supplied) |
 | Macro Calculator (`/macro-counter`) | `https://youtu.be/2ZfQmrA9mps` (founder supplied) |
 | Training Nutrition Schedules — General, Diabetic, GLP-1, Anti-Inflammatory | `https://youtu.be/4EEJC_yFVjQ` (founder-supplied shared tutorial) |
 | My Perfect Getaway | `https://youtu.be/0CkEgYxX38E` (founder supplied) |
