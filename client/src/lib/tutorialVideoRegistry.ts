@@ -4,10 +4,10 @@
  * pages using that key intentionally render no tutorial button.
  */
 export const TUTORIAL_VIDEO_REGISTRY = {
-  trainingGeneral: undefined,
-  trainingDiabetic: undefined,
-  trainingGlp1: undefined,
-  trainingAntiInflammatory: undefined,
+  trainingGeneral: "https://youtu.be/4EEJC_yFVjQ",
+  trainingDiabetic: "https://youtu.be/4EEJC_yFVjQ",
+  trainingGlp1: "https://youtu.be/4EEJC_yFVjQ",
+  trainingAntiInflammatory: "https://youtu.be/4EEJC_yFVjQ",
   performanceHub: undefined,
   pregnancy: undefined,
   getaway: "https://youtu.be/0CkEgYxX38E",

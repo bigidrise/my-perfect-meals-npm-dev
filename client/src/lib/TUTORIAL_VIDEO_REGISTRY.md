@@ -9,6 +9,7 @@ generic video.
 
 | Feature | URL |
 | --- | --- |
+| Training Nutrition Schedules — General, Diabetic, GLP-1, Anti-Inflammatory | `https://youtu.be/4EEJC_yFVjQ` (founder-supplied shared tutorial) |
 | My Perfect Getaway | `https://youtu.be/0CkEgYxX38E` (founder supplied) |
 | My Perfect Gatherings | `https://youtu.be/gGOUC_DdE94` (founder supplied) |
 | Restaurant Assistant | `https://youtu.be/IlQsUk4rdIA` (founder supplied) |
@@ -32,7 +33,6 @@ generic video.
 
 ## Links pending from founder
 
-Training Nutrition Schedule (General, Diabetic, GLP-1, Anti-Inflammatory),
 Performance Nutrition Hub, My Perfect Pregnancy,
 My Perfect Beginnings, My Perfect Pets, Dogs, and Cats.
 
