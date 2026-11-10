@@ -17,6 +17,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import AlphaGalBadge from "@/components/AlphaGalBadge";
 import { CuisineOverrideControl } from "@/components/ui/CuisineOverrideControl";
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -805,6 +806,12 @@ export default function InspirationCaptureModal({
                   : t("inspiration.captureSubtitle"))}
             </p>
           </DialogHeader>
+
+          {isSmartScan && profileType === "human" && (
+            <div className="flex justify-end mb-5">
+              <HowThisWorksLink featureKey="productScan" label="How It Works" />
+            </div>
+          )}
 
           {/* ── CAPTURE ── */}
           {(phase === "capture" || phase === "error") && (
