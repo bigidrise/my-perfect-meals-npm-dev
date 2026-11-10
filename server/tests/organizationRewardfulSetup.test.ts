@@ -166,4 +166,19 @@ describe("future organization setup route (all persistence and providers mocked)
     expect(createOrganizationRewardfulAffiliate).not.toHaveBeenCalled();
     expect(db.update).not.toHaveBeenCalled();
   });
+  test("approved Production-mode correction rejects unpaid setup before any Rewardful creation", async () => {
+    const previousFlag = process.env.ORGANIZATION_PAID_CONTINUATION_ENABLED;
+    try {
+      process.env.NODE_ENV = "production";
+      process.env.ORGANIZATION_PAID_CONTINUATION_ENABLED = "true";
+      mock(verifyOrganizationRewardfulPayment).mockResolvedValue(false);
+      const res = await invoke();
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(createOrganizationRewardfulAffiliate).not.toHaveBeenCalled();
+      expect(db.update).not.toHaveBeenCalled();
+    } finally {
+      if (previousFlag === undefined) delete process.env.ORGANIZATION_PAID_CONTINUATION_ENABLED;
+      else process.env.ORGANIZATION_PAID_CONTINUATION_ENABLED = previousFlag;
+    }
+  });
 });

@@ -13,6 +13,7 @@ import { clientLinks } from "../db/schema/procare";
 import { deactivateProCareClient } from "../services/procareActivation";
 import type { LookupKey } from "../../client/src/data/planSkus";
 import { isProCarePlanKey } from "@shared/planFeatures";
+import { verifyOrganizationCheckoutConsentEvidence, verifyOrganizationSubscriptionConsentEvidence } from "../services/organizationCheckoutConsent";
 import {
   claimBillingEvent,
   completeBillingEvent,
@@ -344,6 +345,7 @@ router.post("/", async (req, res) => {
           ) {
             throw new Error("Completed business checkout payment or reservation could not be verified");
           }
+          await verifyOrganizationCheckoutConsentEvidence({ sessionMetadata: metadata, subscriptionMetadata: subscription.metadata, userId, businessId: metadata.businessId!, reservationId: metadata.checkoutReservationId!, priceId: trustedPlan.priceId, subscriptionStatus: subscription.status });
           const { businesses } = await import("../db/schema/business");
           const { eq: eqBiz, sql: drizzleSql } = await import("drizzle-orm");
           const businessId = metadata.businessId ?? subscription.metadata?.businessId;
@@ -528,6 +530,7 @@ router.post("/", async (req, res) => {
         }
         if (trustedPlan && (subscription.status === "active" || subscription.status === "trialing")) {
             if (trustedPlan.planLookupKey === "clinical_business_monthly") {
+              await verifyOrganizationSubscriptionConsentEvidence({ metadata: subscription.metadata, userId: user.id, priceId: trustedPlan.priceId, subscriptionStatus: subscription.status });
               const transition = await applyBusinessSubscriptionTransition({
                 ownerUserId: user.id,
                 businessId: subscription.metadata?.businessId,
@@ -818,6 +821,7 @@ router.post("/", async (req, res) => {
         processedUserId = user.id;
 
         if (subscription.status === "active" || subscription.status === "trialing") {
+          if (trustedPlan.planLookupKey === "clinical_business_monthly") await verifyOrganizationSubscriptionConsentEvidence({ metadata: subscription.metadata, userId: user.id, priceId: trustedPlan.priceId, subscriptionStatus: subscription.status });
           const mutationResult = trustedPlan.planLookupKey === "clinical_business_monthly"
             ? await applyBusinessSubscriptionTransition({
                 ownerUserId: user.id,

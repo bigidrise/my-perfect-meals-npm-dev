@@ -5,10 +5,13 @@ import { businesses } from "../db/schema/business";
 import { organizations } from "../db/schema/organizations";
 import { partnerRecords } from "../db/schema/partnerRecords";
 import { deriveBusinessCommercialState } from "./businessCommercialAccessService";
+import { organizationPaidContinuationEnabled } from "./organizationPaidContinuationPolicy";
 import {
   FOUNDING_ORGANIZATION_CAMPAIGN,
   foundingOrganizationPolicyEnabled,
   hasRecordedOrganizationPaidActivation,
+  hasAuthorizedOrganizationRewardfulException,
+  organizationPaidRewardfulPolicyEnabled, verifyOrganizationRewardfulPayment,
   type OrganizationPaymentEvidence,
 } from "./organizationRewardfulPolicy";
 
@@ -70,12 +73,13 @@ export function deriveOrganizationPartnerLifecycle(input: {
     };
   }
   const commercialState = deriveBusinessCommercialState(input.business, input.now);
-  if (foundingOrganizationPolicyEnabled()) {
-    const setupAvailable = hasRecordedOrganizationPaidActivation(input.business, input.now);
+  if (organizationPaidRewardfulPolicyEnabled()) {
+    const legacyException = hasAuthorizedOrganizationRewardfulException(input.business);
+    const setupAvailable = legacyException || hasRecordedOrganizationPaidActivation(input.business, input.now);
     return {
       state: setupAvailable ? "setup_available" as const : "not_available" as const,
       setupAvailable,
-      reason: setupAvailable
+      reason: legacyException ? "authorized_legacy_arrangement" : setupAvailable
         ? "organization_paid_activation"
         : commercialState === "pilot_active"
           ? "onboarding_pilot_active"
@@ -125,12 +129,21 @@ export async function resolveOrganizationPartnerLifecycle(
     .where(eq(organizations.id, organizationId))
     .limit(1);
 
-  return deriveOrganizationPartnerLifecycle({
+  const lifecycle = deriveOrganizationPartnerLifecycle({
     rewardfulAffiliateId: account.rewardfulAffiliateId,
     rewardfulState: account.rewardfulState ?? "not_activated",
     business: business ?? null,
     now,
   });
+  // Existing linked accounts/history remain intact. New onboarding/attachment
+  // requires current provider evidence, not merely a browser success return.
+  if (!account.rewardfulAffiliateId && lifecycle.setupAvailable
+    && organizationPaidContinuationEnabled()
+    && (!business || !await verifyOrganizationRewardfulPayment(business))) {
+    return { ...lifecycle, state: "not_available" as const, setupAvailable: false,
+      reason: "organization_paid_activation_required" };
+  }
+  return lifecycle;
 }
 
 export async function ensureOrganizationPartnerRevenueShell(
