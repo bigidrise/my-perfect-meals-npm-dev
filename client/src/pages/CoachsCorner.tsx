@@ -14,6 +14,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Settings, Send, RotateCcw, Check, MoreHorizontal, Loader2, ArrowLeft, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -895,6 +896,10 @@ export default function CoachsCorner() {
               Edit profile
             </button>}
           </div>
+        </div>
+
+        <div className="shrink-0 flex justify-end bg-black/30 px-4 py-2">
+          <HowThisWorksLink featureKey="askChef" label="How It Works" />
         </div>
 
         {/* Message area */}
