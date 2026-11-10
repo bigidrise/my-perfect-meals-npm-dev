@@ -812,6 +812,11 @@ export default function InspirationCaptureModal({
               <HowThisWorksLink featureKey="productScan" label="How It Works" />
             </div>
           )}
+          {!isSmartScan && profileType === "human" && (
+            <div className="flex justify-end mb-5">
+              <HowThisWorksLink featureKey="recipeMaker" label="How It Works" />
+            </div>
+          )}
 
           {/* ── CAPTURE ── */}
           {(phase === "capture" || phase === "error") && (
