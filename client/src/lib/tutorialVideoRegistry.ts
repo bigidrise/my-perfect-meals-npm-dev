@@ -8,7 +8,7 @@ export const TUTORIAL_VIDEO_REGISTRY = {
   trainingDiabetic: "https://youtu.be/4EEJC_yFVjQ",
   trainingGlp1: "https://youtu.be/4EEJC_yFVjQ",
   trainingAntiInflammatory: "https://youtu.be/4EEJC_yFVjQ",
-  performanceHub: undefined,
+  performanceHub: "https://youtu.be/4EEJC_yFVjQ",
   pregnancy: undefined,
   getaway: "https://youtu.be/0CkEgYxX38E",
   gatherings: "https://youtu.be/gGOUC_DdE94",
@@ -35,9 +35,7 @@ export const TUTORIAL_VIDEO_REGISTRY = {
   diabeticHub: "https://youtu.be/fp_9nVeXasc",
   glp1Builder: "https://youtu.be/UjNvo0hvUas",
   glp1Hub: "https://youtu.be/OaflYvlOI0A",
-  // Preserve the current shared/default Performance Builder tutorial until a
-  // dedicated link is supplied by the founder.
-  performanceBuilder: "https://youtube.com/shorts/g85Pkiywrpk?feature=share",
+  performanceBuilder: "https://youtu.be/4EEJC_yFVjQ",
 } as const;
 
 export type TutorialFeature = keyof typeof TUTORIAL_VIDEO_REGISTRY;

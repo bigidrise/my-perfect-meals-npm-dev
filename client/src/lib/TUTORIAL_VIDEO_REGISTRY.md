@@ -28,16 +28,13 @@ generic video.
 | General / Anti-Inflammatory / Diabetic / GLP-1 builders | `https://youtu.be/UjNvo0hvUas` (existing shared URL retained) |
 | Diabetic Hub | `https://youtu.be/fp_9nVeXasc` |
 | GLP-1 Hub | `https://youtu.be/OaflYvlOI0A` |
-| Performance Builder | `https://youtube.com/shorts/g85Pkiywrpk?feature=share` (existing default retained pending dedicated URL) |
+| Performance Hub and Performance Builder | `https://youtu.be/4EEJC_yFVjQ` (same comprehensive Training Nutrition Schedule tutorial; covers setup and meals) |
 | Legacy unkeyed Weekly Meal Board / BeachBody buttons | Existing shared default remains unchanged. |
 
 ## Links pending from founder
 
-Performance Nutrition Hub, My Perfect Pregnancy,
+My Perfect Pregnancy,
 My Perfect Beginnings, My Perfect Pets, Dogs, and Cats.
-
-A dedicated replacement link is also pending for Performance Builder; its
-existing shared link is deliberately retained until then.
 
 Pregnancy, Beginnings, Pets (including Dogs and Cats), Reduce Drinking, and wine-related
 tutorial assignments are deferred at the founder's request because those new

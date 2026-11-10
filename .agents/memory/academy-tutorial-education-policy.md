@@ -6,8 +6,7 @@ description: Founder-approved tutorial rollout and replacement of automatic inst
 Feature education uses consistent near-top tutorial play buttons. Preserve correct
 existing YouTube links; do not invent links or assign an unrelated tutorial.
 Missing links stay hidden or disabled until the founder supplies them. Athlete's
-Beverage Creator and Performance Builder need their own links when supplied,
-rather than perpetuating shared videos.
+Beverage Creator uses its founder-supplied dedicated tutorial.
 
 **Why:** The founder supplied a platform-wide Academy tutorial rollout brief and
 wants to connect videos one feature at a time.
@@ -16,18 +15,20 @@ wants to connect videos one feature at a time.
 and mobile/desktop behavior, and report completion before the next assignment.
 Pending URLs do not authorize generic fallback videos.
 
-Use one founder-supplied tutorial video across all four Training Nutrition
-Schedules: General, Diabetic, GLP-1, and Anti-Inflammatory.
+Use one founder-supplied Training Nutrition Schedule tutorial across all four
+schedules (General, Diabetic, GLP-1, Anti-Inflammatory), Performance Hub, and
+Performance Builder.
 
-**Why:** The founder explicitly requested the same video for all training schedules.
+**Why:** The founder said the five-minute video covers all Performance pieces,
+including initial setup, updating setup, and meals.
 
-**How to apply:** Assign the supplied schedule tutorial to all four variants;
-do not infer that it also replaces the separate Performance Hub or Builder video.
+**How to apply:** Use the same comprehensive video for the schedules and
+Performance Hub/Builder; do not request separate Performance tutorials.
 
 For the current rollout, skip Pregnancy, Beginnings, Pets (Dogs and Cats), and
 wine-related tools until the founder resumes them; those videos are not finished.
-Leave existing builder videos unchanged while collecting Lifestyle videos one
-feature at a time.
+Leave other existing builder videos unchanged while collecting Lifestyle videos
+one feature at a time.
 
 **Why:** The founder explicitly excluded these unfinished tutorials and asked to
 supply the remaining Lifestyle links individually.
