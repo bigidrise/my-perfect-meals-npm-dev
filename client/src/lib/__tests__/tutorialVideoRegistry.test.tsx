@@ -15,7 +15,7 @@ describe("tutorial video registry", () => {
       trainingAntiInflammatory: undefined,
       performanceHub: undefined,
       pregnancy: undefined,
-      getaway: undefined,
+      getaway: "https://youtu.be/0CkEgYxX38E",
       gatherings: undefined,
       beginning: undefined,
       restaurantAssistant: undefined,
@@ -50,7 +50,7 @@ describe("tutorial video registry", () => {
     const pendingFeatures = [
       "trainingGeneral", "trainingDiabetic", "trainingGlp1",
       "trainingAntiInflammatory", "performanceHub", "pregnancy",
-      "getaway", "gatherings", "beginning", "restaurantAssistant",
+      "gatherings", "beginning", "restaurantAssistant",
       "findMeals", "buffet", "pets", "dogs", "cats",
     ] as const;
 

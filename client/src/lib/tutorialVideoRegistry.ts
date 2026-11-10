@@ -10,7 +10,7 @@ export const TUTORIAL_VIDEO_REGISTRY = {
   trainingAntiInflammatory: undefined,
   performanceHub: undefined,
   pregnancy: undefined,
-  getaway: undefined,
+  getaway: "https://youtu.be/0CkEgYxX38E",
   gatherings: undefined,
   beginning: undefined,
   restaurantAssistant: undefined,
