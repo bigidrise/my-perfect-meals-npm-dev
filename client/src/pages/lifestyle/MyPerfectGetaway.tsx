@@ -506,7 +506,7 @@ export default function MyPerfectGetaway() {
           <p className="text-sm text-white/70">Your personal nutrition coach at theme parks, airports, cruises, and resorts.</p>
         </div>
         <div className="flex justify-end">
-          <HowThisWorksLink featureKey="getaway" label="How It Works" />
+          <HowThisWorksLink featureKey="getaway" labelKey="tutorialControl.howItWorks" />
         </div>
 
         {!result && !showZonePicker && (

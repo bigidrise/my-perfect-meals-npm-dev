@@ -1,4 +1,12 @@
 {
+  "tutorialControl": {
+    "howItWorks": "كيف يعمل",
+    "builderTutorial": "شرح أداة إعداد الوجبات",
+    "watchTutorial": "شاهد الشرح: {{label}}"
+  },
+  "getawayDining": {
+    "venuePlaceholder": "أدخل مطعمًا أو مكانًا لتناول الطعام في هذه الوجهة"
+  },
   "nav": {
     "dashboard": "الرئيسية",
     "builders": "البنّاؤون",

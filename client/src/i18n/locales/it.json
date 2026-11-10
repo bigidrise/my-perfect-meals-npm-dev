@@ -1,4 +1,12 @@
 {
+  "tutorialControl": {
+    "howItWorks": "Come funziona",
+    "builderTutorial": "Tutorial del pianificatore",
+    "watchTutorial": "Guarda il tutorial: {{label}}"
+  },
+  "getawayDining": {
+    "venuePlaceholder": "Inserisci un ristorante o un luogo dove mangiare in questa destinazione"
+  },
   "nav": {
     "dashboard": "Inizio",
     "builders": "Builder",

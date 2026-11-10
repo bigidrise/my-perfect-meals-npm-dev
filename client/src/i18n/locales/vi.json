@@ -1,4 +1,12 @@
 {
+  "tutorialControl": {
+    "howItWorks": "Cách hoạt động",
+    "builderTutorial": "Hướng dẫn lập kế hoạch bữa ăn",
+    "watchTutorial": "Xem hướng dẫn: {{label}}"
+  },
+  "getawayDining": {
+    "venuePlaceholder": "Nhập nhà hàng hoặc địa điểm ăn uống tại điểm đến này"
+  },
   "nav": {
     "dashboard": "Trang chủ",
     "builders": "Trình tạo",
