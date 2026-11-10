@@ -1,4 +1,6 @@
-/** Getaway currently receives place/catalog context, not a sourced venue menu. */
+import type { GetawayAvailability } from "./getawayAvailability";
+
+/** Restaurant listings and menu descriptions are not full recipe evidence. */
 export const GETAWAY_MENU_NOTICE =
   "Illustrative meal ideas — not verified menu offerings. Restaurants, dishes, ingredients, preparation, availability and nutrition have not been verified. Confirm with venue staff, especially for allergies or clinical requirements.";
 
@@ -24,6 +26,21 @@ function text(value: unknown): string {
 export function qualifyGetawayAdvice(input: any) {
   const strings = (value: unknown): string[] => Array.isArray(value) ? value.map(text).filter(Boolean) : [];
   return {
+    ...(input?.availability && typeof input.availability.summary === "string" ? {
+      availability: {
+        status: ["listings_found", "no_matches_found", "unavailable", "location_required"].includes(input.availability.status)
+          ? input.availability.status : "unavailable",
+        summary: text(input.availability.summary),
+        preferences: { cuisine: text(input.availability.preferences?.cuisine) || null,
+          diets: strings(input.availability.preferences?.diets) },
+        restaurants: Array.isArray(input.availability.restaurants) ? input.availability.restaurants.slice(0, 3).map((item: any) => ({
+          name: text(item.name), address: text(item.address),
+          menuStatus: item.menuStatus === "published" ? "published" : "unverified",
+          menuNote: text(item.menuNote),
+        })) : [],
+      } as GetawayAvailability,
+    } : {}),
+    ...(Array.isArray(input?.diningCautions) ? { diningCautions: strings(input.diningCautions) } : {}),
     venue: text(input?.venue),
     venueType: text(input?.venueType),
     zone: typeof input?.zone === "string" ? text(input.zone) : null,
