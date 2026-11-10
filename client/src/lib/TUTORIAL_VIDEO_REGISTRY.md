@@ -9,6 +9,7 @@ generic video.
 
 | Feature | URL |
 | --- | --- |
+| Smart Grocery List (`/shopping-list-v2`) | `https://youtu.be/OwmJonmf2YU` (founder supplied) |
 | Recipe Maker (Dashboard recipe window) | `https://youtu.be/HSY4DogCNFg` (founder supplied; separate from Product Scan) |
 | Saved Meals / Favorites (`/saved-meals`) | `https://youtu.be/MpOvTN1sDsE` (founder supplied) |
 | Daily Journal & Inspiration (`/get-inspiration`) | `https://youtu.be/y4e0HZuwQDc` (founder supplied) |
