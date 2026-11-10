@@ -14,7 +14,7 @@ export const TUTORIAL_VIDEO_REGISTRY = {
   gatherings: "https://youtu.be/gGOUC_DdE94",
   beginning: undefined,
   restaurantAssistant: "https://youtu.be/IlQsUk4rdIA",
-  findMeals: undefined,
+  findMeals: "https://youtu.be/DenB8FxzGng",
   buffet: undefined,
   pets: undefined,
   dogs: undefined,
