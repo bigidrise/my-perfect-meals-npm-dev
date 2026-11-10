@@ -9,6 +9,7 @@ generic video.
 
 | Feature | URL |
 | --- | --- |
+| Product Scan (human scan window) and Saved Groceries (panel) | `https://youtu.be/rETGqf0h9Cc` (founder-supplied shared tutorial) |
 | Dashboard (`/dashboard`) | `https://youtu.be/HPfCDO8eDGM` (founder supplied) |
 | Macro Calculator (`/macro-counter`) | `https://youtu.be/2ZfQmrA9mps` (founder supplied) |
 | Training Nutrition Schedules — General, Diabetic, GLP-1, Anti-Inflammatory | `https://youtu.be/4EEJC_yFVjQ` (founder-supplied shared tutorial) |
