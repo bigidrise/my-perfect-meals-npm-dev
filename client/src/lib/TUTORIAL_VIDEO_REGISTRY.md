@@ -15,7 +15,7 @@ generic video.
 | Craving Creator | `https://youtu.be/BkxI1-hwXPo` (founder-supplied replacement) |
 | Sushi Creator | `https://youtu.be/SPte8aXHfS0` (founder-supplied replacement) |
 | Dessert Creator | `https://youtu.be/wbj7QY7D3C4` (founder-supplied replacement) |
-| Beverage Creator | `https://youtube.com/shorts/JLqrxVdS2kI?feature=share` |
+| Beverage Creator | `https://youtu.be/VaVfvcDqXzc` (founder-supplied replacement) |
 | Athlete's Beverage Creator | `https://youtube.com/shorts/JLqrxVdS2kI?feature=share` (existing shared link retained pending its dedicated URL) |
 | Spirits, Beer & Wine Pairings | `https://youtube.com/shorts/dF7jpiph7_E` |
 | Wine List Translator | `https://youtube.com/shorts/7DToPay8jEg` |
