@@ -1123,7 +1123,7 @@ export default function GroceryStoreCoachSheet({ open, onOpenChange }: Props) {
         {/* ── Scrollable body ── */}
         <div style={{ flex: 1, overflowY: "auto", overscrollBehavior: "contain", minHeight: 0 }}>
           <div className="flex justify-end px-4 pt-4">
-            <HowThisWorksLink featureKey="groceryStoreCoach" label="How It Works" />
+            <HowThisWorksLink featureKey="groceryStoreCoach" labelKey="tutorialControl.howItWorks" />
           </div>
 
           {/* ── Mode tabs: Build a Meal | Find a Product ── */}

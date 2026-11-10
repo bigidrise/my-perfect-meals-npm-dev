@@ -899,7 +899,7 @@ export default function CoachsCorner() {
         </div>
 
         <div className="shrink-0 flex justify-end bg-black/30 px-4 py-2">
-          <HowThisWorksLink featureKey="askChef" label="How It Works" />
+          <HowThisWorksLink featureKey="askChef" labelKey="tutorialControl.howItWorks" />
         </div>
 
         {/* Message area */}

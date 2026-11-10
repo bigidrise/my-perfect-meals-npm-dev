@@ -301,7 +301,7 @@ export default function MyPerfectBeginningPage() {
           <p className="text-sm text-white/70">Age-appropriate meal planning and recipes for infants, toddlers, and growing children.</p>
         </div>
         <div className="flex justify-end">
-          <HowThisWorksLink featureKey="beginning" label="How It Works" />
+          <HowThisWorksLink featureKey="beginning" labelKey="tutorialControl.howItWorks" />
         </div>
 
         {/* ── Active child display + switcher ── */}

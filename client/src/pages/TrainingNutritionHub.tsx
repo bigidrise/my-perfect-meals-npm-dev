@@ -843,7 +843,7 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
 
       {isTutorialAvailable(resolvedTutorialKey) && (
         <div className="mx-auto flex max-w-lg justify-end px-4 pt-3">
-          <HowThisWorksLink featureKey={resolvedTutorialKey} label="How It Works" />
+          <HowThisWorksLink featureKey={resolvedTutorialKey} labelKey="tutorialControl.howItWorks" />
         </div>
       )}
 
