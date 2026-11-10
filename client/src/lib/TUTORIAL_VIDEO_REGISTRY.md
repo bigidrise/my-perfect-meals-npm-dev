@@ -9,6 +9,7 @@ generic video.
 
 | Feature | URL |
 | --- | --- |
+| Ask Chef (`/coach-corner/home`) | `https://youtu.be/-f_nb_1uTwk` (founder supplied; below header, above conversation) |
 | My Perfect Menu (`/foods-i-enjoy`) | `https://youtu.be/Lwaubw-c6XQ` (founder supplied) |
 | Smart Grocery List (`/shopping-list-v2`) | `https://youtu.be/OwmJonmf2YU` (founder supplied) |
 | Recipe Maker (Dashboard recipe window) | `https://youtu.be/HSY4DogCNFg` (founder supplied; separate from Product Scan) |
