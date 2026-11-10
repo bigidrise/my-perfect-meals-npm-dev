@@ -5,6 +5,11 @@ source of truth. A `undefined` URL is intentional: the corresponding button is
 hidden until the founder supplies a link. Feature-keyed buttons never inherit a
 generic video.
 
+On phones (below 640px), tutorial controls show the emerald play icon without
+the extra caption to conserve space. The accessible name and title remain
+available, the tap target stays at least 44×44px, and desktop captions are
+unchanged. Tutorial controls never submit a surrounding form.
+
 ## Links currently preserved
 
 | Feature | URL |

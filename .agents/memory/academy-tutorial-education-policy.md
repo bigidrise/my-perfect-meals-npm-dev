@@ -15,6 +15,16 @@ wants to connect videos one feature at a time.
 and mobile/desktop behavior, and report completion before the next assignment.
 Pending URLs do not authorize generic fallback videos.
 
+On phones, prioritize a compact tutorial play icon while preserving the full
+44×44 tap target and accessible tutorial name; desktop may retain the caption.
+Do not squeeze chat controls or change modal scrolling to fit tutorial controls.
+
+**Why:** The founder explicitly required every tutorial control to fit the
+smaller space available on mobile.
+
+**How to apply:** Use the shared responsive tutorial control, allow crowded
+heading rows to wrap, and verify narrow-screen geometry without shrinking taps.
+
 Use one founder-supplied Training Nutrition Schedule tutorial across all four
 schedules (General, Diabetic, GLP-1, Anti-Inflammatory), Performance Hub, and
 Performance Builder.

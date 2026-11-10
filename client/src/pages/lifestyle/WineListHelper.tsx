@@ -203,7 +203,7 @@ export default function WineListHelper() {
             )}
             <Card className="shadow-2xl bg-black/10 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto mb-6">
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg text-white">
+                <CardTitle className="flex flex-wrap items-center gap-2 text-lg text-white">
                   <BookOpen className="h-5 w-5 text-orange-400" />
                   Translate a Wine List
                   <div className="flex-grow" />
