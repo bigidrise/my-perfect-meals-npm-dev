@@ -21,6 +21,7 @@ import {
 import { shoppingMetadataEnabled } from "@/lib/shoppingMetadataGate";
 import { buildConsolidatedItems, ConsolidatedItem } from "@/lib/shoppingConsolidation";
 import { Button } from "@/components/ui/button";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
@@ -679,6 +680,9 @@ export default function ShoppingListMasterView() {
         className="container mx-auto p-4 max-w-4xl space-y-4"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
       >
+        <div className="flex justify-end">
+          <HowThisWorksLink featureKey="smartGroceryList" label="How It Works" />
+        </div>
         {/* Stats */}
         <div
           data-testid="shopping-summary-card"

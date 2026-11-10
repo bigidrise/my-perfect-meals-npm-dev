@@ -4,6 +4,7 @@
  * pages using that key intentionally render no tutorial button.
  */
 export const TUTORIAL_VIDEO_REGISTRY = {
+  smartGroceryList: "https://youtu.be/OwmJonmf2YU",
   recipeMaker: "https://youtu.be/HSY4DogCNFg",
   savedMeals: "https://youtu.be/MpOvTN1sDsE",
   dailyJournal: "https://youtu.be/y4e0HZuwQDc",
