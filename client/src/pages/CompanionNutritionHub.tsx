@@ -252,7 +252,7 @@ export default function CompanionNutritionHub() {
         )}
 
         <div className="flex justify-end">
-          <HowThisWorksLink featureKey="dogs" label="How It Works" />
+          <HowThisWorksLink featureKey="dogs" labelKey="tutorialControl.howItWorks" />
         </div>
 
         {/* Quick Actions */}

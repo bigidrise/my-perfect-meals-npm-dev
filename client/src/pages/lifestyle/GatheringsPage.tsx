@@ -661,7 +661,7 @@ export default function UltimateExperiencesPage() {
             <p className="text-sm text-white/70">AI-planned multi-course meals for holidays, camping, tailgates, and every occasion.</p>
           </div>
           <div className="flex justify-end">
-            <HowThisWorksLink featureKey="gatherings" label="How It Works" />
+            <HowThisWorksLink featureKey="gatherings" labelKey="tutorialControl.howItWorks" />
           </div>
 
           <div className="w-full max-w-4xl mx-auto">

@@ -1,4 +1,12 @@
 {
+  "tutorialControl": {
+    "howItWorks": "Paano ito gumagana",
+    "builderTutorial": "Gabay sa tagaplano ng pagkain",
+    "watchTutorial": "Panoorin ang gabay: {{label}}"
+  },
+  "getawayDining": {
+    "venuePlaceholder": "Maglagay ng restawran o kainan sa destinasyong ito"
+  },
   "nav": {
     "dashboard": "Home",
     "builders": "Mga Builder",

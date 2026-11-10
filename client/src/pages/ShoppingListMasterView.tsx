@@ -681,7 +681,7 @@ export default function ShoppingListMasterView() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
       >
         <div className="flex justify-end">
-          <HowThisWorksLink featureKey="smartGroceryList" label="How It Works" />
+          <HowThisWorksLink featureKey="smartGroceryList" labelKey="tutorialControl.howItWorks" />
         </div>
         {/* Stats */}
         <div

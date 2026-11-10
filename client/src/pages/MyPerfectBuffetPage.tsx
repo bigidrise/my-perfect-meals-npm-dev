@@ -160,7 +160,7 @@ export default function MyPerfectBuffetPage() {
           </button>
         )}
         <div className="flex justify-end">
-          <HowThisWorksLink featureKey="buffet" label="How It Works" />
+          <HowThisWorksLink featureKey="buffet" labelKey="tutorialControl.howItWorks" />
         </div>
         <AnimatePresence mode="wait">
           {recommendations.length === 0 ? (

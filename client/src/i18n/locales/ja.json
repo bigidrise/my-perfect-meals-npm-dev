@@ -1,4 +1,12 @@
 {
+  "tutorialControl": {
+    "howItWorks": "使い方",
+    "builderTutorial": "食事プラン作成のチュートリアル",
+    "watchTutorial": "チュートリアルを見る：{{label}}"
+  },
+  "getawayDining": {
+    "venuePlaceholder": "この目的地のレストランや食事場所を入力してください"
+  },
   "nav": {
     "dashboard": "ホーム",
     "builders": "ビルダー",
