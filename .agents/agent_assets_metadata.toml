@@ -663,3 +663,17 @@ mtime_ms = 1793928789754
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/6e9be9ff-52d8-4bb4-859a-ff0de7338013/243293b4-d203-4f24-9b97-d734f1e1c377"
 storage_version_token = "1793928864747169"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "BTnbDUYaBW9_xuDstnxYm"
+uri = "file://.local/release-corrections/tutorial-localization/docs/tutorial-release-gate-review.md"
+type = "text"
+title = "Release-gate investigation and remaining blockers"
+description = "Exact attribution of the 126 inherited localization failures, the 24 corrected new findings, validation results, and proposed fixes. No release approval."
+logical_id = "319e1d87-cb85-413b-b001-45432974bf68"
+content_hash = "sha256:2f8180b471635fc338614b81986fdb3f9583cff480841aef240abf0f2e2e5ca7"
+size = 15410
+mtime_ms = 1794344722931
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/319e1d87-cb85-413b-b001-45432974bf68/f9d0119f-d5c1-4e0e-85cf-9e56e64dbd41"
+storage_version_token = "1794344965745334"
+content_type = "text/markdown"
