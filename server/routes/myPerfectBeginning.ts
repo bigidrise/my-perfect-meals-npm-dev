@@ -27,6 +27,8 @@ import {
 import type { DevelopmentalStage } from "../services/pediatric/pediatricStageConstants";
 import { processMealImageForSave } from "../services/imageLifecycle";
 import { isFallbackMealImage } from "../../shared/pediatricMealImage";
+import { regenerateSavedPediatricImage } from "../services/pediatric/savedImageRecovery";
+import { createApiRateLimit } from "../middleware/rateLimit";
 import {
   applyCompletePlateSideGuardrail,
   scanGeneratedOutput,
@@ -1036,6 +1038,8 @@ Names should be short and specific (e.g. "Hidden-Veggie Turkey Cheeseburger", "M
 });
 
 // ─── Generated Meals Persistence ──────────────────────────────────────────────
+
+router.post('/generated-meals/:mealId/regenerate-image', requireAuth, createApiRateLimit(), regenerateSavedPediatricImage);
 
 router.post('/generated-meals', requireAuth, async (req, res) => {
   try {

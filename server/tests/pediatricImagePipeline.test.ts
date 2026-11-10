@@ -80,6 +80,55 @@ describe("shared pipeline pediatric photo contracts (no external services)", () 
     expect(mockCacheWrite).not.toHaveBeenCalled();
   });
 
+  it("lets an explicit Development retry bypass a cached failure, not a successful photograph", async () => {
+    const oldEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "development";
+    try {
+      mockImageGenerate.mockRejectedValueOnce(Object.assign(new Error("mock timed out"), { name: "APIConnectionTimeoutError" }));
+      const onFailure = jest.fn();
+      await generateMealImageUnified("Parfait", ingredients, "meal", context, undefined, { onFailure });
+      expect(onFailure).toHaveBeenCalledWith("provider_timeout");
+      await generateMealImageUnified("Parfait", ingredients, "meal", context, undefined, { onFailure });
+      expect(mockImageGenerate).toHaveBeenCalledTimes(1);
+      expect(onFailure).toHaveBeenLastCalledWith("provider_timeout");
+      await generateMealImageUnified("Parfait", ingredients, "meal", context, undefined, { manualRetry: true });
+      expect(mockImageGenerate).toHaveBeenCalledTimes(2);
+      expect(mockImageGenerate.mock.calls[1][1]).toEqual({ timeout: 60000, maxRetries: 0 });
+      await generateMealImageUnified("Parfait", ingredients, "meal", context, undefined, { manualRetry: true });
+      expect(mockImageGenerate).toHaveBeenCalledTimes(2);
+    } finally { process.env.NODE_ENV = oldEnv; }
+  });
+
+  it("expires Development failure-cache entries for other builders without background regeneration", async () => {
+    const oldEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "development";
+    const clock = jest.spyOn(Date, "now");
+    let time = 1000000;
+    clock.mockImplementation(() => time);
+    try {
+      mockImageGenerate.mockRejectedValueOnce(new Error("provider unavailable"));
+      await generateMealImageUnified("Adult Parfait", ingredients, "meal");
+      time += 5 * 60 * 1000 + 1;
+      expect(mockImageGenerate).toHaveBeenCalledTimes(1); // expiry itself does not generate
+      await generateMealImageUnified("Adult Parfait", ingredients, "meal");
+      expect(mockImageGenerate).toHaveBeenCalledTimes(2);
+    } finally { clock.mockRestore(); process.env.NODE_ENV = oldEnv; }
+  });
+
+  it("allows only one paid image attempt on a manual retry that fails validation", async () => {
+    const oldEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "development";
+    try {
+      mockValidate.mockResolvedValue({ verdict: "FAIL", model: "mock", reason: "wrong ingredients" });
+      const onFailure = jest.fn();
+      await expect(generateMealImageUnified("Parfait", ingredients, "meal", context, undefined,
+        { manualRetry: true, onFailure })).resolves.toBe("/images/fallback/meal.svg");
+      expect(onFailure).toHaveBeenCalledWith("validation_rejected");
+      expect(mockImageGenerate).toHaveBeenCalledTimes(1);
+      expect(mockIngest).not.toHaveBeenCalled();
+    } finally { process.env.NODE_ENV = oldEnv; }
+  });
+
   it("retains pediatric appearance on the existing bounded validation retry", async () => {
     mockValidate.mockResolvedValue({ verdict: "FAIL", model: "mock-validator", reason: "adult-sized whole pancakes" });
     await expect(generateMealImageUnified("Preschool Pancakes", ingredients, "meal", context))
