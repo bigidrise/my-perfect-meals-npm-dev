@@ -13,7 +13,7 @@ describe("tutorial video registry", () => {
       trainingDiabetic: "https://youtu.be/4EEJC_yFVjQ",
       trainingGlp1: "https://youtu.be/4EEJC_yFVjQ",
       trainingAntiInflammatory: "https://youtu.be/4EEJC_yFVjQ",
-      performanceHub: undefined,
+      performanceHub: "https://youtu.be/4EEJC_yFVjQ",
       pregnancy: undefined,
       getaway: "https://youtu.be/0CkEgYxX38E",
       gatherings: "https://youtu.be/gGOUC_DdE94",
@@ -40,16 +40,17 @@ describe("tutorial video registry", () => {
       diabeticHub: "https://youtu.be/fp_9nVeXasc",
       glp1Builder: "https://youtu.be/UjNvo0hvUas",
       glp1Hub: "https://youtu.be/OaflYvlOI0A",
-      performanceBuilder: "https://youtube.com/shorts/g85Pkiywrpk?feature=share",
+      performanceBuilder: "https://youtu.be/4EEJC_yFVjQ",
     });
     expect(getTutorialVideo("athleteBeverageCreator")).toBe("https://youtu.be/GfEH1ydfkic");
     expect(getTutorialVideo("athleteBeverageCreator")).not.toBe(getTutorialVideo("beverageCreator"));
-    expect(getTutorialVideo("performanceBuilder")).toBe("https://youtube.com/shorts/g85Pkiywrpk?feature=share");
+    expect(getTutorialVideo("performanceBuilder")).toBe("https://youtu.be/4EEJC_yFVjQ");
+    expect(getTutorialVideo("performanceHub")).toBe(getTutorialVideo("trainingGeneral"));
   });
 
   test("keeps all links awaiting founder URLs unavailable", () => {
     const pendingFeatures = [
-      "performanceHub", "pregnancy",
+      "pregnancy",
       "beginning",
       "pets", "dogs", "cats",
     ] as const;
