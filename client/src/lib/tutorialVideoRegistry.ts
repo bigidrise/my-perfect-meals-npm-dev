@@ -21,7 +21,7 @@ export const TUTORIAL_VIDEO_REGISTRY = {
   cats: undefined,
   createDish: "https://youtu.be/04IyPhqMryQ",
   cravingCreator: "https://youtu.be/BkxI1-hwXPo",
-  sushiCreator: "https://youtube.com/shorts/bfIZsTFD_jc?feature=share",
+  sushiCreator: "https://youtu.be/SPte8aXHfS0",
   dessertCreator: "https://youtube.com/shorts/hsvqjCK_6rA?feature=share",
   beverageCreator: "https://youtube.com/shorts/JLqrxVdS2kI?feature=share",
   athleteBeverageCreator: "https://youtube.com/shorts/JLqrxVdS2kI?feature=share",
