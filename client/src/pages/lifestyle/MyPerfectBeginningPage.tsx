@@ -11,6 +11,7 @@ import { usePageTitle } from "@/contexts/PageTitleContext";
 import { apiUrl } from "@/lib/resolveApiBase";
 import { apiRequest } from "@/lib/apiRequest";
 import { reconcileRememberedChildSelection } from "@/lib/myPerfectBeginningChildSelection";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -298,6 +299,9 @@ export default function MyPerfectBeginningPage() {
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-white mb-2">Child Nutrition</h2>
           <p className="text-sm text-white/70">Age-appropriate meal planning and recipes for infants, toddlers, and growing children.</p>
+        </div>
+        <div className="flex justify-end">
+          <HowThisWorksLink featureKey="beginning" label="How It Works" />
         </div>
 
         {/* ── Active child display + switcher ── */}

@@ -20,6 +20,7 @@ import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientI
 import { saveProductScan } from "@/lib/shoppingScanStorage";
 import { sendToShoppingList } from "@/lib/shoppingListApi";
 import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 
 const PREMIUM_MSG = "My Perfect Pets is a premium feature. Upgrade to access personalized dog nutrition.";
 
@@ -249,6 +250,10 @@ export default function CompanionNutritionHub() {
             </button>
           </div>
         )}
+
+        <div className="flex justify-end">
+          <HowThisWorksLink featureKey="dogs" label="How It Works" />
+        </div>
 
         {/* Quick Actions */}
         <div className="grid grid-cols-3 gap-3 mb-6">

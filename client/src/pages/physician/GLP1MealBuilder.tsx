@@ -1102,6 +1102,9 @@ export default function GLP1MealBuilder() {
         className="max-w-[1600px] mx-auto px-4 space-y-6"
         style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${proClientId ? '9rem' : '6rem'})` }}
       >
+        <div className="flex justify-end">
+          <HowThisWorksLink featureKey="glp1Builder" />
+        </div>
         {isDesktop && (
           <button
             onClick={() => setLocation("/glp1-hub")}
@@ -1245,8 +1248,6 @@ export default function GLP1MealBuilder() {
                 {saving ? t("metabolicBuilder.savingPlan") : justSaved ? t("metabolicBuilder.savedPlan") : t("metabolicBuilder.savePlan")}
               </span>
             </div>
-
-            <HowThisWorksLink videoUrl="https://youtu.be/UjNvo0hvUas" />
 
             <div className="inline-flex flex-col items-center gap-1">
               <PillButton

@@ -906,7 +906,7 @@ const FridgeRescuePage = () => {
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-xl font-bold text-white">Quick Create</h2>
                 <HowThisWorksLink
-                  videoUrl="https://youtube.com/shorts/hctXRUOuCW4?feature=share"
+                  featureKey="fridgeRescue"
                   label="How It Works"
                 />
               </div>

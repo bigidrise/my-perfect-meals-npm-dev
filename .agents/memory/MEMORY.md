@@ -154,5 +154,6 @@
 - [Ask Chef personal history goal](ask-chef-personal-history-goal.md) — evidence-grounded recall across years is the priority; audit existing architecture before designing or activating memory.
 - [Feature Intelligence boundary](feature-intelligence-boundary.md) — automated offline discovery is approved; connecting it to Ask Chef requires separate approval.
 - [Builder tutorial mapping](builder-tutorial-mapping.md) — Metabolic and Diabetic each cover hub and builder; General and Anti-Inflammatory share a video; Performance is separate.
+- [Academy tutorial education](academy-tutorial-education-policy.md) — preserve exact feature videos; missing links stay hidden; automatic education is off while manual help and safety remain.
 - [Builder entry choices](builder-entry-choice-experience.md) — founder prefers General Nutrition's choice-first entry across the other three builders.
 - [Getaway real-world dining](getaway-real-world-dining.md) — practical profile-driven choices; cuisine is flexible, required diets stay intact, optional ingredient uncertainty is advisory.

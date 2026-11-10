@@ -1,21 +1,31 @@
 import { Play } from "lucide-react";
 import { PillButton } from "@/components/ui/pill-button";
+import { getTutorialVideo, type TutorialFeature } from "@/lib/tutorialVideoRegistry";
 
 const HOW_BUILDERS_WORK_VIDEO = "https://youtube.com/shorts/g85Pkiywrpk?feature=share";
 
 interface HowThisWorksLinkProps {
+  featureKey?: TutorialFeature;
   videoUrl?: string;
   label?: string;
   className?: string;
 }
 
 export function HowThisWorksLink({
-  videoUrl = HOW_BUILDERS_WORK_VIDEO,
+  featureKey,
+  videoUrl,
   label = "Builder Tutorial",
   className = "",
 }: HowThisWorksLinkProps) {
+  // Feature-keyed links never fall back to a shared video: missing links stay
+  // hidden until the correct feature-specific tutorial is supplied.
+  const resolvedVideoUrl = featureKey
+    ? getTutorialVideo(featureKey)
+    : videoUrl ?? HOW_BUILDERS_WORK_VIDEO;
+  if (!resolvedVideoUrl) return null;
+
   const handleClick = () => {
-    window.open(videoUrl, "_blank", "noopener,noreferrer");
+    window.open(resolvedVideoUrl, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -25,7 +35,7 @@ export function HowThisWorksLink({
         variant="emerald"
         onClick={handleClick}
         aria-label={`Watch tutorial: ${label}`}
-        className="px-3"
+        className="!h-11 !w-11 !min-h-[44px] !min-w-[44px] p-0"
       >
         <Play className="h-3 w-3 fill-white" />
       </PillButton>

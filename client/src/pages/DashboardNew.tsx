@@ -46,6 +46,7 @@ import { HubControlIcon } from "@/components/icons/HubControlIcon";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useCopilot } from "@/components/copilot/CopilotContext";
+import { shouldAllowAutoOpen } from "@/components/copilot/CopilotRespectGuard";
 
 import {
   hasActivePaidSubscription,
@@ -948,6 +949,7 @@ export default function DashboardNew() {
   // AUTO-OPEN COPILOT INTRO - Guided Mode Only
   // -------------------------------------------------------------------------
   useEffect(() => {
+    if (!shouldAllowAutoOpen()) return;
     const triggerFlag = localStorage.getItem("trigger-copilot-intro");
 
     if (triggerFlag === "true") {

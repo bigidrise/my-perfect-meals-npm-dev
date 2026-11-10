@@ -75,6 +75,7 @@ import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
 import VoiceInputButton from "@/components/voice/VoiceInputButton";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 
 // Guided flow step type - step-by-step wizard
 // entry → step1 (craving) → step2 (restaurant) → step3 (location) → generating → results
@@ -811,6 +812,9 @@ export default function RestaurantGuidePage() {
               <span className="text-sm font-medium">Social Hub</span>
             </button>
           )}
+          <div className="flex justify-end">
+            <HowThisWorksLink featureKey="restaurantAssistant" label="How It Works" />
+          </div>
           {/* ENTRY SCREEN - Guided Copilot Entry (matches Macro Calculator pattern) */}
           {guidedStep === "entry" && (
             <Card className="bg-black/10 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl mb-6">

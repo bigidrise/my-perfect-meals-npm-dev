@@ -11,6 +11,7 @@ export default function GLP1TrainingPage() {
   return (
     <TrainingNutritionHub
       pageTitle="Training Nutrition Schedule"
+      tutorialKey="trainingGlp1"
       continueLabel="Launch GLP-1 Meal Builder"
       continueTo="/glp1-meal-builder"
       returnTo="/glp1-builder"

@@ -14,6 +14,7 @@ import { GETAWAY_MENU_NOTICE, qualifyGetawayAdvice } from "@shared/getawayEviden
 import GetawayVenueMeals from "@/components/away-from-home/GetawayVenueMeals";
 import GetawayAvailabilityNotice from "@/components/away-from-home/GetawayAvailabilityNotice";
 import type { GetawayAvailability } from "@shared/getawayAvailability";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 
 interface CatalogZone {
   id: string;
@@ -502,6 +503,9 @@ export default function MyPerfectGetaway() {
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-white mb-2">Eat Well, Anywhere</h2>
           <p className="text-sm text-white/70">Your personal nutrition coach at theme parks, airports, cruises, and resorts.</p>
+        </div>
+        <div className="flex justify-end">
+          <HowThisWorksLink featureKey="getaway" label="How It Works" />
         </div>
 
         {!result && !showZonePicker && (

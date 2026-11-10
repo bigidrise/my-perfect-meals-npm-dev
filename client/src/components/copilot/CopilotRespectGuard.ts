@@ -23,6 +23,8 @@
  * ╚══════════════════════════════════════════════════════════════════════════════╝
  */
 
+import { AUTOMATIC_INSTRUCTIONAL_POPUPS_ENABLED } from "@/lib/instructionalPopupPolicy";
+
 const COACH_MODE_KEY = "coachMode";
 const AUTOPLAY_KEY = "copilot_autoplay_enabled";
 const LEGACY_KEY = "copilot_guided_mode";
@@ -81,6 +83,8 @@ export function isGuidedModeEnabled(): boolean {
  *   open(); // Only reaches here if user allows auto-open
  */
 export function shouldAllowAutoOpen(): boolean {
+  if (!AUTOMATIC_INSTRUCTIONAL_POPUPS_ENABLED) return false;
+
   // Check 1: Did user choose "Do-It-Yourself" at welcome gate?
   if (isDoItYourselfMode()) {
     if (process.env.NODE_ENV === "development") {
@@ -120,7 +124,7 @@ export function useCopilotRespectGuard(): {
   const autoplayEnabled = isAutoplayEnabled();
 
   return {
-    shouldAllowAutoOpen: !diyMode && autoplayEnabled,
+    shouldAllowAutoOpen: AUTOMATIC_INSTRUCTIONAL_POPUPS_ENABLED && !diyMode && autoplayEnabled,
     isDoItYourselfMode: diyMode,
     isAutoplayEnabled: autoplayEnabled,
     isGuidedModeEnabled: autoplayEnabled,

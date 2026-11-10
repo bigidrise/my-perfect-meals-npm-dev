@@ -14,6 +14,7 @@ import { getAuthHeaders } from "@/lib/auth";
 import { useFreeLock } from "@/hooks/useFreeLock";
 import { UpgradeLockModal } from "@/components/upgrade/UpgradeLockModal";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 
 const PREMIUM_MSG = "My Perfect Pets is a premium feature. Upgrade to access personalized cat nutrition.";
 
@@ -185,6 +186,10 @@ export default function CatNutritionHub() {
             </button>
           </div>
         )}
+
+        <div className="flex justify-end">
+          <HowThisWorksLink featureKey="cats" label="How It Works" />
+        </div>
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-3 mb-6">

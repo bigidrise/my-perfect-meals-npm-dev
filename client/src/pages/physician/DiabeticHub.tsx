@@ -303,7 +303,7 @@ export default function DiabeticHub() {
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
           <div className="flex justify-center">
-            <HowThisWorksLink videoUrl="https://youtu.be/fp_9nVeXasc" label="Hub Tutorial" />
+            <HowThisWorksLink featureKey="diabeticHub" label="Hub Tutorial" />
           </div>
           {/* ── Quick Launch ── */}
           <button

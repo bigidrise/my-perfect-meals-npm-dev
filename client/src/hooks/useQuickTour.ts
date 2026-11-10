@@ -1,4 +1,5 @@
 import { useState, useLayoutEffect, useCallback, useRef } from "react";
+import { AUTOMATIC_INSTRUCTIONAL_POPUPS_ENABLED } from "@/lib/instructionalPopupPolicy";
 
 const GLOBAL_DISABLE_KEY = "quick-tour-global-disabled";
 
@@ -72,7 +73,7 @@ export function useQuickTour(
 
   // Auto-open tour ONLY after storage is loaded AND user hasn't seen it AND tours not globally disabled
   useLayoutEffect(() => {
-    if (!autoEnabled || loadedStorageKey !== storageKey) return;
+    if (!AUTOMATIC_INSTRUCTIONAL_POPUPS_ENABLED || !autoEnabled || loadedStorageKey !== storageKey) return;
     if (setupComplete !== undefined) {
       if (setupVisitRef.current.key !== storageKey) {
         setupVisitRef.current = { key: storageKey, opened: false };

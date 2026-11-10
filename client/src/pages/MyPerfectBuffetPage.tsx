@@ -23,6 +23,7 @@ import MealImageWithChefFallback from "@/components/away-from-home/GetawayMealIm
 import VoiceInputButton from "@/components/voice/VoiceInputButton";
 import type { AwayFromHomeRecommendation } from "@shared/awayFromHome";
 import { BC_GRADIENT, BC_HEADER } from "@/components/BusinessCenterShell";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 
 const BUFFET_CACHE_KEY = "mpm.buffet.cache.v2";
 
@@ -158,6 +159,9 @@ export default function MyPerfectBuffetPage() {
             <span className="text-sm font-medium">Social Hub</span>
           </button>
         )}
+        <div className="flex justify-end">
+          <HowThisWorksLink featureKey="buffet" label="How It Works" />
+        </div>
         <AnimatePresence mode="wait">
           {recommendations.length === 0 ? (
             <motion.div

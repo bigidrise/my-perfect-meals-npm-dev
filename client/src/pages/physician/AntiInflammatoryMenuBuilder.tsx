@@ -1373,6 +1373,9 @@ export default function AntiInflammatoryMenuBuilder() {
         className="max-w-[1600px] mx-auto px-4 space-y-6"
         style={{ paddingTop: contentPaddingTop }}
       >
+        <div className="flex justify-end">
+          <HowThisWorksLink featureKey="antiInflammatoryBuilder" />
+        </div>
         {/* ── Training Nutrition Schedule entry ── */}
         <button
           hidden={!canAccessTrainingNutrition}
@@ -1543,8 +1546,6 @@ export default function AntiInflammatoryMenuBuilder() {
                   {saving ? t("metabolicBuilder.savingPlan") : justSaved ? t("metabolicBuilder.savedPlan") : t("metabolicBuilder.savePlan")}
                 </span>
               </div>
-
-              <HowThisWorksLink videoUrl="https://youtu.be/UjNvo0hvUas" />
 
               <div className="inline-flex flex-col items-center gap-1">
                 <PillButton

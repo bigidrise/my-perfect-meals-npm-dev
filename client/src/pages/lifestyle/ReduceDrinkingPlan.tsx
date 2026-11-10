@@ -122,7 +122,7 @@ export default function ReduceDrinkingPlan() {
                   Build Your Plan
                   <div className="flex-grow" />
                   <HowThisWorksLink
-                    videoUrl="https://youtube.com/shorts/ttk0Mb6mcN8?feature=share"
+                    featureKey="reduceDrinking"
                     label="How It Works"
                   />
                 </CardTitle>

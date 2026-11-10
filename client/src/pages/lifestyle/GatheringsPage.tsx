@@ -74,7 +74,7 @@ import {
   getPopularDishes,
   getAllDishes,
 } from "@/data/holidayTraditionalDishes";
-
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
@@ -659,6 +659,9 @@ export default function UltimateExperiencesPage() {
           <div className="text-center mb-6">
             <h2 className="text-2xl font-bold text-white mb-2">Gather & Feast</h2>
             <p className="text-sm text-white/70">AI-planned multi-course meals for holidays, camping, tailgates, and every occasion.</p>
+          </div>
+          <div className="flex justify-end">
+            <HowThisWorksLink featureKey="gatherings" label="How It Works" />
           </div>
 
           <div className="w-full max-w-4xl mx-auto">

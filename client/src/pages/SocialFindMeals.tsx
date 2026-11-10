@@ -63,6 +63,7 @@ import { DietCuisineControlRow } from "@/components/ui/DietCuisineControlRow";
 import VoiceInputButton from "@/components/voice/VoiceInputButton";
 import { SafetyGuardBanner } from "@/components/SafetyGuardBanner";
 import { useSafetyGuardPrecheck } from "@/hooks/useSafetyGuardPrecheck";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 
 const DIET_PILL_CONFIG: Record<string, { label: string; color: string }> = {
   kosher:        { label: "Kosher Certified", color: "bg-amber-500/20 border-amber-400/40 text-amber-300" },
@@ -600,6 +601,9 @@ export default function MealFinder() {
               <span className="text-sm font-medium">{t("findMeals.socialHub")}</span>
             </button>
           )}
+          <div className="flex justify-end">
+            <HowThisWorksLink featureKey="findMeals" label="How It Works" />
+          </div>
           {/* ENTRY SCREEN - Guided Copilot Entry (matches Macro Calculator pattern) */}
           {guidedStep === "entry" && (
             <Card className="bg-black/10 backdrop-blur-lg border border-white/20 shadow-xl rounded-2xl mb-6">

@@ -1335,7 +1335,7 @@ export default function CreateDishPage() {
                     {t("createDish.pageTitle")}
                     <div className="flex-grow" />
                     <HowThisWorksLink
-                      videoUrl="https://youtube.com/shorts/OxdqoAYQpsA?feature=share"
+                      featureKey="createDish"
                       label="How It Works"
                     />
                   </CardTitle>

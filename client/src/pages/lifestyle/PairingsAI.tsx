@@ -265,7 +265,7 @@ export default function PairingsAI() {
                   What would you like to do?
                   <div className="flex-grow" />
                   <HowThisWorksLink
-                    videoUrl="https://youtube.com/shorts/dF7jpiph7_E"
+                    featureKey="spiritsBeerWinePairings"
                     label="How It Works"
                   />
                 </CardTitle>

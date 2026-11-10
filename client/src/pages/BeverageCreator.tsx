@@ -645,7 +645,7 @@ export default function BeverageCreator() {
                 Create Your Drink
                 <div className="flex-grow" />
                 <HowThisWorksLink
-                  videoUrl="https://youtube.com/shorts/JLqrxVdS2kI?feature=share"
+                  featureKey="beverageCreator"
                   label="How It Works"
                 />
               </CardTitle>
