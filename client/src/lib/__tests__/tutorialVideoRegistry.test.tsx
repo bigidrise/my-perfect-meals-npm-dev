@@ -9,6 +9,7 @@ import {
 describe("tutorial video registry", () => {
   test("preserves exact existing feature links, including shared videos", () => {
     expect(TUTORIAL_VIDEO_REGISTRY).toEqual({
+      savedMeals: "https://youtu.be/MpOvTN1sDsE",
       dailyJournal: "https://youtu.be/y4e0HZuwQDc",
       groceryStoreCoach: "https://youtu.be/xmpOGkUiXzg",
       biometrics: "https://youtu.be/R2cgIAgqqd8",

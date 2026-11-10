@@ -9,6 +9,7 @@ generic video.
 
 | Feature | URL |
 | --- | --- |
+| Saved Meals / Favorites (`/saved-meals`) | `https://youtu.be/MpOvTN1sDsE` (founder supplied) |
 | Daily Journal & Inspiration (`/get-inspiration`) | `https://youtu.be/y4e0HZuwQDc` (founder supplied) |
 | Grocery Store Coach (panel) | `https://youtu.be/xmpOGkUiXzg` (founder supplied) |
 | My Biometrics (`/my-biometrics` and `/biometrics`) | `https://youtu.be/R2cgIAgqqd8` (founder supplied) |
