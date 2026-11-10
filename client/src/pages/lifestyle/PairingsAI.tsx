@@ -260,7 +260,7 @@ export default function PairingsAI() {
             )}
             <Card className="shadow-2xl bg-black/10 backdrop-blur-lg border border-white/20 w-full max-w-xl mx-auto mb-6">
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg text-white">
+                <CardTitle className="flex flex-wrap items-center gap-2 text-lg text-white">
                   <Sparkles className="h-5 w-5 text-orange-400" />
                   What would you like to do?
                   <div className="flex-grow" />

@@ -29,17 +29,19 @@ export function HowThisWorksLink({
   };
 
   return (
-    <div className={`inline-flex flex-col items-center gap-1 ${className}`}>
+    <div className={`inline-flex shrink-0 flex-col items-center gap-1 ${className}`}>
       <PillButton
         active
         variant="emerald"
         onClick={handleClick}
         aria-label={`Watch tutorial: ${label}`}
-        className="!h-11 !w-11 !min-h-[44px] !min-w-[44px] p-0"
+        title={`Watch tutorial: ${label}`}
+        type="button"
+        className="!h-11 !w-11 !min-h-[44px] !min-w-[44px] shrink-0 p-0"
       >
         <Play className="h-3 w-3 fill-white" />
       </PillButton>
-      <span className="text-xs font-semibold text-white/70 tracking-wide">
+      <span className="hidden text-xs font-semibold text-white/70 tracking-wide sm:block">
         {label}
       </span>
     </div>
