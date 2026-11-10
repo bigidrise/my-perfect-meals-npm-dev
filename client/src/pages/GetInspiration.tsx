@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { Home, Mic, Save, Download, Trash2, Lightbulb, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
@@ -358,6 +359,9 @@ export default function GetInspiration() {
         className="max-w-4xl mx-auto px-4 pb-8"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
+        <div className="flex justify-end mb-4">
+          <HowThisWorksLink featureKey="dailyJournal" label="How It Works" />
+        </div>
         <div
           role="note"
           aria-label="Journal privacy notice"
