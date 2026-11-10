@@ -5,7 +5,7 @@ function normalize(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
 }
 
-/** Identity matching, not category matching. Used only by Development Getaway. */
+/** Identity matching, not category matching. Used by approved Getaway discovery. */
 export function normalizeVenueIdentity(text: string): string {
   return text.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase()
     .replace(/['’]/g, "").replace(/[^\p{L}\p{N}]+/gu, " ").trim();

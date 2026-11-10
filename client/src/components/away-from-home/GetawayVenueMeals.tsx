@@ -70,7 +70,7 @@ export default function GetawayVenueMeals({ destination, onRecommendationsChange
     <p className="mt-2 text-xs text-white/60">Enter the restaurant or dining concept you intend to visit. Its presence and current menu are not independently verified. Your saved nutrition profile applies.</p>
     <label htmlFor="getaway-dining-venue" className="mt-3 block text-sm text-white">Restaurant or dining venue</label>
     <input id="getaway-dining-venue" maxLength={160} value={name} onChange={e => edit(e.target.value)}
-      placeholder="Guy's Burger Joint or Lido buffet"
+      placeholder="Enter a restaurant or dining location at this destination"
       className="mt-1 w-full rounded-lg border border-white/20 bg-black/30 p-3 text-white" />
     <button disabled={busy || !name.trim()} onClick={generate}
       className="mt-3 rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">

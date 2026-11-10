@@ -68,10 +68,11 @@ function getGenericZones(venueType: VenueType): DiscoveredZone[] {
 }
 
 export async function discoverVenue(query: string, requestId?: string): Promise<VenueDiscoveryResult> {
-  const reliable = process.env.NODE_ENV === "development";
+  // Getaway's reviewed identity checks also protect published Production.
+  const reliable = true;
   const identityQuery = reliable ? venueSearchIdentity(query) : query;
   const normalized = identityQuery.toLowerCase().trim();
-  const cacheKey = reliable ? `development-reliable:${normalized}` : normalized;
+  const cacheKey = reliable ? `verified-venue:${normalized}` : normalized;
   const correlation = /^[a-f0-9-]{36}$/i.test(requestId ?? "") ? ` request_id=${requestId}` : "";
   const diagnostic = (reason: string, status?: unknown) => {
     if (!reliable) return;

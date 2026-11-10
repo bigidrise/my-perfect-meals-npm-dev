@@ -39,6 +39,16 @@ async function chooseVenue() {
   fireEvent.click(screen.getByRole("button", { name: "Recommend meals for this venue" }));
   await screen.findByTestId("getaway-structured-meal");
 }
+test.each(["Disneyland Park", "Los Angeles International Airport"])(
+  "%s uses a neutral dining placeholder and does not preselect a cruise restaurant", destinationName => {
+    render(<GetawayVenueMeals destination={{ destinationName }} />);
+    const field = screen.getByRole("textbox", { name: "Restaurant or dining venue" }) as HTMLInputElement;
+    expect(field.placeholder).toBe("Enter a restaurant or dining location at this destination");
+    expect(field.value).toBe("");
+    expect(screen.queryByPlaceholderText("Guy's Burger Joint or Lido buffet")).toBeNull();
+    expect(mockRequest).not.toHaveBeenCalled();
+  },
+);
 test("one explicit selection reuses Guide, never the coach, without diet overrides or image generation", async () => {
   render(<GetawayVenueMeals destination={{ destinationName: "Carnival" }} />);
   expect(mockRequest).not.toHaveBeenCalled();

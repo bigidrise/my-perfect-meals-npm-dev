@@ -1,3 +1,4 @@
+- [Production source and publication history](production-source-publication-history.md) — separate source authority from automatic publication checkpoints; clean builds alone cannot keep the branch fast-forwardable.
 - [Pregnancy release safety pause](pregnancy-release-safety-pause.md) — Coming Soon stays Clinical; retain saved support and other safety rules while activation and unreviewed guidance are paused.
 - [Safe-area modal layout](safe-area-modal-layout-rule.md) — safe-area spacing fixes must not restructure modal flex or overflow behavior.
 - [Development runtime references](development-runtime-reference-index.md) — startup-log evidence, warm-browser Vite cache identity, and production-mode dependency checks.
