@@ -9,6 +9,7 @@ generic video.
 
 | Feature | URL |
 | --- | --- |
+| Daily Journal & Inspiration (`/get-inspiration`) | `https://youtu.be/y4e0HZuwQDc` (founder supplied) |
 | Grocery Store Coach (panel) | `https://youtu.be/xmpOGkUiXzg` (founder supplied) |
 | My Biometrics (`/my-biometrics` and `/biometrics`) | `https://youtu.be/R2cgIAgqqd8` (founder supplied) |
 | Product Scan (human scan window) and Saved Groceries (panel) | `https://youtu.be/rETGqf0h9Cc` (founder-supplied shared tutorial) |
