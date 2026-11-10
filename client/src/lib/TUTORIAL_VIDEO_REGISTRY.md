@@ -14,7 +14,7 @@ generic video.
 | Create a Dish | `https://youtu.be/04IyPhqMryQ` (founder-supplied replacement) |
 | Craving Creator | `https://youtu.be/BkxI1-hwXPo` (founder-supplied replacement) |
 | Sushi Creator | `https://youtu.be/SPte8aXHfS0` (founder-supplied replacement) |
-| Dessert Creator | `https://youtube.com/shorts/hsvqjCK_6rA?feature=share` |
+| Dessert Creator | `https://youtu.be/wbj7QY7D3C4` (founder-supplied replacement) |
 | Beverage Creator | `https://youtube.com/shorts/JLqrxVdS2kI?feature=share` |
 | Athlete's Beverage Creator | `https://youtube.com/shorts/JLqrxVdS2kI?feature=share` (existing shared link retained pending its dedicated URL) |
 | Spirits, Beer & Wine Pairings | `https://youtube.com/shorts/dF7jpiph7_E` |
