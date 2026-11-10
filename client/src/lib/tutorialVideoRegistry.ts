@@ -4,6 +4,7 @@
  * pages using that key intentionally render no tutorial button.
  */
 export const TUTORIAL_VIDEO_REGISTRY = {
+  biometrics: "https://youtu.be/R2cgIAgqqd8",
   productScan: "https://youtu.be/rETGqf0h9Cc",
   savedGroceries: "https://youtu.be/rETGqf0h9Cc",
   dashboard: "https://youtu.be/HPfCDO8eDGM",

@@ -74,6 +74,7 @@ import { sendToShoppingList } from "@/lib/shoppingListApi";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { isGuestMode, markStepCompleted } from "@/lib/guestMode";
 import { GUEST_SUITE_BRANDING } from "@/lib/guestSuiteBranding";
 import { markFirstLoopComplete, hasCompletedFirstLoop } from "@/lib/guestSuiteNavigator";
@@ -1841,6 +1842,9 @@ export default function MyBiometrics() {
         className="max-w-6xl mx-auto space-y-6 px-4 md:px-6"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
+        <div className="flex justify-end">
+          <HowThisWorksLink featureKey="biometrics" label="How It Works" />
+        </div>
         {/* Apple 1.4.1 Compliance: Prominent citation banner - MUST be visible */}
         <div className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-blue-400/30 rounded-xl p-4">
           <p className="text-sm text-white/90 leading-relaxed">
