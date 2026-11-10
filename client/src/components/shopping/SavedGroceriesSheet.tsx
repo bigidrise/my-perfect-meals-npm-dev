@@ -31,6 +31,7 @@ import { get, post, apiJSON } from "@/lib/api";
 import { IngredientIntelligenceSheet } from "@/components/biometrics/IngredientIntelligenceSheet";
 import type { IngredientScanResult } from "@/lib/photoIngredientCapture";
 import { PillButton } from "@/components/ui/pill-button";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { SavedProductAnalysisAction } from "./SavedProductAnalysisAction";
 
 interface SavedGroceryItemMeta extends SavedRecommendationMetadata {
@@ -394,6 +395,9 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
 
             {/* Body */}
             <div style={{ padding: "16px 20px", minHeight: 120 }}>
+              <div className="flex justify-end mb-4">
+                <HowThisWorksLink featureKey="savedGroceries" label="How It Works" />
+              </div>
               {!loading && !error && items.length > 0 && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
                   <div style={{

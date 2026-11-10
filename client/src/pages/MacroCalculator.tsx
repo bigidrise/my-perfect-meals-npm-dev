@@ -105,6 +105,7 @@ import { useQuickTour } from "@/hooks/useQuickTour";
 import { useSavedMacroSetup } from "@/hooks/useSavedMacroSetup";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { QuickTourButton } from "@/components/guided/QuickTourButton";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { getAssignedBuilderFromStorage } from "@/lib/assignedBuilder";
 import MetabolicConsiderations from "@/components/macro-targeting/MetabolicConsiderations";
@@ -1730,6 +1731,9 @@ function AccountMacroCounter() {
           className="max-w-5xl mx-auto space-y-6 px-4"
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
+          <div className="flex justify-end">
+            <HowThisWorksLink featureKey="macroCalculator" label="How It Works" />
+          </div>
           {(!setupGuideEnabled || savedMacroSetup.complete === true) &&
             <GuidedWorkflowNextStep busy={isSaving} professionalSession={isProSession}
               summaryVisible={guidedStep === "done" && !!results} />}

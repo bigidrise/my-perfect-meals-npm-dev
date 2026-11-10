@@ -206,6 +206,7 @@ export default function EditProfilePage() {
   const glycemicEligible = isDiabetesFoodPreferenceEligible(user as any);
 
   useEffect(() => {
+    if (!shouldAllowAutoOpen()) return;
     const stepPath = `/profile/edit-step-${step}`;
     const explanation = getGuestPageExplanation(stepPath, isGuestMode());
     if (!explanation) return;
@@ -217,7 +218,6 @@ export default function EditProfilePage() {
       autoClose: explanation.autoClose ?? true,
     });
 
-    if (!shouldAllowAutoOpen()) return;
     if (CopilotExplanationStore.hasSessionOpened(stepPath)) return;
 
     CopilotExplanationStore.markSessionOpened(stepPath);

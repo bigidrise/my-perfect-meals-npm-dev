@@ -670,7 +670,7 @@ export default function DessertCreator() {
                 Quick Create
                 <div className="flex-grow" />
                 <HowThisWorksLink
-                  videoUrl="https://youtube.com/shorts/hsvqjCK_6rA?feature=share"
+                  featureKey="dessertCreator"
                   label="How It Works"
                 />
               </CardTitle>

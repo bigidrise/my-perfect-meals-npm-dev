@@ -929,6 +929,9 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
         className="px-4"
         style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${mode === "procare" ? '9rem' : '6rem'})` }}
       >
+        <div className="flex justify-end mb-3">
+          <HowThisWorksLink featureKey="performanceBuilder" />
+        </div>
         {/* NutritionBudgetBanner hidden — restore when reactivity is fixed */}
         {/* Header - Week Navigation */}
         <div className="mb-6 border-zinc-800 bg-zinc-900/60 backdrop-blur rounded-2xl">
@@ -1069,8 +1072,6 @@ export default function AthleteBoard({ mode = "athlete" }: AthleteBoardProps) {
                   {saving ? t("metabolicBuilder.savingPlan") : justSaved ? t("metabolicBuilder.savedPlan") : t("metabolicBuilder.savePlan")}
                 </span>
               </div>
-
-              <HowThisWorksLink />
 
               <div className="inline-flex flex-col items-center gap-1">
                 <PillButton

@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { PawPrint, ArrowLeft, ChevronRight, Clock } from "lucide-react";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 
 const pets = [
   {
@@ -64,6 +65,9 @@ export default function PetsHub() {
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-white mb-2">Companion Nutrition</h2>
           <p className="text-sm text-white/70">AI-powered meal planning, recipes, and ingredient safety for dogs and cats.</p>
+        </div>
+        <div className="flex justify-end">
+          <HowThisWorksLink featureKey="pets" label="How It Works" />
         </div>
 
         <div className="flex flex-col gap-3">

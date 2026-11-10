@@ -1331,11 +1331,11 @@ export default function CreateDishPage() {
             <div>
               <Card className="shadow-2xl bg-black/40 backdrop-blur-lg border border-orange-400/20 w-full max-w-xl mx-auto">
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-xl text-white">
+                  <CardTitle className="flex flex-wrap items-center gap-2 text-xl text-white">
                     {t("createDish.pageTitle")}
                     <div className="flex-grow" />
                     <HowThisWorksLink
-                      videoUrl="https://youtube.com/shorts/OxdqoAYQpsA?feature=share"
+                      featureKey="createDish"
                       label="How It Works"
                     />
                   </CardTitle>

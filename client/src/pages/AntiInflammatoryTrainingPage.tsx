@@ -11,6 +11,7 @@ export default function AntiInflammatoryTrainingPage() {
   return (
     <TrainingNutritionHub
       pageTitle="Training Nutrition Schedule"
+      tutorialKey="trainingAntiInflammatory"
       continueTo="/anti-inflammatory-menu-builder"
       returnTo="/anti-inflammatory-menu-builder"
       continueLabel="Continue to Anti-Inflammatory Builder"

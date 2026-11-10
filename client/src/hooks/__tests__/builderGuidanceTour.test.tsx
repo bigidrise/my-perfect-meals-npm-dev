@@ -6,6 +6,9 @@ import { BuilderGuidanceTour } from "@/components/guided/BuilderGuidanceTour";
 import { MEAL_BUILDER_GUIDANCE, type GuidedMealBuilderKey } from "@shared/mealBuilderGuidance";
 import { createGuidancePreferenceStore } from "@/lib/guidedJourney/preferences";
 
+// Exercise retained introduction behavior when the release switch is reenabled.
+jest.mock("@/lib/instructionalPopupPolicy", () => ({ AUTOMATIC_INSTRUCTIONAL_POPUPS_ENABLED: true }));
+
 let mockUser: any = { id: "synthetic-guide-owner", role: "physician" };
 let mockLoading = false;
 let mockOrgId = "synthetic-org";

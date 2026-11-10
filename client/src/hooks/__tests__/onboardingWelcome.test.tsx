@@ -4,6 +4,9 @@ import { act, fireEvent, render, renderHook, screen } from "@testing-library/rea
 import { OnboardingWelcome } from "@/components/guided/OnboardingWelcome";
 import { useQuickTour } from "../useQuickTour";
 
+// Exercise retained introduction behavior when the release switch is reenabled.
+jest.mock("@/lib/instructionalPopupPolicy", () => ({ AUTOMATIC_INSTRUCTIONAL_POPUPS_ENABLED: true }));
+
 jest.mock("@/components/guided/OnboardingWelcome.css", () => ({}));
 jest.mock("@/components/copilot/CopilotContext", () => ({
   useCopilot: () => ({ isOpen: false, close: jest.fn() }),
