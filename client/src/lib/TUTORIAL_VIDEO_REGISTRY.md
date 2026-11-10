@@ -11,6 +11,7 @@ generic video.
 | --- | --- |
 | My Perfect Getaway | `https://youtu.be/0CkEgYxX38E` (founder supplied) |
 | My Perfect Gatherings | `https://youtu.be/gGOUC_DdE94` (founder supplied) |
+| Restaurant Assistant | `https://youtu.be/IlQsUk4rdIA` (founder supplied) |
 | Create a Dish | `https://youtu.be/04IyPhqMryQ` (founder-supplied replacement) |
 | Craving Creator | `https://youtu.be/BkxI1-hwXPo` (founder-supplied replacement) |
 | Sushi Creator | `https://youtu.be/SPte8aXHfS0` (founder-supplied replacement) |
@@ -31,7 +32,7 @@ generic video.
 
 Training Nutrition Schedule (General, Diabetic, GLP-1, Anti-Inflammatory),
 Performance Nutrition Hub, My Perfect Pregnancy,
-My Perfect Beginnings, Restaurant Assistant, Find Meals
+My Perfect Beginnings, Find Meals
 Near Me, My Perfect Buffet, My Perfect Pets, Dogs, and Cats.
 
 A dedicated replacement link is also pending for Performance Builder; its

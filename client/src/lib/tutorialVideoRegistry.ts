@@ -13,7 +13,7 @@ export const TUTORIAL_VIDEO_REGISTRY = {
   getaway: "https://youtu.be/0CkEgYxX38E",
   gatherings: "https://youtu.be/gGOUC_DdE94",
   beginning: undefined,
-  restaurantAssistant: undefined,
+  restaurantAssistant: "https://youtu.be/IlQsUk4rdIA",
   findMeals: undefined,
   buffet: undefined,
   pets: undefined,
