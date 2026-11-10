@@ -10,6 +10,7 @@ generic video.
 | Feature | URL |
 | --- | --- |
 | My Perfect Getaway | `https://youtu.be/0CkEgYxX38E` (founder supplied) |
+| My Perfect Gatherings | `https://youtu.be/gGOUC_DdE94` (founder supplied) |
 | Create a Dish | `https://youtube.com/shorts/OxdqoAYQpsA?feature=share` |
 | Craving Creator | `https://youtube.com/shorts/C3kZCNC1tq8?feature=share` |
 | Sushi Creator | `https://youtube.com/shorts/bfIZsTFD_jc?feature=share` |
@@ -30,7 +31,7 @@ generic video.
 
 Training Nutrition Schedule (General, Diabetic, GLP-1, Anti-Inflammatory),
 Performance Nutrition Hub, My Perfect Pregnancy,
-My Perfect Gatherings, My Perfect Beginnings, Restaurant Assistant, Find Meals
+My Perfect Beginnings, Restaurant Assistant, Find Meals
 Near Me, My Perfect Buffet, My Perfect Pets, Dogs, and Cats.
 
 Dedicated replacement links are also pending for Athlete's Beverage Creator

@@ -11,7 +11,7 @@ export const TUTORIAL_VIDEO_REGISTRY = {
   performanceHub: undefined,
   pregnancy: undefined,
   getaway: "https://youtu.be/0CkEgYxX38E",
-  gatherings: undefined,
+  gatherings: "https://youtu.be/gGOUC_DdE94",
   beginning: undefined,
   restaurantAssistant: undefined,
   findMeals: undefined,
