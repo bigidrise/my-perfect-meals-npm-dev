@@ -19,7 +19,7 @@ export const TUTORIAL_VIDEO_REGISTRY = {
   pets: undefined,
   dogs: undefined,
   cats: undefined,
-  createDish: "https://youtube.com/shorts/OxdqoAYQpsA?feature=share",
+  createDish: "https://youtu.be/04IyPhqMryQ",
   cravingCreator: "https://youtube.com/shorts/C3kZCNC1tq8?feature=share",
   sushiCreator: "https://youtube.com/shorts/bfIZsTFD_jc?feature=share",
   dessertCreator: "https://youtube.com/shorts/hsvqjCK_6rA?feature=share",
