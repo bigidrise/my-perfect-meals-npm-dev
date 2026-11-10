@@ -6,6 +6,7 @@ import { useSavedMealsFeed, useDeleteSavedMeal } from "@/hooks/useSavedMeals";
 import { useToast } from "@/hooks/use-toast";
 import { setQuickView } from "@/lib/macrosQuickView";
 import MobileHeaderGuard from "@/components/layout/MobileHeaderGuard";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
 import SavedMealRow from "@/components/SavedMealRow";
 import { savedMealSourceLabel } from "@/lib/savedMealSource";
@@ -156,6 +157,9 @@ export default function SavedMeals() {
         className="max-w-lg mx-auto px-4 space-y-4 w-full"
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
       >
+        <div className="flex justify-end">
+          <HowThisWorksLink featureKey="savedMeals" label="How It Works" />
+        </div>
         {isLoading && (
           <div className="flex justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-white/50" />
