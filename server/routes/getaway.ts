@@ -43,7 +43,8 @@ router.get("/venues/discover", async (req, res) => {
 
 router.post("/coach", async (req, res) => {
   try {
-    const reliable = process.env.NODE_ENV === "development";
+    // Approved Getaway grounding and safety checks apply in every runtime.
+    const reliable = true;
     const { message, venueId, zoneId, discoveredVenue } = req.body;
     const userId = (req as AuthenticatedRequest).authUser.id;
 
@@ -304,15 +305,32 @@ Based on where this person is right now, give them their best food guidance.`;
     // blocking only for clear product patterns and disclose all uncertainty.
     const rejectionReasons: Array<{ code: string; reason: string }> = [];
     const diningCautions = new Set<string>();
-    const noChoices = () => res.status(503).json({
-      code: rejectionReasons.length ? "GETAWAY_CHOICES_REJECTED" : "GETAWAY_NO_CHOICES",
-      error: rejectionReasons.length
-        ? `No meal suggestions passed the checks for this request. ${[...new Set(rejectionReasons.map(item => item.reason))].join(" ")}`
-        : "The food guidance service returned no meal suggestions. Please try again or refine your request.",
-      rejectionReasons,
-      ...(availability ? { availability } : {}),
-      retryable: true,
-    });
+    const noChoices = () => {
+      // Correlate outcomes without logging member text, food names or conditions.
+      const requestId = /^[a-f0-9-]{36}$/i.test((req as any).id ?? "") ? (req as any).id : undefined;
+      const code = rejectionReasons.length ? "GETAWAY_CHOICES_REJECTED" : "GETAWAY_NO_CHOICES";
+      console.info("[Getaway] outcome", JSON.stringify({
+        requestId, code, rejectionCount: rejectionReasons.length,
+        availabilityStatus: availability?.status ?? "not_checked",
+        // General check families only; never persist condition-specific findings.
+        rejectionKinds: [...new Set(rejectionReasons.map(finding =>
+          finding.code === "allergy_conflict" ? "allergy" :
+          finding.code === "dietary_conflict" || finding.code.startsWith("dietary:") ? "dietary" :
+          finding.code === "glp1_fat_ceiling" ? "clinical_limit" :
+          finding.code === "preparation" ? "preparation" :
+          finding.code.startsWith("UPF_") ? "food_quality" : "protocol"))],
+      }));
+      return res.status(503).json({
+        code,
+        error: rejectionReasons.length
+          ? `No meal suggestions passed the checks for this request. ${[...new Set(rejectionReasons.map(item => item.reason))].join(" ")}`
+          : "The food guidance service returned no meal suggestions. Please try again or refine your request.",
+        rejectionReasons,
+        ...(availability ? { availability } : {}),
+        retryable: true,
+        ...(requestId ? { requestId } : {}),
+      });
+    };
     if (Array.isArray(result.bestChoices)) {
       const purposes = profileLines.some((line) => line.startsWith("Health conditions:")) ? ["clinical"] as const : [];
       result.bestChoices = result.bestChoices.filter((choice: any) => {
@@ -371,11 +389,7 @@ Based on where this person is right now, give them their best food guidance.`;
         return true;
       });
       if (result.bestChoices.length === 0) {
-        if (reliable) return noChoices();
-        return res.status(503).json({
-          error: "No venue food choices could be confirmed against your active dietary and clinical requirements. Please ask about additional options on site.",
-          retryable: true,
-        });
+        return noChoices();
       }
     }
 

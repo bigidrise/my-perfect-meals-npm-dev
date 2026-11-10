@@ -1,4 +1,12 @@
 {
+  "tutorialControl": {
+    "howItWorks": "사용 방법",
+    "builderTutorial": "식단 플래너 사용 안내",
+    "watchTutorial": "튜토리얼 보기: {{label}}"
+  },
+  "getawayDining": {
+    "venuePlaceholder": "이 목적지의 식당이나 식사 장소를 입력하세요"
+  },
   "nav": {
     "dashboard": "홈",
     "builders": "빌더",

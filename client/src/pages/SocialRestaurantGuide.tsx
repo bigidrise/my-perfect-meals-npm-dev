@@ -813,7 +813,7 @@ export default function RestaurantGuidePage() {
             </button>
           )}
           <div className="flex justify-end">
-            <HowThisWorksLink featureKey="restaurantAssistant" label="How It Works" />
+            <HowThisWorksLink featureKey="restaurantAssistant" labelKey="tutorialControl.howItWorks" />
           </div>
           {/* ENTRY SCREEN - Guided Copilot Entry (matches Macro Calculator pattern) */}
           {guidedStep === "entry" && (

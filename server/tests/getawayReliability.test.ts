@@ -10,12 +10,12 @@ let clearDiscoveryCache: () => void;
 const get = axios.get as jest.Mock;
 beforeAll(() => {
   // Only a child-test fixture; no real provider credentials or requests.
-  process.env = { NODE_ENV: "development", GOOGLE_PLACES_API_KEY: "synthetic-no-network" };
+  process.env = { NODE_ENV: "production", GOOGLE_PLACES_API_KEY: "synthetic-no-network" };
   ({ discoverVenue, clearDiscoveryCache } = require("../services/locationContext/venueDiscovery"));
 });
 afterAll(() => { process.env = originalEnvironment; });
 beforeEach(() => {
-  process.env.NODE_ENV = "development";
+  process.env.NODE_ENV = "production";
   get.mockReset();
   clearDiscoveryCache();
 });
@@ -56,6 +56,26 @@ function places(results: any[]) {
 }
 const place = (name: string, id = name, types = ["airport"], address = "London, UK") =>
   ({ name, place_id: id, types, formatted_address: address });
+
+test.each([
+  ["JFK", "jfk-airport"], ["LAX", "lax-airport"], ["DFW", "dfw-airport"],
+])("Production airport discovery preserves %s and its catalog terminals", async (query, venueId) => {
+  const result = await discoverVenue(query);
+  expect(result).toMatchObject({ source: "catalog", found: true, venueId, type: "airport" });
+  expect(result.zones.length).toBeGreaterThan(0);
+  expect(get).not.toHaveBeenCalled();
+});
+
+test("Production can discover Ontario outside Quick Start without inventing terminals", async () => {
+  places([place("Ontario International Airport", "ontario-fixture", ["airport"], "Ontario, CA, USA")]);
+  const result = await discoverVenue("Ontario International Airport");
+  expect(result).toMatchObject({
+    source: "google", found: true, name: "Ontario International Airport",
+    placeId: "ontario-fixture", type: "airport", zones: [],
+  });
+  expect(result.venueId).toBeUndefined();
+  expect(get).toHaveBeenCalledTimes(2);
+});
 
 test("Heathrow uses existing external discovery without fabricated terminals or DFW", async () => {
   places([place("Heathrow Airport")]);
@@ -194,11 +214,14 @@ test("existing quick-start curated IDs retain their catalog areas", () => {
   for (const id of ids) expect(getVenuesPublicPayload().find(venue => venue.id === id)?.zones.length).toBeGreaterThan(0);
 });
 
-test("Production retains the old matching and generic-zone behavior", async () => {
+test("Production never substitutes DFW for Heathrow or invents airport terminals", async () => {
   process.env.NODE_ENV = "production";
-  expect(await discoverVenue("Heathrow Airport")).toMatchObject({ source: "catalog", venueId: "dfw-airport" });
+  places([place("Heathrow Airport")]);
+  expect(await discoverVenue("Heathrow Airport")).toMatchObject({
+    source: "google", name: "Heathrow Airport", zones: [],
+  });
   places([place("Unknown Sunrise Airport")]);
-  expect((await discoverVenue("Unknown Sunrise")).zones.length).toBeGreaterThan(0);
+  expect(await discoverVenue("Unknown Sunrise")).toMatchObject({ source: "google", zones: [] });
 });
 
 test.each(["Marriott Cancun", "The Farmhouse Kitchen and Grill", "Carnival Cruise Ship"])(

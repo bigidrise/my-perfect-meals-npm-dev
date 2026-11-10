@@ -1,4 +1,12 @@
 {
+  "tutorialControl": {
+    "howItWorks": "Как это работает",
+    "builderTutorial": "Руководство по планировщику питания",
+    "watchTutorial": "Смотреть руководство: {{label}}"
+  },
+  "getawayDining": {
+    "venuePlaceholder": "Введите ресторан или место питания в этом пункте назначения"
+  },
   "nav": {
     "dashboard": "Главная",
     "builders": "Конструкторы",
