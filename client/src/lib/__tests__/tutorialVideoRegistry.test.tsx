@@ -25,7 +25,7 @@ describe("tutorial video registry", () => {
       dogs: undefined,
       cats: undefined,
       createDish: "https://youtu.be/04IyPhqMryQ",
-      cravingCreator: "https://youtube.com/shorts/C3kZCNC1tq8?feature=share",
+      cravingCreator: "https://youtu.be/BkxI1-hwXPo",
       sushiCreator: "https://youtube.com/shorts/bfIZsTFD_jc?feature=share",
       dessertCreator: "https://youtube.com/shorts/hsvqjCK_6rA?feature=share",
       beverageCreator: "https://youtube.com/shorts/JLqrxVdS2kI?feature=share",
