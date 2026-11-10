@@ -28,7 +28,7 @@ export const TUTORIAL_VIDEO_REGISTRY = {
   spiritsBeerWinePairings: "https://youtube.com/shorts/dF7jpiph7_E",
   wineListTranslator: "https://youtube.com/shorts/7DToPay8jEg",
   reduceDrinking: "https://youtube.com/shorts/ttk0Mb6mcN8?feature=share",
-  fridgeRescue: "https://youtube.com/shorts/hctXRUOuCW4?feature=share",
+  fridgeRescue: "https://youtu.be/fYaz_JYnNB8",
   generalNutritionBuilder: "https://youtu.be/UjNvo0hvUas",
   antiInflammatoryBuilder: "https://youtu.be/UjNvo0hvUas",
   diabeticBuilder: "https://youtu.be/UjNvo0hvUas",
