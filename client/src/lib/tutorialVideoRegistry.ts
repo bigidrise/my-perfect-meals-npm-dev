@@ -24,7 +24,7 @@ export const TUTORIAL_VIDEO_REGISTRY = {
   sushiCreator: "https://youtu.be/SPte8aXHfS0",
   dessertCreator: "https://youtu.be/wbj7QY7D3C4",
   beverageCreator: "https://youtu.be/VaVfvcDqXzc",
-  athleteBeverageCreator: "https://youtube.com/shorts/JLqrxVdS2kI?feature=share",
+  athleteBeverageCreator: "https://youtu.be/GfEH1ydfkic",
   spiritsBeerWinePairings: "https://youtube.com/shorts/dF7jpiph7_E",
   wineListTranslator: "https://youtube.com/shorts/7DToPay8jEg",
   reduceDrinking: "https://youtube.com/shorts/ttk0Mb6mcN8?feature=share",

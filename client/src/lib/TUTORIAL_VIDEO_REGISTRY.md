@@ -16,7 +16,7 @@ generic video.
 | Sushi Creator | `https://youtu.be/SPte8aXHfS0` (founder-supplied replacement) |
 | Dessert Creator | `https://youtu.be/wbj7QY7D3C4` (founder-supplied replacement) |
 | Beverage Creator | `https://youtu.be/VaVfvcDqXzc` (founder-supplied replacement) |
-| Athlete's Beverage Creator | `https://youtube.com/shorts/JLqrxVdS2kI?feature=share` (existing shared link retained pending its dedicated URL) |
+| Athlete's Beverage Creator | `https://youtu.be/GfEH1ydfkic` (founder-supplied dedicated tutorial) |
 | Spirits, Beer & Wine Pairings | `https://youtube.com/shorts/dF7jpiph7_E` |
 | Wine List Translator | `https://youtube.com/shorts/7DToPay8jEg` |
 | Reduce Drinking | `https://youtube.com/shorts/ttk0Mb6mcN8?feature=share` |
@@ -34,9 +34,8 @@ Performance Nutrition Hub, My Perfect Pregnancy,
 My Perfect Beginnings, Restaurant Assistant, Find Meals
 Near Me, My Perfect Buffet, My Perfect Pets, Dogs, and Cats.
 
-Dedicated replacement links are also pending for Athlete's Beverage Creator
-and Performance Builder; their existing shared links are deliberately retained
-until then.
+A dedicated replacement link is also pending for Performance Builder; its
+existing shared link is deliberately retained until then.
 
 Pregnancy, Beginnings, Pets (including Dogs and Cats), and wine-related
 tutorial assignments are deferred at the founder's request because those new
