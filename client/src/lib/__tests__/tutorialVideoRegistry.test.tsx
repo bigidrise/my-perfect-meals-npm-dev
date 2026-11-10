@@ -20,7 +20,7 @@ describe("tutorial video registry", () => {
       beginning: undefined,
       restaurantAssistant: "https://youtu.be/IlQsUk4rdIA",
       findMeals: "https://youtu.be/DenB8FxzGng",
-      buffet: undefined,
+      buffet: "https://youtu.be/rC4rsgpV4-I",
       pets: undefined,
       dogs: undefined,
       cats: undefined,
@@ -52,7 +52,7 @@ describe("tutorial video registry", () => {
       "trainingGeneral", "trainingDiabetic", "trainingGlp1",
       "trainingAntiInflammatory", "performanceHub", "pregnancy",
       "beginning",
-      "buffet", "pets", "dogs", "cats",
+      "pets", "dogs", "cats",
     ] as const;
 
     for (const feature of pendingFeatures) {
