@@ -15,6 +15,8 @@ import { getAuthHeaders } from "@/lib/auth";
 import { getResolvedTargets, setPerfSelectedDate } from "@/lib/macroResolver";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { addCalendarDays, localYYYYMMDD } from "@/utils/dates";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
+import { isTutorialAvailable, type TutorialFeature } from "@/lib/tutorialVideoRegistry";
 import {
   computeDemandProfile,
   FUEL_DEMAND_LABELS,
@@ -435,10 +437,12 @@ interface PerformanceHubSharedProps {
   continueTo?: string;    // where the launch button navigates
   returnTo?: string;      // where the back button goes
   pageTitle?: string;     // overrides the header title
+  tutorialKey?: TutorialFeature;
 }
 
-export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, continueLabel }: PerformanceHubSharedProps = {}) {
+export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, continueLabel, tutorialKey }: PerformanceHubSharedProps = {}) {
   usePageTitle(pageTitle ?? "Performance Hub");
+  const resolvedTutorialKey = tutorialKey ?? (continueTo ? "trainingGeneral" : "performanceHub");
   const [, setLocation] = useLocation();
   // Shared-mode helpers — derived once, used throughout
   const setupPath = continueTo
@@ -834,6 +838,12 @@ export default function TrainingNutritionHub({ continueTo, returnTo, pageTitle, 
             <Settings className="w-3.5 h-3.5" />
             {isActive ? "Update" : "Setup"}
           </button>
+        </div>
+      )}
+
+      {isTutorialAvailable(resolvedTutorialKey) && (
+        <div className="mx-auto flex max-w-lg justify-end px-4 pt-3">
+          <HowThisWorksLink featureKey={resolvedTutorialKey} label="How It Works" />
         </div>
       )}
 

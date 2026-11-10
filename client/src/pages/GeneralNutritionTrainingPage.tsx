@@ -14,6 +14,7 @@ export default function GeneralNutritionTrainingPage() {
   return (
     <TrainingNutritionHub
       pageTitle="Training Nutrition Schedule"
+      tutorialKey="trainingGeneral"
       continueLabel="Launch General Nutrition Builder"
       continueTo="/general-nutrition-builder/build"
       returnTo="/general-nutrition-builder"

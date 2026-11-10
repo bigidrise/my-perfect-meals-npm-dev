@@ -14,6 +14,7 @@ import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { PregnancySupportSetupModal } from "@/components/PregnancySupportSetupModal";
 import { derivePregnancyStatus } from "@/lib/pregnancyUtils";
 import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 import { apiUrl } from "@/lib/resolveApiBase";
@@ -490,6 +491,9 @@ function PregnancyPageContent() {
         <div className="text-center mb-2">
           <h2 className="text-2xl font-bold text-white mb-2">Pregnancy Nutrition</h2>
           <p className="text-sm text-white/70">Trimester-aware meal planning, food safety, and your personal pregnancy coach.</p>
+        </div>
+        <div className="flex justify-end">
+          <HowThisWorksLink featureKey="pregnancy" label="How It Works" />
         </div>
 
         {/* Hero card */}

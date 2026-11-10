@@ -200,7 +200,8 @@ onboarding to the calculator, and from saved targets to the assigned Meal
 Builder, with each destination presenting its own readable introduction.
 Automatic introductions should have user-controlled on/off settings, with
 manual Guide access retained. Hiding Copilot's automatic introductions is only
-under consideration, not approved.
+historical: later approved as part of the Academy tutorial rollout; see
+`academy-tutorial-education-policy.md` for the current automatic-education boundary.
 
 **Why:** The user wants explanations customers notice and dismiss before using
 the tool, rather than relying on engagement with the existing Copilot.
@@ -208,7 +209,8 @@ the tool, rather than relying on engagement with the existing Copilot.
 **How to apply:** Preserve existing saving and authorized destination rules.
 Keep initial setup completion distinct from recurring tool guide preferences.
 The later focused setup approval does not authorize recurring tool changes or
-hiding Copilot. Preserve its settings; avoid competing explanation overlays.
+hiding Copilot at that time. The later Academy rollout now authorizes disabling
+automatic education only; preserve its settings and manual access.
 
 All three Guided Journey stage explanation modals should match the platform's
 dark modal backgrounds with white text, not bright white cards.

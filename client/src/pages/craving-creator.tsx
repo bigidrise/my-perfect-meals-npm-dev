@@ -1138,7 +1138,7 @@ export default function CravingCreator() {
                     {t("quickCreate")}
                     <div className="flex-grow" />
                     <HowThisWorksLink
-                      videoUrl="https://youtube.com/shorts/C3kZCNC1tq8?feature=share"
+                      featureKey="cravingCreator"
                       label="How It Works"
                     />
                   </CardTitle>

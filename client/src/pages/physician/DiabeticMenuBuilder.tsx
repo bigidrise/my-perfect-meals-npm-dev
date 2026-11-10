@@ -1180,6 +1180,9 @@ export default function DiabeticMenuBuilder() {
         className="max-w-[1600px] mx-auto px-4 space-y-6"
         style={{ paddingTop: `calc(env(safe-area-inset-top, 0px) + ${proClientId ? '9rem' : '6rem'})` }}
       >
+        <div className="flex justify-end">
+          <HowThisWorksLink featureKey="diabeticBuilder" />
+        </div>
         {isDesktop && (
           <button
             onClick={() => setLocation("/diabetic-hub")}
@@ -1327,8 +1330,6 @@ export default function DiabeticMenuBuilder() {
                   {saving ? t("metabolicBuilder.savingPlan") : justSaved ? t("metabolicBuilder.savedPlan") : t("metabolicBuilder.savePlan")}
                 </span>
               </div>
-
-              <HowThisWorksLink videoUrl="https://youtu.be/UjNvo0hvUas" />
 
               {/* Duplicate (RIGHT) */}
               <div className="inline-flex flex-col items-center gap-1">
