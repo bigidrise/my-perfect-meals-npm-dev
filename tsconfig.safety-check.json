@@ -1,6 +1,13 @@
 {
   "extends": "./tsconfig.json",
   "include": [
+    "server/services/organizationPaidContinuationPolicy.ts",
+    "server/services/organizationCheckoutConsent.ts",
+    "server/services/organizationRewardfulPolicy.ts",
+    "server/services/organizationPartnerRevenueService.ts",
+    "client/src/components/business/OrganizationPaidContinuation.tsx",
+    "client/src/components/business/OrganizationPaidSuccessPrompt.tsx",
+    "client/src/components/business/OrganizationPaidOnboarding.tsx",
     "shared/groceryCoachCarbReview.ts",
     "server/services/groceryCoachCarbRepair.ts",
     "server/services/mealCardFinalizer.ts",

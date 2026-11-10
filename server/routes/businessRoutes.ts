@@ -1,4 +1,6 @@
 import { Router } from "express";
+import { organizationPaidContinuationEnabled } from "../services/organizationPaidContinuationPolicy";
+import { hasRecordedOrganizationPaidActivation } from "../services/organizationRewardfulPolicy";
 import businessPilotActivationRoutes from "./businessPilotActivationRoutes";
 import { bindFounderOrganization, founderOrganizationWindow, getBusinessPilotActivation } from "../services/businessPilotActivationService";
 import { deleteDevelopmentBusinessRecords } from "../services/developmentBusinessCleanup";
@@ -1142,6 +1144,7 @@ router.get("/mine", requireAuth, requireProOrOrgAdmin, async (req, res) => {
       business,
       commercialAccess: {
         state: deriveBusinessCommercialState(business),
+        paidActivationVerified: organizationPaidContinuationEnabled() && hasRecordedOrganizationPaidActivation(business),
         startedAt: business.commercialAccessStartedAt,
         endsAt: business.commercialAccessEndsAt,
       },

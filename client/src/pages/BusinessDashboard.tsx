@@ -44,6 +44,7 @@ import {
 import { FeatureUpgradeModal } from "@/components/modals/FeatureUpgradeModal";
 import OrganizationInvitationsAccess from "@/components/business/OrganizationInvitationsAccess";
 import OrganizationPaidContinuation from "@/components/business/OrganizationPaidContinuation";
+import OrganizationPaidOnboarding from "@/components/business/OrganizationPaidOnboarding";
 import BusinessPilotWindowNotice from "@/components/business/BusinessPilotWindowNotice";
 import RewardfulPayoutGuidance from "@/components/business/RewardfulPayoutGuidance";
 import GuidedBusinessPilot from "@/components/business/GuidedBusinessPilot";
@@ -62,6 +63,7 @@ interface BusinessData {
     independentClientPolicy?: string;
   };
   commercialAccess?: {
+    paidActivationVerified?: boolean;
     state: "pilot_active" | "commercially_active" | "commercial_required";
     startedAt: string | null;
     endsAt: string | null;
@@ -1356,6 +1358,7 @@ export default function BusinessDashboard() {
         )}
 
         {/* Organization overview */}
+        {!isAdminView && <OrganizationPaidOnboarding userId={user?.id ?? ""} organizationId={ownerData.workspace.organizationId} paidActivationVerified={ownerData.commercialAccess?.paidActivationVerified === true} affiliate={affiliateSummary} onOpenPartnerRevenue={() => setLocation("/business-center/affiliate/dashboard")} />}
         <Card className="bg-white/5 border border-orange-500/20 text-white p-4">
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2">

@@ -36,8 +36,43 @@ export async function assertOrganizationCheckoutConsent(
   const result: any = await db.execute(sql`SELECT reservation_id FROM organization_checkout_consents
     WHERE reservation_id = ${reservationId} AND business_id = ${businessId}
       AND actor_user_id = ${userId} AND price_id = ${priceId}
-      AND terms_version = ${ORGANIZATION_BILLING_TERMS_VERSION} AND quantity = 1`);
+      AND terms_version = ${ORGANIZATION_BILLING_TERMS_VERSION} AND quantity = 1
+      AND unit_amount = 4499 AND currency = 'usd' AND billing_interval = 'month' AND interval_count = 1`);
   if (!(result.rows ?? result).length) {
     throw new BusinessPilotActivationError("Billing consent could not be verified.", "BILLING_CONSENT_NOT_VERIFIED", 409);
   }
+}
+
+/** Old untagged paid subscriptions retain compatibility. New consent-tagged purchases fail closed. */
+export async function verifyOrganizationCheckoutConsentEvidence(input: {
+  sessionMetadata: Record<string, string> | null | undefined;
+  subscriptionMetadata: Record<string, string> | null | undefined;
+  userId: string; businessId: string; reservationId: string; priceId: string;
+  subscriptionStatus: string;
+}) {
+  const sessionVersion = input.sessionMetadata?.billingTermsVersion;
+  const subscriptionVersion = input.subscriptionMetadata?.billingTermsVersion;
+  if (!sessionVersion && !subscriptionVersion) return;
+  if (sessionVersion !== ORGANIZATION_BILLING_TERMS_VERSION
+    || subscriptionVersion !== sessionVersion || input.subscriptionStatus !== "active") {
+    throw new BusinessPilotActivationError(
+      "Organization billing consent or active payment could not be verified.", "BILLING_CONSENT_NOT_VERIFIED", 409,
+    );
+  }
+  await assertOrganizationCheckoutConsent(input.reservationId, input.businessId, input.userId, input.priceId);
+}
+
+/** Invoice/subscription callbacks must not bypass the same consent ledger. */
+export async function verifyOrganizationSubscriptionConsentEvidence(input: {
+  metadata: Record<string, string> | null | undefined;
+  userId: string; priceId: string; subscriptionStatus: string;
+}) {
+  if (!input.metadata?.billingTermsVersion) return;
+  if (!input.metadata.businessId || !input.metadata.checkoutReservationId) {
+    throw new BusinessPilotActivationError("Organization consent identity is missing.", "BILLING_CONSENT_NOT_VERIFIED", 409);
+  }
+  await verifyOrganizationCheckoutConsentEvidence({
+    ...input, sessionMetadata: input.metadata, subscriptionMetadata: input.metadata,
+    businessId: input.metadata.businessId, reservationId: input.metadata.checkoutReservationId,
+  });
 }
