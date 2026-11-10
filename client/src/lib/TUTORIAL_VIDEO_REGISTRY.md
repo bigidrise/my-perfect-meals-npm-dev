@@ -11,7 +11,7 @@ generic video.
 | --- | --- |
 | My Perfect Getaway | `https://youtu.be/0CkEgYxX38E` (founder supplied) |
 | My Perfect Gatherings | `https://youtu.be/gGOUC_DdE94` (founder supplied) |
-| Create a Dish | `https://youtube.com/shorts/OxdqoAYQpsA?feature=share` |
+| Create a Dish | `https://youtu.be/04IyPhqMryQ` (founder-supplied replacement) |
 | Craving Creator | `https://youtube.com/shorts/C3kZCNC1tq8?feature=share` |
 | Sushi Creator | `https://youtube.com/shorts/bfIZsTFD_jc?feature=share` |
 | Dessert Creator | `https://youtube.com/shorts/hsvqjCK_6rA?feature=share` |
