@@ -16,6 +16,14 @@ wants to connect videos one feature at a time.
 and mobile/desktop behavior, and report completion before the next assignment.
 Pending URLs do not authorize generic fallback videos.
 
+Use one founder-supplied tutorial video across all four Training Nutrition
+Schedules: General, Diabetic, GLP-1, and Anti-Inflammatory.
+
+**Why:** The founder explicitly requested the same video for all training schedules.
+
+**How to apply:** Assign the supplied schedule tutorial to all four variants;
+do not infer that it also replaces the separate Performance Hub or Builder video.
+
 For the current rollout, skip Pregnancy, Beginnings, Pets (Dogs and Cats), and
 wine-related tools until the founder resumes them; those videos are not finished.
 Leave existing builder videos unchanged while collecting Lifestyle videos one

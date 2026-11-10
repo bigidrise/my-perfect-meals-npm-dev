@@ -9,10 +9,10 @@ import {
 describe("tutorial video registry", () => {
   test("preserves exact existing feature links, including shared videos", () => {
     expect(TUTORIAL_VIDEO_REGISTRY).toEqual({
-      trainingGeneral: undefined,
-      trainingDiabetic: undefined,
-      trainingGlp1: undefined,
-      trainingAntiInflammatory: undefined,
+      trainingGeneral: "https://youtu.be/4EEJC_yFVjQ",
+      trainingDiabetic: "https://youtu.be/4EEJC_yFVjQ",
+      trainingGlp1: "https://youtu.be/4EEJC_yFVjQ",
+      trainingAntiInflammatory: "https://youtu.be/4EEJC_yFVjQ",
       performanceHub: undefined,
       pregnancy: undefined,
       getaway: "https://youtu.be/0CkEgYxX38E",
@@ -49,8 +49,7 @@ describe("tutorial video registry", () => {
 
   test("keeps all links awaiting founder URLs unavailable", () => {
     const pendingFeatures = [
-      "trainingGeneral", "trainingDiabetic", "trainingGlp1",
-      "trainingAntiInflammatory", "performanceHub", "pregnancy",
+      "performanceHub", "pregnancy",
       "beginning",
       "pets", "dogs", "cats",
     ] as const;
