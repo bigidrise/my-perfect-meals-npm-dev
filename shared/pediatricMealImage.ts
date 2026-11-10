@@ -29,7 +29,15 @@ export interface PediatricImageContext {
 export type PediatricImageSource = "meal" | "snack" | "dessert" | "beverage";
 export type RecipeImageStatus = "generated" | "fallback" | "unavailable";
 
+export type RecipeImageFailure =
+  | "ingredients_missing" | "provider_timeout" | "provider_error"
+  | "provider_empty_response" | "validation_rejected" | "validation_unavailable"
+  | "storage_unavailable" | "unexpected_error";
+
 export interface PediatricImageGeneration {
+  failureCode?: RecipeImageFailure;
+  model?: string;
+  manualRetry?: { requestId: string; attemptedAt: number; state: "pending" | "complete" };
   pediatricContext: PediatricImageContext;
   sourceType: PediatricImageSource;
   status: RecipeImageStatus;

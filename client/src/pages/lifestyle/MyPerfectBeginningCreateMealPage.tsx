@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { resolvePediatricRecipeImage, pediatricImageForSave, createPediatricImageRestorer } from "@/lib/pediatricRecipeImage";
 import { isFallbackMealImage } from "@shared/pediatricMealImage";
+import type { PediatricImageGeneration } from "@shared/pediatricMealImage";
+import { PediatricImageRetry, type PediatricImageRetryResult } from "@/components/pediatric/PediatricImageRetry";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
@@ -118,6 +120,7 @@ interface CompletePlateSide {
   allergenFree?: boolean;
 }
 interface ChildRecipeResponse {
+  _imageGeneration?: PediatricImageGeneration;
   recipeName: string;
   ageStageSuitability: string;
   ingredients: ChildIngredient[];
@@ -887,6 +890,9 @@ function RecipeCard({
   textureClass,
   imageUrl,
   imageLoading,
+  savedMealId,
+  imageChildId,
+  onImageRecovered,
   onDelete,
   onUpdateRecipe,
   setLocation,
@@ -904,6 +910,9 @@ function RecipeCard({
   textureClass?: string;
   imageUrl: string | null;
   imageLoading: boolean;
+  savedMealId: string | null;
+  imageChildId?: string;
+  onImageRecovered: (result: PediatricImageRetryResult) => void;
   nutritionBadges: string[];
   clinicalNutritionSummary: ClinicalNutritionSummary | null;
   onDelete: () => void;
@@ -1008,9 +1017,15 @@ function RecipeCard({
                 className="rounded-2xl overflow-hidden"
               />
               {isFallbackMealImage(imageUrl) && (
-                <p className="mt-1 text-xs text-white/60">Preview illustration — generated photo unavailable.</p>
+                <p className="mt-1 text-xs text-white/60">Generated photograph unavailable. This placeholder is not a recipe photograph.</p>
               )}
             </div>
+          )}
+
+          {import.meta.env.DEV && savedMealId && imageChildId && !imageLoading &&
+            (!imageUrl || isFallbackMealImage(imageUrl)) && (
+            <PediatricImageRetry key={`${imageChildId}:${savedMealId}`}
+              mealId={savedMealId} childProfileId={imageChildId} onRecovered={onImageRecovered} />
           )}
 
           {/* Age stage caption */}
@@ -1656,6 +1671,7 @@ export default function MyPerfectBeginningCreateMealPage() {
 
   // Image state — fires once per recipe, independent of main generation
   const [recipeImageUrl, setRecipeImageUrl] = useState<string | null>(null);
+  const [savedMealId, setSavedMealId] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
   // Per-mounted-page authority: deduplicate restoration across StrictMode and
   // child switches without sharing recipes or image requests across accounts.
@@ -1797,9 +1813,8 @@ export default function MyPerfectBeginningCreateMealPage() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
-  // Restore last saved meal for the active child from DB on mount / child-switch.
-  // If imageUrl is null (storage failed during original save), re-generate the
-  // image in the background and write the persistent URL back to DB.
+  // Restore without paid image work in Development. Failed images can be retried
+  // only through the explicit saved-recipe action; retain legacy Production behavior.
   useEffect(() => {
     if (!activeChild?.id) return;
     const childProfileId = activeChild.id;
@@ -1811,12 +1826,12 @@ export default function MyPerfectBeginningCreateMealPage() {
       .then(data => {
         if (!cancelled && data.meal && !recipe) {
           setRecipe(data.meal.recipeData);
+          setSavedMealId(data.meal.id);
           const restoredImageUrl = data.meal.imageUrl ?? data.meal.recipeData?._imageGeneration?.fallbackUrl ?? null;
           setRecipeImageUrl(restoredImageUrl);
 
-          // If no persisted image, silently regenerate from the recipe data so
-          // the card shows an image without the user having to re-generate the recipe.
-          if ((!restoredImageUrl || isFallbackMealImage(restoredImageUrl)) && data.meal.recipeData?.recipeName) {
+          // Production keeps its existing bounded legacy-restoration policy.
+          if (!import.meta.env.DEV && (!restoredImageUrl || isFallbackMealImage(restoredImageUrl)) && data.meal.recipeData?.recipeName) {
             const selectedOptionName = data.meal.selectedOptionName ?? null;
             const savedRecipeData = data.meal.recipeData;
             setImageLoading(true);
@@ -1985,6 +2000,7 @@ export default function MyPerfectBeginningCreateMealPage() {
         setClinicalNutritionSummary(data.clinicalNutritionSummary);
       }
       setRecipeImageUrl(data.imageUrl ?? null);
+      setSavedMealId(null);
       setImageLoading(true);
       // New responses already attempted the fully contextual pipeline. Only a
       // legacy response missing that attempt may make one background image call.
@@ -1994,14 +2010,16 @@ export default function MyPerfectBeginningCreateMealPage() {
       ).then(result => {
         setRecipeImageUrl(result.imageUrl);
         setRecipe(result.recipe as unknown as ChildRecipeResponse);
-        return post('/api/my-perfect-beginning/generated-meals', {
+        return post<{ id: string }>('/api/my-perfect-beginning/generated-meals', {
           childProfileId: activeChild?.id ?? null,
           recipeData: result.recipe,
           imageUrl: pediatricImageForSave(result.imageUrl),
           selectedOptionName: conceptName ?? null,
-        });
+        }).then(saved => setSavedMealId(saved.id));
       })
-        .catch(() => {})
+        .catch(() => {
+          toast({ title: "Meal image save unavailable", description: "The meal is still visible, but its saved image status could not be confirmed. Reopen it before retrying.", variant: "destructive" });
+        })
         .finally(() => setImageLoading(false));
     } catch (err: any) {
       toast({ title: "Something went wrong", description: err.message || "Please try again.", variant: "destructive" });
@@ -2218,6 +2236,12 @@ export default function MyPerfectBeginningCreateMealPage() {
               textureClass={resolverTextureClass}
               imageUrl={recipeImageUrl}
               imageLoading={imageLoading}
+              savedMealId={savedMealId}
+              imageChildId={activeChild?.id}
+              onImageRecovered={result => {
+                setRecipeImageUrl(result.imageUrl);
+                setRecipe(current => current ? { ...current, _imageGeneration: result.imageGeneration } : current);
+              }}
               nutritionBadges={nutritionBadges}
               clinicalNutritionSummary={clinicalNutritionSummary}
               ageStage={selectedStage}
