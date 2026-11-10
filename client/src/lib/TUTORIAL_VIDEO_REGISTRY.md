@@ -20,7 +20,7 @@ generic video.
 | Spirits, Beer & Wine Pairings | `https://youtube.com/shorts/dF7jpiph7_E` |
 | Wine List Translator | `https://youtube.com/shorts/7DToPay8jEg` |
 | Reduce Drinking | `https://youtube.com/shorts/ttk0Mb6mcN8?feature=share` |
-| Fridge Rescue | `https://youtube.com/shorts/hctXRUOuCW4?feature=share` |
+| Fridge Rescue | `https://youtu.be/fYaz_JYnNB8` (founder-supplied replacement) |
 | General / Anti-Inflammatory / Diabetic / GLP-1 builders | `https://youtu.be/UjNvo0hvUas` (existing shared URL retained) |
 | Diabetic Hub | `https://youtu.be/fp_9nVeXasc` |
 | GLP-1 Hub | `https://youtu.be/OaflYvlOI0A` |
@@ -37,6 +37,6 @@ Near Me, My Perfect Buffet, My Perfect Pets, Dogs, and Cats.
 A dedicated replacement link is also pending for Performance Builder; its
 existing shared link is deliberately retained until then.
 
-Pregnancy, Beginnings, Pets (including Dogs and Cats), and wine-related
+Pregnancy, Beginnings, Pets (including Dogs and Cats), Reduce Drinking, and wine-related
 tutorial assignments are deferred at the founder's request because those new
 videos are not finished. Existing working links on those tools remain unchanged.
