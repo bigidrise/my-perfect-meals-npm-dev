@@ -9,6 +9,7 @@ import {
 describe("tutorial video registry", () => {
   test("preserves exact existing feature links, including shared videos", () => {
     expect(TUTORIAL_VIDEO_REGISTRY).toEqual({
+      dashboard: "https://youtu.be/HPfCDO8eDGM",
       macroCalculator: "https://youtu.be/2ZfQmrA9mps",
       trainingGeneral: "https://youtu.be/4EEJC_yFVjQ",
       trainingDiabetic: "https://youtu.be/4EEJC_yFVjQ",

@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { InformationModal } from "@/components/ui/universal-modal";
 import { Button } from "@/components/ui/button";
+import { HowThisWorksLink } from "@/components/ui/HowThisWorksLink";
 import {
   Calculator,
   ShoppingCart,
@@ -1122,6 +1123,9 @@ export default function DashboardNew() {
             : "calc(env(safe-area-inset-top, 0px) + 6rem)",
         }}
       >
+        <div className="flex justify-end">
+          <HowThisWorksLink featureKey="dashboard" label="How It Works" />
+        </div>
         <PatternAlertBanner />
         <TipsBanner />
         <TrialStatusCard />
