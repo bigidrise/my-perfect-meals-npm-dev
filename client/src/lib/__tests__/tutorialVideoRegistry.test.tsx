@@ -27,7 +27,7 @@ describe("tutorial video registry", () => {
       createDish: "https://youtu.be/04IyPhqMryQ",
       cravingCreator: "https://youtu.be/BkxI1-hwXPo",
       sushiCreator: "https://youtu.be/SPte8aXHfS0",
-      dessertCreator: "https://youtube.com/shorts/hsvqjCK_6rA?feature=share",
+      dessertCreator: "https://youtu.be/wbj7QY7D3C4",
       beverageCreator: "https://youtube.com/shorts/JLqrxVdS2kI?feature=share",
       athleteBeverageCreator: "https://youtube.com/shorts/JLqrxVdS2kI?feature=share",
       spiritsBeerWinePairings: "https://youtube.com/shorts/dF7jpiph7_E",
