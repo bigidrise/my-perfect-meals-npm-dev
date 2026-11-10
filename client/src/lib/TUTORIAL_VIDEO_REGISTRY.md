@@ -13,6 +13,7 @@ generic video.
 | My Perfect Gatherings | `https://youtu.be/gGOUC_DdE94` (founder supplied) |
 | Restaurant Assistant | `https://youtu.be/IlQsUk4rdIA` (founder supplied) |
 | Find Meals Near Me — first page | `https://youtu.be/DenB8FxzGng` (founder supplied) |
+| My Perfect Buffet | `https://youtu.be/rC4rsgpV4-I` (founder supplied) |
 | Create a Dish | `https://youtu.be/04IyPhqMryQ` (founder-supplied replacement) |
 | Craving Creator | `https://youtu.be/BkxI1-hwXPo` (founder-supplied replacement) |
 | Sushi Creator | `https://youtu.be/SPte8aXHfS0` (founder-supplied replacement) |
@@ -33,7 +34,7 @@ generic video.
 
 Training Nutrition Schedule (General, Diabetic, GLP-1, Anti-Inflammatory),
 Performance Nutrition Hub, My Perfect Pregnancy,
-My Perfect Beginnings, My Perfect Buffet, My Perfect Pets, Dogs, and Cats.
+My Perfect Beginnings, My Perfect Pets, Dogs, and Cats.
 
 A dedicated replacement link is also pending for Performance Builder; its
 existing shared link is deliberately retained until then.
