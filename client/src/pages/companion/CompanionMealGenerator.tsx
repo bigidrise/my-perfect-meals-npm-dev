@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import { usePageTitle } from "@/contexts/PageTitleContext";
 import { useLocation, useSearch } from "wouter";
+import MealCardActions, { MealCardAction } from "@/components/MealCardActions";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChefHat, ArrowLeft, PawPrint, Sparkles, BookOpen,
@@ -551,19 +552,19 @@ export default function CompanionMealGenerator() {
 
                 {/* Action buttons */}
                 <div className="space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <PillButton
+                  <MealCardActions source="companion-recipe">
+                    <MealCardAction kind="save"><PillButton
                       onClick={handleSave}
                       disabled={saved || !meal.id}
                       className="w-full py-3"
                     >
                       <Heart className={`h-3.5 w-3.5 ${saved ? "fill-orange-400" : ""}`} />
                       {saved ? "Saved to Collection" : "Save Recipe"}
-                    </PillButton>
-                    <PillButton onClick={handleRegenerate} className="w-full py-3">
+                    </PillButton></MealCardAction>
+                    <MealCardAction kind="extra"><PillButton onClick={handleRegenerate} className="w-full py-3">
                       <RefreshCw className="h-3.5 w-3.5" /> New Recipe
-                    </PillButton>
-                  </div>
+                    </PillButton></MealCardAction>
+                  </MealCardActions>
 
                   {/* Vet disclaimer */}
                   {meal.veterinaryNote && (

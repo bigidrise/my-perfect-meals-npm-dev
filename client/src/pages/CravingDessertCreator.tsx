@@ -39,6 +39,7 @@ import TrashButton from "@/components/ui/TrashButton";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
+import MealCardActions, { MealCardAction } from "@/components/MealCardActions";
 import { useQuickTour } from "@/hooks/useQuickTour";
 import { QuickTourModal, TourStep } from "@/components/guided/QuickTourModal";
 import { useAuth } from "@/contexts/AuthContext";
@@ -1267,9 +1268,9 @@ export default function DessertCreator() {
                   )}
 
                   {/* Standardized 3-Row Button Layout */}
-                  <div className="space-y-2">
+                  <MealCardActions source="CravingDessertCreator">
                     {/* Row 1: Add to Macros (full width) */}
-                    <GlassButton
+                    <MealCardAction kind="macros"><GlassButton
                       onClick={() => {
                         setQuickView({
                           ...getNutrition(generatedDessert),
@@ -1295,11 +1296,11 @@ export default function DessertCreator() {
                       className="w-full bg-gradient-to-r from-zinc-900 via-zinc-800 to-black hover:from-zinc-800 hover:via-zinc-700 hover:to-zinc-900 text-white flex items-center justify-center text-center border border-white/30"
                     >
                       Add to Macros
-                    </GlassButton>
+                    </GlassButton></MealCardAction>
 
                     {/* Row 2: Add to Plan + Translate (50/50) */}
                     <div className="grid grid-cols-2 gap-2">
-                      <AddToMealPlanButton meal={generatedDessert} />
+                      <MealCardAction kind="plan"><AddToMealPlanButton meal={generatedDessert} /></MealCardAction>
                       <TranslateToggle
                         content={{
                           name: generatedDessert.name,
@@ -1330,7 +1331,7 @@ export default function DessertCreator() {
 
                     {/* Row 3: Prepare with Chef + Share (50/50) */}
                     <div className="grid grid-cols-2 gap-2">
-                      <GlassButton
+                      <MealCardAction kind="prepare"><GlassButton
                         onClick={() => {
                           const safeImageUrl = (() => {
                             const url = generatedDessert.imageUrl;
@@ -1359,8 +1360,8 @@ export default function DessertCreator() {
                         className="flex-1 bg-lime-600 hover:bg-lime-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
                       >
                         Enter Studio
-                      </GlassButton>
-                      <ShareRecipeButton
+                      </GlassButton></MealCardAction>
+                      <MealCardAction kind="share"><ShareRecipeButton
                         recipe={{
                           name: generatedDessert.name,
                           description: generatedDessert.description,
@@ -1375,9 +1376,9 @@ export default function DessertCreator() {
                           ),
                         }}
                         className="flex-1"
-                      />
+                      /></MealCardAction>
                     </div>
-                  </div>
+                  </MealCardActions>
                 </CardContent>
               </Card>
 

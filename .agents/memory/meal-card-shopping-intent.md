@@ -36,3 +36,15 @@ restoration of one-source-of-truth behavior before changing Shopping.
 shared action owner over creating another universal renderer. Keep existing
 Add to Plan and Add to Macros behavior and retain necessary feature-specific
 content and safety controls.
+
+Restore shared actions and prove inheritance before implementing Shopping.
+Shopping behavior, transfer APIs and schema changes require the separate Phase 2
+review checkpoint. Initial verification uses isolated fixtures or mocked
+persistence; shared-Production database migrations need separate approval.
+
+**Why:** The founder explicitly required a stop after Phase 1, rather than treating
+the full two-phase brief as permission to implement or activate Shopping.
+
+**How to apply:** Preserve existing bulk shopping and customer list data while
+restoring shared action composition. Report the proposed transfer API and durable
+repeat-protection schema before beginning that separate implementation.

@@ -21,7 +21,11 @@ jest.mock("@/hooks/useTranslatedMeal", () => ({
 }));
 jest.mock("@/components/ui/MealImageSlot", () => ({ MealImageSlot: () => null }));
 jest.mock("@/components/AddToMealPlanButton", () => ({ __esModule: true, default: () => null }));
-jest.mock("@/components/MealCardActions", () => ({ __esModule: true, default: () => null }));
+jest.mock("@/components/MealCardActions", () => ({
+  __esModule: true,
+  default: ({ children }: any) => <>{children}</>,
+  MealCardAction: ({ children }: any) => <>{children}</>,
+}));
 jest.mock("@/components/AlphaGalBadge", () => ({ __esModule: true, default: () => null }));
 jest.mock("@/lib/macrosQuickView", () => ({ setQuickView: jest.fn() }));
 jest.mock("@/lib/biometricsNavigation", () => ({ buildBiometricsUrl: jest.fn() }));

@@ -32,6 +32,7 @@ import {
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
+import MealCardActions, { MealCardAction } from "@/components/MealCardActions";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
 import { GlucoseGuardToggle } from "@/components/GlucoseGuardToggle";
@@ -2240,8 +2241,8 @@ export default function CreateDishPage() {
                         </div>
                       )}
 
-                      <div className="space-y-2 mb-3">
-                        <GlassButton
+                      <MealCardActions source="CreateDishPage">
+                        <MealCardAction kind="macros"><GlassButton
                           onClick={() => {
                             const macros = getMealNutrition(meal, servings);
                             setQuickView({
@@ -2261,10 +2262,10 @@ export default function CreateDishPage() {
                           className="w-full bg-gradient-to-r from-zinc-900 via-zinc-800 to-black hover:from-zinc-800 hover:via-zinc-700 hover:to-zinc-900 text-white flex items-center justify-center border border-white/30"
                         >
                           Add to Macros
-                        </GlassButton>
+                        </GlassButton></MealCardAction>
 
                         <div className="grid grid-cols-2 gap-2">
-                          <AddToMealPlanButton meal={meal} />
+                          <MealCardAction kind="plan"><AddToMealPlanButton meal={meal} /></MealCardAction>
                           <TranslateToggle
                             content={{
                               name: meal.name,
@@ -2293,7 +2294,7 @@ export default function CreateDishPage() {
                         </div>
 
                         <div className="grid grid-cols-2 gap-2">
-                          <GlassButton
+                          <MealCardAction kind="prepare"><GlassButton
                             onClick={() => {
                               const safeImageUrl = (() => {
                                 const url = meal.imageUrl;
@@ -2321,8 +2322,8 @@ export default function CreateDishPage() {
                             className="flex-1 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 hover:from-red-400 hover:via-orange-400 hover:to-yellow-300 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
                           >
                             Guided Cooking
-                          </GlassButton>
-                          <ShareRecipeButton
+                          </GlassButton></MealCardAction>
+                          <MealCardAction kind="share"><ShareRecipeButton
                             recipe={{
                               name: meal.name,
                               description: meal.description,
@@ -2337,9 +2338,9 @@ export default function CreateDishPage() {
                               ),
                             }}
                             className="flex-1"
-                          />
+                          /></MealCardAction>
                         </div>
-                      </div>
+                      </MealCardActions>
                     </CardContent>
                   </Card>
                 </div>

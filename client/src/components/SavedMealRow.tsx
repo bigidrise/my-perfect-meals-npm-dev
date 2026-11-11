@@ -13,7 +13,7 @@ import { AlertTriangle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { MealImageSlot } from "@/components/ui/MealImageSlot";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
-import MealCardActions from "@/components/MealCardActions";
+import MealCardActions, { MealCardAction } from "@/components/MealCardActions";
 import { normalizeInstructions } from "@/utils/normalizeInstructions";
 import { setQuickView } from "@/lib/macrosQuickView";
 import { buildBiometricsUrl } from "@/lib/biometricsNavigation";
@@ -229,38 +229,6 @@ export default function SavedMealRow({
             </div>
           )}
 
-          {/* Actions */}
-          <div className="flex flex-wrap gap-2 pt-2">
-            <AddToMealPlanButton
-              meal={{
-                id: row.id,
-                name: row.title,          // canonical title for plan slot
-                description: d?.description,
-                instructions: d?.instructions,
-                ingredients: d?.ingredients,
-                nutrition: d?.nutrition || { calories, protein, carbs, fat },
-                imageUrl: d?.imageUrl,
-                servings: d?.servings,
-                servingSize: d?.servingSize,
-                ...(developmentGrocery ? groceryCoachPlanHandoff(d) : {}),
-              }}
-              onSuccess={onAddToPlanSuccess}
-            />
-            <button
-              onClick={() => onAddToMacros(row)}
-              className="flex-1 bg-white/10 text-white text-sm py-2 px-3 rounded-lg active:scale-[0.98]"
-            >
-              {t("savedMeals.addToMacros")}
-            </button>
-            <button
-              onClick={() => onRemove(row)}
-              className="bg-white/10 text-red-400 text-sm py-2 px-3 rounded-lg active:scale-[0.98] flex items-center gap-1"
-            >
-              <Heart className="h-4 w-4" fill="currentColor" />
-              {t("savedMeals.remove")}
-            </button>
-          </div>
-
           <MealCardActions
             meal={{
               id: row.id,
@@ -276,7 +244,42 @@ export default function SavedMealRow({
             source={row.sourceType}
             showTranslate={true}
             showPrepareButton={true}
-          />
+          >
+            <MealCardAction kind="plan">
+              <AddToMealPlanButton
+                meal={{
+                  id: row.id,
+                  name: row.title,
+                  description: d?.description,
+                  instructions: d?.instructions,
+                  ingredients: d?.ingredients,
+                  nutrition: d?.nutrition || { calories, protein, carbs, fat },
+                  imageUrl: d?.imageUrl,
+                  servings: d?.servings,
+                  servingSize: d?.servingSize,
+                  ...(developmentGrocery ? groceryCoachPlanHandoff(d) : {}),
+                }}
+                onSuccess={onAddToPlanSuccess}
+              />
+            </MealCardAction>
+            <MealCardAction kind="macros">
+              <button
+                onClick={() => onAddToMacros(row)}
+                className="flex-1 bg-white/10 text-white text-sm py-2 px-3 rounded-lg active:scale-[0.98]"
+              >
+                {t("savedMeals.addToMacros")}
+              </button>
+            </MealCardAction>
+            <MealCardAction kind="save">
+              <button
+                onClick={() => onRemove(row)}
+                className="bg-white/10 text-red-400 text-sm py-2 px-3 rounded-lg active:scale-[0.98] flex items-center gap-1"
+              >
+                <Heart className="h-4 w-4" fill="currentColor" />
+                {t("savedMeals.remove")}
+              </button>
+            </MealCardAction>
+          </MealCardActions>
         </div>
       )}
     </div>
