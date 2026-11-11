@@ -35,7 +35,11 @@ function hasSavedChoices(creator: OneTouchCreator, ownerId?: string) {
 }
 
 /** Browser stores choices only. The server is the sole source of concept text and IDs. */
-export function useCreatorConceptMenu(creator: OneTouchCreator, ownerId?: string) {
+export function useCreatorConceptMenu(
+  creator: OneTouchCreator,
+  ownerId?: string,
+  { recoverSavedChoices = false }: { recoverSavedChoices?: boolean } = {},
+) {
   const [concepts, setConcepts] = useState<OneTouchConcept[]>([]);
   const [choices, setChoices] = useState<Choices | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -43,6 +47,8 @@ export function useCreatorConceptMenu(creator: OneTouchCreator, ownerId?: string
   // A saved request means the server restoration check starts on this mount.
   // Show progress on the first paint, before the effect can begin the request.
   const [restoring, setRestoring] = useState(() => hasSavedChoices(creator, ownerId));
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+  const [restoreAttempt, setRestoreAttempt] = useState(0);
   const epoch = useRef(0);
 
   useEffect(() => {
@@ -52,6 +58,7 @@ export function useCreatorConceptMenu(creator: OneTouchCreator, ownerId?: string
     setGenerating(false);
     setChoosingId(null);
     setRestoring(false);
+    setRestoreError(null);
     if (!ownerId) return;
     let stored: Choices | null = null;
     try {
@@ -66,15 +73,22 @@ export function useCreatorConceptMenu(creator: OneTouchCreator, ownerId?: string
           setChoices(stored);
           setConcepts(payload.concepts);
         } else {
-          localStorage.removeItem(cacheKey(creator, ownerId));
+          if (recoverSavedChoices) {
+            setRestoreError("These saved ideas could not be verified. Your food context may have changed, or a newer Menu may have replaced them. Retry to check again, or explicitly create a new set.");
+          } else {
+            localStorage.removeItem(cacheKey(creator, ownerId));
+          }
         }
       })
-      .catch(() => {
+      .catch((error) => {
         // A transport failure is not evidence that saved concepts are stale.
+        if (epoch.current === currentEpoch && recoverSavedChoices) {
+          setRestoreError(`Your saved choices haven't been removed. ${error?.message || "We couldn't load them right now."} Retry to check again.`);
+        }
       })
       .finally(() => { if (epoch.current === currentEpoch) setRestoring(false); });
     return () => { epoch.current++; };
-  }, [creator, ownerId]);
+  }, [creator, ownerId, recoverSavedChoices, restoreAttempt]);
 
   const generate = async (next: Choices) => {
     if (!ownerId) throw new Error("Sign in to use your Menu.");
@@ -88,6 +102,7 @@ export function useCreatorConceptMenu(creator: OneTouchCreator, ownerId?: string
         throw new Error("We couldn't create three governed ideas. Please try again.");
       }
       if (currentEpoch !== epoch.current) return;
+      setRestoreError(null);
       setChoices(next);
       setConcepts(payload.concepts);
       localStorage.setItem(cacheKey(creator, ownerId), JSON.stringify(next));
@@ -97,6 +112,7 @@ export function useCreatorConceptMenu(creator: OneTouchCreator, ownerId?: string
   };
 
   const choose = async <T,>(conceptId: string): Promise<T> => {
+    if (recoverSavedChoices && restoreError) throw new Error(restoreError);
     if (!choices) throw new Error("Generate your Menu ideas first.");
     const currentEpoch = epoch.current;
     setChoosingId(conceptId);
@@ -109,9 +125,13 @@ export function useCreatorConceptMenu(creator: OneTouchCreator, ownerId?: string
       return payload.meal as T;
     } catch (error) {
       if (currentEpoch === epoch.current && (error as { status?: number }).status === 409 && ownerId) {
-        setConcepts([]);
-        setChoices(null);
-        localStorage.removeItem(cacheKey(creator, ownerId));
+        if (recoverSavedChoices) {
+          setRestoreError(`${(error as Error).message} Your saved choices haven't been removed. Retry to verify them before choosing again.`);
+        } else {
+          setConcepts([]);
+          setChoices(null);
+          localStorage.removeItem(cacheKey(creator, ownerId));
+        }
       }
       throw error;
     } finally {
@@ -126,8 +146,13 @@ export function useCreatorConceptMenu(creator: OneTouchCreator, ownerId?: string
     setGenerating(false);
     setChoosingId(null);
     setRestoring(false);
+    setRestoreError(null);
     if (ownerId) localStorage.removeItem(cacheKey(creator, ownerId));
   };
 
-  return { concepts, choices, generating, choosingId, restoring, generate, choose, clear };
+  const retryRestore = () => {
+    if (!generating && !choosingId && !restoring) setRestoreAttempt((attempt) => attempt + 1);
+  };
+
+  return { concepts, choices, generating, choosingId, restoring, restoreError, retryRestore, generate, choose, clear };
 }
