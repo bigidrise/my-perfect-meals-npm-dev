@@ -6,6 +6,8 @@ import BuilderShoppingBar from "@/components/BuilderShoppingBar";
 import ShoppingAggregateBar from "@/components/ShoppingAggregateBar";
 import { createDevelopmentShoppingListStore } from "@/stores/developmentShoppingListStore";
 import { recipeIngredientTransfer } from "@/lib/shoppingIngredientTransfer";
+let mockShopping: any;
+jest.mock("@/hooks/useMealShopping", () => ({ useMealShopping: () => mockShopping }));
 
 let mockStore: ReturnType<typeof createDevelopmentShoppingListStore>;
 const mockNavigate = jest.fn();
@@ -37,6 +39,7 @@ let rows: any[];
 let serial: number;
 const clone = (value: any) => JSON.parse(JSON.stringify(value));
 beforeEach(() => {
+  mockShopping = { available: false, checked: true, legacyAllowed: true, pending: false, message: "", result: null };
   localStorage.clear();
   localStorage.setItem("userId", "synthetic-builder-audit");
   rows = [];
@@ -128,4 +131,40 @@ test("characterization: repeated current builder sends add again; Phase 2 must s
   fireEvent.click(screen.getByTestId("button-send-day-shopping"));
   await mockStore.getState().hydrate();
   expect(Number(rows[0].quantity)).toBe(4); // Known gap, deliberately unchanged here.
+});
+test("activated builder bulk uses stable selected recipes and waits for acknowledgement", async () => {
+  let acknowledge: (value: any) => void = () => undefined;
+  mockShopping = { ...mockShopping, available: true, send: jest.fn(() => new Promise(resolve => { acknowledge = resolve; })) };
+  render(<BuilderShoppingBar board={board()} activeDayISO="2026-11-09" currentWeekStartISO="2026-11-09" />);
+  fireEvent.click(screen.getByTestId("button-choose-days-shopping"));
+  fireEvent.click(screen.getByRole("button", { name: /11\/9/ }));
+  fireEvent.click(screen.getByRole("button", { name: /11\/10/ }));
+  fireEvent.click(screen.getByTestId("button-confirm-days-shopping"));
+  expect(mockShopping.send.mock.calls[0][0].map((s: any) => s.selectionId)).toEqual(["recipe:recipe-a", "recipe:recipe-b"]);
+  expect(mockShopping.send.mock.calls[0][0][0].ingredients[0].quantity).toBe(2);
+  expect(mockNavigate).not.toHaveBeenCalled();
+  expect(mockToast).not.toHaveBeenCalled();
+  acknowledge({ committed: true });
+  await screen.findByTestId("button-send-day-shopping");
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(mockNavigate).toHaveBeenCalledWith("/shopping-list-v2");
+  expect(rows).toHaveLength(0); // No second legacy/optimistic add.
+});
+test("activated whole-menu transfer uses the same identities and original fractions as its cards", async () => {
+  mockShopping = { ...mockShopping, available: true, send: jest.fn(async () => ({ committed: true })) };
+  render(<ShoppingAggregateBar recipes={[meal("course-a", "1/2"), meal("course-b", 2)]}
+    ingredients={[{ name: "preparsed display quantity", qty: 99 }]} source="Gatherings" />);
+  fireEvent.click(screen.getByTestId("button-go-to-shopping-list"));
+  expect(mockShopping.send.mock.calls[0][0].map((s: any) => s.selectionId)).toEqual(["recipe:course-a", "recipe:course-b"]);
+  expect(mockShopping.send.mock.calls[0][0][0].ingredients[0].quantity).toBe("1/2");
+  expect(rows).toHaveLength(0);
+});
+test("unacknowledged builder save never reports success or navigates", async () => {
+  mockShopping = { ...mockShopping, available: true, send: jest.fn(async () => null) };
+  render(<BuilderShoppingBar board={board()} activeDayISO="2026-11-09" currentWeekStartISO="2026-11-09" />);
+  fireEvent.click(screen.getByTestId("button-send-day-shopping"));
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(mockNavigate).not.toHaveBeenCalled();
+  expect(mockToast).not.toHaveBeenCalled();
+  expect(rows).toHaveLength(0);
 });

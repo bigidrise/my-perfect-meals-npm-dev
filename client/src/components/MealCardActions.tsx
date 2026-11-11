@@ -1,4 +1,6 @@
-import { Children, Fragment, isValidElement, ReactNode, useState } from "react";
+import { Children, Fragment, cloneElement, isValidElement, ReactNode, useState } from "react";
+import MealShoppingAction from "@/components/MealShoppingAction";
+import { rememberShoppingTranslation } from "@/lib/mealShoppingApi";
 import { useLocation } from "wouter";
 import { ChefHat } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -63,6 +65,9 @@ interface MealData {
 interface MealCardActionsProps {
   meal?: MealData;
   children?: ReactNode;
+  shoppingRecipe?: any;
+  shoppingOptions?: { recipeYield?: number; shoppingServings?: number; subjectKind?: "human" | "pet" };
+  showShopping?: boolean;
   onContentUpdate?: (updated: Partial<MealData>) => void;
   showTranslate?: boolean;
   showPrepareButton?: boolean;
@@ -73,6 +78,9 @@ interface MealCardActionsProps {
 export default function MealCardActions({
   meal = { name: "" },
   children,
+  shoppingRecipe,
+  shoppingOptions,
+  showShopping = true,
   onContentUpdate,
   showTranslate = true,
   showPrepareButton = true,
@@ -80,7 +88,7 @@ export default function MealCardActions({
   className,
 }: MealCardActionsProps) {
   const { t } = useTranslation("nav");
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [displayContent, setDisplayContent] = useState<Partial<MealData>>({});
   const [secondaryOpen, setSecondaryOpen] = useState(false);
 
@@ -189,6 +197,8 @@ export default function MealCardActions({
             {entry.node}
           </div>
         ))}
+        {showShopping && shoppingRecipe && !location.startsWith("/pro/") && !location.startsWith("/care-team") &&
+          <MealShoppingAction recipe={shoppingRecipe} source={source} options={shoppingOptions} />}
         {hasDefaultActions && <div data-meal-action="share" className="min-w-0 [&>button]:w-full">
         <ShareRecipeButton
           recipe={{
@@ -227,7 +237,11 @@ export default function MealCardActions({
             {t("more", { defaultValue: "More" })}
           </PillButton>
           {secondaryOpen && <div className="mt-2 grid gap-2 [&_button]:min-h-[44px]">
-            {translations.map((entry, i) => <Fragment key={i}>{entry.node}</Fragment>)}
+            {translations.map((entry, i) => <Fragment key={i}>{isValidElement<any>(entry.node)
+              ? cloneElement(entry.node, { onTranslate: (translated: any) => {
+                rememberShoppingTranslation(shoppingRecipe, translated, shoppingOptions?.recipeYield);
+                entry.node && (entry.node as any).props.onTranslate?.(translated);
+              } }) : entry.node}</Fragment>)}
             {hasDefaultActions && showTranslate && <TranslateToggle
               content={{
                 name: meal.name, description: meal.description, instructions: meal.instructions,

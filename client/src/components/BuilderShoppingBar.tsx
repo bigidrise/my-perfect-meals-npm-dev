@@ -1,4 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { useMealShopping } from "@/hooks/useMealShopping";
+import { canonicalShoppingRecipe } from "@/lib/mealShoppingApi";
+import { selectionForRecipe } from "@shared/mealShoppingSelection";
 import { useLocation } from "wouter";
 import { ShoppingCart, CalendarDays, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,6 +35,8 @@ export default function BuilderShoppingBar({
   currentWeekStartISO,
   sourceSlug,
 }: Props) {
+  const shopping = useMealShopping();
+  const [shoppingError, setShoppingError] = useState("");
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
   const isDesktop = useIsDesktop();
@@ -151,7 +156,33 @@ export default function BuilderShoppingBar({
       : normalizeIngredients(allMeals.flatMap((m) => m.ingredients || []));
   }
 
-  function sendDays(days: string[], label: string) {
+  async function sendDays(days: string[], label: string) {
+    if (!shopping.checked || (!shopping.available && !shopping.legacyAllowed)) {
+      setShoppingError(shopping.reason || "Confirming shopping availability. Please retry.");
+      return;
+    }
+    if (shopping.available) {
+      setShoppingError("");
+      const meals = days.flatMap(date => {
+        const lists = getDayListsMultiWeek(date);
+        return [...lists.breakfast, ...lists.lunch, ...lists.dinner, ...lists.snacks];
+      });
+      const selections = meals.map(meal => selectionForRecipe(
+        canonicalShoppingRecipe(meal), sourceSlug || "meal-builder",
+      ));
+      const invalid = selections.find(value => !value.selection);
+      if (!selections.length || invalid) {
+        setShoppingError(invalid?.reason || "No finalized meals were selected.");
+        return;
+      }
+      const response = await shopping.send(selections.map(value => value.selection!), shopping.result?.committed === false);
+      if (response?.committed) {
+        toast({ title: "Added to Shopping List", description: "Selected meals were saved and confirmed." });
+        setLocation(sourceSlug ? `/shopping-list-v2?from=${sourceSlug}` : "/shopping-list-v2");
+        setPickerOpen(false); setSelectedDays([]);
+      }
+      return;
+    }
     const ingredients = collectIngredients(days);
     if (ingredients.length === 0) {
       toast({
@@ -290,12 +321,12 @@ export default function BuilderShoppingBar({
               </Button>
               <Button
                 onClick={handleConfirmDays}
-                disabled={selectedDays.length === 0}
+                disabled={selectedDays.length === 0 || shopping.pending}
                 className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white min-h-[44px]"
                 data-testid="button-confirm-days-shopping"
               >
                 <ShoppingCart className="h-4 w-4 mr-2" />
-                {selectedDays.length > 0
+                {shopping.result?.committed === false ? "Update Shopping" : selectedDays.length > 0
                   ? `Send ${selectedDays.length} Day${selectedDays.length !== 1 ? "s" : ""}`
                   : "Send Days"}
               </Button>
@@ -305,6 +336,7 @@ export default function BuilderShoppingBar({
       )}
 
       <div className="bg-gradient-to-r from-zinc-900/95 via-zinc-800/95 to-black/95 backdrop-blur-xl border-t border-white/20 shadow-2xl">
+        {(shoppingError || shopping.message) && <p role="status" className="px-4 pt-2 text-xs text-white">{shoppingError || shopping.message}</p>}
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center gap-2">
             <div className="text-white text-sm font-semibold flex-1 hidden sm:block">
@@ -312,11 +344,12 @@ export default function BuilderShoppingBar({
             </div>
             <Button
               onClick={handleSendDay}
+              disabled={shopping.pending}
               className="flex-1 sm:flex-none min-h-[44px] bg-orange-600 hover:bg-orange-700 text-white border border-white/30"
               data-testid="button-send-day-shopping"
             >
               <ShoppingCart className="h-4 w-4 mr-2" />
-              Send {activeDayName}
+              {shopping.result?.committed === false ? "Update Shopping" : `Send ${activeDayName}`}
             </Button>
             <Button
               onClick={handleOpenPicker}

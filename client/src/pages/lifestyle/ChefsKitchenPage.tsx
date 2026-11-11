@@ -1057,7 +1057,8 @@ export default function ChefsKitchenPage() {
                   )}
 
                   {/* Action Buttons */}
-                  <MealCardActions source="ChefsKitchenPage">
+                  <MealCardActions source="ChefsKitchenPage" shoppingRecipe={generatedMeal}
+                    shoppingOptions={{ recipeYield: servings, shoppingServings: servings }}>
                     <MealCardAction kind="macros"><button
                       onClick={() => {
                         const oneServing = creatorMealNutrition(generatedMeal, servings);
@@ -1396,6 +1397,7 @@ export default function ChefsKitchenPage() {
       {/* Shopping Aggregate Bar */}
       {generatedMeal && generatedMeal.ingredients?.length > 0 && (
         <ShoppingAggregateBar
+          recipes={[generatedMeal]} recipeYield={servings} shoppingServings={servings}
           ingredients={generatedMeal.ingredients.map((ing) => ({
             name: ing.name,
             qty: ing.amount ?? ing.quantity,

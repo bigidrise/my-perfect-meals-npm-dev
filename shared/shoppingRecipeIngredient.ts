@@ -2,7 +2,7 @@ import { makeIngredientMetadata } from "./shoppingIngredientMetadata";
 
 const amountPrefix = /^((?:\d+\s+)?\d+\s*\/\s*\d+|\d+(?:[.,]\d+)?(?:\s*[½¼¾⅓⅔⅛⅜⅝⅞])?|[½¼¾⅓⅔⅛⅜⅝⅞])(?:\s+|$)(.*)$/;
 const unitPrefix = /^(cups?|tbsp|tsp|tablespoons?|teaspoons?|g|grams?|kg|oz|ounces?|lb|lbs|pounds?|ml|liters?|heads?|slices?|cloves?)(?:\s+|$)(.*)$/i;
-function numericAmount(value: unknown): number | undefined {
+export function readShoppingQuantity(value: unknown): number | undefined {
   if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
   if (typeof value !== "string") return undefined;
   const prefix = value.trim().match(amountPrefix)?.[1];
@@ -34,7 +34,7 @@ export function prepareShoppingRecipeIngredient(
     unit = raw?.unit || rest?.match(unitPrefix)?.[1] || "";
   }
   return {
-    name, qty: numericAmount(originalQuantity) ?? 1, unit,
+    name, qty: readShoppingQuantity(originalQuantity) ?? 1, unit,
     ingredientMetadata: makeIngredientMetadata({
       name, quantity: originalQuantity, unit,
       originalText: typeof raw === "string" ? raw : raw?.originalText || name,

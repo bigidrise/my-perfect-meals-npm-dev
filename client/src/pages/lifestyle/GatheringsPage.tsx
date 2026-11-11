@@ -1697,7 +1697,8 @@ export default function UltimateExperiencesPage() {
                         </div>
                       )}
 
-                      <MealCardActions source="GatheringsPage">
+                      <MealCardActions source="GatheringsPage" shoppingRecipe={course}
+                        shoppingOptions={{ recipeYield: servings, shoppingServings: servings }}>
                         <MealCardAction kind="macros"><GlassButton
                           onClick={() => {
                             const macros = getMealNutrition(course, servings);
@@ -1813,6 +1814,7 @@ export default function UltimateExperiencesPage() {
 
         {generatedCourses.length > 0 && generatedInSession && (
           <ShoppingAggregateBar
+            recipes={generatedCourses} recipeYield={servings} shoppingServings={servings}
             ingredients={allIngredients}
             source="My Perfect Gatherings"
             hideShareButton={true}

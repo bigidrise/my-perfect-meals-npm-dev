@@ -2241,7 +2241,8 @@ export default function CreateDishPage() {
                         </div>
                       )}
 
-                      <MealCardActions source="CreateDishPage">
+                      <MealCardActions source="CreateDishPage" shoppingRecipe={meal}
+                        shoppingOptions={{ recipeYield: servings, shoppingServings: servings }}>
                         <MealCardAction kind="macros"><GlassButton
                           onClick={() => {
                             const macros = getMealNutrition(meal, servings);
@@ -2434,6 +2435,7 @@ export default function CreateDishPage() {
 
         {!unverifiedOneTouchOptions && visibleMeals.length > 0 && generatedInSession && (
           <ShoppingAggregateBar
+            recipes={visibleMeals} recipeYield={servings} shoppingServings={servings}
             ingredients={visibleMeals.flatMap((meal) =>
               meal.ingredients.map((ing: StructuredIngredient) => ({
                 name: ing.name,

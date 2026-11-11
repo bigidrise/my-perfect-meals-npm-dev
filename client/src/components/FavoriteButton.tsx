@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { useToggleSavedMeal, useSavedMealsCheck, isMealSaved } from "@/hooks/useSavedMeals";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
+import { useMealShopping } from "@/hooks/useMealShopping";
+import { withShoppingProvenance } from "@/lib/mealShoppingApi";
 import { useAuth } from "@/contexts/AuthContext";
 import { hasActivePaidSubscription } from "@/lib/subscriptionCheck";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
@@ -21,6 +23,7 @@ export default function FavoriteButton({ title, sourceType, mealData, className 
   const { user } = useAuth();
   const { requestUpgrade } = useUpgradeModal();
   const toggle = useToggleSavedMeal();
+  const shopping = useMealShopping();
   const { data: keys } = useSavedMealsCheck();
   const [optimisticSaved, setOptimisticSaved] = useState<boolean | null>(null);
 
@@ -45,7 +48,7 @@ export default function FavoriteButton({ title, sourceType, mealData, className 
     setOptimisticSaved(willBeSaved);
 
     toggle.mutate(
-      { title, sourceType, mealData },
+      { title, sourceType, mealData: shopping.available ? withShoppingProvenance(mealData, sourceType) : mealData },
       {
         onSuccess: (result) => {
           toast({

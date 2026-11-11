@@ -1545,7 +1545,8 @@ const FridgeRescuePage = () => {
                       })()}
 
                       {/* Standardized 3-Row Button Layout */}
-                      <MealCardActions source="fridge-rescue">
+                      <MealCardActions source="fridge-rescue" shoppingRecipe={meal}
+                        shoppingOptions={{ recipeYield: servings, shoppingServings: servings }}>
                         {/* Row 1: Add to Macros (full width) */}
                         <MealCardAction kind="macros"><MacroBridgeButton
                           data-testid="fridge-add-to-shopping"

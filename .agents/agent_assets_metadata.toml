@@ -789,3 +789,17 @@ mtime_ms = 1794438393814
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/a12f8a25-6a38-407e-91ab-73d293d012bc/c0163660-7b8d-4616-b045-f743afca7651"
 storage_version_token = "1794438413476749"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "Zyj9SNADqF-bYrGmgHDhh"
+uri = "file://docs/shopping/phase-2-shopping-implementation-review-2026-11-11.md"
+type = "text"
+title = "Phase 2 Shopping implementation review"
+description = "Changed-file inventory, 87 passing isolated checks, exact review-only migration SQL, compatibility findings, and release blockers. Not activated or deployed."
+logical_id = "0196a64b-17fd-42f9-b12e-bd9e1d0be51b"
+content_hash = "sha256:1d2631545b371dac2319d25c267af42dfbc79b208cf2747cfb59b18e32c6a61a"
+size = 14860
+mtime_ms = 1794440408542
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/0196a64b-17fd-42f9-b12e-bd9e1d0be51b/436654b1-8964-4e5e-8d4f-8cb08060fd9c"
+storage_version_token = "1794440419979722"
+content_type = "text/markdown"

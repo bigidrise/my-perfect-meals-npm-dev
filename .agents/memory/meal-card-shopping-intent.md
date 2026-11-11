@@ -37,14 +37,14 @@ shared action owner over creating another universal renderer. Keep existing
 Add to Plan and Add to Macros behavior and retain necessary feature-specific
 content and safety controls.
 
-Restore shared actions and prove inheritance before implementing Shopping.
-Shopping behavior, transfer APIs and schema changes require the separate Phase 2
-review checkpoint. Initial verification uses isolated fixtures or mocked
-persistence; shared-Production database migrations need separate approval.
+The founder accepted Phase 1 and authorized Phase 2 implementation in Development
+only. Additive migration files may be written, but migrations must not run against
+the Development/Production-shared database. Do not modify live customer shopping
+lists or test persistence with real customer accounts.
 
-**Why:** The founder explicitly required a stop after Phase 1, rather than treating
-the full two-phase brief as permission to implement or activate Shopping.
+**Why:** The Phase 2 authorization explicitly permits implementation while
+reserving shared-database execution and release for review.
 
-**How to apply:** Preserve existing bulk shopping and customer list data while
-restoring shared action composition. Report the proposed transfer API and durable
-repeat-protection schema before beginning that separate implementation.
+**How to apply:** Use isolated persistence and mocked requests until migration
+review and approval. Preserve existing bulk shopping, clinical calculations and
+safety controls. Do not push, create a PR, merge, publish or deploy before review.

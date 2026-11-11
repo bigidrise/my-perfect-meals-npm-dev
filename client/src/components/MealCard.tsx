@@ -602,6 +602,8 @@ export function MealCard({
             </p>
           )}
           <MealCardActions
+            shoppingRecipe={meal}
+            showShopping={false}
             source={originBuilder || builderType || "meal-board"}
             meal={{
               name: displayTitle,

@@ -1050,7 +1050,7 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
                     </div>
                   )}
 
-                  <MealCardActions source="AthleteBeverageCreator">
+                  <MealCardActions source="AthleteBeverageCreator" shoppingRecipe={generatedBeverage}>
                     <MealCardAction kind="macros"><GlassButton
                       onClick={() => {
                         setLocation(
@@ -1169,6 +1169,7 @@ Build a homemade version of a market-style ${drinkType || "performance drink"} u
         {/* Shopping Aggregate Bar — anchored above bottom nav, matching Chef's Kitchen pattern */}
         {generatedBeverage && generatedBeverage.ingredients?.length > 0 && (
           <ShoppingAggregateBar
+            recipes={[generatedBeverage]}
             ingredients={generatedBeverage.ingredients.map((ing: any) => ({
               name: ing.name,
               qty: ing.amount,
