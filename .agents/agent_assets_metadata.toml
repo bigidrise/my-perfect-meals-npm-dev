@@ -705,3 +705,17 @@ mtime_ms = 1794355557669
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/089e1409-65f2-4959-b0a0-1faa3fe082e6/bd110b08-c721-49a2-96fc-8d9c1b704331"
 storage_version_token = "1794355558050209"
 content_type = "text/html"
+
+[[outputs]]
+id = "5jg6iuK8xP41iffloJRDv"
+uri = "file://docs/localization/CUSTOMER_IMPACT_ASSESSMENT.html"
+type = "html"
+title = "Customer Impact & Clinical Safety Assessment"
+description = "Read-only assessment of all 92 localization failures: 5 P1, 56 P2, 31 P3; clinical review, source evidence, workflow reach, prioritized corrections and verification recommendations."
+logical_id = "a5557d46-e71a-4dc5-9ee0-f8e268c25dc1"
+content_hash = "sha256:811f29cd281e7363d9956f04b6a5fc35a8a7ebde8c1e21de33d740ed590d00cb"
+size = 99536
+mtime_ms = 1794422530546
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/a5557d46-e71a-4dc5-9ee0-f8e268c25dc1/7bea8e4d-167b-48d2-b2d2-6673f7ec14bf"
+storage_version_token = "1794422569581676"
+content_type = "text/html"
