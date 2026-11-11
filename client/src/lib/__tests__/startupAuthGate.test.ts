@@ -23,4 +23,12 @@ describe("authenticated startup gating", () => {
     expect(source).toContain('"/welcome"');
     expect(source).toContain('"/auth"');
   });
+
+  it("exposes recovery before the outer operating-status loading gate", () => {
+    const source = read("client/src/App.tsx");
+    const shell = source.slice(source.indexOf("function DemoOperatingShell"), source.indexOf("export default function App"));
+    expect(shell.indexOf("if (initializationError)")).toBeGreaterThan(-1);
+    expect(shell.indexOf("if (initializationError)")).toBeLessThan(shell.indexOf("if (loading)"));
+    expect(shell).toContain("<SessionVerificationRecovery onRetry={retryInitialization}");
+  });
 });

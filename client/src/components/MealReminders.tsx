@@ -184,7 +184,7 @@ export default function MealReminders() {
       console.log('[MealReminders] ① mounted — isNative:', isNative);
       try {
         console.log('[MealReminders] ② calling loadRemindersFromServer');
-        const saved = await loadRemindersFromServer(isIOS ? { strict: true } : undefined);
+        const saved = await loadRemindersFromServer({ strict: true });
         if (!current()) return;
         console.log('[MealReminders] ③ fetch returned — slots:', saved.length);
         setSlots(saved.length > 0 ? saved : getDefaultSlots());
@@ -210,14 +210,12 @@ export default function MealReminders() {
       } catch (e) {
         if (!current()) return;
         console.error('[MealReminders] ✗ init error:', e);
-        if (isIOS) {
-          setLoadFailed(true);
-          toast({
+        setLoadFailed(true);
+        toast({
           title: t("mealReminders.loadFailedTitle"),
-          description: t("mealReminders.loadFailedDescription"),
+          description: t(isIOS ? "mealReminders.loadFailedDescription" : "mealReminders.toastTryAgain"),
           variant: "destructive",
-          });
-        }
+        });
       } finally {
         console.log('[MealReminders] ⑦ setLoading(false)');
         if (current()) setLoading(false);
@@ -363,8 +361,25 @@ export default function MealReminders() {
 
   if (loading) {
     return (
-      <div className="bg-white/5 rounded-xl p-3 animate-pulse">
-        <div className="h-5 bg-white/10 rounded w-1/2" />
+      <div className="bg-white/5 rounded-xl p-3 space-y-3" aria-busy="true" role="status" aria-label={t("mealReminders.title")}>
+        <div className="animate-pulse space-y-3" aria-hidden="true">
+          <div className="h-5 bg-white/10 rounded w-1/2" />
+          <div className="h-4 bg-white/10 rounded w-2/3" />
+          <div className="h-4 bg-white/10 rounded w-3/4" />
+          {isNative && <div className="h-20 bg-white/5 rounded" />}
+          <div className="h-4 bg-white/5 rounded w-1/2" />
+          {[0, 1, 2].map(row => (
+            <div key={row} className="h-14 flex items-center gap-3 border-b border-white/10">
+              <div className="w-6 h-6 rounded-full bg-white/10" />
+              <div className="space-y-2 flex-1">
+                <div className="h-3 bg-white/10 rounded w-1/3" />
+                <div className="h-5 bg-white/10 rounded w-1/2" />
+              </div>
+            </div>
+          ))}
+          <div className="h-4 bg-white/10 rounded w-1/2" />
+          <div className="h-6 bg-white/5 rounded" />
+        </div>
       </div>
     );
   }
@@ -372,9 +387,9 @@ export default function MealReminders() {
   const status = webStatus();
   const isBlocked = !isNative && (status === "blocked" || status === "unsupported");
 
-  if (isIOS && loadFailed) return (
+  if (loadFailed) return (
     <div role="alert" className="bg-white/5 rounded-xl p-3 space-y-2 text-sm text-amber-300">
-      <p>{t("mealReminders.loadFailedMessage")}</p>
+      <p>{t(isIOS ? "mealReminders.loadFailedMessage" : "mealReminders.loadFailedTitle")}</p>
       <button type="button" className="underline" onClick={() => setLoadRetry(value => value + 1)}>{t("mealReminders.retryLoading")}</button>
     </div>
   );

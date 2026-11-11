@@ -2,7 +2,7 @@
 // SERVICE WORKER VERSION
 // Bump this version string on every deploy to force cache refresh
 // ============================================
-const CACHE_VERSION = 'v6';
+const CACHE_VERSION = 'v7';
 const CACHE_NAME = 'mpm-cache-' + CACHE_VERSION;
 
 const STATIC_CACHE = [
@@ -36,6 +36,11 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   if (!event.request.url.startsWith('http')) return;
+  // API responses are account-bound, not static offline assets. Never read
+  // old API cache entries (even from a previous worker version), or cache new
+  // ones. Let the real network failure reach auth/data error handling.
+  const url = new URL(event.request.url);
+  if (url.pathname === '/api' || url.pathname.startsWith('/api/')) return;
 
   event.respondWith(
     fetch(event.request)

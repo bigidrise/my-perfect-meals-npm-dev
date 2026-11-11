@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import WelcomeGate from "./WelcomeGate";
+import { SessionVerificationRecovery } from "./SessionVerificationRecovery";
 import { Route } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { IS_DEVELOPMENT } from "@/lib/developmentAuthRoutes";
@@ -67,7 +68,8 @@ function isProfessional(user: any): boolean {
 export default function AppRouter({ children }: AppRouterProps) {
   const [location, setLocation] = useLocation();
   const [showWelcomeGate, setShowWelcomeGate] = useState(false);
-  const { user, loading } = useAuth();
+  const { user, loading: sessionLoading, initializationError, retryInitialization } = useAuth();
+  const loading = sessionLoading || !!initializationError;
   const isPublicRoute = useMemo(() => isPublicAppRoute(location), [location]);
 
   const shouldShowBottomNav = useMemo(() => {
@@ -194,6 +196,7 @@ export default function AppRouter({ children }: AppRouterProps) {
   }, [location, setLocation, needsOnboarding, loading, isPaidUser, isAppleReviewMode, isPublicRoute, user]);
 
   if (loading && !isPublicRoute) {
+    if (initializationError) return <SessionVerificationRecovery onRetry={retryInitialization} />;
     return (
       <div
         className="flex h-[100dvh] w-full flex-col items-center justify-center bg-black"
@@ -207,6 +210,15 @@ export default function AppRouter({ children }: AppRouterProps) {
         <p className="text-sm text-white/60">Loading your personalized experience…</p>
       </div>
     );
+  }
+
+  if (
+    !user && !isPublicRoute &&
+    !(isGuestMode() && isGuestAllowedRoute(location))
+  ) {
+    // The redirect effect runs after render. Never mount protected children in
+    // the intermediate render following a definitive session rejection.
+    return null;
   }
 
   if (

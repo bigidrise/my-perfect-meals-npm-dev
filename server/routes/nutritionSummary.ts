@@ -54,6 +54,7 @@ async function enrichSummary(userId: string, summary: Summary): Promise<Summary>
       subjectUserId: userId,
       localDate: hydrationDay.localDate,
       timezone: hydrationDay.timezone,
+      includeConsideredForYou: false,
       access: {
         authenticatedUserId: userId,
         subjectUserId: userId,

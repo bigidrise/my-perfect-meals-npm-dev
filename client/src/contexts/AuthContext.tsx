@@ -25,6 +25,8 @@ interface AuthContextType {
   setUser: (user: User | null) => void;
   loading: boolean;
   refreshUser: () => Promise<User | null>;
+  initializationError?: boolean;
+  retryInitialization?: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -55,6 +57,9 @@ function WakingUpScreen() {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initializationError, setInitializationError] = useState(false);
+  const [initializationAttempt, setInitializationAttempt] = useState(0);
+  const retryInitialization = useCallback(() => setInitializationAttempt(attempt => attempt + 1), []);
   const [isSlowStart, setIsSlowStart] = useState(false);
   const slowStartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasFinishedInitialLoad = useRef(false);
@@ -194,6 +199,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           localStorage.removeItem("mpm:oncologySupportIntent");
         }
         setUser(updatedUser);
+        setInitializationError(false);
         setCachedUser(updatedUser);
         setUserContext(String(updatedUser.id), updatedUser.email);
         console.log("✅ [AuthContext] User refreshed");
@@ -356,6 +362,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     const initializeAuth = async () => {
+      setLoading(true);
+      setInitializationError(false);
+      const unavailable = () => {
+        // A routing cache is not proof of a session. Keep credentials intact for
+        // retry, but expose no account identity while verification is unavailable.
+        setUser(null);
+        setInitializationError(true);
+        setLoading(false);
+        setIsSlowStart(false);
+        hasFinishedInitialLoad.current = true;
+      };
       let currentUser = getCurrentUser();
       const appleReviewFullAccess =
         localStorage.getItem("appleReviewFullAccess") === "true";
@@ -368,17 +385,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
           currentUser = await refreshUser();
           restoredFromServer = !!currentUser;
         } catch {
-          // No cached identity to trust on a network/storage failure.
           console.warn("⚠️ [AuthContext] Initial session could not be restored");
+          unavailable();
+          return;
         }
       }
 
       if (currentUser && !currentUser.id.startsWith("guest-")) {
-        setUser(currentUser);
         try {
           const freshUser = restoredFromServer ? currentUser : await refreshUser();
           if (!freshUser) {
-            // null = definitive 401/403: token is revoked — sign out
+            // null = definitive 401: token is revoked — sign out
             console.log("⚠️ [AuthContext] Token rejected by server — signing out");
             setUser(null);
             localStorage.removeItem("mpm_current_user");
@@ -394,8 +411,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
             }
           }
         } catch {
-          // Transient error (5xx / network) — keep cached user; the app stays usable
-          console.warn("⚠️ [AuthContext] Transient refresh error on mount — using cached user");
+          console.warn("⚠️ [AuthContext] Initial profile verification unavailable");
+          unavailable();
+          return;
         }
       } else if (appleReviewFullAccess) {
         const demoUser: User = {
@@ -478,10 +496,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
 
     initializeAuth();
-  }, [refreshUser]);
+  }, [refreshUser, initializationAttempt]);
 
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, refreshUser }}>
+    <AuthContext.Provider value={{ user, setUser, loading: loading || initializationError, refreshUser, initializationError, retryInitialization }}>
       {loading && isSlowStart && <WakingUpScreen />}
       {children}
     </AuthContext.Provider>
