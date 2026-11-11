@@ -1608,7 +1608,8 @@ export default function SushiCreator() {
                       )}
 
                       {/* Standardized 3-Row Button Layout */}
-                      <MealCardActions source="SushiCreator">
+                      <MealCardActions source="SushiCreator" shoppingRecipe={meal}
+                        shoppingOptions={{ recipeYield: servings, shoppingServings: servings }}>
                         {/* Row 1: Add to Macros (full width) */}
                         <MealCardAction kind="macros"><GlassButton
                           onClick={() => {
@@ -1737,6 +1738,7 @@ export default function SushiCreator() {
         {/* Shopping Aggregate Bar */}
         {generatedMeals.length > 0 && (
           <ShoppingAggregateBar
+            recipes={generatedMeals} recipeYield={servings} shoppingServings={servings}
             ingredients={generatedMeals.flatMap((meal) =>
               meal.ingredients.map((ing: StructuredIngredient) => ({
                 name: ing.name,

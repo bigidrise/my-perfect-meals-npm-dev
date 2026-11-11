@@ -1268,7 +1268,7 @@ export default function DessertCreator() {
                   )}
 
                   {/* Standardized 3-Row Button Layout */}
-                  <MealCardActions source="CravingDessertCreator">
+                  <MealCardActions source="CravingDessertCreator" shoppingRecipe={generatedDessert}>
                     {/* Row 1: Add to Macros (full width) */}
                     <MealCardAction kind="macros"><GlassButton
                       onClick={() => {
@@ -1383,6 +1383,7 @@ export default function DessertCreator() {
               </Card>
 
               <ShoppingAggregateBar
+                recipes={[generatedDessert]}
                 ingredients={generatedDessert.ingredients.map((ing: any) => ({
                   name: ing.name,
                   qty: ing.amount,

@@ -1972,7 +1972,8 @@ export default function CravingCreator() {
                       )}
 
                       {/* Standardized 3-Row Button Layout */}
-                      <MealCardActions source="craving-creator">
+                      <MealCardActions source="craving-creator" shoppingRecipe={meal}
+                        shoppingOptions={{ recipeYield: servings, shoppingServings: servings }}>
                         {/* Row 1: Add to Macros (full width) */}
                         <MealCardAction kind="macros"><GlassButton
                           onClick={() => {
@@ -2179,6 +2180,7 @@ export default function CravingCreator() {
         {/* Shopping Aggregate Bar */}
         {!unverifiedOneTouchOptions && generatedMeals.length > 0 && (
           <ShoppingAggregateBar
+            recipes={generatedMeals} recipeYield={servings} shoppingServings={servings}
             ingredients={generatedMeals.flatMap((meal) =>
               meal.ingredients.map((ing: StructuredIngredient) => ({
                 name: ing.name,

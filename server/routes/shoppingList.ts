@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { createShoppingClearHandler } from "./mealShoppingSelections";
 import { db } from "../db";
 import { shoppingListItems, insertShoppingListItemSchema } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
@@ -166,6 +167,11 @@ router.delete("/shopping-list/:id", requireAuth, async (req, res) => {
 });
 
 // DELETE /shopping-list - Clear all items in scope
+router.delete("/shopping-list", requireAuth, createShoppingClearHandler({
+  authenticate: requireAuth,
+  enabled: () => process.env.MEAL_SHOPPING_TRANSFERS_ENABLED === "true",
+  pool: async () => (await import("../db")).pool,
+}, true));
 router.delete("/shopping-list", requireAuth, async (req, res) => {
   const userId = getAuthUserId(req);
   const { scopeType = "adhoc", scopeKey = "inbox" } = req.query;

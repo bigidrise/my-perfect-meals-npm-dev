@@ -20,6 +20,7 @@ interface Recipe {
 
 interface RecipeQuickActionsProps {
   recipe: Recipe;
+  shoppingRecipe?: any;
 }
 
 function DaySlotPicker({
@@ -87,7 +88,7 @@ function DaySlotPicker({
   );
 }
 
-export function RecipeQuickActions({ recipe }: RecipeQuickActionsProps) {
+export function RecipeQuickActions({ recipe, shoppingRecipe }: RecipeQuickActionsProps) {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -207,7 +208,8 @@ export function RecipeQuickActions({ recipe }: RecipeQuickActionsProps) {
 
   return (
     <div className="space-y-3">
-      <MealCardActions source="recipe-template">
+      <MealCardActions source="recipe-template"
+        shoppingRecipe={shoppingRecipe || { ...recipe, shoppingSelectionId: `template:${recipe.slug}` }}>
         <MealCardAction kind="save"><Button
           onClick={() => saveMutation.mutate()}
           disabled={saveMutation.isPending}

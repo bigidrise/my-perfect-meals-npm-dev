@@ -230,6 +230,7 @@ export default function SavedMealRow({
           )}
 
           <MealCardActions
+            shoppingRecipe={{ ...d, id: d?.id || row.id, name: d?.name || row.title }}
             meal={{
               id: row.id,
               name: row.title,

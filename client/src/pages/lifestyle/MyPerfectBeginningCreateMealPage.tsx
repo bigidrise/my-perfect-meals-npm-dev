@@ -121,6 +121,8 @@ interface CompletePlateSide {
   allergenFree?: boolean;
 }
 interface ChildRecipeResponse {
+  shoppingSelectionId?: string;
+  shoppingRecipeYield?: number;
   _imageGeneration?: PediatricImageGeneration;
   recipeName: string;
   ageStageSuitability: string;
@@ -1199,7 +1201,7 @@ function RecipeCard({
           {/* Action buttons */}
           <div className="space-y-2 mt-2">
             {/* Walk Through the Kitchen */}
-            <MealCardActions source="MyPerfectBeginningCreateMealPage">
+            <MealCardActions source="MyPerfectBeginningCreateMealPage" shoppingRecipe={recipe}>
               <MealCardAction kind="prepare"><GlassButton
                 onClick={() => {
                   const mealData = {
@@ -1826,7 +1828,9 @@ export default function MyPerfectBeginningCreateMealPage() {
     )
       .then(data => {
         if (!cancelled && data.meal && !recipe) {
-          setRecipe(data.meal.recipeData);
+          const restoredRecipe = { ...data.meal.recipeData,
+            shoppingSelectionId: data.meal.recipeData.shoppingSelectionId || `recipe:${data.meal.id}` };
+          setRecipe(restoredRecipe);
           setSavedMealId(data.meal.id);
           const restoredImageUrl = data.meal.imageUrl ?? data.meal.recipeData?._imageGeneration?.fallbackUrl ?? null;
           setRecipeImageUrl(restoredImageUrl);
@@ -1844,7 +1848,8 @@ export default function MyPerfectBeginningCreateMealPage() {
                 body => post('/api/meals/generate-image', body),
                 result => post('/api/my-perfect-beginning/generated-meals', {
                     childProfileId,
-                    recipeData: result.recipe,
+                    recipeData: { ...result.recipe, shoppingSelectionId: restoredRecipe.shoppingSelectionId,
+                      shoppingRecipeYield: restoredRecipe.shoppingRecipeYield },
                     imageUrl: pediatricImageForSave(result.imageUrl),
                     selectedOptionName,
                   }),
@@ -1852,7 +1857,8 @@ export default function MyPerfectBeginningCreateMealPage() {
             pending.then(result => {
                 if (cancelled) return;
                 setRecipeImageUrl(result.imageUrl);
-                setRecipe(result.recipe as unknown as ChildRecipeResponse);
+                setRecipe(previous => ({ ...result.recipe, shoppingSelectionId: previous?.shoppingSelectionId,
+                  shoppingRecipeYield: previous?.shoppingRecipeYield } as unknown as ChildRecipeResponse));
               })
               .catch(() => {})
               .finally(() => { if (!cancelled) setImageLoading(false); });
@@ -1964,6 +1970,11 @@ export default function MyPerfectBeginningCreateMealPage() {
       }
 
       setProgress(100);
+      data.recipe = {
+        ...data.recipe,
+        shoppingSelectionId: data.recipe.shoppingSelectionId || `recipe:${crypto.randomUUID()}`,
+        shoppingRecipeYield: servings,
+      };
       setRecipe(data.recipe);
       if (data.mealConfidence && data.clinicalReviewStatus && data.personalizationLevel) {
         setEducationLayer({
@@ -2010,10 +2021,12 @@ export default function MyPerfectBeginningCreateMealPage() {
         body => post('/api/meals/generate-image', body),
       ).then(result => {
         setRecipeImageUrl(result.imageUrl);
-        setRecipe(result.recipe as unknown as ChildRecipeResponse);
+        setRecipe(previous => ({ ...result.recipe, shoppingSelectionId: previous?.shoppingSelectionId,
+          shoppingRecipeYield: previous?.shoppingRecipeYield } as unknown as ChildRecipeResponse));
         return post<{ id: string }>('/api/my-perfect-beginning/generated-meals', {
           childProfileId: activeChild?.id ?? null,
-          recipeData: result.recipe,
+          recipeData: { ...result.recipe, shoppingSelectionId: data.recipe.shoppingSelectionId,
+            shoppingRecipeYield: data.recipe.shoppingRecipeYield },
           imageUrl: pediatricImageForSave(result.imageUrl),
           selectedOptionName: conceptName ?? null,
         }).then(saved => setSavedMealId(saved.id));

@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { createMealShoppingSelectionsRouter } from "./mealShoppingSelections";
 import { db } from "../db";
 import { shoppingListItems, shoppingListSources } from "@shared/schema";
 import { normalizeShopping } from "../services/shopping-list/builder-v2";
@@ -13,6 +14,11 @@ type MealInput = any;
 export const shoppingPreviewRouter = Router();
 
 export const shoppingRouter = Router();
+shoppingRouter.use(createMealShoppingSelectionsRouter({
+  authenticate: requireAuth,
+  enabled: () => process.env.MEAL_SHOPPING_TRANSFERS_ENABLED === "true",
+  pool: async () => (await import("../db")).pool,
+}));
 
 shoppingPreviewRouter.post("/preview", async (req: any, res: any) => {
   try {

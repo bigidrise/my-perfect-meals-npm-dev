@@ -329,6 +329,13 @@ export function createMealHub(type: "breakfast"|"lunch"|"dinner"|"snacks", meals
                   <div className="mt-4 pt-3 border-t border-white/20">
                     <h4 className="text-sm font-medium text-white/80 mb-3">Quick Actions:</h4>
                     <RecipeQuickActions 
+                      shoppingRecipe={{
+                        id: meal.id,
+                        shoppingSelectionId: `template:${meal.slug}:${activeMeal?.id === meal.id ? activeTemplate : "classic"}`,
+                        name: meal.name,
+                        servings: activeMeal?.id === meal.id ? servings : meal.baseServings,
+                        ingredients: activeMeal?.id === meal.id ? scaledIngredients : meal.templates.classic.ingredients,
+                      }}
                       recipe={{
                         id: meal.id,
                         slug: meal.slug,

@@ -552,7 +552,8 @@ export default function CompanionMealGenerator() {
 
                 {/* Action buttons */}
                 <div className="space-y-2">
-                  <MealCardActions source="companion-recipe">
+                  <MealCardActions source="companion-recipe" shoppingRecipe={meal}
+                    shoppingOptions={{ subjectKind: "pet" }}>
                     <MealCardAction kind="save"><PillButton
                       onClick={handleSave}
                       disabled={saved || !meal.id}

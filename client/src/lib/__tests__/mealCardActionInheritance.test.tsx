@@ -7,6 +7,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import "@testing-library/jest-dom";
 import MealCardActions, { MealCardAction, mealCardActionLayout } from "@/components/MealCardActions";
 import TranslateToggle from "@/components/TranslateToggle";
+jest.mock("@/components/MealShoppingAction", () => ({ __esModule: true, default: () => null }));
 
 jest.mock("wouter", () => ({ useLocation: () => ["/fixture", jest.fn()] }));
 jest.mock("react-i18next", () => ({ useTranslation: () => ({

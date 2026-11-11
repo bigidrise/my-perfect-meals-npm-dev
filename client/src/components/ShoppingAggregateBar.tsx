@@ -1,4 +1,7 @@
 import { CSSProperties, useState } from "react";
+import { useMealShopping } from "@/hooks/useMealShopping";
+import { canonicalShoppingRecipe } from "@/lib/mealShoppingApi";
+import { selectionForRecipe } from "@shared/mealShoppingSelection";
 import { ShoppingCart, Share2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -23,6 +26,9 @@ type Ingredient = {
 
 type Props = {
   ingredients: Ingredient[];
+  recipes?: any[];
+  recipeYield?: number;
+  shoppingServings?: number;
   source?: string;
   sourceSlug?: string;
   hideShareButton?: boolean;
@@ -41,12 +47,17 @@ function formatQty(qty?: number | string): string {
 
 export default function ShoppingAggregateBar({
   ingredients,
+  recipes,
+  recipeYield,
+  shoppingServings,
   source,
   sourceSlug,
   hideShareButton = true,
   onAddComplete,
   aboveBottomNav = false,
 }: Props) {
+  const shopping = useMealShopping();
+  const [shoppingError, setShoppingError] = useState("");
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
   const [sharing, setSharing] = useState(false);
@@ -161,7 +172,30 @@ export default function ShoppingAggregateBar({
     }
   }
 
-  function onAddToList() {
+  async function onAddToList() {
+    if (!shopping.checked || (!shopping.available && !shopping.legacyAllowed)) {
+      setShoppingError(shopping.reason || "Confirming shopping availability. Please try again.");
+      return;
+    }
+    if (shopping.available) {
+      setShoppingError("");
+      const prepared = (recipes || []).map(recipe => selectionForRecipe(
+        canonicalShoppingRecipe(recipe, recipeYield), sourceSlug || source || "recipe-menu",
+        { recipeYield, shoppingServings },
+      ));
+      const invalid = prepared.find(value => !value.selection);
+      if (!prepared.length || invalid) {
+        setShoppingError(invalid?.reason || "This menu needs finalized recipe identities before Shopping.");
+        return;
+      }
+      const response = await shopping.send(prepared.map(value => value.selection!), shopping.result?.committed === false);
+      if (response?.committed) {
+        toast({ title: "Saved to Shopping List", description: "Your selections were confirmed by the server." });
+        onAddComplete?.();
+        setLocation(sourceSlug ? `/shopping-list-v2?from=${sourceSlug}` : "/shopping-list-v2");
+      }
+      return;
+    }
     if (ingredients.length === 0) return;
 
     const items = ingredients.map((i) => ({
@@ -209,6 +243,7 @@ export default function ShoppingAggregateBar({
       style={barStyle}
     >
       <div className="container mx-auto px-4 py-3">
+        {(shoppingError || shopping.message) && <p role="status" className="pb-2 text-xs text-white">{shoppingError || shopping.message}</p>}
         <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
           <div className="absolute left-0 right-0 text-white text-center pointer-events-none hidden sm:block">
             <div className="font-semibold text-sm sm:text-base">
@@ -238,12 +273,13 @@ export default function ShoppingAggregateBar({
             )}
             <Button
               onClick={onAddToList}
+              disabled={shopping.pending}
               className="flex-1 sm:flex-none min-h-[44px] bg-orange-600 hover:bg-orange-700 text-white border border-white/30"
               data-testid="button-go-to-shopping-list"
               data-wt="wmb-send-day-to-shopping"
             >
               <ShoppingCart className="h-5 w-5 sm:mr-2" />
-              <span>Add & View List</span>
+              <span>{shopping.pending ? "Saving…" : shopping.result?.committed === false ? "Update Shopping" : "Add & View List"}</span>
             </Button>
           </div>
         </div>
