@@ -88,19 +88,29 @@ path, never writing or falling back to API cache entries. Activation version
 advances and retires the prior cache, including its API entries. Static offline
 asset fallback and notification handlers are retained.
 
-Auth tests distinguish successful cookie-backed restoration, definitive 401,
-403 authorization denial, 503, and network failure. No authentication runtime
-rewrite is included.
+After the founder's separate approval, startup now distinguishes successful
+server verification, definitive 401, and temporary unavailable states.
 
-**Remaining issue:** initialization with no cached routing identity and a
-transient profile failure can still resolve to the anonymous/welcome path. The
-test verifies it does not manufacture identity; it does not prove good retry UX.
-A separate narrowly scoped fail-closed retry correction was proposed rather
-than silently changing the general auth lifecycle here.
+- Network/5xx/403 startup verification failures expose no cached account identity
+  or protected route. Credentials and routing metadata are retained for retry.
+- The shared recovery control retries the real profile endpoint. Only a
+  successful server response releases protected content.
+- Confirmed 401 retains the existing sign-in/welcome behavior; a synchronous
+  route guard prevents protected children mounting before the redirect effect.
+- Unavailable verification continues reporting unresolved loading to startup
+  consumers, rather than a confirmed logout. In particular it does not trigger
+  native reminder account cleanup.
+- Both the outer operating-status gate and route gate expose the same recovery
+  component. Browser testing caught the outer gate masking recovery behind a
+  loader; that specific integration issue was corrected.
+
+This is a narrow startup correction, not a general authentication rewrite.
+The isolated route-level public-page behavior remains unchanged; the outer
+operating-status boundary still avoids mounting account widgets while unresolved.
 
 ## Verification
 
-- Focused Jest suite: **16 suites, 112 tests passed**, fully mocked where
+- Focused Jest suite: **17 suites, 124 tests passed**, fully mocked where
   database/native/provider modules are involved.
 - Strict safety types: passed.
 - Release type validation: passed against the unchanged reviewed
@@ -182,10 +192,33 @@ summary request timings, integrated Hub navigation and real account-switch
 offline behavior remain unverified in a real authenticated browser. Offline
 regressions do not substitute for those checks.
 
+### Session-retry browser verification after the follow-up correction
+
+The actual app was tested in a fresh unauthenticated 402×874 context. A one-shot
+document-start interceptor returned synthetic 503 for the first profile GET
+only, without injecting any successful identity or account data.
+
+- Direct `/dashboard` entry showed the actual recovery message and Retry control
+  while retaining the route; protected content remained unmounted.
+- One Retry click passed through to the real endpoint, which returned genuine
+  401. The app reached the normal `/welcome` page and its sign-in entry.
+- The metadata-only request record contained one synthetic 503 and two genuine
+  401 responses (retry plus public-page initialization).
+- The first browser pass had exposed the outer startup gate masking the new UI.
+  The shared recovery component corrected that gate, and this specific flow
+  passed on recheck.
+- No credentials, account creation, successful auth spoofing, native calls,
+  schedule edits or customer writes were used. Secure test-browser takeover was
+  still unavailable.
+
+Valid-cookie retry success and cached-identity non-exposure passed the isolated
+provider/router tests; they were not demonstrated with a real signed-in account.
+The original signed-in Dashboard/Hub verification requirement remains open.
+
 ## Release disposition
 
 The Development change set has been self-reviewed and cheap checks/builds pass.
-Review the browser limitations and outstanding session-outage behavior before
+Review the browser limitations and session-retry verification evidence before
 any promotion. This work does not authorize a push, merge, publish or iOS build.
 Native delivery findings and the device test protocol are documented separately
 in `docs/mobile/ios-meal-reminders-investigation-2026-11-11.md`.

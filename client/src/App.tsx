@@ -11,6 +11,7 @@ import { HouseholdProvider } from "@/contexts/HouseholdContext";
 import { ProClientProvider } from "@/contexts/ProClientContext";
 import { UpgradeModalProvider } from "@/contexts/UpgradeModalContext";
 import AppRouter from "@/components/AppRouter";
+import { SessionVerificationRecovery } from "@/components/SessionVerificationRecovery";
 import Router from "@/components/Router";
 import { AvatarSelector } from "@/components/AvatarSelector";
 import { ChefVoiceAssistant } from "@/components/ChefVoiceAssistant";
@@ -71,7 +72,8 @@ function MacroTargetSyncMount() {
 // The designated Development account uses the original provider tree and pages;
 // all authorization and the server-side live-data restriction remain in place.
 function DemoOperatingShell({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, initializationError, retryInitialization } = useAuth();
+  if (initializationError) return <SessionVerificationRecovery onRetry={retryInitialization} />;
   // Do not mount a consumer shell (and its stateful global widgets) temporarily
   // while a cookie-backed professional's operating status is still unresolved.
   if (loading) return <div role="status" className="flex min-h-[100dvh] items-center justify-center bg-black text-white">Loading your account…</div>;

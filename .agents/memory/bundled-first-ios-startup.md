@@ -26,3 +26,16 @@ code the phone was running or whether iOS had pending notification requests.
 **How to apply:** Compare the installed build, plugin availability, permission
 and pending OS state before declaring a native delivery fix shipped or working.
 Do not substitute a web publication or a copied bundle for device evidence.
+
+Keep the Dashboard web release and native reminder restoration as separate
+workstreams. Verify the installed iOS build before seeking authorization for
+a native rebuild; the packaged reminder-JavaScript constraint is not a claim
+that every web feature update requires a new native binary.
+
+**Why:** The founder approved the Dashboard correction direction but explicitly
+withheld native rebuild approval until installed-device evidence establishes
+the notification failure.
+
+**How to apply:** Finish signed-in or real-device Dashboard verification before
+promotion. Gather native reminder evidence read-only and obtain separate
+authorization for native builds or schedule-changing tests.
