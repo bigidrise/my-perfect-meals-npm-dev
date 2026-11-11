@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Children, Fragment, isValidElement, ReactNode, useState } from "react";
 import { useLocation } from "wouter";
 import { ChefHat } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,33 @@ import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
 import { isFeatureEnabled } from "@/lib/productionGates";
 import { writeChefHandoffMeal } from "@/lib/safeChefHandoff";
+import { PillButton } from "@/components/ui/pill-button";
+import { useTranslation } from "react-i18next";
+
+export type MealCardActionKind = "macros" | "plan" | "prepare" | "save" | "share" | "extra";
+
+/** Declarative slots: hosts retain their handlers; this component owns layout. */
+export function MealCardAction({ children }: { kind: MealCardActionKind; children: ReactNode }) {
+  return <>{children}</>;
+}
+
+export const mealCardActionLayout = { columns: 2 };
+
+function collectActions(children: ReactNode): Array<{ kind: MealCardActionKind | "translate"; node: ReactNode }> {
+  return Children.toArray(children).flatMap<{ kind: MealCardActionKind | "translate"; node: ReactNode }>(child => {
+    if (!isValidElement<{ children?: ReactNode; kind?: MealCardActionKind }>(child)) {
+      return typeof child === "string" && !child.trim() ? [] : [{ kind: "extra" as const, node: child }];
+    }
+    if (child.type === MealCardAction) return [{ kind: child.props.kind!, node: child.props.children }];
+    if (child.type === TranslateToggle) return [{ kind: "translate" as const, node: child }];
+    // Old grouping divs are transparent; actual controls and clinical notes are not.
+    if (child.type === Fragment || child.type === "div") {
+      const nested = collectActions(child.props.children);
+      if (nested.some(entry => entry.kind !== "extra")) return nested;
+    }
+    return [{ kind: "extra" as const, node: child }];
+  });
+}
 
 interface MealData {
   id?: string;
@@ -34,7 +61,8 @@ interface MealData {
 }
 
 interface MealCardActionsProps {
-  meal: MealData;
+  meal?: MealData;
+  children?: ReactNode;
   onContentUpdate?: (updated: Partial<MealData>) => void;
   showTranslate?: boolean;
   showPrepareButton?: boolean;
@@ -43,15 +71,18 @@ interface MealCardActionsProps {
 }
 
 export default function MealCardActions({
-  meal,
+  meal = { name: "" },
+  children,
   onContentUpdate,
   showTranslate = true,
   showPrepareButton = true,
   source = "unknown",
   className,
 }: MealCardActionsProps) {
+  const { t } = useTranslation("nav");
   const [, setLocation] = useLocation();
   const [displayContent, setDisplayContent] = useState<Partial<MealData>>({});
+  const [secondaryOpen, setSecondaryOpen] = useState(false);
 
   const hasInstructions =
     meal.instructions &&
@@ -140,9 +171,25 @@ export default function MealCardActions({
     };
   });
 
+  const entries = collectActions(children);
+  const translations = entries.filter(entry => entry.kind === "translate");
+  const primary = entries.filter(entry => entry.kind !== "translate" && entry.node != null && entry.node !== false);
+  const hasDefaultActions = Boolean(meal.name);
+
   return (
-    <div className={`flex flex-col gap-2 ${className || ""}`}>
-      <div className="flex gap-2">
+    <div data-meal-card-actions={source} className={`flex flex-col gap-2 ${className || ""}`}>
+      <div
+        data-meal-card-primary
+        className="grid gap-2 [&_button]:min-h-[44px]"
+        style={{ gridTemplateColumns: `repeat(${mealCardActionLayout.columns}, minmax(0, 1fr))` }}
+      >
+        {primary.map((entry, i) => (
+          <div key={i} data-meal-action={entry.kind} className="min-w-0 [&>button]:w-full"
+            style={entry.kind === "macros" || entry.kind === "extra" ? { gridColumn: "1 / -1" } : undefined}>
+            {entry.node}
+          </div>
+        ))}
+        {hasDefaultActions && <div data-meal-action="share" className="min-w-0 [&>button]:w-full">
         <ShareRecipeButton
           recipe={{
             name: currentName,
@@ -153,22 +200,9 @@ export default function MealCardActions({
           }}
           className="flex-1 min-w-0"
         />
-        {showTranslate && (
-          <div className="flex-1 min-w-0">
-            <TranslateToggle
-              content={{
-                name: meal.name,
-                description: meal.description,
-                instructions: meal.instructions,
-                notes: meal.notes,
-                ingredients: meal.ingredients,
-              }}
-              onTranslate={handleTranslate}
-            />
-          </div>
-        )}
-      </div>
-      {showPrepareButton && isFeatureEnabled('chefsKitchen') && (
+        </div>}
+      {hasDefaultActions && showPrepareButton && isFeatureEnabled('chefsKitchen') && (
+        <div data-meal-action="prepare" className="min-w-0 col-span-full [&>button]:w-full">
         <Button
           size="sm"
           className="w-full bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 hover:from-red-400 hover:via-orange-400 hover:to-yellow-300 text-white font-semibold shadow-md hover:shadow-lg active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-1.5 py-2.5"
@@ -179,6 +213,30 @@ export default function MealCardActions({
           <ChefHat className="h-4 w-4" />
           Guided Cooking
         </Button>
+        </div>
+      )}
+      </div>
+      {(translations.length > 0 || hasDefaultActions && showTranslate) && (
+        <div data-meal-card-secondary>
+          <PillButton
+            type="button"
+            aria-expanded={secondaryOpen}
+            onClick={() => setSecondaryOpen(open => !open)}
+            className="!min-h-[44px] text-xs"
+          >
+            {t("more", { defaultValue: "More" })}
+          </PillButton>
+          {secondaryOpen && <div className="mt-2 grid gap-2 [&_button]:min-h-[44px]">
+            {translations.map((entry, i) => <Fragment key={i}>{entry.node}</Fragment>)}
+            {hasDefaultActions && showTranslate && <TranslateToggle
+              content={{
+                name: meal.name, description: meal.description, instructions: meal.instructions,
+                notes: meal.notes, ingredients: meal.ingredients,
+              }}
+              onTranslate={handleTranslate}
+            />}
+          </div>}
+        </div>
       )}
     </div>
   );

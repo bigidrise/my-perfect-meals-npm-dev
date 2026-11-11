@@ -41,6 +41,7 @@ import { IconPillOption } from "@/components/ui/icon-pill-option";
 import FavoriteButton from "@/components/FavoriteButton";
 import TrashButton from "@/components/ui/TrashButton";
 import TranslateToggle from "@/components/TranslateToggle";
+import MealCardActions, { MealCardAction } from "@/components/MealCardActions";
 import { GlassButton } from "@/components/glass";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -1198,8 +1199,8 @@ function RecipeCard({
           {/* Action buttons */}
           <div className="space-y-2 mt-2">
             {/* Walk Through the Kitchen */}
-            <div className="grid grid-cols-2 gap-2">
-              <GlassButton
+            <MealCardActions source="MyPerfectBeginningCreateMealPage">
+              <MealCardAction kind="prepare"><GlassButton
                 onClick={() => {
                   const mealData = {
                     id: `ped-${Date.now()}`,
@@ -1221,7 +1222,7 @@ function RecipeCard({
                 className="flex-1 bg-gradient-to-r from-green-700 via-emerald-600 to-teal-600 hover:from-green-600 hover:via-emerald-500 hover:to-teal-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
               >
                 Walk Through Kitchen
-              </GlassButton>
+              </GlassButton></MealCardAction>
               <TranslateToggle
                 content={{
                   name: recipe.recipeName,
@@ -1243,7 +1244,7 @@ function RecipeCard({
                   });
                 }}
               />
-            </div>
+            </MealCardActions>
 
             {/* Delete button */}
             <div className="flex justify-end pt-1">

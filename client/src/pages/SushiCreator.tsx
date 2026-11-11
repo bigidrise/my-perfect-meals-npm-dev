@@ -52,6 +52,7 @@ import { post } from "@/lib/api";
 import AddToMealPlanButton from "@/components/AddToMealPlanButton";
 import ShareRecipeButton from "@/components/ShareRecipeButton";
 import TranslateToggle from "@/components/TranslateToggle";
+import MealCardActions, { MealCardAction } from "@/components/MealCardActions";
 import { ProDietaryDirectives } from "@/components/ProDietaryDirectives";
 import { useAuth } from "@/contexts/AuthContext";
 import { normalizeDiet, mealMatchesDiet } from "@/utils/dietaryFilter";
@@ -1607,9 +1608,9 @@ export default function SushiCreator() {
                       )}
 
                       {/* Standardized 3-Row Button Layout */}
-                      <div className="space-y-2 mb-3">
+                      <MealCardActions source="SushiCreator">
                         {/* Row 1: Add to Macros (full width) */}
-                        <GlassButton
+                        <MealCardAction kind="macros"><GlassButton
                           onClick={() => {
                             const macros = getMealNutrition(meal, servings);
                             setQuickView({
@@ -1630,11 +1631,11 @@ export default function SushiCreator() {
                           data-testid="button-add-your-macros"
                         >
                           Add to Macros
-                        </GlassButton>
+                        </GlassButton></MealCardAction>
 
                         {/* Row 2: Add to Plan + Translate (50/50) */}
                         <div className="grid grid-cols-2 gap-2">
-                          <AddToMealPlanButton meal={meal} />
+                          <MealCardAction kind="plan"><AddToMealPlanButton meal={meal} /></MealCardAction>
                           <TranslateToggle
                             content={{
                               name: meal.name,
@@ -1670,7 +1671,7 @@ export default function SushiCreator() {
 
                         {/* Row 3: Prepare with Chef + Share (50/50) */}
                         <div className="grid grid-cols-2 gap-2">
-                          <GlassButton
+                          <MealCardAction kind="prepare"><GlassButton
                             type="button"
                             onClick={() => {
                               const safeId = meal.id ||
@@ -1704,8 +1705,8 @@ export default function SushiCreator() {
                             className="flex-1 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 hover:from-red-400 hover:via-orange-400 hover:to-yellow-300 text-white font-semibold text-xs flex items-center justify-center gap-1.5"
                           >
                             Guided Cooking
-                          </GlassButton>
-                          <ShareRecipeButton
+                          </GlassButton></MealCardAction>
+                          <MealCardAction kind="share"><ShareRecipeButton
                             recipe={{
                               name: meal.name,
                               description: meal.description,
@@ -1720,9 +1721,9 @@ export default function SushiCreator() {
                               ),
                             }}
                             className="flex-1"
-                          />
+                          /></MealCardAction>
                         </div>
-                      </div>
+                      </MealCardActions>
                     </CardContent>
                   </Card>
 

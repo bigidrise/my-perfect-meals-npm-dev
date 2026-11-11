@@ -775,3 +775,17 @@ mtime_ms = 1794436868758
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/2cb05c5d-2ad0-433e-9d60-5cf5a06dac6e/750ed4d6-4c21-45e0-8057-8f180ff6b901"
 storage_version_token = "1794436889909956"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "nYqsdJODGIY83ocCtEArs"
+uri = "file://docs/shopping/phase-1-standardized-actions-checkpoint-2026-11-11.md"
+type = "text"
+title = "Phase 1 results and proposed Phase 2 shopping integration"
+description = "Connected footer coverage, 49 passing checks, builder-shopping findings, and the proposed transfer API and additive schema. Shopping is not implemented."
+logical_id = "a12f8a25-6a38-407e-91ab-73d293d012bc"
+content_hash = "sha256:f551e6c89d728bc50bb0bab02740ec222fc53d385741898d39c586cba603d11b"
+size = 16429
+mtime_ms = 1794438393814
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/a12f8a25-6a38-407e-91ab-73d293d012bc/c0163660-7b8d-4616-b045-f743afca7651"
+storage_version_token = "1794438413476749"
+content_type = "text/markdown"

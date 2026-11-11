@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import MealCardActions, { MealCardAction } from "@/components/MealCardActions";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -206,37 +207,36 @@ export function RecipeQuickActions({ recipe }: RecipeQuickActionsProps) {
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-2">
-        <Button
+      <MealCardActions source="recipe-template">
+        <MealCardAction kind="save"><Button
           onClick={() => saveMutation.mutate()}
           disabled={saveMutation.isPending}
           className="bg-blue-600 text-white hover:bg-blue-700 border border-blue-500/50 text-sm font-medium"
           data-testid={`button-save-${recipe.slug}`}
         >
           💾 {saveMutation.isPending ? "Saving..." : "Save"}
-        </Button>
+        </Button></MealCardAction>
 
-        <Button
+        <MealCardAction kind="plan"><Button
           onClick={() => setOpenPicker(true)}
           disabled={addToCalendarMutation.isPending}
           className="bg-green-600 text-white hover:bg-green-700 border border-green-500/50 text-sm font-medium"
           data-testid={`button-add-to-calendar-${recipe.slug}`}
         >
           📅 Calendar
-        </Button>
-      </div>
+        </Button></MealCardAction>
       
       <div className="grid grid-cols-2 gap-2">
-        <Button
+        <MealCardAction kind="prepare"><Button
           variant="outline"
           onClick={handleCookNow}
           className="border-orange-500/50 bg-orange-600/20 text-orange-200 hover:bg-orange-600/30 hover:border-orange-400 text-sm font-medium"
           data-testid={`button-cook-now-${recipe.slug}`}
         >
           👨‍🍳 Cook Now
-        </Button>
+        </Button></MealCardAction>
 
-        <Button
+        <MealCardAction kind="share"><Button
           variant="outline"
           onClick={handleShare}
           disabled={sharing}
@@ -244,8 +244,9 @@ export function RecipeQuickActions({ recipe }: RecipeQuickActionsProps) {
           data-testid={`button-share-${recipe.slug}`}
         >
           🔗 {sharing ? "Sharing…" : "Share"}
-        </Button>
+        </Button></MealCardAction>
       </div>
+      </MealCardActions>
 
       {panelOpen && shareUrl && (
         <SharePanel
