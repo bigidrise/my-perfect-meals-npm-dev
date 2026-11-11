@@ -2,9 +2,6 @@ import { useLocation } from "wouter";
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Home, CalendarDays, Sparkles, Crown } from "lucide-react";
-import { useCopilot } from "@/components/copilot/CopilotContext";
-import { getGuestPageExplanation } from "@/components/copilot/CopilotPageExplanations";
-import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanationStore";
 import { isGuestMode } from "@/lib/guestMode";
 import {
   getGuestNavigationOverride,
@@ -14,7 +11,6 @@ import ChefEmojiButton from "@/components/chef/ChefEmojiButton";
 export default function BottomNav() {
   const [location, setLocation] = useLocation();
   const { t } = useTranslation();
-  const { open, close, isOpen, setLastResponse } = useCopilot();
 
   const handleNavClick = useCallback(
     (targetPath: string) => {
@@ -36,34 +32,9 @@ export default function BottomNav() {
     [location, setLocation],
   );
 
-  const normalizePath = useCallback((path: string) => {
-    return path.replace(/\/+$/, "").split("?")[0];
-  }, []);
-
   const handleChefClick = useCallback(() => {
-    if (isOpen) {
-      close();
-      return;
-    }
-
-    const normalizedPath = normalizePath(location);
-    const explanation = getGuestPageExplanation(normalizedPath, isGuestMode());
-
-    CopilotExplanationStore.resetPath(normalizedPath);
-
-    open();
-
-    if (explanation) {
-      setTimeout(() => {
-        setLastResponse({
-          title: explanation.title,
-          description: explanation.description,
-          spokenText: explanation.spokenText,
-          autoClose: false,
-        });
-      }, 300);
-    }
-  }, [isOpen, open, close, location, normalizePath, setLastResponse]);
+    setLocation("/coach-corner/home");
+  }, [setLocation]);
 
   const navItems = useMemo(() => {
     return [
