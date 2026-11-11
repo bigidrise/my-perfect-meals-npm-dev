@@ -67,7 +67,7 @@ export default function PetsHub() {
           <p className="text-sm text-white/70">AI-powered meal planning, recipes, and ingredient safety for dogs and cats.</p>
         </div>
         <div className="flex justify-end">
-          <HowThisWorksLink featureKey="pets" label="How It Works" />
+          <HowThisWorksLink featureKey="pets" labelKey="tutorialControl.howItWorks" />
         </div>
 
         <div className="flex flex-col gap-3">

@@ -602,7 +602,7 @@ export default function MealFinder() {
             </button>
           )}
           <div className="flex justify-end">
-            <HowThisWorksLink featureKey="findMeals" label="How It Works" />
+            <HowThisWorksLink featureKey="findMeals" labelKey="tutorialControl.howItWorks" />
           </div>
           {/* ENTRY SCREEN - Guided Copilot Entry (matches Macro Calculator pattern) */}
           {guidedStep === "entry" && (

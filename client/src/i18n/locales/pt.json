@@ -1,4 +1,20 @@
 {
+  "organizationPaidSuccess": {
+    "title": "Sua assinatura empresarial está ativa!",
+    "linkedDescription": "Sua organização já está ativa. Sua conta de afiliado Rewardful está vinculada, então você pode gerenciá-la e continuar indicando novos assinantes para o My Perfect Meals.",
+    "setupDescription": "Sua organização já está ativa. Você pode configurar sua conta de afiliado Rewardful para começar a indicar novos assinantes para o My Perfect Meals.",
+    "later": "Farei isso depois",
+    "manage": "Gerenciar Rewardful",
+    "setup": "Configurar Rewardful"
+  },
+  "tutorialControl": {
+    "howItWorks": "Como funciona",
+    "builderTutorial": "Tutorial do planejador",
+    "watchTutorial": "Assistir ao tutorial: {{label}}"
+  },
+  "getawayDining": {
+    "venuePlaceholder": "Insira um restaurante ou local para comer neste destino"
+  },
   "nav": {
     "dashboard": "Início",
     "builders": "Construtores",

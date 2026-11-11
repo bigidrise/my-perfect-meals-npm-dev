@@ -809,12 +809,12 @@ export default function InspirationCaptureModal({
 
           {isSmartScan && profileType === "human" && (
             <div className="flex justify-end mb-5">
-              <HowThisWorksLink featureKey="productScan" label="How It Works" />
+              <HowThisWorksLink featureKey="productScan" labelKey="tutorialControl.howItWorks" />
             </div>
           )}
           {!isSmartScan && profileType === "human" && (
             <div className="flex justify-end mb-5">
-              <HowThisWorksLink featureKey="recipeMaker" label="How It Works" />
+              <HowThisWorksLink featureKey="recipeMaker" labelKey="tutorialControl.howItWorks" />
             </div>
           )}
 

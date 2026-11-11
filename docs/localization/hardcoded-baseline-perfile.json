@@ -1,7 +1,7 @@
 {
   "generatedAt": "2026-08-15T00:12:54.129Z",
   "note": "Per-file hardcoded-string baseline for ALL ACTIVE client/src/components/ .tsx files (including zero-finding files). Generated from the uncapped audit reports. GATE_08b uses this to detect per-file regressions — any file whose count exceeds its baseline triggers a CI failure. New ACTIVE component files absent from this baseline also trigger a CI failure.",
-  "totalComponentFiles": 449,
+  "totalComponentFiles": 451,
   "totalComponentFilesWithFindings": 249,
   "totalComponentFindings": 2143,
   "files": {
@@ -269,6 +269,8 @@
     "client/src/components/biometrics/TherapeuticNutritionCard.tsx": 54,
     "client/src/components/biometrics/TherapeuticProtocolModal.tsx": 4,
     "client/src/components/business/MemberClientAccountingModal.tsx": 4,
+    "client/src/components/business/OrganizationPaidOnboarding.tsx": 0,
+    "client/src/components/business/OrganizationPaidSuccessPrompt.tsx": 0,
     "client/src/components/cards/GeneratedCardShell.tsx": 0,
     "client/src/components/certification/VisualCertificate.tsx": 0,
     "client/src/components/chef/ChefEmojiButton.tsx": 0,

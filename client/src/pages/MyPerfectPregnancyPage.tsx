@@ -493,7 +493,7 @@ function PregnancyPageContent() {
           <p className="text-sm text-white/70">Trimester-aware meal planning, food safety, and your personal pregnancy coach.</p>
         </div>
         <div className="flex justify-end">
-          <HowThisWorksLink featureKey="pregnancy" label="How It Works" />
+          <HowThisWorksLink featureKey="pregnancy" labelKey="tutorialControl.howItWorks" />
         </div>
 
         {/* Hero card */}

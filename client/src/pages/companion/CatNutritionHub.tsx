@@ -188,7 +188,7 @@ export default function CatNutritionHub() {
         )}
 
         <div className="flex justify-end">
-          <HowThisWorksLink featureKey="cats" label="How It Works" />
+          <HowThisWorksLink featureKey="cats" labelKey="tutorialControl.howItWorks" />
         </div>
 
         {/* Quick Actions */}

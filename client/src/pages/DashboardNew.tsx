@@ -1124,7 +1124,7 @@ export default function DashboardNew() {
         }}
       >
         <div className="flex justify-end">
-          <HowThisWorksLink featureKey="dashboard" label="How It Works" />
+          <HowThisWorksLink featureKey="dashboard" labelKey="tutorialControl.howItWorks" />
         </div>
         <PatternAlertBanner />
         <TipsBanner />

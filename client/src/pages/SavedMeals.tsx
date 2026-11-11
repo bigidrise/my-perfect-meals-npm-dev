@@ -158,7 +158,7 @@ export default function SavedMeals() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 5rem)" }}
       >
         <div className="flex justify-end">
-          <HowThisWorksLink featureKey="savedMeals" label="How It Works" />
+          <HowThisWorksLink featureKey="savedMeals" labelKey="tutorialControl.howItWorks" />
         </div>
         {isLoading && (
           <div className="flex justify-center py-12">

@@ -1,4 +1,5 @@
 import { UniversalDialog } from "@/components/ui/universal-modal";
+import { useTranslation } from "react-i18next";
 
 interface OrganizationPaidSuccessPromptProps {
   open: boolean;
@@ -13,9 +14,10 @@ export default function OrganizationPaidSuccessPrompt({
   onContinue,
   onDismiss,
 }: OrganizationPaidSuccessPromptProps) {
+  const { t } = useTranslation();
   const description = hasLinkedRewardful
-    ? "Your Organization is now active. Your Rewardful affiliate account is linked, so you can manage it and continue referring subscribers to My Perfect Meals."
-    : "Your Organization is now active. You can set up your Rewardful affiliate account to begin referring subscribers to My Perfect Meals.";
+    ? t("organizationPaidSuccess.linkedDescription")
+    : t("organizationPaidSuccess.setupDescription");
 
   return (
     <UniversalDialog
@@ -23,7 +25,7 @@ export default function OrganizationPaidSuccessPrompt({
       onOpenChange={(nextOpen) => {
         if (!nextOpen) onDismiss();
       }}
-      title="Your Business Subscription Is Active!"
+      title={t("organizationPaidSuccess.title")}
       description={description}
       disableBodyScroll
       className="border-orange-500/20"
@@ -34,14 +36,14 @@ export default function OrganizationPaidSuccessPrompt({
             onClick={onDismiss}
             className="rounded-xl px-4 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            I'll Do This Later
+            {t("organizationPaidSuccess.later")}
           </button>
           <button
             type="button"
             onClick={onContinue}
             className="rounded-xl bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
           >
-            {hasLinkedRewardful ? "Manage Rewardful" : "Set Up Rewardful"}
+            {hasLinkedRewardful ? t("organizationPaidSuccess.manage") : t("organizationPaidSuccess.setup")}
           </button>
         </div>
       }

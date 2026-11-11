@@ -1732,7 +1732,7 @@ function AccountMacroCounter() {
           style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
         >
           <div className="flex justify-end">
-            <HowThisWorksLink featureKey="macroCalculator" label="How It Works" />
+            <HowThisWorksLink featureKey="macroCalculator" labelKey="tutorialControl.howItWorks" />
           </div>
           {(!setupGuideEnabled || savedMacroSetup.complete === true) &&
             <GuidedWorkflowNextStep busy={isSaving} professionalSession={isProSession}

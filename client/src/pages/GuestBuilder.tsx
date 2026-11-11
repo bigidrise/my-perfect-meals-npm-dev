@@ -28,6 +28,7 @@ import { ChefCapIcon } from "@/components/copilot/ChefCapIcon";
 import { useCopilot } from "@/components/copilot/CopilotContext";
 import { getGuestPageExplanation } from "@/components/copilot/CopilotPageExplanations";
 import { CopilotExplanationStore } from "@/components/copilot/CopilotExplanationStore";
+import { shouldAllowAutoOpen } from "@/components/copilot/CopilotRespectGuard";
 import {
   isGuestMode,
   endGuestSession,
@@ -212,6 +213,8 @@ export default function GuestBuilder() {
       setLocation("/welcome");
       return;
     }
+
+    if (!shouldAllowAutoOpen()) return;
 
     const hasSeenWelcome = sessionStorage.getItem("guest_copilot_welcome_seen");
     if (!hasSeenWelcome && !hasAutoOpenedRef.current) {

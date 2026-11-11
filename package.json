@@ -266,7 +266,7 @@
     "path-to-regexp": "^0.1.13",
     "picomatch": "^4.0.4",
     "uuid": "^14.0.0",
-    "shell-quote": "^1.8.4",
+    "shell-quote": "^1.12.0",
     "micromatch": {
       "picomatch": "^2.3.2"
     },

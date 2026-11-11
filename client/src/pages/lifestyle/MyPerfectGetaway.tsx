@@ -121,7 +121,8 @@ function getStorageKey(userId?: number | string) {
 }
 
 export default function MyPerfectGetaway() {
-  const reliable = import.meta.env.DEV;
+  // Approved venue context, uncertainty notices and cautions ship in Production.
+  const reliable = true;
   const venueSearchRequestRef = useRef(0);
   const [, setLocation] = useLocation();
   const { user } = useAuth();
@@ -505,7 +506,7 @@ export default function MyPerfectGetaway() {
           <p className="text-sm text-white/70">Your personal nutrition coach at theme parks, airports, cruises, and resorts.</p>
         </div>
         <div className="flex justify-end">
-          <HowThisWorksLink featureKey="getaway" label="How It Works" />
+          <HowThisWorksLink featureKey="getaway" labelKey="tutorialControl.howItWorks" />
         </div>
 
         {!result && !showZonePicker && (

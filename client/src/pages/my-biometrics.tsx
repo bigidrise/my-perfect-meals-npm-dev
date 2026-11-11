@@ -1843,7 +1843,7 @@ export default function MyBiometrics() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         <div className="flex justify-end">
-          <HowThisWorksLink featureKey="biometrics" label="How It Works" />
+          <HowThisWorksLink featureKey="biometrics" labelKey="tutorialControl.howItWorks" />
         </div>
         {/* Apple 1.4.1 Compliance: Prominent citation banner - MUST be visible */}
         <div className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-blue-400/30 rounded-xl p-4">

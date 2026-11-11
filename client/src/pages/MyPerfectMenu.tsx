@@ -916,7 +916,7 @@ export default function MyPerfectMenu() {
       </div>
       <div className="relative mx-auto max-w-5xl px-4 pb-28 pt-[calc(env(safe-area-inset-top,0px)+5rem)] sm:px-8 lg:pt-10">
         <div className="flex justify-end">
-          <HowThisWorksLink featureKey="myPerfectMenu" label="How It Works" />
+          <HowThisWorksLink featureKey="myPerfectMenu" labelKey="tutorialControl.howItWorks" />
         </div>
         <div className="flex items-center gap-3">
           <button type="button" onClick={handleBack} className="hidden min-h-11 items-center gap-1.5 px-1 text-sm font-semibold text-orange-400 hover:text-orange-300 hover:underline underline-offset-4 focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-400 lg:inline-flex">
