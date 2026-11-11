@@ -54,6 +54,13 @@ only under consideration.
 
 **Why:** YouTube Academy tutorials are now the primary feature-education experience.
 
+Embedded instructional Pro Tip cards across the meal builders are also hidden
+under the centralized instructional visibility policy; retain their underlying
+content. Guest welcome education must follow the same automatic-open policy.
+
+**Why:** The founder explicitly approved finishing both omissions while preserving
+manual Copilot voice, chat, help, and Chef buttons.
+
 **How to apply:** Classify triggers before changing them. Gate only automatic
 educational presentation, never required operational work or user-requested help.
 Verify in Development without unnecessary paid AI calls; publication and release
