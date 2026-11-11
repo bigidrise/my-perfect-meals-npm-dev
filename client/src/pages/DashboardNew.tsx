@@ -1135,7 +1135,11 @@ export default function DashboardNew() {
         <div className="mb-4">
            <div className="relative h-52 sm:h-64 rounded-xl overflow-hidden">
             <img
-              src="/images/dashboard-chef-community-hero.png"
+              src="/images/dashboard-chef-community-hero-1024.webp"
+              srcSet="/images/dashboard-chef-community-hero-512.webp 512w, /images/dashboard-chef-community-hero-768.webp 768w, /images/dashboard-chef-community-hero-1024.webp 1024w"
+              sizes="(min-width: 1152px) 1120px, calc(100vw - 32px)"
+              width={1024}
+              height={1024}
               alt={t("heroAlt")}
               loading="eager"
               {...{ fetchpriority: "high" }}

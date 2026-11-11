@@ -42,7 +42,9 @@ export default function CoachCornerCard() {
           <div className="flex items-center gap-3 p-4 pb-3 sm:gap-4 sm:p-5">
             <div className="relative flex h-[4.5rem] w-[4.5rem] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-orange-300/30 bg-black sm:h-20 sm:w-20">
               <img
-                src="/assets/ask-chef-desk.webp"
+                src="/assets/ask-chef-desk-160.webp"
+                srcSet="/assets/ask-chef-desk-160.webp 160w, /assets/ask-chef-desk-240.webp 240w, /assets/ask-chef-desk.webp 500w"
+                sizes="(min-width: 640px) 80px, 72px"
                 alt="Flame Chef"
                 width={80}
                 height={80}

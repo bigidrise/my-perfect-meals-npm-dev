@@ -53,6 +53,10 @@ export async function resolveHydrationCenterState(input: {
   now?: Date;
   preloadedRows?: Array<typeof waterLogs.$inferSelect>;
   preloadedLiquidProtocol?: HydrationProtocolRecord | null;
+  /** Summary-only consumers do not display these explanatory items. Numeric
+   * policy, directives, intake and liquid-protocol resolution stay unchanged.
+   */
+  includeConsideredForYou?: boolean;
   onNutritionContextResolved?: (context: Awaited<ReturnType<typeof getActiveNutritionContext>>) => void;
 }): Promise<HydrationCenterState> {
   const startedAt = performance.now();
@@ -111,12 +115,13 @@ export async function resolveHydrationCenterState(input: {
     })(),
     (async () => {
       const operationStartedAt = performance.now();
+      if (input.includeConsideredForYou === false && !input.onNutritionContextResolved) return null;
       const result = await getActiveNutritionContext(input.subjectUserId);
       nutritionContextMs = performance.now() - operationStartedAt;
       return result;
     })(),
   ]);
-  input.onNutritionContextResolved?.(nutritionContext);
+  if (nutritionContext) input.onNutritionContextResolved?.(nutritionContext);
   const eligibility = evaluateHydrationPlanningEligibility({
     subjectUserId: input.subjectUserId,
     localDate: input.localDate,
@@ -144,11 +149,11 @@ export async function resolveHydrationCenterState(input: {
       : "inactive",
     evaluatedAt: now.toISOString(),
   });
-  const consideredForYou = buildHydrationConsideredForYou({
+  const consideredForYou = nutritionContext ? buildHydrationConsideredForYou({
     envelope: nutritionContext.envelope,
     builder: nutritionContext.builder,
     liquidProtocol,
-  });
+  }) : [];
 
   const result: HydrationCenterState = {
     subjectUserId: input.subjectUserId,

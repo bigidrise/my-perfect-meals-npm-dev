@@ -51,6 +51,7 @@ import { useFontSize } from "@/contexts/FontSizeContext";
 import { useNarrationSpeed, type NarrationSpeed } from "@/contexts/NarrationSpeedContext";
 import { useToast } from "@/hooks/use-toast";
 import MealReminders from "@/components/MealReminders";
+import { MealReminderPanelFrame } from "@/components/MealReminderPanelFrame";
 import { useUpdateState } from "@/contexts/UpdateContext";
 import { canAccessMealBuilders } from "@/lib/subscriptionCheck";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
@@ -473,7 +474,9 @@ export function ProfileSheet({ children }: ProfileSheetProps) {
 
         {/* Meal Reminders */}
         <div className="mt-4">
-          <MealReminders />
+          <MealReminderPanelFrame isNative={isNative} label={t("mealReminders.title")}>
+            <MealReminders />
+          </MealReminderPanelFrame>
         </div>
 
         {/* Menu Items */}

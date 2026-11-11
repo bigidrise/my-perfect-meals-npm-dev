@@ -14,3 +14,15 @@ Do not assume the native API origin must equal the primary web domain. An intent
 **Why:** A release review found a stale test insisting on the primary web domain while the preserved native resolver, its companion test, and the actual deployed JavaScript all intentionally used a verified alias. Both domains served the same release without redirects; changing routing merely to satisfy that test would have changed the established contract.
 
 **How to apply:** Establish primary/alias status from deployment metadata, compare read-only release responses, and inspect the deployed resolver before correcting conflicting tests. Preserve routing when that evidence agrees; stop for owner disposition when it does not.
+
+For native regressions, establish the installed binary's packaged web version
+before attributing behavior to current source or a web release. A retained local
+native bundle is evidence about that artifact, not the founder's installed app.
+
+**Why:** Reminder restoration existed in current source but was absent from an
+older retained native bundle. Source-level tests alone could not establish what
+code the phone was running or whether iOS had pending notification requests.
+
+**How to apply:** Compare the installed build, plugin availability, permission
+and pending OS state before declaring a native delivery fix shipped or working.
+Do not substitute a web publication or a copied bundle for device evidence.

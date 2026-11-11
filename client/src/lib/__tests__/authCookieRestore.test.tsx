@@ -25,6 +25,11 @@ jest.mock("@/hooks/nutritionStateCache", () => ({ clearNutritionCache: jest.fn()
 jest.mock("@/lib/developmentAuthRoutes", () => ({
   get DEVELOPMENT_AUTH_PUBLIC_PATHS() { return mockDevelopmentPublicPaths; },
 }));
+// Ordinary-auth fixtures must not import the Vite-only isolated-demo gate.
+// Fail loudly if this test ever attempts to enter a demo runtime.
+jest.mock("@/demo-studio/runtimeAuthority", () => ({
+  assertIsolatedDemoRuntime: () => { throw new Error("Demo activation is outside this auth test"); },
+}));
 
 function Identity() {
   const { user, loading } = useAuth();
@@ -84,6 +89,22 @@ test("a transient server failure with no cache stays anonymous", async () => {
   render(<AuthProvider><Identity /></AuthProvider>);
   await screen.findByText("anonymous");
   expect(mockCachedUser).toBeNull();
+});
+
+test("a network restoration failure does not manufacture identity or clear a cookie session", async () => {
+  (fetch as jest.Mock).mockRejectedValue(new TypeError("Failed to fetch"));
+  render(<AuthProvider><Identity /></AuthProvider>);
+  await screen.findByText("anonymous");
+  expect(mockCachedUser).toBeNull();
+  expect(fetch).toHaveBeenCalledTimes(1);
+});
+
+test("a 403 authorization failure remains distinct from a definitive 401", async () => {
+  mockCachedUser = { id: "synthetic-existing", email: "synthetic@example.invalid" };
+  (fetch as jest.Mock).mockResolvedValue({ ok: false, status: 403 });
+  render(<AuthProvider><Identity /></AuthProvider>);
+  await screen.findByText("synthetic-existing:ordinary");
+  expect(mockCachedUser.id).toBe("synthetic-existing");
 });
 
 test("cached demo routing metadata is refreshed from server without repeated updates", async () => {

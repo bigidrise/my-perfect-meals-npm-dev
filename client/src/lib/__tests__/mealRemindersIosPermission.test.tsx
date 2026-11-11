@@ -142,6 +142,21 @@ describe('MealReminders — iOS permission badge mid-session accuracy', () => {
   });
 
   // ── Test 1: initial mount, permission granted ───────────────────────────────
+  it("shows an explicit web read failure and retries without presenting default schedules", async () => {
+    mockIsNativePlatform.mockReturnValue(false);
+    mockLoadRemindersFromServer.mockRejectedValueOnce(new Error("HTTP 503"));
+    const { getByRole, queryByDisplayValue } = await renderComponent();
+    expect(getByRole("alert")).toBeInTheDocument();
+    expect(getByRole("alert")).toHaveTextContent("loadFailedTitle");
+    expect(getByRole("alert")).not.toHaveTextContent("loadFailedMessage");
+    expect(queryByDisplayValue("08:00")).not.toBeInTheDocument();
+    expect(mockLoadRemindersFromServer).toHaveBeenCalledWith({ strict: true });
+    fireEvent.click(getByRole("button", { name: "retryLoading" }));
+    await waitFor(() => expect(queryByDisplayValue("08:00")).toBeInTheDocument());
+    expect(mockSaveRemindersToServer).not.toHaveBeenCalled();
+    expect(mockSyncToiOS).not.toHaveBeenCalled();
+  });
+
   it('shows saved meal times while web notification diagnostics are still pending', async () => {
     mockIsNativePlatform.mockReturnValue(false);
     mockCheckWebPushPipeline.mockReturnValue(new Promise(() => {}));

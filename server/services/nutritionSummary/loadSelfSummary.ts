@@ -5,15 +5,20 @@ import { desc, eq } from "drizzle-orm";
 import { loadUserProtocolEnvelope } from "../protocolEnvelope";
 import { buildNutritionSummary, type UserExtrasForSummary } from "./buildNutritionSummary";
 
-export async function loadSelfNutritionSummary(userId: string, includeDayContext: boolean) {
-  const startedAt = performance.now();
-  const envelope = await loadUserProtocolEnvelope(userId, undefined, {
-    includeDailyNutritionState: false,
-  });
-  if (!envelope) return null;
-  const profileMs = Math.round(performance.now() - startedAt);
+async function timed<T>(operation: () => PromiseLike<T>) {
+  const start = performance.now();
+  const value = await operation();
+  return { value, ms: Math.round(performance.now() - start) };
+}
 
-  const [userRow] = await db
+export async function loadSelfNutritionSummary(userId: string, includeDayContext: boolean) {
+  // All reads use the same already-authorized self subject. They do not depend
+  // on one another: start together, without sharing or caching across requests.
+  const [profile, user, glucose] = await Promise.all([
+    timed(() => loadUserProtocolEnvelope(userId, undefined, {
+      includeDailyNutritionState: false,
+    })),
+    timed(() => db
     .select({
       dailyCalorieTarget: (users as any).dailyCalorieTarget,
       dailyProteinTarget: (users as any).dailyProteinTarget,
@@ -35,18 +40,22 @@ export async function loadSelfNutritionSummary(userId: string, includeDayContext
     })
     .from(users)
     .where(eq(users.id, userId))
-    .limit(1);
-  const userMs = Math.round(performance.now() - startedAt) - profileMs;
-  const [latestGlucoseLog] = includeDayContext
-    ? await db
+    .limit(1)),
+    includeDayContext
+    ? timed(() => db
         .select({ value: glucoseLogs.valueMgdl })
         .from(glucoseLogs)
         .where(eq(glucoseLogs.userId, userId))
         .orderBy(desc(glucoseLogs.recordedAt))
-        .limit(1)
-    : [];
-  const glucoseMs = Math.round(performance.now() - startedAt) - profileMs - userMs;
+        .limit(1))
+    : Promise.resolve({ value: [], ms: 0 }),
+  ]);
+  const envelope = profile.value;
+  if (!envelope) return null;
+  const [userRow] = user.value;
+  const [latestGlucoseLog] = glucose.value;
 
+  const buildStartedAt = performance.now();
   const extras: UserExtrasForSummary = {
     dailyCalorieTarget: userRow?.dailyCalorieTarget ?? null,
     dailyProteinTarget: userRow?.dailyProteinTarget ?? null,
@@ -70,8 +79,8 @@ export async function loadSelfNutritionSummary(userId: string, includeDayContext
   const summary = buildNutritionSummary(envelope, extras, { includeDayContext });
   if (process.env.NODE_ENV === "development") {
     console.log(
-      `[NutritionSummaryTiming] core.profile=${profileMs}ms core.user=${userMs}ms ` +
-      `core.glucose=${glucoseMs}ms core.build=${Math.round(performance.now() - startedAt) - profileMs - userMs - glucoseMs}ms`,
+      `[NutritionSummaryTiming] core.profile=${profile.ms}ms core.user=${user.ms}ms ` +
+      `core.glucose=${glucose.ms}ms core.build=${Math.round(performance.now() - buildStartedAt)}ms (parallel reads)`,
     );
   }
   return summary;

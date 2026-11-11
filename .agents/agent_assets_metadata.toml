@@ -719,3 +719,31 @@ mtime_ms = 1794422530546
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/a5557d46-e71a-4dc5-9ee0-f8e268c25dc1/7bea8e4d-167b-48d2-b2d2-6673f7ec14bf"
 storage_version_token = "1794422569581676"
 content_type = "text/html"
+
+[[outputs]]
+id = "Owo22igYp20ud48nroQTl"
+uri = "file://docs/mobile/ios-meal-reminders-investigation-2026-11-11.md"
+type = "text"
+title = "Native iOS Meal Reminders Investigation"
+description = "Current architecture, July migration and retained-bundle risks, build requirements, and a permission-controlled iPhone verification protocol. Investigation only; native delivery is not declared restored."
+logical_id = "0026ac80-7950-4896-99a6-220284155682"
+content_hash = "sha256:77d5aea5a696ca5768312c4ea5d5a7558113eae90c738b529991a990c483264f"
+size = 9785
+mtime_ms = 1794425052586
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/0026ac80-7950-4896-99a6-220284155682/fe785e65-0791-4cf1-960e-3ffb60a616f5"
+storage_version_token = "1794425445050133"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "MqqcDNYTjEcObBu5fYw_Q"
+uri = "file://docs/performance/dashboard-hub-corrections-2026-11-11.md"
+type = "text"
+title = "Dashboard and My Hub Development Review"
+description = "Implemented changes, image payload and browser decode measurements, isolated layout verification, regression/build results, and unresolved authenticated-browser verification limits."
+logical_id = "7d51b1db-4479-4bad-9ac3-374945ff2f39"
+content_hash = "sha256:a193bb00e12aa691e587a42222f397eb49c30d5c27cb7055102a11e779cb0091"
+size = 9875
+mtime_ms = 1794425380158
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/7d51b1db-4479-4bad-9ac3-374945ff2f39/26dc77c0-c5f8-4360-ac80-8f3a6674d976"
+storage_version_token = "1794425519306511"
+content_type = "text/markdown"
