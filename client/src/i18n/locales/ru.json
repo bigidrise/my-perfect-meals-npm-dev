@@ -1,4 +1,12 @@
 {
+  "organizationPaidSuccess": {
+    "title": "Ваша бизнес-подписка активна!",
+    "linkedDescription": "Ваша организация теперь активна. Партнёрский аккаунт Rewardful привязан: вы можете управлять им и продолжать привлекать новых подписчиков в My Perfect Meals.",
+    "setupDescription": "Ваша организация теперь активна. Вы можете настроить партнёрский аккаунт Rewardful и начать привлекать новых подписчиков в My Perfect Meals.",
+    "later": "Я сделаю это позже",
+    "manage": "Управлять Rewardful",
+    "setup": "Настроить Rewardful"
+  },
   "tutorialControl": {
     "howItWorks": "Как это работает",
     "builderTutorial": "Руководство по планировщику питания",

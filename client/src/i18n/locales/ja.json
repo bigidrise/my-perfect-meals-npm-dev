@@ -1,4 +1,12 @@
 {
+  "organizationPaidSuccess": {
+    "title": "ビジネスサブスクリプションが有効になりました！",
+    "linkedDescription": "組織が有効になりました。Rewardful アフィリエイトアカウントが連携されているため、アカウントの管理や My Perfect Meals への新規登録者の紹介を続けられます。",
+    "setupDescription": "組織が有効になりました。Rewardful アフィリエイトアカウントを設定して、My Perfect Meals への新規登録者の紹介を始められます。",
+    "later": "後で行う",
+    "manage": "Rewardful を管理",
+    "setup": "Rewardful を設定"
+  },
   "tutorialControl": {
     "howItWorks": "使い方",
     "builderTutorial": "食事プラン作成のチュートリアル",

@@ -31,6 +31,7 @@ import {
   ORGANIZATION_BILLING_TERMS_VERSION,
 } from "../services/businessPilotActivationPolicy";
 import { organizationQuoteFromPrice, recordOrganizationCheckoutConsent } from "../services/organizationCheckoutConsent";
+import { organizationPaidContinuationEnabled, assertOrganizationPaidContinuationPurchaseAllowed, assertOrganizationContinuationPrice } from "../services/organizationPaidContinuationPolicy";
 
 function pilotBillingError(error: unknown, res: any) {
   if (!(error instanceof BusinessPilotActivationError)) return false;
@@ -499,17 +500,18 @@ router.post("/reconcile-checkout", requireAuth, async (req: any, res) => {
  */
 router.get("/checkout/business/quote", requireAuth, async (req: any, res) => {
   res.setHeader("Cache-Control", "no-store");
-  if (!businessPilotActivationEnabled()) return res.status(503).json({ error: "Paid continuation awaits release approval." });
+  if (!organizationPaidContinuationEnabled() && !businessPilotActivationEnabled()) return res.status(503).json({ error: "Paid continuation awaits release approval." });
   const deployed = process.env.REPLIT_DEPLOYMENT === "1" || process.env.REPLIT_DEPLOYMENT === "true";
   if (!stripe || (!deployed && getStripeKeyMode(stripeKey) !== "TEST")) {
     return res.status(503).json({ error: "Billing review is unavailable in this environment." });
   }
   try {
     const result: any = await db.execute(sql`
-      SELECT commercial_access_mode, commercial_access_ends_at FROM businesses
+      SELECT status, commercial_access_mode, commercial_access_ends_at FROM businesses
       WHERE id = ${req.query.businessId} AND owner_user_id = ${req.authUser.id}`);
     const [business] = result.rows ?? result;
     if (!business) return res.status(403).json({ error: "Organization owner access required." });
+    assertOrganizationPaidContinuationPurchaseAllowed({ status: business.status, commercialAccessMode: business.commercial_access_mode, commercialAccessEndsAt: business.commercial_access_ends_at });
     assertOrganizationChargeAllowed({
       commercialAccessMode: business.commercial_access_mode,
       commercialAccessEndsAt: business.commercial_access_ends_at,
@@ -517,6 +519,7 @@ router.get("/checkout/business/quote", requireAuth, async (req: any, res) => {
     const plan = getTrustedCheckoutPlan("clinical_business_monthly");
     if (!plan) return res.status(503).json({ error: "Organization subscription price is not configured." });
     const quote = organizationQuoteFromPrice(await stripe.prices.retrieve(plan.priceId), plan.priceId);
+    if (business.commercial_access_mode === "onboarding_pilot") assertOrganizationContinuationPrice(quote);
     return res.json(quote);
   } catch (error) {
     if (pilotBillingError(error, res)) return;
@@ -594,9 +597,10 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
         error: "Please complete organization setup before starting checkout.",
       });
     }
-    const consentRequired = businessPilotActivationEnabled()
-      && (ownedBusiness.commercialAccessMode === "onboarding_pilot" || req.body?.billingConsent != null);
+    const consentRequired = ownedBusiness.commercialAccessMode === "onboarding_pilot"
+      || (businessPilotActivationEnabled() && req.body?.billingConsent != null);
     try {
+      assertOrganizationPaidContinuationPurchaseAllowed(ownedBusiness);
       assertOrganizationChargeAllowed(ownedBusiness);
       if (consentRequired) {
         validateOrganizationBillingConsent(req.body?.billingConsent, trustedBusinessPlan.priceId);
@@ -608,6 +612,7 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
     const billingQuote = consentRequired
       ? organizationQuoteFromPrice(await stripe.prices.retrieve(trustedBusinessPlan.priceId), trustedBusinessPlan.priceId)
       : null;
+    if (ownedBusiness.commercialAccessMode === "onboarding_pilot" && billingQuote) assertOrganizationContinuationPrice(billingQuote);
 
     if (ownedBusiness.stripeCustomerId || ownedBusiness.stripeSubscriptionId) {
       let previousIdentity;
@@ -898,6 +903,7 @@ router.post("/checkout/business", requireAuth, async (req, res) => {
     return res.json({ url: session.url });
   } catch (err: any) {
     console.error("❌ Business checkout error:", err?.message || err);
+    if (pilotBillingError(err, res)) return;
 
     if (err?.message?.includes("No such price")) {
       return res.status(500).json({

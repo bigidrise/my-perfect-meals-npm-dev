@@ -1,4 +1,12 @@
 {
+  "organizationPaidSuccess": {
+    "title": "Il tuo abbonamento aziendale è attivo!",
+    "linkedDescription": "La tua organizzazione è ora attiva. Il tuo account affiliato Rewardful è collegato: puoi gestirlo e continuare a consigliare My Perfect Meals a nuovi abbonati.",
+    "setupDescription": "La tua organizzazione è ora attiva. Puoi configurare il tuo account affiliato Rewardful per iniziare a consigliare My Perfect Meals a nuovi abbonati.",
+    "later": "Lo farò più tardi",
+    "manage": "Gestisci Rewardful",
+    "setup": "Configura Rewardful"
+  },
   "tutorialControl": {
     "howItWorks": "Come funziona",
     "builderTutorial": "Tutorial del pianificatore",

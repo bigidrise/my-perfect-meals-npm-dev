@@ -8,6 +8,7 @@ import { claimBillingEvent, completeBillingEvent, failBillingEvent } from "./str
 import { planFromSubscription } from "./stripePlanCatalog";
 import { updateUserSubscription } from "./subscriptionService";
 import { applyBusinessSubscriptionTransition } from "./businessSubscriptionService";
+import { verifyOrganizationCheckoutConsentEvidence } from "./organizationCheckoutConsent";
 import { prepareVerifiedSnapshotHook } from "./verifiedServiceBillingWriter";
 import { applyStudioStripeSubscription } from "./studioStripeBillingService";
 import { hasStudioBillingMetadata } from "./studioStripePlanCatalog";
@@ -258,6 +259,7 @@ export async function reconcileCheckoutSession(args: {
     ) {
       throw new Error("Business checkout does not match the owner's saved reservation");
     }
+    await verifyOrganizationCheckoutConsentEvidence({ sessionMetadata: session.metadata, subscriptionMetadata: subscription.metadata, userId: args.userId, businessId: businessId!, reservationId: session.metadata!.checkoutReservationId, priceId: trustedPlan.priceId, subscriptionStatus: subscription.status });
   }
 
   if (subscription.status !== "active" && subscription.status !== "trialing") {

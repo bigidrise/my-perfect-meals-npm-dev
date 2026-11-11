@@ -1,4 +1,12 @@
 {
+  "organizationPaidSuccess": {
+    "title": "Aktibo na ang iyong subscription sa negosyo!",
+    "linkedDescription": "Aktibo na ang iyong organisasyon. Naka-link na ang iyong Rewardful affiliate account, kaya maaari mo itong pamahalaan at patuloy na mag-refer ng mga bagong subscriber sa My Perfect Meals.",
+    "setupDescription": "Aktibo na ang iyong organisasyon. Maaari mong i-set up ang iyong Rewardful affiliate account upang magsimulang mag-refer ng mga bagong subscriber sa My Perfect Meals.",
+    "later": "Gagawin ko ito mamaya",
+    "manage": "Pamahalaan ang Rewardful",
+    "setup": "I-set Up ang Rewardful"
+  },
   "tutorialControl": {
     "howItWorks": "Paano ito gumagana",
     "builderTutorial": "Gabay sa tagaplano ng pagkain",

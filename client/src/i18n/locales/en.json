@@ -1,4 +1,12 @@
 {
+  "organizationPaidSuccess": {
+    "title": "Your Business Subscription Is Active!",
+    "linkedDescription": "Your Organization is now active. Your Rewardful affiliate account is linked, so you can manage it and continue referring subscribers to My Perfect Meals.",
+    "setupDescription": "Your Organization is now active. You can set up your Rewardful affiliate account to begin referring subscribers to My Perfect Meals.",
+    "later": "I'll Do This Later",
+    "manage": "Manage Rewardful",
+    "setup": "Set Up Rewardful"
+  },
   "tutorialControl": {
     "howItWorks": "How It Works",
     "builderTutorial": "Builder Tutorial",

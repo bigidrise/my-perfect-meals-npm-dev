@@ -1,4 +1,12 @@
 {
+  "organizationPaidSuccess": {
+    "title": "您的企业订阅已生效！",
+    "linkedDescription": "您的组织现已启用。您的 Rewardful 推广账户已关联，您可以管理该账户并继续向新订阅者推荐 My Perfect Meals。",
+    "setupDescription": "您的组织现已启用。您可以设置 Rewardful 推广账户，开始向新订阅者推荐 My Perfect Meals。",
+    "later": "稍后再做",
+    "manage": "管理 Rewardful",
+    "setup": "设置 Rewardful"
+  },
   "tutorialControl": {
     "howItWorks": "使用方法",
     "builderTutorial": "膳食规划器教程",

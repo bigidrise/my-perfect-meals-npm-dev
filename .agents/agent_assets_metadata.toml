@@ -663,3 +663,45 @@ mtime_ms = 1793928789754
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/6e9be9ff-52d8-4bb4-859a-ff0de7338013/243293b4-d203-4f24-9b97-d734f1e1c377"
 storage_version_token = "1793928864747169"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "BTnbDUYaBW9_xuDstnxYm"
+uri = "file://.local/release-corrections/tutorial-localization/docs/tutorial-release-gate-review.md"
+type = "text"
+title = "Release-gate investigation and remaining blockers"
+description = "Exact attribution of the 126 inherited localization failures, the 24 corrected new findings, validation results, and proposed fixes. No release approval."
+logical_id = "319e1d87-cb85-413b-b001-45432974bf68"
+content_hash = "sha256:2f8180b471635fc338614b81986fdb3f9583cff480841aef240abf0f2e2e5ca7"
+size = 15410
+mtime_ms = 1794344722931
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/319e1d87-cb85-413b-b001-45432974bf68/f9d0119f-d5c1-4e0e-85cf-9e56e64dbd41"
+storage_version_token = "1794344965745334"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "0ewEmNU9Xs-th6HhGBfZr"
+uri = "file://docs/organization-paid-continuation-development.md"
+type = "text"
+title = "Organization paid continuation — Development review"
+description = "Implementation and Rewardful audit, all 22 changed files, 209 regression results, consent-retention decisions, and Production prerequisites. Release remains blocked by the strict type fingerprint."
+logical_id = "7e3ecea4-54ed-4bb5-a82d-79a37852e4f6"
+content_hash = "sha256:d9a58b03b0a2b0d426bc3b32129c04c42e853bcf69ddc385be937ba399ec6bc8"
+size = 11914
+mtime_ms = 1794354734501
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/7e3ecea4-54ed-4bb5-a82d-79a37852e4f6/8a0e5acb-ef27-49a6-b3b0-fa45b97dc3ab"
+storage_version_token = "1794354792374421"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "bF2yFk4TXRGN5DQpfBFhO"
+uri = "file://docs/release-type-gate-investigation.html"
+type = "html"
+title = "Strict release-type gate — root cause and recommended fix"
+description = "Final verified report: exact historical fingerprint reproduced, 10 location-only changes in 6 files, all 109 diagnostics across 62 files, and the smallest proposed correction. No correction implemented."
+logical_id = "089e1409-65f2-4959-b0a0-1faa3fe082e6"
+content_hash = "sha256:6efe556a1f4467150ea120f1733eb0c2376d883535a1de5f4dce8b9e026ab77b"
+size = 49943
+mtime_ms = 1794355557669
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/089e1409-65f2-4959-b0a0-1faa3fe082e6/bd110b08-c721-49a2-96fc-8d9c1b704331"
+storage_version_token = "1794355558050209"
+content_type = "text/html"

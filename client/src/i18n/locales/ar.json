@@ -1,4 +1,12 @@
 {
+  "organizationPaidSuccess": {
+    "title": "اشتراك مؤسستك أصبح نشطًا!",
+    "linkedDescription": "أصبحت مؤسستك نشطة الآن. حسابك للتسويق بالعمولة في Rewardful مرتبط، ويمكنك إدارته ومواصلة إحالة مشتركين جدد إلى My Perfect Meals.",
+    "setupDescription": "أصبحت مؤسستك نشطة الآن. يمكنك إعداد حسابك للتسويق بالعمولة في Rewardful لبدء إحالة مشتركين جدد إلى My Perfect Meals.",
+    "later": "سأفعل ذلك لاحقًا",
+    "manage": "إدارة Rewardful",
+    "setup": "إعداد Rewardful"
+  },
   "tutorialControl": {
     "howItWorks": "كيف يعمل",
     "builderTutorial": "شرح أداة إعداد الوجبات",

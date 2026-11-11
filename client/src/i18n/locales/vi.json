@@ -1,4 +1,12 @@
 {
+  "organizationPaidSuccess": {
+    "title": "Gói đăng ký doanh nghiệp của bạn đã được kích hoạt!",
+    "linkedDescription": "Tổ chức của bạn hiện đã hoạt động. Tài khoản cộng tác viên Rewardful đã được liên kết, nên bạn có thể quản lý tài khoản và tiếp tục giới thiệu người đăng ký mới đến My Perfect Meals.",
+    "setupDescription": "Tổ chức của bạn hiện đã hoạt động. Bạn có thể thiết lập tài khoản cộng tác viên Rewardful để bắt đầu giới thiệu người đăng ký mới đến My Perfect Meals.",
+    "later": "Tôi sẽ làm việc này sau",
+    "manage": "Quản lý Rewardful",
+    "setup": "Thiết lập Rewardful"
+  },
   "tutorialControl": {
     "howItWorks": "Cách hoạt động",
     "builderTutorial": "Hướng dẫn lập kế hoạch bữa ăn",

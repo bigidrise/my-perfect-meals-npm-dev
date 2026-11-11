@@ -30,7 +30,7 @@ jest.mock("../services/stripePlanCatalog", () => ({
 }));
 // The route imports db even though every operation in this fixture is delegated
 // to mocked services. Never let this isolated webhook test construct a live pool.
-jest.mock("../db", () => ({ db: {} }));
+jest.mock("../db", () => ({ db: { execute: jest.fn() } }));
 
 const secret = "whsec_adverse_snapshot_fixture";
 const signer = new Stripe("sk_test_adverse_snapshot_fixture");
@@ -134,4 +134,31 @@ describe("signed adverse-status webhook delivery with snapshot ingestion enabled
       expect(complete).toHaveBeenCalledTimes(1);
     },
   );
+  it("new paid Organization activations require ledger evidence; retries never create Rewardful accounts", async () => {
+    const { db } = jest.requireMock("../db");
+    plan.mockReturnValue({ planLookupKey: "clinical_business_monthly", priceId: "price_fixture" });
+    transition.mockResolvedValue({ updated: true });
+    const payload = JSON.stringify({
+      id: "evt_new_org_active_fixture", object: "event", created: 1790812800,
+      type: "customer.subscription.updated", data: { object: {
+        id: "sub_org_fixture", customer: "cus_org_fixture", status: "active",
+        metadata: { userId: "owner-fixture", businessId: "business-fixture",
+          checkoutReservationId: "reservation-fixture", billingTermsVersion: "organization-monthly-v1" },
+        items: { data: [{ quantity: 1 }] },
+      } },
+    });
+    const signature = Stripe.webhooks.generateTestHeaderString({ payload, secret });
+    const deliver = () => request(app).post("/api/stripe/webhook")
+      .set("Content-Type", "application/json").set("stripe-signature", signature).send(payload);
+    db.execute.mockResolvedValue({ rows: [] });
+    await deliver().expect(500);
+    expect(transition).not.toHaveBeenCalled();
+    db.execute.mockResolvedValue({ rows: [{ reservation_id: "reservation-fixture" }] });
+    await deliver().expect(200);
+    expect(transition).toHaveBeenCalledTimes(1);
+    claim.mockResolvedValue("duplicate");
+    await deliver().expect(200);
+    expect(transition).toHaveBeenCalledTimes(1);
+    // No affiliate-creation service belongs to this webhook transition.
+  });
 });

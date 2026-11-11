@@ -1,4 +1,6 @@
 import Stripe from "stripe";
+import { organizationPaidContinuationEnabled } from "./organizationPaidContinuationPolicy";
+import { planFromSubscription } from "./stripePlanCatalog";
 
 // Organization-only policy. The shared legacy campaign configuration is unchanged.
 export const FOUNDING_ORGANIZATION_CAMPAIGN = {
@@ -10,6 +12,11 @@ export const FOUNDING_ORGANIZATION_CAMPAIGN = {
 
 export function foundingOrganizationPolicyEnabled() {
   return process.env.NODE_ENV === "development";
+}
+
+/** Eligibility rollout is independent of campaign selection and founder pilot activation. */
+export function organizationPaidRewardfulPolicyEnabled() {
+  return organizationPaidContinuationEnabled() || foundingOrganizationPolicyEnabled();
 }
 
 export function organizationRewardfulCampaignId() {
@@ -28,6 +35,12 @@ export type OrganizationPaymentEvidence = {
   commercialAccessEndsAt?: Date | null;
 };
 
+/** Explicit pre-existing commercial authorization is not an unpaid-pilot exemption. */
+export function hasAuthorizedOrganizationRewardfulException(business: OrganizationPaymentEvidence) {
+  return organizationPaidContinuationEnabled()
+    && business.status === "active" && business.commercialAccessMode === "authorized_arrangement";
+}
+
 export function hasRecordedOrganizationPaidActivation(business: OrganizationPaymentEvidence, at = new Date()) {
   const now = at.getTime();
   // Paid transitions clear the pilot window. Retain the organization creation
@@ -38,7 +51,7 @@ export function hasRecordedOrganizationPaidActivation(business: OrganizationPaym
     && (!business.commercialAccessEndsAt || business.commercialAccessEndsAt.getTime() <= now);
   return business.status === "active"
     && business.commercialAccessMode === "paid"
-    && trialCompleted
+    && (organizationPaidContinuationEnabled() || trialCompleted)
     && !!business.stripeCustomerId?.startsWith("cus_")
     && !!business.stripeSubscriptionId?.startsWith("sub_")
     && !!business.stripeLastEventCreatedAt;
@@ -65,6 +78,7 @@ export async function verifyOrganizationRewardfulPayment(
   business: OrganizationPaymentEvidence,
   stripeClient?: Pick<Stripe, "subscriptions" | "invoices">,
 ): Promise<boolean> {
+  if (hasAuthorizedOrganizationRewardfulException(business)) return true;
   if (!hasRecordedOrganizationPaidActivation(business)) return false;
   const key = process.env.STRIPE_SECRET_KEY;
   if (!stripeClient && !key) return false;
@@ -75,6 +89,9 @@ export async function verifyOrganizationRewardfulPayment(
   if (subscription.status !== "active" || customerId !== business.stripeCustomerId
     || (subscription.trial_end != null && subscription.trial_end * 1000 > Date.now())
     || !subscription.latest_invoice) return false;
+  if (organizationPaidContinuationEnabled()
+    && (planFromSubscription(subscription)?.planLookupKey !== "clinical_business_monthly"
+      || subscription.items.data[0]?.quantity !== 1)) return false;
   const invoice = typeof subscription.latest_invoice === "string"
     ? await stripe.invoices.retrieve(subscription.latest_invoice) : subscription.latest_invoice;
   return invoice.status === "paid" && invoice.amount_paid > 0;

@@ -32,6 +32,7 @@ import { organizations } from "../db/schema/organizations";
 import {
   FOUNDING_ORGANIZATION_CAMPAIGN,
   foundingOrganizationPolicyEnabled,
+  organizationPaidRewardfulPolicyEnabled,
   organizationRewardfulCampaignId,
   assertFoundingOrganizationCampaign,
   verifyOrganizationRewardfulPayment,
@@ -700,7 +701,7 @@ router.post("/organization/setup", requireAuth, async (req, res) => {
         code: "REWARDFUL_CONFIGURATION_REQUIRED",
       });
     }
-    if (foundingOrganizationPolicyEnabled()) {
+    if (organizationPaidRewardfulPolicyEnabled()) {
       const [existingPartner] = await db.select().from(partnerRecords)
         .where(partnerRecordScope(workspace.organizationId)).limit(1);
       if (existingPartner?.rewardfulAffiliateId) {
@@ -718,7 +719,7 @@ router.post("/organization/setup", requireAuth, async (req, res) => {
           code: "ORGANIZATION_PAID_ACTIVATION_REQUIRED",
         });
       }
-      assertFoundingOrganizationCampaign(await getRewardfulCampaign(campaignId));
+      if (foundingOrganizationPolicyEnabled()) assertFoundingOrganizationCampaign(await getRewardfulCampaign(campaignId));
     }
     const [claimed] = await db
       .update(userAffiliateAccounts)
@@ -777,9 +778,9 @@ router.post("/organization/setup", requireAuth, async (req, res) => {
         updatedAt: now,
       }).where(and(
         partnerRecordScope(workspace.organizationId),
-        ...(foundingOrganizationPolicyEnabled() ? [isNull(partnerRecords.rewardfulAffiliateId)] : []),
+        ...(organizationPaidRewardfulPolicyEnabled() ? [isNull(partnerRecords.rewardfulAffiliateId)] : []),
       )).returning({ id: partnerRecords.id });
-      if (foundingOrganizationPolicyEnabled() && !savedPartners.length) {
+      if (organizationPaidRewardfulPolicyEnabled() && !savedPartners.length) {
         throw new Error("The organization partner identity changed during setup.");
       }
       await tx.insert(partnerActivityLog).values({

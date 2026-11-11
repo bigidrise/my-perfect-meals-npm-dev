@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { deriveOrganizationPartnerLifecycle } from "../services/organizationPartnerRevenueService";
+jest.mock("../db", () => ({ db: {} }));
 
 const root = process.cwd();
 const read = (file: string) => fs.readFileSync(path.join(root, file), "utf8");
