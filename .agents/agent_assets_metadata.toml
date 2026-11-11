@@ -724,14 +724,14 @@ content_type = "text/html"
 id = "Owo22igYp20ud48nroQTl"
 uri = "file://docs/mobile/ios-meal-reminders-investigation-2026-11-11.md"
 type = "text"
-title = "Native iOS Meal Reminders Investigation"
-description = "Current architecture, July migration and retained-bundle risks, build requirements, and a permission-controlled iPhone verification protocol. Investigation only; native delivery is not declared restored."
+title = "Corrected iOS Reminder Release Findings"
+description = "Reflects the founder-reported Production-fed installed app. Workspace bundled configuration does not prove an Xcode rebuild is required; installed-iOS verification follows an approved Production release."
 logical_id = "0026ac80-7950-4896-99a6-220284155682"
-content_hash = "sha256:77d5aea5a696ca5768312c4ea5d5a7558113eae90c738b529991a990c483264f"
-size = 9785
-mtime_ms = 1794425052586
-storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/0026ac80-7950-4896-99a6-220284155682/fe785e65-0791-4cf1-960e-3ffb60a616f5"
-storage_version_token = "1794425445050133"
+content_hash = "sha256:dc86aea7cd5791f861f93430a41e974149f57e461d46f0f0eb8235662ba49db7"
+size = 11906
+mtime_ms = 1794426931622
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/0026ac80-7950-4896-99a6-220284155682/366f8973-6f92-4865-a9b3-dbf0a9e9d9ef"
+storage_version_token = "1794426973603023"
 content_type = "text/markdown"
 
 [[outputs]]

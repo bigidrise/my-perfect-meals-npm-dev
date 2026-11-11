@@ -1,9 +1,32 @@
 ---
 name: Bundled-first iOS startup
-description: The approved mobile startup architecture and its native-auth transition constraint.
+description: Founder-reported Production-fed installed app versus bundled-first source guidance.
 ---
 
-The production iOS shell must start from Capacitor-packaged web assets rather than a remote `server.url`. Keep a native splash auto-hide deadline as a safety net, while allowing JavaScript to hide it sooner during healthy boot.
+## Installed-app release authority
+
+The founder states: "the iOS app updates based off the production republished
+app." Testing these Development changes on the installed app therefore follows
+the normal reviewed GitHub-to-Production promotion and Production publication.
+Do not infer that an Xcode rebuild is required from workspace configuration.
+
+**Why:** The founder corrected an investigation that extrapolated the retained
+bundled configuration into a conclusion about the installed application's
+update behavior. That installed routing/update mechanism was not independently
+established by the investigation.
+
+**How to apply:** Distinguish founder-reported installed behavior from source
+architecture intent. Require separate release authorization; keep the native
+binary unchanged unless installed-device evidence proves a native change is
+necessary. A Development preview alone cannot verify those changes in this app.
+
+## Bundled-first source architecture guidance
+
+The previously approved source architecture starts the iOS shell from
+Capacitor-packaged web assets rather than a remote `server.url`. This is not
+proof of the installed app's delivery path. Keep a native splash auto-hide
+deadline as a safety net, while allowing JavaScript to hide it sooner during
+healthy boot.
 
 **Why:** A remote initial document makes app startup depend on DNS, network availability, server health, cache state, and JavaScript download before the interface can render. A native splash must never wait indefinitely for JavaScript.
 
@@ -15,7 +38,7 @@ Do not assume the native API origin must equal the primary web domain. An intent
 
 **How to apply:** Establish primary/alias status from deployment metadata, compare read-only release responses, and inspect the deployed resolver before correcting conflicting tests. Preserve routing when that evidence agrees; stop for owner disposition when it does not.
 
-For native regressions, establish the installed binary's packaged web version
+For native regressions, establish the installed build and actual web-asset delivery path
 before attributing behavior to current source or a web release. A retained local
 native bundle is evidence about that artifact, not the founder's installed app.
 
@@ -36,6 +59,7 @@ that every web feature update requires a new native binary.
 withheld native rebuild approval until installed-device evidence establishes
 the notification failure.
 
-**How to apply:** Finish signed-in or real-device Dashboard verification before
-promotion. Gather native reminder evidence read-only and obtain separate
-authorization for native builds or schedule-changing tests.
+**How to apply:** Finish available signed-in Development web verification before
+promotion. Installed iOS verification follows an approved Production publication.
+Gather native reminder evidence read-only and obtain separate authorization for
+native builds or schedule-changing tests.

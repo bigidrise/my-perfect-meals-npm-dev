@@ -134,15 +134,23 @@ the currently installed application contains those plugins.
 
 ## Is a new Xcode/iOS build required?
 
-Both root and retained native config use bundled assets (`webDir: client/dist`)
-without a remote initial `server.url`. No live-update mechanism was identified
-in this reminder path.
+**Correction following the founder's runtime clarification:** the founder states
+that the installed iOS app updates from the republished Production app.
+Development changes must therefore follow the reviewed GitHub-to-Production
+release and Production publication before the founder can check them in that
+installed app.
 
-Therefore **a web Production update alone does not deliver changed reminder
-JavaScript into an existing bundled iOS installation**. If the installed app
-lacks the current restoration code, it needs an explicitly authorized rebuilt,
-synced and distributed iOS app. The source does not currently establish a need
-for new Swift code or a new provider.
+Root and retained native config do use bundled assets (`webDir: client/dist`)
+without a remote initial `server.url`. That observation does **not** establish
+the installed app's loading/update path. The investigation did not independently
+verify that mechanism, and its earlier inference that a web update could not
+deliver the reminder JavaScript was not justified for the installed application.
+
+**A new Xcode build is not established as necessary and is not authorized.**
+Keep the existing native binary and providers unchanged. Verify the installed
+experience after an explicitly approved Production release; seek native-build
+authorization only if subsequent evidence demonstrates a missing native
+capability or another binary-level defect.
 
 If the installed app already has current code and the issue is denied
 permission, Focus, missing enabled settings or no pending requests, a new native
@@ -152,8 +160,9 @@ build may not be necessary. Establish that evidence first.
 
 1. Identify the installed app build and its reminder code/configuration.
 2. Read permission, saved-slot and pending-request state without changing it.
-3. If the restoration layer is missing, package the already existing verified
-   layer rather than rewriting scheduling or switching providers.
+3. Following the founder's stated installed-app update workflow, verify the
+   reviewed Production release before deciding that missing JavaScript requires
+   native packaging. Do not rewrite scheduling or switch providers speculatively.
 4. If legacy-only enabled settings explain the mismatch, design a
    consent-preserving, account-bound migration separately. Never silently
    replace existing server settings or cancel the only working schedule first.
