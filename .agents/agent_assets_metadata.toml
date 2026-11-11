@@ -691,3 +691,17 @@ mtime_ms = 1794354734501
 storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/7e3ecea4-54ed-4bb5-a82d-79a37852e4f6/8a0e5acb-ef27-49a6-b3b0-fa45b97dc3ab"
 storage_version_token = "1794354792374421"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "bF2yFk4TXRGN5DQpfBFhO"
+uri = "file://docs/release-type-gate-investigation.html"
+type = "html"
+title = "Strict release-type gate — root cause and recommended fix"
+description = "Final verified report: exact historical fingerprint reproduced, 10 location-only changes in 6 files, all 109 diagnostics across 62 files, and the smallest proposed correction. No correction implemented."
+logical_id = "089e1409-65f2-4959-b0a0-1faa3fe082e6"
+content_hash = "sha256:6efe556a1f4467150ea120f1733eb0c2376d883535a1de5f4dce8b9e026ab77b"
+size = 49943
+mtime_ms = 1794355557669
+storage_uri = "gcs://replit-rams-assets-riker/rams/assets/repl:379eabec-1527-4de0-99b0-f3d40f5cfdad/089e1409-65f2-4959-b0a0-1faa3fe082e6/bd110b08-c721-49a2-96fc-8d9c1b704331"
+storage_version_token = "1794355558050209"
+content_type = "text/html"
