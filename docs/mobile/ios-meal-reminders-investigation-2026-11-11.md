@@ -22,8 +22,15 @@ Two concrete compatibility/delivery risks are established in source/history:
    retained-artifact mismatch, **not which binary is installed on the founder's
    phone**.
 
-The exact cause on that phone remains unproven. We did not read its installed
-build, permission settings, saved schedules, pending requests or delivery logs.
+The founder subsequently reported that the installed iPhone displays the
+scheduled reminder times correctly. This makes missing displayed settings a
+less likely explanation for that device; it does not establish enabled-switch
+state, native pending requests, permission, or delivery.
+
+The exact cause on that phone remains unproven. We did not directly inspect its
+installed build, permission settings, saved schedules, pending requests or
+delivery logs. Prioritize enabled-state/permission/pending-request evidence
+before assuming migration failure or authorizing a rebuild.
 
 ## Current architecture
 
