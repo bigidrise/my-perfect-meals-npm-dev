@@ -1,4 +1,9 @@
 {
+  "creatorMenuRecovery": {
+    "title": "Votre menu doit être vérifié à nouveau",
+    "checking": "Vérification des choix enregistrés…",
+    "retry": "Revérifier les choix enregistrés"
+  },
   "organizationPaidSuccess": {
     "title": "Votre abonnement professionnel est actif !",
     "linkedDescription": "Votre organisation est désormais active. Votre compte affilié Rewardful est lié : vous pouvez le gérer et continuer à recommander My Perfect Meals à de nouveaux abonnés.",

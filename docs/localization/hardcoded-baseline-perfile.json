@@ -1,10 +1,11 @@
 {
   "generatedAt": "2026-08-15T00:12:54.129Z",
   "note": "Per-file hardcoded-string baseline for ALL ACTIVE client/src/components/ .tsx files (including zero-finding files). Generated from the uncapped audit reports. GATE_08b uses this to detect per-file regressions — any file whose count exceeds its baseline triggers a CI failure. New ACTIVE component files absent from this baseline also trigger a CI failure.",
-  "totalComponentFiles": 451,
+  "totalComponentFiles": 452,
   "totalComponentFilesWithFindings": 249,
   "totalComponentFindings": 2143,
   "files": {
+    "client/src/components/one-touch/CreatorMenuRecovery.tsx": 0,
     "client/src/components/AccountabilityChip.tsx": 2,
     "client/src/components/AllergyConflictModal.tsx": 1,
     "client/src/components/AddOtherItems.tsx": 8,

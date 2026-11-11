@@ -1,4 +1,9 @@
 {
+  "creatorMenuRecovery": {
+    "title": "Thực đơn của bạn cần được kiểm tra lại",
+    "checking": "Đang kiểm tra các lựa chọn đã lưu…",
+    "retry": "Kiểm tra lại các lựa chọn đã lưu"
+  },
   "organizationPaidSuccess": {
     "title": "Gói đăng ký doanh nghiệp của bạn đã được kích hoạt!",
     "linkedDescription": "Tổ chức của bạn hiện đã hoạt động. Tài khoản cộng tác viên Rewardful đã được liên kết, nên bạn có thể quản lý tài khoản và tiếp tục giới thiệu người đăng ký mới đến My Perfect Meals.",

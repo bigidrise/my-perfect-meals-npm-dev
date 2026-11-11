@@ -1,4 +1,9 @@
 {
+  "creatorMenuRecovery": {
+    "title": "メニューの再確認が必要です",
+    "checking": "保存済みの選択肢を確認中…",
+    "retry": "保存済みの選択肢を再確認"
+  },
   "organizationPaidSuccess": {
     "title": "ビジネスサブスクリプションが有効になりました！",
     "linkedDescription": "組織が有効になりました。Rewardful アフィリエイトアカウントが連携されているため、アカウントの管理や My Perfect Meals への新規登録者の紹介を続けられます。",

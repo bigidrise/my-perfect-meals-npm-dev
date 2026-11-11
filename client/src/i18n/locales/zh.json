@@ -1,4 +1,9 @@
 {
+  "creatorMenuRecovery": {
+    "title": "你的菜单需要再次验证",
+    "checking": "正在验证已保存的选项…",
+    "retry": "重新验证已保存的选项"
+  },
   "organizationPaidSuccess": {
     "title": "您的企业订阅已生效！",
     "linkedDescription": "您的组织现已启用。您的 Rewardful 推广账户已关联，您可以管理该账户并继续向新订阅者推荐 My Perfect Meals。",

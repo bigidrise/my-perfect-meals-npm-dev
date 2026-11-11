@@ -1,4 +1,9 @@
 {
+  "creatorMenuRecovery": {
+    "title": "Kailangang suriin muli ang iyong menu",
+    "checking": "Sinusuri ang mga naka-save na pagpipilian…",
+    "retry": "Suriin muli ang mga naka-save na pagpipilian"
+  },
   "organizationPaidSuccess": {
     "title": "Aktibo na ang iyong subscription sa negosyo!",
     "linkedDescription": "Aktibo na ang iyong organisasyon. Naka-link na ang iyong Rewardful affiliate account, kaya maaari mo itong pamahalaan at patuloy na mag-refer ng mga bagong subscriber sa My Perfect Meals.",

@@ -1,4 +1,9 @@
 {
+  "creatorMenuRecovery": {
+    "title": "Your Menu needs another check",
+    "checking": "Checking saved choices…",
+    "retry": "Retry saved choices"
+  },
   "organizationPaidSuccess": {
     "title": "Your Business Subscription Is Active!",
     "linkedDescription": "Your Organization is now active. Your Rewardful affiliate account is linked, so you can manage it and continue referring subscribers to My Perfect Meals.",

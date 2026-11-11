@@ -1,4 +1,9 @@
 {
+  "creatorMenuRecovery": {
+    "title": "Dein Menü muss erneut geprüft werden",
+    "checking": "Gespeicherte Auswahl wird geprüft…",
+    "retry": "Gespeicherte Auswahl erneut prüfen"
+  },
   "organizationPaidSuccess": {
     "title": "Ihr Geschäftsabonnement ist aktiv!",
     "linkedDescription": "Ihre Organisation ist jetzt aktiv. Ihr Rewardful-Partnerkonto ist verknüpft. Sie können es verwalten und weiterhin neue Abonnenten für My Perfect Meals werben.",
