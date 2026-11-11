@@ -1,4 +1,12 @@
 {
+  "organizationPaidSuccess": {
+    "title": "Ihr Geschäftsabonnement ist aktiv!",
+    "linkedDescription": "Ihre Organisation ist jetzt aktiv. Ihr Rewardful-Partnerkonto ist verknüpft. Sie können es verwalten und weiterhin neue Abonnenten für My Perfect Meals werben.",
+    "setupDescription": "Ihre Organisation ist jetzt aktiv. Sie können Ihr Rewardful-Partnerkonto einrichten und neue Abonnenten für My Perfect Meals werben.",
+    "later": "Das erledige ich später",
+    "manage": "Rewardful verwalten",
+    "setup": "Rewardful einrichten"
+  },
   "nav": {
     "dashboard": "Startseite",
     "builders": "Builder",

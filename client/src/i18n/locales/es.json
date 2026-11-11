@@ -1,4 +1,12 @@
 {
+  "organizationPaidSuccess": {
+    "title": "¡Tu suscripción empresarial está activa!",
+    "linkedDescription": "Tu organización ya está activa. Tu cuenta de afiliado de Rewardful está vinculada, por lo que puedes administrarla y seguir recomendando My Perfect Meals a nuevos suscriptores.",
+    "setupDescription": "Tu organización ya está activa. Puedes configurar tu cuenta de afiliado de Rewardful para empezar a recomendar My Perfect Meals a nuevos suscriptores.",
+    "later": "Lo haré más tarde",
+    "manage": "Administrar Rewardful",
+    "setup": "Configurar Rewardful"
+  },
   "nav": {
     "dashboard": "Inicio",
     "builders": "Constructores",

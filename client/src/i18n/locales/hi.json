@@ -1,4 +1,12 @@
 {
+  "organizationPaidSuccess": {
+    "title": "आपकी व्यावसायिक सदस्यता सक्रिय है!",
+    "linkedDescription": "आपका संगठन अब सक्रिय है। आपका Rewardful संबद्ध खाता जुड़ा हुआ है, इसलिए आप उसे प्रबंधित कर सकते हैं और My Perfect Meals के लिए नए ग्राहकों को रेफ़र करना जारी रख सकते हैं।",
+    "setupDescription": "आपका संगठन अब सक्रिय है। My Perfect Meals के लिए नए ग्राहकों को रेफ़र करना शुरू करने के लिए आप अपना Rewardful संबद्ध खाता सेट अप कर सकते हैं।",
+    "later": "मैं यह बाद में करूँगा",
+    "manage": "Rewardful प्रबंधित करें",
+    "setup": "Rewardful सेट अप करें"
+  },
   "nav": {
     "dashboard": "होम",
     "builders": "बिल्डर",

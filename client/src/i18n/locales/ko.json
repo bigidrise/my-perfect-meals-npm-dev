@@ -1,4 +1,12 @@
 {
+  "organizationPaidSuccess": {
+    "title": "비즈니스 구독이 활성화되었습니다!",
+    "linkedDescription": "조직이 활성화되었습니다. Rewardful 제휴 계정이 연결되어 있으므로 계정을 관리하고 My Perfect Meals에 새 구독자를 계속 추천할 수 있습니다.",
+    "setupDescription": "조직이 활성화되었습니다. Rewardful 제휴 계정을 설정하여 My Perfect Meals에 새 구독자를 추천할 수 있습니다.",
+    "later": "나중에 하기",
+    "manage": "Rewardful 관리",
+    "setup": "Rewardful 설정"
+  },
   "nav": {
     "dashboard": "홈",
     "builders": "빌더",

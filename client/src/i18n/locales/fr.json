@@ -1,4 +1,12 @@
 {
+  "organizationPaidSuccess": {
+    "title": "Votre abonnement professionnel est actif !",
+    "linkedDescription": "Votre organisation est désormais active. Votre compte affilié Rewardful est lié : vous pouvez le gérer et continuer à recommander My Perfect Meals à de nouveaux abonnés.",
+    "setupDescription": "Votre organisation est désormais active. Vous pouvez configurer votre compte affilié Rewardful pour commencer à recommander My Perfect Meals à de nouveaux abonnés.",
+    "later": "Je le ferai plus tard",
+    "manage": "Gérer Rewardful",
+    "setup": "Configurer Rewardful"
+  },
   "nav": {
     "dashboard": "Accueil",
     "builders": "Constructeurs",
