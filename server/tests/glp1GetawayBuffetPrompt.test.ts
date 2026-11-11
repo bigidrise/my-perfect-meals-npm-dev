@@ -269,6 +269,7 @@ beforeAll(async () => {
   // Inject authUser (normally set by requireAuth middleware)
   testApp.use((req: any, _res, next) => {
     req.authUser = { id: "test-user-glp1" };
+    req.id = req.get("x-test-request-id");
     next();
   });
   testApp.use("/api/getaway", getawayRouter);
@@ -281,11 +282,11 @@ beforeEach(() => {
   mockResolveGLP1GlobalContext.mockResolvedValue(GLP1_CONTEXT_ACTIVE);
 });
 
-describe("Development Getaway grounding at the actual route boundary", () => {
+describe.each(["development", "production"])("%s Getaway grounding at the actual route boundary", runtime => {
   let previousEnvironment: string | undefined;
   beforeEach(() => {
     previousEnvironment = process.env.NODE_ENV;
-    process.env.NODE_ENV = "development";
+    process.env.NODE_ENV = runtime;
   });
   afterEach(() => {
     process.env.NODE_ENV = previousEnvironment;
@@ -295,7 +296,7 @@ describe("Development Getaway grounding at the actual route boundary", () => {
     envelope.scanGeneratedOutput.mockReturnValue({ passed: true, message: "Passed" });
   });
 
-  test.each(["Marriott Cancun", "The Farmhouse Kitchen and Grill"])(
+  test.each(["Marriott Cancun", "The Farmhouse Kitchen and Grill", "Disneyland Park", "Los Angeles International Airport"])(
     "%s gets unverified ideas, not a model-inferred Disney venue or claimed menu", async name => {
       const res = await request(testApp).post("/api/getaway/coach").send({
         message: `What could I ask about at ${name}?`, discoveredVenue: { name, type: "resort" },
@@ -375,6 +376,28 @@ describe("Development Getaway grounding at the actual route boundary", () => {
     expect(res.body.rejectionReasons).toEqual([]);
   });
 
+  test("an empty Disneyland result has a correlatable, privacy-limited outcome", async () => {
+    mockGetawayResponse = JSON.stringify({ bestChoices: [] });
+    const info = jest.spyOn(console, "info").mockImplementation(() => {});
+    try {
+      const requestId = "00000000-0000-4000-8000-000000000001";
+      const res = await request(testApp).post("/api/getaway/coach")
+        .set("x-test-request-id", requestId)
+        .send({ message: "Help me eat at Disneyland Park", discoveredVenue: { name: "Disneyland Park" } });
+      expect(res.status).toBe(503);
+      expect(res.body.requestId).toBe(requestId);
+      expect(res.body.code).toBe("GETAWAY_NO_CHOICES");
+      const outcome = info.mock.calls.find(call => call[0] === "[Getaway] outcome");
+      expect(outcome).toBeDefined();
+      expect(JSON.parse(outcome![1])).toEqual({
+        requestId, code: "GETAWAY_NO_CHOICES", rejectionCount: 0,
+        availabilityStatus: "no_matches_found", rejectionKinds: [],
+      });
+    } finally {
+      info.mockRestore();
+    }
+  });
+
   test("reports the Whole-Food rejection reason", async () => {
     mockGetawayResponse = JSON.stringify({ bestChoices: [{ name: "Hot dog" }] });
     const res = await request(testApp).post("/api/getaway/coach").send({ message: "Resort food?" });
@@ -432,13 +455,27 @@ describe("Development Getaway grounding at the actual route boundary", () => {
     expect(res.body.bestChoices).toBeUndefined();
   });
 
-  test("Production retains its prior response and prompt contract", async () => {
+  test("a known allergy remains a hard rejection with a specific reason", async () => {
+    jest.requireMock("../services/protocolEnvelope").loadUserProtocolEnvelope.mockResolvedValue({
+      ...MOCK_PROTOCOL_ENVELOPE, allergies: ["peanut"],
+    });
+    mockGetawayResponse = JSON.stringify({ bestChoices: [{ name: "Peanut noodles", why: "Peanut sauce" }] });
+    const res = await request(testApp).post("/api/getaway/coach").send({ message: "Airport food?" });
+    expect(res.status).toBe(503);
+    expect(res.body.rejectionReasons[0].code).toBe("allergy_conflict");
+    expect(res.body.error).toMatch(/peanut/i);
+    expect(res.body.bestChoices).toBeUndefined();
+  });
+
+  test("Production uses approved grounding rather than claiming unverified menus", async () => {
     process.env.NODE_ENV = "production";
     const res = await request(testApp).post("/api/getaway/coach").send({ message: "Resort food?" });
     expect(res.status).toBe(200);
-    expect(res.body.venue).toBe("Disney World");
-    expect(res.body.evidence).toBeUndefined();
-    expect(capturedOpenAICalls[0].messages[0].content).toContain("You know real menus at");
+    expect(res.body.venue).toContain("Location not verified");
+    expect(res.body.evidence).toMatchObject({ menuStatus: "unverified", nutritionStatus: "unverified" });
+    expect(res.body.availability).toBeDefined();
+    expect(capturedOpenAICalls[0].messages[0].content).toContain("No verified menu");
+    expect(capturedOpenAICalls[0].messages[0].content).not.toContain("You know real menus at");
   });
 });
 

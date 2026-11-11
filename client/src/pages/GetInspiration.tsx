@@ -360,7 +360,7 @@ export default function GetInspiration() {
         style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 6rem)" }}
       >
         <div className="flex justify-end mb-4">
-          <HowThisWorksLink featureKey="dailyJournal" label="How It Works" />
+          <HowThisWorksLink featureKey="dailyJournal" labelKey="tutorialControl.howItWorks" />
         </div>
         <div
           role="note"

@@ -7,6 +7,14 @@
     "manage": "Gérer Rewardful",
     "setup": "Configurer Rewardful"
   },
+  "tutorialControl": {
+    "howItWorks": "Comment ça marche",
+    "builderTutorial": "Tutoriel du planificateur",
+    "watchTutorial": "Voir le tutoriel : {{label}}"
+  },
+  "getawayDining": {
+    "venuePlaceholder": "Saisissez un restaurant ou un lieu de restauration à cette destination"
+  },
   "nav": {
     "dashboard": "Accueil",
     "builders": "Constructeurs",

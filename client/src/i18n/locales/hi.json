@@ -7,6 +7,14 @@
     "manage": "Rewardful प्रबंधित करें",
     "setup": "Rewardful सेट अप करें"
   },
+  "tutorialControl": {
+    "howItWorks": "यह कैसे काम करता है",
+    "builderTutorial": "भोजन योजनाकार का ट्यूटोरियल",
+    "watchTutorial": "ट्यूटोरियल देखें: {{label}}"
+  },
+  "getawayDining": {
+    "venuePlaceholder": "इस गंतव्य पर किसी रेस्तराँ या खाने की जगह का नाम दर्ज करें"
+  },
   "nav": {
     "dashboard": "होम",
     "builders": "बिल्डर",

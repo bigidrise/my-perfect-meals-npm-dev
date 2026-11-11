@@ -396,7 +396,7 @@ export default function SavedGroceriesSheet({ open, onOpenChange, onVerifyProduc
             {/* Body */}
             <div style={{ padding: "16px 20px", minHeight: 120 }}>
               <div className="flex justify-end mb-4">
-                <HowThisWorksLink featureKey="savedGroceries" label="How It Works" />
+                <HowThisWorksLink featureKey="savedGroceries" labelKey="tutorialControl.howItWorks" />
               </div>
               {!loading && !error && items.length > 0 && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>

@@ -7,6 +7,14 @@
     "manage": "管理 Rewardful",
     "setup": "设置 Rewardful"
   },
+  "tutorialControl": {
+    "howItWorks": "使用方法",
+    "builderTutorial": "膳食规划器教程",
+    "watchTutorial": "观看教程：{{label}}"
+  },
+  "getawayDining": {
+    "venuePlaceholder": "输入此目的地的餐厅或用餐地点"
+  },
   "nav": {
     "dashboard": "首页",
     "builders": "构建器",
